@@ -1,0 +1,281 @@
+/**
+ * Configuration File Loader
+ * 
+ * Loads and validates .anova.config.yaml or .anova.config.json files
+ * with sensible defaults and priority order: CLI flags > file > defaults
+ */
+
+import fs from 'fs-extra';
+import path from 'path';
+import yaml from 'yaml';
+import { DEFAULT_CONFIG as DEFAULT_MODEL_CONFIG, type Config as ModelConfig } from '@directededges/specs-schema';
+import { CONFIG_DEFAULTS } from './ConfigDefaults.js';
+import type { CLIConfig } from '../Types/CLIConfig.js';
+
+export class ConfigLoader {
+  constructor() {
+    // Config loader with runtime type checking instead of schema validation
+  }
+  
+  /**
+   * Load configuration from file or use defaults
+   * 
+   * @param configPath - Optional explicit config file path
+   * @returns Complete CLI configuration
+   */
+  public load(configPath?: string): CLIConfig {
+    const filePath = configPath || this.findConfigFile();
+    
+    if (!filePath || !fs.existsSync(filePath)) {
+      // No config file, use defaults
+      return this.getDefaultConfig();
+    }
+    
+    try {
+      const raw = fs.readFileSync(filePath, 'utf-8');
+      const parsed = filePath.endsWith('.json') 
+        ? JSON.parse(raw) 
+        : yaml.parse(raw);
+      
+      // Validate and merge with defaults
+      const config = this.validateAndMerge(parsed);
+
+      // Resolve sourceDirectory and outputDirectory relative to config file location
+      const configDir = path.dirname(filePath);
+      if (config.sourceDirectory && !path.isAbsolute(config.sourceDirectory)) {
+        config.sourceDirectory = path.resolve(configDir, config.sourceDirectory);
+      }
+      if (config.outputDirectory && !path.isAbsolute(config.outputDirectory)) {
+        config.outputDirectory = path.resolve(configDir, config.outputDirectory);
+      }
+      
+      return config;
+    } catch (error) {
+      console.error(`Error loading config from ${filePath}:`, error);
+      console.error('Falling back to default configuration');
+      return this.getDefaultConfig();
+    }
+  }
+  
+  /**
+   * Find config file in standard locations
+   * 
+   * Checks in order:
+   * 1. ./.anova.config.yaml
+   * 2. ./.anova.config.json
+   * 3. ~/.anova/config.yaml
+   * 
+   * @returns Path to config file or null if not found
+   */
+  private findConfigFile(): string | null {
+    const locations = [
+      path.join(process.cwd(), '.anova.config.yaml'),
+      path.join(process.cwd(), '.anova.config.json'),
+      path.join(process.env.HOME || '~', '.anova', 'config.yaml'),
+    ];
+    
+    for (const location of locations) {
+      if (fs.existsSync(location)) {
+        return location;
+      }
+    }
+    
+    return null;
+  }
+  
+  /**
+   * Validate and merge config file with defaults
+   */
+  private validateAndMerge(parsed: unknown): CLIConfig {
+    const config: CLIConfig = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      sourceDirectory: (parsed as any)?.sourceDirectory,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      outputDirectory: (parsed as any)?.outputDirectory,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      author: (parsed as any)?.author,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      model: this.mergeModelConfig((parsed as any)?.model),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      output: this.mergeOutputConfig((parsed as any)?.output),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      sources: (parsed as any)?.sources,
+    };
+    
+    return config;
+  }
+  
+  /**
+   * Merge model config from file with defaults
+   */
+  private mergeModelConfig(fileModel: unknown): ModelConfig {
+    if (!fileModel) {
+      return DEFAULT_MODEL_CONFIG;
+    }
+    
+    // Deep merge user config over defaults
+    const merged = this.deepMerge(DEFAULT_MODEL_CONFIG, fileModel as Partial<ModelConfig>);
+    
+    // Validate and correct merged config, replacing invalid values with defaults
+    return this.validateAndCorrectModelConfig(merged);
+  }
+
+  /**
+   * Validate and correct model config, replacing invalid values with defaults
+   */
+  private validateAndCorrectModelConfig(config: ModelConfig): ModelConfig {
+    const corrected = JSON.parse(JSON.stringify(config)) as ModelConfig;
+    
+    // Valid processing options
+    const validVariantDepths = [1, 2, 3, 9999];
+    const validDetails = ['FULL', 'LAYERED'];
+    
+    // Validate processing
+    if (!validVariantDepths.includes(corrected.processing.variantDepth)) {
+      corrected.processing.variantDepth = DEFAULT_MODEL_CONFIG.processing.variantDepth;
+    }
+    if (!validDetails.includes(corrected.processing.details)) {
+      corrected.processing.details = DEFAULT_MODEL_CONFIG.processing.details;
+    }
+    if (corrected.processing.glyphNamePattern !== undefined
+        && (typeof corrected.processing.glyphNamePattern !== 'string'
+            || corrected.processing.glyphNamePattern.trim() === '')) {
+      delete corrected.processing.glyphNamePattern;
+    }
+    if (corrected.processing.codeOnlyPropsPattern !== undefined
+        && (typeof corrected.processing.codeOnlyPropsPattern !== 'string'
+            || corrected.processing.codeOnlyPropsPattern.trim() === '')) {
+      delete corrected.processing.codeOnlyPropsPattern;
+    }
+    if (corrected.processing.slotConstraints !== undefined
+        && typeof corrected.processing.slotConstraints !== 'boolean') {
+      delete corrected.processing.slotConstraints;
+    }
+    if (corrected.processing.inferNumberProps !== undefined
+        && typeof corrected.processing.inferNumberProps !== 'boolean') {
+      delete corrected.processing.inferNumberProps;
+    }
+
+    // Validate processing.subcomponents
+    if (corrected.processing.subcomponents !== undefined) {
+      const subs = corrected.processing.subcomponents;
+      const validScopes = ['NESTED', 'PAGE'];
+      if (subs.scope !== undefined && !validScopes.includes(subs.scope)) {
+        subs.scope = 'NESTED';
+      }
+      if (!Array.isArray(subs.match) || subs.match.length === 0) {
+        console.warn('Invalid processing.subcomponents.match: must be a non-empty array of strings. Removing subcomponents config.');
+        delete corrected.processing.subcomponents;
+      } else if (subs.exclude !== undefined && !Array.isArray(subs.exclude)) {
+        delete subs.exclude;
+      }
+    }
+
+    // Valid format options
+    const validKeys = ['SAFE', 'CAMEL', 'SNAKE', 'KEBAB', 'PASCAL', 'TRAIN'];
+    const validOutputs = ['JSON', 'YAML'];
+    const validLayouts = ['LAYOUT', 'PARENT_CHILDREN', 'BOTH'];
+    const validTokens = ['TOKEN', 'TOKEN_NAME', 'TOKEN_FIGMA_EXTENSIONS', 'FIGMA_NAME', 'CUSTOM'];
+    
+    // Validate format
+    if (!validKeys.includes(corrected.format.keys)) {
+      corrected.format.keys = DEFAULT_MODEL_CONFIG.format.keys;
+    }
+    if (!validOutputs.includes(corrected.format.output)) {
+      corrected.format.output = DEFAULT_MODEL_CONFIG.format.output;
+    }
+    if (!validLayouts.includes(corrected.format.layout)) {
+      corrected.format.layout = DEFAULT_MODEL_CONFIG.format.layout;
+    }
+    if (corrected.format.tokens && !validTokens.includes(corrected.format.tokens)) {
+      corrected.format.tokens = DEFAULT_MODEL_CONFIG.format.tokens;
+    }
+
+    // Strip EOLed include properties — subcomponent inclusion is now
+    // controlled by the presence of processing.subcomponents
+    const validIncludeKeys = new Set(['variantNames', 'invalidVariants', 'invalidCombinations']);
+    for (const key of Object.keys(corrected.include)) {
+      if (!validIncludeKeys.has(key)) {
+        delete (corrected.include as Record<string, unknown>)[key];
+      }
+    }
+
+    return corrected;
+  }
+
+  /**
+   * Merge output config from file with defaults
+   */
+  private mergeOutputConfig(fileOutput: unknown): import('../Types/OutputConfig.js').OutputConfig {
+    if (!fileOutput) {
+      return CONFIG_DEFAULTS.output;
+    }
+    
+    // Validate types and provide warnings for invalid values
+    const output = fileOutput as Record<string, unknown>;
+    const result = { ...CONFIG_DEFAULTS.output };
+    
+    if (typeof output.splitComponents === 'boolean') {
+      result.splitComponents = output.splitComponents;
+    } else if (output.splitComponents !== undefined) {
+      console.warn(`Invalid output.splitComponents: expected boolean, got ${typeof output.splitComponents}. Using default: false`);
+    }
+    
+    if (typeof output.splitConcerns === 'boolean') {
+      result.splitConcerns = output.splitConcerns;
+    } else if (output.splitConcerns !== undefined) {
+      console.warn(`Invalid output.splitConcerns: expected boolean, got ${typeof output.splitConcerns}. Using default: false`);
+    }
+    
+    if (typeof output.useSubfolders === 'boolean') {
+      result.useSubfolders = output.useSubfolders;
+    } else if (output.useSubfolders !== undefined) {
+      console.warn(`Invalid output.useSubfolders: expected boolean, got ${typeof output.useSubfolders}. Using default: false`);
+    }
+    
+    if (output.defaultFormat === 'yaml') {
+      result.defaultFormat = output.defaultFormat;
+    } else if (output.defaultFormat !== undefined) {
+      console.warn(`Invalid output.defaultFormat: expected 'yaml', got ${output.defaultFormat}. Using default: 'yaml'`);
+    }
+    
+    return result;
+  }
+  
+  /**
+   * Deep merge two objects, with source overriding target
+   */
+  private deepMerge<T>(target: T, source: Partial<T>): T {
+    if (!source || typeof source !== 'object') {
+      return target;
+    }
+    
+    const result = { ...target };
+    
+    for (const key in source) {
+      if (source[key] !== undefined) {
+        const sourceValue = source[key];
+        if (sourceValue && typeof sourceValue === 'object' && !Array.isArray(sourceValue)) {
+          // @ts-expect-error - Deep merge recursive type inference limitation
+          result[key] = this.deepMerge(result[key] || {}, sourceValue);
+        } else {
+          // @ts-expect-error - Partial<T>[key] assignable to T[key] after undefined check
+          result[key] = sourceValue;
+        }
+      }
+    }
+    
+    return result;
+  }
+  
+  /**
+   * Get default configuration with convention-based defaults
+   */
+  private getDefaultConfig(): CLIConfig {
+    return {
+      sourceDirectory: path.resolve(CONFIG_DEFAULTS.sourceDirectory),
+      outputDirectory: path.resolve(CONFIG_DEFAULTS.outputDirectory),
+      model: DEFAULT_MODEL_CONFIG,
+    };
+  }
+}

@@ -1,0 +1,172 @@
+# Anova CLI Documentation
+
+The Anova command-line interface (CLI) enables automated generation of design system specifications from Figma REST API data without requiring the Figma Plugin UI.
+
+## Overview
+
+The CLI provides four main commands for processing Figma design data:
+- **`init`** - Create a default `.anova.config.yaml`
+- **`fetch`** - Download raw REST payloads (file, variables, styles) for one or more Figma files
+- **`generate`** - Generate specifications from a manifest or single component
+- **`audit`** - Scan a Figma file and create a manifest of all components
+
+These tools enable automation, batch processing, and integration into CI/CD pipelines.
+
+## Free vs. Pro
+
+Anova CLI works without a license key. At the **free tier**, specs include full component structure: anatomy, props, variants, and raw style values.
+
+With a **Pro license**, specs also include design token references, variable bindings, and visibility bindings — connecting your specs directly to your design token system.
+
+| Feature | Free | Pro |
+|---------|------|-----|
+| Anatomy, props, variants | Yes | Yes |
+| Layout and raw style values | Yes | Yes |
+| Design token references | — | Yes |
+| Variable and visibility bindings | — | Yes |
+
+Set up your license key in your environment to unlock Pro features. See [Getting Started — License](./getting-started.md#step-3-set-your-license-key-optional).
+
+## Key Features
+
+### Multiple Output Modes
+Generate specs as single files, per-component files, or split by concern (API vs variants) to fit your workflow. See [generate command](./commands/generate.md) for details.
+
+### Manifest-Based Generation
+Process entire design systems at once using a curated manifest:
+```bash
+# 0. Fetch raw payloads
+anova fetch --verbose
+
+# 1. Create manifest
+anova audit data/library.file.json -o components.md
+
+# 2. Curate manifest (edit components.md)
+
+# 3. Generate all specs
+# Single file (default)
+anova generate components.md -o specs/all.yaml
+
+# Per-component files
+anova generate components.md -o specs/ --split-components
+
+# Separate API from variants
+anova generate components.md -o specs/ --split-concerns
+```
+
+### Single Component Generation
+Quickly generate a spec for one component when setting up or iterating:
+```bash
+anova fetch --verbose
+anova generate data/library.file.json -c "Button" -o specs/button.yaml
+```
+
+### Flexible Configuration
+Configure behavior via `.anova.config.yaml`:
+```yaml
+sourceDirectory: ./data
+outputDirectory: ./specs
+
+sources:
+  library:
+    key: REPLACE_WITH_LIBRARY_FILE_KEY
+    data: ['file','variables','styles']
+  foundations:
+    key: REPLACE_WITH_FOUNDATIONS_FILE_KEY
+    data: ['variables','styles']
+
+model:
+  processing:
+    variantDepth: 2
+    details: FULL
+  format:
+    output: YAML
+    keys: CAMEL
+  include:
+    variantNames: true
+```
+
+### CI/CD Integration
+Automate spec generation in your build pipeline with GitHub Actions, GitLab CI, or other automation tools.
+
+## Documentation
+
+### [Getting Started](./getting-started.md)
+Installation, prerequisites, license setup, and quick start guide
+
+### [Configuration](./configuration.md)
+Configure model behavior and data sources with `.anova.config.yaml`
+
+### [Commands Reference](./commands/)
+Complete command reference for `init`, `fetch`, `generate`, and `audit`
+
+### [Examples](./examples.md)
+Real-world usage examples and workflows
+
+## Quick Example
+
+```bash
+# Fetch raw payloads (writes into sourceDirectory)
+anova fetch --verbose
+
+# Generate a single component spec
+anova generate data/library.file.json \
+  -c "DS Button" \
+  --output specs/button.yaml
+
+# Or generate from a manifest for multiple components
+anova audit data/library.file.json -o components.md
+anova generate components.md -o specs/design-system.yaml
+```
+
+## Output Format
+
+The CLI generates the same specification format as the Figma Plugin:
+
+```yaml
+components:
+  dsButton:
+    title: DS Button
+    props:
+      size:
+        type: variant
+        values: [small, medium, large]
+      variant:
+        type: variant
+        values: [primary, secondary]
+    anatomy:
+      - id: container
+        name: Container
+        type: FRAME
+      - id: label
+        name: Label
+        type: TEXT
+    variants:
+      - props:
+          size: small
+          variant: primary
+        anatomy:
+          container:
+            styles:
+              paddingLeft: { value: 12, type: ABSOLUTE }
+```
+
+## Requirements
+
+- **Node.js** 18 or higher
+- **Figma access token** (for `fetch`) via `FIGMA_TOKEN`
+- **Figma REST API data** (JSON files from Figma API endpoints, produced by `fetch`)
+- **License key** (optional) via `ANOVA_LICENSE_KEY` for Pro features
+
+See [Getting Started](./getting-started.md) for installation instructions.
+
+## See Also
+
+- [Getting Started](./getting-started.md) - Installation, license, and quick start
+- [Configuration](./configuration.md) - Config file reference
+- [Commands Reference](./commands/) - Detailed command docs
+- [Examples](./examples.md) - Real-world usage patterns
+
+---
+
+**Last Updated**: March 2026

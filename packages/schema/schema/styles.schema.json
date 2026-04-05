@@ -1,0 +1,638 @@
+{
+  "version": "0.12.0",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/DirectedEdges/anova/main/schema/styles.schema.json",
+  "title": "Anova Styles Schema",
+  "description": "JSON Schema for style properties emitted by the Anova Figma plugin",
+  "$comment": "Copyright (c) 2025 Directed Edges. Licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Attribution required.",
+  "definitions": {
+    "Styles": {
+      "type": "object",
+      "description": "Collection of style properties emitted by Styles.data(). Each property value depends on its type and config.format.tokens setting. Applicable properties vary by element type.",
+      "properties": {
+        "rotation": { "$ref": "#/definitions/NumberStyleValue", "description": "Rotation in degrees" },
+        "visible": { "$ref": "#/definitions/BooleanBindableStyleValue", "description": "Visibility. Can be bound to component prop." },
+        "opacity": { "$ref": "#/definitions/NumberStyleValue", "description": "Opacity 0-1" },
+        "locked": { "$ref": "#/definitions/BooleanStyleValue", "description": "Lock state" },
+        "backgroundColor": { "$ref": "#/definitions/ColorStyleValue", "description": "Background fill color. Present on all non-text element types. Represented in Figma as fills." },
+        "fillColor": { "$ref": "#/definitions/ColorStyleValue", "description": "Glyph fill color. Present on GLYPH element type only. Represented in Figma as fills." },
+        "textColor": { "$ref": "#/definitions/ColorStyleValue", "description": "Text fill color. Present on TEXT element type only. Represented in Figma as fills." },
+        "effects": { "$ref": "#/definitions/EffectsStyleValue", "description": "Effect output. TokenReference when the node references a named effects style; Effects when effects are defined inline. Replaces effectStyleId." },
+        "clipContent": { "$ref": "#/definitions/BooleanStyleValue", "description": "Clip content" },
+        "cornerRadius": { "$ref": "#/definitions/CornersStyleValue", "description": "Corner radius. Scalar when uniform; Corners object when per-corner values differ." },
+        "width": { "$ref": "#/definitions/NumberStyleValue", "description": "Width in pixels" },
+        "height": { "$ref": "#/definitions/NumberStyleValue", "description": "Height in pixels" },
+        "minWidth": { "$ref": "#/definitions/NumberStyleValue", "description": "Minimum width" },
+        "minHeight": { "$ref": "#/definitions/NumberStyleValue", "description": "Minimum height" },
+        "maxWidth": { "$ref": "#/definitions/NumberStyleValue", "description": "Maximum width" },
+        "maxHeight": { "$ref": "#/definitions/NumberStyleValue", "description": "Maximum height" },
+        "x": { "$ref": "#/definitions/NumberStyleValue", "description": "X position" },
+        "y": { "$ref": "#/definitions/NumberStyleValue", "description": "Y position" },
+        "layoutPositioning": { "$ref": "#/definitions/StringStyleValue", "description": "Layout positioning mode" },
+        "layoutSizingHorizontal": { "$ref": "#/definitions/StringStyleValue", "description": "Horizontal sizing mode" },
+        "layoutSizingVertical": { "$ref": "#/definitions/StringStyleValue", "description": "Vertical sizing mode" },
+        "strokes": { "$ref": "#/definitions/ColorStyleValue", "description": "Stroke colors" },
+        "strokeAlign": { "$ref": "#/definitions/MixedStringStyleValue", "description": "Stroke alignment" },
+        "strokeWeight": { "$ref": "#/definitions/SidesStyleValue", "description": "Stroke weight. Scalar when uniform; Sides object when per-side values differ." },
+        "typography": { "$ref": "#/definitions/TypographyStyleValue", "description": "Typography properties. TokenReference when the node references a named text style; Typography when defined inline." },
+        "textAlignHorizontal": { "$ref": "#/definitions/StringStyleValue", "description": "Horizontal text alignment" },
+        "textAlignVertical": { "$ref": "#/definitions/StringStyleValue", "description": "Vertical text alignment" },
+        "primaryAxisAlignItems": { "$ref": "#/definitions/StringStyleValue", "description": "Primary axis item alignment" },
+        "primaryAxisSizingMode": { "$ref": "#/definitions/StringStyleValue", "description": "Primary axis sizing mode" },
+        "counterAxisAlignItems": { "$ref": "#/definitions/StringStyleValue", "description": "Counter axis item alignment" },
+        "counterAxisAlignContent": { "$ref": "#/definitions/StringStyleValue", "description": "Counter axis content alignment" },
+        "layoutMode": { "$ref": "#/definitions/StringStyleValue", "description": "Layout mode" },
+        "layoutWrap": { "$ref": "#/definitions/StringStyleValue", "description": "Layout wrap mode" },
+        "itemReverseZIndex": { "$ref": "#/definitions/BooleanStyleValue", "description": "Reverse z-index stacking" },
+        "itemSpacing": { "$ref": "#/definitions/NumberStyleValue", "description": "Item spacing" },
+        "padding": { "$ref": "#/definitions/SidesStyleValue", "description": "Padding. Scalar when uniform; Sides object when per-side values differ." },
+        "counterAxisSpacing": { "$ref": "#/definitions/NumberStyleValue", "description": "Counter axis spacing" },
+        "cornerSmoothing": { "$ref": "#/definitions/NumberStyleValue", "description": "Degree of corner smoothing (0 = standard circular corners, 1 = fully smooth iOS-style squircle). Applies to FRAME, COMPONENT, RECTANGLE, POLYGON, STAR, VECTOR, and ELLIPSE element types." },
+        "aspectRatio": { "$ref": "#/definitions/AspectRatioStyleValue", "description": "Aspect ratio constraint. Present only when the node has a locked ratio; omitted otherwise." }
+      },
+      "additionalProperties": false
+    },
+    "AspectRatioValue": {
+      "type": "object",
+      "description": "Aspect ratio expressed as a numerator/denominator pair. `x` is the numerator, `y` is the denominator (e.g. x:16, y:9 for 16:9).",
+      "properties": {
+        "x": { "type": "number", "description": "Ratio numerator (e.g. 16 for 16:9)" },
+        "y": { "type": "number", "description": "Ratio denominator (e.g. 9 for 16:9)" }
+      },
+      "required": ["x", "y"],
+      "additionalProperties": false
+    },
+    "AspectRatioStyleValue": {
+      "description": "Aspect ratio value. Object pair when the node has a locked ratio; null when no constraint is active. TokenReference is intentionally excluded — aspect ratio is a structural lock of literal numbers in the Figma API.",
+      "oneOf": [
+        { "$ref": "#/definitions/AspectRatioValue" },
+        { "type": "null" }
+      ]
+    },
+    "NumberStyleValue": {
+      "description": "Pure number style value (from NumberStyle processor)",
+      "oneOf": [
+        { "type": "number" },
+        { "$ref": "#/definitions/TokenReference" },
+        { "type": "null" }
+      ]
+    },
+    "BooleanStyleValue": {
+      "description": "Boolean style value (from BooleanStyle processor)",
+      "oneOf": [
+        { "type": "boolean" },
+        { "$ref": "#/definitions/TokenReference" },
+        { "type": "null" }
+      ]
+    },
+    "BooleanBindableStyleValue": {
+      "description": "Boolean style value that can be bound to props or conditional expressions (visible only)",
+      "oneOf": [
+        { "type": "boolean" },
+        { "$ref": "#/definitions/TokenReference" },
+        { "$ref": "#/definitions/PropBinding" },
+        { "$ref": "#/definitions/Conditional" },
+        { "type": "null" }
+      ]
+    },
+    "GradientCenter": {
+      "type": "object",
+      "description": "Normalised 2-D centre point used by RADIAL and ANGULAR gradient variants. Both axes are in the range 0–1 relative to the fill bounding box.",
+      "properties": {
+        "x": { "type": "number", "minimum": 0, "maximum": 1, "description": "Horizontal centre position, normalised 0–1" },
+        "y": { "type": "number", "minimum": 0, "maximum": 1, "description": "Vertical centre position, normalised 0–1" }
+      },
+      "required": ["x", "y"],
+      "additionalProperties": false
+    },
+    "GradientStop": {
+      "type": "object",
+      "description": "A single stop in a gradient definition.",
+      "properties": {
+        "position": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Stop position along the gradient vector, normalised 0–1"
+        },
+        "color": {
+          "oneOf": [
+            { "type": "string", "description": "Stop color as hex or rgba string" },
+            { "$ref": "#/definitions/TokenReference", "description": "Stop color as a token reference" }
+          ]
+        }
+      },
+      "required": ["position", "color"],
+      "additionalProperties": false
+    },
+    "LinearGradient": {
+      "type": "object",
+      "description": "A linear gradient defined by an angle and two or more colour stops. Maps to linear-gradient() (CSS) or LinearGradient (SwiftUI / Compose).",
+      "properties": {
+        "type": { "type": "string", "const": "LINEAR", "description": "Discriminant" },
+        "angle": { "type": "number", "description": "Angle of the gradient line, in degrees" },
+        "stops": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/GradientStop" },
+          "minItems": 2,
+          "description": "Ordered list of colour stops"
+        }
+      },
+      "required": ["type", "angle", "stops"],
+      "additionalProperties": false
+    },
+    "RadialGradient": {
+      "type": "object",
+      "description": "A radial gradient defined by a centre point and two or more colour stops. Maps to radial-gradient() (CSS) or RadialGradient (SwiftUI / Compose).",
+      "properties": {
+        "type": { "type": "string", "const": "RADIAL", "description": "Discriminant" },
+        "center": { "$ref": "#/definitions/GradientCenter", "description": "Normalised centre point of the gradient ellipse" },
+        "stops": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/GradientStop" },
+          "minItems": 2,
+          "description": "Ordered list of colour stops"
+        }
+      },
+      "required": ["type", "center", "stops"],
+      "additionalProperties": false
+    },
+    "AngularGradient": {
+      "type": "object",
+      "description": "An angular (conic) gradient defined by a centre point and two or more colour stops. Maps to conic-gradient() (CSS) or AngularGradient (SwiftUI / Compose).",
+      "properties": {
+        "type": { "type": "string", "const": "ANGULAR", "description": "Discriminant" },
+        "center": { "$ref": "#/definitions/GradientCenter", "description": "Normalised centre point of the gradient sweep" },
+        "stops": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/GradientStop" },
+          "minItems": 2,
+          "description": "Ordered list of colour stops"
+        }
+      },
+      "required": ["type", "center", "stops"],
+      "additionalProperties": false
+    },
+    "GradientValue": {
+      "description": "A discriminated union of the three supported cross-platform gradient types (LINEAR, RADIAL, ANGULAR). The `type` field is the discriminant. DIAMOND is intentionally excluded.",
+      "oneOf": [
+        { "$ref": "#/definitions/LinearGradient" },
+        { "$ref": "#/definitions/RadialGradient" },
+        { "$ref": "#/definitions/AngularGradient" }
+      ]
+    },
+    "ColorValue": {
+      "type": "object",
+      "description": "Inline resolved color value per DTCG Color Module \u00a74.1. `colorSpace` and `components` are required; `alpha` defaults to 1 (fully opaque) when omitted; `hex` is an optional 6-digit sRGB fallback (#RRGGBB \u2014 no alpha channel in hex). Consumers SHOULD prefer `colorSpace` + `components` for rendering.",
+      "properties": {
+        "colorSpace": {
+          "type": "string",
+          "enum": [
+            "srgb", "srgb-linear", "hsl", "hwb",
+            "lab", "lch", "oklab", "oklch",
+            "display-p3", "a98-rgb", "prophoto-rgb", "rec2020",
+            "xyz-d65", "xyz-d50"
+          ],
+          "description": "Color space identifier per DTCG Color \u00a74.2 (e.g. 'srgb', 'oklch', 'display-p3')."
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "type": "number" },
+              { "type": "string", "const": "none" }
+            ]
+          },
+          "minItems": 3,
+          "description": "Ordered component values (number or 'none' keyword) for the given colorSpace. The number of components and their ranges depend on the colorSpace per DTCG Color \u00a74.2."
+        },
+        "alpha": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Alpha channel 0\u20131. Defaults to 1 (fully opaque) when omitted."
+        },
+        "hex": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "description": "Optional 6-digit sRGB fallback (#RRGGBB). Alpha is excluded per DTCG Color \u00a74.1. Consumers SHOULD prefer colorSpace + components for rendering."
+        }
+      },
+      "required": ["colorSpace", "components"],
+      "additionalProperties": false
+    },
+    "ColorStyleValue": {
+      "description": "Color style value. Covers inline resolved color (DTCG Color \u00a74.1 object), token reference, inline gradient, bare hex string, or null.",
+      "oneOf": [
+        { "$ref": "#/definitions/ColorValue", "description": "Inline resolved color value with colorSpace, components, optional alpha, and optional 6-digit hex fallback." },
+        { "$ref": "#/definitions/TokenReference" },
+        { "$ref": "#/definitions/GradientValue" },
+        { "type": "string", "description": "Bare hex string (e.g. '#666E74') or hex-with-opacity (e.g. '#0E1114, 50%') for untokenized colors" },
+        { "type": "null" }
+      ]
+    },
+    "StringStyleValue": {
+      "description": "Pure string style value (from StringStyle processor)",
+      "oneOf": [
+        { "type": "string" },
+        { "$ref": "#/definitions/TokenReference" },
+        { "type": "null" }
+      ]
+    },
+    "MixedNumberStyleValue": {
+      "description": "Numeric style that can have 'mixed' value (from MixedStyle processor)",
+      "oneOf": [
+        { "type": "number" },
+        { "type": "string", "const": "mixed" },
+        { "$ref": "#/definitions/TokenReference" },
+        { "type": "null" }
+      ]
+    },
+    "MixedStringStyleValue": {
+      "description": "String style that can have 'mixed' value (from MixedStyle processor)",
+      "oneOf": [
+        { "type": "string" },
+        { "$ref": "#/definitions/TokenReference" },
+        { "type": "null" }
+      ]
+    },
+    "StrokeStyleValue": {
+      "description": "Stroke weight value (from StrokeStyle processor)",
+      "oneOf": [
+        { "type": "number" },
+        { "type": "string", "const": "mixed" },
+        { "$ref": "#/definitions/TokenReference" },
+        { "type": "null" }
+      ]
+    },
+    "CornerStyleValue": {
+      "description": "Corner radius value (from CornerStyle processor)",
+      "oneOf": [
+        { "type": "number" },
+        { "type": "string", "const": "mixed" },
+        { "$ref": "#/definitions/TokenReference" },
+        { "type": "null" }
+      ]
+    },
+    "Sides": {
+      "type": "object",
+      "description": "Per-side values using logical inline-axis directions (start/end). Used for padding and strokeWeight when sides differ.",
+      "properties": {
+        "top": { "$ref": "#/definitions/NumberStyleValue", "description": "Block-start (top) value" },
+        "end": { "$ref": "#/definitions/NumberStyleValue", "description": "Inline-end value (right in LTR, left in RTL)" },
+        "bottom": { "$ref": "#/definitions/NumberStyleValue", "description": "Block-end (bottom) value" },
+        "start": { "$ref": "#/definitions/NumberStyleValue", "description": "Inline-start value (left in LTR, right in RTL)" }
+      },
+      "additionalProperties": false
+    },
+    "Corners": {
+      "type": "object",
+      "description": "Per-corner values using logical inline-axis directions (topStart/topEnd/bottomStart/bottomEnd). Used for cornerRadius when corners differ.",
+      "properties": {
+        "topStart": { "$ref": "#/definitions/NumberStyleValue", "description": "Top-start corner (top-left in LTR, top-right in RTL)" },
+        "topEnd": { "$ref": "#/definitions/NumberStyleValue", "description": "Top-end corner (top-right in LTR, top-left in RTL)" },
+        "bottomEnd": { "$ref": "#/definitions/NumberStyleValue", "description": "Bottom-end corner (bottom-right in LTR, bottom-left in RTL)" },
+        "bottomStart": { "$ref": "#/definitions/NumberStyleValue", "description": "Bottom-start corner (bottom-left in LTR, bottom-right in RTL)" }
+      },
+      "additionalProperties": false
+    },
+    "SidesStyleValue": {
+      "description": "Sides style value. Scalar number when uniform; Sides object when per-side values differ; TokenReference for token binding; null when absent.",
+      "oneOf": [
+        { "type": "number" },
+        { "$ref": "#/definitions/Sides" },
+        { "$ref": "#/definitions/TokenReference" },
+        { "type": "null" }
+      ]
+    },
+    "CornersStyleValue": {
+      "description": "Corners style value. Scalar number when uniform; Corners object when per-corner values differ; TokenReference for token binding; null when absent.",
+      "oneOf": [
+        { "type": "number" },
+        { "$ref": "#/definitions/Corners" },
+        { "$ref": "#/definitions/TokenReference" },
+        { "type": "null" }
+      ]
+    },
+    "FontStyleValue": {
+      "description": "Font family/weight value (from FontStyle processor)",
+      "oneOf": [
+        { "type": "string" },
+        { "type": "number", "description": "Font weight numeric value" },
+        { "type": "string", "const": "mixed" },
+        { "type": "null" }
+      ]
+    },
+    "LineHeightStyleValue": {
+      "description": "Line height value (from LineHeightStyle processor)",
+      "oneOf": [
+        { "type": "string", "description": "Percentage (e.g., '150%') or 'auto'" },
+        { "type": "number", "description": "Pixel value" },
+        { "$ref": "#/definitions/TokenReference" },
+        { "type": "null" }
+      ]
+    },
+    "StyleIdValue": {
+      "description": "Style ID reference (textStyleId; removed from Styles in v0.11.0 — retained for historical reference only)",
+      "oneOf": [
+        { "type": "string", "description": "Style ID string" },
+        { "type": "null" }
+      ]
+    },
+    "Shadow": {
+      "type": "object",
+      "description": "A single evaluated shadow. inset distinguishes drop (absent/false) from inner (true). Field names align with the DTCG Format Module shadow token.",
+      "properties": {
+        "visible": { "type": "boolean", "description": "Whether this shadow is active" },
+        "inset": { "type": "boolean", "description": "true for inner shadow; absent or false for drop shadow (DTCG)" },
+        "offsetX": { "oneOf": [{ "type": "number" }, { "$ref": "#/definitions/TokenReference" }], "description": "Horizontal offset in pixels (DTCG)" },
+        "offsetY": { "oneOf": [{ "type": "number" }, { "$ref": "#/definitions/TokenReference" }], "description": "Vertical offset in pixels (DTCG)" },
+        "blur": { "oneOf": [{ "type": "number" }, { "$ref": "#/definitions/TokenReference" }], "description": "Blur radius in pixels" },
+        "spread": { "oneOf": [{ "type": "number" }, { "$ref": "#/definitions/TokenReference" }], "description": "Spread radius in pixels" },
+        "color": { "oneOf": [{ "type": "string", "description": "#RRGGBBAA hex string" }, { "$ref": "#/definitions/TokenReference" }], "description": "Shadow color" }
+      },
+      "required": ["visible", "offsetX", "offsetY", "blur", "spread", "color"],
+      "additionalProperties": false
+    },
+    "Blur": {
+      "type": "object",
+      "description": "A single evaluated blur effect. Singular per type; the containing key (layerBlur vs backgroundBlur) determines render role.",
+      "properties": {
+        "visible": { "type": "boolean", "description": "Whether this blur is active" },
+        "radius": { "oneOf": [{ "type": "number" }, { "$ref": "#/definitions/TokenReference" }], "description": "Blur radius in pixels" }
+      },
+      "required": ["visible", "radius"],
+      "additionalProperties": false
+    },
+    "Effects": {
+      "type": "object",
+      "description": "Inline effects grouped by role. Each key is optional; a key is omitted when no effects of that type are present on the node.",
+      "properties": {
+        "shadows": { "type": "array", "items": { "$ref": "#/definitions/Shadow" }, "description": "Ordered list of shadows; Shadow.inset distinguishes drop (absent/false) vs inner (true)" },
+        "layerBlur": { "$ref": "#/definitions/Blur", "description": "Layer blur (filter effect on the node itself)" },
+        "backgroundBlur": { "$ref": "#/definitions/Blur", "description": "Background blur (backdrop filter)" }
+      },
+      "additionalProperties": false
+    },
+    "EffectsStyleValue": {
+      "description": "Effect value. TokenReference when the node references a named effects style; Effects when effects are defined inline.",
+      "oneOf": [
+        { "$ref": "#/definitions/TokenReference", "description": "Named effects style reference ($type: \"effects\")" },
+        { "$ref": "#/definitions/Effects", "description": "Inline effects grouped by role" },
+        { "type": "null" }
+      ]
+    },
+    "PropBinding": {
+      "type": "object",
+      "description": "A component-prop binding. Emitted when a property is bound to a Figma component property. Discriminated by $binding to avoid JSON Schema $ref keyword collision.",
+      "properties": {
+        "$binding": {
+          "type": "string",
+          "description": "JSON Pointer to the bound prop within this spec's props block, e.g. '#/props/propName'"
+        }
+      },
+      "required": ["$binding"],
+      "additionalProperties": false
+    },
+    "ConditionArgs": {
+      "type": "object",
+      "description": "Arguments for a condition expression. value is the prop binding to test; compareTo is the operand for binary operations.",
+      "properties": {
+        "value": {
+          "$ref": "#/definitions/PropBinding",
+          "description": "The prop binding whose value is tested"
+        },
+        "compareTo": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "number" },
+            { "type": "boolean" },
+            { "type": "null" }
+          ],
+          "description": "Comparison operand for binary operations (equals, notEquals). Omitted for unary operations."
+        }
+      },
+      "required": ["value"],
+      "additionalProperties": false
+    },
+    "ConditionExpression": {
+      "type": "object",
+      "description": "A declarative condition expression pairing an operation with its arguments.",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "description": "Predicate operation name (e.g. 'isNull', 'isNotNull', 'equals', 'notEquals')"
+        },
+        "args": {
+          "$ref": "#/definitions/ConditionArgs"
+        }
+      },
+      "required": ["operation", "args"],
+      "additionalProperties": false
+    },
+    "Conditional": {
+      "type": "object",
+      "description": "A conditional binding. Evaluates the condition against a bound prop and resolves to the then or else branch.",
+      "properties": {
+        "if": {
+          "type": "object",
+          "properties": {
+            "condition": {
+              "$ref": "#/definitions/ConditionExpression"
+            },
+            "then": {
+              "description": "Value when condition is true",
+              "oneOf": [
+                { "type": "string" },
+                { "type": "boolean" },
+                { "type": "number" },
+                { "type": "null" }
+              ]
+            },
+            "else": {
+              "description": "Value when condition is false",
+              "oneOf": [
+                { "type": "string" },
+                { "type": "boolean" },
+                { "type": "number" },
+                { "type": "null" }
+              ]
+            }
+          },
+          "required": ["condition", "then", "else"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["if"],
+      "additionalProperties": false
+    },
+    "ReferenceValue": {
+      "type": "object",
+      "description": "@deprecated Removed in v1.0.0. Use PropBinding ($binding key) instead.",
+      "properties": {
+        "$ref": { "type": "string" }
+      },
+      "required": ["$ref"],
+      "additionalProperties": false
+    },
+    "TokenReference": {
+      "type": "object",
+      "description": "Platform-neutral token reference. $token and $type are the complete platform-facing API surface; $extensions[\"com.figma\"] carries Figma extraction provenance only and is not required by platform consumers.",
+      "required": ["$token", "$type"],
+      "properties": {
+        "$token": {
+          "type": "string",
+          "description": "DTCG dot-separated token path, e.g. 'DS Color.Text.Primary'. Usable directly as DTCG alias {DS Color.Text.Primary}."
+        },
+        "$type": {
+          "type": "string",
+          "enum": ["color", "dimension", "string", "number", "boolean", "shadow", "gradient", "typography", "effects"],
+          "description": "DTCG token type (Format Module \u00a79). 'effects' is an Anova extension for EffectsGroup references (multi-shadow + blur composite) with no DTCG equivalent."
+        },
+        "$extensions": {
+          "type": "object",
+          "description": "Tool-specific metadata per DTCG \u00a75.2.3 (reverse domain name notation). Not required for platform code generation.",
+          "properties": {
+            "com.figma": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string", "description": "Figma variable or style UUID" },
+                "name": { "type": "string", "description": "Figma name within collection, e.g. 'Text/Primary'" },
+                "collectionName": { "type": "string", "description": "Figma collection name, e.g. 'DS Color' (variables only)" },
+                "rawValue": {
+                  "oneOf": [{ "type": "string" }, { "type": "number" }, { "type": "boolean" }],
+                  "description": "Value resolved by Figma at extraction time. No DTCG equivalent; Figma extraction provenance only."
+                }
+              },
+              "required": ["id"],
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "VariableStyle": {
+      "deprecated": true,
+      "type": "object",
+      "description": "@deprecated Removed in v1.0.0. Use TokenReference instead.",
+      "properties": {
+        "id": { "type": "string" }
+      },
+      "required": ["id"],
+      "additionalProperties": false
+    },
+    "Typography": {
+      "type": "object",
+      "description": "Inline typography properties grouped into a composite object. All fields are optional; only properties set on the text node are present.",
+      "properties": {
+        "fontSize": {
+          "oneOf": [
+            { "type": "number" },
+            { "type": "string", "const": "mixed" },
+            { "$ref": "#/definitions/TokenReference" }
+          ],
+          "description": "Font size in pixels; 'mixed' allowed (mixableNumber primitive)"
+        },
+        "fontFamily": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "string", "const": "mixed" },
+            { "$ref": "#/definitions/TokenReference" }
+          ],
+          "description": "Font family name, 'mixed' when varied, or token reference for variable-bound fonts"
+        },
+        "fontStyle": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "string", "const": "mixed" },
+            { "$ref": "#/definitions/TokenReference" }
+          ],
+          "description": "Style name (e.g., 'Bold'), 'mixed' when varied, or token reference for variable-bound fonts"
+        },
+        "lineHeight": {
+          "oneOf": [
+            { "type": "string", "description": "Percentage (e.g., '150%') or 'auto'" },
+            { "type": "number", "description": "Pixel value" },
+            { "$ref": "#/definitions/TokenReference" }
+          ],
+          "description": "Line height (lineHeight primitive)"
+        },
+        "letterSpacing": {
+          "oneOf": [
+            { "type": "number" },
+            { "type": "string", "const": "mixed" },
+            { "$ref": "#/definitions/TokenReference" }
+          ],
+          "description": "Letter spacing in pixels; 'mixed' allowed (mixableNumber primitive)"
+        },
+        "textCase": {
+          "oneOf": [
+            { "type": "string" },
+            { "$ref": "#/definitions/TokenReference" }
+          ],
+          "description": "Text case (\"UPPER\", \"LOWER\", \"TITLE\", \"ORIGINAL\", or 'mixed') (mixableString primitive)"
+        },
+        "textDecoration": {
+          "oneOf": [
+            { "type": "string" },
+            { "$ref": "#/definitions/TokenReference" }
+          ],
+          "description": "Text decoration (\"UNDERLINE\", \"STRIKETHROUGH\", \"NONE\", or 'mixed') (mixableString primitive)"
+        },
+        "paragraphIndent": {
+          "oneOf": [
+            { "type": "number" },
+            { "$ref": "#/definitions/TokenReference" }
+          ],
+          "description": "Paragraph indent in pixels (pureNumber primitive)"
+        },
+        "paragraphSpacing": {
+          "oneOf": [
+            { "type": "number" },
+            { "$ref": "#/definitions/TokenReference" }
+          ],
+          "description": "Spacing between paragraphs in pixels (pureNumber primitive)"
+        },
+        "leadingTrim": {
+          "oneOf": [
+            { "type": "string", "enum": ["NONE", "CAP_HEIGHT"] },
+            { "type": "string", "const": "mixed" }
+          ],
+          "description": "Leading trim mode — 'NONE' or 'CAP_HEIGHT' per Figma API; 'mixed' when varied across selection"
+        },
+        "listSpacing": {
+          "oneOf": [
+            { "type": "number" },
+            { "$ref": "#/definitions/TokenReference" }
+          ],
+          "description": "Spacing for list items in pixels (pureNumber primitive)"
+        },
+        "hangingPunctuation": {
+          "oneOf": [
+            { "type": "boolean" },
+            { "$ref": "#/definitions/TokenReference" }
+          ],
+          "description": "Whether hanging punctuation is enabled (boolean primitive)"
+        },
+        "hangingList": {
+          "oneOf": [
+            { "type": "boolean" },
+            { "$ref": "#/definitions/TokenReference" }
+          ],
+          "description": "Whether hanging list is enabled (boolean primitive)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "TypographyStyleValue": {
+      "description": "Typography value. TokenReference when the text node references a named text style; Typography when typography is defined inline.",
+      "oneOf": [
+        { "$ref": "#/definitions/TokenReference", "description": "Named text style reference ($type: \"typography\")" },
+        { "$ref": "#/definitions/Typography", "description": "Inline typography properties" },
+        { "type": "null" }
+      ]
+    }
+  }
+}

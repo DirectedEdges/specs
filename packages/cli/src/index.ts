@@ -1,0 +1,62 @@
+/**
+ * Anova CLI - Command registry and entry helpers
+ */
+
+import './figma-shim.js';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+
+// Load .env from cwd if present (no external dependency needed)
+try {
+  const envContent = readFileSync(resolve(process.cwd(), '.env'), 'utf-8');
+  for (const line of envContent.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eq = trimmed.indexOf('=');
+    if (eq === -1) continue;
+    const key = trimmed.slice(0, eq).trim();
+    const val = trimmed.slice(eq + 1).trim();
+    if (!(key in process.env)) process.env[key] = val;
+  }
+} catch { /* no .env file, that's fine */ }
+
+import { Command } from 'commander';
+import { Generate } from './commands/GenerateCommand.js';
+import { Audit } from './commands/AuditCommand.js';
+import { Fetch } from './commands/FetchCommand.js';
+import { Init } from './commands/InitCommand.js';
+import { ApplyCustomTokens } from './commands/ApplyCustomTokensCommand.js';
+
+declare const __ANOVA_CLI_VERSION__: string;
+
+export { Generate, Audit, Fetch, Init, ApplyCustomTokens };
+
+export const commands = {
+  Init,
+  Generate,
+  Audit,
+  Fetch,
+  ApplyCustomTokens
+};
+
+export function createProgram(): Command {
+  const program = new Command();
+
+  program
+    .name('specs')
+    .description('Generate component specifications from Figma REST API data')
+    .version(__ANOVA_CLI_VERSION__);
+
+  program.addCommand(Init);
+  program.addCommand(Generate);
+  program.addCommand(Audit);
+  program.addCommand(Fetch);
+  program.addCommand(ApplyCustomTokens);
+
+  return program;
+}
+
+export function runCli(argv: string[] = process.argv): void {
+  const program = createProgram();
+  program.parse(argv);
+}

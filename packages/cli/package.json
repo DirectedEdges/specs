@@ -1,0 +1,50 @@
+{
+  "name": "@directededges/specs-cli",
+  "version": "0.6.0",
+  "description": "Command-line interface for Specs design system operations",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "specs": "./dist/specs.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "docs"
+  ],
+  "scripts": {
+    "build": "esbuild src/bin/specs.ts --bundle --platform=node --target=node18 --format=esm --packages=external --define:__ANOVA_CLI_VERSION__=\\\"$npm_package_version\\\" --outfile=dist/specs.js --banner:js='#!/usr/bin/env node' && chmod +x dist/specs.js",
+    "watch": "esbuild src/bin/specs.ts --bundle --platform=node --target=node18 --format=esm --packages=external --define:__ANOVA_CLI_VERSION__=\\\"$npm_package_version\\\" --outfile=dist/specs.js --watch",
+    "test": "cd ../.. && vitest -c vitest.config.ts packages/cli/tests"
+  },
+  "dependencies": {
+    "@directededges/specs-schema": "^0.16.0",
+    "@directededges/figma-to-specs": "file:../../../anova-transformer",
+    "commander": "^11.1.0",
+    "fs-extra": "^11.2.0",
+    "yaml": "^2.3.4",
+    "tslib": "^2.6.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "@types/fs-extra": "^11.0.4",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.0.4"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/directededges/specs.git",
+    "directory": "packages/cli"
+  },
+  "keywords": [
+    "specs",
+    "design-system",
+    "cli",
+    "figma"
+  ],
+  "author": "DirectedEdges",
+  "license": "MIT"
+}
