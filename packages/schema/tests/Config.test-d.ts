@@ -13,7 +13,7 @@ const minProcessing: Config['processing'] = {
   details: 'LAYERED',
 };
 const minFormat: Config['format'] = { output: 'JSON', keys: 'SAFE', layout: 'LAYOUT' };
-const minInclude: Config['include'] = { variantNames: false, invalidVariants: false, invalidCombinations: true };
+const minInclude: Config['include'] = { invalidVariants: false, invalidCombinations: true };
 
 // ─── Full Config with all fields ──────────────────────────────────────────────
 
@@ -38,9 +38,9 @@ const fullConfig: Config = {
     tokens: 'TOKEN',
   },
   include: {
-    variantNames: false,
     invalidVariants: false,
     invalidCombinations: true,
+    emptyVariants: false,
   },
 };
 
@@ -61,7 +61,7 @@ const configWithoutScope: Config = {
     details: 'FULL',
   },
   format: { output: 'YAML', keys: 'CAMEL', layout: 'PARENT_CHILDREN' },
-  include: { variantNames: true, invalidVariants: true, invalidCombinations: false },
+  include: { invalidVariants: true, invalidCombinations: false },
 };
 
 // ─── processing.subcomponents is optional ────────────────────────────────────
@@ -98,10 +98,20 @@ const configWithExclude: Config = {
 
 const _excludeUndefined: NonNullable<Config['processing']['subcomponents']>['exclude'] = undefined;
 
-// ─── include no longer has subcomponents field ────────────────────────────────
+// ─── include no longer has subcomponents or variantNames fields ──────────────
 
 // @ts-expect-error — subcomponents was removed from include
 const _badInclude: Config['include']['subcomponents'] = true;
+
+// @ts-expect-error — variantNames was removed from include (ADR 034)
+const _badVarNames: Config['include']['variantNames'] = false;
+
+// ─── include fields are optional ────────────────────────────────────────────
+
+const emptyInclude: Config['include'] = {};
+const _emptyVariantsUndefined: Config['include']['emptyVariants'] = undefined;
+const _invalidVariantsUndefined: Config['include']['invalidVariants'] = undefined;
+const _invalidCombinationsUndefined: Config['include']['invalidCombinations'] = undefined;
 
 // ─── processing no longer has subcomponentNamePattern ─────────────────────────
 
