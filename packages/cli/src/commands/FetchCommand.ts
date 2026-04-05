@@ -32,9 +32,9 @@ type MinimalConfig = {
 
 function findConfigFile(cwd: string): string | null {
   const locations = [
-    path.join(cwd, '.anova.config.yaml'),
-    path.join(cwd, '.anova.config.json'),
-    path.join(process.env.HOME || '~', '.anova', 'config.yaml')
+    path.join(cwd, '.specs.config.yaml'),
+    path.join(cwd, '.specs.config.json'),
+    path.join(process.env.HOME || '~', '.specs', 'config.yaml')
   ];
 
   for (const location of locations) {
@@ -136,7 +136,7 @@ export interface FetchOptions {
 
 export const Fetch = new Command('fetch')
   .description('Fetch raw REST payloads (file, variables, styles) for configured Figma files')
-  .option('--config <path>', 'Path to config file (.anova.config.yaml)')
+  .option('--config <path>', 'Path to config file (.specs.config.yaml)')
   .option('--outDir <dir>', 'Override output directory (default: sources.outDir or ./data)')
   .option('--only <alias[,alias...]>', 'Fetch only the given file alias(es) from sources.files')
   .option('--verbose', 'Enable detailed logging', false)
@@ -158,7 +158,7 @@ export const Fetch = new Command('fetch')
       const fileEntries = normalizeSources(config.sources);
       if (fileEntries.length === 0) {
         console.error('Error: No sources configured');
-        console.error('Add to .anova.config.yaml:');
+        console.error('Add to .specs.config.yaml:');
         console.error('  sourceDirectory: data');
         console.error('  sources:');
         console.error('    library:');

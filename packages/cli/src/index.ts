@@ -1,5 +1,5 @@
 /**
- * Anova CLI - Command registry and entry helpers
+ * Specs CLI - Command registry and entry helpers
  */
 
 import './figma-shim.js';
@@ -27,7 +27,7 @@ import { Fetch } from './commands/FetchCommand.js';
 import { Init } from './commands/InitCommand.js';
 import { ApplyCustomTokens } from './commands/ApplyCustomTokensCommand.js';
 
-declare const __ANOVA_CLI_VERSION__: string;
+declare const __SPECS_CLI_VERSION__: string;
 
 export { Generate, Audit, Fetch, Init, ApplyCustomTokens };
 
@@ -45,7 +45,7 @@ export function createProgram(): Command {
   program
     .name('specs')
     .description('Generate component specifications from Figma REST API data')
-    .version(__ANOVA_CLI_VERSION__);
+    .version(__SPECS_CLI_VERSION__);
 
   program.addCommand(Init);
   program.addCommand(Generate);

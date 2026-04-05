@@ -4,7 +4,7 @@
  * Purpose:
  * - Read a mapping JSON file containing { figmaId: { $custom: {...}, ...otherProps } }
  * - Inject the $custom objects into variables and styles JSON files
- * - Config-aware: auto-discovers data files from .anova.config.yaml
+ * - Config-aware: auto-discovers data files from .specs.config.yaml
  * - Supports -v/-s flags to override file paths
  */
 
@@ -27,9 +27,9 @@ type MinimalConfig = {
 
 function findConfigFile(cwd: string): string | null {
   const locations = [
-    path.join(cwd, '.anova.config.yaml'),
-    path.join(cwd, '.anova.config.json'),
-    path.join(process.env.HOME || '~', '.anova', 'config.yaml'),
+    path.join(cwd, '.specs.config.yaml'),
+    path.join(cwd, '.specs.config.json'),
+    path.join(process.env.HOME || '~', '.specs', 'config.yaml'),
   ];
 
   for (const location of locations) {
@@ -198,7 +198,7 @@ export interface ApplyCustomTokensOptions {
 export const ApplyCustomTokens = new Command('applyCustomTokens')
   .description('Inject $custom token objects from a mapping file into fetched variables/styles JSON')
   .argument('<mapping>', 'Path to the JSON mapping file')
-  .option('--config <path>', 'Path to config file (.anova.config.yaml)')
+  .option('--config <path>', 'Path to config file (.specs.config.yaml)')
   .option('-v, --variables <path>', 'Path to variables JSON file (overrides config discovery)')
   .option('-s, --styles <path>', 'Path to styles JSON file (overrides config discovery)')
   .action(async (mappingArg: string, options: ApplyCustomTokensOptions) => {
@@ -221,7 +221,7 @@ export const ApplyCustomTokens = new Command('applyCustomTokens')
       const { variablesPaths, stylesPaths } = discoverDataFiles(configDir, config, options.variables, options.styles);
 
       if (variablesPaths.length === 0 && stylesPaths.length === 0) {
-        console.error('Error: No variables or styles files found. Use -v/-s flags or configure sources in .anova.config.yaml');
+        console.error('Error: No variables or styles files found. Use -v/-s flags or configure sources in .specs.config.yaml');
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
 

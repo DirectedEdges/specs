@@ -1,5 +1,5 @@
 /**
- * Parses checkbox markdown manifests produced by `anova audit`.
+ * Parses checkbox markdown manifests produced by `specs audit`.
  *
  * Format:
  *   **File:** path/to/file.json

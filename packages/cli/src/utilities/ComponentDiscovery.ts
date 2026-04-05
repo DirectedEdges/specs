@@ -1,16 +1,16 @@
 /**
  * ComponentDiscovery - Component discovery utility for CLI/MCP environments
- * 
+ *
  * Purpose: Find and list all components in a Figma REST API JSON file
  * Used by: AuditCommand for component discovery without transformation
- * 
+ *
  * Features:
  * - Load and parse Figma REST API JSON files
  * - Find all components (excluding variant children)
  * - Return simple component metadata for listing
- * 
+ *
  * Note: This is a lightweight utility for discovery only, not for transformation.
- * Transformation uses Component.fromRestApi() from anova-transformer.
+ * Transformation uses Component.fromRestApi() from figma-to-specs.
  */
 
 import fs from 'fs-extra';

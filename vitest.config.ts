@@ -3,7 +3,7 @@ import path from 'path';
 
 export default defineConfig({
   define: {
-    __ANOVA_CLI_VERSION__: JSON.stringify('test'),
+    __SPECS_CLI_VERSION__: JSON.stringify('test'),
   },
   resolve: {
     alias: {
