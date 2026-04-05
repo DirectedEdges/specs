@@ -1,5 +1,5 @@
 ---
-description: Release @directededges/specs-schema to GitHub Packages. Verifies version, CHANGELOG, builds, and publishes with confirmation gates.
+description: Release @directededges/specs-schema to npm. Verifies version, CHANGELOG, builds, and publishes with confirmation gates.
 ---
 
 ## User Input
@@ -8,15 +8,19 @@ description: Release @directededges/specs-schema to GitHub Packages. Verifies ve
 $ARGUMENTS
 ```
 
-The argument is the version to release (e.g., `0.12.0`). You **MUST** have a version before proceeding.
+The argument is the version to release (e.g., `0.16.0`). You **MUST** have a version before proceeding.
+
+## Working Directory
+
+All commands in this agent run from the **schema package directory**: `packages/schema` (relative to repo root). Use absolute paths for file reads, but run shell commands from `packages/schema`.
 
 ## Outline
 
-1. **Verify version**: Read `package.json`. Confirm the `version` field matches the argument. If not, STOP and ask whether to update it or abort.
+1. **Verify version**: Read `packages/schema/package.json`. Confirm the `version` field matches the argument. If not, STOP and ask whether to update it or abort.
 
-2. **Verify CHANGELOG**: Read `CHANGELOG.md`. Confirm:
-   - An entry exists for this version (e.g., `## [0.12.0]`)
-   - The entry has an appended date (e.g., `## [0.12.0] - 2024-06-12`). If missing, use today's date.
+2. **Verify CHANGELOG**: Read `packages/schema/CHANGELOG.md`. Confirm:
+   - An entry exists for this version (e.g., `## [0.16.0]`)
+   - The entry has an appended date (e.g., `## [0.16.0] - 2026-04-05`). If missing, use today's date.
    - A **Summary** line exists at the top of the version entry (immediately after the heading), providing a 3–4 sentence high-level overview of the release changes.
       - If missing, draft one by reading the entry's Added/Changed/Removed/Fixed sections and add it.
       - When summarizing:
@@ -33,21 +37,21 @@ The argument is the version to release (e.g., `0.12.0`). You **MUST** have a ver
    ```
    If dirty, STOP and report. Exception: changes made by this agent (e.g., CHANGELOG date added) are expected.
 
-4. **Verify GitHub Packages auth**:
+4. **Verify npm auth**:
    ```bash
-   npm whoami --registry=https://npm.pkg.github.com
+   npm whoami
    ```
-   If this fails, STOP.
+   If this fails, STOP and report. The user needs to run `npm login` first.
 
 5. **Build**:
    ```bash
-   npm run build
+   cd packages/schema && npm run build
    ```
    If build fails, STOP.
 
 6. **Run type-level tests**:
    ```bash
-   npx tsc --noEmit --strict tests/*.test-d.ts
+   cd packages/schema && npx tsc --noEmit --strict tests/*.test-d.ts
    ```
    If tests fail, report errors and ask the user whether to proceed or abort.
 
@@ -68,13 +72,13 @@ The argument is the version to release (e.g., `0.12.0`). You **MUST** have a ver
       ```bash
       git add -A && git commit -m "release: @directededges/specs-schema v[version]"
       ```
-   2. Tag:
+   2. Tag (scoped for monorepo):
       ```bash
-      git tag -a "v[version]" -m "release: @directededges/specs-schema v[version]"
+      git tag -a "specs-schema@[version]" -m "release: @directededges/specs-schema v[version]"
       ```
-   3. Publish:
+   3. Publish from the package directory:
       ```bash
-      npm publish
+      cd packages/schema && npm publish --access public
       ```
       If publish fails with "previously published version", report and ask the user whether to bump the patch version or skip.
 
@@ -89,28 +93,30 @@ The argument is the version to release (e.g., `0.12.0`). You **MUST** have a ver
       gh pr create --base main --title "release: @directededges/specs-schema v[version]" --body "$(cat <<'EOF'
       ## Summary
       - Release @directededges/specs-schema v[version]
-      - See CHANGELOG.md for details
+      - See packages/schema/CHANGELOG.md for details
       EOF
       )"
       ```
       If a PR already exists for this branch, report the existing PR URL instead of failing.
-   3. Create the GitHub Release:
-      - Extract the release notes from `CHANGELOG.md` for this version: the **Summary** paragraph and all content under the `## [version]` heading, up to (but not including) the next `##` heading.
+   3. Create the GitHub Release (scoped tag):
+      - Extract the release notes from `packages/schema/CHANGELOG.md` for this version: the **Summary** paragraph and all content under the `## [version]` heading, up to (but not including) the next `##` heading.
       ```bash
-      gh release create "v[version]" --title "@directededges/specs-schema v[version]" --notes "$(cat <<'EOF'
+      gh release create "specs-schema@[version]" --title "@directededges/specs-schema v[version]" --notes "$(cat <<'EOF'
       [extracted CHANGELOG content for this version]
       EOF
       )"
       ```
       - Verify the release was created:
       ```bash
-      gh release view "v[version]" --json url --jq '.url'
+      gh release view "specs-schema@[version]" --json url --jq '.url'
       ```
    4. Report the PR URL and release URL.
 
 ## Key rules
 
 - Use absolute paths for all file operations.
+- All shell commands run from `packages/schema` unless they are git or gh commands (which run from repo root).
+- **Tag format**: `specs-schema@[version]` — scoped to distinguish from CLI releases in the same repo.
 - Two gates only: **ship** (commit + tag + publish) and **finalize** (push + PR + GitHub release).
 - If any verification step fails, halt immediately — do not skip to later steps. For test failures, ask the user whether to proceed.
 - This package has no @directededges dependencies, so no reference swapping is needed.
