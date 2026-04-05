@@ -1,0 +1,948 @@
+{
+  "version": "0.14.0",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Specs Plugin Output Schema",
+  "description": "JSON Schema for data that's output by the Specs Figma plugin produced by Directed Edges",
+  "$comment": "Copyright (c) 2025 Directed Edges. Licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Attribution required.",
+  "definitions": {
+    "Component": {
+      "type": "object",
+      "description": "A component specification derived from Figma that defines structure, properties, variants, and styling rules.",
+      "examples": [],
+      "properties": {
+        "metadata": {
+          "$ref": "#/definitions/Metadata"
+        },
+        "title": {
+          "type": "string",
+          "description": "The component asset name",
+          "examples": [
+            "Button",
+            "Card",
+            "Text Input"
+          ]
+        },
+        "anatomy": {
+          "$ref": "#/definitions/Anatomy",
+          "description": "The elements that comprise the component, corresponding largely to Figma layers"
+        },
+        "props": {
+          "$ref": "#/definitions/Props",
+          "description": "Configurable properties that control component behavior and appearance"
+        },
+        "default": {
+          "$ref": "#/definitions/Variant",
+          "description": "The base variant configuration that's both the component default display as well as the foundation for all other variants"
+        },
+        "variants": {
+          "$ref": "#/definitions/Variants",
+          "description": "The styling, layout, and configuration of nested instances based on a cmoponent configuration"
+        },
+        "invalidVariantCombinations": {
+          "type": "array",
+          "description": "Non-default prop values that when used in combination result in an invalid component state, such as a component being set to disabled and hover simultaneously",
+          "items": {
+            "$ref": "#/definitions/PropConfigurations"
+          }
+        },
+        "subcomponents": {
+          "type": "object",
+          "description": "A record of subcomponents, where each key is a subcomponent name that matches a system-specific naming convention.",
+          "additionalProperties": {
+            "$ref": "#/definitions/Subcomponent"
+          }
+        }
+      },
+      "required": [
+        "title",
+        "anatomy",
+        "default"
+      ],
+      "additionalProperties": false
+    },
+    "Anatomy": {
+      "type": "object",
+      "description": "The structural elements that make up the component. Element names format depends on user settings.",
+      "examples": [],
+      "additionalProperties": {
+        "$ref": "#/definitions/AnatomyElement"
+      }
+    },
+    "ElementType": {
+      "type": "string",
+      "description": "Element types derived from Figma node analysis.",
+      "enum": [
+        "text",
+        "glyph",
+        "vector",
+        "container",
+        "slot",
+        "instance",
+        "line",
+        "ellipse",
+        "rectangle",
+        "polygon",
+        "star"
+      ]
+    },
+    "ElementTypeRef": {
+      "type": "object",
+      "description": "Reference to an external element type definition.",
+      "properties": {
+        "$ref": {
+          "type": "string",
+          "description": "URI reference to an external element type definition (e.g. 'foundations#/definitions/glyph')"
+        }
+      },
+      "required": [
+        "$ref"
+      ],
+      "additionalProperties": false
+    },
+    "SubcomponentRef": {
+      "type": "object",
+      "description": "Reference to a subcomponent definition within the same spec.",
+      "properties": {
+        "$ref": {
+          "type": "string",
+          "pattern": "^#/subcomponents/.+",
+          "description": "JSON Pointer to a subcomponent (e.g. '#/subcomponents/formLabel')"
+        }
+      },
+      "required": [
+        "$ref"
+      ],
+      "additionalProperties": false
+    },
+    "AnatomyElement": {
+      "type": "object",
+      "description": "An element within the anatomy of a component.",
+      "examples": [],
+      "properties": {
+        "type": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/ElementType"
+            },
+            {
+              "$ref": "#/definitions/ElementTypeRef"
+            }
+          ],
+          "description": "Element type as a plain string identifier or a reference to an external definition."
+        },
+        "detectedIn": {
+          "type": "string"
+        },
+        "instanceOf": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/definitions/SubcomponentRef"
+            }
+          ],
+          "description": "The component or component set name that this instance element references, or a subcomponent reference"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "Props": {
+      "type": "object",
+      "description": "",
+      "examples": [],
+      "additionalProperties": {
+        "$ref": "#/definitions/AnyProp"
+      }
+    },
+    "AnyProp": {
+      "description": "",
+      "examples": [],
+      "oneOf": [
+        {
+          "$ref": "#/definitions/BooleanProp"
+        },
+        {
+          "$ref": "#/definitions/StringProp"
+        },
+        {
+          "$ref": "#/definitions/EnumProp"
+        },
+        {
+          "$ref": "#/definitions/SlotProp"
+        },
+        {
+          "$ref": "#/definitions/NumberProp"
+        }
+      ]
+    },
+    "FigmaCodeOnlySource": {
+      "type": "object",
+      "description": "Provenance metadata for props extracted from a Figma code-only container layer.",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "codeOnlyProp",
+          "description": "Discriminator identifying this prop as originating from a code-only container"
+        },
+        "layer": {
+          "type": "string",
+          "description": "Sub-layer name within the code-only container tree corresponding to this prop"
+        },
+        "instanceOf": {
+          "type": "string",
+          "description": "For enum code-only props: the component name of the nested instance whose variants define the enum values"
+        }
+      },
+      "required": ["kind", "layer"],
+      "additionalProperties": false
+    },
+    "FigmaPropExtension": {
+      "type": "object",
+      "description": "DTCG §5.2.3 Figma-specific metadata for a prop definition.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["BOOLEAN", "TEXT", "INSTANCE_SWAP", "VARIANT"],
+          "description": "Figma-native property type"
+        },
+        "source": {
+          "$ref": "#/definitions/FigmaCodeOnlySource",
+          "description": "Provenance metadata — present only for props extracted from a code-only container layer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "PropExtensions": {
+      "type": "object",
+      "description": "DTCG §5.2.3 platform-specific extensions for prop definitions. Each property is a reverse-domain key whose value is a platform extension type.",
+      "properties": {
+        "com.figma": {
+          "$ref": "#/definitions/FigmaPropExtension"
+        }
+      },
+      "additionalProperties": true
+    },
+    "BooleanProp": {
+      "type": "object",
+      "description": "",
+      "examples": [],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "boolean"
+        },
+        "default": {
+          "type": "boolean"
+        },
+        "$extensions": {
+          "$ref": "#/definitions/PropExtensions"
+        }
+      },
+      "required": [
+        "type",
+        "default"
+      ],
+      "patternProperties": {
+        "^\\$": {}
+      },
+      "additionalProperties": false
+    },
+    "StringProp": {
+      "type": "object",
+      "description": "String property definition for text content, glyph/instance swap, or other string-valued props.",
+      "examples": [],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "string"
+        },
+        "default": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "nullable": {
+          "type": "boolean"
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Sample values demonstrating typical content for this prop"
+        },
+        "$extensions": {
+          "$ref": "#/definitions/PropExtensions"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "patternProperties": {
+        "^\\$": {}
+      },
+      "additionalProperties": false
+    },
+    "EnumProp": {
+      "type": "object",
+      "description": "",
+      "examples": [],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "string"
+        },
+        "default": {
+          "type": "string"
+        },
+        "enum": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nullable": {
+          "type": "boolean"
+        },
+        "$extensions": {
+          "$ref": "#/definitions/PropExtensions"
+        }
+      },
+      "additionalProperties": false
+    },
+    "SlotProp": {
+      "type": "object",
+      "description": "",
+      "examples": [],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "slot"
+        },
+        "default": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "nullable": {
+          "type": "boolean"
+        },
+        "minItems": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Minimum number of items this slot accepts"
+        },
+        "maxItems": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum number of items this slot accepts"
+        },
+        "anyOf": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Component type names permitted in this slot"
+        },
+        "$extensions": {
+          "$ref": "#/definitions/PropExtensions"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Variants": {
+      "type": "array",
+      "description": "Variants is an array of variant items, each corresponding to a specific set of non-default prop configurations taht represent a Figma variant. Evaluating a variant's style requires including layering the element styles, configurations and other properties from *every* variant that matches any of the combinations of non-defualt properties. This behavior is similar to the CSS cascade.",
+      "examples": [],
+      "items": {
+        "$ref": "#/definitions/Variant"
+      }
+    },
+    "Variant": {
+      "type": "object",
+      "description": "",
+      "examples": [],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "baseline": {
+          "type": "string"
+        },
+        "configuration": {
+          "$ref": "#/definitions/PropConfigurations"
+        },
+        "invalid": {
+          "type": "boolean"
+        },
+        "layout": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LayoutNode"
+          }
+        },
+        "elements": {
+          "$ref": "#/definitions/Elements"
+        }
+      },
+      "additionalProperties": false
+    },
+    "LayoutNode": {
+      "description": "Hierarchical layout structure representing element nesting. Leaf nodes are strings (element names), parent nodes are objects with element name as key and children array as value.",
+      "examples": [
+        "elementName",
+        {
+          "parentElement": [
+            "childElement1",
+            {
+              "childElement2": [
+                "grandchildElement"
+              ]
+            }
+          ]
+        }
+      ],
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/LayoutNode"
+            }
+          }
+        }
+      ]
+    },
+    "PropConfigurations": {
+      "type": "object",
+      "description": "",
+      "examples": [],
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          }
+        ]
+      }
+    },
+    "Elements": {
+      "type": "object",
+      "description": "",
+      "examples": [],
+      "additionalProperties": {
+        "$ref": "#/definitions/Element"
+      }
+    },
+    "Element": {
+      "type": "object",
+      "description": "",
+      "examples": [],
+      "properties": {
+        "children": {
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/definitions/PropBinding"
+            }
+          ],
+          "description": "Child element names, or a PropBinding when bound to a slot prop"
+        },
+        "parent": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "instanceOf": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/definitions/PropBinding"
+            },
+            {
+              "$ref": "#/definitions/SubcomponentRef"
+            }
+          ],
+          "description": "The component or component set name that this instance element references, a prop binding for instance swaps, or a subcomponent reference"
+        },
+        "content": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/definitions/PropBinding"
+            }
+          ],
+          "description": "The content for content-bearing elements: text string for text elements, glyph name for glyph elements, or a PropBinding reference"
+        },
+        "styles": {
+          "$ref": "#/definitions/Styles"
+        },
+        "propConfigurations": {
+          "$ref": "#/definitions/PropConfigurations"
+        }
+      },
+      "additionalProperties": false
+    },
+    "PropBinding": {
+      "type": "object",
+      "description": "A component-prop binding. Emitted when a property is bound to a Figma component property. Discriminated by $binding to avoid JSON Schema $ref keyword collision.",
+      "properties": {
+        "$binding": {
+          "type": "string",
+          "description": "JSON Pointer to the bound prop within this spec's props block, e.g. '#/props/propName'"
+        }
+      },
+      "required": [
+        "$binding"
+      ],
+      "additionalProperties": false
+    },
+    "ConditionArgs": {
+      "type": "object",
+      "description": "Arguments for a condition expression. value is the prop binding to test; compareTo is the operand for binary operations.",
+      "properties": {
+        "value": {
+          "$ref": "#/definitions/PropBinding",
+          "description": "The prop binding whose value is tested"
+        },
+        "compareTo": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Comparison operand for binary operations (equals, notEquals). Omitted for unary operations."
+        }
+      },
+      "required": [
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "ConditionExpression": {
+      "type": "object",
+      "description": "A declarative condition expression pairing an operation with its arguments.",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "description": "Predicate operation name (e.g. 'isNull', 'isNotNull', 'equals', 'notEquals')"
+        },
+        "args": {
+          "$ref": "#/definitions/ConditionArgs"
+        }
+      },
+      "required": [
+        "operation",
+        "args"
+      ],
+      "additionalProperties": false
+    },
+    "Conditional": {
+      "type": "object",
+      "description": "A conditional binding. Evaluates the condition against a bound prop and resolves to the then or else branch.",
+      "properties": {
+        "if": {
+          "type": "object",
+          "properties": {
+            "condition": {
+              "$ref": "#/definitions/ConditionExpression"
+            },
+            "then": {
+              "description": "Value when condition is true",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "else": {
+              "description": "Value when condition is false",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "condition",
+            "then",
+            "else"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "if"
+      ],
+      "additionalProperties": false
+    },
+    "Styles": {
+      "$ref": "styles.schema.json#/definitions/Styles"
+    },
+    "Metadata": {
+      "type": "object",
+      "description": "Metadata about the component, its author, generator, schema, and Figma source.",
+      "properties": {
+        "author": {
+          "type": "string"
+        },
+        "lastUpdated": {
+          "type": "string"
+        },
+        "generator": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            },
+            "name": {
+              "type": "string"
+            },
+            "license": {
+              "type": "object",
+              "description": "Resolved license state at the time this component spec was generated. Absent when no license was supplied.",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "description": "License validation status (e.g. VALID, EXPIRED, NONE)."
+                },
+                "level": {
+                  "type": "string",
+                  "description": "Output entitlement level (e.g. FREE, PRO, EXTENDED). Plain string for extensibility."
+                }
+              },
+              "required": [
+                "status",
+                "level"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "url",
+            "version",
+            "name"
+          ],
+          "additionalProperties": false
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "Versioned schema URL pinned to a git tag (e.g. https://raw.githubusercontent.com/.../v0.13.0/schema/component.schema.json)"
+            },
+            "version": {
+              "type": "string"
+            },
+            "latest": {
+              "type": "string",
+              "description": "Stable URL pointing to the latest schema on the main branch for discovery"
+            }
+          },
+          "required": [
+            "url",
+            "version"
+          ],
+          "additionalProperties": false
+        },
+        "source": {
+          "type": "object",
+          "properties": {
+            "pageId": {
+              "type": "string"
+            },
+            "nodeId": {
+              "type": "string"
+            },
+            "nodeType": {
+              "type": "string",
+              "enum": [
+                "COMPONENT",
+                "COMPONENT_SET",
+                "FRAME"
+              ]
+            }
+          },
+          "required": [
+            "pageId",
+            "nodeId",
+            "nodeType"
+          ],
+          "additionalProperties": false
+        },
+        "config": {
+          "$ref": "#/definitions/Config"
+        }
+      },
+      "required": [
+        "author",
+        "lastUpdated",
+        "generator",
+        "schema",
+        "source",
+        "config"
+      ],
+      "additionalProperties": false
+    },
+    "Config": {
+      "type": "object",
+      "description": "Model configuration used to generate this spec.",
+      "properties": {
+        "processing": {
+          "type": "object",
+          "properties": {
+            "subcomponents": {
+              "type": "object",
+              "description": "Subcomponent discovery settings: scope, match patterns, and exclusion patterns.",
+              "properties": {
+                "scope": {
+                  "type": "string",
+                  "enum": ["NESTED", "PAGE"],
+                  "default": "NESTED",
+                  "description": "Where to search for subcomponents. NESTED = anatomy only; PAGE = also search the Figma page."
+                },
+                "match": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1,
+                  "description": "Template patterns defining which assets are subcomponents. Uses {C} (component name) and {S} (subcomponent name) placeholders."
+                },
+                "exclude": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Template patterns defining which matched assets to exclude. Same {C}/{S} syntax as match."
+                }
+              },
+              "required": ["match"],
+              "additionalProperties": false
+            },
+            "glyphNamePattern": {
+              "type": "string",
+              "description": "Naming pattern used to detect glyph content assets (e.g. 'DS Icon Glyph /')"
+            },
+            "codeOnlyPropsPattern": {
+              "type": "string",
+              "description": "Naming pattern used to detect the code-only props container layer (e.g. 'Code only props')"
+            },
+            "inferNumberProps": {
+              "type": "boolean",
+              "description": "When true, TEXT code-only props whose default and all examples parse as valid numbers (no leading zeros) are emitted as NumberProp instead of StringProp"
+            },
+            "slotConstraints": {
+              "type": "boolean",
+              "description": "Whether to consolidate slot constraints (anyOf, minItems, maxItems) from code-only props into the slot property"
+            },
+            "variantDepth": {
+              "type": "number",
+              "enum": [
+                1,
+                2,
+                3,
+                9999
+              ]
+            },
+            "details": {
+              "type": "string",
+              "enum": [
+                "FULL",
+                "LAYERED"
+              ]
+            }
+          },
+          "required": [
+            "variantDepth",
+            "details"
+          ],
+          "additionalProperties": false
+        },
+        "format": {
+          "type": "object",
+          "properties": {
+            "output": {
+              "type": "string",
+              "enum": [
+                "JSON",
+                "YAML"
+              ]
+            },
+            "keys": {
+              "type": "string",
+              "enum": [
+                "SAFE",
+                "CAMEL",
+                "SNAKE",
+                "KEBAB",
+                "PASCAL",
+                "TRAIN"
+              ]
+            },
+            "layout": {
+              "type": "string",
+              "enum": [
+                "LAYOUT",
+                "PARENT_CHILDREN",
+                "BOTH"
+              ]
+            },
+            "tokens": {
+              "type": "string",
+              "enum": [
+                "TOKEN",
+                "TOKEN_NAME",
+                "TOKEN_FIGMA_EXTENSIONS",
+                "FIGMA_NAME",
+                "CUSTOM"
+              ],
+              "default": "TOKEN",
+              "description": "Token reference serialization profile. Optional; defaults to TOKEN. CUSTOM delegates projection entirely to the transformer."
+            }
+          },
+          "required": [
+            "output",
+            "keys",
+            "layout"
+          ],
+          "additionalProperties": false
+        },
+        "include": {
+          "type": "object",
+          "properties": {
+            "invalidVariants": {
+              "type": "boolean",
+              "description": "Include invalid variants. Optional; defaults to false."
+            },
+            "invalidCombinations": {
+              "type": "boolean",
+              "description": "Include invalid combinations. Optional; defaults to true."
+            },
+            "emptyVariants": {
+              "type": "boolean",
+              "description": "Include layered variants that contain no elements. When false (default), exclude empty variants from output. When true, include all variants regardless of element presence. Optional; defaults to false."
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "processing",
+        "format",
+        "include"
+      ],
+      "additionalProperties": false
+    },
+    "Subcomponent": {
+      "type": "object",
+      "description": "A subcomponent's data, derived from ComponentData but excluding metadata and subcomponents.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Component"
+        },
+        {
+          "not": {
+            "properties": {
+              "metadata": {},
+              "subcomponents": {}
+            },
+            "required": [
+              "metadata",
+              "subcomponents"
+            ]
+          }
+        }
+      ]
+    },
+    "NumberProp": {
+      "type": "object",
+      "description": "Number property definition for numeric-valued props inferred from TEXT code-only props.",
+      "examples": [],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "number"
+        },
+        "default": {
+          "type": "number"
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "description": "Sample numeric values demonstrating typical content for this prop"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "patternProperties": {
+        "^\\$": {}
+      },
+      "additionalProperties": false
+    }
+  },
+  "$ref": "#/definitions/Component"
+}

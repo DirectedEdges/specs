@@ -1,0 +1,43 @@
+{
+  "name": "@directededges/specs-schema",
+  "version": "0.16.0",
+  "description": "Specs UI Component Schema - TypeScript types and JSON schema definitions for component specifications",
+  "license": "CC-BY-4.0",
+  "author": "Nathan Curtis <nathan@directededges.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DirectedEdges/specs.git",
+    "directory": "packages/schema"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./types/index.ts",
+  "exports": {
+    ".": {
+      "types": "./types/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "types",
+    "schema"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "specs",
+    "component",
+    "schema",
+    "figma",
+    "design-system",
+    "specifications",
+    "types",
+    "typescript"
+  ],
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

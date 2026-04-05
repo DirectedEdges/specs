@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "rootDir": "types",
+    "outDir": "dist",
+    "declaration": false,
+    "emitDeclarationOnly": false,
+    "stripInternal": false
+  },
+  "include": ["types/**/*.ts"]
+}
