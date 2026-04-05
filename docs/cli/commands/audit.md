@@ -5,7 +5,7 @@ Scan a Figma file and generate a manifest of all components.
 ## Usage
 
 ```bash
-anova audit <file> -o <manifest> [options]
+specs audit <file> -o <manifest> [options]
 ```
 
 ## Arguments
@@ -14,7 +14,7 @@ anova audit <file> -o <manifest> [options]
 Path to Figma REST API JSON file.
 
 ```bash
-anova audit data/library.file.json -o components.md
+specs audit data/library.file.json -o components.md
 ```
 
 ## Options
@@ -25,7 +25,7 @@ Output manifest path.
 - Required.
 
 ```bash
-anova audit data/library.file.json -o manifests/design-system.md
+specs audit data/library.file.json -o manifests/design-system.md
 ```
 
 ### `--include-all`
@@ -37,7 +37,7 @@ Variables JSON file path.
 This is written into the manifest header as metadata for reference.
 
 ```bash
-anova audit data/library.file.json -o components.md \
+specs audit data/library.file.json -o components.md \
   --variables data/library.variables.json
 ```
 
@@ -45,7 +45,7 @@ anova audit data/library.file.json -o components.md \
 Enable detailed logging.
 
 ```bash
-anova audit data/library.file.json --verbose -o components.md
+specs audit data/library.file.json --verbose -o components.md
 ```
 
 ## Output Format
@@ -105,14 +105,14 @@ Edit the manifest to select which components to process:
 
 ```bash
 # Generate manifest
-anova audit data/library.file.json -o components.md
+specs audit data/library.file.json -o components.md
 ```
 
 ### With Variables
 
 ```bash
 # Include variables path in manifest metadata
-anova audit data/library.file.json -o components.md \
+specs audit data/library.file.json -o components.md \
   --variables data/library.variables.json
 ```
 
@@ -120,7 +120,7 @@ anova audit data/library.file.json -o components.md \
 
 ```bash
 # See component count and file stats
-anova audit data/library.file.json --verbose -o components.md
+specs audit data/library.file.json --verbose -o components.md
 
 # Output:
 # ✓ Scanned library.file.json

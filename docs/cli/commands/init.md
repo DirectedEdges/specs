@@ -1,11 +1,11 @@
 # `init` Command
 
-Initialize a `.anova.config.yaml` file with production-ready defaults.
+Initialize a `.specs.config.yaml` file with production-ready defaults.
 
 ## Usage
 
 ```bash
-anova init [options]
+specs init [options]
 ```
 
 ## Purpose
@@ -16,33 +16,33 @@ The `init` command scaffolds a fully-populated configuration file with:
 - Inline documentation with links to the full configuration reference
 - Empty sources object ready for your Figma file keys
 
-This is the recommended way to get started with Anova in a new project.
+This is the recommended way to get started with Specs in a new project.
 
 ## Options
 
 ### `--force` / `-f`
 Overwrite existing config file without prompting.
 
-By default, if `.anova.config.yaml` exists, `init` prompts before overwriting. Use `--force` to skip the prompt.
+By default, if `.specs.config.yaml` exists, `init` prompts before overwriting. Use `--force` to skip the prompt.
 
 ```bash
 # Prompt before overwrite (default)
-anova init
+specs init
 
 # Overwrite without prompting
-anova init --force
+specs init --force
 ```
 
 ### `--config <path>` / `-c <path>`
-Custom path for the config file (default: `.anova.config.yaml`).
+Custom path for the config file (default: `.specs.config.yaml`).
 
 ```bash
 # Create config in a custom location
-anova init --config ./configs/dev.yaml
+specs init --config ./configs/dev.yaml
 
 # Create multiple configs for different environments
-anova init --config ./configs/dev.yaml --force
-anova init --config ./configs/prod.yaml --force
+specs init --config ./configs/dev.yaml --force
+specs init --config ./configs/prod.yaml --force
 ```
 
 ## Examples
@@ -51,64 +51,64 @@ anova init --config ./configs/prod.yaml --force
 
 ```bash
 cd my-design-system
-anova init
+specs init
 
 # Output:
-# ✓ Created .anova.config.yaml
+# ✓ Created .specs.config.yaml
 # 📚 Next steps:
 #    1. Edit the config file to add your Figma file keys
-#    2. Run: anova fetch
-#    3. Run: anova audit data/library.file.json -o components.md
-#    4. Run: anova generate components.md -o specs.yaml
+#    2. Run: specs fetch
+#    3. Run: specs audit data/library.file.json -o components.md
+#    4. Run: specs generate components.md -o specs.yaml
 #
-# 📖 Documentation: packages/cli/docs/configuration.md
+# 📖 Documentation: docs/cli/configuration.md
 ```
 
 ### Example 2: Environment-Specific Configs
 
 ```bash
 # Development config
-anova init --config .anova.dev.yaml --force
+specs init --config .specs.dev.yaml --force
 
 # Production config  
-anova init --config .anova.prod.yaml --force
+specs init --config .specs.prod.yaml --force
 
 # Use with --config flag on other commands
-anova fetch --config .anova.dev.yaml
-anova generate data/library.file.json -c "Button" --config .anova.prod.yaml
+specs fetch --config .specs.dev.yaml
+specs generate data/library.file.json -c "Button" --config .specs.prod.yaml
 ```
 
 ### Example 3: Force Overwrite
 
 ```bash
 # If you accidentally delete your config, recreate it
-anova init --force
+specs init --force
 ```
 
 ## What Gets Created
 
-The init command creates a `.anova.config.yaml` file with the following structure:
+The init command creates a `.specs.config.yaml` file with the following structure:
 
 ```yaml
-# Anova CLI Configuration (production-ready defaults)
+# Specs CLI Configuration (production-ready defaults)
 #
-# This file configures how Anova fetches and processes Figma component data.
+# This file configures how Specs fetches and processes Figma component data.
 # See: docs/cli/configuration.md for complete documentation.
 
 # Where fetch writes payloads, and where generate reads from.
-# See: https://docs.anova.dev/cli/configuration#sourceDirectory
+# See: https://docs.specs.dev/cli/configuration#sourceDirectory
 sourceDirectory: ./data
 
 # Default location for generated spec files (can override with -o flag).
-# See: https://docs.anova.dev/cli/configuration#outputDirectory
+# See: https://docs.specs.dev/cli/configuration#outputDirectory
 outputDirectory: ./specs
 
 # Figma file sources to fetch and process.
-# See: https://docs.anova.dev/cli/configuration#sources
+# See: https://docs.specs.dev/cli/configuration#sources
 sources: {}
 
 # Model processing and output configuration.
-# See: https://docs.anova.dev/cli/configuration#model
+# See: https://docs.specs.dev/cli/configuration#model
 model:
   processing:
     subcomponents:

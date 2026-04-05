@@ -1,6 +1,6 @@
 # CLI Usage Examples
 
-Real-world examples and workflows for the Anova command-line interface.
+Real-world examples and workflows for the Specs command-line interface.
 
 ## Table of Contents
 
@@ -30,9 +30,9 @@ project/
 
 **Command:**
 ```bash
-anova fetch --verbose
+specs fetch --verbose
 
-anova generate data/library.file.json \
+specs generate data/library.file.json \
   -c "DS Alert" \
   -o specs/alert.yaml \
   --verbose
@@ -93,7 +93,7 @@ If component names have special characters or duplicates, use node IDs.
 **Find Node ID:**
 ```bash
 # List all components with IDs
-anova audit data/library.file.json -o manifest.md
+specs audit data/library.file.json -o manifest.md
 
 # Look in manifest.md:
 # - [x] DS Button/Icon (5507:123, COMPONENT_SET)
@@ -101,7 +101,7 @@ anova audit data/library.file.json -o manifest.md
 
 **Generate by ID:**
 ```bash
-anova generate data/library.file.json \
+specs generate data/library.file.json \
   -c "5507:123" \
   -o specs/button-icon.yaml
 ```
@@ -114,7 +114,7 @@ Generate output in JSON instead of YAML.
 
 **Single Component:**
 ```bash
-anova generate data/library.file.json \
+specs generate data/library.file.json \
   -c "DS Button" \
   --format json \
   -o specs/button.json
@@ -122,7 +122,7 @@ anova generate data/library.file.json \
 
 **From Manifest:**
 ```bash
-anova generate components.md \
+specs generate components.md \
   --format json \
   -o specs/all-components.json
 ```
@@ -137,13 +137,13 @@ Generate Pro-tier specs that include token references and variable bindings.
 
 ```bash
 # Set license key in environment
-export ANOVA_LICENSE_KEY="your-license-key"
+export SPECS_LICENSE_KEY="your-license-key"
 
 # Single component
-anova generate data/library.file.json -c "DS Button" -o specs/button.yaml
+specs generate data/library.file.json -c "DS Button" -o specs/button.yaml
 
 # From manifest
-anova generate components.md -o specs/all.yaml
+specs generate components.md -o specs/all.yaml
 ```
 
 Output includes license status:
@@ -158,11 +158,11 @@ License: PRO (active)
 
 ### Example 5: Using Config File
 
-Create `.anova.config.yaml` for consistent settings:
+Create `.specs.config.yaml` for consistent settings:
 
 **Config File:**
 ```yaml
-# .anova.config.yaml
+# .specs.config.yaml
 
 sourceDirectory: ./data
 outputDirectory: ./specs
@@ -197,8 +197,8 @@ model:
 
 **Command (uses config automatically):**
 ```bash
-anova fetch
-anova generate data/library.file.json -c "DS Button" -o specs/button.yaml
+specs fetch
+specs generate data/library.file.json -c "DS Button" -o specs/button.yaml
 ```
 
 **Result:** All settings from config file are applied automatically.
@@ -211,7 +211,7 @@ Mix config file with CLI overrides.
 
 **Config File:**
 ```yaml
-# .anova.config.yaml
+# .specs.config.yaml
 model:
   format:
     output: YAML
@@ -223,7 +223,7 @@ sources:
 
 **Command (override format and variables):**
 ```bash
-anova generate data/library.json \
+specs generate data/library.json \
   -c "DS Button" \
   --format json \
   --variables ./custom/vars.json \
@@ -244,21 +244,21 @@ Use different configs for different environments.
 **Directory Structure:**
 ```
 project/
-├── .anova.config.yaml           # Default (development)
-├── .anova.production.yaml       # Production
-├── .anova.staging.yaml          # Staging
+├── .specs.config.yaml           # Default (development)
+├── .specs.production.yaml       # Production
+├── .specs.staging.yaml          # Staging
 ```
 
 **Development (uses default):**
 ```bash
-anova generate data/library.json -c "Button" -o dev/button.yaml
+specs generate data/library.json -c "Button" -o dev/button.yaml
 ```
 
 **Production:**
 ```bash
-anova generate data/library.json \
+specs generate data/library.json \
   -c "Button" \
-  --config .anova.production.yaml \
+  --config .specs.production.yaml \
   -o prod/button.yaml
 ```
 
@@ -272,7 +272,7 @@ Process multiple components from a design system.
 
 **Step 1: Create Manifest**
 ```bash
-anova audit data/design-system.json -o components.md
+specs audit data/design-system.json -o components.md
 ```
 
 **Output:**
@@ -308,7 +308,7 @@ Open `components.md`:
 
 **Step 3: Generate Specs**
 ```bash
-anova generate components.md \
+specs generate components.md \
   -o specs/design-system.yaml \
   --verbose
 ```
@@ -334,22 +334,22 @@ anova generate components.md \
 
 **Per-component files (flat):**
 ```bash
-anova generate components.md -o specs/ --split-components
+specs generate components.md -o specs/ --split-components
 ```
 
 **Per-component files with subfolders:**
 ```bash
-anova generate components.md -o specs/ --split-components --use-subfolders
+specs generate components.md -o specs/ --split-components --use-subfolders
 ```
 
 **Split API from variants:**
 ```bash
-anova generate components.md -o specs/ --split-concerns
+specs generate components.md -o specs/ --split-concerns
 ```
 
 **Maximum organization — component dirs with concern files:**
 ```bash
-anova generate components.md -o specs/ --split-components --split-concerns
+specs generate components.md -o specs/ --split-components --split-concerns
 ```
 
 ---
@@ -362,7 +362,7 @@ Organize components by category.
 
 ```bash
 # Generate full manifest
-anova audit data/library.json -o all-components.md
+specs audit data/library.json -o all-components.md
 
 # Create atoms manifest (manually or with script)
 grep "Button\|Input\|Icon" all-components.md > atoms.md
@@ -384,9 +384,9 @@ grep "\[x\]" atoms.md >> manifests/atoms.md
 
 **Generate Specs by Category:**
 ```bash
-anova generate manifests/atoms.md -o specs/atoms.yaml
-anova generate manifests/molecules.md -o specs/molecules.yaml
-anova generate manifests/organisms.md -o specs/organisms.yaml
+specs generate manifests/atoms.md -o specs/atoms.yaml
+specs generate manifests/molecules.md -o specs/molecules.yaml
+specs generate manifests/organisms.md -o specs/organisms.yaml
 ```
 
 ---
@@ -399,22 +399,22 @@ Use CLI output with other command-line tools.
 
 **Extract Props Only:**
 ```bash
-anova generate lib.json -c "Button" | yq '.props'
+specs generate lib.json -c "Button" | yq '.props'
 ```
 
 **Format and Validate:**
 ```bash
-anova generate lib.json -c "Button" --format yaml | yamllint -
+specs generate lib.json -c "Button" --format yaml | yamllint -
 ```
 
 **Convert YAML to JSON:**
 ```bash
-anova generate lib.json -c "Button" --format yaml | yq -o json > button.json
+specs generate lib.json -c "Button" --format yaml | yq -o json > button.json
 ```
 
 **Check Component Metadata:**
 ```bash
-anova generate lib.json -c "Button" | yq '.metadata'
+specs generate lib.json -c "Button" | yq '.metadata'
 ```
 
 ---
@@ -425,7 +425,7 @@ Enable detailed logging for troubleshooting.
 
 **Command:**
 ```bash
-anova generate data/library.json \
+specs generate data/library.json \
   -c "DS Button" \
   --verbose \
   -o specs/button.yaml 2>&1 | tee debug.log
@@ -493,7 +493,7 @@ on:
   push:
     paths:
       - 'manifests/**'
-      - '.anova.config.yaml'
+      - '.specs.config.yaml'
 
 jobs:
   generate-specs:
@@ -508,18 +508,18 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Install Anova CLI
-        run: npm install -g @directededges/anova-cli
+      - name: Install Specs CLI
+        run: npm install -g @directededges/specs-cli
 
       - name: Fetch Figma data
-        run: anova fetch
+        run: specs fetch
         env:
           FIGMA_TOKEN: ${{ secrets.FIGMA_TOKEN }}
 
       - name: Generate component specs
-        run: anova generate manifests/components.md -o specs/design-system.yaml
+        run: specs generate manifests/components.md -o specs/design-system.yaml
         env:
-          ANOVA_LICENSE_KEY: ${{ secrets.ANOVA_LICENSE_KEY }}
+          SPECS_LICENSE_KEY: ${{ secrets.SPECS_LICENSE_KEY }}
 
       - name: Commit updated specs
         run: |
@@ -532,7 +532,7 @@ jobs:
 
 **Secrets Required:**
 - `FIGMA_TOKEN` - Figma Personal Access Token
-- `ANOVA_LICENSE_KEY` - Anova license key (optional, for Pro features)
+- `SPECS_LICENSE_KEY` - Specs license key (optional, for Pro features)
 
 ---
 
@@ -547,10 +547,10 @@ Automated script to sync Figma data and generate specs.
 set -e
 
 echo "Fetching Figma data..."
-anova fetch
+specs fetch
 
 echo "Generating component specs..."
-anova generate manifests/components.md \
+specs generate manifests/components.md \
   --output specs/design-system.yaml \
   --verbose
 
@@ -616,10 +616,10 @@ Add comments explaining why components are included/excluded:
 
 ### Practice 3: Use Config for Team Consistency
 
-Share `.anova.config.yaml` across team for consistent output:
+Share `.specs.config.yaml` across team for consistent output:
 
 ```yaml
-# .anova.config.yaml - Team standards
+# .specs.config.yaml - Team standards
 
 model:
   format:
@@ -632,8 +632,8 @@ model:
 
 **Commit to repo:**
 ```bash
-git add .anova.config.yaml
-git commit -m "docs: add Anova CLI configuration"
+git add .specs.config.yaml
+git commit -m "docs: add Specs CLI configuration"
 ```
 
 ---
@@ -644,10 +644,10 @@ Never commit license keys to your repository. Use environment variables or CI se
 
 ```bash
 # Local development
-echo 'ANOVA_LICENSE_KEY=your-key' >> .env
+echo 'SPECS_LICENSE_KEY=your-key' >> .env
 
 # CI/CD
-# Add ANOVA_LICENSE_KEY as a secret in your CI provider
+# Add SPECS_LICENSE_KEY as a secret in your CI provider
 ```
 
 ---
@@ -658,7 +658,7 @@ echo 'ANOVA_LICENSE_KEY=your-key' >> .env
 
 Use `applyCustomTokens` to inject custom token objects into fetched data before generating specs with the `CUSTOM` token format.
 
-**1. Configure `format.tokens: CUSTOM` in `.anova.config.yaml`:**
+**1. Configure `format.tokens: CUSTOM` in `.specs.config.yaml`:**
 
 ```yaml
 model:
@@ -683,14 +683,14 @@ model:
 
 ```bash
 # Fetch latest data from Figma
-anova fetch
+specs fetch
 
 # Inject custom token objects into variables and styles
-anova applyCustomTokens data/token-mappings.json
+specs applyCustomTokens data/token-mappings.json
 
 # Generate specs — matched variables use $custom verbatim,
 # unmatched fall back to TOKEN_FIGMA_EXTENSIONS format
-anova generate components.md -o specs/
+specs generate components.md -o specs/
 ```
 
 **4. Verify output:**

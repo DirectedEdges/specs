@@ -1,12 +1,12 @@
 # CLI Commands Reference
 
-Complete reference for all Anova CLI commands, options, and usage patterns.
+Complete reference for all Specs CLI commands, options, and usage patterns.
 
 ## Command Overview
 
 | Command | Purpose | Output |
 |---------|---------|--------|
-| [`init`](./init.md) | Initialize config file with defaults | `.anova.config.yaml` |
+| [`init`](./init.md) | Initialize config file with defaults | `.specs.config.yaml` |
 | [`fetch`](./fetch.md) | Download raw REST payloads from Figma | JSON files in `sourceDirectory` |
 | [`generate`](./generate.md) | Generate specs from a manifest or single component | YAML/JSON spec file(s) |
 | [`audit`](./audit.md) | List all components in file | Markdown manifest |
@@ -25,7 +25,7 @@ These options work with all commands:
 ### 1. Initialize Configuration
 
 ```bash
-anova init
+specs init
 ```
 
 See [Init Command](./init.md) for details.
@@ -39,7 +39,7 @@ See [Init Command](./init.md) for details.
 # Option B: export in current shell
 export FIGMA_TOKEN="your_token"
 
-anova fetch --verbose
+specs fetch --verbose
 ```
 
 See [Fetch Command](./fetch.md) for details.
@@ -49,24 +49,24 @@ See [Fetch Command](./fetch.md) for details.
 #### From a Manifest (recommended)
 ```bash
 # Create manifest
-anova audit data/library.file.json -o components.md
+specs audit data/library.file.json -o components.md
 
 # Curate (edit components.md to select components)
 
 # Generate specs for selected components
-anova generate components.md -o specs/all.yaml
+specs generate components.md -o specs/all.yaml
 ```
 
 #### Single Component
 ```bash
-anova generate data/library.file.json -c "Button" -o specs/button.yaml
+specs generate data/library.file.json -c "Button" -o specs/button.yaml
 ```
 
 See [Generate Command](./generate.md) for details.
 
 ## File Outputs
 
-`anova fetch` writes deterministic filenames based on your config aliases.
+`specs fetch` writes deterministic filenames based on your config aliases.
 
 Example (with `sourceDirectory: ./data`):
 
@@ -79,20 +79,20 @@ data/
 └── foundations.styles.json
 ```
 
-`generate` uses these files by default when your `.anova.config.yaml` declares the corresponding aliases and data types.
+`generate` uses these files by default when your `.specs.config.yaml` declares the corresponding aliases and data types.
 
 ## Configuration File Discovery
 
 Config file locations (searched in order):
 
-1. `./.anova.config.yaml` (current directory)
-2. `./.anova.config.json` (current directory)
-3. `~/.anova/config.yaml` (user home)
+1. `./.specs.config.yaml` (current directory)
+2. `./.specs.config.json` (current directory)
+3. `~/.specs/config.yaml` (user home)
 
 Or specify a custom location:
 
 ```bash
-anova generate data/library.file.json -c "Button" --config ./custom.yaml
+specs generate data/library.file.json -c "Button" --config ./custom.yaml
 ```
 
 ## Priority System
@@ -122,40 +122,40 @@ When multiple sources provide the same setting, this priority applies.
 ### 1. Use Verbose Mode for Debugging
 
 ```bash
-anova generate data/library.file.json -c "Button" --verbose 2>&1 | tee debug.log
+specs generate data/library.file.json -c "Button" --verbose 2>&1 | tee debug.log
 ```
 
 ### 2. Manifests Are Faster Than Multiple Generate Calls
 
 ```bash
 # Slow (3 separate processes, each loads and indexes the file)
-anova generate data/library.file.json -c "Button" -o specs/button.yaml
-anova generate data/library.file.json -c "Alert" -o specs/alert.yaml
-anova generate data/library.file.json -c "Modal" -o specs/modal.yaml
+specs generate data/library.file.json -c "Button" -o specs/button.yaml
+specs generate data/library.file.json -c "Alert" -o specs/alert.yaml
+specs generate data/library.file.json -c "Modal" -o specs/modal.yaml
 
 # Fast (1 process for all 3)
 # Edit manifest to select Button, Alert, Modal
-anova generate components.md -o specs/all.yaml
+specs generate components.md -o specs/all.yaml
 ```
 
 ### 3. Use Node IDs for Special Characters
 
 ```bash
 # Component name: "Icon/Menu" (has slash)
-anova generate data/library.file.json -c "5507:123"  # Node ID
+specs generate data/library.file.json -c "5507:123"  # Node ID
 ```
 
 ### 4. Pipe to Other Tools
 
 ```bash
 # Extract just props
-anova generate data/library.file.json -c "Button" | yq '.props'
+specs generate data/library.file.json -c "Button" | yq '.props'
 
 # Format and validate
-anova generate data/library.file.json -c "Button" | yamllint -
+specs generate data/library.file.json -c "Button" | yamllint -
 
 # Convert YAML to JSON
-anova generate data/library.file.json -c "Button" --format yaml | yq -o json > button.json
+specs generate data/library.file.json -c "Button" --format yaml | yq -o json > button.json
 ```
 
 ### 5. Check Manifest Before Generating

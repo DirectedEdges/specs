@@ -1,12 +1,12 @@
-# Getting Started with Anova CLI
+# Getting Started with Specs CLI
 
-Anova CLI generates component specifications from your Figma design system. This guide walks you through setup and your first spec generation.
+Specs CLI generates component specifications from your Figma design system. This guide walks you through setup and your first spec generation.
 
 **Quick nav:**
 - [Step 1: Install Node.js](#step-1-install-nodejs)
 - [Step 2: Set Your Figma Token](#step-2-set-your-figma-token)
 - [Step 3: Set Your License Key (optional)](#step-3-set-your-license-key-optional)
-- [Step 4: Install Anova CLI](#step-4-install-anova-cli)
+- [Step 4: Install Specs CLI](#step-4-install-specs-cli)
 - [Configuration](#configuration)
 - [Workflows](#workflows)
 - [Commands Reference](./commands/)
@@ -15,7 +15,7 @@ Anova CLI generates component specifications from your Figma design system. This
 
 ## Step 1: Install Node.js
 
-Anova CLI is a command-line tool that runs on **Node.js** — a runtime that lets you execute JavaScript tools from your terminal. If you don't have Node.js installed, download it:
+Specs CLI is a command-line tool that runs on **Node.js** — a runtime that lets you execute JavaScript tools from your terminal. If you don't have Node.js installed, download it:
 
 - **[Download Node.js 18+](https://nodejs.org/)**
 - Choose the LTS (Long Term Support) version
@@ -29,17 +29,17 @@ npm --version
 
 Both commands should show version numbers (e.g., `v20.10.0`).
 
-> **What's npm?** npm is Node's package manager — it downloads and installs command-line tools like Anova CLI.
+> **What's npm?** npm is Node's package manager — it downloads and installs command-line tools like Specs CLI.
 
 ## Step 2: Set Your Figma Token
 
-Anova CLI uses the [Figma REST API](https://www.figma.com/developers/api) to read your design files. You need an access token to authenticate.
+Specs CLI uses the [Figma REST API](https://www.figma.com/developers/api) to read your design files. You need an access token to authenticate.
 
 ### Create a Personal Access Token
 
 1. Go to [Figma Settings → Tokens](https://www.figma.com/settings/tokens)
 2. Click **Create a new token**
-3. Choose a name (e.g., "Anova CLI")
+3. Choose a name (e.g., "Specs CLI")
 4. Select scopes:
   - `file_metadata:read` (file metadata)
   - `file_content:read` (file contents, nodes)
@@ -61,13 +61,13 @@ Add `.env` to your `.gitignore` so the token isn't committed:
 .env
 ```
 
-Anova CLI automatically loads `.env` from your current directory when you run commands.
+Specs CLI automatically loads `.env` from your current directory when you run commands.
 
 > **Alternative:** You can also export the token in your shell: `export FIGMA_TOKEN="your_token_here"`.
 
 ## Step 3: Set Your License Key (optional)
 
-Anova CLI works at a **free tier** without a license key. Free-tier specs include full component structure — anatomy, props, variants, layout, and raw style values.
+Specs CLI works at a **free tier** without a license key. Free-tier specs include full component structure — anatomy, props, variants, layout, and raw style values.
 
 With a **Pro license key**, specs also include design token references, variable bindings, and visibility bindings that connect your component specs to your design token system.
 
@@ -77,13 +77,13 @@ Add your license key to your `.env` file alongside your Figma token:
 
 ```
 FIGMA_TOKEN=your_figma_token_here
-ANOVA_LICENSE_KEY=your_license_key_here
+SPECS_LICENSE_KEY=your_license_key_here
 ```
 
 The CLI loads this automatically. You can also pass it per-command with the `-l` flag:
 
 ```bash
-anova generate components.md -o specs/all.yaml -l "your-license-key"
+specs generate components.md -o specs/all.yaml -l "your-license-key"
 ```
 
 ### License Status
@@ -100,7 +100,7 @@ If the key is invalid or expired, the CLI falls back to the free tier and shows 
 License: FREE (invalid — key not recognized)
 ```
 
-## Step 4: Install Anova CLI
+## Step 4: Install Specs CLI
 
 Choose one installation method:
 
@@ -110,14 +110,14 @@ Install once, use everywhere:
 
 ```bash
 npm login --scope=@directededges --registry=https://npm.pkg.github.com
-npm install -g @directededges/anova-cli
+npm install -g @directededges/specs-cli
 ```
 
 Then run commands from anywhere:
 
 ```bash
-anova --version
-anova init
+specs --version
+specs init
 ```
 
 ### Option B: Use Without Installing (npx)
@@ -125,11 +125,11 @@ anova init
 Run on-the-fly without installing globally:
 
 ```bash
-npx @directededges/anova-cli --version
-npx @directededges/anova-cli init
+npx @directededges/specs-cli --version
+npx @directededges/specs-cli init
 ```
 
-> **What's npx?** It downloads and runs the tool temporarily. Useful if you only use Anova CLI occasionally.
+> **What's npx?** It downloads and runs the tool temporarily. Useful if you only use Specs CLI occasionally.
 
 ---
 
@@ -137,13 +137,13 @@ npx @directededges/anova-cli init
 
 ### Initialize Project Configuration
 
-Create a `.anova.config.yaml` file with defaults:
+Create a `.specs.config.yaml` file with defaults:
 
 ```bash
-anova init
+specs init
 ```
 
-Edit `.anova.config.yaml` to add your Figma file keys:
+Edit `.specs.config.yaml` to add your Figma file keys:
 
 ```yaml
 sourceDirectory: ./data        # Where fetch writes payloads
@@ -195,19 +195,19 @@ Generate specs for multiple components at once:
 
 ```bash
 # Fetch Figma data
-anova fetch
+specs fetch
 
 # Create manifest of all components
-anova audit data/library.file.json -o components.md
+specs audit data/library.file.json -o components.md
 
 # Edit components.md: mark [x] to include, [ ] to exclude
 
 # Generate specs for selected components
 # Single file (default)
-anova generate components.md -o specs/design-system.yaml
+specs generate components.md -o specs/design-system.yaml
 
 # Or use per-component files for easier collaboration
-anova generate components.md -o specs/ --split-components
+specs generate components.md -o specs/ --split-components
 ```
 
 ### 2: Single Component
@@ -216,10 +216,10 @@ Generate a spec for one component — useful when setting up or iterating:
 
 ```bash
 # Fetch Figma data
-anova fetch
+specs fetch
 
 # Generate component spec
-anova generate data/library.file.json \
+specs generate data/library.file.json \
   -c "Button" \
   -o specs/button.yaml
 ```
@@ -244,15 +244,15 @@ jobs:
         with:
           node-version: '18'
 
-      - run: npm install -g @directededges/anova-cli
+      - run: npm install -g @directededges/specs-cli
 
-      - run: anova fetch
+      - run: specs fetch
         env:
           FIGMA_TOKEN: ${{ secrets.FIGMA_TOKEN }}
 
-      - run: anova generate components.md -o specs/design-system.yaml
+      - run: specs generate components.md -o specs/design-system.yaml
         env:
-          ANOVA_LICENSE_KEY: ${{ secrets.ANOVA_LICENSE_KEY }}
+          SPECS_LICENSE_KEY: ${{ secrets.SPECS_LICENSE_KEY }}
 
       - run: |
           git config user.name "GitHub Actions"

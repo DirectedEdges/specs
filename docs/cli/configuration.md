@@ -1,13 +1,13 @@
 # CLI Configuration
 
-Configure Anova's model behavior and data sources using `.anova.config.yaml` for consistent, reproducible component specifications.
+Configure Specs' model behavior and data sources using `.specs.config.yaml` for consistent, reproducible component specifications.
 
 ## Overview
 
 The CLI uses a hierarchical configuration system with three priority levels:
 
 1. **CLI flags** (highest) - Explicit overrides for individual commands
-2. **Config file** - Project defaults via `.anova.config.yaml`
+2. **Config file** - Project defaults via `.specs.config.yaml`
 3. **Fallbacks** (lowest) - Convention-based defaults when no sources are configured
 
 ## Configuration File
@@ -16,9 +16,9 @@ The CLI uses a hierarchical configuration system with three priority levels:
 
 The CLI searches for configuration in these locations (in order):
 
-1. `./.anova.config.yaml` (current directory)
-2. `./.anova.config.json` (current directory)
-3. `~/.anova/config.yaml` (user home directory)
+1. `./.specs.config.yaml` (current directory)
+2. `./.specs.config.json` (current directory)
+3. `~/.specs/config.yaml` (user home directory)
 4. Custom path via `--config <path>` flag
 
 ### Format
@@ -26,9 +26,9 @@ The CLI searches for configuration in these locations (in order):
 Configuration uses YAML or JSON format:
 
 ```yaml
-# .anova.config.yaml
+# .specs.config.yaml
 
-# Where `anova fetch` writes payloads, and where `generate` loads them from
+# Where `specs fetch` writes payloads, and where `generate` loads them from
 sourceDirectory: ./data
 
 # Default location for generated spec files (can override with -o flag)
@@ -70,7 +70,7 @@ model:
 
 ## Model Configuration
 
-The `model` section controls how Anova processes and outputs component data.
+The `model` section controls how Specs processes and outputs component data.
 
 ### Processing Options
 
@@ -205,7 +205,7 @@ model:
     tokens: TOKEN  # Default resolved token references
 ```
 
-> **Using CUSTOM**: First run `anova applyCustomTokens <mapping>` to inject `$custom` objects into your fetched data files, then run `batch` or `generate`. The `applyCustomTokens` command auto-discovers variables/styles files from `sourceDirectory` and `sources` in this config, or accepts explicit `-v`/`-s` paths. See [applyCustomTokens command](./commands/apply-custom-tokens.md) for details.
+> **Using CUSTOM**: First run `specs applyCustomTokens <mapping>` to inject `$custom` objects into your fetched data files, then run `batch` or `generate`. The `applyCustomTokens` command auto-discovers variables/styles files from `sourceDirectory` and `sources` in this config, or accepts explicit `-v`/`-s` paths. See [applyCustomTokens command](./commands/apply-custom-tokens.md) for details.
 
 ### Include Options
 
@@ -251,7 +251,7 @@ model:
 
 ## Output Configuration
 
-Controls **where and how to write** generated specifications. Configured via the `output` field in `.anova.config.yaml` or CLI flags.
+Controls **where and how to write** generated specifications. Configured via the `output` field in `.specs.config.yaml` or CLI flags.
 
 ```yaml
 output:
@@ -411,20 +411,20 @@ specs/
 Output configuration follows the standard priority system:
 
 1. **CLI flags** (highest): `--split-components`, `--split-concerns`, `--use-subfolders`
-2. **Config file**: `output` field in `.anova.config.yaml`
+2. **Config file**: `output` field in `.specs.config.yaml`
 3. **Defaults** (lowest): Single-file mode, YAML format
 
 ```bash
 # Config has splitComponents: false
 # CLI overrides to true
-anova generate manifest.md --split-components
+specs generate manifest.md --split-components
 ```
 
 ---
 
 ## Data Sources
 
-Anova uses *raw REST payload files* on disk.
+Specs uses *raw REST payload files* on disk.
 
 ### `sourceDirectory` (string)
 Directory where `fetch` writes downloaded payloads, and where `generate` load them from.
@@ -477,7 +477,7 @@ CLI flags always override config file settings:
 ```bash
 # Config has format.output: JSON
 # Flag overrides to YAML
-anova generate data/library.file.json -c Button --format yaml
+specs generate data/library.file.json -c Button --format yaml
 ```
 
 **Available flag overrides**:
@@ -487,10 +487,10 @@ anova generate data/library.file.json -c Button --format yaml
 
 ### 2. Config File
 
-Settings from `.anova.config.yaml` apply when no CLI flag is provided:
+Settings from `.specs.config.yaml` apply when no CLI flag is provided:
 
 ```yaml
-# .anova.config.yaml
+# .specs.config.yaml
 model:
   format:
     output: YAML  # Used unless --format flag provided
@@ -510,7 +510,7 @@ Convention-based defaults when no sources are configured and no flags are provid
 
 ```
 project/
-├── .anova.config.yaml  # Config (if exists)
+├── .specs.config.yaml  # Config (if exists)
 ├── data/
 │   ├── library.file.json      # Main file (specified in command)
 │   └── foundations/           # Auto-discovery directory
@@ -525,7 +525,7 @@ project/
 Optimized for fast iteration:
 
 ```yaml
-# .anova.config.yaml (development)
+# .specs.config.yaml (development)
 
 model:
   processing:
@@ -550,7 +550,7 @@ sources:
 Optimized for production output:
 
 ```yaml
-# .anova.config.yaml (production)
+# .specs.config.yaml (production)
 
 model:
   processing:
@@ -579,7 +579,7 @@ Use project-specific config:
 
 ```bash
 # Use custom config for this project
-anova generate data/library.file.json \
+specs generate data/library.file.json \
   -c "Button" \
   --config ./configs/mobile.config.yaml \
   -o specs/mobile/button.yaml
@@ -590,7 +590,7 @@ anova generate data/library.file.json \
 Mix config file with CLI overrides:
 
 ```yaml
-# .anova.config.yaml
+# .specs.config.yaml
 model:
   format:
     output: YAML
@@ -607,7 +607,7 @@ sources:
 
 ```bash
 # Override format and variables for this command
-anova generate data/library.file.json \
+specs generate data/library.file.json \
   -c "Button" \
   --format json \
   --variables ./custom/vars.json
@@ -620,7 +620,7 @@ anova generate data/library.file.json \
 The CLI validates all configuration values and provides helpful error messages:
 
 ```bash
-$ anova generate data/library.file.json -c Button
+$ specs generate data/library.file.json -c Button
 Warning: Invalid format.keys: 'invalid'. Using default: SAFE. 
 Valid values: SAFE, CAMEL, SNAKE, KEBAB, PASCAL, TRAIN
 ```
@@ -631,11 +631,11 @@ Invalid values fall back to defaults with warnings, so builds continue.
 
 ### 1. Version Control Config
 
-Commit `.anova.config.yaml` to share settings across team:
+Commit `.specs.config.yaml` to share settings across team:
 
 ```bash
-git add .anova.config.yaml
-git commit -m "Add Anova CLI configuration"
+git add .specs.config.yaml
+git commit -m "Add Specs CLI configuration"
 ```
 
 ### 2. Environment-Specific Configs
@@ -644,17 +644,17 @@ Use different configs for different environments:
 
 ```
 project/
-├── .anova.config.yaml           # Default (development)
-├── .anova.production.yaml       # Production
-└── .anova.staging.yaml          # Staging
+├── .specs.config.yaml           # Default (development)
+├── .specs.production.yaml       # Production
+└── .specs.staging.yaml          # Staging
 ```
 
 ```bash
 # Development (uses default)
-anova generate data/library.file.json -c Button
+specs generate data/library.file.json -c Button
 
 # Production
-anova generate data/library.file.json -c Button --config .anova.production.yaml
+specs generate data/library.file.json -c Button --config .specs.production.yaml
 ```
 
 ### 3. Document Custom Patterns

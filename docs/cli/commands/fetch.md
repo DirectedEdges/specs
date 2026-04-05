@@ -5,13 +5,13 @@ Fetch raw Figma REST API payloads for configured sources.
 ## Usage
 
 ```bash
-anova fetch [options]
+specs fetch [options]
 ```
 
 ## Requirements
 
 - `FIGMA_TOKEN` must be set in your environment.
-- `.anova.config.yaml` must include `sourceDirectory` and `sources`.
+- `.specs.config.yaml` must include `sourceDirectory` and `sources`.
 
 ## Options
 
@@ -28,10 +28,10 @@ Show request URLs and write locations.
 
 ```bash
 export FIGMA_TOKEN="YOUR_TOKEN"
-anova fetch --verbose
+specs fetch --verbose
 
 # Only refresh foundations payloads
-anova fetch --only foundations --verbose
+specs fetch --only foundations --verbose
 ```
 
 ---
