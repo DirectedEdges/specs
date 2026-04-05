@@ -26,7 +26,12 @@ All commands in this agent run from the **CLI package directory**: `packages/cli
 2. **Verify CHANGELOG**: Read `packages/cli/CHANGELOG.md`. Confirm:
    - An entry exists for this version (e.g., `## [0.6.0]`)
    - The entry has a date (use today if missing)
+   - A **Summary** line exists at the top of the version entry (immediately after the heading), providing a high-level overview of this release
    - The entry has content under Added/Changed/Removed/Fixed
+   - A **Dependency updates** subsection summarizes what changed in upstream packages. To write this:
+     1. Read the specs-schema CHANGELOG (`packages/schema/CHANGELOG.md`) for the `<schema-version>` entry
+     2. Read the figma-to-specs CHANGELOG for the `<figma-to-specs-version>` entry
+     3. Summarize in plain language what these upstream changes mean for CLI users — focus on user-visible behavior changes (new output fields, changed data shapes, corrected values) rather than internal code structure. Write from the CLI user's perspective (e.g., "Specs now include..." not "The transformer refactored...")
    If incomplete, STOP and report what's missing.
 
 3. **Verify clean working tree**:
