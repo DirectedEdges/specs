@@ -24,16 +24,16 @@ describe('ConfigTemplates', () => {
     it('should include inline documentation comments', () => {
       const template = generateConfigTemplate();
       expect(template).toContain('#');
-      expect(template).toContain('Anova CLI Configuration');
+      expect(template).toContain('Specs CLI Configuration');
       expect(template).toContain('docs/cli/configuration.md');
     });
 
     it('should include doc URL references', () => {
       const template = generateConfigTemplate();
-      expect(template).toContain('https://docs.anova.dev/cli/configuration#sourceDirectory');
-      expect(template).toContain('https://docs.anova.dev/cli/configuration#outputDirectory');
-      expect(template).toContain('https://docs.anova.dev/cli/configuration#sources');
-      expect(template).toContain('https://docs.anova.dev/cli/configuration#model');
+      expect(template).toContain('https://docs.specs.dev/cli/configuration#sourceDirectory');
+      expect(template).toContain('https://docs.specs.dev/cli/configuration#outputDirectory');
+      expect(template).toContain('https://docs.specs.dev/cli/configuration#sources');
+      expect(template).toContain('https://docs.specs.dev/cli/configuration#model');
     });
 
     it('should include Figma sources section', () => {
@@ -47,7 +47,7 @@ describe('ConfigTemplates', () => {
       const template = generateConfigTemplate();
       expect(template).toContain('glyphNamePattern');
       expect(template).toContain('icon glyph');
-      expect(template).toContain('https://docs.anova.dev/cli/configuration#glyphNamePattern');
+      expect(template).toContain('https://docs.specs.dev/cli/configuration#glyphNamePattern');
     });
 
     it('should include model processing configuration', () => {

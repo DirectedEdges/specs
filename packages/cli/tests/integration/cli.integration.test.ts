@@ -22,7 +22,9 @@ async function runCli(args: string[], env?: Record<string, string | undefined>):
 
   const exitSpy = vi.spyOn(process, 'exit').mockImplementation((code?: string | number | null) => {
     const resolvedCode = typeof code === 'number' ? code : typeof code === 'string' ? Number(code) : 0;
-    exitCode = Number.isFinite(resolvedCode) ? resolvedCode : 0;
+    if (exitCode === undefined) {
+      exitCode = Number.isFinite(resolvedCode) ? resolvedCode : 0;
+    }
     throw new Error(`process.exit:${exitCode}`);
   });
   const logSpy = vi.spyOn(console, 'log').mockImplementation((...args: unknown[]) => {
@@ -34,7 +36,7 @@ async function runCli(args: string[], env?: Record<string, string | undefined>):
 
   try {
     const program = createProgram();
-    await program.parseAsync(['node', 'anova-cli', ...args], { from: 'user' });
+    await program.parseAsync(args, { from: 'user' });
   } catch (error) {
     if (!(error instanceof Error) || !error.message.startsWith('process.exit:')) {
       throw error;
@@ -99,8 +101,8 @@ describe('CLI integration', () => {
     expect(result.exitCode).toBe(3);
   });
 
-  it('exits with FILE_ERROR for missing batch manifest', async () => {
-    const result = await runCli(['batch', 'missing.md', '--output', 'specs.yaml']);
+  it('exits with FILE_ERROR for missing generate manifest', async () => {
+    const result = await runCli(['generate', 'missing.md']);
     expect(result.exitCode).toBe(3);
   });
 
@@ -113,7 +115,7 @@ describe('CLI integration', () => {
     const testDir = path.join(process.cwd(), 'tests', 'tmp', `cli-init-${Date.now()}`);
     await fs.ensureDir(testDir);
 
-    const configPath = path.join(testDir, '.anova.config.yaml');
+    const configPath = path.join(testDir, '.specs.config.yaml');
     const result = await runCli(['init', '--config', configPath]);
 
     expect(result.exitCode).toBeUndefined();

@@ -12,7 +12,9 @@ async function runCli(args: string[]): Promise<RunResult> {
 
   const exitSpy = vi.spyOn(process, 'exit').mockImplementation((code?: string | number | null) => {
     const resolvedCode = typeof code === 'number' ? code : typeof code === 'string' ? Number(code) : 0;
-    exitCode = Number.isFinite(resolvedCode) ? resolvedCode : 0;
+    if (exitCode === undefined) {
+      exitCode = Number.isFinite(resolvedCode) ? resolvedCode : 0;
+    }
     throw new Error(`process.exit:${exitCode}`);
   });
   const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -20,7 +22,7 @@ async function runCli(args: string[]): Promise<RunResult> {
 
   try {
     const program = createProgram();
-    await program.parseAsync(['node', 'anova-cli', ...args], { from: 'user' });
+    await program.parseAsync(args, { from: 'user' });
   } catch (error) {
     if (!(error instanceof Error) || !error.message.startsWith('process.exit:')) {
       throw error;
