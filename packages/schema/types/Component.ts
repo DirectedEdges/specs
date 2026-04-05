@@ -6,10 +6,10 @@ import { Metadata } from "./Metadata.js";
 import { PropConfigurations } from "./PropConfigurations.js";
 
 /**
- * Represents a component specification in the Anova format.
- * 
- * This is the top-level structure produced by the anova-transformer
- * and validated against the Anova JSON schema.
+ * Represents a component specification in the Specs format.
+ *
+ * This is the top-level structure produced by the figma-to-specs transformer
+ * and validated against the Specs JSON schema.
  */
 export type Component = {
   /**

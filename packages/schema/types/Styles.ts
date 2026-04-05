@@ -60,7 +60,7 @@ export interface TokenReference {
   $token: string;
   /**
    * DTCG token type (Format Module §9). Standard values: color, dimension, string, number, boolean,
-   * shadow, gradient, typography. "effects" is an Anova extension for EffectsGroup references
+   * shadow, gradient, typography. "effects" is a Specs extension for EffectsGroup references
    * (multi-shadow + blur composite) with no DTCG equivalent.
    */
   $type:

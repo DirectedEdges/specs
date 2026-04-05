@@ -1,8 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://raw.githubusercontent.com/DirectedEdges/anova/main/schema/root.schema.json",
-  "title": "Anova Schema Package",
-  "description": "Root schema for the Anova component and components set definitions.",
+  "title": "Specs Schema Package",
+  "description": "Root schema for the Specs component and components set definitions.",
   "version": "0.12.0",
   "oneOf": [
     { "$ref": "component.schema.json" },

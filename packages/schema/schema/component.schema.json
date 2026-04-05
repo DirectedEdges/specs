@@ -1,9 +1,8 @@
 {
   "version": "0.14.0",
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://raw.githubusercontent.com/DirectedEdges/anova/main/schema/component.schema.json",
-  "title": "Anova Plugin Output Schema",
-  "description": "JSON Schema for data that's output by the Anova Figma plugin produced by Directed Edges",
+  "title": "Specs Plugin Output Schema",
+  "description": "JSON Schema for data that's output by the Specs Figma plugin produced by Directed Edges",
   "$comment": "Copyright (c) 2025 Directed Edges. Licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Attribution required.",
   "definitions": {
     "Component": {

@@ -1,9 +1,9 @@
 /**
- * Anova Schema Types
+ * Specs Schema Types
  *
- * TypeScript type definitions matching the Anova JSON schema.
+ * TypeScript type definitions matching the Specs JSON schema.
  * These types represent the serialized output format produced by
- * @directededges/anova-transformer and other Anova-compatible tools.
+ * @directededges/figma-to-specs and other Specs-compatible tools.
  */
 
 // Core component types

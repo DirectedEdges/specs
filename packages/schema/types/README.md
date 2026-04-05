@@ -1,22 +1,22 @@
-# Anova Schema Types
+# Specs Schema Types
 
-TypeScript type definitions for the Anova component specification format.
+TypeScript type definitions for the Specs component specification format.
 
 ## Overview
 
-This package provides TypeScript types that match the Anova JSON schema. These types represent the serialized output format produced by `@directededges/anova-transformer` and consumed by tools like MCP servers, validators, and documentation generators.
+This package provides TypeScript types that match the Specs JSON schema. These types represent the serialized output format produced by `@directededges/figma-to-specs` and consumed by tools like MCP servers, validators, and documentation generators.
 
 ## Installation
 
 ```bash
-npm install @directededges/anova
+npm install @directededges/specs-schema
 ```
 
 ## Usage
 
 ```typescript
-import type { Component, Variant, Anatomy, Config } from '@directededges/anova';
-import { DEFAULT_CONFIG } from '@directededges/anova';
+import type { Component, Variant, Anatomy, Config } from '@directededges/specs-schema';
+import { DEFAULT_CONFIG } from '@directededges/specs-schema';
 
 // Type-safe component data
 const component: Component = {
@@ -70,29 +70,29 @@ const config: Config = {
 ## Relationship to Other Packages
 
 ```
-┌─────────────────────────────────────────────┐
-│ @directededges/anova (this package)         │
-│ - JSON Schema definitions                   │
-│ - TypeScript type definitions               │
-│ - Default configuration constants           │
-│ Exports: Component, Config, DEFAULT_CONFIG  │
-└─────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│ @directededges/specs-schema (this package)       │
+│ - JSON Schema definitions                        │
+│ - TypeScript type definitions                    │
+│ - Default configuration constants                │
+│ Exports: Component, Config, DEFAULT_CONFIG       │
+└──────────────────────────────────────────────────┘
                     ▲
                     │ imports types & config
     ┌───────────────┴──────────────┐
     │                               │
-┌───────────────────┐   ┌──────────────────────┐
-│ anova-transformer │   │ anova-plugin (MCP)   │
-│ - Produces data   │   │ - Consumes data      │
-│                   │   │ - Validates schema   │
-└───────────────────┘   └──────────────────────┘
+┌───────────────────────┐   ┌──────────────────────┐
+│ figma-to-specs        │   │ specs-plugin (MCP)   │
+│ - Produces data       │   │ - Consumes data      │
+│                       │   │ - Validates schema   │
+└───────────────────────┘   └──────────────────────┘
 ```
 
 ### Why Simple Names?
 
 Types use simple names (`Component`, `Variant`) instead of suffixed names (`ComponentData`, `VariantData`) because:
 
-1. **Package namespacing**: `import { Component } from '@directededges/anova'` provides clear context
+1. **Package namespacing**: `import { Component } from '@directededges/specs-schema'` provides clear context
 2. **Industry standard**: Similar to `@types/*` packages
 3. **Schema alignment**: Types directly represent the schema structure
 
@@ -104,7 +104,7 @@ These types are hand-written to match the JSON schema definitions in `/schema`. 
 
 ```typescript
 import Ajv from 'ajv';
-import componentSchema from '@directededges/anova/schema/component.schema.json';
+import componentSchema from '@directededges/specs-schema/schema/component.schema.json';
 
 const ajv = new Ajv();
 const validate = ajv.compile(componentSchema);
