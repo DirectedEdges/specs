@@ -39,9 +39,9 @@ All commands in this agent run from the **schema package directory**: `packages/
 
 4. **Verify npm auth**:
    ```bash
-   npm whoami
+   npm whoami --registry https://registry.npmjs.org/
    ```
-   If this fails, STOP and report. The user needs to run `npm login` first.
+   If this fails, STOP and report. The user needs to run `npm login --registry https://registry.npmjs.org/` first.
 
 5. **Build**:
    ```bash
@@ -76,10 +76,11 @@ All commands in this agent run from the **schema package directory**: `packages/
       ```bash
       git tag -a "specs-schema@[version]" -m "release: @directededges/specs-schema v[version]"
       ```
-   3. Publish from the package directory:
+   3. Publish from the package directory (uses workspace `.npmrc.public` token to target npmjs.org):
       ```bash
-      cd packages/schema && npm publish --access public
+      cd packages/schema && npm publish --access public --userconfig "$WORKSPACE_ROOT/.npmrc.public"
       ```
+      where `$WORKSPACE_ROOT` is the anova-local-workspace directory (typically `../anova-local-workspace` relative to this repo).
       If publish fails with "previously published version", report and ask the user whether to bump the patch version or skip.
 
 9. **Finalize gate**: Use `AskUserQuestion` with Yes/No options: **"Ready to push, create PR, and GitHub Release for @directededges/specs-schema v[version]?"**

@@ -46,5 +46,8 @@
     "figma"
   ],
   "author": "DirectedEdges",
-  "license": "MIT"
+  "license": "MIT",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  }
 }
