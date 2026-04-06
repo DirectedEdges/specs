@@ -37,6 +37,9 @@
     "types",
     "typescript"
   ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
   "devDependencies": {
     "typescript": "^5.3.3"
   }

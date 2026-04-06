@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Generate } from '../../../src/commands/GenerateCommand.js';
 import { ManifestParser } from '../../../src/utilities/ManifestParser.js';
 import { LicenseStatus } from '../../../src/utilities/LicenseStatus.js';
-import type { ComponentsData } from '@directededges/figma-to-specs';
+import type { ComponentsData } from '@directededges/specs-from-figma';
 
 // ============================================================================
 // COMMAND REGISTRATION

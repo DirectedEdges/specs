@@ -9,7 +9,7 @@
 - The JSON schemas are the authoritative validation contract for serialized output. The TypeScript types are the authoritative compile-time contract for code consuming that output.
 - Neither artifact may drift ahead of the other. Misalignment is a bug.
 
-Rationale: Every consumer (`figma-to-specs`, `specs-cli`, `anova-plugin`) relies on both the TypeScript types for compilation and the JSON schemas for runtime validation. Drift between the two causes silent contract violations across all downstream packages.
+Rationale: Every consumer (`specs-from-figma`, `specs-cli`, `anova-plugin`) relies on both the TypeScript types for compilation and the JSON schemas for runtime validation. Drift between the two causes silent contract violations across all downstream packages.
 
 ### II. No Logic — Types and Schema Only
 This package MUST NOT contain transformation logic, processing algorithms, or runtime behavior beyond:
@@ -17,7 +17,7 @@ This package MUST NOT contain transformation logic, processing algorithms, or ru
 
 All other exports MUST be pure type declarations (`type`, `interface`) or static schema files. No classes, no functions, no async operations.
 
-Rationale: `@directededges/specs-schema` is the shared language definition for the Specs ecosystem. Embedding logic couples all consumers to implementation decisions that belong in `figma-to-specs` or `specs-cli`. If logic is needed, it belongs in a downstream package.
+Rationale: `@directededges/specs-schema` is the shared language definition for the Specs ecosystem. Embedding logic couples all consumers to implementation decisions that belong in `specs-from-figma` or `specs-cli`. If logic is needed, it belongs in a downstream package.
 
 ### III. Minimal, Stable, Intentional Public API
 The exports from `types/index.ts` are the full public API. Every exported type is a contract with every consumer.
@@ -28,7 +28,7 @@ The exports from `types/index.ts` are the full public API. Every exported type i
 - `DEFAULT_CONFIG` is the only permitted runtime export; adding more requires constitutional amendment.
 - **ADRs and spec decisions MUST be justified by the shared contract's own coherence and the needs of all consumers equally. No single downstream package's internal model, class structure, or implementation detail may be cited as a decision driver or rationale. ADRs inform downstream packages; they are not driven by them.**
 
-Rationale: All downstream packages compile against these types. Any change has a multiplied impact across `figma-to-specs`, `specs-cli`, and `anova-plugin` simultaneously. Allowing one package's internals to steer the spec contract creates an implicit ownership hierarchy that undermines the shared-language role of this package.
+Rationale: All downstream packages compile against these types. Any change has a multiplied impact across `specs-from-figma`, `specs-cli`, and `anova-plugin` simultaneously. Allowing one package's internals to steer the spec contract creates an implicit ownership hierarchy that undermines the shared-language role of this package.
 
 ### IV. Schema Validity Must Be Mechanically Verifiable
 The JSON schemas in `schema/` MUST be valid JSON Schema (Draft 7 or the declared draft).

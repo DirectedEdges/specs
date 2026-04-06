@@ -106,12 +106,12 @@ You **MUST** consider the user input before proceeding (if not empty).
 - **Examples over prose**: Wherever a type shape, schema property, or field change is described, include a YAML example showing the before/after or the new structure. Prefer this over sentences explaining the same idea in abstract terms.
 - **Bullets over enumeration**: Use bullet lists for Decision Drivers, Consequences, and any list of more than two items. Do not write "X, Y, and Z" as a sentence when a list would be clearer.
 - **Backticks for terms**: All type names, field names, file names, and schema property paths MUST be in backtick format (e.g., `Config`, `license`, `types/Config.ts`, `#/properties/license`).
-- **Types and schema only**: The ADR MUST describe only changes to `types/` and `schema/` within this package. Do NOT reference implementation classes, internal files, or processing logic from downstream packages (`figma-to-specs`, `anova-plugin`, `specs-cli`). Downstream impact is described in terms of the observable API surface — what types or schema keys change — not how those packages implement consumption.
+- **Types and schema only**: The ADR MUST describe only changes to `types/` and `schema/` within this package. Do NOT reference implementation classes, internal files, or processing logic from downstream packages (`specs-from-figma`, `anova-plugin`, `specs-cli`). Downstream impact is described in terms of the observable API surface — what types or schema keys change — not how those packages implement consumption.
 
 ## Key rules
 
 - Status MUST be `DRAFT` — never set to `ACCEPTED` in this command.
 - The ADR describes *what* will change and *why*. It does not contain type or schema file content — those changes are applied directly by `/specs.adr.implement`.
-- **Downstream Impact table**: Include only `specs-cli` as a consumer row. Do not add rows for `figma-to-specs` or `anova-plugin` — those packages manage their own ADR and change workflows.
+- **Downstream Impact table**: Include only `specs-cli` as a consumer row. Do not add rows for `specs-from-figma` or `anova-plugin` — those packages manage their own ADR and change workflows.
 - If the change clearly violates a constitution gate (e.g., adds runtime logic), state the violation explicitly in the ADR and halt rather than proceeding without justification.
 - Use absolute paths for all file operations.
