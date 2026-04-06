@@ -8,10 +8,10 @@ description: Release @directededges/specs-cli to npm. Swaps file: refs to versio
 $ARGUMENTS
 ```
 
-Arguments: `<version> <schema-version> <figma-to-specs-version>`
+Arguments: `<version> <schema-version> <specs-from-figma-version>`
 - First argument: the CLI version to release (e.g., `0.6.0`)
 - Second argument: the @directededges/specs-schema version to reference (e.g., `0.16.0`)
-- Third argument: the @directededges/figma-to-specs version to reference (e.g., `0.7.0`)
+- Third argument: the @directededges/specs-from-figma version to reference (e.g., `0.7.0`)
 
 You **MUST** have all three values before proceeding. If any are missing, ask for them.
 
@@ -30,7 +30,7 @@ All commands in this agent run from the **CLI package directory**: `packages/cli
    - The entry has content under Added/Changed/Removed/Fixed
    - A **Dependency updates** subsection summarizes what changed in upstream packages. To write this:
      1. Read the specs-schema CHANGELOG (`packages/schema/CHANGELOG.md`) for the `<schema-version>` entry
-     2. Read the figma-to-specs CHANGELOG for the `<figma-to-specs-version>` entry
+     2. Read the specs-from-figma CHANGELOG for the `<specs-from-figma-version>` entry
      3. Summarize in plain language what these upstream changes mean for CLI users — focus on user-visible behavior changes (new output fields, changed data shapes, corrected values) rather than internal code structure. Write from the CLI user's perspective (e.g., "Specs now include..." not "The transformer refactored...")
    If incomplete, STOP and report what's missing.
 
@@ -48,7 +48,7 @@ All commands in this agent run from the **CLI package directory**: `packages/cli
 
 5. **Verify dependency versions**: Read `packages/cli/package.json` and confirm:
    - `@directededges/specs-schema` matches `^[schema-version]`
-   - `@directededges/figma-to-specs` matches `^[figma-to-specs-version]`
+   - `@directededges/specs-from-figma` matches `^[specs-from-figma-version]`
    If either is a `file:` path, update it to the versioned reference. If the version doesn't match, ask whether to update or abort.
 
 6. **Build**:
@@ -70,7 +70,7 @@ All commands in this agent run from the **CLI package directory**: `packages/cli
      ✓ CHANGELOG: [version] — [date]
      ✓ Working tree: clean (before ref swap)
      ✓ Auth: [username]
-     ✓ Dependencies: specs-schema → ^[schema-version], figma-to-specs → ^[fts-version]
+     ✓ Dependencies: specs-schema → ^[schema-version], specs-from-figma → ^[fts-version]
      ✓ Build: passed
      ✓ Tests: passed (or ⚠ with note)
    ```
@@ -103,7 +103,7 @@ All commands in this agent run from the **CLI package directory**: `packages/cli
        gh pr create --base main --title "release: @directededges/specs-cli v[version]" --body "$(cat <<'EOF'
        ## Summary
        - Release @directededges/specs-cli v[version]
-       - Compatible with @directededges/specs-schema ^[schema-version] and @directededges/figma-to-specs ^[fts-version]
+       - Compatible with @directededges/specs-schema ^[schema-version] and @directededges/specs-from-figma ^[fts-version]
        - See packages/cli/CHANGELOG.md for details
        EOF
        )"

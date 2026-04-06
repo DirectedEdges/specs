@@ -2,7 +2,7 @@
  * Display license status extracted from component output metadata.
  */
 
-import type { ComponentsData } from '@directededges/figma-to-specs';
+import type { ComponentsData } from '@directededges/specs-from-figma';
 
 const STATUS_DESCRIPTIONS: Record<string, string> = {
   'invalid': 'key not recognized',

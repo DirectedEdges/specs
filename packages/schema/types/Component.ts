@@ -8,7 +8,7 @@ import { PropConfigurations } from "./PropConfigurations.js";
 /**
  * Represents a component specification in the Specs format.
  *
- * This is the top-level structure produced by the figma-to-specs transformer
+ * This is the top-level structure produced by the specs-from-figma transformer
  * and validated against the Specs JSON schema.
  */
 export type Component = {

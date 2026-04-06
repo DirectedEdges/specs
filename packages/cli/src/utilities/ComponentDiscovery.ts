@@ -10,7 +10,7 @@
  * - Return simple component metadata for listing
  *
  * Note: This is a lightweight utility for discovery only, not for transformation.
- * Transformation uses Component.fromRestApi() from figma-to-specs.
+ * Transformation uses Component.fromRestApi() from specs-from-figma.
  */
 
 import fs from 'fs-extra';

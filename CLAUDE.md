@@ -16,12 +16,12 @@
 ```
 @directededges/specs-schema (types/schema)
   ↓
-@directededges/figma-to-specs (transformer — external)
+@directededges/specs-from-figma (transformer — external)
   ↓
 @directededges/specs-cli (CLI)
 ```
 
-- The CLI depends on `specs-schema` for types and on `figma-to-specs` (the transformer engine) for processing Figma data into structured specs.
+- The CLI depends on `specs-schema` for types and on `specs-from-figma` (the transformer engine) for processing Figma data into structured specs.
 - `specs-schema` has no runtime dependencies — it is pure type definitions and a build step.
 
 ## Architecture

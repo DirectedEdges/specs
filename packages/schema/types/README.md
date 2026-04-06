@@ -4,7 +4,7 @@ TypeScript type definitions for the Specs component specification format.
 
 ## Overview
 
-This package provides TypeScript types that match the Specs JSON schema. These types represent the serialized output format produced by `@directededges/figma-to-specs` and consumed by tools like MCP servers, validators, and documentation generators.
+This package provides TypeScript types that match the Specs JSON schema. These types represent the serialized output format produced by `@directededges/specs-from-figma` and consumed by tools like MCP servers, validators, and documentation generators.
 
 ## Installation
 
@@ -82,7 +82,7 @@ const config: Config = {
     ┌───────────────┴──────────────┐
     │                               │
 ┌───────────────────────┐   ┌──────────────────────┐
-│ figma-to-specs        │   │ specs-plugin (MCP)   │
+│ specs-from-figma        │   │ specs-plugin (MCP)   │
 │ - Produces data       │   │ - Consumes data      │
 │                       │   │ - Validates schema   │
 └───────────────────────┘   └──────────────────────┘
