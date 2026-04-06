@@ -62,7 +62,6 @@ model:
 
   # Include options - what data to include
   include:
-    variantNames: true
     invalidVariants: false
     invalidCombinations: false
 
@@ -210,18 +209,6 @@ model:
 ### Include Options
 
 Controls **what data to include**:
-
-#### `variantNames` (boolean)
-Include variant display names in data.
-
-- **Default**: `true`
-- **Effect**: Adds human-readable names alongside variant IDs
-
-```yaml
-model:
-  include:
-    variantNames: true
-```
 
 #### `invalidVariants` (boolean)
 Include invalid variant data in output.
@@ -535,7 +522,6 @@ model:
     output: YAML  # Human-readable
     keys: SAFE    # Preserve Figma names
   include:
-    variantNames: true
     invalidVariants: true  # Show issues
     invalidCombinations: true
 
@@ -560,7 +546,6 @@ model:
     output: JSON  # Machine-readable
     keys: CAMEL   # Consistent naming
   include:
-    variantNames: false  # Smaller output
     invalidVariants: false  # Clean output
     invalidCombinations: false
 

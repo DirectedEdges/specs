@@ -190,7 +190,6 @@ model:
     tokens: TOKEN
 
   include:
-    variantNames: true
     invalidVariants: false
     invalidCombinations: false
 ```
@@ -463,7 +462,6 @@ specs generate data/library.json \
     "layout": "LAYOUT"
   },
   "include": {
-    "variantNames": true,
     "invalidVariants": false,
     "invalidCombinations": false
   }
@@ -626,7 +624,6 @@ model:
     output: YAML        # Human-readable for reviews
     keys: CAMEL         # Consistent with codebase
   include:
-    variantNames: true  # Helpful for documentation
     invalidVariants: false  # Clean output
 ```
 

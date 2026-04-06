@@ -126,7 +126,6 @@ model:
     layout: LAYOUT
     tokens: TOKEN
   include:
-    variantNames: false
     invalidVariants: false
     invalidCombinations: true
 ```

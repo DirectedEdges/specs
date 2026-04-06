@@ -124,7 +124,6 @@ model:
     layout: BOTH
     tokens: TOKEN_NAME
   include:
-    variantNames: true
     invalidVariants: false
     invalidCombinations: false
 sources:

@@ -92,10 +92,6 @@ model:
     # Subcomponent inclusion is controlled by processing.subcomponents above.
     # If the subcomponents block is present, subcomponents are included.
 
-    # Include variant display names in data
-    # See: https://docs.specs.dev/cli/configuration#variantNames
-    variantNames: ${DEFAULT_MODEL_CONFIG.include?.variantNames !== false ? 'true' : 'false'}
-
     # Include invalid variant data in output
     # See: https://docs.specs.dev/cli/configuration#invalidVariants
     invalidVariants: ${DEFAULT_MODEL_CONFIG.include?.invalidVariants === true ? 'true' : 'false'}

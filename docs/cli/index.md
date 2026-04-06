@@ -82,8 +82,6 @@ model:
   format:
     output: YAML
     keys: CAMEL
-  include:
-    variantNames: true
 ```
 
 ### CI/CD Integration

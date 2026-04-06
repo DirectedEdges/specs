@@ -193,7 +193,7 @@ export class ConfigLoader {
 
     // Strip EOLed include properties — subcomponent inclusion is now
     // controlled by the presence of processing.subcomponents
-    const validIncludeKeys = new Set(['variantNames', 'invalidVariants', 'invalidCombinations']);
+    const validIncludeKeys = new Set(['invalidVariants', 'invalidCombinations', 'emptyVariants']);
     for (const key of Object.keys(corrected.include)) {
       if (!validIncludeKeys.has(key)) {
         delete (corrected.include as Record<string, unknown>)[key];
