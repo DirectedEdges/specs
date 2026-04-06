@@ -1,9 +1,30 @@
 # Changelog
 
-All notable changes to `@directededges/anova-cli` are documented here.
+All notable changes to `@directededges/specs-cli` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.7.0] - 2026-04-05
+
+Rebrands from `anova-cli` to `specs-cli` and publishes to npmjs.org. Updates all dependencies to published npm packages. Removes the deprecated `variantNames` config field per specs-schema v0.16.0.
+
+### Changed
+
+- **Package rename** — `@directededges/anova-cli` → `@directededges/specs-cli`
+- **Config file names** — `.anova.config.yaml` → `.specs.config.yaml` (and `.json` variant)
+- **Config search path** — `~/.anova/config.yaml` → `~/.specs/config.yaml`
+- **Dependencies** — switched from local `file:` references to published npm packages: `@directededges/specs-schema@^0.16.0`, `@directededges/specs-from-figma@^0.11.0`
+- **Publishing target** — npm registry (was GitHub Packages)
+
+### Removed
+
+- **`Config.include.variantNames`** — removed from config template, validation, and documentation per specs-schema v0.16.0 (ADR 034). Added `emptyVariants` to valid config include keys.
+
+### Dependency updates
+
+- **@directededges/specs-schema v0.16.0** — removes `variantNames`, adds optional `emptyVariants`, makes `invalidVariants` and `invalidCombinations` optional with defaults
+- **@directededges/specs-from-figma v0.11.0** — renames from `anova-transformer`, adds pageId resolution, empty variant filtering, stroke align fix, license metadata in output
 
 ## [0.6.0] - 2026-03-25
 
