@@ -102,7 +102,7 @@ An asset must match at least one `match` pattern to be considered a subcomponent
 #### `variantDepth` (number)
 Maximum variant property depth to process.
 
-- **Default**: `2`
+- **Default**: `9999` (unlimited)
 - **Options**: `1`, `2`, `3`, or `9999` (unlimited)
 
 ```yaml

@@ -18,6 +18,13 @@ specs fetch [options]
 ### `--config <path>`
 Use a specific config file.
 
+### `--outDir <dir>`
+Override output directory for fetched payloads. Defaults to `sourceDirectory` from config, or `./data` if not configured.
+
+```bash
+specs fetch --outDir ./custom-data
+```
+
 ### `--only <alias[,alias...]>`
 Fetch only specific aliases from `sources`.
 
