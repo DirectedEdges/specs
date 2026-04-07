@@ -52,14 +52,14 @@ When `-v` and `-s` are not provided, the command auto-discovers data files using
 - Running twice is idempotent: existing `$custom` values are overwritten with the latest mapping
 - Last occurrence wins if a mapping ID appears in multiple entries
 
-> **Important:** Injecting `$custom` tokens only augments the raw data files. To include custom tokens in `batch` output, you must set `format.tokens` to `CUSTOM` in your `.specs.config.yaml`:
+> **Important:** Injecting `$custom` tokens only augments the raw data files. To include custom tokens in `generate` output, you must set `format.tokens` to `CUSTOM` in your `.specs.config.yaml`:
 >
 > ```yaml
 > format:
 >   tokens: CUSTOM
 > ```
 >
-> Without this setting, `batch` will use the default token format and the injected `$custom` objects will be ignored.
+> Without this setting, `generate` will use the default token format and the injected `$custom` objects will be ignored.
 
 ## Status Summary
 
@@ -89,12 +89,12 @@ specs applyCustomTokens data/token-mappings.json
 # Requires format.tokens: CUSTOM in .specs.config.yaml
 specs fetch
 specs applyCustomTokens data/token-mappings.json
-specs batch data/manifest.md -o specs/
+specs generate data/manifest.md -o specs/
 ```
 
 ---
 
 **See Also:**
 - [Configuration Reference](../configuration.md) - sourceDirectory and sources setup
-- [Batch Command](./batch.md) - Processing augmented data with `format.tokens: CUSTOM`
+- [Generate Command](./generate.md) - Processing augmented data with `format.tokens: CUSTOM`
 - [Fetch Command](./fetch.md) - Fetching raw data before augmentation

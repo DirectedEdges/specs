@@ -4,11 +4,12 @@ The Specs command-line interface (CLI) enables automated generation of design sy
 
 ## Overview
 
-The CLI provides four main commands for processing Figma design data:
+The CLI provides five commands for processing Figma design data:
 - **`init`** - Create a default `.specs.config.yaml`
 - **`fetch`** - Download raw REST payloads (file, variables, styles) for one or more Figma files
 - **`generate`** - Generate specifications from a manifest or single component
 - **`audit`** - Scan a Figma file and create a manifest of all components
+- **`applyCustomTokens`** - Inject custom token objects into fetched variables/styles data
 
 These tools enable automation, batch processing, and integration into CI/CD pipelines.
 

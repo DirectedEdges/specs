@@ -109,7 +109,6 @@ Choose one installation method:
 Install once, use everywhere:
 
 ```bash
-npm login --scope=@directededges --registry=https://npm.pkg.github.com
 npm install -g @directededges/specs-cli
 ```
 
