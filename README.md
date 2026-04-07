@@ -10,7 +10,7 @@ The project evolved from [Anova](https://github.com/DirectedEdges/anova) ("Analy
 
 ## Packages
 
-### Schema — `@directededges/specs-schema`
+### `@directededges/specs-schema`
 
 The shared type system and JSON schema that defines the structure of UI component specifications. Exports include:
 
@@ -22,31 +22,40 @@ The shared type system and JSON schema that defines the structure of UI componen
 npm install @directededges/specs-schema
 ```
 
-### CLI — `@directededges/specs-cli`
+### `@directededges/specs-cli`
 
 Command-line interface for generating component specifications from Figma design files.
 
-<!-- TODO: link to overview and getting-started docs once published under docs/ -->
-
 ```sh
-npm install @directededges/specs-cli
+# Install cli globally to run with the command `specs`
+npm install -g @directededges/specs-cli
 ```
 
 A typical workflow:
 
 ```sh
-# 1. Initialize a project config
+# 1. Initialize a .specs.config.yaml file
 specs init
-# 2. Fetch raw Figma data (file, variables, styles)
+# 2. Edit the config to your preferred settings
+# 3. Set up your .env file with a Figma personal access token and – if relevant - a license key
+# 4. Fetch raw Figma data (file, variables, styles)
 specs fetch
-# 3. Audit the file to discover components and build a manifest
+# 5. Audit the file to discover components and build a manifest
 specs audit <figma-file-id>
-# 4. Edit generated manifest to select components to generate
-# 5. Generate specs from the manifest
+# 6. Edit generated manifest to select components to generate
+# 7. Generate specs from the manifest
 specs generate <source>
 ```
 
-**Licensing:** The CLI is free to use. A **PRO** license unlocks additional output features including token resolution, subcomponent references, slot constraints, and platform extensions. For a **PRO** license, contact nathan@directededges.com.
+**License upgrate:** The CLI is free to use. A **PRO** license unlocks additional output features including token resolution, subcomponent references, slot constraints, and platform extensions. For a **PRO** license, contact nathan@directededges.com.
+
+## Documentation
+
+The `docs/` folder contains detailed documentation on:
+
+- [Schema](docs/schema/), such as component, variants, styles, props and more
+- [CLI](docs/cli/) for getting started and details on commands like `init`, `fetch`, `audit` and `generate`
+- Special feature [Guides](docs/guides/) for special features like code-only props, inferred numbers, layout, and more.
 
 ## Architectural Decision Records
 
