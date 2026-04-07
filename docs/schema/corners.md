@@ -28,10 +28,22 @@ interface Corners {
 
 Corner names use logical directions (`topStart`/`bottomEnd`) rather than physical (`topLeft`/`bottomRight`) for bidirectional layout support.
 
-## Example
+## Examples
 
-```json
-{ "topStart": 8, "topEnd": 8, "bottomEnd": 0, "bottomStart": 0 }
+When all corners are the same, `cornerRadius` is a scalar:
+
+```yaml
+cornerRadius: 8
+```
+
+When corners differ, `cornerRadius` is a `Corners` object:
+
+```yaml
+cornerRadius:
+  topStart: 8
+  topEnd: 8
+  bottomEnd: 0
+  bottomStart: 0
 ```
 
 ## Further Reading

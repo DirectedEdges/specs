@@ -6,7 +6,7 @@ description: Configure how subcomponents are discovered, matched, and excluded
 
 # Subcomponent Scoping
 
-Complex components are often composed of smaller parts — a `Card` contains a `CardHeader`, a `DataTable` contains `TableRow` and `TableCell`. In Figma, these subcomponents are separate component assets that follow a naming convention linking them to their parent. The `subcomponents` configuration controls **where to search** for subcomponents, **which assets match**, and **which to exclude**.
+Complex components are often composed of smaller parts — a `Card` contains a `CardHeader`, a `Table` contains `TableRow` and `TableCell`. In Figma, these subcomponents are separate component assets that follow a naming convention linking them to their parent. The `subcomponents` configuration controls **where to search** for subcomponents, **which assets match**, and **which to exclude**.
 
 ## The Problem
 
@@ -30,7 +30,7 @@ When `subcomponents` is absent from the config entirely, no subcomponent detecti
 
 **`PAGE`** — searches the anatomy first (same as `NESTED`), then additionally scans the entire Figma page for `COMPONENT` and `COMPONENT_SET` nodes whose names match a `match` pattern. This catches subcomponents that exist as standalone assets on the same page but aren't nested inside the parent. Page-level discovery is purely additive — it never overrides anatomy-detected subcomponents.
 
-Use `PAGE` when your Figma file organizes subcomponents as sibling assets alongside the parent component rather than nesting them inside it. This is common in libraries where subcomponents are independently usable (e.g., `TableRow` can be used outside `DataTable`).
+Use `PAGE` when your Figma file organizes subcomponents as sibling assets alongside the parent component rather than nesting them inside it. This is common in libraries where subcomponents are independently usable (e.g., `TableRow` can be used outside `DataTable`) and/or intended for use within a main component's slot.
 
 ### Match: Which Assets Qualify
 

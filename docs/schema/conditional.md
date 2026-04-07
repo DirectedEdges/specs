@@ -47,17 +47,15 @@ interface Conditional {
 
 Show or hide based on whether a slot prop has content:
 
-```json
-{
-  "if": {
-    "condition": {
-      "operation": "isNull",
-      "args": { "value": { "$binding": "#/props/icon" } }
-    },
-    "then": false,
-    "else": true
-  }
-}
+```yaml
+if:
+  condition:
+    operation: isNull
+    args:
+      value:
+        $binding: "#/props/icon"
+  then: false
+  else: true
 ```
 
 ## Further Reading

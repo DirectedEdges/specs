@@ -45,17 +45,13 @@ Optional vendor-specific metadata. The `com.figma` extension includes:
 
 ## Example
 
-```json
-{
-  "$token": "DS Color.Text.Primary",
-  "$type": "color",
-  "$extensions": {
-    "com.figma": {
-      "id": "VariableID:123:456",
-      "collectionName": "DS Color"
-    }
-  }
-}
+```yaml
+$token: DS Color.Text.Primary
+$type: color
+$extensions:
+  com.figma:
+    id: VariableID:123:456
+    collectionName: DS Color
 ```
 
 ## Further Reading

@@ -21,8 +21,9 @@ PropConfigurations appear in two places:
 
 ## Example
 
-```json
-{ "size": "large", "disabled": true }
+```yaml
+size: large
+disabled: true
 ```
 
 This configuration matches when the `size` prop equals `"large"` **and** the `disabled` prop is `true`.

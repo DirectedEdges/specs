@@ -76,7 +76,7 @@ Most properties accept a `Style` value. Some properties accept specialized shape
 | [`Corners`](corners.md) | Per-corner values for corner radius | `{ topStart: 4, topEnd: 4, bottomEnd: 0, bottomStart: 0 }` |
 | `AspectRatio` | Width-to-height ratio | `{ x: 16, y: 9 }` |
 
-### Which values a property accepts
+### Relating properties to values
 
 - Most properties accept any `Style` (literal, token, binding, or conditional).
 - `backgroundColor`, `fillColor`, `strokes`, `textColor` accept `string | TokenReference | GradientValue | null`.

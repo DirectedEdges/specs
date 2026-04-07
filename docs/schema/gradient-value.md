@@ -26,6 +26,18 @@ All three gradient types share the same base properties, with `LinearGradient` u
 | `angle` | `number` | Yes | Gradient angle in degrees |
 | `stops` | `GradientStop[]` | Yes | Color stops |
 
+```yaml
+type: LINEAR
+angle: 180
+stops:
+  - position: 0
+    color: "#FFFFFFFF"
+  - position: 1
+    color:
+      $token: DS Color.Surface.Muted
+      $type: color
+```
+
 ### RadialGradient
 
 | Property | Type | Required | Description |
@@ -34,6 +46,18 @@ All three gradient types share the same base properties, with `LinearGradient` u
 | `center` | `GradientCenter` | Yes | Center point |
 | `stops` | `GradientStop[]` | Yes | Color stops |
 
+```yaml
+type: RADIAL
+center:
+  x: 0.5
+  y: 0.5
+stops:
+  - position: 0
+    color: "#FFFFFFFF"
+  - position: 1
+    color: "#00000000"
+```
+
 ### AngularGradient
 
 | Property | Type | Required | Description |
@@ -41,6 +65,22 @@ All three gradient types share the same base properties, with `LinearGradient` u
 | `type` | `'ANGULAR'` | Yes | |
 | `center` | `GradientCenter` | Yes | Center point |
 | `stops` | `GradientStop[]` | Yes | Color stops |
+
+```yaml
+type: ANGULAR
+center:
+  x: 0.5
+  y: 0.5
+stops:
+  - position: 0
+    color: "#FF0000FF"
+  - position: 0.33
+    color: "#00FF00FF"
+  - position: 0.66
+    color: "#0000FFFF"
+  - position: 1
+    color: "#FF0000FF"
+```
 
 ## Values
 
@@ -62,19 +102,6 @@ All three gradient types share the same base properties, with `LinearGradient` u
 |----------|------|-------------|
 | `x` | `number` | Horizontal position relative to the fill bounding box (0–1) |
 | `y` | `number` | Vertical position relative to the fill bounding box (0–1) |
-
-## Example
-
-```json
-{
-  "type": "LINEAR",
-  "angle": 180,
-  "stops": [
-    { "position": 0, "color": "#FFFFFFFF" },
-    { "position": 1, "color": { "$token": "DS Color.Surface.Muted", "$type": "color" } }
-  ]
-}
-```
 
 ## Further Reading
 

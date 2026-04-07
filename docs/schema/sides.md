@@ -28,10 +28,22 @@ interface Sides {
 
 Side names use logical directions (`start`/`end`) rather than physical (`left`/`right`) for bidirectional layout support.
 
-## Example
+## Examples
 
-```json
-{ "top": 8, "end": 16, "bottom": 8, "start": 16 }
+When all sides are the same, `padding` is a scalar:
+
+```yaml
+padding: 16
+```
+
+When sides differ, `padding` is a `Sides` object:
+
+```yaml
+padding:
+  top: 8
+  end: 16
+  bottom: 8
+  start: 16
 ```
 
 ## Further Reading

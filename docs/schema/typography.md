@@ -57,14 +57,12 @@ interface Typography {
 
 ## Example
 
-```json
-{
-  "fontSize": 14,
-  "fontFamily": "Inter",
-  "fontStyle": "Medium",
-  "lineHeight": "150%",
-  "letterSpacing": 0
-}
+```yaml
+fontSize: 14
+fontFamily: Inter
+fontStyle: Medium
+lineHeight: "150%"
+letterSpacing: 0
 ```
 
 ## Further Reading

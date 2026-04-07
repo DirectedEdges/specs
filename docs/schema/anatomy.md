@@ -56,35 +56,7 @@ type SubcomponentRef = { $ref: string };
 // e.g. { $ref: "#/subcomponents/formLabel" }
 ```
 
-## Element
-
-Within a [variant](variants.md), each element is described by the `Element` type. This carries the element's runtime properties — its children, parent, styles, content, and any prop-driven behavior.
-
-| Property | Type | Required | Description |
-|----------|------|----------|-------------|
-| `children` | `string[] \| PropBinding` | No | Child element names, or a binding to a slot prop |
-| `parent` | `string \| null` | No | Parent element key (`null` for root) |
-| `styles` | [`Styles`](styles.md) | No | Visual style properties |
-| `propConfigurations` | [`PropConfigurations`](prop-configurations.md) | No | Prop values that must hold for this element to appear |
-| `instanceOf` | `string \| PropBinding \| SubcomponentRef` | No | Component name, binding, or subcomponent ref |
-| `content` | `string \| PropBinding` | No | Text content or glyph name, or a binding to a prop |
-
-## Layout
-
-The `Layout` type provides a recursive tree representation of element nesting. It's an alternative to `parent`/`children` for expressing hierarchy.
-
-```ts
-type LayoutNode = string | { [nodeName: string]: LayoutNode[] };
-type Layout = LayoutNode[];
-```
-
-A leaf is a plain string (element name). A branch is an object mapping a parent element name to its children:
-
-```json
-[{ "root": [{ "labelContainer": ["label", "hint"] }, "control"] }]
-```
-
-The [`format.layout`](config.md#format) config option controls which representation appears in the output: `LAYOUT` (tree only), `PARENT_CHILDREN` (flat parent/children on each element), or `BOTH`.
+Within variants, each element's runtime properties (children, styles, content) are described by the [`Element`](elements.md) type. The element tree can also be expressed as a recursive [`Layout`](layout.md).
 
 ## Further Reading
 

@@ -52,29 +52,26 @@ interface Effects {
 
 ## Example
 
-```json
-{
-  "shadows": [
-    {
-      "visible": true,
-      "offsetX": 0,
-      "offsetY": 4,
-      "blur": 8,
-      "spread": 0,
-      "color": { "$token": "DS Color.Shadow.Default", "$type": "color" }
-    },
-    {
-      "visible": true,
-      "inset": true,
-      "offsetX": 0,
-      "offsetY": 1,
-      "blur": 0,
-      "spread": 1,
-      "color": "#0000001A"
-    }
-  ],
-  "backgroundBlur": { "visible": true, "radius": 12 }
-}
+```yaml
+shadows:
+  - visible: true
+    offsetX: 0
+    offsetY: 4
+    blur: 8
+    spread: 0
+    color:
+      $token: DS Color.Shadow.Default
+      $type: color
+  - visible: true
+    inset: true
+    offsetX: 0
+    offsetY: 1
+    blur: 0
+    spread: 1
+    color: "#0000001A"
+backgroundBlur:
+  visible: true
+  radius: 12
 ```
 
 ## Further Reading

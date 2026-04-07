@@ -12,29 +12,27 @@ The `@directededges/specs-schema` package defines the TypeScript types and JSON 
 
 A spec captures everything a consumer needs to understand a component's structure, properties, visual styles, and variant behavior:
 
-| Section | Purpose |
-|---------|---------|
-| [Component](component.md) | Top-level shape — the root object of every spec |
-| [Anatomy](anatomy.md) | Element tree — the named parts that make up the component |
-| [Props](props.md) | Configurable inputs — booleans, enums, strings, numbers, slots |
-| [Styles](styles.md) | Visual properties — colors, spacing, typography, effects |
-| [Variants](variants.md) | Layered overrides — how the component changes across prop combinations |
-| [Subcomponents](subcomponents.md) | Embedded child components — scoped, referenced siblings |
-| [PropBinding](prop-binding.md) | Dynamic links between props and element/style properties |
-| [PropConfigurations](prop-configurations.md) | Prop value maps for variant activation and invalid combinations |
-| [Metadata](metadata.md) | Generation metadata — author, schema version, source |
-| [Config](config.md) | Generation configuration — processing, format, inclusion options |
-| [TokenReference](token-reference.md) | Design token reference following the DTCG format |
-| [Conditional](conditional.md) | Conditional style values driven by prop state |
-| [Sides](sides.md) | Per-side positional values for padding and stroke weight |
-| [Corners](corners.md) | Per-corner positional values for corner radius |
-| [GradientValue](gradient-value.md) | Linear, radial, and angular gradient definitions |
-| [Typography](typography.md) | Text style properties — font, spacing, formatting |
-| [Effects](effects.md) | Shadow and blur effect definitions |
-
-## How to Read These Docs
-
-Each page documents one major section of the spec. Property tables list every field with its type, whether it's required or optional, and a short description.
+| | Page | Purpose |
+|---|------|---------|
+| **Spec structure** | [Component](component.md) | Top-level shape — the root object of every spec |
+| | [Anatomy](anatomy.md) | Element tree — the named parts that make up the component |
+| | [Elements](elements.md) | Element runtime properties — children, styles, content |
+| | [Layout](layout.md) | Recursive tree representation of element nesting |
+| | [Props](props.md) | Configurable inputs — booleans, enums, strings, numbers, slots |
+| | [Styles](styles.md) | Visual properties — colors, spacing, typography, effects |
+| | [Variants](variants.md) | Layered overrides — how the component changes across prop combinations |
+| | [Subcomponents](subcomponents.md) | Embedded child components — scoped, referenced siblings |
+| **Value types** | [TokenReference](token-reference.md) | Design token reference following the DTCG format |
+| | [PropBinding](prop-binding.md) | Dynamic links between props and element/style properties |
+| | [PropConfigurations](prop-configurations.md) | Prop value maps for variant activation and invalid combinations |
+| | [Conditional](conditional.md) | Conditional style values driven by prop state |
+| | [GradientValue](gradient-value.md) | Linear, radial, and angular gradient definitions |
+| | [Typography](typography.md) | Text style properties — font, spacing, formatting |
+| | [Effects](effects.md) | Shadow and blur effect definitions |
+| | [Sides](sides.md) | Per-side positional values for padding and stroke weight |
+| | [Corners](corners.md) | Per-corner positional values for corner radius |
+| **Generation** | [Metadata](metadata.md) | Generation metadata — author, schema version, source |
+| | [Config](config.md) | Generation configuration — processing, format, inclusion options |
 
 ### Conventions
 

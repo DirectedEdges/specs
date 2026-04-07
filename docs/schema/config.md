@@ -48,7 +48,16 @@ const DEFAULT_CONFIG: Config = {
     variantDepth: 9999,
     details: 'LAYERED',
   },
-  format: { output: 'JSON', keys: 'SAFE', layout: 'LAYOUT', tokens: 'TOKEN' },
-  include: { invalidVariants: false, invalidCombinations: true, emptyVariants: false },
+  format: { 
+    output: 'JSON', 
+    keys: 'SAFE', 
+    layout: 'LAYOUT', 
+    tokens: 'TOKEN' 
+  },
+  include: { 
+    invalidVariants: false, 
+    invalidCombinations: true, 
+    emptyVariants: false 
+  },
 };
 ```

@@ -30,15 +30,12 @@ A `Subcomponent` contains:
 
 Elements in the parent anatomy reference subcomponents via `$ref`:
 
-```json
-{
-  "anatomy": {
-    "label": {
-      "type": "instance",
-      "instanceOf": { "$ref": "#/subcomponents/formLabel" }
-    }
-  }
-}
+```yaml
+anatomy:
+  label:
+    type: instance
+    instanceOf:
+      $ref: "#/subcomponents/formLabel"
 ```
 
 The `$ref` is a JSON Pointer into the same spec document.
