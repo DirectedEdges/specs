@@ -5,6 +5,12 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - Unreleased
+
+### Added
+
+- **`fetch --no-geometry` flag** — Omits `?geometry=paths` from Figma file requests, reducing payload size by roughly half. Vector path data (`fillGeometry`, `strokeGeometry`, `size`, `relativeTransform`) is excluded; width/height fall back to `absoluteBoundingBox` during processing.
+
 ## [0.7.0] - 2026-04-05
 
 Rebrands from `anova-cli` to `specs-cli` and publishes to npmjs.org. Updates all dependencies to published npm packages. Removes the deprecated `variantNames` config field per specs-schema v0.16.0.

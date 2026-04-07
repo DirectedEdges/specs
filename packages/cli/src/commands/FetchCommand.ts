@@ -131,6 +131,7 @@ export interface FetchOptions {
   config?: string;
   outDir?: string;
   only?: string;
+  geometry: boolean;
   verbose: boolean;
 }
 
@@ -139,6 +140,7 @@ export const Fetch = new Command('fetch')
   .option('--config <path>', 'Path to config file (.specs.config.yaml)')
   .option('--outDir <dir>', 'Override output directory (default: sources.outDir or ./data)')
   .option('--only <alias[,alias...]>', 'Fetch only the given file alias(es) from sources.files')
+  .option('--no-geometry', 'Omit geometry data (fillGeometry, strokeGeometry, size, relativeTransform) from file payloads')
   .option('--verbose', 'Enable detailed logging', false)
   .action(async (options: FetchOptions) => {
     try {
@@ -187,7 +189,7 @@ export const Fetch = new Command('fetch')
         for (const kind of entry.fetch) {
           const url =
             kind === 'file'
-              ? `https://api.figma.com/v1/files/${entry.key}?geometry=paths`
+              ? `https://api.figma.com/v1/files/${entry.key}${options.geometry ? '?geometry=paths' : ''}`
               : kind === 'variables'
                 ? `https://api.figma.com/v1/files/${entry.key}/variables/local`
                 : `https://api.figma.com/v1/files/${entry.key}/styles`;
