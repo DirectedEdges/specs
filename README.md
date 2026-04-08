@@ -4,10 +4,11 @@ Schema, types, and command-line tools to record and manage UI component specific
 
 ## About Specs
 
-Specs is a deterministic system for auditing UI component composition, visual styling, and property configurations drawn from Figma components. It produces structured, machine-readable specifications that capture the full anatomy of a design system component via two packages both available on npm:
+Specs is a deterministic system for auditing UI component composition, visual styling, and property configurations drawn from Figma components. It produces structured, machine-readable specifications that capture the full anatomy of a design system component. The product suite includes a Figma plugin (currently, Anova) and three packages available on npm:
 
 * `@directededges/specs-cli`, a command line tool to generate specs from Figma files
 * `@directededges/specs-schema`, a JSON specification
+* `@directededges/specs-from-figma`, the engine used by the cli and plugin to convert Figma assets to specs (public package developed in a private repository)
 
 The project evolved from [Anova](https://github.com/DirectedEdges/anova) ("Analysis of Variants"). To learn more about the concept, read the [Analysis of Variants](https://nathanacurtis.substack.com/p/analysis-of-variants-9e440c30b93e) blog post.
 
@@ -40,7 +41,7 @@ Helpful documentation includes:
 
 ## `@directededges/specs-schema`
 
-The shared type system and JSON schema that defines the structure of UI component specifications. 
+The shared type system and JSON schema that defines the structure of UI component specifications is a dependency of `specs-cli` and installed when you install the command line interface as above. However, it is also available as a standalone package.
 
 ```sh
 npm install @directededges/specs-schema
@@ -53,6 +54,10 @@ Exports include:
 - `DEFAULT_CONFIG` — a runtime configuration object controlling output shape (format, token resolution, variant depth, etc.)
 
 Learn more in the [Schema docs](docs/schema/), including details on each property including component, variants, styles, props and more.
+
+## `@directededges/specs-from-figma`
+
+The `specs-from-figma` package is the engine that converts Figma assets into specs and is used for both the command line interface and the associated Figma plugin. It is developed in a private repository and its published package is installed as a dependency of the command line interface.
 
 ## Architectural Decision Records
 
