@@ -5,6 +5,12 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-04-08
+
+### Fixed
+
+- **File output ignores `config.format.output`** — The `generate` command always wrote YAML files regardless of the `format.output` config setting. The `OutputFormat` type, `FileManifest` extensions, and all writers now respect the configured format (JSON or YAML). The `DEFAULT_OUTPUT_CONFIG.defaultFormat` is aligned with specs-schema's `DEFAULT_CONFIG.format.output` (JSON). ([#14](https://github.com/DirectedEdges/specs/issues/14))
+
 ## [0.8.0] - 2026-04-07
 
 Adds fetch UX improvements (animated spinner, elapsed time, `--no-geometry`), renames the config key from `model` to `config`, and fixes style reconciliation and large-file fetch crashes.
