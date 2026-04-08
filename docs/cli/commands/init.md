@@ -12,7 +12,7 @@ specs init [options]
 
 The `init` command scaffolds a fully-populated configuration file with:
 - Sensible defaults for sourceDirectory (`./data`) and outputDirectory (`./specs`)
-- All model processing, format, and include options with production-ready values
+- All processing, format, and include options with production-ready values
 - Inline documentation with links to the full configuration reference
 - Empty sources object ready for your Figma file keys
 
@@ -107,9 +107,9 @@ outputDirectory: ./specs
 # See: https://docs.specs.dev/cli/configuration#sources
 sources: {}
 
-# Model processing and output configuration.
-# See: https://docs.specs.dev/cli/configuration#model
-model:
+# Processing and output configuration.
+# See: https://docs.specs.dev/cli/configuration#config
+config:
   processing:
     subcomponents:
       # scope: NESTED

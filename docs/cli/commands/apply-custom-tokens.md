@@ -92,6 +92,14 @@ specs applyCustomTokens data/token-mappings.json
 specs generate data/manifest.md -o specs/
 ```
 
+## Branch-Fetched Data
+
+If your data files were fetched from a Figma branch (using a branch file key in `sources`), variable and style IDs in those files may differ from the IDs on main. Your mapping file must use the IDs that appear in the branch data — not the main file's IDs.
+
+To verify which IDs are present, inspect the fetched `*.variables.json` or `*.styles.json` files directly. If you maintain separate mapping files per branch, keep them alongside the branch data.
+
+See [Fetching Figma Branches](./fetch.md#fetching-figma-branches) for more details.
+
 ---
 
 **See Also:**

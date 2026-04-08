@@ -30,10 +30,8 @@ describe('ConfigTemplates', () => {
 
     it('should include doc URL references', () => {
       const template = generateConfigTemplate();
-      expect(template).toContain('https://docs.specs.dev/cli/configuration#sourceDirectory');
-      expect(template).toContain('https://docs.specs.dev/cli/configuration#outputDirectory');
-      expect(template).toContain('https://docs.specs.dev/cli/configuration#sources');
-      expect(template).toContain('https://docs.specs.dev/cli/configuration#model');
+      expect(template).toContain('docs/cli/configuration.md');
+      expect(template).toContain('github.com/DirectedEdges/specs');
     });
 
     it('should include Figma sources section', () => {
@@ -47,12 +45,11 @@ describe('ConfigTemplates', () => {
       const template = generateConfigTemplate();
       expect(template).toContain('glyphNamePattern');
       expect(template).toContain('icon glyph');
-      expect(template).toContain('https://docs.specs.dev/cli/configuration#glyphNamePattern');
     });
 
-    it('should include model processing configuration', () => {
+    it('should include config processing configuration', () => {
       const template = generateConfigTemplate();
-      expect(template).toContain('model:');
+      expect(template).toContain('config:');
       expect(template).toContain('processing:');
       expect(template).toContain('subcomponents:');
       expect(template).toContain('match:');
@@ -91,7 +88,7 @@ describe('ConfigTemplates', () => {
       expect(topLevelKeys.some(line => line.includes('sourceDirectory'))).toBe(true);
       expect(topLevelKeys.some(line => line.includes('outputDirectory'))).toBe(true);
       expect(topLevelKeys.some(line => line.includes('sources'))).toBe(true);
-      expect(topLevelKeys.some(line => line.includes('model'))).toBe(true);
+      expect(topLevelKeys.some(line => line.includes('config'))).toBe(true);
     });
 
     it('should mention defaults and getting started in comments', () => {

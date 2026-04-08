@@ -102,7 +102,7 @@ When multiple sources provide the same setting, this priority applies.
 ### Output Format
 
 1. `generate --format`
-2. Config `model.format.output`
+2. Config `config.format.output`
 
 ### Variables
 

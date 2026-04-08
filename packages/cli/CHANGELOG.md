@@ -5,6 +5,35 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-04-07
+
+Adds fetch UX improvements (animated spinner, elapsed time, `--no-geometry`), renames the config key from `model` to `config`, and fixes style reconciliation and large-file fetch crashes.
+
+### Added
+
+- **`fetch` animated spinner with elapsed time** — The `fetch` command now displays an animated braille spinner with a live elapsed-time counter while downloading each payload. The final success line includes the total duration per request (e.g., `✓ Downloaded: kds file (14s)`). Non-TTY environments fall back to a static log line.
+- **`fetch --no-geometry` flag** — Omits `?geometry=paths` from Figma file requests, reducing payload size by roughly half. Vector path data (`fillGeometry`, `strokeGeometry`, `size`, `relativeTransform`) is excluded; width/height fall back to `absoluteBoundingBox` during processing.
+- **`audit` default output path** — `-o` is now optional. When omitted, the manifest writes to `{sourceDirectory}/{alias}.manifest.md` using the config's `sourceDirectory` and the input filename. Added `--config` flag for config file resolution.
+
+### Changed
+
+- **Config key rename: `model` → `config`** — The YAML key `model:` and internal property `CLIConfig.model` are renamed to `config:` / `CLIConfig.config` to align with the upstream `Config` type from @directededges/specs-schema. Updates source, tests, and all documentation.
+
+### Refactored
+
+- **Remove dead styles payload shapes from `loadFoundations`** — Removed two unused code paths: the `all_styles` simplified format and the `styles` object-map format. Only the Figma REST API format (`meta.styles`) is retained. Updated JSDoc to describe the two actual data sources (file seed + styles endpoint).
+- **Comment out false-defaulting include fields in config template** — `invalidVariants` and `invalidCombinations` now have schema-level defaults and no longer need explicit values in the generated config template.
+
+### Fixed
+
+- **Style `$custom` reconciliation in `loadFoundations`** — Published Figma styles referenced by components use file-local IDs (e.g., `19108:2530`) that differ from the styles endpoint's `node_id` (e.g., `5115:6703`). The shared `key` hash now bridges these two sources, ensuring `$custom` token objects from the styles endpoint are available when resolving style references during spec generation.
+- **`generate -c` uses component ID as output key** — In file mode (`generate <file> -c <id>`), the component's Figma node ID was used as the output key instead of its name. Now resolves the display name from the file's `componentSets` or `components` metadata.
+- **`fetch` writes raw response directly to disk** — Previously, fetch parsed the Figma response into JSON and re-serialized it with pretty-printing before writing. This caused `Invalid string length` crashes on large files (400MB+). Now writes the raw response body straight to disk, eliminating unnecessary memory overhead.
+
+### Dependency updates
+
+- **@directededges/specs-from-figma v0.12.0** — When the REST API response lacks geometry data (e.g., when using `--no-geometry`), width and height fall back to `absoluteBoundingBox`. A console warning now surfaces when this fallback is used on a rotated node, where bounding box dimensions may be inflated.
+
 ## [0.7.0] - 2026-04-05
 
 Rebrands from `anova-cli` to `specs-cli` and publishes to npmjs.org. Updates all dependencies to published npm packages. Removes the deprecated `variantNames` config field per specs-schema v0.16.0.

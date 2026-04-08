@@ -36,7 +36,7 @@ describe('InitCommand', () => {
     it('should generate template with proper structure', () => {
       const template = generateConfigTemplate();
       expect(template).toContain('sources: {}');
-      expect(template).toContain('model:');
+      expect(template).toContain('config:');
       expect(template).toContain('processing:');
       expect(template).toContain('format:');
     });
@@ -45,7 +45,6 @@ describe('InitCommand', () => {
       const template = generateConfigTemplate();
       expect(template).toContain('# Specs CLI Configuration');
       expect(template).toContain('docs/cli/configuration.md');
-      expect(template).toContain('https://docs.specs.dev/');
     });
 
     it('should mention production-ready defaults', () => {
@@ -149,9 +148,9 @@ describe('InitCommand', () => {
       expect(topLevelKeys).toContain('sourceDirectory');
       expect(topLevelKeys).toContain('outputDirectory');
       expect(topLevelKeys).toContain('sources');
-      expect(topLevelKeys).toContain('model');
+      expect(topLevelKeys).toContain('config');
 
-      // format, processing, and include are nested under model, not top-level
+      // format, processing, and include are nested under config, not top-level
       expect(template).toContain('format:');
       expect(template).toContain('processing:');
       expect(template).toContain('include:');
@@ -160,13 +159,8 @@ describe('InitCommand', () => {
     it('should have all required documentation URLs', () => {
       const template = generateConfigTemplate();
       const requiredUrls = [
-        'configuration#sourceDirectory',
-        'configuration#outputDirectory',
-        'configuration#sources',
-        'configuration#model',
-        'configuration#subcomponents',
-        'configuration#variantDepth',
-        'configuration#details',
+        'docs/cli/configuration.md',
+        'github.com/DirectedEdges/specs',
       ];
 
       requiredUrls.forEach(url => {

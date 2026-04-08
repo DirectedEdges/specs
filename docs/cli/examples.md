@@ -175,7 +175,7 @@ sources:
     key: REPLACE_WITH_FOUNDATIONS_FILE_KEY
     data: ['variables','styles']
 
-model:
+config:
   processing:
     subcomponents:
       match:
@@ -211,7 +211,7 @@ Mix config file with CLI overrides.
 **Config File:**
 ```yaml
 # .specs.config.yaml
-model:
+config:
   format:
     output: YAML
     keys: SAFE
@@ -619,7 +619,7 @@ Share `.specs.config.yaml` across team for consistent output:
 ```yaml
 # .specs.config.yaml - Team standards
 
-model:
+config:
   format:
     output: YAML        # Human-readable for reviews
     keys: CAMEL         # Consistent with codebase
@@ -658,7 +658,7 @@ Use `applyCustomTokens` to inject custom token objects into fetched data before 
 **1. Configure `format.tokens: CUSTOM` in `.specs.config.yaml`:**
 
 ```yaml
-model:
+config:
   format:
     tokens: CUSTOM
 ```

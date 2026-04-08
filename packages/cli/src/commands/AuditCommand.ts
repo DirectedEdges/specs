@@ -8,6 +8,7 @@
 import { Command } from 'commander';
 import fs from 'fs-extra';
 import path from 'path';
+import yaml from 'yaml';
 import { ComponentDiscovery, type ComponentInfo } from '../utilities/ComponentDiscovery.js';
 
 // Error codes from contracts/error-codes.md
@@ -19,10 +20,40 @@ const ERROR_CODES = {
 };
 
 interface AuditOptions {
-  output: string;
+  output?: string;
+  config?: string;
   includeAll: boolean;
   variables?: string;
   verbose: boolean;
+}
+
+type MinimalConfig = {
+  sourceDirectory?: string;
+};
+
+function findConfigFile(cwd: string): string | null {
+  const locations = [
+    path.join(cwd, '.specs.config.yaml'),
+    path.join(cwd, '.specs.config.json'),
+    path.join(process.env.HOME || '~', '.specs', 'config.yaml')
+  ];
+  for (const location of locations) {
+    if (fs.existsSync(location)) return location;
+  }
+  return null;
+}
+
+function loadConfig(configPath?: string): { configDir: string; config: MinimalConfig } {
+  const resolvedPath = configPath ? path.resolve(configPath) : findConfigFile(process.cwd());
+  if (!resolvedPath || !fs.existsSync(resolvedPath)) {
+    return { configDir: process.cwd(), config: {} };
+  }
+  const raw = fs.readFileSync(resolvedPath, 'utf-8');
+  const parsed = resolvedPath.endsWith('.json') ? JSON.parse(raw) : (yaml.parse(raw) as unknown);
+  return {
+    configDir: path.dirname(resolvedPath),
+    config: (parsed as MinimalConfig) || {}
+  };
 }
 
 interface AuditComponentInfo extends ComponentInfo {
@@ -97,12 +128,21 @@ function generateManifest(
 export const Audit = new Command('audit')
   .description('Scan Figma file and generate component manifest for batch processing')
   .argument('<file>', 'Path to Figma JSON file')
-  .requiredOption('-o, --output <path>', 'Output manifest file path (e.g., components.md)')
+  .option('-o, --output <path>', 'Output manifest file path (default: {sourceDirectory}/{alias}.manifest.md)')
+  .option('--config <path>', 'Path to config file (.specs.config.yaml)')
   .option('--include-all', 'Include all components by default (ignore heuristics)', false)
   .option('-v, --variables <path>', 'Variables file path (for reference in manifest)')
   .option('--verbose', 'Enable detailed logging', false)
   .action(async (file: string, options: AuditOptions) => {
     try {
+      // Resolve output path: explicit -o, or derive from config sourceDirectory + input filename
+      if (!options.output) {
+        const { configDir, config } = loadConfig(options.config);
+        const sourceDir = path.resolve(configDir, config.sourceDirectory || '.');
+        const baseName = path.basename(file, '.file.json');
+        options.output = path.join(sourceDir, `${baseName}.manifest.md`);
+      }
+
       if (options.verbose) {
         console.error(`[CLI] Scanning file: ${file}`);
       }
@@ -159,7 +199,7 @@ export const Audit = new Command('audit')
       );
 
       // Write manifest to output file
-      const outputPath = path.resolve(options.output);
+      const outputPath = path.resolve(options.output!);
       await fs.ensureDir(path.dirname(outputPath));
       await fs.writeFile(outputPath, manifest, 'utf-8');
 

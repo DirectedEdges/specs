@@ -28,12 +28,12 @@ export interface FoundationsData {
  * This function handles all file I/O and parsing for foundations data,
  * building the strongly-typed Maps required by Component.fromRestApi().
  * 
- * Supports multiple styles payload shapes:
- * - { all_styles: [...] } - simplified format
- * - { meta: { styles: [...] } } - Figma REST API format
- * - { styles: {...} } - file JSON with styles map
- * 
- * Indexes styles by both node_id (primary) and key (secondary) for flexible lookup.
+ * Styles are loaded from two sources:
+ * 1. File JSON seed (fileJson.styles) — provides file-local style IDs used by component node references
+ * 2. Styles endpoint files (stylePaths) — { meta: { styles: [...] } } Figma REST API format,
+ *    indexed by node_id (primary) and key hash (secondary) for flexible lookup
+ *
+ * After loading, seeded entries are enriched with $custom from the styles endpoint via shared key hash.
  * 
  * @param variablePaths - Array of file paths to variables JSON files
  * @param stylePaths - Array of file paths to styles JSON files
@@ -67,12 +67,16 @@ export async function loadFoundations(
   const collections: CollectionsMap = new Map();
   
   // Seed styles from file itself (handles remote/published style references in components)
+  // Track seeded entries by their key hash so we can enrich them after loading styles endpoint
+  const seededKeyMap = new Map<string, string>(); // key hash -> styleId
   if (fileJson?.styles && typeof fileJson.styles === 'object') {
     for (const [styleId, s] of Object.entries<any>(fileJson.styles)) {
       if (!styleId) continue;
       const type = s?.styleType || s?.type;
       if (!type) continue;
-      
+
+      if (s?.key) seededKeyMap.set(s.key, styleId);
+
       styles.set(styleId, {
         id: styleId,
         name: s?.name || styleId,
@@ -124,30 +128,15 @@ export async function loadFoundations(
     }
   }
   
-  // Load styles JSON files - supports multiple payload shapes
+  // Load styles from REST API endpoint files: { meta: { styles: [...] } }
   for (const path of stylePaths) {
     const json = await fs.readJSON(path);
-    
-    // Shape 1: Simplified format - { all_styles: [...] }
-    if (json.all_styles && Array.isArray(json.all_styles)) {
-      for (const style of json.all_styles) {
-        if (!style.id) continue;
-        styles.set(style.id, {
-          id: style.id,
-          name: style.name,
-          type: style.type,
-          description: style.description,
-          ...(style.$custom != null ? { $custom: style.$custom } : {})
-        });
-      }
-    }
-    
-    // Shape 2: REST API endpoint format - { meta: { styles: [...] } }
+
     if (json.meta?.styles && Array.isArray(json.meta.styles)) {
       for (const s of json.meta.styles) {
         const primaryId = s.node_id || s.key;
         if (!primaryId) continue;
-        
+
         const styleDef = {
           id: primaryId,
           name: s.name,
@@ -155,32 +144,24 @@ export async function loadFoundations(
           description: s.description,
           ...(s.$custom != null ? { $custom: s.$custom } : {})
         };
-        
+
         // Primary lookup: node_id (matches component references)
         styles.set(primaryId, styleDef);
-        
-        // Secondary lookup: key (for debugging and some API surfaces)
+
+        // Secondary lookup: key hash (bridges to file-seeded entries)
         if (s.key && s.key !== primaryId) {
           styles.set(s.key, styleDef);
         }
       }
     }
-    
-    // Shape 3: File JSON format - { styles: { [styleId]: {...} } }
-    if (json.styles && typeof json.styles === 'object') {
-      for (const [styleId, s] of Object.entries<any>(json.styles)) {
-        if (!styleId) continue;
-        const type = s?.styleType || s?.type;
-        if (!type) continue;
-        
-        styles.set(styleId, {
-          id: styleId,
-          name: s?.name || styleId,
-          type,
-          description: s?.description,
-          ...(s?.$custom != null ? { $custom: s.$custom } : {})
-        });
-      }
+  }
+
+  // Reconcile: enrich file-seeded entries with $custom from styles endpoint via shared key hash
+  for (const [keyHash, styleId] of seededKeyMap) {
+    const seeded = styles.get(styleId);
+    const keyEntry = styles.get(keyHash);
+    if (seeded && keyEntry?.$custom && !seeded.$custom) {
+      seeded.$custom = keyEntry.$custom;
     }
   }
 

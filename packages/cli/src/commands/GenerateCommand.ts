@@ -102,7 +102,7 @@ export const Generate = new Command('generate')
       // Load configuration
       const configLoader = new ConfigLoader();
       const config = configLoader.load(options.config);
-      const modelConfig = config.model;
+      const modelConfig = config.config;
 
       if (options.verbose && options.config) {
         console.log(`[CLI] Using config from: ${options.config}`);
@@ -181,7 +181,11 @@ export const Generate = new Command('generate')
 
         libraryJson = JSON.parse(sourceContent);
         componentIds = [options.component];
-        componentNames = new Map([[options.component, options.component]]);
+        const resolvedName =
+          libraryJson.componentSets?.[options.component]?.name ||
+          libraryJson.components?.[options.component]?.name ||
+          options.component;
+        componentNames = new Map([[options.component, resolvedName]]);
 
         if (options.verbose) {
           console.log(`[CLI] File loaded: ${libraryJson.name || path.basename(sourcePath)}`);

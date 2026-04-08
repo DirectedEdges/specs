@@ -76,7 +76,7 @@ sources:
     key: REPLACE_WITH_FOUNDATIONS_FILE_KEY
     data: ['variables','styles']
 
-model:
+config:
   processing:
     variantDepth: 2
     details: FULL
@@ -94,7 +94,7 @@ Automate spec generation in your build pipeline with GitHub Actions, GitLab CI, 
 Installation, prerequisites, license setup, and quick start guide
 
 ### [Configuration](./configuration.md)
-Configure model behavior and data sources with `.specs.config.yaml`
+Configure processing behavior and data sources with `.specs.config.yaml`
 
 ### [Commands Reference](./commands/)
 Complete command reference for `init`, `fetch`, `generate`, and `audit`

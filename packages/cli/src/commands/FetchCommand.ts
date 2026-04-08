@@ -82,21 +82,15 @@ function normalizeSources(sources?: MinimalConfig['sources']): Array<{ alias: st
   }));
 }
 
-async function figmaGetJson(url: string, token: string): Promise<{ status: number; json: unknown }> {
+async function figmaFetch(url: string, token: string): Promise<{ status: number; body: string }> {
   const response = await fetch(url, {
     headers: {
       'X-Figma-Token': token
     }
   });
 
-  let json: unknown;
-  try {
-    json = await response.json();
-  } catch {
-    json = { error: true, status: response.status, message: 'Non-JSON response' };
-  }
-
-  return { status: response.status, json };
+  const body = await response.text();
+  return { status: response.status, body };
 }
 
 function classifyHttpStatus(status: number): 'ok' | 'auth' | 'rate' | 'error' {
@@ -127,10 +121,38 @@ function clearInlineStatus(): void {
   readline.cursorTo(process.stdout, 0);
 }
 
+function formatElapsed(ms: number): string {
+  const seconds = Math.floor(ms / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remaining = seconds % 60;
+  return `${minutes}m ${remaining}s`;
+}
+
+function startSpinner(text: string): () => string {
+  const start = Date.now();
+  if (!isInteractive()) {
+    console.log(text);
+    return () => formatElapsed(Date.now() - start);
+  }
+  const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+  let i = 0;
+  const id = setInterval(() => {
+    const elapsed = formatElapsed(Date.now() - start);
+    renderInlineStatus(`${frames[i++ % frames.length]} ${text} (${elapsed})`);
+  }, 80);
+  return () => {
+    clearInterval(id);
+    clearInlineStatus();
+    return formatElapsed(Date.now() - start);
+  };
+}
+
 export interface FetchOptions {
   config?: string;
   outDir?: string;
   only?: string;
+  geometry: boolean;
   verbose: boolean;
 }
 
@@ -139,6 +161,7 @@ export const Fetch = new Command('fetch')
   .option('--config <path>', 'Path to config file (.specs.config.yaml)')
   .option('--outDir <dir>', 'Override output directory (default: sources.outDir or ./data)')
   .option('--only <alias[,alias...]>', 'Fetch only the given file alias(es) from sources.files')
+  .option('--no-geometry', 'Omit geometry data (fillGeometry, strokeGeometry, size, relativeTransform) from file payloads')
   .option('--verbose', 'Enable detailed logging', false)
   .action(async (options: FetchOptions) => {
     try {
@@ -187,7 +210,7 @@ export const Fetch = new Command('fetch')
         for (const kind of entry.fetch) {
           const url =
             kind === 'file'
-              ? `https://api.figma.com/v1/files/${entry.key}?geometry=paths`
+              ? `https://api.figma.com/v1/files/${entry.key}${options.geometry ? '?geometry=paths' : ''}`
               : kind === 'variables'
                 ? `https://api.figma.com/v1/files/${entry.key}/variables/local`
                 : `https://api.figma.com/v1/files/${entry.key}/styles`;
@@ -196,9 +219,11 @@ export const Fetch = new Command('fetch')
             console.log(`[CLI] GET ${kind}: ${url}`);
           }
 
-          renderInlineStatus(`Downloading: ${entry.alias} ${kind}`);
+          const stopSpinner = startSpinner(`Downloading: ${entry.alias} ${kind}`);
 
-          const { status, json } = await figmaGetJson(url, token);
+          const { status, body } = await figmaFetch(url, token);
+          const elapsed = stopSpinner();
+
           const classification = classifyHttpStatus(status);
 
           if (classification === 'auth') {
@@ -217,10 +242,9 @@ export const Fetch = new Command('fetch')
           }
 
           const outputPath = path.join(outDir, `${entry.alias}.${kind}.json`);
-          await fs.writeFile(outputPath, JSON.stringify(json, null, 2), 'utf-8');
+          await fs.writeFile(outputPath, body, 'utf-8');
 
-          clearInlineStatus();
-          console.log(`✓ Downloaded: ${entry.alias} ${kind}`);
+          console.log(`✓ Downloaded: ${entry.alias} ${kind} (${elapsed})`);
 
           if (options.verbose) {
             const relativeOut = path.relative(process.cwd(), outputPath);

@@ -91,7 +91,7 @@ specs generate data/library.file.json -c "Button" | yq .
 ### `-f, --format <format>`
 Output format: `yaml` or `json`.
 
-- **Default**: Uses `model.format.output` from config (or `JSON` if no config)
+- **Default**: Uses `config.format.output` from config (or `JSON` if no config)
 - **Override**: CLI flag takes precedence over config
 
 ```bash
@@ -258,5 +258,5 @@ specs generate components.md -o specs/library.yaml
 
 **See Also:**
 - [Audit Command](./audit.md) - Create component manifest
-- [Configuration Reference](../configuration.md) - Format and model options
+- [Configuration Reference](../configuration.md) - Format and config options
 - [Getting Started](../getting-started.md) - Installation and license setup
