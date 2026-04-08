@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **File output ignores `config.format.output`** — The `generate` command always wrote YAML files regardless of the `format.output` config setting. The `OutputFormat` type, `FileManifest` extensions, and all writers now respect the configured format (JSON or YAML). The `DEFAULT_OUTPUT_CONFIG.defaultFormat` is aligned with specs-schema's `DEFAULT_CONFIG.format.output` (JSON). ([#14](https://github.com/DirectedEdges/specs/issues/14))
+- **`audit --variables` flag not writing to manifest header** — The `-v`/`--variables` flag was parsed but never passed to the manifest generator. The `**Variables:**` metadata line is now written when the flag is provided, and `ManifestParser` extracts it back into metadata. ([#18](https://github.com/DirectedEdges/specs/issues/18))
 
 ## [0.8.0] - 2026-04-07
 
