@@ -58,6 +58,14 @@ config:
     # Naming pattern to detect icon glyph instances (e.g. 'DS Icon Glyph /')
     # glyphNamePattern: 'DS Icon Glyph /'
 
+    # Naming pattern for the code-only props container layer (e.g. 'Code only props')
+    # Presence enables code-only prop extraction from matching layers.
+    # codeOnlyPropsPattern: 'Code only props'
+
+    # Consolidate slot constraints (anyOf, minItems, maxItems) from code-only props
+    # into the slot property. Requires codeOnlyPropsPattern to be set. (default: false)
+    # slotConstraints: false
+
     # Maximum variant property depth to process: 1, 2, 3, or 9999 (unlimited)
     # See: https://github.com/DirectedEdges/specs/blob/main/docs/guides/variant-depth.md
     variantDepth: ${DEFAULT_CONFIG.processing?.variantDepth || 9999}
@@ -65,6 +73,10 @@ config:
     # Detail level for variant data: FULL or LAYERED
     # See: https://github.com/DirectedEdges/specs/blob/main/docs/cli/configuration.md#details
     details: ${DEFAULT_CONFIG.processing?.details || 'LAYERED'}
+
+    # Infer number props: when true, TEXT code-only props whose values parse as
+    # valid numbers are emitted as NumberProp instead of StringProp. (default: false)
+    # inferNumberProps: false
 
   format:
     # Output format: JSON or YAML
@@ -89,8 +101,23 @@ config:
     # Include invalid variant data in output (default: false)
     # invalidVariants: false
 
-    # Calculate and include invalid property combinations (default: false)
-    # invalidCombinations: false
+    # Calculate and include invalid property combinations (default: true)
+    # invalidCombinations: true
+
+    # Include layered variants that contain no elements (default: false)
+    # emptyVariants: false
+
+# Output file structure options.
+# These control how generated spec files are organized on disk.
+# output:
+#   # Write one file per component instead of a single library file (default: false)
+#   splitComponents: false
+#
+#   # Split each component into separate api and variants files (default: false)
+#   splitConcerns: false
+#
+#   # When splitComponents is true, nest each file in a subfolder (default: false)
+#   useSubfolders: false
 `;
 }
 
