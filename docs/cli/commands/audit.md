@@ -5,7 +5,7 @@ Scan a Figma file and generate a manifest of all components.
 ## Usage
 
 ```bash
-specs audit <file> -o <manifest> [options]
+specs audit <file> [options]
 ```
 
 ## Arguments
@@ -20,13 +20,18 @@ specs audit data/library.file.json -o components.md
 ## Options
 
 ### `-o, --output <path>`
-Output manifest path.
-
-- Required.
+Output manifest path. Optional — defaults to `{sourceDirectory}/{alias}.manifest.md`, where `sourceDirectory` comes from `.specs.config.yaml` and `alias` is derived from the input filename (e.g., `library.file.json` → `library.manifest.md`).
 
 ```bash
+# Explicit output path
 specs audit data/library.file.json -o manifests/design-system.md
+
+# Default: writes to data/library.manifest.md (from config sourceDirectory)
+specs audit data/library.file.json --config .specs.config.yaml
 ```
+
+### `--config <path>`
+Path to config file. Used to resolve `sourceDirectory` for the default output path.
 
 ### `--include-all`
 Include all components by default (ignore heuristics).
