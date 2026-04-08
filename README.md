@@ -1,9 +1,5 @@
 # specs
 
-Schema, types, and command-line tools to record and manage UI component specifications.
-
-## About Specs
-
 Specs is a deterministic system for auditing UI component composition, visual styling, and property configurations drawn from Figma components. It produces structured, machine-readable specifications that capture the full anatomy of a design system component. The product suite includes a Figma plugin (currently, Anova) and three packages available on npm:
 
 * `@directededges/specs-cli`, a command line tool to generate specs from Figma files
