@@ -82,21 +82,15 @@ function normalizeSources(sources?: MinimalConfig['sources']): Array<{ alias: st
   }));
 }
 
-async function figmaGetJson(url: string, token: string): Promise<{ status: number; json: unknown }> {
+async function figmaFetch(url: string, token: string): Promise<{ status: number; body: string }> {
   const response = await fetch(url, {
     headers: {
       'X-Figma-Token': token
     }
   });
 
-  let json: unknown;
-  try {
-    json = await response.json();
-  } catch {
-    json = { error: true, status: response.status, message: 'Non-JSON response' };
-  }
-
-  return { status: response.status, json };
+  const body = await response.text();
+  return { status: response.status, body };
 }
 
 function classifyHttpStatus(status: number): 'ok' | 'auth' | 'rate' | 'error' {
@@ -200,7 +194,7 @@ export const Fetch = new Command('fetch')
 
           renderInlineStatus(`Downloading: ${entry.alias} ${kind}`);
 
-          const { status, json } = await figmaGetJson(url, token);
+          const { status, body } = await figmaFetch(url, token);
           const classification = classifyHttpStatus(status);
 
           if (classification === 'auth') {
@@ -219,7 +213,7 @@ export const Fetch = new Command('fetch')
           }
 
           const outputPath = path.join(outDir, `${entry.alias}.${kind}.json`);
-          await fs.writeFile(outputPath, JSON.stringify(json, null, 2), 'utf-8');
+          await fs.writeFile(outputPath, body, 'utf-8');
 
           clearInlineStatus();
           console.log(`✓ Downloaded: ${entry.alias} ${kind}`);
