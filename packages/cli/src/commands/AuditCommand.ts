@@ -98,17 +98,21 @@ function applyDefaultInclusion(component: AuditComponentInfo): boolean {
  */
 function generateManifest(
   components: AuditComponentInfo[],
-  sourceFile: string
+  sourceFile: string,
+  variablesFile?: string
 ): string {
   const timestamp = new Date().toISOString();
 
   const lines: string[] = [];
-  
+
   // Manifest header
   lines.push(`# Component Manifest`);
   lines.push('');
   lines.push(`**Generated:** ${timestamp}  `);
   lines.push(`**File:** ${sourceFile}`);
+  if (variablesFile) {
+    lines.push(`**Variables:** ${variablesFile}`);
+  }
   lines.push('');
   lines.push('---');
   lines.push('');
@@ -195,7 +199,8 @@ export const Audit = new Command('audit')
       // Generate markdown manifest
       const manifest = generateManifest(
         components,
-        path.resolve(file)
+        path.resolve(file),
+        options.variables ? path.resolve(options.variables) : undefined
       );
 
       // Write manifest to output file
