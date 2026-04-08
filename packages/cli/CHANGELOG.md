@@ -12,6 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`fetch --no-geometry` flag** — Omits `?geometry=paths` from Figma file requests, reducing payload size by roughly half. Vector path data (`fillGeometry`, `strokeGeometry`, `size`, `relativeTransform`) is excluded; width/height fall back to `absoluteBoundingBox` during processing.
 - **`audit` default output path** — `-o` is now optional. When omitted, the manifest writes to `{sourceDirectory}/{alias}.manifest.md` using the config's `sourceDirectory` and the input filename. Added `--config` flag for config file resolution.
 
+### Changed
+
+- **Config key rename: `model` → `config`** — The YAML key `model:` and internal property `CLIConfig.model` are renamed to `config:` / `CLIConfig.config` to align with the upstream `Config` type from @directededges/specs-schema. Updates source, tests, and all documentation.
+
+### Refactored
+
+- **Remove dead styles payload shapes from `loadFoundations`** — Removed two unused code paths: the `all_styles` simplified format and the `styles` object-map format. Only the Figma REST API format (`meta.styles`) is retained. Updated JSDoc to describe the two actual data sources (file seed + styles endpoint).
+- **Comment out false-defaulting include fields in config template** — `invalidVariants` and `invalidCombinations` now have schema-level defaults and no longer need explicit values in the generated config template.
+
 ### Fixed
 
 - **`generate -c` uses component ID as output key** — In file mode (`generate <file> -c <id>`), the component's Figma node ID was used as the output key instead of its name. Now resolves the display name from the file's `componentSets` or `components` metadata.

@@ -8,7 +8,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
-import { DEFAULT_CONFIG as DEFAULT_MODEL_CONFIG, type Config as ModelConfig } from '@directededges/specs-schema';
+import { DEFAULT_CONFIG, type Config } from '@directededges/specs-schema';
 import { CONFIG_DEFAULTS } from './ConfigDefaults.js';
 import type { CLIConfig } from '../Types/CLIConfig.js';
 
@@ -95,7 +95,7 @@ export class ConfigLoader {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       author: (parsed as any)?.author,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      model: this.mergeModelConfig((parsed as any)?.model),
+      config: this.mergeConfig((parsed as any)?.config),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       output: this.mergeOutputConfig((parsed as any)?.output),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -108,23 +108,23 @@ export class ConfigLoader {
   /**
    * Merge model config from file with defaults
    */
-  private mergeModelConfig(fileModel: unknown): ModelConfig {
+  private mergeConfig(fileModel: unknown): Config {
     if (!fileModel) {
-      return DEFAULT_MODEL_CONFIG;
+      return DEFAULT_CONFIG;
     }
     
     // Deep merge user config over defaults
-    const merged = this.deepMerge(DEFAULT_MODEL_CONFIG, fileModel as Partial<ModelConfig>);
+    const merged = this.deepMerge(DEFAULT_CONFIG, fileModel as Partial<Config>);
     
     // Validate and correct merged config, replacing invalid values with defaults
-    return this.validateAndCorrectModelConfig(merged);
+    return this.validateAndCorrectConfig(merged);
   }
 
   /**
    * Validate and correct model config, replacing invalid values with defaults
    */
-  private validateAndCorrectModelConfig(config: ModelConfig): ModelConfig {
-    const corrected = JSON.parse(JSON.stringify(config)) as ModelConfig;
+  private validateAndCorrectConfig(config: Config): Config {
+    const corrected = JSON.parse(JSON.stringify(config)) as Config;
     
     // Valid processing options
     const validVariantDepths = [1, 2, 3, 9999];
@@ -132,10 +132,10 @@ export class ConfigLoader {
     
     // Validate processing
     if (!validVariantDepths.includes(corrected.processing.variantDepth)) {
-      corrected.processing.variantDepth = DEFAULT_MODEL_CONFIG.processing.variantDepth;
+      corrected.processing.variantDepth = DEFAULT_CONFIG.processing.variantDepth;
     }
     if (!validDetails.includes(corrected.processing.details)) {
-      corrected.processing.details = DEFAULT_MODEL_CONFIG.processing.details;
+      corrected.processing.details = DEFAULT_CONFIG.processing.details;
     }
     if (corrected.processing.glyphNamePattern !== undefined
         && (typeof corrected.processing.glyphNamePattern !== 'string'
@@ -179,16 +179,16 @@ export class ConfigLoader {
     
     // Validate format
     if (!validKeys.includes(corrected.format.keys)) {
-      corrected.format.keys = DEFAULT_MODEL_CONFIG.format.keys;
+      corrected.format.keys = DEFAULT_CONFIG.format.keys;
     }
     if (!validOutputs.includes(corrected.format.output)) {
-      corrected.format.output = DEFAULT_MODEL_CONFIG.format.output;
+      corrected.format.output = DEFAULT_CONFIG.format.output;
     }
     if (!validLayouts.includes(corrected.format.layout)) {
-      corrected.format.layout = DEFAULT_MODEL_CONFIG.format.layout;
+      corrected.format.layout = DEFAULT_CONFIG.format.layout;
     }
     if (corrected.format.tokens && !validTokens.includes(corrected.format.tokens)) {
-      corrected.format.tokens = DEFAULT_MODEL_CONFIG.format.tokens;
+      corrected.format.tokens = DEFAULT_CONFIG.format.tokens;
     }
 
     // Strip EOLed include properties — subcomponent inclusion is now
@@ -275,7 +275,7 @@ export class ConfigLoader {
     return {
       sourceDirectory: path.resolve(CONFIG_DEFAULTS.sourceDirectory),
       outputDirectory: path.resolve(CONFIG_DEFAULTS.outputDirectory),
-      model: DEFAULT_MODEL_CONFIG,
+      config: DEFAULT_CONFIG,
     };
   }
 }

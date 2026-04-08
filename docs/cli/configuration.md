@@ -1,6 +1,6 @@
 # CLI Configuration
 
-Configure Specs' model behavior and data sources using `.specs.config.yaml` for consistent, reproducible component specifications.
+Configure Specs' processing behavior and data sources using `.specs.config.yaml` for consistent, reproducible component specifications.
 
 ## Overview
 
@@ -43,8 +43,8 @@ sources:
     key: REPLACE_WITH_FOUNDATIONS_FILE_KEY
     data: ['variables','styles']
 
-# Model processing and output configuration
-model:
+# Processing and output configuration
+config:
   # Processing options - how data is analyzed
   processing:
     subcomponents:
@@ -67,9 +67,9 @@ model:
 
 ```
 
-## Model Configuration
+## Config Section
 
-The `model` section controls how Specs processes and outputs component data.
+The `config` section controls how Specs processes and outputs component data.
 
 ### Processing Options
 
@@ -86,7 +86,7 @@ Subcomponent discovery configuration. When present, enables subcomponent detecti
 | `exclude` | `string[]` | No | — | Template patterns to exclude from matches. Same `{C}/{S}` syntax |
 
 ```yaml
-model:
+config:
   processing:
     subcomponents:
       scope: PAGE
@@ -106,7 +106,7 @@ Maximum variant property depth to process.
 - **Options**: `1`, `2`, `3`, or `9999` (unlimited)
 
 ```yaml
-model:
+config:
   processing:
     variantDepth: 3  # Process up to 3 levels of variant properties
 ```
@@ -120,7 +120,7 @@ Detail level for variant data.
   - `LAYERED` - Optimized layered format (advanced)
 
 ```yaml
-model:
+config:
   processing:
     details: FULL
 ```
@@ -138,7 +138,7 @@ Output serialization format.
   - `YAML` - Human-readable YAML format
 
 ```yaml
-model:
+config:
   format:
     output: YAML  # Generate YAML by default
 ```
@@ -158,7 +158,7 @@ Key name transformation strategy.
   - `TRAIN` - Train-Case
 
 ```yaml
-model:
+config:
   format:
     keys: CAMEL  # Transform keys to camelCase
 ```
@@ -182,7 +182,7 @@ Layout representation format.
   - `BOTH` - Include both representations
 
 ```yaml
-model:
+config:
   format:
     layout: LAYOUT
 ```
@@ -199,7 +199,7 @@ Token reference format profile.
   - `CUSTOM` - Custom token objects injected via `applyCustomTokens`. Variables/styles with `$custom` use that object verbatim as the property value; those without fall back to `TOKEN_FIGMA_EXTENSIONS` format.
 
 ```yaml
-model:
+config:
   format:
     tokens: TOKEN  # Default resolved token references
 ```
@@ -217,7 +217,7 @@ Include invalid variant data in output.
 - **Effect**: When `true`, includes variants that don't match all property combinations
 
 ```yaml
-model:
+config:
   include:
     invalidVariants: false  # Exclude invalid variants
 ```
@@ -229,7 +229,7 @@ Calculate and include invalid property combinations.
 - **Effect**: When `true`, computes which prop combinations are invalid
 
 ```yaml
-model:
+config:
   include:
     invalidCombinations: true  # Show invalid combinations
 ```
@@ -356,7 +356,7 @@ Default output format for stdout only.
 - **Options**: `yaml`, `json`
 - **Override**: CLI `--format` flag takes precedence
 - **Note**: File output is always YAML. This setting controls stdout format only.
-- **Note**: Different from `model.format.output` (controls serialization, not file format)
+- **Note**: Different from `config.format.output` (controls serialization, not file format)
 
 ```yaml
 output:
@@ -468,7 +468,7 @@ specs generate data/library.file.json -c Button --format yaml
 ```
 
 **Available flag overrides**:
-- `--format` → overrides `model.format.output`
+- `--format` → overrides `config.format.output`
 - `--variables` → overrides the variables file path for that run
 - `--styles` → overrides the styles file path for that run
 
@@ -478,7 +478,7 @@ Settings from `.specs.config.yaml` apply when no CLI flag is provided:
 
 ```yaml
 # .specs.config.yaml
-model:
+config:
   format:
     output: YAML  # Used unless --format flag provided
 
@@ -514,7 +514,7 @@ Optimized for fast iteration:
 ```yaml
 # .specs.config.yaml (development)
 
-model:
+config:
   processing:
     variantDepth: 1  # Faster processing
     details: FULL
@@ -538,7 +538,7 @@ Optimized for production output:
 ```yaml
 # .specs.config.yaml (production)
 
-model:
+config:
   processing:
     variantDepth: 2
     details: FULL
@@ -576,7 +576,7 @@ Mix config file with CLI overrides:
 
 ```yaml
 # .specs.config.yaml
-model:
+config:
   format:
     output: YAML
     keys: SAFE
@@ -647,7 +647,7 @@ specs generate data/library.file.json -c Button --config .specs.production.yaml
 Add comments to explain project-specific settings:
 
 ```yaml
-model:
+config:
   processing:
     # Match direct children and underscore-nested subcomponents
     subcomponents:
@@ -666,7 +666,7 @@ model:
 Choose one key format and stick with it:
 
 ```yaml
-model:
+config:
   format:
     keys: CAMEL  # All keys in camelCase for consistency
 ```

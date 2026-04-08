@@ -137,4 +137,4 @@ specs audit data/library.file.json --verbose -o components.md
 
 **See Also:**
 - [Generate Command](./generate.md) - Generate specs from manifest or single component
-- [Configuration Reference](../configuration.md) - Format and model options
+- [Configuration Reference](../configuration.md) - Format and config options

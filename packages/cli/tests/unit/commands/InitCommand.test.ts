@@ -36,7 +36,7 @@ describe('InitCommand', () => {
     it('should generate template with proper structure', () => {
       const template = generateConfigTemplate();
       expect(template).toContain('sources: {}');
-      expect(template).toContain('model:');
+      expect(template).toContain('config:');
       expect(template).toContain('processing:');
       expect(template).toContain('format:');
     });
@@ -149,9 +149,9 @@ describe('InitCommand', () => {
       expect(topLevelKeys).toContain('sourceDirectory');
       expect(topLevelKeys).toContain('outputDirectory');
       expect(topLevelKeys).toContain('sources');
-      expect(topLevelKeys).toContain('model');
+      expect(topLevelKeys).toContain('config');
 
-      // format, processing, and include are nested under model, not top-level
+      // format, processing, and include are nested under config, not top-level
       expect(template).toContain('format:');
       expect(template).toContain('processing:');
       expect(template).toContain('include:');
@@ -162,11 +162,7 @@ describe('InitCommand', () => {
       const requiredUrls = [
         'configuration#sourceDirectory',
         'configuration#outputDirectory',
-        'configuration#sources',
-        'configuration#model',
-        'configuration#subcomponents',
-        'configuration#variantDepth',
-        'configuration#details',
+        'docs/cli/configuration.md',
       ];
 
       requiredUrls.forEach(url => {

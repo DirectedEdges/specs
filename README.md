@@ -4,58 +4,55 @@ Schema, types, and command-line tools to record and manage UI component specific
 
 ## About Specs
 
-Specs is a deterministic system for auditing UI component composition, visual styling, and property configurations drawn from Figma components. It produces structured, machine-readable specifications that capture the full anatomy of a design system component.
+Specs is a deterministic system for auditing UI component composition, visual styling, and property configurations drawn from Figma components. It produces structured, machine-readable specifications that capture the full anatomy of a design system component via two packages both available on npm:
+
+* `@directededges/specs-cli`, a command line tool to generate specs from Figma files
+* `@directededges/specs-schema`, a JSON specification
 
 The project evolved from [Anova](https://github.com/DirectedEdges/anova) ("Analysis of Variants"). To learn more about the concept, read the [Analysis of Variants](https://nathanacurtis.substack.com/p/analysis-of-variants-9e440c30b93e) blog post.
 
-## Packages
+## `@directededges/specs-cli`
 
-### `@directededges/specs-schema`
+Command-line interface (CLI) for generating component specifications from Figma design files. The CLI is free to use. A **PRO** license unlocks additional `generate` features including token resolution, subcomponent references, slot constraints, and platform extensions. For a **PRO** license, contact nathan@directededges.com.
 
-The shared type system and JSON schema that defines the structure of UI component specifications. Exports include:
+```sh
+# 1. Install cli globally to run with the command `specs`
+npm install -g @directededges/specs-cli
+# 2. Initialize a .specs.config.yaml file
+specs init
+# 3. Edit the config for your Figma file key and preferred settings 
+# 4. Set up an .env file with a Figma PAT and – if subscribed - license key
+# 5. Fetch raw Figma data (file, variables, styles)
+specs fetch
+# 6. Audit the file to discover components and build a manifest
+specs audit <figma-file-id>
+# 7. Select components in the manifest to be generated
+# 8. Generate specs from the manifest
+specs generate <source>
+```
 
-- [JSON Schema](packages/schema/schema/root.schema.json) — the canonical schema for component spec output
-- [TypeScript types](packages/schema/types/) — complete type definitions for all schema entities (`Component`, `Config`, `Styles`, `Element`, `AnyProp`, etc.)
-- `DEFAULT_CONFIG` — a runtime configuration object controlling output shape (format, token resolution, variant depth, etc.)
+Helpful documentation includes:
+- [Overview](docs/cli/index.md)
+- [Getting started](docs/cli/getting-started.md)
+- [Configuration file](docs/cli/configuration.md) details
+- Per [command](docs/cli/commands/) instructions and flags
+
+
+## `@directededges/specs-schema`
+
+The shared type system and JSON schema that defines the structure of UI component specifications. 
 
 ```sh
 npm install @directededges/specs-schema
 ```
 
-### `@directededges/specs-cli`
+Exports include:
 
-Command-line interface for generating component specifications from Figma design files.
+- [JSON Schema](packages/schema/schema/root.schema.json) — the canonical schema for component spec output
+- [TypeScript types](packages/schema/types/) — complete type definitions for all schema entities (`Component`, `Config`, `Styles`, `Element`, `AnyProp`, etc.)
+- `DEFAULT_CONFIG` — a runtime configuration object controlling output shape (format, token resolution, variant depth, etc.)
 
-```sh
-# Install cli globally to run with the command `specs`
-npm install -g @directededges/specs-cli
-```
-
-A typical workflow:
-
-```sh
-# 1. Initialize a .specs.config.yaml file
-specs init
-# 2. Edit the config to your preferred settings
-# 3. Set up your .env file with a Figma personal access token and – if relevant - a license key
-# 4. Fetch raw Figma data (file, variables, styles)
-specs fetch
-# 5. Audit the file to discover components and build a manifest
-specs audit <figma-file-id>
-# 6. Edit generated manifest to select components to generate
-# 7. Generate specs from the manifest
-specs generate <source>
-```
-
-**License upgrate:** The CLI is free to use. A **PRO** license unlocks additional output features including token resolution, subcomponent references, slot constraints, and platform extensions. For a **PRO** license, contact nathan@directededges.com.
-
-## Documentation
-
-The `docs/` folder contains detailed documentation on:
-
-- [Schema](docs/schema/), such as component, variants, styles, props and more
-- [CLI](docs/cli/) for getting started and details on commands like `init`, `fetch`, `audit` and `generate`
-- Special feature [Guides](docs/guides/) for special features like code-only props, inferred numbers, layout, and more.
+Learn more in the [Schema docs](docs/schema/), including details on each property including component, variants, styles, props and more.
 
 ## Architectural Decision Records
 

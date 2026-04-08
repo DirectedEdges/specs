@@ -102,7 +102,7 @@ export const Generate = new Command('generate')
       // Load configuration
       const configLoader = new ConfigLoader();
       const config = configLoader.load(options.config);
-      const modelConfig = config.model;
+      const modelConfig = config.config;
 
       if (options.verbose && options.config) {
         console.log(`[CLI] Using config from: ${options.config}`);

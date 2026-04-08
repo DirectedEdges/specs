@@ -3,17 +3,21 @@
 Specs CLI generates component specifications from your Figma design system. This guide walks you through setup and your first spec generation.
 
 **Quick nav:**
-- [Step 1: Install Node.js](#step-1-install-nodejs)
-- [Step 2: Set Your Figma Token](#step-2-set-your-figma-token)
-- [Step 3: Set Your License Key (optional)](#step-3-set-your-license-key-optional)
-- [Step 4: Install Specs CLI](#step-4-install-specs-cli)
-- [Configuration](#configuration)
-- [Workflows](#workflows)
+- [Prerequisite: Node.js](#prerequisite-nodejs)
+- [Step 1: Install Specs CLI](#step-1-install-specs-cli)
+- [Step 2: Initialize configuration](#step-2-initialize-configuration)
+- [Step 3: Edit configuration](#step-3-edit-configuration)
+- [Step 4: Set up environment variables](#step-4-set-up-environment-variables)
+- [Step 5: Fetch Figma data](#step-5-fetch-figma-data)
+- [Step 6: Audit components](#step-6-audit-components)
+- [Step 7: Select components](#step-7-select-components)
+- [Step 8: Generate specs](#step-8-generate-specs)
+- [Alternative approaches to generate](#alternative-approaches-to-generate)
 - [Commands Reference](./commands/)
 
 ---
 
-## Step 1: Install Node.js
+## Prerequisite: Node.js
 
 Specs CLI is a command-line tool that runs on **Node.js** — a runtime that lets you execute JavaScript tools from your terminal. If you don't have Node.js installed, download it:
 
@@ -31,11 +35,133 @@ Both commands should show version numbers (e.g., `v20.10.0`).
 
 > **What's npm?** npm is Node's package manager — it downloads and installs command-line tools like Specs CLI.
 
-## Step 2: Set Your Figma Token
+## Step 1: Install Specs CLI
 
-Specs CLI uses the [Figma REST API](https://www.figma.com/developers/api) to read your design files. You need an access token to authenticate.
+Install globally so you can run it with the `specs` command:
 
-### Create a Personal Access Token
+```bash
+npm install -g @directededges/specs-cli
+```
+
+Verify the installation:
+
+```bash
+specs --version
+```
+
+> **Alternative: use without installing.** Run on-the-fly with `npx @directededges/specs-cli <command>`. Useful if you only use Specs CLI occasionally.
+
+## Step 2: Initialize configuration
+
+Create a `.specs.config.yaml` file with production-ready defaults:
+
+```bash
+specs init
+```
+
+This generates a config file in your current directory with inline documentation and sensible defaults. The next step walks through the sections you'll want to customize.
+
+## Step 3: Edit configuration
+
+Open `.specs.config.yaml` in your editor. The file has four main sections to configure.
+
+### Figma file key
+
+Each source needs a Figma file key. To find it, copy the link to your Figma file — the key is the string between `/design/` (or `/file/`) and the file name:
+
+```
+https://www.figma.com/design/AbCdEfGhIjKlMnOpQr/My-Design-System
+                             ^^^^^^^^^^^^^^^^^^
+                             This is your file key
+```
+
+Add and name (such as `library`) one or more sources with keys and types of data to download from each:
+
+```yaml
+sources:
+  library:
+    key: AbCdEfGhIjKlMnOpQr
+    data: [file, variables, styles]
+  foundations:
+    key: StUvWxYz1234567890
+    data: [variables, styles]
+```
+
+Each source has a name (e.g., `library`), a `key`, and a `data` array specifying which Figma payloads to fetch. Sources that contain components typically need `file`, while token-only sources may only need `variables` and `styles`.
+
+### Source and output directories
+
+```yaml
+sourceDirectory: ./data        # Where fetch writes Figma payloads
+outputDirectory: ./specs       # Default location for generated specs
+```
+
+- **`sourceDirectory`** is where `specs fetch` saves raw Figma data (JSON files). Other commands like `audit` and `generate` read from here.
+- **`outputDirectory`** is the default destination for generated spec files. You can override it per-command with the `-o` flag.
+
+### Config
+
+The `config` section controls how Specs processes components and formats output:
+
+```yaml
+config:
+  processing:
+    subcomponents:
+      match:
+        - '{C} / _ / {S}'
+    variantDepth: 9999
+    details: LAYERED
+
+  format:
+    output: JSON
+    keys: SAFE
+    layout: LAYOUT
+    tokens: TOKEN
+
+  include:
+    invalidVariants: false
+    invalidCombinations: true
+```
+
+- **`processing`** — how components are analyzed (subcomponent detection patterns, variant depth, detail level)
+- **`format`** — output shape (JSON/YAML, key casing, layout representation, token format)
+- **`include`** — what to include in output (invalid variants, invalid combinations)
+
+See [Configuration Reference](./configuration.md) for all options and allowed values.
+
+### Output
+
+The optional `output` section controls how generated files are organized:
+
+```yaml
+output:
+  splitComponents: false  # true = separate file per component
+  splitConcerns: false    # true = separate API from variants
+  useSubfolders: false    # true = component subdirectories
+```
+
+This section is not included by `specs init` — add it manually if you want to change the defaults. You can also control these per-command with flags like `--split-components`.
+
+## Step 4: Set up environment variables
+
+Create a `.env` file in your project directory for your Figma token and (optionally) your license key:
+
+```
+FIGMA_TOKEN=your_figma_token_here
+SPECS_LICENSE_KEY=your_license_key_here
+```
+
+Add `.env` to your `.gitignore` so credentials aren't committed:
+
+```
+.env
+```
+
+Specs CLI automatically loads `.env` from your current directory when you run commands.
+
+### Figma Personal Access Token
+
+You need a [Figma REST API](https://www.figma.com/developers/api) token to authenticate.
 
 1. Go to [Figma Settings → Tokens](https://www.figma.com/settings/tokens)
 2. Click **Create a new token**
@@ -47,183 +173,85 @@ Specs CLI uses the [Figma REST API](https://www.figma.com/developers/api) to rea
   - `file_variables:read` (variables in files, Enterprise plan only)
 5. Click **Create token** and copy it
 
-### Save Your Token to `.env`
-
-Create a `.env` file in your project directory:
-
-```
-FIGMA_TOKEN=your_token_here
-```
-
-Add `.env` to your `.gitignore` so the token isn't committed:
-
-```
-.env
-```
-
-Specs CLI automatically loads `.env` from your current directory when you run commands.
-
 > **Alternative:** You can also export the token in your shell: `export FIGMA_TOKEN="your_token_here"`.
 
-## Step 3: Set Your License Key (optional)
+### License key (optional)
 
 Specs CLI works at a **free tier** without a license key. Free-tier specs include full component structure — anatomy, props, variants, layout, and raw style values.
 
 With a **Pro license key**, specs also include design token references, variable bindings, and visibility bindings that connect your component specs to your design token system.
 
-### Save Your License Key
-
-Add your license key to your `.env` file alongside your Figma token:
-
-```
-FIGMA_TOKEN=your_figma_token_here
-SPECS_LICENSE_KEY=your_license_key_here
-```
-
-The CLI loads this automatically. You can also pass it per-command with the `-l` flag:
+Add `SPECS_LICENSE_KEY` to your `.env` file as shown above. You can also pass it per-command with the `-l` flag:
 
 ```bash
 specs generate components.md -o specs/all.yaml -l "your-license-key"
 ```
 
-### License Status
+## Step 5: Fetch Figma data
 
-When a license key is set, the CLI displays its status:
-
-```
-License: PRO (active)
-```
-
-If the key is invalid or expired, the CLI falls back to the free tier and shows the reason:
-
-```
-License: FREE (invalid — key not recognized)
-```
-
-## Step 4: Install Specs CLI
-
-Choose one installation method:
-
-### Option A: Global Install (Recommended)
-
-Install once, use everywhere:
+Download raw data from your configured Figma sources:
 
 ```bash
-npm install -g @directededges/specs-cli
+specs fetch
 ```
 
-Then run commands from anywhere:
+This writes JSON data downloaded from the Figma REST API to your `sourceDirectory` (e.g., `./data/library.file.json`, `./data/library.variables.json`).
+
+## Step 6: Audit components
+
+Discover components in a fetched file and build a manifest of components to potentially generate specs. By default, all components are checked.
 
 ```bash
-specs --version
-specs init
+specs audit data/library.file.json -o components.md
 ```
 
-### Option B: Use Without Installing (npx)
+## Step 7: Select components
 
-Run on-the-fly without installing globally:
+Open `components.md` and select components to generate specs for. Check `[x]` to include, uncheck `[ ]` to exclude.
+
+```md
+- [ ] _random Test experiment component
+- [x] Button
+- [x] Card
+- [ ] InternalHelper
+- [ ] Slot utility
+```
+
+## Step 8: Generate specs
+
+Generate specs for the selected components:
 
 ```bash
-npx @directededges/specs-cli --version
-npx @directededges/specs-cli init
+specs generate components.md -o specs/design-system.yaml
 ```
 
-> **What's npx?** It downloads and runs the tool temporarily. Useful if you only use Specs CLI occasionally.
+This reads the manifest, processes each selected component, and writes the output to the specified file (or directory, if using `--split-components`).
 
 ---
 
-## Configuration
+## Alternative approaches to generate
 
-### Initialize Project Configuration
+### Single component
 
-Create a `.specs.config.yaml` file with defaults:
-
-```bash
-specs init
-```
-
-Edit `.specs.config.yaml` to add your Figma file keys:
-
-```yaml
-sourceDirectory: ./data        # Where fetch writes payloads
-outputDirectory: ./specs       # Default output for generated specs
-
-sources:
-  library:
-    key: YOUR_FIGMA_FILE_KEY
-    data: [file, variables, styles]
-  foundations:
-    key: YOUR_FIGMA_FILE_KEY
-    data: [variables, styles]
-
-model:
-  processing:
-    subcomponents:
-      match:
-        - '{C} / _ / {S}'
-    variantDepth: 2
-  format:
-    output: YAML
-    keys: CAMEL
-
-output:
-  splitComponents: false  # true = separate file per component
-  splitConcerns: false    # true = separate API from variants
-  useSubfolders: false    # true = component subdirectories
-```
-
-See [Configuration Reference](./configuration.md) for all options.
-
-## Workflows
-
-Commands vary depending on your workflow and include:
-
-- [`init`](./commands/init.md) - Scaffold config file
-- [`fetch`](./commands/fetch.md) - Download Figma data
-- [`audit`](./commands/audit.md) - Create component manifest for generate
-- [`generate`](./commands/generate.md) - Generate specs from a manifest or single component
-
-Additional helpful references are:
-
-- [Commands](./commands/) - Detailed command documentation
-- [Examples](./examples.md) - Real-world usage patterns
-
-### 1: Generate from Manifest (recommended)
-
-Generate specs for multiple components at once:
+Generate a spec for one component directly from fetched data — useful when setting up or iterating:
 
 ```bash
-# Fetch Figma data
-specs fetch
-
-# Create manifest of all components
-specs audit data/library.file.json -o components.md
-
-# Edit components.md: mark [x] to include, [ ] to exclude
-
-# Generate specs for selected components
-# Single file (default)
-specs generate components.md -o specs/design-system.yaml
-
-# Or use per-component files for easier collaboration
-specs generate components.md -o specs/ --split-components
-```
-
-### 2: Single Component
-
-Generate a spec for one component — useful when setting up or iterating:
-
-```bash
-# Fetch Figma data
-specs fetch
-
-# Generate component spec
 specs generate data/library.file.json \
   -c "Button" \
   -o specs/button.yaml
 ```
 
-### 3: CI/CD Pipeline
+### Subset of components
+
+Generate specs for a few components without creating a manifest:
+
+```bash
+specs generate data/library.file.json \
+  -c "Button" -c "Card" -c "Checkbox" \
+  -o specs/subset.yaml
+```
+
+### CI/CD pipeline
 
 Automate spec generation in your build:
 
