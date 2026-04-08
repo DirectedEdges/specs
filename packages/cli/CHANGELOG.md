@@ -5,7 +5,9 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.8.0] - Unreleased
+## [0.8.0] - 2026-04-07
+
+Adds fetch UX improvements (animated spinner, elapsed time, `--no-geometry`), renames the config key from `model` to `config`, and fixes style reconciliation and large-file fetch crashes.
 
 ### Added
 
@@ -27,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Style `$custom` reconciliation in `loadFoundations`** — Published Figma styles referenced by components use file-local IDs (e.g., `19108:2530`) that differ from the styles endpoint's `node_id` (e.g., `5115:6703`). The shared `key` hash now bridges these two sources, ensuring `$custom` token objects from the styles endpoint are available when resolving style references during spec generation.
 - **`generate -c` uses component ID as output key** — In file mode (`generate <file> -c <id>`), the component's Figma node ID was used as the output key instead of its name. Now resolves the display name from the file's `componentSets` or `components` metadata.
 - **`fetch` writes raw response directly to disk** — Previously, fetch parsed the Figma response into JSON and re-serialized it with pretty-printing before writing. This caused `Invalid string length` crashes on large files (400MB+). Now writes the raw response body straight to disk, eliminating unnecessary memory overhead.
+
+### Dependency updates
+
+- **@directededges/specs-from-figma v0.12.0** — When the REST API response lacks geometry data (e.g., when using `--no-geometry`), width and height fall back to `absoluteBoundingBox`. A console warning now surfaces when this fallback is used on a rotated node, where bounding box dimensions may be inflated.
 
 ## [0.7.0] - 2026-04-05
 
