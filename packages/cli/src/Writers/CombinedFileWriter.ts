@@ -1,10 +1,9 @@
 import fs from 'fs-extra';
-import yaml from 'yaml';
 import type { FileManifest } from './FileManifest.js';
 import { FileWriter, WriteResult } from './FileWriter.js';
 
 /**
- * Writer for combined mode: creates component/api.yaml and component/variants.yaml
+ * Writer for combined mode: creates component/api and component/variants files
  * Each component gets its own directory with separate concern files
  */
 export class CombinedFileWriter extends FileWriter {
@@ -39,16 +38,11 @@ export class CombinedFileWriter extends FileWriter {
           result.warnings.push(`Warning: Overwriting existing file: ${filePath}`);
         }
 
-        // Serialize to YAML with deterministic formatting
-        const yamlContent = yaml.stringify(entry.content, {
-          indent: 2,
-          lineWidth: 0, // Disable line wrapping
-          sortMapEntries: false, // Preserve insertion order (metadata last)
-          aliasDuplicateObjects: false
-        });
+        // Serialize in the configured format
+        const content = FileWriter.serialize(entry.content, manifest.format);
 
         // Write file
-        await fs.writeFile(filePath, yamlContent, 'utf-8');
+        await fs.writeFile(filePath, content, 'utf-8');
         result.filesWritten.push(filePath);
       }
     } catch (error) {

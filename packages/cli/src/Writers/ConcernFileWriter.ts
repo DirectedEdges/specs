@@ -1,10 +1,9 @@
 import fs from 'fs-extra';
-import yaml from 'yaml';
 import type { FileManifest } from './FileManifest.js';
 import { FileWriter, WriteResult } from './FileWriter.js';
 
 /**
- * Writer for per-concern mode: creates api.yaml and variants.yaml files
+ * Writer for per-concern mode: creates api and variants files
  * Each concern file aggregates data from all components
  */
 export class ConcernFileWriter extends FileWriter {
@@ -19,7 +18,7 @@ export class ConcernFileWriter extends FileWriter {
       // Ensure output directory exists
       await fs.ensureDir(manifest.baseDir);
 
-      // Process each file in the manifest (api.yaml and variants.yaml)
+      // Process each file in the manifest
       for (const entry of manifest.entries) {
         const filePath = entry.path;
 
@@ -29,16 +28,11 @@ export class ConcernFileWriter extends FileWriter {
           result.warnings.push(`Warning: Overwriting existing file: ${filePath}`);
         }
 
-        // Serialize to YAML with deterministic formatting
-        const yamlContent = yaml.stringify(entry.content, {
-          indent: 2,
-          lineWidth: 0, // Disable line wrapping
-          sortMapEntries: false, // Preserve insertion order (metadata last)
-          aliasDuplicateObjects: false
-        });
+        // Serialize in the configured format
+        const content = FileWriter.serialize(entry.content, manifest.format);
 
         // Write file
-        await fs.writeFile(filePath, yamlContent, 'utf-8');
+        await fs.writeFile(filePath, content, 'utf-8');
         result.filesWritten.push(filePath);
       }
     } catch (error) {

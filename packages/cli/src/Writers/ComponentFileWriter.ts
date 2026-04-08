@@ -1,6 +1,6 @@
 /**
  * ComponentFileWriter - Writes one file per component
- * 
+ *
  * Supports both flat and subfolder modes:
  * - Flat: Button.yaml, Alert.yaml
  * - Subfolders: Button/Button.yaml, Alert/Alert.yaml
@@ -8,7 +8,6 @@
 
 import fs from 'fs-extra';
 import path from 'path';
-import yaml from 'yaml';
 import { FileWriter, type WriteResult } from './FileWriter.js';
 import type { FileManifest } from './FileManifest.js';
 
@@ -53,17 +52,11 @@ export class ComponentFileWriter extends FileWriter {
           result.warnings.push(`Overwriting existing file: ${entry.path}`);
         }
 
-        // Serialize to YAML with consistent formatting
-        const yamlContent = yaml.stringify(entry.content, {
-          indent: 2,
-          lineWidth: 0, // Don't wrap long lines
-          defaultStringType: 'PLAIN',
-          defaultKeyType: 'PLAIN',
-          aliasDuplicateObjects: false
-        });
+        // Serialize in the configured format
+        const content = FileWriter.serialize(entry.content, manifest.format);
 
         // Write file
-        await fs.writeFile(outputPath, yamlContent, 'utf-8');
+        await fs.writeFile(outputPath, content, 'utf-8');
         result.filesWritten.push(entry.path);
       }
 

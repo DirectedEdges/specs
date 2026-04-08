@@ -233,10 +233,10 @@ export class ConfigLoader {
       console.warn(`Invalid output.useSubfolders: expected boolean, got ${typeof output.useSubfolders}. Using default: false`);
     }
     
-    if (output.defaultFormat === 'yaml') {
+    if (output.defaultFormat === 'yaml' || output.defaultFormat === 'json') {
       result.defaultFormat = output.defaultFormat;
     } else if (output.defaultFormat !== undefined) {
-      console.warn(`Invalid output.defaultFormat: expected 'yaml', got ${output.defaultFormat}. Using default: 'yaml'`);
+      console.warn(`Invalid output.defaultFormat: expected 'yaml' or 'json', got ${output.defaultFormat}. Using default: 'yaml'`);
     }
     
     return result;
