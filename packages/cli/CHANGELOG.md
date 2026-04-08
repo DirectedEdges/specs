@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`fetch` animated spinner with elapsed time** — The `fetch` command now displays an animated braille spinner with a live elapsed-time counter while downloading each payload. The final success line includes the total duration per request (e.g., `✓ Downloaded: kds file (14s)`). Non-TTY environments fall back to a static log line.
 - **`fetch --no-geometry` flag** — Omits `?geometry=paths` from Figma file requests, reducing payload size by roughly half. Vector path data (`fillGeometry`, `strokeGeometry`, `size`, `relativeTransform`) is excluded; width/height fall back to `absoluteBoundingBox` during processing.
 - **`audit` default output path** — `-o` is now optional. When omitted, the manifest writes to `{sourceDirectory}/{alias}.manifest.md` using the config's `sourceDirectory` and the input filename. Added `--config` flag for config file resolution.
 

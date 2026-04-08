@@ -121,6 +121,33 @@ function clearInlineStatus(): void {
   readline.cursorTo(process.stdout, 0);
 }
 
+function formatElapsed(ms: number): string {
+  const seconds = Math.floor(ms / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remaining = seconds % 60;
+  return `${minutes}m ${remaining}s`;
+}
+
+function startSpinner(text: string): () => string {
+  const start = Date.now();
+  if (!isInteractive()) {
+    console.log(text);
+    return () => formatElapsed(Date.now() - start);
+  }
+  const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+  let i = 0;
+  const id = setInterval(() => {
+    const elapsed = formatElapsed(Date.now() - start);
+    renderInlineStatus(`${frames[i++ % frames.length]} ${text} (${elapsed})`);
+  }, 80);
+  return () => {
+    clearInterval(id);
+    clearInlineStatus();
+    return formatElapsed(Date.now() - start);
+  };
+}
+
 export interface FetchOptions {
   config?: string;
   outDir?: string;
@@ -192,9 +219,11 @@ export const Fetch = new Command('fetch')
             console.log(`[CLI] GET ${kind}: ${url}`);
           }
 
-          renderInlineStatus(`Downloading: ${entry.alias} ${kind}`);
+          const stopSpinner = startSpinner(`Downloading: ${entry.alias} ${kind}`);
 
           const { status, body } = await figmaFetch(url, token);
+          const elapsed = stopSpinner();
+
           const classification = classifyHttpStatus(status);
 
           if (classification === 'auth') {
@@ -215,8 +244,7 @@ export const Fetch = new Command('fetch')
           const outputPath = path.join(outDir, `${entry.alias}.${kind}.json`);
           await fs.writeFile(outputPath, body, 'utf-8');
 
-          clearInlineStatus();
-          console.log(`✓ Downloaded: ${entry.alias} ${kind}`);
+          console.log(`✓ Downloaded: ${entry.alias} ${kind} (${elapsed})`);
 
           if (options.verbose) {
             const relativeOut = path.relative(process.cwd(), outputPath);
