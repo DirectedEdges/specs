@@ -453,6 +453,19 @@ For each alias, the CLI uses deterministic filenames in `sourceDirectory`:
 - `${alias}.variables.json` (only if `data` includes `variables`)
 - `${alias}.styles.json` (only if `data` includes `styles`)
 
+#### Branch keys
+
+The `key` field accepts either a main file key or a **branch file key**. To fetch from a Figma branch, replace the key with the branch's key (found in the branch URL: `figma.com/design/<KEY>/...`).
+
+```yaml
+sources:
+  library:
+    key: BRANCH_FILE_KEY   # fetches from the branch, not main
+    data: ['file', 'variables', 'styles']
+```
+
+Branch data includes unpublished changes — variables, styles, and components that haven't been merged or published to main. See [Fetching Figma Branches](./commands/fetch.md#fetching-figma-branches) for implications.
+
 ## Priority System
 
 When multiple configuration sources exist, they're merged with this priority:

@@ -50,6 +50,33 @@ specs fetch --verbose
 specs fetch --only foundations --verbose
 ```
 
+## Fetching Figma Branches
+
+You can fetch data from a Figma branch instead of the main file by using the branch's file key in your `sources` config. Every Figma branch has its own unique key, which works anywhere a main file key does.
+
+```yaml
+sources:
+  library:
+    key: BRANCH_FILE_KEY   # branch key instead of main file key
+    data: ['file', 'variables', 'styles']
+```
+
+### How to find a branch key
+
+Open the branch in Figma — the URL contains the key: `figma.com/design/<KEY>/...`
+
+### Data implications
+
+- **File JSON** — Returns the branch's current state, including any unpublished component changes.
+- **Variables** (`/variables/local`) — Returns **all** variables in the branch, including unpublished drafts not yet merged to main. This is what `fetch` uses.
+- **Styles** — Returns the branch's current styles metadata, which may include unpublished changes.
+
+> **Note:** The `/variables/published` endpoint (not used by `fetch`) only works with the main file key. Branches always return local/draft state.
+
+### Custom tokens on branches
+
+If you use `applyCustomTokens` with branch-fetched data, be aware that Figma variable and style IDs may differ between main and a branch. Your mapping file IDs must match the IDs in the branch's data files, not main's.
+
 ---
 
 **See Also:**
