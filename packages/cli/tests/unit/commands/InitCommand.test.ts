@@ -45,7 +45,6 @@ describe('InitCommand', () => {
       const template = generateConfigTemplate();
       expect(template).toContain('# Specs CLI Configuration');
       expect(template).toContain('docs/cli/configuration.md');
-      expect(template).toContain('https://docs.specs.dev/');
     });
 
     it('should mention production-ready defaults', () => {
@@ -160,9 +159,8 @@ describe('InitCommand', () => {
     it('should have all required documentation URLs', () => {
       const template = generateConfigTemplate();
       const requiredUrls = [
-        'configuration#sourceDirectory',
-        'configuration#outputDirectory',
         'docs/cli/configuration.md',
+        'github.com/DirectedEdges/specs',
       ];
 
       requiredUrls.forEach(url => {

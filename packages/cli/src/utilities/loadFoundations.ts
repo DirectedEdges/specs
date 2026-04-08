@@ -67,12 +67,16 @@ export async function loadFoundations(
   const collections: CollectionsMap = new Map();
   
   // Seed styles from file itself (handles remote/published style references in components)
+  // Track seeded entries by their key hash so we can enrich them after loading styles endpoint
+  const seededKeyMap = new Map<string, string>(); // key hash -> styleId
   if (fileJson?.styles && typeof fileJson.styles === 'object') {
     for (const [styleId, s] of Object.entries<any>(fileJson.styles)) {
       if (!styleId) continue;
       const type = s?.styleType || s?.type;
       if (!type) continue;
-      
+
+      if (s?.key) seededKeyMap.set(s.key, styleId);
+
       styles.set(styleId, {
         id: styleId,
         name: s?.name || styleId,
@@ -149,6 +153,15 @@ export async function loadFoundations(
           styles.set(s.key, styleDef);
         }
       }
+    }
+  }
+
+  // Reconcile: enrich file-seeded entries with $custom from styles endpoint via shared key hash
+  for (const [keyHash, styleId] of seededKeyMap) {
+    const seeded = styles.get(styleId);
+    const keyEntry = styles.get(keyHash);
+    if (seeded && keyEntry?.$custom && !seeded.$custom) {
+      seeded.$custom = keyEntry.$custom;
     }
   }
 

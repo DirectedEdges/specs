@@ -30,9 +30,8 @@ describe('ConfigTemplates', () => {
 
     it('should include doc URL references', () => {
       const template = generateConfigTemplate();
-      expect(template).toContain('https://docs.specs.dev/cli/configuration#sourceDirectory');
-      expect(template).toContain('https://docs.specs.dev/cli/configuration#outputDirectory');
       expect(template).toContain('docs/cli/configuration.md');
+      expect(template).toContain('github.com/DirectedEdges/specs');
     });
 
     it('should include Figma sources section', () => {
