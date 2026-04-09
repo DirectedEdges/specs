@@ -5,7 +5,9 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.9.0] - 2026-04-08
+## [0.9.0] - 2026-04-09
+
+Adds complete config template generation, better Figma rate-limit error messages, and fixes for YAML-only-comments config crashes, output format not being respected, and stale command references.
 
 ### Changed
 
@@ -18,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **File output ignores `config.format.output`** — The `generate` command always wrote YAML files regardless of the `format.output` config setting. The `OutputFormat` type, `FileManifest` extensions, and all writers now respect the configured format (JSON or YAML). The `DEFAULT_OUTPUT_CONFIG.defaultFormat` is aligned with specs-schema's `DEFAULT_CONFIG.format.output` (JSON). ([#14](https://github.com/DirectedEdges/specs/issues/14))
 - **`audit` and `init` terminal output references defunct `batch` command** — Post-run help text in `audit` and `init` told users to run `specs batch …`. The `batch` command was consolidated into `generate`; all references now point to `specs generate`.
 - **`audit --variables` flag not writing to manifest header** — The `-v`/`--variables` flag was parsed but never passed to the manifest generator. The `**Variables:**` metadata line is now written when the flag is provided, and `ManifestParser` extracts it back into metadata. ([#18](https://github.com/DirectedEdges/specs/issues/18))
+
+### Dependency updates
+
+- **@directededges/specs-from-figma v0.13.0** — Slot `anyOf` values now respect the configured key format instead of using raw Figma component names. Width/height fallback warnings for rotated nodes are more informative when geometry data is absent.
 
 ## [0.8.0] - 2026-04-07
 
