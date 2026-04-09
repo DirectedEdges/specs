@@ -170,6 +170,7 @@ You need a [Figma REST API](https://www.figma.com/developers/api) token to authe
   - `file_metadata:read` (file metadata)
   - `file_content:read` (file contents, nodes)
   - `library_assets:read` (published components and styles)
+  - `library_content:read` (published styles of files)
   - `file_variables:read` (variables in files, Enterprise plan only)
 5. Click **Create token** and copy it
 

@@ -1,7 +1,7 @@
 /**
  * Audit Command - Discover and list all components in a Figma file
  * 
- * Purpose: Scan Figma file and generate manifest of components for batch curation
+ * Purpose: Scan Figma file and generate manifest of components for curation
  * Status: Phase 3 implementation (2026-01-13)
  */
 
@@ -130,7 +130,7 @@ function generateManifest(
 }
 
 export const Audit = new Command('audit')
-  .description('Scan Figma file and generate component manifest for batch processing')
+  .description('Scan Figma file and generate component manifest for processing')
   .argument('<file>', 'Path to Figma JSON file')
   .option('-o, --output <path>', 'Output manifest file path (default: {sourceDirectory}/{alias}.manifest.md)')
   .option('--config <path>', 'Path to config file (.specs.config.yaml)')
@@ -214,7 +214,7 @@ export const Audit = new Command('audit')
       console.log(`✓ Saved to ${outputPath}`);
       console.log('');
       console.log(`Next: Edit ${path.basename(outputPath)} to adjust selections, then run:`);
-      console.log(`  specs batch ${path.basename(outputPath)} -o specs.yaml`);
+      console.log(`  specs generate ${path.basename(outputPath)} -o specs.yaml`);
 
       process.exit(ERROR_CODES.SUCCESS);
 
