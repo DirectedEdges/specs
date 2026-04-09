@@ -82,7 +82,7 @@ function normalizeSources(sources?: MinimalConfig['sources']): Array<{ alias: st
   }));
 }
 
-async function figmaFetch(url: string, token: string): Promise<{ status: number; body: string }> {
+async function figmaFetch(url: string, token: string): Promise<{ status: number; body: string; headers: Headers }> {
   const response = await fetch(url, {
     headers: {
       'X-Figma-Token': token
@@ -90,7 +90,55 @@ async function figmaFetch(url: string, token: string): Promise<{ status: number;
   });
 
   const body = await response.text();
-  return { status: response.status, body };
+  return { status: response.status, body, headers: response.headers };
+}
+
+const RATE_LIMIT_TYPE_LABELS: Record<string, string> = {
+  low: 'Viewer / Collab (low)',
+  high: 'Dev / Full (high)'
+};
+
+export function formatDuration(totalSeconds: number): string {
+  if (!Number.isFinite(totalSeconds) || totalSeconds < 0) return `${totalSeconds}s`;
+
+  const units: Array<[string, number]> = [
+    ['month', 30 * 24 * 60 * 60],
+    ['day', 24 * 60 * 60],
+    ['hour', 60 * 60],
+    ['minute', 60],
+    ['second', 1]
+  ];
+
+  for (const [unit, divisor] of units) {
+    if (totalSeconds >= divisor) {
+      const value = Math.round(totalSeconds / divisor);
+      return `${value} ${unit}${value !== 1 ? 's' : ''}`;
+    }
+  }
+
+  return '0 seconds';
+}
+
+export function formatRateLimitError(alias: string, kind: string, headers: Headers): string {
+  const lines = [`Error: Rate limited (429) while fetching ${alias}.${kind}`];
+
+  const retryAfter = headers.get('retry-after');
+  if (retryAfter) lines.push(`  Retry after: ${formatDuration(Number(retryAfter))}`);
+
+  const limitType = headers.get('x-figma-rate-limit-type');
+  if (limitType) {
+    const label = RATE_LIMIT_TYPE_LABELS[limitType] ?? limitType;
+    lines.push(`  Seat tier: ${label}`);
+  }
+
+  const planTier = headers.get('x-figma-plan-tier');
+  if (planTier) {
+    lines.push(`  Plan: ${planTier.charAt(0).toUpperCase()}${planTier.slice(1)}`);
+  }
+
+  lines.push('  See: https://developers.figma.com/docs/rest-api/rate-limits/');
+
+  return lines.join('\n');
 }
 
 function classifyHttpStatus(status: number): 'ok' | 'auth' | 'rate' | 'error' {
@@ -221,7 +269,7 @@ export const Fetch = new Command('fetch')
 
           const stopSpinner = startSpinner(`Downloading: ${entry.alias} ${kind}`);
 
-          const { status, body } = await figmaFetch(url, token);
+          const { status, body, headers } = await figmaFetch(url, token);
           const elapsed = stopSpinner();
 
           const classification = classifyHttpStatus(status);
@@ -232,7 +280,7 @@ export const Fetch = new Command('fetch')
           }
 
           if (classification === 'rate') {
-            console.error(`Error: Rate limited (${status}) while fetching ${entry.alias}.${kind}`);
+            console.error(formatRateLimitError(entry.alias, kind, headers));
             process.exit(ERROR_CODES.RATE_LIMIT);
           }
 
