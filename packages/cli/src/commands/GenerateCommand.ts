@@ -24,6 +24,7 @@ import { ComponentFileWriter } from '../Writers/ComponentFileWriter.js';
 import { ConcernFileWriter } from '../Writers/ConcernFileWriter.js';
 import { CombinedFileWriter } from '../Writers/CombinedFileWriter.js';
 import type { FileWriter, WriteResult } from '../Writers/FileWriter.js';
+import type { OutputFormat } from '../Types/OutputConfig.js';
 
 // Re-export for backward compatibility
 export { ManifestParser } from '../utilities/ManifestParser.js';
@@ -347,12 +348,16 @@ export const Generate = new Command('generate')
       // ---------------------------------------------------------------
       // File output via manifest + writer
       // ---------------------------------------------------------------
+      const resolvedFormat: OutputFormat = options.format
+        ? options.format.toLowerCase() as OutputFormat
+        : modelConfig.format.output.toLowerCase() as OutputFormat;
+
       const outputConfig = {
         ...config.output,
         splitComponents: options.splitComponents ?? config.output?.splitComponents ?? false,
         splitConcerns: options.splitConcerns ?? config.output?.splitConcerns ?? false,
         useSubfolders: options.useSubfolders ?? config.output?.useSubfolders ?? false,
-        defaultFormat: 'yaml' as const
+        defaultFormat: resolvedFormat
       };
 
       let outputPath: string;

@@ -2,7 +2,7 @@
  * Output configuration for CLI writers
  */
 
-export type OutputFormat = 'yaml';
+export type OutputFormat = 'yaml' | 'json';
 
 export interface OutputConfig {
   splitComponents: boolean;
@@ -15,5 +15,5 @@ export const DEFAULT_OUTPUT_CONFIG: OutputConfig = {
   splitComponents: false,
   splitConcerns: false,
   useSubfolders: false,
-  defaultFormat: 'yaml'
+  defaultFormat: 'json'
 };

@@ -11,6 +11,7 @@ import yaml from 'yaml';
 import { DEFAULT_CONFIG, type Config } from '@directededges/specs-schema';
 import { CONFIG_DEFAULTS } from './ConfigDefaults.js';
 import type { CLIConfig } from '../Types/CLIConfig.js';
+import type { OutputConfig, OutputFormat } from '../Types/OutputConfig.js';
 
 export class ConfigLoader {
   constructor() {
@@ -125,11 +126,23 @@ export class ConfigLoader {
    */
   private validateAndCorrectConfig(config: Config): Config {
     const corrected = JSON.parse(JSON.stringify(config)) as Config;
-    
+
+    // Guard against null/undefined nested config objects from YAML parsing
+    // (YAML parsing of keys with only comments produces null instead of empty object)
+    if (!corrected.processing || typeof corrected.processing !== 'object') {
+      corrected.processing = DEFAULT_CONFIG.processing;
+    }
+    if (!corrected.format || typeof corrected.format !== 'object') {
+      corrected.format = DEFAULT_CONFIG.format;
+    }
+    if (!corrected.include || typeof corrected.include !== 'object') {
+      corrected.include = DEFAULT_CONFIG.include;
+    }
+
     // Valid processing options
     const validVariantDepths = [1, 2, 3, 9999];
     const validDetails = ['FULL', 'LAYERED'];
-    
+
     // Validate processing
     if (!validVariantDepths.includes(corrected.processing.variantDepth)) {
       corrected.processing.variantDepth = DEFAULT_CONFIG.processing.variantDepth;
@@ -176,7 +189,7 @@ export class ConfigLoader {
     const validOutputs = ['JSON', 'YAML'];
     const validLayouts = ['LAYOUT', 'PARENT_CHILDREN', 'BOTH'];
     const validTokens = ['TOKEN', 'TOKEN_NAME', 'TOKEN_FIGMA_EXTENSIONS', 'FIGMA_NAME', 'CUSTOM'];
-    
+
     // Validate format
     if (!validKeys.includes(corrected.format.keys)) {
       corrected.format.keys = DEFAULT_CONFIG.format.keys;
@@ -206,7 +219,7 @@ export class ConfigLoader {
   /**
    * Merge output config from file with defaults
    */
-  private mergeOutputConfig(fileOutput: unknown): import('../Types/OutputConfig.js').OutputConfig {
+  private mergeOutputConfig(fileOutput: unknown): OutputConfig {
     if (!fileOutput) {
       return CONFIG_DEFAULTS.output;
     }
@@ -233,10 +246,10 @@ export class ConfigLoader {
       console.warn(`Invalid output.useSubfolders: expected boolean, got ${typeof output.useSubfolders}. Using default: false`);
     }
     
-    if (output.defaultFormat === 'yaml') {
-      result.defaultFormat = output.defaultFormat;
+    if (output.defaultFormat === 'yaml' || output.defaultFormat === 'json') {
+      result.defaultFormat = output.defaultFormat as OutputFormat;
     } else if (output.defaultFormat !== undefined) {
-      console.warn(`Invalid output.defaultFormat: expected 'yaml', got ${output.defaultFormat}. Using default: 'yaml'`);
+      console.warn(`Invalid output.defaultFormat: expected 'yaml' or 'json', got ${output.defaultFormat}. Using default: 'yaml'`);
     }
     
     return result;
@@ -244,28 +257,28 @@ export class ConfigLoader {
   
   /**
    * Deep merge two objects, with source overriding target
+   * Null values from source are ignored to prevent YAML parsing issues
+   * (empty sections with only comments parse as null, not empty objects)
    */
   private deepMerge<T>(target: T, source: Partial<T>): T {
     if (!source || typeof source !== 'object') {
       return target;
     }
-    
-    const result = { ...target };
-    
+
+    const result = { ...target } as Record<string, unknown>;
+
     for (const key in source) {
-      if (source[key] !== undefined) {
+      if (source[key] !== undefined && source[key] !== null) {
         const sourceValue = source[key];
         if (sourceValue && typeof sourceValue === 'object' && !Array.isArray(sourceValue)) {
-          // @ts-expect-error - Deep merge recursive type inference limitation
-          result[key] = this.deepMerge(result[key] || {}, sourceValue);
+          result[key] = this.deepMerge((result[key] as T) || ({} as T), sourceValue);
         } else {
-          // @ts-expect-error - Partial<T>[key] assignable to T[key] after undefined check
           result[key] = sourceValue;
         }
       }
     }
-    
-    return result;
+
+    return result as T;
   }
   
   /**

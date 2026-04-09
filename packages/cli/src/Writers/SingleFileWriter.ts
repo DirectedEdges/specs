@@ -1,12 +1,11 @@
 /**
  * SingleFileWriter - Writes all components to one file
- * 
- * Default behavior: Creates a single library.yaml with all component data
+ *
+ * Default behavior: Creates a single library file with all component data
  */
 
 import fs from 'fs-extra';
 import path from 'path';
-import yaml from 'yaml';
 import { FileWriter, type WriteResult } from './FileWriter.js';
 import type { FileManifest } from './FileManifest.js';
 
@@ -42,17 +41,11 @@ export class SingleFileWriter extends FileWriter {
       // Ensure directory exists
       await fs.ensureDir(path.dirname(outputPath));
 
-      // Serialize to YAML with consistent formatting
-      const yamlContent = yaml.stringify(entry.content, {
-        indent: 2,
-        lineWidth: 0, // Don't wrap long lines
-        defaultStringType: 'PLAIN',
-        defaultKeyType: 'PLAIN',
-        aliasDuplicateObjects: false
-      });
+      // Serialize in the configured format
+      const content = FileWriter.serialize(entry.content, manifest.format);
 
       // Write file
-      await fs.writeFile(outputPath, yamlContent, 'utf-8');
+      await fs.writeFile(outputPath, content, 'utf-8');
       result.filesWritten.push(entry.path);
 
     } catch (error) {

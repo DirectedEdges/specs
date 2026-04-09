@@ -16,6 +16,7 @@ export interface ManifestComponent {
 
 export interface ManifestMetadata {
   file?: string;
+  variables?: string;
 }
 
 export interface ManifestResult {
@@ -30,6 +31,9 @@ export class ManifestParser {
   private static readonly FILE_HEADER_REGEX =
     /\*\*File:\*\*\s+(.+?)$/m;
 
+  private static readonly VARIABLES_HEADER_REGEX =
+    /\*\*Variables:\*\*\s+(.+?)$/m;
+
   /**
    * Parse a checkbox markdown manifest into structured component entries.
    */
@@ -41,6 +45,11 @@ export class ManifestParser {
     const fileMatch = manifestContent.match(ManifestParser.FILE_HEADER_REGEX);
     if (fileMatch) {
       metadata.file = fileMatch[1].trim();
+    }
+
+    const variablesMatch = manifestContent.match(ManifestParser.VARIABLES_HEADER_REGEX);
+    if (variablesMatch) {
+      metadata.variables = variablesMatch[1].trim();
     }
 
     for (const line of lines) {

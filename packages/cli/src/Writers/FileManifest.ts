@@ -1,6 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
-import type { OutputConfig } from '../Types/OutputConfig.js';
+import type { OutputConfig, OutputFormat } from '../Types/OutputConfig.js';
 import { sortComponentsByName, splitComponentByConcern } from './DataTransformers.js';
 
 /**
@@ -43,10 +43,16 @@ export class FileManifest {
   
   /** Base output directory path */
   baseDir: string;
-  
+
+  /** Output format for serialization */
+  format: OutputFormat;
+
   /** Output filename for single-file mode */
   private outputFileName?: string;
-  
+
+  /** File extension derived from format */
+  private ext: string;
+
   /**
    * Build file manifest from components and configuration
    * @param components Array of component entries with names and data to process
@@ -62,6 +68,8 @@ export class FileManifest {
   ) {
     this.baseDir = baseDir;
     this.outputFileName = outputFileName;
+    this.format = config.defaultFormat;
+    this.ext = this.format === 'json' ? '.json' : '.yaml';
     
     // Sort components for deterministic output
     const sortedComponents = sortComponentsByName(components);
@@ -101,7 +109,7 @@ export class FileManifest {
     }
     
     this.entries.push({
-      path: this.outputFileName || 'library.yaml',
+      path: this.outputFileName || `library${this.ext}`,
       content: { components: componentsData },
       metadata: {
         timestamp: new Date()
@@ -119,7 +127,7 @@ export class FileManifest {
 
       const camelName = this.toCamelCase(item.name);
 
-      const fileName = `${camelName}.yaml`;
+      const fileName = `${camelName}${this.ext}`;
       const filePath = useSubfolders
         ? path.join(camelName, fileName)
         : fileName;
@@ -156,9 +164,9 @@ export class FileManifest {
     // Create timestamp for metadata
     const timestamp = new Date();
     
-    // Add api.yaml entry
+    // Add api file entry
     this.entries.push({
-      path: path.join(this.baseDir, 'api.yaml'),
+      path: path.join(this.baseDir, `api${this.ext}`),
       content: {
         components: apiComponents,
         metadata: {
@@ -170,9 +178,9 @@ export class FileManifest {
       metadata: { timestamp }
     });
     
-    // Add variants.yaml entry
+    // Add variants file entry
     this.entries.push({
-      path: path.join(this.baseDir, 'variants.yaml'),
+      path: path.join(this.baseDir, `variants${this.ext}`),
       content: {
         components: variantsComponents,
         metadata: {
@@ -201,9 +209,9 @@ export class FileManifest {
       // Create component directory path
       const componentDir = path.join(this.baseDir, camelName);
       
-      // Add api.yaml entry for this component
+      // Add api file entry for this component
       this.entries.push({
-        path: path.join(componentDir, 'api.yaml'),
+        path: path.join(componentDir, `api${this.ext}`),
         content: {
           ...api,
           metadata: {
@@ -218,9 +226,9 @@ export class FileManifest {
         }
       });
       
-      // Add variants.yaml entry for this component
+      // Add variants file entry for this component
       this.entries.push({
-        path: path.join(componentDir, 'variants.yaml'),
+        path: path.join(componentDir, `variants${this.ext}`),
         content: {
           ...variants,
           metadata: {
