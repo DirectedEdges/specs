@@ -21,7 +21,7 @@ export type { Children } from './Children.js';
 
 // Configuration types
 export type { PropConfigurations } from './PropConfigurations.js';
-export type { Config } from './Config.js';
+export type { Config, ResolvedConfig } from './Config.js';
 export { DEFAULT_CONFIG } from './Config.js';
 
 // Style types

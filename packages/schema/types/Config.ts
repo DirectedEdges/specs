@@ -23,20 +23,20 @@ export interface Config {
     codeOnlyPropsPattern?: string;
     /** Whether to consolidate slot constraints (anyOf, minItems, maxItems) from code-only props into the slot property. Optional; defaults to false. @since 0.14.0 */
     slotConstraints?: boolean;
-    /** Depth of variant expansion: 1-3 or 9999 for unlimited */
-    variantDepth: 1 | 2 | 3 | 9999;
-    /** Level of detail in output */
-    details: 'FULL' | 'LAYERED';
+    /** Depth of variant expansion: 1-3 or 9999 for unlimited. Optional; defaults to 9999. */
+    variantDepth?: 1 | 2 | 3 | 9999;
+    /** Level of detail in output. Optional; defaults to LAYERED. */
+    details?: 'FULL' | 'LAYERED';
     /** When true, TEXT code-only props whose default and all examples parse as valid numbers (no leading zeros) are emitted as NumberProp instead of StringProp */
     inferNumberProps?: boolean;
   };
   format: {
-    /** Output format */
-    output: 'JSON' | 'YAML';
-    /** Key naming convention */
-    keys: 'SAFE' | 'CAMEL' | 'SNAKE' | 'KEBAB' | 'PASCAL' | 'TRAIN';
-    /** Layout representation format */
-    layout: 'LAYOUT' | 'PARENT_CHILDREN' | 'BOTH';
+    /** Output format. Optional; defaults to JSON. */
+    output?: 'JSON' | 'YAML';
+    /** Key naming convention. Optional; defaults to SAFE. */
+    keys?: 'SAFE' | 'CAMEL' | 'SNAKE' | 'KEBAB' | 'PASCAL' | 'TRAIN';
+    /** Layout representation format. Optional; defaults to LAYOUT. */
+    layout?: 'LAYOUT' | 'PARENT_CHILDREN' | 'BOTH';
     /** Token reference serialization profile. Optional; defaults to TOKEN. */
     tokens?: 'TOKEN' | 'TOKEN_NAME' | 'TOKEN_FIGMA_EXTENSIONS' | 'FIGMA_NAME' | 'CUSTOM';
   };
@@ -46,6 +46,58 @@ export interface Config {
     /** Include invalid combinations. Optional; defaults to true. */
     invalidCombinations?: boolean;
     /** Include layered variants that contain no elements. When false (default), exclude empty variants from output. When true, include all variants regardless of element presence. Optional; defaults to false. @since 1.0.0 */
+    emptyVariants?: boolean;
+  };
+}
+
+/**
+ * Fully-resolved model configuration with all defaultable properties guaranteed present.
+ * Produced by merging a partial `Config` with `DEFAULT_CONFIG`.
+ * Feature-toggle properties (`subcomponents`, `glyphNamePattern`, `codeOnlyPropsPattern`,
+ * `slotConstraints`, `inferNumberProps`) remain optional — their absence means the feature is disabled.
+ *
+ * @since 0.17.0
+ */
+export interface ResolvedConfig {
+  processing: {
+    /** Subcomponent discovery settings. Optional; absence means no subcomponent detection. */
+    subcomponents?: {
+      /** Where to search for subcomponents. NESTED = anatomy only (default); PAGE = also search the Figma page. */
+      scope?: 'NESTED' | 'PAGE';
+      /** Template patterns defining which assets are subcomponents. Uses {C} (component name) and {S} (subcomponent name) placeholders. */
+      match: string[];
+      /** Template patterns defining which matched assets to exclude. Same {C}/{S} syntax as match. */
+      exclude?: string[];
+    };
+    /** Naming pattern used to detect glyph content assets. Optional; absence means no glyph detection. */
+    glyphNamePattern?: string;
+    /** Naming pattern used to detect the code-only props container layer. Optional; absence means no code-only prop extraction. */
+    codeOnlyPropsPattern?: string;
+    /** Whether to consolidate slot constraints from code-only props into the slot property. Optional; defaults to false. */
+    slotConstraints?: boolean;
+    /** Depth of variant expansion: 1-3 or 9999 for unlimited. */
+    variantDepth: 1 | 2 | 3 | 9999;
+    /** Level of detail in output. */
+    details: 'FULL' | 'LAYERED';
+    /** When true, TEXT code-only props whose default and all examples parse as valid numbers are emitted as NumberProp instead of StringProp. */
+    inferNumberProps?: boolean;
+  };
+  format: {
+    /** Output format. */
+    output: 'JSON' | 'YAML';
+    /** Key naming convention. */
+    keys: 'SAFE' | 'CAMEL' | 'SNAKE' | 'KEBAB' | 'PASCAL' | 'TRAIN';
+    /** Layout representation format. */
+    layout: 'LAYOUT' | 'PARENT_CHILDREN' | 'BOTH';
+    /** Token reference serialization profile. Optional; defaults to TOKEN. */
+    tokens?: 'TOKEN' | 'TOKEN_NAME' | 'TOKEN_FIGMA_EXTENSIONS' | 'FIGMA_NAME' | 'CUSTOM';
+  };
+  include: {
+    /** Include invalid variants. Optional; defaults to false. */
+    invalidVariants?: boolean;
+    /** Include invalid combinations. Optional; defaults to true. */
+    invalidCombinations?: boolean;
+    /** Include layered variants that contain no elements. Optional; defaults to false. */
     emptyVariants?: boolean;
   };
 }
@@ -66,7 +118,7 @@ export interface Config {
  * - include.invalidCombinations: true helps designers identify property conflicts
  * - include.emptyVariants: false reduces output size by excluding semantically empty layered variants
  */
-export const DEFAULT_CONFIG: Config = {
+export const DEFAULT_CONFIG: ResolvedConfig = {
   processing: {
     subcomponents: {
       match: ['{C} / _ / {S}'],

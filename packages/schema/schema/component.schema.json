@@ -802,20 +802,21 @@
                 2,
                 3,
                 9999
-              ]
+              ],
+              "default": 9999,
+              "description": "Depth of variant expansion: 1-3 or 9999 for unlimited. Defaults to 9999."
             },
             "details": {
               "type": "string",
               "enum": [
                 "FULL",
                 "LAYERED"
-              ]
+              ],
+              "default": "LAYERED",
+              "description": "Level of detail in output. Defaults to LAYERED."
             }
           },
-          "required": [
-            "variantDepth",
-            "details"
-          ],
+          "required": [],
           "additionalProperties": false
         },
         "format": {
@@ -826,7 +827,9 @@
               "enum": [
                 "JSON",
                 "YAML"
-              ]
+              ],
+              "default": "JSON",
+              "description": "Output format. Defaults to JSON."
             },
             "keys": {
               "type": "string",
@@ -837,7 +840,9 @@
                 "KEBAB",
                 "PASCAL",
                 "TRAIN"
-              ]
+              ],
+              "default": "SAFE",
+              "description": "Key naming convention. Defaults to SAFE."
             },
             "layout": {
               "type": "string",
@@ -845,7 +850,9 @@
                 "LAYOUT",
                 "PARENT_CHILDREN",
                 "BOTH"
-              ]
+              ],
+              "default": "LAYOUT",
+              "description": "Layout representation format. Defaults to LAYOUT."
             },
             "tokens": {
               "type": "string",
@@ -860,11 +867,7 @@
               "description": "Token reference serialization profile. Optional; defaults to TOKEN. CUSTOM delegates projection entirely to the transformer."
             }
           },
-          "required": [
-            "output",
-            "keys",
-            "layout"
-          ],
+          "required": [],
           "additionalProperties": false
         },
         "include": {

@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Config types now distinguish partial input from resolved output — `CLIConfig.config` and `ConfigLoader.mergeConfig` use `ResolvedConfig` (all defaults guaranteed) instead of `Config` (which now permits omitted fields)
+
 ### Removed
 
 

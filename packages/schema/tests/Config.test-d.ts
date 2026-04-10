@@ -1,19 +1,16 @@
 /**
- * Type-level tests for Config.
+ * Type-level tests for Config and ResolvedConfig.
  * These files are intentionally never executed — they are compiled with tsc
  * to assert that the type shape is correct.
  */
-import type { Config } from '../types/index.js';
+import type { Config, ResolvedConfig } from '../types/index.js';
 import { DEFAULT_CONFIG } from '../types/index.js';
 
 // ─── Helper: minimal valid processing + format + include ──────────────────────
 
-const minProcessing: Config['processing'] = {
-  variantDepth: 9999,
-  details: 'LAYERED',
-};
-const minFormat: Config['format'] = { output: 'JSON', keys: 'SAFE', layout: 'LAYOUT' };
-const minInclude: Config['include'] = { invalidVariants: false, invalidCombinations: true };
+const minProcessing: Config['processing'] = {};
+const minFormat: Config['format'] = {};
+const minInclude: Config['include'] = {};
 
 // ─── Full Config with all fields ──────────────────────────────────────────────
 
@@ -44,13 +41,41 @@ const fullConfig: Config = {
   },
 };
 
-// ─── Minimal Config — only required fields ────────────────────────────────────
+// ─── Minimal Config — only required fields (all empty blocks) ────────────────
 
 const minimalConfig: Config = {
   processing: minProcessing,
   format: minFormat,
   include: minInclude,
 };
+
+// ─── Config with zero overrides — all defaultable fields omitted ─────────────
+
+const bareConfig: Config = {
+  processing: {},
+  format: {},
+  include: {},
+};
+
+// ─── processing.variantDepth is optional ─────────────────────────────────────
+
+const _variantDepthUndefined: Config['processing']['variantDepth'] = undefined;
+
+// ─── processing.details is optional ──────────────────────────────────────────
+
+const _detailsUndefined: Config['processing']['details'] = undefined;
+
+// ─── format.output is optional ───────────────────────────────────────────────
+
+const _outputUndefined: Config['format']['output'] = undefined;
+
+// ─── format.keys is optional ─────────────────────────────────────────────────
+
+const _keysUndefined: Config['format']['keys'] = undefined;
+
+// ─── format.layout is optional ───────────────────────────────────────────────
+
+const _layoutUndefined: Config['format']['layout'] = undefined;
 
 // ─── subcomponents.scope is optional, defaults to NESTED ──────────────────────
 
@@ -126,13 +151,47 @@ const tokenFigmaExtConfig: Config = { ...fullConfig, format: { ...fullConfig.for
 const figmaNameConfig: Config = { ...fullConfig, format: { ...fullConfig.format, tokens: 'FIGMA_NAME' } };
 const customConfig: Config = { ...fullConfig, format: { ...fullConfig.format, tokens: 'CUSTOM' } };
 
-// ─── DEFAULT_CONFIG is a valid Config ─────────────────────────────────────────
+// ─── DEFAULT_CONFIG is a valid ResolvedConfig ────────────────────────────────
 
-const defaultIsValid: Config = DEFAULT_CONFIG;
+const defaultIsResolved: ResolvedConfig = DEFAULT_CONFIG;
+
+// ─── DEFAULT_CONFIG satisfies Config (ResolvedConfig extends Config) ─────────
+
+const defaultIsValidConfig: Config = DEFAULT_CONFIG;
 
 // ─── DEFAULT_CONFIG.format.tokens should be 'TOKEN' ──────────────────────────
 
 const defaultTokensValue: typeof DEFAULT_CONFIG.format.tokens = 'TOKEN';
+
+// ─── ResolvedConfig requires variantDepth, details, output, keys, layout ─────
+
+const resolved: ResolvedConfig = {
+  processing: { variantDepth: 9999, details: 'LAYERED' },
+  format: { output: 'JSON', keys: 'SAFE', layout: 'LAYOUT' },
+  include: {},
+};
+
+// ─── ResolvedConfig requires defaultable fields — cannot omit them ────────────
+
+// variantDepth is required on ResolvedConfig.processing
+type _VDRequired = ResolvedConfig['processing']['variantDepth'] extends (1 | 2 | 3 | 9999) ? true : never;
+const _vdRequired: _VDRequired = true;
+
+// details is required on ResolvedConfig.processing
+type _DRequired = ResolvedConfig['processing']['details'] extends ('FULL' | 'LAYERED') ? true : never;
+const _dRequired: _DRequired = true;
+
+// output is required on ResolvedConfig.format
+type _ORequired = ResolvedConfig['format']['output'] extends ('JSON' | 'YAML') ? true : never;
+const _oRequired: _ORequired = true;
+
+// keys is required on ResolvedConfig.format
+type _KRequired = ResolvedConfig['format']['keys'] extends ('SAFE' | 'CAMEL' | 'SNAKE' | 'KEBAB' | 'PASCAL' | 'TRAIN') ? true : never;
+const _kRequired: _KRequired = true;
+
+// layout is required on ResolvedConfig.format
+type _LRequired = ResolvedConfig['format']['layout'] extends ('LAYOUT' | 'PARENT_CHILDREN' | 'BOTH') ? true : never;
+const _lRequired: _LRequired = true;
 
 // ─── glyphNamePattern is optional ─────────────────────────────────────────────
 

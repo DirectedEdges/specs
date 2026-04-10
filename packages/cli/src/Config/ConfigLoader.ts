@@ -8,7 +8,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
-import { DEFAULT_CONFIG, type Config } from '@directededges/specs-schema';
+import { DEFAULT_CONFIG, type Config, type ResolvedConfig } from '@directededges/specs-schema';
 import { CONFIG_DEFAULTS } from './ConfigDefaults.js';
 import type { CLIConfig } from '../Types/CLIConfig.js';
 import type { OutputConfig, OutputFormat } from '../Types/OutputConfig.js';
@@ -109,7 +109,7 @@ export class ConfigLoader {
   /**
    * Merge model config from file with defaults
    */
-  private mergeConfig(fileModel: unknown): Config {
+  private mergeConfig(fileModel: unknown): ResolvedConfig {
     if (!fileModel) {
       return DEFAULT_CONFIG;
     }
@@ -124,8 +124,8 @@ export class ConfigLoader {
   /**
    * Validate and correct model config, replacing invalid values with defaults
    */
-  private validateAndCorrectConfig(config: Config): Config {
-    const corrected = JSON.parse(JSON.stringify(config)) as Config;
+  private validateAndCorrectConfig(config: Config): ResolvedConfig {
+    const corrected = JSON.parse(JSON.stringify(config)) as ResolvedConfig;
 
     // Guard against null/undefined nested config objects from YAML parsing
     // (YAML parsing of keys with only comments produces null instead of empty object)
