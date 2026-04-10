@@ -92,6 +92,7 @@ config:
 
     # Token reference format: TOKEN, TOKEN_NAME, TOKEN_FIGMA_EXTENSIONS, FIGMA_NAME, or CUSTOM
     # See: https://github.com/DirectedEdges/specs/blob/main/docs/guides/token-format.md
+    # Requires a license key to resolve token references in output.
     tokens: ${DEFAULT_CONFIG.format?.tokens || 'TOKEN'}
 
   include:
@@ -102,6 +103,7 @@ config:
     # invalidVariants: false
 
     # Calculate and include invalid property combinations (default: true)
+    # Requires a license key to compute combinations in output.
     # invalidCombinations: true
 
     # Include layered variants that contain no elements (default: false)
