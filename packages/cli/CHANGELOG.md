@@ -11,8 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `CLIConfig.config` — typed as `ResolvedConfig` instead of `Config`, reflecting that the CLI always works with a fully-resolved config after merging with defaults
-- `ConfigLoader.mergeConfig` — return type narrowed to `ResolvedConfig`
+- Config types now distinguish partial input from resolved output — `CLIConfig.config` and `ConfigLoader.mergeConfig` use `ResolvedConfig` (all defaults guaranteed) instead of `Config` (which now permits omitted fields)
 
 ### Removed
 
