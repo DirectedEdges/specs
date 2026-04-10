@@ -2,7 +2,7 @@
  * CLI configuration structure
  */
 
-import type { Config } from '@directededges/specs-schema';
+import type { ResolvedConfig } from '@directededges/specs-schema';
 import type { OutputConfig } from './OutputConfig.js';
 
 export type CliSourceDataKind = 'file' | 'variables' | 'styles';
@@ -16,7 +16,7 @@ export interface CLIConfig {
   sourceDirectory?: string;
   outputDirectory?: string;
   author?: string;
-  config: Config;
+  config: ResolvedConfig;
   output?: OutputConfig;
   sources?: Record<string, CliSourceConfig>;
 }
