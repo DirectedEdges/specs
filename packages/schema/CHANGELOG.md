@@ -9,7 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `ResolvedConfig` — fully-resolved config type with all defaultable properties required; use after merging with `DEFAULT_CONFIG`
+
 ### Changed
+
+- `Config.processing.variantDepth` — now optional; defaults to 9999
+- `Config.processing.details` — now optional; defaults to LAYERED
+- `Config.format.output` — now optional; defaults to JSON
+- `Config.format.keys` — now optional; defaults to SAFE
+- `Config.format.layout` — now optional; defaults to LAYOUT
+- `DEFAULT_CONFIG` — typed as `ResolvedConfig` instead of `Config`
 
 ### Removed
 

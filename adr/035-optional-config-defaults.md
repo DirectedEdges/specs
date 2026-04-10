@@ -2,7 +2,7 @@
 
 **Branch**: `035-optional-config-defaults`
 **Created**: 2026-04-10
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 
