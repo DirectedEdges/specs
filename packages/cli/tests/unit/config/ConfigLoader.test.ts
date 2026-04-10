@@ -277,7 +277,7 @@ sources:
 
       // Default values preserved
       expect(config.config.processing.details).toBe(DEFAULT_CONFIG.processing.details);
-      expect(config.config.processing.subcomponentNamePattern).toBe(DEFAULT_CONFIG.processing.subcomponentNamePattern);
+      expect(config.config.processing.subcomponents).toEqual(DEFAULT_CONFIG.processing.subcomponents);
       expect(config.config.format.keys).toBe(DEFAULT_CONFIG.format.keys);
     });
   });

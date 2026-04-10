@@ -16,7 +16,7 @@ export interface WriteResult {
 }
 
 /** Shared YAML stringify options for deterministic output */
-const YAML_OPTIONS: yaml.DocumentOptions & yaml.SchemaOptions & yaml.ToStringOptions = {
+const YAML_OPTIONS: yaml.DocumentOptions & yaml.SchemaOptions & yaml.ParseOptions & yaml.CreateNodeOptions & yaml.ToStringOptions = {
   indent: 2,
   lineWidth: 0,
   defaultStringType: 'PLAIN',

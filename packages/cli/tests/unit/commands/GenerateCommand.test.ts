@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
 import { Generate } from '../../../src/commands/GenerateCommand.js';
 import { ManifestParser } from '../../../src/utilities/ManifestParser.js';
 import { LicenseStatus } from '../../../src/utilities/LicenseStatus.js';
@@ -320,7 +320,7 @@ describe('license key resolution', () => {
 // ============================================================================
 
 describe('displayLicenseStatus', () => {
-  let logSpy: ReturnType<typeof vi.spyOn>;
+  let logSpy: MockInstance;
 
   beforeEach(() => {
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
