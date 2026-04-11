@@ -9,7 +9,7 @@ Specs CLI generates component specifications from your Figma design system. This
 - [Step 3: Edit configuration](#step-3-edit-configuration)
 - [Step 4: Set up environment variables](#step-4-set-up-environment-variables)
 - [Step 5: Fetch Figma data](#step-5-fetch-figma-data)
-- [Step 6: Audit components](#step-6-audit-components)
+- [Step 6: Scan components](#step-6-scan-components)
 - [Step 7: Select components](#step-7-select-components)
 - [Step 8: Generate specs](#step-8-generate-specs)
 - [Alternative approaches to generate](#alternative-approaches-to-generate)
@@ -89,15 +89,17 @@ sources:
 
 Each source has a name (e.g., `library`), a `key`, and a `data` array specifying which Figma payloads to fetch. Sources that contain components typically need `file`, while token-only sources may only need `variables` and `styles`.
 
-### Source and output directories
+### Data and output directories
 
 ```yaml
-sourceDirectory: ./data        # Where fetch writes Figma payloads
+dataDirectory: ./data          # Where fetch writes Figma payloads
 outputDirectory: ./specs       # Default location for generated specs
 ```
 
-- **`sourceDirectory`** is where `specs fetch` saves raw Figma data (JSON files). Other commands like `audit` and `generate` read from here.
+- **`dataDirectory`** is where `specs fetch` saves raw Figma data (JSON files). Other commands like `scan` and `generate` read from here.
 - **`outputDirectory`** is the default destination for generated spec files. You can override it per-command with the `-o` flag.
+
+> **Backward compatibility**: The deprecated `sourceDirectory` field still works as an alias for `dataDirectory` but will emit a warning.
 
 ### Config
 
@@ -181,7 +183,9 @@ Specs CLI works at a **free tier** without a license key. Free-tier specs includ
 
 With a **Pro license key**, specs also include all non-default variants, design token references, named style references, prop bindings, and invalid variant combination analysis. See [Licensing](../licensing.md) for full details.
 
-Add `SPECS_LICENSE_KEY` to your `.env` file as shown above. You can also pass it per-command with the `-l` flag:
+The license key is resolved in this priority order: `--license` flag > `SPECS_LICENSE_KEY` env > `ANOVA_LICENSE_KEY` env.
+
+Add `SPECS_LICENSE_KEY` to your `.env` file as shown above, or pass it per-command with the `-l` flag:
 
 ```bash
 specs generate components.md -o specs/all.yaml -l "your-license-key"
@@ -195,14 +199,14 @@ Download raw data from your configured Figma sources:
 specs fetch
 ```
 
-This writes JSON data downloaded from the Figma REST API to your `sourceDirectory` (e.g., `./data/library.file.json`, `./data/library.variables.json`).
+This writes JSON data downloaded from the Figma REST API to your `dataDirectory` (e.g., `./data/library.file.json`, `./data/library.variables.json`).
 
-## Step 6: Audit components
+## Step 6: Scan components
 
 Discover components in a fetched file and build a manifest of components to potentially generate specs. By default, all components are checked.
 
 ```bash
-specs audit data/library.file.json -o components.md
+specs scan data/library.file.json -o components.md
 ```
 
 ## Step 7: Select components

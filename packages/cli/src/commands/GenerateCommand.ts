@@ -48,6 +48,7 @@ interface GenerateOptions {
   license?: string;
   format?: string;
   output?: string;
+  dataDir?: string;
   variables?: string;
   styles?: string;
   verbose: boolean;
@@ -66,6 +67,7 @@ export const Generate = new Command('generate')
   .option('-o, --output <path>', 'Output file or directory path')
   .option('-v, --variables <path>', 'External variables JSON file')
   .option('-s, --styles <path>', 'External styles JSON file')
+  .option('--data-dir <dir>', 'Override data directory for loading source files')
   .option('--config <path>', 'Path to config file (.specs.config.yaml)')
   .option('--split-components', 'Create separate file per component', false)
   .option('--split-concerns', 'Separate API and variants into different files', false)
@@ -109,10 +111,12 @@ export const Generate = new Command('generate')
         console.log(`[CLI] Using config from: ${options.config}`);
       }
 
-      // Use sourceDirectory for loading data files
-      const sourceDir = config.sourceDirectory
-        ? path.resolve(config.sourceDirectory)
-        : path.join(process.cwd(), 'data');
+      // Use dataDirectory for loading data files (flag > config > default)
+      const sourceDir = options.dataDir
+        ? path.resolve(options.dataDir)
+        : config.dataDirectory
+          ? path.resolve(config.dataDirectory)
+          : path.join(process.cwd(), 'data');
 
       // ---------------------------------------------------------------
       // Determine component IDs and Figma file JSON based on mode
@@ -123,8 +127,8 @@ export const Generate = new Command('generate')
 
       if (isManifest) {
         // MANIFEST MODE
-        if (!options.output) {
-          console.error('Error: --output is required for manifest mode');
+        if (!options.output && !config.outputDirectory) {
+          console.error('Error: Specify --output or set outputDirectory in config');
           process.exit(ERROR_CODES.INVALID_ARGS);
         }
 

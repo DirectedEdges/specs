@@ -13,7 +13,7 @@ export interface CliSourceConfig {
 }
 
 export interface CLIConfig {
-  sourceDirectory?: string;
+  dataDirectory?: string;
   outputDirectory?: string;
   author?: string;
   config: ResolvedConfig;

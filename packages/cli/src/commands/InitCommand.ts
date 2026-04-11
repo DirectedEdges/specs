@@ -41,7 +41,7 @@ async function initCommand(options: { force?: boolean; config?: string }): Promi
     console.log('📚 Next steps:');
     console.log('   1. Edit the config file to add your Figma file keys');
     console.log('   2. Run: specs fetch');
-    console.log('   3. Run: specs audit data/library.file.json -o components.md');
+    console.log('   3. Run: specs scan data/library.file.json');
     console.log('   4. Run: specs generate components.md -o specs.yaml');
     console.log('');
     console.log('📖 Documentation: docs/cli/configuration.md');

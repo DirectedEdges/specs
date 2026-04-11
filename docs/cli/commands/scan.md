@@ -1,11 +1,11 @@
-# `audit` Command
+# `scan` Command
 
 Scan a Figma file and generate a manifest of all components.
 
 ## Usage
 
 ```bash
-specs audit <file> [options]
+specs scan <file> [options]
 ```
 
 ## Arguments
@@ -14,24 +14,31 @@ specs audit <file> [options]
 Path to Figma REST API JSON file.
 
 ```bash
-specs audit data/library.file.json -o components.md
+specs scan data/library.file.json -o components.md
 ```
 
 ## Options
 
 ### `-o, --output <path>`
-Output manifest path. Optional — defaults to `{sourceDirectory}/{alias}.manifest.md`, where `sourceDirectory` comes from `.specs.config.yaml` and `alias` is derived from the input filename (e.g., `library.file.json` → `library.manifest.md`).
+Output manifest path. Optional — defaults to `{dataDirectory}/{alias}.manifest.md`, where `dataDirectory` comes from `.specs.config.yaml` and `alias` is derived from the input filename (e.g., `library.file.json` → `library.manifest.md`).
 
 ```bash
 # Explicit output path
-specs audit data/library.file.json -o manifests/design-system.md
+specs scan data/library.file.json -o manifests/design-system.md
 
-# Default: writes to data/library.manifest.md (from config sourceDirectory)
-specs audit data/library.file.json --config .specs.config.yaml
+# Default: writes to data/library.manifest.md (from config dataDirectory)
+specs scan data/library.file.json --config .specs.config.yaml
+```
+
+### `--data-dir <dir>`
+Override the data directory used for resolving input files and default output path. Defaults to `dataDirectory` from config, or `./data` if not configured.
+
+```bash
+specs scan data/library.file.json --data-dir ./custom-data
 ```
 
 ### `--config <path>`
-Path to config file. Used to resolve `sourceDirectory` for the default output path.
+Path to config file. Used to resolve `dataDirectory` for the default output path.
 
 ### `--include-all`
 Include all components by default (ignore heuristics).
@@ -42,7 +49,7 @@ Variables JSON file path.
 This is written into the manifest header as metadata for reference.
 
 ```bash
-specs audit data/library.file.json -o components.md \
+specs scan data/library.file.json -o components.md \
   --variables data/library.variables.json
 ```
 
@@ -50,7 +57,7 @@ specs audit data/library.file.json -o components.md \
 Enable detailed logging.
 
 ```bash
-specs audit data/library.file.json --verbose -o components.md
+specs scan data/library.file.json --verbose -o components.md
 ```
 
 ## Output Format
@@ -60,8 +67,8 @@ The manifest is a markdown file with metadata and component list:
 ```markdown
 # Component Manifest
 
-**Generated:** 2026-01-17T10:30:00.000Z  
-**File:** /absolute/path/to/data/library.file.json  
+**Generated:** 2026-01-17T10:30:00.000Z
+**File:** /absolute/path/to/data/library.file.json
 **Variables:** /absolute/path/to/data/library.variables.json
 
 ---
@@ -106,18 +113,18 @@ Edit the manifest to select which components to process:
 
 ## Examples
 
-### Basic Audit
+### Basic Scan
 
 ```bash
 # Generate manifest
-specs audit data/library.file.json -o components.md
+specs scan data/library.file.json -o components.md
 ```
 
 ### With Variables
 
 ```bash
 # Include variables path in manifest metadata
-specs audit data/library.file.json -o components.md \
+specs scan data/library.file.json -o components.md \
   --variables data/library.variables.json
 ```
 
@@ -125,7 +132,7 @@ specs audit data/library.file.json -o components.md \
 
 ```bash
 # See component count and file stats
-specs audit data/library.file.json --verbose -o components.md
+specs scan data/library.file.json --verbose -o components.md
 
 # Output:
 # ✓ Scanned library.file.json

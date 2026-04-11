@@ -93,7 +93,7 @@ If component names have special characters or duplicates, use node IDs.
 **Find Node ID:**
 ```bash
 # List all components with IDs
-specs audit data/library.file.json -o manifest.md
+specs scan data/library.file.json -o manifest.md
 
 # Look in manifest.md:
 # - [x] DS Button/Icon (5507:123, COMPONENT_SET)
@@ -164,7 +164,7 @@ Create `.specs.config.yaml` for consistent settings:
 ```yaml
 # .specs.config.yaml
 
-sourceDirectory: ./data
+dataDirectory: ./data
 outputDirectory: ./specs
 
 sources:
@@ -271,7 +271,7 @@ Process multiple components from a design system.
 
 **Step 1: Create Manifest**
 ```bash
-specs audit data/design-system.json -o components.md
+specs scan data/design-system.json -o components.md
 ```
 
 **Output:**
@@ -361,7 +361,7 @@ Organize components by category.
 
 ```bash
 # Generate full manifest
-specs audit data/library.json -o all-components.md
+specs scan data/library.json -o all-components.md
 
 # Create atoms manifest (manually or with script)
 grep "Button\|Input\|Icon" all-components.md > atoms.md
@@ -723,4 +723,4 @@ backgroundColor:
 
 ---
 
-**Last Updated**: March 2026
+**Last Updated**: April 2026

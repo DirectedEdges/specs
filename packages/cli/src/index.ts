@@ -22,19 +22,22 @@ try {
 
 import { Command } from 'commander';
 import { Generate } from './commands/GenerateCommand.js';
-import { Audit } from './commands/AuditCommand.js';
+import { Scan } from './commands/ScanCommand.js';
 import { Fetch } from './commands/FetchCommand.js';
 import { Init } from './commands/InitCommand.js';
 import { ApplyCustomTokens } from './commands/ApplyCustomTokensCommand.js';
 
-declare const __SPECS_CLI_VERSION__: string;
+declare const __SPECS_CLI_VERSION__;
 
-export { Generate, Audit, Fetch, Init, ApplyCustomTokens };
+// Backward compatibility: export Scan also as Audit
+export const Audit = Scan;
+
+export { Generate, Scan, Fetch, Init, ApplyCustomTokens };
 
 export const commands = {
   Init,
   Generate,
-  Audit,
+  Scan,
   Fetch,
   ApplyCustomTokens
 };
@@ -49,9 +52,25 @@ export function createProgram(): Command {
 
   program.addCommand(Init);
   program.addCommand(Generate);
-  program.addCommand(Audit);
+  program.addCommand(Scan);
   program.addCommand(Fetch);
   program.addCommand(ApplyCustomTokens);
+
+  // Deprecated alias: 'audit' → 'scan'
+  const auditAlias = new Command('audit')
+    .description('(deprecated: use "scan") Scan Figma file and generate component manifest')
+    .argument('<file>', 'Path to Figma JSON file')
+    .allowUnknownOption(true)
+    .action((_file: string, _options: unknown, cmd: Command) => {
+      console.error('Warning: "specs audit" is deprecated, use "specs scan" instead');
+      // Re-parse with scan command
+      const args = process.argv.slice(2);
+      args[args.indexOf('audit')] = 'scan';
+      const prog = createProgram();
+      prog.parse(['node', 'specs', ...args]);
+    });
+  auditAlias.helpOption(false);
+  program.addCommand(auditAlias);
 
   return program;
 }

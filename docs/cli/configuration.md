@@ -29,7 +29,7 @@ Configuration uses YAML or JSON format:
 # .specs.config.yaml
 
 # Where `specs fetch` writes payloads, and where `generate` loads them from
-sourceDirectory: ./data
+dataDirectory: ./data
 
 # Default location for generated spec files (can override with -o flag)
 outputDirectory: ./specs
@@ -204,7 +204,7 @@ config:
     tokens: TOKEN  # Default resolved token references
 ```
 
-> **Using CUSTOM**: First run `specs applyCustomTokens <mapping>` to inject `$custom` objects into your fetched data files, then run `batch` or `generate`. The `applyCustomTokens` command auto-discovers variables/styles files from `sourceDirectory` and `sources` in this config, or accepts explicit `-v`/`-s` paths. See [applyCustomTokens command](./commands/apply-custom-tokens.md) for details.
+> **Using CUSTOM**: First run `specs applyCustomTokens <mapping>` to inject `$custom` objects into your fetched data files, then run `batch` or `generate`. The `applyCustomTokens` command auto-discovers variables/styles files from `dataDirectory` and `sources` in this config, or accepts explicit `-v`/`-s` paths. See [applyCustomTokens command](./commands/apply-custom-tokens.md) for details.
 
 ### Include Options
 
@@ -425,21 +425,24 @@ specs generate manifest.md --split-components
 
 Specs uses *raw REST payload files* on disk.
 
-### `sourceDirectory` (string)
-Directory where `fetch` writes downloaded payloads, and where `generate` load them from.
+### `dataDirectory` (string)
+Directory where `fetch` writes downloaded payloads, and where `generate` loads them from.
 
 - **Default**: `./data`
 - **Purpose**: Acts as the central repository for Figma data downloaded via the `fetch` command, and the default source for commands that process component specifications.
+- **CLI override**: `--data-dir` flag on `fetch`, `scan`, and `generate` commands
 
 ```yaml
-sourceDirectory: ./data
+dataDirectory: ./data
 ```
+
+> **Backward compatibility**: The deprecated `sourceDirectory` field still works as an alias for `dataDirectory`. If both are present, `dataDirectory` takes precedence. Using `sourceDirectory` will emit a deprecation warning.
 
 ### `outputDirectory` (string)
 Default directory where `generate` commands write their output files. Can be overridden with the `-o` flag on individual commands.
 
 - **Default**: `./specs`
-- **Purpose**: When `-o` flag is not provided, generated spec files are written to this directory with names like `ComponentName.yaml` or `ComponentName.json`.
+- **Purpose**: When `-o` flag is not provided, generated spec files are written to this directory with names like `ComponentName.yaml` or `ComponentName.json`. In manifest mode, `generate` falls back to `outputDirectory` when `--output` is not specified.
 - **Note**: The `generate` command's `--format` flag still controls output format (YAML vs JSON); this controls the directory only.
 
 ```yaml
@@ -459,7 +462,7 @@ sources:
     data: ['variables','styles']
 ```
 
-For each alias, the CLI uses deterministic filenames in `sourceDirectory`:
+For each alias, the CLI uses deterministic filenames in `dataDirectory`:
 
 - `${alias}.file.json` (only if `data` includes `file`)
 - `${alias}.variables.json` (only if `data` includes `variables`)
@@ -507,7 +510,7 @@ config:
   format:
     output: YAML  # Used unless --format flag provided
 
-sourceDirectory: ./data
+dataDirectory: ./data
 outputDirectory: ./specs
 
 sources:
@@ -574,7 +577,7 @@ config:
     invalidVariants: false  # Clean output
     invalidCombinations: false  # Omit combination analysis
 
-sourceDirectory: ./data
+dataDirectory: ./data
 outputDirectory: ./specs
 
 sources:
@@ -606,7 +609,7 @@ config:
     output: YAML
     keys: SAFE
 
-sourceDirectory: ./data
+dataDirectory: ./data
 outputDirectory: ./specs
 
 sources:
@@ -704,4 +707,4 @@ config:
 
 ---
 
-**Last Updated**: March 2026
+**Last Updated**: April 2026

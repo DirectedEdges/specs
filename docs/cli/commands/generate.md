@@ -16,13 +16,13 @@ specs generate <file.json> -c <component> [options]
 
 ### Manifest Mode (recommended)
 
-Pass a markdown manifest created by `audit` to generate specs for all selected components in one pass. This is faster than running `generate` multiple times, because the file is loaded and indexed once.
+Pass a markdown manifest created by `scan` to generate specs for all selected components in one pass. This is faster than running `generate` multiple times, because the file is loaded and indexed once.
 
 ```bash
 specs generate components.md -o specs/library.yaml
 ```
 
-The manifest references the source file and tracks which components to include. See [Audit Command](./audit.md) for creating manifests.
+The manifest references the source file and tracks which components to include. See [Scan Command](./scan.md) for creating manifests.
 
 ### File Mode
 
@@ -59,9 +59,11 @@ specs generate data/library.file.json -c "1234:5678"
 ```
 
 ### `-l, --license <key>`
-License key for premium features. Can also be set via the `SPECS_LICENSE_KEY` environment variable.
+License key for premium features.
 
 When a valid Pro license is provided, generated specs include additional detail such as design token references, variable bindings, and visibility bindings. Without a license (or with an invalid key), specs are generated at the free tier — full structure and variants, but with raw values instead of token references.
+
+**Resolution priority**: `--license` flag > `SPECS_LICENSE_KEY` env > `ANOVA_LICENSE_KEY` env
 
 ```bash
 # Via flag
@@ -75,7 +77,12 @@ specs generate components.md -o specs/all.yaml
 See [Getting Started — License](../getting-started.md#step-3-set-your-license-key-optional) for setup details.
 
 ### `-o, --output <path>`
-Output file or directory path. If not provided, outputs to stdout.
+Output file or directory path. Accepts both file paths and directory paths.
+
+- **File path**: Writes all output to a single file (e.g., `-o specs/library.yaml`)
+- **Directory path**: Writes output files into the directory (e.g., `-o specs/`)
+- **Not provided (manifest mode)**: Falls back to `config.outputDirectory` (default `./specs`)
+- **Not provided (file mode)**: Outputs to stdout
 
 ```bash
 # Single file
@@ -84,7 +91,10 @@ specs generate components.md -o specs/library.yaml
 # Directory for split output
 specs generate components.md -o specs/ --split-components
 
-# Output to stdout
+# Manifest mode without -o: uses config.outputDirectory
+specs generate components.md
+
+# Output to stdout (file mode)
 specs generate data/library.file.json -c "Button" | yq .
 ```
 
@@ -96,6 +106,13 @@ Output format: `yaml` or `json`.
 
 ```bash
 specs generate components.md --format yaml -o specs/library.yaml
+```
+
+### `--data-dir <dir>`
+Override the data directory used for resolving input files and auxiliary data (variables, styles). Defaults to `dataDirectory` from config, or `./data` if not configured.
+
+```bash
+specs generate components.md --data-dir ./custom-data -o specs/library.yaml
 ```
 
 ### `-v, --variables <path>`
@@ -227,7 +244,7 @@ specs generate components.md --verbose -o specs/library.yaml
 specs fetch
 
 # 2. Create manifest
-specs audit data/library.file.json -o components.md
+specs scan data/library.file.json -o components.md
 
 # 3. Curate (edit components.md to select [x] components)
 
@@ -257,6 +274,6 @@ specs generate components.md -o specs/library.yaml
 ---
 
 **See Also:**
-- [Audit Command](./audit.md) - Create component manifest
+- [Scan Command](./scan.md) - Create component manifest
 - [Configuration Reference](../configuration.md) - Format and config options
 - [Getting Started](../getting-started.md) - Installation and license setup

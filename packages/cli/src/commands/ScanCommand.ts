@@ -1,8 +1,7 @@
 /**
- * Audit Command - Discover and list all components in a Figma file
- * 
+ * Scan Command - Discover and list all components in a Figma file
+ *
  * Purpose: Scan Figma file and generate manifest of components for curation
- * Status: Phase 3 implementation (2026-01-13)
  */
 
 import { Command } from 'commander';
@@ -19,8 +18,9 @@ const ERROR_CODES = {
   FILE_ERROR: 3
 };
 
-interface AuditOptions {
+interface ScanOptions {
   output?: string;
+  dataDir?: string;
   config?: string;
   includeAll: boolean;
   variables?: string;
@@ -28,7 +28,8 @@ interface AuditOptions {
 }
 
 type MinimalConfig = {
-  sourceDirectory?: string;
+  dataDirectory?: string;
+  sourceDirectory?: string; // deprecated alias
 };
 
 function findConfigFile(cwd: string): string | null {
@@ -129,22 +130,24 @@ function generateManifest(
   return lines.join('\n');
 }
 
-export const Audit = new Command('audit')
-  .description('Scan Figma file and generate component manifest for processing')
+export const Scan = new Command('scan')
+  .description('Scan Figma file and generate component manifest for curation')
   .argument('<file>', 'Path to Figma JSON file')
-  .option('-o, --output <path>', 'Output manifest file path (default: {sourceDirectory}/{alias}.manifest.md)')
+  .option('-o, --output <path>', 'Output manifest file path (default: {dataDirectory}/{alias}.manifest.md)')
+  .option('--data-dir <dir>', 'Override data directory for default manifest output path')
   .option('--config <path>', 'Path to config file (.specs.config.yaml)')
   .option('--include-all', 'Include all components by default (ignore heuristics)', false)
   .option('-v, --variables <path>', 'Variables file path (for reference in manifest)')
   .option('--verbose', 'Enable detailed logging', false)
-  .action(async (file: string, options: AuditOptions) => {
+  .action(async (file: string, options: ScanOptions) => {
     try {
-      // Resolve output path: explicit -o, or derive from config sourceDirectory + input filename
+      // Resolve output path: explicit -o, or derive from config dataDirectory + input filename
       if (!options.output) {
         const { configDir, config } = loadConfig(options.config);
-        const sourceDir = path.resolve(configDir, config.sourceDirectory || '.');
+        const dataDir = options.dataDir || config.dataDirectory || config.sourceDirectory;
+        const resolvedDir = path.resolve(configDir, dataDir || '.');
         const baseName = path.basename(file, '.file.json');
-        options.output = path.join(sourceDir, `${baseName}.manifest.md`);
+        options.output = path.join(resolvedDir, `${baseName}.manifest.md`);
       }
 
       if (options.verbose) {

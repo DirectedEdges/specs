@@ -11,7 +11,7 @@ specs init [options]
 ## Purpose
 
 The `init` command scaffolds a fully-populated configuration file with:
-- Sensible defaults for sourceDirectory (`./data`) and outputDirectory (`./specs`)
+- Sensible defaults for dataDirectory (`./data`) and outputDirectory (`./specs`)
 - All processing, format, and include options with production-ready values
 - Inline documentation with links to the full configuration reference
 - Empty sources object ready for your Figma file keys
@@ -58,7 +58,7 @@ specs init
 # 📚 Next steps:
 #    1. Edit the config file to add your Figma file keys
 #    2. Run: specs fetch
-#    3. Run: specs audit data/library.file.json -o components.md
+#    3. Run: specs scan data/library.file.json -o components.md
 #    4. Run: specs generate components.md -o specs.yaml
 #
 # 📖 Documentation: docs/cli/configuration.md
@@ -96,8 +96,8 @@ The init command creates a `.specs.config.yaml` file with the following structur
 # See: docs/cli/configuration.md for complete documentation.
 
 # Where fetch writes payloads, and where generate reads from.
-# See: https://docs.specs.dev/cli/configuration#sourceDirectory
-sourceDirectory: ./data
+# See: https://docs.specs.dev/cli/configuration#dataDirectory
+dataDirectory: ./data
 
 # Default location for generated spec files (can override with -o flag).
 # See: https://docs.specs.dev/cli/configuration#outputDirectory

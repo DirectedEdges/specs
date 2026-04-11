@@ -20,8 +20,8 @@ export function generateConfigTemplate(): string {
 # ─── 'fetch'ed Sources (CLI only) ─────────────────────────────────────────────
 # Where Figma data is fetched from and stored locally.
 
-# Where fetch writes payloads, and where generate/batch read from.
-sourceDirectory: ${CONFIG_DEFAULTS.sourceDirectory}
+# Where fetch writes payloads, and where generate/scan read from.
+dataDirectory: ${CONFIG_DEFAULTS.dataDirectory}
 
 # Figma file sources to fetch and process.
 # Example:

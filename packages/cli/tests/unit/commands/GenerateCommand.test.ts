@@ -39,6 +39,7 @@ describe('GenerateCommand', () => {
       expect(options).toContain('--output');
       expect(options).toContain('--variables');
       expect(options).toContain('--styles');
+      expect(options).toContain('--data-dir');
       expect(options).toContain('--config');
       expect(options).toContain('--split-components');
       expect(options).toContain('--split-concerns');

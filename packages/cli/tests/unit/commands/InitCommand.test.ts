@@ -23,9 +23,9 @@ describe('InitCommand', () => {
   });
 
   describe('template generation', () => {
-    it('should generate config template with sourceDirectory', () => {
+    it('should generate config template with dataDirectory', () => {
       const template = generateConfigTemplate();
-      expect(template).toContain('sourceDirectory: ./data');
+      expect(template).toContain('dataDirectory: ./data');
     });
 
     it('should generate config template with outputDirectory', () => {
@@ -47,9 +47,9 @@ describe('InitCommand', () => {
       expect(template).toContain('docs/cli/configuration.md');
     });
 
-    it('should mention production-ready defaults', () => {
+    it('should mention defaults in comments', () => {
       const template = generateConfigTemplate();
-      expect(template).toContain('production-ready');
+      expect(template).toContain('Default');
     });
 
     it('should have consistent YAML indentation', () => {
@@ -145,7 +145,7 @@ describe('InitCommand', () => {
         .filter(line => !line.startsWith(' ') && !line.startsWith('#') && line.trim())
         .map(line => line.split(':')[0]);
 
-      expect(topLevelKeys).toContain('sourceDirectory');
+      expect(topLevelKeys).toContain('dataDirectory');
       expect(topLevelKeys).toContain('outputDirectory');
       expect(topLevelKeys).toContain('sources');
       expect(topLevelKeys).toContain('config');
@@ -204,8 +204,8 @@ describe('InitCommand', () => {
     it('should have sensible default values', () => {
       const template = generateConfigTemplate();
 
-      // Default source directory
-      expect(template).toContain('sourceDirectory: ./data');
+      // Default data directory
+      expect(template).toContain('dataDirectory: ./data');
 
       // Default output directory
       expect(template).toContain('outputDirectory: ./specs');

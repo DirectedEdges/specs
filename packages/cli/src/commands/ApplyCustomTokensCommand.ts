@@ -21,7 +21,8 @@ const ERROR_CODES = {
 };
 
 type MinimalConfig = {
-  sourceDirectory?: string;
+  dataDirectory?: string;
+  sourceDirectory?: string; // deprecated alias
   sources?: Record<string, { key: string; data: string[] }>;
 };
 
@@ -104,7 +105,7 @@ function discoverDataFiles(
     };
   }
 
-  const sourceDir = path.resolve(configDir, config.sourceDirectory || 'data');
+  const sourceDir = path.resolve(configDir, config.dataDirectory || config.sourceDirectory || 'data');
   const variablesPaths: string[] = [];
   const stylesPaths: string[] = [];
 

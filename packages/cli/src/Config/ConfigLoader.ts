@@ -41,10 +41,10 @@ export class ConfigLoader {
       // Validate and merge with defaults
       const config = this.validateAndMerge(parsed);
 
-      // Resolve sourceDirectory and outputDirectory relative to config file location
+      // Resolve dataDirectory and outputDirectory relative to config file location
       const configDir = path.dirname(filePath);
-      if (config.sourceDirectory && !path.isAbsolute(config.sourceDirectory)) {
-        config.sourceDirectory = path.resolve(configDir, config.sourceDirectory);
+      if (config.dataDirectory && !path.isAbsolute(config.dataDirectory)) {
+        config.dataDirectory = path.resolve(configDir, config.dataDirectory);
       }
       if (config.outputDirectory && !path.isAbsolute(config.outputDirectory)) {
         config.outputDirectory = path.resolve(configDir, config.outputDirectory);
@@ -88,9 +88,16 @@ export class ConfigLoader {
    * Validate and merge config file with defaults
    */
   private validateAndMerge(parsed: unknown): CLIConfig {
+    // Support deprecated 'sourceDirectory' with warning
+    const raw = parsed as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    let dataDirectory = raw?.dataDirectory;
+    if (!dataDirectory && raw?.sourceDirectory) {
+      console.warn("Warning: 'sourceDirectory' is deprecated, use 'dataDirectory' instead");
+      dataDirectory = raw.sourceDirectory;
+    }
+
     const config: CLIConfig = {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      sourceDirectory: (parsed as any)?.sourceDirectory,
+      dataDirectory,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       outputDirectory: (parsed as any)?.outputDirectory,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -284,7 +291,7 @@ export class ConfigLoader {
    */
   private getDefaultConfig(): CLIConfig {
     return {
-      sourceDirectory: path.resolve(CONFIG_DEFAULTS.sourceDirectory),
+      dataDirectory: path.resolve(CONFIG_DEFAULTS.dataDirectory),
       outputDirectory: path.resolve(CONFIG_DEFAULTS.outputDirectory),
       config: DEFAULT_CONFIG,
     };
