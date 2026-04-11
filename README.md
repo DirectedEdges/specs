@@ -17,7 +17,7 @@ Command-line interface (CLI) for generating component specifications from Figma 
 ```sh
 # 1. Install cli globally to run with the command `specs`
 npm install -g @directededges/specs-cli
-# 2. Initialize a .specs.config.yaml file
+# 2. Initialize a specs.config.yaml file
 specs init
 # 3. Edit the config for your Figma file key and preferred settings 
 # 4. Set up an .env file with a Figma PAT and – if subscribed - license key

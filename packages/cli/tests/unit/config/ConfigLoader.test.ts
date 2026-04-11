@@ -38,16 +38,16 @@ describe('ConfigLoader', () => {
   });
 
   describe('Config file discovery (findConfigFile)', () => {
-    it('should find .specs.config.yaml in current directory', () => {
-      const configPath = path.join(testDir, '.specs.config.yaml');
+    it('should find specs.config.yaml in current directory', () => {
+      const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, 'config:\n  processing:\n    variantDepth: 2');
 
       const config = configLoader.load();
       expect(config.config.processing.variantDepth).toBe(2);
     });
 
-    it('should find .specs.config.json in current directory', () => {
-      const configPath = path.join(testDir, '.specs.config.json');
+    it('should find specs.config.json in current directory', () => {
+      const configPath = path.join(testDir, 'specs.config.json');
       fs.writeFileSync(configPath, JSON.stringify({
         config: { processing: { variantDepth: 3 } }
       }));
@@ -56,9 +56,9 @@ describe('ConfigLoader', () => {
       expect(config.config.processing.variantDepth).toBe(3);
     });
 
-    it('should prefer .specs.config.yaml over .json', () => {
-      const yamlPath = path.join(testDir, '.specs.config.yaml');
-      const jsonPath = path.join(testDir, '.specs.config.json');
+    it('should prefer specs.config.yaml over .json', () => {
+      const yamlPath = path.join(testDir, 'specs.config.yaml');
+      const jsonPath = path.join(testDir, 'specs.config.json');
 
       fs.writeFileSync(yamlPath, 'config:\n  processing:\n    variantDepth: 1');
       fs.writeFileSync(jsonPath, JSON.stringify({
@@ -91,7 +91,7 @@ describe('ConfigLoader', () => {
 
   describe('YAML parsing', () => {
     it('should parse valid YAML config', () => {
-      const configPath = path.join(testDir, '.specs.config.yaml');
+      const configPath = path.join(testDir, 'specs.config.yaml');
       const yamlContent = `
 config:
   processing:
@@ -109,7 +109,7 @@ config:
     });
 
     it('should handle complex YAML config', () => {
-      const configPath = path.join(testDir, '.specs.config.yaml');
+      const configPath = path.join(testDir, 'specs.config.yaml');
       const yamlContent = `
 config:
   processing:
@@ -146,7 +146,7 @@ sources:
 
   describe('JSON parsing', () => {
     it('should parse valid JSON config', () => {
-      const configPath = path.join(testDir, '.specs.config.json');
+      const configPath = path.join(testDir, 'specs.config.json');
       const jsonContent = {
         config: {
           processing: {
@@ -169,7 +169,7 @@ sources:
 
   describe('Config validation', () => {
     it('should validate variantDepth and use default for invalid values', () => {
-      const configPath = path.join(testDir, '.specs.config.yaml');
+      const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, 'config:\n  processing:\n    variantDepth: 999'); // Invalid
 
       const config = configLoader.load();
@@ -177,7 +177,7 @@ sources:
     });
 
     it('should validate details and use default for invalid values', () => {
-      const configPath = path.join(testDir, '.specs.config.yaml');
+      const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, 'config:\n  processing:\n    details: INVALID');
 
       const config = configLoader.load();
@@ -185,7 +185,7 @@ sources:
     });
 
     it('should validate format.keys and use default for invalid values', () => {
-      const configPath = path.join(testDir, '.specs.config.yaml');
+      const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, 'config:\n  format:\n    keys: INVALID');
 
       const config = configLoader.load();
@@ -193,7 +193,7 @@ sources:
     });
 
     it('should validate format.output and use default for invalid values', () => {
-      const configPath = path.join(testDir, '.specs.config.yaml');
+      const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, 'config:\n  format:\n    output: XML');
 
       const config = configLoader.load();
@@ -201,7 +201,7 @@ sources:
     });
 
     it('should validate format.layout and use default for invalid values', () => {
-      const configPath = path.join(testDir, '.specs.config.yaml');
+      const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, 'config:\n  format:\n    layout: INVALID');
 
       const config = configLoader.load();
@@ -209,7 +209,7 @@ sources:
     });
 
     it('should validate format.tokens and use default for invalid values', () => {
-      const configPath = path.join(testDir, '.specs.config.yaml');
+      const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, 'config:\n  format:\n    tokens: INVALID');
 
       const config = configLoader.load();
@@ -217,7 +217,7 @@ sources:
     });
 
     it('should preserve valid glyphNamePattern string', () => {
-      const configPath = path.join(testDir, '.specs.config.yaml');
+      const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, 'config:\n  processing:\n    glyphNamePattern: "DS Icon Glyph /"');
 
       const config = configLoader.load();
@@ -225,7 +225,7 @@ sources:
     });
 
     it('should strip invalid glyphNamePattern (non-string)', () => {
-      const configPath = path.join(testDir, '.specs.config.yaml');
+      const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, 'config:\n  processing:\n    glyphNamePattern: 123');
 
       const config = configLoader.load();
@@ -233,7 +233,7 @@ sources:
     });
 
     it('should strip empty glyphNamePattern', () => {
-      const configPath = path.join(testDir, '.specs.config.yaml');
+      const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, "config:\n  processing:\n    glyphNamePattern: '  '");
 
       const config = configLoader.load();
@@ -244,7 +244,7 @@ sources:
       const validValues = [1, 2, 3, 9999];
 
       validValues.forEach(value => {
-        const configPath = path.join(testDir, '.specs.config.yaml');
+        const configPath = path.join(testDir, 'specs.config.yaml');
         fs.writeFileSync(configPath, `config:\n  processing:\n    variantDepth: ${value}`);
 
         const config = configLoader.load();
@@ -256,7 +256,7 @@ sources:
       const validValues = ['SAFE', 'CAMEL', 'SNAKE', 'KEBAB', 'PASCAL', 'TRAIN'];
 
       validValues.forEach(value => {
-        const configPath = path.join(testDir, '.specs.config.yaml');
+        const configPath = path.join(testDir, 'specs.config.yaml');
         fs.writeFileSync(configPath, `config:\n  format:\n    keys: ${value}`);
 
         const config = configLoader.load();
@@ -267,7 +267,7 @@ sources:
 
   describe('Merging with defaults', () => {
     it('should merge partial config with defaults', () => {
-      const configPath = path.join(testDir, '.specs.config.yaml');
+      const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, 'config:\n  processing:\n    variantDepth: 2');
 
       const config = configLoader.load();

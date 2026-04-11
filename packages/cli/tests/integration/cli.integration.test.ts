@@ -115,7 +115,7 @@ describe('CLI integration', () => {
     const testDir = path.join(process.cwd(), 'tests', 'tmp', `cli-init-${Date.now()}`);
     await fs.ensureDir(testDir);
 
-    const configPath = path.join(testDir, '.specs.config.yaml');
+    const configPath = path.join(testDir, 'specs.config.yaml');
     const result = await runCli(['init', '--config', configPath]);
 
     expect(result.exitCode).toBeUndefined();

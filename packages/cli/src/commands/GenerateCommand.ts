@@ -68,7 +68,7 @@ export const Generate = new Command('generate')
   .option('-v, --variables <path>', 'External variables JSON file')
   .option('-s, --styles <path>', 'External styles JSON file')
   .option('--data-dir <dir>', 'Override data directory for loading source files')
-  .option('--config <path>', 'Path to config file (.specs.config.yaml)')
+  .option('--config <path>', 'Path to config file (specs.config.yaml)')
   .option('--split-components', 'Create separate file per component', false)
   .option('--split-concerns', 'Separate API and variants into different files', false)
   .option('--use-subfolders', 'Organize component files in subdirectories (requires --split-components)', false)
@@ -160,7 +160,7 @@ export const Generate = new Command('generate')
 
         if (!sourceFile) {
           console.error('Error: No component source file specified');
-          console.error('Include **File:** in the manifest header (from `specs audit`) or configure a source alias with `data: [file]` in .specs.config.yaml');
+          console.error('Include **File:** in the manifest header (from `specs audit`) or configure a source alias with `data: [file]` in specs.config.yaml');
           process.exit(ERROR_CODES.INVALID_ARGS);
         }
 

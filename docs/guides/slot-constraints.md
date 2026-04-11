@@ -75,7 +75,7 @@ This feature is most valuable when:
 Add `slotConstraints: true` under `model.processing` in your config file:
 
 ```yaml
-# .specs.config.yaml
+# specs.config.yaml
 model:
   processing:
     slotConstraints: true

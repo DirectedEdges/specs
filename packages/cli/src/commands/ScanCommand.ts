@@ -34,8 +34,8 @@ type MinimalConfig = {
 
 function findConfigFile(cwd: string): string | null {
   const locations = [
-    path.join(cwd, '.specs.config.yaml'),
-    path.join(cwd, '.specs.config.json'),
+    path.join(cwd, 'specs.config.yaml'),
+    path.join(cwd, 'specs.config.json'),
     path.join(process.env.HOME || '~', '.specs', 'config.yaml')
   ];
   for (const location of locations) {
@@ -135,7 +135,7 @@ export const Scan = new Command('scan')
   .argument('<file>', 'Path to Figma JSON file')
   .option('-o, --output <path>', 'Output manifest file path (default: {dataDirectory}/{alias}.manifest.md)')
   .option('--data-dir <dir>', 'Override data directory for default manifest output path')
-  .option('--config <path>', 'Path to config file (.specs.config.yaml)')
+  .option('--config <path>', 'Path to config file (specs.config.yaml)')
   .option('--include-all', 'Include all components by default (ignore heuristics)', false)
   .option('-v, --variables <path>', 'Variables file path (for reference in manifest)')
   .option('--verbose', 'Enable detailed logging', false)

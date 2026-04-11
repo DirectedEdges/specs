@@ -33,8 +33,8 @@ type MinimalConfig = {
 
 function findConfigFile(cwd: string): string | null {
   const locations = [
-    path.join(cwd, '.specs.config.yaml'),
-    path.join(cwd, '.specs.config.json'),
+    path.join(cwd, 'specs.config.yaml'),
+    path.join(cwd, 'specs.config.json'),
     path.join(process.env.HOME || '~', '.specs', 'config.yaml')
   ];
 
@@ -208,7 +208,7 @@ export interface FetchOptions {
 
 export const Fetch = new Command('fetch')
   .description('Fetch raw REST payloads (file, variables, styles) for configured Figma files')
-  .option('--config <path>', 'Path to config file (.specs.config.yaml)')
+  .option('--config <path>', 'Path to config file (specs.config.yaml)')
   .option('--data-dir <dir>', 'Override data directory (default: config dataDirectory or ./data)')
   .option('--outDir <dir>', 'Deprecated: use --data-dir')
   .option('--only <alias[,alias...]>', 'Fetch only the given file alias(es) from sources.files')
@@ -235,7 +235,7 @@ export const Fetch = new Command('fetch')
       const fileEntries = normalizeSources(config.sources);
       if (fileEntries.length === 0) {
         console.error('Error: No sources configured');
-        console.error('Add to .specs.config.yaml:');
+        console.error('Add to specs.config.yaml:');
         console.error('  dataDirectory: data');
         console.error('  sources:');
         console.error('    library:');

@@ -71,7 +71,7 @@ describe('InitCommand', () => {
 
   describe('file operations', () => {
     it('should create config file if it does not exist', async () => {
-      const configPath = path.join(testDir, '.specs.config.yaml');
+      const configPath = path.join(testDir, 'specs.config.yaml');
       const template = generateConfigTemplate();
 
       fs.writeFileSync(configPath, template, 'utf-8');
@@ -79,7 +79,7 @@ describe('InitCommand', () => {
     });
 
     it('should write template content exactly', async () => {
-      const configPath = path.join(testDir, '.specs.config.yaml');
+      const configPath = path.join(testDir, 'specs.config.yaml');
       const template = generateConfigTemplate();
 
       fs.writeFileSync(configPath, template, 'utf-8');
@@ -89,7 +89,7 @@ describe('InitCommand', () => {
     });
 
     it('should preserve template across read/write cycles', async () => {
-      const configPath = path.join(testDir, '.specs.config.yaml');
+      const configPath = path.join(testDir, 'specs.config.yaml');
       const template = generateConfigTemplate();
 
       // First write
@@ -113,7 +113,7 @@ describe('InitCommand', () => {
     });
 
     it('should handle nested directory paths', async () => {
-      const nestedPath = path.join(testDir, 'nested', 'dirs', '.specs.config.yaml');
+      const nestedPath = path.join(testDir, 'nested', 'dirs', 'specs.config.yaml');
       const template = generateConfigTemplate();
 
       fs.ensureDirSync(path.dirname(nestedPath));
@@ -123,7 +123,7 @@ describe('InitCommand', () => {
     });
 
     it('should allow overwriting existing config', async () => {
-      const configPath = path.join(testDir, '.specs.config.yaml');
+      const configPath = path.join(testDir, 'specs.config.yaml');
       const oldContent = '# Old config\nold: value';
       const newTemplate = generateConfigTemplate();
 

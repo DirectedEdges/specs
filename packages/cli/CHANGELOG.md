@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Config file renamed from `.specs.config.yaml` to `specs.config.yaml`** — The config file is no longer a hidden dotfile. Specs config is actively edited (Figma file keys, output directories, format options), so it belongs visible in the filesystem — consistent with `vite.config.ts`, `tailwind.config.js`, and other tools where config is a first-class part of the workflow. The JSON variant is also renamed from `.specs.config.json` to `specs.config.json`. The global config path (`~/.specs/config.yaml`) is unchanged since home-directory configs are conventionally hidden.
 - **`audit` command renamed to `scan`** — Better describes the command's purpose: scan a file and produce a manifest for component curation. `specs audit` still works as a deprecated alias with a stderr warning.
 - **`sourceDirectory` config field renamed to `dataDirectory`** — Aligns the field name with its default value (`./data`) and removes confusion with the `sources` config block. `sourceDirectory` still works as a deprecated alias with a stderr warning.
 - **`generate` manifest mode falls back to `config.outputDirectory`** — `--output` is no longer required when `outputDirectory` is set in the config file, fixing the main flag/config inconsistency reported by users.
@@ -21,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Config format values are now case-insensitive** — Lowercase values like `yaml`, `camel`, or `layout` in config files were silently rejected by validation and reset to defaults (e.g., `output: yaml` always produced JSON). All `format.*` values are now normalized to uppercase before validation, matching how the CLI flag already works.
 - **YAML options type annotation includes `CreateNodeOptions`** — `FileWriter.YAML_OPTIONS` was typed without `ParseOptions & CreateNodeOptions`, causing a compile error for `aliasDuplicateObjects`
 - **Config merge test references legacy `subcomponentNamePattern`** — Updated to use `subcomponents` (the current property shape) with `toEqual` instead of `toBe`
 - **Vitest mock type mismatch in `GenerateCommand` tests** — Replaced `ReturnType<typeof vi.spyOn>` with `MockInstance` for vitest 3.x compatibility
@@ -45,7 +47,7 @@ Adds complete config template generation, better Figma rate-limit error messages
 
 ### Fixed
 
-- **Config validation crashes on YAML sections with only comments** — When `.specs.config.yaml` contains sections like `include:` with only commented-out fields, the YAML parser produces `null` instead of an empty object. The config validator's `deepMerge` and `validateAndCorrectConfig` methods now guard against null values, preventing `TypeError: Cannot convert undefined or null to object` crashes. Null values from YAML parsing no longer overwrite defaults. ([spec-demo](https://github.com/DirectedEdges/spec-demo))
+- **Config validation crashes on YAML sections with only comments** — When `specs.config.yaml` contains sections like `include:` with only commented-out fields, the YAML parser produces `null` instead of an empty object. The config validator's `deepMerge` and `validateAndCorrectConfig` methods now guard against null values, preventing `TypeError: Cannot convert undefined or null to object` crashes. Null values from YAML parsing no longer overwrite defaults. ([spec-demo](https://github.com/DirectedEdges/spec-demo))
 - **File output ignores `config.format.output`** — The `generate` command always wrote YAML files regardless of the `format.output` config setting. The `OutputFormat` type, `FileManifest` extensions, and all writers now respect the configured format (JSON or YAML). The `DEFAULT_OUTPUT_CONFIG.defaultFormat` is aligned with specs-schema's `DEFAULT_CONFIG.format.output` (JSON). ([#14](https://github.com/DirectedEdges/specs/issues/14))
 - **`audit` and `init` terminal output references defunct `batch` command** — Post-run help text in `audit` and `init` told users to run `specs batch …`. The `batch` command was consolidated into `generate`; all references now point to `specs generate`.
 - **`audit --variables` flag not writing to manifest header** — The `-v`/`--variables` flag was parsed but never passed to the manifest generator. The `**Variables:**` metadata line is now written when the flag is provided, and `ManifestParser` extracts it back into metadata. ([#18](https://github.com/DirectedEdges/specs/issues/18))
@@ -90,7 +92,7 @@ Rebrands from `anova-cli` to `specs-cli` and publishes to npmjs.org. Updates all
 ### Changed
 
 - **Package rename** — `@directededges/anova-cli` → `@directededges/specs-cli`
-- **Config file names** — `.anova.config.yaml` → `.specs.config.yaml` (and `.json` variant)
+- **Config file names** — `.anova.config.yaml` → `specs.config.yaml` (and `.json` variant)
 - **Config search path** — `~/.anova/config.yaml` → `~/.specs/config.yaml`
 - **Dependencies** — switched from local `file:` references to published npm packages: `@directededges/specs-schema@^0.16.0`, `@directededges/specs-from-figma@^0.11.0`
 - **Publishing target** — npm registry (was GitHub Packages)

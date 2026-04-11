@@ -11,7 +11,7 @@ specs fetch [options]
 ## Requirements
 
 - `FIGMA_TOKEN` must be set in your environment.
-- `.specs.config.yaml` must include `dataDirectory` (or deprecated `sourceDirectory`) and `sources`.
+- `specs.config.yaml` must include `dataDirectory` (or deprecated `sourceDirectory`) and `sources`.
 
 ## Options
 

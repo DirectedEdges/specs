@@ -75,7 +75,7 @@ Leave it disabled if your library uses TEXT props for values that look numeric b
 Add `inferNumberProps: true` under `model.processing` in your config file:
 
 ```yaml
-# .specs.config.yaml
+# specs.config.yaml
 model:
   processing:
     inferNumberProps: true

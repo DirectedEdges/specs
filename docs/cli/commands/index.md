@@ -6,7 +6,7 @@ Complete reference for all Specs CLI commands, options, and usage patterns.
 
 | Command | Purpose | Output |
 |---------|---------|--------|
-| [`init`](./init.md) | Initialize config file with defaults | `.specs.config.yaml` |
+| [`init`](./init.md) | Initialize config file with defaults | `specs.config.yaml` |
 | [`fetch`](./fetch.md) | Download raw REST payloads from Figma | JSON files in `dataDirectory` |
 | [`generate`](./generate.md) | Generate specs from a manifest or single component | YAML/JSON spec file(s) |
 | [`scan`](./scan.md) | List all components in file | Markdown manifest |
@@ -79,14 +79,14 @@ data/
 └── foundations.styles.json
 ```
 
-`generate` uses these files by default when your `.specs.config.yaml` declares the corresponding aliases and data types.
+`generate` uses these files by default when your `specs.config.yaml` declares the corresponding aliases and data types.
 
 ## Configuration File Discovery
 
 Config file locations (searched in order):
 
-1. `./.specs.config.yaml` (current directory)
-2. `./.specs.config.json` (current directory)
+1. `./specs.config.yaml` (current directory)
+2. `./specs.config.json` (current directory)
 3. `~/.specs/config.yaml` (user home)
 
 Or specify a custom location:

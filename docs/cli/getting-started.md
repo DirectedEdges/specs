@@ -53,7 +53,7 @@ specs --version
 
 ## Step 2: Initialize configuration
 
-Create a `.specs.config.yaml` file with production-ready defaults:
+Create a `specs.config.yaml` file with production-ready defaults:
 
 ```bash
 specs init
@@ -63,7 +63,7 @@ This generates a config file in your current directory with inline documentation
 
 ## Step 3: Edit configuration
 
-Open `.specs.config.yaml` in your editor. The file has four main sections to configure.
+Open `specs.config.yaml` in your editor. The file has four main sections to configure.
 
 ### Figma file key
 

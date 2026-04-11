@@ -1,7 +1,7 @@
 /**
  * Init Command
  *
- * Scaffolds a .specs.config.yaml file with production-ready defaults
+ * Scaffolds a specs.config.yaml file with production-ready defaults
  * and inline documentation for getting started with Specs CLI.
  */
 
@@ -11,9 +11,9 @@ import readline from 'readline';
 import { generateConfigTemplate } from '../Config/ConfigTemplates.js';
 
 export const Init = new Command('init')
-  .description('Initialize a .specs.config.yaml file with production defaults')
+  .description('Initialize a specs.config.yaml file with production defaults')
   .option('--force', 'Overwrite existing config without prompting')
-  .option('-c, --config <path>', 'Custom path for config file (default: .specs.config.yaml)')
+  .option('-c, --config <path>', 'Custom path for config file (default: specs.config.yaml)')
   .action(async (options) => {
     await initCommand(options as { force?: boolean; config?: string });
   });
@@ -22,7 +22,7 @@ export const Init = new Command('init')
  * Initialize config file
  */
 async function initCommand(options: { force?: boolean; config?: string }): Promise<void> {
-  const configPath = options.config || '.specs.config.yaml';
+  const configPath = options.config || 'specs.config.yaml';
   const configExists = fs.existsSync(configPath);
 
   if (configExists && !options.force) {

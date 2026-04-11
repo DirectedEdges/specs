@@ -1,13 +1,13 @@
 # CLI Configuration
 
-Configure Specs' processing behavior and data sources using `.specs.config.yaml` for consistent, reproducible component specifications.
+Configure Specs' processing behavior and data sources using `specs.config.yaml` for consistent, reproducible component specifications.
 
 ## Overview
 
 The CLI uses a hierarchical configuration system with three priority levels:
 
 1. **CLI flags** (highest) - Explicit overrides for individual commands
-2. **Config file** - Project defaults via `.specs.config.yaml`
+2. **Config file** - Project defaults via `specs.config.yaml`
 3. **Fallbacks** (lowest) - Convention-based defaults when no sources are configured
 
 ## Configuration File
@@ -16,8 +16,8 @@ The CLI uses a hierarchical configuration system with three priority levels:
 
 The CLI searches for configuration in these locations (in order):
 
-1. `./.specs.config.yaml` (current directory)
-2. `./.specs.config.json` (current directory)
+1. `./specs.config.yaml` (current directory)
+2. `./specs.config.json` (current directory)
 3. `~/.specs/config.yaml` (user home directory)
 4. Custom path via `--config <path>` flag
 
@@ -26,7 +26,7 @@ The CLI searches for configuration in these locations (in order):
 Configuration uses YAML or JSON format:
 
 ```yaml
-# .specs.config.yaml
+# specs.config.yaml
 
 # Where `specs fetch` writes payloads, and where `generate` loads them from
 dataDirectory: ./data
@@ -250,7 +250,7 @@ config:
 
 ## Output Configuration
 
-Controls **where and how to write** generated specifications. Configured via the `output` field in `.specs.config.yaml` or CLI flags.
+Controls **where and how to write** generated specifications. Configured via the `output` field in `specs.config.yaml` or CLI flags.
 
 ```yaml
 output:
@@ -410,7 +410,7 @@ specs/
 Output configuration follows the standard priority system:
 
 1. **CLI flags** (highest): `--split-components`, `--split-concerns`, `--use-subfolders`
-2. **Config file**: `output` field in `.specs.config.yaml`
+2. **Config file**: `output` field in `specs.config.yaml`
 3. **Defaults** (lowest): Single-file mode, YAML format
 
 ```bash
@@ -502,10 +502,10 @@ specs generate data/library.file.json -c Button --format yaml
 
 ### 2. Config File
 
-Settings from `.specs.config.yaml` apply when no CLI flag is provided:
+Settings from `specs.config.yaml` apply when no CLI flag is provided:
 
 ```yaml
-# .specs.config.yaml
+# specs.config.yaml
 config:
   format:
     output: YAML  # Used unless --format flag provided
@@ -525,7 +525,7 @@ Convention-based defaults when no sources are configured and no flags are provid
 
 ```
 project/
-├── .specs.config.yaml  # Config (if exists)
+├── specs.config.yaml  # Config (if exists)
 ├── data/
 │   ├── library.file.json      # Main file (specified in command)
 │   └── foundations/           # Auto-discovery directory
@@ -540,7 +540,7 @@ project/
 Optimized for fast iteration:
 
 ```yaml
-# .specs.config.yaml (development)
+# specs.config.yaml (development)
 
 config:
   processing:
@@ -564,7 +564,7 @@ sources:
 Optimized for production output:
 
 ```yaml
-# .specs.config.yaml (production)
+# specs.config.yaml (production)
 
 config:
   processing:
@@ -603,7 +603,7 @@ specs generate data/library.file.json \
 Mix config file with CLI overrides:
 
 ```yaml
-# .specs.config.yaml
+# specs.config.yaml
 config:
   format:
     output: YAML
@@ -644,10 +644,10 @@ Invalid values fall back to defaults with warnings, so builds continue.
 
 ### 1. Version Control Config
 
-Commit `.specs.config.yaml` to share settings across team:
+Commit `specs.config.yaml` to share settings across team:
 
 ```bash
-git add .specs.config.yaml
+git add specs.config.yaml
 git commit -m "Add Specs CLI configuration"
 ```
 
@@ -657,7 +657,7 @@ Use different configs for different environments:
 
 ```
 project/
-├── .specs.config.yaml           # Default (development)
+├── specs.config.yaml           # Default (development)
 ├── .specs.production.yaml       # Production
 └── .specs.staging.yaml          # Staging
 ```

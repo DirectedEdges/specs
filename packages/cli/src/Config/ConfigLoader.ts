@@ -1,7 +1,7 @@
 /**
  * Configuration File Loader
  * 
- * Loads and validates .specs.config.yaml or .specs.config.json files
+ * Loads and validates specs.config.yaml or specs.config.json files
  * with sensible defaults and priority order: CLI flags > file > defaults
  */
 
@@ -62,16 +62,16 @@ export class ConfigLoader {
    * Find config file in standard locations
    *
    * Checks in order:
-   * 1. ./.specs.config.yaml
-   * 2. ./.specs.config.json
+   * 1. ./specs.config.yaml
+   * 2. ./specs.config.json
    * 3. ~/.specs/config.yaml
    *
    * @returns Path to config file or null if not found
    */
   private findConfigFile(): string | null {
     const locations = [
-      path.join(process.cwd(), '.specs.config.yaml'),
-      path.join(process.cwd(), '.specs.config.json'),
+      path.join(process.cwd(), 'specs.config.yaml'),
+      path.join(process.cwd(), 'specs.config.json'),
       path.join(process.env.HOME || '~', '.specs', 'config.yaml'),
     ];
     
@@ -194,6 +194,15 @@ export class ConfigLoader {
     const validOutputs = ['JSON', 'YAML'];
     const validLayouts = ['LAYOUT', 'PARENT_CHILDREN', 'BOTH'];
     const validTokens = ['TOKEN', 'TOKEN_NAME', 'TOKEN_FIGMA_EXTENSIONS', 'FIGMA_NAME', 'CUSTOM'];
+
+    // Normalize format values to uppercase before validation
+    // (YAML configs commonly use lowercase; schema constants are uppercase)
+    corrected.format.keys = corrected.format.keys?.toUpperCase() ?? '';
+    corrected.format.output = corrected.format.output?.toUpperCase() ?? '';
+    corrected.format.layout = corrected.format.layout?.toUpperCase() ?? '';
+    if (corrected.format.tokens) {
+      corrected.format.tokens = corrected.format.tokens.toUpperCase();
+    }
 
     // Validate format
     if (!validKeys.includes(corrected.format.keys)) {

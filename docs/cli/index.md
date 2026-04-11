@@ -5,7 +5,7 @@ The Specs command-line interface (CLI) enables automated generation of design sy
 ## Overview
 
 The CLI provides five commands for processing Figma design data:
-- **`init`** - Create a default `.specs.config.yaml`
+- **`init`** - Create a default `specs.config.yaml`
 - **`fetch`** - Download raw REST payloads (file, variables, styles) for one or more Figma files
 - **`generate`** - Generate specifications from a manifest or single component
 - **`scan`** - Scan a Figma file and create a manifest of all components
@@ -63,7 +63,7 @@ specs generate data/library.file.json -c "Button" -o specs/button.yaml
 ```
 
 ### Flexible Configuration
-Configure behavior via `.specs.config.yaml`:
+Configure behavior via `specs.config.yaml`:
 ```yaml
 dataDirectory: ./data
 outputDirectory: ./specs
@@ -94,7 +94,7 @@ Automate spec generation in your build pipeline with GitHub Actions, GitLab CI, 
 Installation, prerequisites, license setup, and quick start guide
 
 ### [Configuration](./configuration.md)
-Configure processing behavior and data sources with `.specs.config.yaml`
+Configure processing behavior and data sources with `specs.config.yaml`
 
 ### [Commands Reference](./commands/)
 Complete command reference for `init`, `fetch`, `generate`, and `scan`

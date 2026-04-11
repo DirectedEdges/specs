@@ -20,14 +20,14 @@ specs scan data/library.file.json -o components.md
 ## Options
 
 ### `-o, --output <path>`
-Output manifest path. Optional — defaults to `{dataDirectory}/{alias}.manifest.md`, where `dataDirectory` comes from `.specs.config.yaml` and `alias` is derived from the input filename (e.g., `library.file.json` → `library.manifest.md`).
+Output manifest path. Optional — defaults to `{dataDirectory}/{alias}.manifest.md`, where `dataDirectory` comes from `specs.config.yaml` and `alias` is derived from the input filename (e.g., `library.file.json` → `library.manifest.md`).
 
 ```bash
 # Explicit output path
 specs scan data/library.file.json -o manifests/design-system.md
 
 # Default: writes to data/library.manifest.md (from config dataDirectory)
-specs scan data/library.file.json --config .specs.config.yaml
+specs scan data/library.file.json --config specs.config.yaml
 ```
 
 ### `--data-dir <dir>`
