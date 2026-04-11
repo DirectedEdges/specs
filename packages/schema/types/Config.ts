@@ -53,8 +53,10 @@ export interface Config {
 /**
  * Fully-resolved model configuration with all defaultable properties guaranteed present.
  * Produced by merging a partial `Config` with `DEFAULT_CONFIG`.
- * Feature-toggle properties (`subcomponents`, `glyphNamePattern`, `codeOnlyPropsPattern`,
- * `slotConstraints`, `inferNumberProps`) remain optional — their absence means the feature is disabled.
+ *
+ * Rule: every property with a default in `DEFAULT_CONFIG` is required here.
+ * Only true feature toggles (where absence = feature disabled) remain optional:
+ * `subcomponents` (the block), `glyphNamePattern`, `codeOnlyPropsPattern`.
  *
  * @since 0.17.0
  */
@@ -62,8 +64,8 @@ export interface ResolvedConfig {
   processing: {
     /** Subcomponent discovery settings. Optional; absence means no subcomponent detection. */
     subcomponents?: {
-      /** Where to search for subcomponents. NESTED = anatomy only (default); PAGE = also search the Figma page. */
-      scope?: 'NESTED' | 'PAGE';
+      /** Where to search for subcomponents. NESTED = anatomy only; PAGE = also search the Figma page. */
+      scope: 'NESTED' | 'PAGE';
       /** Template patterns defining which assets are subcomponents. Uses {C} (component name) and {S} (subcomponent name) placeholders. */
       match: string[];
       /** Template patterns defining which matched assets to exclude. Same {C}/{S} syntax as match. */
@@ -73,14 +75,14 @@ export interface ResolvedConfig {
     glyphNamePattern?: string;
     /** Naming pattern used to detect the code-only props container layer. Optional; absence means no code-only prop extraction. */
     codeOnlyPropsPattern?: string;
-    /** Whether to consolidate slot constraints from code-only props into the slot property. Optional; defaults to false. */
-    slotConstraints?: boolean;
+    /** Whether to consolidate slot constraints from code-only props into the slot property. */
+    slotConstraints: boolean;
     /** Depth of variant expansion: 1-3 or 9999 for unlimited. */
     variantDepth: 1 | 2 | 3 | 9999;
     /** Level of detail in output. */
     details: 'FULL' | 'LAYERED';
     /** When true, TEXT code-only props whose default and all examples parse as valid numbers are emitted as NumberProp instead of StringProp. */
-    inferNumberProps?: boolean;
+    inferNumberProps: boolean;
   };
   format: {
     /** Output format. */
@@ -89,16 +91,16 @@ export interface ResolvedConfig {
     keys: 'SAFE' | 'CAMEL' | 'SNAKE' | 'KEBAB' | 'PASCAL' | 'TRAIN';
     /** Layout representation format. */
     layout: 'LAYOUT' | 'PARENT_CHILDREN' | 'BOTH';
-    /** Token reference serialization profile. Optional; defaults to TOKEN. */
-    tokens?: 'TOKEN' | 'TOKEN_NAME' | 'TOKEN_FIGMA_EXTENSIONS' | 'FIGMA_NAME' | 'CUSTOM';
+    /** Token reference serialization profile. */
+    tokens: 'TOKEN' | 'TOKEN_NAME' | 'TOKEN_FIGMA_EXTENSIONS' | 'FIGMA_NAME' | 'CUSTOM';
   };
   include: {
-    /** Include invalid variants. Optional; defaults to false. */
-    invalidVariants?: boolean;
-    /** Include invalid combinations. Optional; defaults to true. */
-    invalidCombinations?: boolean;
-    /** Include layered variants that contain no elements. Optional; defaults to false. */
-    emptyVariants?: boolean;
+    /** Include invalid variants. */
+    invalidVariants: boolean;
+    /** Include invalid combinations. */
+    invalidCombinations: boolean;
+    /** Include layered variants that contain no elements. */
+    emptyVariants: boolean;
   };
 }
 
@@ -108,9 +110,10 @@ export interface ResolvedConfig {
  * Used by both CLI and Plugin to ensure identical behavior with same settings.
  *
  * Rationale for defaults:
- * - processing.subcomponents.match: Standard "{C} / _ / {S}" pattern for identifying subcomponents
+ * - processing.slotConstraints: false — opt-in feature, off by default
  * - processing.variantDepth: 9999 (no limit) allows full variant combination exploration
  * - processing.details: LAYERED reduces output size by only showing differences from default
+ * - processing.inferNumberProps: false — opt-in feature, off by default
  * - format.keys: SAFE prevents corruption of special characters while maintaining readability
  * - format.layout: LAYOUT provides tree structure with layout properties
  * - format.tokens: TOKEN provides platform-neutral token references with $token path and $type
@@ -120,11 +123,10 @@ export interface ResolvedConfig {
  */
 export const DEFAULT_CONFIG: ResolvedConfig = {
   processing: {
-    subcomponents: {
-      match: ['{C} / _ / {S}'],
-    },
+    slotConstraints: false,
     variantDepth: 9999,
     details: 'LAYERED',
+    inferNumberProps: false,
   },
   format: {
     output: 'JSON',

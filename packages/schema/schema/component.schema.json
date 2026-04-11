@@ -789,10 +789,12 @@
             },
             "inferNumberProps": {
               "type": "boolean",
+              "default": false,
               "description": "When true, TEXT code-only props whose default and all examples parse as valid numbers (no leading zeros) are emitted as NumberProp instead of StringProp"
             },
             "slotConstraints": {
               "type": "boolean",
+              "default": false,
               "description": "Whether to consolidate slot constraints (anyOf, minItems, maxItems) from code-only props into the slot property"
             },
             "variantDepth": {
@@ -875,15 +877,18 @@
           "properties": {
             "invalidVariants": {
               "type": "boolean",
-              "description": "Include invalid variants. Optional; defaults to false."
+              "default": false,
+              "description": "Include invalid variants. Defaults to false."
             },
             "invalidCombinations": {
               "type": "boolean",
-              "description": "Include invalid combinations. Optional; defaults to true."
+              "default": true,
+              "description": "Include invalid combinations. Defaults to true."
             },
             "emptyVariants": {
               "type": "boolean",
-              "description": "Include layered variants that contain no elements. When false (default), exclude empty variants from output. When true, include all variants regardless of element presence. Optional; defaults to false."
+              "default": false,
+              "description": "Include layered variants that contain no elements. When false (default), exclude empty variants from output. When true, include all variants regardless of element presence. Defaults to false."
             }
           },
           "required": [],

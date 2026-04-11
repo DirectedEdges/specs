@@ -101,37 +101,36 @@ outputDirectory: ./specs       # Default location for generated specs
 
 ### Config
 
-The `config` section controls how Specs processes components and formats output:
+The `config` section controls how Specs processes components and formats output. These settings are shared with the Figma plugin:
 
 ```yaml
 config:
-  processing:
-    subcomponents:
-      match:
-        - '{C} / _ / {S}'
-    variantDepth: 9999
-    details: LAYERED
-
   format:
     output: JSON
     keys: SAFE
     layout: LAYOUT
     tokens: TOKEN
 
+  processing:
+    variantDepth: 9999
+    details: LAYERED
+
   include:
     invalidVariants: false
     invalidCombinations: true
 ```
 
-- **`processing`** — how components are analyzed (subcomponent detection patterns, variant depth, detail level)
 - **`format`** — output shape (JSON/YAML, key casing, layout representation, token format)
+- **`processing`** — how components are analyzed (variant depth, detail level, subcomponent detection)
 - **`include`** — what to include in output (invalid variants, invalid combinations)
+
+Optional features like `subcomponents`, `glyphNamePattern`, and `codeOnlyPropsPattern` are off by default. Add them to `processing` when needed — see [Configuration Reference](./configuration.md).
 
 See [Configuration Reference](./configuration.md) for all options and allowed values.
 
 ### Output
 
-The optional `output` section controls how generated files are organized:
+The `output` section controls how generated files are organized:
 
 ```yaml
 output:
@@ -140,7 +139,7 @@ output:
   useSubfolders: false    # true = component subdirectories
 ```
 
-This section is not included by `specs init` — add it manually if you want to change the defaults. You can also control these per-command with flags like `--split-components`.
+These default to `false`. You can also control these per-command with flags like `--split-components`.
 
 ## Step 4: Set up environment variables
 
@@ -178,9 +177,9 @@ You need a [Figma REST API](https://www.figma.com/developers/api) token to authe
 
 ### License key (optional)
 
-Specs CLI works at a **free tier** without a license key. Free-tier specs include full component structure — anatomy, props, variants, layout, and raw style values.
+Specs CLI works at a **free tier** without a license key. Free-tier specs include full component structure — anatomy, props, default variant, layout, and raw style values.
 
-With a **Pro license key**, specs also include design token references, variable bindings, and visibility bindings that connect your component specs to your design token system.
+With a **Pro license key**, specs also include all non-default variants, design token references, named style references, prop bindings, and invalid variant combination analysis. See [Licensing](../licensing.md) for full details.
 
 Add `SPECS_LICENSE_KEY` to your `.env` file as shown above. You can also pass it per-command with the `-l` flag:
 

@@ -9,18 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `ResolvedConfig` — fully-resolved config type with all defaultable properties required; use after merging with `DEFAULT_CONFIG`
+- `ResolvedConfig` — fully-resolved config type where every property with a default is required; only true feature toggles (`subcomponents`, `glyphNamePattern`, `codeOnlyPropsPattern`) remain optional
 
 ### Changed
 
-- `Config.processing.variantDepth` — now optional; defaults to 9999
-- `Config.processing.details` — now optional; defaults to LAYERED
-- `Config.format.output` — now optional; defaults to JSON
-- `Config.format.keys` — now optional; defaults to SAFE
-- `Config.format.layout` — now optional; defaults to LAYOUT
-- `DEFAULT_CONFIG` — typed as `ResolvedConfig` instead of `Config`
-
-### Removed
+- `Config` — all properties with defaults are now optional (input type tolerant of omissions):
+  - `processing.variantDepth` — optional; defaults to 9999
+  - `processing.details` — optional; defaults to LAYERED
+  - `format.output` — optional; defaults to JSON
+  - `format.keys` — optional; defaults to SAFE
+  - `format.layout` — optional; defaults to LAYOUT
+- `ResolvedConfig` — all properties with defaults are required (post-merge guarantee):
+  - `processing.slotConstraints` — required (default `false`)
+  - `processing.inferNumberProps` — required (default `false`)
+  - `format.tokens` — required (default `TOKEN`)
+  - `include.invalidVariants` — required (default `false`)
+  - `include.invalidCombinations` — required (default `true`)
+  - `include.emptyVariants` — required (default `false`)
+  - `subcomponents.scope` — required when subcomponents is present (default `NESTED`)
+- `DEFAULT_CONFIG` — typed as `ResolvedConfig`; now explicitly includes `slotConstraints: false`, `inferNumberProps: false`; removed `subcomponents` (feature toggle — off by default, matching the Figma plugin)
 
 
 ## [0.16.0] - 2026-04-05

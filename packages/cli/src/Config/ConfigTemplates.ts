@@ -6,26 +6,22 @@
  */
 
 import { CONFIG_DEFAULTS } from './ConfigDefaults.js';
-import { DEFAULT_CONFIG } from '@directededges/specs-schema';
 
 /**
  * Generate a YAML configuration template with inline comments
  * Uses production-ready defaults.
  */
 export function generateConfigTemplate(): string {
-  return `# Specs CLI Configuration (production-ready defaults)
+  return `# Specs CLI Configuration
 #
 # This file configures how Specs fetches and processes Figma component data.
-# See: docs/cli/configuration.md for complete documentation.
+# See: https://github.com/DirectedEdges/specs/blob/main/docs/cli/configuration.md
+
+# ─── 'fetch'ed Sources (CLI only) ─────────────────────────────────────────────
+# Where Figma data is fetched from and stored locally.
 
 # Where fetch writes payloads, and where generate/batch read from.
 sourceDirectory: ${CONFIG_DEFAULTS.sourceDirectory}
-
-# Default location for generated spec files (can override with -o flag).
-outputDirectory: ${CONFIG_DEFAULTS.outputDirectory}
-
-# Author name for generated specs (optional, defaults to "Unknown")
-# author: Your Name
 
 # Figma file sources to fetch and process.
 # Example:
@@ -35,9 +31,46 @@ outputDirectory: ${CONFIG_DEFAULTS.outputDirectory}
 #     data: [file, variables, styles]
 sources: {}
 
-# Processing and output configuration.
+# ─── 'generated' Output (CLI only) ──────────────────────────────────────────────
+# Where spec files are written and how they are organized on disk.
+
+# Default location for generated spec files (can override with -o flag).
+outputDirectory: ${CONFIG_DEFAULTS.outputDirectory}
+
+# Author name for generated specs (optional, defaults to "Unknown").
+author: <Your Name Here>
+
+# File structure options.
+output:
+  # Write one file per component instead of a single library file (default: false)
+  splitComponents: false
+  # Split each component into separate api and variants files (default: false)
+  splitConcerns: false
+  # When splitComponents is true, nest each file in a subfolder (default: false)
+  useSubfolders: false
+
+# ─── Configuration options (same as the Figma plugin) ──────────────────────────────
 # See: https://github.com/DirectedEdges/specs/blob/main/docs/cli/configuration.md
+
 config:
+
+  format:
+    # Output format: JSON or YAML
+    output: JSON
+
+    # Key name transformation: SAFE, CAMEL, SNAKE, KEBAB, PASCAL, TRAIN
+    # See: https://github.com/DirectedEdges/specs/blob/main/docs/guides/key-formatting.md
+    keys: SAFE
+
+    # Layout representation: LAYOUT, PARENT_CHILDREN, or BOTH
+    # See: https://github.com/DirectedEdges/specs/blob/main/docs/guides/data-layout.md
+    layout: LAYOUT
+
+    # Token reference format: TOKEN, TOKEN_NAME, TOKEN_FIGMA_EXTENSIONS, FIGMA_NAME, or CUSTOM
+    # See: https://github.com/DirectedEdges/specs/blob/main/docs/guides/token-format.md
+    # Requires a license key to resolve token references in output.
+    tokens: TOKEN
+
   processing:
     # Subcomponent discovery configuration.
     # Presence of this block enables subcomponent detection; remove to disable.
@@ -49,7 +82,7 @@ config:
       # Template patterns defining which assets are subcomponents.
       # Uses {C} (component name) and {S} (subcomponent name) placeholders.
       match:
-        - '${DEFAULT_CONFIG.processing.subcomponents?.match[0] || '{C} / _ / {S}'}'
+        - '{C} / _ / {S}'
 
       # Template patterns to exclude from matches (optional).
       # exclude:
@@ -64,36 +97,19 @@ config:
 
     # Consolidate slot constraints (anyOf, minItems, maxItems) from code-only props
     # into the slot property. Requires codeOnlyPropsPattern to be set. (default: false)
-    # slotConstraints: false
+    slotConstraints: false
 
     # Maximum variant property depth to process: 1, 2, 3, or 9999 (unlimited)
     # See: https://github.com/DirectedEdges/specs/blob/main/docs/guides/variant-depth.md
-    variantDepth: ${DEFAULT_CONFIG.processing?.variantDepth || 9999}
+    variantDepth: 9999
 
     # Detail level for variant data: FULL or LAYERED
     # See: https://github.com/DirectedEdges/specs/blob/main/docs/cli/configuration.md#details
-    details: ${DEFAULT_CONFIG.processing?.details || 'LAYERED'}
+    details: LAYERED
 
     # Infer number props: when true, TEXT code-only props whose values parse as
     # valid numbers are emitted as NumberProp instead of StringProp. (default: false)
     # inferNumberProps: false
-
-  format:
-    # Output format: JSON or YAML
-    output: ${DEFAULT_CONFIG.format?.output || 'JSON'}
-
-    # Key name transformation: SAFE, CAMEL, SNAKE, KEBAB, PASCAL, TRAIN
-    # See: https://github.com/DirectedEdges/specs/blob/main/docs/guides/key-formatting.md
-    keys: ${DEFAULT_CONFIG.format?.keys || 'CAMEL'}
-
-    # Layout representation: LAYOUT, PARENT_CHILDREN, or BOTH
-    # See: https://github.com/DirectedEdges/specs/blob/main/docs/guides/data-layout.md
-    layout: ${DEFAULT_CONFIG.format?.layout || 'LAYOUT'}
-
-    # Token reference format: TOKEN, TOKEN_NAME, TOKEN_FIGMA_EXTENSIONS, FIGMA_NAME, or CUSTOM
-    # See: https://github.com/DirectedEdges/specs/blob/main/docs/guides/token-format.md
-    # Requires a license key to resolve token references in output.
-    tokens: ${DEFAULT_CONFIG.format?.tokens || 'TOKEN'}
 
   include:
     # Subcomponent inclusion is controlled by processing.subcomponents above.
@@ -108,30 +124,5 @@ config:
 
     # Include layered variants that contain no elements (default: false)
     # emptyVariants: false
-
-# Output file structure options.
-# These control how generated spec files are organized on disk.
-# output:
-#   # Write one file per component instead of a single library file (default: false)
-#   splitComponents: false
-#
-#   # Split each component into separate api and variants files (default: false)
-#   splitConcerns: false
-#
-#   # When splitComponents is true, nest each file in a subfolder (default: false)
-#   useSubfolders: false
 `;
-}
-
-/**
- * Generate a JSON configuration template
- */
-export function generateConfigTemplateJson(): string {
-  const config = {
-    sourceDirectory: CONFIG_DEFAULTS.sourceDirectory,
-    outputDirectory: CONFIG_DEFAULTS.outputDirectory,
-    sources: {},
-    config: DEFAULT_CONFIG,
-  };
-  return JSON.stringify(config, null, 2);
 }

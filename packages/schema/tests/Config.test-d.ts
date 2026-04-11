@@ -163,35 +163,55 @@ const defaultIsValidConfig: Config = DEFAULT_CONFIG;
 
 const defaultTokensValue: typeof DEFAULT_CONFIG.format.tokens = 'TOKEN';
 
-// ─── ResolvedConfig requires variantDepth, details, output, keys, layout ─────
+// ─── ResolvedConfig requires all defaultable fields ──────────────────────────
 
 const resolved: ResolvedConfig = {
-  processing: { variantDepth: 9999, details: 'LAYERED' },
-  format: { output: 'JSON', keys: 'SAFE', layout: 'LAYOUT' },
-  include: {},
+  processing: { slotConstraints: false, variantDepth: 9999, details: 'LAYERED', inferNumberProps: false },
+  format: { output: 'JSON', keys: 'SAFE', layout: 'LAYOUT', tokens: 'TOKEN' },
+  include: { invalidVariants: false, invalidCombinations: true, emptyVariants: false },
 };
 
 // ─── ResolvedConfig requires defaultable fields — cannot omit them ────────────
 
-// variantDepth is required on ResolvedConfig.processing
+// processing
 type _VDRequired = ResolvedConfig['processing']['variantDepth'] extends (1 | 2 | 3 | 9999) ? true : never;
 const _vdRequired: _VDRequired = true;
 
-// details is required on ResolvedConfig.processing
 type _DRequired = ResolvedConfig['processing']['details'] extends ('FULL' | 'LAYERED') ? true : never;
 const _dRequired: _DRequired = true;
 
-// output is required on ResolvedConfig.format
+type _SCRequired = ResolvedConfig['processing']['slotConstraints'] extends boolean ? true : never;
+const _scRequired: _SCRequired = true;
+
+type _INPRequired = ResolvedConfig['processing']['inferNumberProps'] extends boolean ? true : never;
+const _inpRequired: _INPRequired = true;
+
+// format
 type _ORequired = ResolvedConfig['format']['output'] extends ('JSON' | 'YAML') ? true : never;
 const _oRequired: _ORequired = true;
 
-// keys is required on ResolvedConfig.format
 type _KRequired = ResolvedConfig['format']['keys'] extends ('SAFE' | 'CAMEL' | 'SNAKE' | 'KEBAB' | 'PASCAL' | 'TRAIN') ? true : never;
 const _kRequired: _KRequired = true;
 
-// layout is required on ResolvedConfig.format
 type _LRequired = ResolvedConfig['format']['layout'] extends ('LAYOUT' | 'PARENT_CHILDREN' | 'BOTH') ? true : never;
 const _lRequired: _LRequired = true;
+
+type _TRequired = ResolvedConfig['format']['tokens'] extends ('TOKEN' | 'TOKEN_NAME' | 'TOKEN_FIGMA_EXTENSIONS' | 'FIGMA_NAME' | 'CUSTOM') ? true : never;
+const _tRequired: _TRequired = true;
+
+// include
+type _IVRequired = ResolvedConfig['include']['invalidVariants'] extends boolean ? true : never;
+const _ivRequired: _IVRequired = true;
+
+type _ICRequired = ResolvedConfig['include']['invalidCombinations'] extends boolean ? true : never;
+const _icRequired: _ICRequired = true;
+
+type _EVRequired = ResolvedConfig['include']['emptyVariants'] extends boolean ? true : never;
+const _evRequired: _EVRequired = true;
+
+// subcomponents.scope is required when subcomponents is present
+type _ScopeRequired = NonNullable<ResolvedConfig['processing']['subcomponents']>['scope'] extends ('NESTED' | 'PAGE') ? true : never;
+const _scopeRequired: _ScopeRequired = true;
 
 // ─── glyphNamePattern is optional ─────────────────────────────────────────────
 

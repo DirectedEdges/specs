@@ -138,28 +138,34 @@ format:
 
 **Example — `ResolvedConfig`** (`types/Config.ts`):
 ```typescript
-# ResolvedConfig makes all Config properties required (except feature-toggle
-# optionals like subcomponents, glyphNamePattern, codeOnlyPropsPattern, etc.)
+# ResolvedConfig makes every property with a default required.
+# Only true feature-toggle properties (where absence = feature disabled)
+# remain optional.
 ResolvedConfig:
   processing:
-    subcomponents?: { ... }              # still optional (feature toggle)
+    subcomponents?: {                    # still optional (feature toggle — absence = no detection)
+      scope: 'NESTED' | 'PAGE'          # required — default NESTED
+      match: string[]
+      exclude?: string[]
+    }
     glyphNamePattern?: string            # still optional (feature toggle)
     codeOnlyPropsPattern?: string        # still optional (feature toggle)
-    slotConstraints?: boolean            # still optional (feature toggle)
-    variantDepth: 1 | 2 | 3 | 9999      # required
-    details: 'FULL' | 'LAYERED'         # required
-    inferNumberProps?: boolean           # still optional (feature toggle)
+    slotConstraints: boolean             # required — default false
+    variantDepth: 1 | 2 | 3 | 9999      # required — default 9999
+    details: 'FULL' | 'LAYERED'         # required — default LAYERED
+    inferNumberProps: boolean            # required — default false
   format:
-    output: 'JSON' | 'YAML'             # required
-    keys: 'SAFE' | 'CAMEL' | ...        # required
-    layout: 'LAYOUT' | ...              # required
-    tokens?: 'TOKEN' | ...              # still optional (has default but
-                                        #   follows existing optional pattern)
+    output: 'JSON' | 'YAML'             # required — default JSON
+    keys: 'SAFE' | 'CAMEL' | ...        # required — default SAFE
+    layout: 'LAYOUT' | ...              # required — default LAYOUT
+    tokens: 'TOKEN' | ...               # required — default TOKEN
   include:
-    invalidVariants?: boolean            # still optional
-    invalidCombinations?: boolean        # still optional
-    emptyVariants?: boolean              # still optional
+    invalidVariants: boolean             # required — default false
+    invalidCombinations: boolean         # required — default true
+    emptyVariants: boolean               # required — default false
 ```
+
+**Rule**: If a property has a default value in `DEFAULT_CONFIG`, it is required in `ResolvedConfig`. If absence means "feature disabled" (no default — the feature simply doesn't exist), it stays optional.
 
 ### Schema changes (`schema/`)
 
@@ -215,11 +221,11 @@ format:
 
 ### Notes
 
-- `format.tokens` is already optional with a `default: "TOKEN"` annotation in the schema — no change needed
-- `include.*` properties are already optional with `required: []` — no change needed
-- Feature-toggle properties (`subcomponents`, `glyphNamePattern`, `codeOnlyPropsPattern`, `slotConstraints`, `inferNumberProps`) remain optional because their absence means "feature disabled" — a semantically different pattern from "use default value"
+- **`ResolvedConfig` rule**: Every property with a default in `DEFAULT_CONFIG` is required. Only true feature toggles (where absence = feature disabled) remain optional: `subcomponents` (the block itself), `glyphNamePattern`, `codeOnlyPropsPattern`
+- Properties newly required in `ResolvedConfig` (beyond the original five): `tokens`, `invalidVariants`, `invalidCombinations`, `emptyVariants`, `slotConstraints`, `inferNumberProps`, and `subcomponents.scope` (when subcomponents is present)
+- `DEFAULT_CONFIG` must explicitly include all defaulted values: adds `slotConstraints: false`, `inferNumberProps: false`, `subcomponents.scope: 'NESTED'`
 - `ResolvedConfig` is a pure type alias — it contains no runtime logic and complies with Constitution II
-- `DEFAULT_CONFIG` is retyped as `ResolvedConfig` since it provides all required values
+- `DEFAULT_CONFIG` is typed as `ResolvedConfig` since it provides all required values
 
 ---
 
@@ -254,9 +260,10 @@ format:
 
 ## Consequences
 
-- All five defaulted properties follow a single, consistent pattern: optional with documented default
+- All defaulted properties follow a single, consistent pattern: optional in `Config`, required in `ResolvedConfig`
+- Only three true feature toggles remain optional in both types: `subcomponents`, `glyphNamePattern`, `codeOnlyPropsPattern`
 - Consumers can provide minimal config objects (e.g., `{ processing: {}, format: {}, include: {} }`) and rely on `DEFAULT_CONFIG` for omitted values
-- `ResolvedConfig` gives downstream packages compile-time assurance that merging has been performed
-- `DEFAULT_CONFIG` is typed as `ResolvedConfig`, making it the canonical "fully specified" config
+- `ResolvedConfig` gives downstream packages compile-time assurance that merging has been performed — no null checks needed for any defaulted property
+- `DEFAULT_CONFIG` is typed as `ResolvedConfig` and explicitly includes all defaulted values, making it the canonical "fully specified" config
 - Downstream merge utilities (CLI's `ConfigLoader.deepMerge`, plugin's `settingsToModelConfig`) continue to work unchanged — they already produce fully-resolved configs
-- Schema validators consuming `component.schema.json` will now accept configs without the five previously-required fields
+- Schema validators consuming `component.schema.json` will now accept configs without the previously-required fields

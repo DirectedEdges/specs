@@ -43,16 +43,8 @@ sources:
     key: REPLACE_WITH_FOUNDATIONS_FILE_KEY
     data: ['variables','styles']
 
-# Processing and output configuration
+# Processing and output configuration (shared with Figma plugin)
 config:
-  # Processing options - how data is analyzed
-  processing:
-    subcomponents:
-      match:
-        - '{C} / _ / {S}'
-    variantDepth: 2
-    details: FULL
-
   # Format options - how data is serialized
   format:
     output: YAML
@@ -60,10 +52,18 @@ config:
     layout: LAYOUT
     tokens: TOKEN
 
+  # Processing options - how data is analyzed
+  processing:
+    subcomponents:
+      match:
+        - '{C} / _ / {S}'
+    variantDepth: 2
+    details: LAYERED
+
   # Include options - what data to include
   include:
     invalidVariants: false
-    invalidCombinations: false
+    invalidCombinations: true
 
 ```
 
@@ -114,15 +114,15 @@ config:
 #### `details` (enum)
 Detail level for variant data.
 
-- **Default**: `FULL`
+- **Default**: `LAYERED`
 - **Options**:
   - `FULL` - Complete data for all variants
-  - `LAYERED` - Optimized layered format (advanced)
+  - `LAYERED` - Optimized layered format showing only differences from default
 
 ```yaml
 config:
   processing:
-    details: FULL
+    details: LAYERED
 ```
 
 ### Format Options
@@ -225,13 +225,25 @@ config:
 #### `invalidCombinations` (boolean)
 Calculate and include invalid property combinations.
 
-- **Default**: `false`
+- **Default**: `true`
 - **Effect**: When `true`, computes which prop combinations are invalid
 
 ```yaml
 config:
   include:
-    invalidCombinations: true  # Show invalid combinations
+    invalidCombinations: true  # Show invalid combinations (default)
+```
+
+#### `emptyVariants` (boolean)
+Include layered variants that contain no element overrides.
+
+- **Default**: `false`
+- **Effect**: When `true`, includes all variants regardless of element presence. When `false`, excludes semantically empty layered variants from output.
+
+```yaml
+config:
+  include:
+    emptyVariants: false  # Exclude empty variants (default)
 ```
 
 ---
@@ -530,7 +542,7 @@ Optimized for fast iteration:
 config:
   processing:
     variantDepth: 1  # Faster processing
-    details: FULL
+    details: FULL    # Complete data for debugging
   format:
     output: YAML  # Human-readable
     keys: SAFE    # Preserve Figma names
@@ -554,13 +566,13 @@ Optimized for production output:
 config:
   processing:
     variantDepth: 2
-    details: FULL
+    details: LAYERED  # Compact output
   format:
     output: JSON  # Machine-readable
     keys: CAMEL   # Consistent naming
   include:
     invalidVariants: false  # Clean output
-    invalidCombinations: false
+    invalidCombinations: false  # Omit combination analysis
 
 sourceDirectory: ./data
 outputDirectory: ./specs

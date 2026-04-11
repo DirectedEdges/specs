@@ -160,13 +160,11 @@ export class ConfigLoader {
             || corrected.processing.codeOnlyPropsPattern.trim() === '')) {
       delete corrected.processing.codeOnlyPropsPattern;
     }
-    if (corrected.processing.slotConstraints !== undefined
-        && typeof corrected.processing.slotConstraints !== 'boolean') {
-      delete corrected.processing.slotConstraints;
+    if (typeof corrected.processing.slotConstraints !== 'boolean') {
+      corrected.processing.slotConstraints = false;
     }
-    if (corrected.processing.inferNumberProps !== undefined
-        && typeof corrected.processing.inferNumberProps !== 'boolean') {
-      delete corrected.processing.inferNumberProps;
+    if (typeof corrected.processing.inferNumberProps !== 'boolean') {
+      corrected.processing.inferNumberProps = false;
     }
 
     // Validate processing.subcomponents
