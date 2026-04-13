@@ -23,8 +23,8 @@ specs init
 # 4. Set up an .env file with a Figma PAT and – if subscribed - license key
 # 5. Fetch raw Figma data (file, variables, styles)
 specs fetch
-# 6. Audit the file to discover components and build a manifest
-specs audit <figma-file-id>
+# 6. Scan the file to discover components and build a manifest
+specs scan <figma-file-id>
 # 7. Select components in the manifest to be generated
 # 8. Generate specs from the manifest
 specs generate <source>

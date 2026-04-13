@@ -1,6 +1,6 @@
 # Licensing
 
-Specs works at two tiers: **Free** and **Pro**. Both tiers use the same configuration and generate the same component structure — the difference is in how much detail the `generate` command's output contains. Other commands (`fetch`, `audit`, `init`) are not affected by licensing.
+Specs works at two tiers: **Free** and **Pro**. Both tiers use the same configuration and generate the same component structure — the difference is in how much detail the `generate` command's output contains. Other commands (`fetch`, `scan`, `init`) are not affected by licensing.
 
 ## Free Tier
 

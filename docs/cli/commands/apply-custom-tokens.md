@@ -41,7 +41,7 @@ Use a specific config file instead of auto-discovery.
 
 When `-v` and `-s` are not provided, the command auto-discovers data files using `specs.config.yaml`:
 
-1. Reads `sourceDirectory` for the data folder path
+1. Reads `dataDirectory` for the data folder path
 2. Reads `sources` entries to locate `{alias}.variables.json` and `{alias}.styles.json` files
 
 ## Behavior
@@ -103,6 +103,6 @@ See [Fetching Figma Branches](./fetch.md#fetching-figma-branches) for more detai
 ---
 
 **See Also:**
-- [Configuration Reference](../configuration.md) - sourceDirectory and sources setup
+- [Configuration Reference](../configuration.md) - dataDirectory and sources setup
 - [Generate Command](./generate.md) - Processing augmented data with `format.tokens: CUSTOM`
 - [Fetch Command](./fetch.md) - Fetching raw data before augmentation
