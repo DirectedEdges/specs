@@ -5,7 +5,9 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.10.0] - Unreleased
+## [0.10.0] - 2026-04-13
+
+Renames `audit` → `scan`, `sourceDirectory` → `dataDirectory`, and the config file from `.specs.config.yaml` to `specs.config.yaml`. Adds a `--data-dir` flag and makes config format values case-insensitive. Config types now use `ResolvedConfig` for full default guarantees.
 
 ### Added
 
@@ -33,8 +35,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`specs audit` command** — Use `specs scan` instead. Will be removed in a future release.
 - **`fetch --outDir` flag** — Use `--data-dir` instead. Will be removed in a future release.
 
-### Removed
+### Dependency updates
 
+- **@directededges/specs-schema v0.17.0** — Introduces `ResolvedConfig` (fully-resolved config with all defaults guaranteed) alongside the now-more-permissive `Config` (optional fields with defaults). Removes unused `Variant.name` and `Variant.baseline` fields from output.
+- **@directededges/specs-from-figma v0.14.0** — Fixes `format.keys` not applying when config values are lowercase and not formatting `invalidVariantCombinations` dimension names. Internal types updated to `ResolvedConfig`.
 
 ## [0.9.0] - 2026-04-09
 
