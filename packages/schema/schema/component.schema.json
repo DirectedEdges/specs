@@ -367,12 +367,6 @@
       "description": "",
       "examples": [],
       "properties": {
-        "name": {
-          "type": "string"
-        },
-        "baseline": {
-          "type": "string"
-        },
         "configuration": {
           "$ref": "#/definitions/PropConfigurations"
         },

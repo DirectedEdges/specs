@@ -29,6 +29,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `subcomponents.scope` — required when subcomponents is present (default `NESTED`)
 - `DEFAULT_CONFIG` — typed as `ResolvedConfig`; now explicitly includes `slotConstraints: false`, `inferNumberProps: false`; removed `subcomponents` (feature toggle — off by default, matching the Figma plugin)
 
+### Removed
+
+- `Variant.name` — unused optional label; variant identity is fully described by `configuration`
+- `Variant.baseline` — never populated in output; baseline determination is an internal processing concern
+
+### Migration
+
+- `Variant.name` → removed: delete any references; use `Variant.configuration` to identify variants
+- `Variant.baseline` → removed: delete any references; no replacement needed (field was never populated)
+
 
 ## [0.16.0] - 2026-04-05
 
