@@ -11,8 +11,6 @@ export type Variants = Variant[];
  * Represents a single variant of a component.
  */
 export type Variant = {
-  name?: string;
-  baseline?: string;
   configuration?: PropConfigurations;
   invalid?: boolean;
   elements?: Elements;

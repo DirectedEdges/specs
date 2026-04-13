@@ -2,7 +2,7 @@
 
 **Branch**: `036-remove-variant-name-baseline`
 **Created**: 2026-04-13
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Deciders**: nathanacurtis (author)
 **Supersedes**: *(none)*
 
@@ -144,9 +144,9 @@ invalid:
 
 ## Semver Decision
 
-**Version bump**: `[CURRENT] → [NEXT MAJOR]` (`MAJOR`)
+**Version bump**: included in `0.17.0` (already unreleased `MAJOR`)
 
-**Justification**: Per Constitution III, removing a field from an exported type is a breaking change and requires a MAJOR version bump. Two fields are removed from `Variant`.
+**Justification**: Per Constitution III, removing a field from an exported type is a breaking change. However, `0.17.0` is already an unreleased MAJOR bump that includes other breaking changes (ADR 034, ADR 035). This removal is folded into the same release rather than requiring a separate version bump.
 
 Impact analysis:
 - Consumers that reference `variant.name` or `variant.baseline` will get TypeScript compilation errors (caught at build time)
