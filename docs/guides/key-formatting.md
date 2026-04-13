@@ -80,7 +80,7 @@ The transformation applies to keys throughout the entire spec — not just props
 Set `keys` under `model.format` in your config file:
 
 ```yaml
-# .specs.config.yaml
+# specs.config.yaml
 model:
   format:
     keys: CAMEL    # Transform all keys to camelCase

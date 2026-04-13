@@ -39,7 +39,7 @@ Use a specific config file instead of auto-discovery.
 
 ## Config Integration
 
-When `-v` and `-s` are not provided, the command auto-discovers data files using `.specs.config.yaml`:
+When `-v` and `-s` are not provided, the command auto-discovers data files using `specs.config.yaml`:
 
 1. Reads `sourceDirectory` for the data folder path
 2. Reads `sources` entries to locate `{alias}.variables.json` and `{alias}.styles.json` files
@@ -52,7 +52,7 @@ When `-v` and `-s` are not provided, the command auto-discovers data files using
 - Running twice is idempotent: existing `$custom` values are overwritten with the latest mapping
 - Last occurrence wins if a mapping ID appears in multiple entries
 
-> **Important:** Injecting `$custom` tokens only augments the raw data files. To include custom tokens in `generate` output, you must set `format.tokens` to `CUSTOM` in your `.specs.config.yaml`:
+> **Important:** Injecting `$custom` tokens only augments the raw data files. To include custom tokens in `generate` output, you must set `format.tokens` to `CUSTOM` in your `specs.config.yaml`:
 >
 > ```yaml
 > format:
@@ -82,11 +82,11 @@ specs applyCustomTokens data/token-mappings.json \
   -v data/library.variables.json \
   -s data/library.styles.json
 
-# Using config-based discovery (reads .specs.config.yaml)
+# Using config-based discovery (reads specs.config.yaml)
 specs applyCustomTokens data/token-mappings.json
 
 # Full pipeline: fetch, augment, then generate specs
-# Requires format.tokens: CUSTOM in .specs.config.yaml
+# Requires format.tokens: CUSTOM in specs.config.yaml
 specs fetch
 specs applyCustomTokens data/token-mappings.json
 specs generate data/manifest.md -o specs/

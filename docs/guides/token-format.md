@@ -114,7 +114,7 @@ borderColor:
 Set `tokens` under `model.format` in your config file:
 
 ```yaml
-# .specs.config.yaml
+# specs.config.yaml
 model:
   format:
     tokens: TOKEN    # Default — DTCG-aligned objects

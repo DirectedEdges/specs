@@ -26,14 +26,15 @@ const ERROR_CODES = {
 type FetchKind = 'file' | 'variables' | 'styles';
 
 type MinimalConfig = {
-  sourceDirectory?: string;
+  dataDirectory?: string;
+  sourceDirectory?: string; // deprecated alias
   sources?: Record<string, { key: string; data: FetchKind[] }>;
 };
 
 function findConfigFile(cwd: string): string | null {
   const locations = [
-    path.join(cwd, '.specs.config.yaml'),
-    path.join(cwd, '.specs.config.json'),
+    path.join(cwd, 'specs.config.yaml'),
+    path.join(cwd, 'specs.config.json'),
     path.join(process.env.HOME || '~', '.specs', 'config.yaml')
   ];
 
@@ -198,7 +199,8 @@ function startSpinner(text: string): () => string {
 
 export interface FetchOptions {
   config?: string;
-  outDir?: string;
+  dataDir?: string;
+  outDir?: string; // deprecated alias for --data-dir
   only?: string;
   geometry: boolean;
   verbose: boolean;
@@ -206,8 +208,9 @@ export interface FetchOptions {
 
 export const Fetch = new Command('fetch')
   .description('Fetch raw REST payloads (file, variables, styles) for configured Figma files')
-  .option('--config <path>', 'Path to config file (.specs.config.yaml)')
-  .option('--outDir <dir>', 'Override output directory (default: sources.outDir or ./data)')
+  .option('--config <path>', 'Path to config file (specs.config.yaml)')
+  .option('--data-dir <dir>', 'Override data directory (default: config dataDirectory or ./data)')
+  .option('--outDir <dir>', 'Deprecated: use --data-dir')
   .option('--only <alias[,alias...]>', 'Fetch only the given file alias(es) from sources.files')
   .option('--no-geometry', 'Omit geometry data (fillGeometry, strokeGeometry, size, relativeTransform) from file payloads')
   .option('--verbose', 'Enable detailed logging', false)
@@ -223,14 +226,17 @@ export const Fetch = new Command('fetch')
       const { configPath, config } = loadConfig(options.config);
       const configDir = configPath ? path.dirname(configPath) : process.cwd();
 
-      const outDirValue = options.outDir || config.sourceDirectory || 'data';
+      if (options.outDir && !options.dataDir) {
+        console.error('Warning: --outDir is deprecated, use --data-dir instead');
+      }
+      const outDirValue = options.dataDir || options.outDir || config.dataDirectory || config.sourceDirectory || 'data';
       const outDir = path.resolve(configDir, outDirValue);
 
       const fileEntries = normalizeSources(config.sources);
       if (fileEntries.length === 0) {
         console.error('Error: No sources configured');
-        console.error('Add to .specs.config.yaml:');
-        console.error('  sourceDirectory: data');
+        console.error('Add to specs.config.yaml:');
+        console.error('  dataDirectory: data');
         console.error('  sources:');
         console.error('    library:');
         console.error('      key: "<FILE_KEY>"');

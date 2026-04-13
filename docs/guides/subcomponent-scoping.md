@@ -69,7 +69,7 @@ The `exclude` array uses the same `{C}` / `{S}` template syntax. If a matched as
 Set `subcomponents` under `model.processing` in your config file:
 
 ```yaml
-# .specs.config.yaml
+# specs.config.yaml
 model:
   processing:
     subcomponents:

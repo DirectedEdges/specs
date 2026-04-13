@@ -52,8 +52,8 @@ async function runCli(args: string[], env?: Record<string, string | undefined>):
 }
 
 describe('CLI integration', () => {
-  it('runs audit and writes a manifest', async () => {
-    const testDir = path.join(process.cwd(), 'tests', 'tmp', `cli-audit-${Date.now()}`);
+  it('runs scan and writes a manifest', async () => {
+    const testDir = path.join(process.cwd(), 'tests', 'tmp', `cli-scan-${Date.now()}`);
     await fs.ensureDir(testDir);
 
     const filePath = path.join(testDir, 'library.json');
@@ -88,7 +88,7 @@ describe('CLI integration', () => {
 
     await fs.writeJSON(filePath, data);
 
-    const result = await runCli(['audit', filePath, '--output', outputPath]);
+    const result = await runCli(['scan', filePath, '--output', outputPath]);
 
     expect(result.exitCode).toBe(0);
     expect(await fs.pathExists(outputPath)).toBe(true);
@@ -115,7 +115,7 @@ describe('CLI integration', () => {
     const testDir = path.join(process.cwd(), 'tests', 'tmp', `cli-init-${Date.now()}`);
     await fs.ensureDir(testDir);
 
-    const configPath = path.join(testDir, '.specs.config.yaml');
+    const configPath = path.join(testDir, 'specs.config.yaml');
     const result = await runCli(['init', '--config', configPath]);
 
     expect(result.exitCode).toBeUndefined();

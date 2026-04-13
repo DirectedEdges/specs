@@ -5,10 +5,10 @@ The Specs command-line interface (CLI) enables automated generation of design sy
 ## Overview
 
 The CLI provides five commands for processing Figma design data:
-- **`init`** - Create a default `.specs.config.yaml`
+- **`init`** - Create a default `specs.config.yaml`
 - **`fetch`** - Download raw REST payloads (file, variables, styles) for one or more Figma files
 - **`generate`** - Generate specifications from a manifest or single component
-- **`audit`** - Scan a Figma file and create a manifest of all components
+- **`scan`** - Scan a Figma file and create a manifest of all components
 - **`applyCustomTokens`** - Inject custom token objects into fetched variables/styles data
 
 These tools enable automation, batch processing, and integration into CI/CD pipelines.
@@ -40,7 +40,7 @@ Process entire design systems at once using a curated manifest:
 specs fetch --verbose
 
 # 1. Create manifest
-specs audit data/library.file.json -o components.md
+specs scan data/library.file.json -o components.md
 
 # 2. Curate manifest (edit components.md)
 
@@ -63,9 +63,9 @@ specs generate data/library.file.json -c "Button" -o specs/button.yaml
 ```
 
 ### Flexible Configuration
-Configure behavior via `.specs.config.yaml`:
+Configure behavior via `specs.config.yaml`:
 ```yaml
-sourceDirectory: ./data
+dataDirectory: ./data
 outputDirectory: ./specs
 
 sources:
@@ -94,10 +94,10 @@ Automate spec generation in your build pipeline with GitHub Actions, GitLab CI, 
 Installation, prerequisites, license setup, and quick start guide
 
 ### [Configuration](./configuration.md)
-Configure processing behavior and data sources with `.specs.config.yaml`
+Configure processing behavior and data sources with `specs.config.yaml`
 
 ### [Commands Reference](./commands/)
-Complete command reference for `init`, `fetch`, `generate`, and `audit`
+Complete command reference for `init`, `fetch`, `generate`, and `scan`
 
 ### [Examples](./examples.md)
 Real-world usage examples and workflows
@@ -105,7 +105,7 @@ Real-world usage examples and workflows
 ## Quick Example
 
 ```bash
-# Fetch raw payloads (writes into sourceDirectory)
+# Fetch raw payloads (writes into dataDirectory)
 specs fetch --verbose
 
 # Generate a single component spec
@@ -114,7 +114,7 @@ specs generate data/library.file.json \
   --output specs/button.yaml
 
 # Or generate from a manifest for multiple components
-specs audit data/library.file.json -o components.md
+specs scan data/library.file.json -o components.md
 specs generate components.md -o specs/design-system.yaml
 ```
 
@@ -168,4 +168,4 @@ See [Getting Started](./getting-started.md) for installation instructions.
 
 ---
 
-**Last Updated**: March 2026
+**Last Updated**: April 2026

@@ -1,6 +1,6 @@
 # `init` Command
 
-Initialize a `.specs.config.yaml` file with production-ready defaults.
+Initialize a `specs.config.yaml` file with production-ready defaults.
 
 ## Usage
 
@@ -11,7 +11,7 @@ specs init [options]
 ## Purpose
 
 The `init` command scaffolds a fully-populated configuration file with:
-- Sensible defaults for sourceDirectory (`./data`) and outputDirectory (`./specs`)
+- Sensible defaults for dataDirectory (`./data`) and outputDirectory (`./specs`)
 - All processing, format, and include options with production-ready values
 - Inline documentation with links to the full configuration reference
 - Empty sources object ready for your Figma file keys
@@ -23,7 +23,7 @@ This is the recommended way to get started with Specs in a new project.
 ### `--force` / `-f`
 Overwrite existing config file without prompting.
 
-By default, if `.specs.config.yaml` exists, `init` prompts before overwriting. Use `--force` to skip the prompt.
+By default, if `specs.config.yaml` exists, `init` prompts before overwriting. Use `--force` to skip the prompt.
 
 ```bash
 # Prompt before overwrite (default)
@@ -34,7 +34,7 @@ specs init --force
 ```
 
 ### `--config <path>` / `-c <path>`
-Custom path for the config file (default: `.specs.config.yaml`).
+Custom path for the config file (default: `specs.config.yaml`).
 
 ```bash
 # Create config in a custom location
@@ -54,11 +54,11 @@ cd my-design-system
 specs init
 
 # Output:
-# ✓ Created .specs.config.yaml
+# ✓ Created specs.config.yaml
 # 📚 Next steps:
 #    1. Edit the config file to add your Figma file keys
 #    2. Run: specs fetch
-#    3. Run: specs audit data/library.file.json -o components.md
+#    3. Run: specs scan data/library.file.json -o components.md
 #    4. Run: specs generate components.md -o specs.yaml
 #
 # 📖 Documentation: docs/cli/configuration.md
@@ -87,7 +87,7 @@ specs init --force
 
 ## What Gets Created
 
-The init command creates a `.specs.config.yaml` file with the following structure:
+The init command creates a `specs.config.yaml` file with the following structure:
 
 ```yaml
 # Specs CLI Configuration (production-ready defaults)
@@ -96,8 +96,8 @@ The init command creates a `.specs.config.yaml` file with the following structur
 # See: docs/cli/configuration.md for complete documentation.
 
 # Where fetch writes payloads, and where generate reads from.
-# See: https://docs.specs.dev/cli/configuration#sourceDirectory
-sourceDirectory: ./data
+# See: https://docs.specs.dev/cli/configuration#dataDirectory
+dataDirectory: ./data
 
 # Default location for generated spec files (can override with -o flag).
 # See: https://docs.specs.dev/cli/configuration#outputDirectory

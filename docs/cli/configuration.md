@@ -1,13 +1,13 @@
 # CLI Configuration
 
-Configure Specs' processing behavior and data sources using `.specs.config.yaml` for consistent, reproducible component specifications.
+Configure Specs' processing behavior and data sources using `specs.config.yaml` for consistent, reproducible component specifications.
 
 ## Overview
 
 The CLI uses a hierarchical configuration system with three priority levels:
 
 1. **CLI flags** (highest) - Explicit overrides for individual commands
-2. **Config file** - Project defaults via `.specs.config.yaml`
+2. **Config file** - Project defaults via `specs.config.yaml`
 3. **Fallbacks** (lowest) - Convention-based defaults when no sources are configured
 
 ## Configuration File
@@ -16,8 +16,8 @@ The CLI uses a hierarchical configuration system with three priority levels:
 
 The CLI searches for configuration in these locations (in order):
 
-1. `./.specs.config.yaml` (current directory)
-2. `./.specs.config.json` (current directory)
+1. `./specs.config.yaml` (current directory)
+2. `./specs.config.json` (current directory)
 3. `~/.specs/config.yaml` (user home directory)
 4. Custom path via `--config <path>` flag
 
@@ -26,10 +26,10 @@ The CLI searches for configuration in these locations (in order):
 Configuration uses YAML or JSON format:
 
 ```yaml
-# .specs.config.yaml
+# specs.config.yaml
 
 # Where `specs fetch` writes payloads, and where `generate` loads them from
-sourceDirectory: ./data
+dataDirectory: ./data
 
 # Default location for generated spec files (can override with -o flag)
 outputDirectory: ./specs
@@ -43,16 +43,8 @@ sources:
     key: REPLACE_WITH_FOUNDATIONS_FILE_KEY
     data: ['variables','styles']
 
-# Processing and output configuration
+# Processing and output configuration (shared with Figma plugin)
 config:
-  # Processing options - how data is analyzed
-  processing:
-    subcomponents:
-      match:
-        - '{C} / _ / {S}'
-    variantDepth: 2
-    details: FULL
-
   # Format options - how data is serialized
   format:
     output: YAML
@@ -60,10 +52,18 @@ config:
     layout: LAYOUT
     tokens: TOKEN
 
+  # Processing options - how data is analyzed
+  processing:
+    subcomponents:
+      match:
+        - '{C} / _ / {S}'
+    variantDepth: 2
+    details: LAYERED
+
   # Include options - what data to include
   include:
     invalidVariants: false
-    invalidCombinations: false
+    invalidCombinations: true
 
 ```
 
@@ -114,15 +114,15 @@ config:
 #### `details` (enum)
 Detail level for variant data.
 
-- **Default**: `FULL`
+- **Default**: `LAYERED`
 - **Options**:
   - `FULL` - Complete data for all variants
-  - `LAYERED` - Optimized layered format (advanced)
+  - `LAYERED` - Optimized layered format showing only differences from default
 
 ```yaml
 config:
   processing:
-    details: FULL
+    details: LAYERED
 ```
 
 ### Format Options
@@ -204,7 +204,7 @@ config:
     tokens: TOKEN  # Default resolved token references
 ```
 
-> **Using CUSTOM**: First run `specs applyCustomTokens <mapping>` to inject `$custom` objects into your fetched data files, then run `batch` or `generate`. The `applyCustomTokens` command auto-discovers variables/styles files from `sourceDirectory` and `sources` in this config, or accepts explicit `-v`/`-s` paths. See [applyCustomTokens command](./commands/apply-custom-tokens.md) for details.
+> **Using CUSTOM**: First run `specs applyCustomTokens <mapping>` to inject `$custom` objects into your fetched data files, then run `batch` or `generate`. The `applyCustomTokens` command auto-discovers variables/styles files from `dataDirectory` and `sources` in this config, or accepts explicit `-v`/`-s` paths. See [applyCustomTokens command](./commands/apply-custom-tokens.md) for details.
 
 ### Include Options
 
@@ -225,20 +225,32 @@ config:
 #### `invalidCombinations` (boolean)
 Calculate and include invalid property combinations.
 
-- **Default**: `false`
+- **Default**: `true`
 - **Effect**: When `true`, computes which prop combinations are invalid
 
 ```yaml
 config:
   include:
-    invalidCombinations: true  # Show invalid combinations
+    invalidCombinations: true  # Show invalid combinations (default)
+```
+
+#### `emptyVariants` (boolean)
+Include layered variants that contain no element overrides.
+
+- **Default**: `false`
+- **Effect**: When `true`, includes all variants regardless of element presence. When `false`, excludes semantically empty layered variants from output.
+
+```yaml
+config:
+  include:
+    emptyVariants: false  # Exclude empty variants (default)
 ```
 
 ---
 
 ## Output Configuration
 
-Controls **where and how to write** generated specifications. Configured via the `output` field in `.specs.config.yaml` or CLI flags.
+Controls **where and how to write** generated specifications. Configured via the `output` field in `specs.config.yaml` or CLI flags.
 
 ```yaml
 output:
@@ -398,7 +410,7 @@ specs/
 Output configuration follows the standard priority system:
 
 1. **CLI flags** (highest): `--split-components`, `--split-concerns`, `--use-subfolders`
-2. **Config file**: `output` field in `.specs.config.yaml`
+2. **Config file**: `output` field in `specs.config.yaml`
 3. **Defaults** (lowest): Single-file mode, YAML format
 
 ```bash
@@ -413,21 +425,24 @@ specs generate manifest.md --split-components
 
 Specs uses *raw REST payload files* on disk.
 
-### `sourceDirectory` (string)
-Directory where `fetch` writes downloaded payloads, and where `generate` load them from.
+### `dataDirectory` (string)
+Directory where `fetch` writes downloaded payloads, and where `generate` loads them from.
 
 - **Default**: `./data`
 - **Purpose**: Acts as the central repository for Figma data downloaded via the `fetch` command, and the default source for commands that process component specifications.
+- **CLI override**: `--data-dir` flag on `fetch`, `scan`, and `generate` commands
 
 ```yaml
-sourceDirectory: ./data
+dataDirectory: ./data
 ```
+
+> **Backward compatibility**: The deprecated `sourceDirectory` field still works as an alias for `dataDirectory`. If both are present, `dataDirectory` takes precedence. Using `sourceDirectory` will emit a deprecation warning.
 
 ### `outputDirectory` (string)
 Default directory where `generate` commands write their output files. Can be overridden with the `-o` flag on individual commands.
 
 - **Default**: `./specs`
-- **Purpose**: When `-o` flag is not provided, generated spec files are written to this directory with names like `ComponentName.yaml` or `ComponentName.json`.
+- **Purpose**: When `-o` flag is not provided, generated spec files are written to this directory with names like `ComponentName.yaml` or `ComponentName.json`. In manifest mode, `generate` falls back to `outputDirectory` when `--output` is not specified.
 - **Note**: The `generate` command's `--format` flag still controls output format (YAML vs JSON); this controls the directory only.
 
 ```yaml
@@ -447,7 +462,7 @@ sources:
     data: ['variables','styles']
 ```
 
-For each alias, the CLI uses deterministic filenames in `sourceDirectory`:
+For each alias, the CLI uses deterministic filenames in `dataDirectory`:
 
 - `${alias}.file.json` (only if `data` includes `file`)
 - `${alias}.variables.json` (only if `data` includes `variables`)
@@ -487,15 +502,15 @@ specs generate data/library.file.json -c Button --format yaml
 
 ### 2. Config File
 
-Settings from `.specs.config.yaml` apply when no CLI flag is provided:
+Settings from `specs.config.yaml` apply when no CLI flag is provided:
 
 ```yaml
-# .specs.config.yaml
+# specs.config.yaml
 config:
   format:
     output: YAML  # Used unless --format flag provided
 
-sourceDirectory: ./data
+dataDirectory: ./data
 outputDirectory: ./specs
 
 sources:
@@ -510,7 +525,7 @@ Convention-based defaults when no sources are configured and no flags are provid
 
 ```
 project/
-├── .specs.config.yaml  # Config (if exists)
+├── specs.config.yaml  # Config (if exists)
 ├── data/
 │   ├── library.file.json      # Main file (specified in command)
 │   └── foundations/           # Auto-discovery directory
@@ -525,12 +540,12 @@ project/
 Optimized for fast iteration:
 
 ```yaml
-# .specs.config.yaml (development)
+# specs.config.yaml (development)
 
 config:
   processing:
     variantDepth: 1  # Faster processing
-    details: FULL
+    details: FULL    # Complete data for debugging
   format:
     output: YAML  # Human-readable
     keys: SAFE    # Preserve Figma names
@@ -549,20 +564,20 @@ sources:
 Optimized for production output:
 
 ```yaml
-# .specs.config.yaml (production)
+# specs.config.yaml (production)
 
 config:
   processing:
     variantDepth: 2
-    details: FULL
+    details: LAYERED  # Compact output
   format:
     output: JSON  # Machine-readable
     keys: CAMEL   # Consistent naming
   include:
     invalidVariants: false  # Clean output
-    invalidCombinations: false
+    invalidCombinations: false  # Omit combination analysis
 
-sourceDirectory: ./data
+dataDirectory: ./data
 outputDirectory: ./specs
 
 sources:
@@ -588,13 +603,13 @@ specs generate data/library.file.json \
 Mix config file with CLI overrides:
 
 ```yaml
-# .specs.config.yaml
+# specs.config.yaml
 config:
   format:
     output: YAML
     keys: SAFE
 
-sourceDirectory: ./data
+dataDirectory: ./data
 outputDirectory: ./specs
 
 sources:
@@ -629,10 +644,10 @@ Invalid values fall back to defaults with warnings, so builds continue.
 
 ### 1. Version Control Config
 
-Commit `.specs.config.yaml` to share settings across team:
+Commit `specs.config.yaml` to share settings across team:
 
 ```bash
-git add .specs.config.yaml
+git add specs.config.yaml
 git commit -m "Add Specs CLI configuration"
 ```
 
@@ -642,7 +657,7 @@ Use different configs for different environments:
 
 ```
 project/
-├── .specs.config.yaml           # Default (development)
+├── specs.config.yaml           # Default (development)
 ├── .specs.production.yaml       # Production
 └── .specs.staging.yaml          # Staging
 ```
@@ -692,4 +707,4 @@ config:
 
 ---
 
-**Last Updated**: March 2026
+**Last Updated**: April 2026

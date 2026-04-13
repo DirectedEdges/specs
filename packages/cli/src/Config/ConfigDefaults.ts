@@ -8,8 +8,8 @@
 import { DEFAULT_OUTPUT_CONFIG } from '../Types/OutputConfig.js';
 
 export const CONFIG_DEFAULTS = {
-  /** Default location where fetch writes payloads and where generate/batch read from */
-  sourceDirectory: './data',
+  /** Default location where fetch writes payloads and where generate/scan read from */
+  dataDirectory: './data',
 
   /** Default location for generated spec files */
   outputDirectory: './specs',

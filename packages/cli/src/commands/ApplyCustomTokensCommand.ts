@@ -4,7 +4,7 @@
  * Purpose:
  * - Read a mapping JSON file containing { figmaId: { $custom: {...}, ...otherProps } }
  * - Inject the $custom objects into variables and styles JSON files
- * - Config-aware: auto-discovers data files from .specs.config.yaml
+ * - Config-aware: auto-discovers data files from specs.config.yaml
  * - Supports -v/-s flags to override file paths
  */
 
@@ -21,14 +21,15 @@ const ERROR_CODES = {
 };
 
 type MinimalConfig = {
-  sourceDirectory?: string;
+  dataDirectory?: string;
+  sourceDirectory?: string; // deprecated alias
   sources?: Record<string, { key: string; data: string[] }>;
 };
 
 function findConfigFile(cwd: string): string | null {
   const locations = [
-    path.join(cwd, '.specs.config.yaml'),
-    path.join(cwd, '.specs.config.json'),
+    path.join(cwd, 'specs.config.yaml'),
+    path.join(cwd, 'specs.config.json'),
     path.join(process.env.HOME || '~', '.specs', 'config.yaml'),
   ];
 
@@ -104,7 +105,7 @@ function discoverDataFiles(
     };
   }
 
-  const sourceDir = path.resolve(configDir, config.sourceDirectory || 'data');
+  const sourceDir = path.resolve(configDir, config.dataDirectory || config.sourceDirectory || 'data');
   const variablesPaths: string[] = [];
   const stylesPaths: string[] = [];
 
@@ -198,7 +199,7 @@ export interface ApplyCustomTokensOptions {
 export const ApplyCustomTokens = new Command('applyCustomTokens')
   .description('Inject $custom token objects from a mapping file into fetched variables/styles JSON')
   .argument('<mapping>', 'Path to the JSON mapping file')
-  .option('--config <path>', 'Path to config file (.specs.config.yaml)')
+  .option('--config <path>', 'Path to config file (specs.config.yaml)')
   .option('-v, --variables <path>', 'Path to variables JSON file (overrides config discovery)')
   .option('-s, --styles <path>', 'Path to styles JSON file (overrides config discovery)')
   .action(async (mappingArg: string, options: ApplyCustomTokensOptions) => {
@@ -221,7 +222,7 @@ export const ApplyCustomTokens = new Command('applyCustomTokens')
       const { variablesPaths, stylesPaths } = discoverDataFiles(configDir, config, options.variables, options.styles);
 
       if (variablesPaths.length === 0 && stylesPaths.length === 0) {
-        console.error('Error: No variables or styles files found. Use -v/-s flags or configure sources in .specs.config.yaml');
+        console.error('Error: No variables or styles files found. Use -v/-s flags or configure sources in specs.config.yaml');
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
 

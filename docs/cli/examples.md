@@ -93,7 +93,7 @@ If component names have special characters or duplicates, use node IDs.
 **Find Node ID:**
 ```bash
 # List all components with IDs
-specs audit data/library.file.json -o manifest.md
+specs scan data/library.file.json -o manifest.md
 
 # Look in manifest.md:
 # - [x] DS Button/Icon (5507:123, COMPONENT_SET)
@@ -158,13 +158,13 @@ License: PRO (active)
 
 ### Example 5: Using Config File
 
-Create `.specs.config.yaml` for consistent settings:
+Create `specs.config.yaml` for consistent settings:
 
 **Config File:**
 ```yaml
-# .specs.config.yaml
+# specs.config.yaml
 
-sourceDirectory: ./data
+dataDirectory: ./data
 outputDirectory: ./specs
 
 sources:
@@ -210,7 +210,7 @@ Mix config file with CLI overrides.
 
 **Config File:**
 ```yaml
-# .specs.config.yaml
+# specs.config.yaml
 config:
   format:
     output: YAML
@@ -243,7 +243,7 @@ Use different configs for different environments.
 **Directory Structure:**
 ```
 project/
-├── .specs.config.yaml           # Default (development)
+├── specs.config.yaml           # Default (development)
 ├── .specs.production.yaml       # Production
 ├── .specs.staging.yaml          # Staging
 ```
@@ -271,7 +271,7 @@ Process multiple components from a design system.
 
 **Step 1: Create Manifest**
 ```bash
-specs audit data/design-system.json -o components.md
+specs scan data/design-system.json -o components.md
 ```
 
 **Output:**
@@ -361,7 +361,7 @@ Organize components by category.
 
 ```bash
 # Generate full manifest
-specs audit data/library.json -o all-components.md
+specs scan data/library.json -o all-components.md
 
 # Create atoms manifest (manually or with script)
 grep "Button\|Input\|Icon" all-components.md > atoms.md
@@ -491,7 +491,7 @@ on:
   push:
     paths:
       - 'manifests/**'
-      - '.specs.config.yaml'
+      - 'specs.config.yaml'
 
 jobs:
   generate-specs:
@@ -614,10 +614,10 @@ Add comments explaining why components are included/excluded:
 
 ### Practice 3: Use Config for Team Consistency
 
-Share `.specs.config.yaml` across team for consistent output:
+Share `specs.config.yaml` across team for consistent output:
 
 ```yaml
-# .specs.config.yaml - Team standards
+# specs.config.yaml - Team standards
 
 config:
   format:
@@ -629,7 +629,7 @@ config:
 
 **Commit to repo:**
 ```bash
-git add .specs.config.yaml
+git add specs.config.yaml
 git commit -m "docs: add Specs CLI configuration"
 ```
 
@@ -655,7 +655,7 @@ echo 'SPECS_LICENSE_KEY=your-key' >> .env
 
 Use `applyCustomTokens` to inject custom token objects into fetched data before generating specs with the `CUSTOM` token format.
 
-**1. Configure `format.tokens: CUSTOM` in `.specs.config.yaml`:**
+**1. Configure `format.tokens: CUSTOM` in `specs.config.yaml`:**
 
 ```yaml
 config:
@@ -723,4 +723,4 @@ backgroundColor:
 
 ---
 
-**Last Updated**: March 2026
+**Last Updated**: April 2026

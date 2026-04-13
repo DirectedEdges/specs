@@ -65,7 +65,7 @@ Depth 2 includes everything from depth 1 plus all two-property pairings. Each de
 Set `variantDepth` under `model.processing` in your config file:
 
 ```yaml
-# .specs.config.yaml
+# specs.config.yaml
 model:
   processing:
     variantDepth: 2    # Recommended for production

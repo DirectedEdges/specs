@@ -87,7 +87,7 @@ Leave it unset if your library doesn't use the code-only props convention.
 Set `codeOnlyPropsPattern` under `model.processing` in your config file. The value is the exact name of the container layer:
 
 ```yaml
-# .specs.config.yaml
+# specs.config.yaml
 model:
   processing:
     codeOnlyPropsPattern: "Code only props"

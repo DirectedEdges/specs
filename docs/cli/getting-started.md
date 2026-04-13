@@ -9,7 +9,7 @@ Specs CLI generates component specifications from your Figma design system. This
 - [Step 3: Edit configuration](#step-3-edit-configuration)
 - [Step 4: Set up environment variables](#step-4-set-up-environment-variables)
 - [Step 5: Fetch Figma data](#step-5-fetch-figma-data)
-- [Step 6: Audit components](#step-6-audit-components)
+- [Step 6: Scan components](#step-6-scan-components)
 - [Step 7: Select components](#step-7-select-components)
 - [Step 8: Generate specs](#step-8-generate-specs)
 - [Alternative approaches to generate](#alternative-approaches-to-generate)
@@ -53,7 +53,7 @@ specs --version
 
 ## Step 2: Initialize configuration
 
-Create a `.specs.config.yaml` file with production-ready defaults:
+Create a `specs.config.yaml` file with production-ready defaults:
 
 ```bash
 specs init
@@ -63,7 +63,7 @@ This generates a config file in your current directory with inline documentation
 
 ## Step 3: Edit configuration
 
-Open `.specs.config.yaml` in your editor. The file has four main sections to configure.
+Open `specs.config.yaml` in your editor. The file has four main sections to configure.
 
 ### Figma file key
 
@@ -89,49 +89,50 @@ sources:
 
 Each source has a name (e.g., `library`), a `key`, and a `data` array specifying which Figma payloads to fetch. Sources that contain components typically need `file`, while token-only sources may only need `variables` and `styles`.
 
-### Source and output directories
+### Data and output directories
 
 ```yaml
-sourceDirectory: ./data        # Where fetch writes Figma payloads
+dataDirectory: ./data          # Where fetch writes Figma payloads
 outputDirectory: ./specs       # Default location for generated specs
 ```
 
-- **`sourceDirectory`** is where `specs fetch` saves raw Figma data (JSON files). Other commands like `audit` and `generate` read from here.
+- **`dataDirectory`** is where `specs fetch` saves raw Figma data (JSON files). Other commands like `scan` and `generate` read from here.
 - **`outputDirectory`** is the default destination for generated spec files. You can override it per-command with the `-o` flag.
+
+> **Backward compatibility**: The deprecated `sourceDirectory` field still works as an alias for `dataDirectory` but will emit a warning.
 
 ### Config
 
-The `config` section controls how Specs processes components and formats output:
+The `config` section controls how Specs processes components and formats output. These settings are shared with the Figma plugin:
 
 ```yaml
 config:
-  processing:
-    subcomponents:
-      match:
-        - '{C} / _ / {S}'
-    variantDepth: 9999
-    details: LAYERED
-
   format:
     output: JSON
     keys: SAFE
     layout: LAYOUT
     tokens: TOKEN
 
+  processing:
+    variantDepth: 9999
+    details: LAYERED
+
   include:
     invalidVariants: false
     invalidCombinations: true
 ```
 
-- **`processing`** — how components are analyzed (subcomponent detection patterns, variant depth, detail level)
 - **`format`** — output shape (JSON/YAML, key casing, layout representation, token format)
+- **`processing`** — how components are analyzed (variant depth, detail level, subcomponent detection)
 - **`include`** — what to include in output (invalid variants, invalid combinations)
+
+Optional features like `subcomponents`, `glyphNamePattern`, and `codeOnlyPropsPattern` are off by default. Add them to `processing` when needed — see [Configuration Reference](./configuration.md).
 
 See [Configuration Reference](./configuration.md) for all options and allowed values.
 
 ### Output
 
-The optional `output` section controls how generated files are organized:
+The `output` section controls how generated files are organized:
 
 ```yaml
 output:
@@ -140,7 +141,7 @@ output:
   useSubfolders: false    # true = component subdirectories
 ```
 
-This section is not included by `specs init` — add it manually if you want to change the defaults. You can also control these per-command with flags like `--split-components`.
+These default to `false`. You can also control these per-command with flags like `--split-components`.
 
 ## Step 4: Set up environment variables
 
@@ -178,11 +179,13 @@ You need a [Figma REST API](https://www.figma.com/developers/api) token to authe
 
 ### License key (optional)
 
-Specs CLI works at a **free tier** without a license key. Free-tier specs include full component structure — anatomy, props, variants, layout, and raw style values.
+Specs CLI works at a **free tier** without a license key. Free-tier specs include full component structure — anatomy, props, default variant, layout, and raw style values.
 
-With a **Pro license key**, specs also include design token references, variable bindings, and visibility bindings that connect your component specs to your design token system.
+With a **Pro license key**, specs also include all non-default variants, design token references, named style references, prop bindings, and invalid variant combination analysis. See [Licensing](../licensing.md) for full details.
 
-Add `SPECS_LICENSE_KEY` to your `.env` file as shown above. You can also pass it per-command with the `-l` flag:
+The license key is resolved in this priority order: `--license` flag > `SPECS_LICENSE_KEY` env > `ANOVA_LICENSE_KEY` env.
+
+Add `SPECS_LICENSE_KEY` to your `.env` file as shown above, or pass it per-command with the `-l` flag:
 
 ```bash
 specs generate components.md -o specs/all.yaml -l "your-license-key"
@@ -196,14 +199,14 @@ Download raw data from your configured Figma sources:
 specs fetch
 ```
 
-This writes JSON data downloaded from the Figma REST API to your `sourceDirectory` (e.g., `./data/library.file.json`, `./data/library.variables.json`).
+This writes JSON data downloaded from the Figma REST API to your `dataDirectory` (e.g., `./data/library.file.json`, `./data/library.variables.json`).
 
-## Step 6: Audit components
+## Step 6: Scan components
 
 Discover components in a fetched file and build a manifest of components to potentially generate specs. By default, all components are checked.
 
 ```bash
-specs audit data/library.file.json -o components.md
+specs scan data/library.file.json -o components.md
 ```
 
 ## Step 7: Select components

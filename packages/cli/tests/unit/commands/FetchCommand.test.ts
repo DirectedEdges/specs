@@ -11,7 +11,8 @@ describe('FetchCommand', () => {
     const options = Fetch.options.map(option => option.long).filter(Boolean);
 
     expect(options).toContain('--config');
-    expect(options).toContain('--outDir');
+    expect(options).toContain('--data-dir');
+    expect(options).toContain('--outDir'); // deprecated alias
     expect(options).toContain('--only');
     expect(options).toContain('--verbose');
   });

@@ -6,10 +6,10 @@ Complete reference for all Specs CLI commands, options, and usage patterns.
 
 | Command | Purpose | Output |
 |---------|---------|--------|
-| [`init`](./init.md) | Initialize config file with defaults | `.specs.config.yaml` |
-| [`fetch`](./fetch.md) | Download raw REST payloads from Figma | JSON files in `sourceDirectory` |
+| [`init`](./init.md) | Initialize config file with defaults | `specs.config.yaml` |
+| [`fetch`](./fetch.md) | Download raw REST payloads from Figma | JSON files in `dataDirectory` |
 | [`generate`](./generate.md) | Generate specs from a manifest or single component | YAML/JSON spec file(s) |
-| [`audit`](./audit.md) | List all components in file | Markdown manifest |
+| [`scan`](./scan.md) | List all components in file | Markdown manifest |
 | [`applyCustomTokens`](./apply-custom-tokens.md) | Inject `$custom` objects into fetched data | Modified variables/styles JSON |
 
 ## Global Options
@@ -49,7 +49,7 @@ See [Fetch Command](./fetch.md) for details.
 #### From a Manifest (recommended)
 ```bash
 # Create manifest
-specs audit data/library.file.json -o components.md
+specs scan data/library.file.json -o components.md
 
 # Curate (edit components.md to select components)
 
@@ -68,7 +68,7 @@ See [Generate Command](./generate.md) for details.
 
 `specs fetch` writes deterministic filenames based on your config aliases.
 
-Example (with `sourceDirectory: ./data`):
+Example (with `dataDirectory: ./data`):
 
 ```
 data/
@@ -79,14 +79,14 @@ data/
 └── foundations.styles.json
 ```
 
-`generate` uses these files by default when your `.specs.config.yaml` declares the corresponding aliases and data types.
+`generate` uses these files by default when your `specs.config.yaml` declares the corresponding aliases and data types.
 
 ## Configuration File Discovery
 
 Config file locations (searched in order):
 
-1. `./.specs.config.yaml` (current directory)
-2. `./.specs.config.json` (current directory)
+1. `./specs.config.yaml` (current directory)
+2. `./specs.config.json` (current directory)
 3. `~/.specs/config.yaml` (user home)
 
 Or specify a custom location:
@@ -106,16 +106,16 @@ When multiple sources provide the same setting, this priority applies.
 
 ### Variables
 
-`--variables` flag > config-derived `${sourceDirectory}/${alias}.variables.json` list > `foundations/variables.json` fallback
+`--variables` flag > config-derived `${dataDirectory}/${alias}.variables.json` list > `foundations/variables.json` fallback
 
 ### Styles
 
-`--styles` flag > config-derived `${sourceDirectory}/${alias}.styles.json` list > `foundations/styles.json` fallback
+`--styles` flag > config-derived `${dataDirectory}/${alias}.styles.json` list > `foundations/styles.json` fallback
 
 ### Component Source File (manifest mode)
 
 1. Manifest `**File:**`
-2. Config-derived `${sourceDirectory}/${alias}.file.json` (first alias with `data: [file]`, preferring `library`)
+2. Config-derived `${dataDirectory}/${alias}.file.json` (first alias with `data: [file]`, preferring `library`)
 
 ## Tips
 
@@ -176,4 +176,4 @@ grep "^\- \[x\]" components.md | sed 's/- \[x\] \(.*\) (.*/\1/'
 
 ---
 
-**Last Updated**: March 2026
+**Last Updated**: April 2026

@@ -43,7 +43,7 @@ function normalizeManifest(content: string): string {
 }
 
 describe('CLI parity', () => {
-  it('matches the audit manifest format', async () => {
+  it('matches the scan manifest format', async () => {
     const testDir = path.join(process.cwd(), 'tests', 'tmp', `cli-parity-${Date.now()}`);
     await fs.ensureDir(testDir);
 
@@ -79,7 +79,7 @@ describe('CLI parity', () => {
 
     await fs.writeJSON(filePath, data);
 
-    const result = await runCli(['audit', filePath, '--output', outputPath]);
+    const result = await runCli(['scan', filePath, '--output', outputPath]);
     expect(result.exitCode).toBe(0);
 
     const manifest = await fs.readFile(outputPath, 'utf-8');

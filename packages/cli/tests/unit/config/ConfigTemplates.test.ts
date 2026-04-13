@@ -9,9 +9,9 @@ describe('ConfigTemplates', () => {
       expect(typeof template).toBe('string');
     });
 
-    it('should include sourceDirectory with default value', () => {
+    it('should include dataDirectory with default value', () => {
       const template = generateConfigTemplate();
-      expect(template).toContain('sourceDirectory: ./data');
+      expect(template).toContain('dataDirectory: ./data');
       expect(template).toContain('Where fetch writes payloads');
     });
 
@@ -85,16 +85,16 @@ describe('ConfigTemplates', () => {
       // Should have top-level keys
       const topLevelKeys = nonCommentLines.filter(line => !line.startsWith(' '));
       expect(topLevelKeys.length).toBeGreaterThan(0);
-      expect(topLevelKeys.some(line => line.includes('sourceDirectory'))).toBe(true);
+      expect(topLevelKeys.some(line => line.includes('dataDirectory'))).toBe(true);
       expect(topLevelKeys.some(line => line.includes('outputDirectory'))).toBe(true);
       expect(topLevelKeys.some(line => line.includes('sources'))).toBe(true);
       expect(topLevelKeys.some(line => line.includes('config'))).toBe(true);
     });
 
-    it('should mention defaults and getting started in comments', () => {
+    it('should mention defaults in comments', () => {
       const template = generateConfigTemplate();
       expect(template).toContain('Default');
-      expect(template).toContain('production-ready');
+      expect(template).toContain('default');
     });
   });
 });

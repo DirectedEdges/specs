@@ -12,13 +12,13 @@ Controls how specs are generated. See the [feature guides](../features/) for det
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `subcomponents` | `object` | `{ match: ['{C} / _ / {S}'] }` | Subcomponent detection — `scope` (NESTED or PAGE), `match` patterns, `exclude` patterns |
+| `subcomponents` | `object` | — | Subcomponent detection — `scope` (NESTED or PAGE), `match` patterns, `exclude` patterns. Absent = no detection |
 | `glyphNamePattern` | `string` | — | Name prefix for identifying glyph/icon instances |
 | `codeOnlyPropsPattern` | `string` | — | Name pattern for code-only prop containers |
 | `slotConstraints` | `boolean` | `false` | Emit `minItems`, `maxItems`, `anyOf` on slot props |
 | `variantDepth` | `1 \| 2 \| 3 \| 9999` | `9999` | Maximum variant nesting depth (9999 = unlimited) |
 | `details` | `'FULL' \| 'LAYERED'` | `'LAYERED'` | Output detail level |
-| `inferNumberProps` | `boolean` | — | Infer number-typed props from Figma variant values |
+| `inferNumberProps` | `boolean` | `false` | Infer number-typed props from Figma variant values |
 
 ## `format`
 
@@ -39,25 +39,28 @@ Controls how specs are generated. See the [feature guides](../features/) for det
 
 ## DEFAULT_CONFIG
 
-The only runtime export from `@directededges/specs-schema`. Provides defaults for all config options:
+The only runtime export from `@directededges/specs-schema`. Provides defaults for all config properties that have a default value. Typed as `ResolvedConfig` — all defaulted properties are required:
 
 ```ts
-const DEFAULT_CONFIG: Config = {
+const DEFAULT_CONFIG: ResolvedConfig = {
   processing: {
-    subcomponents: { match: ['{C} / _ / {S}'] },
+    slotConstraints: false,
     variantDepth: 9999,
     details: 'LAYERED',
+    inferNumberProps: false,
   },
-  format: { 
-    output: 'JSON', 
-    keys: 'SAFE', 
-    layout: 'LAYOUT', 
-    tokens: 'TOKEN' 
+  format: {
+    output: 'JSON',
+    keys: 'SAFE',
+    layout: 'LAYOUT',
+    tokens: 'TOKEN',
   },
-  include: { 
-    invalidVariants: false, 
-    invalidCombinations: true, 
-    emptyVariants: false 
+  include: {
+    invalidVariants: false,
+    invalidCombinations: true,
+    emptyVariants: false,
   },
 };
 ```
+
+Feature-toggle properties (`subcomponents`, `glyphNamePattern`, `codeOnlyPropsPattern`) are absent from `DEFAULT_CONFIG` — their absence means the feature is disabled.

@@ -5,6 +5,43 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.0] - 2026-04-13
+
+Introduces `ResolvedConfig` as the fully-resolved counterpart to `Config`, where every property with a default is guaranteed present. `Config` properties with defaults are now optional, making input configs more tolerant of omissions. Removes the unused `Variant.name` and `Variant.baseline` fields.
+
+### Added
+
+- `ResolvedConfig` — fully-resolved config type where every property with a default is required; only true feature toggles (`subcomponents`, `glyphNamePattern`, `codeOnlyPropsPattern`) remain optional
+
+### Changed
+
+- `Config` — all properties with defaults are now optional (input type tolerant of omissions):
+  - `processing.variantDepth` — optional; defaults to 9999
+  - `processing.details` — optional; defaults to LAYERED
+  - `format.output` — optional; defaults to JSON
+  - `format.keys` — optional; defaults to SAFE
+  - `format.layout` — optional; defaults to LAYOUT
+- `ResolvedConfig` — all properties with defaults are required (post-merge guarantee):
+  - `processing.slotConstraints` — required (default `false`)
+  - `processing.inferNumberProps` — required (default `false`)
+  - `format.tokens` — required (default `TOKEN`)
+  - `include.invalidVariants` — required (default `false`)
+  - `include.invalidCombinations` — required (default `true`)
+  - `include.emptyVariants` — required (default `false`)
+  - `subcomponents.scope` — required when subcomponents is present (default `NESTED`)
+- `DEFAULT_CONFIG` — typed as `ResolvedConfig`; now explicitly includes `slotConstraints: false`, `inferNumberProps: false`; removed `subcomponents` (feature toggle — off by default, matching the Figma plugin)
+
+### Removed
+
+- `Variant.name` — unused optional label; variant identity is fully described by `configuration`
+- `Variant.baseline` — never populated in output; baseline determination is an internal processing concern
+
+### Migration
+
+- `Variant.name` → removed: delete any references; use `Variant.configuration` to identify variants
+- `Variant.baseline` → removed: delete any references; no replacement needed (field was never populated)
+
+
 ## [0.16.0] - 2026-04-05
 
 Adds `Config.include.emptyVariants` for controlling inclusion of layered variants with no elements. Makes `invalidVariants` and `invalidCombinations` optional with sensible defaults, and removes the unused `variantNames` field.

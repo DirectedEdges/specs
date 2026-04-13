@@ -1,14 +1,14 @@
 /**
  * Configuration File Loader
  * 
- * Loads and validates .specs.config.yaml or .specs.config.json files
+ * Loads and validates specs.config.yaml or specs.config.json files
  * with sensible defaults and priority order: CLI flags > file > defaults
  */
 
 import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
-import { DEFAULT_CONFIG, type Config } from '@directededges/specs-schema';
+import { DEFAULT_CONFIG, type Config, type ResolvedConfig } from '@directededges/specs-schema';
 import { CONFIG_DEFAULTS } from './ConfigDefaults.js';
 import type { CLIConfig } from '../Types/CLIConfig.js';
 import type { OutputConfig, OutputFormat } from '../Types/OutputConfig.js';
@@ -41,10 +41,10 @@ export class ConfigLoader {
       // Validate and merge with defaults
       const config = this.validateAndMerge(parsed);
 
-      // Resolve sourceDirectory and outputDirectory relative to config file location
+      // Resolve dataDirectory and outputDirectory relative to config file location
       const configDir = path.dirname(filePath);
-      if (config.sourceDirectory && !path.isAbsolute(config.sourceDirectory)) {
-        config.sourceDirectory = path.resolve(configDir, config.sourceDirectory);
+      if (config.dataDirectory && !path.isAbsolute(config.dataDirectory)) {
+        config.dataDirectory = path.resolve(configDir, config.dataDirectory);
       }
       if (config.outputDirectory && !path.isAbsolute(config.outputDirectory)) {
         config.outputDirectory = path.resolve(configDir, config.outputDirectory);
@@ -62,16 +62,16 @@ export class ConfigLoader {
    * Find config file in standard locations
    *
    * Checks in order:
-   * 1. ./.specs.config.yaml
-   * 2. ./.specs.config.json
+   * 1. ./specs.config.yaml
+   * 2. ./specs.config.json
    * 3. ~/.specs/config.yaml
    *
    * @returns Path to config file or null if not found
    */
   private findConfigFile(): string | null {
     const locations = [
-      path.join(process.cwd(), '.specs.config.yaml'),
-      path.join(process.cwd(), '.specs.config.json'),
+      path.join(process.cwd(), 'specs.config.yaml'),
+      path.join(process.cwd(), 'specs.config.json'),
       path.join(process.env.HOME || '~', '.specs', 'config.yaml'),
     ];
     
@@ -88,9 +88,16 @@ export class ConfigLoader {
    * Validate and merge config file with defaults
    */
   private validateAndMerge(parsed: unknown): CLIConfig {
+    // Support deprecated 'sourceDirectory' with warning
+    const raw = parsed as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    let dataDirectory = raw?.dataDirectory;
+    if (!dataDirectory && raw?.sourceDirectory) {
+      console.warn("Warning: 'sourceDirectory' is deprecated, use 'dataDirectory' instead");
+      dataDirectory = raw.sourceDirectory;
+    }
+
     const config: CLIConfig = {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      sourceDirectory: (parsed as any)?.sourceDirectory,
+      dataDirectory,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       outputDirectory: (parsed as any)?.outputDirectory,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -109,7 +116,7 @@ export class ConfigLoader {
   /**
    * Merge model config from file with defaults
    */
-  private mergeConfig(fileModel: unknown): Config {
+  private mergeConfig(fileModel: unknown): ResolvedConfig {
     if (!fileModel) {
       return DEFAULT_CONFIG;
     }
@@ -124,8 +131,8 @@ export class ConfigLoader {
   /**
    * Validate and correct model config, replacing invalid values with defaults
    */
-  private validateAndCorrectConfig(config: Config): Config {
-    const corrected = JSON.parse(JSON.stringify(config)) as Config;
+  private validateAndCorrectConfig(config: Config): ResolvedConfig {
+    const corrected = JSON.parse(JSON.stringify(config)) as ResolvedConfig;
 
     // Guard against null/undefined nested config objects from YAML parsing
     // (YAML parsing of keys with only comments produces null instead of empty object)
@@ -160,13 +167,11 @@ export class ConfigLoader {
             || corrected.processing.codeOnlyPropsPattern.trim() === '')) {
       delete corrected.processing.codeOnlyPropsPattern;
     }
-    if (corrected.processing.slotConstraints !== undefined
-        && typeof corrected.processing.slotConstraints !== 'boolean') {
-      delete corrected.processing.slotConstraints;
+    if (typeof corrected.processing.slotConstraints !== 'boolean') {
+      corrected.processing.slotConstraints = false;
     }
-    if (corrected.processing.inferNumberProps !== undefined
-        && typeof corrected.processing.inferNumberProps !== 'boolean') {
-      delete corrected.processing.inferNumberProps;
+    if (typeof corrected.processing.inferNumberProps !== 'boolean') {
+      corrected.processing.inferNumberProps = false;
     }
 
     // Validate processing.subcomponents
@@ -189,6 +194,15 @@ export class ConfigLoader {
     const validOutputs = ['JSON', 'YAML'];
     const validLayouts = ['LAYOUT', 'PARENT_CHILDREN', 'BOTH'];
     const validTokens = ['TOKEN', 'TOKEN_NAME', 'TOKEN_FIGMA_EXTENSIONS', 'FIGMA_NAME', 'CUSTOM'];
+
+    // Normalize format values to uppercase before validation
+    // (YAML configs commonly use lowercase; schema constants are uppercase)
+    corrected.format.keys = corrected.format.keys?.toUpperCase() ?? '';
+    corrected.format.output = corrected.format.output?.toUpperCase() ?? '';
+    corrected.format.layout = corrected.format.layout?.toUpperCase() ?? '';
+    if (corrected.format.tokens) {
+      corrected.format.tokens = corrected.format.tokens.toUpperCase();
+    }
 
     // Validate format
     if (!validKeys.includes(corrected.format.keys)) {
@@ -286,7 +300,7 @@ export class ConfigLoader {
    */
   private getDefaultConfig(): CLIConfig {
     return {
-      sourceDirectory: path.resolve(CONFIG_DEFAULTS.sourceDirectory),
+      dataDirectory: path.resolve(CONFIG_DEFAULTS.dataDirectory),
       outputDirectory: path.resolve(CONFIG_DEFAULTS.outputDirectory),
       config: DEFAULT_CONFIG,
     };
