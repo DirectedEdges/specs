@@ -9,6 +9,7 @@ const STATUS_DESCRIPTIONS: Record<string, string> = {
   'expired': 'key expired',
   'activation-limit-reached': 'all seats consumed for this key',
   'network-error': 'could not reach license server',
+  'wrong-runtime': 'key is for a different product',
 };
 
 export class LicenseStatus {

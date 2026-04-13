@@ -283,6 +283,17 @@ export const Generate = new Command('generate')
       );
 
       // ---------------------------------------------------------------
+      // Hard-fail: wrong-runtime license key → AUTH_ERROR
+      // ---------------------------------------------------------------
+      if (results.length > 0 && results.every(r => 'error' in r)) {
+        const firstError = (results[0] as { name: string; error: string }).error;
+        if (firstError.includes('not valid for this runtime')) {
+          console.error(`Error: ${firstError}`);
+          process.exit(ERROR_CODES.AUTH_ERROR);
+        }
+      }
+
+      // ---------------------------------------------------------------
       // Separate successes and errors
       // ---------------------------------------------------------------
       const processedComponents: Array<{ name: string; spec: Record<string, unknown> }> = [];
