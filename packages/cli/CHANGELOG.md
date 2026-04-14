@@ -5,6 +5,12 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.1] - 2026-04-14
+
+### Changed
+
+- **Bump `@directededges/specs-from-figma` to ^0.14.1** — Picks up the fix for empty variant filtering in LAYERED mode, where variants with configuration but no element or layout differences were not being excluded when `emptyVariants: false`.
+
 ## [0.10.0] - 2026-04-13
 
 Renames `audit` → `scan`, `sourceDirectory` → `dataDirectory`, and the config file from `.specs.config.yaml` to `specs.config.yaml`. Adds a `--data-dir` flag and makes config format values case-insensitive. Config types now use `ResolvedConfig` for full default guarantees.
