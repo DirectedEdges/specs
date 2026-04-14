@@ -7,9 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.10.1] - 2026-04-14
 
+Dependency patch: picks up a fix from specs-from-figma for empty variant filtering in LAYERED mode.
+
 ### Changed
 
 - **Bump `@directededges/specs-from-figma` to ^0.14.1** — Picks up the fix for empty variant filtering in LAYERED mode, where variants with configuration but no element or layout differences were not being excluded when `emptyVariants: false`.
+
+### Dependency updates
+
+- **@directededges/specs-from-figma 0.14.1** — Fixes the `emptyVariants: false` filter in LAYERED mode. Previously, variants that had a configuration object but no `elements` array (e.g., variants with only layout differences removed) were incorrectly retained in output. The filter now correctly excludes variants that lack both element and layout differences from their layered baseline.
 
 ## [0.10.0] - 2026-04-13
 
