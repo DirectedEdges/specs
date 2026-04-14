@@ -1,6 +1,6 @@
 {
   "name": "@directededges/specs-cli",
-  "version": "0.10.1",
+  "version": "0.10.2",
   "description": "Command-line interface for Specs design system operations",
   "type": "module",
   "main": "./dist/index.js",
@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@directededges/specs-schema": "^0.17.0",
-    "@directededges/specs-from-figma": "^0.14.1",
+    "@directededges/specs-from-figma": "^0.14.2",
     "commander": "^11.1.0",
     "fs-extra": "^11.2.0",
     "yaml": "^2.3.4",
