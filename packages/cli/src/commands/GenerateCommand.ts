@@ -69,9 +69,9 @@ export const Generate = new Command('generate')
   .option('-s, --styles <path>', 'External styles JSON file')
   .option('--data-dir <dir>', 'Override data directory for loading source files')
   .option('--config <path>', 'Path to config file (specs.config.yaml)')
-  .option('--split-components', 'Create separate file per component', false)
-  .option('--split-concerns', 'Separate API and variants into different files', false)
-  .option('--use-subfolders', 'Organize component files in subdirectories (requires --split-components)', false)
+  .option('--split-components', 'Create separate file per component')
+  .option('--split-concerns', 'Separate API and variants into different files')
+  .option('--use-subfolders', 'Organize component files in subdirectories (requires --split-components)')
   .option('--verbose', 'Enable detailed logging', false)
   .action(async (source: string, options: GenerateOptions) => {
     try {

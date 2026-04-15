@@ -58,19 +58,19 @@ describe('GenerateCommand', () => {
       expect(shorts).toContain('-s');
     });
 
-    it('split-components defaults to false', () => {
+    it('split-components has no Commander default (defers to config)', () => {
       const opt = Generate.options.find(o => o.long === '--split-components');
-      expect(opt!.defaultValue).toBe(false);
+      expect(opt!.defaultValue).toBeUndefined();
     });
 
-    it('split-concerns defaults to false', () => {
+    it('split-concerns has no Commander default (defers to config)', () => {
       const opt = Generate.options.find(o => o.long === '--split-concerns');
-      expect(opt!.defaultValue).toBe(false);
+      expect(opt!.defaultValue).toBeUndefined();
     });
 
-    it('use-subfolders defaults to false', () => {
+    it('use-subfolders has no Commander default (defers to config)', () => {
       const opt = Generate.options.find(o => o.long === '--use-subfolders');
-      expect(opt!.defaultValue).toBe(false);
+      expect(opt!.defaultValue).toBeUndefined();
     });
 
     it('verbose defaults to false', () => {

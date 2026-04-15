@@ -5,6 +5,14 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.3] - 2026-04-15
+
+Fix: config file split options (`splitComponents`, `splitConcerns`, `useSubfolders`) were ignored because Commander's explicit `false` default shadowed the config values.
+
+### Fixed
+
+- **Config file split options now take effect.** Commander boolean flags (`--split-components`, `--split-concerns`, `--use-subfolders`) previously defaulted to `false`, which caused the nullish coalescing chain (`options.flag ?? config.value ?? false`) to short-circuit before consulting `specs.config.yaml`. Removed the Commander defaults so the flags are `undefined` when absent, allowing config values to flow through.
+
 ## [0.10.2] - 2026-04-14
 
 Dependency patch: picks up the DTCG-compliant token path separator fix from specs-from-figma.
