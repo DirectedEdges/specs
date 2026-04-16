@@ -15,11 +15,11 @@ describe('GenerateCommand', () => {
       expect(Generate.description()).toContain('Generate');
     });
 
-    it('has source as required argument', () => {
+    it('has source as an optional argument (defaults to manifest from config)', () => {
       const args = Generate.registeredArguments;
       expect(args).toHaveLength(1);
       expect(args[0].name()).toBe('source');
-      expect(args[0].required).toBe(true);
+      expect(args[0].required).toBe(false);
     });
 
     it('component option is not mandatory (optional for manifest mode)', () => {

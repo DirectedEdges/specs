@@ -39,20 +39,23 @@ Process entire design systems at once using a curated manifest:
 # 0. Fetch raw payloads
 specs fetch --verbose
 
-# 1. Create manifest
-specs scan data/library.file.json -o components.md
+# 1. Create manifest (auto-resolves configured source; writes to data/library.manifest.md by default)
+specs scan
 
-# 2. Curate manifest (edit components.md)
+# 2. Curate manifest (edit data/library.manifest.md)
 
 # 3. Generate all specs
-# Single file (default)
+# Zero-config — uses default manifest and outputDirectory from config
+specs generate
+
+# Or override paths per-run:
 specs generate components.md -o specs/all.yaml
 
 # Per-component files
-specs generate components.md -o specs/ --split-components
+specs generate -o specs/ --split-components
 
 # Separate API from variants
-specs generate components.md -o specs/ --split-concerns
+specs generate -o specs/ --split-concerns
 ```
 
 ### Single Component Generation
@@ -93,6 +96,9 @@ Automate spec generation in your build pipeline with GitHub Actions, GitLab CI, 
 ### [Getting Started](./getting-started.md)
 Installation, prerequisites, license setup, and quick start guide
 
+### [Claude Code Onboarding](./claude-onboarding.md)
+Interactive setup driven by Claude Code — handles install, config decisions, token setup, and your first generate
+
 ### [Configuration](./configuration.md)
 Configure processing behavior and data sources with `specs.config.yaml`
 
@@ -108,14 +114,16 @@ Real-world usage examples and workflows
 # Fetch raw payloads (writes into dataDirectory)
 specs fetch --verbose
 
-# Generate a single component spec
+# Scan to build a manifest (auto-resolves configured source; writes to data/library.manifest.md by default)
+specs scan
+
+# Generate all selected components — uses default manifest + outputDirectory
+specs generate
+
+# Or generate a single component spec on demand
 specs generate data/library.file.json \
   -c "DS Button" \
   --output specs/button.yaml
-
-# Or generate from a manifest for multiple components
-specs scan data/library.file.json -o components.md
-specs generate components.md -o specs/design-system.yaml
 ```
 
 ## Output Format
@@ -162,6 +170,7 @@ See [Getting Started](./getting-started.md) for installation instructions.
 ## See Also
 
 - [Getting Started](./getting-started.md) - Installation, license, and quick start
+- [Claude Code Onboarding](./claude-onboarding.md) - Interactive setup via Claude Code
 - [Configuration](./configuration.md) - Config file reference
 - [Commands Reference](./commands/) - Detailed command docs
 - [Examples](./examples.md) - Real-world usage patterns

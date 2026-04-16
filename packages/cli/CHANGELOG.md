@@ -5,13 +5,27 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.10.3] - 2026-04-15
+## [0.11.0] - 2026-04-16
 
-Fix: config file split options (`splitComponents`, `splitConcerns`, `useSubfolders`) were ignored because Commander's explicit `false` default shadowed the config values.
+Fix: config file split options (`splitComponents`, `splitConcerns`, `useSubfolders`) were ignored because Commander's explicit `false` default shadowed the config values. Also makes `generate` and `scan` runnable with zero arguments using a default file path derived from config.
+
+### Added
+
+- **`generate` now runs without arguments.** When no source argument is provided, `generate` resolves the manifest path to `{dataDirectory}/{alias}.manifest.md` using the source alias from `specs.config.yaml` (prefers `library`, otherwise the first source alias whose `data` includes `file`). Running `specs generate` with no flags now uses this default manifest plus `outputDirectory` from config — matching the zero-arg ergonomics of `scan` and `fetch`. If no source alias has `data: [file]`, an error suggests running `specs scan` first.
+- **`scan` now runs without arguments.** The `<file>` positional argument is now optional. With one source configured in `specs.config.yaml` (whose `data` includes `file`), `specs scan` auto-resolves `{dataDirectory}/{alias}.file.json`. An explicit file path still works and takes precedence.
+- **`scan --source <alias>` flag.** When two or more sources in `specs.config.yaml` have `data: [file, ...]`, `scan` fails loudly with the list of available aliases and requires `--source <alias>` to disambiguate. Passing both `[file]` and `--source` is rejected as a conflict. This stricter convention (vs. `generate`'s preference-based fallback) prevents silent behavior changes when a second source is added to config.
 
 ### Fixed
 
 - **Config file split options now take effect.** Commander boolean flags (`--split-components`, `--split-concerns`, `--use-subfolders`) previously defaulted to `false`, which caused the nullish coalescing chain (`options.flag ?? config.value ?? false`) to short-circuit before consulting `specs.config.yaml`. Removed the Commander defaults so the flags are `undefined` when absent, allowing config values to flow through.
+
+### Docs
+
+- Updated `docs/cli/` (index, getting-started, claude-onboarding, examples, commands/generate, commands/scan, commands/index, commands/apply-custom-tokens) to document and demonstrate the zero-arg `specs generate` workflow. Existing `specs generate components.md` examples are preserved where they document explicit-argument option behavior.
+
+### Dependency updates
+
+- No upstream package changes. Continues to target `@directededges/specs-schema ^0.17.0` and `@directededges/specs-from-figma ^0.14.2`.
 
 ## [0.10.2] - 2026-04-14
 

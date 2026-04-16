@@ -89,7 +89,7 @@ specs applyCustomTokens data/token-mappings.json
 # Requires format.tokens: CUSTOM in specs.config.yaml
 specs fetch
 specs applyCustomTokens data/token-mappings.json
-specs generate data/manifest.md -o specs/
+specs generate
 ```
 
 ## Branch-Fetched Data

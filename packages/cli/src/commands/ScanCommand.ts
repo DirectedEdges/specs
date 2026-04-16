@@ -22,6 +22,7 @@ interface ScanOptions {
   output?: string;
   dataDir?: string;
   config?: string;
+  source?: string;
   includeAll: boolean;
   variables?: string;
   verbose: boolean;
@@ -30,6 +31,7 @@ interface ScanOptions {
 type MinimalConfig = {
   dataDirectory?: string;
   sourceDirectory?: string; // deprecated alias
+  sources?: Record<string, { key: string; data: string[] }>;
 };
 
 function findConfigFile(cwd: string): string | null {
@@ -132,20 +134,67 @@ function generateManifest(
 
 export const Scan = new Command('scan')
   .description('Scan Figma file and generate component manifest for curation')
-  .argument('<file>', 'Path to Figma JSON file')
+  .argument('[file]', 'Path to Figma JSON file (default: resolved from configured source in specs.config.yaml)')
+  .option('--source <alias>', 'Configured source alias to scan (required when multiple sources exist)')
   .option('-o, --output <path>', 'Output manifest file path (default: {dataDirectory}/{alias}.manifest.md)')
   .option('--data-dir <dir>', 'Override data directory for default manifest output path')
   .option('--config <path>', 'Path to config file (specs.config.yaml)')
   .option('--include-all', 'Include all components by default (ignore heuristics)', false)
   .option('-v, --variables <path>', 'Variables file path (for reference in manifest)')
   .option('--verbose', 'Enable detailed logging', false)
-  .action(async (file: string, options: ScanOptions) => {
+  .action(async (fileArg: string | undefined, options: ScanOptions) => {
     try {
-      // Resolve output path: explicit -o, or derive from config dataDirectory + input filename
+      const { configDir, config } = loadConfig(options.config);
+      const dataDir = options.dataDir || config.dataDirectory || config.sourceDirectory;
+      const resolvedDir = path.resolve(configDir, dataDir || '.');
+
+      // Resolve file: explicit arg wins, else derive from config sources
+      let file: string;
+      if (fileArg) {
+        if (options.source) {
+          console.error('Error: Pass either a <file> argument or --source, not both');
+          process.exit(ERROR_CODES.INVALID_ARGS);
+        }
+        file = fileArg;
+      } else {
+        const fileSources = Object.entries(config.sources || {}).filter(
+          ([, entry]) => Array.isArray(entry.data) && entry.data.includes('file')
+        );
+
+        if (fileSources.length === 0) {
+          console.error('Error: No <file> argument provided and no sources configured in specs.config.yaml');
+          console.error('Tip: run `specs fetch` first, or pass a file path explicitly (e.g., `specs scan data/library.file.json`)');
+          process.exit(ERROR_CODES.INVALID_ARGS);
+        }
+
+        let alias: string;
+        if (options.source) {
+          const match = fileSources.find(([name]) => name === options.source);
+          if (!match) {
+            const available = fileSources.map(([name]) => name).join(', ');
+            console.error(`Error: --source "${options.source}" did not match a configured source with file data`);
+            console.error(`Available: ${available}`);
+            process.exit(ERROR_CODES.INVALID_ARGS);
+          }
+          alias = match[0];
+        } else if (fileSources.length === 1) {
+          alias = fileSources[0][0];
+        } else {
+          const available = fileSources.map(([name]) => name).join(', ');
+          console.error('Error: Multiple sources configured. Specify one with --source <alias>.');
+          console.error(`Available: ${available}`);
+          process.exit(ERROR_CODES.INVALID_ARGS);
+        }
+
+        file = path.join(resolvedDir, `${alias}.file.json`);
+
+        if (options.verbose) {
+          console.error(`[CLI] Using source "${alias}": ${path.relative(process.cwd(), file)}`);
+        }
+      }
+
+      // Resolve output path: explicit -o, or derive from input filename
       if (!options.output) {
-        const { configDir, config } = loadConfig(options.config);
-        const dataDir = options.dataDir || config.dataDirectory || config.sourceDirectory;
-        const resolvedDir = path.resolve(configDir, dataDir || '.');
         const baseName = path.basename(file, '.file.json');
         options.output = path.join(resolvedDir, `${baseName}.manifest.md`);
       }
@@ -157,6 +206,9 @@ export const Scan = new Command('scan')
       // Validate file exists
       if (!fs.existsSync(file)) {
         console.error(`Error: File not found: ${file}`);
+        if (!fileArg) {
+          console.error('Tip: run `specs fetch` to download source data');
+        }
         process.exit(ERROR_CODES.FILE_ERROR);
       }
 
@@ -217,7 +269,7 @@ export const Scan = new Command('scan')
       console.log(`✓ Saved to ${outputPath}`);
       console.log('');
       console.log(`Next: Edit ${path.basename(outputPath)} to adjust selections, then run:`);
-      console.log(`  specs generate ${path.basename(outputPath)} -o specs.yaml`);
+      console.log(`  specs generate`);
 
       process.exit(ERROR_CODES.SUCCESS);
 

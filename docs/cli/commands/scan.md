@@ -5,40 +5,58 @@ Scan a Figma file and generate a manifest of all components.
 ## Usage
 
 ```bash
-specs scan <file> [options]
+specs scan [file] [options]
 ```
 
 ## Arguments
 
-### `<file>` (required)
-Path to Figma REST API JSON file.
+### `[file]` (optional)
+Path to Figma REST API JSON file. When omitted, `scan` resolves the file from your configured sources in `specs.config.yaml`:
+
+- **1 source configured** → auto-selected
+- **2+ sources configured** → must specify one with `--source <alias>`
+- **No sources configured** → error; pass `[file]` explicitly
 
 ```bash
-specs scan data/library.file.json -o components.md
+# Zero-config: auto-resolves when one source is configured
+specs scan
+
+# Select a specific source when multiple are configured
+specs scan --source library
+
+# Or pass a file path explicitly
+specs scan data/library.file.json
 ```
 
 ## Options
 
+### `--source <alias>`
+Configured source alias to scan. Required when multiple sources exist in `specs.config.yaml`. Cannot be combined with an explicit `[file]` argument.
+
+```bash
+specs scan --source library
+```
+
 ### `-o, --output <path>`
-Output manifest path. Optional — defaults to `{dataDirectory}/{alias}.manifest.md`, where `dataDirectory` comes from `specs.config.yaml` and `alias` is derived from the input filename (e.g., `library.file.json` → `library.manifest.md`).
+Output manifest path. Optional — defaults to `{dataDirectory}/{alias}.manifest.md`, where `dataDirectory` comes from `specs.config.yaml` and `alias` is either the resolved source name or derived from the input filename (e.g., `library.file.json` → `library.manifest.md`).
 
 ```bash
 # Explicit output path
-specs scan data/library.file.json -o manifests/design-system.md
+specs scan -o manifests/design-system.md
 
 # Default: writes to data/library.manifest.md (from config dataDirectory)
-specs scan data/library.file.json --config specs.config.yaml
+specs scan --config specs.config.yaml
 ```
 
 ### `--data-dir <dir>`
 Override the data directory used for resolving input files and default output path. Defaults to `dataDirectory` from config, or `./data` if not configured.
 
 ```bash
-specs scan data/library.file.json --data-dir ./custom-data
+specs scan --data-dir ./custom-data
 ```
 
 ### `--config <path>`
-Path to config file. Used to resolve `dataDirectory` for the default output path.
+Path to config file. Used to resolve `dataDirectory` and `sources` for auto-selection and the default output path.
 
 ### `--include-all`
 Include all components by default (ignore heuristics).
@@ -49,15 +67,14 @@ Variables JSON file path.
 This is written into the manifest header as metadata for reference.
 
 ```bash
-specs scan data/library.file.json -o components.md \
-  --variables data/library.variables.json
+specs scan --variables data/library.variables.json
 ```
 
 ### `--verbose`
 Enable detailed logging.
 
 ```bash
-specs scan data/library.file.json --verbose -o components.md
+specs scan --verbose
 ```
 
 ## Output Format
@@ -116,28 +133,39 @@ Edit the manifest to select which components to process:
 ### Basic Scan
 
 ```bash
-# Generate manifest
+# Zero-config: auto-resolves the only configured source
+# Default output: {dataDirectory}/library.manifest.md
+specs scan
+
+# Or pass an explicit file path
 specs scan data/library.file.json -o components.md
+```
+
+### Multiple Sources
+
+```bash
+# When specs.config.yaml has multiple sources, pick one:
+specs scan --source library
+specs scan --source foundations
 ```
 
 ### With Variables
 
 ```bash
 # Include variables path in manifest metadata
-specs scan data/library.file.json -o components.md \
-  --variables data/library.variables.json
+specs scan --variables data/library.variables.json
 ```
 
 ### Verbose Output
 
 ```bash
 # See component count and file stats
-specs scan data/library.file.json --verbose -o components.md
+specs scan --verbose
 
 # Output:
 # ✓ Scanned library.file.json
 # ✓ Found 164 components
-# ✓ Saved to /absolute/path/to/components.md
+# ✓ Saved to /absolute/path/to/data/library.manifest.md
 ```
 
 ---

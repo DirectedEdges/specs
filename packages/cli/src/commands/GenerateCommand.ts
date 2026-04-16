@@ -60,7 +60,7 @@ interface GenerateOptions {
 
 export const Generate = new Command('generate')
   .description('Generate component specifications from Figma data or manifest')
-  .argument('<source>', 'Path to Figma JSON file or markdown manifest')
+  .argument('[source]', 'Path to Figma JSON file or markdown manifest (default: {dataDirectory}/{alias}.manifest.md from config)')
   .option('-c, --component <name|id>', 'Component name or ID (required for file mode)')
   .option('-l, --license <key>', 'License key for premium features (or set SPECS_LICENSE_KEY)')
   .option('-f, --format <format>', 'Output format (yaml or json) - overrides config')
@@ -73,8 +73,47 @@ export const Generate = new Command('generate')
   .option('--split-concerns', 'Separate API and variants into different files')
   .option('--use-subfolders', 'Organize component files in subdirectories (requires --split-components)')
   .option('--verbose', 'Enable detailed logging', false)
-  .action(async (source: string, options: GenerateOptions) => {
+  .action(async (source: string | undefined, options: GenerateOptions) => {
     try {
+      // Load configuration (needed to resolve default source path)
+      const configLoader = new ConfigLoader();
+      const config = configLoader.load(options.config);
+      const modelConfig = config.config;
+
+      if (options.verbose && options.config) {
+        console.log(`[CLI] Using config from: ${options.config}`);
+      }
+
+      // Use dataDirectory for loading data files (flag > config > default)
+      const sourceDir = options.dataDir
+        ? path.resolve(options.dataDir)
+        : config.dataDirectory
+          ? path.resolve(config.dataDirectory)
+          : path.join(process.cwd(), 'data');
+
+      // Resolve default source path: {dataDirectory}/{alias}.manifest.md
+      // Alias preference: `library` if configured with `data: [file]`, else first source with `data: [file]`.
+      if (!source) {
+        const sources = config.sources || {};
+        const defaultAlias = (() => {
+          if (sources.library && Array.isArray(sources.library.data) && sources.library.data.includes('file')) return 'library';
+          const candidate = Object.entries(sources).find(([, s]) => Array.isArray(s.data) && s.data.includes('file'));
+          return candidate ? candidate[0] : null;
+        })();
+
+        if (!defaultAlias) {
+          console.error('Error: No source argument provided and no default manifest could be resolved');
+          console.error('Tip: run `specs scan` to generate a manifest, or configure a source with `data: [file]` in specs.config.yaml');
+          process.exit(ERROR_CODES.INVALID_ARGS);
+        }
+
+        source = path.join(sourceDir, `${defaultAlias}.manifest.md`);
+
+        if (options.verbose) {
+          console.log(`[CLI] Using default manifest: ${path.relative(process.cwd(), source)}`);
+        }
+      }
+
       const sourcePath = path.resolve(source);
 
       if (options.verbose) {
@@ -84,6 +123,9 @@ export const Generate = new Command('generate')
       // Validate source exists
       if (!fs.existsSync(sourcePath)) {
         console.error(`Error: Source file not found: ${source}`);
+        if (source.endsWith('.manifest.md')) {
+          console.error('Tip: run `specs scan` to generate the manifest');
+        }
         process.exit(ERROR_CODES.FILE_ERROR);
       }
 
@@ -101,22 +143,6 @@ export const Generate = new Command('generate')
       if (options.verbose) {
         console.log(`[CLI] Mode: ${isManifest ? 'manifest' : 'file'}`);
       }
-
-      // Load configuration
-      const configLoader = new ConfigLoader();
-      const config = configLoader.load(options.config);
-      const modelConfig = config.config;
-
-      if (options.verbose && options.config) {
-        console.log(`[CLI] Using config from: ${options.config}`);
-      }
-
-      // Use dataDirectory for loading data files (flag > config > default)
-      const sourceDir = options.dataDir
-        ? path.resolve(options.dataDir)
-        : config.dataDirectory
-          ? path.resolve(config.dataDirectory)
-          : path.join(process.cwd(), 'data');
 
       // ---------------------------------------------------------------
       // Determine component IDs and Figma file JSON based on mode

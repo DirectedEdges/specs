@@ -48,13 +48,13 @@ See [Fetch Command](./fetch.md) for details.
 
 #### From a Manifest (recommended)
 ```bash
-# Create manifest
-specs scan data/library.file.json -o components.md
+# Create manifest (auto-resolves configured source; default output: data/library.manifest.md)
+specs scan
 
-# Curate (edit components.md to select components)
+# Curate (edit data/library.manifest.md to select components)
 
-# Generate specs for selected components
-specs generate components.md -o specs/all.yaml
+# Generate specs — uses default manifest + outputDirectory from config
+specs generate
 ```
 
 #### Single Component
@@ -134,8 +134,8 @@ specs generate data/library.file.json -c "Alert" -o specs/alert.yaml
 specs generate data/library.file.json -c "Modal" -o specs/modal.yaml
 
 # Fast (1 process for all 3)
-# Edit manifest to select Button, Alert, Modal
-specs generate components.md -o specs/all.yaml
+# Edit data/library.manifest.md to select Button, Alert, Modal
+specs generate
 ```
 
 ### 3. Use Node IDs for Special Characters
@@ -162,10 +162,10 @@ specs generate data/library.file.json -c "Button" --format yaml | yq -o json > b
 
 ```bash
 # Count selected components
-grep "^\- \[x\]" components.md | wc -l
+grep "^\- \[x\]" data/library.manifest.md | wc -l
 
 # List selected component names
-grep "^\- \[x\]" components.md | sed 's/- \[x\] \(.*\) (.*/\1/'
+grep "^\- \[x\]" data/library.manifest.md | sed 's/- \[x\] \(.*\) (.*/\1/'
 ```
 
 ## See Also

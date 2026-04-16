@@ -11,6 +11,7 @@ describe('ScanCommand', () => {
     const options = Scan.options.map(option => option.long).filter(Boolean);
 
     expect(options).toContain('--output');
+    expect(options).toContain('--source');
     expect(options).toContain('--include-all');
     expect(options).toContain('--variables');
     expect(options).toContain('--verbose');
