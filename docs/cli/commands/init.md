@@ -58,8 +58,8 @@ specs init
 # 📚 Next steps:
 #    1. Edit the config file to add your Figma file keys
 #    2. Run: specs fetch
-#    3. Run: specs scan data/library.file.json -o components.md
-#    4. Run: specs generate components.md -o specs.yaml
+#    3. Run: specs scan
+#    4. Run: specs generate
 #
 # 📖 Documentation: docs/cli/configuration.md
 ```

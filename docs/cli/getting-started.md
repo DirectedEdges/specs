@@ -2,6 +2,8 @@
 
 Specs CLI generates component specifications from your Figma design system. This guide walks you through setup and your first spec generation.
 
+> **Using Claude Code?** Skip the manual walkthrough. Paste this into Claude: *"Onboard me to Specs CLI by following `docs/cli/claude-onboarding.md`."* Claude will handle install, config, token setup, fetch, and your first generate — asking only the decisions that actually need you. See [Claude Code Onboarding](./claude-onboarding.md).
+
 **Quick nav:**
 - [Prerequisite: Node.js](#prerequisite-nodejs)
 - [Step 1: Install Specs CLI](#step-1-install-specs-cli)
@@ -188,7 +190,7 @@ The license key is resolved in this priority order: `--license` flag > `SPECS_LI
 Add `SPECS_LICENSE_KEY` to your `.env` file as shown above, or pass it per-command with the `-l` flag:
 
 ```bash
-specs generate components.md -o specs/all.yaml -l "your-license-key"
+specs generate -l "your-license-key"
 ```
 
 ## Step 5: Fetch Figma data
@@ -206,12 +208,16 @@ This writes JSON data downloaded from the Figma REST API to your `dataDirectory`
 Discover components in a fetched file and build a manifest of components to potentially generate specs. By default, all components are checked.
 
 ```bash
-specs scan data/library.file.json -o components.md
+specs scan
 ```
+
+With no arguments, `scan` uses your configured source from `specs.config.yaml`. If you have multiple sources, pass `--source <alias>` to pick one (e.g., `specs scan --source library`). You can still pass an explicit path to override (`specs scan data/library.file.json`).
+
+With no `-o` flag, the manifest is written to `{dataDirectory}/{alias}.manifest.md` (e.g., `data/library.manifest.md`). This is also where `specs generate` looks for its default input.
 
 ## Step 7: Select components
 
-Open `components.md` and select components to generate specs for. Check `[x]` to include, uncheck `[ ]` to exclude.
+Open `data/library.manifest.md` and select components to generate specs for. Check `[x]` to include, uncheck `[ ]` to exclude.
 
 ```md
 - [ ] _random Test experiment component
@@ -226,10 +232,10 @@ Open `components.md` and select components to generate specs for. Check `[x]` to
 Generate specs for the selected components:
 
 ```bash
-specs generate components.md -o specs/design-system.yaml
+specs generate
 ```
 
-This reads the manifest, processes each selected component, and writes the output to the specified file (or directory, if using `--split-components`).
+With no arguments, `generate` reads the default manifest (`{dataDirectory}/{alias}.manifest.md`) and writes output to `outputDirectory` from your config. Each selected component is processed and written according to your `output` settings (single file, split per component, or split by concern). You can still pass explicit paths with `<manifest>` or `-o <path>` to override either default.
 
 ---
 
@@ -281,7 +287,7 @@ jobs:
         env:
           FIGMA_TOKEN: ${{ secrets.FIGMA_TOKEN }}
 
-      - run: specs generate components.md -o specs/design-system.yaml
+      - run: specs generate
         env:
           SPECS_LICENSE_KEY: ${{ secrets.SPECS_LICENSE_KEY }}
 

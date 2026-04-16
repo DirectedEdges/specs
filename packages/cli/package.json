@@ -1,6 +1,6 @@
 {
   "name": "@directededges/specs-cli",
-  "version": "0.10.2",
+  "version": "0.11.0",
   "description": "Command-line interface for Specs design system operations",
   "type": "module",
   "main": "./dist/index.js",

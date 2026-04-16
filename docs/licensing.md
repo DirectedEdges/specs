@@ -93,12 +93,12 @@ Provide your license key in any of these ways (recommended first):
 2. **Environment variable**: `SPECS_LICENSE_KEY`
    ```bash
    export SPECS_LICENSE_KEY="your-license-key"
-   specs generate components.md -o specs/all.yaml
+   specs generate
    ```
 
 3. **CLI flag**: `-l` or `--license` (useful for one-off runs or CI)
    ```bash
-   specs generate components.md -o specs/all.yaml -l "your-license-key"
+   specs generate -l "your-license-key"
    ```
 
 When multiple sources are present, CLI flag takes priority over env var, which takes priority over `.env` file.

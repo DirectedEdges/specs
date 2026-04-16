@@ -92,8 +92,8 @@ If component names have special characters or duplicates, use node IDs.
 
 **Find Node ID:**
 ```bash
-# List all components with IDs
-specs scan data/library.file.json -o manifest.md
+# List all components with IDs (auto-resolves configured source)
+specs scan -o manifest.md
 
 # Look in manifest.md:
 # - [x] DS Button/Icon (5507:123, COMPONENT_SET)
@@ -120,11 +120,9 @@ specs generate data/library.file.json \
   -o specs/button.json
 ```
 
-**From Manifest:**
+**From Manifest (uses default manifest from config):**
 ```bash
-specs generate components.md \
-  --format json \
-  -o specs/all-components.json
+specs generate --format json -o specs/all-components.json
 ```
 
 **Result:** Valid JSON file with same structure as YAML.
@@ -142,8 +140,8 @@ export SPECS_LICENSE_KEY="your-license-key"
 # Single component
 specs generate data/library.file.json -c "DS Button" -o specs/button.yaml
 
-# From manifest
-specs generate components.md -o specs/all.yaml
+# From manifest (uses default manifest + outputDirectory from config)
+specs generate
 ```
 
 Output includes license status:
@@ -271,26 +269,30 @@ Process multiple components from a design system.
 
 **Step 1: Create Manifest**
 ```bash
-specs scan data/design-system.json -o components.md
+# Auto-resolves configured source; writes to data/{alias}.manifest.md by default
+specs scan
+
+# Or pass an explicit path:
+specs scan data/design-system.file.json
 ```
 
 **Output:**
 ```
-✓ Scanned design-system.json
+✓ Scanned design-system.file.json
 ✓ Found 164 components
-✓ Saved to components.md
+✓ Saved to data/design-system.manifest.md
 ```
 
 **Step 2: Review & Edit Manifest**
 
-Open `components.md`:
+Open `data/design-system.manifest.md`:
 
 ```markdown
 # Component Manifest
 
 **Generated:** 2026-01-17T20:45:00.000Z
-**File:** data/design-system.json
-**Variables:** data/design-system-variables.json
+**File:** data/design-system.file.json
+**Variables:** data/design-system.variables.json
 
 ## Components
 
@@ -307,6 +309,10 @@ Open `components.md`:
 
 **Step 3: Generate Specs**
 ```bash
+# Zero-config: reads data/design-system.manifest.md and writes to outputDirectory
+specs generate --verbose
+
+# Or with explicit paths:
 specs generate components.md \
   -o specs/design-system.yaml \
   --verbose
@@ -333,22 +339,22 @@ specs generate components.md \
 
 **Per-component files (flat):**
 ```bash
-specs generate components.md -o specs/ --split-components
+specs generate -o specs/ --split-components
 ```
 
 **Per-component files with subfolders:**
 ```bash
-specs generate components.md -o specs/ --split-components --use-subfolders
+specs generate -o specs/ --split-components --use-subfolders
 ```
 
 **Split API from variants:**
 ```bash
-specs generate components.md -o specs/ --split-concerns
+specs generate -o specs/ --split-concerns
 ```
 
 **Maximum organization — component dirs with concern files:**
 ```bash
-specs generate components.md -o specs/ --split-components --split-concerns
+specs generate -o specs/ --split-components --split-concerns
 ```
 
 ---
@@ -360,8 +366,8 @@ Organize components by category.
 **Create Category Manifests:**
 
 ```bash
-# Generate full manifest
-specs scan data/library.json -o all-components.md
+# Generate full manifest (auto-resolves configured source)
+specs scan -o all-components.md
 
 # Create atoms manifest (manually or with script)
 grep "Button\|Input\|Icon" all-components.md > atoms.md
@@ -515,7 +521,7 @@ jobs:
           FIGMA_TOKEN: ${{ secrets.FIGMA_TOKEN }}
 
       - name: Generate component specs
-        run: specs generate manifests/components.md -o specs/design-system.yaml
+        run: specs generate
         env:
           SPECS_LICENSE_KEY: ${{ secrets.SPECS_LICENSE_KEY }}
 
@@ -548,9 +554,7 @@ echo "Fetching Figma data..."
 specs fetch
 
 echo "Generating component specs..."
-specs generate manifests/components.md \
-  --output specs/design-system.yaml \
-  --verbose
+specs generate --verbose
 
 echo "Sync complete!"
 ```
@@ -574,12 +578,12 @@ chmod +x scripts/sync-specs.sh
 Keep manifests in version control to track component selection:
 
 ```bash
-# Add manifest
-git add manifests/components.md
+# Add manifest (default location: data/library.manifest.md)
+git add data/library.manifest.md
 git commit -m "feat: add Modal to component manifest"
 
 # Review changes
-git diff manifests/components.md
+git diff data/library.manifest.md
 ```
 
 **Benefits:**
@@ -687,7 +691,7 @@ specs applyCustomTokens data/token-mappings.json
 
 # Generate specs — matched variables use $custom verbatim,
 # unmatched fall back to TOKEN_FIGMA_EXTENSIONS format
-specs generate components.md -o specs/
+specs generate
 ```
 
 **4. Verify output:**

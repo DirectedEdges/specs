@@ -1,11 +1,14 @@
 # `generate` Command
 
-Generate component specifications from Figma data. Accepts either a markdown manifest (for multiple components) or a JSON file with a component flag (for a single component).
+Generate component specifications from Figma data. Accepts either a markdown manifest (for multiple components) or a JSON file with a component flag (for a single component). The source argument is optional — without it, `generate` uses the default manifest location derived from your config.
 
 ## Usage
 
 ```bash
-# From a manifest (multiple components)
+# Zero-config: uses default manifest from config (recommended)
+specs generate
+
+# From an explicit manifest (multiple components)
 specs generate <manifest.md> [options]
 
 # From a JSON file (single component)
@@ -19,6 +22,10 @@ specs generate <file.json> -c <component> [options]
 Pass a markdown manifest created by `scan` to generate specs for all selected components in one pass. This is faster than running `generate` multiple times, because the file is loaded and indexed once.
 
 ```bash
+# Uses the default manifest from config: {dataDirectory}/{alias}.manifest.md
+specs generate
+
+# Or pass an explicit manifest path
 specs generate components.md -o specs/library.yaml
 ```
 
@@ -34,11 +41,18 @@ specs generate data/library.file.json -c "DS Button" -o specs/button.yaml
 
 ## Arguments
 
-### `<source>` (required)
+### `[source]` (optional)
 Path to a markdown manifest or Figma REST API JSON file.
 
+- **Not provided**: defaults to `{dataDirectory}/{alias}.manifest.md`, where `dataDirectory` comes from `specs.config.yaml` and `alias` is `library` if configured with `data: [file]`, otherwise the first source alias with `data: [file]`. This matches the default output of `specs scan`.
+- **Manifest path (`.md`)**: manifest mode (multiple components)
+- **Figma JSON (`.json`)**: file mode (requires `-c`)
+
 ```bash
-# Manifest
+# Default: data/library.manifest.md (from config)
+specs generate
+
+# Explicit manifest
 specs generate components.md -o specs/all.yaml
 
 # JSON file
@@ -243,13 +257,13 @@ specs generate components.md --verbose -o specs/library.yaml
 # 1. Fetch data
 specs fetch
 
-# 2. Create manifest
-specs scan data/library.file.json -o components.md
+# 2. Create manifest (auto-resolves configured source; writes to data/library.manifest.md by default)
+specs scan
 
-# 3. Curate (edit components.md to select [x] components)
+# 3. Curate (edit data/library.manifest.md to select [x] components)
 
-# 4. Generate specs
-specs generate components.md -o specs/library.yaml
+# 4. Generate specs (uses default manifest + outputDirectory from config)
+specs generate
 ```
 
 ### Single component
@@ -268,7 +282,7 @@ specs generate components.md -o specs/ --split-components
 
 ```bash
 export SPECS_LICENSE_KEY="your-license-key"
-specs generate components.md -o specs/library.yaml
+specs generate
 ```
 
 ---

@@ -15,11 +15,11 @@ describe('GenerateCommand', () => {
       expect(Generate.description()).toContain('Generate');
     });
 
-    it('has source as required argument', () => {
+    it('has source as an optional argument (defaults to manifest from config)', () => {
       const args = Generate.registeredArguments;
       expect(args).toHaveLength(1);
       expect(args[0].name()).toBe('source');
-      expect(args[0].required).toBe(true);
+      expect(args[0].required).toBe(false);
     });
 
     it('component option is not mandatory (optional for manifest mode)', () => {
@@ -58,19 +58,19 @@ describe('GenerateCommand', () => {
       expect(shorts).toContain('-s');
     });
 
-    it('split-components defaults to false', () => {
+    it('split-components has no Commander default (defers to config)', () => {
       const opt = Generate.options.find(o => o.long === '--split-components');
-      expect(opt!.defaultValue).toBe(false);
+      expect(opt!.defaultValue).toBeUndefined();
     });
 
-    it('split-concerns defaults to false', () => {
+    it('split-concerns has no Commander default (defers to config)', () => {
       const opt = Generate.options.find(o => o.long === '--split-concerns');
-      expect(opt!.defaultValue).toBe(false);
+      expect(opt!.defaultValue).toBeUndefined();
     });
 
-    it('use-subfolders defaults to false', () => {
+    it('use-subfolders has no Commander default (defers to config)', () => {
       const opt = Generate.options.find(o => o.long === '--use-subfolders');
-      expect(opt!.defaultValue).toBe(false);
+      expect(opt!.defaultValue).toBeUndefined();
     });
 
     it('verbose defaults to false', () => {

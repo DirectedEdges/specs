@@ -24,10 +24,10 @@ specs init
 # 5. Fetch raw Figma data (file, variables, styles)
 specs fetch
 # 6. Scan the file to discover components and build a manifest
-specs scan <figma-file-id>
+specs scan
 # 7. Select components in the manifest to be generated
 # 8. Generate specs from the manifest
-specs generate <source>
+specs generate
 ```
 
 Helpful documentation includes:

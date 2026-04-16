@@ -416,7 +416,7 @@ Output configuration follows the standard priority system:
 ```bash
 # Config has splitComponents: false
 # CLI overrides to true
-specs generate manifest.md --split-components
+specs generate --split-components
 ```
 
 ---
