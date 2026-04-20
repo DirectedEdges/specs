@@ -2,7 +2,7 @@
 
 **Branch**: `039-wrap-alignment`
 **Created**: 2026-04-20
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 
