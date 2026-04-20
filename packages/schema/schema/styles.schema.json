@@ -43,9 +43,8 @@
         "layoutMode": { "$ref": "#/definitions/StringStyleValue", "description": "Layout mode" },
         "layoutWrap": { "$ref": "#/definitions/StringStyleValue", "description": "Layout wrap mode" },
         "itemReverseZIndex": { "$ref": "#/definitions/BooleanStyleValue", "description": "Reverse z-index stacking" },
-        "itemSpacing": { "$ref": "#/definitions/NumberStyleValue", "description": "Item spacing" },
+        "itemSpacing": { "$ref": "#/definitions/ItemSpacingStyleValue", "description": "Gap between items. Scalar when uniform; object with horizontal/vertical when axes differ." },
         "padding": { "$ref": "#/definitions/SidesStyleValue", "description": "Padding. Scalar when uniform; Sides object when per-side values differ." },
-        "counterAxisSpacing": { "$ref": "#/definitions/NumberStyleValue", "description": "Counter axis spacing" },
         "cornerSmoothing": { "$ref": "#/definitions/NumberStyleValue", "description": "Degree of corner smoothing (0 = standard circular corners, 1 = fully smooth iOS-style squircle). Applies to FRAME, COMPONENT, RECTANGLE, POLYGON, STAR, VECTOR, and ELLIPSE element types." },
         "aspectRatio": { "$ref": "#/definitions/AspectRatioStyleValue", "description": "Aspect ratio constraint. Present only when the node has a locked ratio; omitted otherwise." }
       },
@@ -309,6 +308,24 @@
       "oneOf": [
         { "type": "number" },
         { "$ref": "#/definitions/Corners" },
+        { "$ref": "#/definitions/TokenReference" },
+        { "type": "null" }
+      ]
+    },
+    "ItemSpacing": {
+      "type": "object",
+      "description": "Bi-axial item spacing values using absolute visual axes. Used for itemSpacing when horizontal and vertical gaps differ.",
+      "properties": {
+        "horizontal": { "$ref": "#/definitions/NumberStyleValue", "description": "Horizontal gap between items" },
+        "vertical": { "$ref": "#/definitions/NumberStyleValue", "description": "Vertical gap between items" }
+      },
+      "additionalProperties": false
+    },
+    "ItemSpacingStyleValue": {
+      "description": "Item spacing value. Scalar number when uniform; ItemSpacing object when horizontal and vertical gaps differ; TokenReference for token binding; null when absent.",
+      "oneOf": [
+        { "type": "number" },
+        { "$ref": "#/definitions/ItemSpacing" },
         { "$ref": "#/definitions/TokenReference" },
         { "type": "null" }
       ]
