@@ -7,7 +7,7 @@ import type {
   Styles, Shadow, Blur, Effects, Typography,
   TokenReference, ColorStyle, GradientStop, GradientCenter, LinearGradient, RadialGradient,
   AngularGradient, GradientValue, AspectRatioValue, AspectRatioStyle,
-  Sides, Corners, ItemSpacing, LayoutMode,
+  Sides, Corners, ItemSpacing, LayoutMode, WrapAlignment,
 } from '../types/index.js';
 
 // ─── ColorStyle ────────────────────────────────────────────────────────────
@@ -546,3 +546,58 @@ const _lmStyleNumber: Styles = { layoutMode: 1 };
 
 // @ts-expect-error: arbitrary string is not valid for layoutMode
 const _lmArbitrary: Styles = { layoutMode: 'ROW' };
+
+// ─── WrapAlignment ──────────────────────────────────────────────────────────
+
+// Valid enum values
+const _waStart: WrapAlignment = 'START';
+const _waSpaceBetween: WrapAlignment = 'SPACE_BETWEEN';
+
+// @ts-expect-error: arbitrary string is not valid WrapAlignment
+const _waBad: WrapAlignment = 'CENTER';
+
+// @ts-expect-error: number is not valid WrapAlignment
+const _waNumber: WrapAlignment = 0;
+
+// @ts-expect-error: lowercase is not valid (SCREAMING_CASE required)
+const _waLowercase: WrapAlignment = 'start';
+
+// ─── Styles.wrap (boolean Style) ────────────────────────────────────────────
+
+// Boolean values
+const withWrapTrue: Styles = { wrap: true };
+const withWrapFalse: Styles = { wrap: false };
+
+// null is valid (Style includes null)
+const withWrapNull: Styles = { wrap: null };
+
+// TokenReference is valid (Style includes TokenReference)
+const withWrapToken: Styles = {
+  wrap: { $token: 'Layout.Wrap', $type: 'boolean' } satisfies TokenReference,
+};
+
+// ─── Styles.wrapAlignment (WrapAlignment | null) ────────────────────────────
+
+// Valid enum values on Styles
+const withWrapAlignStart: Styles = { wrapAlignment: 'START' };
+const withWrapAlignSpace: Styles = { wrapAlignment: 'SPACE_BETWEEN' };
+
+// null is valid
+const withWrapAlignNull: Styles = { wrapAlignment: null };
+
+// @ts-expect-error: TokenReference is not valid for wrapAlignment (not token-bindable)
+const _waToken: Styles = { wrapAlignment: { $token: 'Layout.WrapAlign', $type: 'string' } satisfies TokenReference };
+
+// @ts-expect-error: number is not valid for wrapAlignment
+const _waStyleNumber: Styles = { wrapAlignment: 1 };
+
+// @ts-expect-error: arbitrary string is not valid for wrapAlignment
+const _waArbitrary: Styles = { wrapAlignment: 'AUTO' };
+
+// ─── Verify layoutWrap and counterAxisAlignContent removed from Styles ───────
+
+// @ts-expect-error: layoutWrap no longer exists on Styles
+const _oldLayoutWrap: Styles = { layoutWrap: true };
+
+// @ts-expect-error: counterAxisAlignContent no longer exists on Styles
+const _oldCounterAxisAlign: Styles = { counterAxisAlignContent: 'AUTO' };
