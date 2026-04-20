@@ -20,7 +20,7 @@ These names are direct Figma API pass-throughs. They have two problems:
 1. **`layoutWrap` is redundant with the `layout` prefix** — the property already lives inside a layout-aware context. The simpler name `wrap` is sufficient and consistent with CSS terminology.
 2. **`counterAxisAlignContent` is opaque** — the name describes a Figma implementation detail (counter-axis alignment of content lines) rather than the user-facing concept it represents: how wrapped lines are spaced. `wrapAlignment` captures the intent directly and is only meaningful when `wrap` is true.
 
-The current string union for `counterAxisAlignContent` (`'AUTO' | 'SPACE_BETWEEN'`) also uses Figma's internal enum casing. A platform-neutral schema should use lower-camel values aligned with CSS conventions.
+The current string union for `counterAxisAlignContent` (`'AUTO' | 'SPACE_BETWEEN'`) uses Figma's internal enum names. The values should be renamed to match the schema's own vocabulary (`START`, `SPACE_BETWEEN`) while retaining ALL CAPS casing consistent with other Styles-level enums like `LayoutMode`.
 
 ---
 
@@ -38,13 +38,13 @@ The current string union for `counterAxisAlignContent` (`'AUTO' | 'SPACE_BETWEEN
 
 ### Option A: `wrap` + `wrapAlignment` *(Selected)*
 
-Rename `layoutWrap` → `wrap` (boolean) and `counterAxisAlignContent` → `wrapAlignment` (dedicated `WrapAlignment` string literal union: `'start' | 'spaceBetween'`). Type the field as `WrapAlignment | null` following the `LayoutMode | null` pattern from ADR 038.
+Rename `layoutWrap` → `wrap` (boolean) and `counterAxisAlignContent` → `wrapAlignment` (dedicated `WrapAlignment` string literal union: `'START' | 'SPACE_BETWEEN'`). Type the field as `WrapAlignment | null` following the `LayoutMode | null` pattern from ADR 038.
 
 **Pros**:
 - `wrap` is concise, CSS-aligned, and self-evident
 - `wrapAlignment` clearly scopes its meaning to wrapped layouts
 - `WrapAlignment` as a dedicated type narrows the field from generic `Style` to a finite enum, matching the ADR 038 precedent (`LayoutMode`)
-- Lower-camel values (`start`, `spaceBetween`) are platform-neutral rather than Figma's `'AUTO'` / `'SPACE_BETWEEN'` casing
+- ALL CAPS values (`START`, `SPACE_BETWEEN`) are consistent with the adjacent `LayoutMode` enum and other Styles-level enums
 
 **Cons / Trade-offs**:
 - Breaking change: removes two fields and adds two new ones — requires a MAJOR bump within the current release
@@ -95,7 +95,7 @@ StyleKey:
   - 'counterAxisAlignContent'
 
 # After
-WrapAlignment: 'start' | 'spaceBetween'   # new exported type
+WrapAlignment: 'START' | 'SPACE_BETWEEN'   # new exported type
 
 Styles:
   wrap: Style                       # boolean — enables multi-line wrapping (default: false)
@@ -139,15 +139,15 @@ WrapAlignmentStyleValue:
   description: "Wrap alignment value. Structural property — not token-bindable."
   oneOf:
     - type: string
-      enum: [start, spaceBetween]
+      enum: [START, SPACE_BETWEEN]
     - type: "null"
 ```
 
 ### Notes
 
 - `wrap` uses `BooleanStyleValue` (not `StringStyleValue`) because the property is a true boolean toggle — this corrects the current `layoutWrap` which was typed as a generic `Style`/`StringStyleValue` despite being boolean in practice.
-- `wrapAlignment` uses a dedicated `WrapAlignment` type (`'start' | 'spaceBetween'`) and `WrapAlignmentStyleValue` schema definition, following the ADR 038 precedent where `layoutMode` was narrowed from `Style` to `LayoutMode | null`. Both are structural layout properties that are not token-bindable.
-- The value mapping from Figma is: `counterAxisAlignContent: 'AUTO'` → `wrapAlignment: 'start'`, `counterAxisAlignContent: 'SPACE_BETWEEN'` → `wrapAlignment: 'spaceBetween'`.
+- `wrapAlignment` uses a dedicated `WrapAlignment` type (`'START' | 'SPACE_BETWEEN'`) and `WrapAlignmentStyleValue` schema definition, following the ADR 038 precedent where `layoutMode` was narrowed from `Style` to `LayoutMode | null`. Both are structural layout properties that are not token-bindable.
+- The value mapping from Figma is: `counterAxisAlignContent: 'AUTO'` → `wrapAlignment: 'START'`, `counterAxisAlignContent: 'SPACE_BETWEEN'` → `wrapAlignment: 'SPACE_BETWEEN'` (same value, unchanged).
 
 ---
 
@@ -157,7 +157,7 @@ WrapAlignmentStyleValue:
 - **Parity check**:
   - `Styles.wrap: Style` ↔ `styles.schema.json#/properties/wrap` (`BooleanStyleValue`)
   - `Styles.wrapAlignment: WrapAlignment | null` ↔ `styles.schema.json#/properties/wrapAlignment` (`WrapAlignmentStyleValue`)
-  - `WrapAlignment` type ↔ `WrapAlignmentStyleValue` definition (enum: `start`, `spaceBetween`)
+  - `WrapAlignment` type ↔ `WrapAlignmentStyleValue` definition (enum: `START`, `SPACE_BETWEEN`)
 
 ---
 
@@ -182,4 +182,4 @@ WrapAlignmentStyleValue:
 - Consumers referencing `layoutWrap` or `counterAxisAlignContent` by name will get compile-time errors after upgrading — the rename is intentionally breaking to force migration
 - `wrap` establishes a simpler, CSS-aligned vocabulary that is unlikely to require further renaming
 - `wrapAlignment` documents its semantic dependency on `wrap: true` — consumers can safely omit it when wrapping is disabled
-- Schema validators accepting `counterAxisAlignContent: 'AUTO'` will need to accept `wrapAlignment: 'start'` instead
+- Schema validators accepting `counterAxisAlignContent: 'AUTO'` will need to accept `wrapAlignment: 'START'` instead
