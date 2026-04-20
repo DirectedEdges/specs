@@ -4,7 +4,6 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 039 | Replace `layoutWrap` and `counterAxisAlignContent` with `wrap` and `wrapAlignment` | |
 | 038 | Tighten layoutMode to String Literal Enum | |
 | 037 | Consolidate Item Spacing into a Bi-Axial Model | |
 | 035 | Make Config Properties with Defaults Optional | |
@@ -19,6 +18,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 039 | Replace `layoutWrap` and `counterAxisAlignContent` with `wrap` and `wrapAlignment` | Rename to platform-neutral names; add `WrapAlignment` enum (`START \| SPACE_BETWEEN`); not token-bindable |
 | 038 | Tighten layoutMode to String Literal Enum | Narrow `layoutMode` from `Style` to `LayoutMode \| null` (`'NONE' \| 'HORIZONTAL' \| 'VERTICAL'`); exclude TokenReference |
 | 037 | Consolidate Item Spacing into a Bi-Axial Model | Replace `itemSpacing` + `counterAxisSpacing` with single `itemSpacing: Style \| ItemSpacing` using `{ horizontal, vertical }` |
 | 036 | Remove `name` and `baseline` from `Variant` | Remove unused `name` and `baseline` optional fields from `Variant` type and schema (breaking) |
