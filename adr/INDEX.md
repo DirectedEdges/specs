@@ -4,6 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 038 | Tighten layoutMode to String Literal Enum | |
 | 037 | Consolidate Item Spacing into a Bi-Axial Model | |
 | 035 | Make Config Properties with Defaults Optional | |
 | 034 | Remove variantNames, add emptyVariants, make Config.include fields optional | Remove unused `variantNames` (breaking); add `emptyVariants` for filtering; make remaining fields optional |
