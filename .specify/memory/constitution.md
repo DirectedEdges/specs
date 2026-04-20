@@ -52,6 +52,7 @@ Rationale: These types are a published contract. Loose typing undermines compila
 ## Additional Constraints & Standards
 
 - **Naming — no abbreviations**: Type names, field names, schema properties, and API identifiers MUST use full, unabbreviated words. Prefer `Operation` over `Op`, `Button` over `Btn`, `Configuration` over `Config`. Clarity takes priority over brevity in the public contract. Accepted exceptions: `Config` (grandfathered), `args` (universally understood shorthand for arguments).
+- **Naming — enum casing in Styles**: String literal union types used as enum values in `Styles` properties (e.g., `LayoutMode`, `WrapAlignment`) MUST use `SCREAMING_CASE` (e.g., `'NONE'`, `'HORIZONTAL'`, `'SPACE_BETWEEN'`). This applies to all structural layout enums within `types/Styles.ts` and their corresponding schema definitions.
 - **Language/Tooling**: TypeScript strict mode (`tsconfig.build.json`); ESM only; no runtime dependencies permitted (devDependencies: `typescript` only).
 - **Build**: `tsc -p tsconfig.build.json` emits `.js` shims into `dist/`. The source of truth is `types/*.ts` — `dist/` is a compatibility artifact only.
 - **No test framework required** for a pure types/schema package, but schema consistency checks and type compilation serve as the quality gate.
