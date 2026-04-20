@@ -7,7 +7,7 @@ import type {
   Styles, Shadow, Blur, Effects, Typography,
   TokenReference, ColorStyle, GradientStop, GradientCenter, LinearGradient, RadialGradient,
   AngularGradient, GradientValue, AspectRatioValue, AspectRatioStyle,
-  Sides, Corners,
+  Sides, Corners, ItemSpacing,
 } from '../types/index.js';
 
 // ─── ColorStyle ────────────────────────────────────────────────────────────
@@ -478,3 +478,39 @@ const _oldBottomLeftRadius: Styles = { bottomLeftRadius: 4 };
 
 // @ts-expect-error: bottomRightRadius no longer exists on Styles
 const _oldBottomRightRadius: Styles = { bottomRightRadius: 4 };
+
+// ─── ItemSpacing ───────────────────��────────────────────────────────────────
+
+// All keys optional — empty ItemSpacing is valid
+const emptyItemSpacing: ItemSpacing = {};
+
+// Full ItemSpacing with numeric values
+const fullItemSpacing: ItemSpacing = { horizontal: 16, vertical: 8 };
+
+// Individual axes with TokenReference
+const tokenItemSpacing: ItemSpacing = {
+  horizontal: { $token: 'Space.Gap.H', $type: 'dimension' } satisfies TokenReference,
+  vertical: 8,
+};
+
+// null is valid for individual axis (absent/not set)
+const nullAxisSpacing: ItemSpacing = { horizontal: null, vertical: 12 };
+
+// ─── Styles.itemSpacing (scalar or ItemSpacing) ─────────────────────────────
+
+// Scalar number (uniform spacing)
+const uniformItemSpacing: Styles = { itemSpacing: 16 };
+
+// ItemSpacing object (per-axis)
+const perAxisItemSpacing: Styles = { itemSpacing: { horizontal: 16, vertical: 8 } };
+
+// TokenReference for itemSpacing
+const tokenItemSpacingStyle: Styles = {
+  itemSpacing: { $token: 'Space.Gap', $type: 'dimension' } satisfies TokenReference,
+};
+
+// null is valid
+const nullItemSpacing: Styles = { itemSpacing: null };
+
+// @ts-expect-error: counterAxisSpacing no longer exists on Styles
+const _oldCounterAxisSpacing: Styles = { counterAxisSpacing: 8 };
