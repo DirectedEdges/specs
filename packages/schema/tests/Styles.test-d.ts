@@ -7,7 +7,7 @@ import type {
   Styles, Shadow, Blur, Effects, Typography,
   TokenReference, ColorStyle, GradientStop, GradientCenter, LinearGradient, RadialGradient,
   AngularGradient, GradientValue, AspectRatioValue, AspectRatioStyle,
-  Sides, Corners, ItemSpacing,
+  Sides, Corners, ItemSpacing, LayoutMode,
 } from '../types/index.js';
 
 // ─── ColorStyle ────────────────────────────────────────────────────────────
@@ -514,3 +514,35 @@ const nullItemSpacing: Styles = { itemSpacing: null };
 
 // @ts-expect-error: counterAxisSpacing no longer exists on Styles
 const _oldCounterAxisSpacing: Styles = { counterAxisSpacing: 8 };
+
+// ─── LayoutMode ─────────────────────────────────────────────────────────────
+
+// Valid enum values
+const _lmNone: LayoutMode = 'NONE';
+const _lmHorizontal: LayoutMode = 'HORIZONTAL';
+const _lmVertical: LayoutMode = 'VERTICAL';
+
+// @ts-expect-error: arbitrary string is not valid LayoutMode
+const _lmBad: LayoutMode = 'GRID';
+
+// @ts-expect-error: number is not valid LayoutMode
+const _lmNumber: LayoutMode = 0;
+
+// ─── Styles.layoutMode (LayoutMode | null) ──────────────────────────────────
+
+// Valid enum values on Styles
+const withLayoutNone: Styles = { layoutMode: 'NONE' };
+const withLayoutHorizontal: Styles = { layoutMode: 'HORIZONTAL' };
+const withLayoutVertical: Styles = { layoutMode: 'VERTICAL' };
+
+// null is valid
+const withLayoutNull: Styles = { layoutMode: null };
+
+// @ts-expect-error: TokenReference is not valid for layoutMode (not token-bindable)
+const _lmToken: Styles = { layoutMode: { $token: 'Layout.Mode', $type: 'string' } satisfies TokenReference };
+
+// @ts-expect-error: number is not valid for layoutMode
+const _lmStyleNumber: Styles = { layoutMode: 1 };
+
+// @ts-expect-error: arbitrary string is not valid for layoutMode
+const _lmArbitrary: Styles = { layoutMode: 'ROW' };
