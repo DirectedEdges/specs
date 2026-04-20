@@ -2,7 +2,7 @@
 
 **Branch**: `038-layout-mode-enum`
 **Created**: 2026-04-20
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

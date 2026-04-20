@@ -11,10 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `ItemSpacing` — bi-axial spacing interface with optional `horizontal` and `vertical` fields
 - `Styles.itemSpacing` — now accepts `Style | ItemSpacing` (scalar when uniform, object when axes differ)
+- `LayoutMode` — string literal union type (`'NONE' | 'HORIZONTAL' | 'VERTICAL'`)
 
 ### Changed
 
 - `Styles.itemSpacing` — widened from `Style` to `Style | ItemSpacing`
+- `Styles.layoutMode` — narrowed from `Style` to `LayoutMode | null` (enum constraint, no TokenReference)
 
 ### Removed
 
@@ -23,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Migration
 
 - `Styles.counterAxisSpacing` → `Styles.itemSpacing.vertical`: read the `vertical` sub-field of the `ItemSpacing` object when axes differ; scalar `itemSpacing` applies uniformly
+- `Styles.layoutMode` → `LayoutMode | null`: replace generic `Style` handling with exhaustive match on `'NONE' | 'HORIZONTAL' | 'VERTICAL'`
 
 
 ## [0.17.0] - 2026-04-13
