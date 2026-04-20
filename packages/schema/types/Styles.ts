@@ -38,7 +38,8 @@ export type Styles = Partial<{
   primaryAxisSizingMode: Style;
   counterAxisAlignItems: Style;
   counterAxisAlignContent: Style;
-  layoutMode: Style;
+  /** Auto-layout direction. Structural property — not token-bindable. @since 0.18.0 */
+  layoutMode: LayoutMode | null;
   layoutWrap: Style;
   itemReverseZIndex: Style;
   /** Item spacing. Scalar when uniform; `ItemSpacing` object when horizontal and vertical gaps differ. @since 0.18.0 */
@@ -195,6 +196,12 @@ export interface Sides {
   /** Inline-start value (left in LTR, right in RTL) */
   start?: Style;
 }
+
+/**
+ * Auto-layout direction mode. Structural property that cannot be token-bound.
+ * @since 0.18.0
+ */
+export type LayoutMode = 'NONE' | 'HORIZONTAL' | 'VERTICAL';
 
 /**
  * Bi-axial item spacing values using absolute visual axes.

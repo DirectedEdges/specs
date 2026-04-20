@@ -40,7 +40,7 @@
         "primaryAxisSizingMode": { "$ref": "#/definitions/StringStyleValue", "description": "Primary axis sizing mode" },
         "counterAxisAlignItems": { "$ref": "#/definitions/StringStyleValue", "description": "Counter axis item alignment" },
         "counterAxisAlignContent": { "$ref": "#/definitions/StringStyleValue", "description": "Counter axis content alignment" },
-        "layoutMode": { "$ref": "#/definitions/StringStyleValue", "description": "Layout mode" },
+        "layoutMode": { "$ref": "#/definitions/LayoutModeStyleValue", "description": "Auto-layout direction. NONE (no auto-layout), HORIZONTAL (row), or VERTICAL (column)." },
         "layoutWrap": { "$ref": "#/definitions/StringStyleValue", "description": "Layout wrap mode" },
         "itemReverseZIndex": { "$ref": "#/definitions/BooleanStyleValue", "description": "Reverse z-index stacking" },
         "itemSpacing": { "$ref": "#/definitions/ItemSpacingStyleValue", "description": "Gap between items. Scalar when uniform; object with horizontal/vertical when axes differ." },
@@ -327,6 +327,13 @@
         { "type": "number" },
         { "$ref": "#/definitions/ItemSpacing" },
         { "$ref": "#/definitions/TokenReference" },
+        { "type": "null" }
+      ]
+    },
+    "LayoutModeStyleValue": {
+      "description": "Layout mode value. Structural property — not token-bindable.",
+      "oneOf": [
+        { "type": "string", "enum": ["NONE", "HORIZONTAL", "VERTICAL"] },
         { "type": "null" }
       ]
     },
