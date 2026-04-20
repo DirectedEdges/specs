@@ -37,10 +37,12 @@ export type Styles = Partial<{
   primaryAxisAlignItems: Style;
   primaryAxisSizingMode: Style;
   counterAxisAlignItems: Style;
-  counterAxisAlignContent: Style;
   /** Auto-layout direction. Structural property — not token-bindable. @since 0.18.0 */
   layoutMode: LayoutMode | null;
-  layoutWrap: Style;
+  /** Whether auto-layout wrapping is enabled (default: false). @since 0.18.0 */
+  wrap: Style;
+  /** Space distribution between wrapped lines. Only meaningful when `wrap` is true. Structural property — not token-bindable. @since 0.18.0 */
+  wrapAlignment: WrapAlignment | null;
   itemReverseZIndex: Style;
   /** Item spacing. Scalar when uniform; `ItemSpacing` object when horizontal and vertical gaps differ. @since 0.18.0 */
   itemSpacing: Style | ItemSpacing;
@@ -204,6 +206,13 @@ export interface Sides {
 export type LayoutMode = 'NONE' | 'HORIZONTAL' | 'VERTICAL';
 
 /**
+ * Wrap alignment mode for multi-line auto-layout. Structural property that cannot be token-bound.
+ * Only meaningful when `wrap` is true.
+ * @since 0.18.0
+ */
+export type WrapAlignment = 'START' | 'SPACE_BETWEEN';
+
+/**
  * Bi-axial item spacing values using absolute visual axes.
  * Used for `itemSpacing` when horizontal and vertical gaps differ.
  * Each field is optional; only axes that differ from the collapsed value are present.
@@ -267,9 +276,9 @@ export type StyleKey =
   | 'primaryAxisAlignItems'
   | 'primaryAxisSizingMode'
   | 'counterAxisAlignItems'
-  | 'counterAxisAlignContent'
   | 'layoutMode'
-  | 'layoutWrap'
+  | 'wrap'
+  | 'wrapAlignment'
   | 'itemReverseZIndex'
   | 'itemSpacing'
   | 'padding'

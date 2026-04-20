@@ -39,9 +39,9 @@
         "primaryAxisAlignItems": { "$ref": "#/definitions/StringStyleValue", "description": "Primary axis item alignment" },
         "primaryAxisSizingMode": { "$ref": "#/definitions/StringStyleValue", "description": "Primary axis sizing mode" },
         "counterAxisAlignItems": { "$ref": "#/definitions/StringStyleValue", "description": "Counter axis item alignment" },
-        "counterAxisAlignContent": { "$ref": "#/definitions/StringStyleValue", "description": "Counter axis content alignment" },
         "layoutMode": { "$ref": "#/definitions/LayoutModeStyleValue", "description": "Auto-layout direction. NONE (no auto-layout), HORIZONTAL (row), or VERTICAL (column)." },
-        "layoutWrap": { "$ref": "#/definitions/StringStyleValue", "description": "Layout wrap mode" },
+        "wrap": { "$ref": "#/definitions/BooleanStyleValue", "description": "Whether auto-layout wrapping is enabled (default: false)." },
+        "wrapAlignment": { "$ref": "#/definitions/WrapAlignmentStyleValue", "description": "Space distribution between wrapped lines. Only meaningful when wrap is true." },
         "itemReverseZIndex": { "$ref": "#/definitions/BooleanStyleValue", "description": "Reverse z-index stacking" },
         "itemSpacing": { "$ref": "#/definitions/ItemSpacingStyleValue", "description": "Gap between items. Scalar when uniform; object with horizontal/vertical when axes differ." },
         "padding": { "$ref": "#/definitions/SidesStyleValue", "description": "Padding. Scalar when uniform; Sides object when per-side values differ." },
@@ -334,6 +334,13 @@
       "description": "Layout mode value. Structural property — not token-bindable.",
       "oneOf": [
         { "type": "string", "enum": ["NONE", "HORIZONTAL", "VERTICAL"] },
+        { "type": "null" }
+      ]
+    },
+    "WrapAlignmentStyleValue": {
+      "description": "Wrap alignment value. Structural property — not token-bindable.",
+      "oneOf": [
+        { "type": "string", "enum": ["START", "SPACE_BETWEEN"] },
         { "type": "null" }
       ]
     },

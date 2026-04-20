@@ -21,9 +21,7 @@ type Styles = Partial<{ /* 48 properties */ }>;
 | `clipContent` | visibility | container, slot |
 | `cornerRadius` | border | container, slot |
 | `cornerSmoothing` | border | container, rectangle, vector, ellipse, star, polygon |
-| `counterAxisAlignContent` | layout | container |
 | `counterAxisAlignItems` | layout | container |
-| `counterAxisSpacing` | spacing | container |
 | `effects` | effects | container, slot, rectangle, text, vector, ellipse, star, polygon, line |
 | `fillColor` | color | glyph, vector, ellipse, star, polygon, line |
 | `height` | size | container, slot, rectangle, glyph, vector, ellipse, star, polygon |
@@ -33,7 +31,6 @@ type Styles = Partial<{ /* 48 properties */ }>;
 | `layoutPositioning` | layout | all |
 | `layoutSizingHorizontal` | layout | all |
 | `layoutSizingVertical` | layout | all |
-| `layoutWrap` | layout | container |
 | `locked` | visibility | all |
 | `maxHeight` | size | container, slot, rectangle, glyph, vector, ellipse, star, polygon, line |
 | `maxWidth` | size | container, slot, rectangle, glyph, vector, ellipse, star, polygon, line |
@@ -53,6 +50,8 @@ type Styles = Partial<{ /* 48 properties */ }>;
 | `typography` | text | text |
 | `visible` | visibility | all |
 | `width` | size | container, slot, rectangle, glyph, vector, ellipse, star, polygon, line |
+| `wrap` | layout | container |
+| `wrapAlignment` | layout | container |
 | `x` | position | all |
 | `y` | position | all |
 
@@ -74,6 +73,9 @@ Most properties accept a `Style` value. Some properties accept specialized shape
 | [`Effects`](effects.md) | Shadows and blurs | `{ shadows: [...], layerBlur: { ... } }` |
 | [`Sides`](sides.md) | Per-side values for padding or stroke weight | `{ top: 8, end: 12, bottom: 8, start: 12 }` |
 | [`Corners`](corners.md) | Per-corner values for corner radius | `{ topStart: 4, topEnd: 4, bottomEnd: 0, bottomStart: 0 }` |
+| `ItemSpacing` | Per-axis gap values | `{ horizontal: 16, vertical: 8 }` |
+| `LayoutMode` | Auto-layout direction enum | `"NONE"`, `"HORIZONTAL"`, `"VERTICAL"` |
+| `WrapAlignment` | Wrap line distribution enum | `"START"`, `"SPACE_BETWEEN"` |
 | `AspectRatio` | Width-to-height ratio | `{ x: 16, y: 9 }` |
 
 ### Relating properties to values
@@ -84,4 +86,7 @@ Most properties accept a `Style` value. Some properties accept specialized shape
 - `effects` accepts `TokenReference | Effects`.
 - `padding`, `strokeWeight` accept `Style | Sides`.
 - `cornerRadius` accepts `Style | Corners`.
+- `itemSpacing` accepts `Style | ItemSpacing`.
+- `layoutMode` accepts `LayoutMode | null` — not token-bindable.
+- `wrapAlignment` accepts `WrapAlignment | null` — not token-bindable.
 - `aspectRatio` accepts `AspectRatio | null`.

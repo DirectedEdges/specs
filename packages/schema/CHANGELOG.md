@@ -10,8 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `ItemSpacing` — bi-axial spacing interface with optional `horizontal` and `vertical` fields
-- `Styles.itemSpacing` — now accepts `Style | ItemSpacing` (scalar when uniform, object when axes differ)
 - `LayoutMode` — string literal union type (`'NONE' | 'HORIZONTAL' | 'VERTICAL'`)
+- `WrapAlignment` — string literal union type (`'START' | 'SPACE_BETWEEN'`) for wrap line distribution
+- `Styles.itemSpacing` — now accepts `Style | ItemSpacing` (scalar when uniform, object when axes differ)
+- `Styles.wrap` — boolean toggle for auto-layout wrapping (replaces `layoutWrap`)
+- `Styles.wrapAlignment` — typed as `WrapAlignment | null`; structural property, not token-bindable (replaces `counterAxisAlignContent`)
 
 ### Changed
 
@@ -21,11 +24,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - `Styles.counterAxisSpacing` — consolidated into `Styles.itemSpacing` bi-axial model
+- `Styles.layoutWrap` — replaced by `Styles.wrap`
+- `Styles.counterAxisAlignContent` — replaced by `Styles.wrapAlignment`
 
 ### Migration
 
 - `Styles.counterAxisSpacing` → `Styles.itemSpacing.vertical`: read the `vertical` sub-field of the `ItemSpacing` object when axes differ; scalar `itemSpacing` applies uniformly
 - `Styles.layoutMode` → `LayoutMode | null`: replace generic `Style` handling with exhaustive match on `'NONE' | 'HORIZONTAL' | 'VERTICAL'`
+- `Styles.layoutWrap` → `Styles.wrap`: rename only; same boolean semantics
+- `Styles.counterAxisAlignContent` → `Styles.wrapAlignment`: rename and remap values — `'AUTO'` → `'START'`, `'SPACE_BETWEEN'` → `'SPACE_BETWEEN'`
 
 
 ## [0.17.0] - 2026-04-13
