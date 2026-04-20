@@ -166,6 +166,8 @@ WrapAlignmentStyleValue:
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
 | `specs-cli` | Recompile | Update any references to `layoutWrap` → `wrap` and `counterAxisAlignContent` → `wrapAlignment` in output formatting or display logic |
+| `specs-from-figma` | Update value mapping | Map Figma `layoutWrap` → `wrap` (boolean) and `counterAxisAlignContent` values (`AUTO` → `START`) to new field names and enum values |
+| `specs-plugin` | Update value mapping | Same Figma-to-schema mapping changes as `specs-from-figma` |
 
 ---
 
