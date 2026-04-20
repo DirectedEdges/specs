@@ -30,6 +30,7 @@ The current string union for `counterAxisAlignContent` (`'AUTO' | 'SPACE_BETWEEN
 - **Minimal, stable API** (Constitution III): Renaming fields is a breaking change; the new names should be durable enough to avoid a second rename
 - **Types and schema symmetry** (Constitution I): Both artifacts must be updated together
 - **Clarity over Figma fidelity**: `wrapAlignment` is only meaningful when `wrap: true`; this semantic dependency should be documented
+- **Precedent consistency**: ADR 038 established the pattern of narrowing structural layout properties from generic `Style` to dedicated string literal union types (e.g., `LayoutMode`). `wrapAlignment` should follow the same pattern
 
 ---
 
@@ -37,12 +38,13 @@ The current string union for `counterAxisAlignContent` (`'AUTO' | 'SPACE_BETWEEN
 
 ### Option A: `wrap` + `wrapAlignment` *(Selected)*
 
-Rename `layoutWrap` → `wrap` (boolean) and `counterAxisAlignContent` → `wrapAlignment` (string union `'start' | 'spaceBetween'`).
+Rename `layoutWrap` → `wrap` (boolean) and `counterAxisAlignContent` → `wrapAlignment` (dedicated `WrapAlignment` string literal union: `'start' | 'spaceBetween'`). Type the field as `WrapAlignment | null` following the `LayoutMode | null` pattern from ADR 038.
 
 **Pros**:
 - `wrap` is concise, CSS-aligned, and self-evident
 - `wrapAlignment` clearly scopes its meaning to wrapped layouts
-- Lower-camel values (`start`, `spaceBetween`) match the casing convention used elsewhere in the schema (e.g., `layoutMode` values are upper-case Figma enums, but this is a platform-facing property that benefits from CSS alignment)
+- `WrapAlignment` as a dedicated type narrows the field from generic `Style` to a finite enum, matching the ADR 038 precedent (`LayoutMode`)
+- Lower-camel values (`start`, `spaceBetween`) are platform-neutral rather than Figma's `'AUTO'` / `'SPACE_BETWEEN'` casing
 
 **Cons / Trade-offs**:
 - Breaking change: removes two fields and adds two new ones — requires a MAJOR bump within the current release
@@ -74,7 +76,8 @@ Use `wrap` (same as Option A) but name the alignment property `wrapDistribution`
 | `Styles.ts` | Remove field `layoutWrap: Style` | MAJOR |
 | `Styles.ts` | Remove field `counterAxisAlignContent: Style` | MAJOR |
 | `Styles.ts` | Add field `wrap: Style` | MAJOR (part of rename) |
-| `Styles.ts` | Add field `wrapAlignment: Style` | MAJOR (part of rename) |
+| `Styles.ts` | Add field `wrapAlignment: WrapAlignment \| null` | MAJOR (part of rename) |
+| `Styles.ts` | Add type `WrapAlignment = 'start' \| 'spaceBetween'` | MINOR (new export) |
 | `Styles.ts` | Remove `'layoutWrap'` from `StyleKey` union | MAJOR |
 | `Styles.ts` | Remove `'counterAxisAlignContent'` from `StyleKey` union | MAJOR |
 | `Styles.ts` | Add `'wrap'` to `StyleKey` union | MAJOR (part of rename) |
@@ -92,9 +95,11 @@ StyleKey:
   - 'counterAxisAlignContent'
 
 # After
+WrapAlignment: 'start' | 'spaceBetween'   # new exported type
+
 Styles:
-  wrap: Style                  # boolean — enables multi-line wrapping (default: false)
-  wrapAlignment: Style         # 'start' | 'spaceBetween' — only meaningful when wrap: true
+  wrap: Style                       # boolean — enables multi-line wrapping (default: false)
+  wrapAlignment: WrapAlignment | null  # only meaningful when wrap: true
 
 StyleKey:
   - 'wrap'
@@ -108,7 +113,8 @@ StyleKey:
 | `styles.schema.json` | Remove property `layoutWrap` | MAJOR |
 | `styles.schema.json` | Remove property `counterAxisAlignContent` | MAJOR |
 | `styles.schema.json` | Add property `wrap` (ref `BooleanStyleValue`) | MAJOR (part of rename) |
-| `styles.schema.json` | Add property `wrapAlignment` (ref `StringStyleValue`) | MAJOR (part of rename) |
+| `styles.schema.json` | Add property `wrapAlignment` (ref `WrapAlignmentStyleValue`) | MAJOR (part of rename) |
+| `styles.schema.json` | Add definition `WrapAlignmentStyleValue` | MINOR (new definition) |
 
 **Example — new shape** (`schema/styles.schema.json`):
 ```yaml
@@ -120,19 +126,27 @@ counterAxisAlignContent:
   $ref: "#/definitions/StringStyleValue"
   description: "Counter axis content alignment"
 
-# After
+# After — properties
 wrap:
   $ref: "#/definitions/BooleanStyleValue"
   description: "Whether auto-layout wrapping is enabled (default: false)"
 wrapAlignment:
-  $ref: "#/definitions/StringStyleValue"
-  description: "Space distribution between wrapped lines. Values: 'start', 'spaceBetween'. Only meaningful when wrap is true."
+  $ref: "#/definitions/WrapAlignmentStyleValue"
+  description: "Space distribution between wrapped lines. Only meaningful when wrap is true."
+
+# After — new definition (follows LayoutModeStyleValue pattern)
+WrapAlignmentStyleValue:
+  description: "Wrap alignment value. Structural property — not token-bindable."
+  oneOf:
+    - type: string
+      enum: [start, spaceBetween]
+    - type: "null"
 ```
 
 ### Notes
 
 - `wrap` uses `BooleanStyleValue` (not `StringStyleValue`) because the property is a true boolean toggle — this corrects the current `layoutWrap` which was typed as a generic `Style`/`StringStyleValue` despite being boolean in practice.
-- `wrapAlignment` retains `StringStyleValue` because its domain is a two-value string enum.
+- `wrapAlignment` uses a dedicated `WrapAlignment` type (`'start' | 'spaceBetween'`) and `WrapAlignmentStyleValue` schema definition, following the ADR 038 precedent where `layoutMode` was narrowed from `Style` to `LayoutMode | null`. Both are structural layout properties that are not token-bindable.
 - The value mapping from Figma is: `counterAxisAlignContent: 'AUTO'` → `wrapAlignment: 'start'`, `counterAxisAlignContent: 'SPACE_BETWEEN'` → `wrapAlignment: 'spaceBetween'`.
 
 ---
@@ -142,7 +156,8 @@ wrapAlignment:
 - **Symmetric**: Yes — both `types/Styles.ts` and `schema/styles.schema.json` gain `wrap` and `wrapAlignment`, and both lose `layoutWrap` and `counterAxisAlignContent`
 - **Parity check**:
   - `Styles.wrap: Style` ↔ `styles.schema.json#/properties/wrap` (`BooleanStyleValue`)
-  - `Styles.wrapAlignment: Style` ↔ `styles.schema.json#/properties/wrapAlignment` (`StringStyleValue`)
+  - `Styles.wrapAlignment: WrapAlignment | null` ↔ `styles.schema.json#/properties/wrapAlignment` (`WrapAlignmentStyleValue`)
+  - `WrapAlignment` type ↔ `WrapAlignmentStyleValue` definition (enum: `start`, `spaceBetween`)
 
 ---
 
