@@ -4,6 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 039 | Replace `layoutWrap` and `counterAxisAlignContent` with `wrap` and `wrapAlignment` | |
 | 038 | Tighten layoutMode to String Literal Enum | |
 | 037 | Consolidate Item Spacing into a Bi-Axial Model | |
 | 035 | Make Config Properties with Defaults Optional | |
