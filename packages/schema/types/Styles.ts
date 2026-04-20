@@ -41,10 +41,10 @@ export type Styles = Partial<{
   layoutMode: Style;
   layoutWrap: Style;
   itemReverseZIndex: Style;
-  itemSpacing: Style;
+  /** Item spacing. Scalar when uniform; `ItemSpacing` object when horizontal and vertical gaps differ. @since 0.18.0 */
+  itemSpacing: Style | ItemSpacing;
   /** Padding. Scalar when uniform; `Sides` object when per-side values differ. @since 1.0.0 */
   padding: Style | Sides;
-  counterAxisSpacing: Style;
   cornerSmoothing: Style;
   aspectRatio: AspectRatioStyle;
 }>;
@@ -197,6 +197,19 @@ export interface Sides {
 }
 
 /**
+ * Bi-axial item spacing values using absolute visual axes.
+ * Used for `itemSpacing` when horizontal and vertical gaps differ.
+ * Each field is optional; only axes that differ from the collapsed value are present.
+ * @since 0.18.0
+ */
+export interface ItemSpacing {
+  /** Horizontal gap between items */
+  horizontal?: Style;
+  /** Vertical gap between items */
+  vertical?: Style;
+}
+
+/**
  * Per-corner values using logical inline-axis directions (`topStart`/`topEnd`/`bottomStart`/`bottomEnd`).
  * Used for `cornerRadius` when corners differ.
  * Each field is optional; only corners that differ from the collapsed value are present.
@@ -253,6 +266,5 @@ export type StyleKey =
   | 'itemReverseZIndex'
   | 'itemSpacing'
   | 'padding'
-  | 'counterAxisSpacing'
   | 'cornerSmoothing'
   | 'aspectRatio';
