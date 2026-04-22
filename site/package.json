@@ -1,0 +1,21 @@
+{
+  "name": "specs-docs",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "astro": "^4.16.0",
+    "@astrojs/starlight": "^0.29.3",
+    "sharp": "^0.33.0",
+    "@astrojs/sitemap": "3.2.1"
+  },
+  "overrides": {
+    "@astrojs/sitemap": "3.2.1"
+  }
+}
