@@ -77,6 +77,7 @@ export default defineConfig({
             { label: 'Key Formatting', slug: 'guides/key-formatting' },
             { label: 'Number Inference', slug: 'guides/number-inference' },
             { label: 'Slot Constraints', slug: 'guides/slot-constraints' },
+            { label: 'Glyph Name Pattern', slug: 'guides/glyph-name-pattern' },
             { label: 'Subcomponent Scoping', slug: 'guides/subcomponent-scoping' },
             { label: 'Code-Only Props', slug: 'guides/code-only-props' },
           ],
