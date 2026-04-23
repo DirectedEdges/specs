@@ -2,7 +2,7 @@
 
 **Branch**: `040-layout-alignment`
 **Created**: 2026-04-23
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 
