@@ -134,4 +134,4 @@ subcomponents:
 ## Further Reading
 
 - [ADR 031 — Subcomponent Search Scope](/specs/../adr/031-subcomponent-search-scope/) — architecture decision record covering the `scope`, `match`, and `exclude` design
-- [CLI Configuration](/specs/cli/configuration/) — full config reference
+- [CLI Configuration](/specs/config/) — full config reference

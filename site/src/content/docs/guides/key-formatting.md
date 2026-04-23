@@ -97,4 +97,4 @@ model:
 
 ## See Also
 
-- [CLI Configuration](/specs/cli/configuration/) — full config reference
+- [CLI Configuration](/specs/config/) — full config reference

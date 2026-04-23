@@ -173,4 +173,4 @@ specs scan --verbose
 
 **See Also:**
 - [Generate Command](/specs/cli/commands/generate/) - Generate specs from manifest or single component
-- [Configuration Reference](/specs/cli/configuration/) - Format and config options
+- [Configuration Reference](/specs/config/) - Format and config options

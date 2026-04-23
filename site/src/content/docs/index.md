@@ -36,8 +36,8 @@ specs generate
 Helpful documentation includes:
 - [CLI Overview](/specs/cli/)
 - [Getting started](/specs/cli/getting-started/)
-- [Configuration file](/specs/cli/configuration/) details
-- Per [command](/specs/cli/commands/) instructions and flags
+- [Configuration file](/specs/config/) details
+- Per [command](/specs/cli/) instructions and flags
 
 ### `@directededges/specs-schema`
 

@@ -104,6 +104,6 @@ See [Fetching Figma Branches](/specs/cli/commands/fetch.md/#fetching-figma-branc
 ---
 
 **See Also:**
-- [Configuration Reference](/specs/cli/configuration/) - dataDirectory and sources setup
+- [Configuration Reference](/specs/config/) - dataDirectory and sources setup
 - [Generate Command](/specs/cli/commands/generate/) - Processing augmented data with `format.tokens: CUSTOM`
 - [Fetch Command](/specs/cli/commands/fetch/) - Fetching raw data before augmentation

@@ -16,7 +16,7 @@ Specs CLI generates component specifications from your Figma design system. This
 - [Step 7: Select components](#step-7-select-components)
 - [Step 8: Generate specs](#step-8-generate-specs)
 - [Alternative approaches to generate](#alternative-approaches-to-generate)
-- [Commands Reference](/specs/cli/commands/)
+- [CLI Overview](/specs/cli/)
 
 ---
 
@@ -129,9 +129,9 @@ config:
 - **`processing`** — how components are analyzed (variant depth, detail level, subcomponent detection)
 - **`include`** — what to include in output (invalid variants, invalid combinations)
 
-Optional features like `subcomponents`, `glyphNamePattern`, and `codeOnlyPropsPattern` are off by default. Add them to `processing` when needed — see [Configuration Reference](/specs/cli/configuration/).
+Optional features like `subcomponents`, `glyphNamePattern`, and `codeOnlyPropsPattern` are off by default. Add them to `processing` when needed — see [Configuration Reference](/specs/config/).
 
-See [Configuration Reference](/specs/cli/configuration/) for all options and allowed values.
+See [Configuration Reference](/specs/config/) for all options and allowed values.
 
 ### Output
 

@@ -1,0 +1,33 @@
+/* Make top-level sidebar links match the style of links inside accordions */
+ul.top-level > li > a.large {
+	font-size: var(--sl-text-sm);
+	font-weight: normal;
+	color: var(--sl-color-gray-2);
+}
+ul.top-level > li > a.large:hover,
+ul.top-level > li > a.large:focus {
+	color: var(--sl-color-white);
+}
+ul.top-level > li > a.large[aria-current='page'],
+ul.top-level > li > a.large[aria-current='page']:hover,
+ul.top-level > li > a.large[aria-current='page']:focus {
+	font-weight: 600;
+	color: var(--sl-color-text-invert);
+	background-color: var(--sl-color-text-accent);
+}
+
+/* Reduce sidebar accordion header size to match link size */
+.group-label > .large {
+	font-size: var(--sl-text-sm);
+}
+
+/* Hide the mobile "On this page" TOC toggle above the page title.
+   The right-column TOC remains visible at wider viewports. */
+mobile-starlight-toc {
+	display: none;
+}
+
+/* Hide previous/next page navigation links */
+.pagination-links {
+	display: none;
+}

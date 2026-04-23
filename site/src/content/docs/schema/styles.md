@@ -52,6 +52,22 @@ type Styles = Partial<{ /* 48 properties */ }>;
 | `x` | position | all |
 | `y` | position | all |
 
+## Key Mapping from Figma
+
+Several spec style keys differ from the Figma node property they read from. Specs renames these to be more semantic and self-describing. Keys not listed here pass through unchanged (e.g. `opacity` reads `node.opacity`).
+
+| Spec key | Figma property | ADR |
+|----------|---------------|-----|
+| `backgroundColor` | `fills` | [ADR 009](/specs/../adr/009-color-values/) |
+| `textColor` | `fills` | [ADR 009](/specs/../adr/009-color-values/) |
+| `fillColor` | `fills` | [ADR 013](/specs/../adr/013-icon-fillColor/) |
+| `wrap` | `layoutWrap` | [ADR 039](/specs/../adr/039-wrap-alignment/) |
+| `wrapAlignment` | `counterAxisAlignContent` | [ADR 039](/specs/../adr/039-wrap-alignment/) |
+| `mainAxisAlignment` | `primaryAxisAlignItems` | [ADR 040](/specs/../adr/040-layout-alignment/) |
+| `crossAxisAlignment` | `counterAxisAlignItems` | [ADR 040](/specs/../adr/040-layout-alignment/) |
+
+All other style keys — `width`, `height`, `opacity`, `padding`, `itemSpacing`, `cornerRadius`, `strokeWeight`, `rotation`, etc. — use the same name as the Figma node property.
+
 ## Values
 
 Most properties accept a `Style` value. Some properties accept specialized shapes instead of or in addition to `Style`.

@@ -136,4 +136,4 @@ See the [applyCustomTokens command](/specs/cli/commands/apply-custom-tokens/) fo
 ## Further Reading
 
 - [ADR 007 — Token Reference Config](/specs/../adr/007-token-reference-config/) — architecture decision record consolidating the token format into a single enum
-- [CLI Configuration](/specs/cli/configuration/) — full config reference
+- [CLI Configuration](/specs/config/) — full config reference

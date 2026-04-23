@@ -62,7 +62,7 @@ specs init
 #    3. Run: specs scan
 #    4. Run: specs generate
 #
-# 📖 Documentation: https://directededges.github.io/specs/cli/configuration/
+# 📖 Documentation: https://directededges.github.io/specs/config/
 ```
 
 ### Example 2: Environment-Specific Configs
@@ -94,22 +94,22 @@ The init command creates a `specs.config.yaml` file with the following structure
 # Specs CLI Configuration (production-ready defaults)
 #
 # This file configures how Specs fetches and processes Figma component data.
-# See: https://directededges.github.io/specs/cli/configuration/ for complete documentation.
+# See: https://directededges.github.io/specs/config/ for complete documentation.
 
 # Where fetch writes payloads, and where generate reads from.
-# See: https://docs.specs.dev/cli/configuration#dataDirectory
+# See: https://docs.specs.dev/config/data-sources
 dataDirectory: ./data
 
 # Default location for generated spec files (can override with -o flag).
-# See: https://docs.specs.dev/cli/configuration#outputDirectory
+# See: https://docs.specs.dev/config/data-sources
 outputDirectory: ./specs
 
 # Figma file sources to fetch and process.
-# See: https://docs.specs.dev/cli/configuration#sources
+# See: https://docs.specs.dev/config/data-sources
 sources: {}
 
 # Processing and output configuration.
-# See: https://docs.specs.dev/cli/configuration#config
+# See: https://docs.specs.dev/config/
 config:
   processing:
     subcomponents:
@@ -136,5 +136,5 @@ Each section includes inline comments with references to the full documentation.
 ---
 
 **See Also:**
-- [Configuration Reference](/specs/cli/configuration/) - Config file options
+- [Configuration Reference](/specs/config/) - Config file options
 - [Getting Started](/specs/cli/getting-started/) - Quick start guide

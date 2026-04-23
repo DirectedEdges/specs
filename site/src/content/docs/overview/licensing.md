@@ -66,7 +66,7 @@ elements:
 
 Pro features are never stripped from output — they're simply not created at the free tier. If a style property has a bound Figma variable, free-tier output shows the raw resolved value; pro-tier output shows the token reference alongside the value.
 
-> **Note**: Token references require that your source config includes `variables` in the `data` array. Style references require `styles`. See [Configuration](/specs/overview/cli/configuration/) for details.
+> **Note**: Token references require that your source config includes `variables` in the `data` array. Style references require `styles`. See [Configuration](/specs/config/) for details.
 
 ## Config Settings and Licensing
 
@@ -176,5 +176,5 @@ License terms depend on your plan, but generally, no. Each Pro license is intend
 ## See Also
 
 - [Getting Started](/specs/overview/cli/getting-started/) — Installation and first spec
-- [Configuration Reference](/specs/overview/cli/configuration/) — All config options
+- [Configuration Reference](/specs/config/) — All config options
 - [Config Schema](/specs/overview/schema/config/) — Config type reference and defaults

@@ -83,5 +83,5 @@ If you use `applyCustomTokens` with branch-fetched data, be aware that Figma var
 ---
 
 **See Also:**
-- [Configuration Reference](/specs/cli/configuration/) - dataDirectory and sources setup
+- [Configuration Reference](/specs/config/) - dataDirectory and sources setup
 - [Generate Command](/specs/cli/commands/generate/) - Processing fetched data
