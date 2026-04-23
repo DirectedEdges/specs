@@ -36,9 +36,9 @@
         "typography": { "$ref": "#/definitions/TypographyStyleValue", "description": "Typography properties. TokenReference when the node references a named text style; Typography when defined inline." },
         "textAlignHorizontal": { "$ref": "#/definitions/StringStyleValue", "description": "Horizontal text alignment" },
         "textAlignVertical": { "$ref": "#/definitions/StringStyleValue", "description": "Vertical text alignment" },
-        "primaryAxisAlignItems": { "$ref": "#/definitions/StringStyleValue", "description": "Primary axis item alignment" },
+        "mainAxisAlignment": { "$ref": "#/definitions/MainAxisAlignmentStyleValue", "description": "Alignment along the main axis (depends on layoutMode). Structural property — not token-bindable." },
         "primaryAxisSizingMode": { "$ref": "#/definitions/StringStyleValue", "description": "Primary axis sizing mode" },
-        "counterAxisAlignItems": { "$ref": "#/definitions/StringStyleValue", "description": "Counter axis item alignment" },
+        "crossAxisAlignment": { "$ref": "#/definitions/CrossAxisAlignmentStyleValue", "description": "Alignment along the cross axis (perpendicular to layoutMode). Structural property — not token-bindable." },
         "layoutMode": { "$ref": "#/definitions/LayoutModeStyleValue", "description": "Auto-layout direction. NONE (no auto-layout), HORIZONTAL (row), or VERTICAL (column)." },
         "wrap": { "$ref": "#/definitions/BooleanStyleValue", "description": "Whether auto-layout wrapping is enabled (default: false)." },
         "wrapAlignment": { "$ref": "#/definitions/WrapAlignmentStyleValue", "description": "Space distribution between wrapped lines. Only meaningful when wrap is true." },
@@ -341,6 +341,20 @@
       "description": "Wrap alignment value. Structural property — not token-bindable.",
       "oneOf": [
         { "type": "string", "enum": ["START", "SPACE_BETWEEN"] },
+        { "type": "null" }
+      ]
+    },
+    "MainAxisAlignmentStyleValue": {
+      "description": "Main axis alignment value. Structural property — not token-bindable.",
+      "oneOf": [
+        { "type": "string", "enum": ["START", "END", "CENTER", "SPACE_BETWEEN"] },
+        { "type": "null" }
+      ]
+    },
+    "CrossAxisAlignmentStyleValue": {
+      "description": "Cross axis alignment value. Structural property — not token-bindable.",
+      "oneOf": [
+        { "type": "string", "enum": ["START", "END", "CENTER", "STRETCH", "BASELINE"] },
         { "type": "null" }
       ]
     },

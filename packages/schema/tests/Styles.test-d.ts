@@ -8,6 +8,7 @@ import type {
   TokenReference, ColorStyle, GradientStop, GradientCenter, LinearGradient, RadialGradient,
   AngularGradient, GradientValue, AspectRatioValue, AspectRatioStyle,
   Sides, Corners, ItemSpacing, LayoutMode, WrapAlignment,
+  MainAxisAlignment, CrossAxisAlignment,
 } from '../types/index.js';
 
 // ─── ColorStyle ────────────────────────────────────────────────────────────
@@ -601,3 +602,87 @@ const _oldLayoutWrap: Styles = { layoutWrap: true };
 
 // @ts-expect-error: counterAxisAlignContent no longer exists on Styles
 const _oldCounterAxisAlign: Styles = { counterAxisAlignContent: 'AUTO' };
+
+// ─── MainAxisAlignment ──────────────────────────────────────────────────────
+
+// Valid enum values
+const _maStart: MainAxisAlignment = 'START';
+const _maEnd: MainAxisAlignment = 'END';
+const _maCenter: MainAxisAlignment = 'CENTER';
+const _maSpaceBetween: MainAxisAlignment = 'SPACE_BETWEEN';
+
+// @ts-expect-error: arbitrary string is not valid MainAxisAlignment
+const _maBad: MainAxisAlignment = 'STRETCH';
+
+// @ts-expect-error: number is not valid MainAxisAlignment
+const _maNumber: MainAxisAlignment = 0;
+
+// @ts-expect-error: lowercase is not valid (SCREAMING_CASE required)
+const _maLowercase: MainAxisAlignment = 'center';
+
+// ─── CrossAxisAlignment ─────────────────────────────────────────────────────
+
+// Valid enum values
+const _caStart: CrossAxisAlignment = 'START';
+const _caEnd: CrossAxisAlignment = 'END';
+const _caCenter: CrossAxisAlignment = 'CENTER';
+const _caStretch: CrossAxisAlignment = 'STRETCH';
+const _caBaseline: CrossAxisAlignment = 'BASELINE';
+
+// @ts-expect-error: arbitrary string is not valid CrossAxisAlignment
+const _caBad: CrossAxisAlignment = 'SPACE_BETWEEN';
+
+// @ts-expect-error: number is not valid CrossAxisAlignment
+const _caNumber: CrossAxisAlignment = 0;
+
+// @ts-expect-error: lowercase is not valid (SCREAMING_CASE required)
+const _caLowercase: CrossAxisAlignment = 'stretch';
+
+// ─── Styles.mainAxisAlignment (MainAxisAlignment | null) ─────────────────────
+
+// Valid enum values on Styles
+const withMainStart: Styles = { mainAxisAlignment: 'START' };
+const withMainEnd: Styles = { mainAxisAlignment: 'END' };
+const withMainCenter: Styles = { mainAxisAlignment: 'CENTER' };
+const withMainSpaceBetween: Styles = { mainAxisAlignment: 'SPACE_BETWEEN' };
+
+// null is valid
+const withMainNull: Styles = { mainAxisAlignment: null };
+
+// @ts-expect-error: TokenReference is not valid for mainAxisAlignment (not token-bindable)
+const _maToken: Styles = { mainAxisAlignment: { $token: 'Layout.Align', $type: 'string' } satisfies TokenReference };
+
+// @ts-expect-error: number is not valid for mainAxisAlignment
+const _maStyleNumber: Styles = { mainAxisAlignment: 1 };
+
+// @ts-expect-error: arbitrary string is not valid for mainAxisAlignment
+const _maArbitrary: Styles = { mainAxisAlignment: 'MIN' };
+
+// ─── Styles.crossAxisAlignment (CrossAxisAlignment | null) ───────────────────
+
+// Valid enum values on Styles
+const withCrossStart: Styles = { crossAxisAlignment: 'START' };
+const withCrossEnd: Styles = { crossAxisAlignment: 'END' };
+const withCrossCenter: Styles = { crossAxisAlignment: 'CENTER' };
+const withCrossStretch: Styles = { crossAxisAlignment: 'STRETCH' };
+const withCrossBaseline: Styles = { crossAxisAlignment: 'BASELINE' };
+
+// null is valid
+const withCrossNull: Styles = { crossAxisAlignment: null };
+
+// @ts-expect-error: TokenReference is not valid for crossAxisAlignment (not token-bindable)
+const _caToken: Styles = { crossAxisAlignment: { $token: 'Layout.CrossAlign', $type: 'string' } satisfies TokenReference };
+
+// @ts-expect-error: number is not valid for crossAxisAlignment
+const _caStyleNumber: Styles = { crossAxisAlignment: 1 };
+
+// @ts-expect-error: arbitrary string is not valid for crossAxisAlignment
+const _caArbitrary: Styles = { crossAxisAlignment: 'MAX' };
+
+// ─── Verify primaryAxisAlignItems and counterAxisAlignItems removed ──────────
+
+// @ts-expect-error: primaryAxisAlignItems no longer exists on Styles
+const _oldPrimaryAxis: Styles = { primaryAxisAlignItems: 'MIN' };
+
+// @ts-expect-error: counterAxisAlignItems no longer exists on Styles
+const _oldCounterAxis: Styles = { counterAxisAlignItems: 'MIN' };

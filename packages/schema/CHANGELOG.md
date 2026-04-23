@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Styles.itemSpacing` — now accepts `Style | ItemSpacing` (scalar when uniform, object when axes differ)
 - `Styles.wrap` — boolean toggle for auto-layout wrapping (replaces `layoutWrap`)
 - `Styles.wrapAlignment` — typed as `WrapAlignment | null`; structural property, not token-bindable (replaces `counterAxisAlignContent`)
+- `MainAxisAlignment` — string literal union type (`'START' | 'END' | 'CENTER' | 'SPACE_BETWEEN'`)
+- `CrossAxisAlignment` — string literal union type (`'START' | 'END' | 'CENTER' | 'STRETCH' | 'BASELINE'`)
+- `Styles.mainAxisAlignment` — typed as `MainAxisAlignment | null`; structural property, not token-bindable (replaces `primaryAxisAlignItems`)
+- `Styles.crossAxisAlignment` — typed as `CrossAxisAlignment | null`; structural property, not token-bindable (replaces `counterAxisAlignItems`)
 
 ### Changed
 
@@ -26,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Styles.counterAxisSpacing` — consolidated into `Styles.itemSpacing` bi-axial model
 - `Styles.layoutWrap` — replaced by `Styles.wrap`
 - `Styles.counterAxisAlignContent` — replaced by `Styles.wrapAlignment`
+- `Styles.primaryAxisAlignItems` — replaced by `Styles.mainAxisAlignment`
+- `Styles.counterAxisAlignItems` — replaced by `Styles.crossAxisAlignment`
 
 ### Migration
 
@@ -33,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Styles.layoutMode` → `LayoutMode | null`: replace generic `Style` handling with exhaustive match on `'NONE' | 'HORIZONTAL' | 'VERTICAL'`
 - `Styles.layoutWrap` → `Styles.wrap`: rename only; same boolean semantics
 - `Styles.counterAxisAlignContent` → `Styles.wrapAlignment`: rename and remap values — `'AUTO'` → `'START'`, `'SPACE_BETWEEN'` → `'SPACE_BETWEEN'`
+- `Styles.primaryAxisAlignItems` → `Styles.mainAxisAlignment`: rename and narrow type — replace generic `Style` handling with exhaustive match on `'START' | 'END' | 'CENTER' | 'SPACE_BETWEEN'`; remap Figma values `'MIN'` → `'START'`, `'MAX'` → `'END'`
+- `Styles.counterAxisAlignItems` → `Styles.crossAxisAlignment`: rename and narrow type — replace generic `Style` handling with exhaustive match on `'START' | 'END' | 'CENTER' | 'STRETCH' | 'BASELINE'`; remap Figma values `'MIN'` → `'START'`, `'MAX'` → `'END'`
 
 
 ## [0.17.0] - 2026-04-13

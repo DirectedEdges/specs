@@ -34,9 +34,11 @@ export type Styles = Partial<{
   textAlignHorizontal: Style;
   textAlignVertical: Style;
   textColor: ColorStyle;
-  primaryAxisAlignItems: Style;
+  /** Alignment along the main axis (depends on `layoutMode`). Structural property — not token-bindable. @since 0.18.0 */
+  mainAxisAlignment: MainAxisAlignment | null;
   primaryAxisSizingMode: Style;
-  counterAxisAlignItems: Style;
+  /** Alignment along the cross axis (perpendicular to `layoutMode`). Structural property — not token-bindable. @since 0.18.0 */
+  crossAxisAlignment: CrossAxisAlignment | null;
   /** Auto-layout direction. Structural property — not token-bindable. @since 0.18.0 */
   layoutMode: LayoutMode | null;
   /** Whether auto-layout wrapping is enabled (default: false). @since 0.18.0 */
@@ -213,6 +215,22 @@ export type LayoutMode = 'NONE' | 'HORIZONTAL' | 'VERTICAL';
 export type WrapAlignment = 'START' | 'SPACE_BETWEEN';
 
 /**
+ * Main axis alignment mode for auto-layout containers.
+ * Controls alignment along the primary axis (depends on `layoutMode`).
+ * Structural property that cannot be token-bound.
+ * @since 0.18.0
+ */
+export type MainAxisAlignment = 'START' | 'END' | 'CENTER' | 'SPACE_BETWEEN';
+
+/**
+ * Cross axis alignment mode for auto-layout containers.
+ * Controls alignment perpendicular to the primary axis (depends on `layoutMode`).
+ * Structural property that cannot be token-bound.
+ * @since 0.18.0
+ */
+export type CrossAxisAlignment = 'START' | 'END' | 'CENTER' | 'STRETCH' | 'BASELINE';
+
+/**
  * Bi-axial item spacing values using absolute visual axes.
  * Used for `itemSpacing` when horizontal and vertical gaps differ.
  * Each field is optional; only axes that differ from the collapsed value are present.
@@ -273,9 +291,9 @@ export type StyleKey =
   | 'textAlignHorizontal'
   | 'textAlignVertical'
   | 'textColor'
-  | 'primaryAxisAlignItems'
+  | 'mainAxisAlignment'
   | 'primaryAxisSizingMode'
-  | 'counterAxisAlignItems'
+  | 'crossAxisAlignment'
   | 'layoutMode'
   | 'wrap'
   | 'wrapAlignment'
