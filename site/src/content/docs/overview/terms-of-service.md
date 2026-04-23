@@ -1,6 +1,7 @@
-# Terms of Service
-
-> Also available at: https://directededges.github.io/specs/overview/terms-of-service/
+---
+title: Terms of Service
+description: Terms of Service for Specs software, packages, and services.
+---
 
 **Directed Edges**
 **Effective Date:** April 6, 2026

@@ -1,10 +1,13 @@
-# specs
+---
+title: Introduction
+description: Specs is a deterministic system for generating structured UI component specifications from Figma.
+---
 
 Specs is a deterministic system for generating and managing UI component composition, visual styling, and configuration specs independent of and drawn from Figma components as human- and machine-readable specifications. The product suite includes a Figma plugin (currently, Anova) and three packages available on npm:
 
-* `@directededges/specs-cli`, a command line tool to generate specs from Figma files
-* `@directededges/specs-schema`, a JSON specification
-* `@directededges/specs-from-figma`, the engine used by the cli and plugin to convert Figma assets to specs (public package developed in a private repository)
+- `@directededges/specs-cli`, a command line tool to generate specs from Figma files
+- `@directededges/specs-schema`, a JSON specification
+- `@directededges/specs-from-figma`, the engine used by the CLI and plugin to convert Figma assets to specs (public package developed in a private repository)
 
 The project evolved from [Anova](https://github.com/DirectedEdges/anova) ("Analysis of Variants"). To learn more about the concept, read the [Analysis of Variants](https://nathanacurtis.substack.com/p/analysis-of-variants-9e440c30b93e) blog post.
 
@@ -19,7 +22,7 @@ Command-line interface (CLI) for generating component specifications from Figma 
 npm install -g @directededges/specs-cli
 # 2. Initialize a specs.config.yaml file
 specs init
-# 3. Edit the config for your Figma file key and preferred settings 
+# 3. Edit the config for your Figma file key and preferred settings
 # 4. Set up an .env file with a Figma PAT and – if subscribed - license key
 # 5. Fetch raw Figma data (file, variables, styles)
 specs fetch
@@ -31,11 +34,10 @@ specs generate
 ```
 
 Helpful documentation includes:
-- [Overview](https://directededges.github.io/specs/cli/)
-- [Getting started](https://directededges.github.io/specs/cli/getting-started/)
-- [Configuration file](https://directededges.github.io/specs/cli/configuration/) details
-- Per [command](https://directededges.github.io/specs/cli/commands/) instructions and flags
-
+- [CLI Overview](/specs/cli/)
+- [Getting started](/specs/cli/getting-started/)
+- [Configuration file](/specs/cli/configuration/) details
+- Per [command](/specs/cli/commands/) instructions and flags
 
 ### `@directededges/specs-schema`
 
@@ -47,37 +49,23 @@ npm install @directededges/specs-schema
 
 Exports include:
 
-- [JSON Schema](packages/schema/schema/root.schema.json) — the canonical schema for component spec output
-- [TypeScript types](packages/schema/types/) — complete type definitions for all schema entities (`Component`, `Config`, `Styles`, `Element`, `AnyProp`, etc.)
+- **JSON Schema** — the canonical schema for component spec output
+- **TypeScript types** — complete type definitions for all schema entities (`Component`, `Config`, `Styles`, `Element`, `AnyProp`, etc.)
 - `DEFAULT_CONFIG` — a runtime configuration object controlling output shape (format, token resolution, variant depth, etc.)
 
-Learn more in the [Schema docs](https://directededges.github.io/specs/schema/), including details on each property including component, variants, styles, props and more.
+Learn more in the [Schema docs](/specs/schema/), including details on each property including component, variants, styles, props and more.
 
 ### `@directededges/specs-from-figma`
 
 The `specs-from-figma` package is the engine that converts Figma assets into specs and is used for both the command line interface and the associated Figma plugin. It is developed in a private repository and its published package is installed as a dependency of the command line interface.
 
-## Architectural Decision Records
-
-Schema changes are proposed and tracked through ADRs in the [`adr/`](adr/) directory. Each ADR documents the context, options considered, and decision for a type or schema modification.
-
 ## Contributing
 
 Contributions are welcome. Clone the repo, run `npm install` at the root, and use `npm run build` and `npm test` to validate changes. All packages use Vitest with globals enabled.
 
-### Agents
-
-This repo includes Claude Code agent skills for the full ADR lifecycle:
-
-| Skill | Purpose |
-|-------|---------|
-| `/anova.adr.create` | Draft a new ADR, claim the next number, and reserve it in the index |
-| `/anova.adr.implement` | Apply the type and schema changes described in an ADR to types, schema, tests, and changelog |
-| `/anova.adr.accept` | Validate the implementation is clean, mark the ADR as ACCEPTED, and update the index |
-
 ## Issues
 
-Found a bug or have a feature request? Please check if it already exists in our [Issues](../../issues) before creating a new one.
+Found a bug or have a feature request? Please check if it already exists in our [Issues](https://github.com/DirectedEdges/specs/issues) before creating a new one.
 
 **For bug reports**, include:
 - Figma version and operating system
@@ -97,7 +85,7 @@ Found a bug or have a feature request? Please check if it already exists in our 
 This repository contains packages with different licenses:
 
 - **`packages/schema/`** — [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/)
-- **`packages/cli/`** — [MIT](packages/cli/LICENSE)
+- **`packages/cli/`** — [MIT](https://github.com/DirectedEdges/specs/blob/main/packages/cli/LICENSE)
 
 ### Attribution (Schema)
 
