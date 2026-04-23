@@ -183,8 +183,6 @@ CrossAxisAlignmentStyleValue:
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
 | `specs-cli` | Recompile | Update any references to `primaryAxisAlignItems` → `mainAxisAlignment` and `counterAxisAlignItems` → `crossAxisAlignment` in output formatting or display logic |
-| `specs-from-figma` | Update value mapping | Map Figma `primaryAxisAlignItems` values (`MIN` → `START`, `MAX` → `END`) and `counterAxisAlignItems` values (`MIN` → `START`, `MAX` → `END`) to new field names and enum values |
-| `specs-plugin` | Update value mapping | Same Figma-to-schema mapping changes as `specs-from-figma` |
 
 ---
 
