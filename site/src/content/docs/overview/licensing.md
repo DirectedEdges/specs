@@ -1,6 +1,9 @@
 ---
 title: "Licensing"
 ---
+
+<script>document.querySelector('#_top').insertAdjacentHTML('afterbegin','<span class="sl-badge pro-badge pro-badge-hero">Pro</span>')</script>
+
 Specs works at two tiers: **Free** and **Pro**. Both tiers use the same configuration and generate the same component structure — the difference is in how much detail the `generate` command's output contains. Other commands (`fetch`, `scan`, `init`) are not affected by licensing.
 
 ## Free Tier

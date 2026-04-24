@@ -32,6 +32,22 @@ ul.top-level > li > a.large[aria-current='page']:focus {
 	margin-left: 0.5rem;
 }
 
+/* Large Pro badge prepended to the Licensing page title */
+.pro-badge.pro-badge-hero {
+	font-size: 1.25rem;
+	padding: 0.25rem 0.75rem;
+	margin-left: 0;
+	margin-right: 0.625rem;
+}
+
+/* Prepend the Pro badge before label text in the Licensing nav link */
+a[href*="/overview/licensing"] {
+	display: flex;
+	flex-direction: row-reverse;
+	justify-content: flex-end;
+	gap: 0.375rem;
+}
+
 /* Style command names in the sidebar as inline-code pills */
 .sidebar-content a[href*="/cli/commands/"] {
 	font-family: var(--sl-font-system-mono);
@@ -50,10 +66,20 @@ ul.top-level > li > a.large[aria-current='page']:focus {
 	font-size: var(--sl-text-sm);
 }
 
+/* Add breathing room between the top nav bar and the on-this-page TOC */
+.right-sidebar-panel {
+	padding-top: 3.125rem;
+}
+
 /* Hide the mobile "On this page" TOC toggle above the page title.
    The right-column TOC remains visible at wider viewports. */
 mobile-starlight-toc {
 	display: none;
+}
+
+/* Remove divider between page title and page content */
+.content-panel + .content-panel {
+	border-top: none;
 }
 
 /* Hide previous/next page navigation links */

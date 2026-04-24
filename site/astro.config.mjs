@@ -19,7 +19,7 @@ export default defineConfig({
         { label: 'About Specs', slug: 'overview/aboutspecs' },
         { label: 'Getting Started', slug: 'cli/getting-started' },
         { label: 'Releases', slug: 'overview/releases' },
-        { label: 'Licensing', slug: 'overview/licensing' },
+        { label: 'Licensing', slug: 'overview/licensing', badge: pro },
         {
           label: 'Schema (@specs-schema)',
           collapsed: true,

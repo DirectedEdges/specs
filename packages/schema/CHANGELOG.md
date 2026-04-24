@@ -9,21 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `ItemSpacing` — bi-axial spacing interface with optional `horizontal` and `vertical` fields
-- `LayoutMode` — string literal union type (`'NONE' | 'HORIZONTAL' | 'VERTICAL'`)
-- `WrapAlignment` — string literal union type (`'START' | 'SPACE_BETWEEN'`) for wrap line distribution
-- `Styles.itemSpacing` — now accepts `Style | ItemSpacing` (scalar when uniform, object when axes differ)
+- `Styles.itemSpacing` — widened from `Style` to `Style | ItemSpacing` (scalar when uniform, `ItemSpacing` object with `horizontal`/`vertical` when axes differ)
 - `Styles.wrap` — boolean toggle for auto-layout wrapping (replaces `layoutWrap`)
-- `Styles.wrapAlignment` — typed as `WrapAlignment | null`; structural property, not token-bindable (replaces `counterAxisAlignContent`)
-- `MainAxisAlignment` — string literal union type (`'START' | 'END' | 'CENTER' | 'SPACE_BETWEEN'`)
-- `CrossAxisAlignment` — string literal union type (`'START' | 'END' | 'CENTER' | 'STRETCH' | 'BASELINE'`)
-- `Styles.mainAxisAlignment` — typed as `MainAxisAlignment | null`; structural property, not token-bindable (replaces `primaryAxisAlignItems`)
-- `Styles.crossAxisAlignment` — typed as `CrossAxisAlignment | null`; structural property, not token-bindable (replaces `counterAxisAlignItems`)
+- `Styles.wrapAlignment` — typed as `WrapAlignment` (`'START' | 'SPACE_BETWEEN'`) or `null`; structural property, not token-bindable (replaces `counterAxisAlignContent`)
+- `Styles.mainAxisAlignment` — typed as `MainAxisAlignment` (`'START' | 'END' | 'CENTER' | 'SPACE_BETWEEN'`) or `null`; structural property, not token-bindable (replaces `primaryAxisAlignItems`)
+- `Styles.crossAxisAlignment` — typed as `CrossAxisAlignment` (`'START' | 'END' | 'CENTER' | 'STRETCH' | 'BASELINE'`) or `null`; structural property, not token-bindable (replaces `counterAxisAlignItems`)
 
 ### Changed
 
-- `Styles.itemSpacing` — widened from `Style` to `Style | ItemSpacing`
-- `Styles.layoutMode` — narrowed from `Style` to `LayoutMode | null` (enum constraint, no TokenReference)
+- `Styles.layoutMode` — narrowed from `Style` to `LayoutMode` (`'NONE' | 'HORIZONTAL' | 'VERTICAL'`) or `null`; enum constraint, no TokenReference
 
 ### Removed
 
