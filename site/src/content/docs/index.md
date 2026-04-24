@@ -11,11 +11,19 @@ Specs is a deterministic system for generating and managing UI component composi
 
 The project evolved from [Anova](https://github.com/DirectedEdges/anova) ("Analysis of Variants"). To learn more about the concept, read the [Analysis of Variants](https://nathanacurtis.substack.com/p/analysis-of-variants-9e440c30b93e) blog post.
 
+## Pro Licensing
+
+Specs is free to use at both the CLI and Figma plugin. The free tier generates complete component structures — anatomy, props, layout, and default-variant styles — giving you a full picture of every component.
+
+A **Pro** license unlocks additional `generate` features including design token references, named style references, prop bindings, non-default variants, and invalid variant combinations. Pro licenses are available for both the Figma plugin and the CLI.
+
+[Purchase Now](https://buy.polar.sh/polar_cl_xnq7zeKLXunrhOIpfNwA56F4wIq2Y0lLNCKmb0hhYJH) | [Learn More](/specs/overview/licensing/)
+
 ## Packages
 
 ### `@directededges/specs-cli`
 
-Command-line interface (CLI) for generating component specifications from Figma design files. The CLI is free to use. A **PRO** license unlocks additional `generate` features including token resolution, subcomponent references, slot constraints, and platform extensions. For a **PRO** license, contact nathan@directededges.com.
+Command-line interface (CLI) for generating component specifications from Figma design files.
 
 ```sh
 # 1. Install cli globally to run with the command `specs`
