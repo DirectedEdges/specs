@@ -5,6 +5,15 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-04-24
+
+Dependency update: picks up specs-schema 0.18.0 layout property renames and specs-from-figma 0.15.0 bi-axial spacing model.
+
+### Dependency updates
+
+- **@directededges/specs-schema 0.18.0** — Layout alignment properties renamed from Figma axis terminology to platform-neutral names: `primaryAxisAlignItems` → `mainAxisAlignment`, `counterAxisAlignItems` → `crossAxisAlignment`, `counterAxisAlignContent` → `wrapAlignment`, `layoutWrap` → `wrap`. `counterAxisSpacing` consolidated into a bi-axial `itemSpacing` model. `layoutMode` narrowed from generic style to strict `'NONE' | 'HORIZONTAL' | 'VERTICAL'` enum.
+- **@directededges/specs-from-figma 0.15.0** — Wrap-enabled auto-layout frames now emit bi-axial `itemSpacing` with `horizontal`/`vertical` fields instead of separate `itemSpacing`/`counterAxisSpacing` keys. Alignment values remapped from Figma terminology (`MIN` → `START`, `MAX` → `END`). `wrapAlignment` is only emitted when `wrap: true`, stripped as dead otherwise.
+
 ## [0.11.0] - 2026-04-16
 
 Fix: config file split options (`splitComponents`, `splitConcerns`, `useSubfolders`) were ignored because Commander's explicit `false` default shadowed the config values. Also makes `generate` and `scan` runnable with zero arguments using a default file path derived from config.
