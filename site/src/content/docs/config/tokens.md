@@ -3,6 +3,8 @@ title: "Tokens"
 description: "Control how design token references are serialized in the spec output"
 ---
 
+<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge pro-badge">Pro</span>')</script>
+
 **Config path:** `config.format.tokens`
 
 Token reference format profile.

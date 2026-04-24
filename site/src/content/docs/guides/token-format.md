@@ -3,6 +3,8 @@ title: "Token Format"
 description: "Control how design token references are serialized in the spec output"
 ---
 
+<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge pro-badge">Pro</span>')</script>
+
 Style properties in a component spec often reference design tokens — colors, spacing, typography values defined as Figma variables or published styles. The `tokens` format option controls **how those references are serialized**, ranging from minimal name strings to rich objects with full Figma provenance metadata.
 
 ## The Problem

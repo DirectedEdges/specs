@@ -3,7 +3,15 @@ title: "Getting Started"
 ---
 Specs CLI generates component specifications from your Figma design system. This guide walks you through setup and your first spec generation.
 
-> **Using Claude Code?** Skip the manual walkthrough. Paste this into Claude: *"Onboard me to Specs CLI following the Claude Code Onboarding guide."* Claude will handle install, config, token setup, fetch, and your first generate — asking only the decisions that actually need you. See [Claude Code Onboarding](/specs/cli/claude-onboarding/).
+:::tip[Using Claude Code?]
+Skip the manual walkthrough. Paste this into Claude Code:
+
+```
+Onboard me to Specs CLI following the ONBOARDING.md instructions in this repo.
+```
+
+Claude will handle install, config, token setup, fetch, and your first generate — asking only the decisions that actually need you. See [`ONBOARDING.md`](https://github.com/DirectedEdges/specs/blob/main/ONBOARDING.md) in the repo root.
+:::
 
 **Quick nav:**
 - [Prerequisite: Node.js](#prerequisite-nodejs)

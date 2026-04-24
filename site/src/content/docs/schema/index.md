@@ -1,35 +1,55 @@
 ---
-title: "Schema Reference"
+title: "Overview"
 description: "Overview of the Specs component schema"
 ---
 
 The `@directededges/specs-schema` package defines the TypeScript types and JSON Schema for a **component spec** — a structured, platform-agnostic description of a design-system component.
 
-## What a Component Spec Contains
+## Spec Architecture
 
-A spec captures everything a consumer needs to understand a component's structure, properties, visual styles, and variant behavior:
+Every generated spec follows this tree — from a single-element icon to a complex composite with dozens of variants.
 
-| | Page | Purpose |
-|---|------|---------|
-| **Spec structure** | [Component](/specs/schema/component/) | Top-level shape — the root object of every spec |
-| | [Anatomy](/specs/schema/anatomy/) | Element tree — the named parts that make up the component |
-| | [Elements](/specs/schema/elements/) | Element runtime properties — children, styles, content |
-| | [Layout](/specs/schema/layout/) | Recursive tree representation of element nesting |
-| | [Props](/specs/schema/props/) | Configurable inputs — booleans, enums, strings, numbers, slots |
-| | [Styles](/specs/schema/styles/) | Visual properties — colors, spacing, typography, effects |
-| | [Variants](/specs/schema/variants/) | Layered overrides — how the component changes across prop combinations |
-| | [Subcomponents](/specs/schema/subcomponents/) | Embedded child components — scoped, referenced siblings |
-| **Value types** | [TokenReference](/specs/schema/token-reference/) | Design token reference following the DTCG format |
-| | [PropBinding](/specs/schema/prop-binding/) | Dynamic links between props and element/style properties |
-| | [PropConfigurations](/specs/schema/prop-configurations/) | Prop value maps for variant activation and invalid combinations |
-| | [Conditional](/specs/schema/conditional/) | Conditional style values driven by prop state |
-| | [GradientValue](/specs/schema/gradient-value/) | Linear, radial, and angular gradient definitions |
-| | [Typography](/specs/schema/typography/) | Text style properties — font, spacing, formatting |
-| | [Effects](/specs/schema/effects/) | Shadow and blur effect definitions |
-| | [Sides](/specs/schema/sides/) | Per-side positional values for padding and stroke weight |
-| | [Corners](/specs/schema/corners/) | Per-corner positional values for corner radius |
-| **Generation** | [Metadata](/specs/schema/metadata/) | Generation metadata — author, schema version, source |
-| | [Config](/specs/schema/config/) | Generation configuration — processing, format, inclusion options |
+<pre style="line-height:1.6">
+components:
+└─ {component name}                        → <a href="/specs/schema/component/">Component</a>
+  ├─ <a href="/specs/schema/anatomy/">anatomy</a>:
+  │ └─ {element name}: { type, slot }
+  ├─ <a href="/specs/schema/props/">props</a>:
+  │ └─ {prop name}: { type, default, … }
+  ├─ default:                              → <a href="/specs/schema/variants/">Variant</a>
+  │ ├─ <a href="/specs/schema/layout/">layout</a>:
+  │ │ └─ - {parent}:
+  │ │   └─ - {child}
+  │ └─ <a href="/specs/schema/elements/">elements</a>:
+  │   └─ {element name}:
+  │     ├─ content                         → <a href="/specs/schema/prop-binding/">PropBinding</a>
+  │     ├─ children                        → <a href="/specs/schema/prop-binding/">PropBinding</a>
+  │     └─ <a href="/specs/schema/styles/">styles</a>:                      (48 properties)
+  │       ├─ color                         → <a href="/specs/schema/token-reference/">TokenReference</a>, <a href="/specs/schema/gradient-value/">GradientValue</a>
+  │       ├─ spacing, size                 → <a href="/specs/schema/token-reference/">TokenReference</a>, <a href="/specs/schema/conditional/">Conditional</a>
+  │       ├─ layout                        → <a href="/specs/schema/token-reference/">TokenReference</a>, <a href="/specs/schema/conditional/">Conditional</a>
+  │       ├─ <a href="/specs/schema/typography/">typography</a>                  → <a href="/specs/schema/token-reference/">TokenReference</a>
+  │       ├─ <a href="/specs/schema/effects/">effects</a>                     → <a href="/specs/schema/token-reference/">TokenReference</a>
+  │       ├─ cornerRadius                  → <a href="/specs/schema/corners/">Corners</a>
+  │       ├─ padding, strokeWeight         → <a href="/specs/schema/sides/">Sides</a>
+  │       ├─ visibility                    → <a href="/specs/schema/prop-binding/">PropBinding</a>
+  │       └─ …                             <a href="/specs/schema/styles/">see full list</a>
+  ├─ variants:                             → <a href="/specs/schema/variants/">Variant</a>[]
+  │ └─ - <a href="/specs/schema/prop-configurations/">configuration</a>:
+  │     <a href="/specs/schema/layout/">layout</a>:
+  │     <a href="/specs/schema/elements/">elements</a>:                      (overrides only)
+  ├─ invalidVariantCombinations:           → <a href="/specs/schema/prop-configurations/">PropConfigurations</a>[]
+  ├─ <a href="/specs/schema/subcomponents/">subcomponents</a>:
+  │ └─ {name}: { …same shape as above }
+  └─ <a href="/specs/schema/metadata/">metadata</a>:
+    └─ <a href="/specs/schema/config/">config</a>:
+</pre>
+
+**Start at `default`.** The default variant is the complete baseline — every element fully described with styles, content, and layout. This is the component at rest.
+
+**Variants are deltas.** Each entry in `variants` carries a [`configuration`](/specs/schema/prop-configurations/) (which prop values activate it) and only the properties that *change*. Consumers resolve the final state by merging applicable overrides onto the default, in order. See [Variants](/specs/schema/variants/) and the [Variant Layering](/specs/guides/variant-layering/) guide.
+
+**Style values can be rich.** Any style property might be a raw literal, a [`TokenReference`](/specs/schema/token-reference/) pointing to a design token, a [`PropBinding`](/specs/schema/prop-binding/) driven by a prop, or a [`Conditional`](/specs/schema/conditional/) that switches on prop state. Composite values like [`Typography`](/specs/schema/typography/), [`Effects`](/specs/schema/effects/), [`GradientValue`](/specs/schema/gradient-value/), [`Corners`](/specs/schema/corners/), and [`Sides`](/specs/schema/sides/) have their own shapes.
 
 ### Conventions
 

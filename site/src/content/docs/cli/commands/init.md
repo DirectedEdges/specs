@@ -19,6 +19,53 @@ The `init` command scaffolds a fully-populated configuration file with:
 
 This is the recommended way to get started with Specs in a new project.
 
+## What Gets Created
+
+The init command creates a `specs.config.yaml` file with the following structure:
+
+```yaml
+# Specs CLI Configuration (production-ready defaults)
+#
+# This file configures how Specs fetches and processes Figma component data.
+# See: https://directededges.github.io/specs/config/ for complete documentation.
+
+# Where fetch writes payloads, and where generate reads from.
+# See: https://docs.specs.dev/config/data-sources
+dataDirectory: ./data
+
+# Default location for generated spec files (can override with -o flag).
+# See: https://docs.specs.dev/config/data-sources
+outputDirectory: ./specs
+
+# Figma file sources to fetch and process.
+# See: https://docs.specs.dev/config/data-sources
+sources: {}
+
+# Processing and output configuration.
+# See: https://docs.specs.dev/config/
+config:
+  processing:
+    subcomponents:
+      # scope: NESTED
+      match:
+        - '{C} / _ / {S}'
+      # exclude:
+      #   - '{C} / Examples / {S}'
+    # glyphNamePattern: 'DS Icon Glyph /'
+    variantDepth: 9999
+    details: LAYERED
+  format:
+    output: JSON
+    keys: SAFE
+    layout: LAYOUT
+    tokens: TOKEN
+  include:
+    invalidVariants: false
+    invalidCombinations: true
+```
+
+Each section includes inline comments with references to the full documentation.
+
 ## Options
 
 ### `--force` / `-f`
@@ -71,7 +118,7 @@ specs init
 # Development config
 specs init --config .specs.dev.yaml --force
 
-# Production config  
+# Production config
 specs init --config .specs.prod.yaml --force
 
 # Use with --config flag on other commands
@@ -85,53 +132,6 @@ specs generate data/library.file.json -c "Button" --config .specs.prod.yaml
 # If you accidentally delete your config, recreate it
 specs init --force
 ```
-
-## What Gets Created
-
-The init command creates a `specs.config.yaml` file with the following structure:
-
-```yaml
-# Specs CLI Configuration (production-ready defaults)
-#
-# This file configures how Specs fetches and processes Figma component data.
-# See: https://directededges.github.io/specs/config/ for complete documentation.
-
-# Where fetch writes payloads, and where generate reads from.
-# See: https://docs.specs.dev/config/data-sources
-dataDirectory: ./data
-
-# Default location for generated spec files (can override with -o flag).
-# See: https://docs.specs.dev/config/data-sources
-outputDirectory: ./specs
-
-# Figma file sources to fetch and process.
-# See: https://docs.specs.dev/config/data-sources
-sources: {}
-
-# Processing and output configuration.
-# See: https://docs.specs.dev/config/
-config:
-  processing:
-    subcomponents:
-      # scope: NESTED
-      match:
-        - '{C} / _ / {S}'
-      # exclude:
-      #   - '{C} / Examples / {S}'
-    # glyphNamePattern: 'DS Icon Glyph /'
-    variantDepth: 9999
-    details: LAYERED
-  format:
-    output: JSON
-    keys: SAFE
-    layout: LAYOUT
-    tokens: TOKEN
-  include:
-    invalidVariants: false
-    invalidCombinations: true
-```
-
-Each section includes inline comments with references to the full documentation.
 
 ---
 

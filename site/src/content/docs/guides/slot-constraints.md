@@ -3,6 +3,8 @@ title: "Slot Constraints"
 description: "Express quantity and content-type constraints on slot props"
 ---
 
+<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge pro-badge">Pro</span>')</script>
+
 Slots describe placeable content areas in a component — regions where consumers insert child components at runtime. By default, a `SlotProp` captures the slot's default content and nullability but says nothing about **how many items** the slot accepts or **which component types** are allowed. The `slotConstraints` feature promotes those rules to first-class fields on every slot prop.
 
 ## The Problem
