@@ -5,6 +5,40 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.0] - 2026-04-24
+
+Replaces Figma-native layout property names with semantic equivalents for auto-layout alignment and wrapping. Introduces a bi-axial `itemSpacing` model that consolidates `counterAxisSpacing` into a single property, and narrows `layoutMode` from a generic `Style` to a strict enum. Five renamed alignment/wrap fields use plain-language names (`mainAxisAlignment`, `crossAxisAlignment`, `wrapAlignment`, `wrap`) instead of Figma axis terminology. The documentation site was considerably rearchitected with updated content and navigation.
+
+### Added
+
+- `Styles.itemSpacing` — widened from `Style` to `Style | ItemSpacing` (scalar when uniform, `ItemSpacing` object with `horizontal`/`vertical` when axes differ)
+- `Styles.wrap` — boolean toggle for auto-layout wrapping (replaces `layoutWrap`)
+- `Styles.wrapAlignment` — typed as `WrapAlignment` (`'START' | 'SPACE_BETWEEN'`) or `null`; structural property, not token-bindable (replaces `counterAxisAlignContent`)
+- `Styles.mainAxisAlignment` — typed as `MainAxisAlignment` (`'START' | 'END' | 'CENTER' | 'SPACE_BETWEEN'`) or `null`; structural property, not token-bindable (replaces `primaryAxisAlignItems`)
+- `Styles.crossAxisAlignment` — typed as `CrossAxisAlignment` (`'START' | 'END' | 'CENTER' | 'STRETCH' | 'BASELINE'`) or `null`; structural property, not token-bindable (replaces `counterAxisAlignItems`)
+
+### Changed
+
+- `Styles.layoutMode` — narrowed from `Style` to `LayoutMode` (`'NONE' | 'HORIZONTAL' | 'VERTICAL'`) or `null`; enum constraint, no TokenReference
+
+### Removed
+
+- `Styles.counterAxisSpacing` — consolidated into `Styles.itemSpacing` bi-axial model
+- `Styles.layoutWrap` — replaced by `Styles.wrap`
+- `Styles.counterAxisAlignContent` — replaced by `Styles.wrapAlignment`
+- `Styles.primaryAxisAlignItems` — replaced by `Styles.mainAxisAlignment`
+- `Styles.counterAxisAlignItems` — replaced by `Styles.crossAxisAlignment`
+
+### Migration
+
+- `Styles.counterAxisSpacing` → `Styles.itemSpacing.vertical`: read the `vertical` sub-field of the `ItemSpacing` object when axes differ; scalar `itemSpacing` applies uniformly
+- `Styles.layoutMode` → `LayoutMode | null`: replace generic `Style` handling with exhaustive match on `'NONE' | 'HORIZONTAL' | 'VERTICAL'`
+- `Styles.layoutWrap` → `Styles.wrap`: rename only; same boolean semantics
+- `Styles.counterAxisAlignContent` → `Styles.wrapAlignment`: rename and remap values — `'AUTO'` → `'START'`, `'SPACE_BETWEEN'` → `'SPACE_BETWEEN'`
+- `Styles.primaryAxisAlignItems` → `Styles.mainAxisAlignment`: rename and narrow type — replace generic `Style` handling with exhaustive match on `'START' | 'END' | 'CENTER' | 'SPACE_BETWEEN'`; remap Figma values `'MIN'` → `'START'`, `'MAX'` → `'END'`
+- `Styles.counterAxisAlignItems` → `Styles.crossAxisAlignment`: rename and narrow type — replace generic `Style` handling with exhaustive match on `'START' | 'END' | 'CENTER' | 'STRETCH' | 'BASELINE'`; remap Figma values `'MIN'` → `'START'`, `'MAX'` → `'END'`
+
+
 ## [0.17.0] - 2026-04-13
 
 Introduces `ResolvedConfig` as the fully-resolved counterpart to `Config`, where every property with a default is guaranteed present. `Config` properties with defaults are now optional, making input configs more tolerant of omissions. Removes the unused `Variant.name` and `Variant.baseline` fields.

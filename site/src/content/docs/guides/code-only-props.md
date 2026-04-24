@@ -114,4 +114,4 @@ The processing engine traverses all descendants of the container recursively, ex
 
 - [Code-Only Props in Figma](https://nathanacurtis.substack.com/p/code-only-props-in-figma) — the Figma convention for encoding developer-facing properties on hidden layers
 - [ADR 027 — Code-Only Props](/specs/../adr/027-code-only-props/) — architecture decision record covering the extraction model and provenance metadata
-- [CLI Configuration](/specs/cli/configuration/) — full config reference
+- [CLI Configuration](/specs/config/) — full config reference

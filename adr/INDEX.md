@@ -4,10 +4,6 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 040 | Replace `primaryAxisAlignItems` and `counterAxisAlignItems` with `mainAxisAlignment` and `crossAxisAlignment` | |
-| 039 | Replace `layoutWrap` and `counterAxisAlignContent` with `wrap` and `wrapAlignment` | |
-| 038 | Tighten layoutMode to String Literal Enum | |
-| 037 | Consolidate Item Spacing into a Bi-Axial Model | |
 | 035 | Make Config Properties with Defaults Optional | |
 | 034 | Remove variantNames, add emptyVariants, make Config.include fields optional | Remove unused `variantNames` (breaking); add `emptyVariants` for filtering; make remaining fields optional |
 | 025 | Flowing Content into a Nested Instance's Slot | Model parent components that flow defined content into a nested child instance's slot _(branch)_ |
@@ -20,6 +16,10 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 040 | Replace `primaryAxisAlignItems` and `counterAxisAlignItems` with `mainAxisAlignment` and `crossAxisAlignment` | Rename to platform-neutral names; add `MainAxisAlignment` and `CrossAxisAlignment` enums; not token-bindable |
+| 039 | Replace `layoutWrap` and `counterAxisAlignContent` with `wrap` and `wrapAlignment` | Rename to platform-neutral names; add `WrapAlignment` enum (`START \| SPACE_BETWEEN`); not token-bindable |
+| 038 | Tighten layoutMode to String Literal Enum | Narrow `layoutMode` from `Style` to `LayoutMode \| null` (`'NONE' \| 'HORIZONTAL' \| 'VERTICAL'`); exclude TokenReference |
+| 037 | Consolidate Item Spacing into a Bi-Axial Model | Replace `itemSpacing` + `counterAxisSpacing` with single `itemSpacing: Style \| ItemSpacing` using `{ horizontal, vertical }` |
 | 036 | Remove `name` and `baseline` from `Variant` | Remove unused `name` and `baseline` optional fields from `Variant` type and schema (breaking) |
 | 035 | Make Config Properties with Defaults Optional | Make 5 required Config properties optional with defaults; add `ResolvedConfig` type for fully-resolved shape |
 | 033 | Typography fontFamily/fontStyle — Remove Number, Add TokenReference | Fix font fields: remove impossible `number` branch, add `TokenReference` for variable-bound font properties |

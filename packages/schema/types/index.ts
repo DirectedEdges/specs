@@ -25,7 +25,7 @@ export type { Config, ResolvedConfig } from './Config.js';
 export { DEFAULT_CONFIG } from './Config.js';
 
 // Style types
-export type { Styles, Style, ColorStyle, ColorValue, StyleKey, TokenReference, AspectRatioValue, AspectRatioStyle, Typography, Sides, Corners } from './Styles.js';
+export type { Styles, Style, ColorStyle, ColorValue, StyleKey, TokenReference, AspectRatioValue, AspectRatioStyle, Typography, Sides, Corners, ItemSpacing, LayoutMode, WrapAlignment, MainAxisAlignment, CrossAxisAlignment } from './Styles.js';
 export type { Shadow, Blur, Effects } from './Effects.js';
 export type { GradientStop, GradientCenter, LinearGradient, RadialGradient, AngularGradient, GradientValue } from './Gradient.js';
 

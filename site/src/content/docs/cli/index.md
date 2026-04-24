@@ -1,18 +1,26 @@
 ---
 title: "CLI Overview"
 ---
-The Specs command-line interface (CLI) enables automated generation of design system specifications from Figma REST API data without requiring the Figma Plugin UI.
 
-## Overview
+The Specs command-line interface (CLI) generates design system specifications from Figma REST API data without requiring the Figma Plugin UI. It enables automation, batch processing, and CI/CD integration.
 
-The CLI provides five commands for processing Figma design data:
-- **`init`** - Create a default `specs.config.yaml`
-- **`fetch`** - Download raw REST payloads (file, variables, styles) for one or more Figma files
-- **`generate`** - Generate specifications from a manifest or single component
-- **`scan`** - Scan a Figma file and create a manifest of all components
-- **`applyCustomTokens`** - Inject custom token objects into fetched variables/styles data
+## Commands
 
-These tools enable automation, batch processing, and integration into CI/CD pipelines.
+| Command | Purpose | Output |
+|---------|---------|--------|
+| [`init`](/specs/cli/commands/init/) | Initialize config file with defaults | `specs.config.yaml` |
+| [`fetch`](/specs/cli/commands/fetch/) | Download raw REST payloads from Figma | JSON files in `dataDirectory` |
+| [`scan`](/specs/cli/commands/scan/) | List all components in file | Markdown manifest |
+| [`generate`](/specs/cli/commands/generate/) | Generate specs from a manifest or single component | YAML/JSON spec file(s) |
+| [`applyCustomTokens`](/specs/cli/commands/apply-custom-tokens/) | Inject `$custom` objects into fetched data | Modified variables/styles JSON |
+
+### Global Options
+
+These options work with all commands:
+
+- `--verbose` - Enable detailed logging
+- `--help` - Show command help
+- `--version` - Show CLI version
 
 ## Free vs. Pro
 
@@ -27,105 +35,7 @@ With a **Pro license**, specs also include design token references, variable bin
 | Design token references | — | Yes |
 | Variable and visibility bindings | — | Yes |
 
-Set up your license key in your environment to unlock Pro features. See [Getting Started — License](/specs/cli/getting-started.md/#step-3-set-your-license-key-optional).
-
-## Key Features
-
-### Multiple Output Modes
-Generate specs as single files, per-component files, or split by concern (API vs variants) to fit your workflow. See [generate command](/specs/cli/commands/generate/) for details.
-
-### Manifest-Based Generation
-Process entire design systems at once using a curated manifest:
-```bash
-# 0. Fetch raw payloads
-specs fetch --verbose
-
-# 1. Create manifest (auto-resolves configured source; writes to data/library.manifest.md by default)
-specs scan
-
-# 2. Curate manifest (edit data/library.manifest.md)
-
-# 3. Generate all specs
-# Zero-config — uses default manifest and outputDirectory from config
-specs generate
-
-# Or override paths per-run:
-specs generate components.md -o specs/all.yaml
-
-# Per-component files
-specs generate -o specs/ --split-components
-
-# Separate API from variants
-specs generate -o specs/ --split-concerns
-```
-
-### Single Component Generation
-Quickly generate a spec for one component when setting up or iterating:
-```bash
-specs fetch --verbose
-specs generate data/library.file.json -c "Button" -o specs/button.yaml
-```
-
-### Flexible Configuration
-Configure behavior via `specs.config.yaml`:
-```yaml
-dataDirectory: ./data
-outputDirectory: ./specs
-
-sources:
-  library:
-    key: REPLACE_WITH_LIBRARY_FILE_KEY
-    data: ['file','variables','styles']
-  foundations:
-    key: REPLACE_WITH_FOUNDATIONS_FILE_KEY
-    data: ['variables','styles']
-
-config:
-  processing:
-    variantDepth: 2
-    details: FULL
-  format:
-    output: YAML
-    keys: CAMEL
-```
-
-### CI/CD Integration
-Automate spec generation in your build pipeline with GitHub Actions, GitLab CI, or other automation tools.
-
-## Documentation
-
-### [Getting Started](/specs/cli/getting-started/)
-Installation, prerequisites, license setup, and quick start guide
-
-### [Claude Code Onboarding](/specs/cli/claude-onboarding/)
-Interactive setup driven by Claude Code — handles install, config decisions, token setup, and your first generate
-
-### [Configuration](/specs/cli/configuration/)
-Configure processing behavior and data sources with `specs.config.yaml`
-
-### [Commands Reference](/specs/cli/commands/)
-Complete command reference for `init`, `fetch`, `generate`, and `scan`
-
-### [Examples](/specs/cli/examples/)
-Real-world usage examples and workflows
-
-## Quick Example
-
-```bash
-# Fetch raw payloads (writes into dataDirectory)
-specs fetch --verbose
-
-# Scan to build a manifest (auto-resolves configured source; writes to data/library.manifest.md by default)
-specs scan
-
-# Generate all selected components — uses default manifest + outputDirectory
-specs generate
-
-# Or generate a single component spec on demand
-specs generate data/library.file.json \
-  -c "DS Button" \
-  --output specs/button.yaml
-```
+Set up your license key in your environment to unlock Pro features. See [Getting Started — License](/specs/cli/getting-started/#step-3-set-your-license-key-optional).
 
 ## Output Format
 
@@ -159,6 +69,23 @@ components:
               paddingLeft: { value: 12, type: ABSOLUTE }
 ```
 
+## File Outputs
+
+`specs fetch` writes deterministic filenames based on your config aliases.
+
+Example (with `dataDirectory: ./data`):
+
+```
+data/
+├── library.file.json
+├── library.variables.json
+├── library.styles.json
+├── foundations.variables.json
+└── foundations.styles.json
+```
+
+`generate` uses these files by default when your `specs.config.yaml` declares the corresponding aliases and data types.
+
 ## Requirements
 
 - **Node.js** 18 or higher
@@ -171,11 +98,5 @@ See [Getting Started](/specs/cli/getting-started/) for installation instructions
 ## See Also
 
 - [Getting Started](/specs/cli/getting-started/) - Installation, license, and quick start
-- [Claude Code Onboarding](/specs/cli/claude-onboarding/) - Interactive setup via Claude Code
-- [Configuration](/specs/cli/configuration/) - Config file reference
-- [Commands Reference](/specs/cli/commands/) - Detailed command docs
-- [Examples](/specs/cli/examples/) - Real-world usage patterns
-
----
-
-**Last Updated**: April 2026
+- [Workflows](/specs/cli/workflows/) - Real-world usage patterns and CI/CD
+- [Configuration](/specs/config/) - Config file reference

@@ -1,14 +1,13 @@
----
-title: "Claude Code Onboarding"
----
-> **If you're a human reading this**: paste the line below into Claude Code (terminal or the VS Code panel) and follow the prompts. Claude will install Specs CLI, write your config, collect your Figma token, fetch your design system, and generate your first specs.
+# Claude Code Onboarding
+
+> **For humans**: paste this into Claude Code (terminal or VS Code panel) and follow the prompts:
 >
 > ```
-> Please onboard me to Specs CLI by following the instructions at
-> https://directededges.github.io/specs/cli/claude-onboarding/
+> Onboard me to Specs CLI following the ONBOARDING.md instructions in this repo.
 > ```
 >
-> Everything below this quote is a prompt *to Claude*, not a tutorial for you.
+> Everything below is a prompt *for Claude*, not a tutorial for you.
+> For a manual walkthrough, see the [Getting Started](https://directededges.github.io/specs/cli/getting-started/) guide.
 
 ---
 
@@ -208,7 +207,7 @@ output:                                # ASKED-5c (Essentials) — file layout o
   # defaultFormat: yaml                # OMITTED — stdout-only knob; the `--format` CLI flag overrides per command
 ```
 
-If the user later wants to enable anything marked **OMITTED**, point them at [configuration.md](/specs/cli/configuration/) — those features are opt-in because either (a) absence means the feature is off (`subcomponents`, `glyphNamePattern`, `codeOnlyPropsPattern`), or (b) they're advanced tuning knobs rarely needed in a first setup (`slotConstraints`, `inferNumberProps`, `emptyVariants`, `defaultFormat`).
+If the user later wants to enable anything marked **OMITTED**, point them at the [Configuration Reference](https://directededges.github.io/specs/config/) — those features are opt-in because either (a) absence means the feature is off (`subcomponents`, `glyphNamePattern`, `codeOnlyPropsPattern`), or (b) they're advanced tuning knobs rarely needed in a first setup (`slotConstraints`, `inferNumberProps`, `emptyVariants`, `defaultFormat`).
 
 **Note on `output:`**: `specs init` today does not write this section. If it's missing after Step 2, Claude will create it in sub-step 5c with the defaults shown. If a future `specs init` adds it, the checkpoint still matches.
 
@@ -467,7 +466,7 @@ Summarize what exists now:
 Suggest immediate next steps:
 
 - Re-run `specs fetch && specs generate` anytime the Figma file updates.
-- See [Examples](/specs/cli/examples/) for CI/CD automation.
+- See the [Workflows](https://directededges.github.io/specs/cli/workflows/) guide for CI/CD automation.
 - Enable Pro features later by adding `SPECS_LICENSE_KEY` to `.env`.
 
 Do **not** offer to `git init`, `git add`, or `git commit` unless the user asks.
@@ -501,10 +500,6 @@ Regardless of UI, for the `.env` step, prefer the "create stub file, user pastes
 
 ## See also
 
-- [Getting Started](/specs/cli/getting-started/) — the human-written walkthrough, for reference
-- [Configuration Reference](/specs/cli/configuration/) — full option docs (link here instead of restating when the user wants detail)
-- [Commands Reference](/specs/cli/commands/) — per-command flags and behavior
-
----
-
-**Last Updated**: April 2026
+- [Getting Started](https://directededges.github.io/specs/cli/getting-started/) — the manual walkthrough
+- [Configuration Reference](https://directededges.github.io/specs/config/) — full option docs
+- [CLI Overview](https://directededges.github.io/specs/cli/) — per-command flags and behavior

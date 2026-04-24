@@ -3,7 +3,15 @@ title: "Getting Started"
 ---
 Specs CLI generates component specifications from your Figma design system. This guide walks you through setup and your first spec generation.
 
-> **Using Claude Code?** Skip the manual walkthrough. Paste this into Claude: *"Onboard me to Specs CLI following the Claude Code Onboarding guide."* Claude will handle install, config, token setup, fetch, and your first generate — asking only the decisions that actually need you. See [Claude Code Onboarding](/specs/cli/claude-onboarding/).
+:::tip[Using Claude Code?]
+Skip the manual walkthrough. Paste this into Claude Code:
+
+```
+Onboard me to Specs CLI following the ONBOARDING.md instructions in this repo.
+```
+
+Claude will handle install, config, token setup, fetch, and your first generate — asking only the decisions that actually need you. See [`ONBOARDING.md`](https://github.com/DirectedEdges/specs/blob/main/ONBOARDING.md) in the repo root.
+:::
 
 **Quick nav:**
 - [Prerequisite: Node.js](#prerequisite-nodejs)
@@ -16,7 +24,7 @@ Specs CLI generates component specifications from your Figma design system. This
 - [Step 7: Select components](#step-7-select-components)
 - [Step 8: Generate specs](#step-8-generate-specs)
 - [Alternative approaches to generate](#alternative-approaches-to-generate)
-- [Commands Reference](/specs/cli/commands/)
+- [CLI Overview](/specs/cli/)
 
 ---
 
@@ -129,9 +137,9 @@ config:
 - **`processing`** — how components are analyzed (variant depth, detail level, subcomponent detection)
 - **`include`** — what to include in output (invalid variants, invalid combinations)
 
-Optional features like `subcomponents`, `glyphNamePattern`, and `codeOnlyPropsPattern` are off by default. Add them to `processing` when needed — see [Configuration Reference](/specs/cli/configuration/).
+Optional features like `subcomponents`, `glyphNamePattern`, and `codeOnlyPropsPattern` are off by default. Add them to `processing` when needed — see [Configuration Reference](/specs/config/).
 
-See [Configuration Reference](/specs/cli/configuration/) for all options and allowed values.
+See [Configuration Reference](/specs/config/) for all options and allowed values.
 
 ### Output
 

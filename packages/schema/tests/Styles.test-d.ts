@@ -7,7 +7,8 @@ import type {
   Styles, Shadow, Blur, Effects, Typography,
   TokenReference, ColorStyle, GradientStop, GradientCenter, LinearGradient, RadialGradient,
   AngularGradient, GradientValue, AspectRatioValue, AspectRatioStyle,
-  Sides, Corners,
+  Sides, Corners, ItemSpacing, LayoutMode, WrapAlignment,
+  MainAxisAlignment, CrossAxisAlignment,
 } from '../types/index.js';
 
 // ─── ColorStyle ────────────────────────────────────────────────────────────
@@ -478,3 +479,210 @@ const _oldBottomLeftRadius: Styles = { bottomLeftRadius: 4 };
 
 // @ts-expect-error: bottomRightRadius no longer exists on Styles
 const _oldBottomRightRadius: Styles = { bottomRightRadius: 4 };
+
+// ─── ItemSpacing ───────────────────��────────────────────────────────────────
+
+// All keys optional — empty ItemSpacing is valid
+const emptyItemSpacing: ItemSpacing = {};
+
+// Full ItemSpacing with numeric values
+const fullItemSpacing: ItemSpacing = { horizontal: 16, vertical: 8 };
+
+// Individual axes with TokenReference
+const tokenItemSpacing: ItemSpacing = {
+  horizontal: { $token: 'Space.Gap.H', $type: 'dimension' } satisfies TokenReference,
+  vertical: 8,
+};
+
+// null is valid for individual axis (absent/not set)
+const nullAxisSpacing: ItemSpacing = { horizontal: null, vertical: 12 };
+
+// ─── Styles.itemSpacing (scalar or ItemSpacing) ─────────────────────────────
+
+// Scalar number (uniform spacing)
+const uniformItemSpacing: Styles = { itemSpacing: 16 };
+
+// ItemSpacing object (per-axis)
+const perAxisItemSpacing: Styles = { itemSpacing: { horizontal: 16, vertical: 8 } };
+
+// TokenReference for itemSpacing
+const tokenItemSpacingStyle: Styles = {
+  itemSpacing: { $token: 'Space.Gap', $type: 'dimension' } satisfies TokenReference,
+};
+
+// null is valid
+const nullItemSpacing: Styles = { itemSpacing: null };
+
+// @ts-expect-error: counterAxisSpacing no longer exists on Styles
+const _oldCounterAxisSpacing: Styles = { counterAxisSpacing: 8 };
+
+// ─── LayoutMode ─────────────────────────────────────────────────────────────
+
+// Valid enum values
+const _lmNone: LayoutMode = 'NONE';
+const _lmHorizontal: LayoutMode = 'HORIZONTAL';
+const _lmVertical: LayoutMode = 'VERTICAL';
+
+// @ts-expect-error: arbitrary string is not valid LayoutMode
+const _lmBad: LayoutMode = 'GRID';
+
+// @ts-expect-error: number is not valid LayoutMode
+const _lmNumber: LayoutMode = 0;
+
+// ─── Styles.layoutMode (LayoutMode | null) ──────────────────────────────────
+
+// Valid enum values on Styles
+const withLayoutNone: Styles = { layoutMode: 'NONE' };
+const withLayoutHorizontal: Styles = { layoutMode: 'HORIZONTAL' };
+const withLayoutVertical: Styles = { layoutMode: 'VERTICAL' };
+
+// null is valid
+const withLayoutNull: Styles = { layoutMode: null };
+
+// @ts-expect-error: TokenReference is not valid for layoutMode (not token-bindable)
+const _lmToken: Styles = { layoutMode: { $token: 'Layout.Mode', $type: 'string' } satisfies TokenReference };
+
+// @ts-expect-error: number is not valid for layoutMode
+const _lmStyleNumber: Styles = { layoutMode: 1 };
+
+// @ts-expect-error: arbitrary string is not valid for layoutMode
+const _lmArbitrary: Styles = { layoutMode: 'ROW' };
+
+// ─── WrapAlignment ──────────────────────────────────────────────────────────
+
+// Valid enum values
+const _waStart: WrapAlignment = 'START';
+const _waSpaceBetween: WrapAlignment = 'SPACE_BETWEEN';
+
+// @ts-expect-error: arbitrary string is not valid WrapAlignment
+const _waBad: WrapAlignment = 'CENTER';
+
+// @ts-expect-error: number is not valid WrapAlignment
+const _waNumber: WrapAlignment = 0;
+
+// @ts-expect-error: lowercase is not valid (SCREAMING_CASE required)
+const _waLowercase: WrapAlignment = 'start';
+
+// ─── Styles.wrap (boolean Style) ────────────────────────────────────────────
+
+// Boolean values
+const withWrapTrue: Styles = { wrap: true };
+const withWrapFalse: Styles = { wrap: false };
+
+// null is valid (Style includes null)
+const withWrapNull: Styles = { wrap: null };
+
+// TokenReference is valid (Style includes TokenReference)
+const withWrapToken: Styles = {
+  wrap: { $token: 'Layout.Wrap', $type: 'boolean' } satisfies TokenReference,
+};
+
+// ─── Styles.wrapAlignment (WrapAlignment | null) ────────────────────────────
+
+// Valid enum values on Styles
+const withWrapAlignStart: Styles = { wrapAlignment: 'START' };
+const withWrapAlignSpace: Styles = { wrapAlignment: 'SPACE_BETWEEN' };
+
+// null is valid
+const withWrapAlignNull: Styles = { wrapAlignment: null };
+
+// @ts-expect-error: TokenReference is not valid for wrapAlignment (not token-bindable)
+const _waToken: Styles = { wrapAlignment: { $token: 'Layout.WrapAlign', $type: 'string' } satisfies TokenReference };
+
+// @ts-expect-error: number is not valid for wrapAlignment
+const _waStyleNumber: Styles = { wrapAlignment: 1 };
+
+// @ts-expect-error: arbitrary string is not valid for wrapAlignment
+const _waArbitrary: Styles = { wrapAlignment: 'AUTO' };
+
+// ─── Verify layoutWrap and counterAxisAlignContent removed from Styles ───────
+
+// @ts-expect-error: layoutWrap no longer exists on Styles
+const _oldLayoutWrap: Styles = { layoutWrap: true };
+
+// @ts-expect-error: counterAxisAlignContent no longer exists on Styles
+const _oldCounterAxisAlign: Styles = { counterAxisAlignContent: 'AUTO' };
+
+// ─── MainAxisAlignment ──────────────────────────────────────────────────────
+
+// Valid enum values
+const _maStart: MainAxisAlignment = 'START';
+const _maEnd: MainAxisAlignment = 'END';
+const _maCenter: MainAxisAlignment = 'CENTER';
+const _maSpaceBetween: MainAxisAlignment = 'SPACE_BETWEEN';
+
+// @ts-expect-error: arbitrary string is not valid MainAxisAlignment
+const _maBad: MainAxisAlignment = 'STRETCH';
+
+// @ts-expect-error: number is not valid MainAxisAlignment
+const _maNumber: MainAxisAlignment = 0;
+
+// @ts-expect-error: lowercase is not valid (SCREAMING_CASE required)
+const _maLowercase: MainAxisAlignment = 'center';
+
+// ─── CrossAxisAlignment ─────────────────────────────────────────────────────
+
+// Valid enum values
+const _caStart: CrossAxisAlignment = 'START';
+const _caEnd: CrossAxisAlignment = 'END';
+const _caCenter: CrossAxisAlignment = 'CENTER';
+const _caStretch: CrossAxisAlignment = 'STRETCH';
+const _caBaseline: CrossAxisAlignment = 'BASELINE';
+
+// @ts-expect-error: arbitrary string is not valid CrossAxisAlignment
+const _caBad: CrossAxisAlignment = 'SPACE_BETWEEN';
+
+// @ts-expect-error: number is not valid CrossAxisAlignment
+const _caNumber: CrossAxisAlignment = 0;
+
+// @ts-expect-error: lowercase is not valid (SCREAMING_CASE required)
+const _caLowercase: CrossAxisAlignment = 'stretch';
+
+// ─── Styles.mainAxisAlignment (MainAxisAlignment | null) ─────────────────────
+
+// Valid enum values on Styles
+const withMainStart: Styles = { mainAxisAlignment: 'START' };
+const withMainEnd: Styles = { mainAxisAlignment: 'END' };
+const withMainCenter: Styles = { mainAxisAlignment: 'CENTER' };
+const withMainSpaceBetween: Styles = { mainAxisAlignment: 'SPACE_BETWEEN' };
+
+// null is valid
+const withMainNull: Styles = { mainAxisAlignment: null };
+
+// @ts-expect-error: TokenReference is not valid for mainAxisAlignment (not token-bindable)
+const _maToken: Styles = { mainAxisAlignment: { $token: 'Layout.Align', $type: 'string' } satisfies TokenReference };
+
+// @ts-expect-error: number is not valid for mainAxisAlignment
+const _maStyleNumber: Styles = { mainAxisAlignment: 1 };
+
+// @ts-expect-error: arbitrary string is not valid for mainAxisAlignment
+const _maArbitrary: Styles = { mainAxisAlignment: 'MIN' };
+
+// ─── Styles.crossAxisAlignment (CrossAxisAlignment | null) ───────────────────
+
+// Valid enum values on Styles
+const withCrossStart: Styles = { crossAxisAlignment: 'START' };
+const withCrossEnd: Styles = { crossAxisAlignment: 'END' };
+const withCrossCenter: Styles = { crossAxisAlignment: 'CENTER' };
+const withCrossStretch: Styles = { crossAxisAlignment: 'STRETCH' };
+const withCrossBaseline: Styles = { crossAxisAlignment: 'BASELINE' };
+
+// null is valid
+const withCrossNull: Styles = { crossAxisAlignment: null };
+
+// @ts-expect-error: TokenReference is not valid for crossAxisAlignment (not token-bindable)
+const _caToken: Styles = { crossAxisAlignment: { $token: 'Layout.CrossAlign', $type: 'string' } satisfies TokenReference };
+
+// @ts-expect-error: number is not valid for crossAxisAlignment
+const _caStyleNumber: Styles = { crossAxisAlignment: 1 };
+
+// @ts-expect-error: arbitrary string is not valid for crossAxisAlignment
+const _caArbitrary: Styles = { crossAxisAlignment: 'MAX' };
+
+// ─── Verify primaryAxisAlignItems and counterAxisAlignItems removed ──────────
+
+// @ts-expect-error: primaryAxisAlignItems no longer exists on Styles
+const _oldPrimaryAxis: Styles = { primaryAxisAlignItems: 'MIN' };
+
+// @ts-expect-error: counterAxisAlignItems no longer exists on Styles
+const _oldCounterAxis: Styles = { counterAxisAlignItems: 'MIN' };

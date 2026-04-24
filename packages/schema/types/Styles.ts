@@ -34,17 +34,22 @@ export type Styles = Partial<{
   textAlignHorizontal: Style;
   textAlignVertical: Style;
   textColor: ColorStyle;
-  primaryAxisAlignItems: Style;
+  /** Alignment along the main axis (depends on `layoutMode`). Structural property — not token-bindable. @since 0.18.0 */
+  mainAxisAlignment: MainAxisAlignment | null;
   primaryAxisSizingMode: Style;
-  counterAxisAlignItems: Style;
-  counterAxisAlignContent: Style;
-  layoutMode: Style;
-  layoutWrap: Style;
+  /** Alignment along the cross axis (perpendicular to `layoutMode`). Structural property — not token-bindable. @since 0.18.0 */
+  crossAxisAlignment: CrossAxisAlignment | null;
+  /** Auto-layout direction. Structural property — not token-bindable. @since 0.18.0 */
+  layoutMode: LayoutMode | null;
+  /** Whether auto-layout wrapping is enabled (default: false). @since 0.18.0 */
+  wrap: Style;
+  /** Space distribution between wrapped lines. Only meaningful when `wrap` is true. Structural property — not token-bindable. @since 0.18.0 */
+  wrapAlignment: WrapAlignment | null;
   itemReverseZIndex: Style;
-  itemSpacing: Style;
+  /** Item spacing. Scalar when uniform; `ItemSpacing` object when horizontal and vertical gaps differ. @since 0.18.0 */
+  itemSpacing: Style | ItemSpacing;
   /** Padding. Scalar when uniform; `Sides` object when per-side values differ. @since 1.0.0 */
   padding: Style | Sides;
-  counterAxisSpacing: Style;
   cornerSmoothing: Style;
   aspectRatio: AspectRatioStyle;
 }>;
@@ -197,6 +202,48 @@ export interface Sides {
 }
 
 /**
+ * Auto-layout direction mode. Structural property that cannot be token-bound.
+ * @since 0.18.0
+ */
+export type LayoutMode = 'NONE' | 'HORIZONTAL' | 'VERTICAL';
+
+/**
+ * Wrap alignment mode for multi-line auto-layout. Structural property that cannot be token-bound.
+ * Only meaningful when `wrap` is true.
+ * @since 0.18.0
+ */
+export type WrapAlignment = 'START' | 'SPACE_BETWEEN';
+
+/**
+ * Main axis alignment mode for auto-layout containers.
+ * Controls alignment along the primary axis (depends on `layoutMode`).
+ * Structural property that cannot be token-bound.
+ * @since 0.18.0
+ */
+export type MainAxisAlignment = 'START' | 'END' | 'CENTER' | 'SPACE_BETWEEN';
+
+/**
+ * Cross axis alignment mode for auto-layout containers.
+ * Controls alignment perpendicular to the primary axis (depends on `layoutMode`).
+ * Structural property that cannot be token-bound.
+ * @since 0.18.0
+ */
+export type CrossAxisAlignment = 'START' | 'END' | 'CENTER' | 'STRETCH' | 'BASELINE';
+
+/**
+ * Bi-axial item spacing values using absolute visual axes.
+ * Used for `itemSpacing` when horizontal and vertical gaps differ.
+ * Each field is optional; only axes that differ from the collapsed value are present.
+ * @since 0.18.0
+ */
+export interface ItemSpacing {
+  /** Horizontal gap between items */
+  horizontal?: Style;
+  /** Vertical gap between items */
+  vertical?: Style;
+}
+
+/**
  * Per-corner values using logical inline-axis directions (`topStart`/`topEnd`/`bottomStart`/`bottomEnd`).
  * Used for `cornerRadius` when corners differ.
  * Each field is optional; only corners that differ from the collapsed value are present.
@@ -244,15 +291,14 @@ export type StyleKey =
   | 'textAlignHorizontal'
   | 'textAlignVertical'
   | 'textColor'
-  | 'primaryAxisAlignItems'
+  | 'mainAxisAlignment'
   | 'primaryAxisSizingMode'
-  | 'counterAxisAlignItems'
-  | 'counterAxisAlignContent'
+  | 'crossAxisAlignment'
   | 'layoutMode'
-  | 'layoutWrap'
+  | 'wrap'
+  | 'wrapAlignment'
   | 'itemReverseZIndex'
   | 'itemSpacing'
   | 'padding'
-  | 'counterAxisSpacing'
   | 'cornerSmoothing'
   | 'aspectRatio';

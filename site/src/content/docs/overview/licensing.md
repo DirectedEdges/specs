@@ -1,9 +1,47 @@
 ---
 title: "Licensing"
 ---
-Specs works at two tiers: **Free** and **Pro**. Both tiers use the same configuration and generate the same component structure — the difference is in how much detail the `generate` command's output contains. Other commands (`fetch`, `scan`, `init`) are not affected by licensing.
 
-## Free Tier
+<script>document.querySelector('#_top').insertAdjacentHTML('afterbegin','<span class="sl-badge pro-badge pro-badge-hero">Pro</span>')</script>
+
+Specs works at two tiers: **Free** and **Pro**. Both tiers use the same configuration and generate the same component structure — the difference is in how much detail the `generate` command's output contains. Other commands (`fetch`, `scan`, `init`) are not affected by licensing. 
+
+A Pro license can be [purchased via Polar](https://buy.polar.sh/polar_cl_xnq7zeKLXunrhOIpfNwA56F4wIq2Y0lLNCKmb0hhYJH). Once checkout is completed, you'll receive an email with license keys. From there you can manage the subscription via your Polar customer portal.
+
+- [Purchase Pro](https://buy.polar.sh/polar_cl_xnq7zeKLXunrhOIpfNwA56F4wIq2Y0lLNCKmb0hhYJH)
+- [Manage your subscription](https://polar.sh/directed-edges-llc/portal) via Polar
+- Need help? Contact [nathan@specsplugin.com](mailto:nathan@specsplugin.com)
+
+## What You Get
+
+A Pro subscription is **$10/month** and includes:
+
+### Plugin License
+
+Your Figma plugin license key activates Pro features when generating specs from the Figma plugin. Each key is meant for an individual user and can be activated on up to two machines (e.g. a work laptop and a personal machine).
+
+### CLI License
+
+A separate CLI license key activates Pro features when generating specs via the command line.
+
+CLI usage is metered at **50 generations per month**, resetting each billing cycle. Each `generate` call that produces Pro-tier output counts as one generation. Other commands — `fetch`, `scan`, `init` — are not metered. If you hit your monthly limit, you can purchase top-off packs to add more generations without waiting for the next cycle.
+
+To avoid spending generations unnecessarily, omit your license key during trial runs — while you're iterating on config, testing component selection, or troubleshooting setup, free-tier output gives you the same structure without counting against your quota. Save Pro runs for when your config and component selection are dialed in.
+
+### Subscription and Billing
+
+Pro subscriptions are purchased and managed through [Polar](https://polar.sh), the merchant of record for Specs. Polar is a platform built for developers selling digital products — they handle payment processing, subscription management, and invoicing so you can manage your plan from a single portal.
+
+From your Polar dashboard you can:
+
+- View your current billing cycle and generation usage
+- Upgrade, downgrade, or cancel your subscription
+- Purchase top-off generation packs
+- Download invoices
+
+## Free vs Pro
+
+### Free
 
 Without a license key, every generated spec includes:
 
@@ -13,7 +51,7 @@ Without a license key, every generated spec includes:
 
 Free-tier output gives you a complete structural picture of each component — enough to understand what a component is, how it's built, and what its default state looks like.
 
-## Pro Tier
+### Pro
 
 With a valid license key, specs additionally include:
 
@@ -29,7 +67,7 @@ With a valid license key, specs additionally include:
 
 The same component property at each tier:
 
-**Free tier** — raw values only, default variant only:
+**Free** — raw values only, default variant only:
 ```yaml
 elements:
   label:
@@ -41,7 +79,7 @@ elements:
     visible: true
 ```
 
-**Pro tier** — token references, style references, and bindings:
+**Pro** — token references, style references, and bindings:
 ```yaml
 elements:
   label:
@@ -66,17 +104,17 @@ elements:
 
 Pro features are never stripped from output — they're simply not created at the free tier. If a style property has a bound Figma variable, free-tier output shows the raw resolved value; pro-tier output shows the token reference alongside the value.
 
-> **Note**: Token references require that your source config includes `variables` in the `data` array. Style references require `styles`. See [Configuration](/specs/overview/cli/configuration/) for details.
+> **Note**: Token references require that your source config includes `variables` in the `data` array. Style references require `styles`. See [Configuration](/specs/config/) for details.
 
-## Config Settings and Licensing
+### Config Settings and Licensing
 
 All config settings work at both tiers. Two settings interact with licensing:
 
-### `format.tokens`
+#### `format.tokens`
 
 Controls **how** token references are serialized — not **whether** they appear. At free tier, no token references are created regardless of this setting. At pro tier, this controls the output shape.
 
-### `include.invalidCombinations`
+#### `include.invalidCombinations`
 
 Controls whether invalid variant combinations are computed. Even when set to `true` (the default), this feature requires a pro license. At free tier, the setting is accepted but the computation is skipped — the `invalidVariantCombinations` array is simply absent from output.
 
@@ -117,14 +155,7 @@ When no license key is provided, the CLI runs silently in free mode — no licen
 
 ### Figma Plugin
 
-Enter your license key in the plugin's **Account** pane. The plugin validates the key and displays the activation status:
-
-| Status | Meaning |
-|--------|---------|
-| Active | License is valid and active |
-| Invalid | Key not recognized |
-| Expired | License has expired |
-| Not activated | No key entered |
+Enter your license key in the plugin's **Account** pane.
 
 ## Output Metadata
 
@@ -176,5 +207,5 @@ License terms depend on your plan, but generally, no. Each Pro license is intend
 ## See Also
 
 - [Getting Started](/specs/overview/cli/getting-started/) — Installation and first spec
-- [Configuration Reference](/specs/overview/cli/configuration/) — All config options
+- [Configuration Reference](/specs/config/) — All config options
 - [Config Schema](/specs/overview/schema/config/) — Config type reference and defaults

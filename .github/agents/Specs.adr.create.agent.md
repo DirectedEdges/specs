@@ -60,10 +60,10 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Derive `ADR_BRANCH` as `$ADR_NAME`.
 
 2. **Branch setup**:
-   - Run `.specify/scripts/bash/check-prerequisites.sh --json --paths-only` from repo root. Parse `REPO_ROOT`.
+   - If not already on `$ADR_BRANCH`, check if it exists — switch to it or create it from `$RELEASE_BRANCH`. The branch must exist before running `check-prerequisites.sh` (it validates the branch name pattern).
+   - Run `.specify/scripts/bash/check-prerequisites.sh --json --paths-only` from the **git repo root** (the directory containing `.git/`). Parse `REPO_ROOT` from the JSON output. **Do not guess `REPO_ROOT`** — always derive it from the script output.
    - Verify `$RELEASE_BRANCH` is synced with remote (already fetched and fast-forwarded in Step 1b).
-   - If not already on `$ADR_BRANCH`, check if it exists — switch to it or create it from `$RELEASE_BRANCH`.
-   - Set `SPEC_FILE=$REPO_ROOT/adr/$ADR_NAME.md`.
+   - Set `SPEC_FILE=$REPO_ROOT/adr/$ADR_NAME.md`. The `adr/` directory is at the **repo root**, not inside any package subdirectory.
    - If `$SPEC_FILE` exists, read it and continue editing rather than overwriting.
    - All paths must be absolute.
 
@@ -86,7 +86,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - **Options Considered**: At least two options with pros/cons relative to the drivers
    - **Decision**: Precise list of type and schema changes (file, field, modification type)
    - **Type ↔ Schema Impact**: Confirm symmetry or document justified asymmetry
-   - **Downstream Impact**: `specs-cli` only — see Key rules below
+   - **Downstream Impact**: All affected consumers (`specs-cli`, `specs-from-figma`, `specs-plugin`) — see Key rules below
    - **Semver Decision**: MAJOR / MINOR / PATCH with justification citing the constitution
    - **Consequences**: What becomes true after acceptance
 
@@ -112,6 +112,6 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 - Status MUST be `DRAFT` — never set to `ACCEPTED` in this command.
 - The ADR describes *what* will change and *why*. It does not contain type or schema file content — those changes are applied directly by `/specs.adr.implement`.
-- **Downstream Impact table**: Include only `specs-cli` as a consumer row. Do not add rows for `specs-from-figma` or `anova-plugin` — those packages manage their own ADR and change workflows.
+- **Downstream Impact table**: Include rows for all consumers affected by the change: `specs-cli`, `specs-from-figma`, and `specs-plugin`. Describe impact and required action in general terms (e.g., "Update value mapping", "Recompile") — do not reference internal classes, methods, or implementation details of those packages.
 - If the change clearly violates a constitution gate (e.g., adds runtime logic), state the violation explicitly in the ADR and halt rather than proceeding without justification.
 - Use absolute paths for all file operations.

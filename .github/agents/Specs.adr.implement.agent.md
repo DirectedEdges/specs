@@ -1,5 +1,5 @@
 ---
-description: Applies the changes described in an ADR directly to types, schema, tests, and changelog. Runs all validation gates. Author reviews the result as a normal code diff before merging.
+description: Applies the changes described in an ADR directly to types, schema, tests, docs, and changelog. Runs all validation gates. Author reviews the result as a normal code diff before merging.
 handoffs:
   - label: Accept ADR
     agent: Specs.adr.accept
@@ -62,26 +62,34 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Create or update `tests/[type-name].test-d.ts` for each changed type using `tsd`-style assertions or `@ts-expect-error` patterns
    - Run: `tsc --noEmit --strict tests/*.test-d.ts` to confirm test files compile
    - If tests fail: halt and report
-   - **All gates have now passed. Steps 10 and 11 are REQUIRED before reporting completion. Do not skip to step 12.**
+   - **All gates have now passed. Steps 10–12 are REQUIRED before reporting completion. Do not skip to step 13.**
 
-10. **Update CHANGELOG.md**:
+10. **Update docs**:
+    - Read `docs/schema/` files that correspond to the changed types (e.g., `docs/schema/styles.md` for `Styles` changes, `docs/schema/typography.md` for `Typography` changes).
+    - For each property added, removed, or renamed in the ADR: update the Properties table, the Values table, and the "Relating properties to values" section to reflect the new state.
+    - For new dedicated types (e.g., `LayoutMode`, `WrapAlignment`, `ItemSpacing`): add a row to the Values table describing the type and its valid values.
+    - Do not create new doc pages for types that are only used as field values on an existing documented type — document them inline in the parent type's page.
+    - If no `docs/schema/` file exists for the changed type, skip this step.
+
+11. **Update CHANGELOG.md**:
     - The release branch scaffolds an `## [X.Y.Z] - Unreleased` heading with empty sections. Add entries into the existing scaffold — do **not** replace `Unreleased` with a date (the date is set at release time). If no scaffold heading exists, prepend one using `Unreleased` as the date.
     - **Format**: one top-level bullet per user-visible change; no sub-bullets; no bold; no code blocks; no wrapping prose paragraphs
     - **Entry line**: `` `Parent.field` `` — one-phrase description; aim for ≤ 12 words; omit implementation detail (class names, file paths, method names)
     - **Names**: `<Parent>.<field>` in backticks, em dash separator — e.g. `Styles.cornerSmoothing` — corner smoothing factor (0–1)
+    - **Consolidation**: When a new type exists only to serve a property, merge into one property-first bullet — e.g. `` `Styles.mainAxisAlignment` — typed as `MainAxisAlignment` (`'START' | 'END' | 'CENTER' | 'SPACE_BETWEEN'`) or `null`; description ``. Do not list the type as a separate bullet.
     - **Sections**: use `### Added`, `### Changed`, `### Removed` as needed; add `### Migration` (MAJOR or rename only)
     - **Migration line**: `` `Parent.old` → `Parent.new` ``: one sentence; imperative; describe what to read instead and how to handle the new type
-    - **Gate**: After writing, verify the new entry is present in the file. If CHANGELOG.md does not contain the new version heading, halt and report — do not proceed to step 11.
+    - **Gate**: After writing, verify the new entry is present in the file. If CHANGELOG.md does not contain the new version heading, halt and report — do not proceed to step 12.
 
-11. **Bump version in `package.json`**: Apply the `NEW` version from the ADR's Semver Decision.
-    - **Gate**: After writing, read `package.json` back and confirm the `"version"` field matches the ADR's `NEW` version. If it does not match, halt and report — do not proceed to step 12.
+12. **Bump version in `package.json`**: Apply the `NEW` version from the ADR's Semver Decision.
+    - **Gate**: After writing, read `package.json` back and confirm the `"version"` field matches the ADR's `NEW` version. If it does not match, halt and report — do not proceed to step 13.
 
-12. **Report**: List every file modified (with one-line description each). The list **must** include `CHANGELOG.md` and `package.json` — if either is absent from the list, halt: steps 10–11 were not completed. State that the author should review the diff and accept the ADR once satisfied. Remind the author that this ADR branch (`$BRANCH`) targets the release branch (`$RELEASE_BRANCH`), not `main`.
+13. **Report**: List every file modified (with one-line description each). The list **must** include `CHANGELOG.md` and `package.json` — if either is absent from the list, halt: steps 11–12 were not completed. State that the author should review the diff and accept the ADR once satisfied. Remind the author that this ADR branch (`$BRANCH`) targets the release branch (`$RELEASE_BRANCH`), not `main`.
 
 ## Key rules
 
 - Apply changes directly — do not produce a description document.
 - Halt and revert on any gate failure. Do not partially apply a change set.
-- Never modify files not listed in the ADR Decision section.
+- Never modify type or schema files not listed in the ADR Decision section. Doc files (`docs/schema/`) corresponding to changed types are always in scope.
 - If the actual change required is a higher semver bump than the ADR states, halt and report before touching any file.
 - Use absolute paths for all file operations.

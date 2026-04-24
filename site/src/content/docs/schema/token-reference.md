@@ -3,6 +3,8 @@ title: "TokenReference"
 description: "Design token reference following the DTCG format"
 ---
 
+<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge pro-badge">Pro</span>')</script>
+
 A reference to a design token, following the [Design Tokens Community Group](https://design-tokens.github.io/community-group/format/) (DTCG) format. Token references appear wherever a style value can be a token instead of a literal.
 
 ```ts
@@ -40,15 +42,81 @@ Optional vendor-specific metadata. The `com.figma` extension includes:
 | `collectionName` | `string` | Variable collection name |
 | `rawValue` | `string \| number \| boolean` | Resolved raw value |
 
-## Example
+## Examples
+
+### Color
+
+Color variables bound to fills, strokes, or text color:
 
 ```yaml
-$token: DS Color.Text.Primary
-$type: color
-$extensions:
-  com.figma:
-    id: VariableID:123:456
-    collectionName: DS Color
+backgroundColor:
+  $token: DS Color.Surface.Primary
+  $type: color
+  $extensions:
+    com.figma:
+      id: VariableID:123:456
+      name: Surface/Primary
+      collectionName: DS Color
+      rawValue: "#FFFFFF"
+```
+
+### Dimension
+
+Numeric variables bound to spacing, sizing, padding, corner radius, or stroke weight:
+
+```yaml
+paddingStart:
+  $token: DS Spacing.Space.400
+  $type: dimension
+  $extensions:
+    com.figma:
+      id: VariableID:200:10
+      name: Space/400
+      collectionName: DS Spacing
+      rawValue: 16
+```
+
+### Typography (text style)
+
+Named text styles produce a typography token. These reference the style as a whole rather than individual properties:
+
+```yaml
+typography:
+  $token: Heading.H1
+  $type: typography
+  $extensions:
+    com.figma:
+      id: S:abc123
+      name: Heading/H1
+```
+
+### Effects (effect style)
+
+Named effect styles (shadows, blurs) produce an effects token:
+
+```yaml
+effects:
+  $token: Elevation.Card
+  $type: effects
+  $extensions:
+    com.figma:
+      id: S:def456
+      name: Elevation/Card
+```
+
+### Boolean
+
+Boolean-typed variables:
+
+```yaml
+visible:
+  $token: Feature.ShowBadge
+  $type: boolean
+  $extensions:
+    com.figma:
+      id: VariableID:300:1
+      name: Feature/ShowBadge
+      rawValue: true
 ```
 
 ## Further Reading

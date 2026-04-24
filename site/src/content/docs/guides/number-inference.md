@@ -89,4 +89,4 @@ Number inference follows the same pattern as boolean inference, which already ex
 ## Further Reading
 
 - [ADR 029 — NumberProp](/specs/../adr/029-number-prop/) — architecture decision record covering the `NumberProp` type, inference guard rules, and known false positives
-- [CLI Configuration](/specs/cli/configuration/) — full config reference
+- [CLI Configuration](/specs/config/) — full config reference

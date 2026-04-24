@@ -18,9 +18,7 @@ type Styles = Partial<{ /* 48 properties */ }>;
 | `clipContent` | visibility | container, slot |
 | `cornerRadius` | border | container, slot |
 | `cornerSmoothing` | border | container, rectangle, vector, ellipse, star, polygon |
-| `counterAxisAlignContent` | layout | container |
-| `counterAxisAlignItems` | layout | container |
-| `counterAxisSpacing` | spacing | container |
+| `crossAxisAlignment` | layout | container |
 | `effects` | effects | container, slot, rectangle, text, vector, ellipse, star, polygon, line |
 | `fillColor` | color | glyph, vector, ellipse, star, polygon, line |
 | `height` | size | container, slot, rectangle, glyph, vector, ellipse, star, polygon |
@@ -30,7 +28,6 @@ type Styles = Partial<{ /* 48 properties */ }>;
 | `layoutPositioning` | layout | all |
 | `layoutSizingHorizontal` | layout | all |
 | `layoutSizingVertical` | layout | all |
-| `layoutWrap` | layout | container |
 | `locked` | visibility | all |
 | `maxHeight` | size | container, slot, rectangle, glyph, vector, ellipse, star, polygon, line |
 | `maxWidth` | size | container, slot, rectangle, glyph, vector, ellipse, star, polygon, line |
@@ -38,7 +35,7 @@ type Styles = Partial<{ /* 48 properties */ }>;
 | `minWidth` | size | container, slot, rectangle, glyph, vector, ellipse, star, polygon, line |
 | `opacity` | visibility | all |
 | `padding` | spacing | container |
-| `primaryAxisAlignItems` | layout | container |
+| `mainAxisAlignment` | layout | container |
 | `primaryAxisSizingMode` | layout | container |
 | `rotation` | transform | all |
 | `strokeAlign` | border | container, rectangle, vector, ellipse, star, polygon, line |
@@ -50,8 +47,26 @@ type Styles = Partial<{ /* 48 properties */ }>;
 | `typography` | text | text |
 | `visible` | visibility | all |
 | `width` | size | container, slot, rectangle, glyph, vector, ellipse, star, polygon, line |
+| `wrap` | layout | container |
+| `wrapAlignment` | layout | container |
 | `x` | position | all |
 | `y` | position | all |
+
+## Key Mapping from Figma
+
+Several spec style keys differ from the Figma node property they read from. Specs renames these to be more semantic and self-describing. Keys not listed here pass through unchanged (e.g. `opacity` reads `node.opacity`).
+
+| Spec key | Figma property | ADR |
+|----------|---------------|-----|
+| `backgroundColor` | `fills` | [ADR 009](/specs/../adr/009-color-values/) |
+| `textColor` | `fills` | [ADR 009](/specs/../adr/009-color-values/) |
+| `fillColor` | `fills` | [ADR 013](/specs/../adr/013-icon-fillColor/) |
+| `wrap` | `layoutWrap` | [ADR 039](/specs/../adr/039-wrap-alignment/) |
+| `wrapAlignment` | `counterAxisAlignContent` | [ADR 039](/specs/../adr/039-wrap-alignment/) |
+| `mainAxisAlignment` | `primaryAxisAlignItems` | [ADR 040](/specs/../adr/040-layout-alignment/) |
+| `crossAxisAlignment` | `counterAxisAlignItems` | [ADR 040](/specs/../adr/040-layout-alignment/) |
+
+All other style keys — `width`, `height`, `opacity`, `padding`, `itemSpacing`, `cornerRadius`, `strokeWeight`, `rotation`, etc. — use the same name as the Figma node property.
 
 ## Values
 
@@ -71,6 +86,11 @@ Most properties accept a `Style` value. Some properties accept specialized shape
 | [`Effects`](/specs/schema/effects/) | Shadows and blurs | `{ shadows: [...], layerBlur: { ... } }` |
 | [`Sides`](/specs/schema/sides/) | Per-side values for padding or stroke weight | `{ top: 8, end: 12, bottom: 8, start: 12 }` |
 | [`Corners`](/specs/schema/corners/) | Per-corner values for corner radius | `{ topStart: 4, topEnd: 4, bottomEnd: 0, bottomStart: 0 }` |
+| `ItemSpacing` | Per-axis gap values | `{ horizontal: 16, vertical: 8 }` |
+| `LayoutMode` | Auto-layout direction enum | `"NONE"`, `"HORIZONTAL"`, `"VERTICAL"` |
+| `WrapAlignment` | Wrap line distribution enum | `"START"`, `"SPACE_BETWEEN"` |
+| `MainAxisAlignment` | Main axis alignment enum | `"START"`, `"END"`, `"CENTER"`, `"SPACE_BETWEEN"` |
+| `CrossAxisAlignment` | Cross axis alignment enum | `"START"`, `"END"`, `"CENTER"`, `"STRETCH"`, `"BASELINE"` |
 | `AspectRatio` | Width-to-height ratio | `{ x: 16, y: 9 }` |
 
 ### Relating properties to values
@@ -81,4 +101,9 @@ Most properties accept a `Style` value. Some properties accept specialized shape
 - `effects` accepts `TokenReference | Effects`.
 - `padding`, `strokeWeight` accept `Style | Sides`.
 - `cornerRadius` accepts `Style | Corners`.
+- `itemSpacing` accepts `Style | ItemSpacing`.
+- `layoutMode` accepts `LayoutMode | null` — not token-bindable.
+- `wrapAlignment` accepts `WrapAlignment | null` — not token-bindable.
+- `mainAxisAlignment` accepts `MainAxisAlignment | null` — not token-bindable.
+- `crossAxisAlignment` accepts `CrossAxisAlignment | null` — not token-bindable.
 - `aspectRatio` accepts `AspectRatio | null`.

@@ -290,5 +290,5 @@ specs generate
 
 **See Also:**
 - [Scan Command](/specs/cli/commands/scan/) - Create component manifest
-- [Configuration Reference](/specs/cli/configuration/) - Format and config options
+- [Configuration Reference](/specs/config/) - Format and config options
 - [Getting Started](/specs/cli/getting-started/) - Installation and license setup

@@ -1,0 +1,158 @@
+/* Make top-level sidebar links match the style of links inside accordions */
+ul.top-level > li > a.large {
+	font-size: var(--sl-text-sm);
+	font-weight: normal;
+	color: var(--sl-color-gray-2);
+}
+ul.top-level > li > a.large:hover,
+ul.top-level > li > a.large:focus {
+	color: var(--sl-color-white);
+}
+ul.top-level > li > a.large[aria-current='page'],
+ul.top-level > li > a.large[aria-current='page']:hover,
+ul.top-level > li > a.large[aria-current='page']:focus {
+	font-weight: 600;
+	color: var(--sl-color-text-invert);
+	background-color: var(--sl-color-text-accent);
+}
+
+/* Pro badge inline with page title */
+.sl-badge.pro-badge {
+	display: inline-block;
+	border: 1px solid var(--sl-badge-tip-border);
+	border-radius: 0.25rem;
+	font-family: var(--sl-font-system-mono);
+	font-size: var(--sl-text-xs);
+	font-weight: normal;
+	line-height: 1;
+	padding: 0.125rem 0.375rem;
+	color: var(--sl-badge-tip-text);
+	background-color: var(--sl-badge-tip-bg);
+	vertical-align: middle;
+	margin-left: 0.5rem;
+}
+
+/* Large Pro badge prepended to the Licensing page title */
+.pro-badge.pro-badge-hero {
+	font-size: 1.25rem;
+	padding: 0.25rem 0.75rem;
+	margin-left: 0;
+	margin-right: 0.625rem;
+}
+
+/* Prepend the Pro badge before label text in the Licensing nav link */
+a[href*="/overview/licensing"] {
+	display: flex;
+	flex-direction: row-reverse;
+	justify-content: flex-end;
+	gap: 0.375rem;
+}
+
+/* Style command names in the sidebar as inline-code pills */
+.sidebar-content a[href*="/cli/commands/"] {
+	font-family: var(--sl-font-system-mono);
+	font-size: var(--sl-text-xs);
+	background-color: var(--sl-color-bg-inline-code);
+	padding: 0.125rem 0.375rem;
+	border-radius: 0.25rem;
+	display: inline-block;
+}
+.sidebar-content a[href*="/cli/commands/"][aria-current='page'] {
+	background-color: var(--sl-color-text-accent);
+}
+
+/* Reduce sidebar accordion header size to match link size */
+.group-label > .large {
+	font-size: var(--sl-text-sm);
+}
+
+/* Add breathing room between the top nav bar and the on-this-page TOC */
+.right-sidebar-panel {
+	padding-top: 3.125rem;
+}
+
+/* Hide the mobile "On this page" TOC toggle above the page title.
+   The right-column TOC remains visible at wider viewports. */
+mobile-starlight-toc {
+	display: none;
+}
+
+/* Remove divider between page title and page content */
+.content-panel + .content-panel {
+	border-top: none;
+}
+
+/* Hide previous/next page navigation links */
+.pagination-links {
+	display: none;
+}
+
+/* Add breathing room between tab labels and the tab bar */
+.tab > [role='tab'] {
+	padding-bottom: 0.5rem;
+}
+
+/* ── Releases page: per-tab version navigation ── */
+
+/* Widen content area on the releases page */
+:has(.releases-toc) .main-pane {
+	--sl-content-width: 70rem;
+}
+
+/* Single-column by default; two-column grid at the right-sidebar breakpoint */
+.releases-grid {
+	display: block;
+}
+.releases-toc {
+	display: none;
+}
+@media (min-width: 72rem) {
+	.releases-grid {
+		display: grid;
+		grid-template-columns: 1fr 12rem;
+		gap: 1.5rem;
+		align-items: start;
+	}
+	.releases-toc {
+		display: block;
+	}
+}
+
+/* Changelog body in the left column */
+.releases-body {
+	min-width: 0;
+}
+
+/* TOC in the right column */
+.releases-toc {
+	padding-left: 1rem;
+	border-left: 1px solid var(--sl-color-gray-5);
+	font-size: var(--sl-text-xs);
+	line-height: 1.8;
+}
+.releases-toc-title {
+	font-size: var(--sl-text-sm);
+	font-weight: 600;
+	color: var(--sl-color-white);
+	margin: 0 0 0.5rem;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+.releases-toc ul {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+.releases-toc li {
+	padding: 0;
+	margin: 0;
+}
+.releases-toc a {
+	color: var(--sl-color-gray-3);
+	text-decoration: none;
+	display: block;
+	padding: 0.125rem 0;
+}
+.releases-toc a:hover {
+	color: var(--sl-color-text-accent);
+}
