@@ -3,8 +3,6 @@ title: "Keys"
 description: "Transform property and element key names to a consistent naming convention"
 ---
 
-**Config path:** `config.format.keys`
-
 Key name transformation strategy.
 
 ## Options
@@ -18,7 +16,7 @@ Key name transformation strategy.
   - `PASCAL` - PascalCase
   - `TRAIN` - Train-Case
 
-## Examples
+### Comparison
 
 Input: `Background color` or `background-color`
 
@@ -30,6 +28,12 @@ Input: `Background color` or `background-color`
 | `KEBAB` | `background-color` |
 | `PASCAL` | `BackgroundColor` |
 | `TRAIN` | `Background-Color` |
+
+## Path
+
+`config.format.keys`
+
+### Example
 
 ```yaml
 config:

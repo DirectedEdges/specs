@@ -20,6 +20,12 @@ A Pro subscription is **$10/month** and includes:
 
 Your Figma plugin license key activates Pro features when generating specs from the Figma plugin. Each key is meant for an individual user and can be activated on up to two machines (e.g. a work laptop and a personal machine).
 
+:::caution[Specs 2 vs Specs (Classic)]
+This page covers licensing for [**Specs 2**](https://www.figma.com/community/plugin/1549454283615386215/anova) — first published on the Figma community in 2025 as "Anova" — and the **Specs CLI**. Subscriptions are purchased through Polar and managed from your Polar customer portal.
+
+[**Specs (Classic)**](https://www.figma.com/community/plugin/1205622541257680763/specs) is the original Figma plugin launched in 2023. Classic subscriptions are managed entirely by the Figma payment platform and cannot be transferred, converted, or applied to Specs 2 or the CLI. If you have an active Classic subscription and want to use Specs 2, you'll need a separate Pro subscription through Polar.
+:::
+
 ### CLI License
 
 A separate CLI license key activates Pro features when generating specs via the command line.

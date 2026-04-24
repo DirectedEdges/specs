@@ -3,8 +3,6 @@ title: "Variant Depth"
 description: "Control how many variant property dimensions are expanded"
 ---
 
-**Config path:** `config.processing.variantDepth`
-
 Maximum variant property depth to process.
 
 ## Options
@@ -12,7 +10,11 @@ Maximum variant property depth to process.
 - **Default**: `9999` (unlimited)
 - **Values**: `1`, `2`, `3`, or `9999` (unlimited)
 
-## Example
+## Path
+
+`config.processing.variantDepth`
+
+### Example
 
 ```yaml
 config:

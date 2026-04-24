@@ -6,6 +6,7 @@ const pro = { text: 'Pro', variant: 'tip' };
 export default defineConfig({
   site: 'https://directededges.github.io',
   base: '/specs',
+  server: { port: 4323 },
   integrations: [
     starlight({
       title: 'Specs',
@@ -14,6 +15,41 @@ export default defineConfig({
         github: 'https://github.com/DirectedEdges/specs',
       },
       customCss: ['./src/custom.css'],
+      head: [
+        {
+          tag: 'script',
+          content: `
+            // Exclusive accordion: only one top-level sidebar section open at a time.
+            // Uses ul.top-level > li > details to target only top-level groups,
+            // not nested subsections like Processing/Format/Include.
+            document.addEventListener('DOMContentLoaded', () => {
+              const tops = [...document.querySelectorAll('ul.top-level > li > details')];
+              for (const d of tops) {
+                d.querySelector(':scope > summary')?.addEventListener('click', () => {
+                  requestAnimationFrame(() => {
+                    if (!d.open) return;
+                    for (const o of tops) {
+                      if (o !== d && o.open) {
+                        o.open = false;
+                        const idx = o.querySelector('sl-sidebar-restore')?.dataset.index;
+                        if (idx == null) continue;
+                        try {
+                          const k = 'sl-sidebar-state';
+                          const s = JSON.parse(sessionStorage.getItem(k) || '{}');
+                          if (Array.isArray(s.open)) {
+                            s.open[parseInt(idx)] = false;
+                            sessionStorage.setItem(k, JSON.stringify(s));
+                          }
+                        } catch {}
+                      }
+                    }
+                  });
+                });
+              }
+            });
+          `,
+        },
+      ],
       sidebar: [
         { label: 'Introduction', slug: '' },
         { label: 'About Specs', slug: 'overview/aboutspecs' },
@@ -71,26 +107,30 @@ export default defineConfig({
             {
               label: 'Processing',
               items: [
-                { label: 'Subcomponents', slug: 'config/subcomponents' },
-                { label: 'Variant Depth', slug: 'config/variant-depth' },
-                { label: 'Details', slug: 'config/details' },
+                { label: 'subcomponents', slug: 'config/subcomponents' },
+                { label: 'variantDepth', slug: 'config/variant-depth' },
+                { label: 'details', slug: 'config/details' },
+                { label: 'glyphNamePattern', slug: 'config/glyph-name-pattern' },
+                { label: 'codeOnlyPropsPattern', slug: 'config/code-only-props-pattern' },
+                { label: 'slotConstraints', slug: 'config/slot-constraints', badge: pro },
+                { label: 'inferNumberProps', slug: 'config/infer-number-props' },
               ],
             },
             {
               label: 'Format',
               items: [
-                { label: 'Output Format', slug: 'config/output-format' },
-                { label: 'Keys', slug: 'config/keys' },
-                { label: 'Layout', slug: 'config/layout' },
-                { label: 'Tokens', slug: 'config/tokens', badge: pro },
+                { label: 'output', slug: 'config/output-format' },
+                { label: 'keys', slug: 'config/keys' },
+                { label: 'layout', slug: 'config/layout' },
+                { label: 'tokens', slug: 'config/tokens', badge: pro },
               ],
             },
             {
               label: 'Include',
               items: [
-                { label: 'Invalid Variants', slug: 'config/invalid-variants' },
-                { label: 'Invalid Combinations', slug: 'config/invalid-combinations', badge: pro },
-                { label: 'Empty Variants', slug: 'config/empty-variants' },
+                { label: 'invalidVariants', slug: 'config/invalid-variants' },
+                { label: 'invalidCombinations', slug: 'config/invalid-combinations', badge: pro },
+                { label: 'emptyVariants', slug: 'config/empty-variants' },
               ],
             },
           ],

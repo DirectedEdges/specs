@@ -5,8 +5,6 @@ description: "Calculate and include invalid property combinations"
 
 <script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge pro-badge">Pro</span>')</script>
 
-**Config path:** `config.include.invalidCombinations`
-
 Calculate and include invalid property combinations.
 
 ## Options
@@ -15,7 +13,11 @@ Calculate and include invalid property combinations.
 - **Default**: `true`
 - **Effect**: When `true`, computes which prop combinations are invalid
 
-## Example
+## Path
+
+`config.include.invalidCombinations`
+
+### Example
 
 ```yaml
 config:

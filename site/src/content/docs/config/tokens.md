@@ -5,8 +5,6 @@ description: "Control how design token references are serialized in the spec out
 
 <script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge pro-badge">Pro</span>')</script>
 
-**Config path:** `config.format.tokens`
-
 Token reference format profile.
 
 ## Options
@@ -19,15 +17,19 @@ Token reference format profile.
   - `FIGMA_NAME` - Raw Figma variable/style names as-is
   - `CUSTOM` - Custom token objects injected via `applyCustomTokens`. Variables/styles with `$custom` use that object verbatim as the property value; those without fall back to `TOKEN_FIGMA_EXTENSIONS` format.
 
-## Example
+> **Using CUSTOM**: First run `specs applyCustomTokens <mapping>` to inject `$custom` objects into your fetched data files, then run `batch` or `generate`. The `applyCustomTokens` command auto-discovers variables/styles files from `dataDirectory` and `sources` in this config, or accepts explicit `-v`/`-s` paths. See [applyCustomTokens command](/specs/cli/commands/apply-custom-tokens/) for details.
+
+## Path
+
+`config.format.tokens`
+
+### Example
 
 ```yaml
 config:
   format:
     tokens: TOKEN  # Default resolved token references
 ```
-
-> **Using CUSTOM**: First run `specs applyCustomTokens <mapping>` to inject `$custom` objects into your fetched data files, then run `batch` or `generate`. The `applyCustomTokens` command auto-discovers variables/styles files from `dataDirectory` and `sources` in this config, or accepts explicit `-v`/`-s` paths. See [applyCustomTokens command](/specs/cli/commands/apply-custom-tokens/) for details.
 
 ## See Also
 

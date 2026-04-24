@@ -3,8 +3,6 @@ title: "Details"
 description: "Control the detail level for variant data"
 ---
 
-**Config path:** `config.processing.details`
-
 Detail level for variant data.
 
 ## Options
@@ -14,7 +12,11 @@ Detail level for variant data.
   - `FULL` - Complete data for all variants
   - `LAYERED` - Optimized layered format showing only differences from default
 
-## Example
+## Path
+
+`config.processing.details`
+
+### Example
 
 ```yaml
 config:

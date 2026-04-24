@@ -3,8 +3,6 @@ title: "Invalid Variants"
 description: "Include invalid variant data in output"
 ---
 
-**Config path:** `config.include.invalidVariants`
-
 Include invalid variant data in output.
 
 ## Options
@@ -13,7 +11,11 @@ Include invalid variant data in output.
 - **Default**: `false`
 - **Effect**: When `true`, includes variants that don't match all property combinations
 
-## Example
+## Path
+
+`config.include.invalidVariants`
+
+### Example
 
 ```yaml
 config:

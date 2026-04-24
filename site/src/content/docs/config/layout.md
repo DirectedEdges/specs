@@ -3,8 +3,6 @@ title: "Layout"
 description: "Choose how element hierarchy is represented in the spec output"
 ---
 
-**Config path:** `config.format.layout`
-
 Layout representation format.
 
 ## Options
@@ -15,7 +13,11 @@ Layout representation format.
   - `PARENT_CHILDREN` - Parent-child relationships only
   - `BOTH` - Include both representations
 
-## Example
+## Path
+
+`config.format.layout`
+
+### Example
 
 ```yaml
 config:

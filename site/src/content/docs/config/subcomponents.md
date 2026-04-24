@@ -3,8 +3,6 @@ title: "Subcomponents"
 description: "Configure subcomponent discovery, matching patterns, and exclusions"
 ---
 
-**Config path:** `config.processing.subcomponents`
-
 Subcomponent discovery configuration. When present, enables subcomponent detection. When absent, subcomponents are not detected.
 
 ## Properties
@@ -15,7 +13,13 @@ Subcomponent discovery configuration. When present, enables subcomponent detecti
 | `match` | `string[]` | Yes | — | Template patterns using `{C}` (component name) and `{S}` (subcomponent name) placeholders |
 | `exclude` | `string[]` | No | — | Template patterns to exclude from matches. Same `{C}/{S}` syntax |
 
-## Example
+An asset must match at least one `match` pattern to be considered a subcomponent. If it also matches an `exclude` pattern, the exclusion wins regardless of discovery source.
+
+## Path
+
+`config.processing.subcomponents`
+
+### Example
 
 ```yaml
 config:
@@ -28,8 +32,6 @@ config:
       exclude:
         - '{C} / Examples / {S}'
 ```
-
-An asset must match at least one `match` pattern to be considered a subcomponent. If it also matches an `exclude` pattern, the exclusion wins regardless of discovery source.
 
 ## See Also
 
