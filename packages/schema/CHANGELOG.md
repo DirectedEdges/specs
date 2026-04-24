@@ -5,7 +5,9 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.18.0] - Unreleased
+## [0.18.0] - 2026-04-24
+
+Replaces Figma-native layout property names with semantic equivalents for auto-layout alignment and wrapping. Introduces a bi-axial `itemSpacing` model that consolidates `counterAxisSpacing` into a single property, and narrows `layoutMode` from a generic `Style` to a strict enum. Five renamed alignment/wrap fields use plain-language names (`mainAxisAlignment`, `crossAxisAlignment`, `wrapAlignment`, `wrap`) instead of Figma axis terminology. The documentation site was considerably rearchitected with updated content and navigation.
 
 ### Added
 
