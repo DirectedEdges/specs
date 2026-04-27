@@ -8,7 +8,7 @@ import type {
   TokenReference, ColorStyle, GradientStop, GradientCenter, LinearGradient, RadialGradient,
   AngularGradient, GradientValue, AspectRatioValue, AspectRatioStyle,
   Sides, Corners, ItemSpacing, LayoutMode, WrapAlignment,
-  MainAxisAlignment, CrossAxisAlignment,
+  MainAxisAlignment, CrossAxisAlignment, Position, PositionOffset,
 } from '../types/index.js';
 
 // ─── ColorStyle ────────────────────────────────────────────────────────────
@@ -686,3 +686,103 @@ const _oldPrimaryAxis: Styles = { primaryAxisAlignItems: 'MIN' };
 
 // @ts-expect-error: counterAxisAlignItems no longer exists on Styles
 const _oldCounterAxis: Styles = { counterAxisAlignItems: 'MIN' };
+
+// ─── Position ─────────────────────────────────────────────────────────────────
+
+// Valid enum values
+const _posAuto: Position = 'AUTO';
+const _posAbsolute: Position = 'ABSOLUTE';
+
+// @ts-expect-error: arbitrary string is not valid Position
+const _posBad: Position = 'RELATIVE';
+
+// @ts-expect-error: number is not valid Position
+const _posNumber: Position = 0;
+
+// @ts-expect-error: lowercase is not valid (SCREAMING_CASE required)
+const _posLowercase: Position = 'auto';
+
+// ─── PositionOffset ───────────────────────────────────────────────────────────
+
+// number (pixel value)
+const _poPx: PositionOffset = 24;
+
+// string (percentage for SCALE constraint)
+const _poPercent: PositionOffset = '25%';
+
+// null (absent)
+const _poNull: PositionOffset = null;
+
+// @ts-expect-error: boolean is not valid PositionOffset
+const _poBool: PositionOffset = true;
+
+// @ts-expect-error: object is not valid PositionOffset
+const _poObj: PositionOffset = { value: 24 };
+
+// TokenReference must NOT be valid — positional offsets are not token-bindable
+// @ts-expect-error: TokenReference is not assignable to PositionOffset
+const _poToken: PositionOffset = { $token: 'Space.4', $type: 'dimension' } satisfies TokenReference;
+
+// ─── Styles.position (Position | null) ────────────────────────────────────────
+
+// Valid enum values on Styles
+const withPositionAuto: Styles = { position: 'AUTO' };
+const withPositionAbsolute: Styles = { position: 'ABSOLUTE' };
+
+// null is valid
+const withPositionNull: Styles = { position: null };
+
+// @ts-expect-error: TokenReference is not valid for position (not token-bindable)
+const _posToken: Styles = { position: { $token: 'Layout.Position', $type: 'string' } satisfies TokenReference };
+
+// @ts-expect-error: number is not valid for position
+const _posStyleNumber: Styles = { position: 1 };
+
+// @ts-expect-error: arbitrary string is not valid for position
+const _posArbitrary: Styles = { position: 'RELATIVE' };
+
+// ─── Styles positioning offsets (PositionOffset) ──────────────────────────────
+
+// Pixel number values
+const withTop: Styles = { top: 24 };
+const withBottom: Styles = { bottom: 0 };
+const withStart: Styles = { start: 16 };
+const withEnd: Styles = { end: 8 };
+const withCenterH: Styles = { centerHorizontalOffset: 0 };
+const withCenterV: Styles = { centerVerticalOffset: -12 };
+
+// Percentage string values (SCALE constraint)
+const withTopPercent: Styles = { top: '25%' };
+const withStartPercent: Styles = { start: '10%' };
+
+// null is valid
+const withTopNull: Styles = { top: null };
+const withStartNull: Styles = { start: null };
+
+// STRETCH: both edges simultaneously
+const withStretchH: Styles = { start: 16, end: 16 };
+const withStretchV: Styles = { top: 8, bottom: 8 };
+
+// Combined positioning example
+const absoluteWithOffsets: Styles = {
+  position: 'ABSOLUTE',
+  start: 24,
+  top: 16,
+};
+
+// @ts-expect-error: TokenReference is not valid for top (not token-bindable)
+const _topToken: Styles = { top: { $token: 'Space.4', $type: 'dimension' } satisfies TokenReference };
+
+// @ts-expect-error: boolean is not valid for start
+const _startBool: Styles = { start: true };
+
+// ─── Verify x, y, and layoutPositioning removed from Styles ──────────────────
+
+// @ts-expect-error: x no longer exists on Styles
+const _oldX: Styles = { x: 24 };
+
+// @ts-expect-error: y no longer exists on Styles
+const _oldY: Styles = { y: 16 };
+
+// @ts-expect-error: layoutPositioning no longer exists on Styles
+const _oldLayoutPositioning: Styles = { layoutPositioning: 'ABSOLUTE' };
