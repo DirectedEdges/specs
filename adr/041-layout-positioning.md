@@ -43,17 +43,22 @@ This creates two gaps:
 
 Replace `x`, `y`, and `layoutPositioning` with semantically richer properties derived from Figma's `constraints`:
 
+**New types:**
+
+- `Position` — `'AUTO' | 'ABSOLUTE'` string literal union. Structural property that cannot be token-bound (same pattern as `LayoutMode`, `MainAxisAlignment`, etc.)
+- `PositionOffset` — `number | string | null`. A pixel value (`number`), a percentage string (`string`, e.g. `"25%"` for SCALE), or `null`. Narrower than `Style` — excludes `TokenReference`, `PropBinding`, and `Conditional` since positional offsets are computed from Figma layout, not token-bindable.
+
 **New properties on `Styles`:**
 
 | Property | Type | When present |
 |----------|------|-------------|
-| `position` | `Style` | Always (replaces `layoutPositioning`) — values: `"AUTO"`, `"ABSOLUTE"` |
-| `top` | `Style` | Vertical constraint is `MIN` or `STRETCH` |
-| `bottom` | `Style` | Vertical constraint is `MAX` or `STRETCH` |
-| `start` | `Style` | Horizontal constraint is `MIN` or `STRETCH` |
-| `end` | `Style` | Horizontal constraint is `MAX` or `STRETCH` |
-| `centerHorizontalOffset` | `Style` | Horizontal constraint is `CENTER` |
-| `centerVerticalOffset` | `Style` | Vertical constraint is `CENTER` |
+| `position` | `Position \| null` | Always (replaces `layoutPositioning`) — `"AUTO"` or `"ABSOLUTE"` |
+| `top` | `PositionOffset` | Vertical constraint is `MIN`, `STRETCH`, or `SCALE` |
+| `bottom` | `PositionOffset` | Vertical constraint is `MAX` or `STRETCH` |
+| `start` | `PositionOffset` | Horizontal constraint is `MIN`, `STRETCH`, or `SCALE` |
+| `end` | `PositionOffset` | Horizontal constraint is `MAX` or `STRETCH` |
+| `centerHorizontalOffset` | `PositionOffset` | Horizontal constraint is `CENTER` |
+| `centerVerticalOffset` | `PositionOffset` | Vertical constraint is `CENTER` |
 
 **Constraint mapping logic** (performed by `specs-from-figma`, not this package):
 
@@ -65,7 +70,9 @@ Replace `x`, `y`, and `layoutPositioning` with semantically richer properties de
 | `STRETCH` | `start` + `end` (both edges) | `top` + `bottom` (both edges) |
 | `SCALE` | `start` (percentage string, e.g. `"25%"`) | `top` (percentage string, e.g. `"25%"`) |
 
-For `SCALE`, the value is expressed as a percentage string (e.g., `"25%"`) rather than a pixel number, signaling proportional positioning to consumers.
+For `STRETCH`, both edge properties are emitted simultaneously (e.g., `start` + `end` or `top` + `bottom`).
+
+For `SCALE`, the value is emitted on the same property as `MIN` (`start` or `top`) but as a percentage string instead of a pixel number, signaling proportional positioning to consumers.
 
 **Removed properties:** `x`, `y`, `layoutPositioning`
 
@@ -118,13 +125,15 @@ Keep the current `x`, `y`, and `layoutPositioning` properties unchanged.
 | `Styles.ts` | Remove field `x` | MAJOR |
 | `Styles.ts` | Remove field `y` | MAJOR |
 | `Styles.ts` | Remove field `layoutPositioning` | MAJOR |
-| `Styles.ts` | Add optional field `position` | MINOR |
-| `Styles.ts` | Add optional field `top` | MINOR |
-| `Styles.ts` | Add optional field `bottom` | MINOR |
-| `Styles.ts` | Add optional field `start` | MINOR |
-| `Styles.ts` | Add optional field `end` | MINOR |
-| `Styles.ts` | Add optional field `centerHorizontalOffset` | MINOR |
-| `Styles.ts` | Add optional field `centerVerticalOffset` | MINOR |
+| `Styles.ts` | Add type `Position` (`'AUTO' \| 'ABSOLUTE'`) | MINOR |
+| `Styles.ts` | Add type `PositionOffset` (`number \| string \| null`) | MINOR |
+| `Styles.ts` | Add optional field `position: Position \| null` | MINOR |
+| `Styles.ts` | Add optional field `top: PositionOffset` | MINOR |
+| `Styles.ts` | Add optional field `bottom: PositionOffset` | MINOR |
+| `Styles.ts` | Add optional field `start: PositionOffset` | MINOR |
+| `Styles.ts` | Add optional field `end: PositionOffset` | MINOR |
+| `Styles.ts` | Add optional field `centerHorizontalOffset: PositionOffset` | MINOR |
+| `Styles.ts` | Add optional field `centerVerticalOffset: PositionOffset` | MINOR |
 | `Styles.ts` | Update `StyleKey` union: remove `'x'`, `'y'`, `'layoutPositioning'`; add `'position'`, `'top'`, `'bottom'`, `'start'`, `'end'`, `'centerHorizontalOffset'`, `'centerVerticalOffset'` | MAJOR |
 
 **Example — new shape** (`types/Styles.ts`):
@@ -135,15 +144,19 @@ Styles:
   y: Style
   layoutPositioning: Style
 
-# After
+# After — new types
+Position: 'AUTO' | 'ABSOLUTE'      # structural enum, not token-bindable
+PositionOffset: number | string | null  # px number, percentage string, or null
+
+# After — new properties on Styles
 Styles:
-  position: Style           # "AUTO" | "ABSOLUTE" (replaces layoutPositioning)
-  top: Style                # vertical offset from top (MIN or STRETCH)
-  bottom: Style             # vertical offset from bottom (MAX or STRETCH)
-  start: Style              # horizontal offset from inline-start (MIN or STRETCH)
-  end: Style                # horizontal offset from inline-end (MAX or STRETCH)
-  centerHorizontalOffset: Style  # horizontal offset from center (CENTER)
-  centerVerticalOffset: Style    # vertical offset from center (CENTER)
+  position: Position | null         # replaces layoutPositioning
+  top: PositionOffset               # vertical: MIN, STRETCH, or SCALE
+  bottom: PositionOffset            # vertical: MAX or STRETCH
+  start: PositionOffset             # horizontal: MIN, STRETCH, or SCALE
+  end: PositionOffset               # horizontal: MAX or STRETCH
+  centerHorizontalOffset: PositionOffset  # horizontal: CENTER
+  centerVerticalOffset: PositionOffset    # vertical: CENTER
 ```
 
 ### Schema changes (`schema/`)
@@ -151,6 +164,8 @@ Styles:
 | File | Change | Bump |
 |------|--------|------|
 | `styles.schema.json` | Remove properties `x`, `y`, `layoutPositioning` | MAJOR |
+| `styles.schema.json` | Add definition `Position` (enum: `AUTO`, `ABSOLUTE`) | MINOR |
+| `styles.schema.json` | Add definition `PositionOffset` (number, string, or null) | MINOR |
 | `styles.schema.json` | Add properties `position`, `top`, `bottom`, `start`, `end`, `centerHorizontalOffset`, `centerVerticalOffset` | MINOR |
 
 **Example — new shape** (`schema/styles.schema.json`):
@@ -160,34 +175,50 @@ x: { $ref: "#/definitions/NumberStyleValue" }
 y: { $ref: "#/definitions/NumberStyleValue" }
 layoutPositioning: { $ref: "#/definitions/StringStyleValue" }
 
+# New definitions
+Position:
+  type: string
+  enum: [AUTO, ABSOLUTE]
+  description: "Layout positioning mode. Structural — not token-bindable."
+
+PositionOffset:
+  description: "Positional offset value. Pixel number, percentage string (SCALE), or null."
+  oneOf:
+    - type: number
+    - type: string
+    - type: "null"
+
 # New properties
 position:
-  $ref: "#/definitions/StringStyleValue"
   description: "Layout positioning mode — AUTO (participates in parent auto-layout) or ABSOLUTE"
+  oneOf:
+    - $ref: "#/definitions/Position"
+    - type: "null"
 top:
-  $ref: "#/definitions/NumberStyleValue"
-  description: "Offset from block-start (top) edge. Present when vertical constraint is MIN or STRETCH. Percentage string when SCALE."
+  $ref: "#/definitions/PositionOffset"
+  description: "Offset from block-start (top) edge. Present when vertical constraint is MIN, STRETCH, or SCALE."
 bottom:
-  $ref: "#/definitions/NumberStyleValue"
+  $ref: "#/definitions/PositionOffset"
   description: "Offset from block-end (bottom) edge. Present when vertical constraint is MAX or STRETCH."
 start:
-  $ref: "#/definitions/NumberStyleValue"
-  description: "Offset from inline-start edge. Present when horizontal constraint is MIN or STRETCH. Percentage string when SCALE."
+  $ref: "#/definitions/PositionOffset"
+  description: "Offset from inline-start edge. Present when horizontal constraint is MIN, STRETCH, or SCALE."
 end:
-  $ref: "#/definitions/NumberStyleValue"
+  $ref: "#/definitions/PositionOffset"
   description: "Offset from inline-end edge. Present when horizontal constraint is MAX or STRETCH."
 centerHorizontalOffset:
-  $ref: "#/definitions/NumberStyleValue"
+  $ref: "#/definitions/PositionOffset"
   description: "Horizontal offset from center. Present when horizontal constraint is CENTER."
 centerVerticalOffset:
-  $ref: "#/definitions/NumberStyleValue"
+  $ref: "#/definitions/PositionOffset"
   description: "Vertical offset from center. Present when vertical constraint is CENTER."
 ```
 
 ### Notes
 
-- `top`/`bottom`/`start`/`end` and `centerHorizontalOffset`/`centerVerticalOffset` carry `NumberStyleValue` type because their values are pixel numbers (or percentage strings for SCALE). The schema ref `NumberStyleValue` already accepts `string | number | null | TokenReference | PropBinding | Conditional` via `Style`, which accommodates percentage strings.
-- `position` carries `StringStyleValue` because its values are string literals (`"AUTO"`, `"ABSOLUTE"`).
+- **Narrower than `Style`**: Both `Position` and `PositionOffset` are deliberately narrower than the general `Style` type. Positional values are computed from Figma's layout engine — they cannot be token-bound, prop-bound, or conditional. This follows the precedent set by `LayoutMode`, `MainAxisAlignment`, `CrossAxisAlignment`, and `WrapAlignment`.
+- `position` is `Position | null` — the `null` case follows the same pattern as `layoutMode: LayoutMode | null` for properties that may be absent.
+- `PositionOffset` is `number | string | null` — `number` for pixel values, `string` for percentage values (SCALE constraint, e.g. `"25%"`), `null` when absent.
 - Only properties relevant to the node's constraints are emitted. A node with horizontal `MIN` + vertical `CENTER` would produce `start`, `centerVerticalOffset`, and `position` — no other positioning fields.
 
 ---
