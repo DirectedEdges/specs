@@ -4,6 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 041 | Layout Positioning — Constraint-Based Naming | |
 | 035 | Make Config Properties with Defaults Optional | |
 | 034 | Remove variantNames, add emptyVariants, make Config.include fields optional | Remove unused `variantNames` (breaking); add `emptyVariants` for filtering; make remaining fields optional |
 | 025 | Flowing Content into a Nested Instance's Slot | Model parent components that flow defined content into a nested child instance's slot _(branch)_ |
