@@ -2,7 +2,7 @@
 
 **Branch**: `041-layout-positioning`
 **Created**: 2026-04-27
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

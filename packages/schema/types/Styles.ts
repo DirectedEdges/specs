@@ -21,9 +21,20 @@ export type Styles = Partial<{
   minHeight: Style;
   maxWidth: Style;
   maxHeight: Style;
-  x: Style;
-  y: Style;
-  layoutPositioning: Style;
+  /** Layout positioning mode — AUTO (participates in parent auto-layout) or ABSOLUTE. Structural property — not token-bindable. @since 0.19.0 */
+  position: Position | null;
+  /** Offset from block-start (top) edge. Present when vertical constraint is MIN, STRETCH, or SCALE. Pixel number or percentage string. @since 0.19.0 */
+  top: PositionOffset;
+  /** Offset from block-end (bottom) edge. Present when vertical constraint is MAX or STRETCH. Pixel number. @since 0.19.0 */
+  bottom: PositionOffset;
+  /** Offset from inline-start edge. Present when horizontal constraint is MIN, STRETCH, or SCALE. Pixel number or percentage string. @since 0.19.0 */
+  start: PositionOffset;
+  /** Offset from inline-end edge. Present when horizontal constraint is MAX or STRETCH. Pixel number. @since 0.19.0 */
+  end: PositionOffset;
+  /** Horizontal offset from center. Present when horizontal constraint is CENTER. @since 0.19.0 */
+  centerHorizontalOffset: PositionOffset;
+  /** Vertical offset from center. Present when vertical constraint is CENTER. @since 0.19.0 */
+  centerVerticalOffset: PositionOffset;
   layoutSizingHorizontal: Style;
   layoutSizingVertical: Style;
   strokes: ColorStyle;
@@ -202,6 +213,19 @@ export interface Sides {
 }
 
 /**
+ * Layout positioning mode. Structural property that cannot be token-bound.
+ * @since 0.19.0
+ */
+export type Position = 'AUTO' | 'ABSOLUTE';
+
+/**
+ * Positional offset value. Pixel number, percentage string (SCALE constraint, e.g. "25%"), or null.
+ * Narrower than `Style` — positional offsets are computed from Figma layout, not token-bindable.
+ * @since 0.19.0
+ */
+export type PositionOffset = number | string | null;
+
+/**
  * Auto-layout direction mode. Structural property that cannot be token-bound.
  * @since 0.18.0
  */
@@ -279,9 +303,13 @@ export type StyleKey =
   | 'minHeight'
   | 'maxWidth'
   | 'maxHeight'
-  | 'x'
-  | 'y'
-  | 'layoutPositioning'
+  | 'position'
+  | 'top'
+  | 'bottom'
+  | 'start'
+  | 'end'
+  | 'centerHorizontalOffset'
+  | 'centerVerticalOffset'
   | 'layoutSizingHorizontal'
   | 'layoutSizingVertical'
   | 'strokes'
