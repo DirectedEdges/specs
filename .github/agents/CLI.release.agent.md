@@ -40,11 +40,14 @@ All commands in this agent run from the **CLI package directory**: `packages/cli
    ```
    If dirty, STOP and report. Exception: changes made by this agent (e.g., CHANGELOG date, ref swap) are expected.
 
-4. **Verify npm auth**:
+4. **Verify npm auth** (use the same `--userconfig` as publish):
    ```bash
-   npm whoami --registry https://registry.npmjs.org/
+   npm whoami --registry https://registry.npmjs.org/ --userconfig "$WORKSPACE_ROOT/.npmrc.public"
    ```
-   If this fails, STOP and report. The user needs to run `npm login --registry https://registry.npmjs.org/` first.
+   where `$WORKSPACE_ROOT` is the specs-local-workspace directory (typically `../specs-local-workspace` relative to this repo).
+   If this fails with 401, STOP and report. The token in `.npmrc.public` is likely expired. The user should:
+   1. Generate a new access token at https://www.npmjs.com/settings/tokens
+   2. Update `$WORKSPACE_ROOT/.npmrc.public` with the new token
 
 5. **Verify dependency versions**: Read `packages/cli/package.json` and confirm:
    - `@directededges/specs-schema` matches `^[schema-version]`

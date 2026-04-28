@@ -5,7 +5,7 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.19.0] - Unreleased
+## [0.19.0] - 2026-04-28
 
 Replaces Figma-raw `x`, `y`, and `layoutPositioning` with constraint-based positioning properties. `position` replaces `layoutPositioning` as a strict `Position` enum. Directional offsets (`top`, `bottom`, `start`, `end`, `centerHorizontalOffset`, `centerVerticalOffset`) replace `x`/`y` with anchor semantics derived from Figma constraints. See the [Layout Positioning guide](/specs/guides/layout-positioning/) for constraint mapping rules and platform usage examples.
 
