@@ -3,174 +3,186 @@ title: "Absolute Positioning"
 description: "How Figma constraints convert to semantic offset properties, and how constraint changes surface across component variants"
 ---
 
-import { Aside } from '@astrojs/starlight/components';
+## The Problem
 
-## How Figma stores position
+### Figma as `constraints`
 
-Figma stores every element's position as raw `x`/`y` pixel coordinates measured from the parent frame's top-left corner. Alongside those coordinates it stores a `constraints` object — one constraint type per axis — that describes *how* the element is anchored.
+Figma stores every absolutely positioned element as a pair of raw coordinates — `x` and `y`, both measured from the parent frame's top-left corner — alongside a `constraints` object that records one constraint type per axis:
 
-```
-# What Figma stores internally
-x: 356
-y: 12
-constraints: { horizontal: MAX, vertical: MIN }
-layoutPositioning: ABSOLUTE
-```
+- `MIN` — pinned to the near edge (left or top)
+- `MAX` — pinned to the far edge (right or bottom)
+- `CENTER` — anchored to the midpoint, with an optional offset
+- `STRETCH` — spans both edges simultaneously
+- `SCALE` — positioned proportionally to the parent's size
 
-The raw `x: 356` tells you where the element currently sits, but it says nothing about the designer's intent. Is `356` pinned to the left? Computed from the right? Proportional? To know, you have to read the constraint — and then mentally convert the number yourself.
+The constraint describes the designer's intent, but `x` and `y` are always measured from the top-left regardless of which edge the element is anchored to.
 
-## How code platforms think about position
+### Code as sides and centers
 
-Every major platform positions absolutely-placed elements by naming the edge being anchored to, not by measuring from the top-left corner:
+Code platforms [position absolutely-placed elements](https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/CSS_layout/Positioning) by naming the anchor edge and providing the distance from it — not by measuring from a fixed origin. Whether it's CSS logical properties (`inset-inline-start`, `inset-inline-end`), SwiftUI padding with alignment, or Compose modifiers, the model is consistent: name the edge, give the offset.
 
-```css
-/* CSS — anchored to right and top edges */
-position: absolute;
-inset-inline-end: 12px;
-top: 12px;
-```
-
-```swift
-// SwiftUI — anchored to trailing and top edges
-ZStack(alignment: .topTrailing) {
-    child.padding(.trailing, 12).padding(.top, 12)
-}
-```
-
-```kotlin
-// Compose — anchored to end and top edges
-Box { child.align(Alignment.TopEnd).padding(end = 12.dp, top = 12.dp) }
-```
-
-Platforms don't want a raw `x` value measured from the left — they want the offset from the edge the element is pinned to. When a designer pins something to the right edge at 12 px, every platform expects `12` from the right, not `356` from the left.
-
-## How Specs converts Figma to platform-ready values
-
-Specs reads both the raw geometry and the `constraints` object, computes the correct edge-relative value, and emits a named property that matches what platforms expect. The ADR that defines this model is [ADR-041](/specs/adr/041-layout-positioning).
-
-```yaml
-# Specs output — same element as above
-position: ABSOLUTE
-end: 12
-top: 12
-```
-
-The `x: 356` is gone. In its place is `end: 12` — the distance from the inline-end (right) edge, derived from the constraint. A platform engineer reads this and writes `inset-inline-end: 12px` without any additional reasoning.
-
-This conversion also matters across variants. If a later variant changes the horizontal constraint from `MAX` to `MIN`, the output changes from `end: 12` to `start: 24` — and the diff between variants is immediately visible. With raw `x`/`y`, a constraint change looks like an arbitrary coordinate shift with no indication of which edge changed or why.
+When a designer pins an element 12 px from the right edge, every platform wants `right: 12` (or its equivalent). Receiving `x: 356` from the left forces each consumer to independently re-derive the right-edge distance from the parent width — duplicating logic that should be resolved once.
 
 ---
 
-## The five constraint types
+## The Solution
 
-Each axis has one of five constraint types. The same mapping logic applies to both horizontal and vertical axes; the examples below focus on the horizontal axis (`start`, `end`, `centerHorizontalOffset`) for clarity.
+Specs reads both the raw geometry and the `constraints` object, computes the correct edge-relative value, and emits a named property that matches what platforms expect. The constraint types map to `start`, `end`, `centerHorizontalOffset`, `width`, and their vertical equivalents. The vertical axis works identically to horizontal — `top` and `bottom` follow the same formulas as `start` and `end`. The five sections below cover the horizontal axis.
 
-### MIN — pinned to the near edge
+For the full design rationale, see [ADR-041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md).
 
-The element is anchored to the inline-start edge. `start` receives the pixel distance from that edge.
+### MIN to `start`
+
+#### Formula
 
 ```
 start = node.x
 ```
 
-```yaml
-# Figma: x: 24, width: 80, parent width: 400
-# constraints: { horizontal: MIN }
+#### Figma constraints property values
 
-# Spec output
+```
+x: 24
+parent width: 400
+constraints.horizontal: MIN
+```
+
+#### Specs data
+
+```yaml
 position: ABSOLUTE
 start: 24
 ```
 
-### MAX — pinned to the far edge
+---
 
-The element is anchored to the inline-end edge. Figma stores `x` from the left, so the formula inverts it.
+### MAX to `end`
+
+Figma stores `x` as the distance from the left edge. For MAX constraints, Specs inverts this to produce the distance from the right edge.
+
+#### Formula
 
 ```
 end = parent.width - node.x - node.width
 ```
 
-```yaml
-# Figma: x: 356, width: 32, parent width: 400
-# constraints: { horizontal: MAX }
-
-# Spec output
-position: ABSOLUTE
-end: 12    # 400 - 356 - 32 = 12
-```
-
-The designer pinned this 12 px from the right. Figma reported `x: 356` (from the left). Specs delivers `end: 12`.
-
-### CENTER — offset from the midpoint
-
-The element is centered horizontally, with an optional pixel offset. A value of `0` means perfectly centered; positive shifts toward the end edge, negative toward the start edge.
+#### Figma constraints property values
 
 ```
-centerHorizontalOffset = node.x + (node.width / 2) - (parent.width / 2)
+x: 356
+width: 32
+parent width: 400
+constraints.horizontal: MAX
 ```
+
+#### Specs data
 
 ```yaml
-# Figma: x: 200, width: 24, parent width: 400
-# constraints: { horizontal: CENTER }
-
-# Spec output
 position: ABSOLUTE
-centerHorizontalOffset: 12    # 200 + 12 - 200 = 12 (shifted 12px right of center)
+end: 12    # 400 − 356 − 32 = 12
 ```
 
-### STRETCH — spanning both edges
+---
 
-The element is pinned to both edges simultaneously. Both `start` and `end` are emitted, and `width` is set to `null` — the element's width is determined by the container minus the two insets, not by a fixed pixel value.
+### STRETCH to `start`, `end`
+
+STRETCH anchors both edges simultaneously, so both `start` and `end` are emitted. With two edges defining the element's span, an explicit `width` would conflict — `width` is set to `null`.
+
+#### Formula
 
 ```
 start = node.x
 end   = parent.width - node.x - node.width
 ```
 
-```yaml
-# Figma: x: 16, width: 368, parent width: 400
-# constraints: { horizontal: STRETCH }
+#### Figma constraints property values
 
-# Spec output
+```
+x: 16
+width: 368
+parent width: 400
+constraints.horizontal: STRETCH
+```
+
+#### Specs data
+
+```yaml
 position: ABSOLUTE
 start: 16
-end: 16    # 400 - 16 - 368 = 16
+end: 16      # 400 − 16 − 368 = 16
 width: null
 ```
 
-`width` is null because both edges are defined — an explicit pixel dimension would conflict with the edge-derived sizing. This mirrors CSS `inset-inline-start: 16px; inset-inline-end: 16px`, where `width` is implicit.
+---
 
-### SCALE — proportional to the parent
+### CENTER to offsets
 
-The element's position scales with its container. Both `start` and `end` are emitted as percentage strings, and `width` is set to `null`. A `string` value always signals a percentage; a `number` always signals pixels.
+CENTER anchors to the midpoint. A value of `0` means perfectly centered; positive values shift toward the end edge, negative toward the start edge.
+
+#### Formula
+
+```
+centerHorizontalOffset = node.x + (node.width / 2) − (parent.width / 2)
+```
+
+#### Figma constraints property values
+
+```
+x: 200
+width: 24
+parent width: 400
+constraints.horizontal: CENTER
+```
+
+#### Specs data
+
+```yaml
+position: ABSOLUTE
+centerHorizontalOffset: 12    # 200 + 12 − 200 = 12 (shifted 12px right of center)
+```
+
+---
+
+### SCALE to `start`, `end` as percentages
+
+SCALE positions the element proportionally to its parent. Both `start` and `end` are emitted as percentage strings. Like STRETCH, `width` is set to `null` — a fixed pixel width would contradict the proportional intent. A `string` value always signals a percentage; a `number` always signals pixels.
+
+#### Formula
 
 ```
 start% = (node.x / parent.width) × 100
-end%   = ((parent.width - node.x - node.width) / parent.width) × 100
-```
-
-```yaml
-# Figma: x: 100, width: 200, parent width: 400
-# constraints: { horizontal: SCALE }
-
-# Spec output
-position: ABSOLUTE
-start: "25%"    # 100 / 400 × 100
-end: "25%"      # (400 - 100 - 200) / 400 × 100
-width: null
+end%   = ((parent.width − node.x − node.width) / parent.width) × 100
 ```
 
 Percentages are formatted with up to two decimal places, trailing zeros removed: `"16.67%"`, `"8.5%"`, `"25%"`.
+
+#### Figma constraints property values
+
+```
+x: 100
+width: 200
+parent width: 400
+constraints.horizontal: SCALE
+```
+
+#### Specs data
+
+```yaml
+position: ABSOLUTE
+start: "25%"    # 100 / 400 × 100
+end: "25%"      # (400 − 100 − 200) / 400 × 100
+width: null
+```
 
 ---
 
 ## Variant-by-variant differences
 
-Specs emits all positioning properties on every variant — active keys carry their computed value, inactive keys carry `null`. This ensures [variant layering](/specs/guides/variant-layering) can detect any constraint change between variants, because a key that's absent can't be compared.
+Specs emits all positioning properties on every variant — active keys carry their computed value, inactive keys carry `null`. This ensures [variant layering](/specs/guides/variant-layering) can detect any constraint change between variants: a key that's absent can't be compared.
 
 ### Constraint type change: MIN → STRETCH
 
-When a horizontal constraint changes from `MIN` to `STRETCH`, `start` gains a companion `end`, and `width` becomes `null`:
+When a horizontal constraint changes from `MIN` to `STRETCH`, `end` moves from `null` to a value and `width` becomes `null`:
 
 ```yaml
 # Default variant — MIN
@@ -185,7 +197,7 @@ end: 16
 width: null
 ```
 
-`end` moves from `null` to `16`. `width` moves from `80` to `null`. Both transitions are explicit in the diff. A consumer merging these layers gets a correct final state with no ambiguity about which properties changed.
+Both transitions — `end` gaining a value, `width` becoming `null` — are explicit in the diff. A consumer merging these layers arrives at a correct final state with no ambiguity.
 
 ### Position mode change: ABSOLUTE → AUTO
 
@@ -204,4 +216,4 @@ start: null
 layoutSizingHorizontal: FILL
 ```
 
-`start` drops to `null` because an AUTO child's placement is controlled by the layout engine, not by edge offsets. `layoutSizingHorizontal` appears to describe how the layout engine should size the element. A reverse transition from AUTO back to ABSOLUTE would produce the mirror diff — offsets restored, `layoutSizingHorizontal` nulled.
+`start` drops to `null` because an AUTO child's placement is controlled by the layout engine. `layoutSizingHorizontal` appears to describe how the engine should size the element. A reverse transition from AUTO back to ABSOLUTE produces the mirror diff — offsets restored, `layoutSizingHorizontal` nulled.
