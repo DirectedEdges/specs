@@ -33,13 +33,13 @@ For the full design rationale, see [ADR-041](https://github.com/DirectedEdges/sp
 
 ### MIN to `start`
 
-#### Formula
+**Formula**
 
 ```
 start = node.x
 ```
 
-#### Figma constraints property values
+**Figma constraints property values**
 
 ```
 x: 24
@@ -47,7 +47,7 @@ parent width: 400
 constraints.horizontal: MIN
 ```
 
-#### Specs data
+**Specs data**
 
 ```yaml
 position: ABSOLUTE
@@ -60,13 +60,13 @@ start: 24
 
 Figma stores `x` as the distance from the left edge. For MAX constraints, Specs inverts this to produce the distance from the right edge.
 
-#### Formula
+**Formula**
 
 ```
 end = parent.width - node.x - node.width
 ```
 
-#### Figma constraints property values
+**Figma constraints property values**
 
 ```
 x: 356
@@ -75,7 +75,7 @@ parent width: 400
 constraints.horizontal: MAX
 ```
 
-#### Specs data
+**Specs data**
 
 ```yaml
 position: ABSOLUTE
@@ -88,14 +88,14 @@ end: 12    # 400 − 356 − 32 = 12
 
 STRETCH anchors both edges simultaneously, so both `start` and `end` are emitted. With two edges defining the element's span, an explicit `width` would conflict — `width` is set to `null`.
 
-#### Formula
+**Formula**
 
 ```
 start = node.x
 end   = parent.width - node.x - node.width
 ```
 
-#### Figma constraints property values
+**Figma constraints property values**
 
 ```
 x: 16
@@ -104,7 +104,7 @@ parent width: 400
 constraints.horizontal: STRETCH
 ```
 
-#### Specs data
+**Specs data**
 
 ```yaml
 position: ABSOLUTE
@@ -119,13 +119,13 @@ width: null
 
 CENTER anchors to the midpoint. A value of `0` means perfectly centered; positive values shift toward the end edge, negative toward the start edge.
 
-#### Formula
+**Formula**
 
 ```
 centerHorizontalOffset = node.x + (node.width / 2) − (parent.width / 2)
 ```
 
-#### Figma constraints property values
+**Figma constraints property values**
 
 ```
 x: 200
@@ -134,7 +134,7 @@ parent width: 400
 constraints.horizontal: CENTER
 ```
 
-#### Specs data
+**Specs data**
 
 ```yaml
 position: ABSOLUTE
@@ -147,7 +147,7 @@ centerHorizontalOffset: 12    # 200 + 12 − 200 = 12 (shifted 12px right of cen
 
 SCALE positions the element proportionally to its parent. Both `start` and `end` are emitted as percentage strings. Like STRETCH, `width` is set to `null` — a fixed pixel width would contradict the proportional intent. A `string` value always signals a percentage; a `number` always signals pixels.
 
-#### Formula
+**Formula**
 
 ```
 start% = (node.x / parent.width) × 100
@@ -156,7 +156,7 @@ end%   = ((parent.width − node.x − node.width) / parent.width) × 100
 
 Percentages are formatted with up to two decimal places, trailing zeros removed: `"16.67%"`, `"8.5%"`, `"25%"`.
 
-#### Figma constraints property values
+**Figma constraints property values**
 
 ```
 x: 100
@@ -165,7 +165,7 @@ parent width: 400
 constraints.horizontal: SCALE
 ```
 
-#### Specs data
+**Specs data**
 
 ```yaml
 position: ABSOLUTE
