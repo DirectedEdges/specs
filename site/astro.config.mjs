@@ -151,6 +151,8 @@ export default defineConfig({
             { label: 'Subcomponents', slug: 'guides/subcomponent-scoping', badge: pro },
             { label: 'Consolidating Props', slug: 'guides/consolidating-props' },
             { label: 'Code-Only Props', slug: 'guides/code-only-props' },
+            { label: 'Layout Positioning', slug: 'guides/layout-positioning' },
+            { label: 'Absolute Positioning', slug: 'guides/absolute-positioning' },
           ],
         },
         { label: 'License (Legal)', slug: 'overview/license' },
