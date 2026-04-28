@@ -62,17 +62,24 @@ Replace `x`, `y`, and `layoutPositioning` with semantically richer properties de
 
 **Constraint mapping logic** (performed by `specs-from-figma`, not this package):
 
-| Figma Constraint | Horizontal → | Vertical → |
-|-----------------|--------------|------------|
-| `MIN` | `start` (px from inline-start edge) | `top` (px from block-start edge) |
-| `MAX` | `end` (px from inline-end edge) | `bottom` (px from block-end edge) |
-| `CENTER` | `centerHorizontalOffset` (px offset from center) | `centerVerticalOffset` (px offset from center) |
-| `STRETCH` | `start` + `end` (both edges) | `top` + `bottom` (both edges) |
-| `SCALE` | `start` (percentage string, e.g. `"25%"`) | `top` (percentage string, e.g. `"25%"`) |
+| Figma Constraint | Horizontal → | Vertical → | Dimension |
+|-----------------|--------------|------------|-----------|
+| `MIN` | `start` (px from inline-start edge) | `top` (px from block-start edge) | preserved |
+| `MAX` | `end` (px from inline-end edge) | `bottom` (px from block-end edge) | preserved |
+| `CENTER` | `centerHorizontalOffset` (px offset from center) | `centerVerticalOffset` (px offset from center) | preserved |
+| `STRETCH` | `start` + `end` (both edges) | `top` + `bottom` (both edges) | `width`/`height` → `null` |
+| `SCALE` | `start` (percentage string, e.g. `"25%"`) | `top` (percentage string, e.g. `"25%"`) | `width`/`height` → `null` |
 
 For `STRETCH`, both edge properties are emitted simultaneously (e.g., `start` + `end` or `top` + `bottom`).
 
 For `SCALE`, the value is emitted on the same property as `MIN` (`start` or `top`) but as a percentage string instead of a pixel number, signaling proportional positioning to consumers.
+
+**Dimension suppression for `STRETCH` and `SCALE`**: When a constraint yields `STRETCH` or `SCALE` on an axis, the corresponding dimension (`width` for horizontal, `height` for vertical) is explicitly set to `null` on that variant. The rationale:
+
+- **STRETCH**: The element's size is determined by the container minus the two edge offsets (`start` + `end` or `top` + `bottom`). An explicit pixel dimension is meaningless — it would conflict with the edge-defined sizing. This mirrors CSS behavior where `left: 0; right: 0` on an absolutely positioned element implicitly defines width.
+- **SCALE**: The element scales proportionally with its container. A fixed pixel dimension would contradict the proportional intent.
+
+This suppression is per-variant — a component may have one variant with `STRETCH` (width nulled) and another with `MIN` (width preserved).
 
 **Removed properties:** `x`, `y`, `layoutPositioning`
 
@@ -241,7 +248,7 @@ centerVerticalOffset:
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | Must implement constraint-to-property mapping: read Figma `constraints` per axis and emit the appropriate directional property instead of raw `x`/`y`. Rename `layoutPositioning` → `position` in output. | Implement new transformation logic for constraint mapping; update style key references |
+| `specs-from-figma` | Must implement constraint-to-property mapping: read Figma `constraints` per axis and emit the appropriate directional property instead of raw `x`/`y`. Rename `layoutPositioning` → `position` in output. When constraint is `STRETCH` or `SCALE`, set `width` (horizontal) or `height` (vertical) to `null` on the variant. | Implement new transformation logic for constraint mapping; add dimension suppression for STRETCH/SCALE; update style key references |
 | `specs-cli` | Recompile against updated types. No logic change — the CLI passes through whatever `specs-from-figma` produces. | Recompile |
 | `specs-plugin` | Recompile against updated types. Same passthrough behavior as CLI. | Recompile |
 
@@ -262,5 +269,6 @@ centerVerticalOffset:
 - `STRETCH` is naturally represented as two simultaneous edge values, matching CSS `inset` behavior
 - `SCALE` (percentage) is distinguishable from pixel values by string type (`"25%"` vs `24`)
 - `CENTER` gets dedicated offset properties, avoiding overloading `top`/`start` with center semantics
-- `specs-from-figma` must implement the constraint-aware transformation — this is the primary implementation cost
+- `STRETCH` and `SCALE` suppress `width`/`height` respectively, preventing conflicting size declarations — the dimension is edge-defined or proportional, not fixed
+- `specs-from-figma` must implement the constraint-aware transformation (including dimension suppression) — this is the primary implementation cost
 - All existing test fixtures containing `x`, `y`, or `layoutPositioning` will need updating across `specs-testing`
