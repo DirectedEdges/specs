@@ -25,7 +25,13 @@ type Styles = Partial<{ /* 48 properties */ }>;
 | `itemReverseZIndex` | layout | container |
 | `itemSpacing` | spacing | container |
 | `layoutMode` | layout | container |
-| `layoutPositioning` | layout | all |
+| `position` | layout | all |
+| `top` | position | all |
+| `bottom` | position | all |
+| `start` | position | all |
+| `end` | position | all |
+| `centerHorizontalOffset` | position | all |
+| `centerVerticalOffset` | position | all |
 | `layoutSizingHorizontal` | layout | all |
 | `layoutSizingVertical` | layout | all |
 | `locked` | visibility | all |
@@ -49,8 +55,6 @@ type Styles = Partial<{ /* 48 properties */ }>;
 | `width` | size | container, slot, rectangle, glyph, vector, ellipse, star, polygon, line |
 | `wrap` | layout | container |
 | `wrapAlignment` | layout | container |
-| `x` | position | all |
-| `y` | position | all |
 
 ## Key Mapping from Figma
 
@@ -65,6 +69,13 @@ Several spec style keys differ from the Figma node property they read from. Spec
 | `wrapAlignment` | `counterAxisAlignContent` | [ADR 039](/specs/../adr/039-wrap-alignment/) |
 | `mainAxisAlignment` | `primaryAxisAlignItems` | [ADR 040](/specs/../adr/040-layout-alignment/) |
 | `crossAxisAlignment` | `counterAxisAlignItems` | [ADR 040](/specs/../adr/040-layout-alignment/) |
+| `position` | `layoutPositioning` | [ADR 041](/specs/../adr/041-layout-positioning/) |
+| `top` | `y` (constraint MIN/STRETCH/SCALE) | [ADR 041](/specs/../adr/041-layout-positioning/) |
+| `bottom` | `y` (constraint MAX/STRETCH) | [ADR 041](/specs/../adr/041-layout-positioning/) |
+| `start` | `x` (constraint MIN/STRETCH/SCALE) | [ADR 041](/specs/../adr/041-layout-positioning/) |
+| `end` | `x` (constraint MAX/STRETCH) | [ADR 041](/specs/../adr/041-layout-positioning/) |
+| `centerHorizontalOffset` | `x` (constraint CENTER) | [ADR 041](/specs/../adr/041-layout-positioning/) |
+| `centerVerticalOffset` | `y` (constraint CENTER) | [ADR 041](/specs/../adr/041-layout-positioning/) |
 
 All other style keys — `width`, `height`, `opacity`, `padding`, `itemSpacing`, `cornerRadius`, `strokeWeight`, `rotation`, etc. — use the same name as the Figma node property.
 
@@ -91,6 +102,8 @@ Most properties accept a `Style` value. Some properties accept specialized shape
 | `WrapAlignment` | Wrap line distribution enum | `"START"`, `"SPACE_BETWEEN"` |
 | `MainAxisAlignment` | Main axis alignment enum | `"START"`, `"END"`, `"CENTER"`, `"SPACE_BETWEEN"` |
 | `CrossAxisAlignment` | Cross axis alignment enum | `"START"`, `"END"`, `"CENTER"`, `"STRETCH"`, `"BASELINE"` |
+| `Position` | Layout positioning mode enum | `"AUTO"`, `"ABSOLUTE"` |
+| `PositionOffset` | Positional offset value | `24` (px), `"25%"` (SCALE), `null` |
 | `AspectRatio` | Width-to-height ratio | `{ x: 16, y: 9 }` |
 
 ### Relating properties to values
@@ -106,4 +119,6 @@ Most properties accept a `Style` value. Some properties accept specialized shape
 - `wrapAlignment` accepts `WrapAlignment | null` — not token-bindable.
 - `mainAxisAlignment` accepts `MainAxisAlignment | null` — not token-bindable.
 - `crossAxisAlignment` accepts `CrossAxisAlignment | null` — not token-bindable.
+- `position` accepts `Position | null` — not token-bindable.
+- `top`, `bottom`, `start`, `end`, `centerHorizontalOffset`, `centerVerticalOffset` accept `PositionOffset` (`number | string | null`) — not token-bindable.
 - `aspectRatio` accepts `AspectRatio | null`.

@@ -25,9 +25,13 @@
         "minHeight": { "$ref": "#/definitions/NumberStyleValue", "description": "Minimum height" },
         "maxWidth": { "$ref": "#/definitions/NumberStyleValue", "description": "Maximum width" },
         "maxHeight": { "$ref": "#/definitions/NumberStyleValue", "description": "Maximum height" },
-        "x": { "$ref": "#/definitions/NumberStyleValue", "description": "X position" },
-        "y": { "$ref": "#/definitions/NumberStyleValue", "description": "Y position" },
-        "layoutPositioning": { "$ref": "#/definitions/StringStyleValue", "description": "Layout positioning mode" },
+        "position": { "$ref": "#/definitions/PositionStyleValue", "description": "Layout positioning mode — AUTO (participates in parent auto-layout) or ABSOLUTE. Structural property — not token-bindable." },
+        "top": { "$ref": "#/definitions/PositionOffset", "description": "Offset from block-start (top) edge. Present when vertical constraint is MIN, STRETCH, or SCALE." },
+        "bottom": { "$ref": "#/definitions/PositionOffset", "description": "Offset from block-end (bottom) edge. Present when vertical constraint is MAX or STRETCH." },
+        "start": { "$ref": "#/definitions/PositionOffset", "description": "Offset from inline-start edge. Present when horizontal constraint is MIN, STRETCH, or SCALE." },
+        "end": { "$ref": "#/definitions/PositionOffset", "description": "Offset from inline-end edge. Present when horizontal constraint is MAX or STRETCH." },
+        "centerHorizontalOffset": { "$ref": "#/definitions/PositionOffset", "description": "Horizontal offset from center. Present when horizontal constraint is CENTER." },
+        "centerVerticalOffset": { "$ref": "#/definitions/PositionOffset", "description": "Vertical offset from center. Present when vertical constraint is CENTER." },
         "layoutSizingHorizontal": { "$ref": "#/definitions/StringStyleValue", "description": "Horizontal sizing mode" },
         "layoutSizingVertical": { "$ref": "#/definitions/StringStyleValue", "description": "Vertical sizing mode" },
         "strokes": { "$ref": "#/definitions/ColorStyleValue", "description": "Stroke colors" },
@@ -355,6 +359,21 @@
       "description": "Cross axis alignment value. Structural property — not token-bindable.",
       "oneOf": [
         { "type": "string", "enum": ["START", "END", "CENTER", "STRETCH", "BASELINE"] },
+        { "type": "null" }
+      ]
+    },
+    "PositionStyleValue": {
+      "description": "Position value. Structural property — not token-bindable.",
+      "oneOf": [
+        { "type": "string", "enum": ["AUTO", "ABSOLUTE"] },
+        { "type": "null" }
+      ]
+    },
+    "PositionOffset": {
+      "description": "Positional offset value. Pixel number, percentage string (SCALE constraint), or null. Not token-bindable.",
+      "oneOf": [
+        { "type": "number" },
+        { "type": "string" },
         { "type": "null" }
       ]
     },

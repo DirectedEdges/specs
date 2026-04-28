@@ -5,6 +5,10 @@ description: "Calculate and include invalid property combinations"
 
 <script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge pro-badge">Pro</span>')</script>
 
+:::tip[Guide]
+See [Invalid Variant Combinations](/specs/guides/invalid-variant-combinations/) for what invalid combinations are, why they matter, and worked examples.
+:::
+
 Calculate and include invalid property combinations.
 
 ## Options

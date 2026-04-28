@@ -53,6 +53,7 @@ Rationale: These types are a published contract. Loose typing undermines compila
 
 - **Naming — no abbreviations**: Type names, field names, schema properties, and API identifiers MUST use full, unabbreviated words. Prefer `Operation` over `Op`, `Button` over `Btn`, `Configuration` over `Config`. Clarity takes priority over brevity in the public contract. Accepted exceptions: `Config` (grandfathered), `args` (universally understood shorthand for arguments).
 - **Naming — enum casing in Styles**: String literal union types used as enum values in `Styles` and its child types (`Typography`, `Gradient`, `Effects`) MUST use `SCREAMING_CASE` (e.g., `'NONE'`, `'HORIZONTAL'`, `'SPACE_BETWEEN'`). Exception: values defined by external standards (e.g., DTCG `$type` values like `'color'`, CSS Color Level 4 color spaces like `'srgb'`) preserve their standard's casing.
+- **Typing — structural enums vs. `Style`**: When a `Styles` property has a closed, known set of values and is **not token-bindable** (i.e., the value is structural or computed — never a `TokenReference`, `PropBinding`, or `Conditional`), it MUST be typed as a named type rather than `Style`. For string enums, define a string literal union (e.g., `LayoutMode`, `Position`) and type the property as `TypeName | null`. For non-string structural values, define a named narrow type (e.g., `PositionOffset` as `number | string | null`). Conversely, properties whose values may be token-bound, prop-bound, or conditional MUST use `Style` (or a domain-specific type like `ColorStyle`). Established examples: `LayoutMode`, `MainAxisAlignment`, `CrossAxisAlignment`, `WrapAlignment`, `Position`, `PositionOffset`.
 - **Language/Tooling**: TypeScript strict mode (`tsconfig.build.json`); ESM only; no runtime dependencies permitted (devDependencies: `typescript` only).
 - **Build**: `tsc -p tsconfig.build.json` emits `.js` shims into `dist/`. The source of truth is `types/*.ts` — `dist/` is a compatibility artifact only.
 - **No test framework required** for a pure types/schema package, but schema consistency checks and type compilation serve as the quality gate.
@@ -90,4 +91,4 @@ Rationale: These types are a published contract. Loose typing undermines compila
   - PATCH: Clarifications, wording, formatting; no semantic change.
 - **Compliance**: Reviewers MUST check Constitution Check items at every feature milestone and before any `MAJOR` or `MINOR` package version bump.
 
-**Version**: 1.2.0 | **Ratified**: 2026-02-18 | **Last Amended**: 2026-04-20
+**Version**: 1.3.0 | **Ratified**: 2026-02-18 | **Last Amended**: 2026-04-27

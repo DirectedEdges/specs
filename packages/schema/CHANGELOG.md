@@ -5,6 +5,33 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.0] - 2026-04-28
+
+Replaces Figma-raw `x`, `y`, and `layoutPositioning` with constraint-based positioning properties. `position` replaces `layoutPositioning` as a strict `Position` enum. Directional offsets (`top`, `bottom`, `start`, `end`, `centerHorizontalOffset`, `centerVerticalOffset`) replace `x`/`y` with anchor semantics derived from Figma constraints. See the [Layout Positioning guide](/specs/guides/layout-positioning/) for constraint mapping rules and platform usage examples.
+
+### Added
+
+- `Styles.position` — typed as `Position` (`'AUTO' | 'ABSOLUTE'`) or `null`; structural property, not token-bindable (replaces `layoutPositioning`)
+- `Styles.top` — typed as `PositionOffset` (`number | string | null`); block-start offset from vertical MIN, STRETCH, or SCALE constraint
+- `Styles.bottom` — typed as `PositionOffset`; block-end offset from vertical MAX or STRETCH constraint
+- `Styles.start` — typed as `PositionOffset`; inline-start offset from horizontal MIN, STRETCH, or SCALE constraint
+- `Styles.end` — typed as `PositionOffset`; inline-end offset from horizontal MAX or STRETCH constraint
+- `Styles.centerHorizontalOffset` — typed as `PositionOffset`; horizontal offset from center (CENTER constraint)
+- `Styles.centerVerticalOffset` — typed as `PositionOffset`; vertical offset from center (CENTER constraint)
+
+### Removed
+
+- `Styles.x` — replaced by `Styles.start`, `Styles.end`, or `Styles.centerHorizontalOffset` depending on constraint
+- `Styles.y` — replaced by `Styles.top`, `Styles.bottom`, or `Styles.centerVerticalOffset` depending on constraint
+- `Styles.layoutPositioning` — replaced by `Styles.position`
+
+### Migration
+
+- `Styles.x` → `Styles.start` / `Styles.end` / `Styles.centerHorizontalOffset`: determine which property to read based on the node's horizontal constraint; SCALE values are percentage strings (e.g. `"25%"`)
+- `Styles.y` → `Styles.top` / `Styles.bottom` / `Styles.centerVerticalOffset`: same constraint-based mapping for the vertical axis
+- `Styles.layoutPositioning` → `Styles.position`: rename and narrow type — replace generic `Style` handling with exhaustive match on `'AUTO' | 'ABSOLUTE'`
+
+
 ## [0.18.0] - 2026-04-24
 
 Replaces Figma-native layout property names with semantic equivalents for auto-layout alignment and wrapping. Introduces a bi-axial `itemSpacing` model that consolidates `counterAxisSpacing` into a single property, and narrows `layoutMode` from a generic `Style` to a strict enum. Five renamed alignment/wrap fields use plain-language names (`mainAxisAlignment`, `crossAxisAlignment`, `wrapAlignment`, `wrap`) instead of Figma axis terminology. The documentation site was considerably rearchitected with updated content and navigation.

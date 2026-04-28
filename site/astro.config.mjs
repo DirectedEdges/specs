@@ -141,6 +141,7 @@ export default defineConfig({
           items: [
             { label: 'Variant Depth', slug: 'guides/variant-depth' },
             { label: 'Variant Layering', slug: 'guides/variant-layering' },
+            { label: 'Invalid Combinations', slug: 'guides/invalid-variant-combinations' },
             { label: 'Data Layout', slug: 'guides/data-layout' },
             { label: 'Token Format', slug: 'guides/token-format', badge: pro },
             { label: 'Key Formatting', slug: 'guides/key-formatting' },
