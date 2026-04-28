@@ -5,6 +5,17 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.2] - 2026-04-28
+
+Dependency update: picks up constraint-based layout positioning from specs-schema 0.19.0 and specs-from-figma 0.16.0. Also fixes glyph `instanceOf` leaking into variant output.
+
+### Dependency updates
+
+- **@directededges/specs-schema 0.19.0** — Positioning properties `x`, `y`, and `layoutPositioning` are replaced by constraint-based equivalents: `position` (`'AUTO' | 'ABSOLUTE'`), `top`, `bottom`, `start`, `end`, `centerHorizontalOffset`, and `centerVerticalOffset`. Offset values are pixel numbers for MIN/MAX/CENTER/STRETCH constraints and percentage strings (e.g. `"25%"`) for SCALE constraints.
+- **@directededges/specs-from-figma 0.16.0** — Specs now emit constraint-based positioning instead of raw pixel coordinates. A new `postEvaluate` pipeline step ensures positioning values are computed before variant differencing, so variant diffs correctly capture position changes. Fixes glyph elements incorrectly emitting `instanceOf` in variant output, and SCALE constraints now emit both start and end percentages.
+
+---
+
 ## [0.12.1] - 2026-04-24
 
 Dependency patch: picks up specs-from-figma 0.15.1 subcomponent indexer propagation fix.
