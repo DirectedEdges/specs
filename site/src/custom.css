@@ -63,6 +63,11 @@ a[href*="/overview/licensing"] {
 	background-color: var(--sl-color-text-accent);
 }
 
+/* Gap between header social links */
+.social-link + .social-link {
+	margin-left: 0.75rem;
+}
+
 /* Site title in top nav bar — neutral instead of accent-colored */
 .site-title {
 	color: var(--sl-color-white) !important;

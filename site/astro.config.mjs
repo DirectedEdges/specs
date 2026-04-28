@@ -14,6 +14,9 @@ export default defineConfig({
       social: {
         github: 'https://github.com/DirectedEdges/specs',
       },
+      components: {
+        SocialIcons: './src/components/SocialIcons.astro',
+      },
       customCss: ['./src/custom.css'],
       head: [
         {
