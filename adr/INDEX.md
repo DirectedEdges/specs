@@ -4,7 +4,10 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 042 | Composition as a First-Class Type | |
+| 045 | PropConfigurations PropBinding | |
+| 044 | Slot Content — SlotExample and Element Extensions | |
+| 043 | Component Examples — InstanceExample and Component.examples | |
+| 042 | Composition Structural Type | |
 | 041 | Layout Positioning — Constraint-Based Naming | |
 | 035 | Make Config Properties with Defaults Optional | |
 | 034 | Remove variantNames, add emptyVariants, make Config.include fields optional | Remove unused `variantNames` (breaking); add `emptyVariants` for filtering; make remaining fields optional |

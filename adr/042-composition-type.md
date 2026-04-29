@@ -1,271 +1,92 @@
-# ADR: Composition as a First-Class Type
+# ADR: Composition Structural Type
 
 **Branch**: `042-composition-type`
 **Created**: 2026-04-29
 **Status**: DRAFT
 **Deciders**: Nathan Curtis (author)
-**Supersedes**: [ADR 025 — Flowing Content into a Nested Instance's Slot](025-nested-slot-api) *(partially — retains its `Composition` type; defers its `PropConfigurations` widening to a follow-on ADR)*
+**Supersedes**: [ADR 025 — Flowing Content into a Nested Instance's Slot](025-nested-slot-api) *(partially — retains its `Composition` shape; defers its `PropConfigurations` widening to ADR-045)*
+**Extended by**: ADR-043 (Component Examples), ADR-044 (Slot Content), ADR-045 (PropConfigurations PropBinding)
 
 ---
 
 ## Context
 
-The schema represents individual components with rich fidelity — anatomy, props, styling variants, layout. But the schema has no concept of *composition*: a pre-arranged grouping of component instances that expresses how components are combined in context.
+The schema represents components individually but has no type for a *composition*: a named, reusable arrangement of component instances that expresses how components are combined in context.
 
-Compositions appear at multiple scales in Figma-sourced design systems:
+Compositions appear at four scales in Figma-sourced design systems:
 
-- **Slot-filling examples** — The elements Figma places inside a component's slot layer, representing what that slot shows in a named example. For example, an `ActionListItem` component's `startVisual` slot may have a glyph element as its default example content.
-- **Instance examples** — A complete, pre-configured usage of a component: specific prop values set and all slots filled with named slot examples. These document ready-made usages (e.g., an `ActionList` example showing the `danger` variant with three items).
-- **Layout compositions** — Multi-component arrangements forming a portion of a UI: a filter grid with a data table, a sidebar with an accordion and checkboxes. Not a single component — a named assembly of collaborating components.
-- **Page compositions** — Full canonical views: a default application screen with header, navigation, content area, and footer, each occupied by specific components in specific states.
+- **Slot-filling examples** — content placed inside a component's slot layer in Figma (e.g., what fills `ActionListItem`'s `startVisual` slot by default)
+- **Instance examples** — a fully-configured component usage (e.g., `ActionList` in its `danger` variant with three items)
+- **Layout compositions** — multi-component arrangements forming a portion of a UI (a filter grid with a data table, a sidebar with checkboxes)
+- **Page compositions** — full canonical views with specific components in specific states
 
-Today, the schema cannot represent any of these. `SlotProp.default` holds only a descriptive string. There is no `Composition` or example type for tooling to discover, render, or validate against.
+Today, the schema cannot represent any of these. `SlotProp.default` holds only a descriptive string. There is no structural type for tooling to discover, render, or validate against.
 
-DRAFT ADR-025 ("Flowing Content into a Nested Instance's Slot") introduced a `Composition` type for the inline case — a parent component flowing structured content into a child instance's slot via `PropConfigurations`. This ADR adopts the `Composition` structural shape from ADR-025 and extends the model to cover the component-example range. The `PropConfigurations` widening from ADR-025 (inline composition as a slot prop value) is deferred to a follow-on ADR, which will address how a parent component references named slot-filling examples defined on a child component rather than inlining arbitrarily nested content.
+DRAFT ADR-025 ("Flowing Content into a Nested Instance's Slot") proposed a `Composition` type for the inline parent-fills-child-slot case. This ADR adopts that structural shape as a named foundational type. How components store and reference compositions is addressed in ADR-043 (`InstanceExample`, `Component.examples`) and ADR-044 (`SlotExample`, `Element.$extensions`).
 
 ### Composition scoping
 
-The four cases split into two scopes:
+The four scales split into two authoring scopes:
 
-- **Component-scoped** (`slot`, `instance`): Authored by the component designer, living inside the component definition under `Component.examples`. Slot examples define the content for a named slot; instance examples show the whole component in a ready-made configuration.
-- **System-scoped** (`layout`, `page`): Independent of any single component, living in a separate file (`compositions.yaml`, parallel to `components.yaml`). The schema for that file is a follow-on ADR; this ADR defines the `Composition` structural type that powers it.
+- **Component-scoped** (`slot`, `instance`) — authored by the component designer inside the component definition; covered by ADR-043 and ADR-044
+- **System-scoped** (`layout`, `page`) — independent of any single component, living in a separate `compositions.yaml` file parallel to `components.yaml`; schema for that file is a follow-on ADR
 
-### Slot default content: Figma provenance, not public API
-
-A slot's default content — the elements Figma places inside the slot layer — is Figma-specific provenance. It is not part of the component's public API. Accordingly, the reference to a named slot example used as the Figma default belongs in `$extensions['com.figma']` on the slot-bound container `Element` within the variant/element layer, following the same pattern used by `PropExtensions` on props. Since this lives in `default.elements` or `variants[n].elements`, it is inherently variant-sensitive.
-
-### Slot-bound containers vs. plain frame containers
-
-In Figma's node model, a container element may be either a plain `FrameNode` or a `SlotNode` (a frame whose children are bound to a slot prop). The schema does not use distinct element types to distinguish these — the distinction is determined entirely by the `Element.children` field:
-
-- `children: PropBinding` — slot-bound container (SlotNode); may carry `$extensions['com.figma'].defaultComposition`
-- `children: string[]` — plain frame container (FrameNode); must never carry `defaultComposition`
-
-No new element type is introduced by this ADR.
-
-### Sensitizing example: ActionList and ActionListItem
-
-`ActionList` and `ActionListItem` illustrate why composition scale is a first-order concern.
-
-**ActionListItem** has two slot props — `startVisual` and `endVisual` — each accepting a glyph or avatar instance. Its examples are compact: one `SlotExample` per slot, one `InstanceExample` combining them — roughly 4 entries total.
-
-**ActionList** has one slot prop — `items` — accepting a sequence of `ActionListItem` instances. It also has 8 prop variants. A naive approach that fills each item's slot content directly on `ActionList` compounds immediately: 8 variants × 3 items × 2 slots per item = **56 slot examples** on `ActionList`, with references reaching across component boundaries into `ActionListItem`'s own slot definitions.
-
-The one-level-deep principle resolves this: each `ActionList` `SlotExample` declares only the anatomy of the `items` slot — three `ActionListItem` instances — without filling those instances' `startVisual` or `endVisual` slots. `ActionListItem` owns those. The count becomes **8 `SlotExample` + 8 `InstanceExample` = 16 entries** on `ActionList`; ~4 entries on `ActionListItem`. No cross-component references are needed.
+The `Composition` type established here serves both scopes. `SlotExample` (ADR-044) extends it for the component-scoped slot-filling case; the future system-scoped ADR will use it directly.
 
 ---
 
 ## Decision Drivers
 
-- **Composition is a first-class concept** — components and compositions are peers in the schema's conceptual model; the type hierarchy must reflect this
-- **Additive-only changes** — all new fields are optional; no existing field is removed or narrowed → MINOR semver
-- **Type ↔ schema symmetry** — every new type field has a corresponding schema definition (Constitution §I)
-- **No runtime logic** — only type declarations and schema; no validation functions or algorithms (Constitution §II)
-- **No inline nesting** — inline anonymous compositions in `PropConfigurations` create unbounded recursive depth in the spec output; slot content must be expressed as named references, not inlined structures
-- **One level deep** — a `SlotExample` declares the anatomy and element types of what fills the slot but does not recurse into those elements' own slot content; each component is the sole author of its own examples
-- **No cross-component references** — all keys in `ComponentExamples` resolve within the same component definition; `InstanceExample.slots` references only keys within the same `Component.examples`
-- **Discriminated union for component examples** — `SlotExample` and `InstanceExample` are structurally distinct; a tagged union with `kind` as discriminator makes them unambiguous to tooling and JSON Schema validation
-- **Figma provenance is not public API** — slot default content belongs in `$extensions['com.figma']` on the element, not in `Children` or `SlotProp`
-- **Variant-sensitive slot defaults** — slot default compositions must be expressible per variant through the existing element layer
-- **`$extensions` consistency** — Figma-specific element metadata follows the DTCG-derived pattern already established on `Props` and `TokenReference`
-- **Scale separation** — component-scoped examples belong inside the component definition; system-scoped compositions belong in a separate file with a follow-on schema
+- **Composition is a first-class concept** — components and compositions are peers in the schema's conceptual model; a named type is required
+- **Additive-only** — no existing type is changed → MINOR semver
+- **Type ↔ schema symmetry** — every type field has a corresponding schema property (Constitution §I)
+- **No runtime logic** — type declarations and schema only (Constitution §II)
+- **Shared shape across scopes** — component-scoped and system-scoped compositions are structurally identical; one type serves both
 
 ---
 
 ## Options Considered
 
-### Option A: `ComponentExample = SlotExample | InstanceExample`, `$extensions` for Figma defaults *(Selected)*
+### Option A: Named standalone `Composition` type *(Selected)*
 
-Introduce a `ComponentExample` discriminated union with two members: `SlotExample` (the anatomy and element bindings for a named slot's content) and `InstanceExample` (scalar prop values plus named slot-filling references). All slot content is expressed as named references — no inline nesting. Figma default content is declared via `$extensions['com.figma'].defaultComposition` on the slot-bound element. `Composition` is retained as a structural base type for system-scoped follow-on use.
+Define `Composition` as a named structural type with `anatomy` (required), `elements?`, `layout?`, and an optional `title?` for human-readable labeling. No `kind` discriminator here — discrimination is the responsibility of the extending types (`SlotExample` in ADR-044, and future system-scoped types).
 
-```yaml
-# ActionListItem — component with slot examples for its visual slot props
-title: Action List Item
-anatomy:
-  root:
-    type: container
-  startVisualSlot:
-    type: container   # slot-bound container — children bound to startVisual prop
-  label:
-    type: text
-  endVisualSlot:
-    type: container   # slot-bound container — children bound to endVisual prop
-
-props:
-  startVisual:
-    type: slot
-  endVisual:
-    type: slot
-
-examples:
-  iconStart:
-    kind: slot
-    slot: startVisual
-    title: Action List Item – icon in start visual
-    anatomy:
-      icon:
-        type: glyph
-    elements:
-      icon:
-        content: search
-
-  iconEnd:
-    kind: slot
-    slot: endVisual
-    title: Action List Item – icon in end visual
-    anatomy:
-      icon:
-        type: glyph
-    elements:
-      icon:
-        content: chevronRight
-
-  withBothIcons:
-    kind: instance
-    title: Action List Item – with both icons
-    slots:
-      startVisual: iconStart    # references examples.iconStart
-      endVisual: iconEnd        # references examples.iconEnd
-
-default:
-  elements:
-    startVisualSlot:
-      children: { $binding: "#/props/startVisual" }
-      $extensions:
-        com.figma:
-          defaultComposition: iconStart   # Figma provenance — not public API
-    endVisualSlot:
-      children: { $binding: "#/props/endVisual" }
-```
+The example below shows a `Composition` describing an `ActionListItem` instance with scalar prop values — no slots yet (slots are introduced in ADR-044):
 
 ```yaml
-# ActionList — 8 variants; one SlotExample per variant, one level deep
-# SlotExample anatomy stops at the ActionListItem boundary —
-# ActionListItem owns its own startVisual/endVisual slot examples
-title: Action List
+# Composition — named structural content fragment
+# Example: an ActionListItem with scalar props configured
+title: Action List Item – default state
 anatomy:
-  root:
-    type: container
-  itemsSlot:
-    type: container   # slot-bound container — children bound to items prop
-
-props:
-  items:
-    type: slot
-  variant:
-    type: string
-
-examples:
-  defaultItems:
-    kind: slot
-    slot: items
-    title: Action List – default items
-    anatomy:
-      item1:
-        type: instance
-        instanceOf: ActionListItem
-      item2:
-        type: instance
-        instanceOf: ActionListItem
-      item3:
-        type: instance
-        instanceOf: ActionListItem
-    layout:
-      - item1
-      - item2
-      - item3
-    # No elements — ActionListItem owns its startVisual/endVisual slot examples
-
-  defaultUsage:
-    kind: instance
-    title: Action List – default usage
+  item:
+    type: instance
+    instanceOf: ActionListItem
+elements:
+  item:
     propConfigurations:
-      variant: default
-    slots:
-      items: defaultItems         # references examples.defaultItems
-
-  dangerItems:
-    kind: slot
-    slot: items
-    title: Action List – danger items
-    anatomy:
-      item1:
-        type: instance
-        instanceOf: ActionListItem
-      item2:
-        type: instance
-        instanceOf: ActionListItem
-      item3:
-        type: instance
-        instanceOf: ActionListItem
-    layout:
-      - item1
-      - item2
-      - item3
-
-  dangerUsage:
-    kind: instance
-    title: Action List – danger usage
-    propConfigurations:
-      variant: danger
-    slots:
-      items: dangerItems
-
-  # ... pattern repeats for 6 more variants
-  # Total: 8 SlotExamples + 8 InstanceExamples = 16 entries on ActionList
-  # vs. naive cross-component recursion: 8 variants × 3 items × 2 slots = 48+ entries
-
-default:
-  elements:
-    itemsSlot:
-      children: { $binding: "#/props/items" }
-      $extensions:
-        com.figma:
-          defaultComposition: defaultItems   # Figma provenance — not public API
+      state: default
+      title: Browse all issues
+      description: 12 open · 3 closed
+layout:
+  - item
 ```
 
 **Pros**:
-- Named references prevent unbounded inline nesting — every slot filling is a string key regardless of hierarchy depth
-- One-level-deep boundary keeps example counts proportional to a component's own variation surface — `ActionList` needs 16 entries, not 56
-- No cross-component references — each component's examples resolve entirely within that component's own `Component.examples`
-- `SlotExample` and `InstanceExample` are structurally distinct and discriminated by `kind`
-- Figma default content stays in `$extensions` — `Children` and `SlotProp` are unchanged
-- `Composition` is cleanly separated as the structural base for future system-scoped use
-- All changes additive → MINOR
+- Clean, minimal foundational type — easy to extend in ADR-044 (`SlotExample`) and the system-scoped follow-on
+- Single shared shape for component-scoped and system-scoped use
+- `anatomy` required — every composition declares its element type map
+- `elements?` and `layout?` optional — a minimal fragment may only need anatomy
 
 **Cons / Trade-offs**:
-- Filling slots of instances *within* a `SlotExample` (e.g., setting `ActionListItem`'s `startVisual` from `ActionList`'s context) requires a follow-on ADR to define the cross-component resolution protocol
-- `PropConfigurations` for slot values in parent components is deferred — the full parent-fills-child-slot mechanism remains in ADR-025 pending the follow-on
+- Standalone — no consuming type lands until ADR-043 and ADR-044; the type is not usable in isolation
 
 ---
 
-### Option B: Inline `Composition` in `PropConfigurations` (ADR-025 pattern) *(Rejected)*
+### Option B: Inline shape, no named type *(Rejected)*
 
-Allow inline anonymous `Composition` objects as values in `PropConfigurations` when filling a slot prop on a nested instance.
+Define the shape inline at each use site (`SlotExample`, system-scoped types) rather than as a shared named type.
 
-**Rejected because**:
-- Creates unbounded recursive nesting: a composition contains component instances with their own slots, whose fillings are also inline compositions, ad infinitum
-- Inline anonymous compositions cannot be named, reused, or referenced from `InstanceExample.slots`; they are invisible to tooling that catalogues compositions
-
----
-
-### Option C: Single `Composition` type with `kind` covering all scales *(Rejected)*
-
-One `Composition` type with a `kind` field covering `slot-default`, `example`, `layout`, and `page`.
-
-**Rejected because**:
-- `SlotExample` (anatomy + slot binding) and `InstanceExample` (prop values + slot refs) are structurally incompatible — they cannot share a single type without making all fields optional or requiring runtime discrimination
-- Mixing component-scoped and system-scoped kinds in one type conflates two different authoring contexts
-
----
-
-### Option D: Separate types per composition scale *(Rejected)*
-
-Define `SlotComposition`, `ExampleComposition`, `LayoutComposition`, `PageComposition` as distinct types.
-
-**Rejected because**:
-- `LayoutComposition` and `PageComposition` share the same structural shape as `Composition`; duplication without benefit
-- Four separate types multiply schema surface area and downstream import burden
+**Rejected because**: `SlotExample` and system-scoped compositions share identical fields; duplicating the shape without a named base creates schema drift and prevents a single `$ref` anchor.
 
 ---
 
@@ -275,157 +96,31 @@ Define `SlotComposition`, `ExampleComposition`, `LayoutComposition`, `PageCompos
 
 | File | Change | Bump |
 |------|--------|------|
-| New: `Composition.ts` | Add `Composition`, `SlotExample`, `InstanceExample`, `ComponentExample`, `ComponentExamples` | MINOR |
-| `Element.ts` | Add optional `$extensions?: ElementExtensions`; add `ElementExtensions`, `FigmaElementExtension` | MINOR |
-| `Component.ts` | Add optional `examples?: ComponentExamples` | MINOR |
-| `PropConfigurations.ts` | Widen value union to include `PropBinding` | MINOR |
-| `index.ts` | Export `Composition`, `SlotExample`, `InstanceExample`, `ComponentExample`, `ComponentExamples`, `ElementExtensions`, `FigmaElementExtension` | MINOR |
+| New: `Composition.ts` | Add `Composition` type | MINOR |
+| `index.ts` | Export `Composition` | MINOR |
 
-**New file** (`types/Composition.ts`):
+**New type** (`types/Composition.ts`):
 
 ```yaml
-# Composition — raw structural content fragment
-# Base shape used by SlotExample and by future system-scoped layout/page compositions
 Composition:
-  title?: string
-  anatomy: Anatomy             # required
+  title?: string      # human-readable label
+  anatomy: Anatomy    # required — declares the element type map
   elements?: Elements
   layout?: Layout
-
-# SlotExample — named content for a specific slot
-SlotExample:
-  kind: 'slot'                 # discriminator
-  slot: string                 # name of the SlotProp this example fills
-  title?: string
-  anatomy: Anatomy             # required
-  elements?: Elements
-  layout?: Layout
-
-# InstanceExample — a pre-configured usage of the whole component
-InstanceExample:
-  kind: 'instance'             # discriminator
-  title?: string
-  propConfigurations?:
-    Record<string, string | number | boolean>   # scalar prop values only
-  slots?:
-    Record<string, string>     # slot prop name → SlotExample key in Component.examples
-
-# ComponentExample — discriminated union for Component.examples
-ComponentExample: SlotExample | InstanceExample
-
-# ComponentExamples — named record on Component
-ComponentExamples: Record<string, ComponentExample>
-```
-
-**Extended `Element`** (`types/Element.ts`):
-
-```yaml
-# Before
-Element:
-  children?: Children
-  parent?: string | null
-  styles?: Styles
-  propConfigurations?: PropConfigurations
-  instanceOf?: string | PropBinding | SubcomponentRef
-  content?: string | PropBinding
-
-# After
-Element:
-  children?: Children
-  parent?: string | null
-  styles?: Styles
-  propConfigurations?: PropConfigurations
-  instanceOf?: string | PropBinding | SubcomponentRef
-  content?: string | PropBinding
-  $extensions?: ElementExtensions    # new — Figma-specific element metadata
-```
-
-**New types** (in `types/Element.ts`):
-
-```yaml
-FigmaElementExtension:
-  defaultComposition?: string   # key in Component.examples — valid only when children is PropBinding
-  [key: string]: unknown
-
-ElementExtensions:
-  'com.figma'?: FigmaElementExtension
-  [key: string]: unknown
-```
-
-```yaml
-# Usage — slot-bound element in default.elements or variants[n].elements
-aSlotElement:
-  children: { $binding: "#/props/aSlotProperty" }
-  $extensions:
-    com.figma:
-      defaultComposition: cardBodyDefault   # references Component.examples.cardBodyDefault
-```
-
-**Extended `Component`** (`types/Component.ts`):
-
-```yaml
-# Before
-Component:
-  title: string
-  anatomy: Anatomy
-  props?: Props
-  subcomponents?: Subcomponents
-  default: Variant
-  variants?: Variants
-  invalidVariantCombinations?: PropConfigurations[]
-  metadata?: Metadata
-
-# After
-Component:
-  title: string
-  anatomy: Anatomy
-  props?: Props
-  subcomponents?: Subcomponents
-  default: Variant
-  variants?: Variants
-  invalidVariantCombinations?: PropConfigurations[]
-  metadata?: Metadata
-  examples?: ComponentExamples   # new — named slot and instance examples
-```
-
-**Widened `PropConfigurations`** (`types/PropConfigurations.ts`):
-
-```yaml
-# Before
-PropConfigurations: Record<string, string | number | boolean>
-
-# After
-PropConfigurations: Record<string, string | number | boolean | PropBinding>
-```
-
-```yaml
-# Usage — binding a nested instance's scalar prop to the parent's own prop
-aSlotElement:
-  instanceOf: Card
-  propConfigurations:
-    variant: featured                      # static scalar
-    label: { $binding: "#/props/label" }   # bound to parent's label prop
 ```
 
 ### Schema changes (`schema/`)
 
 | File | Change | Bump |
 |------|--------|------|
-| `component.schema.json` | Add `Composition` definition | MINOR |
-| `component.schema.json` | Add `SlotExample` definition | MINOR |
-| `component.schema.json` | Add `InstanceExample` definition | MINOR |
-| `component.schema.json` | Add `ComponentExample` definition (`oneOf` discriminated by `kind`) | MINOR |
-| `component.schema.json` | Add `FigmaElementExtension` and `ElementExtensions` definitions | MINOR |
-| `component.schema.json` | Add `$extensions` property to `Element` definition | MINOR |
-| `component.schema.json` | Update `PropConfigurations` `additionalProperties` to include `PropBinding` | MINOR |
-| `component.schema.json` | Add `examples` property to `Component` definition | MINOR |
+| `component.schema.json` | Add `#/definitions/Composition` | MINOR |
 
 **New definition** (`#/definitions/Composition`):
 
 ```yaml
 Composition:
   type: object
-  description: "Raw structural content fragment used as the base shape for SlotExample and future system-scoped compositions."
+  description: "Named structural content fragment. Base shape for SlotExample (ADR-044) and system-scoped layout/page compositions."
   required: [anatomy]
   properties:
     title:
@@ -439,162 +134,26 @@ Composition:
   additionalProperties: false
 ```
 
-**New definition** (`#/definitions/SlotExample`):
-
-```yaml
-SlotExample:
-  type: object
-  description: "Named content for a specific slot: element anatomy, bindings, and layout for the elements that fill the slot."
-  required: [kind, slot, anatomy]
-  properties:
-    kind:
-      type: string
-      enum: [slot]
-    slot:
-      type: string
-      description: "The SlotProp name this example fills."
-    title:
-      type: string
-    anatomy:
-      $ref: "#/definitions/Anatomy"
-    elements:
-      $ref: "#/definitions/Elements"
-    layout:
-      $ref: "#/definitions/Layout"
-  additionalProperties: false
-```
-
-**New definition** (`#/definitions/InstanceExample`):
-
-```yaml
-InstanceExample:
-  type: object
-  description: "A pre-configured usage of the whole component: scalar prop values and named slot-filling references."
-  required: [kind]
-  properties:
-    kind:
-      type: string
-      enum: [instance]
-    title:
-      type: string
-    propConfigurations:
-      type: object
-      description: "Scalar prop values for this example."
-      additionalProperties:
-        oneOf:
-          - type: string
-          - type: number
-          - type: boolean
-    slots:
-      type: object
-      description: "Maps slot prop names to SlotExample keys in Component.examples."
-      additionalProperties:
-        type: string
-  additionalProperties: false
-```
-
-**New definition** (`#/definitions/ComponentExample`):
-
-```yaml
-ComponentExample:
-  oneOf:
-    - $ref: "#/definitions/SlotExample"
-    - $ref: "#/definitions/InstanceExample"
-```
-
-**New definitions** (`#/definitions/FigmaElementExtension` and `#/definitions/ElementExtensions`):
-
-```yaml
-FigmaElementExtension:
-  type: object
-  properties:
-    defaultComposition:
-      type: string
-      description: "Key of a SlotExample in Component.examples. Valid only when Element.children is a PropBinding (slot-bound container)."
-  additionalProperties: true
-
-ElementExtensions:
-  type: object
-  properties:
-    "com.figma":
-      $ref: "#/definitions/FigmaElementExtension"
-  additionalProperties: true
-```
-
-**Updated `Element`** — add to `#/definitions/Element/properties`:
-
-```yaml
-$extensions:
-  $ref: "#/definitions/ElementExtensions"
-```
-
-**Updated `PropConfigurations`** (`#/definitions/PropConfigurations`):
-
-```yaml
-# Before
-PropConfigurations:
-  type: object
-  additionalProperties:
-    oneOf:
-      - type: string
-      - type: number
-      - type: boolean
-
-# After
-PropConfigurations:
-  type: object
-  additionalProperties:
-    oneOf:
-      - type: string
-      - type: number
-      - type: boolean
-      - $ref: "#/definitions/PropBinding"
-```
-
-**New property** (`Component.examples` in `#/definitions/Component/properties`):
-
-```yaml
-examples:
-  type: object
-  description: "Named slot and instance examples for this component."
-  patternProperties:
-    "^[a-zA-Z0-9_-]+$":
-      $ref: "#/definitions/ComponentExample"
-  additionalProperties: false
-```
-
 ### Out of scope for this ADR
 
-- **`compositions.yaml` file schema** — Schema for system-scoped (`layout`, `page`) compositions in a separate file. Deferred to a follow-on ADR. The `Composition` structural type is defined here and ready.
-- **Parent-fills-child-slot via `PropConfigurations`** — The mechanism for referencing a named `SlotExample` from a child component as a `PropConfigurations` slot value. Deferred to the follow-on that supersedes ADR-025.
-- **Cross-component key resolution in `InstanceExample.slots`** — When `slots` fills a slot belonging to a nested child component, the key must resolve against that child's `Component.examples`. The resolution protocol is deferred to the follow-on ADR.
-- **Nested slot filling within `SlotExample`** — When a `SlotExample` contains component instances that themselves have slots (e.g., `ActionListItem` instances inside `ActionList`'s `items` slot), filling those nested slots from the parent component is deferred to the follow-on ADR. Each component resolves its own slot content independently for now.
+- **`SlotExample`** — extends `Composition` with `kind: 'slot'` and `slot` field; see ADR-044
+- **`InstanceExample`** and **`Component.examples`** — see ADR-043
+- **`Element.$extensions`** and `defaultComposition` — see ADR-044
+- **`PropConfigurations` PropBinding widening** — see ADR-045
+- **`compositions.yaml` file schema** — follow-on ADR after ADR-044
 
 ### Notes
 
-- `Composition.anatomy` is required — every composition must declare its element type map. `elements` and `layout` are optional because a minimal slot fragment may not need styling or explicit ordering.
-- `SlotExample.slot` names the `SlotProp` the example fills, enabling tooling to associate the example with the correct slot without inspecting anatomy.
-- `InstanceExample.slots` maps slot prop names to `SlotExample` keys in the same `Component.examples`. All keys resolve within the same component definition — no cross-component references. Filling the slots of instances that appear *within* a `SlotExample` (e.g., setting `ActionListItem`'s `startVisual` from `ActionList`'s examples) is deferred to the follow-on ADR.
-- The one-level-deep boundary is intentional: `ActionList`'s `SlotExample` for the `items` slot declares three `ActionListItem` instances but does not fill their `startVisual` or `endVisual` slots. `ActionListItem` owns those via its own `Component.examples`. This keeps the example count on each component proportional to that component's own variation surface, not to every descendant's.
-- `InstanceExample.propConfigurations` holds scalar values only (`string | number | boolean`). It is intentionally simpler than `Element.propConfigurations` (which now also accepts `PropBinding`): `InstanceExample` represents a documented configuration, not a live data binding.
-- `FigmaElementExtension.defaultComposition` is valid only when `Element.children` is a `PropBinding` (slot-bound container / SlotNode in Figma). A container element with `children: string[]` is a plain FrameNode and must never carry `defaultComposition`. The schema cannot enforce this; it is a consumer validation concern.
-- `PropBinding` in `PropConfigurations` allows a parent component to bind a nested instance's scalar prop to the parent's own prop, using the `{ $binding: "..." }` shape already established on `Element.content`, `Element.instanceOf`, and `Styles.visible`.
+- `Composition.anatomy` is required — every composition must declare its element type map; `elements` and `layout` are optional because a minimal slot fragment may only need the type declarations
+- No `kind` field on `Composition` itself — the `kind` discriminator is added by the consuming types (`SlotExample` adds `kind: 'slot'`; future system-scoped types add their own)
+- `Composition` is not placed directly on `Component` — it is the structural base; `Component.examples` (ADR-043) and `SlotExample` (ADR-044) are the consumer-facing entry points
 
 ---
 
 ## Type ↔ Schema Impact
 
-- **Symmetric**: Yes — every type field maps to a schema property
-- **Parity check**:
-  - `Composition { title?, anatomy, elements?, layout? }` ↔ `#/definitions/Composition`
-  - `SlotExample { kind: 'slot', slot, title?, anatomy, elements?, layout? }` ↔ `#/definitions/SlotExample`
-  - `InstanceExample { kind: 'instance', title?, propConfigurations?, slots? }` ↔ `#/definitions/InstanceExample`
-  - `ComponentExample = SlotExample | InstanceExample` ↔ `#/definitions/ComponentExample` (`oneOf`)
-  - `FigmaElementExtension { defaultComposition?: string }` ↔ `#/definitions/FigmaElementExtension`
-  - `ElementExtensions { 'com.figma'?: FigmaElementExtension }` ↔ `#/definitions/ElementExtensions`
-  - `Element.$extensions?: ElementExtensions` ↔ `#/definitions/Element/properties/$extensions`
-  - `PropConfigurations` value union `string | number | boolean | PropBinding` ↔ `additionalProperties.oneOf` (four branches)
-  - `Component.examples?: ComponentExamples` ↔ `#/definitions/Component/properties/examples`
+- **Symmetric**: Yes
+- **Parity check**: `Composition { title?, anatomy, elements?, layout? }` ↔ `#/definitions/Composition`
 
 ---
 
@@ -602,9 +161,9 @@ examples:
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | Must detect and emit `Component.examples` (`SlotExample` from slot layers, `InstanceExample` from example frames); must emit `$extensions['com.figma'].defaultComposition` on slot-bound elements in variant data | Read new types; implement example detection; update output emitters |
-| `specs-cli` | Recompile; CLI output includes `examples` key and element `$extensions` when present | Recompile; no breaking change |
-| `specs-plugin-2` | Recompile; example rendering is a follow-on capability | Recompile; pass through composition data initially |
+| `specs-from-figma` | No immediate output change; `Composition` is foundational for ADR-043/044 | Recompile when 043/044 land |
+| `specs-cli` | Recompile | No change |
+| `specs-plugin-2` | Recompile | No change |
 
 ---
 
@@ -612,24 +171,12 @@ examples:
 
 **Version bump**: `0.19.0 → 0.20.0` (`MINOR`)
 
-**Justification**: All changes are additive:
-- New optional field `Component.examples` on an existing type
-- New optional field `Element.$extensions` on an existing type
-- New types (`Composition`, `SlotExample`, `InstanceExample`, `ComponentExample`, `ComponentExamples`, `ElementExtensions`, `FigmaElementExtension`) — no removal or narrowing
-- `PropConfigurations` value union widened to add `PropBinding` — existing scalar values remain valid
-
-Per Constitution §III: additive types and new optional fields → MINOR.
+**Justification**: Adds new type `Composition` — purely additive; no existing type is removed or narrowed → MINOR per Constitution §III.
 
 ---
 
 ## Consequences
 
-- `Composition` is a first-class structural type in the schema; `SlotExample` and `InstanceExample` are its component-scoped manifestations
-- Component authors declare named examples in `Component.examples`; slot content and usage configurations are discoverable alongside the component that owns them
-- All slot-filling references are named strings — no inline anonymous compositions, no unbounded recursive nesting in the spec output
-- Slot default content is Figma provenance metadata in `Element.$extensions['com.figma'].defaultComposition` — `Children` and `SlotProp` are unchanged
-- `PropConfigurations` gains `PropBinding` — a parent component can bind a nested instance's scalar prop to its own prop, completing the pattern already used on `Element.content` and `Styles.visible`
-- `Element` gains `$extensions` following the DTCG-derived provenance-metadata pattern established on `Props` and `TokenReference`
-- `Composition` is defined and ready for a follow-on ADR introducing `compositions.yaml` for system-scoped layout and page compositions
-- The parent-fills-child-slot pattern and cross-component slot key resolution are deferred to a follow-on ADR that supersedes ADR-025; ADR-025 remains open
-- Future ADRs can add the system-scoped file schema, nested slot filling in `SlotExample`, and the full slot-filling mechanism without changes to the types established here
+- `Composition` is a named structural type in the schema, available as a base for `SlotExample` (ADR-044) and future system-scoped layout and page composition types
+- No existing type is changed; no downstream consumers are broken
+- ADR-043, ADR-044, and ADR-045 complete the composition model; this ADR is the foundation they build on
