@@ -4,10 +4,10 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 045 | PropConfigurations PropBinding | |
-| 044 | Slot Content — SlotExample and Element Extensions | |
-| 043 | Component Examples — InstanceExample and Component.examples | |
-| 042 | Composition Structural Type | |
+| 045 | PropConfigurations PropBinding | Widen `PropConfigurations` value union to add `PropBinding`; completes the binding model on element-level fields |
+| 044 | Slot Content — SlotExample and Element Extensions | Add `SlotExample` (extends `Composition`); widen `ComponentExamples`; add `Element.$extensions` + `defaultComposition` for Figma provenance |
+| 043 | Component Examples — InstanceExample and Component.examples | Add `InstanceExample` and `ComponentExamples`; add `Component.examples?` named record |
+| 042 | Composition Structural Type | Add `Composition { title?, anatomy, elements?, layout? }` — structural base for slot examples and system-scoped compositions |
 | 041 | Layout Positioning — Constraint-Based Naming | |
 | 035 | Make Config Properties with Defaults Optional | |
 | 034 | Remove variantNames, add emptyVariants, make Config.include fields optional | Remove unused `variantNames` (breaking); add `emptyVariants` for filtering; make remaining fields optional |
