@@ -39,7 +39,7 @@ The `Composition` type established here serves both scopes. `SlotExample` (ADR-0
 
 - **Composition is a first-class concept** — components and compositions are peers in the schema's conceptual model; a named type is required
 - **Additive-only** — no existing type is changed → MINOR semver
-- **Type ↔ schema symmetry** — every type field has a corresponding schema property (Constitution §I)
+- **Type ↔ schema symmetry** — every type field has a schema counterpart (Constitution §I)
 - **No runtime logic** — type declarations and schema only (Constitution §II)
 - **Shared shape across scopes** — component-scoped and system-scoped compositions are structurally identical; one type serves both
 
@@ -47,46 +47,98 @@ The `Composition` type established here serves both scopes. `SlotExample` (ADR-0
 
 ## Options Considered
 
-### Option A: Named standalone `Composition` type *(Selected)*
+Four distinct questions shape the design space:
 
-Define `Composition` as a named structural type with `anatomy` (required), `elements?`, `layout?`, and an optional `title?` for human-readable labeling. No `kind` discriminator here — discrimination is the responsibility of the extending types (`SlotExample` in ADR-044, and future system-scoped types).
-
-The example below shows a `Composition` describing an `ActionListItem` instance with scalar prop values — no slots yet (slots are introduced in ADR-044):
-
-```yaml
-# Composition — named structural content fragment
-# Example: an ActionListItem with scalar props configured
-title: Action List Item – default state
-anatomy:
-  item:
-    type: instance
-    instanceOf: ActionListItem
-elements:
-  item:
-    propConfigurations:
-      state: default
-      title: Browse all issues
-      description: 12 open · 3 closed
-layout:
-  - item
-```
-
-**Pros**:
-- Clean, minimal foundational type — easy to extend in ADR-044 (`SlotExample`) and the system-scoped follow-on
-- Single shared shape for component-scoped and system-scoped use
-- `anatomy` required — every composition declares its element type map
-- `elements?` and `layout?` optional — a minimal fragment may only need anatomy
-
-**Cons / Trade-offs**:
-- Standalone — no consuming type lands until ADR-043 and ADR-044; the type is not usable in isolation
+1. **Should `anatomy` and `elements` be converged?** — The split exists in `Component`/`Variant` to support variant-sensitive element data. A composition has no variants. Does the split still earn its weight here?
+2. **Are `elements` and `layout` required or optional?** — An anatomy-only composition is structurally just a type map. Does meaningful content require both?
+3. **How much metadata belongs on a composition now?** — `title` is the obvious start. What else is warranted, and what should be noted as anticipated extension points?
+4. **When a composition's element is an instance with a slot, how is that slot filled?** — This is a constraint on the type's scope that must be stated explicitly.
 
 ---
 
-### Option B: Inline shape, no named type *(Rejected)*
+### Option A: Separate anatomy and elements; all three fields required *(Selected)*
 
-Define the shape inline at each use site (`SlotExample`, system-scoped types) rather than as a shared named type.
+Keep the `Anatomy`/`Elements` split inherited from `Variant` for consistency. Require all three content fields — `anatomy`, `elements`, and `layout` — so a composition is always a complete structural + content + layout declaration. Add `description?` alongside `title?` for documentation tooling.
 
-**Rejected because**: `SlotExample` and system-scoped compositions share identical fields; duplicating the shape without a named base creates schema drift and prevents a single `$ref` anchor.
+```yaml
+# Composition — named structural content fragment
+# Example: ActionListItem core content with text elements
+title: Action List Item – default
+description: Default text content for a standard list item with label and secondary description.
+anatomy:
+  root:
+    type: container
+  label:
+    type: text
+  description:
+    type: text
+elements:
+  label:
+    content: Browse all issues
+  description:
+    content: 12 open · 3 closed
+layout:
+  - root:
+      - label
+      - description
+```
+
+Note: `root` carries no element-level data and is absent from `elements`. The `elements` map is sparse — only elements with content, styles, or configurations need entries.
+
+**Pros**:
+- Completeness guarantee — every composition is a full structural declaration; no anatomy-only fragments that are indistinguishable from plain `Anatomy`
+- `layout` required forces authors to express ordering intent, even when trivial (`[icon]` for a single glyph)
+- Consistent with `Variant` field names, easing authoring and migration
+- `description?` supports documentation tooling now; further metadata is anticipated
+
+**Cons / Trade-offs**:
+- When a composition's anatomy contains only instance elements with nothing meaningful to set on them (e.g., a slot that holds three `ActionListItem` instances with no per-instance element data), `elements` must be an empty record `{}`. This is explicit but adds authoring noise.
+- `layout` is trivially `[iconName]` for single-element compositions such as a glyph in a visual slot; requiring it adds overhead for that common case.
+
+---
+
+### Option B: Converge `anatomy` and `elements` into a single map *(Rejected)*
+
+Since compositions have no variant tree, the split that motivates keeping `anatomy` and `elements` separate in `Component` does not apply. A single `entries` map where each entry holds both type metadata and element data would be a simpler authoring surface:
+
+```yaml
+# Converged model (not selected)
+anatomy:
+  root:
+    type: container
+  label:
+    type: text
+    content: Browse all issues       # type + data in one entry
+  description:
+    type: text
+    content: 12 open · 3 closed
+```
+
+**Rejected because**:
+- `SlotExample` (ADR-044) must extend `Composition`. If `Composition` uses a converged map, `SlotExample` must too — breaking the Anatomy/Elements pattern used throughout the rest of the schema.
+- If a composition is later promoted to a full component (a natural authoring workflow), the converged map must be split back into `anatomy` + `elements` + `variants`. Keeping them separate makes that migration a no-op.
+- `AnatomyElement` (`type`, `detectedIn?`, `instanceOf?`) and `Element` (`children`, `styles`, `propConfigurations`, `content`) have non-overlapping fields. Merging them creates a hybrid type that is neither and must be maintained independently.
+
+---
+
+### Option C: `anatomy` required; `elements` and `layout` optional *(Rejected)*
+
+Keep the minimal surface from the ADR-025 draft: only `anatomy` is required; `elements` and `layout` are optional for cases where a composition is purely structural.
+
+**Rejected because**:
+- An anatomy-only composition — `anatomy` with no `elements` and no `layout` — is structurally identical to an `Anatomy` record. It carries no information beyond element types and names; it does not describe a *composition* in any meaningful sense.
+- Making `elements` optional permits this degenerate case without a schema-level guard.
+- Downstream consumers cannot distinguish an authored anatomy-only composition (intentional) from one where the author simply forgot to add content data.
+
+---
+
+### Option D: `anatomy` and `elements` required; `layout` optional *(Rejected)*
+
+A middle position: require content data but leave layout optional, with anatomy key order as the implied default.
+
+**Rejected because**:
+- "Implied order" is an invisible convention that tooling must either assume or reject. Making `layout` required is a small authoring cost that eliminates ambiguity, especially for compositions with nested containers where order is load-bearing.
+- The only case where `layout` is genuinely noise is a single-element composition — and even there, `layout: [elementName]` is one line and makes intent explicit.
 
 ---
 
@@ -103,10 +155,11 @@ Define the shape inline at each use site (`SlotExample`, system-scoped types) ra
 
 ```yaml
 Composition:
-  title?: string      # human-readable label
-  anatomy: Anatomy    # required — declares the element type map
-  elements?: Elements
-  layout?: Layout
+  title?: string          # human-readable label
+  description?: string    # purpose and usage notes for documentation tooling
+  anatomy: Anatomy        # required — declares the element type map
+  elements: Elements      # required — element-level content, styles, prop configurations
+  layout: Layout          # required — tree ordering of elements
 ```
 
 ### Schema changes (`schema/`)
@@ -121,9 +174,11 @@ Composition:
 Composition:
   type: object
   description: "Named structural content fragment. Base shape for SlotExample (ADR-044) and system-scoped layout/page compositions."
-  required: [anatomy]
+  required: [anatomy, elements, layout]
   properties:
     title:
+      type: string
+    description:
       type: string
     anatomy:
       $ref: "#/definitions/Anatomy"
@@ -141,19 +196,22 @@ Composition:
 - **`Element.$extensions`** and `defaultComposition` — see ADR-044
 - **`PropConfigurations` PropBinding widening** — see ADR-045
 - **`compositions.yaml` file schema** — follow-on ADR after ADR-044
+- **Nested slot filling in composition elements** — see below
 
 ### Notes
 
-- `Composition.anatomy` is required — every composition must declare its element type map; `elements` and `layout` are optional because a minimal slot fragment may only need the type declarations
-- No `kind` field on `Composition` itself — the `kind` discriminator is added by the consuming types (`SlotExample` adds `kind: 'slot'`; future system-scoped types add their own)
-- `Composition` is not placed directly on `Component` — it is the structural base; `Component.examples` (ADR-043) and `SlotExample` (ADR-044) are the consumer-facing entry points
+- **Nested instance with a slot** — when `elements` contains an `instance` element whose component has slot props, those slots cannot be filled from within this `Composition`. The composition can set scalar prop values via `propConfigurations` on that instance, but slot content resolution is deferred to the mechanism introduced in ADR-044 (one level deep) and its follow-on. This is a deliberate constraint, not an oversight.
+- **`elements` is sparse** — not every anatomy element needs a corresponding `elements` entry. An element with no content, styles, or prop configurations can be omitted from `elements`. The `elements: {}` case (all anatomy elements are instances with no element-level data) is valid and explicit.
+- **No `kind` field** — discrimination is the responsibility of the extending types (`SlotExample` adds `kind: 'slot'`; future system-scoped types add their own).
+- **`Composition` is not placed directly on `Component`** — it is the structural base; `Component.examples` (ADR-043) and `SlotExample` (ADR-044) are the consumer-facing entry points.
+- **Anticipated metadata extensions** — `title` and `description` are the authoring-time metadata for this ADR. Anticipated follow-on extensions include `tags?: string[]` for cataloguing, `deprecated?: boolean` for lifecycle management, and `guidelines?: string` for usage guidance. These are deferred to a follow-on ADR once the consuming types are established and usage patterns are known.
 
 ---
 
 ## Type ↔ Schema Impact
 
 - **Symmetric**: Yes
-- **Parity check**: `Composition { title?, anatomy, elements?, layout? }` ↔ `#/definitions/Composition`
+- **Parity check**: `Composition { title?, description?, anatomy, elements, layout }` ↔ `#/definitions/Composition`; `required: [anatomy, elements, layout]`
 
 ---
 
@@ -178,5 +236,7 @@ Composition:
 ## Consequences
 
 - `Composition` is a named structural type in the schema, available as a base for `SlotExample` (ADR-044) and future system-scoped layout and page composition types
+- All three content fields (`anatomy`, `elements`, `layout`) are required — a composition is always a complete structural declaration, never a degenerate anatomy-only fragment
+- `description?` is the first step toward a richer authoring-time metadata model; `tags`, `deprecated`, and `guidelines` are identified follow-on extension points
 - No existing type is changed; no downstream consumers are broken
 - ADR-043, ADR-044, and ADR-045 complete the composition model; this ADR is the foundation they build on

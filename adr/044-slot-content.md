@@ -45,7 +45,7 @@ No new element type is introduced by this ADR.
 
 - **One level deep** — a `SlotExample` declares the anatomy and element types of what fills the slot but does not recurse into those elements' own slot content; each component is the sole author of its own examples
 - **No cross-component references** — all keys in `ComponentExamples` resolve within the same component definition; a `SlotExample`'s anatomy may reference `instanceOf: SomeComponent` but does not reach into that component's examples
-- **`SlotExample` extends `Composition`** — same three content fields (`anatomy`, `elements?`, `layout?`) plus `kind: 'slot'` and `slot`; the structural base must not be redefined
+- **`SlotExample` extends `Composition`** — same three content fields (`anatomy`, `elements`, `layout`) plus `kind: 'slot'` and `slot`; the structural base must not be redefined
 - **Figma provenance is not public API** — slot default content is Figma-specific; it belongs in `$extensions['com.figma']` on the element, following the DTCG-derived pattern established on `Props` and `TokenReference`
 - **Variant-sensitive slot defaults** — `$extensions` lives in `default.elements` or `variants[n].elements`, making it naturally per-variant
 - **Additive-only** — all new fields are optional; `ComponentExamples` is widened not narrowed → MINOR
@@ -274,9 +274,10 @@ SlotExample:
   kind: 'slot'              # discriminator
   slot: string              # name of the SlotProp this example fills
   title?: string
+  description?: string
   anatomy: Anatomy          # required — declares the content's element type map
-  elements?: Elements
-  layout?: Layout
+  elements: Elements        # required — sparse map; {} is valid for instance-only anatomy
+  layout: Layout            # required — tree ordering of elements
 
 # ComponentExample — discriminated union for Component.examples
 ComponentExample: InstanceExample | SlotExample
@@ -339,7 +340,7 @@ Element:
 SlotExample:
   type: object
   description: "Named content for a specific slot: anatomy, element bindings, and layout for the elements that fill the slot."
-  required: [kind, slot, anatomy]
+  required: [kind, slot, anatomy, elements, layout]
   properties:
     kind:
       type: string
@@ -348,6 +349,8 @@ SlotExample:
       type: string
       description: "The SlotProp name this example fills."
     title:
+      type: string
+    description:
       type: string
     anatomy:
       $ref: "#/definitions/Anatomy"
@@ -415,7 +418,7 @@ $extensions:
 ### Notes
 
 - `SlotExample.slot` names the `SlotProp` the example fills, enabling tooling to associate the example with the correct slot without inspecting anatomy.
-- `SlotExample.anatomy` is required — every slot example must declare the element type map for its content; `elements` and `layout` are optional because a minimal slot fragment may only need the type declarations.
+- `SlotExample.anatomy`, `elements`, and `layout` are all required — every slot example is a complete structural declaration. When the anatomy contains only instance elements with no element-level data to set, `elements` is `{}` (explicitly empty). A single-element composition requires `layout: [elementName]`.
 - The one-level-deep boundary is intentional: `ActionList`'s `SlotExample` for the `items` slot declares three `ActionListItem` instances but does not fill their `startVisual` or `endVisual` slots. `ActionListItem` owns those. This keeps each component's example count proportional to its own variation surface, not to every descendant's.
 - `FigmaElementExtension.defaultComposition` is valid only when `Element.children` is a `PropBinding` (slot-bound container). A container with `children: string[]` is a plain FrameNode and must never carry `defaultComposition`. The schema cannot enforce this constraint; it is a consumer validation concern.
 - `ElementExtensions` and `FigmaElementExtension` use `additionalProperties: true` — they are open extension objects by design, following the DTCG pattern.
@@ -426,7 +429,7 @@ $extensions:
 
 - **Symmetric**: Yes
 - **Parity check**:
-  - `SlotExample { kind: 'slot', slot, title?, anatomy, elements?, layout? }` ↔ `#/definitions/SlotExample`
+  - `SlotExample { kind: 'slot', slot, title?, description?, anatomy, elements, layout }` ↔ `#/definitions/SlotExample`; `required: [kind, slot, anatomy, elements, layout]`
   - `ComponentExample = InstanceExample | SlotExample` ↔ `#/definitions/ComponentExample` (`oneOf`)
   - `ComponentExamples` widened to `Record<string, ComponentExample>` ↔ `patternProperties` updated
   - `FigmaElementExtension { defaultComposition?: string }` ↔ `#/definitions/FigmaElementExtension`
