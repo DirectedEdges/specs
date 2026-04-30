@@ -5,6 +5,15 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - Unreleased
+
+### Added
+
+### Changed
+
+### Removed
+
+
 ## [0.12.2] - 2026-04-28
 
 Dependency update: picks up constraint-based layout positioning from specs-schema 0.19.0 and specs-from-figma 0.16.0. Also fixes glyph `instanceOf` leaking into variant output.
