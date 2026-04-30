@@ -41,7 +41,7 @@ ul.top-level > li > a.large[aria-current='page']:focus {
 }
 
 /* Prepend the Pro badge before label text in the Licensing nav link */
-a[href*="/overview/licensing"] {
+.sidebar-content a[href*="/overview/licensing"] {
 	display: flex;
 	flex-direction: row-reverse;
 	justify-content: flex-end;
