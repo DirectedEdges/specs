@@ -214,7 +214,7 @@ color:
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
 | `specs-from-figma` | Low — colour formatting targets the tail end of the processing pipeline where data is emitted, not the core transformation logic | Add a colour formatting step at output emission that reads `resolvedConfig.format.color` and converts `ColorValue` objects to the requested string notation (or passes through for `OBJECT`) |
-| `specs-cli` | Config surface expands; documentation must describe the new option | Add `format.color` to CLI config handling and help output; update documentation to describe available colour formats and their output |
+| `specs-cli` | Config surface expands; initialization must include the new field; documentation must describe the new option | Update config initialization to include `format.color`; add to CLI config handling and help output; update documentation to describe available colour formats and their output |
 | `specs-plugin` | Config UI expands; must also handle `OBJECT` format display in the plugin output viewer | Widen config shape to include `format.color`; add UI control adjacent to existing format options (output, keys, layout, tokens); handle rendering of `OBJECT` format in plugin output display |
 
 ---
