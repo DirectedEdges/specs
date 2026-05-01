@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - `ColorStyle` — replaced bare hex `string` arm with `ColorValue` object per ADR-009; completes the DTCG Color §4.1 alignment started when the `ColorValue` type was added
+- `GradientStop.color` — replaced bare hex `string` arm with `ColorValue` per ADR-009
+- `Shadow.color` — replaced bare hex `string` arm with `ColorValue` per ADR-009
 
 ### Removed
 

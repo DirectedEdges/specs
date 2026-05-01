@@ -32,8 +32,8 @@ const csGradient: ColorStyle = {
   type: 'LINEAR',
   angle: 90,
   stops: [
-    { position: 0, color: '#ff007f' },
-    { position: 1, color: '#0000ff' },
+    { position: 0, color: { colorSpace: 'srgb', components: [1, 0, 0.498], hex: '#ff007f' } },
+    { position: 1, color: { colorSpace: 'srgb', components: [0, 0, 1], hex: '#0000ff' } },
   ],
 } satisfies GradientValue;
 
@@ -77,8 +77,8 @@ const withFillColorGradient: Styles = {
     type: 'LINEAR',
     angle: 45,
     stops: [
-      { position: 0, color: '#ff007f' },
-      { position: 1, color: '#0000ff' },
+      { position: 0, color: { colorSpace: 'srgb', components: [1, 0, 0.498], hex: '#ff007f' } },
+      { position: 1, color: { colorSpace: 'srgb', components: [0, 0, 1], hex: '#0000ff' } },
     ],
   } satisfies GradientValue,
 };
@@ -102,7 +102,7 @@ const shadowRaw: Shadow = {
   offsetY: 4,
   blur: 8,
   spread: 0,
-  color: '#000000FF',
+  color: { colorSpace: 'srgb', components: [0, 0, 0], alpha: 1, hex: '#000000' },
 };
 
 const shadowVariable: Shadow = {
@@ -123,7 +123,7 @@ const _oldVarAsOffset: Shadow['offsetX'] = { id: 'var:1' };
 const _badVisible: Shadow = {
   // @ts-expect-error
   visible: 'yes',
-  offsetX: 0, offsetY: 0, blur: 0, spread: 0, color: '#000000FF',
+  offsetX: 0, offsetY: 0, blur: 0, spread: 0, color: { colorSpace: 'srgb', components: [0, 0, 0], hex: '#000000' },
 };
 
 // ─── Blur ──────────────────────────────────────────────────────────────────
