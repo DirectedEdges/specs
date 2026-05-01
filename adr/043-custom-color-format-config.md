@@ -213,9 +213,9 @@ color:
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | Must read `resolvedConfig.format.color` and format `ColorValue` objects into the requested string notation when not `OBJECT` | Implement colour formatting logic for each enum value |
-| `specs-cli` | Passes config to `specs-from-figma`; no CLI-specific logic needed | Recompile against updated types |
-| `specs-plugin` | Passes config to `specs-from-figma`; may expose a UI dropdown for the new option | Recompile; optionally add UI control |
+| `specs-from-figma` | Low — colour formatting targets the tail end of the processing pipeline where data is emitted, not the core transformation logic | Add a colour formatting step at output emission that reads `resolvedConfig.format.color` and converts `ColorValue` objects to the requested string notation (or passes through for `OBJECT`) |
+| `specs-cli` | Config surface expands; documentation must describe the new option | Add `format.color` to CLI config handling and help output; update documentation to describe available colour formats and their output |
+| `specs-plugin` | Config UI expands; must also handle `OBJECT` format display in the plugin output viewer | Widen config shape to include `format.color`; add UI control adjacent to existing format options (output, keys, layout, tokens); handle rendering of `OBJECT` format in plugin output display |
 
 ---
 
