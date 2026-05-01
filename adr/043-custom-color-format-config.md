@@ -221,9 +221,9 @@ color:
 
 ## Semver Decision
 
-**Version bump**: `0.20.0 → 0.21.0` (`MINOR`)
+**Version bump**: Included in `0.20.0` (no additional bump)
 
-**Justification**: All changes are additive optional fields on existing types. No existing field is removed, renamed, or has its type signature altered. This is a MINOR bump per constitution §Versioning: "MINOR for additive types or new optional fields."
+**Justification**: All changes are additive optional fields on existing types. No existing field is removed, renamed, or has its type signature altered. This qualifies as MINOR per constitution §Versioning, and `0.20.0` has not yet been published — this change ships as part of the current release.
 
 ---
 
