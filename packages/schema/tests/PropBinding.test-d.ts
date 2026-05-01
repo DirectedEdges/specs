@@ -69,9 +69,9 @@ const styleBound: Style = { $binding: '#/props/isVisible' };
 const _oldStyle: Style = { $ref: '#/props/isVisible' };
 
 // ─── ColorStyle does NOT accept PropBinding or ReferenceValue ───────────────
-// Color properties are not bindable; only string | TokenReference | GradientValue | null
+// Color properties are not bindable; only ColorValue | TokenReference | GradientValue | null
 
-const colorHex: ColorStyle = '#FF0000FF';
+const colorValue: ColorStyle = { colorSpace: 'srgb', components: [1, 0, 0] };
 const colorNull: ColorStyle = null;
 
 // PropBinding must NOT compile as ColorStyle

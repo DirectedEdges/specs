@@ -139,7 +139,7 @@ export interface ColorValue { /** Candidate */
  * Used for `backgroundColor`, `fillColor`, `textColor`, and `strokes` — the four properties
  * whose values are always colour-semantics and may carry gradient data.
  */
-export type ColorStyle = string | TokenReference | GradientValue | null;
+export type ColorStyle = ColorValue | TokenReference | GradientValue | null;
 
 /**
  * Inline typography properties grouped into a composite object.

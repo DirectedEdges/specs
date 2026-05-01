@@ -224,12 +224,11 @@
       "additionalProperties": false
     },
     "ColorStyleValue": {
-      "description": "Color style value. Covers inline resolved color (DTCG Color \u00a74.1 object), token reference, inline gradient, bare hex string, or null.",
+      "description": "Color style value. Covers inline resolved color (DTCG Color \u00a74.1 object), token reference, inline gradient, or null.",
       "oneOf": [
         { "$ref": "#/definitions/ColorValue", "description": "Inline resolved color value with colorSpace, components, optional alpha, and optional 6-digit hex fallback." },
         { "$ref": "#/definitions/TokenReference" },
         { "$ref": "#/definitions/GradientValue" },
-        { "type": "string", "description": "Bare hex string (e.g. '#666E74') or hex-with-opacity (e.g. '#0E1114, 50%') for untokenized colors" },
         { "type": "null" }
       ]
     },
