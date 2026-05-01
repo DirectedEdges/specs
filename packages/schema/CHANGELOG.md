@@ -13,16 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-### Changed
-
 - `ColorObject` — renamed from `ColorValue` for specificity; the type represents a DTCG Color §4.1 structured object, not a generic "color value"
 - `ColorStyle` — widened to `string | ColorObject | TokenReference | GradientValue | null`; the `string` arm supports formatted color strings when `Config.format.color` is non-`OBJECT`
 - `Shadow.color` — widened to `string | ColorObject | TokenReference`; same `string` arm rationale as `ColorStyle`
 - `GradientStop.color` — widened to `string | ColorObject | TokenReference`; same `string` arm rationale as `ColorStyle`
-
-### Fixed
-
-### Removed
 
 
 ## [0.19.0] - 2026-04-28

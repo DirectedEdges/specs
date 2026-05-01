@@ -2,7 +2,7 @@
 
 **Branch**: `043-custom-color-format-config`
 **Created**: 2026-05-01
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 
