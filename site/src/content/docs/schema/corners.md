@@ -45,4 +45,4 @@ cornerRadius:
 
 ## Further Reading
 
-- [ADR 010 — Sides and Corners Composite Types](/specs/../adr/010-sides-and-corners/) — replaces flat padding/stroke/corner fields with `Sides` and `Corners` composites using logical directions
+- [ADR 010 — Sides and Corners Composite Types](https://github.com/DirectedEdges/specs/blob/main/adr/010-sides-and-corners.md) — replaces flat padding/stroke/corner fields with `Sides` and `Corners` composites using logical directions

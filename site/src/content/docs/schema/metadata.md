@@ -19,4 +19,4 @@ Generation metadata attached to the spec. Present when the spec was produced by 
 
 ## Further Reading
 
-- [ADR 001 — Surface License State in Component Output](/specs/../adr/001-metadata.license/) — adds `generator.license` for downstream entitlement gating
+- [ADR 001 — Surface License State in Component Output](https://github.com/DirectedEdges/specs/blob/main/adr/001-metadata.license.md) — adds `generator.license` for downstream entitlement gating

@@ -51,5 +51,5 @@ Subcomponent detection is controlled by [`config.processing.subcomponents`](/spe
 
 ## Further Reading
 
-- [ADR 030 — Subcomponent $ref for instanceOf](/specs/../adr/030-subcomponent-refs/) — adds `SubcomponentRef` for linking anatomy elements to subcomponents
-- [ADR 031 — Subcomponent Search Scope Config](/specs/../adr/031-subcomponent-search-scope/) — replaces `subcomponentNamePattern` with structured `scope`, `match[]`, `exclude[]`
+- [ADR 030 — Subcomponent $ref for instanceOf](https://github.com/DirectedEdges/specs/blob/main/adr/030-subcomponent-refs.md) — adds `SubcomponentRef` for linking anatomy elements to subcomponents
+- [ADR 031 — Subcomponent Search Scope Config](https://github.com/DirectedEdges/specs/blob/main/adr/031-subcomponent-search-scope.md) — replaces `subcomponentNamePattern` with structured `scope`, `match[]`, `exclude[]`

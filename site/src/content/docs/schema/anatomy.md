@@ -57,5 +57,5 @@ Within variants, each element's runtime properties (children, styles, content) a
 
 ## Further Reading
 
-- [ADR 012 — Element Type References](/specs/../adr/012-element-type-references/) — widens `AnatomyElement.type` to support `$ref`-based external element type definitions
-- [ADR 030 — Subcomponent $ref for instanceOf](/specs/../adr/030-subcomponent-refs/) — adds `SubcomponentRef` to `instanceOf` on AnatomyElement and Element
+- [ADR 012 — Element Type References](https://github.com/DirectedEdges/specs/blob/main/adr/012-element-type-references.md) — widens `AnatomyElement.type` to support `$ref`-based external element type definitions
+- [ADR 030 — Subcomponent $ref for instanceOf](https://github.com/DirectedEdges/specs/blob/main/adr/030-subcomponent-refs.md) — adds `SubcomponentRef` to `instanceOf` on AnatomyElement and Element
