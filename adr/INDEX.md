@@ -4,6 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 043 | Custom Color Format Configuration | |
 | 042 | Composition as a First-Class Type | |
 | 041 | Layout Positioning — Constraint-Based Naming | |
 | 035 | Make Config Properties with Defaults Optional | |
