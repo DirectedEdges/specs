@@ -28,4 +28,4 @@ PropBindings can also appear as style values anywhere a [`Style`](/specs/schema/
 
 ## Further Reading
 
-- [ADR 008 — Introduce PropBinding to Replace ReferenceValue](/specs/../adr/008-prop-bindings/) — introduces `PropBinding` with `$binding` to avoid JSON Schema `$ref` key collision
+- [ADR 008 — Introduce PropBinding to Replace ReferenceValue](https://github.com/DirectedEdges/specs/blob/main/adr/008-prop-bindings.md) — introduces `PropBinding` with `$binding` to avoid JSON Schema `$ref` key collision

@@ -121,5 +121,5 @@ visible:
 
 ## Further Reading
 
-- [ADR 006 — Unified Token Reference Type](/specs/../adr/006-token-references/) — introduces the DTCG-aligned `TokenReference` type
-- [ADR 007 — Consolidate Token Format Configuration](/specs/../adr/007-token-reference-config/) — introduces the `format.tokens` config option controlling token output shape
+- [ADR 006 — Unified Token Reference Type](https://github.com/DirectedEdges/specs/blob/main/adr/006-token-references.md) — introduces the DTCG-aligned `TokenReference` type
+- [ADR 007 — Consolidate Token Format Configuration](https://github.com/DirectedEdges/specs/blob/main/adr/007-token-reference-config.md) — introduces the `format.tokens` config option controlling token output shape

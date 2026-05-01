@@ -62,20 +62,20 @@ Several spec style keys differ from the Figma node property they read from. Spec
 
 | Spec key | Figma property | ADR |
 |----------|---------------|-----|
-| `backgroundColor` | `fills` | [ADR 009](/specs/../adr/009-color-values/) |
-| `textColor` | `fills` | [ADR 009](/specs/../adr/009-color-values/) |
-| `fillColor` | `fills` | [ADR 013](/specs/../adr/013-icon-fillColor/) |
-| `wrap` | `layoutWrap` | [ADR 039](/specs/../adr/039-wrap-alignment/) |
-| `wrapAlignment` | `counterAxisAlignContent` | [ADR 039](/specs/../adr/039-wrap-alignment/) |
-| `mainAxisAlignment` | `primaryAxisAlignItems` | [ADR 040](/specs/../adr/040-layout-alignment/) |
-| `crossAxisAlignment` | `counterAxisAlignItems` | [ADR 040](/specs/../adr/040-layout-alignment/) |
-| `position` | `layoutPositioning` | [ADR 041](/specs/../adr/041-layout-positioning/) |
-| `top` | `y` (constraint MIN/STRETCH/SCALE) | [ADR 041](/specs/../adr/041-layout-positioning/) |
-| `bottom` | `y` (constraint MAX/STRETCH) | [ADR 041](/specs/../adr/041-layout-positioning/) |
-| `start` | `x` (constraint MIN/STRETCH/SCALE) | [ADR 041](/specs/../adr/041-layout-positioning/) |
-| `end` | `x` (constraint MAX/STRETCH) | [ADR 041](/specs/../adr/041-layout-positioning/) |
-| `centerHorizontalOffset` | `x` (constraint CENTER) | [ADR 041](/specs/../adr/041-layout-positioning/) |
-| `centerVerticalOffset` | `y` (constraint CENTER) | [ADR 041](/specs/../adr/041-layout-positioning/) |
+| `backgroundColor` | `fills` | [ADR 009](https://github.com/DirectedEdges/specs/blob/main/adr/009-color-values.md) |
+| `textColor` | `fills` | [ADR 009](https://github.com/DirectedEdges/specs/blob/main/adr/009-color-values.md) |
+| `fillColor` | `fills` | [ADR 013](https://github.com/DirectedEdges/specs/blob/main/adr/013-icon-fillColor.md) |
+| `wrap` | `layoutWrap` | [ADR 039](https://github.com/DirectedEdges/specs/blob/main/adr/039-wrap-alignment.md) |
+| `wrapAlignment` | `counterAxisAlignContent` | [ADR 039](https://github.com/DirectedEdges/specs/blob/main/adr/039-wrap-alignment.md) |
+| `mainAxisAlignment` | `primaryAxisAlignItems` | [ADR 040](https://github.com/DirectedEdges/specs/blob/main/adr/040-layout-alignment.md) |
+| `crossAxisAlignment` | `counterAxisAlignItems` | [ADR 040](https://github.com/DirectedEdges/specs/blob/main/adr/040-layout-alignment.md) |
+| `position` | `layoutPositioning` | [ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md) |
+| `top` | `y` (constraint MIN/STRETCH/SCALE) | [ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md) |
+| `bottom` | `y` (constraint MAX/STRETCH) | [ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md) |
+| `start` | `x` (constraint MIN/STRETCH/SCALE) | [ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md) |
+| `end` | `x` (constraint MAX/STRETCH) | [ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md) |
+| `centerHorizontalOffset` | `x` (constraint CENTER) | [ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md) |
+| `centerVerticalOffset` | `y` (constraint CENTER) | [ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md) |
 
 All other style keys — `width`, `height`, `opacity`, `padding`, `itemSpacing`, `cornerRadius`, `strokeWeight`, `rotation`, etc. — use the same name as the Figma node property.
 

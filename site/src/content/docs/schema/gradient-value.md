@@ -102,4 +102,4 @@ stops:
 
 ## Further Reading
 
-- [ADR 003 — Gradient Support for Color Style Properties](/specs/../adr/003-gradients/) — introduces the `GradientValue` discriminated union and `ColorStyle` type
+- [ADR 003 — Gradient Support for Color Style Properties](https://github.com/DirectedEdges/specs/blob/main/adr/003-gradients.md) — introduces the `GradientValue` discriminated union and `ColorStyle` type
