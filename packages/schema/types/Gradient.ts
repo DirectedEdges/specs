@@ -1,4 +1,4 @@
-import { TokenReference, ColorValue } from "./Styles.js";
+import { TokenReference, ColorObject } from "./Styles.js";
 
 /**
  * A single stop in a gradient definition.
@@ -6,8 +6,8 @@ import { TokenReference, ColorValue } from "./Styles.js";
 export interface GradientStop {
   /** Position along the gradient vector, normalised 0–1. */
   position: number;
-  /** Stop color as a DTCG Color §4.1 object or a token reference. */
-  color: ColorValue | TokenReference;
+  /** Stop color — DTCG Color object, token reference, or formatted string when `Config.format.color` is non-`OBJECT`. */
+  color: string | ColorObject | TokenReference;
 }
 
 /**

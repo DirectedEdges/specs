@@ -9,13 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `Config.format.color` — typed as `ColorFormat` (`'HEX' | 'HEXA' | 'RGB' | 'RGBA' | 'HSLA' | 'HSB' | 'OKLCH' | 'OKLAB' | 'OBJECT'`); controls color value output format; defaults to `HEX`
+
 ### Changed
 
-### Fixed
+### Changed
 
-- `ColorStyle` — replaced bare hex `string` arm with `ColorValue` object per ADR-009; completes the DTCG Color §4.1 alignment started when the `ColorValue` type was added
-- `GradientStop.color` — replaced bare hex `string` arm with `ColorValue` per ADR-009
-- `Shadow.color` — replaced bare hex `string` arm with `ColorValue` per ADR-009
+- `ColorObject` — renamed from `ColorValue` for specificity; the type represents a DTCG Color §4.1 structured object, not a generic "color value"
+- `ColorStyle` — widened to `string | ColorObject | TokenReference | GradientValue | null`; the `string` arm supports formatted color strings when `Config.format.color` is non-`OBJECT`
+- `Shadow.color` — widened to `string | ColorObject | TokenReference`; same `string` arm rationale as `ColorStyle`
+- `GradientStop.color` — widened to `string | ColorObject | TokenReference`; same `string` arm rationale as `ColorStyle`
+
+### Fixed
 
 ### Removed
 

@@ -3,7 +3,7 @@
  * These files are intentionally never executed — they are compiled with tsc
  * to assert that the type shape is correct.
  */
-import type { Config, ResolvedConfig } from '../types/index.js';
+import type { Config, ResolvedConfig, ColorFormat } from '../types/index.js';
 import { DEFAULT_CONFIG } from '../types/index.js';
 
 // ─── Helper: minimal valid processing + format + include ──────────────────────
@@ -33,6 +33,7 @@ const fullConfig: Config = {
     keys: 'SAFE',
     layout: 'LAYOUT',
     tokens: 'TOKEN',
+    color: 'HEX',
   },
   include: {
     invalidVariants: false,
@@ -167,7 +168,7 @@ const defaultTokensValue: typeof DEFAULT_CONFIG.format.tokens = 'TOKEN';
 
 const resolved: ResolvedConfig = {
   processing: { slotConstraints: false, variantDepth: 9999, details: 'LAYERED', inferNumberProps: false },
-  format: { output: 'JSON', keys: 'SAFE', layout: 'LAYOUT', tokens: 'TOKEN' },
+  format: { output: 'JSON', keys: 'SAFE', layout: 'LAYOUT', tokens: 'TOKEN', color: 'HEX' },
   include: { invalidVariants: false, invalidCombinations: true, emptyVariants: false },
 };
 
@@ -224,3 +225,32 @@ const _inferUndefined: Config['processing']['inferNumberProps'] = undefined;
 // ─── slotConstraints is optional ──────────────────────────────────────────────
 
 const _slotConstraintsUndefined: Config['processing']['slotConstraints'] = undefined;
+
+// ─── format.color is optional on Config ─────────────────────────────────────
+
+const _colorUndefined: Config['format']['color'] = undefined;
+
+// ─── All ColorFormat enum values are valid ──────────────────────────────────
+
+const _cfHex: ColorFormat = 'HEX';
+const _cfHexa: ColorFormat = 'HEXA';
+const _cfRgb: ColorFormat = 'RGB';
+const _cfRgba: ColorFormat = 'RGBA';
+const _cfHsla: ColorFormat = 'HSLA';
+const _cfHsb: ColorFormat = 'HSB';
+const _cfOklch: ColorFormat = 'OKLCH';
+const _cfOklab: ColorFormat = 'OKLAB';
+const _cfObject: ColorFormat = 'OBJECT';
+
+// @ts-expect-error — invalid ColorFormat value
+const _cfBad: ColorFormat = 'CMYK';
+
+// ─── format.color is required on ResolvedConfig ─────────────────────────────
+
+import type { ColorFormat as _CF } from '../types/index.js';
+type _CRequired = ResolvedConfig['format']['color'] extends _CF ? true : never;
+const _cRequired: _CRequired = true;
+
+// ─── DEFAULT_CONFIG.format.color should be 'HEX' ───────────────────────────
+
+const defaultColorValue: typeof DEFAULT_CONFIG.format.color = 'HEX';

@@ -119,7 +119,8 @@
         },
         "color": {
           "oneOf": [
-            { "$ref": "#/definitions/ColorValue", "description": "Stop color as a DTCG Color object" },
+            { "type": "string", "description": "Formatted color string when Config.format.color is non-OBJECT" },
+            { "$ref": "#/definitions/ColorObject", "description": "Stop color as a DTCG Color object" },
             { "$ref": "#/definitions/TokenReference", "description": "Stop color as a token reference" }
           ]
         }
@@ -183,7 +184,7 @@
         { "$ref": "#/definitions/AngularGradient" }
       ]
     },
-    "ColorValue": {
+    "ColorObject": {
       "type": "object",
       "description": "Inline resolved color value per DTCG Color Module \u00a74.1. `colorSpace` and `components` are required; `alpha` defaults to 1 (fully opaque) when omitted; `hex` is an optional 6-digit sRGB fallback (#RRGGBB \u2014 no alpha channel in hex). Consumers SHOULD prefer `colorSpace` + `components` for rendering.",
       "properties": {
@@ -224,9 +225,10 @@
       "additionalProperties": false
     },
     "ColorStyleValue": {
-      "description": "Color style value. Covers inline resolved color (DTCG Color \u00a74.1 object), token reference, inline gradient, or null.",
+      "description": "Color style value. Covers formatted color string, inline resolved color object, token reference, inline gradient, or null. The string arm is emitted when Config.format.color is set to a non-OBJECT format.",
       "oneOf": [
-        { "$ref": "#/definitions/ColorValue", "description": "Inline resolved color value with colorSpace, components, optional alpha, and optional 6-digit hex fallback." },
+        { "type": "string", "description": "Formatted color string (e.g. '#FF6600', 'rgba(255,102,0,1)') emitted when Config.format.color is non-OBJECT." },
+        { "$ref": "#/definitions/ColorObject", "description": "Inline resolved color value with colorSpace, components, optional alpha, and optional 6-digit hex fallback." },
         { "$ref": "#/definitions/TokenReference" },
         { "$ref": "#/definitions/GradientValue" },
         { "type": "null" }
@@ -411,7 +413,7 @@
         "offsetY": { "oneOf": [{ "type": "number" }, { "$ref": "#/definitions/TokenReference" }], "description": "Vertical offset in pixels (DTCG)" },
         "blur": { "oneOf": [{ "type": "number" }, { "$ref": "#/definitions/TokenReference" }], "description": "Blur radius in pixels" },
         "spread": { "oneOf": [{ "type": "number" }, { "$ref": "#/definitions/TokenReference" }], "description": "Spread radius in pixels" },
-        "color": { "oneOf": [{ "$ref": "#/definitions/ColorValue", "description": "DTCG Color object" }, { "$ref": "#/definitions/TokenReference" }], "description": "Shadow color" }
+        "color": { "oneOf": [{ "type": "string", "description": "Formatted color string when Config.format.color is non-OBJECT" }, { "$ref": "#/definitions/ColorObject", "description": "DTCG Color object" }, { "$ref": "#/definitions/TokenReference" }], "description": "Shadow color" }
       },
       "required": ["visible", "offsetX", "offsetY", "blur", "spread", "color"],
       "additionalProperties": false

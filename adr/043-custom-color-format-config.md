@@ -10,7 +10,7 @@
 
 ## Context
 
-ADR-009 replaced bare hex strings with the structured `ColorValue` object across all color-bearing properties (`backgroundColor`, `fillColor`, `textColor`, `strokes`, gradient stops, shadows). `ColorValue` carries `colorSpace`, `components`, `alpha`, and an optional `hex` fallback — a rich, DTCG-aligned representation.
+ADR-009 replaced bare hex strings with the structured `ColorObject` object across all color-bearing properties (`backgroundColor`, `fillColor`, `textColor`, `strokes`, gradient stops, shadows). `ColorObject` carries `colorSpace`, `components`, `alpha`, and an optional `hex` fallback — a rich, DTCG-aligned representation.
 
 However, many consumers prefer a **flat string** representation of color values rather than the full object. Common use cases include:
 
@@ -18,7 +18,7 @@ However, many consumers prefer a **flat string** representation of color values 
 - Documentation tools that display human-readable color values
 - Integration with tools that expect a specific color notation
 
-The previous version of Specs (v1) supported a format toggle between hex and HSLA. Specs v2 has not yet shipped a release with the `ColorValue` object — users have received hex strings by default to date. Changing the default away from hex would disrupt existing workflows for no user-requested reason.
+The previous version of Specs (v1) supported a format toggle between hex and HSLA. Specs v2 has not yet shipped a release with the `ColorObject` object — users have received hex strings by default to date. Changing the default away from hex would disrupt existing workflows for no user-requested reason.
 
 This ADR addresses two sub-decisions:
 
@@ -51,7 +51,7 @@ Add an optional `color` field to `Config.format` alongside the existing `output`
 - Consistent with how `format.tokens` controls token serialization shape
 
 **Cons / Trade-offs**:
-- When a non-`OBJECT` format is selected, the output type for colour positions changes from `ColorValue` to `string` — consumers must check `Config.format.color` to know the runtime shape
+- When a non-`OBJECT` format is selected, the output type for colour positions changes from `ColorObject` to `string` — consumers must check `Config.format.color` to know the runtime shape
 
 ---
 
@@ -101,17 +101,17 @@ These provide perceptually uniform colour representations gaining adoption in mo
 
 | Value | Output example | Notes |
 |-------|---------------|-------|
-| `OBJECT` | `{ colorSpace: "srgb", components: [1, 0.4, 0], alpha: 1, hex: "#FF6600" }` | Full `ColorValue` object per DTCG Color §4.1. Preserves colour space, component values, and alpha with no lossy conversion. Opt-in for consumers that need structured data |
+| `OBJECT` | `{ colorSpace: "srgb", components: [1, 0.4, 0], alpha: 1, hex: "#FF6600" }` | Full `ColorObject` object per DTCG Color §4.1. Preserves colour space, component values, and alpha with no lossy conversion. Opt-in for consumers that need structured data |
 
 ### Formats deferred
 
-- **CSS `color()` function** — `color(display-p3 0.5 0.2 0.8)` would be the only string format that preserves the exact `colorSpace` from the `ColorValue` object, covering wide-gamut spaces like Display P3 and Rec. 2020. Deferred because OKLCH/OKLAB already address the "modern CSS" need, and `OBJECT` preserves full colour-space fidelity for consumers that require it. Can be added as a MINOR enum extension if wide-gamut string output demand arises.
+- **CSS `color()` function** — `color(display-p3 0.5 0.2 0.8)` would be the only string format that preserves the exact `colorSpace` from the `ColorObject` object, covering wide-gamut spaces like Display P3 and Rec. 2020. Deferred because OKLCH/OKLAB already address the "modern CSS" need, and `OBJECT` preserves full colour-space fidelity for consumers that require it. Can be added as a MINOR enum extension if wide-gamut string output demand arises.
 
 ### Default rationale
 
 `HEX` is the default because:
 
-- **Historical continuity**: Specs v1 output hex by default; v2 has not yet shipped a release with `ColorValue` objects. Hex is what users expect.
+- **Historical continuity**: Specs v1 output hex by default; v2 has not yet shipped a release with `ColorObject` objects. Hex is what users expect.
 - **Human readability**: `#FF6600` is universally recognised and compact. It appears in every design tool, every browser DevTools pane, and most design system documentation.
 - **Lowest friction**: New users can start without configuring colour format and get usable output immediately.
 - **`OBJECT` is opt-in**: Consumers that need structured colour data (colour-space-aware pipelines, DTCG tooling) can explicitly set `format.color: 'OBJECT'`. This is a power-user feature, not a default.
@@ -129,6 +129,9 @@ These provide perceptually uniform colour representations gaining adoption in mo
 | `Config.ts` | Add required `color: ColorFormat` field to `ResolvedConfig.format` | MINOR |
 | `Config.ts` | Add `color: 'HEX'` to `DEFAULT_CONFIG.format` | MINOR |
 | `index.ts` | Export `ColorFormat` type | MINOR |
+| `Styles.ts` | Widen `ColorStyle` to include `string` arm | MINOR |
+| `Effects.ts` | Widen `Shadow.color` to include `string` arm | MINOR |
+| `Gradient.ts` | Widen `GradientStop.color` to include `string` arm | MINOR |
 
 **New type** (`types/Config.ts`):
 ```yaml
@@ -172,6 +175,7 @@ format:
 | File | Change | Bump |
 |------|--------|------|
 | `component.schema.json` | Add `color` property to `Config.format` | MINOR |
+| `styles.schema.json` | Add `string` arm to `ColorStyleValue`, `Shadow.color`, and `GradientStop.color` | MINOR |
 
 **New property** (`schema/component.schema.json` — under `#/definitions/Config/properties/format/properties`):
 ```yaml
@@ -190,14 +194,14 @@ color:
   default: HEX
   description: >-
     Color value output format. HEX (default) emits a 6-digit hex string.
-    OBJECT emits the full ColorValue object (colorSpace, components, alpha, hex).
+    OBJECT emits the full ColorObject object (colorSpace, components, alpha, hex).
     All other values emit a formatted color string in the named notation.
 ```
 
 ### Notes
 
 - The `ColorFormat` named type follows the pattern established by other config enums. While most config values are inline literal unions, a named export is justified here because downstream consumers need to reference this type when implementing format-specific logic.
-- When `format.color` is not `OBJECT`, every property currently typed as `ColorValue` in the output will instead contain a `string`. This affects `backgroundColor`, `fillColor`, `textColor`, `strokes`, gradient stop `color`, and shadow `color`. The type/schema package does **not** change these property types — the runtime formatting is a `specs-from-figma` concern. The schema already accommodates string values in `ColorStyleValue` and related definitions.
+- When `format.color` is not `OBJECT`, every property currently typed as `ColorObject` in the output will instead contain a `string`. This affects `backgroundColor`, `fillColor`, `textColor`, `strokes`, gradient stop `color`, and shadow `color`. To ensure the schema validates both object and string colour values, `string` is added as an arm to `ColorStyle`, `Shadow.color`, `GradientStop.color`, and their schema counterparts (`ColorStyleValue`, `Shadow/properties/color`, `GradientStop/properties/color`).
 - The Figma UI labels its `rgba()` output as "CSS". This ADR uses `RGBA` instead because: (a) `rgba()` is legacy CSS Color Level 3 syntax — calling it "CSS" is misleading now that CSS Color Level 4 exists; (b) `RGBA` precisely describes the output function.
 
 ---
@@ -213,7 +217,7 @@ color:
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | Low — colour formatting targets the tail end of the processing pipeline where data is emitted, not the core transformation logic | Add a colour formatting step at output emission that reads `resolvedConfig.format.color` and converts `ColorValue` objects to the requested string notation (or passes through for `OBJECT`) |
+| `specs-from-figma` | Low — colour formatting targets the tail end of the processing pipeline where data is emitted, not the core transformation logic | Add a colour formatting step at output emission that reads `resolvedConfig.format.color` and converts `ColorObject` objects to the requested string notation (or passes through for `OBJECT`) |
 | `specs-cli` | Config surface expands; initialization must include the new field; documentation must describe the new option | Update config initialization to include `format.color`; add to CLI config handling and help output; update documentation to describe available colour formats and their output |
 | `specs-plugin` | Config UI expands; must also handle `OBJECT` format display in the plugin output viewer | Widen config shape to include `format.color`; add UI control adjacent to existing format options (output, keys, layout, tokens); handle rendering of `OBJECT` format in plugin output display |
 

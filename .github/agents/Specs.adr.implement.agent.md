@@ -65,11 +65,12 @@ You **MUST** consider the user input before proceeding (if not empty).
    - **All gates have now passed. Steps 10–12 are REQUIRED before reporting completion. Do not skip to step 13.**
 
 10. **Update docs**:
-    - Read `docs/schema/` files that correspond to the changed types (e.g., `docs/schema/styles.md` for `Styles` changes, `docs/schema/typography.md` for `Typography` changes).
-    - For each property added, removed, or renamed in the ADR: update the Properties table, the Values table, and the "Relating properties to values" section to reflect the new state.
+    - Docs live in `site/src/content/docs/`. Schema type pages are under `site/src/content/docs/schema/` (e.g., `schema/styles.md` for `Styles`, `schema/config.md` for `Config`). Individual config option pages are under `site/src/content/docs/config/` (e.g., `config/tokens.md`, `config/keys.md`).
+    - For each property added, removed, or renamed in the ADR: update the relevant doc page's Properties table, Values table, and "Relating properties to values" section to reflect the new state.
     - For new dedicated types (e.g., `LayoutMode`, `WrapAlignment`, `ItemSpacing`): add a row to the Values table describing the type and its valid values.
+    - For new config options: check if an individual config option page should be created under `config/` following the pattern of existing pages (e.g., `config/tokens.md`, `config/keys.md`).
     - Do not create new doc pages for types that are only used as field values on an existing documented type — document them inline in the parent type's page.
-    - If no `docs/schema/` file exists for the changed type, skip this step.
+    - If no doc file exists for the changed type, skip this step.
 
 11. **Update CHANGELOG.md**:
     - The release branch scaffolds an `## [X.Y.Z] - Unreleased` heading with empty sections. Add entries into the existing scaffold — do **not** replace `Unreleased` with a date (the date is set at release time). If no scaffold heading exists, prepend one using `Unreleased` as the date.
