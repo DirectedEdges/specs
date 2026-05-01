@@ -16,56 +16,42 @@ However, many consumers prefer a **flat string** representation of color values 
 
 - Code generation pipelines that need `#FF6600` or `hsla(24, 100%, 50%, 1)` directly
 - Documentation tools that display human-readable color values
-- Legacy system integration that expects a specific color notation
+- Integration with tools that expect a specific color notation
 
-The previous version of Specs (v1) supported a format toggle between hex and HSLA. Figma's own UI exposes a broader set of color formats:
+The previous version of Specs (v1) supported a format toggle between hex and HSLA. Specs v2 has not yet shipped a release with the `ColorValue` object — users have received hex strings by default to date. Changing the default away from hex would disrupt existing workflows for no user-requested reason.
 
-- **HEX** — `#RRGGBB` (6-digit, no alpha)
-- **HEXA** — `#RRGGBBAA` (8-digit, with alpha)
-- **RGB** — `rgb(R, G, B)` functional notation
-- **HSLA** — `hsla(H, S%, L%, A)` functional notation
-- **HSB** — `hsb(H, S%, B%)` (Figma's native model, also known as HSV)
-- **CSS** — CSS Color Level 4 `color()` functional notation (e.g., `color(display-p3 0.5 0.2 0.8)`)
+This ADR addresses two sub-decisions:
 
-The `Config.format` section already houses output-shaping options (`output`, `keys`, `layout`, `tokens`). A color format option fits naturally alongside these.
+1. **Where does the setting live?** — placement within `Config`
+2. **Which color formats are supported?** — the enum values and default
 
 ---
 
 ## Decision Drivers
 
-- **Additive change**: Must be a new optional field to avoid a MAJOR bump. Absence preserves existing `ColorValue` object behaviour.
-- **Type ↔ schema symmetry**: The new field must appear in both `Config` / `ResolvedConfig` types and `component.schema.json`.
-- **No runtime logic**: The type/schema package defines the enum values only. Formatting logic belongs in `specs-from-figma`.
-- **Enum casing convention**: String literal unions in config use `SCREAMING_CASE` per the constitution.
-- **Figma parity**: The enum values should cover all formats available in Figma's colour picker UI.
-- **Default preserves current behaviour**: When the config field is absent or set to the default, output must remain unchanged (structured `ColorValue` objects).
+- **Additive change**: Must be a new optional field to avoid a MAJOR bump
+- **Type ↔ schema symmetry**: The new field must appear in both `Config` / `ResolvedConfig` types and `component.schema.json`
+- **No runtime logic**: The type/schema package defines the enum values only. Formatting logic belongs in `specs-from-figma`
+- **Enum casing convention**: String literal unions in config use `SCREAMING_CASE` per the constitution
+- **Figma parity**: The enum values should cover all formats available in Figma's colour picker UI
+- **Least surprise default**: The default should match what users have historically received (hex strings), not introduce a new output shape
+- **Extensibility**: The enum should accommodate future colour formats as MINOR additions
 
 ---
 
 ## Options Considered
 
-### Option A: Add `format.color` with `OBJECT` default *(Selected)*
+### Option A: Add `format.color` under existing `format` section *(Selected)*
 
-Add an optional `color` field to `Config.format` with a string enum covering all Figma formats plus the current structured object as the default.
-
-Enum values: `'OBJECT' | 'HEX' | 'HEXA' | 'RGB' | 'HSLA' | 'HSB' | 'CSS'`
-
-- `OBJECT` — current `ColorValue` object output (default, preserves backwards compatibility)
-- `HEX` — 6-digit hex string `#RRGGBB`
-- `HEXA` — 8-digit hex string `#RRGGBBAA`
-- `RGB` — `rgb(R, G, B)` or `rgba(R, G, B, A)` functional notation
-- `HSLA` — `hsla(H, S%, L%, A)` functional notation
-- `HSB` — `hsb(H, S%, B%)` notation (Figma's native colour model)
-- `CSS` — CSS Color Level 4 `color()` notation
+Add an optional `color` field to `Config.format` alongside the existing `output`, `keys`, `layout`, and `tokens` fields.
 
 **Pros**:
-- Fits naturally into the existing `format` section alongside `output`, `keys`, `layout`, `tokens`
-- `OBJECT` default preserves exact current behaviour — no breaking change
-- Covers all Figma UI formats plus the structured object
-- Follows established pattern: enum string union, optional with default
+- All output-shaping options are co-located under `format`
+- Follows the established pattern: string enum, optional with default, `SCREAMING_CASE` values
+- Consistent with how `format.tokens` controls token serialization shape
 
 **Cons / Trade-offs**:
-- When a non-`OBJECT` format is selected, the output type for color positions changes from `ColorValue` to `string`, which means the TypeScript type for color-bearing properties becomes less precise at compile time (consumers must check `Config.format.color` to know the runtime shape)
+- When a non-`OBJECT` format is selected, the output type for colour positions changes from `ColorValue` to `string` — consumers must check `Config.format.color` to know the runtime shape
 
 ---
 
@@ -85,21 +71,69 @@ A boolean to opt into string output plus a separate notation selector.
 
 ---
 
+## Supported Formats
+
+The enum values fall into three tiers based on origin and priority:
+
+### Tier 1 — Figma UI formats
+
+These match the colour format options in Figma's colour picker, ensuring parity with the design tool:
+
+| Value | Output example | Notes |
+|-------|---------------|-------|
+| `HEX` | `#FF6600` | 6-digit sRGB, no alpha. **Default** — matches v1 behaviour and maximises human readability |
+| `HEXA` | `#FF6600FF` | 8-digit sRGB with alpha channel |
+| `RGB` | `rgb(255, 102, 0)` | CSS `rgb()` functional notation (0–255 integer components) |
+| `RGBA` | `rgba(255, 102, 0, 1)` | CSS `rgba()` functional notation with alpha. This is what Figma labels "CSS" in its UI — despite the name, it uses legacy CSS Color Level 3 `rgba()` syntax, not the Level 4 `color()` function |
+| `HSLA` | `hsla(24, 100%, 50%, 1)` | CSS `hsla()` functional notation |
+| `HSB` | `hsb(24, 100%, 100%)` | Figma's native colour model (also known as HSV). Not a CSS function — consumers targeting CSS should use `HSLA` instead |
+
+### Tier 2 — Modern CSS (CSS Color Level 4)
+
+These provide perceptually uniform colour representations gaining adoption in modern CSS tooling:
+
+| Value | Output example | Notes |
+|-------|---------------|-------|
+| `OKLCH` | `oklch(0.7 0.15 50 / 1)` | Perceptually uniform cylindrical model. Increasingly popular for design systems because lightness, chroma, and hue are independently adjustable without shifting perceived colour |
+| `OKLAB` | `oklab(0.7 0.1 0.1 / 1)` | Perceptually uniform rectangular model. Sibling to OKLCH; better for programmatic colour manipulation (interpolation, mixing) |
+
+### Tier 3 — Structured object
+
+| Value | Output example | Notes |
+|-------|---------------|-------|
+| `OBJECT` | `{ colorSpace: "srgb", components: [1, 0.4, 0], alpha: 1, hex: "#FF6600" }` | Full `ColorValue` object per DTCG Color §4.1. Preserves colour space, component values, and alpha with no lossy conversion. Opt-in for consumers that need structured data |
+
+### Formats deferred
+
+- **CSS `color()` function** — `color(display-p3 0.5 0.2 0.8)` would be the only string format that preserves the exact `colorSpace` from the `ColorValue` object, covering wide-gamut spaces like Display P3 and Rec. 2020. Deferred because OKLCH/OKLAB already address the "modern CSS" need, and `OBJECT` preserves full colour-space fidelity for consumers that require it. Can be added as a MINOR enum extension if wide-gamut string output demand arises.
+
+### Default rationale
+
+`HEX` is the default because:
+
+- **Historical continuity**: Specs v1 output hex by default; v2 has not yet shipped a release with `ColorValue` objects. Hex is what users expect.
+- **Human readability**: `#FF6600` is universally recognised and compact. It appears in every design tool, every browser DevTools pane, and most design system documentation.
+- **Lowest friction**: New users can start without configuring colour format and get usable output immediately.
+- **`OBJECT` is opt-in**: Consumers that need structured colour data (colour-space-aware pipelines, DTCG tooling) can explicitly set `format.color: 'OBJECT'`. This is a power-user feature, not a default.
+
+---
+
 ## Decision
 
 ### Type changes (`types/`)
 
 | File | Change | Bump |
 |------|--------|------|
-| `Config.ts` | Add optional `color` field to `Config.format` | MINOR |
-| `Config.ts` | Add required `color` field to `ResolvedConfig.format` | MINOR |
-| `Config.ts` | Add `color: 'OBJECT'` to `DEFAULT_CONFIG.format` | MINOR |
+| `Config.ts` | Add `ColorFormat` named type | MINOR |
+| `Config.ts` | Add optional `color?: ColorFormat` field to `Config.format` | MINOR |
+| `Config.ts` | Add required `color: ColorFormat` field to `ResolvedConfig.format` | MINOR |
+| `Config.ts` | Add `color: 'HEX'` to `DEFAULT_CONFIG.format` | MINOR |
 | `index.ts` | Export `ColorFormat` type | MINOR |
 
 **New type** (`types/Config.ts`):
 ```yaml
 # New named type
-ColorFormat: "'OBJECT' | 'HEX' | 'HEXA' | 'RGB' | 'HSLA' | 'HSB' | 'CSS'"
+ColorFormat: "'HEX' | 'HEXA' | 'RGB' | 'RGBA' | 'HSLA' | 'HSB' | 'OKLCH' | 'OKLAB' | 'OBJECT'"
 
 # Config.format — before
 format:
@@ -130,7 +164,7 @@ format:
   keys: 'SAFE'
   layout: 'LAYOUT'
   tokens: 'TOKEN'
-  color: 'OBJECT'        # preserves current behaviour
+  color: 'HEX'          # matches historical v1 behaviour
 ```
 
 ### Schema changes (`schema/`)
@@ -144,24 +178,27 @@ format:
 color:
   type: string
   enum:
-    - OBJECT
     - HEX
     - HEXA
     - RGB
+    - RGBA
     - HSLA
     - HSB
-    - CSS
-  default: OBJECT
+    - OKLCH
+    - OKLAB
+    - OBJECT
+  default: HEX
   description: >-
-    Color value output format. OBJECT emits the full ColorValue object
-    (colorSpace, components, alpha, hex). All other values emit a
-    formatted color string. Defaults to OBJECT.
+    Color value output format. HEX (default) emits a 6-digit hex string.
+    OBJECT emits the full ColorValue object (colorSpace, components, alpha, hex).
+    All other values emit a formatted color string in the named notation.
 ```
 
 ### Notes
 
 - The `ColorFormat` named type follows the pattern established by other config enums. While most config values are inline literal unions, a named export is justified here because downstream consumers need to reference this type when implementing format-specific logic.
 - When `format.color` is not `OBJECT`, every property currently typed as `ColorValue` in the output will instead contain a `string`. This affects `backgroundColor`, `fillColor`, `textColor`, `strokes`, gradient stop `color`, and shadow `color`. The type/schema package does **not** change these property types — the runtime formatting is a `specs-from-figma` concern. The schema already accommodates string values in `ColorStyleValue` and related definitions.
+- The Figma UI labels its `rgba()` output as "CSS". This ADR uses `RGBA` instead because: (a) `rgba()` is legacy CSS Color Level 3 syntax — calling it "CSS" is misleading now that CSS Color Level 4 exists; (b) `RGBA` precisely describes the output function.
 
 ---
 
@@ -192,8 +229,9 @@ color:
 
 ## Consequences
 
-- Consumers can configure `format.color` to receive flat colour strings instead of `ColorValue` objects, matching their downstream toolchain's expected notation
-- The `OBJECT` default preserves full backwards compatibility — existing integrations are unaffected
-- `specs-from-figma` gains responsibility for colour space conversion logic (e.g., sRGB → HSL) when non-`OBJECT` formats are selected
-- All Figma-native colour formats are supported, achieving parity with the Figma UI colour picker
-- Future colour formats can be added to the enum as a MINOR change
+- Consumers can configure `format.color` to receive colour values in their preferred notation, matching their downstream toolchain's expectations
+- `HEX` default preserves historical Specs v1 behaviour — existing users see no change in output
+- Consumers that need structured DTCG-aligned colour data explicitly opt in via `OBJECT`
+- `specs-from-figma` gains responsibility for colour space conversion logic (e.g., sRGB → HSL, sRGB → OKLCH) when non-`OBJECT` formats are selected
+- All Figma-native colour formats are supported, plus modern CSS perceptually uniform models (OKLCH, OKLAB)
+- Future colour formats (e.g., CSS `color()` function for wide-gamut output) can be added to the enum as a MINOR change
