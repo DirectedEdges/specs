@@ -5,7 +5,7 @@
  */
 import type {
   Styles, Shadow, Blur, Effects, Typography,
-  TokenReference, ColorStyle, ColorValue, GradientStop, GradientCenter, LinearGradient, RadialGradient,
+  TokenReference, ColorStyle, ColorObject, GradientStop, GradientCenter, LinearGradient, RadialGradient,
   AngularGradient, GradientValue, AspectRatioValue, AspectRatioStyle,
   Sides, Corners, ItemSpacing, LayoutMode, WrapAlignment,
   MainAxisAlignment, CrossAxisAlignment, Position, PositionOffset,
@@ -13,15 +13,15 @@ import type {
 
 // ─── ColorStyle ────────────────────────────────────────────────────────────
 
-// ColorValue arm (DTCG Color §4.1 object)
-const csColorValue: ColorStyle = {
+// ColorObject arm (DTCG Color §4.1 object)
+const csColorObject: ColorStyle = {
   colorSpace: 'srgb',
   components: [1, 0, 0.498],
   alpha: 1,
   hex: '#ff007f',
-} satisfies ColorValue;
+} satisfies ColorObject;
 
-// @ts-expect-error: bare hex string is no longer valid for ColorStyle (ADR-009)
+// String arm is valid — covers formatted color strings (hex, rgba, hsla, etc.) when Config.format.color is non-OBJECT
 const _csHexString: ColorStyle = '#ff007f';
 
 // TokenReference arm
@@ -63,7 +63,7 @@ const withNullBackground: Styles = {
 
 // ─── Styles.fillColor (glyph fill) ───────────────────────────────────────
 
-// ColorValue arm
+// ColorObject arm
 const withFillColor: Styles = { fillColor: { colorSpace: 'srgb', components: [1, 0, 0.498], hex: '#ff007f' } };
 
 // TokenReference arm
@@ -89,9 +89,8 @@ const withNullFillColor: Styles = { fillColor: null };
 // fillColor is optional — omitting it is valid
 const withNoFillColor: Styles = {};
 
-// @ts-expect-error: bare hex strings are no longer valid for color fields (ADR-009)
+// String arms are valid — covers formatted color strings when Config.format.color is non-OBJECT
 const _withBgHexString: Styles = { backgroundColor: '#ff007f' };
-// @ts-expect-error: bare hex strings are no longer valid for color fields (ADR-009)
 const _withTextColorHexString: Styles = { textColor: '#000000' };
 
 // ─── Shadow ────────────────────────────────────────────────────────────────
