@@ -216,6 +216,34 @@ sources:
       expect(config.config.format.tokens).toBe('TOKEN'); // Default
     });
 
+    it('should validate format.color and use default for invalid values', () => {
+      const configPath = path.join(testDir, 'specs.config.yaml');
+      fs.writeFileSync(configPath, 'config:\n  format:\n    color: INVALID');
+
+      const config = configLoader.load();
+      expect(config.config.format.color).toBe('HEX'); // Default
+    });
+
+    it('should accept all valid format.color values', () => {
+      const validValues = ['HEX', 'HEXA', 'RGB', 'RGBA', 'HSLA', 'HSB', 'OKLCH', 'OKLAB', 'OBJECT'];
+
+      validValues.forEach(value => {
+        const configPath = path.join(testDir, 'specs.config.yaml');
+        fs.writeFileSync(configPath, `config:\n  format:\n    color: ${value}`);
+
+        const config = configLoader.load();
+        expect(config.config.format.color).toBe(value);
+      });
+    });
+
+    it('should normalize lowercase format.color to uppercase', () => {
+      const configPath = path.join(testDir, 'specs.config.yaml');
+      fs.writeFileSync(configPath, 'config:\n  format:\n    color: oklch');
+
+      const config = configLoader.load();
+      expect(config.config.format.color).toBe('OKLCH');
+    });
+
     it('should preserve valid glyphNamePattern string', () => {
       const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, 'config:\n  processing:\n    glyphNamePattern: "DS Icon Glyph /"');

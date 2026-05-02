@@ -9,7 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `config.format.color` — validates and normalizes the new `ColorFormat` option (`HEX`, `HEXA`, `RGB`, `RGBA`, `HSLA`, `HSB`, `OKLCH`, `OKLAB`, `OBJECT`); defaults to `HEX`. Config template updated with inline docs. (ADR 043)
+
 ### Changed
+
+### Fixed
+
+- Config template URLs now point to the doc site (`directededges.github.io/specs/config/...`) instead of 404ing GitHub raw paths (#43)
 
 ### Removed
 
