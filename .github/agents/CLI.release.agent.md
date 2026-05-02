@@ -92,7 +92,7 @@ All commands in this agent run from the **CLI package directory**: `packages/cli
       ```bash
       cd packages/cli && npm publish --access public --userconfig "$WORKSPACE_ROOT/.npmrc.public"
       ```
-      where `$WORKSPACE_ROOT` is the anova-local-workspace directory (typically `../anova-local-workspace` relative to this repo).
+      where `$WORKSPACE_ROOT` is the specs-local-workspace directory (typically `../specs-local-workspace` relative to this repo).
       If publish fails with "previously published version", report and ask the user whether to bump the patch version or skip.
 
 10. **Finalize gate**: Use `AskUserQuestion` with Yes/No options: **"Ready to push, create PR, and GitHub Release for @directededges/specs-cli v[version]?"**
