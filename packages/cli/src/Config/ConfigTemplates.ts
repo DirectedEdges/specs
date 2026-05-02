@@ -15,7 +15,7 @@ export function generateConfigTemplate(): string {
   return `# Specs CLI Configuration
 #
 # This file configures how Specs fetches and processes Figma component data.
-# See: https://github.com/DirectedEdges/specs/blob/main/docs/cli/configuration.md
+# See: https://directededges.github.io/specs/config/
 
 # ─── 'fetch'ed Sources (CLI only) ─────────────────────────────────────────────
 # Where Figma data is fetched from and stored locally.
@@ -50,7 +50,7 @@ output:
   useSubfolders: false
 
 # ─── Configuration options (same as the Figma plugin) ──────────────────────────────
-# See: https://github.com/DirectedEdges/specs/blob/main/docs/cli/configuration.md
+# See: https://directededges.github.io/specs/config/
 
 config:
 
@@ -59,22 +59,26 @@ config:
     output: JSON
 
     # Key name transformation: SAFE, CAMEL, SNAKE, KEBAB, PASCAL, TRAIN
-    # See: https://github.com/DirectedEdges/specs/blob/main/docs/guides/key-formatting.md
+    # See: https://directededges.github.io/specs/config/keys/
     keys: SAFE
 
     # Layout representation: LAYOUT, PARENT_CHILDREN, or BOTH
-    # See: https://github.com/DirectedEdges/specs/blob/main/docs/guides/data-layout.md
+    # See: https://directededges.github.io/specs/config/layout/
     layout: LAYOUT
 
     # Token reference format: TOKEN, TOKEN_NAME, TOKEN_FIGMA_EXTENSIONS, FIGMA_NAME, or CUSTOM
-    # See: https://github.com/DirectedEdges/specs/blob/main/docs/guides/token-format.md
+    # See: https://directededges.github.io/specs/config/tokens/
     # Requires a license key to resolve token references in output.
     tokens: TOKEN
+
+    # Color value format: HEX, HEXA, RGB, RGBA, HSLA, HSB, OKLCH, OKLAB, or OBJECT
+    # See: https://directededges.github.io/specs/config/color/
+    color: HEX
 
   processing:
     # Subcomponent discovery configuration.
     # Presence of this block enables subcomponent detection; remove to disable.
-    # See: https://github.com/DirectedEdges/specs/blob/main/docs/guides/subcomponent-scoping.md
+    # See: https://directededges.github.io/specs/config/subcomponents/
     subcomponents:
       # Where to search: NESTED (component anatomy only) or PAGE (also search Figma page)
       # scope: NESTED
@@ -100,11 +104,11 @@ config:
     slotConstraints: false
 
     # Maximum variant property depth to process: 1, 2, 3, or 9999 (unlimited)
-    # See: https://github.com/DirectedEdges/specs/blob/main/docs/guides/variant-depth.md
+    # See: https://directededges.github.io/specs/config/variant-depth/
     variantDepth: 9999
 
     # Detail level for variant data: FULL or LAYERED
-    # See: https://github.com/DirectedEdges/specs/blob/main/docs/cli/configuration.md#details
+    # See: https://directededges.github.io/specs/config/details/
     details: LAYERED
 
     # Infer number props: when true, TEXT code-only props whose values parse as

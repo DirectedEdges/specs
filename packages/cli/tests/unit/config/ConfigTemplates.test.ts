@@ -25,13 +25,13 @@ describe('ConfigTemplates', () => {
       const template = generateConfigTemplate();
       expect(template).toContain('#');
       expect(template).toContain('Specs CLI Configuration');
-      expect(template).toContain('docs/cli/configuration.md');
+      expect(template).toContain('directededges.github.io/specs/config/');
     });
 
     it('should include doc URL references', () => {
       const template = generateConfigTemplate();
-      expect(template).toContain('docs/cli/configuration.md');
-      expect(template).toContain('github.com/DirectedEdges/specs');
+      expect(template).toContain('directededges.github.io/specs/config/');
+      expect(template).toContain('directededges.github.io/specs/');
     });
 
     it('should include Figma sources section', () => {
