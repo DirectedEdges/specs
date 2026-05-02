@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **EISDIR when outputDirectory is a directory in single-file mode (#34)** — When `outputDirectory` pointed to an existing directory (e.g. from a prior `--split-components` run), `specs generate` without split flags crashed with EISDIR. Now appends `library.{format}` as the default filename.
 - Config template URLs now point to the doc site (`directededges.github.io/specs/config/...`) instead of 404ing GitHub raw paths (#43)
 
 ### Removed
