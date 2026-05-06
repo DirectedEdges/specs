@@ -5,7 +5,9 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.20.0] - Unreleased
+## [0.20.0] - 2026-05-06
+
+Adds configurable color output format (`Config.format.color`) supporting nine format options from hex strings to structured DTCG Color objects. Renames `ColorValue` to `ColorObject` for specificity and widens `ColorStyle`, `Shadow.color`, and `GradientStop.color` to accept formatted color strings alongside structured objects and token references.
 
 ### Added
 
