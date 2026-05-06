@@ -1,11 +1,11 @@
-import { TokenReference } from "./Styles.js";
+import { TokenReference, ColorObject } from "./Styles.js";
 
 /**
  * A single evaluated shadow (drop or inner).
  * `inset` distinguishes inner shadows (true) from drop shadows (absent/false).
  * Field names `offsetX`/`offsetY` align with the DTCG Format Module shadow token.
  * `offsetX`, `offsetY`, `blur`, `spread` may be a raw number or a Figma variable reference.
- * `color` is an 8-digit hex string (`#RRGGBBAA`) or a Figma variable reference.
+ * `color` is a DTCG Color §4.1 object or a Figma variable reference.
  * `visible` is always a boolean — Figma does not support variable binding on
  * the `visible` field of individual effect items.
  */
@@ -19,7 +19,8 @@ export interface Shadow {
   offsetY: number | TokenReference;
   blur: number | TokenReference;
   spread: number | TokenReference;
-  color: string | TokenReference;
+  /** Shadow color — DTCG Color object, token reference, or formatted string when `Config.format.color` is non-`OBJECT`. */
+  color: string | ColorObject | TokenReference;
 }
 
 /**

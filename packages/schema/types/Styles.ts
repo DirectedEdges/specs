@@ -119,10 +119,10 @@ export type Style = string | boolean | number | null | TokenReference | PropBind
  * The `colorSpace` field is typed as `string` (not a literal union) to avoid drift
  * with the schema enum — the schema provides the validation constraint.
  *
- * Mirrors `ColorValue` in `schema/styles.schema.json`.
+ * Mirrors `ColorObject` in `schema/styles.schema.json`.
  * @since 0.11.0
  */
-export interface ColorValue { /** Candidate */
+export interface ColorObject { /** Candidate */
   /** Color space identifier per DTCG Color §4.2 (e.g. 'srgb', 'oklch', 'display-p3'). */
   colorSpace: string;
   /** Ordered component values for the given color space. Each element is a number or the 'none' keyword. */
@@ -138,8 +138,11 @@ export interface ColorValue { /** Candidate */
  * Mirrors `ColorStyleValue` in `schema/styles.schema.json`.
  * Used for `backgroundColor`, `fillColor`, `textColor`, and `strokes` — the four properties
  * whose values are always colour-semantics and may carry gradient data.
+ *
+ * The `string` arm covers formatted colour strings (e.g. `#FF6600`, `rgba(...)`)
+ * emitted when `Config.format.color` is set to a non-`OBJECT` format.
  */
-export type ColorStyle = string | TokenReference | GradientValue | null;
+export type ColorStyle = string | ColorObject | TokenReference | GradientValue | null;
 
 /**
  * Inline typography properties grouped into a composite object.

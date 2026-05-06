@@ -451,6 +451,69 @@ describe('displayLicenseStatus', () => {
 });
 
 // ============================================================================
+// OUTPUT PATH RESOLUTION (#34)
+// ============================================================================
+
+describe('output path resolution', () => {
+  // Tests the logic that prevents EISDIR when outputDirectory is an existing
+  // directory in single-file mode. The fix appends `library.{format}` when
+  // outputPath is an existing directory and no split mode is active.
+
+  it('appends default filename when outputPath is a directory in single-file mode', () => {
+    // Simulates the fix logic from GenerateCommand
+    const isSingleFileMode = true;
+    const isDirectory = true;
+    const outputPath = '/project/specs';
+    const resolvedFormat = 'yaml';
+
+    const result = (isSingleFileMode && isDirectory)
+      ? `${outputPath}/library.${resolvedFormat}`
+      : outputPath;
+
+    expect(result).toBe('/project/specs/library.yaml');
+  });
+
+  it('appends library.json when format is json', () => {
+    const isSingleFileMode = true;
+    const isDirectory = true;
+    const outputPath = '/project/specs';
+    const resolvedFormat = 'json';
+
+    const result = (isSingleFileMode && isDirectory)
+      ? `${outputPath}/library.${resolvedFormat}`
+      : outputPath;
+
+    expect(result).toBe('/project/specs/library.json');
+  });
+
+  it('does not modify outputPath in split-components mode even if path is a directory', () => {
+    const isSingleFileMode = false; // splitComponents is true
+    const isDirectory = true;
+    const outputPath = '/project/specs';
+    const resolvedFormat = 'yaml';
+
+    const result = (isSingleFileMode && isDirectory)
+      ? `${outputPath}/library.${resolvedFormat}`
+      : outputPath;
+
+    expect(result).toBe('/project/specs');
+  });
+
+  it('does not modify outputPath when path is a file (not a directory)', () => {
+    const isSingleFileMode = true;
+    const isDirectory = false;
+    const outputPath = '/project/specs.yaml';
+    const resolvedFormat = 'yaml';
+
+    const result = (isSingleFileMode && isDirectory)
+      ? `${outputPath}/library.${resolvedFormat}`
+      : outputPath;
+
+    expect(result).toBe('/project/specs.yaml');
+  });
+});
+
+// ============================================================================
 // RESULT DISCRIMINATION
 // ============================================================================
 

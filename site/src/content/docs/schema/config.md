@@ -25,6 +25,7 @@ Controls how specs are generated. See the [feature guides](/specs/features/) for
 | `keys` | `'SAFE' \| 'CAMEL' \| 'SNAKE' \| 'KEBAB' \| 'PASCAL' \| 'TRAIN'` | `'SAFE'` | Key casing style |
 | `layout` | `'LAYOUT' \| 'PARENT_CHILDREN' \| 'BOTH'` | `'LAYOUT'` | Element hierarchy representation |
 | `tokens` | `'TOKEN' \| 'TOKEN_NAME' \| 'TOKEN_FIGMA_EXTENSIONS' \| 'FIGMA_NAME' \| 'CUSTOM'` | `'TOKEN'` | Token reference output format |
+| `color` | `ColorFormat` | `'HEX'` | Color value output format — `HEX`, `HEXA`, `RGB`, `RGBA`, `HSLA`, `HSB`, `OKLCH`, `OKLAB`, or `OBJECT` |
 
 ## `include`
 
@@ -51,6 +52,7 @@ const DEFAULT_CONFIG: ResolvedConfig = {
     keys: 'SAFE',
     layout: 'LAYOUT',
     tokens: 'TOKEN',
+    color: 'HEX',
   },
   include: {
     invalidVariants: false,

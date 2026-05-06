@@ -69,6 +69,30 @@ npm run build --workspace=packages/cli      # Build CLI only
 - **Deterministic output**: Same input produces identical output. No side effects in the processing pipeline.
 - **Config type** (from `@directededges/specs-schema`): Controls output shape — `DETAILS`, `FORMAT_KEYS`, `FORMAT_COLOR`, `DATA_LAYOUT`, `VARIANT_DEPTH`, etc.
 
+## Schema Governance
+
+All `specs-schema` type and schema changes must pass the 6-gate Constitution Check defined in `.specify/memory/constitution.md`. The constitution enforces type–schema parity, no-logic exports, minimal stable API, and strict naming conventions.
+
+## ADR Lifecycle
+
+Schema changes are proposed and tracked through Architecture Decision Records in `adr/`.
+
+1. **`/specs.adr.create`** — Draft a new ADR, claim the next index number, create a branch
+2. **`/specs.adr.implement`** — Apply type, schema, test, doc, and changelog changes described in the ADR (runs compile + schema validation gates)
+3. **`/specs.adr.accept`** — Re-run all gates, flip status to ACCEPTED, update the index, create a PR
+
+Each step is a separate skill; run them in order. The ADR stays `DRAFT` until all gates pass in the accept step.
+
+## Doc Site
+
+The documentation site is built with Astro (port 4323) from `site/src/content/docs/`. Content sections:
+
+- `schema/` — one page per schema type (Component, Styles, Props, etc.)
+- `config/` — one page per config option (color, keys, layout, tokens, etc.)
+- `guides/` — how-to guides for specific features (slot constraints, variant depth, token format, etc.)
+- `cli/` — CLI overview, getting started, and per-command reference
+- `overview/` — product overview, licensing, releases
+
 ## Rules
 
 - **Never merge or commit to main without asking first.** Use `AskUserQuestion` with Yes/No options before running `gh pr merge`, `git merge` into main, `git push` to main, or any direct commit on the main branch.
