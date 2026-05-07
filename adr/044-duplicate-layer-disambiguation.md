@@ -306,44 +306,55 @@ Scan all variants within each parent scope to build:
 # Max "icon" count: 3 (from variant B)
 ```
 
-#### Pass 2 — Anchor-relative identity assignment
+#### Pass 2 — Anchor-adjacent identity assignment
 
-For each group of duplicates sharing a name within a parent, split occurrences into **segments** bounded by anchors. Duplicates in the same segment at the same position within that segment are considered the **same element** across variants.
+For each group of duplicates sharing a name within a parent, split occurrences into **segments** bounded by anchors. Within each segment, match duplicates **from the anchor boundary inward** — elements closest to the anchor have the strongest identity signal and are matched first:
+
+- **Before-anchor** segments: match right-to-left (from anchor side inward)
+- **After-anchor** segments: match left-to-right (from anchor side inward)
+- **Between two anchors**: match inward from both sides (nearest anchor wins)
+
+This reflects designer intent: when a repeated element is added to a group, existing elements near landmarks retain their identity. New elements appear at the edges of segments, farther from anchors.
 
 ```yaml
 # Segments divided by anchor "label":
 #
 # Variant A: [icon, label, icon]
-#   segment BEFORE label: [icon]     → 1 icon
-#   segment AFTER label:  [icon]     → 1 icon
+#   segment BEFORE label: [icon]       → 1 icon
+#   segment AFTER label:  [icon]       → 1 icon
 #
 # Variant B: [icon, icon, label, icon]
 #   segment BEFORE label: [icon, icon] → 2 icons
 #   segment AFTER label:  [icon]       → 1 icon
 
-# Identity matching by segment + position within segment:
-#   "icon, before-label, pos 0" → VA ✓, VB ✓ → SAME element → "icon"
-#   "icon, before-label, pos 1" → VB only     → NEW element  → "icon3"
-#   "icon, after-label, pos 0"  → VA ✓, VB ✓ → SAME element → "icon2"
+# Anchor-adjacent matching (before-label = right-to-left from anchor):
+#   VA before-label, adjacent to label (pos 0):  icon  ─┐
+#   VB before-label, adjacent to label (pos 1):  icon  ─┘ SAME element
+#   VB before-label, far from label (pos 0):     icon  → NEW element
+#
+# Anchor-adjacent matching (after-label = left-to-right from anchor):
+#   VA after-label, adjacent to label (pos 0):   icon  ─┐
+#   VB after-label, adjacent to label (pos 0):   icon  ─┘ SAME element
 
-# Suffix assignment (collision-safe):
-#   Identity 1 (before-label, first) → "icon" (base name, first encountered)
-#   Identity 2 (after-label, first)  → "icon2" (next available, not reserved)
-#   Identity 3 (before-label, second) → "icon3" (next available)
+# Three distinct identities, suffixes assigned by first traversal appearance:
+#   Identity 1 (before-label, adjacent) → first seen VA pos 0 → "icon"
+#   Identity 2 (after-label, adjacent)  → first seen VA pos 2 → "icon2"
+#   Identity 3 (before-label, far)      → first seen VB pos 0 → "icon3"
 
 # Final disambiguation:
 #   Variant A: icon, label, icon2
-#   Variant B: icon, icon3, label, icon2
+#   Variant B: icon3, icon, label, icon2
 #                          ^^^^^
 #                          anchor
 #
-# Differencing: "icon2" in A and "icon2" in B are the SAME element
-# (the icon after label). "icon3" appears only in B → new element diff.
+# "icon" (adjacent to label, left side) is the SAME element in both variants.
+# "icon2" (adjacent to label, right side) is the SAME element in both variants.
+# "icon3" appears only in VB — new element, correctly surfaced as a variant diff.
 ```
 
 #### Multi-anchor example
 
-When multiple anchors exist, they create finer-grained segments:
+When multiple anchors exist, they create finer-grained segments. Matching radiates inward from the nearest anchor:
 
 ```yaml
 # Variant A: [icon, label, description, icon]
@@ -355,19 +366,30 @@ When multiple anchors exist, they create finer-grained segments:
 # VA segments: [icon], [], [icon]
 # VB segments: [icon, icon], [icon], [icon]
 
-# Identity matching:
-#   before-label pos 0    → VA ✓, VB ✓ → "icon"
-#   before-label pos 1    → VB only    → "icon4"
-#   between-label-desc pos 0 → VB only → "icon3"
-#   after-description pos 0  → VA ✓, VB ✓ → "icon2"
+# Anchor-adjacent matching:
+#   before-label (right-to-left from label):
+#     VA [icon←]     →  VB [icon, icon←]  → adjacent icons match
+#     VB pos 0 icon  →  NEW (far from label)
+#
+#   between-label-description (match from nearest anchor):
+#     VA []          →  VB [icon]  → VB only → NEW
+#
+#   after-description (left-to-right from description):
+#     VA [→icon]     →  VB [→icon]  → match
+
+# Identities and suffix assignment:
+#   Identity 1 (before-label, adjacent)         → first seen VA pos 0 → "icon"
+#   Identity 2 (after-description, adjacent)    → first seen VA pos 3 → "icon2"
+#   Identity 3 (between-label-desc, adjacent)   → first seen VB pos 3 → "icon3"
+#   Identity 4 (before-label, far)              → first seen VB pos 0 → "icon4"
 
 # Variant A: icon, label, description, icon2
-# Variant B: icon, icon4, label, icon3, description, icon2
+# Variant B: icon4, icon, label, icon3, description, icon2
 ```
 
 #### Edge cases and fallbacks
 
-**No anchors available**: If all siblings within a parent are duplicates (e.g., `[icon, icon, icon]` with no unique names), fall back to **absolute position within parent** — 1st → `icon`, 2nd → `icon2`, 3rd → `icon3`. This is the weakest heuristic but the only option when no context is available.
+**No anchors available**: If all siblings within a parent are duplicates (e.g., `[icon, icon, icon]` with no unique names), fall back to **left-to-right absolute position within parent** — 1st → `icon`, 2nd → `icon2`, 3rd → `icon3`. This is the weakest heuristic but the only option when no context is available. Positional matching here means a designer reordering layers changes suffix assignment — an accepted trade-off when no anchors exist to provide stability.
 
 **Anchor itself is absent in some variants**: If `label` appears in variant A but not variant B, it cannot serve as an anchor. Only names present in **every variant that contains them** qualify. In practice, this means: if an anchor is optional (absent in some variants), its segments are merged with adjacent segments in variants where it's missing.
 
