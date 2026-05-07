@@ -542,9 +542,24 @@ Once elements have stable, anchor-relative disambiguated keys:
 
 **4. Floating elements across variants**
 
-An element that appears at different hierarchy positions in different variants (e.g., `label` as a child of `header` in variant A, child of `content` in variant B) is treated as **the same element** if its disambiguated key matches. The layout diff captures the structural change; the element diff captures style changes. This is existing behavior — disambiguation doesn't change it, but it does ensure the element isn't silently dropped if another element shares its name.
+An element with a **unique name** that appears at different hierarchy positions in different variants (e.g., `label` as a child of `header` in variant A, child of `content` in variant B) is treated as **the same element** — its disambiguated key matches regardless of ancestry. The layout diff captures the structural change; the element diff captures style changes. This is existing behavior and works because a unique name needs no scope-based disambiguation.
 
-This same principle applies to containers: when a parent node moves between ancestors across variants, it retains its identity via its disambiguated key (see *Disambiguation hierarchy*, ancestry containment limitation). Children scoped within that container are matched by the container's key, not its ancestry path.
+This same principle applies to containers: when a uniquely-named parent node moves between ancestors across variants, it retains its identity via its key. Children scoped within that container are matched by the container's key, not its ancestry path (see *Disambiguation hierarchy*, ancestry containment limitation).
+
+**Duplicate-named elements that change parents lose identity.** When a non-unique element moves between scopes across variants, per-parent disambiguation treats it as a different element in each scope:
+
+```yaml
+# V1: L1 > L2 > L3 > L4 > Icon    (scoped to L4 → "icon" within L4)
+#     L1 > L5 > L6 > Icon          (scoped to L6 → "icon" within L6)
+#
+# V2: L1 > Icon                    (scoped to L1 → "icon" within L1)
+#
+# V2's Icon is a direct child of L1. Neither V1 Icon shares that scope.
+# Result: V2's Icon is treated as a NEW element — matched to neither.
+# V1's L4 Icon and L6 Icon appear as "removed in V2."
+```
+
+This is a **correct behavior given available information** — the algorithm cannot determine whether V2's Icon is V1's Icon A promoted up the tree (L4 removed) or a genuinely new element. Without external metadata (e.g., a designer annotation saying "this is the same icon"), scope change is indistinguishable from replacement. The resulting diff is larger than ideal (remove + add instead of move) but never lossy — every element is represented in every variant.
 
 **5. Implementation sequencing**
 
