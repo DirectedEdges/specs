@@ -130,7 +130,7 @@ Disambiguate names in `specs-from-figma` using suffixes but add no schema metada
 
 | File | Change | Bump |
 |------|--------|------|
-| `Anatomy.ts` | Add optional `$extensions` to `AnatomyElement` with `com.figma` namespace containing `originalName` and `matchMethod` | MINOR |
+| `Anatomy.ts` | Add optional `$extensions` to `AnatomyElement` with `com.figma` namespace containing `originalName` | MINOR |
 
 **Example — new shape** (`types/Anatomy.ts`):
 ```yaml
@@ -148,24 +148,11 @@ AnatomyElement:
   $extensions?:
     com.figma?:
       originalName?: string         # Present only when key differs from Figma layer name
-      matchMethod?: MatchMethod     # How this element's cross-variant identity was determined
 ```
 
-**`MatchMethod`** — a string literal union describing the heuristic used to assign this element's key:
+`$extensions` is present only when the component contains at least one duplicate name group. When a component has no duplicates, `$extensions` is omitted entirely (no noise for the common case).
 
-```yaml
-MatchMethod:
-  | 'unique'            # No disambiguation needed — name was already unique
-  | 'anchor-adjacent'   # Matched via proximity to a unique-named anchor sibling
-  | 'positional'        # No anchors available — matched by absolute position within parent
-```
-
-`matchMethod` is present on **every** anatomy element when the component contains at least one duplicate name group. When a component has no duplicates, `$extensions` is omitted entirely (no noise for the common case).
-
-**Why `matchMethod` matters**: The disambiguation algorithm knows its own confidence level at every step. Discarding that signal forces consumers to treat all element keys as equally reliable. Preserving it enables:
-- **LLM consumers** to reason about reliability: "This element was matched positionally — its identity across variants is less stable than anchor-adjacent matches. Treat its diff with appropriate skepticism."
-- **Documentation tools** to flag low-confidence elements for designer review
-- **Diagnostic UIs** (plugin, CLI) to surface warnings where heuristic quality is lowest
+> **Future ADR**: A subsequent ADR will evaluate whether to add a **provenance signal** (e.g., `matchMethod`) to `$extensions["com.figma"]` indicating the heuristic used for cross-variant matching. This is a separable decision — disambiguation and collision-safe suffixing do not depend on it.
 
 **Example — spec output with disambiguation** (collision-safe):
 ```yaml
@@ -184,45 +171,30 @@ MatchMethod:
 anatomy:
   root:
     type: container
-    $extensions:
-      com.figma:
-        matchMethod: unique
   checkbox:
     type: instance
     instanceOf: Checkbox
-    $extensions:
-      com.figma:
-        matchMethod: positional         # No anchors among the checkboxes
   checkbox2:
     type: instance
     instanceOf: Checkbox
     $extensions:
       com.figma:
         originalName: checkbox
-        matchMethod: positional
   checkbox3:
     type: instance
     instanceOf: Checkbox
     $extensions:
       com.figma:
         originalName: checkbox
-        matchMethod: positional
   icon2:
-    type: glyph
-    $extensions:
-      com.figma:
-        matchMethod: unique             # "icon2" IS the original name
+    type: glyph                         # "icon2" IS the original Figma name
   icon:
     type: glyph
-    $extensions:
-      com.figma:
-        matchMethod: anchor-adjacent    # Adjacent to "icon2" anchor
   icon3:
     type: glyph
     $extensions:
       com.figma:
         originalName: icon
-        matchMethod: anchor-adjacent    # Farther from anchor, but still anchor-relative
 
 # Elements section — uses the same disambiguated keys
 elements:
@@ -254,7 +226,7 @@ layout:
 
 | File | Change | Bump |
 |------|--------|------|
-| `component.schema.json` | Add optional `$extensions` property to `AnatomyElement` definition with `com.figma` sub-object containing `originalName` and `matchMethod` | MINOR |
+| `component.schema.json` | Add optional `$extensions` property to `AnatomyElement` definition with `com.figma` sub-object containing `originalName` | MINOR |
 
 **Example — new property** (under `#/definitions/AnatomyElement/properties`):
 ```yaml
@@ -272,15 +244,6 @@ $extensions:
             disambiguation. Present only when the element key was modified
             to resolve a duplicate name conflict. When absent, the key IS
             the original layer name.
-        matchMethod:
-          type: string
-          enum: [unique, anchor-adjacent, positional]
-          description: >
-            The heuristic used to determine this element's cross-variant
-            identity. "unique" = no disambiguation needed. "anchor-adjacent"
-            = matched via proximity to a unique-named anchor sibling.
-            "positional" = no anchors available, matched by absolute
-            position within parent (lowest confidence).
       additionalProperties: false
   additionalProperties: true
   # not in required[] — optional field
@@ -288,22 +251,19 @@ $extensions:
 
 ### Notes
 
-- **`$extensions` follows the established provenance pattern**: `TokenReference`, `BooleanProp`, `StringProp`, `EnumProp`, and `SlotProp` all use `$extensions["com.figma"]` for Figma extraction metadata. Placing `originalName` and `matchMethod` here is consistent with the ecosystem convention.
-- **`$extensions` presence is conditional on duplicates**: When a component has **no** duplicate names, `$extensions` is omitted entirely from all anatomy elements — zero overhead for the common case. When **any** duplicate group exists, all elements in the component receive `$extensions` with at least `matchMethod`, because a consumer viewing the spec needs to know which elements are unique and which were disambiguated. `originalName` is only present on elements whose key differs from their Figma layer name.
+- **`$extensions` follows the established provenance pattern**: `TokenReference`, `BooleanProp`, `StringProp`, `EnumProp`, and `SlotProp` all use `$extensions["com.figma"]` for Figma extraction metadata. Placing `originalName` here is consistent with the ecosystem convention.
+- **`$extensions` presence is conditional on disambiguation**: `$extensions["com.figma"].originalName` is present **only** on elements whose key differs from their Figma layer name. When a component has no duplicate names, no `$extensions` appear anywhere — zero overhead for the common case.
 - **`originalName` stores the formatted key version** of the original name (after `formatKey` is applied), not the raw Figma name with original casing. This ensures consumers can compare `originalName` against other keys using the same format.
-- **`Elements` and `Layout` do not need `$extensions`**: They use the same disambiguated keys as `Anatomy`. The anatomy is the canonical registry of element identity — consumers look up `originalName` and `matchMethod` there.
+- **`Elements` and `Layout` do not need `$extensions`**: They use the same disambiguated keys as `Anatomy`. The anatomy is the canonical registry of element identity — consumers look up `originalName` there.
 - **The suffix format** (`name`, `name2`, `name3` with collision skipping) is a processing convention, not a schema constraint. The schema only guarantees unique keys and the `$extensions` field for traceability. The suffix numbering strategy is an implementation detail of `specs-from-figma`.
-- **`matchMethod` as provenance signal**: The disambiguation algorithm is deterministic, but its heuristic quality varies by context (see Adversarial cases and Error risk scale in §2). Embedding the match method directly in the output makes spec data **self-documenting** — any consumer (human, LLM, or tool) can assess reliability without re-running the algorithm. This follows the principle that a deterministic script should expose what it *can* evaluate (structural relationships, anchor density) rather than force consumers to infer it.
 
 ---
 
 ## Type ↔ Schema Impact
 
-- **Symmetric**: Yes — one optional `$extensions` object with two properties added to both `AnatomyElement` type and schema definition.
+- **Symmetric**: Yes — one optional `$extensions` object with one property added to both `AnatomyElement` type and schema definition.
 - **Parity check**:
   - `AnatomyElement.$extensions["com.figma"].originalName` (type) ↔ `#/definitions/AnatomyElement/properties/$extensions/properties/com.figma/properties/originalName` (schema)
-  - `AnatomyElement.$extensions["com.figma"].matchMethod` (type) ↔ `#/definitions/AnatomyElement/properties/$extensions/properties/com.figma/properties/matchMethod` (schema)
-  - `MatchMethod` string literal union (type) ↔ `enum: [unique, anchor-adjacent, positional]` (schema)
 
 ---
 
@@ -541,7 +501,7 @@ The work spans two repos and should proceed in this order:
 1. **`specs-schema`**: Add `$extensions` to `AnatomyElement` type and schema. Publish as `0.22.0` (MINOR). This is a trivial, low-risk change.
 2. **`specs-from-figma`**: Implement the global registry, anchor-adjacent matching, and collision-safe suffix assignment. This is the bulk of the work. Split into sub-milestones:
    - **Phase A — Survey infrastructure**: Implement the two-pass survey (name counting, anchor identification) without changing output. Add logging/diagnostics that report which components have duplicate names and what anchors were identified. This is observability-only — no output changes.
-   - **Phase B — Disambiguation**: Apply suffix assignment. All `Record`-keyed structures (`Anatomy._items`, `Elements._items`, `Layout.serialize()`) receive disambiguated keys. Add `$extensions["com.figma"].originalName` to anatomy output. This changes output for components with duplicate names.
+   - **Phase B — Disambiguation**: Apply suffix assignment. All `Record`-keyed structures (`Anatomy._items`, `Elements._items`, `Layout.serialize()`) receive disambiguated keys. Add `$extensions["com.figma"].originalName` to anatomy elements whose key differs from their Figma layer name. This changes output for components with duplicate names.
    - **Phase C — Parity testing**: Run the parity test suite (`specs-testing`) against ground-truth fixtures to validate that disambiguated output is correct and that components with unique names produce identical output.
 3. **`specs-plugin-2`**: Recompile against new schema types. Optionally surface disambiguation warnings in the plugin UI.
 4. **`specs-cli`**: Recompile. No behavioral changes required.
@@ -589,5 +549,4 @@ Parity tests in `specs-testing`:
 - Variant differencing operates on complete element sets, producing accurate diffs
 - The disambiguation suffix format (`name`, `name3`, `name4` with collision skipping) becomes a de facto convention in spec output, though it is not enforced by the schema — suffix numbers may be non-contiguous
 - `specs-from-figma` requires significant architectural changes in traversal, element detection, and variant differencing — this is the primary implementation cost
-- The `$extensions` pattern on `AnatomyElement` opens the door for future Figma provenance metadata on anatomy (e.g., node IDs, layer visibility) without additional schema changes
-- **Provenance as a design principle**: `matchMethod` establishes a precedent — deterministic processing steps should embed their confidence signals in the output. This transforms spec data from "here are the results" to "here are the results, and here's how much you should trust each one." Future processing steps (e.g., prop inference, subcomponent detection) could follow the same pattern: expose the heuristic method alongside the result, enabling consumers — particularly LLMs — to reason about data quality without needing access to the source Figma file or the processing algorithm
+- The `$extensions` pattern on `AnatomyElement` opens the door for future Figma provenance metadata on anatomy (e.g., match method confidence signals, node IDs, layer visibility) without additional schema changes — a subsequent ADR will evaluate this
