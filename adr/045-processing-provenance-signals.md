@@ -14,11 +14,11 @@ The Specs schema currently carries **what** the processing engine produced but n
 
 This gap matters most for two consumer classes:
 
-1. **LLM consumers** — language models consuming spec output to generate code, documentation, or design reviews. An LLM has no access to the source Figma file or the processing algorithm. Without provenance signals, it must treat all data as equally reliable. With them, it can adjust its reasoning: "This element was matched positionally — its identity across variants is less certain. Treat its diff with appropriate skepticism."
+1. **LLM consumers** — language models consuming spec output to generate code, documentation, or design reviews. An LLM has no access to the source Figma file or the processing algorithm. Without provenance signals, it must treat all data as equally reliable. With them, it can adjust its reasoning: "This element was matched by sibling index — its identity across variants is less certain."
 
 2. **Diagnostic tools** — the plugin UI, CLI output, and future review workflows. Surfacing "this element used a low-confidence heuristic" lets designers verify the cases most likely to be wrong, rather than reviewing the entire spec.
 
-ADR-044 introduces `$extensions["com.figma"]` on `AnatomyElement` with `originalName` for disambiguation traceability. This ADR evaluates whether to extend that same namespace with a **method signal** — and whether to establish provenance signaling as a general pattern for other processing steps.
+ADR-044 introduces `$extensions["com.figma"]` on `AnatomyElement` with `originalName` for disambiguation traceability. It also introduces a **five-level heuristic chain** for resolving element identity (name → type → ancestry → anchor → index). This ADR evaluates whether to extend the same namespace with a **method signal** recording which heuristic level resolved each element — and whether to establish provenance signaling as a general pattern.
 
 ### Existing `$extensions["com.figma"]` usage
 
@@ -40,6 +40,7 @@ Each of these records **what Figma provided**. This ADR proposes also recording 
 - **Minimal initial scope**: Start with the disambiguation use case (ADR-044), define a pattern that future processing steps can follow
 - **No logic in schema**: The schema defines the field shape; processing packages decide when and how to populate it
 - **LLM-friendly**: Signal names should be human-readable strings that a language model can interpret without external documentation
+- **Aligned with heuristic chain**: Values must map directly to ADR-044's ordered check levels so consumers know exactly which heuristic resolved the element
 
 ---
 
@@ -47,7 +48,7 @@ Each of these records **what Figma provided**. This ADR proposes also recording 
 
 ### Option A: `matchMethod` on `AnatomyElement` — scoped provenance field *(Selected)*
 
-Add a `matchMethod` field to `AnatomyElement.$extensions["com.figma"]` that records the heuristic used to determine each element's cross-variant identity. Define a string literal union (`MatchMethod`) for the known methods.
+Add a `matchMethod` field to `AnatomyElement.$extensions["com.figma"]` that records which heuristic check resolved each element's cross-variant identity. Define a string literal union (`MatchMethod`) for the five levels in ADR-044's chain.
 
 This is **scoped to disambiguation only** — it addresses the immediate need without introducing a generic provenance framework. Future processing steps that want provenance signals would add their own named fields to the relevant `$extensions["com.figma"]` objects, following this precedent.
 
@@ -55,8 +56,8 @@ This is **scoped to disambiguation only** — it addresses the immediate need wi
 - Solves the immediate need: consumers know which element keys are high-confidence vs. heuristic fallback
 - Small, focused change — one field, one type, one schema property
 - Follows the established `$extensions["com.figma"]` pattern exactly
-- LLM-readable: `"anchor-adjacent"` and `"positional"` are self-explanatory strings
-- No framework overhead — future provenance fields are independent decisions
+- LLM-readable: `"ancestry"` and `"sibling-index"` are self-explanatory strings
+- Values map 1:1 to ADR-044's heuristic chain — no interpretation gap
 
 **Cons / Trade-offs**:
 - Each new provenance signal requires its own ADR and field addition — no reusable structure
@@ -71,8 +72,8 @@ Add a generic `$extensions["com.figma"].provenance` object with standardized fie
 **Rejected because**:
 - Over-engineered for the current need — only disambiguation has a concrete use case today
 - The `confidence` enum is misleading: "high" vs. "medium" means different things for element matching vs. prop inference vs. subcomponent detection. A generic scale hides domain-specific nuance.
-- Violates "minimal initial scope" — designs a framework before proving the pattern with one case
-- Harder to validate: a generic `method: string` can't be schema-constrained the way `matchMethod: 'unique' | 'anchor-adjacent' | 'positional'` can
+- ADR-044's heuristic chain already provides an **ordered confidence scale** through the check level itself — `unique` is highest, `sibling-index` is lowest. A separate confidence field would duplicate this information.
+- Harder to validate: a generic `method: string` can't be schema-constrained the way a five-value enum can
 
 ---
 
@@ -95,13 +96,15 @@ Emit provenance signals only in diagnostic/debug output (CLI `--verbose`, plugin
 |------|--------|------|
 | `Anatomy.ts` | Add optional `matchMethod` to `AnatomyElement.$extensions["com.figma"]` | MINOR |
 
-**`MatchMethod`** — a string literal union describing the heuristic used to assign an element's cross-variant identity:
+**`MatchMethod`** — a string literal union recording which heuristic check (ADR-044 §3) resolved the element's cross-variant identity:
 
 ```yaml
 MatchMethod:
-  | 'unique'            # No disambiguation needed — name was already unique across all variants
-  | 'anchor-adjacent'   # Matched via proximity to a unique-named anchor sibling
-  | 'positional'        # No anchors available — matched by absolute position within parent
+  | 'unique'            # Check 1 — name was already unique, no disambiguation needed
+  | 'layer-type'        # Check 2 — name + Figma node type narrowed to unique identity
+  | 'ancestry'          # Check 3 — ancestor path distinguished this element from others
+  | 'anchor-adjacent'   # Check 4 — proximity to a unique-named sibling resolved identity
+  | 'sibling-index'     # Check 5 — positional index among same-name+type siblings (lowest confidence)
 ```
 
 **Example — new shape** (`types/Anatomy.ts`):
@@ -131,9 +134,10 @@ AnatomyElement:
 `matchMethod` is present on **every** anatomy element when the component contains at least one duplicate name group. When a component has no duplicates, `$extensions` is omitted entirely (no noise for the common case).
 
 When present, the value distribution conveys the component's matching quality at a glance:
-- All `'unique'` + some `'anchor-adjacent'` → high confidence, anchors were available
-- Mix of `'anchor-adjacent'` + `'positional'` → medium confidence, some segments lacked anchors
-- All `'positional'` → low confidence, no unique siblings existed to anchor against
+- All `'unique'` → no disambiguation was needed (duplicates existed elsewhere in the component, but not for this element)
+- `'layer-type'` or `'ancestry'` → high confidence, structural signals resolved identity
+- `'anchor-adjacent'` → medium confidence, sibling context was used
+- `'sibling-index'` → low confidence, positional fallback was the only option
 
 ### Schema changes (`schema/`)
 
@@ -145,13 +149,14 @@ When present, the value distribution conveys the component's matching quality at
 ```yaml
 matchMethod:
   type: string
-  enum: [unique, anchor-adjacent, positional]
+  enum: [unique, layer-type, ancestry, anchor-adjacent, sibling-index]
   description: >
-    The heuristic used to determine this element's cross-variant
-    identity. "unique" = no disambiguation needed. "anchor-adjacent"
-    = matched via proximity to a unique-named anchor sibling.
-    "positional" = no anchors available, matched by absolute
-    position within parent (lowest confidence).
+    Which heuristic check (ADR-044) resolved this element's cross-variant
+    identity. Values are ordered by confidence: "unique" (highest) through
+    "sibling-index" (lowest). "unique" = no disambiguation needed.
+    "layer-type" = name + node type was sufficient. "ancestry" = ancestor
+    path distinguished the element. "anchor-adjacent" = proximity to a
+    unique sibling. "sibling-index" = positional fallback.
 ```
 
 ### Example output
@@ -170,31 +175,31 @@ anatomy:
     instanceOf: Checkbox
     $extensions:
       com.figma:
-        matchMethod: positional         # No anchors among the checkboxes
+        matchMethod: sibling-index      # No anchors among the checkboxes
   checkbox2:
     type: instance
     instanceOf: Checkbox
     $extensions:
       com.figma:
         originalName: checkbox
-        matchMethod: positional
+        matchMethod: sibling-index
   checkbox3:
     type: instance
     instanceOf: Checkbox
     $extensions:
       com.figma:
         originalName: checkbox
-        matchMethod: positional
+        matchMethod: sibling-index
   icon2:
     type: glyph
     $extensions:
       com.figma:
-        matchMethod: unique             # "icon2" IS the original name
+        matchMethod: unique              # "icon2" IS the original name
   icon:
     type: glyph
     $extensions:
       com.figma:
-        matchMethod: anchor-adjacent    # Adjacent to "icon2" anchor
+        matchMethod: anchor-adjacent     # Adjacent to "icon2" anchor
   icon3:
     type: glyph
     $extensions:
@@ -203,15 +208,44 @@ anatomy:
         matchMethod: anchor-adjacent
 ```
 
+A component with ancestry-resolved duplicates:
+
+```yaml
+# Header > [Icon], Footer > [Icon]
+anatomy:
+  header:
+    type: container
+    $extensions:
+      com.figma:
+        matchMethod: unique
+  footer:
+    type: container
+    $extensions:
+      com.figma:
+        matchMethod: unique
+  icon:
+    type: glyph
+    $extensions:
+      com.figma:
+        matchMethod: ancestry            # Distinguished by Header vs Footer parent
+  icon2:
+    type: glyph
+    $extensions:
+      com.figma:
+        originalName: icon
+        matchMethod: ancestry
+```
+
 ### Notes
 
-- **`matchMethod` extends, not replaces, `originalName`**: The two fields serve different purposes. `originalName` enables round-trip traceability (what was the Figma name?). `matchMethod` enables confidence assessment (how was cross-variant identity determined?). Both live under `com.figma` because both are Figma-processing provenance.
+- **`matchMethod` extends, not replaces, `originalName`**: The two fields serve different purposes. `originalName` enables round-trip traceability (what was the Figma name?). `matchMethod` enables confidence assessment (which heuristic resolved cross-variant identity?). Both live under `com.figma` because both are Figma-processing provenance.
+- **Enum values map 1:1 to ADR-044's heuristic chain**: `unique` = Check 1, `layer-type` = Check 2, `ancestry` = Check 3, `anchor-adjacent` = Check 4, `sibling-index` = Check 5. The ordering is implicit in the enum — earlier values are higher confidence.
 - **Enum values are lowercase kebab-case**, consistent with the `FigmaPropExtension` source kind values (`variant`, `codeOnlyProp`). They are intentionally not `SCREAMING_CASE` — the constitution's screaming-case rule applies to "string literal union types used as enum values in `Styles` and its child types," not to extension metadata values.
 - **The pattern, not the field, is the precedent**: This ADR establishes that processing steps should embed their method signal in the output. Future candidates include:
   - `props.$extensions["com.figma"].inferenceSource` — how a prop type was determined (`explicit`, `heuristic`, `code-only`)
   - `anatomy.element.$extensions["com.figma"].detectionMethod` — how an element type was classified (`name-pattern`, `node-type`, `instance-analysis`)
   - Each would be its own field with its own enum, evaluated independently — no generic framework required.
-- **Consumer guidance for LLMs**: An LLM consuming spec output can use `matchMethod` directly in its reasoning chain. Suggested prompt pattern: "Elements with `matchMethod: 'positional'` have weaker cross-variant identity — their diffs may reflect suffix instability rather than true design changes. Prefer trusting `'unique'` and `'anchor-adjacent'` elements when generating variant-conditional code."
+- **Consumer guidance for LLMs**: An LLM consuming spec output can use `matchMethod` directly in its reasoning chain. Suggested prompt pattern: "Elements with `matchMethod: 'sibling-index'` have the weakest cross-variant identity — their diffs may reflect positional instability rather than true design changes. Prefer trusting `'unique'`, `'layer-type'`, and `'ancestry'` elements when generating variant-conditional code."
 
 ---
 
@@ -220,7 +254,7 @@ anatomy:
 - **Symmetric**: Yes — one optional string field added to both the `AnatomyElement` type and schema definition, within the existing `$extensions["com.figma"]` object.
 - **Parity check**:
   - `AnatomyElement.$extensions["com.figma"].matchMethod` (type) ↔ `#/definitions/AnatomyElement/properties/$extensions/properties/com.figma/properties/matchMethod` (schema)
-  - `MatchMethod` string literal union (type) ↔ `enum: [unique, anchor-adjacent, positional]` (schema)
+  - `MatchMethod` string literal union (type) ↔ `enum: [unique, layer-type, ancestry, anchor-adjacent, sibling-index]` (schema)
 
 ---
 
@@ -228,17 +262,17 @@ anatomy:
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | **Medium** — Must emit `matchMethod` alongside disambiguation (ADR-044). The method is already known at assignment time — this is surfacing existing information, not computing new information | Emit `matchMethod` during Pass 2 of the global registry (ADR-044 §2) |
+| `specs-from-figma` | **Medium** — Must emit `matchMethod` during Phase 2 of ADR-044's disambiguation. The check level is already known at resolution time — this is surfacing existing information, not computing new information | Record which check resolved each element during the heuristic chain |
 | `specs-cli` | **Low** — Recompile against new types. May optionally surface `matchMethod` in diagnostic output | Recompile |
 | `specs-plugin-2` | **Low** — Recompile. May optionally highlight low-confidence elements in the UI | Recompile |
 
 ### Implementation sequencing
 
-This ADR is designed to be implemented **concurrently with ADR-044** — in the same schema release and the same `specs-from-figma` implementation phase. The schema change is additive (one more field on the same `$extensions` object). The processing change is trivial: at the point where ADR-044's Pass 2 assigns a suffix, the algorithm already knows whether it used anchor-adjacent or positional matching — it simply records that decision.
+This ADR is designed to be implemented **concurrently with ADR-044** — in the same schema release and the same `specs-from-figma` implementation phase. The schema change is additive (one more field on the same `$extensions` object). The processing change is trivial: at the point where ADR-044's heuristic chain resolves an element, it already knows which check succeeded — it simply records that check level.
 
 Recommended approach:
 1. **Schema**: Include `matchMethod` in the same `AnatomyElement.$extensions` addition as ADR-044's `originalName`. Ship both in a single MINOR release.
-2. **Processing**: Emit `matchMethod` during ADR-044's Phase B (disambiguation). No separate phase needed.
+2. **Processing**: Record the resolving check level during ADR-044's Phase 2 (heuristic chain). No separate phase needed.
 3. **Testing**: Extend ADR-044's test cases to assert `matchMethod` values alongside disambiguated keys.
 
 ---
@@ -255,7 +289,8 @@ Recommended approach:
 
 - Spec output becomes **self-documenting** for disambiguation confidence — consumers can assess element key reliability without re-running the algorithm or inspecting the source Figma file
 - LLM consumers gain a structured signal for reasoning about variant diff trustworthiness
-- Diagnostic tools (plugin UI, CLI) can surface warnings specifically for `'positional'` elements, directing designer review to the cases most likely to mismatch
+- Diagnostic tools (plugin UI, CLI) can surface warnings specifically for `'sibling-index'` elements, directing designer review to the cases most likely to mismatch
 - The `$extensions["com.figma"]` namespace on `AnatomyElement` now carries both traceability (`originalName`) and confidence (`matchMethod`) — a complete provenance record for disambiguation
+- **The five-value enum is inherently ordered**: consumers can treat it as a confidence scale without external documentation — earlier values in the chain = higher confidence
 - **Pattern established**: Processing steps that resolve ambiguity should embed their method signal in the output. Future provenance fields follow the same approach — scoped field, named enum, within `$extensions["com.figma"]` on the relevant type — without requiring a generic framework
 - When a component has no duplicate names, zero overhead — no `$extensions`, no `matchMethod`, identical output to pre-ADR behavior

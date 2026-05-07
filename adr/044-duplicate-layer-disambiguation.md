@@ -10,7 +10,7 @@
 
 ## Context
 
-> **Scope**: This ADR addresses a **two-part problem** spanning both the schema contract (`@directededges/specs-schema`) and the processing architecture (`specs-from-figma`). Part 1 (Decision) defines the schema change — a small additive type. Part 2 (Downstream Impact → Architectural notes) defines the disambiguation algorithm, cross-variant matching heuristics, and adversarial analysis that make the schema change useful. **Reviewers should evaluate both parts** — the schema change alone is trivial; the processing architecture is where the complexity lives.
+> **Scope**: This ADR addresses a **two-part problem** spanning both the schema contract (`@directededges/specs-schema`) and the processing architecture (`specs-from-figma`). Part 1 (Decision) defines the schema change — a small additive type. Part 2 (Downstream Impact → Architectural notes) defines the disambiguation algorithm. **Reviewers should evaluate both parts** — the schema change alone is trivial; the processing architecture is where the complexity lives.
 
 Three core types in `@directededges/specs-schema` use layer names as dictionary keys:
 
@@ -55,7 +55,7 @@ The original EGDS Specs generator solved this with a composite key: **layer name
 
 ### Option A: Collision-safe numeric suffix + `$extensions` metadata *(Selected)*
 
-Disambiguate duplicate names by appending a numeric suffix at traversal time, before any dictionary keying. Store the original Figma layer name under `$extensions["com.figma"].originalName` on `AnatomyElement`, following the existing DTCG extension convention used by `TokenReference` and `PropExtensions`.
+Disambiguate duplicate names by appending a numeric suffix, determined by an ordered heuristic chain during a disambiguation phase that is separate from initial evaluation. Store the original Figma layer name under `$extensions["com.figma"].originalName` on `AnatomyElement`, following the existing DTCG extension convention used by `TokenReference` and `PropExtensions`.
 
 The suffix algorithm must be **collision-safe** — it cannot assign a suffix that conflicts with an existing element name:
 
@@ -70,25 +70,15 @@ The suffix algorithm must be **collision-safe** — it cannot assign a suffix th
 #   icon, icon3, icon2
 ```
 
-Algorithm:
-1. Collect all original element names across all variants into a **reserved set**
-2. For each duplicate name group, identify distinct identities via the global two-pass registry (§2: anchor-adjacent matching across variants)
-3. Rank identities by **cross-variant prevalence** — the identity appearing in the most variants gets the base name; less prevalent identities get ascending suffixes
-4. Ties in prevalence → break by first traversal appearance (depth-first order in the first variant encountered)
-5. Each assigned suffix must be **collision-safe**: find the lowest available suffix (`name2`, `name3`, ...) that is **not in the reserved set** and **not already assigned**
-6. Add each assigned disambiguated name to the reserved set to prevent future collisions
-
 **Pros**:
 - Human-readable keys (`icon`, `icon3` is immediately understandable)
 - `$extensions["com.figma"].originalName` follows the established Figma provenance convention — consistent with `TokenReference.$extensions` and `PropExtensions["com.figma"]`
 - Collision-safe — never steals a name that belongs to an existing element
 - Additive schema change (MINOR) — `$extensions` is optional, existing specs are unaffected
-- Simple algorithm — no dependency on node types or hierarchy depth
 
 **Cons / Trade-offs**:
-- Positional sensitivity: if a designer reorders two identically-named layers within the same anchor segment, their suffixes may swap, which changes the keys. This is inherent to any ordering-based tiebreaker.
-- Cross-variant matching depends on the global registry producing stable identities. If variant A has `[icon, label, icon]` and variant B has `[label, icon]`, anchor-adjacent matching correctly identifies the after-label Icon as the persistent element (96 variants > 1 variant) and assigns it the base name. The before-label Icon in A, appearing in fewer variants, gets the suffix. This is correct behavior.
-- Suffix numbers may not be contiguous (e.g., `icon`, `icon3` when `icon2` is reserved by an original layer name). This is intentional — contiguity is sacrificed for collision safety.
+- Key stability depends on the heuristic chain producing consistent identities across variants. When the chain reaches the weakest check (sibling index), reordering layers changes suffixes.
+- Suffix numbers may not be contiguous (e.g., `icon`, `icon3` when `icon2` is reserved by an original layer name). Intentional — contiguity is sacrificed for collision safety.
 
 ---
 
@@ -153,7 +143,7 @@ AnatomyElement:
 
 `$extensions` is present only when the component contains at least one duplicate name group. When a component has no duplicates, `$extensions` is omitted entirely (no noise for the common case).
 
-> **Future ADR**: A subsequent ADR will evaluate whether to add a **provenance signal** (e.g., `matchMethod`) to `$extensions["com.figma"]` indicating the heuristic used for cross-variant matching. This is a separable decision — disambiguation and collision-safe suffixing do not depend on it.
+> **Future ADR**: A subsequent ADR (045) evaluates whether to add a **provenance signal** (e.g., `matchMethod`) to `$extensions["com.figma"]` indicating which heuristic resolved each element's cross-variant identity. This is a separable decision — disambiguation and collision-safe suffixing do not depend on it.
 
 **Example — spec output with disambiguation** (collision-safe):
 ```yaml
@@ -162,11 +152,11 @@ AnatomyElement:
 
 # Collision-safe disambiguation:
 #   "checkbox" → reserved set: {checkbox, icon2, icon}
-#   1st checkbox → "checkbox" (first occurrence, keep as-is)
+#   1st checkbox → "checkbox" (base name — most prevalent or first)
 #   2nd checkbox → "checkbox2" not reserved → assign "checkbox2"
 #   3rd checkbox → "checkbox3" not reserved → assign "checkbox3"
-#   "icon2" → already in reserved set, first occurrence → "icon2" (keep as-is)
-#   1st icon → "icon" (first occurrence, keep as-is)
+#   "icon2" → already in reserved set, original name → "icon2" (keep as-is)
+#   1st icon → "icon" (base name)
 #   2nd icon → "icon2" IS reserved → skip; "icon3" not reserved → assign "icon3"
 
 anatomy:
@@ -272,7 +262,7 @@ $extensions:
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | **High** — Must implement disambiguation in traversal, element detection, layout serialization, and variant differencing | See architectural notes below |
+| `specs-from-figma` | **High** — Must implement two-phase disambiguation in traversal, element detection, layout serialization, and variant differencing | See architectural notes below |
 | `specs-cli` | **Low** — Recompile against new types. No behavioral change needed unless CLI renders element names (may want to show `originalName` in diagnostics) | Recompile |
 | `specs-plugin-2` | **Low** — Recompile against new types. Plugin UI may want to surface disambiguation warnings | Recompile |
 
@@ -280,77 +270,128 @@ $extensions:
 
 The following changes are needed in the processing engine. These are described at the architectural level — specific implementation is at the discretion of the package maintainers.
 
-**1. Disambiguation insertion point**
+#### 1. Two-phase architecture: Evaluation → Disambiguation
 
-Disambiguation must happen at the earliest point in the pipeline: during or immediately after `Anatomy.traverse()`, before nodes enter any `Record`-keyed structure. The disambiguated name replaces the raw Figma layer name for all downstream consumers — anatomy registration, element detection, layout serialization, and variant differencing all operate on the disambiguated key.
+Disambiguation separates **signal collection** from **identity resolution**:
 
-The disambiguation itself is not a simple per-node decision. It requires cross-variant coordination (see §2 below) because the same logical element must receive the same key in every variant. This means the traversal must either:
-- Run a lightweight survey pass across all variants **before** the main traversal, or
-- Defer name assignment until all variants have been traversed and then apply names retroactively
+- **Evaluation** (Phase 1) records raw facts about each element during traversal — no matching logic, no key assignment
+- **Disambiguation** (Phase 2) consumes those facts through an ordered heuristic chain to assign unique keys
 
-The survey-first approach is preferred because it avoids retroactive renaming of already-registered elements.
+This separation means the evaluation phase stays simple (observe and record), the heuristic chain is explicit and independently testable, and signals are reusable for diagnostics and provenance (ADR-045).
 
-**2. Cross-variant key stability — global registry with anchor-adjacent matching**
+#### 2. Phase 1 — Signal collection during traversal
 
-The critical challenge: ensuring the same logical element receives the same disambiguated key across all variants so that differencing produces correct diffs. Pure positional matching (1st icon → `icon`, 2nd icon → `icon2`) fails when variants have different element counts or ordering, because the "2nd icon" in one variant may not be the same element as the "2nd icon" in another.
+During anatomy traversal, each element in each variant logs:
 
-The solution is a **two-pass global registry** enhanced with **anchor-relative positioning** — using unique-named siblings as stable reference points to match duplicate elements across variants.
+| Signal | Description | Example |
+|--------|-------------|---------|
+| `layerName` | Figma layer name (after formatKey) | `icon` |
+| `layerType` | Figma node type | `INSTANCE` |
+| `ancestors` | Full ancestry chain, root to parent (name + type per level) | `[{name: "card", type: "FRAME"}, {name: "header", type: "FRAME"}]` |
+| `siblingIndex` | Position among same-name+type siblings within parent | `2` (2nd `INSTANCE` named `icon` in this parent) |
+| `nearestAnchor` | Closest unique-named sibling, if any | `{name: "label", direction: "right", distance: 1}` |
 
-#### Pass 1 — Survey and anchor identification
+Signals are stored per element per variant. No disambiguation decisions are made during this phase — the log is a pure record of what was observed.
 
-Scan all variants within each parent scope to build:
-1. A **global reserved set**: all original element names across all variants (for collision-safe suffix assignment)
-2. An **anchor set**: element names that appear **exactly once** within a given parent in **every variant that contains them**. These are stable reference points — they don't move relative to their duplicated neighbors.
-3. For each duplicate name, a **maximum occurrence count** across all variants
+The cost is lightweight: a few extra properties per node, all derived from data already available during traversal. Signals are discarded after Phase 2 completes (unless surfaced via ADR-045 provenance).
 
-```yaml
-# Variant A siblings: [icon, label, icon]
-# Variant B siblings: [icon, icon, label, icon]
+#### 3. Phase 2 — Ordered heuristic chain
 
-# Anchors within this parent:
-#   "label" — appears exactly 1× in VA, 1× in VB → ✓ anchor
-#   "icon" — appears 2× in VA, 3× in VB → ✗ not an anchor
+For elements sharing a name within a variant, apply checks in order. Each check runs **only on elements still ambiguous** after the previous check:
 
-# Global reserved set: {icon, label}
-# Max "icon" count: 3 (from variant B)
-```
-
-#### Pass 2 — Anchor-adjacent identity assignment
-
-For each group of duplicates sharing a name within a parent, split occurrences into **segments** bounded by anchors. Within each segment, match duplicates **from the anchor boundary inward** — elements closest to the anchor have the strongest identity signal and are matched first:
-
-- **Before-anchor** segments: match right-to-left (from anchor side inward)
-- **After-anchor** segments: match left-to-right (from anchor side inward)
-- **Between two anchors**: match inward from both sides (nearest anchor wins)
-
-##### Why anchor-adjacent over left-to-right positional?
-
-Two matching directions are plausible:
-
-- **Left-to-right positional**: 1st duplicate → `icon`, 2nd → `icon2`, 3rd → `icon3`. Simple, but assigns identity based on absolute position with no awareness of surrounding context.
-- **Anchor-adjacent**: match from the nearest unique landmark inward. Assigns identity based on structural relationship to stable reference points.
-
-Anchor-adjacent is preferred for three reasons:
-
-**1. Terminal elements have distinct semantic roles in real UI patterns.** A breadcrumb trail's last `Link` is always the current page. A table row's last `Cell` is typically the actions column. A form's bottom element is the submit button. Left-to-right positional matching assigns the base name to the first element and pushes new suffixes rightward — but when a variant adds items, the *last* element (often semantically distinct) drifts to a different suffix. Anchor-adjacent matching anchors terminal elements to their adjacent landmark and keeps their suffix stable.
+| # | Check | Resolves when... | Confidence |
+|---|-------|-------------------|------------|
+| 1 | **Layer name** | Name is unique across the variant | Highest |
+| 2 | **+ layer type** | Adding node type narrows to unique identity | High |
+| 3 | **+ ancestry chain** | Elements have different ancestor paths (walk up one level at a time) | High |
+| 4 | **+ nearest anchor neighbor** | A unique-named sibling nearby stabilizes identity | Medium |
+| 5 | **+ sibling index** | Position among same-name+type siblings within parent | Lowest |
 
 ```yaml
-# Breadcrumb: last Link = current page
-# VA: [Link, Separator, Link, Separator, Link]
-# VB: [Link, Separator, Link, Separator, Link, Separator, Link]
-#
-# Left-to-right: VA Link₃ = "link3", VB Link₃ = "link3" ← same suffix, but
-#   VA link3 is "current page", VB link3 is a middle link. Mismatch.
-#
-# Anchor-adjacent (Separator as anchor, last Link as right-edge identity):
-#   VA's last Link and VB's last Link both get the same suffix. Correct match.
+# Which check resolves each case?
+
+# [Icon(INSTANCE), Label, Icon(FRAME)]
+#   → Check 2: name+type distinguishes INSTANCE from FRAME
+
+# Header > [Icon, Icon], Footer > [Icon]
+#   → Check 3: ancestry distinguishes Header vs Footer icons
+#   → Header's two Icons continue to checks 4–5
+
+# [Icon, Label, Icon]  (same type, same parent)
+#   → Check 4: one Icon is left-of-Label, one is right-of-Label
+
+# [Star, Star, Star, Star, Star]  (homogeneous, no anchors)
+#   → Check 5: positional index is the only signal
 ```
 
-**2. Right-edge growth is the dominant pattern.** Across star ratings, steppers, form fields, navigation tabs, accordion sections, and breadcrumbs, new repeated elements are added at the trailing edge. Anchor-adjacent matching keeps existing elements (near anchors) stable and assigns fresh suffixes to newly appended elements at the far edge of each segment.
+**Check 4 vs Check 5 — why ordered, not competing**: They solve different failure modes. Anchor neighbors are resilient to insertion/deletion (the anchor stays put even when new siblings appear). Sibling index is fragile to insertion/deletion (indices shift) but always available. Anchor first, index as fallback.
 
-**3. Anchor-adjacent degrades gracefully to positional.** When no anchors exist (e.g., five `Star` layers with no unique siblings), anchor-adjacent falls back to left-to-right positional — the only option. When anchors do exist, anchor-adjacent strictly improves on positional by using contextual information. There is no case where positional produces better matches than anchor-adjacent given the same anchor set.
+```yaml
+# Insertion resilience:
+#   V1: [icon, icon, button]
+#   V2: [icon, checkbox, icon, button]
+#
+# Check 5 (sibling index): V1 icon(2) and V2 icon(2) match by index.
+#   But did checkbox get inserted between them or before both? Index can't tell.
+#
+# Check 4 (anchor neighbor): V1's 2nd icon is adjacent to "button" (unique).
+#   V2's 2nd icon is also adjacent to "button". Anchored match — insertion-proof.
+```
 
-##### Worked example
+#### 4. Ancestry — top-down resolution
+
+When two elements share a name and exist in different subtrees, the ancestry chain (Check 3) distinguishes them without sibling-level heuristics. Resolution proceeds **top-down** — disambiguate each depth level before descending to its children:
+
+```yaml
+# Same-named parents:
+#   Section > [icon, label, icon],  Section > [icon, label, icon]
+#
+# Step 1 — disambiguate depth 1:
+#   section, section2
+#
+# Step 2 — each disambiguated parent scopes its children:
+#   section  > [icon, label, icon]  → icon, label, icon2
+#   section2 > [icon, label, icon]  → icon, label, icon2
+#
+# Four distinct icons — ancestry separates section/section2,
+# then checks 4–5 separate icon/icon2 within each.
+```
+
+Top-down resolution is a natural fit for depth-first traversal: parents are visited before children, so by the time the algorithm reaches a child scope, its parent's disambiguated key is already assigned.
+
+**Container matching across variants**: Containers are matched by their **disambiguated key**, not by path. If `header` has a unique name, it's the same container whether it sits under `card` or `sidebar`. Children scoped within `header` in V1 match children within `header` in V2. The layout diff captures the structural change; the element diff captures style changes.
+
+#### 5. Cross-variant key stability
+
+The heuristic chain resolves within-variant disambiguation. **Cross-variant matching uses the flat anatomy key only** — an element keyed as `icon` in V1 matches `icon` in V2, regardless of which parent it's under. This is consistent with how `Anatomy = Record<string, AnatomyElement>` works today.
+
+The risk is **suffix instability**: the same logical element receiving different keys in different variants. The fix is **prevalence-based naming** — the identity appearing in the most variants gets the base name:
+
+```yaml
+# V1:     [Icon₁, Label, Icon₂]   (2 icons)
+# V2-V96: [Label, Icon₂]          (1 icon — the after-label one)
+#
+# Traversal-order assignment would give Icon₁ the base name in V1,
+# but Icon₂ gets it in V2-V96. Result: 95 wrong comparisons.
+#
+# Prevalence-based:
+#   Icon₂ (after-label) → 96 variants → "icon" (base name)
+#   Icon₁ (before-label) → 1 variant  → "icon2"
+#
+# V1:     icon2, label, icon
+# V2-V96: label, icon
+# Cross-variant: V2's "icon" matches V1's "icon" — correct.
+```
+
+**Suffix assignment algorithm**:
+1. Collect all original names into a **reserved set**
+2. Identify distinct identities via the heuristic chain across all variants
+3. Rank by **cross-variant prevalence** — most variants gets base name
+4. Ties → break by first traversal appearance
+5. Assign collision-safe suffixes (skip reserved names)
+6. Add each assigned name to the reserved set
+
+#### 6. Worked example — anchor-adjacent matching (Check 4)
 
 ```yaml
 # Segments divided by anchor "label":
@@ -365,276 +406,100 @@ Anchor-adjacent is preferred for three reasons:
 
 # Anchor-adjacent matching (before-label = right-to-left from anchor):
 #   VA before-label, adjacent to label (pos 0):  icon  ─┐
-#   VB before-label, adjacent to label (pos 1):  icon  ─┘ SAME element
-#   VB before-label, far from label (pos 0):     icon  → NEW element
-#
+#   VB before-label, adjacent to label (pos 1):  icon  ─┘ SAME identity
+#   VB before-label, far from label (pos 0):     icon  → NEW identity
+
 # Anchor-adjacent matching (after-label = left-to-right from anchor):
 #   VA after-label, adjacent to label (pos 0):   icon  ─┐
-#   VB after-label, adjacent to label (pos 0):   icon  ─┘ SAME element
+#   VB after-label, adjacent to label (pos 0):   icon  ─┘ SAME identity
 
-# Three distinct identities, suffixes assigned by cross-variant prevalence:
-#   Identity 1 (before-label, adjacent) → appears in VA + VB (2 variants) → "icon"
-#   Identity 2 (after-label, adjacent)  → appears in VA + VB (2 variants) → "icon2" (tie, broken by first traversal)
-#   Identity 3 (before-label, far)      → appears in VB only (1 variant)  → "icon3"
+# Three distinct identities, suffixes by prevalence:
+#   Identity 1 (before-label, adjacent) → VA + VB → "icon"
+#   Identity 2 (after-label, adjacent)  → VA + VB → "icon2" (tie, first traversal)
+#   Identity 3 (before-label, far)      → VB only → "icon3"
 #
-# In this example prevalence is tied for identities 1 and 2 (both in 2 variants),
-# so the tiebreaker (traversal order) applies. In a real scenario where VA has
-# both icons but VB-V96 have only the after-label icon:
-#   after-label identity → 96 variants → "icon" (base name — most prevalent)
-#   before-label identity → 1 variant  → "icon2"
-
-# Final disambiguation (for this 2-variant example):
-#   Variant A: icon, label, icon2
-#   Variant B: icon3, icon, label, icon2
-#
-# "icon" (adjacent to label, left side) is the SAME element in both variants.
-# "icon2" (adjacent to label, right side) is the SAME element in both variants.
-# "icon3" appears only in VB — new element, correctly surfaced as a variant diff.
+# Variant A: icon, label, icon2
+# Variant B: icon3, icon, label, icon2
 ```
 
-##### Multi-anchor example
-
-When multiple anchors exist, they create finer-grained segments. Matching radiates inward from the nearest anchor:
+With multiple anchors, segments get finer-grained:
 
 ```yaml
 # Variant A: [icon, label, description, icon]
 # Variant B: [icon, icon, label, icon, description, icon]
-
+#
 # Anchors: "label" and "description" (both unique in all variants)
 # Segments: BEFORE-label, BETWEEN-label-description, AFTER-description
-
+#
 # VA segments: [icon], [], [icon]
 # VB segments: [icon, icon], [icon], [icon]
-
-# Anchor-adjacent matching:
-#   before-label (right-to-left from label):
-#     VA [icon←]     →  VB [icon, icon←]  → adjacent icons match
-#     VB pos 0 icon  →  NEW (far from label)
 #
-#   between-label-description (match from nearest anchor):
-#     VA []          →  VB [icon]  → VB only → NEW
+# Matching per segment (from nearest anchor inward):
+#   before-label:          VA 1 icon,  VB 2 icons → adjacent match + 1 new
+#   between-label-desc:    VA 0 icons, VB 1 icon  → VB only, new
+#   after-description:     VA 1 icon,  VB 1 icon  → match
 #
-#   after-description (left-to-right from description):
-#     VA [→icon]     →  VB [→icon]  → match
-
-# Identities and suffix assignment (by prevalence, then traversal order):
-#   Identity 1 (before-label, adjacent)         → VA + VB (2 variants) → "icon"
-#   Identity 2 (after-description, adjacent)    → VA + VB (2 variants) → "icon2"
-#   Identity 3 (between-label-desc, adjacent)   → VB only (1 variant)  → "icon3"
-#   Identity 4 (before-label, far)              → VB only (1 variant)  → "icon4"
-
-# Variant A: icon, label, description, icon2
-# Variant B: icon4, icon, label, icon3, description, icon2
+# Result:
+#   Variant A: icon, label, description, icon2
+#   Variant B: icon4, icon, label, icon3, description, icon2
 ```
 
-#### Adversarial cases from real UI patterns
-
-The following cases stress-test the algorithm against common component structures. Each is categorized by **confidence level** — how reliably the algorithm produces correct matches.
+#### 7. Adversarial cases
 
 ##### High confidence — algorithm matches designer intent
 
 | Pattern | Structure | Why it works |
 |---------|-----------|-------------|
-| **Alert/Banner** (`[Icon, Content, Icon]`) | Two `Icon` siblings flanking a unique `Content` anchor | `Content` is the anchor. Leading icon = before-content, trailing icon = after-content. Correct even when `has-close=false` removes the trailing icon. |
-| **Breadcrumb** (`[Link, Sep, Link, Sep, Link]`) | Interleaved `Link` + `Separator` pairs | Each `Separator` is an anchor (unique per occurrence since the Links are the duplicates). The current-page `Link` (always last) stays matched to its adjacent separator. |
-| **Card icons** (`Header > [Icon], Footer > [Icon]`) | Duplicates in **different subtrees** | **Ancestry containment** is the strongest disambiguation signal — each `Icon` is scoped by its full containment path (`Header` vs `Footer`) and receives a distinct key without any sibling-level heuristic. See *Disambiguation hierarchy* below. |
+| **Alert/Banner** (`[Icon, Content, Icon]`) | Two `Icon` siblings flanking unique `Content` | Check 4: leading icon = before-Content, trailing icon = after-Content. Correct even when `has-close=false` removes the trailing icon. |
+| **Breadcrumb** (`[Link, Sep, Link, Sep, Link]`) | Interleaved `Link` + `Separator` pairs | Check 4: each `Separator` is an anchor. The current-page `Link` (always last) stays matched to its adjacent separator. |
+| **Card icons** (`Header > [Icon], Footer > [Icon]`) | Duplicates in different subtrees | Check 3: ancestry distinguishes `Header > Icon` from `Footer > Icon`. |
 
-##### Medium confidence — correct for typical usage, fragile under reordering
+##### Medium confidence — correct for typical usage
 
 | Pattern | Structure | Risk |
 |---------|-----------|------|
-| **Form fields** (`[Field, Field, Field, Submit]`) | Repeated `Field` with a unique `Submit` anchor at the bottom | Anchor-adjacent matches right-to-left from `Submit`, keeping the field *nearest* Submit stable. But new optional fields are typically inserted *just before* Submit (e.g., VA: `[Name, Email, Submit]`, VB: `[Name, Email, Phone, Submit]`). This shifts the "nearest to Submit" identity to the new field, mismatching the original fields. **Left-to-right positional would be more accurate here**, but the algorithm can't know growth direction. Correct when fields are appended at the top; **breaks** when inserted before Submit. |
-| **Star rating** (`[Star, Star, Star, Star, Star]`) | Homogeneous duplicates, no anchors | Falls back to left-to-right positional. Correct when `count` variants remove from the right (the dominant pattern). **Breaks** if a designer reverses layer order for RTL layout. |
-| **Navigation tabs** (`[Tab, Tab, Tab]`) | Homogeneous duplicates, no anchors | Same as stars — positional fallback. Correct for `count` variants. **Breaks** if `selected` is implemented by moving the active tab to position 0. |
-| **Stepper** (`[Step, Step, Step]`) | Homogeneous duplicates if no unique connector/label between steps | Falls back to positional. Correct when steps grow from the right. **Breaks** if a designer inserts steps in the middle of an existing sequence. |
+| **Form fields** (`[Field, ..., Submit]`) | Repeated `Field` with unique `Submit` anchor | Check 4 matches right-to-left from Submit. Correct when fields append at top. Breaks when inserted just before Submit (shifts the "nearest" identity). |
+| **Star rating** (`[Star × 5]`) | Homogeneous duplicates, no anchors | Check 5 (positional fallback). Correct when count variants remove from the right. Breaks on layer reordering. |
 
-##### Low confidence — algorithm produces a result but may mismatch
+##### Low confidence — may mismatch
 
 | Pattern | Scenario | What goes wrong |
 |---------|----------|----------------|
-| **Semantic reordering** | VA: `[icon-A, icon-B]`, VB: `[icon-B, icon-A]` — both named `Icon`, swapped | Positional matching assigns `icon` and `icon2` based on position. A becomes icon in VA but icon2 in VB. **No positional scheme can detect semantic identity swaps** without external metadata. |
-| **Accordion nested** | `[Header, Chevron, Content, Header, Chevron, Content]` at multiple nesting depths | After flattening, `Header` appears 2× as siblings even though they belong to different `Section` parents. **Mitigation**: per-parent scoping already handles this — each `Section`'s children are disambiguated independently. |
-| **Table column reordering** | VA: `[Cell-checkbox, Cell-name, Cell-actions]`, VB: `[Cell-name, Cell-checkbox, Cell-actions]` — all named `Cell` | If only `Cell-actions` (last) is an anchor, the other two cells are in the before-anchor segment and matched right-to-left. Reordering swaps their suffixes. **Acceptable**: column reordering is uncommon in variant sets; when it occurs, the resulting diff is larger but not lossy. |
+| **Semantic swap** | VA: `[icon-A, icon-B]`, VB: `[icon-B, icon-A]` — both named `Icon`, swapped | No check can detect semantic identity swaps without external metadata. |
+| **Column reorder** | All named `Cell`, only last is anchored | Reordering before the anchor swaps suffixes. Acceptable: output is still lossless, only diff granularity degrades. |
 
-#### Disambiguation hierarchy
+#### 8. Error tolerance
 
-The algorithm applies three disambiguation signals in order of strength:
+Mismatched keys produce **larger variant diffs** (element appears as "removed in VA, added in VB" instead of "changed between VA and VB") but never produce **data loss**. Every element is always represented. The only cost of a mismatch is suboptimal diff granularity.
 
-1. **Ancestry containment** (strongest **when tree structure is stable**) — Elements with the same name in different subtrees are already distinct. An `Icon` inside `Card > Header > Actions` and an `Icon` inside `Card > Footer > Links` are separate scopes — their keys are disambiguated by the full ancestry path, not by suffix. This is the most reliable signal because it reflects the designer's structural intent: grouping elements under named containers is an explicit organizational choice.
+#### 9. Edge cases
 
-   The containment signal extends through the **full ancestry chain**, not just the immediate parent. Every named ancestor contributes to the scope. This means disambiguation must proceed **top-down** — resolve each depth level before descending to its children:
+- **No anchors**: All siblings share the same name → Check 5 (positional). Weakest but always available.
+- **Anchor absent in some variants**: Only names present in every variant that contains them qualify as anchors. If an anchor is optional, its segments merge in variants where it's absent.
+- **formatKey collisions**: `My Icon` and `myIcon` both → `myIcon` in camelCase. Treated as a duplicate. `originalName` records the formatted key of the dominant name.
+- **Anchor ordering inconsistency**: If anchors appear in different orders across variants, segment boundaries diverge. Falls back to positional for affected segments.
 
-   ```yaml
-   # Same-named parents are themselves duplicates:
-   #   Section, Section (siblings at depth 1)
-   #
-   # Step 1 — disambiguate depth 1:
-   #   section, section2
-   #
-   # Step 2 — each disambiguated parent scopes its children independently:
-   #   section  > [icon, label, icon]  → icon, label, icon2  (scoped to section)
-   #   section2 > [icon, label, icon]  → icon, label, icon2  (scoped to section2)
-   #
-   # These are four distinct icons — ancestry separates section/section2,
-   # then sibling disambiguation separates icon/icon2 within each.
-   ```
+#### 10. Implementation sequencing
 
-   Top-down resolution is a natural fit for depth-first traversal: parents are visited before children, so by the time the algorithm reaches a child scope, its parent's disambiguated key is already assigned.
+1. **`specs-schema`**: Add `$extensions` to `AnatomyElement` type and schema. Publish as `0.22.0` (MINOR).
+2. **`specs-from-figma`**:
+   - **Phase A — Signal collection**: Implement evaluation logging during traversal. No output changes — observability only.
+   - **Phase B — Heuristic chain + suffix assignment**: Apply the ordered checks, assign collision-safe suffixes. All `Record`-keyed structures receive disambiguated keys. Add `$extensions["com.figma"].originalName`.
+   - **Phase C — Parity testing**: Validate against ground-truth fixtures. Components with unique names must produce identical output.
+3. **`specs-plugin-2`** / **`specs-cli`**: Recompile against new schema types.
 
-   **Limitation — tree restructuring across variants**: Ancestry containment assumes the tree structure is stable across variants. When a container moves between parents across variants, ancestry paths diverge and the containment signal becomes ambiguous:
-
-   ```yaml
-   # V1: L1 > L2 > L3 > L4 > Icon    (Icon A)
-   #     L1 > L5 > L6 > Icon          (Icon B)
-   #
-   # V2: L1 > L2 > L3 > L6 > Icon    (which V1 Icon does this match?)
-   #
-   # Immediate parent says Icon B (both under L6).
-   # Longest ancestry prefix says Icon A (shares L1 > L2 > L3).
-   # The signals conflict.
-   ```
-
-   This reveals that ancestry doesn't eliminate the cross-variant matching problem — it **moves it up the tree**. Before you can scope children within a parent, you need to know which parent in V1 corresponds to which parent in V2. When containers themselves migrate between ancestors, the algorithm faces the same identity question at the container level.
-
-   **Resolution rule — match containers by name, not path**: Containers are matched across variants by their **disambiguated key**, regardless of where they sit in the tree. If `L6` has a unique name, it's the same container whether it's under `L5` or `L3`. Children scoped within `L6` in V1 match children scoped within `L6` in V2. The layout diff captures the structural change (L6 moved); the element diff captures style changes within it. This is consistent with how the existing anatomy model works — the flat `Anatomy = Record<string, AnatomyElement>` keys elements by name, not by path, so elements that move between parents already retain their identity as long as the key matches.
-
-   In practice, tree restructuring across variants is uncommon — most component variants change leaf-level visibility and properties, not container hierarchy. When it does occur, name-based container matching produces correct results for the common case (a container moved to a different parent) and acceptable degradation for the rare case (a container replaced by a different container with the same name).
-
-2. **Anchor-adjacent matching** (strong) — Within a single parent, unique-named siblings serve as stable landmarks. Duplicates are matched by proximity to these anchors. Effective when the parent contains a mix of unique and repeated names.
-
-3. **Positional fallback** (weakest) — When no anchors exist within a parent (all siblings share the same name), fall back to left-to-right order. Correct only when growth happens at the trailing edge.
-
-Most real components benefit from levels 1 and 2. Homogeneous sibling groups (level 3 only) are the minority case — and even there, the output is lossless; only diff granularity degrades.
-
-#### Error risk scale
-
-The algorithm's matching quality depends on the **anchor density** — the ratio of unique-named siblings to total siblings within a parent:
-
-| Anchor density | Matching quality | Example |
-|----------------|-----------------|---------|
-| **High** (>50% unique) | Excellent — most duplicates are sandwiched between anchors | `[Icon, Label, Input, Icon, HelperText]` — 3 anchors, 2 duplicate Icons |
-| **Medium** (1+ anchor, <50%) | Good — terminal elements match well; interior may be positional | `[Cell, Cell, Cell, Actions]` — 1 anchor, 3 duplicate Cells |
-| **Zero** (no anchors) | Positional fallback — correct for right-edge growth only | `[Star, Star, Star, Star, Star]` — 0 anchors |
-
-**Error tolerance**: Mismatched keys produce **larger variant diffs** (element appears as "removed in VA, added in VB" instead of "changed between VA and VB") but never produce **data loss**. The output is always lossless — every element is represented. The only cost of a mismatch is suboptimal diff granularity: a style change on a mismatched element shows as a full element diff rather than a targeted property diff. This is an acceptable degradation for low-confidence cases.
-
-#### Performance considerations
-
-The two-pass approach adds one lightweight traversal over all variants:
-
-- **Pass 1 (survey)**: Iterate each variant's children within each parent, collecting name counts and identifying anchors. This is a name-counting pass only — no element processing, no style detection, no property extraction. Cost: O(V × N) where V = variant count, N = average children per parent.
-- **Pass 2 (assign)**: Segment children by anchors, match across variants within each segment. Cost: O(V × N × A) where A = anchor count per parent. In practice, A is small (typically 1–5).
-- **Total overhead**: Negligible relative to the existing processing pipeline, which performs Figma API calls, style extraction, and variant differencing. The survey pass touches only node names — no I/O, no async operations.
-- **Worst case**: A component with hundreds of variants and deep nesting. Even here, the survey pass is bounded by the total node count across all variants, which is already traversed during the existing `Anatomy.traverse()` call. The added cost is a second traversal of the same nodes collecting only names.
-
-#### Edge cases and fallbacks
-
-**No anchors available**: If all siblings within a parent are duplicates (e.g., `[Star, Star, Star, Star, Star]` with no unique names), fall back to **left-to-right absolute position within parent** — 1st → `star`, 2nd → `star2`, 3rd → `star3`. This is the weakest heuristic but the only option when no context is available. Positional matching here means a designer reordering layers changes suffix assignment — an accepted trade-off when no anchors exist to provide stability.
-
-**Anchor itself is absent in some variants**: If `label` appears in variant A but not variant B, it cannot serve as an anchor. Only names present in **every variant that contains them** qualify. In practice, this means: if an anchor is optional (absent in some variants), its segments are merged with adjacent segments in variants where it's missing.
-
-**Nested duplicates**: Disambiguation is scoped by the full ancestry path (see *Disambiguation hierarchy*, level 1). A container `header` with children `[icon, icon]` and a sibling container `footer` with children `[icon, icon]` are separate scopes — the Icons are distinguished by containment, not suffix. When the containers themselves are duplicates (e.g., two `Section` siblings), top-down resolution disambiguates parents first (`section`, `section2`), then scopes child disambiguation independently within each. This recursive descent is the primary defense against the "same name, different purpose" scenario (Context §2) — the designer's grouping structure, at every depth, is what distinguishes elements.
-
-**Anchor ordering inconsistency**: If anchors themselves appear in different orders across variants (e.g., VA has `[label, description]` but VB has `[description, label]`), the segment boundaries diverge and anchor-relative matching degrades. This is treated as a design inconsistency — the algorithm falls back to absolute position for affected segments and emits a diagnostic warning.
-
-**formatKey collisions**: Two distinct Figma names could format to the same key (e.g., `My Icon` and `myIcon` both → `myIcon` in camelCase). This is treated as a duplicate even though the original names differ. The `$extensions["com.figma"].originalName` field records the formatted key of the dominant name; the collision is surfaced in the same way as a true duplicate.
-
-**3. Variant differencing accuracy**
-
-Once elements have stable, anchor-relative disambiguated keys:
-- `Elements.compare()` matches by disambiguated key — no change to comparison logic needed. Because anchor-relative matching ensures the same logical element gets the same key across variants, diffs correctly identify which elements changed vs. which are new/removed.
-- `Differencer.establishBaselineParity()` sees the full element set (no silent losses) — parity is established correctly
-- Layout diffing compares trees with disambiguated keys — structural differences are detected accurately
-- Elements that exist in some variants but not others (e.g., `icon3` appears only in variant B) surface as expected variant diffs, not as mismatched keys
-
-**4. Floating elements across variants**
-
-Cross-variant matching is **always by flat key** — the parent is irrelevant. This is critical to preserve and is consistent with how the existing `Anatomy = Record<string, AnatomyElement>` model works today.
-
-An element that appears at different hierarchy positions in different variants (e.g., `Icon` as a child of `Header` in variant A, child of `Footer` in variant B, child of `Sidebar` in variant C) is the **same element** as long as its disambiguated key matches. The layout diff captures the structural change; the element diff captures style changes. This holds regardless of how many variants exist or how many different parents the element moves through — 96 variants with one `Icon` each, every time under a different parent, all resolve to key `icon` and are tracked as one element.
-
-This distinction is important: **ancestry containment scopes the within-variant disambiguation** (which sibling gets `icon` vs `icon2`), but **cross-variant matching uses the flat key only**. These are two separate steps:
-
-1. **Within-variant disambiguation** — Per-parent scope, anchor-adjacent matching, and positional fallback assign unique keys within each variant. This is where ancestry matters.
-2. **Cross-variant matching** — The flat anatomy key is used to match elements across variants. An element keyed as `icon` in V1 matches an element keyed as `icon` in V2, regardless of which parent it's under in each variant. This is where ancestry is irrelevant.
-
-```yaml
-# V1: Header > [Icon, Label, Icon]   → icon, label, icon2  (within Header)
-# V2: Footer > [Icon, Label, Icon]   → icon, label, icon2  (within Footer)
-#
-# Cross-variant matching (flat key):
-#   V1 "icon"  ↔ V2 "icon"    ← same element (parents differ, key matches)
-#   V1 "icon2" ↔ V2 "icon2"   ← same element
-#   V1 "label" ↔ V2 "label"   ← same element
-#
-# The layout diff shows: elements moved from Header to Footer.
-# The element diffs show: style changes (if any) between variants.
-```
-
-The risk in cross-variant matching is **suffix instability** — the same logical element receiving different keys in different variants. This can happen when suffix assignment is based on traversal order alone:
-
-```yaml
-# V1:     [Icon₁, Label, Icon₂]  → icon, label, icon2
-# V2-V96: [Label, Icon₂]         → label, icon
-#
-# Traversal-order assignment: V1 assigns "icon" to Icon₁ (first encountered)
-# and "icon2" to Icon₂. V2-V96 assign "icon" to Icon₂ (only one Icon).
-#
-# Cross-variant matching: V2's "icon" matches V1's "icon" — but those are
-# DIFFERENT elements. Icon₂ is "icon2" in V1 and "icon" in V2.
-# Result: 95 wrong comparisons.
-```
-
-The fix: suffix assignment must use **cross-variant prevalence**, not traversal order (see Algorithm, step 3). The global two-pass registry identifies identities first (via anchor-adjacent matching), then assigns the base name to the identity appearing in the **most variants**:
-
-```yaml
-# Identity A (before-label Icon₁) → 1 variant   → "icon2"
-# Identity B (after-label Icon₂)  → 96 variants  → "icon" (base name)
-#
-# V1:     icon2, label, icon    ← Icon₁ gets the suffix
-# V2-V96: label, icon           ← Icon₂ keeps the base name
-#
-# Cross-variant matching: V2's "icon" matches V1's "icon" — CORRECT.
-# The persistent element gets the stable key everywhere.
-```
-
-This ensures that the element appearing in the most variants always gets the base name, and optional/rare elements get suffixes — regardless of which variant is traversed first.
-
-**5. Implementation sequencing**
-
-The work spans two repos and should proceed in this order:
-
-1. **`specs-schema`**: Add `$extensions` to `AnatomyElement` type and schema. Publish as `0.22.0` (MINOR). This is a trivial, low-risk change.
-2. **`specs-from-figma`**: Implement the global registry, anchor-adjacent matching, and collision-safe suffix assignment. This is the bulk of the work. Split into sub-milestones:
-   - **Phase A — Survey infrastructure**: Implement the two-pass survey (name counting, anchor identification) without changing output. Add logging/diagnostics that report which components have duplicate names and what anchors were identified. This is observability-only — no output changes.
-   - **Phase B — Disambiguation**: Apply suffix assignment. All `Record`-keyed structures (`Anatomy._items`, `Elements._items`, `Layout.serialize()`) receive disambiguated keys. Add `$extensions["com.figma"].originalName` to anatomy elements whose key differs from their Figma layer name. This changes output for components with duplicate names.
-   - **Phase C — Parity testing**: Run the parity test suite (`specs-testing`) against ground-truth fixtures to validate that disambiguated output is correct and that components with unique names produce identical output.
-3. **`specs-plugin-2`**: Recompile against new schema types. Optionally surface disambiguation warnings in the plugin UI.
-4. **`specs-cli`**: Recompile. No behavioral changes required.
-
-**6. Testing strategy**
-
-Validation requires both **unit tests** (in `specs-from-figma`) and **parity tests** (in `specs-testing`).
+#### 11. Testing strategy
 
 Unit tests in `specs-from-figma`:
-- **Collision-safe suffix**: Input `[icon, icon, icon2]` → output `[icon, icon3, icon2]`. Verify `icon2` is not stolen.
-- **Anchor identification**: Given variants with known layer structures, verify the correct anchor set is computed.
-- **Anchor-adjacent matching**: Given two variants with different duplicate counts, verify segment assignment and identity matching produce expected keys.
-- **No-anchor fallback**: Homogeneous duplicates `[star, star, star]` → positional `[star, star2, star3]`.
-- **Cross-variant stability**: Process the same component multiple times with different variant ordering — output must be identical regardless of processing order.
-- **Passthrough for unique names**: Components with no duplicate names produce identical output to the current (pre-disambiguation) engine. Zero `$extensions` fields in output.
+- **Collision-safe suffix**: Input `[icon, icon, icon2]` → output `[icon, icon3, icon2]`
+- **Heuristic chain levels**: Test cases that resolve at each check level (name, type, ancestry, anchor, index)
+- **Cross-variant prevalence**: 96-variant scenario — persistent element gets base name
+- **Passthrough**: Components with unique names produce identical output, zero `$extensions`
 
 Parity tests in `specs-testing`:
-- Add Figma test fixtures containing deliberate duplicate names (repeating instances, same-name-different-subtree, floating elements).
-- Verify plugin (`specs-plugin-2`) and CLI (`specs-cli`) produce identical output for these fixtures.
-- Regression: existing fixtures with unique names must produce byte-identical output.
-
-**7. Rollout impact**
-
-- **Components with unique names** (the vast majority): **No output change.** Disambiguation produces no suffixes, no `$extensions` fields. Output is identical to pre-ADR behavior.
-- **Components with duplicate names**: Output changes — previously lost elements now appear in anatomy, elements, and layout. This is a correctness improvement, not a regression, but consumers parsing spec output may see new keys they didn't expect.
-- **No feature flag needed**: The disambiguation algorithm is deterministic and always-on. There is no "old mode" worth preserving — the old behavior was silent data loss.
-- **Breaking change for downstream parsers?**: No. The schema change is additive (new optional `$extensions`). The key format change (new suffixed keys) only affects components that previously had data loss — those consumers were already receiving incorrect output.
+- Figma fixtures with deliberate duplicate names (repeating instances, different-subtree, floating elements)
+- Plugin and CLI produce identical output for disambiguation fixtures
+- Existing fixtures with unique names produce byte-identical output
 
 ---
 
@@ -653,6 +518,6 @@ Parity tests in `specs-testing`:
 - Consumers can distinguish between an element named `icon2` by the designer and one disambiguated from `icon` by checking for `$extensions["com.figma"].originalName`
 - The collision-safe algorithm guarantees no name theft — an original `icon2` layer is never displaced by a disambiguated `icon` duplicate
 - Variant differencing operates on complete element sets, producing accurate diffs
-- The disambiguation suffix format (`name`, `name3`, `name4` with collision skipping) becomes a de facto convention in spec output, though it is not enforced by the schema — suffix numbers may be non-contiguous
-- `specs-from-figma` requires significant architectural changes in traversal, element detection, and variant differencing — this is the primary implementation cost
-- The `$extensions` pattern on `AnatomyElement` opens the door for future Figma provenance metadata on anatomy (e.g., match method confidence signals, node IDs, layer visibility) without additional schema changes — a subsequent ADR will evaluate this
+- **Evaluation/disambiguation separation** makes the algorithm testable at two levels: "did we collect the right signals?" and "did we resolve correctly given these signals?"
+- The ordered heuristic chain (name → type → ancestry → anchor → index) provides explicit, auditable disambiguation with graceful degradation
+- The `$extensions` pattern on `AnatomyElement` opens the door for future Figma provenance metadata (ADR-045 evaluates a `matchMethod` signal indicating which heuristic resolved each element)
