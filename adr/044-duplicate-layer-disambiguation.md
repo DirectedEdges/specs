@@ -71,11 +71,12 @@ The suffix algorithm must be **collision-safe** — it cannot assign a suffix th
 ```
 
 Algorithm:
-1. Collect all original element names in the current scope into a **reserved set**
-2. First occurrence of a name → use as-is
-3. Subsequent occurrences → find the lowest available suffix (`name2`, `name3`, ...) that is **not in the reserved set** and **not already assigned**
-4. Add each assigned disambiguated name to the reserved set to prevent future collisions
-5. Suffixes are assigned by **traversal order within a single variant** (depth-first, matching Figma's layer panel order)
+1. Collect all original element names across all variants into a **reserved set**
+2. For each duplicate name group, identify distinct identities via the global two-pass registry (§2: anchor-adjacent matching across variants)
+3. Rank identities by **cross-variant prevalence** — the identity appearing in the most variants gets the base name; less prevalent identities get ascending suffixes
+4. Ties in prevalence → break by first traversal appearance (depth-first order in the first variant encountered)
+5. Each assigned suffix must be **collision-safe**: find the lowest available suffix (`name2`, `name3`, ...) that is **not in the reserved set** and **not already assigned**
+6. Add each assigned disambiguated name to the reserved set to prevent future collisions
 
 **Pros**:
 - Human-readable keys (`icon`, `icon3` is immediately understandable)
@@ -85,8 +86,8 @@ Algorithm:
 - Simple algorithm — no dependency on node types or hierarchy depth
 
 **Cons / Trade-offs**:
-- Positional sensitivity: if a designer reorders two identically-named layers, their suffixes swap, which changes the keys. This is inherent to any ordering-based scheme.
-- Cross-variant matching relies on traversal-order consistency. If variant A has `[icon, label, icon]` and variant B has `[label, icon]`, the single `icon` in B matches `icon` (the first) in A by name. The second `icon3` in A has no match in B — it appears as a diff. This is correct behavior.
+- Positional sensitivity: if a designer reorders two identically-named layers within the same anchor segment, their suffixes may swap, which changes the keys. This is inherent to any ordering-based tiebreaker.
+- Cross-variant matching depends on the global registry producing stable identities. If variant A has `[icon, label, icon]` and variant B has `[label, icon]`, anchor-adjacent matching correctly identifies the after-label Icon as the persistent element (96 variants > 1 variant) and assigns it the base name. The before-label Icon in A, appearing in fewer variants, gets the suffix. This is correct behavior.
 - Suffix numbers may not be contiguous (e.g., `icon`, `icon3` when `icon2` is reserved by an original layer name). This is intentional — contiguity is sacrificed for collision safety.
 
 ---
@@ -371,12 +372,18 @@ Anchor-adjacent is preferred for three reasons:
 #   VA after-label, adjacent to label (pos 0):   icon  ─┐
 #   VB after-label, adjacent to label (pos 0):   icon  ─┘ SAME element
 
-# Three distinct identities, suffixes assigned by first traversal appearance:
-#   Identity 1 (before-label, adjacent) → first seen VA pos 0 → "icon"
-#   Identity 2 (after-label, adjacent)  → first seen VA pos 2 → "icon2"
-#   Identity 3 (before-label, far)      → first seen VB pos 0 → "icon3"
+# Three distinct identities, suffixes assigned by cross-variant prevalence:
+#   Identity 1 (before-label, adjacent) → appears in VA + VB (2 variants) → "icon"
+#   Identity 2 (after-label, adjacent)  → appears in VA + VB (2 variants) → "icon2" (tie, broken by first traversal)
+#   Identity 3 (before-label, far)      → appears in VB only (1 variant)  → "icon3"
+#
+# In this example prevalence is tied for identities 1 and 2 (both in 2 variants),
+# so the tiebreaker (traversal order) applies. In a real scenario where VA has
+# both icons but VB-V96 have only the after-label icon:
+#   after-label identity → 96 variants → "icon" (base name — most prevalent)
+#   before-label identity → 1 variant  → "icon2"
 
-# Final disambiguation:
+# Final disambiguation (for this 2-variant example):
 #   Variant A: icon, label, icon2
 #   Variant B: icon3, icon, label, icon2
 #
@@ -410,11 +417,11 @@ When multiple anchors exist, they create finer-grained segments. Matching radiat
 #   after-description (left-to-right from description):
 #     VA [→icon]     →  VB [→icon]  → match
 
-# Identities and suffix assignment:
-#   Identity 1 (before-label, adjacent)         → first seen VA pos 0 → "icon"
-#   Identity 2 (after-description, adjacent)    → first seen VA pos 3 → "icon2"
-#   Identity 3 (between-label-desc, adjacent)   → first seen VB pos 3 → "icon3"
-#   Identity 4 (before-label, far)              → first seen VB pos 0 → "icon4"
+# Identities and suffix assignment (by prevalence, then traversal order):
+#   Identity 1 (before-label, adjacent)         → VA + VB (2 variants) → "icon"
+#   Identity 2 (after-description, adjacent)    → VA + VB (2 variants) → "icon2"
+#   Identity 3 (between-label-desc, adjacent)   → VB only (1 variant)  → "icon3"
+#   Identity 4 (before-label, far)              → VB only (1 variant)  → "icon4"
 
 # Variant A: icon, label, description, icon2
 # Variant B: icon4, icon, label, icon3, description, icon2
@@ -564,7 +571,34 @@ This distinction is important: **ancestry containment scopes the within-variant 
 # The element diffs show: style changes (if any) between variants.
 ```
 
-The risk in cross-variant matching is not parent changes — it's **suffix instability**. If V1's disambiguation assigns `icon` to the first Icon and `icon2` to the second, but V2's disambiguation assigns them differently (because anchors shifted, or sibling order changed), the flat keys diverge and the element is mismatched. This is exactly what the global two-pass registry (§2) is designed to prevent — by surveying all variants before assigning any suffixes, the same logical element receives the same key everywhere.
+The risk in cross-variant matching is **suffix instability** — the same logical element receiving different keys in different variants. This can happen when suffix assignment is based on traversal order alone:
+
+```yaml
+# V1:     [Icon₁, Label, Icon₂]  → icon, label, icon2
+# V2-V96: [Label, Icon₂]         → label, icon
+#
+# Traversal-order assignment: V1 assigns "icon" to Icon₁ (first encountered)
+# and "icon2" to Icon₂. V2-V96 assign "icon" to Icon₂ (only one Icon).
+#
+# Cross-variant matching: V2's "icon" matches V1's "icon" — but those are
+# DIFFERENT elements. Icon₂ is "icon2" in V1 and "icon" in V2.
+# Result: 95 wrong comparisons.
+```
+
+The fix: suffix assignment must use **cross-variant prevalence**, not traversal order (see Algorithm, step 3). The global two-pass registry identifies identities first (via anchor-adjacent matching), then assigns the base name to the identity appearing in the **most variants**:
+
+```yaml
+# Identity A (before-label Icon₁) → 1 variant   → "icon2"
+# Identity B (after-label Icon₂)  → 96 variants  → "icon" (base name)
+#
+# V1:     icon2, label, icon    ← Icon₁ gets the suffix
+# V2-V96: label, icon           ← Icon₂ keeps the base name
+#
+# Cross-variant matching: V2's "icon" matches V1's "icon" — CORRECT.
+# The persistent element gets the stable key everywhere.
+```
+
+This ensures that the element appearing in the most variants always gets the base name, and optional/rare elements get suffixes — regardless of which variant is traversed first.
 
 **5. Implementation sequencing**
 
