@@ -314,7 +314,34 @@ For each group of duplicates sharing a name within a parent, split occurrences i
 - **After-anchor** segments: match left-to-right (from anchor side inward)
 - **Between two anchors**: match inward from both sides (nearest anchor wins)
 
-This reflects designer intent: when a repeated element is added to a group, existing elements near landmarks retain their identity. New elements appear at the edges of segments, farther from anchors.
+##### Why anchor-adjacent over left-to-right positional?
+
+Two matching directions are plausible:
+
+- **Left-to-right positional**: 1st duplicate → `icon`, 2nd → `icon2`, 3rd → `icon3`. Simple, but assigns identity based on absolute position with no awareness of surrounding context.
+- **Anchor-adjacent**: match from the nearest unique landmark inward. Assigns identity based on structural relationship to stable reference points.
+
+Anchor-adjacent is preferred for three reasons:
+
+**1. Terminal elements have distinct semantic roles in real UI patterns.** A breadcrumb trail's last `Link` is always the current page. A table row's last `Cell` is typically the actions column. A form's bottom element is the submit button. Left-to-right positional matching assigns the base name to the first element and pushes new suffixes rightward — but when a variant adds items, the *last* element (often semantically distinct) drifts to a different suffix. Anchor-adjacent matching anchors terminal elements to their adjacent landmark and keeps their suffix stable.
+
+```yaml
+# Breadcrumb: last Link = current page
+# VA: [Link, Separator, Link, Separator, Link]
+# VB: [Link, Separator, Link, Separator, Link, Separator, Link]
+#
+# Left-to-right: VA Link₃ = "link3", VB Link₃ = "link3" ← same suffix, but
+#   VA link3 is "current page", VB link3 is a middle link. Mismatch.
+#
+# Anchor-adjacent (Separator as anchor, last Link as right-edge identity):
+#   VA's last Link and VB's last Link both get the same suffix. Correct match.
+```
+
+**2. Right-edge growth is the dominant pattern.** Across star ratings, steppers, form fields, navigation tabs, accordion sections, and breadcrumbs, new repeated elements are added at the trailing edge. Anchor-adjacent matching keeps existing elements (near anchors) stable and assigns fresh suffixes to newly appended elements at the far edge of each segment.
+
+**3. Anchor-adjacent degrades gracefully to positional.** When no anchors exist (e.g., five `Star` layers with no unique siblings), anchor-adjacent falls back to left-to-right positional — the only option. When anchors do exist, anchor-adjacent strictly improves on positional by using contextual information. There is no case where positional produces better matches than anchor-adjacent given the same anchor set.
+
+##### Worked example
 
 ```yaml
 # Segments divided by anchor "label":
@@ -344,15 +371,13 @@ This reflects designer intent: when a repeated element is added to a group, exis
 # Final disambiguation:
 #   Variant A: icon, label, icon2
 #   Variant B: icon3, icon, label, icon2
-#                          ^^^^^
-#                          anchor
 #
 # "icon" (adjacent to label, left side) is the SAME element in both variants.
 # "icon2" (adjacent to label, right side) is the SAME element in both variants.
 # "icon3" appears only in VB — new element, correctly surfaced as a variant diff.
 ```
 
-#### Multi-anchor example
+##### Multi-anchor example
 
 When multiple anchors exist, they create finer-grained segments. Matching radiates inward from the nearest anchor:
 
@@ -387,15 +412,67 @@ When multiple anchors exist, they create finer-grained segments. Matching radiat
 # Variant B: icon4, icon, label, icon3, description, icon2
 ```
 
+#### Adversarial cases from real UI patterns
+
+The following cases stress-test the algorithm against common component structures. Each is categorized by **confidence level** — how reliably the algorithm produces correct matches.
+
+##### High confidence — algorithm matches designer intent
+
+| Pattern | Structure | Why it works |
+|---------|-----------|-------------|
+| **Alert/Banner** (`[Icon, Content, Icon]`) | Two `Icon` siblings flanking a unique `Content` anchor | `Content` is the anchor. Leading icon = before-content, trailing icon = after-content. Correct even when `has-close=false` removes the trailing icon. |
+| **Breadcrumb** (`[Link, Sep, Link, Sep, Link]`) | Interleaved `Link` + `Separator` pairs | Each `Separator` is an anchor (unique per occurrence since the Links are the duplicates). The current-page `Link` (always last) stays matched to its adjacent separator. |
+| **Form fields** (`[Field, Field, Field, Submit]`) | Repeated `Field` with a unique `Submit` anchor at the bottom | `Submit` anchors the right edge. Fields match right-to-left from `Submit`, keeping the field nearest to submit stable as new fields are added above. |
+| **Card icons** (`Header > [Icon], Footer > [Icon]`) | Duplicates in **different subtrees** | Not sibling duplicates — each `Icon` is scoped to its own parent (`Header` vs `Footer`). Disambiguation per-parent handles this natively. No cross-subtree matching needed. |
+
+##### Medium confidence — correct for typical usage, fragile under reordering
+
+| Pattern | Structure | Risk |
+|---------|-----------|------|
+| **Star rating** (`[Star, Star, Star, Star, Star]`) | Homogeneous duplicates, no anchors | Falls back to left-to-right positional. Correct when `count` variants remove from the right (the dominant pattern). **Breaks** if a designer reverses layer order for RTL layout. |
+| **Navigation tabs** (`[Tab, Tab, Tab]`) | Homogeneous duplicates, no anchors | Same as stars — positional fallback. Correct for `count` variants. **Breaks** if `selected` is implemented by moving the active tab to position 0. |
+| **Stepper** (`[Step, Step, Step]`) | Homogeneous duplicates if no unique connector/label between steps | Falls back to positional. Correct when steps grow from the right. **Breaks** if a designer inserts steps in the middle of an existing sequence. |
+
+##### Low confidence — algorithm produces a result but may mismatch
+
+| Pattern | Scenario | What goes wrong |
+|---------|----------|----------------|
+| **Semantic reordering** | VA: `[icon-A, icon-B]`, VB: `[icon-B, icon-A]` — both named `Icon`, swapped | Positional matching assigns `icon` and `icon2` based on position. A becomes icon in VA but icon2 in VB. **No positional scheme can detect semantic identity swaps** without external metadata. |
+| **Accordion nested** | `[Header, Chevron, Content, Header, Chevron, Content]` at multiple nesting depths | After flattening, `Header` appears 2× as siblings even though they belong to different `Section` parents. **Mitigation**: per-parent scoping already handles this — each `Section`'s children are disambiguated independently. |
+| **Table column reordering** | VA: `[Cell-checkbox, Cell-name, Cell-actions]`, VB: `[Cell-name, Cell-checkbox, Cell-actions]` — all named `Cell` | If only `Cell-actions` (last) is an anchor, the other two cells are in the before-anchor segment and matched right-to-left. Reordering swaps their suffixes. **Acceptable**: column reordering is uncommon in variant sets; when it occurs, the resulting diff is larger but not lossy. |
+
+#### Error risk scale
+
+The algorithm's matching quality depends on the **anchor density** — the ratio of unique-named siblings to total siblings within a parent:
+
+| Anchor density | Matching quality | Example |
+|----------------|-----------------|---------|
+| **High** (>50% unique) | Excellent — most duplicates are sandwiched between anchors | `[Icon, Label, Input, Icon, HelperText]` — 3 anchors, 2 duplicate Icons |
+| **Medium** (1+ anchor, <50%) | Good — terminal elements match well; interior may be positional | `[Cell, Cell, Cell, Actions]` — 1 anchor, 3 duplicate Cells |
+| **Zero** (no anchors) | Positional fallback — correct for right-edge growth only | `[Star, Star, Star, Star, Star]` — 0 anchors |
+
+**Error tolerance**: Mismatched keys produce **larger variant diffs** (element appears as "removed in VA, added in VB" instead of "changed between VA and VB") but never produce **data loss**. The output is always lossless — every element is represented. The only cost of a mismatch is suboptimal diff granularity: a style change on a mismatched element shows as a full element diff rather than a targeted property diff. This is an acceptable degradation for low-confidence cases.
+
+#### Performance considerations
+
+The two-pass approach adds one lightweight traversal over all variants:
+
+- **Pass 1 (survey)**: Iterate each variant's children within each parent, collecting name counts and identifying anchors. This is a name-counting pass only — no element processing, no style detection, no property extraction. Cost: O(V × N) where V = variant count, N = average children per parent.
+- **Pass 2 (assign)**: Segment children by anchors, match across variants within each segment. Cost: O(V × N × A) where A = anchor count per parent. In practice, A is small (typically 1–5).
+- **Total overhead**: Negligible relative to the existing processing pipeline, which performs Figma API calls, style extraction, and variant differencing. The survey pass touches only node names — no I/O, no async operations.
+- **Worst case**: A component with hundreds of variants and deep nesting. Even here, the survey pass is bounded by the total node count across all variants, which is already traversed during the existing `Anatomy.traverse()` call. The added cost is a second traversal of the same nodes collecting only names.
+
 #### Edge cases and fallbacks
 
-**No anchors available**: If all siblings within a parent are duplicates (e.g., `[icon, icon, icon]` with no unique names), fall back to **left-to-right absolute position within parent** — 1st → `icon`, 2nd → `icon2`, 3rd → `icon3`. This is the weakest heuristic but the only option when no context is available. Positional matching here means a designer reordering layers changes suffix assignment — an accepted trade-off when no anchors exist to provide stability.
+**No anchors available**: If all siblings within a parent are duplicates (e.g., `[Star, Star, Star, Star, Star]` with no unique names), fall back to **left-to-right absolute position within parent** — 1st → `star`, 2nd → `star2`, 3rd → `star3`. This is the weakest heuristic but the only option when no context is available. Positional matching here means a designer reordering layers changes suffix assignment — an accepted trade-off when no anchors exist to provide stability.
 
 **Anchor itself is absent in some variants**: If `label` appears in variant A but not variant B, it cannot serve as an anchor. Only names present in **every variant that contains them** qualify. In practice, this means: if an anchor is optional (absent in some variants), its segments are merged with adjacent segments in variants where it's missing.
 
-**Nested duplicates**: Disambiguation is scoped to each parent independently. A parent named `header` with children `[icon, icon]` and a sibling parent `footer` with children `[icon, icon]` are separate scopes. The `icon` in `header` and the `icon` in `footer` are already distinct by ancestry — they have different keys in the flattened anatomy because the traversal encounters them in different subtrees.
+**Nested duplicates**: Disambiguation is scoped to each parent independently. A parent named `header` with children `[icon, icon]` and a sibling parent `footer` with children `[icon, icon]` are separate scopes. The `icon` in `header` and the `icon` in `footer` are already distinct by ancestry — they have different keys in the flattened anatomy because the traversal encounters them in different subtrees. This is the primary defense against the "same name, different purpose" scenario (Context §2) — containment path, not suffix matching, is what distinguishes them.
 
-**Anchor ordering inconsistency**: If anchors themselves appear in different orders across variants (e.g., VA has `[label, description]` but VB has `[description, label]`), the segment boundaries diverge and anchor-relative matching degrades. This is treated as a design inconsistency — the algorithm falls back to absolute position for affected segments and may emit a diagnostic warning.
+**Anchor ordering inconsistency**: If anchors themselves appear in different orders across variants (e.g., VA has `[label, description]` but VB has `[description, label]`), the segment boundaries diverge and anchor-relative matching degrades. This is treated as a design inconsistency — the algorithm falls back to absolute position for affected segments and emits a diagnostic warning.
+
+**formatKey collisions**: Two distinct Figma names could format to the same key (e.g., `My Icon` and `myIcon` both → `myIcon` in camelCase). This is treated as a duplicate even though the original names differ. The `$extensions["com.figma"].originalName` field records the formatted key of the dominant name; the collision is surfaced in the same way as a true duplicate.
 
 **3. Variant differencing accuracy**
 
