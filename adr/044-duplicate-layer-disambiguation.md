@@ -430,7 +430,7 @@ The following cases stress-test the algorithm against common component structure
 |---------|-----------|-------------|
 | **Alert/Banner** (`[Icon, Content, Icon]`) | Two `Icon` siblings flanking a unique `Content` anchor | `Content` is the anchor. Leading icon = before-content, trailing icon = after-content. Correct even when `has-close=false` removes the trailing icon. |
 | **Breadcrumb** (`[Link, Sep, Link, Sep, Link]`) | Interleaved `Link` + `Separator` pairs | Each `Separator` is an anchor (unique per occurrence since the Links are the duplicates). The current-page `Link` (always last) stays matched to its adjacent separator. |
-| **Card icons** (`Header > [Icon], Footer > [Icon]`) | Duplicates in **different subtrees** | **Parent containment** is the strongest disambiguation signal — each `Icon` is scoped to its parent (`Header` vs `Footer`) and receives a distinct key by ancestry alone. No sibling-level heuristic needed. See *Disambiguation hierarchy* below. |
+| **Card icons** (`Header > [Icon], Footer > [Icon]`) | Duplicates in **different subtrees** | **Ancestry containment** is the strongest disambiguation signal — each `Icon` is scoped by its full containment path (`Header` vs `Footer`) and receives a distinct key without any sibling-level heuristic. See *Disambiguation hierarchy* below. |
 
 ##### Medium confidence — correct for typical usage, fragile under reordering
 
@@ -453,7 +453,26 @@ The following cases stress-test the algorithm against common component structure
 
 The algorithm applies three disambiguation signals in order of strength:
 
-1. **Parent containment** (strongest) — Elements with the same name in different subtrees are already distinct. An `Icon` inside `Header` and an `Icon` inside `Footer` are separate scopes — their keys are disambiguated by ancestry, not by suffix. This is the first and most reliable signal because it reflects the designer's structural intent: grouping elements under named parents is an explicit organizational choice.
+1. **Ancestry containment** (strongest) — Elements with the same name in different subtrees are already distinct. An `Icon` inside `Card > Header > Actions` and an `Icon` inside `Card > Footer > Links` are separate scopes — their keys are disambiguated by the full ancestry path, not by suffix. This is the most reliable signal because it reflects the designer's structural intent: grouping elements under named containers is an explicit organizational choice.
+
+   The containment signal extends through the **full ancestry chain**, not just the immediate parent. Every named ancestor contributes to the scope. This means disambiguation must proceed **top-down** — resolve each depth level before descending to its children:
+
+   ```yaml
+   # Same-named parents are themselves duplicates:
+   #   Section, Section (siblings at depth 1)
+   #
+   # Step 1 — disambiguate depth 1:
+   #   section, section2
+   #
+   # Step 2 — each disambiguated parent scopes its children independently:
+   #   section  > [icon, label, icon]  → icon, label, icon2  (scoped to section)
+   #   section2 > [icon, label, icon]  → icon, label, icon2  (scoped to section2)
+   #
+   # These are four distinct icons — ancestry separates section/section2,
+   # then sibling disambiguation separates icon/icon2 within each.
+   ```
+
+   Top-down resolution is a natural fit for depth-first traversal: parents are visited before children, so by the time the algorithm reaches a child scope, its parent's disambiguated key is already assigned.
 
 2. **Anchor-adjacent matching** (strong) — Within a single parent, unique-named siblings serve as stable landmarks. Duplicates are matched by proximity to these anchors. Effective when the parent contains a mix of unique and repeated names.
 
@@ -488,7 +507,7 @@ The two-pass approach adds one lightweight traversal over all variants:
 
 **Anchor itself is absent in some variants**: If `label` appears in variant A but not variant B, it cannot serve as an anchor. Only names present in **every variant that contains them** qualify. In practice, this means: if an anchor is optional (absent in some variants), its segments are merged with adjacent segments in variants where it's missing.
 
-**Nested duplicates**: Disambiguation is scoped to each parent independently (see *Disambiguation hierarchy*, level 1). A parent named `header` with children `[icon, icon]` and a sibling parent `footer` with children `[icon, icon]` are separate scopes. The `icon` in `header` and the `icon` in `footer` are already distinct by ancestry — they have different keys in the flattened anatomy because the traversal encounters them in different subtrees. Parent containment is the primary defense against the "same name, different purpose" scenario (Context §2) — the designer's grouping structure, not suffix matching, is what distinguishes them.
+**Nested duplicates**: Disambiguation is scoped by the full ancestry path (see *Disambiguation hierarchy*, level 1). A container `header` with children `[icon, icon]` and a sibling container `footer` with children `[icon, icon]` are separate scopes — the Icons are distinguished by containment, not suffix. When the containers themselves are duplicates (e.g., two `Section` siblings), top-down resolution disambiguates parents first (`section`, `section2`), then scopes child disambiguation independently within each. This recursive descent is the primary defense against the "same name, different purpose" scenario (Context §2) — the designer's grouping structure, at every depth, is what distinguishes elements.
 
 **Anchor ordering inconsistency**: If anchors themselves appear in different orders across variants (e.g., VA has `[label, description]` but VB has `[description, label]`), the segment boundaries diverge and anchor-relative matching degrades. This is treated as a design inconsistency — the algorithm falls back to absolute position for affected segments and emits a diagnostic warning.
 
