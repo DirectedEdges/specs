@@ -10,6 +10,8 @@
 
 ## Context
 
+> **Scope**: This ADR addresses a **two-part problem** spanning both the schema contract (`@directededges/specs-schema`) and the processing architecture (`specs-from-figma`). Part 1 (Decision) defines the schema change — a small additive type. Part 2 (Downstream Impact → Architectural notes) defines the disambiguation algorithm, cross-variant matching heuristics, and adversarial analysis that make the schema change useful. **Reviewers should evaluate both parts** — the schema change alone is trivial; the processing architecture is where the complexity lives.
+
 Three core types in `@directededges/specs-schema` use layer names as dictionary keys:
 
 - `Anatomy = Record<string, AnatomyElement>`
@@ -272,16 +274,17 @@ $extensions:
 
 The following changes are needed in the processing engine. These are described at the architectural level — specific implementation is at the discretion of the package maintainers.
 
-**1. Traversal-time disambiguation**
+**1. Disambiguation insertion point**
 
-Disambiguation must happen at the earliest point: during `Anatomy.traverse()`, before nodes enter any `Record`-keyed structure. The algorithm:
+Disambiguation must happen at the earliest point in the pipeline: during or immediately after `Anatomy.traverse()`, before nodes enter any `Record`-keyed structure. The disambiguated name replaces the raw Figma layer name for all downstream consumers — anatomy registration, element detection, layout serialization, and variant differencing all operate on the disambiguated key.
 
-- Track seen names per parent scope during depth-first traversal
-- First occurrence of a name → use as-is
-- Subsequent occurrences → append ascending numeric suffix (`name2`, `name3`, ...)
-- Attach the disambiguated name to the node for all downstream consumers (anatomy, elements, layout)
+The disambiguation itself is not a simple per-node decision. It requires cross-variant coordination (see §2 below) because the same logical element must receive the same key in every variant. This means the traversal must either:
+- Run a lightweight survey pass across all variants **before** the main traversal, or
+- Defer name assignment until all variants have been traversed and then apply names retroactively
 
-**2. Cross-variant key stability — global registry with anchor-relative matching**
+The survey-first approach is preferred because it avoids retroactive renaming of already-registered elements.
+
+**2. Cross-variant key stability — global registry with anchor-adjacent matching**
 
 The critical challenge: ensuring the same logical element receives the same disambiguated key across all variants so that differencing produces correct diffs. Pure positional matching (1st icon → `icon`, 2nd icon → `icon2`) fails when variants have different element counts or ordering, because the "2nd icon" in one variant may not be the same element as the "2nd icon" in another.
 
@@ -485,6 +488,42 @@ Once elements have stable, anchor-relative disambiguated keys:
 **4. Floating elements across variants**
 
 An element that appears at different hierarchy positions in different variants (e.g., `label` as a child of `header` in variant A, child of `content` in variant B) is treated as **the same element** if its disambiguated key matches. The layout diff captures the structural change; the element diff captures style changes. This is existing behavior — disambiguation doesn't change it, but it does ensure the element isn't silently dropped if another element shares its name.
+
+**5. Implementation sequencing**
+
+The work spans two repos and should proceed in this order:
+
+1. **`specs-schema`**: Add `$extensions` to `AnatomyElement` type and schema. Publish as `0.22.0` (MINOR). This is a trivial, low-risk change.
+2. **`specs-from-figma`**: Implement the global registry, anchor-adjacent matching, and collision-safe suffix assignment. This is the bulk of the work. Split into sub-milestones:
+   - **Phase A — Survey infrastructure**: Implement the two-pass survey (name counting, anchor identification) without changing output. Add logging/diagnostics that report which components have duplicate names and what anchors were identified. This is observability-only — no output changes.
+   - **Phase B — Disambiguation**: Apply suffix assignment. All `Record`-keyed structures (`Anatomy._items`, `Elements._items`, `Layout.serialize()`) receive disambiguated keys. Add `$extensions["com.figma"].originalName` to anatomy output. This changes output for components with duplicate names.
+   - **Phase C — Parity testing**: Run the parity test suite (`specs-testing`) against ground-truth fixtures to validate that disambiguated output is correct and that components with unique names produce identical output.
+3. **`specs-plugin-2`**: Recompile against new schema types. Optionally surface disambiguation warnings in the plugin UI.
+4. **`specs-cli`**: Recompile. No behavioral changes required.
+
+**6. Testing strategy**
+
+Validation requires both **unit tests** (in `specs-from-figma`) and **parity tests** (in `specs-testing`).
+
+Unit tests in `specs-from-figma`:
+- **Collision-safe suffix**: Input `[icon, icon, icon2]` → output `[icon, icon3, icon2]`. Verify `icon2` is not stolen.
+- **Anchor identification**: Given variants with known layer structures, verify the correct anchor set is computed.
+- **Anchor-adjacent matching**: Given two variants with different duplicate counts, verify segment assignment and identity matching produce expected keys.
+- **No-anchor fallback**: Homogeneous duplicates `[star, star, star]` → positional `[star, star2, star3]`.
+- **Cross-variant stability**: Process the same component multiple times with different variant ordering — output must be identical regardless of processing order.
+- **Passthrough for unique names**: Components with no duplicate names produce identical output to the current (pre-disambiguation) engine. Zero `$extensions` fields in output.
+
+Parity tests in `specs-testing`:
+- Add Figma test fixtures containing deliberate duplicate names (repeating instances, same-name-different-subtree, floating elements).
+- Verify plugin (`specs-plugin-2`) and CLI (`specs-cli`) produce identical output for these fixtures.
+- Regression: existing fixtures with unique names must produce byte-identical output.
+
+**7. Rollout impact**
+
+- **Components with unique names** (the vast majority): **No output change.** Disambiguation produces no suffixes, no `$extensions` fields. Output is identical to pre-ADR behavior.
+- **Components with duplicate names**: Output changes — previously lost elements now appear in anatomy, elements, and layout. This is a correctness improvement, not a regression, but consumers parsing spec output may see new keys they didn't expect.
+- **No feature flag needed**: The disambiguation algorithm is deterministic and always-on. There is no "old mode" worth preserving — the old behavior was silent data loss.
+- **Breaking change for downstream parsers?**: No. The schema change is additive (new optional `$extensions`). The key format change (new suffixed keys) only affects components that previously had data loss — those consumers were already receiving incorrect output.
 
 ---
 
