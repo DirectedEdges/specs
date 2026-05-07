@@ -542,24 +542,29 @@ Once elements have stable, anchor-relative disambiguated keys:
 
 **4. Floating elements across variants**
 
-An element with a **unique name** that appears at different hierarchy positions in different variants (e.g., `label` as a child of `header` in variant A, child of `content` in variant B) is treated as **the same element** — its disambiguated key matches regardless of ancestry. The layout diff captures the structural change; the element diff captures style changes. This is existing behavior and works because a unique name needs no scope-based disambiguation.
+Cross-variant matching is **always by flat key** — the parent is irrelevant. This is critical to preserve and is consistent with how the existing `Anatomy = Record<string, AnatomyElement>` model works today.
 
-This same principle applies to containers: when a uniquely-named parent node moves between ancestors across variants, it retains its identity via its key. Children scoped within that container are matched by the container's key, not its ancestry path (see *Disambiguation hierarchy*, ancestry containment limitation).
+An element that appears at different hierarchy positions in different variants (e.g., `Icon` as a child of `Header` in variant A, child of `Footer` in variant B, child of `Sidebar` in variant C) is the **same element** as long as its disambiguated key matches. The layout diff captures the structural change; the element diff captures style changes. This holds regardless of how many variants exist or how many different parents the element moves through — 96 variants with one `Icon` each, every time under a different parent, all resolve to key `icon` and are tracked as one element.
 
-**Duplicate-named elements that change parents lose identity.** When a non-unique element moves between scopes across variants, per-parent disambiguation treats it as a different element in each scope:
+This distinction is important: **ancestry containment scopes the within-variant disambiguation** (which sibling gets `icon` vs `icon2`), but **cross-variant matching uses the flat key only**. These are two separate steps:
+
+1. **Within-variant disambiguation** — Per-parent scope, anchor-adjacent matching, and positional fallback assign unique keys within each variant. This is where ancestry matters.
+2. **Cross-variant matching** — The flat anatomy key is used to match elements across variants. An element keyed as `icon` in V1 matches an element keyed as `icon` in V2, regardless of which parent it's under in each variant. This is where ancestry is irrelevant.
 
 ```yaml
-# V1: L1 > L2 > L3 > L4 > Icon    (scoped to L4 → "icon" within L4)
-#     L1 > L5 > L6 > Icon          (scoped to L6 → "icon" within L6)
+# V1: Header > [Icon, Label, Icon]   → icon, label, icon2  (within Header)
+# V2: Footer > [Icon, Label, Icon]   → icon, label, icon2  (within Footer)
 #
-# V2: L1 > Icon                    (scoped to L1 → "icon" within L1)
+# Cross-variant matching (flat key):
+#   V1 "icon"  ↔ V2 "icon"    ← same element (parents differ, key matches)
+#   V1 "icon2" ↔ V2 "icon2"   ← same element
+#   V1 "label" ↔ V2 "label"   ← same element
 #
-# V2's Icon is a direct child of L1. Neither V1 Icon shares that scope.
-# Result: V2's Icon is treated as a NEW element — matched to neither.
-# V1's L4 Icon and L6 Icon appear as "removed in V2."
+# The layout diff shows: elements moved from Header to Footer.
+# The element diffs show: style changes (if any) between variants.
 ```
 
-This is a **correct behavior given available information** — the algorithm cannot determine whether V2's Icon is V1's Icon A promoted up the tree (L4 removed) or a genuinely new element. Without external metadata (e.g., a designer annotation saying "this is the same icon"), scope change is indistinguishable from replacement. The resulting diff is larger than ideal (remove + add instead of move) but never lossy — every element is represented in every variant.
+The risk in cross-variant matching is not parent changes — it's **suffix instability**. If V1's disambiguation assigns `icon` to the first Icon and `icon2` to the second, but V2's disambiguation assigns them differently (because anchors shifted, or sibling order changed), the flat keys diverge and the element is mismatched. This is exactly what the global two-pass registry (§2) is designed to prevent — by surveying all variants before assigning any suffixes, the same logical element receives the same key everywhere.
 
 **5. Implementation sequencing**
 
