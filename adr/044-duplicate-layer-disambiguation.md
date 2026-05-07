@@ -281,82 +281,107 @@ Disambiguation must happen at the earliest point: during `Anatomy.traverse()`, b
 - Subsequent occurrences → append ascending numeric suffix (`name2`, `name3`, ...)
 - Attach the disambiguated name to the node for all downstream consumers (anatomy, elements, layout)
 
-**2. Cross-variant key stability**
+**2. Cross-variant key stability — global registry with anchor-relative matching**
 
-The critical challenge: ensuring the same logical element receives the same disambiguated key across all variants so that differencing produces correct diffs. Two strategies are viable:
+The critical challenge: ensuring the same logical element receives the same disambiguated key across all variants so that differencing produces correct diffs. Pure positional matching (1st icon → `icon`, 2nd icon → `icon2`) fails when variants have different element counts or ordering, because the "2nd icon" in one variant may not be the same element as the "2nd icon" in another.
 
-#### Strategy A: Per-variant disambiguation + anatomy merge
+The solution is a **two-pass global registry** enhanced with **anchor-relative positioning** — using unique-named siblings as stable reference points to match duplicate elements across variants.
 
-Each variant is disambiguated independently using the collision-safe algorithm. The anatomy accumulates elements from all variants using `addNewElementsFromVariant()`. When a disambiguated key from variant B doesn't match any key in the anatomy (built from variant A), it's added as a new element.
+#### Pass 1 — Survey and anchor identification
 
-```yaml
-# Variant A layers: [icon, label, icon]
-# After disambiguation: icon, label, icon3 (icon2 might be reserved)
-# Anatomy after variant A: {icon, label, icon3}
-
-# Variant B layers: [icon, label]
-# After disambiguation: icon, label (no duplicates)
-# Anatomy merge: icon ✓ exists, label ✓ exists → no new elements
-
-# Variant C layers: [icon, icon, icon, label]
-# After disambiguation: icon, icon3, icon4, label
-# Anatomy merge: icon ✓, icon3 ✓, label ✓, icon4 is NEW → added
-# Final anatomy: {icon, label, icon3, icon4}
-```
-
-**Pros**:
-- Simple — single pass, fits existing processing pipeline
-- Each variant is self-contained; no coordination required
-
-**Cons**:
-- Suffix assignment depends on which variant is processed first (the baseline). If variant A has `[icon, icon]` → `icon, icon2` and variant B has `[icon, icon, icon]` → `icon, icon2, icon3`, the keys align. But if variant A has `[icon, label, icon]` and variant C has `[icon, icon, label]`, the second `icon` gets different suffixes in each (`icon3` vs `icon2` depending on the reserved set), and differencing may see them as different elements.
-- Variant processing order affects the anatomy's key set, which can produce inconsistent diffs.
-
-#### Strategy B: Global name registry (two-pass)
-
-Before processing any variant, scan all variants to build a **global disambiguation registry**:
-
-1. **Pass 1 — Survey**: For each unique name across all variants, record the maximum occurrence count and the set of names that exist as originals (for collision avoidance).
-2. **Pass 2 — Assign**: Using the global reserved set, assign suffixes using the collision-safe algorithm. Because the reserved set is the same for all variants, the same name at the same traversal position always gets the same suffix.
+Scan all variants within each parent scope to build:
+1. A **global reserved set**: all original element names across all variants (for collision-safe suffix assignment)
+2. An **anchor set**: element names that appear **exactly once** within a given parent in **every variant that contains them**. These are stable reference points — they don't move relative to their duplicated neighbors.
+3. For each duplicate name, a **maximum occurrence count** across all variants
 
 ```yaml
-# Survey pass:
-#   "icon" appears: 2× in variant A, 1× in variant B, 3× in variant C → max 3
-#   "icon2" appears: 1× in variant A (as an original name) → reserved
-#   "label" appears: 1× everywhere → max 1
+# Variant A siblings: [icon, label, icon]
+# Variant B siblings: [icon, icon, label, icon]
 
-# Global reserved set: {icon, icon2, label}
-# Disambiguation slots for "icon": icon (1st), icon3 (2nd, skip icon2), icon4 (3rd)
+# Anchors within this parent:
+#   "label" — appears exactly 1× in VA, 1× in VB → ✓ anchor
+#   "icon" — appears 2× in VA, 3× in VB → ✗ not an anchor
 
-# All variants now use the same slot assignments:
-#   Variant A: [icon, icon] → icon, icon3
-#   Variant B: [icon] → icon
-#   Variant C: [icon, icon, icon] → icon, icon3, icon4
-
-# Differencing: "icon3" in A and "icon3" in C are the SAME element (2nd icon)
+# Global reserved set: {icon, label}
+# Max "icon" count: 3 (from variant B)
 ```
 
-**Pros**:
-- Deterministic regardless of variant processing order
-- Same traversal position always maps to the same key across all variants
-- Differencing is accurate — no false positives from inconsistent suffixes
+#### Pass 2 — Anchor-relative identity assignment
 
-**Cons**:
-- Requires two passes over all variants (survey + assign), adding complexity to the processing pipeline
-- The "same traversal position" heuristic assumes designers maintain consistent layer ordering across variants. If variant A has `[icon-decorative, icon-functional]` and variant B has `[icon-functional, icon-decorative]` (swapped order, both named `icon`), they'll get swapped keys. This is an inherent limitation of positional matching without semantic analysis.
+For each group of duplicates sharing a name within a parent, split occurrences into **segments** bounded by anchors. Duplicates in the same segment at the same position within that segment are considered the **same element** across variants.
 
-#### Recommendation
+```yaml
+# Segments divided by anchor "label":
+#
+# Variant A: [icon, label, icon]
+#   segment BEFORE label: [icon]     → 1 icon
+#   segment AFTER label:  [icon]     → 1 icon
+#
+# Variant B: [icon, icon, label, icon]
+#   segment BEFORE label: [icon, icon] → 2 icons
+#   segment AFTER label:  [icon]       → 1 icon
 
-Strategy B (global registry) is preferred for correctness. The two-pass cost is low — the survey pass only collects name counts, not full element processing. The payoff is deterministic key stability across all variants, which directly impacts the quality of variant diffs.
+# Identity matching by segment + position within segment:
+#   "icon, before-label, pos 0" → VA ✓, VB ✓ → SAME element → "icon"
+#   "icon, before-label, pos 1" → VB only     → NEW element  → "icon3"
+#   "icon, after-label, pos 0"  → VA ✓, VB ✓ → SAME element → "icon2"
 
-Strategy A is acceptable as a first implementation if the two-pass approach proves too disruptive to the existing pipeline, with the understanding that edge cases around variant-order-dependent suffixes may produce suboptimal diffs.
+# Suffix assignment (collision-safe):
+#   Identity 1 (before-label, first) → "icon" (base name, first encountered)
+#   Identity 2 (after-label, first)  → "icon2" (next available, not reserved)
+#   Identity 3 (before-label, second) → "icon3" (next available)
+
+# Final disambiguation:
+#   Variant A: icon, label, icon2
+#   Variant B: icon, icon3, label, icon2
+#                          ^^^^^
+#                          anchor
+#
+# Differencing: "icon2" in A and "icon2" in B are the SAME element
+# (the icon after label). "icon3" appears only in B → new element diff.
+```
+
+#### Multi-anchor example
+
+When multiple anchors exist, they create finer-grained segments:
+
+```yaml
+# Variant A: [icon, label, description, icon]
+# Variant B: [icon, icon, label, icon, description, icon]
+
+# Anchors: "label" and "description" (both unique in all variants)
+# Segments: BEFORE-label, BETWEEN-label-description, AFTER-description
+
+# VA segments: [icon], [], [icon]
+# VB segments: [icon, icon], [icon], [icon]
+
+# Identity matching:
+#   before-label pos 0    → VA ✓, VB ✓ → "icon"
+#   before-label pos 1    → VB only    → "icon4"
+#   between-label-desc pos 0 → VB only → "icon3"
+#   after-description pos 0  → VA ✓, VB ✓ → "icon2"
+
+# Variant A: icon, label, description, icon2
+# Variant B: icon, icon4, label, icon3, description, icon2
+```
+
+#### Edge cases and fallbacks
+
+**No anchors available**: If all siblings within a parent are duplicates (e.g., `[icon, icon, icon]` with no unique names), fall back to **absolute position within parent** — 1st → `icon`, 2nd → `icon2`, 3rd → `icon3`. This is the weakest heuristic but the only option when no context is available.
+
+**Anchor itself is absent in some variants**: If `label` appears in variant A but not variant B, it cannot serve as an anchor. Only names present in **every variant that contains them** qualify. In practice, this means: if an anchor is optional (absent in some variants), its segments are merged with adjacent segments in variants where it's missing.
+
+**Nested duplicates**: Disambiguation is scoped to each parent independently. A parent named `header` with children `[icon, icon]` and a sibling parent `footer` with children `[icon, icon]` are separate scopes. The `icon` in `header` and the `icon` in `footer` are already distinct by ancestry — they have different keys in the flattened anatomy because the traversal encounters them in different subtrees.
+
+**Anchor ordering inconsistency**: If anchors themselves appear in different orders across variants (e.g., VA has `[label, description]` but VB has `[description, label]`), the segment boundaries diverge and anchor-relative matching degrades. This is treated as a design inconsistency — the algorithm falls back to absolute position for affected segments and may emit a diagnostic warning.
 
 **3. Variant differencing accuracy**
 
-Once elements have stable disambiguated keys:
-- `Elements.compare()` matches by disambiguated key — no change to comparison logic needed
+Once elements have stable, anchor-relative disambiguated keys:
+- `Elements.compare()` matches by disambiguated key — no change to comparison logic needed. Because anchor-relative matching ensures the same logical element gets the same key across variants, diffs correctly identify which elements changed vs. which are new/removed.
 - `Differencer.establishBaselineParity()` sees the full element set (no silent losses) — parity is established correctly
 - Layout diffing compares trees with disambiguated keys — structural differences are detected accurately
+- Elements that exist in some variants but not others (e.g., `icon3` appears only in variant B) surface as expected variant diffs, not as mismatched keys
 
 **4. Floating elements across variants**
 
