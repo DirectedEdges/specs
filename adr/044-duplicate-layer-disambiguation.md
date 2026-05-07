@@ -453,7 +453,7 @@ The following cases stress-test the algorithm against common component structure
 
 The algorithm applies three disambiguation signals in order of strength:
 
-1. **Ancestry containment** (strongest) — Elements with the same name in different subtrees are already distinct. An `Icon` inside `Card > Header > Actions` and an `Icon` inside `Card > Footer > Links` are separate scopes — their keys are disambiguated by the full ancestry path, not by suffix. This is the most reliable signal because it reflects the designer's structural intent: grouping elements under named containers is an explicit organizational choice.
+1. **Ancestry containment** (strongest **when tree structure is stable**) — Elements with the same name in different subtrees are already distinct. An `Icon` inside `Card > Header > Actions` and an `Icon` inside `Card > Footer > Links` are separate scopes — their keys are disambiguated by the full ancestry path, not by suffix. This is the most reliable signal because it reflects the designer's structural intent: grouping elements under named containers is an explicit organizational choice.
 
    The containment signal extends through the **full ancestry chain**, not just the immediate parent. Every named ancestor contributes to the scope. This means disambiguation must proceed **top-down** — resolve each depth level before descending to its children:
 
@@ -473,6 +473,25 @@ The algorithm applies three disambiguation signals in order of strength:
    ```
 
    Top-down resolution is a natural fit for depth-first traversal: parents are visited before children, so by the time the algorithm reaches a child scope, its parent's disambiguated key is already assigned.
+
+   **Limitation — tree restructuring across variants**: Ancestry containment assumes the tree structure is stable across variants. When a container moves between parents across variants, ancestry paths diverge and the containment signal becomes ambiguous:
+
+   ```yaml
+   # V1: L1 > L2 > L3 > L4 > Icon    (Icon A)
+   #     L1 > L5 > L6 > Icon          (Icon B)
+   #
+   # V2: L1 > L2 > L3 > L6 > Icon    (which V1 Icon does this match?)
+   #
+   # Immediate parent says Icon B (both under L6).
+   # Longest ancestry prefix says Icon A (shares L1 > L2 > L3).
+   # The signals conflict.
+   ```
+
+   This reveals that ancestry doesn't eliminate the cross-variant matching problem — it **moves it up the tree**. Before you can scope children within a parent, you need to know which parent in V1 corresponds to which parent in V2. When containers themselves migrate between ancestors, the algorithm faces the same identity question at the container level.
+
+   **Resolution rule — match containers by name, not path**: Containers are matched across variants by their **disambiguated key**, regardless of where they sit in the tree. If `L6` has a unique name, it's the same container whether it's under `L5` or `L3`. Children scoped within `L6` in V1 match children scoped within `L6` in V2. The layout diff captures the structural change (L6 moved); the element diff captures style changes within it. This is consistent with how the existing anatomy model works — the flat `Anatomy = Record<string, AnatomyElement>` keys elements by name, not by path, so elements that move between parents already retain their identity as long as the key matches.
+
+   In practice, tree restructuring across variants is uncommon — most component variants change leaf-level visibility and properties, not container hierarchy. When it does occur, name-based container matching produces correct results for the common case (a container moved to a different parent) and acceptable degradation for the rare case (a container replaced by a different container with the same name).
 
 2. **Anchor-adjacent matching** (strong) — Within a single parent, unique-named siblings serve as stable landmarks. Duplicates are matched by proximity to these anchors. Effective when the parent contains a mix of unique and repeated names.
 
@@ -524,6 +543,8 @@ Once elements have stable, anchor-relative disambiguated keys:
 **4. Floating elements across variants**
 
 An element that appears at different hierarchy positions in different variants (e.g., `label` as a child of `header` in variant A, child of `content` in variant B) is treated as **the same element** if its disambiguated key matches. The layout diff captures the structural change; the element diff captures style changes. This is existing behavior — disambiguation doesn't change it, but it does ensure the element isn't silently dropped if another element shares its name.
+
+This same principle applies to containers: when a parent node moves between ancestors across variants, it retains its identity via its disambiguated key (see *Disambiguation hierarchy*, ancestry containment limitation). Children scoped within that container are matched by the container's key, not its ancestry path.
 
 **5. Implementation sequencing**
 
