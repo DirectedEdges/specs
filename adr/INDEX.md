@@ -4,6 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 045 | Processing Provenance Signals | |
 | 044 | Duplicate Layer Name Disambiguation | |
 | 043 | Custom Color Format Configuration | |
 | 042 | Composition as a First-Class Type | |
