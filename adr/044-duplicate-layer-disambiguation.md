@@ -430,13 +430,13 @@ The following cases stress-test the algorithm against common component structure
 |---------|-----------|-------------|
 | **Alert/Banner** (`[Icon, Content, Icon]`) | Two `Icon` siblings flanking a unique `Content` anchor | `Content` is the anchor. Leading icon = before-content, trailing icon = after-content. Correct even when `has-close=false` removes the trailing icon. |
 | **Breadcrumb** (`[Link, Sep, Link, Sep, Link]`) | Interleaved `Link` + `Separator` pairs | Each `Separator` is an anchor (unique per occurrence since the Links are the duplicates). The current-page `Link` (always last) stays matched to its adjacent separator. |
-| **Form fields** (`[Field, Field, Field, Submit]`) | Repeated `Field` with a unique `Submit` anchor at the bottom | `Submit` anchors the right edge. Fields match right-to-left from `Submit`, keeping the field nearest to submit stable as new fields are added above. |
-| **Card icons** (`Header > [Icon], Footer > [Icon]`) | Duplicates in **different subtrees** | Not sibling duplicates — each `Icon` is scoped to its own parent (`Header` vs `Footer`). Disambiguation per-parent handles this natively. No cross-subtree matching needed. |
+| **Card icons** (`Header > [Icon], Footer > [Icon]`) | Duplicates in **different subtrees** | **Parent containment** is the strongest disambiguation signal — each `Icon` is scoped to its parent (`Header` vs `Footer`) and receives a distinct key by ancestry alone. No sibling-level heuristic needed. See *Disambiguation hierarchy* below. |
 
 ##### Medium confidence — correct for typical usage, fragile under reordering
 
 | Pattern | Structure | Risk |
 |---------|-----------|------|
+| **Form fields** (`[Field, Field, Field, Submit]`) | Repeated `Field` with a unique `Submit` anchor at the bottom | Anchor-adjacent matches right-to-left from `Submit`, keeping the field *nearest* Submit stable. But new optional fields are typically inserted *just before* Submit (e.g., VA: `[Name, Email, Submit]`, VB: `[Name, Email, Phone, Submit]`). This shifts the "nearest to Submit" identity to the new field, mismatching the original fields. **Left-to-right positional would be more accurate here**, but the algorithm can't know growth direction. Correct when fields are appended at the top; **breaks** when inserted before Submit. |
 | **Star rating** (`[Star, Star, Star, Star, Star]`) | Homogeneous duplicates, no anchors | Falls back to left-to-right positional. Correct when `count` variants remove from the right (the dominant pattern). **Breaks** if a designer reverses layer order for RTL layout. |
 | **Navigation tabs** (`[Tab, Tab, Tab]`) | Homogeneous duplicates, no anchors | Same as stars — positional fallback. Correct for `count` variants. **Breaks** if `selected` is implemented by moving the active tab to position 0. |
 | **Stepper** (`[Step, Step, Step]`) | Homogeneous duplicates if no unique connector/label between steps | Falls back to positional. Correct when steps grow from the right. **Breaks** if a designer inserts steps in the middle of an existing sequence. |
@@ -448,6 +448,18 @@ The following cases stress-test the algorithm against common component structure
 | **Semantic reordering** | VA: `[icon-A, icon-B]`, VB: `[icon-B, icon-A]` — both named `Icon`, swapped | Positional matching assigns `icon` and `icon2` based on position. A becomes icon in VA but icon2 in VB. **No positional scheme can detect semantic identity swaps** without external metadata. |
 | **Accordion nested** | `[Header, Chevron, Content, Header, Chevron, Content]` at multiple nesting depths | After flattening, `Header` appears 2× as siblings even though they belong to different `Section` parents. **Mitigation**: per-parent scoping already handles this — each `Section`'s children are disambiguated independently. |
 | **Table column reordering** | VA: `[Cell-checkbox, Cell-name, Cell-actions]`, VB: `[Cell-name, Cell-checkbox, Cell-actions]` — all named `Cell` | If only `Cell-actions` (last) is an anchor, the other two cells are in the before-anchor segment and matched right-to-left. Reordering swaps their suffixes. **Acceptable**: column reordering is uncommon in variant sets; when it occurs, the resulting diff is larger but not lossy. |
+
+#### Disambiguation hierarchy
+
+The algorithm applies three disambiguation signals in order of strength:
+
+1. **Parent containment** (strongest) — Elements with the same name in different subtrees are already distinct. An `Icon` inside `Header` and an `Icon` inside `Footer` are separate scopes — their keys are disambiguated by ancestry, not by suffix. This is the first and most reliable signal because it reflects the designer's structural intent: grouping elements under named parents is an explicit organizational choice.
+
+2. **Anchor-adjacent matching** (strong) — Within a single parent, unique-named siblings serve as stable landmarks. Duplicates are matched by proximity to these anchors. Effective when the parent contains a mix of unique and repeated names.
+
+3. **Positional fallback** (weakest) — When no anchors exist within a parent (all siblings share the same name), fall back to left-to-right order. Correct only when growth happens at the trailing edge.
+
+Most real components benefit from levels 1 and 2. Homogeneous sibling groups (level 3 only) are the minority case — and even there, the output is lossless; only diff granularity degrades.
 
 #### Error risk scale
 
@@ -476,7 +488,7 @@ The two-pass approach adds one lightweight traversal over all variants:
 
 **Anchor itself is absent in some variants**: If `label` appears in variant A but not variant B, it cannot serve as an anchor. Only names present in **every variant that contains them** qualify. In practice, this means: if an anchor is optional (absent in some variants), its segments are merged with adjacent segments in variants where it's missing.
 
-**Nested duplicates**: Disambiguation is scoped to each parent independently. A parent named `header` with children `[icon, icon]` and a sibling parent `footer` with children `[icon, icon]` are separate scopes. The `icon` in `header` and the `icon` in `footer` are already distinct by ancestry — they have different keys in the flattened anatomy because the traversal encounters them in different subtrees. This is the primary defense against the "same name, different purpose" scenario (Context §2) — containment path, not suffix matching, is what distinguishes them.
+**Nested duplicates**: Disambiguation is scoped to each parent independently (see *Disambiguation hierarchy*, level 1). A parent named `header` with children `[icon, icon]` and a sibling parent `footer` with children `[icon, icon]` are separate scopes. The `icon` in `header` and the `icon` in `footer` are already distinct by ancestry — they have different keys in the flattened anatomy because the traversal encounters them in different subtrees. Parent containment is the primary defense against the "same name, different purpose" scenario (Context §2) — the designer's grouping structure, not suffix matching, is what distinguishes them.
 
 **Anchor ordering inconsistency**: If anchors themselves appear in different orders across variants (e.g., VA has `[label, description]` but VB has `[description, label]`), the segment boundaries diverge and anchor-relative matching degrades. This is treated as a design inconsistency — the algorithm falls back to absolute position for affected segments and emits a diagnostic warning.
 
