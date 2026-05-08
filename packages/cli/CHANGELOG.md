@@ -5,6 +5,15 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.1] - 2026-05-08
+
+Patch fix for `--split-concerns` output shape.
+
+### Fixed
+
+- **`props` defaults to `{}` instead of `[]` when a component has no props (#84)** — `splitComponentByConcern` and `extractApiFromSubcomponents` were filling missing `props` with an empty array, producing output that violated the schema (`Props` is an object). Components like `egdsDivider` and `egdsSearchBarExperimental` now emit `props: {}`. The `ComponentApiData` and `SubcomponentApiData` interfaces are corrected to type `props` as `Record<string, any>`.
+
+
 ## [0.13.0] - 2026-05-06
 
 Adds configurable color output format (`config.format.color`) with nine options from hex strings to structured DTCG Color objects. Fixes EISDIR crash when outputDirectory targets a directory, and corrects config template URLs.
