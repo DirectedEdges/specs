@@ -9,6 +9,117 @@ Scan a Figma file and generate a manifest of all components.
 specs scan [file] [options]
 ```
 
+## Format
+
+The manifest is a markdown file with a metadata header and a Components table:
+
+```markdown
+# Component Manifest
+
+**Scan format version:** 2  
+**Generated:** 2026-05-08T18:02:11Z  
+**File:** /absolute/path/to/data/library.file.json
+**Variables:** /absolute/path/to/data/library.variables.json
+**File last modified:** 2026-05-08T17:48:26Z
+
+---
+
+## Components
+
+| ✓ | Name | ID | Type | Dev Status |
+|------|------|------|------|------------|
+| [x] | DS Accordion | 1234:5678 | COMPONENT_SET | READY_FOR_DEV |
+| [x] | DS Alert | 1234:5679 | COMPONENT_SET | READY_FOR_DEV |
+| [ ] | DS Avatar | 1234:5680 | COMPONENT_SET | NONE |
+| [ ] | DS Button Copy | 1234:5681 | COMPONENT | NONE |
+| [x] | DS Button | 1234:5682 | COMPONENT_SET | READY_FOR_DEV |
+```
+
+**Metadata:**
+- `Scan format version` — manifest format version (currently `2`); used to detect and migrate older manifests automatically.
+- `Generated` — Timestamp of manifest creation.
+- `File` — Path to Figma file used.
+- `Variables` — Path to variables file (if provided).
+- `File last modified` — File-level `lastModified` timestamp from the Figma REST payload.
+
+**Row format:**
+- `[x]` / `[ ]` — checked / unchecked. Edit by hand to curate.
+- `Dev Status` — `READY_FOR_DEV` (designer-flagged in Figma Dev Mode) or `NONE` (unset). Read-only on each scan; changes drive the default merge behavior.
+
+## Authoring
+
+Edit the manifest to refine selections. The `Dev Status` column is informational — only the `✓` cell drives `generate`:
+
+```markdown
+| ✓ | Name | ID | Type | Dev Status |
+|------|------|------|------|------------|
+| [x] | DS Button | 1234:1 | COMPONENT_SET | READY_FOR_DEV |
+| [x] | DS Alert | 1234:2 | COMPONENT_SET | READY_FOR_DEV |
+| [ ] | DS Button OLD | 1234:3 | COMPONENT_SET | NONE |
+| [ ] | Example/Usage | 1234:4 | COMPONENT | NONE |
+```
+
+### Defaults
+
+When generating a fresh manifest (no prior file exists, or `--reset-checks` is set), `scan` decides which components to check using this rule:
+
+1. **If any component in the file has `devStatus: READY_FOR_DEV`** (set by designers in Figma's Dev Mode): only those components are checked. Everything else is unchecked.
+2. **Otherwise** (no `devStatus` signal exists anywhere in the file): falls back to a heuristic that includes all `COMPONENT_SET` and standalone `COMPONENT` nodes. This preserves backward compatibility for libraries that haven't adopted Dev Mode status.
+
+`--include-all` overrides both — every row is checked.
+
+### Rescan
+
+If a manifest already exists at the output path, `scan` merges with it instead of overwriting:
+
+- **devStatus unchanged for a row** → prior checkbox state is preserved.
+- **devStatus changed for a row** → Figma wins by default. The checkbox flips to match the new devStatus (`READY_FOR_DEV` → `[x]`, `NONE` → `[ ]`). Use `--keep-checks` to suppress this and preserve manual choices.
+- **New components** discovered in the file → checked according to the default rule above.
+- **Components removed** from the file → dropped from the manifest. The summary line reports the count.
+
+A summary line is printed after each merge, e.g. `Merge: 2 added, 1 removed, 5 updated by devStatus, 180 preserved`.
+
+## Examples
+
+### Basic scan
+
+```bash
+# Zero-config: auto-resolves the only configured source
+# Default output: {dataDirectory}/library.manifest.md
+specs scan
+
+# Or pass an explicit file path
+specs scan data/library.file.json -o components.md
+```
+
+### Multiple sources
+
+```bash
+# When specs.config.yaml has multiple sources, pick one:
+specs scan --source library
+specs scan --source foundations
+```
+
+### With variables
+
+```bash
+# Include variables path in manifest metadata
+specs scan --variables data/library.variables.json
+```
+
+### Verbose output
+
+```bash
+# See component count and file stats
+specs scan --verbose
+
+# Output:
+# ✓ Scanned library.file.json
+# ✓ Found 164 components (12 selected, 152 excluded)
+#   Merge: 1 updated by devStatus, 163 preserved
+# ✓ Saved to /absolute/path/to/data/library.manifest.md
+```
+
 ## Arguments
 
 ### `[file]` (optional)
@@ -60,7 +171,7 @@ specs scan --data-dir ./custom-data
 Path to config file. Used to resolve `dataDirectory` and `sources` for auto-selection and the default output path.
 
 ### `--include-all`
-Include all components regardless of devStatus or heuristics. Overrides the default rule below and bypasses the merge step entirely.
+Include all components regardless of devStatus or heuristics. Overrides the default rule and bypasses the merge step entirely.
 
 ### `--keep-checks`
 Preserve the prior manifest's checkbox state for every existing row, even when a component's `devStatus` has changed since the last scan. The Dev Status column still updates so you can see Figma's signal — only the `✓` column is locked. Newly-discovered components still use the default inclusion rule.
@@ -88,120 +199,9 @@ Enable detailed logging.
 specs scan --verbose
 ```
 
-## Default inclusion rule
-
-When generating a fresh manifest (no prior file exists, or `--reset-checks` is set), `scan` decides which components to check using this rule:
-
-1. **If any component in the file has `devStatus: READY_FOR_DEV`** (set by designers in Figma's Dev Mode): only those components are checked. Everything else is unchecked.
-2. **Otherwise** (no `devStatus` signal exists anywhere in the file): falls back to a heuristic that includes all `COMPONENT_SET` and standalone `COMPONENT` nodes. This preserves backward compatibility for libraries that haven't adopted Dev Mode status.
-
-`--include-all` overrides both — every row is checked.
-
-## Rescan behavior
-
-If a manifest already exists at the output path, `scan` merges with it instead of overwriting:
-
-- **devStatus unchanged for a row** → prior checkbox state is preserved.
-- **devStatus changed for a row** → Figma wins by default. The checkbox flips to match the new devStatus (`READY_FOR_DEV` → `[x]`, `NONE` → `[ ]`). Use `--keep-checks` to suppress this and preserve manual choices.
-- **New components** discovered in the file → checked according to the default rule above.
-- **Components removed** from the file → dropped from the manifest. The summary line reports the count.
-
-A summary line is printed after each merge, e.g. `Merge: 2 added, 1 removed, 5 updated by devStatus, 180 preserved`.
-
-## Output Format
-
-The manifest is a markdown file with a metadata header and a Components table:
-
-```markdown
-# Component Manifest
-
-**Scan format version:** 2  
-**Generated:** 2026-05-08T18:02:11Z  
-**File:** /absolute/path/to/data/library.file.json
-**Variables:** /absolute/path/to/data/library.variables.json
-**File last modified:** 2026-05-08T17:48:26Z
-
----
-
-## Components
-
-| ✓ | Name | ID | Type | Dev Status |
-|------|------|------|------|------------|
-| [x] | DS Accordion | 1234:5678 | COMPONENT_SET | READY_FOR_DEV |
-| [x] | DS Alert | 1234:5679 | COMPONENT_SET | READY_FOR_DEV |
-| [ ] | DS Avatar | 1234:5680 | COMPONENT_SET | NONE |
-| [ ] | DS Button Copy | 1234:5681 | COMPONENT | NONE |
-| [x] | DS Button | 1234:5682 | COMPONENT_SET | READY_FOR_DEV |
-```
-
-**Metadata:**
-- `Scan format version` — manifest format version (currently `2`); used to detect and migrate older manifests automatically.
-- `Generated` — Timestamp of manifest creation.
-- `File` — Path to Figma file used.
-- `Variables` — Path to variables file (if provided).
-- `File last modified` — File-level `lastModified` timestamp from the Figma REST payload.
-
-**Row Format:**
-- `[x]` / `[ ]` — checked / unchecked. Edit by hand to curate.
-- `Dev Status` — `READY_FOR_DEV` (designer-flagged in Figma Dev Mode) or `NONE` (unset). Read-only on each scan; changes drive the default merge behavior.
-
-## Migration from v1
+## Migration
 
 Manifests produced by older versions of `scan` (checkbox-list format like `- [x] Name (id, TYPE)`) are detected automatically. On the next `scan`, prior checkbox state is preserved as-is, the new `Dev Status` column is populated from the current Figma payload, and the file is rewritten in the v2 table format. No manual migration step is required.
-
-## Curation
-
-Edit the manifest to refine selections. The `Dev Status` column is informational — only the `✓` cell drives `generate`:
-
-```markdown
-| ✓ | Name | ID | Type | Dev Status |
-|------|------|------|------|------------|
-| [x] | DS Button | 1234:1 | COMPONENT_SET | READY_FOR_DEV |
-| [x] | DS Alert | 1234:2 | COMPONENT_SET | READY_FOR_DEV |
-| [ ] | DS Button OLD | 1234:3 | COMPONENT_SET | NONE |
-| [ ] | Example/Usage | 1234:4 | COMPONENT | NONE |
-```
-
-## Examples
-
-### Basic Scan
-
-```bash
-# Zero-config: auto-resolves the only configured source
-# Default output: {dataDirectory}/library.manifest.md
-specs scan
-
-# Or pass an explicit file path
-specs scan data/library.file.json -o components.md
-```
-
-### Multiple Sources
-
-```bash
-# When specs.config.yaml has multiple sources, pick one:
-specs scan --source library
-specs scan --source foundations
-```
-
-### With Variables
-
-```bash
-# Include variables path in manifest metadata
-specs scan --variables data/library.variables.json
-```
-
-### Verbose Output
-
-```bash
-# See component count and file stats
-specs scan --verbose
-
-# Output:
-# ✓ Scanned library.file.json
-# ✓ Found 164 components (12 selected, 152 excluded)
-#   Merge: 1 updated by devStatus, 163 preserved
-# ✓ Saved to /absolute/path/to/data/library.manifest.md
-```
 
 ---
 
