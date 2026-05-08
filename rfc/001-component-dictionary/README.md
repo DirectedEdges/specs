@@ -199,6 +199,8 @@ Every generated output exists to reduce what teams hand-write to consume the des
 
 Structured contracts (YAML, JSON, or any schema-validated representation) carry what the schema validates: anatomy, props, layout, variants, tokens, bindings — anything adversarially robust against drift. Prose (MD) carries what the schema can't: a11y rationale, behavioral notes, usage prose, design intent. The format choice tells consumers and tools what lifecycle to expect: the structured contract is regenerable, validatable, diffable on facts; prose is authored, prose-shaped, validatable only on structure. The split is enforceable by file extension alone; the three-classes composition framing follows from it.
 
+Note: Sketches are exploratory,  not proposals.
+
 ### Proposed outputs
 
 Workspace-level files are pure functions of the set of all specs in the workspace. Effort is implementation cost; value is consumer impact. Groups bundle outputs for selection (CLI flag, config preset, sidecar): `defaults` always emit; the rest are opt-in via `--emit <group>` or `--emit <file>`. The `Sketch` column links to an illustrative template grounded in `button.yaml` — treat as direction, not specification.
