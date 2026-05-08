@@ -1,0 +1,35 @@
+/* Generated. Slots map 1:1 to anatomy keys. */
+.button {
+  --bg:     var(--mode-button-default-bgColor-rest);
+  --fg:     var(--mode-button-default-fgColor-rest);
+  --border: var(--mode-button-default-borderColor-rest);
+  --radius: var(--functional-size-borderRadius-medium);
+  --gap:    var(--pattern-size-control-medium-gap);
+  --pad-y:  var(--pattern-size-control-medium-paddingBlock);
+  --pad-x:  var(--pattern-size-control-medium-paddingInline-normal);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap);
+  padding: var(--pad-y) var(--pad-x);
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.button[data-variant="primary"] { --bg: var(--mode-button-primary-bgColor-rest); /* … */ }
+.button[data-variant="danger"]  { --border: var(--mode-button-danger-borderColor-rest); /* … */ }
+.button[data-variant="invisible"] { --bg: var(--mode-button-invisible-bgColor-rest); border: 0; }
+
+.button[data-size="small"]  { --pad-x: var(--pattern-size-control-small-paddingInline-condensed); /* … */ }
+.button[data-size="large"]  { --pad-x: var(--pattern-size-control-large-paddingInline-spacious); /* … */ }
+
+.button[data-state="hover"]    { --bg: var(--mode-button-default-bgColor-hover); }
+.button[data-state="pressed"]  { --bg: var(--mode-button-default-bgColor-active); }
+.button[data-state="disabled"] { --border: var(--mode-button-default-borderColor-disabled); }
+
+.button__search,
+.button__trailingVisual,
+.button__dropdown { width: 16px; height: 16px; }

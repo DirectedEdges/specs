@@ -1,0 +1,33 @@
+{
+  "component": "Button",
+  "tokens": [
+    "functional/size/borderRadius/medium",
+    "mode/button/default/bgColor/rest",
+    "mode/button/default/bgColor/hover",
+    "mode/button/default/bgColor/active",
+    "mode/button/default/borderColor/rest",
+    "mode/button/default/borderColor/hover",
+    "mode/button/default/borderColor/disabled",
+    "mode/button/default/fgColor/rest",
+    "mode/button/primary/bgColor/rest",
+    "mode/button/primary/bgColor/hover",
+    "mode/button/primary/bgColor/active",
+    "mode/button/primary/bgColor/disabled",
+    "mode/button/danger/borderColor/rest",
+    "mode/button/danger/borderColor/hover",
+    "mode/button/danger/borderColor/active",
+    "mode/button/invisible/bgColor/rest",
+    "mode/button/invisible/bgColor/hover",
+    "mode/button/inactive/bgColor",
+    "mode/focus/outlineColor",
+    "pattern/size/control/{small|medium|large}/gap",
+    "pattern/size/control/{small|medium|large}/paddingBlock",
+    "pattern/size/control/{small|medium|large}/paddingInline/{condensed|normal|spacious}",
+    "Body/{Small|Medium} Bold",
+    "_component/button/default/shadow/resting",
+    "_component/button/primary/shadow/selected",
+    "_component/button/danger/shadow/selected",
+    "shadow/resting/small",
+    "shadow/inset"
+  ]
+}
