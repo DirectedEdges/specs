@@ -10,17 +10,54 @@
 
 ## Context
 
-`PropConfigurations` is used on `Element` to configure a nested component instance's props — for example, setting a nested `Button`'s `variant` to `"primary"`. Its current type accepts only scalar values:
+`PropConfigurations` lives on `Element` and sets a nested instance's props — e.g. fixing a nested `Button`'s `variant` to `"primary"`. Its current type accepts scalars only:
 
-```yaml
-PropConfigurations: Record<string, string | number | boolean>
+```ts
+// types/PropConfigurations.ts (today)
+type PropConfigurations = Record<string, string | number | boolean>;
 ```
 
-A parent component's element layer may need to *pass through* a prop from the parent to a nested instance — for example, a `Card` that exposes a `variant` prop and forwards it to an internal `Button`. Today, this requires a static scalar value; the forwarding cannot be expressed.
+### Where `PropBinding` is already accepted
 
-`PropBinding` (`{ $binding: string }`) already exists for exactly this purpose: it appears on `Element.content`, `Element.instanceOf`, and `Styles.visible` to bind a field's value to a parent prop at data-emission time. Widening `PropConfigurations` to also accept `PropBinding` completes the binding model uniformly across all element-level fields.
+`PropBinding` (`{ $binding: "#/props/<name>" }`, from ADR-008) lets a field's value be forwarded from a parent prop at emission time. It is already permitted on three element-level fields:
 
-This ADR does **not** affect `InstanceExample.propConfigurations` (ADR-043), which intentionally remains scalar-only — it represents a human-authored documented configuration, not a live data binding.
+```ts
+// types/Element.ts (today — unchanged by this ADR)
+type Element = {
+  content?:    string | PropBinding;                     // ✅ binding accepted
+  instanceOf?: string | PropBinding | SubcomponentRef;   // ✅ binding accepted
+  styles?:     Styles;                                   //   (Styles.visible: boolean | PropBinding) ✅
+  propConfigurations?: PropConfigurations;               // ❌ scalar only — the gap
+  // ...
+};
+```
+
+### The gap
+
+A `Card` that exposes a `label` prop and forwards it to a nested `Button` can already express the *content* case, but not the *propConfigurations* case:
+
+```yaml
+# Parent component declares its props
+props:
+  label: { type: string }
+
+elements:
+  # ✅ Already works — Element.content accepts PropBinding
+  cardTitle:
+    type: text
+    content: { $binding: "#/props/label" }
+
+  # ❌ Cannot express today — propConfigurations values must be scalar
+  nestedButton:
+    type: instance
+    instanceOf: Button
+    propConfigurations:
+      label: { $binding: "#/props/label" }   # rejected by the current type
+```
+
+Widening `PropConfigurations` to also accept `PropBinding` closes this gap and makes the binding model uniform across every element-level value field.
+
+This ADR does **not** affect `InstanceExample.propConfigurations` (ADR-043), which stays scalar-only — it represents a human-authored documented configuration, not a live binding.
 
 ---
 
@@ -40,22 +77,28 @@ This ADR does **not** affect `InstanceExample.propConfigurations` (ADR-043), whi
 
 Add `PropBinding` as a fourth branch alongside `string`, `number`, and `boolean`.
 
-```yaml
-# Before — static scalar only
-aNestedButton:
-  type: instance
-  instanceOf: Button
-  propConfigurations:
-    variant: primary
+```ts
+// Before
+type PropConfigurations = Record<string, string | number | boolean>;
 
-# After — static scalar or pass-through binding
-aNestedButton:
-  type: instance
-  instanceOf: Button
-  propConfigurations:
-    variant: primary                             # static scalar — unchanged
-    label: { $binding: "#/props/buttonLabel" }  # bound to parent's buttonLabel prop
-    disabled: { $binding: "#/props/disabled" }  # bound to parent's disabled prop
+// After
+type PropConfigurations = Record<string, string | number | boolean | PropBinding>;
+```
+
+In practice, a single `propConfigurations` block can mix static scalars and bindings:
+
+```yaml
+# Parent component
+props:
+  disabled: { type: boolean }
+
+elements:
+  nestedButton:
+    type: instance
+    instanceOf: Button
+    propConfigurations:
+      variant: primary                              # static scalar — already supported
+      disabled: { $binding: "#/props/disabled" }    # NEW — forwarded from parent prop
 ```
 
 **Pros**:
@@ -70,9 +113,84 @@ aNestedButton:
 
 ### Option B: Separate `propBindings` field *(Rejected)*
 
-Add a new `propBindings?: Record<string, PropBinding>` field on `Element` alongside `propConfigurations`.
+Add a sibling field on `Element` that only carries bindings; leave `propConfigurations` scalar-only.
 
-**Rejected because**: Splitting static values and bindings across two fields is awkward to author and consume. A single `propConfigurations` field that accepts both is simpler and consistent with how `Element.content` handles the same duality (`string | PropBinding`).
+```ts
+// types/Element.ts
+type Element = {
+  propConfigurations?: PropConfigurations;            // scalar-only, unchanged
+  propBindings?: Record<string, PropBinding>;         // NEW — bindings live here
+  // ...
+};
+```
+
+```yaml
+nestedButton:
+  type: instance
+  instanceOf: Button
+  propConfigurations:
+    variant: primary
+  propBindings:
+    disabled: { $binding: "#/props/disabled" }
+```
+
+**Rejected because**:
+- Two fields keyed by the same prop name invites collisions (`propConfigurations.disabled` *and* `propBindings.disabled`) with no obvious precedence rule — a class of bug Option A cannot have.
+- Inconsistent with the precedent already set on `Element.content`, `Element.instanceOf`, and `Styles.visible`, which each carry the `scalar | PropBinding` union inline. Splitting here would be the only element-level field that treats bindings as a separate channel.
+- Consumers must read and merge two fields to know "what is this prop set to?"; Option A keeps the answer in one place.
+
+---
+
+### Option C: String sentinel syntax *(Rejected)*
+
+Encode the binding as a magic string instead of an object, keeping the value union flat.
+
+```ts
+type PropConfigurations = Record<string, string | number | boolean>;
+```
+
+```yaml
+nestedButton:
+  propConfigurations:
+    variant: primary
+    disabled: "$binding:#/props/disabled"   # sentinel string
+```
+
+**Rejected because**:
+- Ambiguous with legitimate string values — a `label` prop whose static value happens to start with `$binding:` is now indistinguishable from a binding. The object form (`{ $binding: ... }`) is unambiguous by construction.
+- Diverges from ADR-008. Every other binding site in the schema uses the `{ $binding: string }` object shape; introducing a second encoding only for `propConfigurations` fractures the model.
+- JSON Schema cannot validate the pointer payload of a sentinel string without a custom format; the object form gets `$ref: "#/definitions/PropBinding"` validation for free.
+
+---
+
+### Option D: Invert direction — declare forwarding on the parent prop *(Rejected)*
+
+Express the relationship from the *parent prop's* side, not the consuming element's side.
+
+```ts
+// types/Props.ts
+interface StringProp {
+  type: 'string';
+  forwardsTo?: string[];   // e.g., ["#/elements/nestedButton/propConfigurations/disabled"]
+  // ...
+}
+```
+
+**Rejected because**:
+- Inverts the natural locality. A reader looking at `nestedButton` to understand "what is `disabled` set to?" would have to scan every parent prop's `forwardsTo` list. Element-local declarations keep cause and effect adjacent.
+- Doesn't compose with the existing `PropBinding` model on `content`, `instanceOf`, and `styles.visible` — those are declared at the consumption site. A `forwardsTo` model on `Props` would have to either duplicate or replace them.
+- A single parent prop forwarded to multiple targets becomes a list of pointers, which is harder to author and validate than per-site bindings.
+
+---
+
+### Option E: Defer — treat prop forwarding as a consumer concern *(Rejected)*
+
+Do nothing in the schema. Document that consumers (`specs-from-figma`, code generators) should infer pass-through by matching prop names between parent and nested instance, or via codebase conventions.
+
+**Rejected because**:
+- Name-matching is a heuristic, not a contract. Two props can share a name without being a forwarding relationship, and a forwarding relationship can exist between differently-named props (`Card.label` → `Button.text`).
+- The spec already commits to modeling bindings explicitly for `content`, `instanceOf`, and `styles.visible` (ADR-008). Leaving `propConfigurations` as the lone exception forces consumers to support two reasoning modes — explicit bindings everywhere except here.
+- Figma's component-property bindings on instance swaps and text overrides are extracted directly; refusing to express the equivalent for nested-instance props discards information the source already provides.
 
 ---
 
