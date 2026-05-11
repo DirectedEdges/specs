@@ -16,6 +16,21 @@ All commands in this agent run from the **schema package directory**: `packages/
 
 ## Outline
 
+0. **Ensure a tracking PR exists for this release branch** — do this FIRST, before any other step, every time this agent runs. An in-flight release must always be discoverable in `gh pr list` so a release branch can never be silently abandoned.
+   1. Confirm the current branch matches `release/*`. If not, STOP and report — this agent only runs from a release branch.
+   2. Check for an existing PR:
+      ```bash
+      gh pr list --repo DirectedEdges/specs --head "$(git branch --show-current)" --state all --json number,state,isDraft --jq '.[0]'
+      ```
+   3. If no PR exists, push the branch (if not already pushed) and create a **draft** PR immediately, even if the version/CHANGELOG isn't finalized yet:
+      ```bash
+      git push -u origin "$(git branch --show-current)" 2>/dev/null || true
+      gh pr create --draft --base main --head "$(git branch --show-current)" \
+        --title "release: $(git branch --show-current)" \
+        --body "Draft release PR — opened automatically by Schema.release agent so the in-flight release is visible. Versions, CHANGELOG, build, tests, and publish will be finalized before this is marked ready."
+      ```
+   4. Report the PR URL and continue.
+
 1. **Verify version**: Read `packages/schema/package.json`. Confirm the `version` field matches the argument. If not, STOP and ask whether to update it or abort.
 
 2. **Verify CHANGELOG**: Read `packages/schema/CHANGELOG.md`. Confirm:
@@ -99,9 +114,11 @@ All commands in this agent run from the **schema package directory**: `packages/
       ```
       Append each unique `Closes #N` line to the PR body so issues auto-close when this PR merges to main.
 
-   3. Create the PR:
+   3. Finalize the tracking PR. Step 0 opened a draft PR at the start; now mark it ready and update title/body:
       ```bash
-      gh pr create --base main --title "release: @directededges/specs-schema v[version]" --body "$(cat <<'EOF'
+      PR_NUM=$(gh pr list --repo DirectedEdges/specs --head "$(git branch --show-current)" --state open --json number --jq '.[0].number')
+      gh pr ready "$PR_NUM"
+      gh pr edit "$PR_NUM" --title "release: @directededges/specs-schema v[version]" --body "$(cat <<'EOF'
       ## Summary
       - Release @directededges/specs-schema v[version]
       - See packages/schema/CHANGELOG.md for details
@@ -110,7 +127,7 @@ All commands in this agent run from the **schema package directory**: `packages/
       EOF
       )"
       ```
-      If a PR already exists for this branch, report the existing PR URL instead of failing.
+      If no PR exists at this point (step 0 was skipped), create one with `gh pr create --base main --head <branch> --title "release: @directededges/specs-schema v[version]" --body "..."`.
    4. Create the GitHub Release (scoped tag):
       - Extract the release notes from `packages/schema/CHANGELOG.md` for this version: the **Summary** paragraph and all content under the `## [version]` heading, up to (but not including) the next `##` heading.
       ```bash
