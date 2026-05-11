@@ -49,6 +49,26 @@ All TypeScript in `types/` MUST compile under strict mode with zero errors.
 
 Rationale: These types are a published contract. Loose typing undermines compilation safety for every consumer and masks schema drift.
 
+### VI. Naming Governance — Code Platforms First
+
+When naming types, fields, schema properties, enum members, or any other public identifier, follow this preference order:
+
+1. **Favor code platforms when 2+ agree.** If two or more major code platforms (React, Vue, Svelte, Web Components, SwiftUI, Compose, etc.) align on a term, convention, or shape, use it. The shared vocabulary across consumer ecosystems wins.
+2. **Favor a single code platform when no consensus exists, even if Figma differs.** If no code-platform majority exists but at least one platform (commonly React or iOS) has a clearly preferred model, prefer that over Figma's.
+3. **Defer to Figma only as a last resort.** Use Figma's vocabulary or model only when no code platform expresses a strong opinion *and* deviating from Figma's model would be substantially costly (data-faithfulness loss, transformer complexity, round-trip fidelity).
+
+Figma is the *data source* for the schema, not the *naming authority*. The schema is consumed primarily by code generators, design-system tooling, and component documentation pipelines whose audiences think in code-platform terms. Defaulting to Figma's terms when code-platform terms exist forces every consumer to translate at their boundary; defaulting to code-platform terms forces only the transformer (`specs-from-figma`) to translate, which is the smaller surface.
+
+**Worked examples**:
+
+- **`slotContent` (rule 1 — code-platform majority).** Web Components (`<slot>` + slotted content), Vue (`<slot>` + slot content), SwiftUI (ViewBuilder content / `@ViewBuilder content: () -> Content`), and Compose (slot APIs + content lambdas) all use "content" for what fills a slot. React's `children` is the outlier. The code-platform majority backs `slotContent` over `slotChildren`.
+
+- **SCREAMING_CASE enum values such as `HORIZONTAL` and `SPACE_BETWEEN` (rule 3 — Figma retained).** No code platform offers a dominant casing convention — React uses camelCase, CSS uses kebab-case, Swift uses camelCase or PascalCase, Compose uses PascalCase. Without a majority and given the values flow directly from Figma's API responses, SCREAMING_CASE is retained per the existing enum-casing rule under Additional Constraints. This is rule 3 in action: Figma wins only because no code platform has a stronger claim.
+
+**Application**: ADRs proposing new types, field names, or naming changes MUST cite which rule (1, 2, or 3) the proposed name follows, naming the relevant code platforms when invoking rule 1 or 2. Exceptions require written rationale tied to data-faithfulness or transformer cost.
+
+Rationale: Schema names ship to every consumer simultaneously and persist for the lifetime of the contract. Choosing names that consumers already recognize reduces friction across the entire downstream ecosystem and prevents the schema from becoming a Figma-shaped artifact that every code-generation pipeline has to translate around.
+
 ## Additional Constraints & Standards
 
 - **Naming — no abbreviations**: Type names, field names, schema properties, and API identifiers MUST use full, unabbreviated words. Prefer `Operation` over `Op`, `Button` over `Btn`, `Configuration` over `Config`. Clarity takes priority over brevity in the public contract. Accepted exceptions: `Config` (grandfathered), `args` (universally understood shorthand for arguments).
@@ -91,4 +111,4 @@ Rationale: These types are a published contract. Loose typing undermines compila
   - PATCH: Clarifications, wording, formatting; no semantic change.
 - **Compliance**: Reviewers MUST check Constitution Check items at every feature milestone and before any `MAJOR` or `MINOR` package version bump.
 
-**Version**: 1.3.0 | **Ratified**: 2026-02-18 | **Last Amended**: 2026-04-27
+**Version**: 1.4.0 | **Ratified**: 2026-02-18 | **Last Amended**: 2026-05-11
