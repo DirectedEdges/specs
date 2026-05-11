@@ -5,28 +5,17 @@
 #
 # Scope: this file represents a SYSTEM-SCOPED composition file (an entire page
 # spanning multiple components — Page, Row, Accordion, CheckboxGroup, Checkbox,
-# Badge). Component-scoped recursive compositions (a single component's
-# `slotContent` referencing its own sibling entries) would live inside the
-# Component definition rather than in a standalone file like this one.
+# Badge). Records live under a top-level `compositions:` namespace so that
+# JSON Pointer references resolve cleanly. Component-scoped recursive
+# compositions would live inside a Component definition's `slotContent`
+# (see ./example.pill.yaml) rather than in a standalone file like this one.
 #
-# Reference form: discriminated — `{ $slotContent: <key> }` — paralleling
-# `PropBinding`'s `$binding` shape. The bare-string alternative (`children:
-# pageHeader`) is the lighter form but loses local type-discriminability;
-# see ADR-049 Context decision 2.
-#
-# Example: Filter Results Page expressed as a record of named Compositions.
-# `root` is the entry point (the Composition that fills `Page.body`); every
-# other key is a sibling Composition referenced by name from another's
-# `propConfigurations.<slotName>` field. No indentation grows with depth —
-# each composition stays at file-top level regardless of how deep in the
-# tree its referencer sits.
-#
-# Framing — slot fill is by key reference:
-#   `propConfigurations.<slotName>: <key>` where `<key>` names a Composition
-#   defined as a sibling record in this file. The schema-level value union
-#   for `propConfigurations.<slotName>` therefore needs to accept *at least*
-#   a string key (this form) and ideally also an inline Composition (nested
-#   form), letting authors choose per case.
+# Reference form: discriminated `{ $composition: <pointer> }` where <pointer>
+# is a JSON Pointer (absolute from the document root), paralleling ADR-008's
+# `$binding` shape. The pointer's path makes the registry home explicit in
+# the wire format — system-scoped here resolves under `#/compositions/...`;
+# component-scoped pointers under `#/components/<name>/slotContent/...`
+# (see ./example.pill.yaml).
 #
 # Why flat:
 #   - Each Composition is reusable — `makeOptions` could be referenced
@@ -40,16 +29,6 @@
 #   - Locality: the entire tree is visible without jumping between records
 #   - No naming overhead for one-off sub-compositions
 #   - Matches how a designer might think about a one-off page layout
-#
-# Open questions for ADR-049 (carry-over from example.nested.yaml plus
-# flat-specific):
-#   - Accept both inline-Composition and key-ref forms for
-#     `propConfigurations.<slotName>`, or pick one?
-#   - Where do the named compositions live — inside `Component.slotContent`,
-#     a separate `compositions.yaml` file (per ADR-042 follow-on), or both?
-#   - Naming conventions / collision rules for the registry?
-#   - How does the schema express the union (Composition | string) when the
-#     string is meaningful only as a key into a separate registry?
 #
 # Hierarchy (same as example.nested.yaml):
 #   Page.body
@@ -72,119 +51,126 @@
 #               ├─ Card
 #               └─ Card
 
-# ─── root: entry point — fills Page.body ────────────────────────────────────
-root:
-  title: Filter Results Page
-  description: |
-    Two-row page layout — "Filter Page Header" (breadcrumbs, heading, tabs)
-    above "Filter Grid" (sidebar with an Accordion of Checkboxes, main with
-    four Cards).
-  anatomy:
-    filterPageHeader:
-      type: instance
-      instanceOf: Row
-    filterGrid:
-      type: instance
-      instanceOf: Row
-  elements:
-    filterPageHeader:
-      propConfigurations:
-        children: { $slotContent: pageHeader }        # → composition `pageHeader`
-    filterGrid:
-      propConfigurations:
-        children: { $slotContent: pageGrid }          # → composition `pageGrid`
-  layout:
-    - filterPageHeader
-    - filterGrid
+compositions:
 
-# ─── pageHeader: three stacked items in the header row ──────────────────────
-pageHeader:
-  anatomy:
-    breadcrumbs: { type: instance, instanceOf: Breadcrumbs }
-    heading:     { type: instance, instanceOf: Heading }
-    tabs:        { type: instance, instanceOf: Tabs }
-  elements:
-    heading:
-      propConfigurations:
-        content: Filter Results
-  layout:
-    - breadcrumbs
-    - heading
-    - tabs
+  # ─── root: entry point — fills Page.body ──────────────────────────────────
+  root:
+    title: Filter Results Page
+    description: |
+      Two-row page layout — "Filter Page Header" (breadcrumbs, heading, tabs)
+      above "Filter Grid" (sidebar with an Accordion of Checkboxes, main with
+      four Cards).
+    anatomy:
+      filterPageHeader:
+        type: instance
+        instanceOf: Row
+      filterGrid:
+        type: instance
+        instanceOf: Row
+    elements:
+      filterPageHeader:
+        propConfigurations:
+          children:
+            $composition: "#/compositions/pageHeader"
+      filterGrid:
+        propConfigurations:
+          children:
+            $composition: "#/compositions/pageGrid"
+    layout:
+      - filterPageHeader
+      - filterGrid
 
-# ─── pageGrid: two-column grid for the filter results ───────────────────────
-pageGrid:
-  anatomy:
-    sidebar:   { type: container }
-    make: { type: instance, instanceOf: Accordion }
-    main:      { type: container }
-    card1:     { type: instance, instanceOf: Card }
-    card2:     { type: instance, instanceOf: Card }
-    card3:     { type: instance, instanceOf: Card }
-    card4:     { type: instance, instanceOf: Card }
-  elements:
-    make:
-      propConfigurations:
-        label: Filter 1
-        open: true
-        children: { $slotContent: carBrandFilter }    # → composition `carBrandFilter`
-  layout:
-    - sidebar:
-        - make
-    - main:
-        - card1
-        - card2
-        - card3
-        - card4
+  # ─── pageHeader: three stacked items in the header row ────────────────────
+  pageHeader:
+    anatomy:
+      breadcrumbs: { type: instance, instanceOf: Breadcrumbs }
+      heading:     { type: instance, instanceOf: Heading }
+      tabs:        { type: instance, instanceOf: Tabs }
+    elements:
+      heading:
+        propConfigurations:
+          content: Filter Results
+    layout:
+      - breadcrumbs
+      - heading
+      - tabs
 
-# ─── carBrandFilter: what's inside the "Filter 1" Accordion when open ───────
-carBrandFilter:
-  anatomy:
-    checkboxGroup:
-      type: instance
-      instanceOf: CheckboxGroup
-  elements:
-    checkboxGroup:
-      propConfigurations:
-        children: { $slotContent: makeOptions }   # → composition `makeOptions`
-  layout:
-    - checkboxGroup
+  # ─── pageGrid: two-column grid for the filter results ─────────────────────
+  pageGrid:
+    anatomy:
+      sidebar:   { type: container }
+      make: { type: instance, instanceOf: Accordion }
+      main:      { type: container }
+      card1:     { type: instance, instanceOf: Card }
+      card2:     { type: instance, instanceOf: Card }
+      card3:     { type: instance, instanceOf: Card }
+      card4:     { type: instance, instanceOf: Card }
+    elements:
+      make:
+        propConfigurations:
+          label: Filter 1
+          open: true
+          children:
+            $composition: "#/compositions/carBrandFilter"
+    layout:
+      - sidebar:
+          - make
+      - main:
+          - card1
+          - card2
+          - card3
+          - card4
 
-# ─── makeOptions: the three Checkbox instances inside the CheckboxGroup ─
-makeOptions:
-  anatomy:
-    make1:     { type: instance, instanceOf: Checkbox }
-    make2: { type: instance, instanceOf: Checkbox }
-    make3:   { type: instance, instanceOf: Checkbox }
-  elements:
-    make1:     { propConfigurations: { label: Ford } }
-    make2: { propConfigurations: { label: Mercedes } }
-    make3:
-      propConfigurations:
-        custom: true
-        children: { $slotContent: newToyota }  # → composition `newToyota`
-  layout:
-    - make1
-    - make2
-    - make3
+  # ─── carBrandFilter: what's inside the "Filter 1" Accordion when open ─────
+  carBrandFilter:
+    anatomy:
+      checkboxGroup:
+        type: instance
+        instanceOf: CheckboxGroup
+    elements:
+      checkboxGroup:
+        propConfigurations:
+          children:
+            $composition: "#/compositions/makeOptions"
+    layout:
+      - checkboxGroup
 
-# ─── newToyota: text + badge inside the custom Toyota checkbox ──────
-newToyota:
-  anatomy:
-    root:        { type: container }
-    toyotaText: { type: text }
-    newBadge:   { type: instance, instanceOf: Badge }
-  elements:
-    root:
-      styles:
-        layoutMode: HORIZONTAL
-    toyotaText:
-      content: Toyota
-    newBadge:
-      propConfigurations:
-        appearance: new
-        label: New
-  layout:
-    - root:
-        - toyotaText
-        - newBadge
+  # ─── makeOptions: the three Checkbox instances inside the CheckboxGroup ───
+  makeOptions:
+    anatomy:
+      make1:     { type: instance, instanceOf: Checkbox }
+      make2: { type: instance, instanceOf: Checkbox }
+      make3:   { type: instance, instanceOf: Checkbox }
+    elements:
+      make1:     { propConfigurations: { label: Ford } }
+      make2: { propConfigurations: { label: Mercedes } }
+      make3:
+        propConfigurations:
+          custom: true
+          children:
+            $composition: "#/compositions/newToyota"
+    layout:
+      - make1
+      - make2
+      - make3
+
+  # ─── newToyota: text + badge inside the custom Toyota checkbox ────────────
+  newToyota:
+    anatomy:
+      root:        { type: container }
+      toyotaText: { type: text }
+      newBadge:   { type: instance, instanceOf: Badge }
+    elements:
+      root:
+        styles:
+          layoutMode: HORIZONTAL
+      toyotaText:
+        content: Toyota
+      newBadge:
+        propConfigurations:
+          appearance: new
+          label: New
+    layout:
+      - root:
+          - toyotaText
+          - newBadge

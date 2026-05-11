@@ -1,4 +1,4 @@
-# ADR: Component Examples — InstanceExample and Component.examples
+# ADR: Component Instance Examples — InstanceExample and Component.instanceExamples
 
 **Branch**: `046-component-examples`
 **Created**: 2026-04-29
@@ -21,17 +21,17 @@ This ADR covers the simplest case: an example defined entirely by scalar prop va
 - An optional human-readable label (`title`)
 - Scalar prop values (`propConfigurations`)
 
-`Component.examples` is the named record that holds `InstanceExample` entries.
+`Component.instanceExamples` is the named record that holds `InstanceExample` entries.
 
 ---
 
 ## Decision Drivers
 
 - **Named record, not array** — examples must be referenceable by key; `Element.$extensions['com.figma'].defaultComposition` (ADR-047) and the slot-fill mechanism (ADR-049) both point to keys, not indices
-- **No discriminator field** — `Component.examples` will only ever contain `InstanceExample` entries (slot fills are `Element.propConfigurations` per ADR-049; Figma authoring defaults are `Component.slotContent` per ADR-047). No `kind` field is needed because no other shape competes for the same record
+- **No discriminator field** — `Component.instanceExamples` will only ever contain `InstanceExample` entries (slot fills are `Element.propConfigurations` per ADR-049; Figma authoring defaults are `Component.slotContent` per ADR-047). No `kind` field is needed because no other shape competes for the same record
 - **Scalar-only `propConfigurations`** — `InstanceExample` represents a documented configuration for human readers and tooling, not a live data binding; `PropBinding` belongs in `Element.propConfigurations` (ADR-048), not here
 - **Scalar-prop scope here; slot fill is ADR-049 territory** — `InstanceExample` documents scalar prop usages only. Filling slot props is part of the broader composition-recursion story and is handled through `Element.propConfigurations` per ADR-049, not via a dedicated field on `InstanceExample`
-- **Additive-only** — new optional field `Component.examples`; no existing type changed → MINOR
+- **Additive-only** — new optional field `Component.instanceExamples`; no existing type changed → MINOR
 - **Type ↔ schema symmetry** — every field has a schema counterpart (Constitution §I)
 - **No runtime logic** — type declarations and schema only (Constitution §II)
 
@@ -41,7 +41,7 @@ This ADR covers the simplest case: an example defined entirely by scalar prop va
 
 ### Option A: `InstanceExample` as a record member *(Selected)*
 
-Add `InstanceExample { title?, propConfigurations? }` and a named record `ComponentExamples` on `Component`. No discriminator field — `ComponentExamples` only holds one shape.
+Add `InstanceExample { title?, propConfigurations? }` and a named record `InstanceExamples` on `Component`. No discriminator field — `InstanceExamples` only holds one shape.
 
 ```yaml
 # ActionListItem — instance examples covering scalar prop variants
@@ -62,7 +62,7 @@ props:
   description:
     type: string
 
-examples:
+instanceExamples:
   defaultState:
     title: Action List Item – default
     propConfigurations:
@@ -117,11 +117,11 @@ Reuse the existing `Variant` type for examples — a `Variant` already has `conf
 
 | File | Change | Bump |
 |------|--------|------|
-| New: `ComponentExample.ts` | Add `InstanceExample`, `ComponentExamples` | MINOR |
-| `Component.ts` | Add optional `examples?: ComponentExamples` | MINOR |
-| `index.ts` | Export `InstanceExample`, `ComponentExamples` | MINOR |
+| New: `InstanceExample.ts` | Add `InstanceExample`, `InstanceExamples` | MINOR |
+| `Component.ts` | Add optional `examples?: InstanceExamples` | MINOR |
+| `index.ts` | Export `InstanceExample`, `InstanceExamples` | MINOR |
 
-**New types** (`types/ComponentExample.ts`):
+**New types** (`types/InstanceExample.ts`):
 
 ```yaml
 # InstanceExample — a pre-configured usage of the whole component
@@ -131,8 +131,8 @@ InstanceExample:
     Record<string, string | number | boolean>    # scalar prop values only
                                                  # slot prop fills are NOT here — see ADR-049
 
-# ComponentExamples — named record on Component
-ComponentExamples: Record<string, InstanceExample>
+# InstanceExamples — named record on Component (field: instanceExamples)
+InstanceExamples: Record<string, InstanceExample>
 ```
 
 **Extended `Component`** (`types/Component.ts`):
@@ -159,7 +159,7 @@ Component:
   variants?: Variants
   invalidVariantCombinations?: PropConfigurations[]
   metadata?: Metadata
-  examples?: ComponentExamples    # new — named instance and slot examples
+  instanceExamples?: InstanceExamples    # new — named usages of this component (scalar prop configurations)
 ```
 
 ### Schema changes (`schema/`)
@@ -167,8 +167,8 @@ Component:
 | File | Change | Bump |
 |------|--------|------|
 | `component.schema.json` | Add `#/definitions/InstanceExample` | MINOR |
-| `component.schema.json` | Add `#/definitions/ComponentExamples` | MINOR |
-| `component.schema.json` | Add `examples` property to `#/definitions/Component` | MINOR |
+| `component.schema.json` | Add `#/definitions/InstanceExamples` | MINOR |
+| `component.schema.json` | Add `instanceExamples` property to `#/definitions/Component` | MINOR |
 
 **New definition** (`#/definitions/InstanceExample`):
 
@@ -190,10 +190,10 @@ InstanceExample:
   additionalProperties: false
 ```
 
-**New definition** (`#/definitions/ComponentExamples`):
+**New definition** (`#/definitions/InstanceExamples`):
 
 ```yaml
-ComponentExamples:
+InstanceExamples:
   type: object
   description: "Named examples for this component."
   patternProperties:
@@ -205,9 +205,9 @@ ComponentExamples:
 **New property** in `#/definitions/Component/properties`:
 
 ```yaml
-examples:
-  $ref: "#/definitions/ComponentExamples"
-  description: "Named instance and slot examples for this component."
+instanceExamples:
+  $ref: "#/definitions/InstanceExamples"
+  description: "Named instance examples (documented usages) for this component."
 ```
 
 ### Out of scope for this ADR
@@ -220,7 +220,7 @@ examples:
 
 - `InstanceExample.propConfigurations` is scalar-only (`string | number | boolean`). Prop binding (`PropBinding`) belongs in `Element.propConfigurations`, which represents live data flow. `InstanceExample` represents a documented configuration — human-intended, not runtime-driven.
 - `InstanceExample` does *not* include slot-fill information. Filling a slot is filling a prop; the value form (Composition object, named-composition key, etc.) lives on `Element.propConfigurations` and is settled by ADR-049. Earlier drafts of this ADR carried a `slots: Record<string, string>` field on `InstanceExample` as a placeholder; that field has been removed in favor of the unified mechanism.
-- `ComponentExamples` uses `patternProperties` rather than `additionalProperties` on an object schema to satisfy Draft 7's handling of `$ref` alongside `additionalProperties: false`.
+- `InstanceExamples` uses `patternProperties` rather than `additionalProperties` on an object schema to satisfy Draft 7's handling of `$ref` alongside `additionalProperties: false`.
 
 ---
 
@@ -229,8 +229,8 @@ examples:
 - **Symmetric**: Yes
 - **Parity check**:
   - `InstanceExample { title?, propConfigurations? }` ↔ `#/definitions/InstanceExample`
-  - `ComponentExamples = Record<string, InstanceExample>` ↔ `#/definitions/ComponentExamples` (`patternProperties`)
-  - `Component.examples?: ComponentExamples` ↔ `#/definitions/Component/properties/examples`
+  - `InstanceExamples = Record<string, InstanceExample>` ↔ `#/definitions/InstanceExamples` (`patternProperties`)
+  - `Component.instanceExamples?: InstanceExamples` ↔ `#/definitions/Component/properties/instanceExamples`
 
 ---
 
@@ -238,8 +238,8 @@ examples:
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | Must detect and emit `Component.examples` with `InstanceExample` entries from example frames | Read new types; implement instance example detection |
-| `specs-cli` | Recompile; output includes `examples` key when present | Recompile; no breaking change |
+| `specs-from-figma` | Must detect and emit `Component.instanceExamples` with `InstanceExample` entries from example frames | Read new types; implement instance example detection |
+| `specs-cli` | Recompile; output includes `instanceExamples` key when present | Recompile; no breaking change |
 | `specs-plugin-2` | Recompile; example rendering is a follow-on capability | Recompile; pass through example data initially |
 
 ---
@@ -248,13 +248,15 @@ examples:
 
 **Version bump**: `0.19.0 → 0.20.0` (`MINOR`)
 
-**Justification**: All changes are additive — new optional field `Component.examples`, new types `InstanceExample` and `ComponentExamples`; no existing type is removed or narrowed → MINOR per Constitution §III.
+**Justification**: All changes are additive — new optional field `Component.instanceExamples`, new types `InstanceExample` and `InstanceExamples`; no existing type is removed or narrowed → MINOR per Constitution §III.
+
+**Naming Governance** (Constitution §VI): `instanceExamples` qualifies the field against the lower-level `examples` patterns reused in `Props` (sample values) and `Anatomy` (sample content). Code-platform alignment is weak for this concept — it's a specs-schema-specific authoring construct — so this is rule 3 (no code-platform consensus; ambiguity inside the schema is the deciding factor).
 
 ---
 
 ## Consequences
 
-- `Component.examples` is a first-class named record on `Component`; example configurations are discoverable alongside the component that owns them
+- `Component.instanceExamples` is a first-class named record on `Component`; example configurations are discoverable alongside the component that owns them
 - `InstanceExample` expresses a complete scalar-prop configuration in a single, referenceable entry
 - All example keys are plain strings — no inline nesting, no cross-component references
 - Slot fill is *not* part of `InstanceExample`; it lives on `Element.propConfigurations` per ADR-049, keeping `InstanceExample` cleanly scoped to scalar-prop documentation

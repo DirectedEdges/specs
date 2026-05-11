@@ -10,13 +10,13 @@
 
 ## Context
 
-ADR-042 established `Composition` as the structural base type. ADR-046 established `InstanceExample` and `Component.examples` for scalar-prop-configured usages.
+ADR-042 established `Composition` as the structural base type. ADR-046 established `InstanceExample` and `Component.instanceExamples` for scalar-prop-configured usages.
 
 A second authoring need is *content placed inside a component's slot layer* — a named, reusable arrangement of elements that fills a slot. Three decisions follow:
 
 1. **What type expresses slot content?** — `Composition` (ADR-042) is already the structural shape. Does this ADR introduce a new wrapper type, or use `Composition` directly?
 
-2. **Where on `Component` does it live?** — Bundled into `Component.examples` as a discriminated-union peer of `InstanceExample`, or hosted on its own sibling field? ADR-046 left `ComponentExamples` typed narrowly so this ADR could resolve the question.
+2. **Where on `Component` does it live?** — Bundled into `Component.instanceExamples` as a discriminated-union peer of `InstanceExample`, or hosted on its own sibling field? ADR-046 left `InstanceExamples` typed narrowly so this ADR could resolve the question.
 
 3. **How does the default variant reference it?** — A slot-bound container in `default.elements` or `variants[n].elements` needs a way to point at the content placed inside its slot layer in the design file. The reference must be expressible per-variant, colocated with the binding it defaults, and recognizable to consumers as design-tool authoring metadata so that consumers without a "default slot data" concept (e.g., code components, which resolve missing slots through logic) can correctly ignore it.
 
@@ -47,50 +47,54 @@ The existing `Element.children` discriminant (`string[] | PropBinding` — plain
 
 ### Option A: `Component.slotContent: Record<string, Composition>` + `SlotBinding.$extensions['com.figma'].default` *(Selected)*
 
-A new top-level field `Component.slotContent` holds named `Composition` entries — *sibling* to `Component.examples` (which remains `Record<string, InstanceExample>` from ADR-046). No new type is introduced for slot content; `Composition` is reused as-is.
+A new top-level field `Component.slotContent` holds named `Composition` entries — *sibling* to `Component.instanceExamples` (which remains `Record<string, InstanceExample>` from ADR-046). No new type is introduced for slot content; `Composition` is reused as-is.
 
 A new interface `SlotBinding` extends `PropBinding` with an optional `$extensions` field carrying platform-specific metadata. `Children` widens from `string[] | PropBinding` to `string[] | SlotBinding`. Because `Children` lives on `Element`, anything on a `SlotBinding` appears naturally in `default.elements[name]` and `variants[n].elements[name]` — per-variant variation falls out for free.
 
 Two reference sites point into `Component.slotContent`:
 
-1. **`InstanceExample.slots[slotName]`** — *authored documentation, meaningful to all consumers.* Defined in ADR-046; values resolve to `slotContent` keys. Lives as a plain field on `InstanceExample`, not in `$extensions`, because a slot reference inside an authored example is part of the documentation, not Figma-specific provenance.
+1. **`Element.propConfigurations.<slotName>`** — *authored documentation/usage, meaningful to all consumers.* When an `InstanceExample` (ADR-046) sets a slot prop, or when any nested-instance element fills its slot via the cross-boundary mechanism (ADR-049), the value resolves to a Composition in `slotContent`. Lives as a plain prop value, not in `$extensions`, because the reference is part of authored documentation/usage, not Figma-specific provenance.
 2. **`SlotBinding.$extensions['com.figma'].default`** — *Figma authoring metadata, ignored by code consumers.* References the content Figma renders inside the slot layer when no consumer override is supplied. Lives in `$extensions` because code consumers resolve missing slots through component logic (not data) and must correctly skip the field.
 
 Minimal example — one slot, one content entry, both reference sites visible:
 
 ```yaml
-# ActionListItem (only fields that demonstrate Option A are shown)
-anatomy:
-  startVisualSlot: { type: container }   # slot-bound
-
-props:
-  startVisual: { type: slot }
-
-examples:
-  withIcon:
-    slots:
-      startVisual: searchIcon            # reference site #1: InstanceExample.slots
-
-slotContent:
-  searchIcon:
+# ActionListItem (only fields that demonstrate Option A are shown).
+# Assumed to live at `#/components/actionListItem` so JSON Pointer references resolve.
+components:
+  actionListItem:
     anatomy:
-      icon: { type: glyph }
-    elements:
-      icon:
-        content: search
-        styles:
-          width: 16
-          height: 16
-    layout: [icon]
+      startVisualSlot: { type: container }   # slot-bound
 
-default:
-  elements:
-    startVisualSlot:
-      children:
-        $binding: "#/props/startVisual"
-        $extensions:
-          com.figma:
-            default: searchIcon          # reference site #2: SlotBinding extension
+    props:
+      startVisual: { type: slot }
+
+    instanceExamples:
+      withIcon:
+        propConfigurations:
+          startVisual:
+            $composition: "#/components/actionListItem/slotContent/searchIcon"   # reference site #1 (ADR-049)
+
+    slotContent:
+      searchIcon:
+        anatomy:
+          icon: { type: glyph }
+        elements:
+          icon:
+            content: search
+            styles:
+              width: 16
+              height: 16
+        layout: [icon]
+
+    default:
+      elements:
+        startVisualSlot:
+          children:
+            $binding: "#/components/actionListItem/props/startVisual"
+            $extensions:
+              com.figma:
+                default: "#/components/actionListItem/slotContent/searchIcon"    # reference site #2 (Figma authoring default)
 ```
 
 #### Naming the new field on `Component`
@@ -101,19 +105,18 @@ Candidate terms considered:
 - **`slotExamples`** — parallels `examples` symmetrically, but reads as "examples of slots" rather than "content for slots," which understates what's authored (a complete composition, not an exemplar).
 - **`slotCompositions`** — accurate to ADR-042's `Composition` base, but `Composition` is a structural-shape word; authors don't think of slot fills as "compositions" in everyday language.
 - **`compositions`** — overreaches: ADR-042 reserves the unqualified term for the system-scoped `compositions.yaml` bucket (layout and page compositions). Using it here would force a rename later.
-- **`slots`** — collides with `SlotProp` use of "slots" on `Component.props` and on `InstanceExample.slots`; ambiguous.
+- **`slots`** — collides with `SlotProp` use of "slots" on `Component.props`; ambiguous.
 - **`fills`** / **`slotFills`** — short but jargony; not established in any of the target platform vocabularies.
 
 `slotContent` wins on platform alignment (Figma + Web Components + Vue + Svelte all use "slot"; "content" is the standard noun for what fills one), on authoring clarity (it names what's authored, not the form), and on namespace cleanliness (no collision with `SlotProp` or with ADR-042's `compositions.yaml`).
 
 #### Naming the field inside `$extensions['com.figma']`
 
-The field lives at `SlotBinding.$extensions['com.figma'].default`. Inside the `com.figma` namespace, "default" is unambiguous — it reads as "Figma's default" by virtue of its enclosing key — and there is no collision risk because the scope is one extension object.
+The field lives at `SlotBinding.$extensions['com.figma'].default`. Inside the `com.figma` namespace, "default" is unambiguous — it reads as "Figma's default" by virtue of its enclosing key — and there is no collision risk because the scope is one extension object. The field's *value* is a JSON Pointer to a `Composition` (in `slotContent` or in an external composition file), matching the form ADR-049 uses for cross-boundary slot fill references.
 
 - **`default`** *(Selected)* — concise, reads naturally in scope (`$extensions.com.figma.default` = "Figma's default"). The enclosing namespace already qualifies it.
 - **`defaultContent`** — verbose given the namespace already implies "Figma's default for this slot binding."
-- **`defaultComposition`** — accurate but the value isn't typed `Composition` directly; it's a *key into* `slotContent`. "Default" plus the obvious scope is clearer.
-- **`slotContent`** — would mirror `Component.slotContent`'s name but invert its meaning (singular key vs. record); confusing.
+- **`defaultComposition`** — accurate but redundant given the value type is documented; "default" plus the obvious scope is clearer.
 
 **Pros**:
 - No new type for slot content — `Composition` carries the structure it already defines
@@ -121,20 +124,20 @@ The field lives at `SlotBinding.$extensions['com.figma'].default`. Inside the `c
 - The Figma default-fill key lives on the slot binding inside `$extensions['com.figma']` — colocated with `$binding`, no name collision with `content`, and correctly marked as design-tool provenance that code consumers ignore
 - Per-variant Figma defaults fall out for free: `children` already lives on `Element`, which is mapped through `default`/`variants`
 - `examples` and `slotContent` are siblings with one purpose each; no `kind` discriminator on either
-- ADR-046's `ComponentExamples` is not widened; this ADR is purely additive
+- ADR-046's `InstanceExamples` is not widened; this ADR is purely additive
 - Future system-scoped `compositions.yaml` (ADR-042 follow-on) lives at the same conceptual level without competing with either field
 
 **Cons / Trade-offs**:
 - Two namespaces to teach instead of one
 - A consumer that wants "everything authored on this component" must read both fields and union them
 - One-level-deep boundary; recursion deferred to a follow-on ADR
-- Schema cannot enforce that `$extensions['com.figma'].default` keys exist in `slotContent` — consumer validation concern. (The "only valid for slot-bound" constraint *is* enforced structurally — `$extensions` only exists in the `SlotBinding` arm of `Children`.)
+- Schema cannot enforce that `$extensions['com.figma'].default` JSON Pointers resolve to actual compositions — consumer validation concern. (The "only valid for slot-bound" constraint *is* enforced structurally — `$extensions` only exists in the `SlotBinding` arm of `Children`.)
 
 ---
 
-### Option B: New `SlotExample` type with a `slot` field; entries bundled in `Component.examples`; reference via `Element.$extensions` *(Rejected)*
+### Option B: New `SlotExample` type with a `slot` field; entries bundled in `Component.instanceExamples`; reference via `Element.$extensions` *(Rejected)*
 
-Introduce `SlotExample extends Composition` with an added `slot: string`, widen `Component.examples` to a `ComponentExample = InstanceExample | SlotExample` discriminated union (each entry carries a `kind`), and reference defaults via `Element.$extensions['com.figma'].defaultComposition` — i.e., put the extension on `Element` rather than on the slot binding.
+Introduce `SlotExample extends Composition` with an added `slot: string`, widen `Component.instanceExamples` to a `ComponentExample = InstanceExample | SlotExample` discriminated union (each entry carries a `kind`), and reference defaults via `Element.$extensions['com.figma'].defaultComposition` — i.e., put the extension on `Element` rather than on the slot binding.
 
 **Rejected because**:
 - The `slot` field hard-codes a content entry to a single slot; identical content used in two slots must be duplicated.
@@ -157,7 +160,7 @@ Store the default-content reference on `SlotProp.default` rather than on the ele
 
 Store slot content in a separate file alongside the component, rather than in the component definition.
 
-**Rejected because**: Slot-content entries are component-specific — they describe content authored to fill named slots on that component. They belong in the component definition for discoverability and so `InstanceExample.slots` and the Figma default reference can resolve keys by string without cross-file reference.
+**Rejected because**: Slot-content entries are component-specific — they describe content authored to fill named slots on that component. They belong in the component definition for discoverability and so `propConfigurations.<slotName>` references and the Figma default reference can resolve via JSON Pointer paths inside the same component spec.
 
 ---
 
@@ -226,9 +229,12 @@ import { PropBinding } from './PropBinding.js';
  */
 export interface FigmaSlotBindingExtension {
   /**
-   * Key in Component.slotContent — Figma's authoring default for this slot
-   * (the content placed inside the slot layer in the design file). Code
-   * consumers handle missing slots through component logic and ignore this.
+   * JSON Pointer to a Composition — Figma's authoring default for this slot
+   * (the content placed inside the slot layer in the design file). Resolves
+   * to a Composition in `Component.slotContent` (component-scoped, e.g.
+   * `"#/components/pill/slotContent/composedLabel"`) or in an external
+   * composition file (system-scoped). Code consumers handle missing slots
+   * through component logic and ignore this.
    */
   default?: string;
   [key: string]: unknown;
@@ -263,7 +269,7 @@ Component:
   variants?: Variants
   invalidVariantCombinations?: PropConfigurations[]
   metadata?: Metadata
-  examples?: ComponentExamples              # InstanceExample only — ADR-046
+  instanceExamples?: InstanceExamples      # InstanceExample only — ADR-046
 
 # After
 Component:
@@ -275,7 +281,7 @@ Component:
   variants?: Variants
   invalidVariantCombinations?: PropConfigurations[]
   metadata?: Metadata
-  examples?: ComponentExamples              # unchanged
+  instanceExamples?: InstanceExamples      # unchanged
   slotContent?: Record<string, Composition> # new — named, slot-agnostic content entries
 ```
 
@@ -293,7 +299,7 @@ Component:
 ```yaml
 slotContent:
   type: object
-  description: "Named slot-content entries for this component. Each entry is a Composition. Keys are referenced by InstanceExample.slots and by SlotBinding.$extensions['com.figma'].default."
+  description: "Named slot-content entries for this component. Each entry is a Composition. Entries are referenced via JSON Pointer (e.g. `\"#/components/pill/slotContent/composedLabel\"`) from SlotBinding.$extensions['com.figma'].default and from Element.propConfigurations slot-prop entries (ADR-049 CompositionRef)."
   patternProperties:
     "^[a-zA-Z0-9_-]+$":
       $ref: "#/definitions/Composition"
@@ -309,7 +315,7 @@ FigmaSlotBindingExtension:
   properties:
     default:
       type: string
-      description: "Key in Component.slotContent — Figma's authoring default for this slot."
+      description: "JSON Pointer to a Composition — Figma's authoring default for this slot. Resolves to a Composition in Component.slotContent (component-scoped, e.g. `\"#/components/pill/slotContent/composedLabel\"`) or in an external composition file (system-scoped)."
   additionalProperties: true
 
 SlotBindingExtensions:
@@ -327,7 +333,7 @@ SlotBinding:
   properties:
     $binding:
       type: string
-      description: "JSON Pointer to the bound slot prop, e.g. \"#/props/items\"."
+      description: "JSON Pointer to the bound slot prop, e.g. \"#/components/pill/props/children\"."
     $extensions:
       $ref: "#/definitions/SlotBindingExtensions"
   additionalProperties: false
@@ -346,13 +352,13 @@ Children:
 
 ### Notes
 
-- Slot-content entries are slot-agnostic. The same `Composition` (e.g., a single glyph icon) can be referenced from multiple `InstanceExample.slots` entries and from multiple slot-binding defaults; authors are not forced to duplicate identical content per slot.
+- Slot-content entries are slot-agnostic. The same `Composition` (e.g., a single glyph icon) can be referenced from multiple `propConfigurations.<slotName>` sites (in InstanceExamples or in nested-instance fills per ADR-049) and from multiple slot-binding defaults; authors are not forced to duplicate identical content per slot.
 - `SlotBinding.$extensions` is structurally available only when `Element.children` is a slot binding (the second arm of `Children`). A container with `children: string[]` cannot express a Figma default — the schema enforces this through the `Children` discriminant.
 - Because `Element.children` lives in `default.elements` and `variants[n].elements`, different variants may declare different Figma defaults for the same slot-bound container with no special-case mechanism.
 - `PropBinding` itself is unchanged. `SlotBinding extends PropBinding` adds `$extensions` only for the children-binding case; `PropBinding`'s other use sites (`content`, `instanceOf`, `visible`) cannot accidentally accept it.
-- `InstanceExample.slots` does *not* live in `$extensions`. `InstanceExample` is an authored documentation construct; a slot reference inside one is part of the documentation and is meaningful to all consumers, not just Figma.
+- Slot fills inside an `InstanceExample` (or any other `propConfigurations`-based call site) do *not* live in `$extensions`. They are authored documentation/usage and are meaningful to all consumers, not just Figma.
 - `SlotBindingExtensions` and `FigmaSlotBindingExtension` use `additionalProperties: true` — open extension objects by design, following the DTCG pattern.
-- Schema validation cannot enforce that `$extensions['com.figma'].default` and `InstanceExample.slots` values resolve to existing keys in `Component.slotContent` — consumer validation concern.
+- Schema validation cannot enforce that `$extensions['com.figma'].default` JSON Pointers and ADR-049 `$composition` references resolve to existing compositions — consumer validation concern.
 
 ---
 
@@ -382,16 +388,16 @@ Children:
 
 **Version bump**: `0.19.0 → 0.20.0` (`MINOR`)
 
-**Justification**: All changes are additive — new optional `Component.slotContent` field; new `SlotBinding`, `SlotBindingExtensions`, `FigmaSlotBindingExtension` interfaces; `Children` widened from `string[] | PropBinding` to `string[] | SlotBinding`, where `SlotBinding` is a structural superset of `PropBinding` (existing `children: { $binding }` values still validate). No new types for slot content (`Composition` from ADR-042 is reused). `PropBinding` and `Element` are unchanged. `ComponentExamples` from ADR-046 is unchanged. → MINOR per Constitution §III.
+**Justification**: All changes are additive — new optional `Component.slotContent` field; new `SlotBinding`, `SlotBindingExtensions`, `FigmaSlotBindingExtension` interfaces; `Children` widened from `string[] | PropBinding` to `string[] | SlotBinding`, where `SlotBinding` is a structural superset of `PropBinding` (existing `children: { $binding }` values still validate). No new types for slot content (`Composition` from ADR-042 is reused). `PropBinding` and `Element` are unchanged. `InstanceExamples` from ADR-046 is unchanged. → MINOR per Constitution §III.
 
 ---
 
 ## Consequences
 
-- `Component.examples` and `Component.slotContent` are siblings: each holds one type with one purpose. `examples` documents whole-component usages (`InstanceExample`); `slotContent` holds named `Composition` entries that fill slots.
-- Slot-content entries are slot-agnostic; the binding to a specific slot happens at the reference site (`InstanceExample.slots`, `SlotBinding.$extensions['com.figma'].default`). Identical content used in multiple slots is authored once.
+- `Component.instanceExamples` and `Component.slotContent` are siblings: each holds one type with one purpose. `instanceExamples` documents whole-component usages (`InstanceExample`); `slotContent` holds named `Composition` entries that fill slots.
+- Slot-content entries are slot-agnostic; the binding to a specific slot happens at the reference site (`propConfigurations.<slotName>` per ADR-049, `SlotBinding.$extensions['com.figma'].default`). Identical content used in multiple slots is authored once.
 - `Composition` is reused directly with no wrapper type; ADR-042's structural type carries its own weight here.
 - `SlotBinding.$extensions['com.figma'].default` colocates the Figma default-fill reference with the slot binding itself, inside `Element.children`. The `$extensions` framing correctly marks it as design-tool provenance — code consumers ignore it (defaults in code are logic, not data). No collision with `content`, `children`, or any top-level `Element` field. Per-variant Figma defaults fall out because `children` already lives on `Element`.
 - `SlotBindingExtensions` is an open extension object — future Figma-specific or platform-specific slot-binding metadata can be added without a new ADR.
-- `InstanceExample.slots` (defined in ADR-046) resolves into `Component.slotContent`. ADR-046's `ComponentExamples` type is not widened.
+- Slot fills via `propConfigurations.<slotName>` (the unified mechanism per ADR-049) resolve into `Component.slotContent` via JSON Pointer. ADR-046's `InstanceExamples` type is not widened.
 - This ADR scopes slot content to one level deep; recursion (filling slots of nested instances from a parent context) is deferred to a follow-on ADR.

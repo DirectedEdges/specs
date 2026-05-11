@@ -22,7 +22,7 @@ Compositions appear at four scales in Figma-sourced design systems:
 
 Today, the schema cannot represent any of these. `SlotProp.default` holds only a descriptive string. There is no structural type for tooling to discover, render, or validate against.
 
-DRAFT ADR-025 ("Flowing Content into a Nested Instance's Slot") proposed a `Composition` type for the inline parent-fills-child-slot case. This ADR adopts that structural shape as a named foundational type. How components store and reference compositions is addressed in ADR-046 (`InstanceExample`, `Component.examples`) and ADR-047 (`SlotExample`, `Element.$extensions`).
+DRAFT ADR-025 ("Flowing Content into a Nested Instance's Slot") proposed a `Composition` type for the inline parent-fills-child-slot case. This ADR adopts that structural shape as a named foundational type. How components store and reference compositions is addressed in ADR-046 (`InstanceExample`, `Component.instanceExamples`) and ADR-047 (`SlotExample`, `Element.$extensions`).
 
 ### Composition scoping
 
@@ -192,7 +192,7 @@ Composition:
 ### Out of scope for this ADR
 
 - **`SlotExample`** — extends `Composition` with `kind: 'slot'` and `slot` field; see ADR-047
-- **`InstanceExample`** and **`Component.examples`** — see ADR-046
+- **`InstanceExample`** and **`Component.instanceExamples`** — see ADR-046
 - **`Element.$extensions`** and `defaultComposition` — see ADR-047
 - **`PropConfigurations` PropBinding widening** — see ADR-048
 - **`compositions.yaml` file schema** — follow-on ADR after ADR-047
@@ -203,7 +203,7 @@ Composition:
 - **Nested instance with a slot** — when `elements` contains an `instance` element whose component has slot props, those slots cannot be filled from within this `Composition`. The composition can set scalar prop values via `propConfigurations` on that instance, but slot content resolution is deferred to the mechanism introduced in ADR-047 (one level deep) and its follow-on. This is a deliberate constraint, not an oversight.
 - **`elements` is sparse** — not every anatomy element needs a corresponding `elements` entry. An element with no content, styles, or prop configurations can be omitted from `elements`. The `elements: {}` case (all anatomy elements are instances with no element-level data) is valid and explicit.
 - **No `kind` field** — discrimination is the responsibility of the extending types (`SlotExample` adds `kind: 'slot'`; future system-scoped types add their own).
-- **`Composition` is not placed directly on `Component`** — it is the structural base; `Component.examples` (ADR-046) and `SlotExample` (ADR-047) are the consumer-facing entry points.
+- **`Composition` is not placed directly on `Component`** — it is the structural base; `Component.instanceExamples` (ADR-046) and `SlotExample` (ADR-047) are the consumer-facing entry points.
 - **Anticipated metadata extensions** — `title` and `description` are the authoring-time metadata for this ADR. Anticipated follow-on extensions include `tags?: string[]` for cataloguing, `deprecated?: boolean` for lifecycle management, and `guidelines?: string` for usage guidance. These are deferred to a follow-on ADR once the consuming types are established and usage patterns are known.
 
 ---

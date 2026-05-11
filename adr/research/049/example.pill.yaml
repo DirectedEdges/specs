@@ -1,0 +1,134 @@
+# Scratchpad: cross-ADR example — Pill component
+#
+# Sibling to example.nested.yaml and example.flat.yaml. Where those two
+# demonstrate ADR-049's nested-vs-flat recursion shapes for a system-scoped
+# page composition, this file demonstrates COMPONENT-SCOPED machinery —
+# ADR-046 (Component.instanceExamples / InstanceExample) and ADR-047
+# (Component.slotContent + SlotBinding with the Figma authoring default) —
+# with ADR-049's $composition discriminated reference connecting them at the
+# InstanceExample call sites.
+#
+# Reference form: JSON Pointer, absolute from the document root, matching
+# ADR-008's $binding precedent. The Pill component is wrapped under
+# components.pill so every reference in this file literally resolves.
+#
+# Pill component contract:
+#   prop  custom:   boolean    — toggles which variant is active
+#   prop  label:    string     — bound to a text layer when custom:false
+#   prop  children: slot       — slot-bound container when custom:true
+#
+#   Variant custom:false — labelText layer's characters bound to `label` prop
+#                          via PropBinding (ADR-008). Authoring example sets
+#                          label = "{configured label}".
+#   Variant custom:true  — childrenSlot's children bound via SlotBinding
+#                          (ADR-047). Figma authoring default points to the
+#                          `composedLabel` composition in slotContent.
+#
+# Three documented usages cover the surface (instanceExamples below):
+#   1. configuredLabel — custom:false + label scalar
+#   2. composedLabel   — custom:true + children fills with composedLabel composition
+#   3. removableLabel  — custom:true + children fills with removableLabelContent
+
+components:
+  pill:
+    title: Pill
+
+    anatomy:
+      root:
+        type: container
+      labelText:
+        type: text          # rendered when custom:false; characters bound to label prop
+      childrenSlot:
+        type: container     # rendered when custom:true; slot-bound
+
+    props:
+      custom:
+        type: boolean
+      label:
+        type: string
+      children:
+        type: slot
+
+    # ─── default variant (custom:false): text layer bound to label prop ─────
+    default:
+      configuration:
+        custom: false
+      elements:
+        root:
+          children: [labelText]
+        labelText:
+          content: { $binding: "#/components/pill/props/label" }   # ADR-008 PropBinding
+      layout:
+        - root:
+            - labelText
+
+    # ─── variants[0] (custom:true): children slot rendered ──────────────────
+    variants:
+      - configuration:
+          custom: true
+        elements:
+          root:
+            children: [childrenSlot]
+          childrenSlot:
+            children:                                              # ADR-047 SlotBinding
+              $binding: "#/components/pill/props/children"
+              $extensions:
+                com.figma:
+                  default: "#/components/pill/slotContent/composedLabel"   # Figma authoring default
+        layout:
+          - root:
+              - childrenSlot
+
+    # ─── Component.slotContent (ADR-047): named Compositions ────────────────
+    slotContent:
+      # Figma's authoring default for the children slot. Reused by the
+      # `composedLabel` InstanceExample below.
+      composedLabel:
+        title: Default composed label
+        anatomy:
+          label:
+            type: text
+        elements:
+          label:
+            content: "{composed label}"
+        layout: [label]
+
+      # Text + remove-x glyph. Referenced from the `removableLabel` InstanceExample.
+      removableLabelContent:
+        title: Removable label (text + remove glyph)
+        anatomy:
+          label:
+            type: text
+          removeIcon:
+            type: glyph
+        elements:
+          label:
+            content: "{removeable label}"
+          removeIcon:
+            content: x
+            styles:
+              width: 16
+              height: 16
+        layout: [label, removeIcon]
+
+    # ─── Component.instanceExamples (ADR-046, post-rename): documented usages
+    instanceExamples:
+      configuredLabel:
+        title: Pill with configured label
+        propConfigurations:
+          custom: false
+          label: "{configured label}"                              # ADR-046 scalar prop value
+
+      composedLabel:
+        title: Pill using the default composed label
+        propConfigurations:
+          custom: true
+          children:
+            $composition: "#/components/pill/slotContent/composedLabel"   # ADR-049
+
+      removableLabel:
+        title: Pill with text + remove glyph
+        propConfigurations:
+          custom: true
+          children:
+            $composition: "#/components/pill/slotContent/removableLabelContent"

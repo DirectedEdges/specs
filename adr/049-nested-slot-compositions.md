@@ -25,9 +25,9 @@ Three constraints are settled in advance; the option comparison below is bounded
 ### Decisions this ADR has to make
 
 - **Headline:** nested-only, flat-only, both, or sibling-field — see Options A–D.
-- **Value union for `Element.propConfigurations.<slotName>`:** what shapes does the slot-prop arm of the union accept once the headline lands? Two sub-questions:
+- **Value union for `Element.propConfigurations.<slotName>`:** what shapes does the slot-prop arm of the union accept once the headline lands?
   - *Direct shape* — Composition object, key reference, both?
-  - *Form of the reference* — a bare `string` (the lightest), or a discriminated reference type (e.g., `{ $slotContent: '<key>' }` mirroring how `PropBinding` uses `$binding`, or reusing/extending `SlotBinding`'s shape from ADR-047)? The discriminated form avoids the schema's "is this a typo or a key" ambiguity in the bare-string approach.
+  - *Form of the reference* — discriminated `{ $composition: <pointer> }` where `<pointer>` is a JSON Pointer (working assumption, paralleling `PropBinding.$binding` from ADR-008). The pointer's path makes the registry home explicit in the wire format (`#/components/<name>/slotContent/<key>` for component-scoped; `#/compositions/<key>` for system-scoped). Bare-string form was the lighter alternative but loses local type-discriminability and the explicit scope path.
 
 That's it. Other concerns once flagged here — recursion depth, validation, aliasing semantics — are addressed below either as Decision Drivers, as Option-level pros/cons, or as tool/runtime concerns the schema does not own.
 
@@ -89,42 +89,43 @@ elements:
 
 ---
 
-### Option B: Flat only — registry key under `propConfigurations.<slotName>`
+### Option B: Flat only — `{ $composition: <pointer> }` under `propConfigurations.<slotName>`
 
-`Element.propConfigurations.<slotName>` value union widens to accept a registry key resolving to a named `Composition`. The key resolves into either `Component.slotContent` (component-scoped) or an external composition file (system-scoped) per the registry constraint above.
+`Element.propConfigurations.<slotName>` value union widens to accept a discriminated reference `{ $composition: <pointer> }` where `<pointer>` is a JSON Pointer (absolute, paralleling `PropBinding.$binding` from ADR-008). The pointer resolves into either `Component.slotContent` (component-scoped, e.g. `#/components/pill/slotContent/composedLabel`) or an external composition file (system-scoped, e.g. `#/compositions/pageHeader`) per the registry constraint above.
 
-The reference can be a bare `string` (shown below for brevity) or a discriminated form like `{ $slotContent: '<key>' }` — see decision 2 in Context.
-
-**Two-tier abstract example.** Same `Parent → Mid → leaf` hierarchy as Option A, expressed as three sibling records — every composition stays at top-level indentation regardless of how deep its referencer sits. The reference shape is discriminated (`{ $slotContent: '<key>' }`) to parallel `PropBinding`'s `$binding` (see decision 2):
+**Two-tier abstract example.** Same `Parent → Mid → leaf` hierarchy as Option A, expressed as three sibling records under a `compositions:` registry. Every composition stays at top-level indentation regardless of how deep its referencer sits; references use JSON Pointers that make the registry home explicit:
 
 ```yaml
-root:                          # entry composition
-  anatomy:
-    parent: { type: instance, instanceOf: Parent }
-  elements:
-    parent:
-      propConfigurations:
-        body: { $slotContent: parentBody }   # ← level-1: discriminated reference
-  layout: [parent]
+compositions:
+  root:                                                # entry composition
+    anatomy:
+      parent: { type: instance, instanceOf: Parent }
+    elements:
+      parent:
+        propConfigurations:
+          body:
+            $composition: "#/compositions/parentBody"  # ← level-1: pointer reference
+    layout: [parent]
 
-parentBody:                    # named, top-level
-  anatomy:
-    mid: { type: instance, instanceOf: Mid }
-  elements:
-    mid:
-      propConfigurations:
-        items: { $slotContent: midItems }    # ← level-2: discriminated reference
-  layout: [mid]
+  parentBody:
+    anatomy:
+      mid: { type: instance, instanceOf: Mid }
+    elements:
+      mid:
+        propConfigurations:
+          items:
+            $composition: "#/compositions/midItems"    # ← level-2: pointer reference
+    layout: [mid]
 
-midItems:                      # named, top-level
-  anatomy:
-    leaf: { type: text }
-  elements:
-    leaf: { content: Hello }
-  layout: [leaf]
+  midItems:
+    anatomy:
+      leaf: { type: text }
+    elements:
+      leaf: { content: Hello }
+    layout: [leaf]
 ```
 
-A composition referenced from N call sites appears as the same `{ $slotContent: <key> }` reference repeated N times — one definition, many uses.
+A composition referenced from N call sites appears as the same `{ $composition: <pointer> }` reference repeated N times — one definition, many uses.
 
 **Pros**:
 - Indentation stays bounded regardless of recursion depth
@@ -199,19 +200,18 @@ The schema does not encode these; tooling owns them.
 
 Concrete sketch for **Option B (flat-only)**, illustrative — *not* a selection. The same shape narrative applies in spirit to A (Composition arm), C (both arms), and D (sibling field); the headline choice settles which becomes the authoritative section here.
 
-The sketch below assumes the discriminated-reference form for the registry key (`SlotContentRef`), which mirrors the existing `PropBinding` pattern and avoids the bare-string ambiguity. A bare-`string` form is the lighter alternative; the choice is decision 2 in Context.
+**Type changes** (Option B):
+- New type `CompositionRef = { $composition: string }` — a JSON Pointer reference resolving to a `Composition` in either `Component.slotContent` (component-scoped, e.g. `"#/components/pill/slotContent/composedLabel"`) or an external composition file (system-scoped, e.g. `"#/compositions/pageHeader"`). Pattern parallels `PropBinding = { $binding: string }` from ADR-008; the string is a JSON Pointer, not an opaque key.
+- `Element.propConfigurations` value union widens from `string | number | boolean | PropBinding` (post-ADR-048) to `string | number | boolean | PropBinding | CompositionRef`.
+- No change to `Composition` itself (ADR-042); no change to `Element`'s other fields. `SlotBinding` (ADR-047) remains scoped to `Element.children`; `CompositionRef` is the propConfigurations-side counterpart for the same registry.
+- Knock-on for ADR-047: `SlotBinding.$extensions['com.figma'].default` becomes a JSON Pointer (same form, same resolution rules) for consistency, replacing the previously-bare key string.
 
-**Type changes** (Option B, discriminated-reference form):
-- New type `SlotContentRef = { $slotContent: string }` — a key reference into either `Component.slotContent` (component-scoped) or an external composition file (system-scoped). Pattern parallels `PropBinding = { $binding: string }` from ADR-008.
-- `Element.propConfigurations` value union widens from `string | number | boolean | PropBinding` (post-ADR-048) to `string | number | boolean | PropBinding | SlotContentRef`.
-- No change to `Composition` itself (ADR-042); no change to `Element`'s other fields. `SlotBinding` (ADR-047) remains scoped to `Element.children`; `SlotContentRef` is the propConfigurations-side counterpart for the same registry.
-
-**Schema changes** (Option B, discriminated-reference form):
-- New `#/definitions/SlotContentRef` with `$slotContent: string` — single-property object, `additionalProperties: false`.
-- `#/definitions/Element/properties/propConfigurations/additionalProperties/oneOf` gains a `$ref: "#/definitions/SlotContentRef"` arm.
+**Schema changes** (Option B):
+- New `#/definitions/CompositionRef` with required `$composition: string` (JSON Pointer pattern documented via `description`); single-property object, `additionalProperties: false`.
+- `#/definitions/Element/properties/propConfigurations/additionalProperties/oneOf` gains a `$ref: "#/definitions/CompositionRef"` arm.
 - No new top-level registry definition here; the system-scoped external file format lands in the follow-on ADR (ADR-042's deferred `compositions.yaml`).
 
-**Why not reuse `SlotBinding` directly** (briefly): `SlotBinding` is `{ $binding, $extensions? }` and lives on `Element.children` of slot-*owning* components, expressing the runtime binding of children to a slot prop. The propConfigurations-side reference goes the other direction — a *consumer* setting a nested instance's slot value — so the semantic role differs, even though the resolution target (a `slotContent` key) overlaps. A parallel-but-distinct `SlotContentRef` keeps each shape's role legible. If the pattern proves redundant in practice, a future MAJOR could unify them.
+**Why not reuse `SlotBinding` directly** (briefly): `SlotBinding` is `{ $binding, $extensions? }` and lives on `Element.children` of slot-*owning* components, expressing the runtime binding of children to a slot prop. The `propConfigurations`-side reference goes the other direction — a *consumer* setting a nested instance's slot value — so the semantic role differs, even though the resolution target (a `Composition` in slotContent or an external file) overlaps. A parallel-but-distinct `CompositionRef` keeps each shape's role legible. If the pattern proves redundant in practice, a future MAJOR could unify them.
 
 **Symmetric**: Yes, with the caveat that the schema cannot enforce cross-field reference resolution (consumer validation concern per Constraints).
 
