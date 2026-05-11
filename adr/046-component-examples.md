@@ -1,11 +1,11 @@
 # ADR: Component Examples — InstanceExample and Component.examples
 
-**Branch**: `043-component-examples`
+**Branch**: `046-component-examples`
 **Created**: 2026-04-29
 **Status**: DRAFT
 **Deciders**: Nathan Curtis (author)
 **Depends on**: [ADR-042 — Composition Structural Type](042-composition-type)
-**Extended by**: [ADR-044 — Slot Content](044-slot-content) *(adds `SlotExample`, widens `ComponentExamples`, adds `InstanceExample.slots`)*
+**Extended by**: [ADR-047 — Slot Content](047-slot-content) *(adds `SlotExample`, widens `ComponentExamples`, adds `InstanceExample.slots`)*
 
 ---
 
@@ -15,22 +15,22 @@ ADR-042 established `Composition` as the structural base type. That type has no 
 
 Components need a named catalogue of pre-configured examples: a documented set of specific prop values (and, later, slot configurations) that expresses canonical usages. Tooling can discover and render these without inspecting the raw variant tree. Authors can reference them by key instead of repeating configuration inline.
 
-The simplest case — and the right starting point — is an example defined entirely by scalar prop values: `state`, `title`, `description`, and similar string or boolean props. No slot content yet; slots are addressed in ADR-044.
+The simplest case — and the right starting point — is an example defined entirely by scalar prop values: `state`, `title`, `description`, and similar string or boolean props. No slot content yet; slots are addressed in ADR-047.
 
 `InstanceExample` is the type for this case. It captures:
 - An optional human-readable label (`title`)
 - Scalar prop values (`propConfigurations`)
-- Slot references (`slots`) — present in the type now; meaningful once ADR-044 introduces `SlotExample`
+- Slot references (`slots`) — present in the type now; meaningful once ADR-047 introduces `SlotExample`
 
-`Component.examples` is the named record that holds `InstanceExample` entries (and, after ADR-044, `SlotExample` entries too).
+`Component.examples` is the named record that holds `InstanceExample` entries (and, after ADR-047, `SlotExample` entries too).
 
 ---
 
 ## Decision Drivers
 
-- **Named record, not array** — examples must be referenceable by key; `InstanceExample.slots` and `Element.$extensions['com.figma'].defaultComposition` (ADR-044) both point to keys, not indices
-- **`kind` discriminator** — `InstanceExample` will share the `ComponentExamples` record with `SlotExample` (ADR-044); `kind: 'instance'` makes the type unambiguous to tooling and JSON Schema `oneOf` validation
-- **Scalar-only `propConfigurations`** — `InstanceExample` represents a documented configuration for human readers and tooling, not a live data binding; `PropBinding` belongs in `Element.propConfigurations` (ADR-045), not here
+- **Named record, not array** — examples must be referenceable by key; `InstanceExample.slots` and `Element.$extensions['com.figma'].defaultComposition` (ADR-047) both point to keys, not indices
+- **`kind` discriminator** — `InstanceExample` will share the `ComponentExamples` record with `SlotExample` (ADR-047); `kind: 'instance'` makes the type unambiguous to tooling and JSON Schema `oneOf` validation
+- **Scalar-only `propConfigurations`** — `InstanceExample` represents a documented configuration for human readers and tooling, not a live data binding; `PropBinding` belongs in `Element.propConfigurations` (ADR-048), not here
 - **No cross-component references** — `InstanceExample.slots` values are keys within the same `Component.examples`; no key resolution across component definitions
 - **Additive-only** — new optional field `Component.examples`; no existing type changed → MINOR
 - **Type ↔ schema symmetry** — every field has a schema counterpart (Constitution §I)
@@ -42,7 +42,7 @@ The simplest case — and the right starting point — is an example defined ent
 
 ### Option A: `InstanceExample` as a discriminated record member *(Selected)*
 
-Add `InstanceExample { kind: 'instance', title?, propConfigurations?, slots? }` and a named record `ComponentExamples` on `Component`. The `kind` field discriminates against `SlotExample` (ADR-044) in the shared `ComponentExamples` record.
+Add `InstanceExample { kind: 'instance', title?, propConfigurations?, slots? }` and a named record `ComponentExamples` on `Component`. The `kind` field discriminates against `SlotExample` (ADR-047) in the shared `ComponentExamples` record.
 
 ```yaml
 # ActionListItem — instance examples covering scalar prop variants
@@ -93,10 +93,10 @@ examples:
 - Named keys enable reference-by-string from `InstanceExample.slots` and `defaultComposition` without type coupling
 - `kind` discriminator makes `InstanceExample` and `SlotExample` unambiguous in the shared record
 - Scalar-only `propConfigurations` keeps `InstanceExample` simple and human-readable
-- `slots?` field present now — forward-compatible once ADR-044 introduces `SlotExample` keys
+- `slots?` field present now — forward-compatible once ADR-047 introduces `SlotExample` keys
 
 **Cons / Trade-offs**:
-- `slots` values forward-reference `SlotExample` keys that do not exist until ADR-044; tooling cannot validate slot references until ADR-044 lands
+- `slots` values forward-reference `SlotExample` keys that do not exist until ADR-047; tooling cannot validate slot references until ADR-047 lands
 
 ---
 
@@ -137,10 +137,10 @@ InstanceExample:
     Record<string, string | number | boolean>    # scalar prop values only
   slots?:
     Record<string, string>                       # slot prop name → key in Component.examples
-                                                 # resolved entry must be a SlotExample (ADR-044)
+                                                 # resolved entry must be a SlotExample (ADR-047)
 
 # ComponentExamples — named record on Component
-# Widened in ADR-044 to Record<string, InstanceExample | SlotExample>
+# Widened in ADR-047 to Record<string, InstanceExample | SlotExample>
 ComponentExamples: Record<string, InstanceExample>
 ```
 
@@ -202,7 +202,7 @@ InstanceExample:
           - type: boolean
     slots:
       type: object
-      description: "Maps slot prop names to SlotExample keys in Component.examples (see ADR-044)."
+      description: "Maps slot prop names to SlotExample keys in Component.examples (see ADR-047)."
       additionalProperties:
         type: string
   additionalProperties: false
@@ -213,7 +213,7 @@ InstanceExample:
 ```yaml
 ComponentExamples:
   type: object
-  description: "Named examples for this component. Widened in ADR-044 to include SlotExample entries."
+  description: "Named examples for this component. Widened in ADR-047 to include SlotExample entries."
   patternProperties:
     "^[a-zA-Z0-9_-]+$":
       $ref: "#/definitions/InstanceExample"
@@ -230,15 +230,15 @@ examples:
 
 ### Out of scope for this ADR
 
-- **`SlotExample`** — extends `Composition` with `kind: 'slot'` and `slot` field; see ADR-044
-- **Widening of `ComponentExamples`** to include `SlotExample` — see ADR-044
-- **`Element.$extensions`** and `defaultComposition` — see ADR-044
-- **`PropConfigurations` PropBinding** — see ADR-045
+- **`SlotExample`** — extends `Composition` with `kind: 'slot'` and `slot` field; see ADR-047
+- **Widening of `ComponentExamples`** to include `SlotExample` — see ADR-047
+- **`Element.$extensions`** and `defaultComposition` — see ADR-047
+- **`PropConfigurations` PropBinding** — see ADR-048
 
 ### Notes
 
 - `InstanceExample.propConfigurations` is scalar-only (`string | number | boolean`). Prop binding (`PropBinding`) belongs in `Element.propConfigurations`, which represents live data flow. `InstanceExample` represents a documented configuration — human-intended, not runtime-driven.
-- `InstanceExample.slots` is defined here but only becomes meaningful in ADR-044 when `SlotExample` entries can appear in `Component.examples`. Schema validation cannot enforce that `slots` values resolve to `SlotExample` keys until ADR-044 widens `ComponentExamples`.
+- `InstanceExample.slots` is defined here but only becomes meaningful in ADR-047 when `SlotExample` entries can appear in `Component.examples`. Schema validation cannot enforce that `slots` values resolve to `SlotExample` keys until ADR-047 widens `ComponentExamples`.
 - All `slots` values resolve within the same `Component.examples` — no cross-component key references.
 - `ComponentExamples` uses `patternProperties` rather than `additionalProperties` on an object schema to satisfy Draft 7's handling of `$ref` alongside `additionalProperties: false`.
 
@@ -277,5 +277,5 @@ examples:
 - `Component.examples` is a first-class named record on `Component`; example configurations are discoverable alongside the component that owns them
 - `InstanceExample` expresses a complete scalar-prop configuration in a single, referenceable entry
 - All example keys are plain strings — no inline nesting, no cross-component references
-- `InstanceExample.slots` is forward-compatible: slot references compile and validate as strings now; ADR-044 populates the target side
-- `ComponentExamples` will be widened in ADR-044 to accept `SlotExample` entries alongside `InstanceExample` entries
+- `InstanceExample.slots` is forward-compatible: slot references compile and validate as strings now; ADR-047 populates the target side
+- `ComponentExamples` will be widened in ADR-047 to accept `SlotExample` entries alongside `InstanceExample` entries

@@ -4,8 +4,8 @@
 **Created**: 2026-04-29
 **Status**: DRAFT
 **Deciders**: Nathan Curtis (author)
-**Supersedes**: [ADR 025 — Flowing Content into a Nested Instance's Slot](025-nested-slot-api) *(partially — retains its `Composition` shape; defers its `PropConfigurations` widening to ADR-045)*
-**Extended by**: ADR-043 (Component Examples), ADR-044 (Slot Content), ADR-045 (PropConfigurations PropBinding)
+**Supersedes**: [ADR 025 — Flowing Content into a Nested Instance's Slot](025-nested-slot-api) *(partially — retains its `Composition` shape; defers its `PropConfigurations` widening to ADR-048)*
+**Extended by**: ADR-046 (Component Examples), ADR-047 (Slot Content), ADR-048 (PropConfigurations PropBinding)
 
 ---
 
@@ -22,16 +22,16 @@ Compositions appear at four scales in Figma-sourced design systems:
 
 Today, the schema cannot represent any of these. `SlotProp.default` holds only a descriptive string. There is no structural type for tooling to discover, render, or validate against.
 
-DRAFT ADR-025 ("Flowing Content into a Nested Instance's Slot") proposed a `Composition` type for the inline parent-fills-child-slot case. This ADR adopts that structural shape as a named foundational type. How components store and reference compositions is addressed in ADR-043 (`InstanceExample`, `Component.examples`) and ADR-044 (`SlotExample`, `Element.$extensions`).
+DRAFT ADR-025 ("Flowing Content into a Nested Instance's Slot") proposed a `Composition` type for the inline parent-fills-child-slot case. This ADR adopts that structural shape as a named foundational type. How components store and reference compositions is addressed in ADR-046 (`InstanceExample`, `Component.examples`) and ADR-047 (`SlotExample`, `Element.$extensions`).
 
 ### Composition scoping
 
 The four scales split into two authoring scopes:
 
-- **Component-scoped** (`slot`, `instance`) — authored by the component designer inside the component definition; covered by ADR-043 and ADR-044
+- **Component-scoped** (`slot`, `instance`) — authored by the component designer inside the component definition; covered by ADR-046 and ADR-047
 - **System-scoped** (`layout`, `page`) — independent of any single component, living in a separate `compositions.yaml` file parallel to `components.yaml`; schema for that file is a follow-on ADR
 
-The `Composition` type established here serves both scopes. `SlotExample` (ADR-044) extends it for the component-scoped slot-filling case; the future system-scoped ADR will use it directly.
+The `Composition` type established here serves both scopes. `SlotExample` (ADR-047) extends it for the component-scoped slot-filling case; the future system-scoped ADR will use it directly.
 
 ---
 
@@ -115,7 +115,7 @@ anatomy:
 ```
 
 **Rejected because**:
-- `SlotExample` (ADR-044) must extend `Composition`. If `Composition` uses a converged map, `SlotExample` must too — breaking the Anatomy/Elements pattern used throughout the rest of the schema.
+- `SlotExample` (ADR-047) must extend `Composition`. If `Composition` uses a converged map, `SlotExample` must too — breaking the Anatomy/Elements pattern used throughout the rest of the schema.
 - If a composition is later promoted to a full component (a natural authoring workflow), the converged map must be split back into `anatomy` + `elements` + `variants`. Keeping them separate makes that migration a no-op.
 - `AnatomyElement` (`type`, `detectedIn?`, `instanceOf?`) and `Element` (`children`, `styles`, `propConfigurations`, `content`) have non-overlapping fields. Merging them creates a hybrid type that is neither and must be maintained independently.
 
@@ -173,7 +173,7 @@ Composition:
 ```yaml
 Composition:
   type: object
-  description: "Named structural content fragment. Base shape for SlotExample (ADR-044) and system-scoped layout/page compositions."
+  description: "Named structural content fragment. Base shape for SlotExample (ADR-047) and system-scoped layout/page compositions."
   required: [anatomy, elements, layout]
   properties:
     title:
@@ -191,19 +191,19 @@ Composition:
 
 ### Out of scope for this ADR
 
-- **`SlotExample`** — extends `Composition` with `kind: 'slot'` and `slot` field; see ADR-044
-- **`InstanceExample`** and **`Component.examples`** — see ADR-043
-- **`Element.$extensions`** and `defaultComposition` — see ADR-044
-- **`PropConfigurations` PropBinding widening** — see ADR-045
-- **`compositions.yaml` file schema** — follow-on ADR after ADR-044
+- **`SlotExample`** — extends `Composition` with `kind: 'slot'` and `slot` field; see ADR-047
+- **`InstanceExample`** and **`Component.examples`** — see ADR-046
+- **`Element.$extensions`** and `defaultComposition` — see ADR-047
+- **`PropConfigurations` PropBinding widening** — see ADR-048
+- **`compositions.yaml` file schema** — follow-on ADR after ADR-047
 - **Nested slot filling in composition elements** — see below
 
 ### Notes
 
-- **Nested instance with a slot** — when `elements` contains an `instance` element whose component has slot props, those slots cannot be filled from within this `Composition`. The composition can set scalar prop values via `propConfigurations` on that instance, but slot content resolution is deferred to the mechanism introduced in ADR-044 (one level deep) and its follow-on. This is a deliberate constraint, not an oversight.
+- **Nested instance with a slot** — when `elements` contains an `instance` element whose component has slot props, those slots cannot be filled from within this `Composition`. The composition can set scalar prop values via `propConfigurations` on that instance, but slot content resolution is deferred to the mechanism introduced in ADR-047 (one level deep) and its follow-on. This is a deliberate constraint, not an oversight.
 - **`elements` is sparse** — not every anatomy element needs a corresponding `elements` entry. An element with no content, styles, or prop configurations can be omitted from `elements`. The `elements: {}` case (all anatomy elements are instances with no element-level data) is valid and explicit.
 - **No `kind` field** — discrimination is the responsibility of the extending types (`SlotExample` adds `kind: 'slot'`; future system-scoped types add their own).
-- **`Composition` is not placed directly on `Component`** — it is the structural base; `Component.examples` (ADR-043) and `SlotExample` (ADR-044) are the consumer-facing entry points.
+- **`Composition` is not placed directly on `Component`** — it is the structural base; `Component.examples` (ADR-046) and `SlotExample` (ADR-047) are the consumer-facing entry points.
 - **Anticipated metadata extensions** — `title` and `description` are the authoring-time metadata for this ADR. Anticipated follow-on extensions include `tags?: string[]` for cataloguing, `deprecated?: boolean` for lifecycle management, and `guidelines?: string` for usage guidance. These are deferred to a follow-on ADR once the consuming types are established and usage patterns are known.
 
 ---
@@ -219,7 +219,7 @@ Composition:
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | No immediate output change; `Composition` is foundational for ADR-043/044 | Recompile when 043/044 land |
+| `specs-from-figma` | No immediate output change; `Composition` is foundational for ADR-046/044 | Recompile when 046/047 land |
 | `specs-cli` | Recompile | No change |
 | `specs-plugin-2` | Recompile | No change |
 
@@ -235,8 +235,8 @@ Composition:
 
 ## Consequences
 
-- `Composition` is a named structural type in the schema, available as a base for `SlotExample` (ADR-044) and future system-scoped layout and page composition types
+- `Composition` is a named structural type in the schema, available as a base for `SlotExample` (ADR-047) and future system-scoped layout and page composition types
 - All three content fields (`anatomy`, `elements`, `layout`) are required — a composition is always a complete structural declaration, never a degenerate anatomy-only fragment
 - `description?` is the first step toward a richer authoring-time metadata model; `tags`, `deprecated`, and `guidelines` are identified follow-on extension points
 - No existing type is changed; no downstream consumers are broken
-- ADR-043, ADR-044, and ADR-045 complete the composition model; this ADR is the foundation they build on
+- ADR-046, ADR-047, and ADR-048 complete the composition model; this ADR is the foundation they build on

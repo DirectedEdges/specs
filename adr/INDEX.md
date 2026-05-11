@@ -4,9 +4,10 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 045 | PropConfigurations PropBinding | Widen `PropConfigurations` value union to add `PropBinding`; completes the binding model on element-level fields |
-| 044 | Slot Content — SlotExample and Element Extensions | Add `SlotExample` (extends `Composition`); widen `ComponentExamples`; add `Element.$extensions` + `defaultComposition` for Figma provenance |
-| 043 | Component Examples — InstanceExample and Component.examples | Add `InstanceExample` and `ComponentExamples`; add `Component.examples?` named record |
+| 049 | Nested Slot Compositions | Fill nested instances' slots from a parent context; recursion follow-on to ADR-047 |
+| 048 | PropConfigurations PropBinding | Widen `PropConfigurations` value union to add `PropBinding`; completes the binding model on element-level fields |
+| 047 | Slot Content — Component.slotContent and SlotBinding | Add `Component.slotContent: Record<string, Composition>`; add `SlotBinding` extending `PropBinding` with `$extensions['com.figma'].default` for Figma authoring provenance |
+| 046 | Component Examples — InstanceExample and Component.examples | Add `InstanceExample` and `ComponentExamples`; add `Component.examples?` named record |
 | 042 | Composition Structural Type | Add `Composition { title?, anatomy, elements?, layout? }` — structural base for slot examples and system-scoped compositions |
 | 041 | Layout Positioning — Constraint-Based Naming | |
 | 035 | Make Config Properties with Defaults Optional | |

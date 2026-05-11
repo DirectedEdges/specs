@@ -1,22 +1,22 @@
 # ADR: Slot Content — Component.slotContent and SlotBinding
 
-**Branch**: `044-slot-content`
+**Branch**: `047-slot-content`
 **Created**: 2026-04-29
 **Status**: DRAFT
 **Deciders**: Nathan Curtis (author)
-**Depends on**: [ADR-042 — Composition Structural Type](042-composition-type), [ADR-043 — Component Examples](043-component-examples)
+**Depends on**: [ADR-042 — Composition Structural Type](042-composition-type), [ADR-046 — Component Examples](046-component-examples)
 
 ---
 
 ## Context
 
-ADR-042 established `Composition` as the structural base type. ADR-043 established `InstanceExample` and `Component.examples` for scalar-prop-configured usages.
+ADR-042 established `Composition` as the structural base type. ADR-046 established `InstanceExample` and `Component.examples` for scalar-prop-configured usages.
 
 A second authoring need is *content placed inside a component's slot layer* — a named, reusable arrangement of elements that fills a slot. Three decisions follow:
 
 1. **What type expresses slot content?** — `Composition` (ADR-042) is already the structural shape. Does this ADR introduce a new wrapper type, or use `Composition` directly?
 
-2. **Where on `Component` does it live?** — Bundled into `Component.examples` as a discriminated-union peer of `InstanceExample`, or hosted on its own sibling field? ADR-043 left `ComponentExamples` typed narrowly so this ADR could resolve the question.
+2. **Where on `Component` does it live?** — Bundled into `Component.examples` as a discriminated-union peer of `InstanceExample`, or hosted on its own sibling field? ADR-046 left `ComponentExamples` typed narrowly so this ADR could resolve the question.
 
 3. **How does the default variant reference it?** — A slot-bound container in `default.elements` or `variants[n].elements` needs a way to point at the content placed inside its slot layer in the design file. The reference must be expressible per-variant, colocated with the binding it defaults, and recognizable to consumers as design-tool authoring metadata so that consumers without a "default slot data" concept (e.g., code components, which resolve missing slots through logic) can correctly ignore it.
 
@@ -47,13 +47,13 @@ The existing `Element.children` discriminant (`string[] | PropBinding` — plain
 
 ### Option A: `Component.slotContent: Record<string, Composition>` + `SlotBinding.$extensions['com.figma'].default` *(Selected)*
 
-A new top-level field `Component.slotContent` holds named `Composition` entries — *sibling* to `Component.examples` (which remains `Record<string, InstanceExample>` from ADR-043). No new type is introduced for slot content; `Composition` is reused as-is.
+A new top-level field `Component.slotContent` holds named `Composition` entries — *sibling* to `Component.examples` (which remains `Record<string, InstanceExample>` from ADR-046). No new type is introduced for slot content; `Composition` is reused as-is.
 
 A new interface `SlotBinding` extends `PropBinding` with an optional `$extensions` field carrying platform-specific metadata. `Children` widens from `string[] | PropBinding` to `string[] | SlotBinding`. Because `Children` lives on `Element`, anything on a `SlotBinding` appears naturally in `default.elements[name]` and `variants[n].elements[name]` — per-variant variation falls out for free.
 
 Two reference sites point into `Component.slotContent`:
 
-1. **`InstanceExample.slots[slotName]`** — *authored documentation, meaningful to all consumers.* Defined in ADR-043; values resolve to `slotContent` keys. Lives as a plain field on `InstanceExample`, not in `$extensions`, because a slot reference inside an authored example is part of the documentation, not Figma-specific provenance.
+1. **`InstanceExample.slots[slotName]`** — *authored documentation, meaningful to all consumers.* Defined in ADR-046; values resolve to `slotContent` keys. Lives as a plain field on `InstanceExample`, not in `$extensions`, because a slot reference inside an authored example is part of the documentation, not Figma-specific provenance.
 2. **`SlotBinding.$extensions['com.figma'].default`** — *Figma authoring metadata, ignored by code consumers.* References the content Figma renders inside the slot layer when no consumer override is supplied. Lives in `$extensions` because code consumers resolve missing slots through component logic (not data) and must correctly skip the field.
 
 Minimal example — one slot, one content entry, both reference sites visible:
@@ -121,7 +121,7 @@ The field lives at `SlotBinding.$extensions['com.figma'].default`. Inside the `c
 - The Figma default-fill key lives on the slot binding inside `$extensions['com.figma']` — colocated with `$binding`, no name collision with `content`, and correctly marked as design-tool provenance that code consumers ignore
 - Per-variant Figma defaults fall out for free: `children` already lives on `Element`, which is mapped through `default`/`variants`
 - `examples` and `slotContent` are siblings with one purpose each; no `kind` discriminator on either
-- ADR-043's `ComponentExamples` is not widened; this ADR is purely additive
+- ADR-046's `ComponentExamples` is not widened; this ADR is purely additive
 - Future system-scoped `compositions.yaml` (ADR-042 follow-on) lives at the same conceptual level without competing with either field
 
 **Cons / Trade-offs**:
@@ -253,7 +253,7 @@ export type Children = string[] | SlotBinding;
 **Extended `Component`** (`types/Component.ts`):
 
 ```yaml
-# Before (after ADR-043)
+# Before (after ADR-046)
 Component:
   title: string
   anatomy: Anatomy
@@ -263,7 +263,7 @@ Component:
   variants?: Variants
   invalidVariantCombinations?: PropConfigurations[]
   metadata?: Metadata
-  examples?: ComponentExamples              # InstanceExample only — ADR-043
+  examples?: ComponentExamples              # InstanceExample only — ADR-046
 
 # After
 Component:
@@ -382,7 +382,7 @@ Children:
 
 **Version bump**: `0.19.0 → 0.20.0` (`MINOR`)
 
-**Justification**: All changes are additive — new optional `Component.slotContent` field; new `SlotBinding`, `SlotBindingExtensions`, `FigmaSlotBindingExtension` interfaces; `Children` widened from `string[] | PropBinding` to `string[] | SlotBinding`, where `SlotBinding` is a structural superset of `PropBinding` (existing `children: { $binding }` values still validate). No new types for slot content (`Composition` from ADR-042 is reused). `PropBinding` and `Element` are unchanged. `ComponentExamples` from ADR-043 is unchanged. → MINOR per Constitution §III.
+**Justification**: All changes are additive — new optional `Component.slotContent` field; new `SlotBinding`, `SlotBindingExtensions`, `FigmaSlotBindingExtension` interfaces; `Children` widened from `string[] | PropBinding` to `string[] | SlotBinding`, where `SlotBinding` is a structural superset of `PropBinding` (existing `children: { $binding }` values still validate). No new types for slot content (`Composition` from ADR-042 is reused). `PropBinding` and `Element` are unchanged. `ComponentExamples` from ADR-046 is unchanged. → MINOR per Constitution §III.
 
 ---
 
@@ -393,5 +393,5 @@ Children:
 - `Composition` is reused directly with no wrapper type; ADR-042's structural type carries its own weight here.
 - `SlotBinding.$extensions['com.figma'].default` colocates the Figma default-fill reference with the slot binding itself, inside `Element.children`. The `$extensions` framing correctly marks it as design-tool provenance — code consumers ignore it (defaults in code are logic, not data). No collision with `content`, `children`, or any top-level `Element` field. Per-variant Figma defaults fall out because `children` already lives on `Element`.
 - `SlotBindingExtensions` is an open extension object — future Figma-specific or platform-specific slot-binding metadata can be added without a new ADR.
-- `InstanceExample.slots` (defined in ADR-043) resolves into `Component.slotContent`. ADR-043's `ComponentExamples` type is not widened.
+- `InstanceExample.slots` (defined in ADR-046) resolves into `Component.slotContent`. ADR-046's `ComponentExamples` type is not widened.
 - This ADR scopes slot content to one level deep; recursion (filling slots of nested instances from a parent context) is deferred to a follow-on ADR.

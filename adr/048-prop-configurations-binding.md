@@ -1,6 +1,6 @@
 # ADR: PropConfigurations PropBinding
 
-**Branch**: `045-prop-configurations-binding`
+**Branch**: `048-prop-configurations-binding`
 **Created**: 2026-04-29
 **Status**: DRAFT
 **Deciders**: Nathan Curtis (author)
@@ -57,7 +57,7 @@ elements:
 
 Widening `PropConfigurations` to also accept `PropBinding` closes this gap and makes the binding model uniform across every element-level value field.
 
-This ADR does **not** affect `InstanceExample.propConfigurations` (ADR-043), which stays scalar-only — it represents a human-authored documented configuration, not a live binding.
+This ADR does **not** affect `InstanceExample.propConfigurations` (ADR-046), which stays scalar-only — it represents a human-authored documented configuration, not a live binding.
 
 ---
 
@@ -243,7 +243,7 @@ PropConfigurations:
 
 ### Out of scope for this ADR
 
-- **`InstanceExample.propConfigurations`** — remains `Record<string, string | number | boolean>` by design; see ADR-043
+- **`InstanceExample.propConfigurations`** — remains `Record<string, string | number | boolean>` by design; see ADR-046
 - **Slot value binding in `PropConfigurations`** — passing a slot prop through to a nested instance's slot prop via `PropBinding` is related but deferred; this ADR covers scalar prop pass-through only
 
 ### Notes
