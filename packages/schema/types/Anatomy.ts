@@ -37,4 +37,12 @@ export type AnatomyElement = {
   detectedIn?: string;
   /** The component or component set name that this instance element references, or a subcomponent reference. */
   instanceOf?: string | SubcomponentRef;
+  /**
+   * DTCG §5.2.3 platform-specific extensions. Open-shape passthrough —
+   * processing packages (e.g. `specs-from-figma`) may attach reverse-domain
+   * keys (such as `'com.figma'`) carrying provenance metadata. The schema
+   * does not constrain the inner structure.
+   * @since 0.22.0
+   */
+  $extensions?: Record<string, unknown>;
 };

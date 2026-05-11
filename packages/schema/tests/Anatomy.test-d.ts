@@ -89,3 +89,17 @@ if (typeof element.type === 'string') {
 } else {
   const _ref: string = element.type.$ref;
 }
+
+// ─── $extensions (ADR-044) ──────────────────────────────────────────────────
+
+// AnatomyElement.$extensions is optional
+const noExtensions: AnatomyElement = { type: 'glyph' };
+
+// AnatomyElement.$extensions is an open-shape passthrough — any reverse-domain key allowed
+const withExtensions: AnatomyElement = {
+  type: 'glyph',
+  $extensions: {
+    'com.figma': { originalName: 'icon', matchMethod: 'anchor-adjacent' },
+    'com.example': { anything: true, nested: { value: 1 } },
+  },
+};

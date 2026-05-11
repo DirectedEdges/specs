@@ -143,6 +143,11 @@
             }
           ],
           "description": "The component or component set name that this instance element references, or a subcomponent reference"
+        },
+        "$extensions": {
+          "type": "object",
+          "description": "DTCG §5.2.3 platform-specific extensions. Open-shape passthrough — processing packages may attach reverse-domain keys carrying provenance metadata. The schema does not constrain the inner structure.",
+          "additionalProperties": true
         }
       },
       "required": [

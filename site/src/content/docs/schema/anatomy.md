@@ -16,6 +16,7 @@ type Anatomy = Record<string, AnatomyElement>;
 | `type` | `ElementType \| ElementTypeRef` | Yes | What kind of element this is |
 | `detectedIn` | `string` | No | Frame or node name where this element was found |
 | `instanceOf` | `string \| SubcomponentRef` | No | Component name this element is an instance of, or a `$ref` to a subcomponent |
+| `$extensions` | `Record<string, unknown>` | No | DTCG §5.2.3 platform-specific extensions. Open-shape passthrough — processing packages may attach reverse-domain keys (e.g. `'com.figma'`) carrying provenance metadata; the schema does not constrain the inner structure |
 
 ### ElementType
 
@@ -59,3 +60,4 @@ Within variants, each element's runtime properties (children, styles, content) a
 
 - [ADR 012 — Element Type References](https://github.com/DirectedEdges/specs/blob/main/adr/012-element-type-references.md) — widens `AnatomyElement.type` to support `$ref`-based external element type definitions
 - [ADR 030 — Subcomponent $ref for instanceOf](https://github.com/DirectedEdges/specs/blob/main/adr/030-subcomponent-refs.md) — adds `SubcomponentRef` to `instanceOf` on AnatomyElement and Element
+- [ADR 044 — Duplicate Layer Name Disambiguation](https://github.com/DirectedEdges/specs/blob/main/adr/044-duplicate-layer-disambiguation.md) — adds open-shape `$extensions` to `AnatomyElement` so processing packages can attach disambiguation provenance (e.g. `originalName`)

@@ -53,9 +53,9 @@ The original EGDS Specs generator solved this with a composite key: **layer name
 
 ## Options Considered
 
-### Option A: Collision-safe numeric suffix + `$extensions` metadata *(Selected)*
+### Option A: Collision-safe numeric suffix + open `$extensions` passthrough *(Selected)*
 
-Disambiguate duplicate names by appending a numeric suffix, determined by an ordered heuristic chain during a disambiguation phase that is separate from initial evaluation. Store the original Figma layer name under `$extensions["com.figma"].originalName` on `AnatomyElement`, following the existing DTCG extension convention used by `TokenReference` and `PropExtensions`.
+Disambiguate duplicate names by appending a numeric suffix, determined by an ordered heuristic chain during a disambiguation phase that is separate from initial evaluation. Add an **open-shape** `$extensions` passthrough to `AnatomyElement` — typed as `Record<string, unknown>` with `additionalProperties: true` in schema — so processing packages can attach reverse-domain provenance metadata without the schema constraining the inner structure. `specs-from-figma` writes the original Figma layer name under `$extensions["com.figma"].originalName` as a package-level convention, not a schema-enforced field.
 
 The suffix algorithm must be **collision-safe** — it cannot assign a suffix that conflicts with an existing element name:
 
@@ -72,11 +72,13 @@ The suffix algorithm must be **collision-safe** — it cannot assign a suffix th
 
 **Pros**:
 - Human-readable keys (`icon`, `icon3` is immediately understandable)
-- `$extensions["com.figma"].originalName` follows the established Figma provenance convention — consistent with `TokenReference.$extensions` and `PropExtensions["com.figma"]`
+- Open-shape `$extensions` lets processing packages attach arbitrary provenance (e.g. `com.figma.originalName`) without committing the schema to a specific inner contract
 - Collision-safe — never steals a name that belongs to an existing element
 - Additive schema change (MINOR) — `$extensions` is optional, existing specs are unaffected
+- Keeps the schema package minimal: no enums, no extension sub-types, no `$extensions` parity for `specs-schema` to maintain as `specs-from-figma` evolves its provenance vocabulary
 
 **Cons / Trade-offs**:
+- Consumers reading `$extensions["com.figma"].originalName` rely on the `specs-from-figma` convention, not a schema-validated field. Drift between producer and consumer is possible.
 - Key stability depends on the heuristic chain producing consistent identities across variants. When the chain reaches the weakest check (sibling index), reordering layers changes suffixes.
 - Suffix numbers may not be contiguous (e.g., `icon`, `icon3` when `icon2` is reserved by an original layer name). Intentional — contiguity is sacrificed for collision safety.
 
@@ -107,11 +109,23 @@ Use the full hierarchy path as the key: `root/content/icon:0`, `root/header/icon
 
 ### Option D: Processing-only fix, no schema change *(Rejected)*
 
-Disambiguate names in `specs-from-figma` using suffixes but add no schema metadata.
+Disambiguate names in `specs-from-figma` using suffixes but add no schema affordance for provenance — consumers receive disambiguated keys with no place to look for traceability data.
 
 **Rejected because**:
-- Consumers see `icon3` but can't determine whether it was originally named `icon3` in Figma or disambiguated from `icon`. The `$extensions["com.figma"].originalName` field makes this distinction explicit and supports round-trip fidelity.
-- Small schema cost (one optional field within an established extension pattern) for significant traceability gain.
+- Consumers see `icon3` but have no schema-sanctioned location to surface "originally named `icon`." Even an open-shape `$extensions` is preferable: it gives processing packages a recognized passthrough without committing the schema to specific inner fields.
+- Small schema cost (one optional open-shape object) for significant traceability gain.
+
+---
+
+### Option E: Typed `$extensions["com.figma"]` sub-shape *(Rejected)*
+
+Define a typed `FigmaAnatomyElementExtension` interface in `specs-schema` enumerating known fields (`originalName`, etc.) under `com.figma`, mirroring the existing `PropExtensions` / `FigmaPropExtension` pattern in `types/Props.ts`.
+
+**Rejected because**:
+- Couples the schema package to the producer's evolving provenance vocabulary — every new signal `specs-from-figma` wants to emit (round-trip metadata, match diagnostics, future heuristics) requires a coordinated `specs-schema` release.
+- `$extensions` per DTCG §5.2.3 is a platform-specific passthrough — its purpose is to escape the schema, not extend it.
+- Typed inner fields create a false guarantee for consumers: they suggest the schema validates the inner structure when in practice processing packages may add reverse-domain keys the schema has never seen.
+- The existing `PropExtensions` typing predates this principle and is itself a candidate for a future "open everything" cleanup ADR.
 
 ---
 
@@ -121,29 +135,40 @@ Disambiguate names in `specs-from-figma` using suffixes but add no schema metada
 
 | File | Change | Bump |
 |------|--------|------|
-| `Anatomy.ts` | Add optional `$extensions` to `AnatomyElement` with `com.figma` namespace containing `originalName` | MINOR |
+| `Anatomy.ts` | Add optional, open-shape `$extensions` to `AnatomyElement` typed as `Record<string, unknown>` | MINOR |
 
 **Example — new shape** (`types/Anatomy.ts`):
-```yaml
-# Before
-AnatomyElement:
-  type: ElementType | ElementTypeRef
-  detectedIn?: string
-  instanceOf?: string | SubcomponentRef
+```ts
+// Before
+type AnatomyElement = {
+  type: ElementType | ElementTypeRef;
+  detectedIn?: string;
+  instanceOf?: string | SubcomponentRef;
+};
 
-# After
-AnatomyElement:
-  type: ElementType | ElementTypeRef
-  detectedIn?: string
-  instanceOf?: string | SubcomponentRef
-  $extensions?:
-    com.figma?:
-      originalName?: string         # Present only when key differs from Figma layer name
+// After
+type AnatomyElement = {
+  type: ElementType | ElementTypeRef;
+  detectedIn?: string;
+  instanceOf?: string | SubcomponentRef;
+  /** DTCG §5.2.3 platform-specific extensions — open-shape passthrough. */
+  $extensions?: Record<string, unknown>;
+};
 ```
 
-`$extensions` is present only when the component contains at least one duplicate name group. When a component has no duplicates, `$extensions` is omitted entirely (no noise for the common case).
+The schema does **not** constrain the inner shape of `$extensions`. Processing packages (e.g. `specs-from-figma`) write reverse-domain keys following their own conventions; consumers reading those conventions do so against the producer's contract, not the schema's.
 
-> **Future ADR**: A subsequent ADR (045) evaluates whether to add a **provenance signal** (e.g., `matchMethod`) to `$extensions["com.figma"]` indicating which heuristic resolved each element's cross-variant identity. This is a separable decision — disambiguation and collision-safe suffixing do not depend on it.
+**`specs-from-figma` convention** — when disambiguation occurs, the producer writes:
+
+```yaml
+$extensions:
+  com.figma:
+    originalName: <pre-disambiguation key>   # only when key differs from Figma layer name
+```
+
+`$extensions` is present only when the component contains at least one duplicate name group. When a component has no duplicates, `$extensions` is omitted entirely (no noise for the common case). This is a producer convention — not a schema-enforced shape.
+
+> **Companion ADR**: ADR-045 evaluates whether `specs-from-figma` should additionally emit a `matchMethod` signal indicating which heuristic resolved each element's cross-variant identity. Under the open-passthrough policy adopted here, that decision is purely about the producer's emission vocabulary — no further schema change is required.
 
 **Example — spec output with disambiguation** (collision-safe):
 ```yaml
@@ -217,44 +242,35 @@ layout:
 
 | File | Change | Bump |
 |------|--------|------|
-| `component.schema.json` | Add optional `$extensions` property to `AnatomyElement` definition with `com.figma` sub-object containing `originalName` | MINOR |
+| `component.schema.json` | Add optional `$extensions` property to `AnatomyElement` definition — open-shape object | MINOR |
 
 **Example — new property** (under `#/definitions/AnatomyElement/properties`):
-```yaml
-$extensions:
-  type: object
-  description: "DTCG §5.2.3 platform-specific extensions."
-  properties:
-    com.figma:
-      type: object
-      properties:
-        originalName:
-          type: string
-          description: >
-            The original Figma layer name (after formatKey) before
-            disambiguation. Present only when the element key was modified
-            to resolve a duplicate name conflict. When absent, the key IS
-            the original layer name.
-      additionalProperties: false
-  additionalProperties: true
-  # not in required[] — optional field
+```json
+"$extensions": {
+  "type": "object",
+  "description": "DTCG §5.2.3 platform-specific extensions. Open-shape passthrough — processing packages may attach reverse-domain keys carrying provenance metadata. The schema does not constrain the inner structure.",
+  "additionalProperties": true
+}
 ```
+
+`$extensions` is not added to `required[]` — it remains optional. No inner properties are declared.
 
 ### Notes
 
-- **`$extensions` follows the established provenance pattern**: `TokenReference`, `BooleanProp`, `StringProp`, `EnumProp`, and `SlotProp` all use `$extensions["com.figma"]` for Figma extraction metadata. Placing `originalName` here is consistent with the ecosystem convention.
-- **`$extensions` presence is conditional on disambiguation**: `$extensions["com.figma"].originalName` is present **only** on elements whose key differs from their Figma layer name. When a component has no duplicate names, no `$extensions` appear anywhere — zero overhead for the common case.
-- **`originalName` stores the formatted key version** of the original name (after `formatKey` is applied), not the raw Figma name with original casing. This ensures consumers can compare `originalName` against other keys using the same format.
+- **Open-shape policy**: `$extensions` is a DTCG §5.2.3 passthrough — its purpose is to escape the schema. The schema package does not validate inner fields; consumers reading specific extension keys (e.g. `com.figma.originalName`) do so against the producing package's documented contract.
+- **`specs-from-figma` convention for disambiguation**: when an element key differs from its Figma layer name, the producer writes `$extensions["com.figma"].originalName` set to the formatted key version of the original name (after `formatKey`). When a component has no duplicate names, no `$extensions` appear anywhere — zero overhead for the common case.
 - **`Elements` and `Layout` do not need `$extensions`**: They use the same disambiguated keys as `Anatomy`. The anatomy is the canonical registry of element identity — consumers look up `originalName` there.
-- **The suffix format** (`name`, `name2`, `name3` with collision skipping) is a processing convention, not a schema constraint. The schema only guarantees unique keys and the `$extensions` field for traceability. The suffix numbering strategy is an implementation detail of `specs-from-figma`.
+- **The suffix format** (`name`, `name2`, `name3` with collision skipping) is a processing convention, not a schema constraint. The schema only guarantees unique keys and an open `$extensions` slot. The suffix numbering strategy is an implementation detail of `specs-from-figma`.
+- **Existing typed extensions (`PropExtensions`, `FigmaPropExtension`) are not in scope**: the typed pattern in `types/Props.ts` predates this open-passthrough policy and is left untouched here. A future cleanup ADR may open those as well.
 
 ---
 
 ## Type ↔ Schema Impact
 
-- **Symmetric**: Yes — one optional `$extensions` object with one property added to both `AnatomyElement` type and schema definition.
+- **Symmetric**: Yes — one optional, open-shape `$extensions` object added to both `AnatomyElement` type and schema definition.
 - **Parity check**:
-  - `AnatomyElement.$extensions["com.figma"].originalName` (type) ↔ `#/definitions/AnatomyElement/properties/$extensions/properties/com.figma/properties/originalName` (schema)
+  - `AnatomyElement.$extensions: Record<string, unknown>` (type) ↔ `#/definitions/AnatomyElement/properties/$extensions` (`type: object`, `additionalProperties: true`) (schema)
+  - No inner-shape parity needed — neither side constrains the inner structure.
 
 ---
 
@@ -507,7 +523,7 @@ Parity tests in `specs-testing`:
 
 **Version bump**: `0.21.0` → `0.22.0` (`MINOR`)
 
-**Justification**: The only schema change is an additive optional field (`originalName` on `AnatomyElement`). No existing fields are modified, removed, or renamed. Per constitution III: "additive types or new optional fields → MINOR."
+**Justification**: The only schema change is an additive optional open-shape `$extensions` object on `AnatomyElement`. No existing fields are modified, removed, or renamed. Per constitution III: "additive types or new optional fields → MINOR."
 
 ---
 
@@ -515,9 +531,10 @@ Parity tests in `specs-testing`:
 
 - Spec output represents every element in the Figma source — no silent data loss from duplicate layer names
 - Components with unique layer names (the majority) produce identical output — no `$extensions` present, keys unchanged
-- Consumers can distinguish between an element named `icon2` by the designer and one disambiguated from `icon` by checking for `$extensions["com.figma"].originalName`
+- Consumers can distinguish between an element named `icon2` by the designer and one disambiguated from `icon` by reading `$extensions["com.figma"].originalName` — surfaced by `specs-from-figma` as a documented convention, not a schema-validated field
 - The collision-safe algorithm guarantees no name theft — an original `icon2` layer is never displaced by a disambiguated `icon` duplicate
 - Variant differencing operates on complete element sets, producing accurate diffs
 - **Evaluation/disambiguation separation** makes the algorithm testable at two levels: "did we collect the right signals?" and "did we resolve correctly given these signals?"
 - The ordered heuristic chain (name → type → ancestry → anchor → index) provides explicit, auditable disambiguation with graceful degradation
-- The `$extensions` pattern on `AnatomyElement` opens the door for future Figma provenance metadata (ADR-045 evaluates a `matchMethod` signal indicating which heuristic resolved each element)
+- The open-shape `$extensions` slot on `AnatomyElement` lets `specs-from-figma` evolve its provenance vocabulary (e.g. ADR-045's `matchMethod`) without further schema releases
+- **Trade-off accepted**: producer/consumer drift on `$extensions` keys is possible. Mitigation lives in `specs-from-figma` and `specs-cli` docs, not in the schema
