@@ -6,7 +6,7 @@
 export interface ComponentApiData {
   title: string;
   anatomy: any;
-  props: any[];
+  props: Record<string, any>;
   subcomponents?: Record<string, SubcomponentApiData>;
   metadata: any;
 }
@@ -17,7 +17,7 @@ export interface ComponentApiData {
 export interface SubcomponentApiData {
   title: string;
   anatomy: any;
-  props: any[];
+  props: Record<string, any>;
   metadata: any;
 }
 
@@ -57,10 +57,10 @@ export function splitComponentByConcern(data: Record<string, any>): {
   const api: ComponentApiData = {
     title: data.title,
     anatomy: data.anatomy,
-    props: data.props || [],
+    props: data.props || {},
     metadata: data.metadata
   };
-  
+
   // Handle subcomponents recursively for API
   if (data.subcomponents) {
     api.subcomponents = extractApiFromSubcomponents(data.subcomponents);
@@ -103,7 +103,7 @@ export function extractApiFromSubcomponents(
     const apiData: SubcomponentApiData = {
       title: data.title,
       anatomy: data.anatomy,
-      props: data.props || [],
+      props: data.props || {},
       metadata: data.metadata
     };
     

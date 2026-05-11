@@ -5,6 +5,31 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.0] - Unreleased
+
+### Added
+
+### Changed
+
+### Removed
+
+
+## [0.20.0] - 2026-05-06
+
+Adds configurable color output format (`Config.format.color`) supporting nine format options from hex strings to structured DTCG Color objects. Renames `ColorValue` to `ColorObject` for specificity and widens `ColorStyle`, `Shadow.color`, and `GradientStop.color` to accept formatted color strings alongside structured objects and token references.
+
+### Added
+
+- `Config.format.color` — typed as `ColorFormat` (`'HEX' | 'HEXA' | 'RGB' | 'RGBA' | 'HSLA' | 'HSB' | 'OKLCH' | 'OKLAB' | 'OBJECT'`); controls color value output format; defaults to `HEX`
+
+### Changed
+
+- `ColorObject` — renamed from `ColorValue` for specificity; the type represents a DTCG Color §4.1 structured object, not a generic "color value"
+- `ColorStyle` — widened to `string | ColorObject | TokenReference | GradientValue | null`; the `string` arm supports formatted color strings when `Config.format.color` is non-`OBJECT`
+- `Shadow.color` — widened to `string | ColorObject | TokenReference`; same `string` arm rationale as `ColorStyle`
+- `GradientStop.color` — widened to `string | ColorObject | TokenReference`; same `string` arm rationale as `ColorStyle`
+
+
 ## [0.19.0] - 2026-04-28
 
 Replaces Figma-raw `x`, `y`, and `layoutPositioning` with constraint-based positioning properties. `position` replaces `layoutPositioning` as a strict `Position` enum. Directional offsets (`top`, `bottom`, `start`, `end`, `centerHorizontalOffset`, `centerVerticalOffset`) replace `x`/`y` with anchor semantics derived from Figma constraints. See the [Layout Positioning guide](/specs/guides/layout-positioning/) for constraint mapping rules and platform usage examples.

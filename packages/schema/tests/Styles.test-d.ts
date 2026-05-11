@@ -5,7 +5,7 @@
  */
 import type {
   Styles, Shadow, Blur, Effects, Typography,
-  TokenReference, ColorStyle, GradientStop, GradientCenter, LinearGradient, RadialGradient,
+  TokenReference, ColorStyle, ColorObject, GradientStop, GradientCenter, LinearGradient, RadialGradient,
   AngularGradient, GradientValue, AspectRatioValue, AspectRatioStyle,
   Sides, Corners, ItemSpacing, LayoutMode, WrapAlignment,
   MainAxisAlignment, CrossAxisAlignment, Position, PositionOffset,
@@ -13,9 +13,16 @@ import type {
 
 // ─── ColorStyle ────────────────────────────────────────────────────────────
 
-// String arm (hex colors)
-const csHexString: ColorStyle = '#ff007f';
-const csHexAlpha: ColorStyle = '#ff007f80';
+// ColorObject arm (DTCG Color §4.1 object)
+const csColorObject: ColorStyle = {
+  colorSpace: 'srgb',
+  components: [1, 0, 0.498],
+  alpha: 1,
+  hex: '#ff007f',
+} satisfies ColorObject;
+
+// String arm is valid — covers formatted color strings (hex, rgba, hsla, etc.) when Config.format.color is non-OBJECT
+const _csHexString: ColorStyle = '#ff007f';
 
 // TokenReference arm
 const csToken: ColorStyle = { $token: 'DS Color.Text.Primary', $type: 'color' } satisfies TokenReference;
@@ -25,8 +32,8 @@ const csGradient: ColorStyle = {
   type: 'LINEAR',
   angle: 90,
   stops: [
-    { position: 0, color: '#ff007f' },
-    { position: 1, color: '#0000ff' },
+    { position: 0, color: { colorSpace: 'srgb', components: [1, 0, 0.498], hex: '#ff007f' } },
+    { position: 1, color: { colorSpace: 'srgb', components: [0, 0, 1], hex: '#0000ff' } },
   ],
 } satisfies GradientValue;
 
@@ -39,7 +46,7 @@ const _csNumber: ColorStyle = 0xff007f;
 // ─── Styles with ColorStyle fields ────────────────────────────────────────
 
 const withBackground: Styles = {
-  backgroundColor: '#ff007f',
+  backgroundColor: { colorSpace: 'srgb', components: [1, 0, 0.498], hex: '#ff007f' },
 };
 
 const withTextColor: Styles = {
@@ -47,7 +54,7 @@ const withTextColor: Styles = {
 };
 
 const withStrokes: Styles = {
-  strokes: '#0000ff',
+  strokes: { colorSpace: 'srgb', components: [0, 0, 1], hex: '#0000ff' },
 };
 
 const withNullBackground: Styles = {
@@ -56,8 +63,8 @@ const withNullBackground: Styles = {
 
 // ─── Styles.fillColor (glyph fill) ───────────────────────────────────────
 
-// String arm (hex color)
-const withFillColor: Styles = { fillColor: '#ff007f' };
+// ColorObject arm
+const withFillColor: Styles = { fillColor: { colorSpace: 'srgb', components: [1, 0, 0.498], hex: '#ff007f' } };
 
 // TokenReference arm
 const withFillColorToken: Styles = {
@@ -70,8 +77,8 @@ const withFillColorGradient: Styles = {
     type: 'LINEAR',
     angle: 45,
     stops: [
-      { position: 0, color: '#ff007f' },
-      { position: 1, color: '#0000ff' },
+      { position: 0, color: { colorSpace: 'srgb', components: [1, 0, 0.498], hex: '#ff007f' } },
+      { position: 1, color: { colorSpace: 'srgb', components: [0, 0, 1], hex: '#0000ff' } },
     ],
   } satisfies GradientValue,
 };
@@ -82,9 +89,9 @@ const withNullFillColor: Styles = { fillColor: null };
 // fillColor is optional — omitting it is valid
 const withNoFillColor: Styles = {};
 
-// Hex strings are valid for color fields
-const withBgHexString: Styles = { backgroundColor: '#ff007f' };
-const withTextColorHexString: Styles = { textColor: '#000000' };
+// String arms are valid — covers formatted color strings when Config.format.color is non-OBJECT
+const _withBgHexString: Styles = { backgroundColor: '#ff007f' };
+const _withTextColorHexString: Styles = { textColor: '#000000' };
 
 // ─── Shadow ────────────────────────────────────────────────────────────────
 
@@ -94,7 +101,7 @@ const shadowRaw: Shadow = {
   offsetY: 4,
   blur: 8,
   spread: 0,
-  color: '#000000FF',
+  color: { colorSpace: 'srgb', components: [0, 0, 0], alpha: 1, hex: '#000000' },
 };
 
 const shadowVariable: Shadow = {
@@ -115,7 +122,7 @@ const _oldVarAsOffset: Shadow['offsetX'] = { id: 'var:1' };
 const _badVisible: Shadow = {
   // @ts-expect-error
   visible: 'yes',
-  offsetX: 0, offsetY: 0, blur: 0, spread: 0, color: '#000000FF',
+  offsetX: 0, offsetY: 0, blur: 0, spread: 0, color: { colorSpace: 'srgb', components: [0, 0, 0], hex: '#000000' },
 };
 
 // ─── Blur ──────────────────────────────────────────────────────────────────

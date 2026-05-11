@@ -194,6 +194,7 @@ export class ConfigLoader {
     const validOutputs = ['JSON', 'YAML'];
     const validLayouts = ['LAYOUT', 'PARENT_CHILDREN', 'BOTH'];
     const validTokens = ['TOKEN', 'TOKEN_NAME', 'TOKEN_FIGMA_EXTENSIONS', 'FIGMA_NAME', 'CUSTOM'];
+    const validColors = ['HEX', 'HEXA', 'RGB', 'RGBA', 'HSLA', 'HSB', 'OKLCH', 'OKLAB', 'OBJECT'];
 
     // Normalize format values to uppercase before validation
     // (YAML configs commonly use lowercase; schema constants are uppercase)
@@ -202,6 +203,9 @@ export class ConfigLoader {
     corrected.format.layout = corrected.format.layout?.toUpperCase() ?? '';
     if (corrected.format.tokens) {
       corrected.format.tokens = corrected.format.tokens.toUpperCase();
+    }
+    if (corrected.format.color) {
+      corrected.format.color = corrected.format.color.toUpperCase();
     }
 
     // Validate format
@@ -216,6 +220,9 @@ export class ConfigLoader {
     }
     if (corrected.format.tokens && !validTokens.includes(corrected.format.tokens)) {
       corrected.format.tokens = DEFAULT_CONFIG.format.tokens;
+    }
+    if (!validColors.includes(corrected.format.color)) {
+      corrected.format.color = DEFAULT_CONFIG.format.color;
     }
 
     // Strip EOLed include properties — subcomponent inclusion is now

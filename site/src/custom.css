@@ -1,3 +1,65 @@
+/* ── Layout overrides ── */
+
+/* 2× page padding and nav–content gutter at wide viewports */
+@media (min-width: 72rem) {
+	/* Content area padding */
+	.content-panel {
+		padding-left: 3rem !important;
+		padding-right: 3rem !important;
+	}
+	/* Top nav bar padding */
+	.header {
+		padding-left: 3rem !important;
+		padding-right: 3rem !important;
+		gap: 3rem !important;
+	}
+	/* Nav–content gutter */
+	.main-pane {
+		--sl-nav-gap: 3rem;
+	}
+}
+
+/* Remove distinct surface color and borders from nav/sidebar */
+.header,
+nav.sidebar {
+	background-color: var(--sl-color-bg) !important;
+}
+.sidebar-pane {
+	background-color: var(--sl-color-bg) !important;
+}
+/* Remove all divider borders */
+.header {
+	border-bottom-color: transparent !important;
+}
+.sidebar-pane {
+	border-inline-end-color: transparent !important;
+}
+.content-panel + .content-panel {
+	border-top-color: transparent !important;
+}
+.sidebar-content ul ul {
+	border-inline-start-color: transparent !important;
+}
+
+/* +4px spacing between left nav items */
+.sidebar-content li {
+	margin-top: calc(0.75rem + 4px);
+}
+.sidebar-content ul ul li {
+	margin-top: 0;
+}
+
+/* +2px padding within each left nav item (default 0.2em → 8px) */
+.sidebar-content {
+	--sl-sidebar-item-padding-inline: calc(0.5rem + 2px);
+}
+.sidebar-content a {
+	padding-block: calc(0.2em + 5.2px);
+}
+.sidebar-content .group-label {
+	padding-block: calc(0.3em + 2px);
+}
+
 /* Make top-level sidebar links match the style of links inside accordions */
 ul.top-level > li > a.large {
 	font-size: var(--sl-text-sm);
@@ -41,7 +103,7 @@ ul.top-level > li > a.large[aria-current='page']:focus {
 }
 
 /* Prepend the Pro badge before label text in the Licensing nav link */
-a[href*="/overview/licensing"] {
+.sidebar-content a[href*="/overview/licensing"] {
 	display: flex;
 	flex-direction: row-reverse;
 	justify-content: flex-end;
@@ -63,9 +125,9 @@ a[href*="/overview/licensing"] {
 	background-color: var(--sl-color-text-accent);
 }
 
-/* Gap between header social links */
-.social-link + .social-link {
-	margin-left: 0.75rem;
+/* Hide social links in header (moved to sidebar) */
+.social-icons {
+	display: none !important;
 }
 
 /* Site title in top nav bar — neutral instead of accent-colored */

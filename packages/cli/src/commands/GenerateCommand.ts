@@ -412,6 +412,13 @@ export const Generate = new Command('generate')
         return;
       }
 
+      // When in single-file mode and outputPath is an existing directory,
+      // append a default filename so we don't try to open a directory as a file
+      const isSingleFileMode = !outputConfig.splitComponents && !outputConfig.splitConcerns;
+      if (isSingleFileMode && fs.existsSync(outputPath) && fs.statSync(outputPath).isDirectory()) {
+        outputPath = path.join(outputPath, `library.${resolvedFormat}`);
+      }
+
       const baseDir = outputConfig.splitComponents || outputConfig.splitConcerns
         ? outputPath
         : path.dirname(outputPath);

@@ -861,6 +861,22 @@
               ],
               "default": "TOKEN",
               "description": "Token reference serialization profile. Optional; defaults to TOKEN. CUSTOM delegates projection entirely to the transformer."
+            },
+            "color": {
+              "type": "string",
+              "enum": [
+                "HEX",
+                "HEXA",
+                "RGB",
+                "RGBA",
+                "HSLA",
+                "HSB",
+                "OKLCH",
+                "OKLAB",
+                "OBJECT"
+              ],
+              "default": "HEX",
+              "description": "Color value output format. HEX (default) emits a 6-digit hex string. OBJECT emits the full ColorObject object (colorSpace, components, alpha, hex). All other values emit a formatted color string in the named notation."
             }
           },
           "required": [],

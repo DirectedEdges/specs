@@ -64,6 +64,6 @@ letterSpacing: 0
 
 ## Further Reading
 
-- [ADR 005 — Replace Typography Flat Properties with Composite](/specs/../adr/005-typography-composite/) — consolidates 14 flat typography keys into a single composite type
-- [ADR 032 — Typography leadingTrim — Correct to String Enum](/specs/../adr/032-typography-leading-trim-enum/) — fixes `leadingTrim` to a string enum
-- [ADR 033 — Typography fontFamily/fontStyle — Remove Number, Add TokenReference](/specs/../adr/033-typography-font-token-reference/) — adds token reference support to font properties
+- [ADR 005 — Replace Typography Flat Properties with Composite](https://github.com/DirectedEdges/specs/blob/main/adr/005-typography-composite.md) — consolidates 14 flat typography keys into a single composite type
+- [ADR 032 — Typography leadingTrim — Correct to String Enum](https://github.com/DirectedEdges/specs/blob/main/adr/032-typography-leading-trim-enum.md) — fixes `leadingTrim` to a string enum
+- [ADR 033 — Typography fontFamily/fontStyle — Remove Number, Add TokenReference](https://github.com/DirectedEdges/specs/blob/main/adr/033-typography-font-token-reference.md) — adds token reference support to font properties

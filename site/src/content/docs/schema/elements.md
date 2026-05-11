@@ -22,4 +22,4 @@ type Elements = Record<string, Element>;
 
 ## Further Reading
 
-- [ADR 016 — Element Content Identification](/specs/../adr/016-element-content/) — replaces `Element.text` with unified `Element.content` field
+- [ADR 016 — Element Content Identification](https://github.com/DirectedEdges/specs/blob/main/adr/016-element-content.md) — replaces `Element.text` with unified `Element.content` field

@@ -1,0 +1,67 @@
+name: Bug Report
+description: Report something that is not working correctly
+type: Bug
+labels: []
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Sub-project
+      description: Which part of Specs does this affect?
+      options:
+        - schema
+        - cli
+        - plugin
+        - generator
+        - demo
+        - testing
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What's broken? Describe the issue from a user's perspective.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should happen instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happens now?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can someone reproduce this?
+      placeholder: |
+        1. Configure ...
+        2. Run ...
+        3. See ...
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: What conditions must be met to consider this fixed?
+      placeholder: |
+        - [ ] ...
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional context
+      description: Screenshots, environment info, or anything else relevant.

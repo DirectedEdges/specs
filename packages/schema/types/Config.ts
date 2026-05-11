@@ -1,4 +1,20 @@
 /**
+ * Color value output format.
+ *
+ * Controls how `ColorObject` objects are serialized in the spec output.
+ * `HEX` (default) emits a 6-digit hex string. `OBJECT` emits the full
+ * `ColorObject` object. All other values emit a formatted color string
+ * in the named notation.
+ *
+ * Tier 1 — Figma UI formats: `HEX`, `HEXA`, `RGB`, `RGBA`, `HSLA`, `HSB`
+ * Tier 2 — Modern CSS (Level 4): `OKLCH`, `OKLAB`
+ * Tier 3 — Structured object: `OBJECT`
+ *
+ * @since 0.20.0
+ */
+export type ColorFormat = 'HEX' | 'HEXA' | 'RGB' | 'RGBA' | 'HSLA' | 'HSB' | 'OKLCH' | 'OKLAB' | 'OBJECT';
+
+/**
  * Model configuration used to generate the component spec.
  * Full structure matches the transformer's configuration options.
  *
@@ -39,6 +55,8 @@ export interface Config {
     layout?: 'LAYOUT' | 'PARENT_CHILDREN' | 'BOTH';
     /** Token reference serialization profile. Optional; defaults to TOKEN. */
     tokens?: 'TOKEN' | 'TOKEN_NAME' | 'TOKEN_FIGMA_EXTENSIONS' | 'FIGMA_NAME' | 'CUSTOM';
+    /** Color value output format. Optional; defaults to HEX. @since 0.20.0 */
+    color?: ColorFormat;
   };
   include: {
     /** Include invalid variants. Optional; defaults to false. */
@@ -93,6 +111,8 @@ export interface ResolvedConfig {
     layout: 'LAYOUT' | 'PARENT_CHILDREN' | 'BOTH';
     /** Token reference serialization profile. */
     tokens: 'TOKEN' | 'TOKEN_NAME' | 'TOKEN_FIGMA_EXTENSIONS' | 'FIGMA_NAME' | 'CUSTOM';
+    /** Color value output format. */
+    color: ColorFormat;
   };
   include: {
     /** Include invalid variants. */
@@ -117,6 +137,7 @@ export interface ResolvedConfig {
  * - format.keys: SAFE prevents corruption of special characters while maintaining readability
  * - format.layout: LAYOUT provides tree structure with layout properties
  * - format.tokens: TOKEN provides platform-neutral token references with $token path and $type
+ * - format.color: HEX matches historical v1 behaviour and maximises human readability
  * - include.invalidVariants: false excludes variants that can't be instantiated
  * - include.invalidCombinations: true helps designers identify property conflicts
  * - include.emptyVariants: false reduces output size by excluding semantically empty layered variants
@@ -133,6 +154,7 @@ export const DEFAULT_CONFIG: ResolvedConfig = {
     keys: 'SAFE',
     layout: 'LAYOUT',
     tokens: 'TOKEN',
+    color: 'HEX',
   },
   include: {
     invalidVariants: false,

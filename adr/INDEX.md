@@ -4,11 +4,14 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 049 | Nested Slot Compositions | Fill nested instances' slots from a parent context; recursion follow-on to ADR-047 |
-| 048 | PropConfigurations PropBinding | Widen `PropConfigurations` value union to add `PropBinding`; completes the binding model on element-level fields |
-| 047 | Slot Content — Component.slotContent and SlotBinding | Add `Component.slotContent: Record<string, Composition>`; add `SlotBinding` extending `PropBinding` with `$extensions['com.figma'].default` for Figma authoring provenance |
-| 046 | Component Examples — InstanceExample and Component.examples | Add `InstanceExample` and `ComponentExamples`; add `Component.examples?` named record |
-| 042 | Composition Structural Type | Add `Composition { title?, anatomy, elements?, layout? }` — structural base for slot examples and system-scoped compositions |
+| 049 | Nested Slot Compositions | Recursion follow-on to ADR-047: fill nested instances' slots from a parent context (reserved, draft on `042-composition-type` branch) |
+| 048 | PropConfigurations PropBinding | Widen `PropConfigurations` value union to add `PropBinding` (reserved, draft on `042-composition-type` branch) |
+| 047 | Slot Content — Component.slotContent and SlotBinding | Add `Component.slotContent: Record<string, Composition>` + `SlotBinding` extending `PropBinding` with `$extensions['com.figma'].default` (reserved, draft on `042-composition-type` branch) |
+| 046 | Component Examples — InstanceExample and Component.examples | Add `InstanceExample` and `ComponentExamples`; add `Component.examples?` named record (reserved, draft on `042-composition-type` branch) |
+| 045 | Processing Provenance Signals | (reserved, draft in PR #60) |
+| 044 | Duplicate Layer Name Disambiguation | (reserved, draft in PR #60) |
+| 043 | Custom Color Format Configuration | |
+| 042 | Composition as a First-Class Type | |
 | 041 | Layout Positioning — Constraint-Based Naming | |
 | 035 | Make Config Properties with Defaults Optional | |
 | 034 | Remove variantNames, add emptyVariants, make Config.include fields optional | Remove unused `variantNames` (breaking); add `emptyVariants` for filtering; make remaining fields optional |
@@ -22,6 +25,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 043 | Custom Color Format Configuration | Add `Config.format.color` with 9-format enum (HEX default); rename `ColorValue` → `ColorObject`; widen color types with `string` arm |
 | 041 | Layout Positioning — Constraint-Based Naming | Replace `x`/`y`/`layoutPositioning` with constraint-based `position`, `start`, `end`, `top`, `bottom`, center offsets |
 | 040 | Replace `primaryAxisAlignItems` and `counterAxisAlignItems` with `mainAxisAlignment` and `crossAxisAlignment` | Rename to platform-neutral names; add `MainAxisAlignment` and `CrossAxisAlignment` enums; not token-bindable |
 | 039 | Replace `layoutWrap` and `counterAxisAlignContent` with `wrap` and `wrapAlignment` | Rename to platform-neutral names; add `WrapAlignment` enum (`START \| SPACE_BETWEEN`); not token-bindable |

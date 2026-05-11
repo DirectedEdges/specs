@@ -87,6 +87,6 @@ The `$extensions` object holds vendor-specific metadata. Currently only the `com
 
 ## Further Reading
 
-- [ADR 027 — Code-Only Props](/specs/../adr/027-code-only-props/) — surfaces Figma code-only props with `$extensions` source metadata
-- [ADR 028 — Slot Quantity and Content Constraints](/specs/../adr/028-slot-constraints/) — adds `minItems`, `maxItems`, `anyOf` to SlotProp
-- [ADR 029 — NumberProp](/specs/../adr/029-number-prop/) — adds the `NumberProp` type with opt-in inference
+- [ADR 027 — Code-Only Props](https://github.com/DirectedEdges/specs/blob/main/adr/027-code-only-props.md) — surfaces Figma code-only props with `$extensions` source metadata
+- [ADR 028 — Slot Quantity and Content Constraints](https://github.com/DirectedEdges/specs/blob/main/adr/028-slot-constraints.md) — adds `minItems`, `maxItems`, `anyOf` to SlotProp
+- [ADR 029 — NumberProp](https://github.com/DirectedEdges/specs/blob/main/adr/029-number-prop.md) — adds the `NumberProp` type with opt-in inference

@@ -92,7 +92,7 @@ All commands in this agent run from the **CLI package directory**: `packages/cli
       ```bash
       cd packages/cli && npm publish --access public --userconfig "$WORKSPACE_ROOT/.npmrc.public"
       ```
-      where `$WORKSPACE_ROOT` is the anova-local-workspace directory (typically `../anova-local-workspace` relative to this repo).
+      where `$WORKSPACE_ROOT` is the specs-local-workspace directory (typically `../specs-local-workspace` relative to this repo).
       If publish fails with "previously published version", report and ask the user whether to bump the patch version or skip.
 
 10. **Finalize gate**: Use `AskUserQuestion` with Yes/No options: **"Ready to push, create PR, and GitHub Release for @directededges/specs-cli v[version]?"**
@@ -101,18 +101,27 @@ All commands in this agent run from the **CLI package directory**: `packages/cli
        ```bash
        git push --follow-tags
        ```
-    2. Create the PR:
+    2. **Collect issue references** from PRs merged into this release branch since it diverged from main:
+       ```bash
+       gh pr list --repo DirectedEdges/specs --base release/[branch-name] --state merged --json body --jq '.[].body' \
+         | grep -oiE '(closes|fixes|resolves) #[0-9]+' | sort -u
+       ```
+       Append each unique `Closes #N` line to the PR body so issues auto-close when this PR merges to main.
+
+    3. Create the PR:
        ```bash
        gh pr create --base main --title "release: @directededges/specs-cli v[version]" --body "$(cat <<'EOF'
        ## Summary
        - Release @directededges/specs-cli v[version]
        - Compatible with @directededges/specs-schema ^[schema-version] and @directededges/specs-from-figma ^[fts-version]
        - See packages/cli/CHANGELOG.md for details
+
+       [collected Closes #N lines, one per line]
        EOF
        )"
        ```
        If a PR already exists for this branch, report the existing PR URL instead of failing.
-    3. Create the GitHub Release (scoped tag):
+    4. Create the GitHub Release (scoped tag):
        - Extract the release notes from `packages/cli/CHANGELOG.md` for this version.
        ```bash
        gh release create "specs-cli@[version]" --title "@directededges/specs-cli v[version]" --notes "$(cat <<'EOF'

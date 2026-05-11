@@ -70,15 +70,15 @@ Variables include the collection name as a prefix; named styles use the style na
 
 #### `CUSTOM`
 
-Delegates serialization to a custom token mapping. If a variable or style has a `$custom` metadata object (injected via the `applyCustomTokens` CLI command), that object is used verbatim as the property value. References without `$custom` fall back to the `TOKEN_FIGMA_EXTENSIONS` shape.
+Uses your own token shapes instead of Specs' built-in formats. Before generating, you run the [`applyCustomTokens`](/specs/cli/commands/apply-custom-tokens/) command to inject a `$custom` object onto each variable and style in your fetched data. When `CUSTOM` is active, that object becomes the property value verbatim. References without `$custom` fall back to the `TOKEN_FIGMA_EXTENSIONS` shape.
 
 ```yaml
-# With $custom mapping applied
+# This variable had $custom injected — your object, verbatim
 backgroundColor:
   name: color-text-primary
   value: "{color.text.primary}"
 
-# Without $custom — falls back to TOKEN_FIGMA_EXTENSIONS
+# This variable had no $custom — falls back to TOKEN_FIGMA_EXTENSIONS
 borderColor:
   $token: DS Color.Border.Default
   $type: color
@@ -123,19 +123,17 @@ model:
 
 ### Using CUSTOM
 
-The `CUSTOM` profile requires a preparatory step:
+The `CUSTOM` profile requires an extra step between `fetch` and `generate`:
 
 ```bash
-# 1. Inject custom token mappings into fetched data
-specs applyCustomTokens mapping.json
-
-# 2. Generate specs — CUSTOM profile uses the injected $custom objects
-specs generate data/library.file.json -c Button
+specs fetch                              # 1. Download raw Figma data
+specs applyCustomTokens mapping.json     # 2. Inject $custom objects into the data
+specs generate                           # 3. Generate — uses $custom objects verbatim
 ```
 
-See the [applyCustomTokens command](/specs/cli/commands/apply-custom-tokens/) for details on the mapping format.
+See the [`applyCustomTokens` command](/specs/cli/commands/apply-custom-tokens/) for the full mapping file format, data impact examples, and pipeline details.
 
 ## Further Reading
 
-- [ADR 007 — Token Reference Config](/specs/../adr/007-token-reference-config/) — architecture decision record consolidating the token format into a single enum
+- [ADR 007 — Token Reference Config](https://github.com/DirectedEdges/specs/blob/main/adr/007-token-reference-config.md) — architecture decision record consolidating the token format into a single enum
 - [CLI Configuration](/specs/config/) — full config reference

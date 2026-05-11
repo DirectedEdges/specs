@@ -73,4 +73,4 @@ backgroundBlur:
 
 ## Further Reading
 
-- [ADR 002 — Replace effectStyleId with effects](/specs/../adr/002-effects-shadows-blurs/) — introduces the grouped `Effects`, `Shadow`, and `Blur` types
+- [ADR 002 — Replace effectStyleId with effects](https://github.com/DirectedEdges/specs/blob/main/adr/002-effects-shadows-blurs.md) — introduces the grouped `Effects`, `Shadow`, and `Blur` types

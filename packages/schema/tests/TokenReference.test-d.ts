@@ -111,7 +111,7 @@ const effectsFromRef: Styles = {
 
 // Styles.effects also accepts Effects inline
 const effectsInline: Styles = {
-  effects: { shadows: [{ visible: true, offsetX: 0, offsetY: 4, blur: 8, spread: 0, color: '#000000FF' }] },
+  effects: { shadows: [{ visible: true, offsetX: 0, offsetY: 4, blur: 8, spread: 0, color: { colorSpace: 'srgb', components: [0, 0, 0], hex: '#000000' } }] },
 };
 
 // ─── Styles.typography accepts TokenReference ──────────────────────────────

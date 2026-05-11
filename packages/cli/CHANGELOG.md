@@ -5,6 +5,42 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.0] - Unreleased
+
+### Added
+
+### Changed
+
+### Removed
+
+## [0.13.1] - 2026-05-08
+
+Patch fix for `--split-concerns` output shape.
+
+### Fixed
+
+- **`props` defaults to `{}` instead of `[]` when a component has no props (#84)** — `splitComponentByConcern` and `extractApiFromSubcomponents` were filling missing `props` with an empty array, producing output that violated the schema (`Props` is an object). Components like `egdsDivider` and `egdsSearchBarExperimental` now emit `props: {}`. The `ComponentApiData` and `SubcomponentApiData` interfaces are corrected to type `props` as `Record<string, any>`.
+
+
+## [0.13.0] - 2026-05-06
+
+Adds configurable color output format (`config.format.color`) with nine options from hex strings to structured DTCG Color objects. Fixes EISDIR crash when outputDirectory targets a directory, and corrects config template URLs.
+
+### Added
+
+- `config.format.color` — validates and normalizes the new `ColorFormat` option (`HEX`, `HEXA`, `RGB`, `RGBA`, `HSLA`, `HSB`, `OKLCH`, `OKLAB`, `OBJECT`); defaults to `HEX`. Config template updated with inline docs. (ADR 043)
+
+### Fixed
+
+- **EISDIR when outputDirectory is a directory in single-file mode (#34)** — When `outputDirectory` pointed to an existing directory (e.g. from a prior `--split-components` run), `specs generate` without split flags crashed with EISDIR. Now appends `library.{format}` as the default filename.
+- Config template URLs now point to the doc site (`directededges.github.io/specs/config/...`) instead of 404ing GitHub raw paths (#43)
+
+### Dependency updates
+
+- **@directededges/specs-schema 0.20.0** — New `Config.format.color` option typed as `ColorFormat`. `ColorValue` renamed to `ColorObject`. `ColorStyle`, `Shadow.color`, and `GradientStop.color` widened to accept formatted color strings alongside structured objects and token references.
+- **@directededges/specs-from-figma 0.17.0** — Ten bug fixes: INSTANCE_SWAP prop resolution now correctly resolves names, strips glyph patterns, and formats keys; `visible: true` no longer leaks into default variant output; auto-layout fallback elements emit correct width/height; glyph fill colors on nested instances now resolve to token references instead of raw hex. RAW colors emit structured `ColorValue` objects per ADR-009.
+
+
 ## [0.12.2] - 2026-04-28
 
 Dependency update: picks up constraint-based layout positioning from specs-schema 0.19.0 and specs-from-figma 0.16.0. Also fixes glyph `instanceOf` leaking into variant output.

@@ -79,9 +79,9 @@ This repo includes Claude Code agent skills for the full ADR lifecycle:
 
 | Skill | Purpose |
 |-------|---------|
-| `/anova.adr.create` | Draft a new ADR, claim the next number, and reserve it in the index |
-| `/anova.adr.implement` | Apply the type and schema changes described in an ADR to types, schema, tests, and changelog |
-| `/anova.adr.accept` | Validate the implementation is clean, mark the ADR as ACCEPTED, and update the index |
+| `/specs.adr.create` | Draft a new ADR, claim the next number, and reserve it in the index |
+| `/specs.adr.implement` | Apply the type and schema changes described in an ADR to types, schema, tests, and changelog |
+| `/specs.adr.accept` | Validate the implementation is clean, mark the ADR as ACCEPTED, and update the index |
 
 ## Issues
 
