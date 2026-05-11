@@ -4,7 +4,12 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 044 | Duplicate Layer Name Disambiguation | |
+| 049 | Nested Slot Compositions | Recursion follow-on to ADR-047: fill nested instances' slots from a parent context (reserved, draft on `042-composition-type` branch) |
+| 048 | PropConfigurations PropBinding | Widen `PropConfigurations` value union to add `PropBinding` (reserved, draft on `042-composition-type` branch) |
+| 047 | Slot Content — Component.slotContent and SlotBinding | Add `Component.slotContent: Record<string, Composition>` + `SlotBinding` extending `PropBinding` with `$extensions['com.figma'].default` (reserved, draft on `042-composition-type` branch) |
+| 046 | Component Examples — InstanceExample and Component.examples | Add `InstanceExample` and `ComponentExamples`; add `Component.examples?` named record (reserved, draft on `042-composition-type` branch) |
+| 045 | Processing Provenance Signals | (reserved, draft in PR #60) |
+| 044 | Duplicate Layer Name Disambiguation | (reserved, draft in PR #60) |
 | 043 | Custom Color Format Configuration | |
 | 042 | Composition as a First-Class Type | |
 | 041 | Layout Positioning — Constraint-Based Naming | |

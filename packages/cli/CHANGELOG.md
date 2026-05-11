@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.13.1] - 2026-05-08
+
+Patch fix for `--split-concerns` output shape.
+
+### Fixed
+
+- **`props` defaults to `{}` instead of `[]` when a component has no props (#84)** — `splitComponentByConcern` and `extractApiFromSubcomponents` were filling missing `props` with an empty array, producing output that violated the schema (`Props` is an object). Components like `egdsDivider` and `egdsSearchBarExperimental` now emit `props: {}`. The `ComponentApiData` and `SubcomponentApiData` interfaces are corrected to type `props` as `Record<string, any>`.
+
 
 ## [0.13.0] - 2026-05-06
 

@@ -1,0 +1,49 @@
+name: Feature Request
+description: Suggest a new feature or enhancement
+type: Feature
+labels: []
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Sub-project
+      description: Which part of Specs does this affect?
+      options:
+        - schema
+        - cli
+        - plugin
+        - generator
+        - demo
+        - testing
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem does this solve? Why is it needed?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Solution
+      description: What should the feature look like from a user's perspective?
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: What conditions must be met?
+      placeholder: |
+        - [ ] ...
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional context
+      description: Links, mockups, or related issues.
