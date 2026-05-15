@@ -107,12 +107,15 @@ All commands in this agent run from the **schema package directory**: `packages/
       ```bash
       git push --follow-tags
       ```
-   2. **Collect issue references** from PRs merged into this release branch since it diverged from main:
+   2. **Collect issue references** from both PR bodies and commit messages on this release branch since it diverged from main. Capture cross-repo refs (e.g. `DirectedEdges/specs-plugin-2#42`) as well as bare `#N` refs — required because closing trailers can live on commits that touch upstream issues in sibling repos, not just on PRs in this repo:
       ```bash
-      gh pr list --repo DirectedEdges/specs --base release/[branch-name] --state merged --json body --jq '.[].body' \
-        | grep -oiE '(closes|fixes|resolves) #[0-9]+' | sort -u
+      BRANCH=$(git branch --show-current)
+      {
+        gh pr list --repo DirectedEdges/specs --base "$BRANCH" --state merged --json body --jq '.[].body'
+        git log main.."$BRANCH" --pretty=%B
+      } | grep -oiE '(closes|fixes|resolves)[[:space:]]+([A-Za-z0-9._-]+/[A-Za-z0-9._-]+)?#[0-9]+' | sort -fu
       ```
-      Append each unique `Closes #N` line to the PR body so issues auto-close when this PR merges to main.
+      Normalize each match to `Closes <ref>` (preserving any `owner/repo` prefix) and append one per line to the PR body so issues auto-close when this PR merges to main. Cross-repo refs require `owner/repo#N` — without that prefix GitHub won't reach the sibling repo's issue.
 
    3. Finalize the tracking PR. Step 0 opened a draft PR at the start; now mark it ready and update title/body:
       ```bash
