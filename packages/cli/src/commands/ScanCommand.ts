@@ -8,9 +8,13 @@ import { Command } from 'commander';
 import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
-import { ComponentDiscovery, type ComponentInfo } from '../utilities/ComponentDiscovery.js';
+import { ComponentDiscovery, type ComponentInfo, type DevStatus } from '../utilities/ComponentDiscovery.js';
+import { ManifestParserV2, type ManifestRowV2 } from '../utilities/ManifestParserV2.js';
+import { isV1Manifest, migrateV1ToV2 } from '../utilities/ManifestMigrationV1ToV2.js';
+import { glyphPatternMatch } from '../utilities/glyphPatternMatch.js';
 
-// Error codes from contracts/error-codes.md
+const SCAN_FORMAT_VERSION = 2;
+
 const ERROR_CODES = {
   SUCCESS: 0,
   GENERAL_ERROR: 1,
@@ -24,6 +28,8 @@ interface ScanOptions {
   config?: string;
   source?: string;
   includeAll: boolean;
+  keepChecks: boolean;
+  resetChecks: boolean;
   variables?: string;
   verbose: boolean;
 }
@@ -32,6 +38,7 @@ type MinimalConfig = {
   dataDirectory?: string;
   sourceDirectory?: string; // deprecated alias
   sources?: Record<string, { key: string; data: string[] }>;
+  config?: { processing?: { glyphNamePattern?: string } };
 };
 
 function findConfigFile(cwd: string): string | null {
@@ -59,77 +66,190 @@ function loadConfig(configPath?: string): { configDir: string; config: MinimalCo
   };
 }
 
-interface AuditComponentInfo extends ComponentInfo {
-  included: boolean;
+/**
+ * Default inclusion when no prior manifest exists (or --reset-checks).
+ *
+ * - If ANY component in the file has devStatus=READY_FOR_DEV, only those
+ *   components are checked. Designers are signalling curation explicitly.
+ * - Otherwise (no devStatus signal anywhere), fall back to the legacy
+ *   heuristic: include all COMPONENT_SETs and standalone COMPONENTs.
+ */
+export function deriveDefaultInclusion(
+  components: ComponentInfo[],
+  includeAll: boolean
+): Map<string, boolean> {
+  const result = new Map<string, boolean>();
+  const anyReady = components.some(c => c.devStatus === 'READY_FOR_DEV');
+
+  for (const c of components) {
+    if (includeAll) {
+      result.set(c.id, true);
+      continue;
+    }
+    if (anyReady) {
+      result.set(c.id, c.devStatus === 'READY_FOR_DEV');
+    } else {
+      // Legacy heuristic: COMPONENT_SET and standalone COMPONENT both included.
+      result.set(c.id, c.type === 'COMPONENT' || c.type === 'COMPONENT_SET');
+    }
+  }
+  return result;
+}
+
+export interface MergeStats {
+  added: number;
+  removed: number;
+  flippedByFigma: number;
+  preserved: number;
 }
 
 /**
- * Apply heuristics to determine if a component should be included by default
- * 
- * Rules:
- * - COMPONENT_SET: included (likely design system components)
- * - Other COMPONENT: included
- * 
- * Future heuristics (commented out until needed):
- * - Use isAsset property if Figma REST API adds it
- * - Documentation/Examples exclusion patterns
+ * Merge prior rows with current scan.
+ *
+ * Rules (default):
+ * - New rows: use deriveDefaultInclusion.
+ * - Existing rows where devStatus changed: Figma wins — use new devStatus's
+ *   implied check state (READY_FOR_DEV → checked, NONE → unchecked).
+ * - Existing rows where devStatus unchanged: preserve prior checkbox.
+ * - Removed rows: dropped.
+ *
+ * `--keep-checks`: prior checkbox always wins for existing rows; devStatus
+ * column still updates. New rows still use deriveDefaultInclusion.
  */
-function applyDefaultInclusion(component: AuditComponentInfo): boolean {
-  // Rule 1: COMPONENT_SET are included by default (variant sets are design system components)
-  if (component.type === 'COMPONENT_SET') {
-    return true;
+export function mergeRows(
+  current: ComponentInfo[],
+  prior: ManifestRowV2[],
+  defaults: Map<string, boolean>,
+  keepChecks: boolean
+): { rows: ManifestRowV2[]; stats: MergeStats } {
+  const priorById = new Map(prior.map(r => [r.id, r]));
+  const stats: MergeStats = { added: 0, removed: 0, flippedByFigma: 0, preserved: 0 };
+
+  const rows: ManifestRowV2[] = current.map(c => {
+    const prev = priorById.get(c.id);
+    if (!prev) {
+      stats.added++;
+      return {
+        id: c.id,
+        name: c.name,
+        type: c.type as 'COMPONENT' | 'COMPONENT_SET',
+        included: defaults.get(c.id) ?? false,
+        devStatus: c.devStatus
+      };
+    }
+
+    let included: boolean;
+    if (keepChecks) {
+      included = prev.included;
+      stats.preserved++;
+    } else if (prev.devStatus !== c.devStatus) {
+      included = c.devStatus === 'READY_FOR_DEV';
+      stats.flippedByFigma++;
+    } else {
+      included = prev.included;
+      stats.preserved++;
+    }
+
+    return {
+      id: c.id,
+      name: c.name,
+      type: c.type as 'COMPONENT' | 'COMPONENT_SET',
+      included,
+      devStatus: c.devStatus
+    };
+  });
+
+  const currentIds = new Set(current.map(c => c.id));
+  for (const prev of prior) {
+    if (!currentIds.has(prev.id)) stats.removed++;
   }
 
-  // Rule 2: Standalone COMPONENT are included by default
-  // Future: Could use isAsset property when available in REST API
-  // const iconPatterns = ['icon /', 'icons /', 'icon/', 'icons/', 'asset /', 'assets /'];
-  // if (node.isAsset || iconPatterns.some(pattern => name.toLowerCase().startsWith(pattern))) {
-  //   return false;
-  // }
+  return { rows, stats };
+}
 
-  // Rule 3: Documentation/example exclusions (commented out for now)
-  // const docPatterns = ['documentation /', 'example ', 'examples /', 'demo /', 'test /'];
-  // if (docPatterns.some(pattern => name.toLowerCase().startsWith(pattern))) {
-  //   return false;
-  // }
+function readPriorManifest(outputPath: string): ManifestRowV2[] | null {
+  if (!fs.existsSync(outputPath)) return null;
+  const content = fs.readFileSync(outputPath, 'utf-8');
 
-  return true;
+  // ⬇️ ManifestMigrationV1ToV2 — DELETE WITH ManifestParser.ts when v1 is retired.
+  if (isV1Manifest(content)) {
+    return migrateV1ToV2(content);
+  }
+
+  if (ManifestParserV2.isV2(content)) {
+    return ManifestParserV2.parse(content).components;
+  }
+  return null;
+}
+
+function escapeCell(value: string): string {
+  return value.replace(/\|/g, '\\|');
 }
 
 /**
- * Generate markdown manifest with checkbox format
+ * Partition components by glyphNamePattern. When pattern is falsy, all
+ * components stay in the components list and glyphs is empty.
  */
-function generateManifest(
-  components: AuditComponentInfo[],
+export function partitionByGlyphPattern(
+  components: ComponentInfo[],
+  glyphPattern: string | undefined
+): { components: ComponentInfo[]; glyphs: ComponentInfo[] } {
+  if (!glyphPattern) return { components, glyphs: [] };
+  const comps: ComponentInfo[] = [];
+  const glyphs: ComponentInfo[] = [];
+  for (const c of components) {
+    if (glyphPatternMatch(c.name, glyphPattern)) {
+      glyphs.push(c);
+    } else {
+      comps.push(c);
+    }
+  }
+  return { components: comps, glyphs };
+}
+
+function generateManifestV2(
+  rows: ManifestRowV2[],
+  glyphs: ComponentInfo[],
   sourceFile: string,
+  fileLastModified: string | undefined,
   variablesFile?: string
 ): string {
-  const timestamp = new Date().toISOString();
-
   const lines: string[] = [];
-
-  // Manifest header
-  lines.push(`# Component Manifest`);
+  lines.push('# Component Manifest');
   lines.push('');
-  lines.push(`**Generated:** ${timestamp}  `);
+  lines.push(`**Scan format version:** ${SCAN_FORMAT_VERSION}  `);
+  lines.push(`**Generated:** ${new Date().toISOString()}  `);
   lines.push(`**File:** ${sourceFile}`);
-  if (variablesFile) {
-    lines.push(`**Variables:** ${variablesFile}`);
-  }
+  if (variablesFile) lines.push(`**Variables:** ${variablesFile}`);
+  if (fileLastModified) lines.push(`**File last modified:** ${fileLastModified}`);
   lines.push('');
   lines.push('---');
   lines.push('');
-
   lines.push('## Components');
   lines.push('');
-  
-  // Component list with checkboxes
-  for (const component of components) {
-    const checkbox = component.included ? '[x]' : '[ ]';
-    lines.push(`- ${checkbox} ${component.name} (${component.id}, ${component.type})`);
+  lines.push('| ✓ | Name | ID | Type | Dev Status |');
+  lines.push('|------|------|------|------|------------|');
+  for (const row of rows) {
+    const checkbox = row.included ? '[x]' : '[ ]';
+    lines.push(
+      `| ${checkbox} | ${escapeCell(row.name)} | ${row.id} | ${row.type} | ${row.devStatus} |`
+    );
   }
-  
-  return lines.join('\n');
+
+  if (glyphs.length > 0) {
+    lines.push('');
+    lines.push('## Glyphs');
+    lines.push('');
+    lines.push('_Detected via `glyphNamePattern`. Excluded from `specs generate`._');
+    lines.push('');
+    lines.push('| Name | ID | Type |');
+    lines.push('|------|------|------|');
+    for (const g of glyphs) {
+      lines.push(`| ${escapeCell(g.name)} | ${g.id} | ${g.type} |`);
+    }
+  }
+
+  return lines.join('\n') + '\n';
 }
 
 export const Scan = new Command('scan')
@@ -139,16 +259,22 @@ export const Scan = new Command('scan')
   .option('-o, --output <path>', 'Output manifest file path (default: {dataDirectory}/{alias}.manifest.md)')
   .option('--data-dir <dir>', 'Override data directory for default manifest output path')
   .option('--config <path>', 'Path to config file (specs.config.yaml)')
-  .option('--include-all', 'Include all components by default (ignore heuristics)', false)
+  .option('--include-all', 'Include all components (overrides devStatus and heuristics)', false)
+  .option('--keep-checks', 'Preserve prior checkbox state for existing rows; ignore devStatus changes', false)
+  .option('--reset-checks', 'Ignore prior manifest and re-derive checks from devStatus / heuristics', false)
   .option('-v, --variables <path>', 'Variables file path (for reference in manifest)')
   .option('--verbose', 'Enable detailed logging', false)
   .action(async (fileArg: string | undefined, options: ScanOptions) => {
     try {
+      if (options.keepChecks && options.resetChecks) {
+        console.error('Error: --keep-checks and --reset-checks are mutually exclusive');
+        process.exit(ERROR_CODES.INVALID_ARGS);
+      }
+
       const { configDir, config } = loadConfig(options.config);
       const dataDir = options.dataDir || config.dataDirectory || config.sourceDirectory;
       const resolvedDir = path.resolve(configDir, dataDir || '.');
 
-      // Resolve file: explicit arg wins, else derive from config sources
       let file: string;
       if (fileArg) {
         if (options.source) {
@@ -193,7 +319,6 @@ export const Scan = new Command('scan')
         }
       }
 
-      // Resolve output path: explicit -o, or derive from input filename
       if (!options.output) {
         const baseName = path.basename(file, '.file.json');
         options.output = path.join(resolvedDir, `${baseName}.manifest.md`);
@@ -203,7 +328,6 @@ export const Scan = new Command('scan')
         console.error(`[CLI] Scanning file: ${file}`);
       }
 
-      // Validate file exists
       if (!fs.existsSync(file)) {
         console.error(`Error: File not found: ${file}`);
         if (!fileArg) {
@@ -212,67 +336,89 @@ export const Scan = new Command('scan')
         process.exit(ERROR_CODES.FILE_ERROR);
       }
 
-      // Load the Figma file and discover components
       const discovery = await ComponentDiscovery.fromFile(file);
-      
+
       if (options.verbose) {
         console.error(`[CLI] File loaded: ${discovery.getFileName()}`);
       }
 
-      // Find all components (automatically filters variant children)
       const componentInfoList = discovery.findAllComponents();
-      
+
       if (componentInfoList.length === 0) {
         console.error('Warning: No components found in file');
       }
 
       if (options.verbose) {
-        console.error(`[CLI] Found ${componentInfoList.length} top-level components`);
+        const readyCount = componentInfoList.filter(c => c.devStatus === 'READY_FOR_DEV').length;
+        console.error(`[CLI] Found ${componentInfoList.length} top-level components (${readyCount} READY_FOR_DEV)`);
       }
 
-      // Build component info list with heuristics
-      const components: AuditComponentInfo[] = componentInfoList.map(node => {
-        const info: AuditComponentInfo = {
-          id: node.id,
-          name: node.name,
-          type: node.type as 'COMPONENT' | 'COMPONENT_SET',
-          included: false
-        };
-        
-        // Apply heuristics unless --include-all is set
-        info.included = options.includeAll || applyDefaultInclusion(info);
-        
-        return info;
-      });
+      // Sort by name for stable diffs
+      componentInfoList.sort((a, b) => a.name.localeCompare(b.name));
 
-      // Sort by name for better readability
-      components.sort((a, b) => a.name.localeCompare(b.name));
+      const glyphPattern = config.config?.processing?.glyphNamePattern;
+      const { components: componentList, glyphs: glyphList } = partitionByGlyphPattern(
+        componentInfoList,
+        glyphPattern
+      );
 
-      const includedCount = components.filter(c => c.included).length;
-      const excludedCount = components.length - includedCount;
+      if (options.verbose && glyphPattern) {
+        console.error(`[CLI] Glyph pattern "${glyphPattern}" matched ${glyphList.length} components`);
+      }
 
-      // Generate markdown manifest
-      const manifest = generateManifest(
-        components,
+      const outputPath = path.resolve(options.output!);
+      const prior = options.resetChecks ? null : readPriorManifest(outputPath);
+      const defaults = deriveDefaultInclusion(componentList, options.includeAll);
+
+      let rows: ManifestRowV2[];
+      let stats: MergeStats | null = null;
+      if (prior && !options.includeAll) {
+        const merged = mergeRows(componentList, prior, defaults, options.keepChecks);
+        rows = merged.rows;
+        stats = merged.stats;
+      } else {
+        rows = componentList.map(c => ({
+          id: c.id,
+          name: c.name,
+          type: c.type as 'COMPONENT' | 'COMPONENT_SET',
+          included: defaults.get(c.id) ?? false,
+          devStatus: c.devStatus as DevStatus
+        }));
+      }
+
+      const manifest = generateManifestV2(
+        rows,
+        glyphList,
         path.resolve(file),
+        discovery.getFileLastModified(),
         options.variables ? path.resolve(options.variables) : undefined
       );
 
-      // Write manifest to output file
-      const outputPath = path.resolve(options.output!);
       await fs.ensureDir(path.dirname(outputPath));
       await fs.writeFile(outputPath, manifest, 'utf-8');
 
-      // Success message
+      const includedCount = rows.filter(r => r.included).length;
+      const excludedCount = rows.length - includedCount;
+
       console.log(`✓ Scanned ${path.basename(file)}`);
-      console.log(`✓ Found ${components.length} components (${includedCount} selected, ${excludedCount} excluded)`);
+      console.log(`✓ Found ${rows.length} components (${includedCount} selected, ${excludedCount} excluded)`);
+      if (glyphList.length > 0) {
+        console.log(`✓ Detected ${glyphList.length} glyphs (excluded from generate)`);
+      }
+      if (stats) {
+        const parts: string[] = [];
+        if (stats.added) parts.push(`${stats.added} added`);
+        if (stats.removed) parts.push(`${stats.removed} removed`);
+        if (stats.flippedByFigma) parts.push(`${stats.flippedByFigma} updated by devStatus`);
+        if (stats.preserved) parts.push(`${stats.preserved} preserved`);
+        if (parts.length) console.log(`  Merge: ${parts.join(', ')}`);
+      }
       console.log(`✓ Saved to ${outputPath}`);
       console.log('');
       console.log(`Next: Edit ${path.basename(outputPath)} to adjust selections, then run:`);
       console.log(`  specs generate`);
 
       process.exit(ERROR_CODES.SUCCESS);
-
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error(`Error: ${message}`);

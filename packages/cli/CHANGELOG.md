@@ -5,6 +5,26 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] - 2026-05-15
+
+`scan` now drives curation from Figma's **Ready for Dev** signal and merges intelligently with prior manifests, preserving manual edits except where Figma's devStatus has changed. Introduces a new v2 manifest format with automatic migration from v1.
+
+### Added
+
+- **Ready-for-Dev curation in `scan`** — Components with `devStatus: READY_FOR_DEV` are now checked by default. Libraries with no devStatus signal anywhere fall back to the legacy heuristic.
+- **Manifest merge on rescan** — Re-running `scan` preserves manual checkbox edits unless `devStatus` changed for a row (Figma wins on flips). `--keep-checks` locks manual edits regardless of devStatus changes; `--reset-checks` ignores the prior manifest entirely.
+- **Glyphs section in scan manifest** — When `config.processing.glyphNamePattern` is set, top-level components matching the pattern are routed to a read-only `## Glyphs` section after `## Components`. Glyph rows have no checkboxes and are excluded from `specs generate`. The section is omitted when no matches are found. Pattern matching reuses the same `{i}`-placeholder semantics as the engine's glyph detection.
+- **v2 manifest format** — New markdown-table format with a `Dev Status` column, `**Scan format version:**` header, and `**File last modified:**` metadata. Legacy v1 (checkbox-list) manifests are detected and migrated automatically.
+
+### Changed
+
+- **Docs updated** — `cli/commands/scan.md`, `cli/getting-started.md`, and `cli/workflows.md` reflect the new curation flow and manifest format.
+
+### Dependency updates
+
+- No upstream dependency changes since 0.14.0. Continues to reference `@directededges/specs-schema ^0.20.0` and `@directededges/specs-from-figma ^0.18.0`.
+
+
 ## [0.14.0] - 2026-05-15
 
 Dependency-only release that picks up specs-from-figma 0.18.0. No CLI source changes.

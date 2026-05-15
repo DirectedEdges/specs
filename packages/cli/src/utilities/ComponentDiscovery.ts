@@ -23,7 +23,10 @@ interface RestApiNode {
   name: string;
   type: string;
   children?: RestApiNode[];
+  devStatus?: { type?: string; description?: string };
 }
+
+export type DevStatus = 'READY_FOR_DEV' | 'NONE';
 
 /**
  * Minimal structure for REST API file data
@@ -33,6 +36,7 @@ export interface RestApiFileData {
   components?: Record<string, any>;
   componentSets?: Record<string, any>;
   name?: string;
+  lastModified?: string;
 }
 
 /**
@@ -45,6 +49,8 @@ export interface ComponentInfo {
   name: string;
   /** Node type (COMPONENT or COMPONENT_SET) */
   type: string;
+  /** Dev-ready status from Figma. 'NONE' when the property is absent on the node. */
+  devStatus: DevStatus;
 }
 
 /**
@@ -118,11 +124,12 @@ export class ComponentDiscovery {
         components.push({
           id: node.id,
           name: node.name,
-          type: node.type
+          type: node.type,
+          devStatus: node.devStatus?.type === 'READY_FOR_DEV' ? 'READY_FOR_DEV' : 'NONE'
         });
         continue;
       }
-      
+
       // For COMPONENTs, check if parent is a COMPONENT_SET
       if (node.type === 'COMPONENT') {
         const parentId = this._parentMap.get(node.id);
@@ -133,11 +140,12 @@ export class ComponentDiscovery {
             continue;
           }
         }
-        
+
         components.push({
           id: node.id,
           name: node.name,
-          type: node.type
+          type: node.type,
+          devStatus: node.devStatus?.type === 'READY_FOR_DEV' ? 'READY_FOR_DEV' : 'NONE'
         });
       }
     }
@@ -150,5 +158,10 @@ export class ComponentDiscovery {
    */
   getFileName(): string {
     return this._data.name || 'Untitled';
+  }
+
+  /** File-level lastModified (ISO 8601) from the REST API payload, if present. */
+  getFileLastModified(): string | undefined {
+    return this._data.lastModified;
   }
 }

@@ -13,6 +13,8 @@ describe('ScanCommand', () => {
     expect(options).toContain('--output');
     expect(options).toContain('--source');
     expect(options).toContain('--include-all');
+    expect(options).toContain('--keep-checks');
+    expect(options).toContain('--reset-checks');
     expect(options).toContain('--variables');
     expect(options).toContain('--verbose');
   });

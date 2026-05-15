@@ -42,6 +42,10 @@ function normalizeManifest(content: string): string {
     .replace(/\*\*File:\*\*.*\n/, '**File:** <file>\n');
 }
 
+function trimTrailing(s: string): string {
+  return s.replace(/\s+$/, '');
+}
+
 describe('CLI parity', () => {
   it('matches the scan manifest format', async () => {
     const testDir = path.join(process.cwd(), 'tests', 'tmp', `cli-parity-${Date.now()}`);
@@ -88,6 +92,7 @@ describe('CLI parity', () => {
     const expected = [
       '# Component Manifest',
       '',
+      '**Scan format version:** 2  ',
       '**Generated:** <timestamp>  ',
       '**File:** <file>',
       '',
@@ -95,11 +100,13 @@ describe('CLI parity', () => {
       '',
       '## Components',
       '',
-      '- [x] Alert (2:1, COMPONENT)',
-      '- [x] Button Set (3:1, COMPONENT_SET)'
+      '| ✓ | Name | ID | Type | Dev Status |',
+      '|------|------|------|------|------------|',
+      '| [x] | Alert | 2:1 | COMPONENT | NONE |',
+      '| [x] | Button Set | 3:1 | COMPONENT_SET | NONE |'
     ].join('\n');
 
-    expect(normalized).toBe(expected);
+    expect(trimTrailing(normalized)).toBe(expected);
 
     await fs.remove(testDir);
   });

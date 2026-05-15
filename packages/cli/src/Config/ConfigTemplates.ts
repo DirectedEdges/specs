@@ -92,8 +92,10 @@ config:
       # exclude:
       #   - '{C} / Examples / {S}'
 
-    # Naming pattern to detect icon glyph instances (e.g. 'DS Icon Glyph /')
-    # glyphNamePattern: 'DS Icon Glyph /'
+    # Naming pattern to detect icon glyph instances. Use {i} as the placeholder
+    # for the glyph name (e.g. 'DS Icon Glyph / {i}' matches
+    # 'DS Icon Glyph / arrow-down' and extracts 'arrow-down').
+    # glyphNamePattern: 'DS Icon Glyph / {i}'
 
     # Naming pattern for the code-only props container layer (e.g. 'Code only props')
     # Presence enables code-only prop extraction from matching layers.
