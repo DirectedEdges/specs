@@ -11,50 +11,54 @@ type Styles = Partial<{ /* 48 properties */ }>;
 
 ## Properties
 
-| Name | Category | Evaluated For |
-|------|----------|---------------|
-| `aspectRatio` | size | container, slot, rectangle, text, vector, ellipse, star, polygon |
-| `backgroundColor` | color | container, slot, rectangle |
-| `clipContent` | visibility | container, slot |
-| `cornerRadius` | border | container, slot |
-| `cornerSmoothing` | border | container, rectangle, vector, ellipse, star, polygon |
-| `crossAxisAlignment` | layout | container |
-| `effects` | effects | container, slot, rectangle, text, vector, ellipse, star, polygon, line |
-| `fillColor` | color | glyph, vector, ellipse, star, polygon, line |
-| `height` | size | container, slot, rectangle, glyph, vector, ellipse, star, polygon |
-| `itemReverseZIndex` | layout | container |
-| `itemSpacing` | spacing | container |
-| `layoutMode` | layout | container |
-| `position` | layout | all |
-| `top` | position | all |
-| `bottom` | position | all |
-| `start` | position | all |
-| `end` | position | all |
-| `centerHorizontalOffset` | position | all |
-| `centerVerticalOffset` | position | all |
-| `layoutSizingHorizontal` | layout | all |
-| `layoutSizingVertical` | layout | all |
-| `locked` | visibility | all |
-| `maxHeight` | size | container, slot, rectangle, glyph, vector, ellipse, star, polygon, line |
-| `maxWidth` | size | container, slot, rectangle, glyph, vector, ellipse, star, polygon, line |
-| `minHeight` | size | container, slot, rectangle, glyph, vector, ellipse, star, polygon, line |
-| `minWidth` | size | container, slot, rectangle, glyph, vector, ellipse, star, polygon, line |
-| `opacity` | visibility | all |
-| `padding` | spacing | container |
-| `mainAxisAlignment` | layout | container |
-| `primaryAxisSizingMode` | layout | container |
-| `rotation` | transform | all |
-| `strokeAlign` | border | container, rectangle, vector, ellipse, star, polygon, line |
-| `strokes` | color | container, rectangle, vector, ellipse, star, polygon, line |
-| `strokeWeight` | border | container, rectangle, vector, ellipse, star, polygon, line |
-| `textAlignHorizontal` | text | text |
-| `textAlignVertical` | text | text |
-| `textColor` | color | text |
-| `typography` | text | text |
-| `visible` | visibility | all |
-| `width` | size | container, slot, rectangle, glyph, vector, ellipse, star, polygon, line |
-| `wrap` | layout | container |
-| `wrapAlignment` | layout | container |
+Combined view: every style property, grouped by category and then by name, with the element-type categories it is evaluated for. `container` covers `COMPONENT`/`FRAME`/`SLOT`/`INSTANCE`; `vectors` covers `RECTANGLE`/`VECTOR`/`ELLIPSE`/`STAR`/`POLYGON`; `text`, `glyph`, and `line` cover their like-named element types.
+
+| Category | Name | container | text | glyph | vectors | line |
+|----------|------|-----------|------|-------|---------|------|
+| Border | `cornerRadius` | ✓ |  |  |  |  |
+| Border | `cornerSmoothing` | ✓ |  |  | ✓ |  |
+| Border | `strokeAlign` | ✓ |  |  | ✓ | ✓ |
+| Border | `strokeWeight` | ✓ |  |  | ✓ | ✓ |
+| Color | `backgroundColor` | ✓ |  |  | ✓ |  |
+| Color | `fillColor` |  |  | ✓ | ✓ | ✓ |
+| Color | `strokes` | ✓ |  |  | ✓ | ✓ |
+| Color | `textColor` |  | ✓ |  |  |  |
+| Effects | `effects` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Layout (child) | `bottom` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Layout (child) | `centerHorizontalOffset` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Layout (child) | `centerVerticalOffset` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Layout (child) | `end` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Layout (child) | `layoutSizingHorizontal` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Layout (child) | `layoutSizingVertical` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Layout (child) | `position` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Layout (child) | `start` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Layout (child) | `top` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Layout (parent) | `crossAxisAlignment` | ✓ |  |  |  |  |
+| Layout (parent) | `itemReverseZIndex` | ✓ |  |  |  |  |
+| Layout (parent) | `layoutMode` | ✓ |  |  |  |  |
+| Layout (parent) | `mainAxisAlignment` | ✓ |  |  |  |  |
+| Layout (parent) | `primaryAxisSizingMode` | ✓ |  |  |  |  |
+| Layout (parent) | `wrap` | ✓ |  |  |  |  |
+| Layout (parent) | `wrapAlignment` | ✓ |  |  |  |  |
+| Size | `aspectRatio` | ✓ | ✓ | ✓ | ✓ |  |
+| Size | `height` | ✓ | ✓ | ✓ | ✓ |  |
+| Size | `maxHeight` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Size | `maxWidth` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Size | `minHeight` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Size | `minWidth` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Size | `width` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Spacing | `itemSpacing` | ✓ |  |  |  |  |
+| Spacing | `padding` | ✓ |  |  |  |  |
+| Text | `textAlignHorizontal` |  | ✓ |  |  |  |
+| Text | `textAlignVertical` |  | ✓ |  |  |  |
+| Text | `typography` |  | ✓ |  |  |  |
+| Transform | `rotation` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Visibility | `clipContent` | ✓ |  |  |  |  |
+| Visibility | `locked` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Visibility | `opacity` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Visibility | `visible` | ✓ | ✓ | ✓ | ✓ | ✓ |
+
+**Note on the `vectors` column.** This column unions `RECTANGLE` with the vector-family element types (`VECTOR`, `ELLIPSE`, `STAR`, `POLYGON`), which share most styling but split on color: `backgroundColor` is evaluated only for `RECTANGLE`, while `fillColor` is evaluated only for the vector family. Both show ✓ under `vectors` here, but a given element of one subtype will only honor one or the other.
 
 ## Key Mapping from Figma
 
