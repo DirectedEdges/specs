@@ -5,6 +5,15 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] - Unreleased
+
+### Added
+
+### Changed
+
+### Removed
+
+
 ## [0.15.1] - 2026-05-20
 
 Patch release fixing the `scan` → `generate` round-trip. `generate` now accepts the v2 (markdown-table) manifests that `scan` has emitted since 0.15.0, restoring the documented workflow.
