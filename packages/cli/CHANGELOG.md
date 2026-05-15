@@ -5,6 +5,14 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.0] - 2026-05-15
+
+Dependency-only release that picks up specs-from-figma 0.18.0. No CLI source changes.
+
+### Dependency updates
+
+- **@directededges/specs-from-figma 0.18.0** — Restores ~170 invalid variants previously dropped by the empty-variant filter, accounting for the bulk of test-round 0009 parity diffs. Fixes a `figma.mixed` Symbol crash on text nodes with mixed text styles. `TEXT` elements now emit explicit size styles (`width`, `height`, `minWidth`, `minHeight`, `maxWidth`, `maxHeight`); `GLYPH` elements now emit shadow/blur effects and aspect-ratio constraints alongside their fill color.
+
 ## [0.13.1] - 2026-05-08
 
 Patch fix for `--split-concerns` output shape.
