@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Docs updated** — `cli/commands/scan.md`, `cli/getting-started.md`, and `cli/workflows.md` reflect the new curation flow and manifest format.
 
+### Dependency updates
+
+- No upstream dependency changes since 0.14.0. Continues to reference `@directededges/specs-schema ^0.20.0` and `@directededges/specs-from-figma ^0.18.0`.
+
 
 ## [0.14.0] - 2026-05-15
 
