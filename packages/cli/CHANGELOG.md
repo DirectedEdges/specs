@@ -5,6 +5,15 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] - Unreleased
+
+### Added
+
+### Changed
+
+### Removed
+
+
 ## [0.15.0] - 2026-05-15
 
 `scan` now drives curation from Figma's **Ready for Dev** signal and merges intelligently with prior manifests, preserving manual edits except where Figma's devStatus has changed. Introduces a new v2 manifest format with automatic migration from v1.
