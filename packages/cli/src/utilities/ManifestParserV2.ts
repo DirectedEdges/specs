@@ -66,7 +66,14 @@ export class ManifestParserV2 {
     if (lastModifiedMatch) metadata.fileLastModified = lastModifiedMatch[1].trim();
 
     const components: ManifestRowV2[] = [];
+    let inComponentsSection = false;
     for (const line of content.split('\n')) {
+      const heading = line.match(/^##\s+(.+?)\s*$/);
+      if (heading) {
+        inComponentsSection = heading[1].toLowerCase() === 'components';
+        continue;
+      }
+      if (!inComponentsSection) continue;
       const match = line.match(ROW_REGEX);
       if (!match) continue;
       const [, checkbox, name, id, type, devStatus] = match;

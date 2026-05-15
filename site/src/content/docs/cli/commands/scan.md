@@ -11,7 +11,7 @@ specs scan [file] [options]
 
 ## Format
 
-The manifest is a markdown file with a metadata header and a Components table:
+The manifest is a markdown file with a metadata header, a Components table, and (when `glyphNamePattern` is configured) a read-only Glyphs table:
 
 ```markdown
 # Component Manifest
@@ -33,6 +33,15 @@ The manifest is a markdown file with a metadata header and a Components table:
 | [ ] | DS Avatar | 1234:5680 | COMPONENT_SET | NONE |
 | [ ] | DS Button Copy | 1234:5681 | COMPONENT | NONE |
 | [x] | DS Button | 1234:5682 | COMPONENT_SET | READY_FOR_DEV |
+
+## Glyphs
+
+_Detected via `glyphNamePattern`. Excluded from `specs generate`._
+
+| Name | ID | Type |
+|------|------|------|
+| DS Icon Glyph / arrow-down | 1234:9001 | COMPONENT |
+| DS Icon Glyph / close | 1234:9002 | COMPONENT |
 ```
 
 **Metadata:**
@@ -42,9 +51,13 @@ The manifest is a markdown file with a metadata header and a Components table:
 - `Variables` — Path to variables file (if provided).
 - `File last modified` — File-level `lastModified` timestamp from the Figma REST payload.
 
-**Row format:**
+**Components row format:**
 - `[x]` / `[ ]` — checked / unchecked. Edit by hand to curate.
 - `Dev Status` — `READY_FOR_DEV` (designer-flagged in Figma Dev Mode) or `NONE` (unset). Read-only on each scan; changes drive the default merge behavior.
+
+**Glyphs row format:**
+- No checkboxes — glyphs are always excluded from `specs generate`. The section is purely informational so you can see what was detected.
+- `Type` — `COMPONENT` or `COMPONENT_SET`.
 
 ## Authoring
 
@@ -78,6 +91,25 @@ If a manifest already exists at the output path, `scan` merges with it instead o
 - **Components removed** from the file → dropped from the manifest. The summary line reports the count.
 
 A summary line is printed after each merge, e.g. `Merge: 2 added, 1 removed, 5 updated by devStatus, 180 preserved`.
+
+### Glyph partitioning
+
+When `config.processing.glyphNamePattern` is set in `specs.config.yaml`, top-level components whose names match the pattern are routed to a separate `## Glyphs` section in the manifest instead of `## Components`. The pattern uses `{i}` as the glyph-name placeholder — for example, `'DS Icon Glyph / {i}'` matches `DS Icon Glyph / arrow-down` and extracts `arrow-down`. This is the same pattern syntax the processing engine uses for glyph detection inside component instances, so what `scan` partitions matches what `generate` treats as a glyph at processing time.
+
+```yaml
+# specs.config.yaml
+config:
+  processing:
+    glyphNamePattern: 'DS Icon Glyph / {i}'
+```
+
+Glyphs in the partitioned section are:
+
+- **Read-only.** No checkbox column; `specs generate` ignores them entirely. To include or exclude a glyph from generation, change its name in Figma so it no longer matches (or change the pattern).
+- **Re-derived on every scan.** The Glyphs section is rebuilt from the current Figma payload — manual edits to that section won't survive a rescan.
+- **Omitted when empty.** If no components match the pattern, the section isn't written.
+
+If you remove `glyphNamePattern` from config and rescan, previously-partitioned glyphs return to `## Components` and become curatable again.
 
 ## Examples
 
@@ -116,6 +148,7 @@ specs scan --verbose
 # Output:
 # ✓ Scanned library.file.json
 # ✓ Found 164 components (12 selected, 152 excluded)
+# ✓ Detected 48 glyphs (excluded from generate)
 #   Merge: 1 updated by devStatus, 163 preserved
 # ✓ Saved to /absolute/path/to/data/library.manifest.md
 ```
@@ -207,4 +240,5 @@ Manifests produced by older versions of `scan` (checkbox-list format like `- [x]
 
 **See Also:**
 - [Generate Command](/specs/cli/commands/generate/) - Generate specs from manifest or single component
+- [glyphNamePattern](/specs/config/glyph-name-pattern/) - Pattern syntax that drives Glyphs-section partitioning
 - [Configuration Reference](/specs/config/) - Format and config options

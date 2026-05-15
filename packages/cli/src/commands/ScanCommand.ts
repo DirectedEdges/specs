@@ -11,6 +11,7 @@ import yaml from 'yaml';
 import { ComponentDiscovery, type ComponentInfo, type DevStatus } from '../utilities/ComponentDiscovery.js';
 import { ManifestParserV2, type ManifestRowV2 } from '../utilities/ManifestParserV2.js';
 import { isV1Manifest, migrateV1ToV2 } from '../utilities/ManifestMigrationV1ToV2.js';
+import { glyphPatternMatch } from '../utilities/glyphPatternMatch.js';
 
 const SCAN_FORMAT_VERSION = 2;
 
@@ -37,6 +38,7 @@ type MinimalConfig = {
   dataDirectory?: string;
   sourceDirectory?: string; // deprecated alias
   sources?: Record<string, { key: string; data: string[] }>;
+  config?: { processing?: { glyphNamePattern?: string } };
 };
 
 function findConfigFile(cwd: string): string | null {
@@ -184,8 +186,30 @@ function escapeCell(value: string): string {
   return value.replace(/\|/g, '\\|');
 }
 
+/**
+ * Partition components by glyphNamePattern. When pattern is falsy, all
+ * components stay in the components list and glyphs is empty.
+ */
+export function partitionByGlyphPattern(
+  components: ComponentInfo[],
+  glyphPattern: string | undefined
+): { components: ComponentInfo[]; glyphs: ComponentInfo[] } {
+  if (!glyphPattern) return { components, glyphs: [] };
+  const comps: ComponentInfo[] = [];
+  const glyphs: ComponentInfo[] = [];
+  for (const c of components) {
+    if (glyphPatternMatch(c.name, glyphPattern)) {
+      glyphs.push(c);
+    } else {
+      comps.push(c);
+    }
+  }
+  return { components: comps, glyphs };
+}
+
 function generateManifestV2(
   rows: ManifestRowV2[],
+  glyphs: ComponentInfo[],
   sourceFile: string,
   fileLastModified: string | undefined,
   variablesFile?: string
@@ -211,6 +235,20 @@ function generateManifestV2(
       `| ${checkbox} | ${escapeCell(row.name)} | ${row.id} | ${row.type} | ${row.devStatus} |`
     );
   }
+
+  if (glyphs.length > 0) {
+    lines.push('');
+    lines.push('## Glyphs');
+    lines.push('');
+    lines.push('_Detected via `glyphNamePattern`. Excluded from `specs generate`._');
+    lines.push('');
+    lines.push('| Name | ID | Type |');
+    lines.push('|------|------|------|');
+    for (const g of glyphs) {
+      lines.push(`| ${escapeCell(g.name)} | ${g.id} | ${g.type} |`);
+    }
+  }
+
   return lines.join('\n') + '\n';
 }
 
@@ -318,18 +356,28 @@ export const Scan = new Command('scan')
       // Sort by name for stable diffs
       componentInfoList.sort((a, b) => a.name.localeCompare(b.name));
 
+      const glyphPattern = config.config?.processing?.glyphNamePattern;
+      const { components: componentList, glyphs: glyphList } = partitionByGlyphPattern(
+        componentInfoList,
+        glyphPattern
+      );
+
+      if (options.verbose && glyphPattern) {
+        console.error(`[CLI] Glyph pattern "${glyphPattern}" matched ${glyphList.length} components`);
+      }
+
       const outputPath = path.resolve(options.output!);
       const prior = options.resetChecks ? null : readPriorManifest(outputPath);
-      const defaults = deriveDefaultInclusion(componentInfoList, options.includeAll);
+      const defaults = deriveDefaultInclusion(componentList, options.includeAll);
 
       let rows: ManifestRowV2[];
       let stats: MergeStats | null = null;
       if (prior && !options.includeAll) {
-        const merged = mergeRows(componentInfoList, prior, defaults, options.keepChecks);
+        const merged = mergeRows(componentList, prior, defaults, options.keepChecks);
         rows = merged.rows;
         stats = merged.stats;
       } else {
-        rows = componentInfoList.map(c => ({
+        rows = componentList.map(c => ({
           id: c.id,
           name: c.name,
           type: c.type as 'COMPONENT' | 'COMPONENT_SET',
@@ -340,6 +388,7 @@ export const Scan = new Command('scan')
 
       const manifest = generateManifestV2(
         rows,
+        glyphList,
         path.resolve(file),
         discovery.getFileLastModified(),
         options.variables ? path.resolve(options.variables) : undefined
@@ -353,6 +402,9 @@ export const Scan = new Command('scan')
 
       console.log(`✓ Scanned ${path.basename(file)}`);
       console.log(`✓ Found ${rows.length} components (${includedCount} selected, ${excludedCount} excluded)`);
+      if (glyphList.length > 0) {
+        console.log(`✓ Detected ${glyphList.length} glyphs (excluded from generate)`);
+      }
       if (stats) {
         const parts: string[] = [];
         if (stats.added) parts.push(`${stats.added} added`);
