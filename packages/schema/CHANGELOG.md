@@ -5,11 +5,25 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.21.0] - Unreleased
+## [0.24.0] - Unreleased
+
+Introduces the composition and slot-content model across ADRs 042, 046–049. `Composition` is a named registry entry with a top-level `anatomy + elements + layout` triplet and an optional `slotContent` map of bundled `SlotContent` fills. `SlotContentRef` (`{ $slotContent }`) is the universal pointer for all slot fills — component-scoped examples, intra-composition bundled fills, and cross-composition references all resolve to `anatomy + elements + layout`. `PropConfigurations` widens to accept `PropBinding` and `SlotContentRef`; `InstanceExample.propConfigurations` widens to accept `SlotContentRef` (not `PropBinding`). `Children` widens to `SlotBinding` for slot-bound containers.
 
 ### Added
 
+- `SlotContent` — `{ anatomy, elements, layout }`; the anonymous structural triplet used as a named slot fill. Carries no metadata; identity lives at the key where it is stored (ADR-046)
+- `Composition` — `{ title?, description?, anatomy, elements, layout, slotContent?: Record<string, SlotContent> }`; a named registry entry whose top-level triplet is the primary content. Optional `slotContent` bundles named fills alongside it for authoring convenience (ADR-042, ADR-046)
+- `Compositions` — `Record<string, Composition>`; registry alias for external composition files
+- `SlotContentRef` — `{ $slotContent: string }`; universal JSON Pointer reference for slot fills. Resolves to a `Composition` entry (top-level triplet), a `Composition.slotContent` entry, or a `Component.slotContentExamples` entry — all yield `anatomy + elements + layout` (ADR-046)
+- `Component.slotContentExamples` — `Record<string, SlotContent>`; named slot-content examples per component, referenceable by `SlotContentRef` from `SlotBinding.$extensions['com.figma'].default` and from `Element.propConfigurations` slot-prop entries. `specs-from-figma` de-duplicates entries by structural equality across variants and slots (ADR-047)
+- `SlotBinding` — extends `PropBinding` with optional `$extensions`; used in `Element.children` for slot-bound containers. `SlotBindingExtensions` carries `com.figma?: FigmaSlotBindingExtension` with `default?: string` (plain JSON Pointer string to a slot-content entry — Figma authoring default, ignored by code consumers) (ADR-047)
+- `Component.instanceExamples` — typed as `InstanceExamples` (`Record<string, InstanceExample>`); named documented usages per component (ADR-048)
+- `InstanceExample` — `{ title?, propConfigurations?: Record<string, string | number | boolean | SlotContentRef> }`; scalar props set directly, slot props filled via `SlotContentRef`. `PropBinding` not accepted — documented configurations are not live bindings (ADR-048)
+
 ### Changed
+
+- `Children` — widened from `string[] | PropBinding` to `string[] | SlotBinding`; existing `{ $binding }` values still validate because `SlotBinding` is a structural superset of `PropBinding` (ADR-047)
+- `PropConfigurations` — value union widened from `string | number | boolean` to `string | number | boolean | PropBinding | SlotContentRef`; enables scalar prop pass-through (`PropBinding`) and slot-prop fills (`SlotContentRef`). `InstanceExample.propConfigurations` widens separately and does not accept `PropBinding` (ADR-049)
 
 ### Removed
 

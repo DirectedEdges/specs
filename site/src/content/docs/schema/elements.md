@@ -13,7 +13,7 @@ type Elements = Record<string, Element>;
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `children` | `string[] \| PropBinding` | No | Child element names, or a binding to a slot prop |
+| `children` | `string[] \| SlotBinding` | No | Child element names, or a `SlotBinding` to a slot prop. `SlotBinding` extends `PropBinding` with optional `$extensions` for platform metadata (e.g. `$extensions['com.figma'].default` — JSON Pointer to a `Composition` used as Figma's authoring default) |
 | `parent` | `string \| null` | No | Parent element key (`null` for root) |
 | `styles` | [`Styles`](/specs/schema/styles/) | No | Visual style properties |
 | `propConfigurations` | [`PropConfigurations`](/specs/schema/prop-configurations/) | No | Prop values that must hold for this element to appear |

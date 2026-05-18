@@ -4,8 +4,8 @@
 **Created**: 2026-04-29
 **Status**: DRAFT
 **Deciders**: Nathan Curtis (author)
-**Supersedes**: [ADR 025 — Flowing Content into a Nested Instance's Slot](025-nested-slot-api) *(partially — retains its `Composition` shape; defers its `PropConfigurations` widening to ADR-048)*
-**Extended by**: ADR-046 (Component Examples), ADR-047 (Slot Content), ADR-048 (PropConfigurations PropBinding)
+**Supersedes**: [ADR 025 — Flowing Content into a Nested Instance's Slot](025-nested-slot-api) *(partially — retains its `Composition` shape; defers its `PropConfigurations` widening to ADR-049)*
+**Extended by**: ADR-046 (Slots and Slot References), ADR-047 (Component Slot Examples), ADR-048 (Component Instance Examples), ADR-049 (Prop Configurations and Bindings)
 
 ---
 
@@ -20,18 +20,16 @@ Compositions appear at four scales in Figma-sourced design systems:
 - **Layout compositions** — multi-component arrangements forming a portion of a UI (a filter grid with a data table, a sidebar with checkboxes)
 - **Page compositions** — full canonical views with specific components in specific states
 
-Today, the schema cannot represent any of these. `SlotProp.default` holds only a descriptive string. There is no structural type for tooling to discover, render, or validate against.
-
-DRAFT ADR-025 ("Flowing Content into a Nested Instance's Slot") proposed a `Composition` type for the inline parent-fills-child-slot case. This ADR adopts that structural shape as a named foundational type. How components store and reference compositions is addressed in ADR-046 (`InstanceExample`, `Component.instanceExamples`) and ADR-047 (`SlotExample`, `Element.$extensions`).
+Today, the schema cannot represent any of these. There is no structural type for tooling to discover, render, or validate against.
 
 ### Composition scoping
 
 The four scales split into two authoring scopes:
 
-- **Component-scoped** (`slot`, `instance`) — authored by the component designer inside the component definition; covered by ADR-046 and ADR-047
+- **Component-scoped** (`slot`, `instance`) — authored by the component designer inside the component definition; covered by ADR-047 and ADR-048
 - **System-scoped** (`layout`, `page`) — independent of any single component, living in a separate `compositions.yaml` file parallel to `components.yaml`; schema for that file is a follow-on ADR
 
-The `Composition` type established here serves both scopes. `SlotExample` (ADR-047) extends it for the component-scoped slot-filling case; the future system-scoped ADR will use it directly.
+The `Composition` type established here serves both scopes. How components store and reference compositions — including the `slotContent` field and the `$slotContent` pointer — is addressed in ADR-046.
 
 ---
 
@@ -52,7 +50,7 @@ Four distinct questions shape the design space:
 1. **Should `anatomy` and `elements` be converged?** — The split exists in `Component`/`Variant` to support variant-sensitive element data. A composition has no variants. Does the split still earn its weight here?
 2. **Are `elements` and `layout` required or optional?** — An anatomy-only composition is structurally just a type map. Does meaningful content require both?
 3. **How much metadata belongs on a composition now?** — `title` is the obvious start. What else is warranted, and what should be noted as anticipated extension points?
-4. **When a composition's element is an instance with a slot, how is that slot filled?** — This is a constraint on the type's scope that must be stated explicitly.
+4. **When a composition's element is an instance with a slot, how is that slot filled?** — This is a constraint on the type's scope that must be stated explicitly; the mechanism itself is ADR-046.
 
 ---
 
@@ -62,28 +60,20 @@ Keep the `Anatomy`/`Elements` split inherited from `Variant` for consistency. Re
 
 ```yaml
 # Composition — named structural content fragment
-# Example: ActionListItem core content with text elements
 title: Action List Item – default
 description: Default text content for a standard list item with label and secondary description.
 anatomy:
-  root:
-    type: container
-  label:
-    type: text
-  description:
-    type: text
+  label: { type: text }
+  description: { type: text }
 elements:
   label:
     content: Browse all issues
   description:
     content: 12 open · 3 closed
-layout:
-  - root:
-      - label
-      - description
+layout: [label, description]
 ```
 
-Note: `root` carries no element-level data and is absent from `elements`. The `elements` map is sparse — only elements with content, styles, or configurations need entries.
+Note: `elements` is sparse — only elements with content, styles, or configurations need entries. An element carrying no data can be omitted.
 
 **Pros**:
 - Completeness guarantee — every composition is a full structural declaration; no anatomy-only fragments that are indistinguishable from plain `Anatomy`
@@ -92,20 +82,18 @@ Note: `root` carries no element-level data and is absent from `elements`. The `e
 - `description?` supports documentation tooling now; further metadata is anticipated
 
 **Cons / Trade-offs**:
-- When a composition's anatomy contains only instance elements with nothing meaningful to set on them (e.g., a slot that holds three `ActionListItem` instances with no per-instance element data), `elements` must be an empty record `{}`. This is explicit but adds authoring noise.
-- `layout` is trivially `[iconName]` for single-element compositions such as a glyph in a visual slot; requiring it adds overhead for that common case.
+- When a composition contains only instance elements with no per-instance element data, `elements` must be an empty record `{}`. This is explicit but adds authoring noise.
+- `layout` is trivially `[elementName]` for single-element compositions; requiring it adds overhead for that common case.
 
 ---
 
 ### Option B: Converge `anatomy` and `elements` into a single map *(Rejected)*
 
-Since compositions have no variant tree, the split that motivates keeping `anatomy` and `elements` separate in `Component` does not apply. A single `entries` map where each entry holds both type metadata and element data would be a simpler authoring surface:
+Since compositions have no variant tree, the split that motivates keeping `anatomy` and `elements` separate in `Component` does not apply. A single map where each entry holds both type metadata and element data would be a simpler authoring surface:
 
 ```yaml
 # Converged model (not selected)
 anatomy:
-  root:
-    type: container
   label:
     type: text
     content: Browse all issues       # type + data in one entry
@@ -115,51 +103,64 @@ anatomy:
 ```
 
 **Rejected because**:
-- `SlotExample` (ADR-047) must extend `Composition`. If `Composition` uses a converged map, `SlotExample` must too — breaking the Anatomy/Elements pattern used throughout the rest of the schema.
 - If a composition is later promoted to a full component (a natural authoring workflow), the converged map must be split back into `anatomy` + `elements` + `variants`. Keeping them separate makes that migration a no-op.
 - `AnatomyElement` (`type`, `detectedIn?`, `instanceOf?`) and `Element` (`children`, `styles`, `propConfigurations`, `content`) have non-overlapping fields. Merging them creates a hybrid type that is neither and must be maintained independently.
+- Breaks the `Anatomy`/`Elements` pattern used throughout the rest of the schema.
 
 ---
 
 ### Option C: `anatomy` required; `elements` and `layout` optional *(Rejected)*
 
-Keep the minimal surface from the ADR-025 draft: only `anatomy` is required; `elements` and `layout` are optional for cases where a composition is purely structural.
+Only `anatomy` is required; `elements` and `layout` are optional for cases where a composition is purely structural.
 
 **Rejected because**:
 - An anatomy-only composition — `anatomy` with no `elements` and no `layout` — is structurally identical to an `Anatomy` record. It carries no information beyond element types and names; it does not describe a *composition* in any meaningful sense.
-- Making `elements` optional permits this degenerate case without a schema-level guard.
 - Downstream consumers cannot distinguish an authored anatomy-only composition (intentional) from one where the author simply forgot to add content data.
 
 ---
 
 ### Option D: `anatomy` and `elements` required; `layout` optional *(Rejected)*
 
-A middle position: require content data but leave layout optional, with anatomy key order as the implied default.
+Require content data but leave layout optional, with anatomy key order as the implied default.
 
 **Rejected because**:
-- "Implied order" is an invisible convention that tooling must either assume or reject. Making `layout` required is a small authoring cost that eliminates ambiguity, especially for compositions with nested containers where order is load-bearing.
+- "Implied order" is an invisible convention that tooling must either assume or reject. Making `layout` required eliminates ambiguity, especially for compositions with nested containers where order is load-bearing.
 - The only case where `layout` is genuinely noise is a single-element composition — and even there, `layout: [elementName]` is one line and makes intent explicit.
 
 ---
 
 ## Decision
 
+`Composition` is the named, authored unit of composed content. It carries optional authoring metadata (`title`, `description`) and a required structural triplet: `anatomy`, `elements`, and `layout` — directly at the top level, with no intermediate wrapper or named primary key. How slot fills and slot references are layered onto this shape is addressed in ADR-046.
+
 ### Type changes (`types/`)
 
 | File | Change | Bump |
 |------|--------|------|
-| New: `Composition.ts` | Add `Composition` type | MINOR |
-| `index.ts` | Export `Composition` | MINOR |
+| New: `Composition.ts` | Add `Composition` type and `Compositions` registry alias | MINOR |
+| `index.ts` | Export `Composition`, `Compositions` | MINOR |
 
 **New type** (`types/Composition.ts`):
 
-```yaml
-Composition:
-  title?: string          # human-readable label
-  description?: string    # purpose and usage notes for documentation tooling
-  anatomy: Anatomy        # required — declares the element type map
-  elements: Elements      # required — element-level content, styles, prop configurations
-  layout: Layout          # required — tree ordering of elements
+```ts
+import type { Anatomy } from './Anatomy.js';
+import type { Elements } from './Elements.js';
+import type { Layout } from './Layout.js';
+
+/**
+ * A named, authored unit of composed content.
+ * Carries optional metadata and a required structural triplet.
+ * Slot fill capability (slotContent, $slotContent pointer) is layered on in ADR-046.
+ */
+export interface Composition {
+  title?: string;
+  description?: string;
+  anatomy: Anatomy;
+  elements: Elements;
+  layout: Layout;
+}
+
+export type Compositions = Record<string, Composition>;
 ```
 
 ### Schema changes (`schema/`)
@@ -168,50 +169,44 @@ Composition:
 |------|--------|------|
 | `component.schema.json` | Add `#/definitions/Composition` | MINOR |
 
-**New definition** (`#/definitions/Composition`):
+**New definition**:
 
 ```yaml
 Composition:
   type: object
-  description: "Named structural content fragment. Base shape for SlotExample (ADR-047) and system-scoped layout/page compositions."
+  description: "A named, authored unit of composed content. Required fields: anatomy, elements, layout. Optional metadata: title, description. Slot fill capability is added in ADR-046."
   required: [anatomy, elements, layout]
   properties:
-    title:
-      type: string
-    description:
-      type: string
-    anatomy:
-      $ref: "#/definitions/Anatomy"
-    elements:
-      $ref: "#/definitions/Elements"
-    layout:
-      $ref: "#/definitions/Layout"
+    title:        { type: string }
+    description:  { type: string }
+    anatomy:      { $ref: "#/definitions/Anatomy" }
+    elements:     { $ref: "#/definitions/Elements" }
+    layout:       { type: array, items: { $ref: "#/definitions/LayoutNode" } }
   additionalProperties: false
 ```
 
 ### Out of scope for this ADR
 
-- **`SlotExample`** — extends `Composition` with `kind: 'slot'` and `slot` field; see ADR-047
-- **`InstanceExample`** and **`Component.instanceExamples`** — see ADR-046
-- **`Element.$extensions`** and `defaultComposition` — see ADR-047
-- **`PropConfigurations` PropBinding widening** — see ADR-048
+- **`slotContent` on `Composition`** and the **`$slotContent` pointer** — see ADR-046
+- **`Component.slotContentExamples`** and `SlotBinding` — see ADR-047
+- **`Component.instanceExamples`** and `InstanceExample` — see ADR-048
+- **`PropConfigurations` widening** — see ADR-049
 - **`compositions.yaml` file schema** — follow-on ADR after ADR-047
-- **Nested slot filling in composition elements** — see below
 
 ### Notes
 
-- **Nested instance with a slot** — when `elements` contains an `instance` element whose component has slot props, those slots cannot be filled from within this `Composition`. The composition can set scalar prop values via `propConfigurations` on that instance, but slot content resolution is deferred to the mechanism introduced in ADR-047 (one level deep) and its follow-on. This is a deliberate constraint, not an oversight.
-- **`elements` is sparse** — not every anatomy element needs a corresponding `elements` entry. An element with no content, styles, or prop configurations can be omitted from `elements`. The `elements: {}` case (all anatomy elements are instances with no element-level data) is valid and explicit.
-- **No `kind` field** — discrimination is the responsibility of the extending types (`SlotExample` adds `kind: 'slot'`; future system-scoped types add their own).
-- **`Composition` is not placed directly on `Component`** — it is the structural base; `Component.instanceExamples` (ADR-046) and `SlotExample` (ADR-047) are the consumer-facing entry points.
-- **Anticipated metadata extensions** — `title` and `description` are the authoring-time metadata for this ADR. Anticipated follow-on extensions include `tags?: string[]` for cataloguing, `deprecated?: boolean` for lifecycle management, and `guidelines?: string` for usage guidance. These are deferred to a follow-on ADR once the consuming types are established and usage patterns are known.
+- **`elements` is sparse** — not every anatomy element needs a corresponding `elements` entry. Elements with no content, styles, or prop configurations can be omitted. The `elements: {}` case (all anatomy elements are instances with no element-level data) is valid and explicit.
+- **No discriminator on `Composition`** — discrimination is the responsibility of extending types and consuming fields. The base `Composition` is shape-only.
+- **`Composition` is not placed directly on `Component`** — it is the registry-entry shape; `Component.slotContentExamples` (ADR-047) and external composition files are the consumer-facing entry points.
+- **Anticipated metadata extensions** — `title` and `description` are the authoring-time metadata for this ADR. Anticipated follow-on extensions include `tags?: string[]` for cataloguing, `deprecated?: boolean` for lifecycle management, and `guidelines?: string` for usage guidance. Deferred until consuming types are established and usage patterns are known.
 
 ---
 
 ## Type ↔ Schema Impact
 
 - **Symmetric**: Yes
-- **Parity check**: `Composition { title?, description?, anatomy, elements, layout }` ↔ `#/definitions/Composition`; `required: [anatomy, elements, layout]`
+- **Parity check**:
+  - `Composition { title?, description?, anatomy, elements, layout }` ↔ `#/definitions/Composition`; `required: [anatomy, elements, layout]`
 
 ---
 
@@ -219,7 +214,7 @@ Composition:
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | No immediate output change; `Composition` is foundational for ADR-046/044 | Recompile when 046/047 land |
+| `specs-from-figma` | No immediate output change; `Composition` is foundational for ADR-046/047/048 | Recompile when those ADRs land |
 | `specs-cli` | Recompile | No change |
 | `specs-plugin-2` | Recompile | No change |
 
@@ -235,8 +230,7 @@ Composition:
 
 ## Consequences
 
-- `Composition` is a named structural type in the schema, available as a base for `SlotExample` (ADR-047) and future system-scoped layout and page composition types
-- All three content fields (`anatomy`, `elements`, `layout`) are required — a composition is always a complete structural declaration, never a degenerate anatomy-only fragment
+- `Composition` is the structural foundation for all composition-related ADRs that follow: ADR-046 layers on slot fill capability; ADR-047 and ADR-048 establish the component-level entry points; ADR-049 establishes the `propConfigurations` widening
+- All three structural fields (`anatomy`, `elements`, `layout`) are required — a composition is always a complete structural declaration, never a degenerate anatomy-only piece
+- The top-level triplet is the primary content — no wrapper, no named primary key; the shape reads directly and mirrors what system-scoped composition files will use
 - `description?` is the first step toward a richer authoring-time metadata model; `tags`, `deprecated`, and `guidelines` are identified follow-on extension points
-- No existing type is changed; no downstream consumers are broken
-- ADR-046, ADR-047, and ADR-048 complete the composition model; this ADR is the foundation they build on

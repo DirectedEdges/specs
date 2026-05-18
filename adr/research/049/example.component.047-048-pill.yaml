@@ -1,16 +1,7 @@
-# Scratchpad: cross-ADR example — Pill component
+# ADR-047 + ADR-048 example — Pill component
 #
-# Sibling to example.nested.yaml and example.flat.yaml. Where those two
-# demonstrate ADR-049's nested-vs-flat recursion shapes for a system-scoped
-# page composition, this file demonstrates COMPONENT-SCOPED machinery —
-# ADR-046 (Component.instanceExamples / InstanceExample) and ADR-047
-# (Component.slotContent + SlotBinding with the Figma authoring default) —
-# with ADR-049's $composition discriminated reference connecting them at the
-# InstanceExample call sites.
-#
-# Reference form: JSON Pointer, absolute from the document root, matching
-# ADR-008's $binding precedent. The Pill component is wrapped under
-# components.pill so every reference in this file literally resolves.
+# Demonstrates Component.slotContentExamples (ADR-047), Component.instanceExamples
+# (ADR-048), and PropConfigurations with SlotContentRef (ADR-049) in combination.
 #
 # Pill component contract:
 #   prop  custom:   boolean    — toggles which variant is active
@@ -18,16 +9,15 @@
 #   prop  children: slot       — slot-bound container when custom:true
 #
 #   Variant custom:false — labelText layer's characters bound to `label` prop
-#                          via PropBinding (ADR-008). Authoring example sets
-#                          label = "{configured label}".
+#                          via PropBinding (ADR-008).
 #   Variant custom:true  — childrenSlot's children bound via SlotBinding
 #                          (ADR-047). Figma authoring default points to the
-#                          `composedLabel` composition in slotContent.
+#                          `composedLabel` entry in slotContentExamples.
 #
 # Three documented usages cover the surface (instanceExamples below):
 #   1. configuredLabel — custom:false + label scalar
-#   2. composedLabel   — custom:true + children fills with composedLabel composition
-#   3. removableLabel  — custom:true + children fills with removableLabelContent
+#   2. composedLabel   — custom:true + children filled by composedLabel slot content
+#   3. removableLabel  — custom:true + children filled by removableLabelContent
 
 components:
   pill:
@@ -74,17 +64,16 @@ components:
               $binding: "#/components/pill/props/children"
               $extensions:
                 com.figma:
-                  default: "#/components/pill/slotContent/composedLabel"   # Figma authoring default
+                  default: "#/components/pill/slotContentExamples/composedLabel"   # Figma authoring default
         layout:
           - root:
               - childrenSlot
 
-    # ─── Component.slotContent (ADR-047): named Compositions ────────────────
-    slotContent:
+    # ─── Component.slotContentExamples (ADR-047): named slot fill examples ──
+    slotContentExamples:
       # Figma's authoring default for the children slot. Reused by the
       # `composedLabel` InstanceExample below.
       composedLabel:
-        title: Default composed label
         anatomy:
           label:
             type: text
@@ -95,7 +84,6 @@ components:
 
       # Text + remove-x glyph. Referenced from the `removableLabel` InstanceExample.
       removableLabelContent:
-        title: Removable label (text + remove glyph)
         anatomy:
           label:
             type: text
@@ -111,24 +99,24 @@ components:
               height: 16
         layout: [label, removeIcon]
 
-    # ─── Component.instanceExamples (ADR-046, post-rename): documented usages
+    # ─── Component.instanceExamples (ADR-048): documented whole-component usages
     instanceExamples:
       configuredLabel:
         title: Pill with configured label
         propConfigurations:
           custom: false
-          label: "{configured label}"                              # ADR-046 scalar prop value
+          label: "{configured label}"                              # scalar prop value
 
       composedLabel:
         title: Pill using the default composed label
         propConfigurations:
           custom: true
           children:
-            $composition: "#/components/pill/slotContent/composedLabel"   # ADR-049
+            $slotContent: "#/components/pill/slotContentExamples/composedLabel"   # SlotContentRef (ADR-046)
 
       removableLabel:
         title: Pill with text + remove glyph
         propConfigurations:
           custom: true
           children:
-            $composition: "#/components/pill/slotContent/removableLabelContent"
+            $slotContent: "#/components/pill/slotContentExamples/removableLabelContent"

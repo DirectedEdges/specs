@@ -1,0 +1,132 @@
+# ADR-046 Option B — Flat registry, entries use `groups` wrapper
+#
+# Each registry entry carries title?, description?, and a required `groups`
+# record. `groups.main` is the required primary fragment; additional sibling
+# keys hold related slot fills authored alongside it.
+#
+# References use { $slotContent: <JSON Pointer> }. Composition-level pointers
+# resolve to the entry's `main` fragment. Fragment-deep pointers target a
+# specific sibling inside `groups`.
+#
+# Compare with option-a-inline, option-c-slotcontent, option-d-parts —
+# same Filter Results Page hierarchy, different registry shapes.
+#
+# Why this option loses (see ADR-046 Option B rejection):
+#   - Requires reworking ADR-042's Composition shape — anatomy/elements/layout
+#     move inside groups.main, not at the top level
+#   - `main` is a reserved key inside what looks like a free-form record
+#   - Every pointer to the primary content must include /groups/main
+
+compositions:
+
+  # ─── root: entry point — fills Page.body ──────────────────────────────────
+  root:
+    title: Filter Results Page
+    description: |
+      Two-row layout — page header above filter grid.
+    groups:
+      main:                            # required primary fragment
+        anatomy:
+          filterPageHeader: { type: instance, instanceOf: Row }
+          filterGrid:       { type: instance, instanceOf: Row }
+        elements:
+          filterPageHeader:
+            propConfigurations:
+              children:
+                $slotContent: "#/compositions/root/groups/pageHeader"
+          filterGrid:
+            propConfigurations:
+              children:
+                $slotContent: "#/compositions/pageGrid/groups/main"
+        layout: [filterPageHeader, filterGrid]
+      pageHeader:                      # sibling fill — bundled with main
+        anatomy:
+          breadcrumbs: { type: instance, instanceOf: Breadcrumbs }
+          heading:     { type: instance, instanceOf: Heading }
+          tabs:        { type: instance, instanceOf: Tabs }
+        elements:
+          heading:
+            propConfigurations:
+              content: Filter Results
+        layout: [breadcrumbs, heading, tabs]
+
+  # ─── pageGrid: two-column grid ────────────────────────────────────────────
+  pageGrid:
+    groups:
+      main:
+        anatomy:
+          sidebar: { type: container }
+          make:    { type: instance, instanceOf: Accordion }
+          main:    { type: container }
+          card1:   { type: instance, instanceOf: Card }
+          card2:   { type: instance, instanceOf: Card }
+          card3:   { type: instance, instanceOf: Card }
+          card4:   { type: instance, instanceOf: Card }
+        elements:
+          make:
+            propConfigurations:
+              label: Filter 1
+              open: true
+              children:
+                $slotContent: "#/compositions/carBrandFilter/groups/main"
+        layout:
+          - sidebar:
+              - make
+          - main:
+              - card1
+              - card2
+              - card3
+              - card4
+
+  # ─── carBrandFilter: Accordion contents ───────────────────────────────────
+  carBrandFilter:
+    groups:
+      main:
+        anatomy:
+          checkboxGroup: { type: instance, instanceOf: CheckboxGroup }
+        elements:
+          checkboxGroup:
+            propConfigurations:
+              children:
+                $slotContent: "#/compositions/makeOptions/groups/main"
+        layout: [checkboxGroup]
+
+  # ─── makeOptions: three Checkbox instances ────────────────────────────────
+  makeOptions:
+    groups:
+      main:
+        anatomy:
+          make1: { type: instance, instanceOf: Checkbox }
+          make2: { type: instance, instanceOf: Checkbox }
+          make3: { type: instance, instanceOf: Checkbox }
+        elements:
+          make1: { propConfigurations: { label: Ford } }
+          make2: { propConfigurations: { label: Mercedes } }
+          make3:
+            propConfigurations:
+              custom: true
+              children:
+                $slotContent: "#/compositions/newToyota/groups/main"
+        layout: [make1, make2, make3]
+
+  # ─── newToyota: text + badge inside the custom Toyota checkbox ────────────
+  newToyota:
+    groups:
+      main:
+        anatomy:
+          root:       { type: container }
+          toyotaText: { type: text }
+          newBadge:   { type: instance, instanceOf: Badge }
+        elements:
+          root:
+            styles: { layoutMode: HORIZONTAL }
+          toyotaText:
+            content: Toyota
+          newBadge:
+            propConfigurations:
+              appearance: new
+              label: New
+        layout:
+          - root:
+              - toyotaText
+              - newBadge

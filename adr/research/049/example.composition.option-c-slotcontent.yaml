@@ -1,0 +1,129 @@
+# ADR-046 Option C — Flat registry, entries use top-level triplet + slotContent
+# *** SELECTED ***
+#
+# Each registry entry carries title?, description?, and anatomy + elements +
+# layout directly at the top level — no wrapper, no reserved primary key. The
+# top-level triplet IS the primary content. Related slot fills authored
+# alongside it live in an optional slotContent: Record<string, SlotContent>.
+#
+# References use { $slotContent: <JSON Pointer> }:
+#   - Pointer to a Composition entry  → resolves to its top-level triplet
+#   - Pointer into slotContent/<key>  → resolves to that SlotContent directly
+#
+# Compare with option-a-inline, option-b-groups, option-d-parts —
+# same Filter Results Page hierarchy, different registry shapes.
+#
+# Why this option wins (see ADR-046 Option C selection):
+#   - No change to ADR-042's Composition shape — top-level triplet stays
+#   - `slotContent` reuses the same type and property name from ADR-047
+#   - Pointer resolution is simpler: Composition pointer = entry itself;
+#     slotContent pointer = named fill — no `groups` intermediary
+#   - Intra-composition bundling (pageHeader alongside root) and
+#     cross-composition references (carBrandFilter from pageGrid) use
+#     the same $slotContent pointer form; path makes scope explicit
+
+compositions:
+
+  # ─── filterResultsPage: entry point — fills Page.body ────────────────────
+  filterResultsPage:
+    title: Filter Results Page
+    description: |
+      Two-row layout — page header above filter grid. pageHeader is bundled
+      in slotContent alongside the primary content; deeper fills span out
+      to separate composition entries.
+    anatomy:
+      filterPageHeader: { type: instance, instanceOf: Row }
+      filterGrid:       { type: instance, instanceOf: Row }
+    elements:
+      filterPageHeader:
+        propConfigurations:
+          children:
+            $slotContent: "#/compositions/filterResultsPage/slotContent/pageHeader"  # intra-composition
+      filterGrid:
+        propConfigurations:
+          children:
+            $slotContent: "#/compositions/pageGrid"                                  # cross-composition
+    layout: [filterPageHeader, filterGrid]
+    slotContent:
+      pageHeader:                      # bundled fill — authored alongside primary content
+        anatomy:
+          breadcrumbs: { type: instance, instanceOf: Breadcrumbs }
+          heading:     { type: instance, instanceOf: Heading }
+          tabs:        { type: instance, instanceOf: Tabs }
+        elements:
+          heading:
+            propConfigurations:
+              content: Filter Results
+        layout: [breadcrumbs, heading, tabs]
+
+  # ─── pageGrid: two-column grid ────────────────────────────────────────────
+  pageGrid:
+    anatomy:
+      sidebar: { type: container }
+      make:    { type: instance, instanceOf: Accordion }
+      main:    { type: container }
+      card1:   { type: instance, instanceOf: Card }
+      card2:   { type: instance, instanceOf: Card }
+      card3:   { type: instance, instanceOf: Card }
+      card4:   { type: instance, instanceOf: Card }
+    elements:
+      make:
+        propConfigurations:
+          label: Filter 1
+          open: true
+          children:
+            $slotContent: "#/compositions/carBrandFilter"            # cross-composition
+    layout:
+      - sidebar:
+          - make
+      - main:
+          - card1
+          - card2
+          - card3
+          - card4
+
+  # ─── carBrandFilter: Accordion contents ───────────────────────────────────
+  carBrandFilter:
+    anatomy:
+      checkboxGroup: { type: instance, instanceOf: CheckboxGroup }
+    elements:
+      checkboxGroup:
+        propConfigurations:
+          children:
+            $slotContent: "#/compositions/carBrandFilter/slotContent/makeOptions"   # intra-composition
+    layout: [checkboxGroup]
+    slotContent:
+      makeOptions:                     # bundled fill — three Checkbox instances
+        anatomy:
+          make1: { type: instance, instanceOf: Checkbox }
+          make2: { type: instance, instanceOf: Checkbox }
+          make3: { type: instance, instanceOf: Checkbox }
+        elements:
+          make1: { propConfigurations: { label: Ford } }
+          make2: { propConfigurations: { label: Mercedes } }
+          make3:
+            propConfigurations:
+              custom: true
+              children:
+                $slotContent: "#/compositions/newToyota"             # cross-composition
+        layout: [make1, make2, make3]
+
+  # ─── newToyota: text + badge inside the custom Toyota checkbox ────────────
+  newToyota:
+    anatomy:
+      root:       { type: container }
+      toyotaText: { type: text }
+      newBadge:   { type: instance, instanceOf: Badge }
+    elements:
+      root:
+        styles: { layoutMode: HORIZONTAL }
+      toyotaText:
+        content: Toyota
+      newBadge:
+        propConfigurations:
+          appearance: new
+          label: New
+    layout:
+      - root:
+          - toyotaText
+          - newBadge

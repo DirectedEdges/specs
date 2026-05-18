@@ -51,6 +51,20 @@
           "additionalProperties": {
             "$ref": "#/definitions/Subcomponent"
           }
+        },
+        "instanceExamples": {
+          "$ref": "#/definitions/InstanceExamples",
+          "description": "Named instance examples (documented usages) for this component."
+        },
+        "slotContentExamples": {
+          "type": "object",
+          "description": "Named slot-content examples for this component (ADR-047). Each entry is a SlotContent — a flat anatomy+elements+layout triplet usable as a named slot fill. Referenced via SlotContentRef from SlotBinding.$extensions['com.figma'].default and from Element.propConfigurations slot-prop entries (ADR-049). specs-from-figma de-duplicates entries by structural equality.",
+          "patternProperties": {
+            "^[a-zA-Z0-9_-]+$": {
+              "$ref": "#/definitions/SlotContent"
+            }
+          },
+          "additionalProperties": false
         }
       },
       "required": [
@@ -58,6 +72,38 @@
         "anatomy",
         "default"
       ],
+      "additionalProperties": false
+    },
+    "InstanceExample": {
+      "type": "object",
+      "description": "A pre-configured usage of the whole component (ADR-048). Scalar props are set directly; slot props are filled via SlotContentRef. PropBinding is not accepted — this is a documented configuration, not a live binding.",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "propConfigurations": {
+          "type": "object",
+          "description": "Prop values for this example. Scalar types for scalar props; SlotContentRef for slot props. PropBinding is not permitted here.",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "number" },
+              { "type": "boolean" },
+              { "$ref": "#/definitions/SlotContentRef" }
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "InstanceExamples": {
+      "type": "object",
+      "description": "Named instance examples for this component.",
+      "patternProperties": {
+        "^[a-zA-Z0-9_-]+$": {
+          "$ref": "#/definitions/InstanceExample"
+        }
+      },
       "additionalProperties": false
     },
     "Anatomy": {
@@ -417,7 +463,7 @@
     },
     "PropConfigurations": {
       "type": "object",
-      "description": "",
+      "description": "Per-element prop configurations (ADR-049). Values are scalars, a PropBinding for pass-through to a parent prop, or a SlotContentRef under a slot-prop key for named slot-content fills.",
       "examples": [],
       "additionalProperties": {
         "oneOf": [
@@ -429,6 +475,12 @@
           },
           {
             "type": "boolean"
+          },
+          {
+            "$ref": "#/definitions/PropBinding"
+          },
+          {
+            "$ref": "#/definitions/SlotContentRef"
           }
         ]
       }
@@ -440,6 +492,64 @@
       "additionalProperties": {
         "$ref": "#/definitions/Element"
       }
+    },
+    "SlotContent": {
+      "type": "object",
+      "description": "The anonymous structural triplet — anatomy, elements, layout — used as a named slot fill (ADR-046). Carries no metadata of its own; identity lives at the key under which it is stored (Component.slotContentExamples or Composition.slotContent).",
+      "required": ["anatomy", "elements", "layout"],
+      "properties": {
+        "anatomy": {
+          "$ref": "#/definitions/Anatomy"
+        },
+        "elements": {
+          "$ref": "#/definitions/Elements"
+        },
+        "layout": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LayoutNode"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "Composition": {
+      "type": "object",
+      "description": "A named, authored unit of composed content (ADR-042, ADR-046). The top-level anatomy+elements+layout triplet is the primary content — no wrapper, no reserved `main` key. Optional slotContent bundles named SlotContent fills alongside the primary content. A SlotContentRef pointing at a Composition entry resolves to the top-level triplet; a pointer into slotContent/<key> resolves to that SlotContent directly.",
+      "required": ["anatomy", "elements", "layout"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Human-readable label for the composition."
+        },
+        "description": {
+          "type": "string",
+          "description": "Purpose and usage notes for documentation tooling."
+        },
+        "anatomy": {
+          "$ref": "#/definitions/Anatomy"
+        },
+        "elements": {
+          "$ref": "#/definitions/Elements"
+        },
+        "layout": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LayoutNode"
+          }
+        },
+        "slotContent": {
+          "type": "object",
+          "description": "Named slot fills bundled alongside this composition's primary content. Authoring convenience only — not a scope boundary. Entries are reachable via a deeper SlotContentRef pointer.",
+          "patternProperties": {
+            "^[a-zA-Z0-9_-]+$": {
+              "$ref": "#/definitions/SlotContent"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     },
     "Element": {
       "type": "object",
@@ -455,10 +565,10 @@
               }
             },
             {
-              "$ref": "#/definitions/PropBinding"
+              "$ref": "#/definitions/SlotBinding"
             }
           ],
-          "description": "Child element names, or a PropBinding when bound to a slot prop"
+          "description": "Child element names, or a SlotBinding when bound to a slot prop. SlotBinding is a PropBinding optionally carrying $extensions for platform-specific authoring metadata; the bare `{ $binding }` form still validates."
         },
         "parent": {
           "oneOf": [
@@ -516,6 +626,54 @@
       "required": [
         "$binding"
       ],
+      "additionalProperties": false
+    },
+    "FigmaSlotBindingExtension": {
+      "type": "object",
+      "description": "Figma-specific authoring metadata on a slot binding. Not honored by code consumers.",
+      "properties": {
+        "default": {
+          "type": "string",
+          "description": "JSON Pointer — Figma's authoring default for this slot. Resolves into Component.slotContentExamples (component-scoped, e.g. \"#/components/pill/slotContentExamples/composedLabel\") or into a Composition entry or its bundled slotContent (system-scoped). All pointer targets yield anatomy+elements+layout. Not honored by code consumers."
+        }
+      },
+      "additionalProperties": true
+    },
+    "SlotBindingExtensions": {
+      "type": "object",
+      "description": "Open extension bag on a SlotBinding for platform-specific metadata.",
+      "properties": {
+        "com.figma": {
+          "$ref": "#/definitions/FigmaSlotBindingExtension"
+        }
+      },
+      "additionalProperties": true
+    },
+    "SlotBinding": {
+      "type": "object",
+      "description": "Slot binding: a PropBinding to a slot prop, optionally with platform-specific authoring metadata in $extensions.",
+      "required": ["$binding"],
+      "properties": {
+        "$binding": {
+          "type": "string",
+          "description": "JSON Pointer to the bound slot prop, e.g. `\"#/components/pill/props/children\"`."
+        },
+        "$extensions": {
+          "$ref": "#/definitions/SlotBindingExtensions"
+        }
+      },
+      "additionalProperties": false
+    },
+    "SlotContentRef": {
+      "type": "object",
+      "description": "Reference to a SlotContent or Composition entry by JSON Pointer (ADR-046). Resolves to a Composition entry (top-level triplet), a Composition.slotContent entry, or a Component.slotContentExamples entry — all yield anatomy+elements+layout. Discriminated by the $slotContent key.",
+      "properties": {
+        "$slotContent": {
+          "type": "string",
+          "description": "JSON Pointer to a SlotContent or Composition entry."
+        }
+      },
+      "required": ["$slotContent"],
       "additionalProperties": false
     },
     "ConditionArgs": {
