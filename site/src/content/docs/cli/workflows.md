@@ -29,7 +29,8 @@ If component names have special characters or duplicates, use node IDs:
 ```bash
 # Find the node ID from a manifest
 specs scan -o manifest.md
-# Look for: - [x] DS Button/Icon (5507:123, COMPONENT_SET)
+# Look in the table for the row whose Name matches:
+# | [x] | DS Button/Icon | 5507:123 | COMPONENT_SET | READY_FOR_DEV |
 
 # Generate by ID
 specs generate data/library.file.json \
@@ -62,22 +63,25 @@ Open `data/design-system.manifest.md`:
 ```markdown
 # Component Manifest
 
-**Generated:** 2026-01-17T20:45:00.000Z
+**Scan format version:** 2  
+**Generated:** 2026-05-08T20:45:00Z  
 **File:** data/design-system.file.json
 **Variables:** data/design-system.variables.json
+**File last modified:** 2026-05-08T17:48:26Z
 
 ## Components
 
-- [x] DS Accordion (5507:24, COMPONENT_SET)
-- [x] DS Alert (5507:26, COMPONENT_SET)
-- [x] DS Avatar (5507:30, COMPONENT_SET)
-- [x] DS Badge (5507:32, COMPONENT_SET)
-- [ ] DS Divider OLD (5507:44, COMPONENT_SET)  # Exclude deprecated
-- [x] DS Dropdown (5507:46, COMPONENT_SET)
-...
+| ✓ | Name | ID | Type | Dev Status |
+|------|------|------|------|------------|
+| [x] | DS Accordion | 5507:24 | COMPONENT_SET | READY_FOR_DEV |
+| [x] | DS Alert | 5507:26 | COMPONENT_SET | READY_FOR_DEV |
+| [x] | DS Avatar | 5507:30 | COMPONENT_SET | READY_FOR_DEV |
+| [x] | DS Badge | 5507:32 | COMPONENT_SET | READY_FOR_DEV |
+| [ ] | DS Divider OLD | 5507:44 | COMPONENT_SET | NONE |
+| [x] | DS Dropdown | 5507:46 | COMPONENT_SET | READY_FOR_DEV |
 ```
 
-Change `[x]` to `[ ]` for components to exclude.
+Change `[x]` to `[ ]` (or vice versa) in the first column for components to exclude or include. The `Dev Status` column reflects what designers have flagged in Figma Dev Mode and is read-only on each scan.
 
 ### Step 3: Generate
 
@@ -199,10 +203,10 @@ specs generate data/library.json \
 
 ```bash
 # Count selected components
-grep "^\- \[x\]" data/library.manifest.md | wc -l
+grep -c "^| \[x\] |" data/library.manifest.md
 
-# List selected component names
-grep "^\- \[x\]" data/library.manifest.md | sed 's/- \[x\] \(.*\) (.*/\1/'
+# List selected component names (second column of the table)
+grep "^| \[x\] |" data/library.manifest.md | awk -F '\\|' '{ gsub(/^ +| +$/, "", $3); print $3 }'
 ```
 
 ---
@@ -218,25 +222,25 @@ git add data/library.manifest.md
 git commit -m "feat: add Modal to component manifest"
 ```
 
-### Document Manifest Curation
+### Curate Through Figma Dev Mode
 
-Add comments explaining why components are included/excluded:
+The cleanest way to drive curation is to flag components as **Ready for Dev** in Figma. `scan` checks `READY_FOR_DEV` rows by default, so designers can signal what to include without anyone editing the manifest:
 
-```markdown
-## Components
+```bash
+# Designer marks new component Ready for Dev in Figma
+specs fetch
+specs scan
+# Merge: 1 updated by devStatus, 163 preserved
+```
 
-<!-- Core navigation components -->
-- [x] DS Button (1234:1, COMPONENT_SET)
-- [x] DS Link (1234:2, COMPONENT_SET)
+When designers haven't (or won't) adopt Dev Mode status, fall back to manual curation. Manual `[x]` / `[ ]` edits are preserved across rescans unless `devStatus` itself changes for that row — pass `--keep-checks` to lock manual choices regardless.
 
-<!-- Exclude deprecated components -->
-- [ ] DS Button OLD (1234:3, COMPONENT_SET)
+### Document Manual Overrides
 
-<!-- Icons documented separately -->
-- [ ] Icon / Menu (1234:4, COMPONENT)
+For rows you've manually overridden against Figma's signal, leave a note above the table or alongside the row in your commit message. The table format doesn't accept inline comments, but git history makes the intent clear:
 
-<!-- Work in progress - not ready for docs -->
-- [ ] DS Tooltip NEW (1234:5, COMPONENT_SET)
+```bash
+git commit -m "manifest: keep DS Tooltip NEW unchecked — pending API redesign"
 ```
 
 ## See Also

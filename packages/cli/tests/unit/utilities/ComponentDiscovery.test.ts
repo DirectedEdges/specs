@@ -102,8 +102,8 @@ describe('ComponentDiscovery', () => {
       const components = discovery.findAllComponents();
 
       expect(components).toHaveLength(2);
-      expect(components[0]).toEqual({ id: '2:1', name: 'Button', type: 'COMPONENT' });
-      expect(components[1]).toEqual({ id: '2:2', name: 'Card', type: 'COMPONENT' });
+      expect(components[0]).toEqual({ id: '2:1', name: 'Button', type: 'COMPONENT', devStatus: 'NONE' });
+      expect(components[1]).toEqual({ id: '2:2', name: 'Card', type: 'COMPONENT', devStatus: 'NONE' });
     });
 
     it('should find COMPONENT_SET nodes', async () => {
@@ -151,7 +151,53 @@ describe('ComponentDiscovery', () => {
       const components = discovery.findAllComponents();
 
       expect(components).toHaveLength(1);
-      expect(components[0]).toEqual({ id: '3:1', name: 'Button Set', type: 'COMPONENT_SET' });
+      expect(components[0]).toEqual({ id: '3:1', name: 'Button Set', type: 'COMPONENT_SET', devStatus: 'NONE' });
+    });
+
+    it('should extract devStatus when present on component nodes', async () => {
+      const filePath = path.join(testDir, 'library.json');
+      const data = {
+        name: 'Test Library',
+        lastModified: '2026-05-08T17:48:26Z',
+        document: {
+          id: '0:0',
+          name: 'Document',
+          type: 'DOCUMENT',
+          children: [
+            {
+              id: '1:1',
+              name: 'Page',
+              type: 'CANVAS',
+              children: [
+                {
+                  id: '397:37',
+                  name: 'Ready Set',
+                  type: 'COMPONENT_SET',
+                  devStatus: { type: 'READY_FOR_DEV', description: '' },
+                  children: []
+                },
+                {
+                  id: '397:38',
+                  name: 'Idle Set',
+                  type: 'COMPONENT_SET',
+                  children: []
+                }
+              ]
+            }
+          ]
+        }
+      };
+
+      fs.writeJSONSync(filePath, data);
+
+      const discovery = await ComponentDiscovery.fromFile(filePath);
+      const components = discovery.findAllComponents();
+
+      const ready = components.find(c => c.id === '397:37');
+      const idle = components.find(c => c.id === '397:38');
+      expect(ready?.devStatus).toBe('READY_FOR_DEV');
+      expect(idle?.devStatus).toBe('NONE');
+      expect(discovery.getFileLastModified()).toBe('2026-05-08T17:48:26Z');
     });
 
     it('should exclude variant children from results', async () => {

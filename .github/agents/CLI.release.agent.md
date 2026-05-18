@@ -21,6 +21,21 @@ All commands in this agent run from the **CLI package directory**: `packages/cli
 
 ## Outline
 
+0. **Ensure a tracking PR exists for this release branch** — do this FIRST, before any other step, every time this agent runs. An in-flight release must always be discoverable in `gh pr list` so a release branch can never be silently abandoned.
+   1. Confirm the current branch matches `release/*`. If not, STOP and report — this agent only runs from a release branch.
+   2. Check for an existing PR:
+      ```bash
+      gh pr list --repo DirectedEdges/specs --head "$(git branch --show-current)" --state all --json number,state,isDraft --jq '.[0]'
+      ```
+   3. If no PR exists, push the branch and create a **draft** PR immediately:
+      ```bash
+      git push -u origin "$(git branch --show-current)" 2>/dev/null || true
+      gh pr create --draft --base main --head "$(git branch --show-current)" \
+        --title "release: $(git branch --show-current)" \
+        --body "Draft release PR — opened automatically by CLI.release agent so the in-flight release is visible. Versions, CHANGELOG, build, tests, and publish will be finalized before this is marked ready."
+      ```
+   4. Report the PR URL and continue.
+
 1. **Verify version**: Read `packages/cli/package.json`. Confirm the `version` field matches the first argument. If not, STOP and ask whether to update it or abort.
 
 2. **Verify CHANGELOG**: Read `packages/cli/CHANGELOG.md`. Confirm:
@@ -101,16 +116,21 @@ All commands in this agent run from the **CLI package directory**: `packages/cli
        ```bash
        git push --follow-tags
        ```
-    2. **Collect issue references** from PRs merged into this release branch since it diverged from main:
+    2. **Collect issue references** from both PR bodies and commit messages on this release branch since it diverged from main. Capture cross-repo refs (e.g. `DirectedEdges/specs-plugin-2#42`) as well as bare `#N` refs — required because closing trailers can live on commits that touch upstream issues in sibling repos, not just on PRs in this repo:
        ```bash
-       gh pr list --repo DirectedEdges/specs --base release/[branch-name] --state merged --json body --jq '.[].body' \
-         | grep -oiE '(closes|fixes|resolves) #[0-9]+' | sort -u
+       BRANCH=$(git branch --show-current)
+       {
+         gh pr list --repo DirectedEdges/specs --base "$BRANCH" --state merged --json body --jq '.[].body'
+         git log main.."$BRANCH" --pretty=%B
+       } | grep -oiE '(closes|fixes|resolves)[[:space:]]+([A-Za-z0-9._-]+/[A-Za-z0-9._-]+)?#[0-9]+' | sort -fu
        ```
-       Append each unique `Closes #N` line to the PR body so issues auto-close when this PR merges to main.
+       Normalize each match to `Closes <ref>` (preserving any `owner/repo` prefix) and append one per line to the PR body so issues auto-close when this PR merges to main. Cross-repo refs require `owner/repo#N` — without that prefix GitHub won't reach the sibling repo's issue.
 
-    3. Create the PR:
+    3. Finalize the tracking PR. Step 0 opened a draft PR at the start; now mark it ready and update title/body:
        ```bash
-       gh pr create --base main --title "release: @directededges/specs-cli v[version]" --body "$(cat <<'EOF'
+       PR_NUM=$(gh pr list --repo DirectedEdges/specs --head "$(git branch --show-current)" --state open --json number --jq '.[0].number')
+       gh pr ready "$PR_NUM"
+       gh pr edit "$PR_NUM" --title "release: @directededges/specs-cli v[version]" --body "$(cat <<'EOF'
        ## Summary
        - Release @directededges/specs-cli v[version]
        - Compatible with @directededges/specs-schema ^[schema-version] and @directededges/specs-from-figma ^[fts-version]
@@ -120,7 +140,7 @@ All commands in this agent run from the **CLI package directory**: `packages/cli
        EOF
        )"
        ```
-       If a PR already exists for this branch, report the existing PR URL instead of failing.
+       If no PR exists at this point (step 0 was skipped), create one with `gh pr create --base main --head <branch> --title "..." --body "..."`.
     4. Create the GitHub Release (scoped tag):
        - Extract the release notes from `packages/cli/CHANGELOG.md` for this version.
        ```bash

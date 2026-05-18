@@ -98,15 +98,19 @@ Scan your fetched data to build a manifest of available components:
 specs scan
 ```
 
-Then open the generated manifest (e.g., `data/library.manifest.md`) and check the components you want:
+Then open the generated manifest (e.g., `data/library.manifest.md`) and adjust the `✓` column for the components you want:
 
 ```md
-- [ ] _random Test experiment component
-- [x] Button
-- [x] Card
-- [ ] InternalHelper
-- [ ] Slot utility
+| ✓ | Name | ID | Type | Dev Status |
+|------|------|------|------|------------|
+| [ ] | _random Test experiment | 12:1 | COMPONENT | NONE |
+| [x] | Button | 12:2 | COMPONENT_SET | READY_FOR_DEV |
+| [x] | Card | 12:3 | COMPONENT_SET | READY_FOR_DEV |
+| [ ] | InternalHelper | 12:4 | COMPONENT | NONE |
+| [ ] | Slot utility | 12:5 | COMPONENT | NONE |
 ```
+
+By default, `scan` checks only components marked **Ready for Dev** in Figma. If your file has no Dev Mode status set anywhere, it falls back to including every `COMPONENT_SET` and standalone `COMPONENT`. Re-running `scan` preserves your manual edits and only flips checkboxes when a component's `Dev Status` actually changes — pass `--keep-checks` to preserve them even then. See the [`scan`](/specs/cli/commands/scan/) reference for full merge behavior.
 
 ## Step 5: Generate specs
 
