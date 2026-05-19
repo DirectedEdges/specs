@@ -66,8 +66,8 @@ export type Component = {
    * `SlotContent` — a flat `anatomy + elements + layout` triplet usable as a
    * named slot fill. Entries are referenced via `SlotContentRef` (e.g.
    * `"#/components/pill/slotContentExamples/composedLabel"`) from
-   * `SlotBinding.$extensions['com.figma'].default` (Figma authoring defaults)
-   * and from `Element.propConfigurations` slot-prop entries (ADR-049).
+   * `SlotBinding.examples` (Figma authoring defaults) and from
+   * `Element.propConfigurations` slot-prop entries (ADR-049).
    *
    * specs-from-figma de-duplicates entries by structural equality across
    * variants and slots — identical fills share one entry.

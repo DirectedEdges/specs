@@ -58,7 +58,7 @@
         },
         "slotContentExamples": {
           "type": "object",
-          "description": "Named slot-content examples for this component (ADR-047). Each entry is a SlotContent — a flat anatomy+elements+layout triplet usable as a named slot fill. Referenced via SlotContentRef from SlotBinding.$extensions['com.figma'].default and from Element.propConfigurations slot-prop entries (ADR-049). specs-from-figma de-duplicates entries by structural equality.",
+          "description": "Named slot-content examples for this component (ADR-047). Each entry is a SlotContent — a flat anatomy+elements+layout triplet usable as a named slot fill. Referenced via SlotContentRef from SlotBinding.examples and from Element.propConfigurations slot-prop entries (ADR-049). specs-from-figma de-duplicates entries by structural equality.",
           "patternProperties": {
             "^[a-zA-Z0-9_-]+$": {
               "$ref": "#/definitions/SlotContent"
@@ -568,7 +568,7 @@
               "$ref": "#/definitions/SlotBinding"
             }
           ],
-          "description": "Child element names, or a SlotBinding when bound to a slot prop. SlotBinding is a PropBinding optionally carrying $extensions for platform-specific authoring metadata; the bare `{ $binding }` form still validates."
+          "description": "Child element names, or a SlotBinding when bound to a slot prop. SlotBinding is a PropBinding optionally carrying `examples` — an array of SlotContentRef entries for authored sample fills (e.g. Figma's authoring default at index 0). The bare `{ $binding }` form still validates."
         },
         "parent": {
           "oneOf": [
@@ -628,38 +628,21 @@
       ],
       "additionalProperties": false
     },
-    "FigmaSlotBindingExtension": {
-      "type": "object",
-      "description": "Figma-specific authoring metadata on a slot binding. Not honored by code consumers.",
-      "properties": {
-        "default": {
-          "type": "string",
-          "description": "JSON Pointer — Figma's authoring default for this slot. Resolves into Component.slotContentExamples (component-scoped, e.g. \"#/components/pill/slotContentExamples/composedLabel\") or into a Composition entry or its bundled slotContent (system-scoped). All pointer targets yield anatomy+elements+layout. Not honored by code consumers."
-        }
-      },
-      "additionalProperties": true
-    },
-    "SlotBindingExtensions": {
-      "type": "object",
-      "description": "Open extension bag on a SlotBinding for platform-specific metadata.",
-      "properties": {
-        "com.figma": {
-          "$ref": "#/definitions/FigmaSlotBindingExtension"
-        }
-      },
-      "additionalProperties": true
-    },
     "SlotBinding": {
       "type": "object",
-      "description": "Slot binding: a PropBinding to a slot prop, optionally with platform-specific authoring metadata in $extensions.",
+      "description": "Slot binding: a PropBinding to a slot prop, optionally carrying authored sample fills in `examples`. Each `examples[i]` is a SlotContentRef (ADR-046) pointing into Component.slotContentExamples or a Composition. Emitters currently write at most one entry — `examples[0]` is Figma's authoring default. Non-contractual reference material; code consumers handle missing slots through component logic and need not honor it.",
       "required": ["$binding"],
       "properties": {
         "$binding": {
           "type": "string",
           "description": "JSON Pointer to the bound slot prop, e.g. `\"#/components/pill/props/children\"`."
         },
-        "$extensions": {
-          "$ref": "#/definitions/SlotBindingExtensions"
+        "examples": {
+          "type": "array",
+          "description": "Authored example fills for this slot. Emitters currently write at most one entry — Figma's authoring default at index 0.",
+          "items": {
+            "$ref": "#/definitions/SlotContentRef"
+          }
         }
       },
       "additionalProperties": false

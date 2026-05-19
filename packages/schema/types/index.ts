@@ -18,7 +18,7 @@ export type { InstanceExample, InstanceExamples } from './InstanceExample.js';
 // Element and structure types
 export type { Element, Elements, ElementType } from './Element.js';
 export type { Layout, LayoutNode } from './Layout.js';
-export type { Children, SlotBinding, SlotBindingExtensions, FigmaSlotBindingExtension } from './Children.js';
+export type { Children, SlotBinding } from './Children.js';
 export type { SlotContent } from './SlotContent.js';
 export type { Composition, Compositions } from './Composition.js';
 

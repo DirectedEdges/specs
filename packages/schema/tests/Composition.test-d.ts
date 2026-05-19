@@ -16,8 +16,6 @@ import type {
   Component,
   Children,
   SlotBinding,
-  SlotBindingExtensions,
-  FigmaSlotBindingExtension,
   PropBinding,
   PropConfigurations,
 } from '../types/index.js';
@@ -156,15 +154,11 @@ const componentWithExamples: Component = {
 
 // ─── ADR-047: SlotBinding + Component.slotContentExamples ────────────────────
 
-const figmaExt: FigmaSlotBindingExtension = {
-  default: '#/components/pill/slotContentExamples/composedLabel',
-};
-
-const slotExt: SlotBindingExtensions = { 'com.figma': figmaExt };
-
 const slotBinding: SlotBinding = {
   $binding: '#/components/pill/props/children',
-  $extensions: slotExt,
+  examples: [
+    { $slotContent: '#/components/pill/slotContentExamples/composedLabel' },
+  ],
 };
 
 // Bare $binding still validates (structural superset of PropBinding)

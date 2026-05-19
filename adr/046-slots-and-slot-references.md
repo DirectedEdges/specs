@@ -352,7 +352,7 @@ In all cases the consumer receives an `anatomy + elements + layout` triplet. If 
 - **`SlotContent` does not have `slotContent` on it.** A `SlotContent` entry's elements can reference other fills via `$slotContent` pointers, but it does not carry its own bundled fills. Bundling happens at the `Composition` level. This keeps `SlotContent` as a pure structural triplet and ensures there is always one clear place — the `Composition` — where related fills are grouped.
 - **`slotContent` on `Composition` is an authoring convenience, not a scope boundary.** Pointers inside a `slotContent` entry can reference content outside the parent composition (other compositions, component-scoped fills). The grouping is for the author's benefit, not a namespace.
 - **`$slotContent` names the act, not the target type.** The pointer key communicates "this is slot fill content" at the call site, regardless of whether the target is a `Composition` (with metadata) or a `SlotContent` (anonymous). Both yield `anatomy + elements + layout` to the consumer.
-- **Where `SlotContentRef` is consumed.** This ADR introduces the type; the fields that accept it are established in ADR-047 (`SlotBinding.$extensions['com.figma'].default` — as a plain string pointer) and ADR-049 (`Element.propConfigurations.<slotName>` — as a `SlotContentRef` object).
+- **Where `SlotContentRef` is consumed.** This ADR introduces the type; the fields that accept it are established in ADR-047 (`SlotBinding.examples: SlotContentRef[]` — Figma authoring default at index 0) and ADR-049 (`Element.propConfigurations.<slotName>` — as a `SlotContentRef` object).
 
 ---
 
