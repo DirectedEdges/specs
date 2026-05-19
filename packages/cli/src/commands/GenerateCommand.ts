@@ -132,8 +132,8 @@ export const Generate = new Command('generate')
       // Auto-detect mode by content
       const sourceContent = await fs.readFile(sourcePath, 'utf-8');
       const trimmed = sourceContent.trimStart();
-      const isManifest = trimmed.includes('- [');
       const isJson = trimmed.startsWith('{');
+      const isManifest = !isJson && trimmed.includes('- [');
 
       if (!isManifest && !isJson) {
         console.error('Error: Unrecognized source format. Expected JSON file or markdown manifest.');
