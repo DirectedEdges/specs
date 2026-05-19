@@ -40,7 +40,64 @@ The existing `Element.children` type (`string[] | PropBinding` — plain-frame c
 
 ## Options Considered
 
-### Option A: `Component.slotContentExamples: Record<string, SlotContent>` + `SlotBinding.$extensions['com.figma'].default` *(Selected)*
+### Option A: `Component.slotContentExamples: Record<string, SlotContent>` + `SlotBinding.examples: SlotContentRef[]`
+
+A new top-level field `Component.slotContentExamples` holds named `SlotContent` entries — sibling to `Component.instanceExamples` (ADR-048). `SlotContent` is defined in ADR-046.
+
+A new interface `SlotBinding` extends `PropBinding` with an optional `examples` field: an array of `SlotContentRef` (ADR-046's universal `{ $slotContent: <pointer> }` discriminated reference). `Children` widens from `string[] | PropBinding` to `string[] | SlotBinding`. For now, `examples` always carries a single entry at index 0 — Figma's default fill for the slot layer — but the array shape leaves room for additional authored example fills in the future without further schema change.
+
+This generalizes the existing `examples` convention already established for typed props in `Props.ts`: `StringProp.examples: string[]` and `NumberProp.examples: number[]` hold sample values demonstrating typical content for the prop, and `StringProp.default` is already deprecated (`@deprecated Use examples for demo content`) in favor of `examples`. The same convention here scales from scalar prop values to structural slot fills: `SlotBinding.examples: SlotContentRef[]` is the slot-binding analogue.
+
+```yaml
+# ActionListItem — slotContentExamples and SlotBinding together
+components:
+  actionListItem:
+    props:
+      startVisual: { type: slot }
+
+    slotContentExamples:
+      searchIcon:
+        anatomy:
+          icon: { type: glyph }
+        elements:
+          icon:
+            content: search
+            styles: { width: 16, height: 16 }
+        layout: [icon]
+
+    default:
+      elements:
+        startVisualSlot:
+          children:
+            $binding: "#/components/actionListItem/props/startVisual"
+            examples:
+              - $slotContent: "#/components/actionListItem/slotContentExamples/searchIcon"
+```
+
+Each `examples[i]` resolves using the same rules as any `SlotContentRef` (ADR-046): the `$slotContent` value is a JSON Pointer to a `SlotContent` in `slotContentExamples` or to a `Composition` in an external compositions file.
+
+#### Naming `examples`
+
+- **`examples`** — mirrors the existing `-Examples` convention already established by `slotContentExamples` and `instanceExamples` (ADR-048): a field that holds authored, non-contractual reference material. Code consumers that understand the `examples` convention skip it the same way they skip `slotContentExamples` and `instanceExamples` at the component level.
+- **`exampleContent`** / **`exampleFills`** — more descriptive but introduce a one-off term where `examples` already carries the right meaning in context.
+- **`$extensions['com.figma'].default`** — see Option B; trades the consistent `examples` convention for explicit design-tool-provenance framing.
+
+**Pros**:
+- Reuses the existing `examples` convention already in use on `StringProp` and `NumberProp` (where `default` is deprecated in its favor) — single mental model for "authored, non-contractual sample content" across `Props` (scalar `examples`), `SlotBinding` (structural `examples`), and `Component` (`slotContentExamples`, `instanceExamples`).
+- Uses the universal `SlotContentRef` (`$slotContent`) from ADR-046 — same reference shape that `propConfigurations.<slotName>` (ADR-049) uses; one resolver covers all slot-content reference sites.
+- Array shape is future-proof — additional authored example fills can be added without widening the schema again (current emitter writes only index 0).
+- No DTCG `$extensions` namespacing required for what is, conceptually, an example rather than platform metadata.
+- `SlotBinding extends PropBinding` — existing `children: { $binding }` values still validate; `examples` is optional. Per-variant Figma defaults still fall out for free.
+
+**Cons / Trade-offs**:
+- Loses the explicit "design-tool provenance" signal that `$extensions['com.figma']` carries. `examples` is a neutral name; the fact that Figma populates index 0 with the slot layer's authored content is a producer convention, not a schema-level guarantee.
+- Two sibling fields on `Component` (`slotContentExamples`, `instanceExamples`) — unchanged from Option B.
+- Schema cannot enforce that `$slotContent` pointers in `examples` resolve — consumer validation concern (same as Option B).
+- Array-with-always-one-item carries minor structural overhead today for capacity that only matters later.
+
+---
+
+### Option B: `Component.slotContentExamples: Record<string, SlotContent>` + `SlotBinding.$extensions['com.figma'].default` *(Selected)*
 
 A new top-level field `Component.slotContentExamples` holds named `SlotContent` entries — sibling to `Component.instanceExamples` (ADR-048). `SlotContent` is defined in ADR-046.
 
@@ -103,7 +160,7 @@ The `default` value resolves using the same rules as `$slotContent` (ADR-046): i
 
 ---
 
-### Option B: `SlotExample` type; entries bundled in `Component.instanceExamples` *(Rejected)*
+### Option C: `SlotExample` type; entries bundled in `Component.instanceExamples` *(Rejected)*
 
 Introduce `SlotExample extends SlotContent` with an added `slot: string`; widen `Component.instanceExamples` to `ComponentExample = InstanceExample | SlotExample` discriminated by a `kind` field.
 
@@ -114,7 +171,7 @@ Introduce `SlotExample extends SlotContent` with an added `slot: string`; widen 
 
 ---
 
-### Option C: Slot default on `SlotProp.default` *(Rejected)*
+### Option D: Slot default on `SlotProp.default` *(Rejected)*
 
 Store the default-content reference on `SlotProp.default`.
 
@@ -122,7 +179,7 @@ Store the default-content reference on `SlotProp.default`.
 
 ---
 
-### Option D: Separate slot-content file *(Rejected)*
+### Option E: Separate slot-content file *(Rejected)*
 
 Store slot content in a separate file alongside the component definition.
 
@@ -130,7 +187,7 @@ Store slot content in a separate file alongside the component definition.
 
 ---
 
-### Option E: New top-level field on `Element` *(Rejected)*
+### Option F: New top-level field on `Element` *(Rejected)*
 
 Place the Figma default-fill reference as a new sibling field on `Element` (`defaultContent`, `defaultChildren`, or similar) alongside `content` and `children`.
 
@@ -141,7 +198,7 @@ Place the Figma default-fill reference as a new sibling field on `Element` (`def
 
 ---
 
-### Option F: Widen `Element.content` to accept slot-content keys *(Rejected)*
+### Option G: Widen `Element.content` to accept slot-content keys *(Rejected)*
 
 When `Element.children` is a slot binding, interpret a string in `Element.content` as a key into `slotContentExamples` instead of as literal text.
 
