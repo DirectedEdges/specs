@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { ManifestParserV2 } from '../../../src/utilities/ManifestParserV2.js';
+import { describe, it, expect } from "vitest";
+import { ManifestParserV2 } from "../../../src/utilities/ManifestParserV2.js";
 
 const V2_FIXTURE = `# Component Manifest
 
@@ -20,47 +20,76 @@ const V2_FIXTURE = `# Component Manifest
 | [x] | Card | 1:45 | COMPONENT | NONE |
 `;
 
-describe('ManifestParserV2', () => {
-  it('detects v2 from header', () => {
+describe("ManifestParserV2", () => {
+  it("detects v2 from header", () => {
     expect(ManifestParserV2.isV2(V2_FIXTURE)).toBe(true);
   });
 
-  it('does not detect v1 (checkbox-list) as v2', () => {
-    const v1 = '# Component Manifest\n\n**File:** x.json\n\n- [x] Button (1:23, COMPONENT_SET)\n';
+  it("does not detect v1 (checkbox-list) as v2", () => {
+    const v1 =
+      "# Component Manifest\n\n**File:** x.json\n\n- [x] Button (1:23, COMPONENT_SET)\n";
     expect(ManifestParserV2.isV2(v1)).toBe(false);
   });
 
-  it('parses metadata fields', () => {
+  it("parses metadata fields", () => {
     const { metadata } = ManifestParserV2.parse(V2_FIXTURE);
     expect(metadata.scanFormatVersion).toBe(2);
-    expect(metadata.file).toBe('data/specs-testing.file.json');
-    expect(metadata.variables).toBe('data/specs-testing.variables.json');
-    expect(metadata.fileLastModified).toBe('2026-05-08T17:48:26Z');
+    expect(metadata.file).toBe("data/specs-testing.file.json");
+    expect(metadata.variables).toBe("data/specs-testing.variables.json");
+    expect(metadata.fileLastModified).toBe("2026-05-08T17:48:26Z");
   });
 
-  it('parses rows with checkbox, type and devStatus', () => {
+  it("parses rows with checkbox, type and devStatus", () => {
     const { components } = ManifestParserV2.parse(V2_FIXTURE);
     expect(components).toHaveLength(3);
     expect(components[0]).toEqual({
-      id: '397:37',
-      name: 'TEST PropBinding 1',
-      type: 'COMPONENT_SET',
+      id: "397:37",
+      name: "TEST PropBinding 1",
+      type: "COMPONENT_SET",
       included: true,
-      devStatus: 'READY_FOR_DEV'
+      devStatus: "READY_FOR_DEV",
     });
     expect(components[1].included).toBe(false);
-    expect(components[1].devStatus).toBe('NONE');
-    expect(components[2]).toMatchObject({ id: '1:45', type: 'COMPONENT', included: true, devStatus: 'NONE' });
+    expect(components[1].devStatus).toBe("NONE");
+    expect(components[2]).toMatchObject({
+      id: "1:45",
+      type: "COMPONENT",
+      included: true,
+      devStatus: "NONE",
+    });
   });
 
-  it('ignores non-row lines (header separator, prose)', () => {
+  it("ignores non-row lines (header separator, prose)", () => {
     const { components } = ManifestParserV2.parse(V2_FIXTURE);
-    expect(components.every(c => /^\d+:\d+$/.test(c.id))).toBe(true);
+    expect(components.every((c) => /^\d+:\d+$/.test(c.id))).toBe(true);
   });
 
-  it('returns empty components when no table rows present', () => {
-    const empty = '**Scan format version:** 2\n\n## Components\n\n| ✓ | Name | ID | Type | Dev Status |\n|---|---|---|---|---|\n';
+  it("returns empty components when no table rows present", () => {
+    const empty =
+      "**Scan format version:** 2\n\n## Components\n\n| ✓ | Name | ID | Type | Dev Status |\n|---|---|---|---|---|\n";
     const { components } = ManifestParserV2.parse(empty);
     expect(components).toEqual([]);
+  });
+
+  it("honors escaped pipes inside component names", () => {
+    const fixture = `**Scan format version:** 2
+
+## Components
+
+| ✓ | Name | ID | Type | Dev Status |
+|------|------|------|------|------------|
+| [x] | Toggle \\| On/Off | 99:1 | COMPONENT | NONE |
+| [x] | .base button | 12719:50050 | COMPONENT_SET | NONE |
+`;
+    const { components } = ManifestParserV2.parse(fixture);
+    expect(components).toHaveLength(2);
+    expect(components[0]).toEqual({
+      id: "99:1",
+      name: "Toggle | On/Off",
+      type: "COMPONENT",
+      included: true,
+      devStatus: "NONE",
+    });
+    expect(components[1].name).toBe(".base button");
   });
 });

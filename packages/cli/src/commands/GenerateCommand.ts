@@ -8,28 +8,36 @@
  * Both modes use Components.fromRestApi() batch API.
  */
 
-import { Command } from 'commander';
-import fs from 'fs-extra';
-import path from 'path';
-import yaml from 'yaml';
-import { Components } from '@directededges/specs-from-figma';
-import type { ProgressEvent, RestLicenseInput } from '@directededges/specs-from-figma';
-import { ConfigLoader } from '../Config/ConfigLoader.js';
-import { loadFoundations } from '../utilities/loadFoundations.js';
-import { ManifestParser } from '../utilities/ManifestParser.js';
-import { LicenseStatus } from '../utilities/LicenseStatus.js';
-import { FileManifest } from '../Writers/FileManifest.js';
-import { SingleFileWriter } from '../Writers/SingleFileWriter.js';
-import { ComponentFileWriter } from '../Writers/ComponentFileWriter.js';
-import { ConcernFileWriter } from '../Writers/ConcernFileWriter.js';
-import { CombinedFileWriter } from '../Writers/CombinedFileWriter.js';
-import type { FileWriter, WriteResult } from '../Writers/FileWriter.js';
-import type { OutputFormat } from '../Types/OutputConfig.js';
+import { Command } from "commander";
+import fs from "fs-extra";
+import path from "path";
+import yaml from "yaml";
+import { Components } from "@directededges/specs-from-figma";
+import type {
+  ProgressEvent,
+  RestLicenseInput,
+} from "@directededges/specs-from-figma";
+import { ConfigLoader } from "../Config/ConfigLoader.js";
+import { loadFoundations } from "../utilities/loadFoundations.js";
+import { ManifestParser } from "../utilities/ManifestParser.js";
+import { ManifestParserV2 } from "../utilities/ManifestParserV2.js";
+import { isV1Manifest } from "../utilities/ManifestMigrationV1ToV2.js";
+import { LicenseStatus } from "../utilities/LicenseStatus.js";
+import { FileManifest } from "../Writers/FileManifest.js";
+import { SingleFileWriter } from "../Writers/SingleFileWriter.js";
+import { ComponentFileWriter } from "../Writers/ComponentFileWriter.js";
+import { ConcernFileWriter } from "../Writers/ConcernFileWriter.js";
+import { CombinedFileWriter } from "../Writers/CombinedFileWriter.js";
+import type { FileWriter, WriteResult } from "../Writers/FileWriter.js";
+import type { OutputFormat } from "../Types/OutputConfig.js";
 
 // Re-export for backward compatibility
-export { ManifestParser } from '../utilities/ManifestParser.js';
-export type { ManifestComponent, ManifestMetadata } from '../utilities/ManifestParser.js';
-export { LicenseStatus } from '../utilities/LicenseStatus.js';
+export { ManifestParser } from "../utilities/ManifestParser.js";
+export type {
+  ManifestComponent,
+  ManifestMetadata,
+} from "../utilities/ManifestParser.js";
+export { LicenseStatus } from "../utilities/LicenseStatus.js";
 
 // Error codes from contracts/error-codes.md
 const ERROR_CODES = {
@@ -40,7 +48,7 @@ const ERROR_CODES = {
   NETWORK_ERROR: 4,
   AUTH_ERROR: 5,
   RATE_LIMIT: 6,
-  COMPONENT_NOT_FOUND: 7
+  COMPONENT_NOT_FOUND: 7,
 };
 
 interface GenerateOptions {
@@ -58,21 +66,39 @@ interface GenerateOptions {
   useSubfolders?: boolean;
 }
 
-export const Generate = new Command('generate')
-  .description('Generate component specifications from Figma data or manifest')
-  .argument('[source]', 'Path to Figma JSON file or markdown manifest (default: {dataDirectory}/{alias}.manifest.md from config)')
-  .option('-c, --component <name|id>', 'Component name or ID (required for file mode)')
-  .option('-l, --license <key>', 'License key for premium features (or set SPECS_LICENSE_KEY)')
-  .option('-f, --format <format>', 'Output format (yaml or json) - overrides config')
-  .option('-o, --output <path>', 'Output file or directory path')
-  .option('-v, --variables <path>', 'External variables JSON file')
-  .option('-s, --styles <path>', 'External styles JSON file')
-  .option('--data-dir <dir>', 'Override data directory for loading source files')
-  .option('--config <path>', 'Path to config file (specs.config.yaml)')
-  .option('--split-components', 'Create separate file per component')
-  .option('--split-concerns', 'Separate API and variants into different files')
-  .option('--use-subfolders', 'Organize component files in subdirectories (requires --split-components)')
-  .option('--verbose', 'Enable detailed logging', false)
+export const Generate = new Command("generate")
+  .description("Generate component specifications from Figma data or manifest")
+  .argument(
+    "[source]",
+    "Path to Figma JSON file or markdown manifest (default: {dataDirectory}/{alias}.manifest.md from config)",
+  )
+  .option(
+    "-c, --component <name|id>",
+    "Component name or ID (required for file mode)",
+  )
+  .option(
+    "-l, --license <key>",
+    "License key for premium features (or set SPECS_LICENSE_KEY)",
+  )
+  .option(
+    "-f, --format <format>",
+    "Output format (yaml or json) - overrides config",
+  )
+  .option("-o, --output <path>", "Output file or directory path")
+  .option("-v, --variables <path>", "External variables JSON file")
+  .option("-s, --styles <path>", "External styles JSON file")
+  .option(
+    "--data-dir <dir>",
+    "Override data directory for loading source files",
+  )
+  .option("--config <path>", "Path to config file (specs.config.yaml)")
+  .option("--split-components", "Create separate file per component")
+  .option("--split-concerns", "Separate API and variants into different files")
+  .option(
+    "--use-subfolders",
+    "Organize component files in subdirectories (requires --split-components)",
+  )
+  .option("--verbose", "Enable detailed logging", false)
   .action(async (source: string | undefined, options: GenerateOptions) => {
     try {
       // Load configuration (needed to resolve default source path)
@@ -89,28 +115,41 @@ export const Generate = new Command('generate')
         ? path.resolve(options.dataDir)
         : config.dataDirectory
           ? path.resolve(config.dataDirectory)
-          : path.join(process.cwd(), 'data');
+          : path.join(process.cwd(), "data");
 
       // Resolve default source path: {dataDirectory}/{alias}.manifest.md
       // Alias preference: `library` if configured with `data: [file]`, else first source with `data: [file]`.
       if (!source) {
         const sources = config.sources || {};
         const defaultAlias = (() => {
-          if (sources.library && Array.isArray(sources.library.data) && sources.library.data.includes('file')) return 'library';
-          const candidate = Object.entries(sources).find(([, s]) => Array.isArray(s.data) && s.data.includes('file'));
+          if (
+            sources.library &&
+            Array.isArray(sources.library.data) &&
+            sources.library.data.includes("file")
+          )
+            return "library";
+          const candidate = Object.entries(sources).find(
+            ([, s]) => Array.isArray(s.data) && s.data.includes("file"),
+          );
           return candidate ? candidate[0] : null;
         })();
 
         if (!defaultAlias) {
-          console.error('Error: No source argument provided and no default manifest could be resolved');
-          console.error('Tip: run `specs scan` to generate a manifest, or configure a source with `data: [file]` in specs.config.yaml');
+          console.error(
+            "Error: No source argument provided and no default manifest could be resolved",
+          );
+          console.error(
+            "Tip: run `specs scan` to generate a manifest, or configure a source with `data: [file]` in specs.config.yaml",
+          );
           process.exit(ERROR_CODES.INVALID_ARGS);
         }
 
         source = path.join(sourceDir, `${defaultAlias}.manifest.md`);
 
         if (options.verbose) {
-          console.log(`[CLI] Using default manifest: ${path.relative(process.cwd(), source)}`);
+          console.log(
+            `[CLI] Using default manifest: ${path.relative(process.cwd(), source)}`,
+          );
         }
       }
 
@@ -123,25 +162,29 @@ export const Generate = new Command('generate')
       // Validate source exists
       if (!fs.existsSync(sourcePath)) {
         console.error(`Error: Source file not found: ${source}`);
-        if (source.endsWith('.manifest.md')) {
-          console.error('Tip: run `specs scan` to generate the manifest');
+        if (source.endsWith(".manifest.md")) {
+          console.error("Tip: run `specs scan` to generate the manifest");
         }
         process.exit(ERROR_CODES.FILE_ERROR);
       }
 
       // Auto-detect mode by content
-      const sourceContent = await fs.readFile(sourcePath, 'utf-8');
+      const sourceContent = await fs.readFile(sourcePath, "utf-8");
       const trimmed = sourceContent.trimStart();
-      const isManifest = trimmed.includes('- [');
-      const isJson = trimmed.startsWith('{');
+      const isJson = trimmed.startsWith("{");
+      const isV2ManifestSrc = ManifestParserV2.isV2(sourceContent);
+      const isV1ManifestSrc = !isV2ManifestSrc && isV1Manifest(sourceContent);
+      const isManifest = isV2ManifestSrc || isV1ManifestSrc;
 
       if (!isManifest && !isJson) {
-        console.error('Error: Unrecognized source format. Expected JSON file or markdown manifest.');
+        console.error(
+          "Error: Unrecognized source format. Expected JSON file or markdown manifest.",
+        );
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
 
       if (options.verbose) {
-        console.log(`[CLI] Mode: ${isManifest ? 'manifest' : 'file'}`);
+        console.log(`[CLI] Mode: ${isManifest ? "manifest" : "file"}`);
       }
 
       // ---------------------------------------------------------------
@@ -154,39 +197,60 @@ export const Generate = new Command('generate')
       if (isManifest) {
         // MANIFEST MODE
         if (!options.output && !config.outputDirectory) {
-          console.error('Error: Specify --output or set outputDirectory in config');
+          console.error(
+            "Error: Specify --output or set outputDirectory in config",
+          );
           process.exit(ERROR_CODES.INVALID_ARGS);
         }
 
-        const { components, metadata } = ManifestParser.parse(sourceContent);
+        const { components, metadata } = isV2ManifestSrc
+          ? ManifestParserV2.parse(sourceContent)
+          : ManifestParser.parse(sourceContent);
 
         if (components.length === 0) {
-          console.error('Error: No components found in manifest');
+          console.error("Error: No components found in manifest");
           process.exit(ERROR_CODES.INVALID_ARGS);
         }
 
-        const selectedComponents = components.filter(c => c.included);
+        const selectedComponents = components.filter((c) => c.included);
 
         if (selectedComponents.length === 0) {
-          console.error('Error: No components selected in manifest (none have [x])');
+          console.error(
+            "Error: No components selected in manifest (none have [x])",
+          );
           process.exit(ERROR_CODES.INVALID_ARGS);
         }
 
-        console.log(`✓ Loaded manifest: ${components.length} components (${selectedComponents.length} selected)`);
+        console.log(
+          `✓ Loaded manifest: ${components.length} components (${selectedComponents.length} selected)`,
+        );
 
         // Determine source file
         const componentSourceAlias = (() => {
           const sources = config.sources || {};
-          if (sources.library && Array.isArray(sources.library.data) && sources.library.data.includes('file')) return 'library';
-          const candidates = Object.entries(sources).filter(([, s]) => Array.isArray(s.data) && s.data.includes('file'));
+          if (
+            sources.library &&
+            Array.isArray(sources.library.data) &&
+            sources.library.data.includes("file")
+          )
+            return "library";
+          const candidates = Object.entries(sources).filter(
+            ([, s]) => Array.isArray(s.data) && s.data.includes("file"),
+          );
           return candidates.length > 0 ? candidates[0][0] : null;
         })();
 
-        const sourceFile = metadata.file || (componentSourceAlias ? path.join(sourceDir, `${componentSourceAlias}.file.json`) : undefined);
+        const sourceFile =
+          metadata.file ||
+          (componentSourceAlias
+            ? path.join(sourceDir, `${componentSourceAlias}.file.json`)
+            : undefined);
 
         if (!sourceFile) {
-          console.error('Error: No component source file specified');
-          console.error('Include **File:** in the manifest header (from `specs audit`) or configure a source alias with `data: [file]` in specs.config.yaml');
+          console.error("Error: No component source file specified");
+          console.error(
+            "Include **File:** in the manifest header (from `specs audit`) or configure a source alias with `data: [file]` in specs.config.yaml",
+          );
           process.exit(ERROR_CODES.INVALID_ARGS);
         }
 
@@ -196,17 +260,23 @@ export const Generate = new Command('generate')
         }
 
         libraryJson = await fs.readJSON(sourceFile);
-        componentIds = selectedComponents.map(c => c.id);
-        componentNames = new Map(selectedComponents.map(c => [c.id, c.name]));
+        componentIds = selectedComponents.map((c) => c.id);
+        componentNames = new Map(selectedComponents.map((c) => [c.id, c.name]));
 
         if (options.verbose) {
-          console.log(`[CLI] File loaded: ${libraryJson.name || path.basename(sourceFile)}`);
+          console.log(
+            `[CLI] File loaded: ${libraryJson.name || path.basename(sourceFile)}`,
+          );
         }
       } else {
         // FILE MODE
         if (!options.component) {
-          console.error('Error: --component is required when source is a JSON file');
-          console.error('Usage: specs generate <file.json> -c <component-name|id>');
+          console.error(
+            "Error: --component is required when source is a JSON file",
+          );
+          console.error(
+            "Usage: specs generate <file.json> -c <component-name|id>",
+          );
           process.exit(ERROR_CODES.INVALID_ARGS);
         }
 
@@ -219,7 +289,9 @@ export const Generate = new Command('generate')
         componentNames = new Map([[options.component, resolvedName]]);
 
         if (options.verbose) {
-          console.log(`[CLI] File loaded: ${libraryJson.name || path.basename(sourcePath)}`);
+          console.log(
+            `[CLI] File loaded: ${libraryJson.name || path.basename(sourcePath)}`,
+          );
         }
       }
 
@@ -227,45 +299,64 @@ export const Generate = new Command('generate')
       // Load foundations
       // ---------------------------------------------------------------
       const fileDir = isManifest ? sourceDir : path.dirname(sourcePath);
-      const foundationsDir = path.basename(fileDir) === 'foundations'
-        ? fileDir
-        : path.join(fileDir, 'foundations');
+      const foundationsDir =
+        path.basename(fileDir) === "foundations"
+          ? fileDir
+          : path.join(fileDir, "foundations");
 
       const variablesPaths = options.variables
         ? [path.resolve(options.variables)]
         : Object.entries(config.sources || {})
-            .filter(([, s]) => Array.isArray(s.data) && s.data.includes('variables'))
+            .filter(
+              ([, s]) => Array.isArray(s.data) && s.data.includes("variables"),
+            )
             .map(([alias]) => path.join(sourceDir, `${alias}.variables.json`))
-            .filter(p => p.length > 0);
+            .filter((p) => p.length > 0);
 
       const stylesPaths = options.styles
         ? [path.resolve(options.styles)]
         : Object.entries(config.sources || {})
-            .filter(([, s]) => Array.isArray(s.data) && s.data.includes('styles'))
+            .filter(
+              ([, s]) => Array.isArray(s.data) && s.data.includes("styles"),
+            )
             .map(([alias]) => path.join(sourceDir, `${alias}.styles.json`))
-            .filter(p => p.length > 0);
+            .filter((p) => p.length > 0);
 
       // Auto-discovery fallback for file mode
-      const finalVariablesPaths = variablesPaths.length > 0 ? variablesPaths : (isManifest ? [] : [path.join(foundationsDir, 'variables.json')]);
-      const finalStylesPaths = stylesPaths.length > 0 ? stylesPaths : (isManifest ? [] : [path.join(foundationsDir, 'styles.json')]);
+      const finalVariablesPaths =
+        variablesPaths.length > 0
+          ? variablesPaths
+          : isManifest
+            ? []
+            : [path.join(foundationsDir, "variables.json")];
+      const finalStylesPaths =
+        stylesPaths.length > 0
+          ? stylesPaths
+          : isManifest
+            ? []
+            : [path.join(foundationsDir, "styles.json")];
 
       if (options.verbose) {
         for (const p of finalVariablesPaths) {
           if (fs.existsSync(p)) {
-            console.log(`[CLI] Found variables: ${path.relative(process.cwd(), p)}`);
+            console.log(
+              `[CLI] Found variables: ${path.relative(process.cwd(), p)}`,
+            );
           }
         }
         for (const p of finalStylesPaths) {
           if (fs.existsSync(p)) {
-            console.log(`[CLI] Found styles: ${path.relative(process.cwd(), p)}`);
+            console.log(
+              `[CLI] Found styles: ${path.relative(process.cwd(), p)}`,
+            );
           }
         }
       }
 
       const { styles, variables, collections } = await loadFoundations(
-        finalVariablesPaths.filter(p => fs.existsSync(p)),
-        finalStylesPaths.filter(p => fs.existsSync(p)),
-        libraryJson
+        finalVariablesPaths.filter((p) => fs.existsSync(p)),
+        finalStylesPaths.filter((p) => fs.existsSync(p)),
+        libraryJson,
       );
 
       if (options.verbose) {
@@ -278,15 +369,20 @@ export const Generate = new Command('generate')
       // ---------------------------------------------------------------
       // Resolve license
       // ---------------------------------------------------------------
-      const licenseKey = options.license || process.env.SPECS_LICENSE_KEY || process.env.ANOVA_LICENSE_KEY;
-      const licenseInput: RestLicenseInput | undefined = licenseKey ? { key: licenseKey } : undefined;
+      const licenseKey =
+        options.license ||
+        process.env.SPECS_LICENSE_KEY ||
+        process.env.ANOVA_LICENSE_KEY;
+      const licenseInput: RestLicenseInput | undefined = licenseKey
+        ? { key: licenseKey }
+        : undefined;
 
       // ---------------------------------------------------------------
       // Process components via batch API
       // ---------------------------------------------------------------
       if (isManifest) {
         console.log(`⏳ Processing ${componentIds.length} components...`);
-        console.log('');
+        console.log("");
       }
 
       const results = await Components.fromRestApi(
@@ -297,12 +393,20 @@ export const Generate = new Command('generate')
         (event: ProgressEvent) => {
           if (!isManifest) {
             // File mode: quiet progress (verbose only)
-            if (options.verbose) console.log(`[CLI] ${event.status}: ${event.component}`);
+            if (options.verbose)
+              console.log(`[CLI] ${event.status}: ${event.component}`);
           } else {
             // Manifest mode: per-component progress
-            const symbol = event.status === 'error' ? '✗' : event.status === 'success' ? '✓' : '…';
-            process.stdout.write(`\r[${event.index + 1}/${event.total}] ${componentNames.get(event.component) || event.component}... ${symbol}`);
-            if (event.status !== 'processing') process.stdout.write('\n');
+            const symbol =
+              event.status === "error"
+                ? "✗"
+                : event.status === "success"
+                  ? "✓"
+                  : "…";
+            process.stdout.write(
+              `\r[${event.index + 1}/${event.total}] ${componentNames.get(event.component) || event.component}... ${symbol}`,
+            );
+            if (event.status !== "processing") process.stdout.write("\n");
           }
         },
         licenseInput,
@@ -311,9 +415,10 @@ export const Generate = new Command('generate')
       // ---------------------------------------------------------------
       // Hard-fail: wrong-runtime license key → AUTH_ERROR
       // ---------------------------------------------------------------
-      if (results.length > 0 && results.every(r => 'error' in r)) {
-        const firstError = (results[0] as { name: string; error: string }).error;
-        if (firstError.includes('not valid for this runtime')) {
+      if (results.length > 0 && results.every((r) => "error" in r)) {
+        const firstError = (results[0] as { name: string; error: string })
+          .error;
+        if (firstError.includes("not valid for this runtime")) {
           console.error(`Error: ${firstError}`);
           process.exit(ERROR_CODES.AUTH_ERROR);
         }
@@ -322,13 +427,19 @@ export const Generate = new Command('generate')
       // ---------------------------------------------------------------
       // Separate successes and errors
       // ---------------------------------------------------------------
-      const processedComponents: Array<{ name: string; spec: Record<string, unknown> }> = [];
+      const processedComponents: Array<{
+        name: string;
+        spec: Record<string, unknown>;
+      }> = [];
       const errors: Array<{ component: string; error: string }> = [];
 
       for (const result of results) {
-        if ('component' in result) {
+        if ("component" in result) {
           const displayName = componentNames.get(result.name) || result.name;
-          processedComponents.push({ name: displayName, spec: result.component as Record<string, unknown> });
+          processedComponents.push({
+            name: displayName,
+            spec: result.component as Record<string, unknown>,
+          });
         } else {
           const displayName = componentNames.get(result.name) || result.name;
           errors.push({ component: displayName, error: result.error });
@@ -337,7 +448,7 @@ export const Generate = new Command('generate')
 
       // Display summary for manifest mode
       if (isManifest) {
-        console.log('');
+        console.log("");
         console.log(`✓ Generated specs`);
         console.log(`  - ${processedComponents.length} components successful`);
         if (errors.length > 0) {
@@ -354,9 +465,11 @@ export const Generate = new Command('generate')
       // Handle file mode errors
       if (!isManifest && errors.length > 0) {
         const msg = errors[0].error;
-        if (msg.includes('Component not found') || msg.includes('not found')) {
+        if (msg.includes("Component not found") || msg.includes("not found")) {
           console.error(`Error: ${msg}`);
-          console.error(`Tip: Use a component name like "DS Alert" or component ID like "123:456"`);
+          console.error(
+            `Tip: Use a component name like "DS Alert" or component ID like "123:456"`,
+          );
           process.exit(ERROR_CODES.COMPONENT_NOT_FOUND);
         }
         console.error(`Error: ${msg}`);
@@ -364,7 +477,7 @@ export const Generate = new Command('generate')
       }
 
       if (processedComponents.length === 0) {
-        console.error('Error: No components were successfully processed');
+        console.error("Error: No components were successfully processed");
         process.exit(ERROR_CODES.GENERAL_ERROR);
       }
 
@@ -377,9 +490,10 @@ export const Generate = new Command('generate')
           ? options.format.toLowerCase()
           : modelConfig.format.output.toLowerCase();
 
-        const formattedOutput = outputFormat === 'yaml'
-          ? yaml.stringify(componentData)
-          : JSON.stringify(componentData, null, 2);
+        const formattedOutput =
+          outputFormat === "yaml"
+            ? yaml.stringify(componentData)
+            : JSON.stringify(componentData, null, 2);
 
         console.log(formattedOutput);
         process.exit(ERROR_CODES.SUCCESS);
@@ -390,15 +504,18 @@ export const Generate = new Command('generate')
       // File output via manifest + writer
       // ---------------------------------------------------------------
       const resolvedFormat: OutputFormat = options.format
-        ? options.format.toLowerCase() as OutputFormat
-        : modelConfig.format.output.toLowerCase() as OutputFormat;
+        ? (options.format.toLowerCase() as OutputFormat)
+        : (modelConfig.format.output.toLowerCase() as OutputFormat);
 
       const outputConfig = {
         ...config.output,
-        splitComponents: options.splitComponents ?? config.output?.splitComponents ?? false,
-        splitConcerns: options.splitConcerns ?? config.output?.splitConcerns ?? false,
-        useSubfolders: options.useSubfolders ?? config.output?.useSubfolders ?? false,
-        defaultFormat: resolvedFormat
+        splitComponents:
+          options.splitComponents ?? config.output?.splitComponents ?? false,
+        splitConcerns:
+          options.splitConcerns ?? config.output?.splitConcerns ?? false,
+        useSubfolders:
+          options.useSubfolders ?? config.output?.useSubfolders ?? false,
+        defaultFormat: resolvedFormat,
       };
 
       let outputPath: string;
@@ -414,20 +531,32 @@ export const Generate = new Command('generate')
 
       // When in single-file mode and outputPath is an existing directory,
       // append a default filename so we don't try to open a directory as a file
-      const isSingleFileMode = !outputConfig.splitComponents && !outputConfig.splitConcerns;
-      if (isSingleFileMode && fs.existsSync(outputPath) && fs.statSync(outputPath).isDirectory()) {
+      const isSingleFileMode =
+        !outputConfig.splitComponents && !outputConfig.splitConcerns;
+      if (
+        isSingleFileMode &&
+        fs.existsSync(outputPath) &&
+        fs.statSync(outputPath).isDirectory()
+      ) {
         outputPath = path.join(outputPath, `library.${resolvedFormat}`);
       }
 
-      const baseDir = outputConfig.splitComponents || outputConfig.splitConcerns
-        ? outputPath
-        : path.dirname(outputPath);
+      const baseDir =
+        outputConfig.splitComponents || outputConfig.splitConcerns
+          ? outputPath
+          : path.dirname(outputPath);
 
-      const outputFileName = (!outputConfig.splitComponents && !outputConfig.splitConcerns)
-        ? path.basename(outputPath)
-        : undefined;
+      const outputFileName =
+        !outputConfig.splitComponents && !outputConfig.splitConcerns
+          ? path.basename(outputPath)
+          : undefined;
 
-      const manifest = new FileManifest(processedComponents, outputConfig, baseDir, outputFileName);
+      const manifest = new FileManifest(
+        processedComponents,
+        outputConfig,
+        baseDir,
+        outputFileName,
+      );
 
       // Select appropriate writer
       let writer: FileWriter;
@@ -444,25 +573,28 @@ export const Generate = new Command('generate')
       const writeResult: WriteResult = await writer.write(manifest);
 
       if (writeResult.warnings.length > 0) {
-        writeResult.warnings.forEach(warning => console.log(warning));
+        writeResult.warnings.forEach((warning) => console.log(warning));
       }
 
       if (writeResult.errors.length > 0) {
-        writeResult.errors.forEach(error => console.error(`Error: ${error}`));
+        writeResult.errors.forEach((error) => console.error(`Error: ${error}`));
         process.exit(ERROR_CODES.FILE_ERROR);
       }
 
       if (writeResult.filesWritten.length === 1) {
         console.log(`✓ Saved to ${writeResult.filesWritten[0]}`);
       } else {
-        console.log(`✓ Generated ${writeResult.filesWritten.length} files in ${path.relative(process.cwd(), baseDir)}/`);
-        writeResult.filesWritten.forEach(file => {
+        console.log(
+          `✓ Generated ${writeResult.filesWritten.length} files in ${path.relative(process.cwd(), baseDir)}/`,
+        );
+        writeResult.filesWritten.forEach((file) => {
           console.log(`  ${file}`);
         });
       }
 
-      process.exit(errors.length > 0 ? ERROR_CODES.GENERAL_ERROR : ERROR_CODES.SUCCESS);
-
+      process.exit(
+        errors.length > 0 ? ERROR_CODES.GENERAL_ERROR : ERROR_CODES.SUCCESS,
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error(`Error: ${message}`);
