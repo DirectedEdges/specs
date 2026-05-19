@@ -4,6 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 050 | Examples Config | Add `include.slotContentExamples`, `include.instanceExamples` (default false); add `processing.instanceExamples` with scope, match, exclude (reserved, draft on `042-composition-type` branch) |
 | 049 | Nested Slot Compositions | Recursion follow-on to ADR-047: fill nested instances' slots from a parent context (reserved, draft on `042-composition-type` branch) |
 | 048 | PropConfigurations PropBinding | Widen `PropConfigurations` value union to add `PropBinding` (reserved, draft on `042-composition-type` branch) |
 | 047 | Slot Content — Component.slotContent and SlotBinding | Add `Component.slotContent: Record<string, Composition>` + `SlotBinding` extending `PropBinding` with `$extensions['com.figma'].default` (reserved, draft on `042-composition-type` branch) |
