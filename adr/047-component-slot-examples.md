@@ -313,7 +313,7 @@ Children:
 
 ## Semver Decision
 
-**Version bump**: `0.21.0 → 0.22.0` (`MINOR`)
+**Version bump**: `0.20.0 → 0.21.0` (`MINOR`)
 
 **Justification**: Optional `slotContentExamples` field added to `Component`; new `SlotBinding`, `SlotBindingExtensions`, `FigmaSlotBindingExtension` interfaces; `Children` widened from `string[] | PropBinding` to `string[] | SlotBinding` where `SlotBinding` is a structural superset of `PropBinding` (existing `{ $binding }` values still validate). All additive → MINOR per Constitution §III.
 

@@ -266,7 +266,7 @@ PropConfigurations:
 
 ## Semver Decision
 
-**Version bump**: `0.23.0 → 0.24.0` (`MINOR`)
+**Version bump**: `0.20.0 → 0.21.0` (`MINOR`)
 
 **Justification**: `PropConfigurations` value union is widened — existing scalar values remain valid; no value is removed or narrowed → MINOR per Constitution §III.
 

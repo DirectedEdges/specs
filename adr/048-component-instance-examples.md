@@ -306,7 +306,7 @@ instanceExamples:
 
 ## Semver Decision
 
-**Version bump**: `0.22.0 → 0.23.0` (`MINOR`)
+**Version bump**: `0.20.0 → 0.21.0` (`MINOR`)
 
 **Justification**: New optional field `Component.instanceExamples`; new types `InstanceExample` and `InstanceExamples`. All additive — no existing type is removed or narrowed → MINOR per Constitution §III.
 

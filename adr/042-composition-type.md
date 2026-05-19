@@ -243,7 +243,7 @@ Composition:
 
 ## Semver Decision
 
-**Version bump**: `0.19.0 → 0.20.0` (`MINOR`)
+**Version bump**: `0.20.0 → 0.21.0` (`MINOR`)
 
 **Justification**: Adds new type `Composition` — purely additive; no existing type is removed or narrowed → MINOR per Constitution §III.
 

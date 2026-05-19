@@ -232,7 +232,7 @@ instanceExamples:
 
 ## Semver Decision
 
-**Version bump**: `0.24.0 → 0.25.0` (`MINOR`)
+**Version bump**: `0.20.0 → 0.21.0` (`MINOR`)
 
 **Justification**: Adds optional fields to `Config`, `ResolvedConfig`, and `DEFAULT_CONFIG`; adds schema entries in `IncludeConfig` and `ProcessingConfig`. Purely additive — no existing field is removed or narrowed → MINOR per Constitution §III.
 
