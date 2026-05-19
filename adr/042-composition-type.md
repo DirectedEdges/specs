@@ -59,7 +59,6 @@ Four distinct questions shape the design space:
 Keep the `Anatomy`/`Elements` split inherited from `Variant` for consistency. Require all three content fields — `anatomy`, `elements`, and `layout` — so a composition is always a complete structural + content + layout declaration. Add `description?` alongside `title?` for documentation tooling.
 
 ```yaml
-# Composition — named structural content fragment
 title: Action List Item – default
 description: Default text content for a standard list item with label and secondary description.
 anatomy:
@@ -92,7 +91,7 @@ Note: `elements` is sparse — only elements with content, styles, or configurat
 Since compositions have no variant tree, the split that motivates keeping `anatomy` and `elements` separate in `Component` does not apply. A single map where each entry holds both type metadata and element data would be a simpler authoring surface:
 
 ```yaml
-# Converged model (not selected)
+title: Action List Item – default
 anatomy:
   label:
     type: text
@@ -100,6 +99,7 @@ anatomy:
   description:
     type: text
     content: 12 open · 3 closed
+layout: [label, description]
 ```
 
 **Rejected because**:
@@ -113,6 +113,14 @@ anatomy:
 
 Only `anatomy` is required; `elements` and `layout` are optional for cases where a composition is purely structural.
 
+```yaml
+title: Action List Item – default
+anatomy:
+  label: { type: text }
+  description: { type: text }
+# elements and layout omitted — structurally indistinguishable from Anatomy
+```
+
 **Rejected because**:
 - An anatomy-only composition — `anatomy` with no `elements` and no `layout` — is structurally identical to an `Anatomy` record. It carries no information beyond element types and names; it does not describe a *composition* in any meaningful sense.
 - Downstream consumers cannot distinguish an authored anatomy-only composition (intentional) from one where the author simply forgot to add content data.
@@ -122,6 +130,19 @@ Only `anatomy` is required; `elements` and `layout` are optional for cases where
 ### Option D: `anatomy` and `elements` required; `layout` optional *(Rejected)*
 
 Require content data but leave layout optional, with anatomy key order as the implied default.
+
+```yaml
+title: Action List Item – default
+anatomy:
+  label: { type: text }
+  description: { type: text }
+elements:
+  label:
+    content: Browse all issues
+  description:
+    content: 12 open · 3 closed
+# layout omitted — anatomy key order (label → description) implied
+```
 
 **Rejected because**:
 - "Implied order" is an invisible convention that tooling must either assume or reject. Making `layout` required eliminates ambiguity, especially for compositions with nested containers where order is load-bearing.
