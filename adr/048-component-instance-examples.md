@@ -29,7 +29,7 @@ Scalar props (`string`, `number`, `boolean`) are set directly as values. Slot pr
 
 ## Decision Drivers
 
-- **Named record, not array** — examples must be referenceable by key; no `kind` discriminator is needed because no other shape competes for the same record
+- **Named record, not array** — examples must be referenceable by key; a unified `examples` record with a `kind` discriminator was considered and rejected (Option B) — the two shapes are fully non-overlapping and every consumer would need to filter by `kind`
 - **Scalar + slot props, no PropBinding** — `InstanceExample.propConfigurations` accepts scalar values for scalar props and `SlotContentRef` for slot props. `PropBinding` belongs in `Element.propConfigurations` (ADR-049), not here
 - **Slot props need fills, not scalars** — a slot prop cannot be meaningfully configured with a `string` or `boolean`; restricting `InstanceExample.propConfigurations` to scalars-only would leave any component with slot props incompletely documented
 - **Separation from slot content examples** — `slotContentExamples` (ADR-047) holds anonymous fills for named slots; `instanceExamples` holds whole-component prop configurations. Different purposes, different audiences, different reference patterns — flat siblings on `Component` make the split explicit
@@ -99,7 +99,56 @@ components:
 
 ---
 
-### Option B: Scalar-only `propConfigurations` *(Rejected)*
+### Option B: Single `Component.examples` record with `kind` discriminator *(Rejected)*
+
+Introduce a unified `ComponentExample = SlotExample | InstanceExample` discriminated by `kind: 'slot' | 'instance'`. Both example types live in one `Component.examples` record.
+
+```yaml
+# ActionListItem — unified examples record (not selected)
+components:
+  actionListItem:
+    props:
+      state:       { type: string }
+      title:       { type: string }
+      description: { type: string }
+      startVisual: { type: slot }
+
+    examples:
+      searchIcon:
+        kind: slot
+        anatomy:
+          icon: { type: glyph }
+        elements:
+          icon: { content: search }
+        layout: [icon]
+
+      default:
+        kind: instance
+        title: Action List Item – default
+        propConfigurations:
+          state: default
+          title: Browse all issues
+          description: 12 open · 3 closed
+
+      withSearchIcon:
+        kind: instance
+        title: Action List Item – with search icon
+        propConfigurations:
+          state: default
+          title: Browse all issues
+          startVisual:
+            $slotContent: "#/components/actionListItem/examples/searchIcon"
+```
+
+**Rejected because**:
+- Every consumer that needs only slot fills (Figma default-fill tooling, slot-rendering) must filter the entire record by `kind: 'slot'`; every consumer that needs only instance examples (docs renderers, cataloguing tooling) must filter by `kind: 'instance'`. The `kind` field is schema bookkeeping with no authoring value — it signals that the two shapes don't belong in the same collection.
+- JSON Pointer paths into a unified record are ambiguous by shape: `#/components/actionListItem/examples/searchIcon` alone does not reveal whether the target is a slot fill or an instance example. `SlotBinding.$extensions['com.figma'].default` and `SlotContentRef.$slotContent` both resolve pointer strings; a unified record forces every resolver to dereference and inspect `kind` before knowing what it has. Separate fields (`slotContentExamples`, `instanceExamples`) make pointer semantics self-describing.
+- The two shapes are fully non-overlapping: slot content carries `anatomy`, `elements`, and `layout`; instance examples carry `propConfigurations` and `title`. A `ComponentExample` union type with both shapes' fields as optionals (or a `oneOf` in schema) is harder to read, harder to author, and harder to validate than two narrow types.
+- ADR-047 Option B explored the narrower form of this idea — bundling slot examples into the existing `instanceExamples` field — and was rejected on the same grounds. A top-level unified field does not resolve those objections.
+
+---
+
+### Option C: Scalar-only `propConfigurations` *(Rejected)*
 
 Restrict `InstanceExample.propConfigurations` to `string | number | boolean`. Slot props are left unconfigured in instance examples.
 
@@ -107,7 +156,7 @@ Restrict `InstanceExample.propConfigurations` to `string | number | boolean`. Sl
 
 ---
 
-### Option C: Flat scalar map *(Rejected)*
+### Option D: Flat scalar map *(Rejected)*
 
 Store examples as `Record<string, Record<string, string | number | boolean>>` — a named map of prop value maps with no wrapping object.
 
@@ -115,7 +164,7 @@ Store examples as `Record<string, Record<string, string | number | boolean>>` �
 
 ---
 
-### Option D: Extend `Variant` for examples *(Rejected)*
+### Option E: Extend `Variant` for examples *(Rejected)*
 
 Reuse the existing `Variant` type — a `Variant` already has `configuration?`, `elements?`, `layout?`.
 
