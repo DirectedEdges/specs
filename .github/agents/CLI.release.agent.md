@@ -110,6 +110,8 @@ All commands in this agent run from the **CLI package directory**: `packages/cli
       where `$WORKSPACE_ROOT` is the specs-local-workspace directory (typically `../specs-local-workspace` relative to this repo).
       If publish fails with "previously published version", report and ask the user whether to bump the patch version or skip.
 
+      > **Alternative:** instead of publishing locally with the token, you can let CI publish via OIDC Trusted Publishing — see [Trusted Publishing (CI)](#trusted-publishing-ci--alternative-publish-path) below. If you choose CI, **skip this local `npm publish` step** (still commit + tag here, then push the tag in the finalize gate so CI can publish it). Do not do both for the same version, or the second publish fails with "previously published version".
+
 10. **Finalize gate**: Use `AskUserQuestion` with Yes/No options: **"Ready to push, create PR, and GitHub Release for @directededges/specs-cli v[version]?"**
     On Yes:
     1. Push to remote (including the tag):
@@ -154,6 +156,35 @@ All commands in this agent run from the **CLI package directory**: `packages/cli
        gh release view "specs-cli@[version]" --json url --jq '.url'
        ```
     4. Report the PR URL and release URL.
+
+## Trusted Publishing (CI) — alternative publish path
+
+There are **two ways** to publish `@directededges/specs-cli`, and they are mutually exclusive **per version** (publishing once makes the version immutable):
+
+| | Local token publish (default) | CI Trusted Publishing |
+|---|---|---|
+| Where | Your machine, this agent's ship gate | GitHub Actions (`.github/workflows/release-cli.yml`) |
+| Auth | Long-lived token in `$WORKSPACE_ROOT/.npmrc.public` | Short-lived OIDC token minted per run (no stored secret) |
+| Provenance | No | Yes (signed attestation, public repo + public package) |
+| Trigger | Interactive (Yes/No gates here) | `workflow_dispatch` with the tag, gated by the `npm-publish` environment |
+
+This workflow exists **in addition to** the local flow and does not retire it. Trusted Publishing cannot run from a laptop — only from GitHub-hosted runners — so the local token path remains the fallback (and the only option for any urgent hotfix you can't route through CI).
+
+**To release a version via CI instead of locally:**
+
+1. Run this agent's steps 0–8 and the ship gate's commit + tag (steps 9.1–9.2), but **skip the local `npm publish`** (step 9.3).
+2. In the finalize gate, `git push --follow-tags` so the `specs-cli@<version>` tag reaches GitHub.
+3. Trigger the workflow on that tag:
+   ```bash
+   gh workflow run release-cli.yml --repo DirectedEdges/specs -f tag=specs-cli@[version]
+   ```
+4. Approve the run if the `npm-publish` environment requires it, then continue the finalize gate (PR ready + GitHub Release) as usual.
+
+**One-time setup (must be done before CI publish works):**
+
+- On npmjs.com → `@directededges/specs-cli` → Settings → **Trusted Publisher**: register owner `DirectedEdges`, repository `specs`, workflow filename `release-cli.yml`.
+- (Recommended) Create a GitHub **Environment** named `npm-publish` with required reviewers, for a manual-approval gate equivalent to the local ship gate.
+- After CI is verified, you may optionally tighten the package to **"Require two-factor authentication and disallow tokens"** and revoke the automation token — but only do this once you're ready to drop the local token path entirely (it would disable the default flow above).
 
 ## Key rules
 
