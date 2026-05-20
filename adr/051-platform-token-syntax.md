@@ -2,7 +2,7 @@
 
 **Branch**: `051-platform-token-syntax`
 **Created**: 2026-05-20
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

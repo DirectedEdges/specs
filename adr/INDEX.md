@@ -4,7 +4,6 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 051 | Platform Code-Syntax Token Profiles | |
 | 049 | Nested Slot Compositions | Recursion follow-on to ADR-047: fill nested instances' slots from a parent context (reserved, draft on `042-composition-type` branch) |
 | 048 | PropConfigurations PropBinding | Widen `PropConfigurations` value union to add `PropBinding` (reserved, draft on `042-composition-type` branch) |
 | 047 | Slot Content — Component.slotContent and SlotBinding | Add `Component.slotContent: Record<string, Composition>` + `SlotBinding` extending `PropBinding` with `$extensions['com.figma'].default` (reserved, draft on `042-composition-type` branch) |
@@ -26,6 +25,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 051 | Platform Code-Syntax Token Profiles | Add `FIGMA_SYNTAX_WEB`/`_IOS`/`_ANDROID` to `Config.format.tokens`, emitting per-platform Figma code syntax with fallback to `TOKEN` |
 | 043 | Custom Color Format Configuration | Add `Config.format.color` with 9-format enum (HEX default); rename `ColorValue` → `ColorObject`; widen color types with `string` arm |
 | 041 | Layout Positioning — Constraint-Based Naming | Replace `x`/`y`/`layoutPositioning` with constraint-based `position`, `start`, `end`, `top`, `bottom`, center offsets |
 | 040 | Replace `primaryAxisAlignItems` and `counterAxisAlignItems` with `mainAxisAlignment` and `crossAxisAlignment` | Rename to platform-neutral names; add `MainAxisAlignment` and `CrossAxisAlignment` enums; not token-bindable |
