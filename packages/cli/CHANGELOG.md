@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Platform code-syntax token profiles (ADR-051, DirectedEdges/specs#103)** — `format.tokens` now accepts `FIGMA_SYNTAX_WEB`, `FIGMA_SYNTAX_IOS`, and `FIGMA_SYNTAX_ANDROID` in config loading and templates, surfacing the platform code-syntax profiles to CLI users. The transformer (specs-from-figma) emits each variable's Figma `codeSyntax` for the selected platform, falling back to the standard token output when a platform has no code syntax defined.
+
 ### Changed
 
 ### Removed

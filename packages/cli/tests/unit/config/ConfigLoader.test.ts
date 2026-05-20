@@ -216,6 +216,26 @@ sources:
       expect(config.config.format.tokens).toBe('TOKEN'); // Default
     });
 
+    it('should accept all valid format.tokens values', () => {
+      const validValues = ['TOKEN', 'TOKEN_NAME', 'TOKEN_FIGMA_EXTENSIONS', 'FIGMA_NAME', 'CUSTOM', 'FIGMA_SYNTAX_WEB', 'FIGMA_SYNTAX_IOS', 'FIGMA_SYNTAX_ANDROID'];
+
+      validValues.forEach(value => {
+        const configPath = path.join(testDir, 'specs.config.yaml');
+        fs.writeFileSync(configPath, `config:\n  format:\n    tokens: ${value}`);
+
+        const config = configLoader.load();
+        expect(config.config.format.tokens).toBe(value);
+      });
+    });
+
+    it('should normalize lowercase format.tokens to uppercase', () => {
+      const configPath = path.join(testDir, 'specs.config.yaml');
+      fs.writeFileSync(configPath, 'config:\n  format:\n    tokens: figma_syntax_ios');
+
+      const config = configLoader.load();
+      expect(config.config.format.tokens).toBe('FIGMA_SYNTAX_IOS');
+    });
+
     it('should validate format.color and use default for invalid values', () => {
       const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, 'config:\n  format:\n    color: INVALID');
