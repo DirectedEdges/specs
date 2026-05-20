@@ -189,6 +189,26 @@ export class ConfigLoader {
       }
     }
 
+    // Validate processing.instanceExamples (ADR-050)
+    if (corrected.processing.instanceExamples !== undefined) {
+      const ie = corrected.processing.instanceExamples;
+      const validIeScopes = ['PAGE', 'FILE'];
+      if (ie.scope !== undefined && !validIeScopes.includes(ie.scope)) {
+        ie.scope = 'PAGE';
+      }
+      if (!Array.isArray(ie.match) || ie.match.length === 0) {
+        console.warn('Invalid processing.instanceExamples.match: must be a non-empty array of strings. Removing instanceExamples config.');
+        delete corrected.processing.instanceExamples;
+      } else {
+        if (ie.exclude !== undefined && !Array.isArray(ie.exclude)) {
+          delete ie.exclude;
+        }
+        if (ie.parentNames !== undefined && !Array.isArray(ie.parentNames)) {
+          delete ie.parentNames;
+        }
+      }
+    }
+
     // Valid format options
     const validKeys = ['SAFE', 'CAMEL', 'SNAKE', 'KEBAB', 'PASCAL', 'TRAIN'];
     const validOutputs = ['JSON', 'YAML'];
@@ -227,7 +247,7 @@ export class ConfigLoader {
 
     // Strip EOLed include properties — subcomponent inclusion is now
     // controlled by the presence of processing.subcomponents
-    const validIncludeKeys = new Set(['invalidVariants', 'invalidCombinations', 'emptyVariants']);
+    const validIncludeKeys = new Set(['invalidVariants', 'invalidCombinations', 'emptyVariants', 'slotContentExamples', 'instanceExamples']);
     for (const key of Object.keys(corrected.include)) {
       if (!validIncludeKeys.has(key)) {
         delete (corrected.include as Record<string, unknown>)[key];

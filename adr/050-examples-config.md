@@ -31,23 +31,23 @@ Two configuration needs arise:
 - **`processing.instanceExamples` adapts `processing.subcomponents`** — same match/exclude vocabulary; `scope` is retained but with different values (`PAGE` | `FILE`) because instance example frames are never nested inside a component frame
 - **`scope: NESTED` is inapplicable** — component instances used as examples cannot live inside the component frame itself; the only meaningful search boundaries are the current page or the full file
 - **`scope: FILE` supports multi-page files** — some teams place example frames on a dedicated page (e.g., "Examples") separate from the component library page; `FILE` enables cross-page discovery
-- **`parent?: string[]` narrows the search space** — example frames are often grouped inside a named parent section or frame (e.g., a frame named `"Examples"`) to distinguish them from test cases, component playground instances, or deeply nested usages; `parent` filters candidates by immediate ancestor name
+- **`parentNames?: string[]` narrows the search space** — example frames are often grouped inside a named parent section or frame (e.g., a frame named `"Examples"`) to distinguish them from test cases, component playground instances, or deeply nested usages; `parentNames` filters candidates by immediate ancestor name
 - **No `processing.slotContentExamples`** — slot content is detected structurally; pattern-based config adds no value and no author burden should exist for a purely structural signal
 
 ---
 
 ## Options Considered
 
-### Option A: Separate `include` flags + `processing.instanceExamples` with scope, match, exclude, parent *(Selected)*
+### Option A: Separate `include` flags + `processing.instanceExamples` with scope, match, exclude, parentNames *(Selected)*
 
-Add `include.slotContentExamples?: boolean` and `include.instanceExamples?: boolean`, each defaulting to `false`. Add `processing.instanceExamples?` with `{ scope?, match, exclude?, parent? }`.
+Add `include.slotContentExamples?: boolean` and `include.instanceExamples?: boolean`, each defaulting to `false`. Add `processing.instanceExamples?` with `{ scope?, match, exclude?, parentNames? }`.
 
 ```yaml
 # Config — examples on a dedicated page, inside an "Examples" parent frame
 processing:
   instanceExamples:
     scope: FILE
-    parent:
+    parentNames:
       - Examples
     match:
       - "{C} / *"
@@ -73,18 +73,27 @@ processing:
 - `PAGE` — search the current Figma page only (default; typical when examples live alongside components)
 - `FILE` — search all pages in the Figma file (for teams that place examples on a separate page)
 
-`parent` (optional) — one or more ancestor frame or section names that a candidate must be contained within. Matching is against immediate ancestors in the layer hierarchy; absence means no parent filtering. Useful for distinguishing example instances from test cases, playground frames, or component-library usages of the same component.
+`parentNames` (optional) — one or more frame or section names; a candidate qualifies when its **immediate** parent in the layer hierarchy matches one of the listed names. Absence means no parent-name filtering. Useful for distinguishing example instances from test cases, playground frames, or component-library usages of the same component.
+
+The field name was chosen by ranking the realistic candidates for this `string[]` of ancestor names:
+
+1. **`parentNames` *(selected)*** — precise (the values are *names* matched against the parent's name), plural (signals the array, resolving the ambiguity that a singular `parent` reads as one value), and keeps Figma's `parent` vocabulary (`node.parent`) without introducing the user-facing "layer" term.
+2. **`parents`** — concise and parallel with the sibling `string[]` filters `match`/`exclude`, but hints at parent *objects* rather than names.
+3. **`parentLayerNames`** — unambiguous and consistent with house "layer" vocabulary (cf. `Props.layer`), but verbose against the terse sibling fields, and "Layer" is largely redundant once `parent…Names` already denotes the name of a containing node.
+4. **`parentLayers` / `parentLayer`** — rejected: both imply you pass the layers themselves rather than their names, and the singular is the wrong number for an array.
+
+Containment-flavored names (e.g. `within`) were also rejected: they imply any-depth nesting, whereas matching is scoped to the **immediate** parent, so "parent" must remain in the name.
 
 **Pros**:
 - Each example type is independently toggleable — a team can include slot fill examples without exposing instance examples
 - `scope: PAGE | FILE` covers all real Figma file organisations; `NESTED` is explicitly excluded because component instance examples cannot live inside the component frame
-- `parent` solves the false-positive problem without requiring artificially unique name patterns; a frame named `"Examples"` is a natural Figma authoring convention
+- `parentNames` solves the false-positive problem without requiring artificially unique name patterns; a frame named `"Examples"` is a natural Figma authoring convention
 - Absence of `processing.instanceExamples` means no instance example detection — same opt-in model as `processing.subcomponents`
 - No `processing.slotContentExamples` block keeps the config surface minimal where structural detection suffices
 
 **Cons / Trade-offs**:
 - Two separate `include` flags must both be set for teams that want all example types — intentional (independent control) but adds a line to the config
-- `parent` matches ancestor names, not full paths; teams with multiple frames named `"Examples"` at different hierarchy levels would need `match`/`exclude` patterns to disambiguate further
+- `parentNames` matches ancestor names, not full paths; teams with multiple frames named `"Examples"` at different hierarchy levels would need `match`/`exclude` patterns to disambiguate further
 
 ---
 
@@ -119,9 +128,9 @@ Mirror the full subcomponents shape for both example types.
 | File | Change | Bump |
 |------|--------|------|
 | `Config.ts` | Add `include.slotContentExamples?: boolean`, `include.instanceExamples?: boolean` | MINOR |
-| `Config.ts` | Add `processing.instanceExamples?: { scope?, match, exclude?, parent? }` | MINOR |
+| `Config.ts` | Add `processing.instanceExamples?: { scope?, match, exclude?, parentNames? }` | MINOR |
 | `Config.ts` | Add `include.slotContentExamples: boolean`, `include.instanceExamples: boolean` to `ResolvedConfig` | MINOR |
-| `Config.ts` | Add `processing.instanceExamples?: { scope, match, exclude?, parent? }` (scope required in resolved) to `ResolvedConfig` | MINOR |
+| `Config.ts` | Add `processing.instanceExamples?: { scope, match, exclude?, parentNames? }` (scope required in resolved) to `ResolvedConfig` | MINOR |
 | `Config.ts` | Add `slotContentExamples: false`, `instanceExamples: false` to `DEFAULT_CONFIG.include` | MINOR |
 
 **`Config` additions** (`types/Config.ts`):
@@ -135,8 +144,8 @@ instanceExamples?: {
   match: string[];
   /** Name patterns for frames to exclude. Same {C} syntax as match. */
   exclude?: string[];
-  /** Ancestor frame or section names a candidate must be contained within. Absence = no parent filtering. */
-  parent?: string[];
+  /** Ancestor frame or section names a candidate must be contained within. Absence = no parent-name filtering. */
+  parentNames?: string[];
 };
 
 // include block — two new optional flags
@@ -154,7 +163,7 @@ instanceExamples?: {
   scope: 'PAGE' | 'FILE';
   match: string[];
   exclude?: string[];
-  parent?: string[];
+  parentNames?: string[];
 };
 
 // include block — both flags required (resolved from defaults)
@@ -214,10 +223,10 @@ instanceExamples:
       type: array
       items: { type: string }
       description: "Name patterns for frames to exclude. Same {C} syntax as match."
-    parent:
+    parentNames:
       type: array
       items: { type: string }
-      description: "Ancestor frame or section names a candidate must be contained within. Absence = no parent filtering."
+      description: "Ancestor frame or section names a candidate must be contained within. Absence = no parent-name filtering."
   additionalProperties: false
 ```
 
@@ -231,7 +240,7 @@ instanceExamples:
 - **`processing.instanceExamples` absence = no detection.** When the block is omitted from `Config`, the transformer performs no instance example detection and `instanceExamples` is never emitted regardless of `include.instanceExamples`. This matches the `processing.subcomponents` model.
 - **`include.*` flags are independent.** A team may set `include.slotContentExamples: true` while leaving `include.instanceExamples: false` — slot fills appear in output, instance examples do not.
 - **`scope` defaults to `PAGE` in `ResolvedConfig`.** Most teams place example frames on the same page as the component library. `FILE` is opt-in for teams with a dedicated examples page. `NESTED` is intentionally absent — component instances used as examples cannot live inside the component frame itself.
-- **`parent` is an ancestor filter, not a full path.** The transformer checks whether any ancestor frame or section in the layer hierarchy matches one of the listed names. This is sufficient for the common convention of grouping examples inside a frame named `"Examples"` and avoids requiring authors to express full paths.
+- **`parentNames` is an ancestor filter, not a full path.** The transformer checks whether any ancestor frame or section in the layer hierarchy matches one of the listed names. This is sufficient for the common convention of grouping examples inside a frame named `"Examples"` and avoids requiring authors to express full paths.
 - **`DEFAULT_CONFIG` carries both new `include` flags.** Any consumer that merges a partial `Config` against `DEFAULT_CONFIG` to produce a `ResolvedConfig` will correctly resolve both flags to `false` without special-casing.
 
 ---
@@ -242,7 +251,7 @@ instanceExamples:
 - **Parity check**:
   - `Config.include.slotContentExamples?: boolean` ↔ `#/definitions/IncludeConfig/properties/slotContentExamples`
   - `Config.include.instanceExamples?: boolean` ↔ `#/definitions/IncludeConfig/properties/instanceExamples`
-  - `Config.processing.instanceExamples?: { scope?, match, exclude?, parent? }` ↔ `#/definitions/ProcessingConfig/properties/instanceExamples`
+  - `Config.processing.instanceExamples?: { scope?, match, exclude?, parentNames? }` ↔ `#/definitions/ProcessingConfig/properties/instanceExamples`
 
 ---
 
@@ -267,6 +276,6 @@ instanceExamples:
 ## Consequences
 
 - `include.slotContentExamples` and `include.instanceExamples` give teams independent control over which example types appear in output; both default to `false` to preserve existing output for unannotated components
-- `processing.instanceExamples` adapts the `processing.subcomponents` model — same match/exclude vocabulary and opt-in absence semantics; `scope` uses `PAGE | FILE` (not `NESTED`, which is inapplicable to instances); `parent` is added to narrow the search space by ancestor frame or section name
+- `processing.instanceExamples` adapts the `processing.subcomponents` model — same match/exclude vocabulary and opt-in absence semantics; `scope` uses `PAGE | FILE` (not `NESTED`, which is inapplicable to instances); `parentNames` is added to narrow the search space by ancestor frame or section name
 - Slot content examples require no processing config; their detection is structural and their output is gated solely by `include.slotContentExamples`
 - `DEFAULT_CONFIG` is the single source of truth for both new defaults; `ResolvedConfig` guarantees both flags are present after merging

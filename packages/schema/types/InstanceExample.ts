@@ -3,9 +3,13 @@ import { SlotContentRef } from "./SlotContentRef.js";
 /**
  * A pre-configured usage of a whole component (ADR-048).
  *
- * Scalar props are set directly; slot props are filled via `SlotContentRef`.
- * `PropBinding` is not accepted — an `InstanceExample` is a documented
- * configuration for human readers and tooling, not a live data flow.
+ * Scalar props are set directly; slot props are filled via `SlotContentRef`
+ * pointing into the component's `slotContentExamples` registry. Slot fills
+ * encountered inside an example instance are contributed to that shared
+ * registry (deduplicated against existing entries), so an `InstanceExample`
+ * holds no slot content of its own. `PropBinding` is not accepted — an
+ * `InstanceExample` is a documented configuration for human readers and
+ * tooling, not a live data flow.
  */
 export type InstanceExample = {
   /** Human-readable label for this example. */
@@ -13,7 +17,8 @@ export type InstanceExample = {
 
   /**
    * Prop values for this example. Scalar types for scalar props;
-   * `SlotContentRef` for slot props. `PropBinding` is not permitted here.
+   * `SlotContentRef` (into `Component.slotContentExamples`) for slot props.
+   * `PropBinding` is not permitted here.
    */
   propConfigurations?: Record<string, string | number | boolean | SlotContentRef>;
 };

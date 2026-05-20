@@ -951,6 +951,42 @@
               ],
               "default": "LAYERED",
               "description": "Level of detail in output. Defaults to LAYERED."
+            },
+            "instanceExamples": {
+              "type": "object",
+              "description": "Instance example detection settings (ADR-050): named frames demonstrating pre-configured whole-component usage. Absence means no instance example detection.",
+              "properties": {
+                "scope": {
+                  "type": "string",
+                  "enum": ["PAGE", "FILE"],
+                  "default": "PAGE",
+                  "description": "Search boundary. PAGE = current Figma page only (default); FILE = all pages in the file."
+                },
+                "match": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1,
+                  "description": "Name patterns identifying instance example frames. Uses {C} (component name) placeholder."
+                },
+                "exclude": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Name patterns for frames to exclude. Same {C} syntax as match."
+                },
+                "parentNames": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Immediate-parent frame or section names a candidate must be contained within. Absence = no parent-name filtering."
+                }
+              },
+              "required": ["match"],
+              "additionalProperties": false
             }
           },
           "required": [],
@@ -1040,6 +1076,16 @@
               "type": "boolean",
               "default": false,
               "description": "Include layered variants that contain no elements. When false (default), exclude empty variants from output. When true, include all variants regardless of element presence. Defaults to false."
+            },
+            "slotContentExamples": {
+              "type": "boolean",
+              "default": false,
+              "description": "Include slot content examples in output (ADR-050). Defaults to false."
+            },
+            "instanceExamples": {
+              "type": "boolean",
+              "default": false,
+              "description": "Include instance examples in output (ADR-050). Defaults to false."
             }
           },
           "required": [],

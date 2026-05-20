@@ -16,6 +16,7 @@ Controls how specs are generated. See the [feature guides](/specs/features/) for
 | `variantDepth` | `1 \| 2 \| 3 \| 9999` | `9999` | Maximum variant nesting depth (9999 = unlimited) |
 | `details` | `'FULL' \| 'LAYERED'` | `'LAYERED'` | Output detail level |
 | `inferNumberProps` | `boolean` | `false` | Infer number-typed props from Figma variant values |
+| `instanceExamples` | `object` | — | Instance example detection — `scope` (PAGE or FILE), `match` patterns, `exclude` patterns, `parentNames` filter. Absent = no detection |
 
 ## `format`
 
@@ -34,6 +35,8 @@ Controls how specs are generated. See the [feature guides](/specs/features/) for
 | `invalidVariants` | `boolean` | `false` | Include variants marked invalid |
 | `invalidCombinations` | `boolean` | `true` | Include `invalidVariantCombinations` list |
 | `emptyVariants` | `boolean` | `false` | Include variants with no element overrides |
+| `slotContentExamples` | `boolean` | `false` | Emit `Component.slotContentExamples` (structurally detected slot fills) |
+| `instanceExamples` | `boolean` | `false` | Emit `Component.instanceExamples` (requires `processing.instanceExamples` detection) |
 
 ## DEFAULT_CONFIG
 
@@ -58,8 +61,10 @@ const DEFAULT_CONFIG: ResolvedConfig = {
     invalidVariants: false,
     invalidCombinations: true,
     emptyVariants: false,
+    slotContentExamples: false,
+    instanceExamples: false,
   },
 };
 ```
 
-Feature-toggle properties (`subcomponents`, `glyphNamePattern`, `codeOnlyPropsPattern`) are absent from `DEFAULT_CONFIG` — their absence means the feature is disabled.
+Feature-toggle properties (`subcomponents`, `instanceExamples`, `glyphNamePattern`, `codeOnlyPropsPattern`) are absent from `DEFAULT_CONFIG` — their absence means the feature is disabled. (The `include.slotContentExamples` / `include.instanceExamples` flags are gates, not detectors, so they carry `false` defaults.)
