@@ -66,7 +66,8 @@ config:
     # See: https://directededges.github.io/specs/config/layout/
     layout: LAYOUT
 
-    # Token reference format: TOKEN, TOKEN_NAME, TOKEN_FIGMA_EXTENSIONS, FIGMA_NAME, or CUSTOM
+    # Token reference format: TOKEN, TOKEN_NAME, TOKEN_FIGMA_EXTENSIONS, FIGMA_NAME, CUSTOM,
+    # FIGMA_SYNTAX_WEB, FIGMA_SYNTAX_IOS, or FIGMA_SYNTAX_ANDROID
     # See: https://directededges.github.io/specs/config/tokens/
     # Requires a license key to resolve token references in output.
     tokens: TOKEN
