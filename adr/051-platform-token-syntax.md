@@ -175,7 +175,7 @@ tokens:
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-schema` | Enum widened; `MINOR` publish | Bump `0.21.0 → 0.22.0`, update CHANGELOG |
+| `specs-schema` | Enum widened; additive `MINOR`-class change | Fold into the in-progress unreleased `0.21.0`, update CHANGELOG |
 | `specs-from-figma` | Must read Figma `codeSyntax` per `CodeSyntaxPlatform` and project tokens for the three new profiles, with fall-back to `TOKEN` output | Implement the new projections; recompile against new types |
 | `specs-cli` | Recompile; surface the new values as selectable token formats | Update config validation/help to accept the new enum values |
 | `specs-plugin-2` | Recompile; expose the three platform profiles in plugin UI to reach Specs Classic `CODE_SYNTAX` parity | Add UI selection mapping to the new enum values |
@@ -184,11 +184,15 @@ tokens:
 
 ## Semver Decision
 
-**Version bump**: `0.21.0 → 0.22.0` (`MINOR`)
+**Version**: lands in the in-progress unreleased `0.21.0` (released baseline
+`0.20.0 → 0.21.0`, `MINOR`). No separate bump — `package.json` is already at
+`0.21.0` and this change folds into that release's `Unreleased` CHANGELOG scaffold.
 
 **Justification**: Purely additive — three new optional enum members on an
 existing optional field; no value removed or renamed and the default is
-unchanged. Per Constitution Versioning, additive type/schema changes are `MINOR`.
+unchanged. Per Constitution Versioning, additive type/schema changes are `MINOR`;
+the 0.21.0 development cycle already carries that minor bump, so this ADR
+contributes to it rather than opening a new version.
 
 ---
 
@@ -199,7 +203,7 @@ unchanged. Per Constitution Versioning, additive type/schema changes are `MINOR`
   `CODE_SYNTAX` feature.
 - Tokens without a defined code syntax for the chosen platform degrade gracefully
   to the existing `TOKEN` output, so the profiles are always safe to select.
-- Tools validating against `component.schema.json` must adopt `0.22.0` to accept
+- Tools validating against `component.schema.json` must adopt `0.21.0` to accept
   the new values.
 - The transformer (`specs-from-figma`) becomes the owner of the documented
   fall-back semantics; this ADR does not add logic to `specs-schema`.

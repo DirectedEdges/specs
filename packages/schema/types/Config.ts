@@ -53,8 +53,13 @@ export interface Config {
     keys?: 'SAFE' | 'CAMEL' | 'SNAKE' | 'KEBAB' | 'PASCAL' | 'TRAIN';
     /** Layout representation format. Optional; defaults to LAYOUT. */
     layout?: 'LAYOUT' | 'PARENT_CHILDREN' | 'BOTH';
-    /** Token reference serialization profile. Optional; defaults to TOKEN. */
-    tokens?: 'TOKEN' | 'TOKEN_NAME' | 'TOKEN_FIGMA_EXTENSIONS' | 'FIGMA_NAME' | 'CUSTOM';
+    /**
+     * Token reference serialization profile. Optional; defaults to TOKEN.
+     * `FIGMA_SYNTAX_WEB`, `FIGMA_SYNTAX_IOS`, and `FIGMA_SYNTAX_ANDROID` emit the
+     * token's Figma `codeSyntax` for that platform, falling back to the `TOKEN`
+     * profile's output when no code syntax is defined for the platform. @since 0.21.0
+     */
+    tokens?: 'TOKEN' | 'TOKEN_NAME' | 'TOKEN_FIGMA_EXTENSIONS' | 'FIGMA_NAME' | 'CUSTOM' | 'FIGMA_SYNTAX_WEB' | 'FIGMA_SYNTAX_IOS' | 'FIGMA_SYNTAX_ANDROID';
     /** Color value output format. Optional; defaults to HEX. @since 0.20.0 */
     color?: ColorFormat;
   };
@@ -110,7 +115,7 @@ export interface ResolvedConfig {
     /** Layout representation format. */
     layout: 'LAYOUT' | 'PARENT_CHILDREN' | 'BOTH';
     /** Token reference serialization profile. */
-    tokens: 'TOKEN' | 'TOKEN_NAME' | 'TOKEN_FIGMA_EXTENSIONS' | 'FIGMA_NAME' | 'CUSTOM';
+    tokens: 'TOKEN' | 'TOKEN_NAME' | 'TOKEN_FIGMA_EXTENSIONS' | 'FIGMA_NAME' | 'CUSTOM' | 'FIGMA_SYNTAX_WEB' | 'FIGMA_SYNTAX_IOS' | 'FIGMA_SYNTAX_ANDROID';
     /** Color value output format. */
     color: ColorFormat;
   };
