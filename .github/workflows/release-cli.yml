@@ -1,0 +1,92 @@
+# Release @directededges/specs-cli to npm via OIDC Trusted Publishing.
+#
+# This is an ALTERNATIVE to the local, token-based publish performed by
+# `.github/agents/CLI.release.agent.md`. It does not replace it. Trusted
+# Publishing cannot run from a laptop — only from GitHub-hosted runners — so
+# this workflow exists for when you want a tokenless, provenance-signed publish.
+#
+# Trigger is manual (workflow_dispatch) on purpose: the local release agent
+# already pushes the `specs-cli@<version>` tag and publishes from your machine.
+# Auto-triggering on that tag would cause a duplicate-publish collision. Run
+# this workflow only when you intend CI to be the publisher for a given version
+# (and skip the agent's local publish step that time).
+#
+# One-time setup before this can succeed:
+#   1. On npmjs.com → @directededges/specs-cli → Settings → Trusted Publisher,
+#      register: Organization/owner = DirectedEdges, Repository = specs,
+#      Workflow filename = release-cli.yml  (must match this file's name).
+#   2. (Recommended) Create a GitHub Environment named `npm-publish` with
+#      required reviewers, so the publish step waits for manual approval.
+#
+# When you are ready to fully retire the local token flow, enable the `push`
+# tag trigger below and remove the `npm publish` step from the release agent.
+
+name: Release specs-cli (Trusted Publishing)
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Git tag to publish (e.g. specs-cli@0.16.0)'
+        required: true
+        type: string
+  # Enable this only after retiring the agent's local publish, to avoid
+  # publishing the same version twice:
+  # push:
+  #   tags:
+  #     - 'specs-cli@*'
+
+permissions:
+  contents: read
+  id-token: write # required: lets npm mint a short-lived OIDC token
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # Manual-approval gate. Configure required reviewers on this environment in
+    # repo Settings → Environments. Remove this line if you don't want a gate.
+    environment: npm-publish
+    steps:
+      - name: Resolve tag
+        id: ref
+        run: echo "tag=${{ inputs.tag || github.ref_name }}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.ref.outputs.tag }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22' # Trusted Publishing needs Node >= 22.14.0
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Ensure npm supports Trusted Publishing (>= 11.5.1)
+        run: npm install -g npm@latest
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify tag matches package version
+        run: |
+          PKG_VERSION=$(node -p "require('./packages/cli/package.json').version")
+          EXPECTED="specs-cli@${PKG_VERSION}"
+          if [ "${{ steps.ref.outputs.tag }}" != "$EXPECTED" ]; then
+            echo "::error::Tag '${{ steps.ref.outputs.tag }}' does not match package version ('$EXPECTED')."
+            exit 1
+          fi
+
+      - name: Verify dependency refs are versioned (not file:)
+        run: |
+          if grep -E '"@directededges/[^"]+":\s*"file:' packages/cli/package.json; then
+            echo "::error::package.json has file: dependency refs; release commits must use versioned refs."
+            exit 1
+          fi
+
+      - name: Build
+        run: npm run build --workspace=packages/cli
+
+      - name: Test
+        run: npm run test --workspace=packages/cli
+
+      - name: Publish to npm (OIDC, with provenance)
+        run: npm publish --provenance --access public --workspace=packages/cli

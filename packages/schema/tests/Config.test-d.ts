@@ -151,6 +151,12 @@ const tokenNameConfig: Config = { ...fullConfig, format: { ...fullConfig.format,
 const tokenFigmaExtConfig: Config = { ...fullConfig, format: { ...fullConfig.format, tokens: 'TOKEN_FIGMA_EXTENSIONS' } };
 const figmaNameConfig: Config = { ...fullConfig, format: { ...fullConfig.format, tokens: 'FIGMA_NAME' } };
 const customConfig: Config = { ...fullConfig, format: { ...fullConfig.format, tokens: 'CUSTOM' } };
+const figmaSyntaxWebConfig: Config = { ...fullConfig, format: { ...fullConfig.format, tokens: 'FIGMA_SYNTAX_WEB' } };
+const figmaSyntaxIosConfig: Config = { ...fullConfig, format: { ...fullConfig.format, tokens: 'FIGMA_SYNTAX_IOS' } };
+const figmaSyntaxAndroidConfig: Config = { ...fullConfig, format: { ...fullConfig.format, tokens: 'FIGMA_SYNTAX_ANDROID' } };
+
+// @ts-expect-error — invalid tokens profile value
+const _badTokens: Config['format']['tokens'] = 'FIGMA_SYNTAX_DESKTOP';
 
 // ─── DEFAULT_CONFIG is a valid ResolvedConfig ────────────────────────────────
 
@@ -197,7 +203,7 @@ const _kRequired: _KRequired = true;
 type _LRequired = ResolvedConfig['format']['layout'] extends ('LAYOUT' | 'PARENT_CHILDREN' | 'BOTH') ? true : never;
 const _lRequired: _LRequired = true;
 
-type _TRequired = ResolvedConfig['format']['tokens'] extends ('TOKEN' | 'TOKEN_NAME' | 'TOKEN_FIGMA_EXTENSIONS' | 'FIGMA_NAME' | 'CUSTOM') ? true : never;
+type _TRequired = ResolvedConfig['format']['tokens'] extends ('TOKEN' | 'TOKEN_NAME' | 'TOKEN_FIGMA_EXTENSIONS' | 'FIGMA_NAME' | 'CUSTOM' | 'FIGMA_SYNTAX_WEB' | 'FIGMA_SYNTAX_IOS' | 'FIGMA_SYNTAX_ANDROID') ? true : never;
 const _tRequired: _TRequired = true;
 
 // include

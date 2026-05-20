@@ -16,6 +16,9 @@ Token reference format profile.
   - `TOKEN_FIGMA_EXTENSIONS` - Token with Figma-specific extension data
   - `FIGMA_NAME` - Raw Figma variable/style names as-is
   - `CUSTOM` - Custom token objects injected via `applyCustomTokens`. Variables/styles with `$custom` use that object verbatim as the property value; those without fall back to `TOKEN_FIGMA_EXTENSIONS` format.
+  - `FIGMA_SYNTAX_WEB` - The token's Figma code syntax for the Web platform. Tokens without a Web code syntax fall back to `TOKEN` output.
+  - `FIGMA_SYNTAX_IOS` - The token's Figma code syntax for the iOS platform. Tokens without an iOS code syntax fall back to `TOKEN` output.
+  - `FIGMA_SYNTAX_ANDROID` - The token's Figma code syntax for the Android platform. Tokens without an Android code syntax fall back to `TOKEN` output.
 
 > **Using CUSTOM**: First run `specs applyCustomTokens <mapping>` to inject `$custom` objects into your fetched data files, then run `batch` or `generate`. The `applyCustomTokens` command auto-discovers variables/styles files from `dataDirectory` and `sources` in this config, or accepts explicit `-v`/`-s` paths. See [applyCustomTokens command](/specs/cli/commands/apply-custom-tokens/) for details.
 
