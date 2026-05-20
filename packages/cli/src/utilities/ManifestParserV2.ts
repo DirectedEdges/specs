@@ -79,7 +79,9 @@ export class ManifestParserV2 {
       const [, checkbox, name, id, type, devStatus] = match;
       components.push({
         id,
-        name: name.trim(),
+        // `specs scan` escapes pipes in cell values (`escapeCell`: | → \|).
+        // Undo that here so names round-trip back to their literal form.
+        name: name.trim().replace(/\\\|/g, '|'),
         type: type.toUpperCase() as 'COMPONENT' | 'COMPONENT_SET',
         included: checkbox.toLowerCase() === 'x',
         devStatus: devStatus.toUpperCase() as DevStatus

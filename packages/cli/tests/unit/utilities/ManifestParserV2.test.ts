@@ -63,4 +63,22 @@ describe('ManifestParserV2', () => {
     const { components } = ManifestParserV2.parse(empty);
     expect(components).toEqual([]);
   });
+
+  it('unescapes escaped pipes in names (round-trips scan escapeCell)', () => {
+    const fixture = [
+      '**Scan format version:** 2',
+      '',
+      '## Components',
+      '',
+      '| ✓ | Name | ID | Type | Dev Status |',
+      '|------|------|------|------|------------|',
+      '| [x] | Toggle \\| On/Off | 1:23 | COMPONENT_SET | NONE |',
+      ''
+    ].join('\n');
+
+    const { components } = ManifestParserV2.parse(fixture);
+    expect(components).toHaveLength(1);
+    expect(components[0].name).toBe('Toggle | On/Off');
+    expect(components[0].id).toBe('1:23');
+  });
 });
