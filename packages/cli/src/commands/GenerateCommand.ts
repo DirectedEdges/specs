@@ -17,6 +17,7 @@ import type { ProgressEvent, RestLicenseInput } from '@directededges/specs-from-
 import { ConfigLoader } from '../Config/ConfigLoader.js';
 import { loadFoundations } from '../utilities/loadFoundations.js';
 import { ManifestParser } from '../utilities/ManifestParser.js';
+import { ManifestParserV2 } from '../utilities/ManifestParserV2.js';
 import { LicenseStatus } from '../utilities/LicenseStatus.js';
 import { FileManifest } from '../Writers/FileManifest.js';
 import { SingleFileWriter } from '../Writers/SingleFileWriter.js';
@@ -129,10 +130,15 @@ export const Generate = new Command('generate')
         process.exit(ERROR_CODES.FILE_ERROR);
       }
 
-      // Auto-detect mode by content
+      // Auto-detect mode by content.
+      // - v2 manifest: markdown table emitted by `specs scan` (declares **Scan format version:** 2)
+      // - v1 manifest: checkbox bullet list emitted by `specs audit`
+      // - JSON: raw Figma file (file mode)
       const sourceContent = await fs.readFile(sourcePath, 'utf-8');
       const trimmed = sourceContent.trimStart();
-      const isManifest = trimmed.includes('- [');
+      const isV2Manifest = ManifestParserV2.isV2(sourceContent);
+      const isV1Manifest = trimmed.includes('- [');
+      const isManifest = isV2Manifest || isV1Manifest;
       const isJson = trimmed.startsWith('{');
 
       if (!isManifest && !isJson) {
@@ -158,7 +164,9 @@ export const Generate = new Command('generate')
           process.exit(ERROR_CODES.INVALID_ARGS);
         }
 
-        const { components, metadata } = ManifestParser.parse(sourceContent);
+        const { components, metadata } = isV2Manifest
+          ? ManifestParserV2.parse(sourceContent)
+          : ManifestParser.parse(sourceContent);
 
         if (components.length === 0) {
           console.error('Error: No components found in manifest');

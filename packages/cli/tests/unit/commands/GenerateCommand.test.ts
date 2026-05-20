@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
 import { Generate } from '../../../src/commands/GenerateCommand.js';
 import { ManifestParser } from '../../../src/utilities/ManifestParser.js';
+import { ManifestParserV2 } from '../../../src/utilities/ManifestParserV2.js';
 import { LicenseStatus } from '../../../src/utilities/LicenseStatus.js';
 import type { ComponentsData } from '@directededges/specs-from-figma';
 
@@ -272,6 +273,90 @@ describe('source auto-detection', () => {
     const trimmed = yamlContent.trimStart();
     expect(trimmed.startsWith('{')).toBe(false);
     expect(trimmed.includes('- [')).toBe(false);
+  });
+});
+
+// ============================================================================
+// V1 + V2 MANIFEST DETECTION & DISPATCH (issue #101)
+// ============================================================================
+
+describe('manifest format detection (v1 + v2)', () => {
+  // Mirrors the detection logic in GenerateCommand.action:
+  //   const isV2Manifest = ManifestParserV2.isV2(sourceContent);
+  //   const isV1Manifest = trimmed.includes('- [');
+  //   const isManifest = isV2Manifest || isV1Manifest;
+  //   const isJson = trimmed.startsWith('{');
+  function detect(content: string) {
+    const trimmed = content.trimStart();
+    const isV2Manifest = ManifestParserV2.isV2(content);
+    const isV1Manifest = trimmed.includes('- [');
+    return {
+      isV2Manifest,
+      isV1Manifest,
+      isManifest: isV2Manifest || isV1Manifest,
+      isJson: trimmed.startsWith('{'),
+    };
+  }
+
+  const V2_TABLE = [
+    '# Component Manifest',
+    '',
+    '**Scan format version:** 2  ',
+    '**File:** data/specs-testing.file.json',
+    '',
+    '## Components',
+    '',
+    '| ✓ | Name | ID | Type | Dev Status |',
+    '|------|------|------|------|------------|',
+    '| [x] | DS Button | 639:11013 | COMPONENT_SET | NONE |',
+  ].join('\n');
+
+  const V1_LIST = [
+    '# Component Manifest',
+    '',
+    '**File:** data/specs-testing.file.json',
+    '',
+    '- [x] DS Button (639:11013, COMPONENT_SET)',
+  ].join('\n');
+
+  it('detects a v2 table manifest as a manifest (was the #101 regression)', () => {
+    const d = detect(V2_TABLE);
+    expect(d.isV2Manifest).toBe(true);
+    expect(d.isManifest).toBe(true);
+    expect(d.isJson).toBe(false);
+  });
+
+  it('still detects a v1 checkbox-list manifest as a manifest', () => {
+    const d = detect(V1_LIST);
+    expect(d.isV1Manifest).toBe(true);
+    expect(d.isManifest).toBe(true);
+    expect(d.isJson).toBe(false);
+  });
+
+  it('detects raw JSON as file mode, not manifest', () => {
+    const d = detect('{ "name": "library", "components": {} }');
+    expect(d.isManifest).toBe(false);
+    expect(d.isJson).toBe(true);
+  });
+
+  it('rejects unrecognized content (neither manifest nor JSON)', () => {
+    const d = detect('just some prose without checkboxes or a version header');
+    expect(d.isManifest).toBe(false);
+    expect(d.isJson).toBe(false);
+  });
+
+  it('dispatches v2 content to ManifestParserV2', () => {
+    const { components, metadata } = ManifestParserV2.parse(V2_TABLE);
+    expect(metadata.scanFormatVersion).toBe(2);
+    expect(components).toHaveLength(1);
+    expect(components[0]).toMatchObject({ id: '639:11013', name: 'DS Button', included: true });
+  });
+
+  it('dispatches v1 content to the legacy ManifestParser', () => {
+    const { components, metadata } = ManifestParser.parse(V1_LIST);
+    expect(metadata.file).toBe('data/specs-testing.file.json');
+    expect(components).toHaveLength(1);
+    expect(components[0]).toMatchObject({ id: '639:11013', name: 'DS Button', included: true });
   });
 });
 
