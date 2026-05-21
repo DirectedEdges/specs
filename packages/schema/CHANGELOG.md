@@ -21,6 +21,7 @@ Introduces the composition and slot-content model across ADRs 042, 046–050. `C
 - `InstanceExample` — `{ title?, propConfigurations?: Record<string, string | number | boolean | SlotContentRef> }`; scalar props set directly, slot props filled via `SlotContentRef`. `PropBinding` not accepted — documented configurations are not live bindings (ADR-048)
 - `Config.processing.instanceExamples` — `{ scope?: 'PAGE' | 'FILE', match: string[], exclude?: string[], parentNames?: string[] }`; instance-example detection settings, mirroring `processing.subcomponents`. `scope` is `PAGE | FILE` (`NESTED` is inapplicable); `parentNames` filters candidates by immediate-parent frame/section name. Absent = no detection. Added to `ResolvedConfig` (with `scope` required) (ADR-050)
 - `Config.include.slotContentExamples` and `Config.include.instanceExamples` — `boolean` output gates, default `false`; added to `ResolvedConfig` (required) and `DEFAULT_CONFIG` (ADR-050)
+- `Config.format.tokens` — adds `FIGMA_SYNTAX_WEB`, `FIGMA_SYNTAX_IOS`, `FIGMA_SYNTAX_ANDROID` profiles emitting per-platform Figma code syntax, falling back to `TOKEN` (ADR-051)
 
 ### Changed
 

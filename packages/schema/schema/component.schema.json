@@ -1034,10 +1034,13 @@
                 "TOKEN_NAME",
                 "TOKEN_FIGMA_EXTENSIONS",
                 "FIGMA_NAME",
-                "CUSTOM"
+                "CUSTOM",
+                "FIGMA_SYNTAX_WEB",
+                "FIGMA_SYNTAX_IOS",
+                "FIGMA_SYNTAX_ANDROID"
               ],
               "default": "TOKEN",
-              "description": "Token reference serialization profile. Optional; defaults to TOKEN. CUSTOM delegates projection entirely to the transformer."
+              "description": "Token reference serialization profile. Optional; defaults to TOKEN. CUSTOM delegates projection entirely to the transformer. FIGMA_SYNTAX_WEB, FIGMA_SYNTAX_IOS, and FIGMA_SYNTAX_ANDROID emit the token's Figma codeSyntax for that platform, falling back to TOKEN output when no code syntax is defined for the platform."
             },
             "color": {
               "type": "string",

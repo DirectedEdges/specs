@@ -10,11 +10,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Examples config (ADR-050)** — `ConfigLoader` now accepts the new `include.slotContentExamples` and `include.instanceExamples` flags (added to the include allowlist) and validates `processing.instanceExamples` (`scope` ∈ `PAGE`/`FILE` with `PAGE` fallback; `match` required; `exclude`/`parentNames` array-checked), passing them through to the engine. Surfaces `slotContentExamples`/`instanceExamples` generation to CLI users.
+- **Platform code-syntax token profiles (ADR-051, DirectedEdges/specs#103)** — `format.tokens` now accepts `FIGMA_SYNTAX_WEB`, `FIGMA_SYNTAX_IOS`, and `FIGMA_SYNTAX_ANDROID` in config loading and templates, surfacing the platform code-syntax profiles to CLI users. The transformer (specs-from-figma) emits each variable's Figma `codeSyntax` for the selected platform, falling back to the standard token output when a platform has no code syntax defined.
 
 ### Changed
 
 ### Removed
 
+
+## [0.15.1] - 2026-05-20
+
+Patch release fixing the `scan` → `generate` round-trip. `generate` now accepts the v2 (markdown-table) manifests that `scan` has emitted since 0.15.0, restoring the documented workflow.
+
+### Fixed
+
+- **`generate` now accepts v2 (table) manifests** — `generate`'s source auto-detection only recognized the legacy v1 checkbox-list format (`- [`), so any manifest produced by `specs scan` in 0.15.0 failed with `Error: Unrecognized source format`, breaking the documented `scan && generate` round-trip. `generate` now detects v2 manifests via the `**Scan format version:**` header and dispatches to `ManifestParserV2`, while continuing to support v1 manifests and raw JSON files. ([#101](https://github.com/DirectedEdges/specs/issues/101))
+- **Escaped pipes in component names round-trip** — `scan` escapes `|` as `\|` in manifest table cells; `ManifestParserV2` now unescapes them so names like `Toggle | On/Off` parse back to their literal form.
+
+### Dependency updates
+
+- No upstream dependency changes since 0.15.0. Continues to reference `@directededges/specs-schema ^0.20.0` and `@directededges/specs-from-figma ^0.18.0`.
 
 ## [0.15.0] - 2026-05-15
 
