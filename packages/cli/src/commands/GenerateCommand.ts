@@ -71,7 +71,7 @@ export const Generate = new Command('generate')
   .option('--data-dir <dir>', 'Override data directory for loading source files')
   .option('--config <path>', 'Path to config file (specs.config.yaml)')
   .option('--split-components', 'Create separate file per component')
-  .option('--split-concerns', 'Separate API and variants into different files')
+  .option('--split-concerns', 'Separate API, variants, and examples into different files')
   .option('--use-subfolders', 'Organize component files in subdirectories (requires --split-components)')
   .option('--verbose', 'Enable detailed logging', false)
   .action(async (source: string | undefined, options: GenerateOptions) => {

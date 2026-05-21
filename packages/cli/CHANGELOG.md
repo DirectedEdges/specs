@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`--split-concerns` now emits a third `examples.yaml`** — slot-content and instance examples are written to `examples.yaml` (per-concern mode) or `<component>/examples.yaml` (combined mode), alongside `api.yaml` and `variants.yaml`. The file is emitted only when at least one component has examples, and components without examples are omitted from it.
+
+### Fixed
+
+- **`--split-concerns` no longer drops examples** — `slotContentExamples` and `instanceExamples` (component- and subcomponent-level) were assigned to neither the `api` nor `variants` concern, so `--split-concerns` silently discarded them, leaving the `$slotContent` references in `default`/`variants` dangling. They are now routed into `examples.yaml`.
+
 ### Removed
 
 

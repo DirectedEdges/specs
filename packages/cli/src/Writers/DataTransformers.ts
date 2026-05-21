@@ -45,13 +45,37 @@ export interface SubcomponentVariantsData {
 }
 
 /**
- * Split component data into API and Variants concerns
+ * Examples concern data extracted from component
+ * Contains: slotContentExamples, instanceExamples, subcomponents (recursive)
+ * Metadata always appears last in serialization. Fields are present only when
+ * the component actually has them.
+ */
+export interface ComponentExamplesData {
+  slotContentExamples?: Record<string, any>;
+  instanceExamples?: Record<string, any>;
+  subcomponents?: Record<string, SubcomponentExamplesData>;
+  metadata: any;
+}
+
+/**
+ * Examples data for subcomponent (nested within parent)
+ */
+export interface SubcomponentExamplesData {
+  slotContentExamples?: Record<string, any>;
+  instanceExamples?: Record<string, any>;
+  subcomponents?: Record<string, SubcomponentExamplesData>;
+  metadata: any;
+}
+
+/**
+ * Split component data into API, Variants, and Examples concerns
  * @param data Plain component data object
- * @returns Object with api and variants separated, metadata in both
+ * @returns Object with api, variants, and examples separated, metadata in each
  */
 export function splitComponentByConcern(data: Record<string, any>): {
   api: ComponentApiData;
   variants: ComponentVariantsData;
+  examples: ComponentExamplesData;
 } {
   // Extract API concern: title, anatomy, props, subcomponents (recursive)
   const api: ComponentApiData = {
@@ -65,25 +89,48 @@ export function splitComponentByConcern(data: Record<string, any>): {
   if (data.subcomponents) {
     api.subcomponents = extractApiFromSubcomponents(data.subcomponents);
   }
-  
+
   // Extract Variants concern: default, variants, invalidVariantCombinations, subcomponents (recursive)
   const variants: ComponentVariantsData = {
     default: data.default,
     variants: data.variants || [],
     metadata: data.metadata
   };
-  
+
   // Include invalidVariantCombinations only if present
   if (data.invalidVariantCombinations && data.invalidVariantCombinations.length > 0) {
     variants.invalidVariantCombinations = data.invalidVariantCombinations;
   }
-  
+
   // Handle subcomponents recursively for Variants
   if (data.subcomponents) {
     variants.subcomponents = extractVariantsFromSubcomponents(data.subcomponents);
   }
-  
-  return { api, variants };
+
+  // Extract Examples concern: slotContentExamples, instanceExamples, subcomponents
+  // (recursive). Without this, --split-concerns would silently DROP these fields,
+  // leaving the $slotContent references in `default`/`variants` dangling.
+  const examples: ComponentExamplesData = { metadata: data.metadata };
+  if (data.slotContentExamples) examples.slotContentExamples = data.slotContentExamples;
+  if (data.instanceExamples) examples.instanceExamples = data.instanceExamples;
+  if (data.subcomponents) {
+    const subExamples = extractExamplesFromSubcomponents(data.subcomponents);
+    if (subExamples) examples.subcomponents = subExamples;
+  }
+
+  return { api, variants, examples };
+}
+
+/**
+ * True when an examples concern carries any actual data (so callers can skip
+ * emitting empty examples files for components that have no examples).
+ */
+export function hasExampleData(examples: ComponentExamplesData | SubcomponentExamplesData): boolean {
+  return Boolean(
+    (examples.slotContentExamples && Object.keys(examples.slotContentExamples).length > 0) ||
+    (examples.instanceExamples && Object.keys(examples.instanceExamples).length > 0) ||
+    (examples.subcomponents && Object.keys(examples.subcomponents).length > 0)
+  );
 }
 
 /**
@@ -152,6 +199,35 @@ export function extractVariantsFromSubcomponents(
   }
   
   return result;
+}
+
+/**
+ * Extract Examples concern from subcomponents
+ * @param subcomponents Record of subcomponent data
+ * @returns Record of subcomponent examples data, or undefined when no subcomponent
+ *   has any example data (so empty `subcomponents` keys are never emitted)
+ */
+export function extractExamplesFromSubcomponents(
+  subcomponents?: Record<string, any>
+): Record<string, SubcomponentExamplesData> | undefined {
+  if (!subcomponents) return undefined;
+
+  const result: Record<string, SubcomponentExamplesData> = {};
+
+  for (const [name, data] of Object.entries(subcomponents)) {
+    const examplesData: SubcomponentExamplesData = { metadata: data.metadata };
+    if (data.slotContentExamples) examplesData.slotContentExamples = data.slotContentExamples;
+    if (data.instanceExamples) examplesData.instanceExamples = data.instanceExamples;
+
+    // Recursively handle nested subcomponents
+    const nested = extractExamplesFromSubcomponents(data.subcomponents);
+    if (nested) examplesData.subcomponents = nested;
+
+    // Only include subcomponents that actually carry examples
+    if (hasExampleData(examplesData)) result[name] = examplesData;
+  }
+
+  return Object.keys(result).length > 0 ? result : undefined;
 }
 
 /**
