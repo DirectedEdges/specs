@@ -17,7 +17,7 @@ The `Component` type is the root object of every spec. It contains the component
 | `invalidVariantCombinations` | [`PropConfigurations[]`](prop-configurations.md) | No | Prop combinations that are not valid together |
 | `subcomponents` | [`Subcomponents`](/specs/schema/subcomponents/) | No | Embedded child component definitions |
 | `metadata` | [`Metadata`](/specs/schema/metadata/) | No | Generation metadata (author, schema version, config) |
-| `instanceExamples` | `Record<string, InstanceExample>` | No | Documented scalar-prop usage examples for this component |
+| `instanceExamples` | `Record<string, InstanceExample>` | No | **Pro.** Documented scalar-prop usage examples for this component (emitted only with a Pro license) |
 | `slotContent` | [`Compositions`](#composition) | No | Named slot-content entries, referenced by JSON Pointer from slot bindings and from `Element.propConfigurations` slot-prop entries |
 
 ## `InstanceExample`

@@ -83,8 +83,6 @@ export interface Config {
     emptyVariants?: boolean;
     /** Include slot content examples in output (ADR-050). Optional; defaults to false. @since 0.21.0 */
     slotContentExamples?: boolean;
-    /** Include instance examples in output (ADR-050). Optional; defaults to false. @since 0.21.0 */
-    instanceExamples?: boolean;
   };
 }
 
@@ -151,8 +149,6 @@ export interface ResolvedConfig {
     emptyVariants: boolean;
     /** Include slot content examples in output. */
     slotContentExamples: boolean;
-    /** Include instance examples in output. */
-    instanceExamples: boolean;
   };
 }
 
@@ -174,7 +170,7 @@ export interface ResolvedConfig {
  * - include.invalidCombinations: true helps designers identify property conflicts
  * - include.emptyVariants: false reduces output size by excluding semantically empty layered variants
  * - include.slotContentExamples: false — opt-in (ADR-050); off by default so unannotated components are unchanged
- * - include.instanceExamples: false — opt-in (ADR-050); off by default so unannotated components are unchanged
+ *   (instanceExamples have no include flag — presence of processing.instanceExamples is the on-switch, like subcomponents)
  */
 export const DEFAULT_CONFIG: ResolvedConfig = {
   processing: {
@@ -195,6 +191,5 @@ export const DEFAULT_CONFIG: ResolvedConfig = {
     invalidCombinations: true,
     emptyVariants: false,
     slotContentExamples: false,
-    instanceExamples: false,
   },
 };

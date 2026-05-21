@@ -1,27 +1,27 @@
 ---
-title: "Example Output Gates"
-description: "Toggle slot content and instance example output independently"
+title: "slotContentExamples"
+description: "Emit structurally-detected default slot content as examples"
 ---
 
-Two independent `include` flags gate the two example registries on a component. Both default to `false`, so existing output for unannotated components is unchanged until you opt in.
+<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge pro-badge">Pro</span>')</script>
+
+:::note[Pro feature]
+`slotContentExamples` output requires a [Pro license](/specs/overview/licensing/). On the free tier the flag is silently ignored — slot content is neither stamped nor emitted, regardless of config. This applies to the CLI, the REST API, and the Figma plugin (where the control is hidden until a Pro license is active).
+:::
+
+When `true`, the generator emits `Component.slotContentExamples` — the **default content placed inside a component's slot layers**, captured structurally and referenced from each slot binding via `$slotContent`. Defaults to `false`, so output for unannotated components is unchanged until you opt in.
+
+Unlike [`instanceExamples`](/specs/config/instance-examples/), slot content examples need **no detection config** — they are derived structurally from whatever content sits inside slot layers. This flag is the only control.
 
 ## Properties
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `slotContentExamples` | `boolean` | `false` | Emit `Component.slotContentExamples` — sample fills detected **structurally** from content placed inside slot layers |
-| `instanceExamples` | `boolean` | `false` | Emit `Component.instanceExamples` — named example frames detected via [`processing.instanceExamples`](/specs/config/instance-examples/) |
-
-The two flags are independent: a team ready to publish slot fills can set `slotContentExamples: true` while leaving `instanceExamples: false`.
-
-## Detection vs. gating
-
-- **Slot content examples** require *no* detection config — they are derived structurally from slot layers that have content placed in them. The `slotContentExamples` flag is the only control.
-- **Instance examples** require *both* a [`processing.instanceExamples`](/specs/config/instance-examples/) detection block (which frames, where) *and* the `instanceExamples` flag (whether to emit).
+| `slotContentExamples` | `boolean` | `false` | Emit `Component.slotContentExamples` — default fills detected structurally from content inside slot layers |
 
 ## Path
 
-`config.include.slotContentExamples`, `config.include.instanceExamples`
+`config.include.slotContentExamples`
 
 ### Example
 
@@ -29,15 +29,10 @@ The two flags are independent: a team ready to publish slot fills can set `slotC
 config:
   include:
     slotContentExamples: true   # emit structurally-detected slot fills
-    instanceExamples: true      # emit detected example frames
-  processing:
-    instanceExamples:           # required for instanceExamples output
-      scope: PAGE
-      match:
-        - "{C} Example *"
 ```
 
 ## See Also
 
-- [`processing.instanceExamples`](/specs/config/instance-examples/) — instance example detection
-- [Schema: Component](/specs/schema/component/) — `slotContentExamples` and `instanceExamples` registry shapes
+- [Guide: Default Slot Content](/specs/guides/default-slot-content/) — what it captures and how to author it
+- [`processing.instanceExamples`](/specs/config/instance-examples/) — the separate, presence-driven instance-example feature
+- [Schema: Component](/specs/schema/component/) — `slotContentExamples` registry shape

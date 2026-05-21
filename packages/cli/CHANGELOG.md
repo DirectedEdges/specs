@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Examples config (ADR-050)** — `ConfigLoader` now accepts the new `include.slotContentExamples` and `include.instanceExamples` flags (added to the include allowlist) and validates `processing.instanceExamples` (`scope` ∈ `PAGE`/`FILE` with `PAGE` fallback; `match` required; `exclude`/`parentNames` array-checked), passing them through to the engine. Surfaces `slotContentExamples`/`instanceExamples` generation to CLI users.
+- **Examples config (ADR-050)** — `ConfigLoader` now accepts the new `include.slotContentExamples` flag (added to the include allowlist) and validates `processing.instanceExamples` (`scope` ∈ `PAGE`/`FILE` with `PAGE` fallback; `match` required; `exclude`/`parentNames` array-checked), passing them through to the engine. `instanceExamples` output is driven by the **presence** of `processing.instanceExamples` (no `include.instanceExamples` flag), mirroring `subcomponents`. Both example features are Pro-gated — silently omitted on the free tier. Surfaces `slotContentExamples`/`instanceExamples` generation to CLI users.
 - **Platform code-syntax token profiles (ADR-051, DirectedEdges/specs#103)** — `format.tokens` now accepts `FIGMA_SYNTAX_WEB`, `FIGMA_SYNTAX_IOS`, and `FIGMA_SYNTAX_ANDROID` in config loading and templates, surfacing the platform code-syntax profiles to CLI users. The transformer (specs-from-figma) emits each variable's Figma `codeSyntax` for the selected platform, falling back to the standard token output when a platform has no code syntax defined.
 
 ### Changed
@@ -70,7 +70,7 @@ Patch fix for `--split-concerns` output shape.
 
 ### Fixed
 
-- **`props` defaults to `{}` instead of `[]` when a component has no props (#84)** — `splitComponentByConcern` and `extractApiFromSubcomponents` were filling missing `props` with an empty array, producing output that violated the schema (`Props` is an object). Components like `egdsDivider` and `egdsSearchBarExperimental` now emit `props: {}`. The `ComponentApiData` and `SubcomponentApiData` interfaces are corrected to type `props` as `Record<string, any>`.
+- **`props` defaults to `{}` instead of `[]` when a component has no props (#84)** — `splitComponentByConcern` and `extractApiFromSubcomponents` were filling missing `props` with an empty array, producing output that violated the schema (`Props` is an object). Components with no props (e.g. a divider) now emit `props: {}`. The `ComponentApiData` and `SubcomponentApiData` interfaces are corrected to type `props` as `Record<string, any>`.
 
 
 ## [0.13.0] - 2026-05-06

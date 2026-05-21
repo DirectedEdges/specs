@@ -3,9 +3,15 @@ title: "Instance Examples"
 description: "Detect named example frames that demonstrate a configured whole-component usage"
 ---
 
-Instance examples are named frames in your Figma file that show a pre-configured, real-world usage of a component (for example, an alert with a title, body, and two actions filled in). When detection is configured, matching frames are harvested into `Component.instanceExamples` and emitted when [`include.instanceExamples`](#gating-the-output) is enabled.
+<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge pro-badge">Pro</span>')</script>
 
-When `processing.instanceExamples` is absent, no instance example detection runs — the same opt-in model as [`subcomponents`](/specs/config/subcomponents/).
+:::note[Pro feature]
+Instance example detection and output requires a [Pro license](/specs/overview/licensing/). On the free tier `processing.instanceExamples` is silently ignored — no detection runs and nothing is emitted. The Figma plugin hides these controls until a Pro license is active.
+:::
+
+Instance examples are named frames in your Figma file that show a pre-configured, real-world usage of a component (for example, an alert with a title, body, and two actions filled in). When detection is configured, matching frames are harvested into `Component.instanceExamples` and emitted.
+
+The **presence** of `processing.instanceExamples` is the on-switch — the same opt-in model as [`subcomponents`](/specs/config/subcomponents/). There is no separate `include` flag: when the block is present (and the license is Pro), examples are detected *and* emitted. When it is absent, no detection runs.
 
 ## Properties
 
@@ -37,8 +43,6 @@ config:
         - "{C} / *"
       exclude:
         - "* / Deprecated / *"
-  include:
-    instanceExamples: true
 ```
 
 ### Example — examples alongside the component, no parent filter
@@ -51,19 +55,11 @@ config:
       match:
         - "{C} – *"
         - "{C} Example *"
-  include:
-    instanceExamples: true
 ```
-
-## Gating the output
-
-Detection populates the data, but output is gated by the `include.instanceExamples` flag (defaults to `false`). Both must be set for instance examples to appear:
-
-- `processing.instanceExamples` — *how* to detect example frames
-- `include.instanceExamples` — *whether* to emit the detected data
 
 ## See Also
 
-- [`include.instanceExamples` / `include.slotContentExamples`](/specs/config/slot-content-examples/) — the output gates
+- [Guide: Instance (Ready-Made) Examples](/specs/guides/instance-examples/) — authoring example frames end to end
+- [`slotContentExamples`](/specs/config/slot-content-examples/) — the separate default-slot-content output flag
 - [Schema: Component](/specs/schema/component/) — the `instanceExamples` registry shape
-- [`subcomponents`](/specs/config/subcomponents/) — the detection model this mirrors
+- [`subcomponents`](/specs/config/subcomponents/) — the presence-driven detection model this mirrors
