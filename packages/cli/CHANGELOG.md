@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Examples config (ADR-050)** — `ConfigLoader` now accepts the new `include.slotContentExamples` and `include.instanceExamples` flags (added to the include allowlist) and validates `processing.instanceExamples` (`scope` ∈ `PAGE`/`FILE` with `PAGE` fallback; `match` required; `exclude`/`parentNames` array-checked), passing them through to the engine. Surfaces `slotContentExamples`/`instanceExamples` generation to CLI users.
+
 ### Changed
 
 ### Removed

@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.21.0] - Unreleased
 
-Introduces the composition and slot-content model across ADRs 042, 046–049. `Composition` is a named registry entry with a top-level `anatomy + elements + layout` triplet and an optional `slotContent` map of bundled `SlotContent` fills. `SlotContentRef` (`{ $slotContent }`) is the universal pointer for all slot fills — component-scoped examples, intra-composition bundled fills, and cross-composition references all resolve to `anatomy + elements + layout`. `PropConfigurations` widens to accept `PropBinding` and `SlotContentRef`; `InstanceExample.propConfigurations` widens to accept `SlotContentRef` (not `PropBinding`). `Children` widens to `SlotBinding` for slot-bound containers.
+Introduces the composition and slot-content model across ADRs 042, 046–050. `Composition` is a named registry entry with a top-level `anatomy + elements + layout` triplet and an optional `slotContent` map of bundled `SlotContent` fills. `SlotContentRef` (`{ $slotContent }`) is the universal pointer for all slot fills — component-scoped examples, intra-composition bundled fills, and cross-composition references all resolve to `anatomy + elements + layout`. `PropConfigurations` widens to accept `PropBinding` and `SlotContentRef`; `InstanceExample.propConfigurations` widens to accept `SlotContentRef` (not `PropBinding`). `Children` widens to `SlotBinding` for slot-bound containers. `Config` gains the examples-detection settings and output gates (ADR-050).
 
 ### Added
 
@@ -19,6 +19,8 @@ Introduces the composition and slot-content model across ADRs 042, 046–049. `C
 - `SlotBinding` — extends `PropBinding` with optional `examples?: SlotContentRef[]`; used in `Element.children` for slot-bound containers. Each `examples[i]` points to a slot-content entry; emitters currently write a single entry at index 0 — Figma's authoring default for the slot layer. Non-contractual reference material; code consumers handle missing slots through component logic and ignore it (ADR-047)
 - `Component.instanceExamples` — typed as `InstanceExamples` (`Record<string, InstanceExample>`); named documented usages per component (ADR-048)
 - `InstanceExample` — `{ title?, propConfigurations?: Record<string, string | number | boolean | SlotContentRef> }`; scalar props set directly, slot props filled via `SlotContentRef`. `PropBinding` not accepted — documented configurations are not live bindings (ADR-048)
+- `Config.processing.instanceExamples` — `{ scope?: 'PAGE' | 'FILE', match: string[], exclude?: string[], parentNames?: string[] }`; instance-example detection settings, mirroring `processing.subcomponents`. `scope` is `PAGE | FILE` (`NESTED` is inapplicable); `parentNames` filters candidates by immediate-parent frame/section name. Absent = no detection. Added to `ResolvedConfig` (with `scope` required) (ADR-050)
+- `Config.include.slotContentExamples` and `Config.include.instanceExamples` — `boolean` output gates, default `false`; added to `ResolvedConfig` (required) and `DEFAULT_CONFIG` (ADR-050)
 
 ### Changed
 
