@@ -465,19 +465,26 @@ config:
       expect(include.defaultSlotContent).toBe(true);
     });
 
-    // NOTE: ConfigLoader currently validates the include *key* allowlist but
-    // does NOT coerce a non-boolean defaultSlotContent *value* back to a default
-    // (ConfigLoader.ts ~252-257 only deletes unknown keys). A non-boolean value
-    // is therefore passed through verbatim. This test documents that current
-    // behavior; if value coercion is added later, update this expectation.
-    it('passes a non-boolean defaultSlotContent value through verbatim (no coercion today)', () => {
+    // defaultSlotContent activates only on a literal boolean `true`; any other
+    // value is coerced to false (ConfigLoader.ts validateAndCorrectConfig).
+    it('coerces a non-boolean defaultSlotContent value to false', () => {
       const configPath = path.join(testDir, 'specs.config.json');
       fs.writeFileSync(configPath, JSON.stringify({
         config: { include: { defaultSlotContent: 'yes' } },
       }));
 
       const config = configLoader.load();
-      expect((config.config.include as Record<string, unknown>).defaultSlotContent).toBe('yes');
+      expect(config.config.include.defaultSlotContent).toBe(false);
+    });
+
+    it('coerces a truthy-but-not-true value (e.g. 1) to false', () => {
+      const configPath = path.join(testDir, 'specs.config.json');
+      fs.writeFileSync(configPath, JSON.stringify({
+        config: { include: { defaultSlotContent: 1 } },
+      }));
+
+      const config = configLoader.load();
+      expect(config.config.include.defaultSlotContent).toBe(false);
     });
   });
 

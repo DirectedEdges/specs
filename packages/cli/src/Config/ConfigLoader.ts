@@ -256,6 +256,16 @@ export class ConfigLoader {
       }
     }
 
+    // defaultSlotContent activates only on a literal boolean `true`. Any other
+    // value (e.g. the string "yes", a number, or undefined) is treated as off.
+    const dsc = (corrected.include as Record<string, unknown>).defaultSlotContent;
+    if (dsc !== undefined && typeof dsc !== 'boolean') {
+      console.warn(`Invalid include.defaultSlotContent: expected boolean, got ${typeof dsc}. Using default: false`);
+    }
+    if (dsc !== true) {
+      corrected.include.defaultSlotContent = false;
+    }
+
     return corrected;
   }
 
