@@ -55,10 +55,14 @@ jobs:
         with:
           ref: ${{ steps.ref.outputs.tag }}
 
+      # NOTE: do NOT set `registry-url` here. setup-node would write an .npmrc
+      # with `_authToken=${NODE_AUTH_TOKEN}` and export a placeholder
+      # NODE_AUTH_TOKEN, causing npm to authenticate the publish with a bogus
+      # token (HTTP 404) instead of falling back to OIDC Trusted Publishing.
+      # The registry is set via the repo .npmrc and the package's publishConfig.
       - uses: actions/setup-node@v4
         with:
           node-version: '22' # Trusted Publishing needs Node >= 22.14.0
-          registry-url: 'https://registry.npmjs.org'
 
       - name: Ensure npm supports Trusted Publishing (>= 11.5.1)
         run: npm install -g npm@latest
