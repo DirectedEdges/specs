@@ -23,7 +23,7 @@ export type { SlotContent } from './SlotContent.js';
 export type { Composition, Compositions } from './Composition.js';
 
 // Configuration types
-export type { PropConfigurations } from './PropConfigurations.js';
+export type { PropConfigurations, PropConfigurationValue, NestedPropConfiguration } from './PropConfigurations.js';
 export type { Config, ResolvedConfig, ColorFormat } from './Config.js';
 export { DEFAULT_CONFIG } from './Config.js';
 

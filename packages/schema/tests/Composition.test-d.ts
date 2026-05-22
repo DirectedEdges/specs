@@ -18,6 +18,7 @@ import type {
   SlotBinding,
   PropBinding,
   PropConfigurations,
+  NestedPropConfiguration,
 } from '../types/index.js';
 
 // ─── ADR-046: SlotContent is the anonymous structural triplet ────────────────
@@ -204,6 +205,27 @@ const propConfMixed: PropConfigurations = {
   startVisual: crossCompositionRef,      // SlotContentRef
 };
 
+// ─── ADR-052: $nested path-addressed configs of nested descendants ───────────
+
+// Regular prop entries and the reserved `$nested` list coexist on one instance
+const propConfWithNested: PropConfigurations = {
+  density: 'comfortable',                                // regular scalar (direct)
+  toolbar: componentScopedRef,                          // regular DIRECT slot fill
+  $nested: [
+    { path: ['filterHeader', 'row'], children: componentScopedRef },
+    { path: ['filterContent', 'row'], children: crossCompositionRef },
+  ],
+};
+
+// A single NestedPropConfiguration: path of instanceOf keys + payload at the terminal.
+// path is a string[] of instanceOf element keys (not typed { instance } / { slot }
+// segments — slot descents are reference boundaries, never path steps); the terminal
+// instance owns the configured slot, named by the entry key (`actions`).
+const oneNested: NestedPropConfiguration = {
+  path: ['header', 'toolbar'],
+  actions: { $slotContent: '#/slotContentExamples/toolbarActions' },
+};
+
 // Silence "declared but never read" for tsc strict mode
 void [
   minimalSlotContent,
@@ -230,4 +252,6 @@ void [
   propConfWithBinding,
   propConfWithSlotRef,
   propConfMixed,
+  propConfWithNested,
+  oneNested,
 ];

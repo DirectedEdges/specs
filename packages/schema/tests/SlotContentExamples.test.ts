@@ -23,6 +23,8 @@ import type {
   InstanceExample,
   InstanceExamples,
   SlotContentRef,
+  PropConfigurations,
+  NestedPropConfiguration,
 } from '../types/index.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -132,6 +134,54 @@ describe('InstanceExample structural conformance', () => {
         typeof value === 'boolean' ||
         (typeof value === 'object' && value !== null && '$slotContent' in value);
       expect(ok).toBe(true);
+    }
+  });
+});
+
+describe('PropConfigurations.$nested structural conformance (ADR-052)', () => {
+  const propDef = schema.definitions.PropConfigurations;
+  const nestedDef = schema.definitions.NestedPropConfiguration;
+
+  // Regular prop entries and the reserved $nested list coexist on one instance
+  const boundaryConfig: PropConfigurations = {
+    density: 'comfortable',
+    toolbar: slotRef,
+    $nested: [
+      { path: ['filterHeader', 'row'], children: slotRef },
+      { path: ['filterContent', 'row'], children: slotRef },
+    ],
+  };
+
+  it('PropConfigurations defines a $nested property (array of NestedPropConfiguration)', () => {
+    expect(propDef.properties.$nested.type).toBe('array');
+    expect(propDef.properties.$nested.items.$ref).toBe('#/definitions/NestedPropConfiguration');
+  });
+
+  it('both objects share the PropConfigurationValue definition for their value union', () => {
+    expect(propDef.additionalProperties.$ref).toBe('#/definitions/PropConfigurationValue');
+    expect(nestedDef.additionalProperties.$ref).toBe('#/definitions/PropConfigurationValue');
+    const kinds = (schema.definitions.PropConfigurationValue.oneOf as any[]).map((s) => s.type ?? s.$ref);
+    expect(kinds).toEqual(
+      expect.arrayContaining(['string', 'number', 'boolean', '#/definitions/PropBinding', '#/definitions/SlotContentRef'])
+    );
+  });
+
+  it('NestedPropConfiguration requires path (array of strings, minItems 1)', () => {
+    expect(nestedDef.required).toContain('path');
+    expect(nestedDef.properties.path.type).toBe('array');
+    expect(nestedDef.properties.path.items.type).toBe('string');
+    expect(nestedDef.properties.path.minItems).toBe(1);
+  });
+
+  it('representative $nested entries are instanceOf-key paths terminating in a slot fill', () => {
+    for (const entry of boundaryConfig.$nested!) {
+      expect(Array.isArray(entry.path)).toBe(true);
+      entry.path.forEach((seg) => expect(typeof seg).toBe('string'));
+      const { path, ...payload } = entry as NestedPropConfiguration;
+      void path;
+      for (const value of Object.values(payload)) {
+        expect(typeof value === 'object' && value !== null && '$slotContent' in value).toBe(true);
+      }
     }
   });
 });

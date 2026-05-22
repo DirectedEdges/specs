@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.21.0] - Unreleased
 
-Introduces the composition and slot-content model across ADRs 042, 046–050. `Composition` is a named registry entry with a top-level `anatomy + elements + layout` triplet and an optional `slotContent` map of bundled `SlotContent` fills. `SlotContentRef` (`{ $slotContent }`) is the universal pointer for all slot fills — component-scoped examples, intra-composition bundled fills, and cross-composition references all resolve to `anatomy + elements + layout`. `PropConfigurations` widens to accept `PropBinding` and `SlotContentRef`; `InstanceExample.propConfigurations` widens to accept `SlotContentRef` (not `PropBinding`). `Children` widens to `SlotBinding` for slot-bound containers. `Config` gains the examples-detection settings and output gates (ADR-050).
+Introduces the composition and slot-content model across ADRs 042, 046–052. `Composition` is a named registry entry with a top-level `anatomy + elements + layout` triplet and an optional `slotContent` map of bundled `SlotContent` fills. `SlotContentRef` (`{ $slotContent }`) is the universal pointer for all slot fills — component-scoped examples, intra-composition bundled fills, and cross-composition references all resolve to `anatomy + elements + layout`. `PropConfigurations` widens to accept `PropBinding` and `SlotContentRef`; `InstanceExample.propConfigurations` widens to accept `SlotContentRef` (not `PropBinding`). `Children` widens to `SlotBinding` for slot-bound containers. `Config` gains the examples-detection settings and output gates (ADR-050).
 
 ### Added
 
@@ -27,6 +27,7 @@ Introduces the composition and slot-content model across ADRs 042, 046–050. `C
 
 - `Children` — widened from `string[] | PropBinding` to `string[] | SlotBinding`; existing `{ $binding }` values still validate because `SlotBinding` is a structural superset of `PropBinding` (ADR-047)
 - `PropConfigurations` — value union widened from `string | number | boolean` to `string | number | boolean | PropBinding | SlotContentRef`; enables scalar prop pass-through (`PropBinding`) and slot-prop fills (`SlotContentRef`). `InstanceExample.propConfigurations` widens separately and does not accept `PropBinding` (ADR-049)
+- `PropConfigurations.$nested` — added reserved key typed as `NestedPropConfiguration[]` (`{ path: string[] }` plus the prop-config payload, keyed value `PropConfigurationValue`); path-addressed configurations of nested descendant instances, where `path` is a list of `instanceOf` element keys to the configured descendant and the terminal instance owns the filled slot/prop. Deep slot fills reuse `SlotContentRef` — no new payload, no `Element` change. `InstanceExample.propConfigurations` does not gain `$nested` (ADR-052)
 
 ### Removed
 

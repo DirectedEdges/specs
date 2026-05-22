@@ -461,28 +461,59 @@
         }
       ]
     },
+    "PropConfigurationValue": {
+      "description": "The value of a single prop configuration entry (ADR-049): a scalar, a PropBinding for pass-through to a parent prop, or a SlotContentRef under a slot-prop key for a named slot-content fill.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "$ref": "#/definitions/PropBinding"
+        },
+        {
+          "$ref": "#/definitions/SlotContentRef"
+        }
+      ]
+    },
     "PropConfigurations": {
       "type": "object",
-      "description": "Per-element prop configurations (ADR-049). Values are scalars, a PropBinding for pass-through to a parent prop, or a SlotContentRef under a slot-prop key for named slot-content fills.",
+      "description": "Per-element prop configurations (ADR-049, ADR-052). Regular keys are prop names whose values are a PropConfigurationValue. The reserved `$nested` key carries path-addressed configurations of nested descendant instances.",
       "examples": [],
+      "properties": {
+        "$nested": {
+          "type": "array",
+          "description": "Path-addressed configurations of nested descendant instances reached through instance boundaries (e.g. deep slot fills). Each entry addresses a descendant by a path of instanceOf element keys and applies prop configurations to it (ADR-052).",
+          "items": {
+            "$ref": "#/definitions/NestedPropConfiguration"
+          }
+        }
+      },
       "additionalProperties": {
-        "oneOf": [
-          {
+        "$ref": "#/definitions/PropConfigurationValue"
+      }
+    },
+    "NestedPropConfiguration": {
+      "type": "object",
+      "description": "A path-addressed configuration of a nested descendant instance reached through instance boundaries (ADR-052). `path` is an ordered list of instanceOf element keys from the anchoring instance to the descendant; the terminal instance owns the configured slot/prop. Remaining keys are PropConfigurationValues applied there (slot fills via SlotContentRef). Slot descents are not path segments: a filled slot points to another slotContentExamples/Composition entry that recurses with its own paths.",
+      "required": ["path"],
+      "properties": {
+        "path": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
             "type": "string"
           },
-          {
-            "type": "number"
-          },
-          {
-            "type": "boolean"
-          },
-          {
-            "$ref": "#/definitions/PropBinding"
-          },
-          {
-            "$ref": "#/definitions/SlotContentRef"
-          }
-        ]
+          "description": "Ordered instanceOf element keys, descending instance to instance; the final key is the configured instance. Located by direct element-key lookup; never container/layout layers."
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/PropConfigurationValue"
       }
     },
     "Elements": {
