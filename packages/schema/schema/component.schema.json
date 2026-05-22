@@ -968,7 +968,7 @@
                     "type": "string"
                   },
                   "minItems": 1,
-                  "description": "Name patterns identifying instance example frames. Uses {C} (component name) placeholder."
+                  "description": "Optional name patterns narrowing which instance frames qualify. Uses {C} (component name) placeholder. Absence = every in-scope instance of the component qualifies (subject to exclude/parentNames)."
                 },
                 "exclude": {
                   "type": "array",
@@ -985,7 +985,6 @@
                   "description": "Immediate-parent frame or section names a candidate must be contained within. Absence = no parent-name filtering."
                 }
               },
-              "required": ["match"],
               "additionalProperties": false
             }
           },

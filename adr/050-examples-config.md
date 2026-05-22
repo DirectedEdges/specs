@@ -30,6 +30,7 @@ So the configuration is deliberately **asymmetric**: default slot content is gat
 - **`defaultSlotContent` is the only example `include` flag** — it has no `processing` block (detection is structural), so the flag is its sole control; it defaults to `false` so unannotated components are unchanged
 - **`scope: NESTED` is inapplicable** — component instances used as examples cannot live inside the component frame itself; the only meaningful search boundaries are the current page (`PAGE`, default) or the full file (`FILE`)
 - **`scope: FILE` supports multi-page files** — some teams place example frames on a dedicated page (e.g., "Examples") separate from the component library page
+- **`match` is an optional *secondary* filter, not the relevance test** — the primary check is structural identity (the candidate is an instance of the component being generated), which `specs-from-figma` already enforces. Example instances frequently carry names with no relationship to the component name (e.g. a "Card" usage named "Marketing hero"), so requiring `match` would exclude legitimate examples. Omitting `match` means "every in-scope instance of this component," narrowed by `exclude`/`parentNames`; supplying `match` narrows further by name
 - **`parentNames?: string[]` narrows the search space** — example frames are often grouped inside a named parent section or frame (e.g., a frame named `"Examples"`) to distinguish them from test cases or playground instances
 - **Additive, type ↔ schema symmetric, no runtime logic** — new optional fields only (Constitution §I/§II); transformer detection/gating logic lives in `specs-from-figma`
 
@@ -39,7 +40,7 @@ So the configuration is deliberately **asymmetric**: default slot content is gat
 
 ### Option A: `include.defaultSlotContent` flag + presence-driven `processing.instanceExamples` *(Selected)*
 
-Add a single example `include` flag, `include.defaultSlotContent?: boolean` (default `false`), gating the component's structurally-detected default slot content. Add `processing.instanceExamples?` with `{ scope?, match, exclude?, parentNames? }`; its **presence** both configures detection and enables instance-example output — there is **no** `include.instanceExamples` flag.
+Add a single example `include` flag, `include.defaultSlotContent?: boolean` (default `false`), gating the component's structurally-detected default slot content. Add `processing.instanceExamples?` with `{ scope?, match?, exclude?, parentNames? }`; its **presence** both configures detection and enables instance-example output — there is **no** `include.instanceExamples` flag. Within the block, **`match` is an optional name filter**: the primary relevance test is structural identity (the candidate instance is a usage of the component being generated), so when `match` is omitted every in-scope instance qualifies, subject to `exclude`/`parentNames`.
 
 ```yaml
 # Config — instance examples on a dedicated page, inside an "Examples" parent frame
@@ -65,6 +66,16 @@ processing:
     match:
       - "{C} – *"
       - "{C} Example *"
+```
+
+```yaml
+# Config — no name patterns: every instance of the component inside the
+# "Ready-made examples" frame is an example (identity + parentNames do the scoping)
+processing:
+  instanceExamples:
+    scope: PAGE
+    parentNames:
+      - Ready-made examples
 ```
 
 `scope` values:
@@ -136,8 +147,8 @@ Mirror the full subcomponents shape for both example types.
 | File | Change | Bump |
 |------|--------|------|
 | `Config.ts` | Add `include.defaultSlotContent?: boolean` | MINOR |
-| `Config.ts` | Add `processing.instanceExamples?: { scope?, match, exclude?, parentNames? }` | MINOR |
-| `Config.ts` | Add `include.defaultSlotContent: boolean` to `ResolvedConfig`; add `processing.instanceExamples?: { scope, match, exclude?, parentNames? }` (scope required in resolved) | MINOR |
+| `Config.ts` | Add `processing.instanceExamples?: { scope?, match?, exclude?, parentNames? }` | MINOR |
+| `Config.ts` | Add `include.defaultSlotContent: boolean` to `ResolvedConfig`; add `processing.instanceExamples?: { scope, match?, exclude?, parentNames? }` (scope required in resolved; match optional) | MINOR |
 | `Config.ts` | Add `defaultSlotContent: false` to `DEFAULT_CONFIG.include` | MINOR |
 
 There is **no** `include.instanceExamples` in `Config`, `ResolvedConfig`, or `DEFAULT_CONFIG`. Instance-example output is governed entirely by the presence of `processing.instanceExamples`.
@@ -149,8 +160,8 @@ There is **no** `include.instanceExamples` in `Config`, `ResolvedConfig`, or `DE
 instanceExamples?: {
   /** Search boundary. PAGE = current page only (default); FILE = all pages in the file. */
   scope?: 'PAGE' | 'FILE';
-  /** Name patterns identifying instance example frames. Uses {C} (component name) placeholder. */
-  match: string[];
+  /** Optional name patterns narrowing which instance frames qualify. Uses {C} (component name) placeholder. Absence = every in-scope instance of the component qualifies (subject to exclude/parentNames). */
+  match?: string[];
   /** Name patterns for frames to exclude. Same {C} syntax as match. */
   exclude?: string[];
   /** Immediate-parent frame or section names a candidate must be contained within. Absence = no parent-name filtering. */
@@ -168,7 +179,7 @@ defaultSlotContent?: boolean;
 // processing block — scope is required (defaults to PAGE); the block stays optional (absence = off)
 instanceExamples?: {
   scope: 'PAGE' | 'FILE';
-  match: string[];
+  match?: string[];
   exclude?: string[];
   parentNames?: string[];
 };
@@ -215,7 +226,6 @@ defaultSlotContent:
 instanceExamples:
   type: object
   description: "Instance example detection settings. Absence means no instance example detection or output."
-  required: [match]
   properties:
     scope:
       type: string
@@ -224,7 +234,7 @@ instanceExamples:
     match:
       type: array
       items: { type: string }
-      description: "Name patterns identifying instance example frames. Uses {C} placeholder."
+      description: "Optional name patterns narrowing which instance frames qualify. Uses {C} placeholder. Absence = every in-scope instance of the component qualifies (subject to exclude/parentNames)."
     exclude:
       type: array
       items: { type: string }
@@ -249,6 +259,7 @@ instanceExamples:
 - **Pro license required for emission.** Both `defaultSlotContent` output and `instanceExamples` output are omitted on the free tier regardless of config, mirroring other premium output. The config flag/block is necessary but not sufficient.
 - **`scope` defaults to `PAGE` in `ResolvedConfig`.** `FILE` is opt-in for teams with a dedicated examples page. `NESTED` is intentionally absent — component instances used as examples cannot live inside the component frame itself.
 - **`parentNames` is an immediate-parent filter, not a full path.** Sufficient for the common convention of grouping examples inside a frame named `"Examples"`, without requiring authors to express full paths.
+- **`match` is optional.** The primary relevance test is structural identity (the candidate is a usage of the component being generated), enforced in `specs-from-figma`. `match` only narrows that set by frame name; omitting it accepts every in-scope instance (still subject to `exclude`/`parentNames`). This matters because example instances commonly have names unrelated to the component name.
 
 ---
 
@@ -257,7 +268,7 @@ instanceExamples:
 - **Symmetric**: Yes
 - **Parity check**:
   - `Config.include.defaultSlotContent?: boolean` ↔ config `include.properties.defaultSlotContent`
-  - `Config.processing.instanceExamples?: { scope?, match, exclude?, parentNames? }` ↔ config `processing.properties.instanceExamples`
+  - `Config.processing.instanceExamples?: { scope?, match?, exclude?, parentNames? }` ↔ config `processing.properties.instanceExamples` (no `required` block — `match` optional)
   - No `include.instanceExamples` exists in either the type or the schema — symmetric by absence
 
 ---
@@ -292,4 +303,5 @@ instanceExamples:
 
 ## Revision History
 
+- **`match` made optional.** The first draft required `processing.instanceExamples.match` (schema `required: [match]`, type `match: string[]`). Implementation in `specs-from-figma` confirmed the structural identity check (candidate instance ∈ the component's variants) is the real relevance filter, with `match` only a secondary name narrowing. Requiring it excluded legitimate examples whose frame names bear no relation to the component name. `match` is now optional (`match?: string[]`, no schema `required`); its absence accepts every in-scope instance, subject to `exclude`/`parentNames`. Still DRAFT/unreleased, so no consumer-facing change.
 - **Shift from the original draft — removed `include.instanceExamples`.** The first draft of this ADR added two example `include` flags (`slotContentExamples`/`instanceExamples`) and treated detection (`processing.instanceExamples`) and output (`include.instanceExamples`) as separate concerns. Implementation surfaced that the second flag was a redundant gate, asymmetric with `processing.subcomponents`, and a source of "configured detection but no output" confusion. Instance examples are now governed solely by the presence of `processing.instanceExamples` (Option A; the old approach is recorded as Option B). Separately, the remaining slot-content flag was renamed `slotContentExamples → defaultSlotContent` so the config flag (the component's *default slot content*) is no longer confused with the `Component.slotContentExamples` data registry that aggregates fills from both sources.

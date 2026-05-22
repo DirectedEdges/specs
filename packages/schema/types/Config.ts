@@ -49,8 +49,8 @@ export interface Config {
     instanceExamples?: {
       /** Search boundary. PAGE = current Figma page only (default); FILE = all pages in the file. */
       scope?: 'PAGE' | 'FILE';
-      /** Name patterns identifying instance example frames. Uses {C} (component name) placeholder. */
-      match: string[];
+      /** Optional name patterns narrowing which instance frames qualify. Uses {C} (component name) placeholder. Absence = every in-scope instance of the component qualifies (subject to exclude/parentNames). */
+      match?: string[];
       /** Name patterns for frames to exclude. Same {C} syntax as match. */
       exclude?: string[];
       /** Immediate-parent frame or section names a candidate must be contained within. Absence = no parent-name filtering. */
@@ -123,7 +123,7 @@ export interface ResolvedConfig {
     /** Instance example detection settings (ADR-050). Optional; absence means no instance example detection. When present, `scope` is required (defaults to PAGE). */
     instanceExamples?: {
       scope: 'PAGE' | 'FILE';
-      match: string[];
+      match?: string[];
       exclude?: string[];
       parentNames?: string[];
     };
