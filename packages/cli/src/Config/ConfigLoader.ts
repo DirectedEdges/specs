@@ -196,16 +196,20 @@ export class ConfigLoader {
       if (ie.scope !== undefined && !validIeScopes.includes(ie.scope)) {
         ie.scope = 'PAGE';
       }
-      if (!Array.isArray(ie.match) || ie.match.length === 0) {
-        console.warn('Invalid processing.instanceExamples.match: must be a non-empty array of strings. Removing instanceExamples config.');
-        delete corrected.processing.instanceExamples;
-      } else {
-        if (ie.exclude !== undefined && !Array.isArray(ie.exclude)) {
-          delete ie.exclude;
-        }
-        if (ie.parentNames !== undefined && !Array.isArray(ie.parentNames)) {
-          delete ie.parentNames;
-        }
+      // match is an OPTIONAL name filter (ADR-050). The on-switch is the presence
+      // of the instanceExamples block; the primary relevance test is structural
+      // identity. When match is omitted, every in-scope instance qualifies
+      // (subject to exclude/parentNames). When provided, it must be a non-empty
+      // array of strings — otherwise drop just the match filter, not the block.
+      if (ie.match !== undefined && (!Array.isArray(ie.match) || ie.match.length === 0)) {
+        console.warn('Invalid processing.instanceExamples.match: when provided, must be a non-empty array of strings. Ignoring match filter.');
+        delete ie.match;
+      }
+      if (ie.exclude !== undefined && !Array.isArray(ie.exclude)) {
+        delete ie.exclude;
+      }
+      if (ie.parentNames !== undefined && !Array.isArray(ie.parentNames)) {
+        delete ie.parentNames;
       }
     }
 

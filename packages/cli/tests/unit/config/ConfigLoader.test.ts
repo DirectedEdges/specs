@@ -347,7 +347,7 @@ config:
       expect(config.config.processing.instanceExamples?.scope).toBe('FILE');
     });
 
-    it('removes the block (and warns) when match is missing', () => {
+    it('keeps the block when match is omitted (match is optional — ADR-050)', () => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, `
@@ -355,24 +355,31 @@ config:
   processing:
     instanceExamples:
       scope: PAGE
+      parentNames:
+        - Ready-made examples
 `);
 
       const config = configLoader.load();
-      expect(config.config.processing.instanceExamples).toBeUndefined();
-      expect(warn).toHaveBeenCalledWith(
-        expect.stringContaining('Invalid processing.instanceExamples.match')
-      );
+      // Presence of the block is the on-switch; no match means every in-scope
+      // instance qualifies, narrowed here by parentNames.
+      expect(config.config.processing.instanceExamples).toEqual({
+        scope: 'PAGE',
+        parentNames: ['Ready-made examples'],
+      });
+      expect(warn).not.toHaveBeenCalled();
     });
 
-    it('removes the block (and warns) when match is an empty array', () => {
+    it('keeps the block but ignores match (and warns) when match is an empty array', () => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const configPath = path.join(testDir, 'specs.config.json');
       fs.writeFileSync(configPath, JSON.stringify({
-        config: { processing: { instanceExamples: { match: [] } } },
+        config: { processing: { instanceExamples: { scope: 'PAGE', match: [] } } },
       }));
 
       const config = configLoader.load();
-      expect(config.config.processing.instanceExamples).toBeUndefined();
+      const ie = config.config.processing.instanceExamples as Record<string, unknown>;
+      expect(ie).toEqual({ scope: 'PAGE' });
+      expect(ie).not.toHaveProperty('match');
       expect(warn).toHaveBeenCalledWith(
         expect.stringContaining('Invalid processing.instanceExamples.match')
       );
