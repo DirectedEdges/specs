@@ -38,7 +38,10 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Add a **Highlights** summary (max 144 characters) describing the key change as accepted.
    - If no entry exists in the Draft table (older ADR created before INDEX tracking), add the row directly to the Accepted table.
 
-6. **Determine release branch**: Read the ADR's `## Semver Decision` section to find the target version (e.g., `0.12.0`). The release branch name is the version number itself (e.g., `0.12.0`).
+6. **Determine release branch**: Release branches follow the `release/<pkg>-<version>` convention and may jointly cover multiple published packages (e.g., `release/schema-0.21.0-cli-0.16.0`). Do **not** invent a bare version-number branch (e.g., `0.21.0`).
+   1. Read the ADR's `## Semver Decision` section to find the schema target version.
+   2. Find the active in-flight release branch with `git branch -r --list 'origin/release/*'`. If one already exists that targets this schema version, use it as `$RELEASE_BRANCH` (the ADR folds into the in-progress release rather than opening a new one).
+   3. Only if no matching release branch exists, create one from `main` following the `release/<pkg>-<version>` convention, naming every package the release will publish.
 
 7. **Create PR**: Commit any uncommitted changes (the status flip and INDEX update), push `$BRANCH`, and open a PR into the release branch using `gh pr create --base $RELEASE_BRANCH`.
 
