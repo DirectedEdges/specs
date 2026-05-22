@@ -141,6 +141,26 @@ ns1:
 
 A `{ slot }` appears only where a slot fill is entered; everything else is `{ instance }`. The explicit kinds make resolution total — it never guesses whether a step descends into an instance's slot or its internals.
 
+**Mixed path — instances and slot-fills interleaved repeatedly.** A `{ slot }` segment descends into that slot's **configured fill** (a `slotContentExamples` / `Composition` triplet); from there the route can hop instances again, descend through *another* configured slot, and so on, to any depth. Consider `Dashboard` → `panel` → `header` (no slot) → `toolbar` (no slot) → `actions` *(slot, configured)* → `menu` → `items` *(slot, configured)* → `menuItem` *(slot, filled)*. Anchored on `panel`, the path interleaves `instance → instance → slot → instance → slot → instance`:
+
+```yaml
+# (instance data) — on the panel element inside Dashboard's slotContentExamples entry
+panel:
+  instanceOf: PanelCard
+  overrides:
+    - path:
+        - instance: header     # into PanelCard's component (no slot)
+        - instance: toolbar    # into header's component (no slot)
+        - slot: actions        # descend into toolbar's CONFIGURED `actions` fill
+        - instance: menu       # an instance inside that fill
+        - slot: items          # descend into menu's CONFIGURED `items` fill
+        - instance: menuItem   # ← terminal instance
+      propConfigurations:
+        children: { $slotContent: "#/slotContentExamples/menuItemBody" }   # fill menuItem's slot
+```
+
+The route freely alternates `{ instance }` (cross a component boundary) and `{ slot }` (drop into a configured fill) — there is no required pattern or ordering, and each `{ slot }` lands in whatever content currently fills that slot in the composition. The terminal is always the `{ instance }` whose `propConfigurations` the override sets.
+
 **Default vs. per-instance overrides need no extra mechanism.** Because the composition (with its `overrides`) **is** a `slotContentExamples` entry, a whole-component `instanceExample` that wants different deep content simply references a *different* `slotContentExamples` entry in its `propConfigurations[<slotKey>]`. No override data lands on `instanceExamples`.
 
 **Pros**:
