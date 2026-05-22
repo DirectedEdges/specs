@@ -82,6 +82,13 @@ jobs:
             exit 1
           fi
 
+      # specs-schema is a workspace member whose dist/ is gitignored, and the CLI
+      # imports runtime values from it (e.g. DEFAULT_CONFIG). Build it before the
+      # CLI build/test or module resolution fails in CI. specs-from-figma is an
+      # external (registry) dependency and ships its own built+obfuscated dist.
+      - name: Build schema (workspace dependency)
+        run: npm run build --workspace=packages/schema
+
       - name: Build
         run: npm run build --workspace=packages/cli
 
