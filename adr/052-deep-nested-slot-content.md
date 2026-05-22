@@ -2,9 +2,13 @@
 
 **Branch**: `052-deep-nested-slot-content`
 **Created**: 2026-05-22
-**Status**: DRAFT
+**Status**: DRAFT — **Deferred** (see note)
 **Deciders**: Nathan Curtis (author)
 **Depends on**: [ADR-046 — Component Instance Examples](046-component-instance-examples), [ADR-047 — Slot Content](047-component-slot-examples), [ADR-048 — PropConfigurations PropBinding](048-component-instance-examples), [ADR-049 — Nested Slot Compositions](049-prop-configurations-bindings), [ADR-050 — Examples Config](050-examples-config)
+
+---
+
+> **Deferral note.** This ADR is **not a prerequisite** for anything. `slotContentExamples` and `instanceExamples` (ADRs 047/048/050) ship as a complete component-documentation feature **without** this ADR and **without** the `Composition` type — they depend only on `SlotContent`, `SlotContentRef` (a plain string pointer), and `InstanceExample`. `Element.overrides` addresses only the narrow case in DirectedEdges/specs#115 — a deep override *into a component that exposes no slot for it* — which is inherently sparse. It is the **wrong backbone for dense, deep, wide page compositions**, whose addresses degrade into long, prefix-duplicated paths concentrated on a single anchor element (see *Limitations*). Page compositions warrant a dedicated design (likely a first-class composition graph, where depth = composition references and width = sibling elements, and which — being concrete, not varianted — owes none of the variant-stability tax that forced this ADR's flat paths). **This ADR is parked pending that page-composition design**, which may reshape whether deep overrides are needed at all.
 
 ---
 
@@ -390,6 +394,20 @@ overrides:
 **Version bump**: `0.21.0 → 0.21.0` (`MINOR` — folds into the unreleased 0.21.0 line)
 
 **Justification**: Adds two new types (`Override`, `OverridePathSegment`) and one new **optional** field (`Element.overrides`) plus their schema counterparts. No existing type, field, or schema property is removed, renamed, or narrowed → MINOR per Constitution §III. The slot-content model it extends (ADRs 046–050) is still DRAFT/unreleased on the `0.21.0` line, so this folds into that same MINOR.
+
+---
+
+## Limitations / Scale
+
+This primitive is tuned for **sparse** deep overrides. It degrades on **dense, deep, wide** compositions — the page-authoring workload — for three structural reasons:
+
+- **Single-anchor concentration.** Only the top boundary instance is an addressable element (intermediate instances stay leaf references). So *every* deep override for an entire subtree piles onto one element's `overrides` array, with no locality to the structure it describes.
+- **No structural sharing (prefix duplication).** Flat paths repeat their common ancestor segments in every sibling entry; total cost ≈ `entries × depth`, where a composition graph would mention each ancestor once.
+- **Entry count.** In a branching-factor-`W`, depth-`D` authored tree the override count trends toward `O(W^D)` — e.g. `W=3, D=10` ≈ 59k entries × ~19 segments ≈ ~1M path segments on one element.
+
+Mitigations that exist but don't remove the ceiling: fill **content** is deduplicated in `slotContentExamples` (the blowup is in *addresses*, not content), and only *authored deviations* need overrides (child components carry their own defaults). The cost is the bill for the flat / variant-stable / instance-as-leaf constraints — the only way to remove the repetition is intermediate-anchor or nested forms, which reintroduce nesting or variant-instability.
+
+**Conclusion:** use `overrides` for sparse no-slot reach-ins, not as the backbone for page compositions. Dense deep authoring is a signal that components lack slots where the page composes, or that a first-class composition graph is the right model (see *Deferral note*).
 
 ---
 
