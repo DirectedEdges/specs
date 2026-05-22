@@ -1,6 +1,6 @@
 {
   "name": "@directededges/specs-cli",
-  "version": "0.15.1",
+  "version": "0.16.0",
   "description": "Command-line interface for Specs design system operations",
   "type": "module",
   "main": "./dist/index.js",
@@ -20,8 +20,8 @@
     "test": "cd ../.. && vitest -c vitest.config.ts packages/cli/tests"
   },
   "dependencies": {
-    "@directededges/specs-schema": "^0.20.0",
-    "@directededges/specs-from-figma": "^0.18.0",
+    "@directededges/specs-schema": "^0.21.0",
+    "@directededges/specs-from-figma": "^0.19.0",
     "commander": "^11.1.0",
     "fs-extra": "^11.2.0",
     "yaml": "^2.3.4",

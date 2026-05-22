@@ -90,6 +90,18 @@ borderColor:
       collectionName: DS Color
 ```
 
+#### `FIGMA_SYNTAX_WEB` / `FIGMA_SYNTAX_IOS` / `FIGMA_SYNTAX_ANDROID`
+
+The developer-facing token name a designer assigned for a specific platform via Figma's [code syntax](https://developers.figma.com/docs/plugins/api/CodeSyntaxPlatform/) — `WEB`, `iOS`, or `ANDROID`. Each profile emits that platform's code syntax string:
+
+```yaml
+backgroundColor: --ds-color-text-primary    # FIGMA_SYNTAX_WEB
+backgroundColor: DSColor.textPrimary        # FIGMA_SYNTAX_IOS
+backgroundColor: R.color.ds_text_primary    # FIGMA_SYNTAX_ANDROID
+```
+
+When a token has no code syntax defined for the chosen platform, the profile **falls back to the `TOKEN` output** for that reference, so these profiles are always safe to select. Use them to match the token naming your platform code already expects.
+
 ### Profile Comparison
 
 | Profile | Output shape | Includes type | Includes Figma IDs | Custom mapping |
@@ -99,6 +111,9 @@ borderColor:
 | `TOKEN_FIGMA_EXTENSIONS` | `{ $token, $type, $extensions }` | Yes | Yes | No |
 | `FIGMA_NAME` | `"Collection/Path"` | No | No | No |
 | `CUSTOM` | User-defined or fallback | Varies | Fallback only | Yes |
+| `FIGMA_SYNTAX_WEB` | Platform code syntax string, or `TOKEN` fallback | Fallback only | No | No |
+| `FIGMA_SYNTAX_IOS` | Platform code syntax string, or `TOKEN` fallback | Fallback only | No | No |
+| `FIGMA_SYNTAX_ANDROID` | Platform code syntax string, or `TOKEN` fallback | Fallback only | No | No |
 
 ## When to Use Each Profile
 
@@ -107,6 +122,7 @@ borderColor:
 - **`TOKEN_FIGMA_EXTENSIONS`** — Use when consumers need to trace tokens back to their Figma source — variable IDs, raw resolved values, collection names. Useful for debugging, Figma plugin integrations, or migration tooling.
 - **`FIGMA_NAME`** — Use when consumers expect Figma-native naming with slash delimiters. Good for teams whose token systems mirror the Figma variable structure directly.
 - **`CUSTOM`** — Use when your team has a bespoke token format (e.g., Style Dictionary references, custom JSON shapes). Requires running `specs applyCustomTokens` first to inject `$custom` objects into your fetched data files.
+- **`FIGMA_SYNTAX_WEB` / `FIGMA_SYNTAX_IOS` / `FIGMA_SYNTAX_ANDROID`** — Use when consumers want the platform-specific token name designers set in Figma's code syntax for Web, iOS, or Android. Tokens lacking code syntax for the chosen platform fall back to `TOKEN` output.
 
 ## Configuration
 

@@ -5,13 +5,13 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.21.0] - Unreleased
+## [0.21.0] - 2026-05-22
+
+Extends `Config.format.tokens` with per-platform Figma code syntax profiles. The new `FIGMA_SYNTAX_WEB`, `FIGMA_SYNTAX_IOS`, and `FIGMA_SYNTAX_ANDROID` options emit the platform-specific code syntax authored on Figma variables, falling back to the resolved `TOKEN` reference when no syntax is defined.
 
 ### Added
 
-### Changed
-
-### Removed
+- `Config.format.tokens` — adds `FIGMA_SYNTAX_WEB`, `FIGMA_SYNTAX_IOS`, `FIGMA_SYNTAX_ANDROID` profiles emitting per-platform Figma code syntax, falling back to `TOKEN`
 
 
 ## [0.20.0] - 2026-05-06
