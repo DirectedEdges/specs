@@ -100,6 +100,7 @@ All commands in this agent run from the **schema package directory**: `packages/
       ```
       where `$WORKSPACE_ROOT` is the specs-local-workspace directory (typically `../specs-local-workspace` relative to this repo).
       If publish fails with "previously published version", report and ask the user whether to bump the patch version or skip.
+      If publish fails **403 "Two-factor authentication is required ... automation token was specified"**, this package has been locked to 2FA like `specs-cli`. Switch to the go-forward local-2FA flow: the user runs it themselves (`npm whoami || npm login`, then `cd packages/schema && npm publish --access public` — **no** `--userconfig`, npm prompts for the OTP); you then verify with `npm view @directededges/specs-schema version`. See `CLI.release.agent.md` step 9.3.
 
 9. **Finalize gate**: Use `AskUserQuestion` with Yes/No options: **"Ready to push, create PR, and GitHub Release for @directededges/specs-schema v[version]?"**
    On Yes:

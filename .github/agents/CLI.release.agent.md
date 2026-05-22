@@ -55,14 +55,11 @@ All commands in this agent run from the **CLI package directory**: `packages/cli
    ```
    If dirty, STOP and report. Exception: changes made by this agent (e.g., CHANGELOG date, ref swap) are expected.
 
-4. **Verify npm auth** (use the same `--userconfig` as publish):
+4. **Verify npm auth** — this package publishes via the user's **personal** login (2FA), not the automation token (see step 9). Check the default login:
    ```bash
-   npm whoami --registry https://registry.npmjs.org/ --userconfig "$WORKSPACE_ROOT/.npmrc.public"
+   npm whoami
    ```
-   where `$WORKSPACE_ROOT` is the specs-local-workspace directory (typically `../specs-local-workspace` relative to this repo).
-   If this fails with 401, STOP and report. The token in `.npmrc.public` is likely expired. The user should:
-   1. Generate a new access token at https://www.npmjs.com/settings/tokens
-   2. Update `$WORKSPACE_ROOT/.npmrc.public` with the new token
+   If this errors (401/E401), the user isn't logged in yet — that's fine; they'll run `npm login` at the publish step (9.3). Do not use `--userconfig "$WORKSPACE_ROOT/.npmrc.public"` for the CLI: that automation token is rejected by the package's 2FA policy (403).
 
 5. **Verify dependency versions**: Read `packages/cli/package.json` and confirm:
    - `@directededges/specs-schema` matches `^[schema-version]`
@@ -103,14 +100,26 @@ All commands in this agent run from the **CLI package directory**: `packages/cli
       ```bash
       git tag -a "specs-cli@[version]" -m "release: @directededges/specs-cli v[version]"
       ```
-   3. Publish from the package directory (uses workspace `.npmrc.public` token to target npmjs.org):
-      ```bash
-      cd packages/cli && npm publish --access public --userconfig "$WORKSPACE_ROOT/.npmrc.public"
-      ```
-      where `$WORKSPACE_ROOT` is the specs-local-workspace directory (typically `../specs-local-workspace` relative to this repo).
-      If publish fails with "previously published version", report and ask the user whether to bump the patch version or skip.
+   3. **Publish — local, 2FA, command-line (GO-FORWARD DEFAULT).**
 
-      > **Alternative:** instead of publishing locally with the token, you can let CI publish via OIDC Trusted Publishing — see [Trusted Publishing (CI)](#trusted-publishing-ci--alternative-publish-path) below. If you choose CI, **skip this local `npm publish` step** (still commit + tag here, then push the tag in the finalize gate so CI can publish it). Do not do both for the same version, or the second publish fails with "previously published version".
+      `@directededges/specs-cli` is configured on npm to **require 2FA and disallow automation tokens**, so the `.npmrc.public` token path fails with 403 and CI OIDC Trusted Publishing is not used. The package owner (Nathan) publishes it himself with his personal login + a one-time password. **You (the agent) cannot run this step — you can't enter the OTP.** Instead, print the exact commands for the user to copy-paste, then wait.
+
+      Present this block verbatim (it is safe to copy as-is — paths are absolute):
+      ```bash
+      # 1. One-time per session: log in as yourself (NOT the automation token)
+      npm whoami || npm login
+      # 2. Publish (npm will prompt for your 2FA OTP)
+      cd "/Users/nathanacurtis/Github Desktop/specs/packages/cli" && npm publish --access public
+      ```
+      Do **not** pass `--userconfig .npmrc.public` here — that forces the rejected automation token. Tell the user to look for npm's `+ @directededges/specs-cli@[version]` success line.
+
+      Then **verify from the registry** (this you can run — it's the authoritative confirmation, independent of their terminal):
+      ```bash
+      npm view @directededges/specs-cli version   # must report [version]
+      ```
+      Do not proceed to the finalize gate until this reports `[version]`. If publish failed with "previously published version", report and ask whether to bump the patch or skip.
+
+      > **CI Trusted Publishing (`release-cli.yml`) is NOT the go-forward path.** It remains in the repo but is not used: the 2FA-required package plus an unresolved `setup-node`/OIDC token-fallback issue made it unreliable, and Nathan prefers per-release local 2FA (cheaper than debugging CI). Details in [Trusted Publishing (CI)](#trusted-publishing-ci--alternative-publish-path) below.
 
 10. **Finalize gate**: Use `AskUserQuestion` with Yes/No options: **"Ready to push, create PR, and GitHub Release for @directededges/specs-cli v[version]?"**
     On Yes:
@@ -191,7 +200,7 @@ This workflow exists **in addition to** the local flow and does not retire it. T
 - Use absolute paths for all file operations.
 - All shell commands run from `packages/cli` unless they are git or gh commands (which run from repo root).
 - **Tag format**: `specs-cli@[version]` — scoped to distinguish from schema releases in the same repo.
-- Two gates only: **ship** (commit + tag + publish) and **finalize** (push + PR + GitHub release).
+- Two gates only: **ship** (agent commits + tags; **user** runs the 2FA `npm publish`, agent verifies via `npm view`) and **finalize** (push + PR + GitHub release).
 - If any verification step fails, halt immediately — do not skip to later steps. For test failures, ask the user whether to proceed.
 - The committed state has **versioned** dependency references (not `file:` paths). This is intentional — `file:` paths are a local development convenience, not committed to GitHub.
 - If any step fails after refs were swapped, run `git restore packages/cli/package.json` before reporting the error.
