@@ -5,15 +5,18 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.16.0] - Unreleased
+## [0.16.0] - 2026-05-22
+
+Adds the platform code-syntax token profiles (`FIGMA_SYNTAX_WEB/IOS/ANDROID`) to config loading and templates, so specs can emit each Figma variable's per-platform code syntax. Picks up upstream transformer improvements: conditional-visibility boolean prop exposure, detection of subcomponents nested inside sections/frames, and a fix for SLOT properties that previously leaked raw GUID objects into output.
 
 ### Added
 
 - **Platform code-syntax token profiles (ADR-051, DirectedEdges/specs#103)** — `format.tokens` now accepts `FIGMA_SYNTAX_WEB`, `FIGMA_SYNTAX_IOS`, and `FIGMA_SYNTAX_ANDROID` in config loading and templates, surfacing the platform code-syntax profiles to CLI users. The transformer (specs-from-figma) emits each variable's Figma `codeSyntax` for the selected platform, falling back to the standard token output when a platform has no code syntax defined.
 
-### Changed
+### Dependency updates
 
-### Removed
+- **`@directededges/specs-schema` ^0.20.0 → ^0.21.0** — adds the `FIGMA_SYNTAX_WEB/IOS/ANDROID` `format.tokens` profiles.
+- **`@directededges/specs-from-figma` ^0.18.0 → ^0.19.0** — serializes the new platform code-syntax profiles from Figma `codeSyntax`; specs now expose a boolean-prop reference for conditional visibility bindings; subcomponents nested inside sections/frames are now detected under `subcomponents.scope: PAGE`; SLOT properties no longer emit raw GUID objects into output.
 
 
 ## [0.15.1] - 2026-05-20
