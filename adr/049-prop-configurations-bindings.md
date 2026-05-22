@@ -73,7 +73,7 @@ ADR-048 widened `InstanceExample.propConfigurations` to `string | number | boole
 
 - **Consistent binding model** — `PropBinding` is the established pattern for pass-through bindings on element-level fields; `PropConfigurations` is the only one that cannot participate
 - **Consistent slot fill model** — `SlotContentRef` is the established pointer for slot fills (ADR-046); `Element.propConfigurations.<slotName>` is where a nested instance's slot prop is filled from a parent element
-- **Additive-only** — existing scalar values remain valid; the union is widened not replaced → MINOR
+- **Additive at the data level** — the union is widened, not replaced: every previously-valid value stays valid and no field is removed or renamed. (This is still source-breaking for consumers that narrowed the value type — see Cons and Semver Decision.)
 - **`InstanceExample.propConfigurations` stays without PropBinding** — that type represents a documented configuration; live bindings belong in `Element.propConfigurations` only
 - **Type ↔ schema symmetry** — Constitution §I
 - **No runtime logic** — Constitution §II
@@ -115,10 +115,10 @@ elements:
 - Closes both gaps in one widening — scalar, binding, and slot fill are all expressed in the same field
 - Completes the binding pattern established on `Element.content`, `Element.instanceOf`, and `Styles.visible`
 - `SlotContentRef` is discriminated by `$slotContent`; `PropBinding` by `$binding` — no ambiguity between arms
-- Existing scalar values are fully backward-compatible
+- Existing scalar values remain valid — already-emitted specs still validate against the widened schema (data-level backward compatibility)
 
 **Cons / Trade-offs**:
-- Tooling must handle four value shapes rather than one; this is an extension, not a breaking change
+- **Source-breaking for typed consumers.** Widening the value union breaks consumers that narrowed `propConfigurations` values to a single shape (e.g. `value as number`, or a non-exhaustive `switch`/`if`): they will mishandle — or fail to type-check against — the new `PropBinding` and `SlotContentRef` arms until updated to handle all four value shapes. Already-emitted *data* stays schema-valid, but consumer *code* is not automatically forward-compatible.
 
 ---
 
@@ -268,7 +268,7 @@ PropConfigurations:
 
 **Version bump**: `0.20.0 → 0.21.0` (`MINOR`)
 
-**Justification**: `PropConfigurations` value union is widened — existing scalar values remain valid; no value is removed or narrowed → MINOR per Constitution §III.
+**Justification**: The `PropConfigurations` value union is widened — no field is removed, renamed, or narrowed, and every previously-valid value (and already-emitted spec) stays valid. Widening is nonetheless **source-breaking** for consumers that narrowed the value type (see Cons): a strict reading of Constitution §III ("MAJOR for any breaking change to a type signature") points to MAJOR. The `MINOR` classification rests on the pre-1.0.0 convention (semver §4 — anything may change within `0.y.z`), under which this breaking change ships as the `0.20.0 → 0.21.0` bump; consumers must still update their value handling. *(Open for review: confirm `MINOR` under the pre-1.0 convention vs. `MAJOR` per a literal §III reading.)*
 
 ---
 
