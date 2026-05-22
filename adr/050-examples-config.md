@@ -12,40 +12,39 @@
 
 ADR-047 and ADR-048 establish `Component.slotContentExamples` and `Component.instanceExamples` as the two example registries on a component. Neither ADR specifies how the transformer discovers or gates these fields — that is a `Config` concern.
 
-Two configuration needs arise:
+The two example types have **different shapes of control**, and that difference drives the whole design:
 
-1. **Output gating** — Both example types are new, opt-in capabilities. A `Config.include` flag for each type gates whether the detected data is emitted. Defaulting to `false` avoids breaking existing output for components that have not yet been annotated.
+1. **Default slot content** — `Component.slotContentExamples` entries originating from the component's own slot layers (content authored inside a slot by default). Detection is **structural**: the transformer reads whatever sits inside slot layers, with no author-supplied naming patterns. There is nothing to *detect-configure*, only an output gate: `include.defaultSlotContent` (default `false`) decides whether this structurally-detected content is emitted and referenced from the component's slot bindings.
 
-2. **Instance example detection** — `instanceExamples` are named frames in the Figma file that demonstrate a pre-configured whole-component usage. The transformer needs naming patterns to identify which frames are instance examples and where to search for them. This mirrors the model established by `processing.subcomponents` (ADR-031).
+2. **Instance examples** — named frames in the Figma file that demonstrate a pre-configured whole-component usage. Detection **requires configuration**: the transformer needs naming patterns to identify which frames are examples and where to search. This mirrors `processing.subcomponents` (ADR-031) — and, like subcomponents, the *presence* of that configuration block is itself the opt-in. A team that writes `processing.instanceExamples` has, by that act, asked for instance examples; a second `include` flag would be a redundant gate.
 
-   Slot content examples require no separate detection config: `slotContentExamples` entries are derived structurally from slot layers that have content placed inside them in the Figma design file. The transformer can detect them without author-supplied naming patterns.
+So the configuration is deliberately **asymmetric**: default slot content is gated by an `include` flag (it has no detection block), while instance examples are gated by the **presence** of their `processing` block (no `include` flag). Both registries are additionally Pro-gated at emission time — see Notes.
 
 ---
 
 ## Decision Drivers
 
-- **Additive-only** — all new fields are optional; no existing field changes → MINOR semver
-- **Type ↔ schema symmetry** — Constitution §I
-- **No runtime logic** — type declarations and schema only; transformer logic belongs in `specs-from-figma` (Constitution §II)
-- **Include flags default to false** — new capabilities should not alter existing output without opt-in
-- **`processing.instanceExamples` adapts `processing.subcomponents`** — same match/exclude vocabulary; `scope` is retained but with different values (`PAGE` | `FILE`) because instance example frames are never nested inside a component frame
-- **`scope: NESTED` is inapplicable** — component instances used as examples cannot live inside the component frame itself; the only meaningful search boundaries are the current page or the full file
-- **`scope: FILE` supports multi-page files** — some teams place example frames on a dedicated page (e.g., "Examples") separate from the component library page; `FILE` enables cross-page discovery
-- **`parentNames?: string[]` narrows the search space** — example frames are often grouped inside a named parent section or frame (e.g., a frame named `"Examples"`) to distinguish them from test cases, component playground instances, or deeply nested usages; `parentNames` filters candidates by immediate ancestor name
-- **No `processing.slotContentExamples`** — slot content is detected structurally; pattern-based config adds no value and no author burden should exist for a purely structural signal
+- **Match each example type to its natural control** — structural signals (default slot content) need only an output gate; pattern-detected signals (instance examples) are opted into by the presence of their detection block
+- **`processing.instanceExamples` mirrors `processing.subcomponents`** — same match/exclude vocabulary and the same "absence = off, presence = on" semantics; `processing.subcomponents` has no `include.subcomponents` flag, and instance examples should not invent one
+- **Avoid a redundant second gate** — requiring both `processing.instanceExamples` *and* `include.instanceExamples` produces the classic "I configured detection but got no output" foot-gun, with no benefit a single switch lacks
+- **`defaultSlotContent` is the only example `include` flag** — it has no `processing` block (detection is structural), so the flag is its sole control; it defaults to `false` so unannotated components are unchanged
+- **`scope: NESTED` is inapplicable** — component instances used as examples cannot live inside the component frame itself; the only meaningful search boundaries are the current page (`PAGE`, default) or the full file (`FILE`)
+- **`scope: FILE` supports multi-page files** — some teams place example frames on a dedicated page (e.g., "Examples") separate from the component library page
+- **`parentNames?: string[]` narrows the search space** — example frames are often grouped inside a named parent section or frame (e.g., a frame named `"Examples"`) to distinguish them from test cases or playground instances
+- **Additive, type ↔ schema symmetric, no runtime logic** — new optional fields only (Constitution §I/§II); transformer detection/gating logic lives in `specs-from-figma`
 
 ---
 
 ## Options Considered
 
-### Option A: Separate `include` flags + `processing.instanceExamples` with scope, match, exclude, parentNames *(Selected)*
+### Option A: `include.defaultSlotContent` flag + presence-driven `processing.instanceExamples` *(Selected)*
 
-Add `include.slotContentExamples?: boolean` and `include.instanceExamples?: boolean`, each defaulting to `false`. Add `processing.instanceExamples?` with `{ scope?, match, exclude?, parentNames? }`.
+Add a single example `include` flag, `include.defaultSlotContent?: boolean` (default `false`), gating the component's structurally-detected default slot content. Add `processing.instanceExamples?` with `{ scope?, match, exclude?, parentNames? }`; its **presence** both configures detection and enables instance-example output — there is **no** `include.instanceExamples` flag.
 
 ```yaml
-# Config — examples on a dedicated page, inside an "Examples" parent frame
+# Config — instance examples on a dedicated page, inside an "Examples" parent frame
 processing:
-  instanceExamples:
+  instanceExamples:        # presence = detect AND emit instance examples
     scope: FILE
     parentNames:
       - Examples
@@ -55,12 +54,11 @@ processing:
       - "* / Deprecated / *"
 
 include:
-  slotContentExamples: true
-  instanceExamples: true
+  defaultSlotContent: true   # emit the component's own default slot content
 ```
 
 ```yaml
-# Config — examples on the same page as the component, no parent filter
+# Config — instance examples alongside the component, default slot content off
 processing:
   instanceExamples:
     scope: PAGE
@@ -73,9 +71,9 @@ processing:
 - `PAGE` — search the current Figma page only (default; typical when examples live alongside components)
 - `FILE` — search all pages in the Figma file (for teams that place examples on a separate page)
 
-`parentNames` (optional) — one or more frame or section names; a candidate qualifies when its **immediate** parent in the layer hierarchy matches one of the listed names. Absence means no parent-name filtering. Useful for distinguishing example instances from test cases, playground frames, or component-library usages of the same component.
+`parentNames` (optional) — one or more frame or section names; a candidate qualifies when its **immediate** parent matches one of the listed names. Absence means no parent-name filtering.
 
-The field name was chosen by ranking the realistic candidates for this `string[]` of ancestor names:
+The `parentNames` field name was chosen by ranking the realistic candidates for this `string[]` of ancestor names:
 
 1. **`parentNames` *(selected)*** — precise (the values are *names* matched against the parent's name), plural (signals the array, resolving the ambiguity that a singular `parent` reads as one value), and keeps Figma's `parent` vocabulary (`node.parent`) without introducing the user-facing "layer" term.
 2. **`parents`** — concise and parallel with the sibling `string[]` filters `match`/`exclude`, but hints at parent *objects* rather than names.
@@ -85,39 +83,49 @@ The field name was chosen by ranking the realistic candidates for this `string[]
 Containment-flavored names (e.g. `within`) were also rejected: they imply any-depth nesting, whereas matching is scoped to the **immediate** parent, so "parent" must remain in the name.
 
 **Pros**:
-- Each example type is independently toggleable — a team can include slot fill examples without exposing instance examples
-- `scope: PAGE | FILE` covers all real Figma file organisations; `NESTED` is explicitly excluded because component instance examples cannot live inside the component frame
-- `parentNames` solves the false-positive problem without requiring artificially unique name patterns; a frame named `"Examples"` is a natural Figma authoring convention
-- Absence of `processing.instanceExamples` means no instance example detection — same opt-in model as `processing.subcomponents`
-- No `processing.slotContentExamples` block keeps the config surface minimal where structural detection suffices
+- Each example type is gated by the control that fits it — no empty config blocks, no redundant flags
+- Instance examples gate exactly like `processing.subcomponents`, so the mental model transfers
+- `scope: PAGE | FILE` covers all real Figma file organisations; `NESTED` is explicitly excluded
+- `parentNames` solves the false-positive problem without artificially unique name patterns
+- One example `include` flag (`defaultSlotContent`) instead of two — smaller, less error-prone config surface
 
 **Cons / Trade-offs**:
-- Two separate `include` flags must both be set for teams that want all example types — intentional (independent control) but adds a line to the config
-- `parentNames` matches ancestor names, not full paths; teams with multiple frames named `"Examples"` at different hierarchy levels would need `match`/`exclude` patterns to disambiguate further
+- The two example types are gated **differently** (one `include` flag, one by `processing`-block presence). This asymmetry must be documented, but it reflects a real difference (structural vs pattern-detected) and matches the established `subcomponents` precedent.
 
 ---
 
-### Option B: Single `include.examples` flag *(Rejected)*
+### Option B: Add a separate `include.instanceExamples` flag *(Rejected — earlier draft of this ADR)*
 
-Replace both flags with a single `include.examples?: boolean` that gates all example output.
+An earlier draft gated instance examples with `include.instanceExamples?: boolean` alongside `include.defaultSlotContent`, so instance examples required **both** a `processing.instanceExamples` detection block **and** a separate include flag to emit.
 
-**Rejected because**: The two example types serve different audiences. `slotContentExamples` is consumed by Figma tooling and slot-rendering contexts; `instanceExamples` is consumed by documentation renderers and cataloguing tooling. Teams that are ready to publish slot fill examples may not have annotated instance example frames yet. A single flag forces all-or-nothing and cannot model partial readiness.
-
----
-
-### Option C: `processing.instanceExamples` as a boolean *(Rejected)*
-
-Gate instance example detection with a `processing.instanceExamples?: boolean` instead of the match/exclude block.
-
-**Rejected because**: A boolean provides no way to specify which Figma frames are instance examples. Instance frames are identified by name; without naming patterns the transformer must either guess (fragile) or detect all frames on the page (noisy). The match/exclude block gives authors control over exactly which frames are harvested, consistent with `processing.subcomponents`.
+**Rejected because**:
+- **Redundant gate.** `processing.instanceExamples` is already opt-in by absence — configuring detection *is* the opt-in. A second flag, `false` by default, adds a step whose only effect is the "I set up detection but saw no output" foot-gun.
+- **Asymmetric with `subcomponents`.** `processing.subcomponents` has no `include.subcomponents`; its presence is the complete on-switch. Instance examples follow the same detect-and-emit model and should gate identically.
+- **Not parallel with `defaultSlotContent`.** `defaultSlotContent` genuinely needs an `include` flag because it has *no* `processing` block (detection is structural) — the flag is its only control. Instance examples already have a `processing` block, so the flag is pure redundancy. The two example types differ in kind, so gating them the same way was the wrong symmetry to chase.
 
 ---
 
-### Option D: Add `processing.slotContentExamples` alongside `processing.instanceExamples` *(Rejected)*
+### Option C: Single `include.examples` flag *(Rejected)*
+
+Gate all example output with one `include.examples?: boolean`.
+
+**Rejected because**: The two example types are different in kind and readiness. Default slot content is structural and may be ready before any instance-example frames are annotated. A single flag forces all-or-nothing and cannot model partial readiness — and it still would not address instance-example *detection*, which needs patterns regardless.
+
+---
+
+### Option D: `processing.instanceExamples` as a boolean *(Rejected)*
+
+Gate instance example detection with `processing.instanceExamples?: boolean` instead of the match/exclude block.
+
+**Rejected because**: A boolean provides no way to specify which Figma frames are instance examples. Instance frames are identified by name; without naming patterns the transformer must either guess (fragile) or harvest all frames (noisy). The match/exclude block gives authors control over exactly which frames are harvested, consistent with `processing.subcomponents`.
+
+---
+
+### Option E: Add `processing.defaultSlotContent` alongside `processing.instanceExamples` *(Rejected)*
 
 Mirror the full subcomponents shape for both example types.
 
-**Rejected because**: Slot content examples are derived from structural Figma data — content placed inside a slot layer. There is no naming convention to configure; detection is entirely structural. Adding a `processing.slotContentExamples` block would be an empty config object with no fields to set, adding author surface area for nothing.
+**Rejected because**: Default slot content is derived from structural Figma data — content placed inside a slot layer. There is no naming convention to configure; detection is entirely structural. A `processing.defaultSlotContent` block would be an empty config object with no fields to set, adding author surface area for nothing. The `include.defaultSlotContent` flag is the right and only control.
 
 ---
 
@@ -127,16 +135,17 @@ Mirror the full subcomponents shape for both example types.
 
 | File | Change | Bump |
 |------|--------|------|
-| `Config.ts` | Add `include.slotContentExamples?: boolean`, `include.instanceExamples?: boolean` | MINOR |
+| `Config.ts` | Add `include.defaultSlotContent?: boolean` | MINOR |
 | `Config.ts` | Add `processing.instanceExamples?: { scope?, match, exclude?, parentNames? }` | MINOR |
-| `Config.ts` | Add `include.slotContentExamples: boolean`, `include.instanceExamples: boolean` to `ResolvedConfig` | MINOR |
-| `Config.ts` | Add `processing.instanceExamples?: { scope, match, exclude?, parentNames? }` (scope required in resolved) to `ResolvedConfig` | MINOR |
-| `Config.ts` | Add `slotContentExamples: false`, `instanceExamples: false` to `DEFAULT_CONFIG.include` | MINOR |
+| `Config.ts` | Add `include.defaultSlotContent: boolean` to `ResolvedConfig`; add `processing.instanceExamples?: { scope, match, exclude?, parentNames? }` (scope required in resolved) | MINOR |
+| `Config.ts` | Add `defaultSlotContent: false` to `DEFAULT_CONFIG.include` | MINOR |
+
+There is **no** `include.instanceExamples` in `Config`, `ResolvedConfig`, or `DEFAULT_CONFIG`. Instance-example output is governed entirely by the presence of `processing.instanceExamples`.
 
 **`Config` additions** (`types/Config.ts`):
 
 ```ts
-// processing block — new optional field
+// processing block — new optional field; its presence is the instance-example on-switch
 instanceExamples?: {
   /** Search boundary. PAGE = current page only (default); FILE = all pages in the file. */
   scope?: 'PAGE' | 'FILE';
@@ -144,21 +153,19 @@ instanceExamples?: {
   match: string[];
   /** Name patterns for frames to exclude. Same {C} syntax as match. */
   exclude?: string[];
-  /** Ancestor frame or section names a candidate must be contained within. Absence = no parent-name filtering. */
+  /** Immediate-parent frame or section names a candidate must be contained within. Absence = no parent-name filtering. */
   parentNames?: string[];
 };
 
-// include block — two new optional flags
-/** Include slot content examples in output. Optional; defaults to false. @since 0.21.0 */
-slotContentExamples?: boolean;
-/** Include instance examples in output. Optional; defaults to false. @since 0.21.0 */
-instanceExamples?: boolean;
+// include block — one new optional flag (default slot content is structural, so the flag is its only control)
+/** Include the component's default slot content as examples in output. Optional; defaults to false. @since 0.21.0 */
+defaultSlotContent?: boolean;
 ```
 
 **`ResolvedConfig` additions** (`types/Config.ts`):
 
 ```ts
-// processing block — scope is required (defaults to PAGE)
+// processing block — scope is required (defaults to PAGE); the block stays optional (absence = off)
 instanceExamples?: {
   scope: 'PAGE' | 'FILE';
   match: string[];
@@ -166,9 +173,8 @@ instanceExamples?: {
   parentNames?: string[];
 };
 
-// include block — both flags required (resolved from defaults)
-slotContentExamples: boolean;
-instanceExamples: boolean;
+// include block — flag required (resolved from defaults)
+defaultSlotContent: boolean;
 ```
 
 **`DEFAULT_CONFIG` additions** (`types/Config.ts`):
@@ -179,36 +185,36 @@ include: {
   invalidVariants: false,
   invalidCombinations: true,
   emptyVariants: false,
-  // new
-  slotContentExamples: false,
-  instanceExamples: false,
+  // new — the only example include flag
+  defaultSlotContent: false,
 },
+// processing.instanceExamples is NOT in DEFAULT_CONFIG — its absence means "off",
+// the same as processing.subcomponents.
 ```
 
 ### Schema changes (`schema/`)
 
 | File | Change | Bump |
 |------|--------|------|
-| `component.schema.json` | Add `slotContentExamples`, `instanceExamples` to `#/definitions/IncludeConfig` | MINOR |
-| `component.schema.json` | Add `instanceExamples` to `#/definitions/ProcessingConfig` | MINOR |
+| `component.schema.json` | Add `defaultSlotContent` to the config `include` block | MINOR |
+| `component.schema.json` | Add `instanceExamples` to the config `processing` block | MINOR |
 
-**`IncludeConfig` additions**:
+The config `include` block gains **only** `defaultSlotContent`; it does **not** gain an `instanceExamples` boolean.
+
+**`include` additions**:
 
 ```yaml
-slotContentExamples:
+defaultSlotContent:
   type: boolean
-  description: "Include slot content examples in output. Defaults to false."
-instanceExamples:
-  type: boolean
-  description: "Include instance examples in output. Defaults to false."
+  description: "Include the component's default slot content as examples in output. Defaults to false."
 ```
 
-**`ProcessingConfig` addition**:
+**`processing` addition**:
 
 ```yaml
 instanceExamples:
   type: object
-  description: "Instance example detection settings. Absence means no instance example detection."
+  description: "Instance example detection settings. Absence means no instance example detection or output."
   required: [match]
   properties:
     scope:
@@ -226,22 +232,23 @@ instanceExamples:
     parentNames:
       type: array
       items: { type: string }
-      description: "Ancestor frame or section names a candidate must be contained within. Absence = no parent-name filtering."
+      description: "Immediate-parent frame or section names a candidate must be contained within. Absence = no parent-name filtering."
   additionalProperties: false
 ```
 
 ### Out of scope for this ADR
 
 - **Transformer detection logic** for instance examples — belongs in `specs-from-figma`; this ADR defines the config shape only
-- **`processing.slotContentExamples`** — structural detection requires no config; if naming-pattern detection is added in a future ADR, a `processing.slotContentExamples` block would follow the same model
+- **Pro-license gating** — both example registries are additionally gated on a Pro license at emission time, enforced in `specs-from-figma` via the existing `entitled()` mechanism (the same pattern used for token references and other premium output). This ADR does not introduce the license model; it only notes that the config flags/blocks are necessary-but-not-sufficient for output (see Notes)
+- **`processing.defaultSlotContent`** — structural detection requires no config; if naming-pattern detection is ever added, a `processing.defaultSlotContent` block would follow the subcomponents model
 
 ### Notes
 
-- **`processing.instanceExamples` absence = no detection.** When the block is omitted from `Config`, the transformer performs no instance example detection and `instanceExamples` is never emitted regardless of `include.instanceExamples`. This matches the `processing.subcomponents` model.
-- **`include.*` flags are independent.** A team may set `include.slotContentExamples: true` while leaving `include.instanceExamples: false` — slot fills appear in output, instance examples do not.
-- **`scope` defaults to `PAGE` in `ResolvedConfig`.** Most teams place example frames on the same page as the component library. `FILE` is opt-in for teams with a dedicated examples page. `NESTED` is intentionally absent — component instances used as examples cannot live inside the component frame itself.
-- **`parentNames` is an ancestor filter, not a full path.** The transformer checks whether any ancestor frame or section in the layer hierarchy matches one of the listed names. This is sufficient for the common convention of grouping examples inside a frame named `"Examples"` and avoids requiring authors to express full paths.
-- **`DEFAULT_CONFIG` carries both new `include` flags.** Any consumer that merges a partial `Config` against `DEFAULT_CONFIG` to produce a `ResolvedConfig` will correctly resolve both flags to `false` without special-casing.
+- **Instance examples are presence-gated.** When `processing.instanceExamples` is omitted, the transformer performs no detection and emits no `instanceExamples` — exactly the `processing.subcomponents` model. When present (and the license is Pro), examples are both detected and emitted. There is no `include.instanceExamples` flag.
+- **`defaultSlotContent` gates the component's own slot content.** It controls whether the structurally-detected default content of the component's slots is emitted into `slotContentExamples` and referenced from the component's slot bindings. Instance examples contribute their own fills to the same `slotContentExamples` registry independently of this flag (see ADR-047/048).
+- **Pro license required for emission.** Both `defaultSlotContent` output and `instanceExamples` output are omitted on the free tier regardless of config, mirroring other premium output. The config flag/block is necessary but not sufficient.
+- **`scope` defaults to `PAGE` in `ResolvedConfig`.** `FILE` is opt-in for teams with a dedicated examples page. `NESTED` is intentionally absent — component instances used as examples cannot live inside the component frame itself.
+- **`parentNames` is an immediate-parent filter, not a full path.** Sufficient for the common convention of grouping examples inside a frame named `"Examples"`, without requiring authors to express full paths.
 
 ---
 
@@ -249,9 +256,9 @@ instanceExamples:
 
 - **Symmetric**: Yes
 - **Parity check**:
-  - `Config.include.slotContentExamples?: boolean` ↔ `#/definitions/IncludeConfig/properties/slotContentExamples`
-  - `Config.include.instanceExamples?: boolean` ↔ `#/definitions/IncludeConfig/properties/instanceExamples`
-  - `Config.processing.instanceExamples?: { scope?, match, exclude?, parentNames? }` ↔ `#/definitions/ProcessingConfig/properties/instanceExamples`
+  - `Config.include.defaultSlotContent?: boolean` ↔ config `include.properties.defaultSlotContent`
+  - `Config.processing.instanceExamples?: { scope?, match, exclude?, parentNames? }` ↔ config `processing.properties.instanceExamples`
+  - No `include.instanceExamples` exists in either the type or the schema — symmetric by absence
 
 ---
 
@@ -259,9 +266,9 @@ instanceExamples:
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | Must read `processing.instanceExamples` to detect example frames; must gate `slotContentExamples` and `instanceExamples` output on their respective `include` flags | Implement detection and gating |
-| `specs-cli` | Recompile; config surface expands | Recompile; update any config docs or help text |
-| `specs-plugin-2` | Recompile; users can enable example output via plugin config | Recompile; expose new flags in plugin UI when ready |
+| `specs-from-figma` | Reads `processing.instanceExamples` to detect example frames and to gate their output (presence-driven); gates `slotContentExamples` output on `include.defaultSlotContent`. Both registries additionally gated on a Pro license | Implement detection + dual (config-presence/flag + license) gating |
+| `specs-cli` | Recompile; config surface adds `include.defaultSlotContent` and `processing.instanceExamples`. `ConfigLoader` allowlist must not accept a stale `include.instanceExamples` | Recompile; update config docs/help text |
+| `specs-plugin-2` | Recompile; the plugin's instance-examples toggle drives the *presence* of `processing.instanceExamples` (no `include.instanceExamples`); the default-slot-content toggle maps to `include.defaultSlotContent` | Recompile; map UI toggles accordingly; Pro-gate the controls |
 
 ---
 
@@ -269,13 +276,20 @@ instanceExamples:
 
 **Version bump**: `0.20.0 → 0.21.0` (`MINOR`)
 
-**Justification**: Adds optional fields to `Config`, `ResolvedConfig`, and `DEFAULT_CONFIG`; adds schema entries in `IncludeConfig` and `ProcessingConfig`. Purely additive — no existing field is removed or narrowed → MINOR per Constitution §III.
+**Justification**: Adds optional fields to `Config`, `ResolvedConfig`, and `DEFAULT_CONFIG` (`include.defaultSlotContent`, `processing.instanceExamples`) and the corresponding schema entries. Purely additive — no existing field is removed or narrowed → MINOR per Constitution §III. (Because this ADR is still DRAFT/unreleased, dropping the earlier-draft `include.instanceExamples` is not a consumer-facing removal — that flag never shipped.)
 
 ---
 
 ## Consequences
 
-- `include.slotContentExamples` and `include.instanceExamples` give teams independent control over which example types appear in output; both default to `false` to preserve existing output for unannotated components
-- `processing.instanceExamples` adapts the `processing.subcomponents` model — same match/exclude vocabulary and opt-in absence semantics; `scope` uses `PAGE | FILE` (not `NESTED`, which is inapplicable to instances); `parentNames` is added to narrow the search space by ancestor frame or section name
-- Slot content examples require no processing config; their detection is structural and their output is gated solely by `include.slotContentExamples`
-- `DEFAULT_CONFIG` is the single source of truth for both new defaults; `ResolvedConfig` guarantees both flags are present after merging
+- `include.defaultSlotContent` is the single example output flag — it gives teams control over the component's own default slot content; it defaults to `false` to preserve existing output for unannotated components
+- `processing.instanceExamples` adapts the `processing.subcomponents` model exactly: presence is the complete on-switch (detection **and** output), absence means off, same match/exclude vocabulary; `scope` uses `PAGE | FILE` (not `NESTED`), and `parentNames` narrows the search by immediate-parent name
+- The two example types are gated by **different** mechanisms by design — an `include` flag for structural default slot content, `processing`-block presence for pattern-detected instance examples — reflecting their different natures rather than forcing an artificial symmetry
+- Both registries are additionally Pro-gated at emission; the config is necessary but not sufficient for output
+- `DEFAULT_CONFIG` carries `include.defaultSlotContent: false`; `processing.instanceExamples` is absent there (absence = off), so no special-casing is needed when merging a partial `Config`
+
+---
+
+## Revision History
+
+- **Shift from the original draft — removed `include.instanceExamples`.** The first draft of this ADR added two example `include` flags (`slotContentExamples`/`instanceExamples`) and treated detection (`processing.instanceExamples`) and output (`include.instanceExamples`) as separate concerns. Implementation surfaced that the second flag was a redundant gate, asymmetric with `processing.subcomponents`, and a source of "configured detection but no output" confusion. Instance examples are now governed solely by the presence of `processing.instanceExamples` (Option A; the old approach is recorded as Option B). Separately, the remaining slot-content flag was renamed `slotContentExamples → defaultSlotContent` so the config flag (the component's *default slot content*) is no longer confused with the `Component.slotContentExamples` data registry that aggregates fills from both sources.

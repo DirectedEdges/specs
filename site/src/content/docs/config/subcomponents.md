@@ -5,6 +5,44 @@ description: "Configure subcomponent discovery, matching patterns, and exclusion
 
 Subcomponent discovery configuration. When present, enables subcomponent detection. When absent, subcomponents are not detected.
 
+## Configuration
+
+```yaml
+config:
+  processing:
+    subcomponents:
+      scope: PAGE
+      match:
+        - '{C} / {S}'
+        - '{C} / _ / {S}'
+      exclude:
+        - '{C} / Examples / {S}'
+```
+
+## Result
+
+Matched assets are harvested into a `subcomponents` registry on the component. Below is a narrow slice of the `DS Alert` output: the `DS Alert / Actions` subcomponent, discovered via a `{C} / {S}` pattern.
+
+```json
+{
+  "title": "DS Alert",
+  "subcomponents": {
+    "actions": {
+      "title": "DS Alert / Actions",
+      "anatomy": {
+        "root": { "type": "container" },
+        "children": { "type": "slot" }
+      },
+      "props": {
+        "children": { "type": "slot" }
+      }
+    }
+  }
+}
+```
+
+Without `subcomponents`, the registry is absent and these nested components are not detected.
+
 ## Properties
 
 | Property | Type | Required | Default | Description |
@@ -18,20 +56,6 @@ An asset must match at least one `match` pattern to be considered a subcomponent
 ## Path
 
 `config.processing.subcomponents`
-
-### Example
-
-```yaml
-config:
-  processing:
-    subcomponents:
-      scope: PAGE
-      match:
-        - '{C} / {S}'
-        - '{C} / _ / {S}'
-      exclude:
-        - '{C} / Examples / {S}'
-```
 
 ## See Also
 

@@ -35,7 +35,7 @@ Controls how specs are generated. See the [feature guides](/specs/features/) for
 | `invalidVariants` | `boolean` | `false` | Include variants marked invalid |
 | `invalidCombinations` | `boolean` | `true` | Include `invalidVariantCombinations` list |
 | `emptyVariants` | `boolean` | `false` | Include variants with no element overrides |
-| `slotContentExamples` | `boolean` | `false` | **Pro.** Emit `Component.slotContentExamples` (structurally detected slot fills). Ignored on the free tier |
+| `defaultSlotContent` | `boolean` | `false` | **Pro.** Emit the component's default slot content into `Component.slotContentExamples` (structurally detected slot fills). Ignored on the free tier |
 
 `instanceExamples` has no `include` flag — emitting it is driven by the presence of [`processing.instanceExamples`](#processing) (Pro only), like `subcomponents`.
 
@@ -62,9 +62,9 @@ const DEFAULT_CONFIG: ResolvedConfig = {
     invalidVariants: false,
     invalidCombinations: true,
     emptyVariants: false,
-    slotContentExamples: false,
+    defaultSlotContent: false,
   },
 };
 ```
 
-Feature-toggle properties (`subcomponents`, `instanceExamples`, `glyphNamePattern`, `codeOnlyPropsPattern`) are absent from `DEFAULT_CONFIG` — their absence means the feature is disabled. (The `include.slotContentExamples` flag is a gate, not a detector, so it carries a `false` default.)
+Feature-toggle properties (`subcomponents`, `instanceExamples`, `glyphNamePattern`, `codeOnlyPropsPattern`) are absent from `DEFAULT_CONFIG` — their absence means the feature is disabled. (The `include.defaultSlotContent` flag is a gate, not a detector, so it carries a `false` default.)

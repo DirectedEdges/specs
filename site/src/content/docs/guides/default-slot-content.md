@@ -15,7 +15,7 @@ Without slot content examples, a `SlotProp` tells you a slot exists and whether 
 
 When enabled, the engine walks each component's slot layers, captures the content placed inside them **structurally** (anatomy + layout + element styles), and emits it under `Component.slotContentExamples`. Each slot binding then references its example by JSON Pointer via `$slotContent`, so the default content travels with the spec.
 
-No detection patterns are required — slot content is derived from whatever already sits inside the slot layers. The only control is the `slotContentExamples` flag.
+No detection patterns are required — slot content is derived from whatever already sits inside the slot layers. The only control is the `defaultSlotContent` flag.
 
 ```yaml
 children:
@@ -46,24 +46,24 @@ Identical fills across variants and components de-duplicate to a single entry, k
 # specs.config.yaml
 config:
   include:
-    slotContentExamples: true
+    defaultSlotContent: true
 ```
 
 **Default**: `false`. Existing output is unchanged until you opt in.
 
 :::note[Pro feature]
-`slotContentExamples` requires a [Pro license](/specs/overview/licensing/). On the free tier the flag is ignored — no slot content is emitted. In the Figma plugin the control is hidden until a Pro license is active.
+`defaultSlotContent` requires a [Pro license](/specs/overview/licensing/). On the free tier the flag is ignored — no slot content is emitted. In the Figma plugin the control is hidden until a Pro license is active.
 :::
 
 ## Default Slot Content vs. Instance Examples
 
 These are two different things, often confused:
 
-- **Default slot content** (this guide) — the content *inside a slot*, captured structurally. No detection config; `slotContentExamples` is the only switch.
+- **Default slot content** (this guide) — the content *inside a slot*, captured structurally. No detection config; `defaultSlotContent` is the only switch.
 - **[Instance (ready-made) examples](/specs/guides/instance-examples/)** — whole pre-configured *instances* of a component, detected from named frames via `processing.instanceExamples`.
 
 ## Further Reading
 
-- [`slotContentExamples`](/specs/config/slot-content-examples/) — config reference
+- [`defaultSlotContent`](/specs/config/default-slot-content/) — config reference
 - [Instance (Ready-Made) Examples](/specs/guides/instance-examples/) — the sibling feature
 - [Schema: Component](/specs/schema/component/) — the `slotContentExamples` registry shape

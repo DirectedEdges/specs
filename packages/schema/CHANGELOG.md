@@ -20,7 +20,7 @@ Introduces the composition and slot-content model across ADRs 042, 046–050. `C
 - `Component.instanceExamples` — typed as `InstanceExamples` (`Record<string, InstanceExample>`); named documented usages per component (ADR-048)
 - `InstanceExample` — `{ title?, propConfigurations?: Record<string, string | number | boolean | SlotContentRef> }`; scalar props set directly, slot props filled via `SlotContentRef`. `PropBinding` not accepted — documented configurations are not live bindings (ADR-048)
 - `Config.processing.instanceExamples` — `{ scope?: 'PAGE' | 'FILE', match: string[], exclude?: string[], parentNames?: string[] }`; instance-example detection settings, mirroring `processing.subcomponents`. `scope` is `PAGE | FILE` (`NESTED` is inapplicable); `parentNames` filters candidates by immediate-parent frame/section name. Absence is the off-switch — its **presence** enables both detection and output (no separate include flag), like `processing.subcomponents`. Pro-gated. Added to `ResolvedConfig` (with `scope` required) (ADR-050)
-- `Config.include.slotContentExamples` — `boolean` output gate, default `false`; added to `ResolvedConfig` (required) and `DEFAULT_CONFIG`. Pro-gated — ignored on the free tier (ADR-050)
+- `Config.include.defaultSlotContent` — `boolean` output gate, default `false`; added to `ResolvedConfig` (required) and `DEFAULT_CONFIG`. Pro-gated — ignored on the free tier (ADR-050)
 - `Config.format.tokens` — adds `FIGMA_SYNTAX_WEB`, `FIGMA_SYNTAX_IOS`, `FIGMA_SYNTAX_ANDROID` profiles emitting per-platform Figma code syntax, falling back to `TOKEN` (ADR-051)
 
 ### Changed

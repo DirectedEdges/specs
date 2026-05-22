@@ -5,7 +5,7 @@
 | # | Title | Highlights |
 |---|-------|------------|
 | 051 | Platform Code-Syntax Token Profiles | |
-| 050 | Examples Config | Add `include.slotContentExamples`, `include.instanceExamples` (default false); add `processing.instanceExamples` with scope, match, exclude, parentNames |
+| 050 | Examples Config | Add `include.defaultSlotContent` (default false); add `processing.instanceExamples` with scope, match, exclude, parentNames — instance-example output is presence-driven (no `include.instanceExamples` flag), mirroring `subcomponents` |
 | 049 | Nested Slot Compositions | Recursion follow-on to ADR-047: fill nested instances' slots from a parent context (reserved, draft on `042-composition-type` branch) |
 | 048 | PropConfigurations PropBinding | Widen `PropConfigurations` value union to add `PropBinding` (reserved, draft on `042-composition-type` branch) |
 | 047 | Slot Content — Component.slotContentExamples and SlotBinding | Add `Component.slotContentExamples: Record<string, SlotContent>` + `SlotBinding` extending `PropBinding` with optional `examples?: SlotContentRef[]` (Figma authoring default at index 0); widens `Children` to `string[] \| SlotBinding` (reserved, draft on `042-composition-type` branch) |

@@ -249,7 +249,7 @@ export class ConfigLoader {
     // the presence of processing.subcomponents, and instanceExamples likewise by
     // the presence of processing.instanceExamples (so include.instanceExamples is
     // not a valid key).
-    const validIncludeKeys = new Set(['invalidVariants', 'invalidCombinations', 'emptyVariants', 'slotContentExamples']);
+    const validIncludeKeys = new Set(['invalidVariants', 'invalidCombinations', 'emptyVariants', 'defaultSlotContent']);
     for (const key of Object.keys(corrected.include)) {
       if (!validIncludeKeys.has(key)) {
         delete (corrected.include as Record<string, unknown>)[key];

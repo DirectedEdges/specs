@@ -1080,15 +1080,10 @@
               "default": false,
               "description": "Include layered variants that contain no elements. When false (default), exclude empty variants from output. When true, include all variants regardless of element presence. Defaults to false."
             },
-            "slotContentExamples": {
+            "defaultSlotContent": {
               "type": "boolean",
               "default": false,
-              "description": "Include slot content examples in output (ADR-050). Defaults to false."
-            },
-            "instanceExamples": {
-              "type": "boolean",
-              "default": false,
-              "description": "Include instance examples in output (ADR-050). Defaults to false."
+              "description": "Include the component's default slot content as examples in output (ADR-050, Pro). Defaults to false."
             }
           },
           "required": [],

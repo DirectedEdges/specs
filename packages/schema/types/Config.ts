@@ -82,7 +82,7 @@ export interface Config {
     /** Include layered variants that contain no elements. When false (default), exclude empty variants from output. When true, include all variants regardless of element presence. Optional; defaults to false. @since 1.0.0 */
     emptyVariants?: boolean;
     /** Include slot content examples in output (ADR-050). Optional; defaults to false. @since 0.21.0 */
-    slotContentExamples?: boolean;
+    defaultSlotContent?: boolean;
   };
 }
 
@@ -148,7 +148,7 @@ export interface ResolvedConfig {
     /** Include layered variants that contain no elements. */
     emptyVariants: boolean;
     /** Include slot content examples in output. */
-    slotContentExamples: boolean;
+    defaultSlotContent: boolean;
   };
 }
 
@@ -169,7 +169,7 @@ export interface ResolvedConfig {
  * - include.invalidVariants: false excludes variants that can't be instantiated
  * - include.invalidCombinations: true helps designers identify property conflicts
  * - include.emptyVariants: false reduces output size by excluding semantically empty layered variants
- * - include.slotContentExamples: false — opt-in (ADR-050); off by default so unannotated components are unchanged
+ * - include.defaultSlotContent: false — opt-in (ADR-050); off by default so unannotated components are unchanged
  *   (instanceExamples have no include flag — presence of processing.instanceExamples is the on-switch, like subcomponents)
  */
 export const DEFAULT_CONFIG: ResolvedConfig = {
@@ -190,6 +190,6 @@ export const DEFAULT_CONFIG: ResolvedConfig = {
     invalidVariants: false,
     invalidCombinations: true,
     emptyVariants: false,
-    slotContentExamples: false,
+    defaultSlotContent: false,
   },
 };
