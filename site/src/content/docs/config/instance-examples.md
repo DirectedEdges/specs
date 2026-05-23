@@ -4,6 +4,7 @@ description: "Detect named example frames that demonstrate a configured whole-co
 ---
 
 <script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge pro-badge">Pro</span>')</script>
+<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
 
 Instance examples are real-world usages of a component placed in your Figma file — instances with their props and slots filled in (for example, an alert with a title, body, and two actions). When detection is configured, those instances are harvested into `Component.instanceExamples` and emitted.
 
