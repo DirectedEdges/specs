@@ -189,6 +189,79 @@ describe('FileManifest', () => {
     });
   });
 
+  describe('per-concern mode — examples concern', () => {
+    const withExamples = [
+      ...mockComponents,
+      {
+        name: 'Toast',
+        spec: {
+          title: 'Toast',
+          anatomy: { root: { type: 'container' } },
+          props: [],
+          default: { name: 'default', layout: [], elements: {} },
+          variants: [],
+          slotContentExamples: { toast__children: { layout: [] } },
+          instanceExamples: { toastDefault: { propConfigurations: {} } },
+          metadata: { plugin: { version: 6 } }
+        }
+      }
+    ];
+
+    it('emits a third examples.yaml when any component has examples', () => {
+      const config: OutputConfig = {
+        splitComponents: false, splitConcerns: true, useSubfolders: false, defaultFormat: 'yaml'
+      };
+      const manifest = new FileManifest(withExamples, config, '/tmp/output');
+
+      expect(manifest.entries).toHaveLength(3);
+      const examplesEntry = manifest.entries.find(e => e.path.includes('examples.yaml'))!;
+      expect(examplesEntry).toBeDefined();
+
+      const comps = examplesEntry.content.components as Record<string, any>;
+      // Only the component with examples is present
+      expect(Object.keys(comps)).toEqual(['toast']);
+      expect(comps.toast.slotContentExamples).toEqual({ toast__children: { layout: [] } });
+      expect(comps.toast.instanceExamples).toEqual({ toastDefault: { propConfigurations: {} } });
+      expect(examplesEntry.content.metadata).toMatchObject({ concern: 'examples', componentCount: 1 });
+    });
+
+    it('does NOT emit examples.yaml when no component has examples', () => {
+      const config: OutputConfig = {
+        splitComponents: false, splitConcerns: true, useSubfolders: false, defaultFormat: 'yaml'
+      };
+      const manifest = new FileManifest(mockComponents, config, '/tmp/output');
+
+      expect(manifest.entries).toHaveLength(2);
+      expect(manifest.entries.find(e => e.path.includes('examples.yaml'))).toBeUndefined();
+    });
+
+    it('keeps example fields out of api.yaml and variants.yaml', () => {
+      const config: OutputConfig = {
+        splitComponents: false, splitConcerns: true, useSubfolders: false, defaultFormat: 'yaml'
+      };
+      const manifest = new FileManifest(withExamples, config, '/tmp/output');
+
+      const api = (manifest.entries.find(e => e.path.includes('api.yaml'))!.content.components as Record<string, any>).toast;
+      const variants = (manifest.entries.find(e => e.path.includes('variants.yaml'))!.content.components as Record<string, any>).toast;
+      expect(api.slotContentExamples).toBeUndefined();
+      expect(api.instanceExamples).toBeUndefined();
+      expect(variants.slotContentExamples).toBeUndefined();
+      expect(variants.instanceExamples).toBeUndefined();
+    });
+
+    it('combined mode emits examples.yaml only for components that have examples', () => {
+      const config: OutputConfig = {
+        splitComponents: true, splitConcerns: true, useSubfolders: false, defaultFormat: 'yaml'
+      };
+      const manifest = new FileManifest(withExamples, config, '/tmp/output');
+
+      // 3 components × 2 base concerns + 1 examples file (Toast only) = 7
+      expect(manifest.entries).toHaveLength(7);
+      expect(manifest.entries.find(e => /toast\/examples\.yaml$/.test(e.path))).toBeDefined();
+      expect(manifest.entries.find(e => /button\/examples\.yaml$/.test(e.path))).toBeUndefined();
+    });
+  });
+
   describe('combined mode', () => {
     it('should create component directories with concern files', () => {
       const config: OutputConfig = {

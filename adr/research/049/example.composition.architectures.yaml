@@ -1,0 +1,100 @@
+## A
+compositions:
+  {composition name}:
+    title:
+    description:
+    main:
+      anatomy:
+      elements:
+        highLevelInstance:
+          propConfigurations:
+            highlevelSlot:
+              anatomy:
+              elements:
+                lowLevelInstance:
+                  propConfigurations:
+                    lowLevelSlot:
+                      anatomy:
+                      elements:
+                      layout:
+              layout:
+      layout:
+
+## B
+compositions:
+  {composition name}:
+    title:
+    description:
+    main:
+      anatomy:
+      elements:
+        highLevelInstance:
+          propConfigurations:
+            highlevelSlot:
+              $slotContent: "#/compositions/highLevelSlotContent"
+      layout:
+    highLevelSlotContent:
+      anatomy:
+      elements:
+        lowLevelInstance:
+          propConfigurations:
+            lowLevelSlot:
+              $slotContent: "#/compositions/lowLevelSlotContent"
+      layout:
+    lowLevelSlotContent:
+      anatomy:
+      elements:
+      layout:
+
+## C
+compositions:
+  {composition name}:
+    title:
+    description:
+    anatomy:
+    elements:
+      highLevelInstance:
+        propConfigurations:
+          highlevelSlot:
+            $slotContent: "#/compositions/highLevelSlotContent"
+    layout:
+    slotContent:
+      highLevelSlotContent:
+        anatomy:
+        elements:
+          lowLevelInstance:
+            propConfigurations:
+              lowLevelSlot:
+                $slotContent: "#/compositions/lowLevelSlotContent"
+        layout:
+      lowLevelSlotContent:
+        anatomy:
+        elements:
+        layout:
+
+## D
+compositions:
+  {composition name}:
+    title:
+    description:
+    parts:
+      main: ## Reserved term for top node?
+        anatomy:
+        elements:
+          highLevelInstance:
+            propConfigurations:
+              highlevelSlot:
+                $slotContent: "#/compositions/highLevelSlotContent"
+        layout:
+      highLevelSlotContent:
+        anatomy:
+        elements:
+          lowLevelInstance:
+            propConfigurations:
+              lowLevelSlot:
+                $slotContent: "#/compositions/lowLevelSlotContent"
+        layout:
+      lowLevelSlotContent:
+        anatomy:
+        elements:
+        layout:

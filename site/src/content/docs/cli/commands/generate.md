@@ -170,10 +170,12 @@ specs/
 ```
 
 ### `--split-concerns`
-Separate API specification from variant configuration.
+Separate API specification, variant configuration, and examples.
 
 - **Default**: `false` (complete component data in each file)
-- **Output**: Two files: `api.yaml` (anatomy, props) and `variants.yaml` (default, variants)
+- **Output**: Up to three files: `api.yaml` (anatomy, props), `variants.yaml` (default, variants), and `examples.yaml` (slotContentExamples, instanceExamples)
+- `examples.yaml` is written only when at least one component has example data; components without examples are omitted from it.
+- Example output (`slotContentExamples`, `instanceExamples`) is a [Pro feature](/specs/config/default-slot-content/) — on the free tier it is omitted, so `examples.yaml` is not produced.
 
 ```bash
 specs generate components.md -o specs/ --split-concerns
@@ -182,10 +184,11 @@ specs generate components.md -o specs/ --split-concerns
 ```
 specs/
 ├── api.yaml
-└── variants.yaml
+├── variants.yaml
+└── examples.yaml
 ```
 
-When combined with `--split-components`, each component gets its own directory with concern files:
+When combined with `--split-components`, each component gets its own directory with concern files (`examples.yaml` appears only for components that have examples):
 
 ```bash
 specs generate components.md -o specs/ --split-components --split-concerns
@@ -198,7 +201,8 @@ specs/
 │   └── variants.yaml
 ├── dsAlert/
 │   ├── api.yaml
-│   └── variants.yaml
+│   ├── variants.yaml
+│   └── examples.yaml
 └── dsCard/
     ├── api.yaml
     └── variants.yaml

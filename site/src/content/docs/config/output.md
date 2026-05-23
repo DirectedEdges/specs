@@ -8,7 +8,7 @@ Controls where and how to write generated specifications. Configured via the `ou
 ```yaml
 output:
   splitComponents: false    # Create separate file per component
-  splitConcerns: false      # Separate API from variants
+  splitConcerns: false      # Separate API, variants, and examples
   useSubfolders: false      # Use component subdirectories
   defaultFormat: yaml       # Output format (yaml|json)
 ```
@@ -21,8 +21,8 @@ The CLI supports four output modes based on flag combinations:
 |------|---------------------|-------------------|------------------|
 | **Single-file** | - | - | `library.yaml` (all components) |
 | **Per-component** | yes | - | `button.yaml`, `alert.yaml`, ... |
-| **Per-concern** | - | yes | `api.yaml` + `variants.yaml` |
-| **Combined** | yes | yes | `button/api.yaml`, `button/variants.yaml`, ... |
+| **Per-concern** | - | yes | `api.yaml` + `variants.yaml` (+ `examples.yaml` if any examples) |
+| **Combined** | yes | yes | `button/api.yaml`, `button/variants.yaml` (+ `button/examples.yaml` if examples), ... |
 
 ## `splitComponents`
 
@@ -48,7 +48,7 @@ File naming converts display names to camelCase (e.g., `"DS Alert"` → `dsAlert
 
 ## `splitConcerns`
 
-Separate API specification from variant configuration.
+Separate API specification, variant configuration, and examples.
 
 - **Type**: boolean
 - **Default**: `false` (complete component data)
@@ -74,6 +74,20 @@ components:
     default: ...
     variants: ...
 ```
+
+**Examples file** (`examples.yaml`):
+```yaml
+components:
+  - name: Alert
+    slotContentExamples: ...
+    instanceExamples: ...
+```
+
+`examples.yaml` is written only when at least one component has `slotContentExamples`
+or `instanceExamples`; components without examples are omitted from it. Without this
+file the `$slotContent` references in `default`/`variants` would have no target.
+
+Example output is a [Pro feature](/specs/config/default-slot-content/) — on the free tier no example data is produced, so `examples.yaml` is never written.
 
 ## `useSubfolders`
 
@@ -137,7 +151,8 @@ specs/
 │   └── variants.yaml  # Default + variants
 ├── alert/
 │   ├── api.yaml
-│   └── variants.yaml
+│   ├── variants.yaml
+│   └── examples.yaml  # slotContentExamples + instanceExamples (only if present)
 └── card/
     ├── api.yaml
     └── variants.yaml

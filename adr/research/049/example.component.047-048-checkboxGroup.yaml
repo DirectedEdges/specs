@@ -1,0 +1,145 @@
+# ADR-047 + ADR-048 example — CheckboxGroup component
+#
+# Sibling to example.component.047-048-pill.yaml. Same component-scoped
+# machinery but pushed one level deeper: a slot fill whose items themselves
+# nest custom slot content, exercising multi-level $slotContent resolution.
+#
+# CheckboxGroup component contract:
+#   prop  children: slot       — slot-bound container holding Checkbox items
+#
+#   Variant default — childrenSlot's children bound via SlotBinding (ADR-047).
+#                     Figma authoring default points to `defaultCheckboxes`.
+#
+# Checkbox contract (referenced; not authored here):
+#   prop  label:    string     — bound to the standard checkbox label
+#   prop  custom:   boolean    — toggles which variant is active
+#   prop  children: slot       — rendered when custom:true
+#
+# Two documented usages cover the surface (instanceExamples below):
+#   1. plainGroup    — three checkboxes with label scalars (no custom children)
+#   2. requiredGroup — three checkboxes, each with custom:true and children
+#                      filled by the shared `requiredLabel` slotContentExamples
+#                      entry (a label text + requiredAsterisk laid out horizontally).
+
+components:
+  checkboxGroup:
+    title: Checkbox Group
+
+    anatomy:
+      root:
+        type: container
+      childrenSlot:
+        type: container     # slot-bound
+
+    props:
+      children:
+        type: slot
+
+    # ─── default variant: children slot rendered, Figma default supplied ────
+    default:
+      elements:
+        root:
+          children: [childrenSlot]
+        childrenSlot:
+          children:                                              # ADR-047 SlotBinding
+            $binding: "#/components/checkboxGroup/props/children"
+            $extensions:
+              com.figma:
+                default: "#/components/checkboxGroup/slotContentExamples/defaultCheckboxes"
+      layout:
+        - root:
+            - childrenSlot
+
+    # ─── Component.slotContentExamples (ADR-047): named slot fill examples ──
+    slotContentExamples:
+
+      # Figma's authoring default for the children slot. Three plain Checkbox
+      # instances with scalar label props. Also referenced by `plainGroup` below.
+      defaultCheckboxes:
+        anatomy:
+          checkbox1: { type: instance, instanceOf: Checkbox }
+          checkbox2: { type: instance, instanceOf: Checkbox }
+          checkbox3: { type: instance, instanceOf: Checkbox }
+        elements:
+          checkbox1:
+            propConfigurations:
+              label: Ford
+          checkbox2:
+            propConfigurations:
+              label: Mercedes
+          checkbox3:
+            propConfigurations:
+              label: Toyota
+        layout:
+          - checkbox1
+          - checkbox2
+          - checkbox3
+
+      # A label text with a required asterisk to its right. Slot-agnostic —
+      # referenced from each of the three Checkbox.children fills inside
+      # `requiredCheckboxes`. One definition; three uses.
+      requiredLabel:
+        anatomy:
+          root:             { type: container }
+          label:            { type: text }
+          requiredAsterisk: { type: glyph }
+        elements:
+          root:
+            styles:
+              layoutMode: HORIZONTAL
+          label:
+            content: "{required label}"
+          requiredAsterisk:
+            content: "*"
+        layout:
+          - root:
+              - label
+              - requiredAsterisk
+
+      # Three Checkbox instances, each with custom:true and a children fill
+      # pointing at the shared `requiredLabel` above. One nested-content
+      # definition; three uses via $slotContent pointer.
+      requiredCheckboxes:
+        anatomy:
+          checkbox1: { type: instance, instanceOf: Checkbox }
+          checkbox2: { type: instance, instanceOf: Checkbox }
+          checkbox3: { type: instance, instanceOf: Checkbox }
+        elements:
+          checkbox1:
+            propConfigurations:
+              custom: true
+              children:
+                $slotContent: "#/components/checkboxGroup/slotContentExamples/requiredLabel"
+          checkbox2:
+            propConfigurations:
+              custom: true
+              children:
+                $slotContent: "#/components/checkboxGroup/slotContentExamples/requiredLabel"
+          checkbox3:
+            propConfigurations:
+              custom: true
+              children:
+                $slotContent: "#/components/checkboxGroup/slotContentExamples/requiredLabel"
+        layout:
+          - checkbox1
+          - checkbox2
+          - checkbox3
+
+    # ─── Component.instanceExamples (ADR-048): documented whole-component usages
+    instanceExamples:
+
+      # Whole-component usage with the default, un-customized slot fill.
+      plainGroup:
+        title: CheckboxGroup with three plain checkboxes
+        propConfigurations:
+          children:
+            $slotContent: "#/components/checkboxGroup/slotContentExamples/defaultCheckboxes"
+
+      # Whole-component usage with the required-label slot fill. Resolves
+      # through two layers:
+      #   children → requiredCheckboxes → each checkbox.children → requiredLabel
+      requiredGroup:
+        title: CheckboxGroup with three required-label checkboxes
+        propConfigurations:
+          children:
+            $slotContent: "#/components/checkboxGroup/slotContentExamples/requiredCheckboxes"

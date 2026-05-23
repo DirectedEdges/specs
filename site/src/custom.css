@@ -78,6 +78,11 @@ ul.top-level > li > a.large[aria-current='page']:focus {
 	background-color: var(--sl-color-text-accent);
 }
 
+/* Sidebar Pro badges (rendered by Starlight via `badge: pro`) — all caps */
+.sidebar-content .sl-badge {
+	text-transform: uppercase;
+}
+
 /* Pro badge inline with page title */
 .sl-badge.pro-badge {
 	display: inline-block;
@@ -90,6 +95,7 @@ ul.top-level > li > a.large[aria-current='page']:focus {
 	padding: 0.125rem 0.375rem;
 	color: var(--sl-badge-tip-text);
 	background-color: var(--sl-badge-tip-bg);
+	text-transform: uppercase;
 	vertical-align: middle;
 	margin-left: 0.5rem;
 }
@@ -100,6 +106,45 @@ ul.top-level > li > a.large[aria-current='page']:focus {
 	padding: 0.25rem 0.75rem;
 	margin-left: 0;
 	margin-right: 0.625rem;
+}
+
+/* Experimental badge inline with page title — neutral/gray accent (mirrors
+   .pro-badge but uses Starlight's gray scale instead of the purple tip vars) */
+.sl-badge.experimental-badge {
+	display: inline-block;
+	border: 1px solid var(--sl-color-gray-4);
+	border-radius: 0.25rem;
+	font-family: var(--sl-font-system-mono);
+	font-size: var(--sl-text-xs);
+	font-weight: normal;
+	line-height: 1;
+	padding: 0.125rem 0.375rem;
+	color: var(--sl-color-gray-2);
+	background-color: var(--sl-color-gray-6);
+	text-transform: uppercase;
+	vertical-align: middle;
+	margin-left: 0.5rem;
+}
+
+/* Experimental badge appended after the Pro badge on specific config nav links.
+   Starlight's sidebar `badge` config allows only one badge, so the second
+   (Experimental) pill is rendered via ::after on these two links. */
+.sidebar-content a[href$="/config/default-slot-content/"]::after,
+.sidebar-content a[href$="/config/instance-examples/"]::after {
+	content: "Experimental";
+	display: inline-block;
+	margin-left: 0.375rem;
+	border: 1px solid var(--sl-color-gray-4);
+	border-radius: 0.25rem;
+	font-family: var(--sl-font-system-mono);
+	font-size: var(--sl-text-xs);
+	font-weight: normal;
+	line-height: 1;
+	padding: 0.125rem 0.375rem;
+	color: var(--sl-color-gray-2);
+	background-color: var(--sl-color-gray-6);
+	text-transform: uppercase;
+	vertical-align: middle;
 }
 
 /* Prepend the Pro badge before label text in the Licensing nav link */

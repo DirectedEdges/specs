@@ -27,6 +27,12 @@ const fullConfig: Config = {
     variantDepth: 9999,
     details: 'LAYERED',
     inferNumberProps: true,
+    instanceExamples: {
+      scope: 'FILE',
+      match: ['{C} / *'],
+      exclude: ['* / Deprecated / *'],
+      parentNames: ['Examples'],
+    },
   },
   format: {
     output: 'JSON',
@@ -39,6 +45,7 @@ const fullConfig: Config = {
     invalidVariants: false,
     invalidCombinations: true,
     emptyVariants: false,
+    defaultSlotContent: true,
   },
 };
 
@@ -175,7 +182,7 @@ const defaultTokensValue: typeof DEFAULT_CONFIG.format.tokens = 'TOKEN';
 const resolved: ResolvedConfig = {
   processing: { slotConstraints: false, variantDepth: 9999, details: 'LAYERED', inferNumberProps: false },
   format: { output: 'JSON', keys: 'SAFE', layout: 'LAYOUT', tokens: 'TOKEN', color: 'HEX' },
-  include: { invalidVariants: false, invalidCombinations: true, emptyVariants: false },
+  include: { invalidVariants: false, invalidCombinations: true, emptyVariants: false, defaultSlotContent: false },
 };
 
 // ─── ResolvedConfig requires defaultable fields — cannot omit them ────────────
@@ -260,3 +267,46 @@ const _cRequired: _CRequired = true;
 // ─── DEFAULT_CONFIG.format.color should be 'HEX' ───────────────────────────
 
 const defaultColorValue: typeof DEFAULT_CONFIG.format.color = 'HEX';
+
+// ─── ADR-050: examples config ────────────────────────────────────────────────
+
+// processing.instanceExamples is optional (feature toggle; absence = no detection)
+const _instanceExamplesUndefined: Config['processing']['instanceExamples'] = undefined;
+
+// processing.instanceExamples requires match; scope/exclude/parentNames optional
+const configWithInstanceExamples: Config = {
+  processing: {
+    instanceExamples: { match: ['{C} / *'] },
+  },
+  format: {},
+  include: {},
+};
+
+// instanceExamples.scope enum is PAGE | FILE (NESTED is inapplicable)
+type InstanceExamplesScope = NonNullable<Config['processing']['instanceExamples']>['scope'];
+const _ieScopePage: InstanceExamplesScope = 'PAGE';
+const _ieScopeFile: InstanceExamplesScope = 'FILE';
+const _ieScopeUndefined: InstanceExamplesScope = undefined;
+
+// @ts-expect-error — NESTED is not a valid instanceExamples scope
+const _ieScopeBad: InstanceExamplesScope = 'NESTED';
+
+// instanceExamples.exclude and parentNames are optional
+const _ieExcludeUndefined: NonNullable<Config['processing']['instanceExamples']>['exclude'] = undefined;
+const _ieParentNamesUndefined: NonNullable<Config['processing']['instanceExamples']>['parentNames'] = undefined;
+const _ieParentNames: NonNullable<Config['processing']['instanceExamples']>['parentNames'] = ['Examples', 'Demos'];
+
+// include flags are optional on Config
+const _includeSlotContentExamplesUndefined: Config['include']['defaultSlotContent'] = undefined;
+
+// include flags are required on ResolvedConfig
+type _SCERequired = ResolvedConfig['include']['defaultSlotContent'] extends boolean ? true : never;
+const _sceRequired: _SCERequired = true;
+
+// instanceExamples block stays optional on ResolvedConfig, but scope is required when present
+type _IEScopeRequired = NonNullable<ResolvedConfig['processing']['instanceExamples']>['scope'] extends ('PAGE' | 'FILE') ? true : never;
+const _ieScopeRequired: _IEScopeRequired = true;
+const _resolvedInstanceExamplesUndefined: ResolvedConfig['processing']['instanceExamples'] = undefined;
+
+// DEFAULT_CONFIG carries the new include flag, defaulting to false
+const _defaultSlotContentExamples: typeof DEFAULT_CONFIG.include.defaultSlotContent = false;

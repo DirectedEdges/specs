@@ -45,6 +45,17 @@ export interface Config {
     details?: 'FULL' | 'LAYERED';
     /** When true, TEXT code-only props whose default and all examples parse as valid numbers (no leading zeros) are emitted as NumberProp instead of StringProp */
     inferNumberProps?: boolean;
+    /** Instance example detection settings (ADR-050): named frames demonstrating pre-configured whole-component usage. Optional; absence means no instance example detection. @since 0.21.0 */
+    instanceExamples?: {
+      /** Search boundary. PAGE = current Figma page only (default); FILE = all pages in the file. */
+      scope?: 'PAGE' | 'FILE';
+      /** Optional name patterns narrowing which instance frames qualify. Uses {C} (component name) placeholder. Absence = every in-scope instance of the component qualifies (subject to exclude/parentNames). */
+      match?: string[];
+      /** Name patterns for frames to exclude. Same {C} syntax as match. */
+      exclude?: string[];
+      /** Immediate-parent frame or section names a candidate must be contained within. Absence = no parent-name filtering. */
+      parentNames?: string[];
+    };
   };
   format: {
     /** Output format. Optional; defaults to JSON. */
@@ -70,6 +81,8 @@ export interface Config {
     invalidCombinations?: boolean;
     /** Include layered variants that contain no elements. When false (default), exclude empty variants from output. When true, include all variants regardless of element presence. Optional; defaults to false. @since 1.0.0 */
     emptyVariants?: boolean;
+    /** Include slot content examples in output (ADR-050). Optional; defaults to false. @since 0.21.0 */
+    defaultSlotContent?: boolean;
   };
 }
 
@@ -79,7 +92,8 @@ export interface Config {
  *
  * Rule: every property with a default in `DEFAULT_CONFIG` is required here.
  * Only true feature toggles (where absence = feature disabled) remain optional:
- * `subcomponents` (the block), `glyphNamePattern`, `codeOnlyPropsPattern`.
+ * `subcomponents` (the block), `instanceExamples` (the block), `glyphNamePattern`,
+ * `codeOnlyPropsPattern`.
  *
  * @since 0.17.0
  */
@@ -106,6 +120,13 @@ export interface ResolvedConfig {
     details: 'FULL' | 'LAYERED';
     /** When true, TEXT code-only props whose default and all examples parse as valid numbers are emitted as NumberProp instead of StringProp. */
     inferNumberProps: boolean;
+    /** Instance example detection settings (ADR-050). Optional; absence means no instance example detection. When present, `scope` is required (defaults to PAGE). */
+    instanceExamples?: {
+      scope: 'PAGE' | 'FILE';
+      match?: string[];
+      exclude?: string[];
+      parentNames?: string[];
+    };
   };
   format: {
     /** Output format. */
@@ -126,6 +147,8 @@ export interface ResolvedConfig {
     invalidCombinations: boolean;
     /** Include layered variants that contain no elements. */
     emptyVariants: boolean;
+    /** Include slot content examples in output. */
+    defaultSlotContent: boolean;
   };
 }
 
@@ -146,6 +169,8 @@ export interface ResolvedConfig {
  * - include.invalidVariants: false excludes variants that can't be instantiated
  * - include.invalidCombinations: true helps designers identify property conflicts
  * - include.emptyVariants: false reduces output size by excluding semantically empty layered variants
+ * - include.defaultSlotContent: false — opt-in (ADR-050); off by default so unannotated components are unchanged
+ *   (instanceExamples have no include flag — presence of processing.instanceExamples is the on-switch, like subcomponents)
  */
 export const DEFAULT_CONFIG: ResolvedConfig = {
   processing: {
@@ -165,5 +190,6 @@ export const DEFAULT_CONFIG: ResolvedConfig = {
     invalidVariants: false,
     invalidCombinations: true,
     emptyVariants: false,
+    defaultSlotContent: false,
   },
 };

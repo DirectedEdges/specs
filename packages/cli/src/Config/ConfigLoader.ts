@@ -189,6 +189,30 @@ export class ConfigLoader {
       }
     }
 
+    // Validate processing.instanceExamples (ADR-050)
+    if (corrected.processing.instanceExamples !== undefined) {
+      const ie = corrected.processing.instanceExamples;
+      const validIeScopes = ['PAGE', 'FILE'];
+      if (ie.scope !== undefined && !validIeScopes.includes(ie.scope)) {
+        ie.scope = 'PAGE';
+      }
+      // match is an OPTIONAL name filter (ADR-050). The on-switch is the presence
+      // of the instanceExamples block; the primary relevance test is structural
+      // identity. When match is omitted, every in-scope instance qualifies
+      // (subject to exclude/parentNames). When provided, it must be a non-empty
+      // array of strings — otherwise drop just the match filter, not the block.
+      if (ie.match !== undefined && (!Array.isArray(ie.match) || ie.match.length === 0)) {
+        console.warn('Invalid processing.instanceExamples.match: when provided, must be a non-empty array of strings. Ignoring match filter.');
+        delete ie.match;
+      }
+      if (ie.exclude !== undefined && !Array.isArray(ie.exclude)) {
+        delete ie.exclude;
+      }
+      if (ie.parentNames !== undefined && !Array.isArray(ie.parentNames)) {
+        delete ie.parentNames;
+      }
+    }
+
     // Valid format options
     const validKeys = ['SAFE', 'CAMEL', 'SNAKE', 'KEBAB', 'PASCAL', 'TRAIN'];
     const validOutputs = ['JSON', 'YAML'];
@@ -225,13 +249,25 @@ export class ConfigLoader {
       corrected.format.color = DEFAULT_CONFIG.format.color;
     }
 
-    // Strip EOLed include properties — subcomponent inclusion is now
-    // controlled by the presence of processing.subcomponents
-    const validIncludeKeys = new Set(['invalidVariants', 'invalidCombinations', 'emptyVariants']);
+    // Strip EOLed include properties — subcomponent inclusion is controlled by
+    // the presence of processing.subcomponents, and instanceExamples likewise by
+    // the presence of processing.instanceExamples (so include.instanceExamples is
+    // not a valid key).
+    const validIncludeKeys = new Set(['invalidVariants', 'invalidCombinations', 'emptyVariants', 'defaultSlotContent']);
     for (const key of Object.keys(corrected.include)) {
       if (!validIncludeKeys.has(key)) {
         delete (corrected.include as Record<string, unknown>)[key];
       }
+    }
+
+    // defaultSlotContent activates only on a literal boolean `true`. Any other
+    // value (e.g. the string "yes", a number, or undefined) is treated as off.
+    const dsc = (corrected.include as Record<string, unknown>).defaultSlotContent;
+    if (dsc !== undefined && typeof dsc !== 'boolean') {
+      console.warn(`Invalid include.defaultSlotContent: expected boolean, got ${typeof dsc}. Using default: false`);
+    }
+    if (dsc !== true) {
+      corrected.include.defaultSlotContent = false;
     }
 
     return corrected;
