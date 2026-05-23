@@ -44,7 +44,7 @@ author: <Your Name Here>
 output:
   # Write one file per component instead of a single library file (default: false)
   splitComponents: false
-  # Split each component into separate api and variants files (default: false)
+  # Split output into separate api, variants, and examples files (default: false)
   splitConcerns: false
   # When splitComponents is true, nest each file in a subfolder (default: false)
   useSubfolders: false

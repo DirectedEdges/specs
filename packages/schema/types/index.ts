@@ -13,14 +13,17 @@ export type { Props, AnyProp, BooleanProp, StringProp, EnumProp, SlotProp, Numbe
 export type { Variant, Variants } from './Variant.js';
 export type { Metadata } from './Metadata.js';
 export type { Subcomponent, Subcomponents } from './Subcomponent.js';
+export type { InstanceExample, InstanceExamples } from './InstanceExample.js';
 
 // Element and structure types
 export type { Element, Elements, ElementType } from './Element.js';
 export type { Layout, LayoutNode } from './Layout.js';
-export type { Children } from './Children.js';
+export type { Children, SlotBinding } from './Children.js';
+export type { SlotContent } from './SlotContent.js';
+export type { Composition, Compositions } from './Composition.js';
 
 // Configuration types
-export type { PropConfigurations } from './PropConfigurations.js';
+export type { PropConfigurations, PropConfigurationValue, NestedPropConfiguration } from './PropConfigurations.js';
 export type { Config, ResolvedConfig, ColorFormat } from './Config.js';
 export { DEFAULT_CONFIG } from './Config.js';
 
@@ -31,6 +34,7 @@ export type { GradientStop, GradientCenter, LinearGradient, RadialGradient, Angu
 
 // Reference types
 export type { PropBinding, BindingKey } from './PropBinding.js';
+export type { SlotContentRef } from './SlotContentRef.js';
 
 // Conditional types
 export type { Conditional, ConditionExpression, ConditionArgs } from './Conditional.js';

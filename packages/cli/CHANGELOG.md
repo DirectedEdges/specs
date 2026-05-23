@@ -9,7 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Examples config (ADR-050)** — `ConfigLoader` now accepts the new `include.defaultSlotContent` flag (added to the include allowlist) and validates `processing.instanceExamples` (`scope` ∈ `PAGE`/`FILE` with `PAGE` fallback; `match` required; `exclude`/`parentNames` array-checked), passing them through to the engine. `instanceExamples` output is driven by the **presence** of `processing.instanceExamples` (no `include.instanceExamples` flag), mirroring `subcomponents`. Both example features are Pro-gated — silently omitted on the free tier. Surfaces `slotContentExamples`/`instanceExamples` generation to CLI users.
+
 ### Changed
+
+- **`--split-concerns` now emits a third `examples.yaml`** — slot-content and instance examples are written to `examples.yaml` (per-concern mode) or `<component>/examples.yaml` (combined mode), alongside `api.yaml` and `variants.yaml`. The file is emitted only when at least one component has examples, and components without examples are omitted from it.
+
+### Fixed
+
+- **`--split-concerns` no longer drops examples** — `slotContentExamples` and `instanceExamples` (component- and subcomponent-level) were assigned to neither the `api` nor `variants` concern, so `--split-concerns` silently discarded them, leaving the `$slotContent` references in `default`/`variants` dangling. They are now routed into `examples.yaml`.
 
 ### Removed
 
@@ -75,7 +83,7 @@ Patch fix for `--split-concerns` output shape.
 
 ### Fixed
 
-- **`props` defaults to `{}` instead of `[]` when a component has no props (#84)** — `splitComponentByConcern` and `extractApiFromSubcomponents` were filling missing `props` with an empty array, producing output that violated the schema (`Props` is an object). Components like `egdsDivider` and `egdsSearchBarExperimental` now emit `props: {}`. The `ComponentApiData` and `SubcomponentApiData` interfaces are corrected to type `props` as `Record<string, any>`.
+- **`props` defaults to `{}` instead of `[]` when a component has no props (#84)** — `splitComponentByConcern` and `extractApiFromSubcomponents` were filling missing `props` with an empty array, producing output that violated the schema (`Props` is an object). Components with no props (e.g. a divider) now emit `props: {}`. The `ComponentApiData` and `SubcomponentApiData` interfaces are corrected to type `props` as `Record<string, any>`.
 
 
 ## [0.13.0] - 2026-05-06

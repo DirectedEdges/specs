@@ -5,7 +5,7 @@ description: "Inject your team's token shapes into fetched Figma data so generat
 
 ## The Problem
 
-Specs generates token references in a fixed shape — `{ $token, $type }` or one of the other [built-in profiles](/specs/guides/token-format/). But many teams already have a token system with its own naming conventions and output shapes: Style Dictionary aliases, JSON schema references, platform-specific formats, or custom structures built for their toolchain.
+Specs generates token references in a fixed shape — `{ $token, $type }` or one of the other [built-in profiles](/specs/config/tokens/). But many teams already have a token system with its own naming conventions and output shapes: Style Dictionary aliases, JSON schema references, platform-specific formats, or custom structures built for their toolchain.
 
 You can't make Specs guess your format. You need a way to say: _"For this Figma variable, output **this exact object** instead."_
 
@@ -219,7 +219,7 @@ See [Fetching Figma Branches](/specs/cli/commands/fetch/#fetching-figma-branches
 ---
 
 **See Also:**
-- [Token Format Guide](/specs/guides/token-format/) — all five token profiles compared
+- [Tokens configuration](/specs/config/tokens/) — all token profiles compared
 - [Configuration Reference](/specs/config/) — `dataDirectory` and `sources` setup
 - [Generate Command](/specs/cli/commands/generate/) — processing augmented data
 - [Fetch Command](/specs/cli/commands/fetch/) — fetching raw data before augmentation

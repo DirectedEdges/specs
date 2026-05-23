@@ -9,6 +9,40 @@ Naming pattern used to detect glyph content assets (e.g. icon glyphs). When abse
 See [Icon Glyphs](/specs/guides/glyph-name-pattern/) for naming strategies and worked examples.
 :::
 
+## Configuration
+
+```yaml
+config:
+  processing:
+    glyphNamePattern: 'DS Icon Glyph / {i}'
+```
+
+## Result
+
+When the pattern matches, the layer is typed as a `glyph` in the anatomy and its matched name is captured as the element's `content`. From the `DS Alert` output, the `decorativeIcon` glyph carries the resolved icon name:
+
+```json
+{
+  "anatomy": {
+    "decorativeIcon": { "type": "glyph" }
+  },
+  "default": {
+    "elements": {
+      "decorativeIcon": {
+        "styles": {
+          "width": 20,
+          "height": 20,
+          "fillColor": { "$token": "DS Color/Alert/Info/Element", "$type": "color" }
+        },
+        "content": "info"
+      }
+    }
+  }
+}
+```
+
+Without `glyphNamePattern`, the layer is treated as an ordinary element and no `content` glyph name is extracted.
+
 ## Options
 
 - **Type**: string
@@ -20,11 +54,3 @@ The pattern must include the `{i}` placeholder, which marks where the glyph name
 ## Path
 
 `config.processing.glyphNamePattern`
-
-### Example
-
-```yaml
-config:
-  processing:
-    glyphNamePattern: 'DS Icon Glyph / {i}'
-```
