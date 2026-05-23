@@ -241,8 +241,6 @@ void [
   slotExample,
   examplesMap,
   componentWithExamples,
-  figmaExt,
-  slotExt,
   slotBinding,
   barePropAsSlot,
   childArr,

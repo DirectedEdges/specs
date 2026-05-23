@@ -46,7 +46,6 @@ const fullConfig: Config = {
     invalidCombinations: true,
     emptyVariants: false,
     defaultSlotContent: true,
-    instanceExamples: true,
   },
 };
 
@@ -183,7 +182,7 @@ const defaultTokensValue: typeof DEFAULT_CONFIG.format.tokens = 'TOKEN';
 const resolved: ResolvedConfig = {
   processing: { slotConstraints: false, variantDepth: 9999, details: 'LAYERED', inferNumberProps: false },
   format: { output: 'JSON', keys: 'SAFE', layout: 'LAYOUT', tokens: 'TOKEN', color: 'HEX' },
-  include: { invalidVariants: false, invalidCombinations: true, emptyVariants: false, defaultSlotContent: false, instanceExamples: false },
+  include: { invalidVariants: false, invalidCombinations: true, emptyVariants: false, defaultSlotContent: false },
 };
 
 // ─── ResolvedConfig requires defaultable fields — cannot omit them ────────────
@@ -299,19 +298,15 @@ const _ieParentNames: NonNullable<Config['processing']['instanceExamples']>['par
 
 // include flags are optional on Config
 const _includeSlotContentExamplesUndefined: Config['include']['defaultSlotContent'] = undefined;
-const _includeInstanceExamplesUndefined: Config['include']['instanceExamples'] = undefined;
 
 // include flags are required on ResolvedConfig
 type _SCERequired = ResolvedConfig['include']['defaultSlotContent'] extends boolean ? true : never;
 const _sceRequired: _SCERequired = true;
-type _IERequired = ResolvedConfig['include']['instanceExamples'] extends boolean ? true : never;
-const _ieRequired: _IERequired = true;
 
 // instanceExamples block stays optional on ResolvedConfig, but scope is required when present
 type _IEScopeRequired = NonNullable<ResolvedConfig['processing']['instanceExamples']>['scope'] extends ('PAGE' | 'FILE') ? true : never;
 const _ieScopeRequired: _IEScopeRequired = true;
 const _resolvedInstanceExamplesUndefined: ResolvedConfig['processing']['instanceExamples'] = undefined;
 
-// DEFAULT_CONFIG carries both new include flags, defaulting to false
+// DEFAULT_CONFIG carries the new include flag, defaulting to false
 const _defaultSlotContentExamples: typeof DEFAULT_CONFIG.include.defaultSlotContent = false;
-const _defaultInstanceExamples: typeof DEFAULT_CONFIG.include.instanceExamples = false;
