@@ -5,7 +5,9 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.17.0] - Unreleased
+## [0.17.0] - 2026-05-23
+
+Surfaces the new composition/examples model to CLI users: config loading now accepts `include.defaultSlotContent` and the `processing.instanceExamples` block, so generated specs can include slot-content examples and pre-configured instance examples (both Pro-gated). `--split-concerns` gains a third `examples.yaml` output for these examples, and a fix ensures they're no longer silently dropped when splitting concerns.
 
 ### Added
 
@@ -20,6 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`--split-concerns` no longer drops examples** — `slotContentExamples` and `instanceExamples` (component- and subcomponent-level) were assigned to neither the `api` nor `variants` concern, so `--split-concerns` silently discarded them, leaving the `$slotContent` references in `default`/`variants` dangling. They are now routed into `examples.yaml`.
 
 ### Removed
+
+### Dependency updates
+
+- **`@directededges/specs-schema` ^0.21.0 → ^0.22.0** — adds the composition and slot-content model (ADR-042, 046–052): `Composition`, `SlotContent`, and the universal `SlotContentRef` (`{ $slotContent }`) pointer, plus `Component.slotContentExamples` and `Component.instanceExamples`. Specs can now carry named slot-content examples and documented instance examples, and `Config` gains `processing.instanceExamples` (example detection) and `include.defaultSlotContent` (output gate).
+- **`@directededges/specs-from-figma` ^0.19.0 → ^0.20.0** — detects and emits slot-content examples (de-duplicated across variants and slots) and instance examples (pre-configured usages of a component), both Pro-gated. REST page/file-scoped discovery now correctly finds candidates under `CANVAS` nodes, and a plugin-only hashing bug that collapsed all slot fills into a single example is fixed.
 
 
 ## [0.16.0] - 2026-05-22
