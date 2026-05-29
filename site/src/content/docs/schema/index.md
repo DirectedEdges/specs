@@ -23,7 +23,7 @@ components:
   │ └─ <a href="/specs/schema/elements/">elements</a>:
   │   └─ {element name}:
   │     ├─ content                         → <a href="/specs/schema/prop-binding/">PropBinding</a>
-  │     ├─ children                        → <a href="/specs/schema/prop-binding/">PropBinding</a>
+  │     ├─ <a href="/specs/schema/children/">children</a>                        → <a href="/specs/schema/children/">Children</a> (slot fills → <a href="/specs/schema/slot-content-ref/">SlotContentRef</a>)
   │     └─ <a href="/specs/schema/styles/">styles</a>:                      (48 properties)
   │       ├─ color                         → <a href="/specs/schema/token-reference/">TokenReference</a>, <a href="/specs/schema/gradient-value/">GradientValue</a>
   │       ├─ spacing, size                 → <a href="/specs/schema/token-reference/">TokenReference</a>, <a href="/specs/schema/conditional/">Conditional</a>
@@ -37,12 +37,16 @@ components:
   ├─ variants:                             → <a href="/specs/schema/variants/">Variant</a>[]
   │ └─ - <a href="/specs/schema/prop-configurations/">configuration</a>:
   │     <a href="/specs/schema/layout/">layout</a>:
-  │     <a href="/specs/schema/elements/">elements</a>:                      (overrides only)
+  │     <a href="/specs/schema/elements/">elements</a>:                      (layered styling and binding changes)
   ├─ invalidVariantCombinations:           → <a href="/specs/schema/prop-configurations/">PropConfigurations</a>[]
   ├─ <a href="/specs/schema/subcomponents/">subcomponents</a>:
   │ └─ {name}: { …same shape as above }
-  └─ <a href="/specs/schema/metadata/">metadata</a>:
-    └─ <a href="/specs/schema/config/">config</a>:
+  ├─ <a href="/specs/schema/metadata/">metadata</a>:
+  │ └─ <a href="/specs/schema/config/">config</a>:
+  ├─ <a href="/specs/schema/instance-examples/">instanceExamples</a>:                   → <a href="/specs/schema/instance-examples/">InstanceExample</a>  <span class="sl-badge pro-badge">Pro</span>
+  │ └─ {name}: { title, propConfigurations }
+  └─ <a href="/specs/schema/slot-content/">slotContentExamples</a>:                → <a href="/specs/schema/slot-content/">SlotContent</a>  <span class="sl-badge pro-badge">Pro</span>
+    └─ {name}: { <a href="/specs/schema/anatomy/">anatomy</a>, <a href="/specs/schema/elements/">elements</a>, <a href="/specs/schema/layout/">layout</a> }
 </pre>
 
 **Start at `default`.** The default variant is the complete baseline — every element fully described with styles, content, and layout. This is the component at rest.
