@@ -5,6 +5,21 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.0] - 2026-05-29
+
+Hardens license-key validation to hard-fail on transient errors and improves actionable error messages for stale or inaccessible Figma file keys.
+
+### Fixed
+
+- **`generate` no longer silently produces free-tier output when a license key can't be validated (#119)** — if a key was supplied (via `-l`, `SPECS_LICENSE_KEY`, or `ANOVA_LICENSE_KEY`) but the license check could not be completed — a transient proxy/network failure or a rate-limit (e.g. the upstream validator returning 429) — the run previously fell back to FREE and wrote free-tier specs under a valid paid key, with only an easily-missed status line. `generate` now hard-fails on these transient states (`network-error`, `error`, and a future `rate-limited`) with an actionable message ("retry in a few seconds, or remove the key for free-tier output") and a retryable exit code (`NETWORK_ERROR`, or `RATE_LIMIT` once the validator distinguishes it). Definitive key rejections (`invalid`/`removed`/`expired`) still fall back to free-tier output as before.
+- **Actionable `fetch`/`generate` error messages for stale or inaccessible Figma file keys (#125)** — a `fetch` that hit a 404 previously surfaced only `HTTP 404 while fetching <alias>.<kind>`, with no hint that the cause was the file key pinned in config. The 404 case now explains that the configured key is likely stale or out of reach (file moved/deleted/recreated, or the token can't open it) and points at `sources.<alias>.key` in the config file. Auth failures are split: 401 reports a missing/invalid/expired `FIGMA_TOKEN` and where to set it (`.env`), while 403 reports valid-but-no-access and points at the same config key. In `generate`, a missing source `.file.json` now tips the user to run `specs fetch` or check `sources.<alias>.key`.
+
+### Dependency updates
+
+- **`@directededges/specs-from-figma` ^0.20.0 → ^0.21.0** — SLOT elements now evaluate the same container-surface styles as frames: auto-layout config, strokes, padding, and corner-smoothing. Slot styling in generated specs is more complete.
+- **`@directededges/specs-schema` ^0.22.0** — no version change.
+
+
 ## [0.17.0] - 2026-05-23
 
 Surfaces the new composition/examples model to CLI users: config loading now accepts `include.defaultSlotContent` and the `processing.instanceExamples` block, so generated specs can include slot-content examples and pre-configured instance examples (both Pro-gated). `--split-concerns` gains a third `examples.yaml` output for these examples, and a fix ensures they're no longer silently dropped when splitting concerns.

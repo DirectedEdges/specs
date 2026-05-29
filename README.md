@@ -1,20 +1,44 @@
 # specs
 
-Specs is a deterministic system for generating and managing UI component composition, visual styling, and configuration specs independent of and drawn from Figma components as human- and machine-readable specifications. The product suite includes a Figma plugin (currently, Anova) and three packages available on npm:
+Specs is a fast, deterministic ecosystem for defining and generating production-ready component specifications across platforms. Available as a Figma plugin and a command-line interface, Specs produces compact, schema-valid specs — sidestepping the cost and errors of agentic Figma extraction.
 
-* `@directededges/specs-cli`, a command line tool to generate specs from Figma files
-* `@directededges/specs-schema`, a JSON specification
-* `@directededges/specs-from-figma`, the engine used by the cli and plugin to convert Figma assets to specs (public package developed in a private repository)
+## Get started
 
-The project evolved from [Anova](https://github.com/DirectedEdges/anova) ("Analysis of Variants"). To learn more about the concept, read the [Analysis of Variants](https://nathanacurtis.substack.com/p/analysis-of-variants-9e440c30b93e) blog post.
+### Plugin
 
-## Pro Licensing
+- Visualize specs on-canvas in incomparable detail
+- Copy and paste compact spec data into LLMs
+- Customize output for styling and layout
+- Configure advanced data settings in the UI
 
-Specs is free to use at both the CLI and Figma plugin. The free tier generates complete component structures — anatomy, props, layout, and default-variant styles — giving you a full picture of every component.
+[Open the plugin →](https://www.figma.com/community/plugin/1549454283615386215/specs-2-formerly-anova)
 
-A **Pro** license unlocks additional `generate` features including design token references, named style references, prop bindings, non-default variants, and invalid variant combinations. Pro licenses are available for both the Figma plugin and the CLI.
+### CLI
 
-[Purchase Now](https://buy.polar.sh/polar_cl_xnq7zeKLXunrhOIpfNwA56F4wIq2Y0lLNCKmb0hhYJH) | [Learn More](https://directededges.github.io/specs/overview/licensing/)
+- Quickly initialize an environment and fetch data
+- Generate 50 component specs in a minute
+- Set up for continuous integration
+- Configure the files, formats, and data you need
+
+[Set up the CLI →](https://directededges.github.io/specs/cli/getting-started/)
+
+Both the plugin and CLI generate specs consistent with the [Specs schema](https://directededges.github.io/specs/schema/), a specifications model architected to unify component definitions for implementation across web, iOS, Android, and Figma.
+
+## Repeatable, production-grade specs in seconds
+
+Evaluating and differencing Figma styles and layers across variants is mechanical and predictable — and with Specs, incredibly fast and efficient.
+
+> Update Figma → Generate specs → Agents refine → Update component
+
+The result is a spec that's compact yet complete — not noisy like Figma's REST API data — and built on a schema that agents and engineers can extend. Leave inference about behavior, accessibility, motion, and nuanced customization downstream, where AI agents excel.
+
+|  | Specs ecosystem | Agentic Figma extraction |
+|---|---|---|
+| **Speed** | ~1 sec (CLI) / ~10 sec (Plugin) per component | ~5–10 minutes per component |
+| **AI cost** | Scripted — 0 AI tokens per component | 25/50/100,000+ AI tokens per component |
+| **Consistency** | Deterministic and repeatable | Inference errors, gaps, and overconfidence |
+| **Output** | Schema-valid YAML/MD, ideal for testing and versioning | Unstructured Markdown that complicates repeatable verification |
+| **Platforms** | Tuned for cross-platform output and configurable Figma intents | Interprets and infers intents |
 
 ## Packages
 

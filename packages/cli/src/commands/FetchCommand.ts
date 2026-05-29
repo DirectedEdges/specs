@@ -149,6 +149,40 @@ function classifyHttpStatus(status: number): 'ok' | 'auth' | 'rate' | 'error' {
   return 'error';
 }
 
+function configReference(configPath: string | null): string {
+  return configPath || 'specs.config.yaml';
+}
+
+export function formatNotFoundError(alias: string, kind: string, configPath: string | null): string {
+  return [
+    `Error: File not found (404) while fetching ${alias}.${kind}`,
+    `  Figma returned 404 for the file key configured for "${alias}".`,
+    '  This usually means the key in your config is stale or out of reach:',
+    '    • The file was moved, deleted, or recreated (keys change on duplicate/recreate)',
+    '    • Your FIGMA_TOKEN account cannot open this file',
+    `  Check: sources.${alias}.key in ${configReference(configPath)}`
+  ].join('\n');
+}
+
+export function formatAuthError(status: number, alias: string, kind: string, configPath: string | null): string {
+  if (status === 403) {
+    return [
+      `Error: Access denied (403) while fetching ${alias}.${kind}`,
+      '  Your FIGMA_TOKEN is valid but cannot access this file.',
+      `    • Confirm your Figma account can open the file for sources.${alias}.key`,
+      '    • Personal access tokens only reach files your account can view',
+      `  Check: sources.${alias}.key in ${configReference(configPath)}`
+    ].join('\n');
+  }
+
+  return [
+    `Error: Authentication failed (${status}) while fetching ${alias}.${kind}`,
+    '  Your FIGMA_TOKEN is missing, invalid, or expired.',
+    '  Add it to a .env file as FIGMA_TOKEN=your_token_here',
+    '  Create a new token: https://www.figma.com/developers/api#access-tokens'
+  ].join('\n');
+}
+
 function isInteractive(): boolean {
   return Boolean(process.stdout.isTTY);
 }
@@ -281,7 +315,7 @@ export const Fetch = new Command('fetch')
           const classification = classifyHttpStatus(status);
 
           if (classification === 'auth') {
-            console.error(`Error: Auth failed (${status}) while fetching ${entry.alias}.${kind}`);
+            console.error(formatAuthError(status, entry.alias, kind, configPath));
             process.exit(ERROR_CODES.AUTH_ERROR);
           }
 
@@ -291,7 +325,11 @@ export const Fetch = new Command('fetch')
           }
 
           if (classification === 'error') {
-            console.error(`Error: HTTP ${status} while fetching ${entry.alias}.${kind}`);
+            if (status === 404) {
+              console.error(formatNotFoundError(entry.alias, kind, configPath));
+            } else {
+              console.error(`Error: HTTP ${status} while fetching ${entry.alias}.${kind}`);
+            }
             process.exit(ERROR_CODES.NETWORK_ERROR);
           }
 
