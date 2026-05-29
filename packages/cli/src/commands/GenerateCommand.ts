@@ -333,6 +333,28 @@ export const Generate = new Command('generate')
       }
 
       // ---------------------------------------------------------------
+      // Hard-fail: a *provided* key whose validation could not be completed
+      // (transient proxy/network failure or rate-limit) must NOT silently fall
+      // back to FREE output for a paid run. The transformer maps these states to
+      // FREE and proceeds, so without this guard the run would succeed and write
+      // free-tier specs under a valid key. Fail loud + retryable instead.
+      // (DirectedEdges/specs#119, C1)
+      // ---------------------------------------------------------------
+      if (licenseKey) {
+        const license = LicenseStatus.resolve(results);
+        // 'invalid'/'removed'/'expired' are definitive key rejections where FREE
+        // fallback is reasonable; these are the transient "check didn't complete"
+        // states where the key may well be valid.
+        const TRANSIENT_FAILURES = new Set(['error', 'network-error', 'rate-limited']);
+        if (license?.status && TRANSIENT_FAILURES.has(license.status)) {
+          console.error(`Error: License check could not be completed (status: ${license.status}).`);
+          console.error(`Your key was not validated, so no licensed output was produced.`);
+          console.error(`This is usually temporary — retry in a few seconds, or remove the key for free-tier output.`);
+          process.exit(license.status === 'rate-limited' ? ERROR_CODES.RATE_LIMIT : ERROR_CODES.NETWORK_ERROR);
+        }
+      }
+
+      // ---------------------------------------------------------------
       // Separate successes and errors
       // ---------------------------------------------------------------
       const processedComponents: Array<{ name: string; spec: Record<string, unknown> }> = [];
