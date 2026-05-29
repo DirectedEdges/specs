@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@directededges/specs-schema": "^0.22.0",
-    "@directededges/specs-from-figma": "^0.20.0",
+    "@directededges/specs-from-figma": "^0.21.0",
     "commander": "^11.1.0",
     "fs-extra": "^11.2.0",
     "yaml": "^2.3.4",
