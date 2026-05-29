@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Fetch, formatDuration, formatRateLimitError } from '../../../src/commands/FetchCommand.js';
+import { Fetch, formatDuration, formatRateLimitError, formatNotFoundError, formatAuthError } from '../../../src/commands/FetchCommand.js';
 
 describe('FetchCommand', () => {
   it('registers name and description', () => {
@@ -122,5 +122,51 @@ describe('formatRateLimitError', () => {
     const result = formatRateLimitError('lib', 'file', headers);
 
     expect(result).toContain('Plan: Enterprise');
+  });
+});
+
+describe('formatNotFoundError', () => {
+  it('points at the configured key and config path', () => {
+    const result = formatNotFoundError('library', 'file', '/proj/specs.config.yaml');
+
+    expect(result).toBe([
+      'Error: File not found (404) while fetching library.file',
+      '  Figma returned 404 for the file key configured for "library".',
+      '  This usually means the key in your config is stale or out of reach:',
+      '    • The file was moved, deleted, or recreated (keys change on duplicate/recreate)',
+      '    • Your FIGMA_TOKEN account cannot open this file',
+      '  Check: sources.library.key in /proj/specs.config.yaml'
+    ].join('\n'));
+  });
+
+  it('falls back to a default config name when path is null', () => {
+    const result = formatNotFoundError('kds', 'variables', null);
+
+    expect(result).toContain('Check: sources.kds.key in specs.config.yaml');
+  });
+});
+
+describe('formatAuthError', () => {
+  it('explains where to put the token for 401', () => {
+    const result = formatAuthError(401, 'library', 'file', '/proj/specs.config.yaml');
+
+    expect(result).toBe([
+      'Error: Authentication failed (401) while fetching library.file',
+      '  Your FIGMA_TOKEN is missing, invalid, or expired.',
+      '  Add it to a .env file as FIGMA_TOKEN=your_token_here',
+      '  Create a new token: https://www.figma.com/developers/api#access-tokens'
+    ].join('\n'));
+  });
+
+  it('points 403 at file access and the configured key', () => {
+    const result = formatAuthError(403, 'library', 'styles', '/proj/specs.config.yaml');
+
+    expect(result).toBe([
+      'Error: Access denied (403) while fetching library.styles',
+      '  Your FIGMA_TOKEN is valid but cannot access this file.',
+      '    • Confirm your Figma account can open the file for sources.library.key',
+      '    • Personal access tokens only reach files your account can view',
+      '  Check: sources.library.key in /proj/specs.config.yaml'
+    ].join('\n'));
   });
 });

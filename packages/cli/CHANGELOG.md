@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+### Fixed
+
+- **Actionable `fetch`/`generate` error messages for stale or inaccessible Figma file keys (#125)** — a `fetch` that hit a 404 previously surfaced only `HTTP 404 while fetching <alias>.<kind>`, with no hint that the cause was the file key pinned in config. The 404 case now explains that the configured key is likely stale or out of reach (file moved/deleted/recreated, or the token can't open it) and points at `sources.<alias>.key` in the config file. Auth failures are split: 401 reports a missing/invalid/expired `FIGMA_TOKEN` and where to set it (`.env`), while 403 reports valid-but-no-access and points at the same config key. In `generate`, a missing source `.file.json` now tips the user to run `specs fetch` or check `sources.<alias>.key`.
+
 ### Removed
 
 

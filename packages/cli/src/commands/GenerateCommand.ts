@@ -200,6 +200,11 @@ export const Generate = new Command('generate')
 
         if (!fs.existsSync(sourceFile)) {
           console.error(`Error: Source file not found: ${sourceFile}`);
+          if (componentSourceAlias) {
+            console.error(`Tip: run \`specs fetch\` to download ${componentSourceAlias}.file.json, or check sources.${componentSourceAlias}.key in your config`);
+          } else {
+            console.error('Tip: run `specs fetch` to download the source file, or check sources.<alias>.key in your config');
+          }
           process.exit(ERROR_CODES.FILE_ERROR);
         }
 
