@@ -14,8 +14,8 @@ Transforms take spec data as far as it deterministically goes — every prop, to
 ```
 output/
   _dictionary/
-    styling.json        # token usage indexed by component
-    tokens.json         # token usage indexed by token name across components
+    styling.byComponent.json   # token usage indexed by component
+    styling.byToken.json       # token usage indexed by token name across components
 
   ds-alert/
     api.yaml            # spec

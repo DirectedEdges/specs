@@ -96,5 +96,26 @@ describe('ConfigTemplates', () => {
       expect(template).toContain('Default');
       expect(template).toContain('default');
     });
+
+    it('includes a commented-out transform: block under config:', () => {
+      const template = generateConfigTemplate();
+      expect(template).toContain('# transform:');
+    });
+
+    it('includes commented-out transformers: list with contract, css, styling', () => {
+      const template = generateConfigTemplate();
+      expect(template).toContain('#   transformers:');
+      expect(template).toContain('#     - name: contract');
+      expect(template).toContain('#     - name: css');
+      expect(template).toContain('#     - name: styling');
+    });
+
+    it('transform block appears after the include: section', () => {
+      const template = generateConfigTemplate();
+      const includeIdx = template.indexOf('include:');
+      const transformIdx = template.indexOf('# transform:');
+      expect(includeIdx).toBeGreaterThanOrEqual(0);
+      expect(transformIdx).toBeGreaterThan(includeIdx);
+    });
   });
 });

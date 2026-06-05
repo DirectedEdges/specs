@@ -25,7 +25,7 @@ Each component subfolder receives a `styling.json` file.
 
 ## Example: By Component
 
-The file is a dictionary keyed by component key. Subcomponents appear as dot-separated keys alongside the root. Each entry has four arrays — `variables`, `colorStyles`, `textStyles`, `effectStyles`.
+Each component subfolder gets its own `styling.json`, keyed by component key (and subcomponent dot-keys). After all components run, the transformer also writes `_dictionary/styling.byComponent.json` — the same structure aggregated across every component in one file. Each entry has four arrays — `variables`, `colorStyles`, `textStyles`, `effectStyles`.
 
 ```json
 {
@@ -115,9 +115,9 @@ Each token entry has:
 | `appliedAs` | How the token is used: `backgroundColor`, `fillColor`, `cornerRadius`, `itemSpacing`, `padding.start`, etc. |
 | `appliedTo` | Map of anatomy element name → occurrence count |
 
-## Example: By Styling (Token → Components)
+## Example: By Token
 
-The `styling.json` format is component-first. Inverted into a token dictionary, it answers "which components use this token?" — useful for auditing token coverage or planning a token rename. This inversion is not emitted by the transformer; it is a downstream derivation.
+After all components are processed, the transformer also writes two aggregate files to a `_dictionary/` folder alongside the component subfolders. `styling.byToken.json` is the token-first view — it answers "which components use this token?" and is useful for auditing token coverage or planning a token rename.
 
 ```json
 {
