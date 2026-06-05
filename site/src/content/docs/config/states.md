@@ -3,13 +3,18 @@ title: "States"
 description: "Classify Figma variant props as browser-driven or consumer-controlled states for deterministic CSS and contract output"
 ---
 
-`processing.states` classifies your library's Figma variant props as semantic states, enabling two downstream behaviors: the [`css` transformer](/specs/cli/transforms/css/) emits real CSS pseudo-classes and ARIA attribute selectors instead of `data-*` attributes for classified props, and the [`contract` transformer](/specs/cli/transforms/contract/) omits browser-driven props from generated Props interfaces.
+`processing.states` classifies your library's Figma variant props as semantic states, enabling two downstream behaviors:
 
-Without this config, every variant prop emits as a `data-*` attribute selector and appears in the contract. With it, the classification is declared once and applied deterministically everywhere.
+- The [`css` transformer](/specs/cli/transforms/css/) emits real CSS pseudo-classes and ARIA attribute selectors instead of `data-*` attributes for classified props.
+- The [`contract` transformer](/specs/cli/transforms/contract/) omits browser-driven props from generated Props interfaces.
 
-## Output
+Declare the classification once and both transforms apply it consistently.
 
-### Given this API from Figma
+## How it works
+
+The same config drives both CSS and contract output — classify a prop once, and both transforms apply it consistently.
+
+### Props from Figma
 
 These props are typical outputs from `specs generate` — the raw Figma variant structure before any state classification is applied:
 
@@ -21,8 +26,8 @@ props:
     enum:
       - rest
       - hover
-      - pressed
-  disabled:
+      - pressed    # cross-platform name; maps to :active on web
+  isDisabled:      # library uses "is" prefix convention
     type: boolean
     default: false
   focused:
@@ -30,16 +35,61 @@ props:
     default: false
 ```
 
-`processing.states` acts on these props downstream — during `specs transform` — to determine CSS selector strategy and contract inclusion. The `api.yaml` itself is not modified.
+`processing.states` acts on these props during `specs transform` — to determine CSS selector strategy and contract inclusion. The `api.yaml` itself is not modified.
 
-### CSS
+### State concepts
 
-Without `states` config, all variant configuration props produce `data-*` attribute selectors:
+Each concept resolves to a canonical CSS selector and determines whether the prop is included in or omitted from the generated Props interface.
+
+| Concept | CSS selector(s) | Contract |
+|---------|----------------|----------|
+| `hover` | `:hover` | omitted |
+| `active` | `:active` | omitted |
+| `focus` | `:focus-visible` | omitted |
+| `focus-visible` | `:focus-visible` | omitted |
+| `focus-within` | `:focus-within` | omitted |
+| `placeholder-shown` | `:placeholder-shown` | omitted |
+| `disabled` | `:disabled, [aria-disabled="true"]` | included |
+| `readonly` | `[readonly], [aria-readonly="true"]` | included |
+| `required` | `[required], [aria-required="true"]` | included |
+| `invalid` | `[aria-invalid="true"]` | included |
+| `valid` | `[aria-invalid="false"]` | included |
+| `selected` | `[aria-selected="true"]` | included |
+| `checked` | `:checked, [aria-checked="true"]` | included |
+| `indeterminate` | `:indeterminate, [aria-checked="mixed"]` | included |
+| `expanded` | `[aria-expanded="true"]` | included |
+| `collapsed` | `[aria-expanded="false"]` | included |
+| `pressed` | `[aria-pressed="true"]` | included |
+| `busy` | `[aria-busy="true"]` | included |
+| `current` | `[aria-current="true"]` | included |
+
+### Mapping Props to Concepts
+
+Declare mappings under `processing.states` in your [specs configuration](/config/). Use `prop` to name the Figma variant prop and `value` for the specific enum value that activates the concept.
+
+```yaml title="Partial specs.config.yaml"
+config:
+  processing:
+    states:
+      active:
+        prop: state
+        # Figma value "pressed" → active concept → :active on web
+        value: pressed
+      disabled:
+        # "is" prefix convention → disabled concept → :disabled / aria-disabled
+        prop: isDisabled
+```
+
+Figma naming conventions don't need to match the concept name. Many design systems name their pointer-down state `pressed` rather than `active` because `pressed` is platform-neutral — it maps to `:active` on web, `UIControlState.highlighted` on iOS, and press `Indication` in Compose. Naming it `active` in Figma would embed a web-specific term into a shared design language. Similarly, a library using `isDisabled` as its boolean prop convention is still expressing the `disabled` concept.
+
+### CSS transform
+
+Without `states` config, all variant props produce `data-*` attribute selectors:
 
 ```css
 /* Without states config */
 .ds-text-input[data-state="hover"] { … }
-.ds-text-input[data-disabled="true"] { … }
+.ds-text-input[data-is-disabled="true"] { … }
 .ds-text-input[data-focused="true"] { … }
 ```
 
@@ -53,21 +103,14 @@ With `states` config, classified props produce semantic selectors:
 .ds-text-input:focus-within { … }
 ```
 
-Props not listed in `states` continue to emit as `data-*` attribute selectors. A `null` value means "this is the base/default state — skip variant output entirely" (the base block already covers it).
+Props not listed in `states` continue to emit as `data-*` attribute selectors. Unmatched values on a classified prop (e.g. the `rest` default on a `state` prop) are treated as the base state and skipped — the base block already covers them.
 
-Comma-separated selector strings (e.g. `':disabled, [aria-disabled="true"]'`) expand into multiple parallel rules automatically.
+### Contract transform
 
-### Contract
-
-Props with `contract: omit` are excluded from generated Props interfaces. Browser-driven states are never consumer props — the browser fires `:hover`, `:active`, and `:focus-within` without the application setting anything. Omitting them produces a cleaner, more accurate interface.
-
-Props with `contract: keep` (or no `contract` field) remain in the interface. The consumer sets these and the component implementation bridges them to the appropriate HTML or ARIA attribute.
+Browser-driven concepts (`hover`, `active`, `focus`, `focus-within`, etc.) are omitted from generated Props interfaces — the browser fires these without the application setting anything. Consumer-controlled concepts (`disabled`, `readOnly`, `validation`, etc.) are included — the consumer sets them and the component bridges them to the appropriate HTML or ARIA attribute.
 
 ```typescript
-// contract: omit — browser-driven, excluded from interface
-// state (hover, pressed) and focused (:focus-within) are never set by consumers
-
-// contract: keep — consumer-controlled, retained in interface
+// state and focused omitted — browser-driven, never set by consumers
 interface TextInputProps {
   disabled?: boolean;   // bridges to :disabled / aria-disabled
   readOnly?: boolean;   // bridges to [readonly] / aria-readonly
@@ -81,54 +124,36 @@ interface TextInputProps {
 config:
   processing:
     states:
-      - prop: state
-        contract: omit       # browser-driven — never a consumer prop
-        values:
-          rest: null         # base state — skip variant output entirely
-          default: null
-          hover: ":hover"
-          active: ":active"
-          pressed: ":active"
-      - prop: disabled
-        contract: keep       # consumer sets this; component bridges to :disabled / aria-disabled
-        values:
-          "true": ':disabled, [aria-disabled="true"]'
-      - prop: focused
-        contract: omit       # browser-driven — :focus-within fires without a prop
-        values:
-          "true": ":focus-within"
-      - prop: readOnly
-        contract: keep       # consumer sets this; component bridges to [readonly] / aria-readonly
-        values:
-          "true": "[readonly], [aria-readonly=\"true\"]"
-      - prop: validation
-        contract: keep       # consumer controls validation state
-        values:
-          invalid: "[aria-invalid=\"true\"]"
-      - prop: expanded
-        contract: keep       # consumer controls open/closed
-        values:
-          "true": "[aria-expanded=\"true\"]"
+      # Concept key → { prop, value?, contract? }
+      # value: the Figma variant value that activates this concept (defaults to "true" for booleans)
+      # contract: rarely needed — derived from the concept
+      hover:
+        prop: state
+        value: hover
+      active:
+        prop: state
+        value: pressed       # Figma uses cross-platform name "pressed"; concept maps to :active
+      focus-within:
+        prop: focused        # boolean prop; value defaults to "true"
+      disabled:
+        prop: isDisabled     # library uses "is" prefix convention
+      readonly:
+        prop: readOnly
+      invalid:
+        prop: validation
+        value: invalid       # only one enum value maps to this concept
+      expanded:
+        prop: expanded
 ```
 
 ## Properties
 
 | Property | Type | Required | Default | Description |
 |----------|------|----------|---------|-------------|
-| `prop` | `string` | Yes | — | Figma variant prop name (e.g. `state`, `disabled`, `focused`) |
-| `values` | `Record<string, string \| null>` | Yes | — | Maps each prop value to a CSS selector suffix, or `null` to skip the variant |
-| `contract` | `"omit"` \| `"keep"` | No | `"keep"` | Whether to include this prop in generated contracts |
+| `prop` | `string` | Yes | — | Figma variant prop name (e.g. `state`, `disabled`, `readOnly`) |
+| `value` | `string` | No | `"true"` | Figma enum value that activates this concept. Omit for boolean props. |
+| `contract` | `"omit"` \| `"keep"` | No | concept default | Override the concept's default contract behavior. Rarely needed. |
 
-## State classification guide
-
-| Prop | Values | Recommended `contract` | Rationale |
-|------|--------|----------------------|-----------|
-| `state` | `hover`, `pressed`, `active` | `omit` | Browser pseudo-classes — not consumer props |
-| `disabled` | `true` | `keep` | Consumer sets it; maps to `:disabled` / `aria-disabled` |
-| `focused` | `true` | `omit` | Browser-driven — `:focus-within` fires automatically |
-| `readOnly` | `true` | `keep` | Consumer sets it; maps to `[readonly]` / `aria-readonly` |
-| `validation` | `invalid` | `keep` | Consumer controls validation state |
-| `expanded` | `true` | `keep` | Consumer controls open/closed |
 
 Run [`specs transform css`](/specs/cli/commands/transform/) to regenerate stylesheets after updating this config. Absence of `processing.states` is safe — all variant props continue to emit as `data-*` selectors.
 
