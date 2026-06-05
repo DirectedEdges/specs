@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`styling` transformer** — Emits `styling.json` per component: token/style usage grouped by category (`variables`, `colorStyles`, `textStyles`, `effectStyles`), each row recording `name`, `appliedAs`, and `appliedTo` (anatomy element → occurrence count). After all components run, `finalize()` writes two aggregate files to `_dictionary/`: `styling.byComponent.json` (all components combined) and `styling.byToken.json` (token-first index: token name → components/elements using it). Subcomponents appear as dot-separated keys. Closes DirectedEdges/specs#138
 
-- **`config.transform` block in `init` config template** — `specs init` now generates a commented-out `transform:` block showing all three transformers, ready to uncomment.
+- **`config.transformers` block in `init` config template** — `specs init` now generates a commented-out `transformers:` block showing all three transformers, ready to uncomment.
 
 ### Fixed
 

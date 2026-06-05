@@ -153,9 +153,8 @@ No transformer-specific options.
 
 ```yaml
 config:
-  transform:
-    transformers:
-      - name: styling
+  transformers:
+    - name: styling
 ```
 
 ## See Also

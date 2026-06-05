@@ -134,10 +134,9 @@ config:
 
   # ─── Transform configuration ─────────────────────────────────────────────────
   # Transformers to run with \`specs transform\`. Absence means CLI defaults apply (contract).
-  # transform:
-  #   transformers:
-  #     - name: contract
-  #     - name: css
-  #     - name: styling
+  # transformers:
+  #   - name: contract
+  #   - name: css
+  #   - name: styling
 `;
 }

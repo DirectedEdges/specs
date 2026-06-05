@@ -59,9 +59,8 @@ No transformer-specific options. Controls which transformers run:
 
 ```yaml
 config:
-  transform:
-    transformers:
-      - name: contract
+  transformers:
+    - name: contract
 ```
 
 ## See Also

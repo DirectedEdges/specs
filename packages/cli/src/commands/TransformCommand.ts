@@ -38,8 +38,8 @@ export const Transform = new Command('transform')
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
 
-      // Resolve transformer names: positionals → config.transform → defaults
-      const configTransformers = (config.config?.transform?.transformers ?? []).map(
+      // Resolve transformer names: positionals → config.transformers → defaults
+      const configTransformers = (config.config?.transformers ?? []).map(
         (e: { name: string }) => e.name
       );
       const names = transformerNames.length > 0

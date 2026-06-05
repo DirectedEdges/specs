@@ -105,9 +105,8 @@ No transformer-specific options. Token format comes from `config.format.tokens`.
 config:
   format:
     tokens: TOKEN        # controls how token vars are named
-  transform:
-    transformers:
-      - name: css
+  transformers:
+    - name: css
 ```
 
 ## See Also

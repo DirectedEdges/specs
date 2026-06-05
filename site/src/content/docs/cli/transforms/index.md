@@ -72,11 +72,10 @@ Or configure them in `specs.config.yaml` so `specs transform` alone is enough:
 
 ```yaml
 config:
-  transform:
-    transformers:
-      - name: contract
-      - name: css
-      - name: styling
+  transformers:
+    - name: contract
+    - name: css
+    - name: styling
 ```
 
 ## See Also

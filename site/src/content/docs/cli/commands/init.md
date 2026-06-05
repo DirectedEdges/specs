@@ -63,11 +63,10 @@ config:
     invalidVariants: false
     invalidCombinations: true
 
-  # transform:
-  #   transformers:
-  #     - name: contract
-  #     - name: css
-  #     - name: styling
+  # transformers:
+  #   - name: contract
+  #   - name: css
+  #   - name: styling
 ```
 
 Each section includes inline comments with references to the full documentation.

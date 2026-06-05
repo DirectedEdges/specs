@@ -11,11 +11,10 @@ The `config.transform` block controls which transformers `specs transform` runs.
 
 ```yaml
 config:
-  transform:
-    transformers:
-      - name: contract
-      - name: css
-      - name: styling
+  transformers:
+    - name: contract
+    - name: css
+    - name: styling
 ```
 
 ## `transformers`
