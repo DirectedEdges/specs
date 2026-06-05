@@ -3,15 +3,16 @@ import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
 import { ContractTransformer } from '../../../src/transforms/Contract.js';
+import type { ProcessingStates } from '../../../src/transforms/states.js';
 
 const transformer = new ContractTransformer();
 
-function makeContext(dir: string, componentKey = 'dsButton') {
-  return { outputDir: dir, componentKey, tokensFormat: 'TOKEN' };
+function makeContext(dir: string, componentKey = 'dsButton', processingStates?: ProcessingStates) {
+  return { outputDir: dir, componentKey, tokensFormat: 'TOKEN', processingStates };
 }
 
-async function run(dir: string, apiYaml: Record<string, unknown>, componentKey = 'dsButton') {
-  await transformer.run(apiYaml, makeContext(dir, componentKey));
+async function run(dir: string, apiYaml: Record<string, unknown>, componentKey = 'dsButton', processingStates?: ProcessingStates) {
+  await transformer.run(apiYaml, makeContext(dir, componentKey, processingStates));
   return fs.readFile(path.join(dir, 'contract.ts'), 'utf-8');
 }
 
@@ -144,6 +145,58 @@ describe('ContractTransformer', () => {
     expect(sizeIdx).toBeGreaterThanOrEqual(0);
     expect(appearanceIdx).toBeGreaterThanOrEqual(0);
     expect(Math.max(sizeIdx, appearanceIdx)).toBeLessThan(propsIdx);
+  });
+
+  describe('processing.states — prop omission', () => {
+    const apiWithStateProps = {
+      props: {
+        state:      { type: 'string', enum: ['rest', 'hover', 'pressed'] },
+        focused:    { type: 'boolean', default: false },
+        disabled:   { type: 'boolean', default: false },
+        validation: { type: 'string', enum: ['none', 'invalid'], default: 'none' },
+      },
+    };
+
+    const states: ProcessingStates = {
+      hover:          { prop: 'state', value: 'hover' },
+      active:         { prop: 'state', value: 'pressed' },
+      'focus-within': { prop: 'focused' },
+      disabled:       { prop: 'disabled' },
+      invalid:        { prop: 'validation', value: 'invalid' },
+    };
+
+    it('omits browser-driven props (all concepts on prop are omit)', async () => {
+      const out = await run(tmpDir, apiWithStateProps, 'dsButton', states);
+      expect(out).not.toContain('state?:');
+      expect(out).not.toContain('focused?:');
+    });
+
+    it('retains consumer-controlled props (concept is keep)', async () => {
+      const out = await run(tmpDir, apiWithStateProps, 'dsButton', states);
+      expect(out).toContain('disabled?: boolean;');
+      expect(out).toContain('validation?: DsButtonValidation;');
+    });
+
+    it('retains all props when processingStates is absent', async () => {
+      const out = await run(tmpDir, apiWithStateProps);
+      expect(out).toContain('state?:');
+      expect(out).toContain('focused?:');
+      expect(out).toContain('disabled?:');
+    });
+
+    it('omits an "is"-prefixed prop mapped to a browser-driven concept', async () => {
+      const out = await run(tmpDir, {
+        props: { isDisabled: { type: 'boolean', default: false } },
+      }, 'dsButton', { 'focus-within': { prop: 'isDisabled' } });
+      expect(out).not.toContain('isDisabled?:');
+    });
+
+    it('keeps a prop when an explicit contract: keep overrides an omit concept', async () => {
+      const out = await run(tmpDir, {
+        props: { focused: { type: 'boolean', default: false } },
+      }, 'dsButton', { 'focus-within': { prop: 'focused', contract: 'keep' } });
+      expect(out).toContain('focused?: boolean;');
+    });
   });
 
   it('ends with a satisfies clause on the Defaults const', async () => {
