@@ -82,7 +82,7 @@ describe('StylingTransformer', () => {
         elements: {
           root: {
             styles: {
-              effects: { $token: 'DS Shadow.Elevation.1', $type: 'shadow' },
+              effects: { $token: 'DS Shadow.Elevation.1', $type: 'effects' },
             },
           },
         },

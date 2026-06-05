@@ -1,5 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
+import yaml from 'yaml';
 import type { Transformer, TransformerContext } from '../Types/Transformer.js';
 
 type StylingCategory = 'VARIABLES' | 'COLOR_STYLES' | 'TEXT_STYLES' | 'EFFECT_STYLES';
@@ -25,14 +26,19 @@ export class StylingTransformer implements Transformer {
     const anatomy = (apiYaml.anatomy ?? {}) as Record<string, unknown>;
     const elementTypes = extractElementTypes(anatomy);
 
+    // In split-concerns output, variant/default element styling lives in variants.yaml.
+    // Fall back to apiYaml itself for single-file format.
+    const variantsYaml = await loadVariantsYaml(outputDir);
+    const source = variantsYaml ?? apiYaml;
+
     const rows = new Map<string, StylingRow>();
 
-    const defaultSection = apiYaml.default as Record<string, unknown> | undefined;
+    const defaultSection = source.default as Record<string, unknown> | undefined;
     if (defaultSection?.elements) {
       collectElements(defaultSection.elements as Record<string, unknown>, elementTypes, rows);
     }
 
-    const variants = (apiYaml.variants ?? []) as Array<Record<string, unknown>>;
+    const variants = (source.variants ?? []) as Array<Record<string, unknown>>;
     for (const variant of variants) {
       if (variant.elements) {
         collectElements(variant.elements as Record<string, unknown>, elementTypes, rows);
@@ -79,6 +85,13 @@ export class StylingTransformer implements Transformer {
     const outputPath = path.join(outputDir, 'styling.ts');
     await fs.writeFile(outputPath, lines.join('\n'), 'utf-8');
   }
+}
+
+async function loadVariantsYaml(outputDir: string): Promise<Record<string, unknown> | null> {
+  const variantsPath = path.join(outputDir, 'variants.yaml');
+  if (!fs.existsSync(variantsPath)) return null;
+  const raw = await fs.readFile(variantsPath, 'utf-8');
+  return yaml.parse(raw) as Record<string, unknown>;
 }
 
 function extractElementTypes(anatomy: Record<string, unknown>): Map<string, string> {
@@ -153,7 +166,7 @@ function resolveToken(ref: { $token: string; $type: string }): {
 
 function categoryForType(type: string): StylingCategory {
   if (type === 'typography') return 'TEXT_STYLES';
-  if (type === 'shadow' || type === 'blur') return 'EFFECT_STYLES';
+  if (type === 'shadow' || type === 'blur' || type === 'effects') return 'EFFECT_STYLES';
   return 'VARIABLES';
 }
 
