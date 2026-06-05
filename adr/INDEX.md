@@ -4,6 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 053 | Transform Command and Configuration | |
 | 052 | Deeply-Nested Slot Content — Path-Anchored Overrides Across Non-Slot Instance Boundaries | |
 | 051 | Platform Code-Syntax Token Profiles | |
 | 050 | Examples Config | Add `include.defaultSlotContent` (default false); add `processing.instanceExamples` with scope, match, exclude, parentNames — instance-example output is presence-driven (no `include.instanceExamples` flag), mirroring `subcomponents` |
