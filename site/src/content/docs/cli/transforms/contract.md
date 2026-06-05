@@ -55,16 +55,26 @@ Enum props emit a companion union type. Nullable props are typed `T | null`. All
 
 ## Config
 
-No transformer-specific options. Controls which transformers run:
+No transformer-specific options. Prop omission for browser-driven states comes from [`config.processing.states`](/specs/config/states/).
 
 ```yaml
 config:
+  processing:
+    states:              # optional — omit to retain all props in contracts
+      hover:
+        prop: state
+        value: hover
+      disabled:
+        prop: isDisabled
   transformers:
     - name: contract
 ```
 
+When `processing.states` is absent, all props from `api.yaml` appear in the generated interface. When present, props mapped to browser-driven concepts (`hover`, `active`, `focus`, `focus-within`, etc.) are omitted — the browser fires these without the application setting them.
+
 ## See Also
 
 - [Transforms overview](/specs/cli/transforms/)
+- [`processing.states` config](/specs/config/states/) — classify which props are browser-driven vs consumer-controlled
 - [`css` transformer](/specs/cli/transforms/css/)
 - [`styling` transformer](/specs/cli/transforms/styling/)

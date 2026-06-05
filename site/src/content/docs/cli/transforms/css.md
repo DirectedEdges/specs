@@ -99,19 +99,29 @@ Token references are resolved to CSS `var(--)` based on `config.format.tokens`:
 
 ## Config
 
-No transformer-specific options. Token format comes from `config.format.tokens`.
+No transformer-specific options. Token format comes from `config.format.tokens`. Selector strategy for variant props comes from [`config.processing.states`](/specs/config/states/).
 
 ```yaml
 config:
   format:
     tokens: TOKEN        # controls how token vars are named
+  processing:
+    states:              # optional — omit to keep data-* attribute selectors
+      hover:
+        prop: state
+        value: hover
+      disabled:
+        prop: isDisabled
   transformers:
     - name: css
 ```
 
+When `processing.states` is absent, all variant props produce `[data-*]` selectors (the default shown in the example above). When present, classified props emit semantic CSS pseudo-classes and ARIA attribute selectors instead.
+
 ## See Also
 
 - [Transforms overview](/specs/cli/transforms/)
+- [`processing.states` config](/specs/config/states/) — classify variant props as semantic states
 - [`contract` transformer](/specs/cli/transforms/contract/)
 - [`styling` transformer](/specs/cli/transforms/styling/)
 - [tokens config](/specs/config/tokens/)

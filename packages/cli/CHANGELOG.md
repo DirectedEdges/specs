@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`specs transform` command** — Discovers component subfolders under the output directory (each must contain `api.yaml`) and runs one or more named transformers against every component. Transformer names resolve in priority order: positional arguments → `config.transform.transformers` → CLI default (`contract`). Accepts `-o/--output`, `--config`, and `--verbose` options. Closes DirectedEdges/specs#137
+- **`specs transform` command** — Discovers component subfolders under the output directory (each must contain `api.yaml`) and runs one or more named transformers against every component. Transformer names resolve in priority order: positional arguments → `config.transformers` → CLI default (`contract`). Accepts `-o/--output`, `--config`, and `--verbose` options. Closes DirectedEdges/specs#137
 
 - **`contract` transformer** — Emits `contract.ts` per component: a typed `Props` interface (enum union types, nullable types, slot props excluded) and a `Defaults` const (`satisfies Props`) for every prop with a declared default. Default transformer when none are specified. Closes DirectedEdges/specs#137
 
@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`styling` transformer** — Emits `styling.json` per component: token/style usage grouped by category (`variables`, `colorStyles`, `textStyles`, `effectStyles`), each row recording `name`, `appliedAs`, and `appliedTo` (anatomy element → occurrence count). After all components run, `finalize()` writes two aggregate files to `_dictionary/`: `styling.byComponent.json` (all components combined) and `styling.byToken.json` (token-first index: token name → components/elements using it). Subcomponents appear as dot-separated keys. Closes DirectedEdges/specs#138
 
 - **`config.transformers` block in `init` config template** — `specs init` now generates a commented-out `transformers:` block showing all three transformers, ready to uncomment.
+
+- **`processing.states` support in `css` and `contract` transformers** — Both transformers now read `config.processing.states`, a concept-keyed map that classifies Figma variant props as semantic states. The `css` transformer emits real CSS pseudo-classes (`:hover`, `:active`, `:focus-within`) and ARIA attribute selectors (`[aria-disabled="true"]`, `[aria-invalid="true"]`) for classified props instead of `data-*` attribute selectors. The `contract` transformer omits browser-driven props from generated Props interfaces automatically — no additional config flag required. `prop` and `value` bridge any naming gap between library conventions (e.g. `isDisabled`, `pressed`) and canonical concept names. Absence of `processing.states` is backward-compatible: all props continue to emit as `data-*` selectors and appear in contracts unchanged.
 
 ### Fixed
 

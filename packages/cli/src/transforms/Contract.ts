@@ -1,6 +1,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import type { Transformer, TransformerContext } from '../Types/Transformer.js';
+import { buildOmittedProps } from './states.js';
 
 export class ContractTransformer implements Transformer {
   readonly name = 'contract';
@@ -10,6 +11,7 @@ export class ContractTransformer implements Transformer {
     const title = (apiYaml.title as string) ?? componentKey;
     const prefix = toPascalCase(componentKey);
     const props = (apiYaml.props ?? {}) as Record<string, unknown>;
+    const omittedProps = buildOmittedProps(context.processingStates ?? {});
 
     const lines: string[] = [
       '// Generated. Do not edit — regenerate with `specs transform`.',
@@ -21,6 +23,7 @@ export class ContractTransformer implements Transformer {
     const propEntries: Array<{ key: string; tsType: string; hasDefault: boolean; defaultValue: unknown }> = [];
 
     for (const [key, raw] of Object.entries(props)) {
+      if (omittedProps.has(key)) continue; // browser-driven state — not a consumer prop
       const prop = raw as Record<string, unknown>;
       const type = prop.type as string;
 

@@ -7,17 +7,19 @@ import { CssTransformer } from '../../../src/transforms/Css.js';
 
 const transformer = new CssTransformer();
 
-function makeContext(dir: string, componentKey = 'dsButton', tokensFormat = 'TOKEN') {
-  return { outputDir: dir, componentKey, tokensFormat };
+import type { ProcessingStates } from '../../../src/transforms/states.js';
+
+function makeContext(dir: string, componentKey = 'dsButton', tokensFormat = 'TOKEN', processingStates?: ProcessingStates) {
+  return { outputDir: dir, componentKey, tokensFormat, processingStates };
 }
 
 async function writeVariants(dir: string, data: Record<string, unknown>) {
   await fs.writeFile(path.join(dir, 'variants.yaml'), yaml.stringify(data), 'utf-8');
 }
 
-async function run(dir: string, variantsData: Record<string, unknown>, componentKey = 'dsButton', tokensFormat = 'TOKEN') {
+async function run(dir: string, variantsData: Record<string, unknown>, componentKey = 'dsButton', tokensFormat = 'TOKEN', processingStates?: ProcessingStates) {
   await writeVariants(dir, variantsData);
-  await transformer.run({}, makeContext(dir, componentKey, tokensFormat));
+  await transformer.run({}, makeContext(dir, componentKey, tokensFormat, processingStates));
   return fs.readFile(path.join(dir, 'styles.css'), 'utf-8');
 }
 
@@ -175,6 +177,101 @@ describe('CssTransformer', () => {
       ],
     });
     expect(out).toContain('[data-appearance="outline"][data-disabled="true"]');
+  });
+
+  describe('processing.states — concept-based selectors', () => {
+    const states: ProcessingStates = {
+      hover:          { prop: 'state', value: 'hover' },
+      active:         { prop: 'state', value: 'pressed' },
+      'focus-within': { prop: 'focused' },
+      disabled:       { prop: 'isDisabled' },
+      invalid:        { prop: 'validation', value: 'invalid' },
+    };
+
+    const variantsWithStates = {
+      default: { elements: {} },
+      variants: [
+        { configuration: { state: 'hover' },     elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+        { configuration: { state: 'pressed' },   elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+        { configuration: { state: 'rest' },      elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+        { configuration: { focused: 'true' },    elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+        { configuration: { isDisabled: 'true' }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+        { configuration: { validation: 'invalid' }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+      ],
+    };
+
+    it('emits :hover selector for hover concept', async () => {
+      const out = await run(tmpDir, variantsWithStates, 'dsButton', 'TOKEN', states);
+      expect(out).toContain('.ds-button:hover {');
+    });
+
+    it('emits :active selector for active concept mapped to Figma value "pressed"', async () => {
+      const out = await run(tmpDir, variantsWithStates, 'dsButton', 'TOKEN', states);
+      expect(out).toContain('.ds-button:active {');
+    });
+
+    it('skips the base/rest value — no data-state="rest" or :rest selector', async () => {
+      const out = await run(tmpDir, variantsWithStates, 'dsButton', 'TOKEN', states);
+      expect(out).not.toContain('rest');
+    });
+
+    it('emits :focus-within for focus-within concept (boolean prop, value defaults to "true")', async () => {
+      const out = await run(tmpDir, variantsWithStates, 'dsButton', 'TOKEN', states);
+      expect(out).toContain('.ds-button:focus-within {');
+    });
+
+    it('emits :disabled, [aria-disabled="true"] for disabled concept', async () => {
+      const out = await run(tmpDir, variantsWithStates, 'dsButton', 'TOKEN', states);
+      expect(out).toContain('.ds-button:disabled,');
+      expect(out).toContain('.ds-button[aria-disabled="true"] {');
+    });
+
+    it('emits [aria-invalid="true"] for invalid concept', async () => {
+      const out = await run(tmpDir, variantsWithStates, 'dsButton', 'TOKEN', states);
+      expect(out).toContain('.ds-button[aria-invalid="true"] {');
+    });
+
+    it('emits no data-* selectors for classified props', async () => {
+      const out = await run(tmpDir, variantsWithStates, 'dsButton', 'TOKEN', states);
+      expect(out).not.toContain('data-state=');
+      expect(out).not.toContain('data-focused=');
+      expect(out).not.toContain('data-is-disabled=');
+      expect(out).not.toContain('data-validation=');
+    });
+
+    it('still emits data-* for unclassified props', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: {} },
+        variants: [
+          { configuration: { size: 'lg' }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+        ],
+      }, 'dsButton', 'TOKEN', states);
+      expect(out).toContain('[data-size="lg"]');
+    });
+
+    it('combines data-* and state selectors in compound variants', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: {} },
+        variants: [
+          {
+            configuration: { appearance: 'outline', state: 'hover' },
+            elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } },
+          },
+        ],
+      }, 'dsButton', 'TOKEN', states);
+      expect(out).toContain('.ds-button[data-appearance="outline"]:hover {');
+    });
+
+    it('produces no state-related selectors when processingStates is absent', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: {} },
+        variants: [
+          { configuration: { state: 'hover' }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+        ],
+      });
+      expect(out).toContain('[data-state="hover"]');
+      expect(out).not.toContain(':hover');
+    });
   });
 
   it('omits elements with no declarations', async () => {

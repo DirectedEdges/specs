@@ -4,6 +4,27 @@
   "title": "Specs Workspace Configuration",
   "description": "Schema for workspace-level CLI configuration (specs.config.yaml transform block and related settings).",
   "definitions": {
+    "VariantStateEntry": {
+      "type": "object",
+      "description": "Classifies a Figma variant prop as a semantic state concept for use by transformers. The map key (in processing.states) is the concept name (e.g. hover, disabled). (ADR-055)",
+      "properties": {
+        "prop": {
+          "type": "string",
+          "description": "Figma variant prop name (e.g. 'state', 'isDisabled', 'focused')."
+        },
+        "value": {
+          "type": "string",
+          "description": "Figma variant value that activates this concept (e.g. 'hover', 'pressed'). Omit for boolean props — defaults to 'true'."
+        },
+        "contract": {
+          "type": "string",
+          "enum": ["omit", "keep"],
+          "description": "Contract generation behavior override. 'omit' = browser-driven, exclude from Props interfaces. 'keep' = consumer-controlled, retain. When absent, the concept's canonical default applies."
+        }
+      },
+      "required": ["prop"],
+      "additionalProperties": false
+    },
     "TransformEntry": {
       "type": "object",
       "description": "A single transformer to run via specs transform, identified by name. Transformer-specific options sit inline alongside name. (ADR-053)",
@@ -134,6 +155,13 @@
                 }
               },
               "additionalProperties": false
+            },
+            "states": {
+              "type": "object",
+              "description": "Concept-keyed map classifying Figma variant props as semantic states. Key = concept name (e.g. hover, disabled, focus-within). Absence means all variant props emit as data-* attribute selectors and all props are retained in contracts. (ADR-055)",
+              "additionalProperties": {
+                "$ref": "#/definitions/VariantStateEntry"
+              }
             }
           },
           "required": [],

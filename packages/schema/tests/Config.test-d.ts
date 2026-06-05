@@ -3,7 +3,7 @@
  * These files are intentionally never executed — they are compiled with tsc
  * to assert that the type shape is correct.
  */
-import type { Config, ResolvedConfig, ColorFormat } from '../types/index.js';
+import type { Config, ResolvedConfig, ColorFormat, VariantStateEntry } from '../types/index.js';
 import { DEFAULT_CONFIG } from '../types/index.js';
 
 // ─── Helper: minimal valid processing + format + include ──────────────────────
@@ -310,3 +310,58 @@ const _resolvedInstanceExamplesUndefined: ResolvedConfig['processing']['instance
 
 // DEFAULT_CONFIG carries the new include flag, defaulting to false
 const _defaultSlotContentExamples: typeof DEFAULT_CONFIG.include.defaultSlotContent = false;
+
+// ─── ADR-055: processing.states ──────────────────────────────────────────────
+
+// processing.states is optional
+const _statesUndefined: Config['processing']['states'] = undefined;
+
+// VariantStateEntry requires only prop
+const minimalStateEntry: VariantStateEntry = {
+  prop: 'state',
+};
+
+// value field is optional — the Figma enum value activating this concept
+const stateEntryWithValue: VariantStateEntry = {
+  prop: 'state',
+  value: 'hover',
+};
+
+// contract field is optional — 'omit' or 'keep'
+const stateEntryOmit: VariantStateEntry = {
+  prop: 'state',
+  value: 'pressed',
+  contract: 'omit',
+};
+const stateEntryKeep: VariantStateEntry = {
+  prop: 'isDisabled',
+  contract: 'keep',
+};
+const stateEntryNoContract: VariantStateEntry = {
+  prop: 'focused',
+};
+
+// @ts-expect-error — invalid contract value
+const _badContract: VariantStateEntry = { prop: 'x', contract: 'ignore' };
+
+// @ts-expect-error — prop is required
+const _missingProp: VariantStateEntry = { value: 'hover' };
+
+// Config.processing.states accepts a concept-keyed map
+const configWithStates: Config = {
+  processing: {
+    states: {
+      hover:    { prop: 'state', value: 'hover' },
+      active:   { prop: 'state', value: 'pressed' },
+      disabled: { prop: 'isDisabled' },
+    },
+  },
+  format: {},
+  include: {},
+};
+
+// ResolvedConfig.processing.states is optional (absence = all data-* attrs)
+const _resolvedStatesUndefined: ResolvedConfig['processing']['states'] = undefined;
+
+// DEFAULT_CONFIG has no states (correct default — absence means all data-* attrs)
+const _defaultStates: typeof DEFAULT_CONFIG.processing.states = undefined;

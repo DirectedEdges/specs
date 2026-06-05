@@ -5,6 +5,7 @@ import yaml from 'yaml';
 import { ConfigLoader } from '../Config/ConfigLoader.js';
 import { resolveTransformers, DEFAULT_TRANSFORMERS } from '../transforms/index.js';
 import type { TransformerContext } from '../Types/Transformer.js';
+import type { ProcessingStates } from '../transforms/states.js';
 
 const ERROR_CODES = { SUCCESS: 0, INVALID_ARGS: 2, FILE_ERROR: 3, GENERAL_ERROR: 1 };
 
@@ -39,9 +40,14 @@ export const Transform = new Command('transform')
       }
 
       // Resolve transformer names: positionals → config.transformers → defaults
-      const configTransformers = (config.config?.transformers ?? []).map(
-        (e: { name: string }) => e.name
+      const configTransformerEntries = (config.config?.transformers ?? []) as Array<Record<string, unknown>>;
+      const transformerOptionsMap = new Map<string, Record<string, unknown>>(
+        configTransformerEntries.map(e => {
+          const { name, ...rest } = e;
+          return [name as string, rest];
+        })
       );
+      const configTransformers = configTransformerEntries.map(e => e.name as string);
       const names = transformerNames.length > 0
         ? transformerNames
         : configTransformers.length > 0
@@ -86,13 +92,14 @@ export const Transform = new Command('transform')
           const raw = await fs.readFile(apiPath, 'utf-8');
           const apiYaml = yaml.parse(raw) as Record<string, unknown>;
 
-          const context: TransformerContext = {
-            outputDir: componentDir,
-            componentKey,
-            tokensFormat: config.config.format.tokens,
-          };
-
           for (const transformer of transformers) {
+            const context: TransformerContext = {
+              outputDir: componentDir,
+              componentKey,
+              tokensFormat: config.config.format.tokens,
+              processingStates: config.config.processing?.states as ProcessingStates | undefined,
+              transformerOptions: transformerOptionsMap.get(transformer.name),
+            };
             await transformer.run(apiYaml, context);
           }
 
