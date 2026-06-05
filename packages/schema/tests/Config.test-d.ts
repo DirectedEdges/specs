@@ -316,55 +316,45 @@ const _defaultSlotContentExamples: typeof DEFAULT_CONFIG.include.defaultSlotCont
 // processing.states is optional
 const _statesUndefined: Config['processing']['states'] = undefined;
 
-// VariantStateEntry requires prop and values
+// VariantStateEntry requires only prop
 const minimalStateEntry: VariantStateEntry = {
   prop: 'state',
-  values: { rest: null, hover: ':hover', pressed: ':active' },
+};
+
+// value field is optional — the Figma enum value activating this concept
+const stateEntryWithValue: VariantStateEntry = {
+  prop: 'state',
+  value: 'hover',
 };
 
 // contract field is optional — 'omit' or 'keep'
 const stateEntryOmit: VariantStateEntry = {
   prop: 'state',
+  value: 'pressed',
   contract: 'omit',
-  values: { rest: null, hover: ':hover', pressed: ':active' },
 };
 const stateEntryKeep: VariantStateEntry = {
-  prop: 'disabled',
+  prop: 'isDisabled',
   contract: 'keep',
-  values: { 'true': ':disabled, [aria-disabled="true"]' },
 };
 const stateEntryNoContract: VariantStateEntry = {
-  prop: 'readOnly',
-  values: { 'true': '[readonly]' },
+  prop: 'focused',
 };
 
 // @ts-expect-error — invalid contract value
-const _badContract: VariantStateEntry = { prop: 'x', values: {}, contract: 'ignore' };
+const _badContract: VariantStateEntry = { prop: 'x', contract: 'ignore' };
 
 // @ts-expect-error — prop is required
-const _missingProp: VariantStateEntry = { values: { hover: ':hover' } };
+const _missingProp: VariantStateEntry = { value: 'hover' };
 
-// @ts-expect-error — values is required
-const _missingValues: VariantStateEntry = { prop: 'state' };
-
-// values map accepts string or null per entry
-const mixedValues: VariantStateEntry = {
-  prop: 'state',
-  values: {
-    rest: null,
-    hover: ':hover',
-    pressed: ':active',
-    focused: ':focus-visible',
-  },
-};
-
-// Config.processing.states accepts an array of VariantStateEntry
+// Config.processing.states accepts a concept-keyed map
 const configWithStates: Config = {
   processing: {
-    states: [
-      { prop: 'state', contract: 'omit', values: { rest: null, hover: ':hover', pressed: ':active' } },
-      { prop: 'disabled', contract: 'keep', values: { 'true': ':disabled, [aria-disabled="true"]' } },
-    ],
+    states: {
+      hover:    { prop: 'state', value: 'hover' },
+      active:   { prop: 'state', value: 'pressed' },
+      disabled: { prop: 'isDisabled' },
+    },
   },
   format: {},
   include: {},

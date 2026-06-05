@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`specs transform` command** — Discovers component subfolders under the output directory (each must contain `api.yaml`) and runs one or more named transformers against every component. Transformer names resolve in priority order: positional arguments → `config.transform.transformers` → CLI default (`contract`). Accepts `-o/--output`, `--config`, and `--verbose` options. Closes DirectedEdges/specs#137
+- **`specs transform` command** — Discovers component subfolders under the output directory (each must contain `api.yaml`) and runs one or more named transformers against every component. Transformer names resolve in priority order: positional arguments → `config.transformers` → CLI default (`contract`). Accepts `-o/--output`, `--config`, and `--verbose` options. Closes DirectedEdges/specs#137
 
 - **`contract` transformer** — Emits `contract.ts` per component: a typed `Props` interface (enum union types, nullable types, slot props excluded) and a `Defaults` const (`satisfies Props`) for every prop with a declared default. Default transformer when none are specified. Closes DirectedEdges/specs#137
 

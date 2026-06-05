@@ -15,32 +15,30 @@
 export type ColorFormat = 'HEX' | 'HEXA' | 'RGB' | 'RGBA' | 'HSLA' | 'HSB' | 'OKLCH' | 'OKLAB' | 'OBJECT';
 
 /**
- * Classifies a Figma variant prop as a semantic state for deterministic use by
- * transformers and plugin output.
+ * Classifies a Figma variant prop as a semantic state concept for deterministic
+ * use by transformers and plugin output.
  *
- * Each entry names one variant prop, maps its values to CSS selector suffixes
- * (or `null` for the base/default state), and declares whether the prop is
- * consumer-controlled (retain in generated contracts) or browser-driven
- * (exclude from generated contracts).
+ * The map key is the concept name (e.g. `hover`, `disabled`, `focus-within`).
+ * `prop` names the Figma variant prop; `value` is the enum value that activates
+ * the concept (defaults to `"true"` for boolean props). `contract` overrides the
+ * concept's canonical browser-driven / consumer-controlled default — rarely needed.
  *
- * @since 0.25.0
+ * @since 0.24.0
  */
 export interface VariantStateEntry {
-  /** Figma variant prop name (e.g. `state`, `disabled`, `focused`). */
+  /** Figma variant prop name (e.g. `state`, `isDisabled`, `focused`). */
   prop: string;
   /**
-   * Maps each prop value (as string) to its CSS selector suffix.
-   * - `null` — this value is the base/default state; skip variant output entirely.
-   * - `string` — CSS selector suffix to append to the root selector
-   *   (e.g. `":hover"`, `':disabled, [aria-disabled="true"]'`).
-   *   Comma-separated values expand into multiple parallel rules.
+   * Figma variant value that activates this concept (e.g. `"hover"`, `"pressed"`).
+   * Omit for boolean props — defaults to `"true"`.
    */
-  values: Record<string, string | null>;
+  value?: string;
   /**
-   * Contract generation behavior for this prop.
+   * Contract generation behavior override.
    * - `'omit'` — browser-driven state; exclude this prop from generated Props interfaces.
    * - `'keep'` — consumer-controlled state; retain this prop in generated Props interfaces.
-   * Defaults to `'keep'` when absent.
+   * When absent, the concept's canonical default applies (omit for pseudo-class concepts,
+   * keep for ARIA-attribute concepts).
    */
   contract?: 'omit' | 'keep';
 }
@@ -100,8 +98,8 @@ export interface Config {
       /** Immediate-parent frame or section names a candidate must be contained within. Absence = no parent-name filtering. */
       parentNames?: string[];
     };
-    /** Semantic classification of Figma variant props as browser-driven or consumer-controlled states. Optional; absence means all variant props emit as data-* attribute selectors and all props are retained in contracts. @since 0.25.0 */
-    states?: VariantStateEntry[];
+    /** Concept-keyed map classifying Figma variant props as semantic states. Key = concept name (e.g. `hover`, `disabled`). Optional; absence means all variant props emit as data-* attribute selectors and all props are retained in contracts. @since 0.24.0 */
+    states?: Record<string, VariantStateEntry>;
   };
   format: {
     /** Output format. Optional; defaults to JSON. */
@@ -175,8 +173,8 @@ export interface ResolvedConfig {
       exclude?: string[];
       parentNames?: string[];
     };
-    /** Semantic classification of Figma variant props as browser-driven or consumer-controlled states. Optional; absence means all variant props emit as data-* attribute selectors and all props are retained in contracts. @since 0.25.0 */
-    states?: VariantStateEntry[];
+    /** Concept-keyed map classifying Figma variant props as semantic states. Key = concept name (e.g. `hover`, `disabled`). Optional; absence means all variant props emit as data-* attribute selectors and all props are retained in contracts. @since 0.24.0 */
+    states?: Record<string, VariantStateEntry>;
   };
   format: {
     /** Output format. */

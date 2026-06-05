@@ -25,13 +25,9 @@ export const CONCEPT_TABLE: Record<string, ConceptEntry> = {
   current:             { selector: '[aria-current="true"]', contract: 'keep' },
 };
 
-export interface ProcessingStateEntry {
-  prop: string;
-  value?: string;
-  contract?: 'omit' | 'keep';
-}
+export type { VariantStateEntry } from '@directededges/specs-schema';
 
-export type ProcessingStates = Record<string, ProcessingStateEntry>;
+export type ProcessingStates = Record<string, import('@directededges/specs-schema').VariantStateEntry>;
 
 /**
  * Builds a lookup map from "${prop}::${value}" → concept name,

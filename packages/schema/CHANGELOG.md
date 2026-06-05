@@ -15,8 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`Config.transformers` — `TransformEntry[]` directly on `Config`** — Replaces the two-level `config.transform.transformers` shape. The wrapper object is gone; `config.transformers` is the array. Absence means CLI defaults apply.
 
-- `VariantStateEntry` — new type classifying a Figma variant prop as browser-driven or consumer-controlled; fields: `prop` (string), `values` (map of value → CSS selector or null), `contract` (`'omit'` | `'keep'`, optional, defaults to `'keep'`)
-- `Config.processing.states` — optional `VariantStateEntry[]`; classifies variant props for deterministic use by CSS and contract transformers and plugin output; absence means all props emit as `data-*` attribute selectors
+- **`VariantStateEntry` type (ADR-055)** — classifies a Figma variant prop as a semantic state concept; fields: `prop` (string, required), `value` (string, optional — the Figma enum value activating the concept; defaults to `"true"` for boolean props), `contract` (`'omit'` | `'keep'`, optional — overrides the concept's canonical default)
+- **`Config.processing.states` — `Record<string, VariantStateEntry>`** — concept-keyed map (key = concept name, e.g. `hover`, `disabled`); classifies variant props for deterministic use by CSS and contract transformers; absence means all props emit as `data-*` attribute selectors and all props are retained in contracts
 
 ### Changed
 
