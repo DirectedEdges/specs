@@ -278,3 +278,109 @@ describe('StylingTransformer', () => {
     expect(names).toEqual([...names].sort());
   });
 });
+
+describe('StylingTransformer.finalize', () => {
+  const TOKEN_A = { $token: 'Color/Primary', $type: 'color' };
+  const TOKEN_B = { $token: 'Typography/Body', $type: 'typography' };
+
+  const COMP_A = {
+    anatomy: { root: { type: 'container' } },
+    default: { elements: { root: { styles: { backgroundColor: TOKEN_A } } } },
+  };
+  const COMP_B = {
+    anatomy: { root: { type: 'container' }, label: { type: 'text' } },
+    default: {
+      elements: {
+        root: { styles: { backgroundColor: TOKEN_A } },
+        label: { styles: { typography: TOKEN_B } },
+      },
+    },
+  };
+
+  let outputDir: string;
+  let compDirA: string;
+  let compDirB: string;
+
+  beforeEach(async () => {
+    outputDir = await fs.mkdtemp(path.join(os.tmpdir(), 'styling-dict-'));
+    compDirA = path.join(outputDir, 'compA');
+    compDirB = path.join(outputDir, 'compB');
+    await fs.ensureDir(compDirA);
+    await fs.ensureDir(compDirB);
+  });
+
+  afterEach(async () => {
+    await fs.remove(outputDir);
+  });
+
+  async function runFinalize() {
+    const t = new StylingTransformer();
+    await t.run(COMP_A, { outputDir: compDirA, componentKey: 'compA' });
+    await t.run(COMP_B, { outputDir: compDirB, componentKey: 'compB' });
+    await t.finalize!(outputDir);
+    const byComp = JSON.parse(await fs.readFile(path.join(outputDir, '_dictionary', 'styling.byComponent.json'), 'utf-8'));
+    const byToken = JSON.parse(await fs.readFile(path.join(outputDir, '_dictionary', 'styling.byToken.json'), 'utf-8'));
+    return { byComp, byToken };
+  }
+
+  it('creates _dictionary folder with both files', async () => {
+    await runFinalize();
+    expect(fs.existsSync(path.join(outputDir, '_dictionary', 'styling.byComponent.json'))).toBe(true);
+    expect(fs.existsSync(path.join(outputDir, '_dictionary', 'styling.byToken.json'))).toBe(true);
+  });
+
+  it('byComponent keys match component names in alphabetical order', async () => {
+    const { byComp } = await runFinalize();
+    expect(Object.keys(byComp)).toEqual(['compA', 'compB']);
+  });
+
+  it('byComponent entries mirror per-component file structure', async () => {
+    const { byComp } = await runFinalize();
+    expect(byComp.compA.variables).toHaveLength(1);
+    expect(byComp.compA.variables[0].name).toBe('Color/Primary');
+    expect(byComp.compB.textStyles).toHaveLength(1);
+    expect(byComp.compB.textStyles[0].name).toBe('Typography/Body');
+  });
+
+  it('byComponent omits rawValue even when present in per-component file', async () => {
+    const t = new StylingTransformer();
+    const withRaw = {
+      anatomy: { root: { type: 'container' } },
+      default: { elements: { root: { styles: { backgroundColor: { $token: 'DS/X', $type: 'color', $extensions: { 'com.figma': { rawValue: '#FF0000' } } } } } } },
+    };
+    const compDir = path.join(outputDir, 'compRaw');
+    await fs.ensureDir(compDir);
+    await t.run(withRaw, { outputDir: compDir, componentKey: 'compRaw' });
+    await t.finalize!(outputDir);
+    const byComp = JSON.parse(await fs.readFile(path.join(outputDir, '_dictionary', 'styling.byComponent.json'), 'utf-8'));
+    expect('rawValue' in byComp.compRaw.variables[0]).toBe(false);
+  });
+
+  it('byToken groups usages by token name across components', async () => {
+    const { byToken } = await runFinalize();
+    expect(byToken.variables['Color/Primary']).toHaveLength(2);
+    const components = byToken.variables['Color/Primary'].map((e: { component: string }) => e.component).sort();
+    expect(components).toEqual(['compA', 'compB']);
+  });
+
+  it('byToken entries have component, appliedAs, appliedTo — no rawValue', async () => {
+    const { byToken } = await runFinalize();
+    const entry = byToken.variables['Color/Primary'][0];
+    expect(entry).toHaveProperty('component');
+    expect(entry).toHaveProperty('appliedAs');
+    expect(entry).toHaveProperty('appliedTo');
+    expect(entry).not.toHaveProperty('rawValue');
+  });
+
+  it('byToken textStyles contains token from only the component that uses it', async () => {
+    const { byToken } = await runFinalize();
+    expect(byToken.textStyles['Typography/Body']).toHaveLength(1);
+    expect(byToken.textStyles['Typography/Body'][0].component).toBe('compB');
+  });
+
+  it('does nothing when no components were processed', async () => {
+    const t = new StylingTransformer();
+    await t.finalize!(outputDir);
+    expect(fs.existsSync(path.join(outputDir, '_dictionary'))).toBe(false);
+  });
+});

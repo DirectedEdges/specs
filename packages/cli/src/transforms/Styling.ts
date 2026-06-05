@@ -28,7 +28,15 @@ interface StylingJson {
   effectStyles: StylingRowJson[];
 }
 
+interface ByTokenEntry {
+  component: string;
+  appliedAs: string;
+  appliedTo: Record<string, number>;
+}
+
 const CATEGORY_ORDER: StylingCategory[] = ['VARIABLES', 'COLOR_STYLES', 'TEXT_STYLES', 'EFFECT_STYLES'];
+
+const CATEGORY_KEYS: Array<keyof StylingJson> = ['variables', 'colorStyles', 'textStyles', 'effectStyles'];
 
 const CATEGORY_KEY: Record<StylingCategory, keyof StylingJson> = {
   VARIABLES: 'variables',
@@ -40,8 +48,10 @@ const CATEGORY_KEY: Record<StylingCategory, keyof StylingJson> = {
 export class StylingTransformer implements Transformer {
   readonly name = 'styling';
 
+  private readonly _componentData = new Map<string, StylingJson>();
+
   async run(apiYaml: Record<string, unknown>, context: TransformerContext): Promise<void> {
-    const { outputDir } = context;
+    const { outputDir, componentKey } = context;
 
     const anatomy = (apiYaml.anatomy ?? {}) as Record<string, unknown>;
     const elementTypes = extractElementTypes(anatomy);
@@ -78,9 +88,60 @@ export class StylingTransformer implements Transformer {
       output[CATEGORY_KEY[row.category]].push(jsonRow);
     }
 
+    this._componentData.set(componentKey, output);
+
     const outputPath = path.join(outputDir, 'styling.json');
     await fs.writeFile(outputPath, JSON.stringify(output, null, 2) + '\n', 'utf-8');
   }
+
+  async finalize(outputDir: string): Promise<void> {
+    if (this._componentData.size === 0) return;
+
+    const dictDir = path.join(outputDir, '_dictionary');
+    await fs.ensureDir(dictDir);
+
+    await this._writeByComponent(dictDir);
+    await this._writeByToken(dictDir);
+  }
+
+  private async _writeByComponent(dictDir: string): Promise<void> {
+    const out: Record<string, StylingJson> = {};
+    for (const [componentKey, data] of Array.from(this._componentData.entries()).sort((a, b) => a[0].localeCompare(b[0]))) {
+      out[componentKey] = stripRawValues(data);
+    }
+    await fs.writeFile(path.join(dictDir, 'styling.byComponent.json'), JSON.stringify(out, null, 2) + '\n', 'utf-8');
+  }
+
+  private async _writeByToken(dictDir: string): Promise<void> {
+    const out: Record<keyof StylingJson, Record<string, ByTokenEntry[]>> = {
+      variables: {},
+      colorStyles: {},
+      textStyles: {},
+      effectStyles: {},
+    };
+
+    for (const [componentKey, data] of Array.from(this._componentData.entries()).sort((a, b) => a[0].localeCompare(b[0]))) {
+      for (const groupKey of CATEGORY_KEYS) {
+        for (const row of data[groupKey]) {
+          const entries = out[groupKey][row.name] ?? (out[groupKey][row.name] = []);
+          entries.push({ component: componentKey, appliedAs: row.appliedAs, appliedTo: row.appliedTo });
+        }
+      }
+    }
+
+    await fs.writeFile(path.join(dictDir, 'styling.byToken.json'), JSON.stringify(out, null, 2) + '\n', 'utf-8');
+  }
+}
+
+function stripRawValues(data: StylingJson): StylingJson {
+  const strip = (rows: StylingRowJson[]): StylingRowJson[] =>
+    rows.map(({ rawValue: _omit, ...rest }) => rest);
+  return {
+    variables: strip(data.variables),
+    colorStyles: strip(data.colorStyles),
+    textStyles: strip(data.textStyles),
+    effectStyles: strip(data.effectStyles),
+  };
 }
 
 async function loadVariantsYaml(outputDir: string): Promise<Record<string, unknown> | null> {
