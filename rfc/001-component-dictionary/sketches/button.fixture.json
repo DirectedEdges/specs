@@ -1,0 +1,12 @@
+{
+  "component": "Button",
+  "fixtures": [
+    { "name": "default",                  "props": { "variant": "secondary", "size": "medium", "state": "rest", "alignContent": "center" } },
+    { "name": "primary-hover",            "props": { "variant": "primary", "size": "medium", "state": "hover" } },
+    { "name": "danger-pressed-large",     "props": { "variant": "danger", "size": "large", "state": "pressed" } },
+    { "name": "with-leading",             "props": { "leadingVisual": "search" } },
+    { "name": "with-counter-and-dropdown","props": { "counter": true, "dropdown": true } },
+    { "name": "split-aligned",            "props": { "alignContent": "start", "dropdown": true, "leadingVisual": "search" } },
+    { "name": "invisible-disabled",       "props": { "variant": "invisible", "state": "disabled" } }
+  ]
+}
