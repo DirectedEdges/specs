@@ -15,6 +15,37 @@
 export type ColorFormat = 'HEX' | 'HEXA' | 'RGB' | 'RGBA' | 'HSLA' | 'HSB' | 'OKLCH' | 'OKLAB' | 'OBJECT';
 
 /**
+ * Classifies a Figma variant prop as a semantic state for deterministic use by
+ * transformers and plugin output.
+ *
+ * Each entry names one variant prop, maps its values to CSS selector suffixes
+ * (or `null` for the base/default state), and declares whether the prop is
+ * consumer-controlled (retain in generated contracts) or browser-driven
+ * (exclude from generated contracts).
+ *
+ * @since 0.25.0
+ */
+export interface VariantStateEntry {
+  /** Figma variant prop name (e.g. `state`, `disabled`, `focused`). */
+  prop: string;
+  /**
+   * Maps each prop value (as string) to its CSS selector suffix.
+   * - `null` — this value is the base/default state; skip variant output entirely.
+   * - `string` — CSS selector suffix to append to the root selector
+   *   (e.g. `":hover"`, `':disabled, [aria-disabled="true"]'`).
+   *   Comma-separated values expand into multiple parallel rules.
+   */
+  values: Record<string, string | null>;
+  /**
+   * Contract generation behavior for this prop.
+   * - `'omit'` — browser-driven state; exclude this prop from generated Props interfaces.
+   * - `'keep'` — consumer-controlled state; retain this prop in generated Props interfaces.
+   * Defaults to `'keep'` when absent.
+   */
+  contract?: 'omit' | 'keep';
+}
+
+/**
  * A single transformer to run via `specs transform`, identified by name.
  * Transformer-specific options sit inline alongside `name`.
  *
@@ -69,6 +100,8 @@ export interface Config {
       /** Immediate-parent frame or section names a candidate must be contained within. Absence = no parent-name filtering. */
       parentNames?: string[];
     };
+    /** Semantic classification of Figma variant props as browser-driven or consumer-controlled states. Optional; absence means all variant props emit as data-* attribute selectors and all props are retained in contracts. @since 0.25.0 */
+    states?: VariantStateEntry[];
   };
   format: {
     /** Output format. Optional; defaults to JSON. */
@@ -142,6 +175,8 @@ export interface ResolvedConfig {
       exclude?: string[];
       parentNames?: string[];
     };
+    /** Semantic classification of Figma variant props as browser-driven or consumer-controlled states. Optional; absence means all variant props emit as data-* attribute selectors and all props are retained in contracts. @since 0.25.0 */
+    states?: VariantStateEntry[];
   };
   format: {
     /** Output format. */

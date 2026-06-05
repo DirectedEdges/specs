@@ -3,7 +3,7 @@
  * These files are intentionally never executed — they are compiled with tsc
  * to assert that the type shape is correct.
  */
-import type { Config, ResolvedConfig, ColorFormat } from '../types/index.js';
+import type { Config, ResolvedConfig, ColorFormat, VariantStateEntry } from '../types/index.js';
 import { DEFAULT_CONFIG } from '../types/index.js';
 
 // ─── Helper: minimal valid processing + format + include ──────────────────────
@@ -310,3 +310,68 @@ const _resolvedInstanceExamplesUndefined: ResolvedConfig['processing']['instance
 
 // DEFAULT_CONFIG carries the new include flag, defaulting to false
 const _defaultSlotContentExamples: typeof DEFAULT_CONFIG.include.defaultSlotContent = false;
+
+// ─── ADR-055: processing.states ──────────────────────────────────────────────
+
+// processing.states is optional
+const _statesUndefined: Config['processing']['states'] = undefined;
+
+// VariantStateEntry requires prop and values
+const minimalStateEntry: VariantStateEntry = {
+  prop: 'state',
+  values: { rest: null, hover: ':hover', pressed: ':active' },
+};
+
+// contract field is optional — 'omit' or 'keep'
+const stateEntryOmit: VariantStateEntry = {
+  prop: 'state',
+  contract: 'omit',
+  values: { rest: null, hover: ':hover', pressed: ':active' },
+};
+const stateEntryKeep: VariantStateEntry = {
+  prop: 'disabled',
+  contract: 'keep',
+  values: { 'true': ':disabled, [aria-disabled="true"]' },
+};
+const stateEntryNoContract: VariantStateEntry = {
+  prop: 'readOnly',
+  values: { 'true': '[readonly]' },
+};
+
+// @ts-expect-error — invalid contract value
+const _badContract: VariantStateEntry = { prop: 'x', values: {}, contract: 'ignore' };
+
+// @ts-expect-error — prop is required
+const _missingProp: VariantStateEntry = { values: { hover: ':hover' } };
+
+// @ts-expect-error — values is required
+const _missingValues: VariantStateEntry = { prop: 'state' };
+
+// values map accepts string or null per entry
+const mixedValues: VariantStateEntry = {
+  prop: 'state',
+  values: {
+    rest: null,
+    hover: ':hover',
+    pressed: ':active',
+    focused: ':focus-visible',
+  },
+};
+
+// Config.processing.states accepts an array of VariantStateEntry
+const configWithStates: Config = {
+  processing: {
+    states: [
+      { prop: 'state', contract: 'omit', values: { rest: null, hover: ':hover', pressed: ':active' } },
+      { prop: 'disabled', contract: 'keep', values: { 'true': ':disabled, [aria-disabled="true"]' } },
+    ],
+  },
+  format: {},
+  include: {},
+};
+
+// ResolvedConfig.processing.states is optional (absence = all data-* attrs)
+const _resolvedStatesUndefined: ResolvedConfig['processing']['states'] = undefined;
+
+// DEFAULT_CONFIG has no states (correct default — absence means all data-* attrs)
+const _defaultStates: typeof DEFAULT_CONFIG.processing.states = undefined;

@@ -2,7 +2,7 @@
 
 **Branch**: `055-processing-states`
 **Created**: 2026-06-05
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 
@@ -262,7 +262,7 @@ config:
 
 ## Semver Decision
 
-**Version bump**: `0.24.0 → 0.25.0` (`MINOR`)
+**Version bump**: part of `0.24.0` (`MINOR`)
 
 **Justification**: All changes are additive — one new optional field on `Config.processing` and `ResolvedConfig.processing`, one new exported interface. No existing fields removed, renamed, or narrowed. Per constitution III: "MINOR for additive types or new optional fields."
 

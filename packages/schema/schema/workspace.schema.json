@@ -4,6 +4,33 @@
   "title": "Specs Workspace Configuration",
   "description": "Schema for workspace-level CLI configuration (specs.config.yaml transform block and related settings).",
   "definitions": {
+    "VariantStateEntry": {
+      "type": "object",
+      "description": "Classifies a Figma variant prop as a semantic state for use by transformers and plugin output. (ADR-055)",
+      "properties": {
+        "prop": {
+          "type": "string",
+          "description": "Figma variant prop name (e.g. 'state', 'disabled', 'focused')."
+        },
+        "values": {
+          "type": "object",
+          "description": "Maps each prop value (as string) to a CSS selector suffix (string) or null for the base/default state.",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "null" }
+            ]
+          }
+        },
+        "contract": {
+          "type": "string",
+          "enum": ["omit", "keep"],
+          "description": "Contract generation behavior. 'omit' = browser-driven, exclude from Props interfaces. 'keep' = consumer-controlled, retain in Props interfaces. Defaults to 'keep' when absent."
+        }
+      },
+      "required": ["prop", "values"],
+      "additionalProperties": false
+    },
     "TransformEntry": {
       "type": "object",
       "description": "A single transformer to run via specs transform, identified by name. Transformer-specific options sit inline alongside name. (ADR-053)",
@@ -134,6 +161,13 @@
                 }
               },
               "additionalProperties": false
+            },
+            "states": {
+              "type": "array",
+              "description": "Semantic classification of Figma variant props as browser-driven or consumer-controlled states. Absence means all variant props emit as data-* attribute selectors and all props are retained in contracts. (ADR-055)",
+              "items": {
+                "$ref": "#/definitions/VariantStateEntry"
+              }
             }
           },
           "required": [],
