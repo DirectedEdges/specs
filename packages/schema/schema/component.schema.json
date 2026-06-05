@@ -58,7 +58,7 @@
         },
         "slotContentExamples": {
           "type": "object",
-          "description": "Named slot-content examples for this component (ADR-047). Each entry is a SlotContent — a flat anatomy+elements+layout triplet usable as a named slot fill. Referenced via SlotContentRef from SlotBinding.examples and from Element.propConfigurations slot-prop entries (ADR-049). specs-from-figma de-duplicates entries by structural equality.",
+          "description": "Named slot-content examples for this component (ADR-047). Each entry is a SlotContent \u2014 a flat anatomy+elements+layout triplet usable as a named slot fill. Referenced via SlotContentRef from SlotBinding.examples and from Element.propConfigurations slot-prop entries (ADR-049). specs-from-figma de-duplicates entries by structural equality.",
           "patternProperties": {
             "^[a-zA-Z0-9_-]+$": {
               "$ref": "#/definitions/SlotContent"
@@ -76,7 +76,7 @@
     },
     "InstanceExample": {
       "type": "object",
-      "description": "A pre-configured usage of the whole component (ADR-048). Scalar props are set directly; slot props are filled via SlotContentRef. PropBinding is not accepted — this is a documented configuration, not a live binding.",
+      "description": "A pre-configured usage of the whole component (ADR-048). Scalar props are set directly; slot props are filled via SlotContentRef. PropBinding is not accepted \u2014 this is a documented configuration, not a live binding.",
       "properties": {
         "title": {
           "type": "string"
@@ -86,10 +86,18 @@
           "description": "Prop values for this example. Scalar types for scalar props; SlotContentRef for slot props. PropBinding is not permitted here.",
           "additionalProperties": {
             "oneOf": [
-              { "type": "string" },
-              { "type": "number" },
-              { "type": "boolean" },
-              { "$ref": "#/definitions/SlotContentRef" }
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "$ref": "#/definitions/SlotContentRef"
+              }
             ]
           }
         }
@@ -243,28 +251,36 @@
           "description": "For enum code-only props: the component name of the nested instance whose variants define the enum values"
         }
       },
-      "required": ["kind", "layer"],
+      "required": [
+        "kind",
+        "layer"
+      ],
       "additionalProperties": false
     },
     "FigmaPropExtension": {
       "type": "object",
-      "description": "DTCG §5.2.3 Figma-specific metadata for a prop definition.",
+      "description": "DTCG \u00a75.2.3 Figma-specific metadata for a prop definition.",
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["BOOLEAN", "TEXT", "INSTANCE_SWAP", "VARIANT"],
+          "enum": [
+            "BOOLEAN",
+            "TEXT",
+            "INSTANCE_SWAP",
+            "VARIANT"
+          ],
           "description": "Figma-native property type"
         },
         "source": {
           "$ref": "#/definitions/FigmaCodeOnlySource",
-          "description": "Provenance metadata — present only for props extracted from a code-only container layer"
+          "description": "Provenance metadata \u2014 present only for props extracted from a code-only container layer"
         }
       },
       "additionalProperties": true
     },
     "PropExtensions": {
       "type": "object",
-      "description": "DTCG §5.2.3 platform-specific extensions for prop definitions. Each property is a reverse-domain key whose value is a platform extension type.",
+      "description": "DTCG \u00a75.2.3 platform-specific extensions for prop definitions. Each property is a reverse-domain key whose value is a platform extension type.",
       "properties": {
         "com.figma": {
           "$ref": "#/definitions/FigmaPropExtension"
@@ -391,7 +407,9 @@
         },
         "anyOf": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Component type names permitted in this slot"
         },
         "$extensions": {
@@ -501,7 +519,9 @@
     "NestedPropConfiguration": {
       "type": "object",
       "description": "A path-addressed configuration of a nested descendant instance reached through instance boundaries (ADR-052). `path` is an ordered list of instanceOf element keys from the anchoring instance to the descendant; the terminal instance owns the configured slot/prop. Remaining keys are PropConfigurationValues applied there (slot fills via SlotContentRef). Slot descents are not path segments: a filled slot points to another slotContentExamples/Composition entry that recurses with its own paths.",
-      "required": ["path"],
+      "required": [
+        "path"
+      ],
       "properties": {
         "path": {
           "type": "array",
@@ -526,8 +546,12 @@
     },
     "SlotContent": {
       "type": "object",
-      "description": "The anonymous structural triplet — anatomy, elements, layout — used as a named slot fill (ADR-046). Carries no metadata of its own; identity lives at the key under which it is stored (Component.slotContentExamples or Composition.slotContent).",
-      "required": ["anatomy", "elements", "layout"],
+      "description": "The anonymous structural triplet \u2014 anatomy, elements, layout \u2014 used as a named slot fill (ADR-046). Carries no metadata of its own; identity lives at the key under which it is stored (Component.slotContentExamples or Composition.slotContent).",
+      "required": [
+        "anatomy",
+        "elements",
+        "layout"
+      ],
       "properties": {
         "anatomy": {
           "$ref": "#/definitions/Anatomy"
@@ -546,8 +570,12 @@
     },
     "Composition": {
       "type": "object",
-      "description": "A named, authored unit of composed content (ADR-042, ADR-046). The top-level anatomy+elements+layout triplet is the primary content — no wrapper, no reserved `main` key. Optional slotContent bundles named SlotContent fills alongside the primary content. A SlotContentRef pointing at a Composition entry resolves to the top-level triplet; a pointer into slotContent/<key> resolves to that SlotContent directly.",
-      "required": ["anatomy", "elements", "layout"],
+      "description": "A named, authored unit of composed content (ADR-042, ADR-046). The top-level anatomy+elements+layout triplet is the primary content \u2014 no wrapper, no reserved `main` key. Optional slotContent bundles named SlotContent fills alongside the primary content. A SlotContentRef pointing at a Composition entry resolves to the top-level triplet; a pointer into slotContent/<key> resolves to that SlotContent directly.",
+      "required": [
+        "anatomy",
+        "elements",
+        "layout"
+      ],
       "properties": {
         "title": {
           "type": "string",
@@ -571,7 +599,7 @@
         },
         "slotContent": {
           "type": "object",
-          "description": "Named slot fills bundled alongside this composition's primary content. Authoring convenience only — not a scope boundary. Entries are reachable via a deeper SlotContentRef pointer.",
+          "description": "Named slot fills bundled alongside this composition's primary content. Authoring convenience only \u2014 not a scope boundary. Entries are reachable via a deeper SlotContentRef pointer.",
           "patternProperties": {
             "^[a-zA-Z0-9_-]+$": {
               "$ref": "#/definitions/SlotContent"
@@ -599,7 +627,7 @@
               "$ref": "#/definitions/SlotBinding"
             }
           ],
-          "description": "Child element names, or a SlotBinding when bound to a slot prop. SlotBinding is a PropBinding optionally carrying `examples` — an array of SlotContentRef entries for authored sample fills (e.g. Figma's authoring default at index 0). The bare `{ $binding }` form still validates."
+          "description": "Child element names, or a SlotBinding when bound to a slot prop. SlotBinding is a PropBinding optionally carrying `examples` \u2014 an array of SlotContentRef entries for authored sample fills (e.g. Figma's authoring default at index 0). The bare `{ $binding }` form still validates."
         },
         "parent": {
           "oneOf": [
@@ -661,8 +689,10 @@
     },
     "SlotBinding": {
       "type": "object",
-      "description": "Slot binding: a PropBinding to a slot prop, optionally carrying authored sample fills in `examples`. Each `examples[i]` is a SlotContentRef (ADR-046) pointing into Component.slotContentExamples or a Composition. Emitters currently write at most one entry — `examples[0]` is Figma's authoring default. Non-contractual reference material; code consumers handle missing slots through component logic and need not honor it.",
-      "required": ["$binding"],
+      "description": "Slot binding: a PropBinding to a slot prop, optionally carrying authored sample fills in `examples`. Each `examples[i]` is a SlotContentRef (ADR-046) pointing into Component.slotContentExamples or a Composition. Emitters currently write at most one entry \u2014 `examples[0]` is Figma's authoring default. Non-contractual reference material; code consumers handle missing slots through component logic and need not honor it.",
+      "required": [
+        "$binding"
+      ],
       "properties": {
         "$binding": {
           "type": "string",
@@ -670,7 +700,7 @@
         },
         "examples": {
           "type": "array",
-          "description": "Authored example fills for this slot. Emitters currently write at most one entry — Figma's authoring default at index 0.",
+          "description": "Authored example fills for this slot. Emitters currently write at most one entry \u2014 Figma's authoring default at index 0.",
           "items": {
             "$ref": "#/definitions/SlotContentRef"
           }
@@ -680,14 +710,16 @@
     },
     "SlotContentRef": {
       "type": "object",
-      "description": "Reference to a SlotContent or Composition entry by JSON Pointer (ADR-046). Resolves to a Composition entry (top-level triplet), a Composition.slotContent entry, or a Component.slotContentExamples entry — all yield anatomy+elements+layout. Discriminated by the $slotContent key.",
+      "description": "Reference to a SlotContent or Composition entry by JSON Pointer (ADR-046). Resolves to a Composition entry (top-level triplet), a Composition.slotContent entry, or a Component.slotContentExamples entry \u2014 all yield anatomy+elements+layout. Discriminated by the $slotContent key.",
       "properties": {
         "$slotContent": {
           "type": "string",
           "description": "JSON Pointer to a SlotContent or Composition entry."
         }
       },
-      "required": ["$slotContent"],
+      "required": [
+        "$slotContent"
+      ],
       "additionalProperties": false
     },
     "ConditionArgs": {
@@ -922,7 +954,10 @@
               "properties": {
                 "scope": {
                   "type": "string",
-                  "enum": ["NESTED", "PAGE"],
+                  "enum": [
+                    "NESTED",
+                    "PAGE"
+                  ],
                   "default": "NESTED",
                   "description": "Where to search for subcomponents. NESTED = anatomy only; PAGE = also search the Figma page."
                 },
@@ -942,7 +977,9 @@
                   "description": "Template patterns defining which matched assets to exclude. Same {C}/{S} syntax as match."
                 }
               },
-              "required": ["match"],
+              "required": [
+                "match"
+              ],
               "additionalProperties": false
             },
             "glyphNamePattern": {
@@ -989,7 +1026,10 @@
               "properties": {
                 "scope": {
                   "type": "string",
-                  "enum": ["PAGE", "FILE"],
+                  "enum": [
+                    "PAGE",
+                    "FILE"
+                  ],
                   "default": "PAGE",
                   "description": "Search boundary. PAGE = current Figma page only (default); FILE = all pages in the file."
                 },
@@ -1118,6 +1158,10 @@
           },
           "required": [],
           "additionalProperties": false
+        },
+        "transform": {
+          "$ref": "#/definitions/TransformConfig",
+          "description": "Transformer selection and options for specs transform. Optional; absence means CLI defaults apply. (ADR-053)"
         }
       },
       "required": [
@@ -1173,6 +1217,34 @@
       ],
       "patternProperties": {
         "^\\$": {}
+      },
+      "additionalProperties": false
+    },
+    "TransformEntry": {
+      "type": "object",
+      "description": "A single transformer to run via specs transform, identified by name. Transformer-specific options sit inline alongside name. (ADR-053)",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Transformer name (e.g. contract, css, tokens)."
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": true
+    },
+    "TransformConfig": {
+      "type": "object",
+      "description": "Transformer selection and options for specs transform. (ADR-053)",
+      "properties": {
+        "transformers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TransformEntry"
+          },
+          "description": "Transformers to run with optional inline options. Absence means CLI built-in defaults apply."
+        }
       },
       "additionalProperties": false
     }

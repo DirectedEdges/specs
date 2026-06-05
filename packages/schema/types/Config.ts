@@ -15,12 +15,45 @@
 export type ColorFormat = 'HEX' | 'HEXA' | 'RGB' | 'RGBA' | 'HSLA' | 'HSB' | 'OKLCH' | 'OKLAB' | 'OBJECT';
 
 /**
+ * A single transformer to run via `specs transform`, identified by name.
+ * Transformer-specific options sit inline alongside `name`.
+ *
+ * @since 0.24.0
+ */
+export interface TransformEntry {
+  /** Transformer name (e.g. `contract`, `css`, `tokens`). */
+  name: string;
+  [option: string]: unknown;
+}
+
+/**
+ * Transform configuration block — controls which transformers `specs transform` runs
+ * and any per-transformer options.
+ *
+ * @since 0.24.0
+ */
+export interface TransformConfig {
+  /** Transformers to run, each with optional inline options. Absence means CLI built-in defaults apply. */
+  transformers?: TransformEntry[];
+}
+
+/**
+ * Fully-resolved transform config with all fields guaranteed present.
+ *
+ * @since 0.24.0
+ */
+export interface ResolvedTransformConfig {
+  transformers: TransformEntry[];
+}
+
+/**
  * Model configuration used to generate the component spec.
  * Full structure matches the transformer's configuration options.
  *
  * @property processing - Processing options for component transformation.
  * @property format - Output format and key naming conventions.
  * @property include - Feature flags for what to include in output.
+ * @property transform - Transformer selection and options for `specs transform`.
  */
 export interface Config {
   processing: {
@@ -84,6 +117,8 @@ export interface Config {
     /** Include slot content examples in output (ADR-050). Optional; defaults to false. @since 0.21.0 */
     defaultSlotContent?: boolean;
   };
+  /** Transformer selection and options for `specs transform`. Optional; absence means CLI defaults apply. @since 0.24.0 */
+  transform?: TransformConfig;
 }
 
 /**
@@ -150,6 +185,8 @@ export interface ResolvedConfig {
     /** Include slot content examples in output. */
     defaultSlotContent: boolean;
   };
+  /** Transformer selection and options for `specs transform`. @since 0.24.0 */
+  transform: ResolvedTransformConfig;
 }
 
 /**
@@ -191,5 +228,8 @@ export const DEFAULT_CONFIG: ResolvedConfig = {
     invalidCombinations: true,
     emptyVariants: false,
     defaultSlotContent: false,
+  },
+  transform: {
+    transformers: [],
   },
 };
