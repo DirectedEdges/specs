@@ -8,4 +8,6 @@ export interface TransformerContext {
 export interface Transformer {
   readonly name: string;
   run(apiYaml: Record<string, unknown>, context: TransformerContext): Promise<void>;
+  /** Called once after all components have been processed. Use for cross-component aggregate output. */
+  finalize?(outputDir: string): Promise<void>;
 }
