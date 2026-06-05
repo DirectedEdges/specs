@@ -107,6 +107,12 @@ export const Transform = new Command('transform')
         }
       }
 
+      for (const transformer of transformers) {
+        if (transformer.finalize) {
+          await transformer.finalize(outputPath);
+        }
+      }
+
       console.log('');
       console.log(`✓ Transform complete`);
       console.log(`  ${succeeded} succeeded${failed > 0 ? `, ${failed} failed` : ''}`);
