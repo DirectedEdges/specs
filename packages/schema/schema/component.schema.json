@@ -51,6 +51,20 @@
           "additionalProperties": {
             "$ref": "#/definitions/Subcomponent"
           }
+        },
+        "instanceExamples": {
+          "$ref": "#/definitions/InstanceExamples",
+          "description": "Named instance examples (documented usages) for this component."
+        },
+        "slotContentExamples": {
+          "type": "object",
+          "description": "Named slot-content examples for this component (ADR-047). Each entry is a SlotContent — a flat anatomy+elements+layout triplet usable as a named slot fill. Referenced via SlotContentRef from SlotBinding.examples and from Element.propConfigurations slot-prop entries (ADR-049). specs-from-figma de-duplicates entries by structural equality.",
+          "patternProperties": {
+            "^[a-zA-Z0-9_-]+$": {
+              "$ref": "#/definitions/SlotContent"
+            }
+          },
+          "additionalProperties": false
         }
       },
       "required": [
@@ -58,6 +72,38 @@
         "anatomy",
         "default"
       ],
+      "additionalProperties": false
+    },
+    "InstanceExample": {
+      "type": "object",
+      "description": "A pre-configured usage of the whole component (ADR-048). Scalar props are set directly; slot props are filled via SlotContentRef. PropBinding is not accepted — this is a documented configuration, not a live binding.",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "propConfigurations": {
+          "type": "object",
+          "description": "Prop values for this example. Scalar types for scalar props; SlotContentRef for slot props. PropBinding is not permitted here.",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "number" },
+              { "type": "boolean" },
+              { "$ref": "#/definitions/SlotContentRef" }
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "InstanceExamples": {
+      "type": "object",
+      "description": "Named instance examples for this component.",
+      "patternProperties": {
+        "^[a-zA-Z0-9_-]+$": {
+          "$ref": "#/definitions/InstanceExample"
+        }
+      },
       "additionalProperties": false
     },
     "Anatomy": {
@@ -415,22 +461,59 @@
         }
       ]
     },
+    "PropConfigurationValue": {
+      "description": "The value of a single prop configuration entry (ADR-049): a scalar, a PropBinding for pass-through to a parent prop, or a SlotContentRef under a slot-prop key for a named slot-content fill.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "$ref": "#/definitions/PropBinding"
+        },
+        {
+          "$ref": "#/definitions/SlotContentRef"
+        }
+      ]
+    },
     "PropConfigurations": {
       "type": "object",
-      "description": "",
+      "description": "Per-element prop configurations (ADR-049, ADR-052). Regular keys are prop names whose values are a PropConfigurationValue. The reserved `$nested` key carries path-addressed configurations of nested descendant instances.",
       "examples": [],
+      "properties": {
+        "$nested": {
+          "type": "array",
+          "description": "Path-addressed configurations of nested descendant instances reached through instance boundaries (e.g. deep slot fills). Each entry addresses a descendant by a path of instanceOf element keys and applies prop configurations to it (ADR-052).",
+          "items": {
+            "$ref": "#/definitions/NestedPropConfiguration"
+          }
+        }
+      },
       "additionalProperties": {
-        "oneOf": [
-          {
+        "$ref": "#/definitions/PropConfigurationValue"
+      }
+    },
+    "NestedPropConfiguration": {
+      "type": "object",
+      "description": "A path-addressed configuration of a nested descendant instance reached through instance boundaries (ADR-052). `path` is an ordered list of instanceOf element keys from the anchoring instance to the descendant; the terminal instance owns the configured slot/prop. Remaining keys are PropConfigurationValues applied there (slot fills via SlotContentRef). Slot descents are not path segments: a filled slot points to another slotContentExamples/Composition entry that recurses with its own paths.",
+      "required": ["path"],
+      "properties": {
+        "path": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
             "type": "string"
           },
-          {
-            "type": "number"
-          },
-          {
-            "type": "boolean"
-          }
-        ]
+          "description": "Ordered instanceOf element keys, descending instance to instance; the final key is the configured instance. Located by direct element-key lookup; never container/layout layers."
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/PropConfigurationValue"
       }
     },
     "Elements": {
@@ -440,6 +523,64 @@
       "additionalProperties": {
         "$ref": "#/definitions/Element"
       }
+    },
+    "SlotContent": {
+      "type": "object",
+      "description": "The anonymous structural triplet — anatomy, elements, layout — used as a named slot fill (ADR-046). Carries no metadata of its own; identity lives at the key under which it is stored (Component.slotContentExamples or Composition.slotContent).",
+      "required": ["anatomy", "elements", "layout"],
+      "properties": {
+        "anatomy": {
+          "$ref": "#/definitions/Anatomy"
+        },
+        "elements": {
+          "$ref": "#/definitions/Elements"
+        },
+        "layout": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LayoutNode"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "Composition": {
+      "type": "object",
+      "description": "A named, authored unit of composed content (ADR-042, ADR-046). The top-level anatomy+elements+layout triplet is the primary content — no wrapper, no reserved `main` key. Optional slotContent bundles named SlotContent fills alongside the primary content. A SlotContentRef pointing at a Composition entry resolves to the top-level triplet; a pointer into slotContent/<key> resolves to that SlotContent directly.",
+      "required": ["anatomy", "elements", "layout"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Human-readable label for the composition."
+        },
+        "description": {
+          "type": "string",
+          "description": "Purpose and usage notes for documentation tooling."
+        },
+        "anatomy": {
+          "$ref": "#/definitions/Anatomy"
+        },
+        "elements": {
+          "$ref": "#/definitions/Elements"
+        },
+        "layout": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LayoutNode"
+          }
+        },
+        "slotContent": {
+          "type": "object",
+          "description": "Named slot fills bundled alongside this composition's primary content. Authoring convenience only — not a scope boundary. Entries are reachable via a deeper SlotContentRef pointer.",
+          "patternProperties": {
+            "^[a-zA-Z0-9_-]+$": {
+              "$ref": "#/definitions/SlotContent"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     },
     "Element": {
       "type": "object",
@@ -455,10 +596,10 @@
               }
             },
             {
-              "$ref": "#/definitions/PropBinding"
+              "$ref": "#/definitions/SlotBinding"
             }
           ],
-          "description": "Child element names, or a PropBinding when bound to a slot prop"
+          "description": "Child element names, or a SlotBinding when bound to a slot prop. SlotBinding is a PropBinding optionally carrying `examples` — an array of SlotContentRef entries for authored sample fills (e.g. Figma's authoring default at index 0). The bare `{ $binding }` form still validates."
         },
         "parent": {
           "oneOf": [
@@ -516,6 +657,37 @@
       "required": [
         "$binding"
       ],
+      "additionalProperties": false
+    },
+    "SlotBinding": {
+      "type": "object",
+      "description": "Slot binding: a PropBinding to a slot prop, optionally carrying authored sample fills in `examples`. Each `examples[i]` is a SlotContentRef (ADR-046) pointing into Component.slotContentExamples or a Composition. Emitters currently write at most one entry — `examples[0]` is Figma's authoring default. Non-contractual reference material; code consumers handle missing slots through component logic and need not honor it.",
+      "required": ["$binding"],
+      "properties": {
+        "$binding": {
+          "type": "string",
+          "description": "JSON Pointer to the bound slot prop, e.g. `\"#/components/pill/props/children\"`."
+        },
+        "examples": {
+          "type": "array",
+          "description": "Authored example fills for this slot. Emitters currently write at most one entry — Figma's authoring default at index 0.",
+          "items": {
+            "$ref": "#/definitions/SlotContentRef"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "SlotContentRef": {
+      "type": "object",
+      "description": "Reference to a SlotContent or Composition entry by JSON Pointer (ADR-046). Resolves to a Composition entry (top-level triplet), a Composition.slotContent entry, or a Component.slotContentExamples entry — all yield anatomy+elements+layout. Discriminated by the $slotContent key.",
+      "properties": {
+        "$slotContent": {
+          "type": "string",
+          "description": "JSON Pointer to a SlotContent or Composition entry."
+        }
+      },
+      "required": ["$slotContent"],
       "additionalProperties": false
     },
     "ConditionArgs": {
@@ -810,6 +982,41 @@
               ],
               "default": "LAYERED",
               "description": "Level of detail in output. Defaults to LAYERED."
+            },
+            "instanceExamples": {
+              "type": "object",
+              "description": "Instance example detection settings (ADR-050): named frames demonstrating pre-configured whole-component usage. Absence means no instance example detection.",
+              "properties": {
+                "scope": {
+                  "type": "string",
+                  "enum": ["PAGE", "FILE"],
+                  "default": "PAGE",
+                  "description": "Search boundary. PAGE = current Figma page only (default); FILE = all pages in the file."
+                },
+                "match": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1,
+                  "description": "Optional name patterns narrowing which instance frames qualify. Uses {C} (component name) placeholder. Absence = every in-scope instance of the component qualifies (subject to exclude/parentNames)."
+                },
+                "exclude": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Name patterns for frames to exclude. Same {C} syntax as match."
+                },
+                "parentNames": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Immediate-parent frame or section names a candidate must be contained within. Absence = no parent-name filtering."
+                }
+              },
+              "additionalProperties": false
             }
           },
           "required": [],
@@ -857,10 +1064,13 @@
                 "TOKEN_NAME",
                 "TOKEN_FIGMA_EXTENSIONS",
                 "FIGMA_NAME",
-                "CUSTOM"
+                "CUSTOM",
+                "FIGMA_SYNTAX_WEB",
+                "FIGMA_SYNTAX_IOS",
+                "FIGMA_SYNTAX_ANDROID"
               ],
               "default": "TOKEN",
-              "description": "Token reference serialization profile. Optional; defaults to TOKEN. CUSTOM delegates projection entirely to the transformer."
+              "description": "Token reference serialization profile. Optional; defaults to TOKEN. CUSTOM delegates projection entirely to the transformer. FIGMA_SYNTAX_WEB, FIGMA_SYNTAX_IOS, and FIGMA_SYNTAX_ANDROID emit the token's Figma codeSyntax for that platform, falling back to TOKEN output when no code syntax is defined for the platform."
             },
             "color": {
               "type": "string",
@@ -899,6 +1109,11 @@
               "type": "boolean",
               "default": false,
               "description": "Include layered variants that contain no elements. When false (default), exclude empty variants from output. When true, include all variants regardless of element presence. Defaults to false."
+            },
+            "defaultSlotContent": {
+              "type": "boolean",
+              "default": false,
+              "description": "Include the component's default slot content as examples in output (ADR-050, Pro). Defaults to false."
             }
           },
           "required": [],

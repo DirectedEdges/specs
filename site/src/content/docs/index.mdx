@@ -1,0 +1,114 @@
+---
+title: Introduction
+description: Specs is a deterministic system for generating structured UI component specifications from Figma.
+template: splash
+hero:
+  title: Specs from Figma, repeatable and fast
+  tagline: Turn Figma components into compact, complete, schema-valid specifications — one structured source of truth that engineers and AI agents build on across web, iOS, and Android.
+  actions:
+    - text: Explore the schema
+      link: /specs/schema/
+      variant: minimal
+      icon: right-arrow
+    - text: Releases
+      link: /specs/overview/releases/
+      variant: minimal
+      icon: right-arrow
+    - text: Licensing
+      link: /specs/overview/licensing/
+      variant: minimal
+      icon: right-arrow
+head:
+  - tag: style
+    content: '.sl-markdown-content .card{padding:clamp(1rem,calc(0.125rem + 3vw),2.5rem);background-color:var(--sl-color-gray-6);border-radius:4px}.sl-markdown-content .card .body ul{font-size:var(--sl-text-sm);padding-inline-start:0;list-style-position:inside}.guide-gallery .sl-link-card{background-color:var(--sl-color-gray-6);border-radius:4px}.guide-gallery .card-grid>:first-child .sl-link-card,.guide-gallery .card-grid>:first-child.sl-link-card{background-color:var(--sl-color-accent-low);border-color:var(--sl-color-accent)}.guide-gallery .card-grid>:first-child .title{color:var(--sl-color-text-accent)}.feature-grid .sl-link-card{background-color:var(--sl-color-gray-6);border-radius:4px}@media (min-width:72rem){.guide-gallery .card-grid{grid-template-columns:repeat(4,1fr)}.feature-grid .card-grid{grid-template-columns:repeat(3,1fr)}}@media (min-width:50rem){.content-panel .hero{padding-block-end:2rem}}.hero .actions{gap:0.75rem;font-size:var(--sl-text-sm)}.hero .actions>a{color:var(--sl-color-gray-2)}.hero .actions>a:hover{color:var(--sl-color-white)}.hero .actions>a+a::before{content:"·";margin-inline-end:0.75rem;color:var(--sl-color-gray-4)}.sl-markdown-content .page-footer{margin-top:4rem;padding-top:1.5rem;border-top:1px solid var(--sl-color-hairline);font-size:var(--sl-text-sm);color:var(--sl-color-gray-3)}.sl-markdown-content .page-footer p{margin-top:0.5rem}.sl-markdown-content .page-footer a{color:var(--sl-color-gray-2)}.sl-markdown-content .page-footer a:hover{color:var(--sl-color-white)}'
+---
+
+import { Card, CardGrid, LinkCard, LinkButton } from '@astrojs/starlight/components';
+
+## Generate specs your way
+
+<CardGrid>
+<Card title="Plugin for designers in Figma">
+
+- Visualize stling on-canvas in complete detail
+- Sections for anatomy, props, layout, modes, styles
+- Copy/paste spec data into LLMs
+- Customize output for styling and layout
+- Configure advanced settings for extracted data
+
+<LinkButton href="https://www.figma.com/community/plugin/1549454283615386215/specs-2-formerly-anova" variant="primary" icon="right-arrow">Open the plugin</LinkButton>
+
+</Card>
+<Card title="Commands for LLM chats and pipelines">
+
+- Quickly setup and fetch data
+- Generate 50 component specs in &lt;1 minute
+- Configure files, formats, and data
+- Leverage data for analysis _and_ inference
+- Architect for continuous integration
+
+<LinkButton href="/specs/cli/getting-started/" variant="primary" icon="right-arrow">Set up the CLI</LinkButton>
+
+</Card>
+</CardGrid>
+
+## Computation over inference
+
+Extracting a spec is mechanical: enumerate the variants, diff the styles, record what changes. That's a job for computation, not guesswork — which is why Specs is faster, cheaper, and repeatable where pointing an agent at raw Figma is none of those.
+
+|  | Specs ecosystem | Agentic Figma extraction |
+|---|---|---|
+| **Speed** | ~1 sec (CLI) / ~10 sec (Plugin) per component | ~5–10 minutes per component |
+| **AI cost** | Scripts require 0 AI tokens | 25/50/100,000+ tokens per component |
+| **Repeatability** | Deterministic, mechanical | Inference errors, gaps, and overconfidence |
+| **Output** | Schema-valid YAML/MD, ideal for testing & versioning | Unstructured Markdown means unpredictable verification |
+| **Platforms** | Schema oriented towards x-platform concepts | Interprets and infers intents |
+
+## Every layer and property accounted for
+
+A single spec records the whole component — not a sample. Every part below is extracted deterministically and kept compact.
+
+<div class="feature-grid">
+<CardGrid>
+<LinkCard title="Anatomy" href="/specs/schema/anatomy/" description="Every element by type, structured consistently across variants" />
+<LinkCard title="Props" href="/specs/schema/props/" description="All properties with every explicit per-variant difference detected" />
+<LinkCard title="Styling" href="/specs/schema/styles/" description="Token references, named styles, typography, and effects" />
+<LinkCard title="Layout" href="/specs/schema/layout/" description="Element hierarchy and flex vs. absolute positioning per variant" />
+<LinkCard title="Bindings" href="/specs/schema/prop-binding/" description="Prop bindings driving content, instances, and conditionals" />
+<LinkCard title="Subcomponents" href="/specs/schema/subcomponents/" description="Subcomponents discovered from your naming conventions" />
+<LinkCard title="Slots" href="/specs/schema/slot-content/" description="Where nested content composes and its per-variant defaults" />
+<LinkCard title="Ready-made examples" href="/specs/schema/instance-examples/" description="Pre-configured usage examples detected straight from your file" />
+<LinkCard title="Assets" href="/specs/guides/glyph-name-pattern/" description="Icon glyphs precisely distinguished from nested instances" />
+</CardGrid>
+</div>
+
+## Robust at the core, extensible at the edges
+
+Specs is built to handle whatever a real component library throws at it — and to bend to how your system works: variant explosions, slot rules, hidden props, custom naming, and more. New here? Start with **Variant Layering** — it's the idea that keeps every spec compact.
+
+<div class="guide-gallery">
+<CardGrid>
+<LinkCard title="Variant Layering" href="/specs/guides/variant-layering/" description="Compute layered styling like CSS rules" />
+<LinkCard title="Variant Depth" href="/specs/guides/variant-depth/" description="Control how many variant dimensions expand" />
+<LinkCard title="Data Layout" href="/specs/guides/data-layout/" description="Shape how hierarchy appears in output" />
+<LinkCard title="Consolidating Props" href="/specs/guides/consolidating-props/" description="Merge a toggle and its content into one prop" />
+<LinkCard title="Code-Only Props" href="/specs/guides/code-only-props/" description="Pull non-visual props from hidden layers" />
+<LinkCard title="Instance Examples" href="/specs/guides/instance-examples/" description="Detect ready-made, pre-configured usages" />
+<LinkCard title="Default Slot Content" href="/specs/guides/default-slot-content/" description="Reuse default slot content as examples" />
+<LinkCard title="Slot Constraints" href="/specs/guides/slot-constraints/" description="Set quantity and content-type slot rules" />
+<LinkCard title="Subcomponent Scoping" href="/specs/guides/subcomponent-scoping/" description="Discover, match, and exclude subcomponents" />
+<LinkCard title="Invalid Variant Combinations" href="/specs/guides/invalid-variant-combinations/" description="Mark unsupported variant combinations" />
+<LinkCard title="Key Formatting" href="/specs/guides/key-formatting/" description="Normalize property and element names" />
+<LinkCard title="Layout Positioning" href="/specs/guides/layout-positioning/" description="Map Figma constraints to positioning" />
+</CardGrid>
+</div>
+
+<footer class="page-footer">
+
+Schema licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) · CLI under [MIT](https://github.com/DirectedEdges/specs/blob/main/packages/cli/LICENSE). When reusing the schema, credit **Nathan Curtis** and link this repository — see the [full license](/specs/overview/license/) for attribution details.
+
+[License](/specs/overview/license/) · [Licensing](/specs/overview/licensing/) · [Terms of Service](/specs/overview/terms-of-service/) · [GitHub](https://github.com/DirectedEdges/specs)
+
+Independent project, not affiliated with Figma Inc.
+
+</footer>

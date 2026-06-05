@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import type { OutputConfig, OutputFormat } from '../Types/OutputConfig.js';
-import { sortComponentsByName, splitComponentByConcern } from './DataTransformers.js';
+import { sortComponentsByName, splitComponentByConcern, hasExampleData } from './DataTransformers.js';
 
 /**
  * Metadata for a file manifest entry
@@ -11,7 +11,7 @@ export interface EntryMetadata {
   component?: string;
   
   /** Concern type if applicable */
-  concern?: 'api' | 'variants';
+  concern?: 'api' | 'variants' | 'examples';
   
   /** When the entry was created */
   timestamp: Date;
@@ -145,25 +145,29 @@ export class FileManifest {
   
   /**
    * Build manifest for per-concern mode
-   * Output: api.yaml, variants.yaml
+   * Output: api.yaml, variants.yaml, and examples.yaml (the last only when at
+   * least one component has slotContentExamples/instanceExamples).
    */
   private buildPerConcernManifest(components: Array<{ name: string; spec?: Record<string, unknown> }>): void {
     const apiComponents: Record<string, any> = {};
     const variantsComponents: Record<string, any> = {};
+    const examplesComponents: Record<string, any> = {};
 
     for (const item of components) {
       if (!item.spec) continue;
 
-      const { api, variants } = splitComponentByConcern(item.spec as Record<string, any>);
+      const { api, variants, examples } = splitComponentByConcern(item.spec as Record<string, any>);
       const key = this.toCamelCase(item.name);
-      
+
       apiComponents[key] = api;
       variantsComponents[key] = variants;
+      // Only components with actual examples appear in examples.yaml
+      if (hasExampleData(examples)) examplesComponents[key] = examples;
     }
-    
+
     // Create timestamp for metadata
     const timestamp = new Date();
-    
+
     // Add api file entry
     this.entries.push({
       path: path.join(this.baseDir, `api${this.ext}`),
@@ -177,7 +181,7 @@ export class FileManifest {
       },
       metadata: { timestamp }
     });
-    
+
     // Add variants file entry
     this.entries.push({
       path: path.join(this.baseDir, `variants${this.ext}`),
@@ -191,6 +195,24 @@ export class FileManifest {
       },
       metadata: { timestamp }
     });
+
+    // Add examples file entry only when there is example data to emit, so runs
+    // without examples don't produce an empty examples file.
+    const exampleComponentCount = Object.keys(examplesComponents).length;
+    if (exampleComponentCount > 0) {
+      this.entries.push({
+        path: path.join(this.baseDir, `examples${this.ext}`),
+        content: {
+          components: examplesComponents,
+          metadata: {
+            generatedAt: timestamp.toISOString(),
+            componentCount: exampleComponentCount,
+            concern: 'examples'
+          }
+        },
+        metadata: { timestamp }
+      });
+    }
   }
   
   /**
@@ -203,12 +225,12 @@ export class FileManifest {
     for (const item of components) {
       if (!item.spec) continue;
 
-      const { api, variants } = splitComponentByConcern(item.spec as Record<string, any>);
+      const { api, variants, examples } = splitComponentByConcern(item.spec as Record<string, any>);
       const camelName = this.toCamelCase(item.name);
-      
+
       // Create component directory path
       const componentDir = path.join(this.baseDir, camelName);
-      
+
       // Add api file entry for this component
       this.entries.push({
         path: path.join(componentDir, `api${this.ext}`),
@@ -225,7 +247,7 @@ export class FileManifest {
           component: camelName
         }
       });
-      
+
       // Add variants file entry for this component
       this.entries.push({
         path: path.join(componentDir, `variants${this.ext}`),
@@ -242,6 +264,25 @@ export class FileManifest {
           component: camelName
         }
       });
+
+      // Add examples file entry only for components that have examples
+      if (hasExampleData(examples)) {
+        this.entries.push({
+          path: path.join(componentDir, `examples${this.ext}`),
+          content: {
+            ...examples,
+            metadata: {
+              ...examples.metadata,
+              generatedAt: timestamp.toISOString(),
+              concern: 'examples'
+            }
+          },
+          metadata: {
+            timestamp,
+            component: camelName
+          }
+        });
+      }
     }
   }
   

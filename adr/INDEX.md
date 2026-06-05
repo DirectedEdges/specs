@@ -4,7 +4,15 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 044 | Duplicate Layer Name Disambiguation | |
+| 052 | Deeply-Nested Slot Content — Path-Anchored Overrides Across Non-Slot Instance Boundaries | |
+| 051 | Platform Code-Syntax Token Profiles | |
+| 050 | Examples Config | Add `include.defaultSlotContent` (default false); add `processing.instanceExamples` with scope, match, exclude, parentNames — instance-example output is presence-driven (no `include.instanceExamples` flag), mirroring `subcomponents` |
+| 049 | Nested Slot Compositions | Recursion follow-on to ADR-047: fill nested instances' slots from a parent context (reserved, draft on `042-composition-type` branch) |
+| 048 | PropConfigurations PropBinding | Widen `PropConfigurations` value union to add `PropBinding` (reserved, draft on `042-composition-type` branch) |
+| 047 | Slot Content — Component.slotContentExamples and SlotBinding | Add `Component.slotContentExamples: Record<string, SlotContent>` + `SlotBinding` extending `PropBinding` with optional `examples?: SlotContentRef[]` (Figma authoring default at index 0); widens `Children` to `string[] \| SlotBinding` (reserved, draft on `042-composition-type` branch) |
+| 046 | Component Instance Examples — InstanceExample and Component.instanceExamples | Add `InstanceExample` and `InstanceExamples`; add `Component.instanceExamples?` named record (reserved, draft on `042-composition-type` branch) |
+| 045 | Processing Provenance Signals | (reserved, draft in PR #60) |
+| 044 | Duplicate Layer Name Disambiguation | (reserved, draft in PR #60) |
 | 043 | Custom Color Format Configuration | |
 | 042 | Composition as a First-Class Type | |
 | 041 | Layout Positioning — Constraint-Based Naming | |
@@ -20,6 +28,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 051 | Platform Code-Syntax Token Profiles | Add `FIGMA_SYNTAX_WEB`/`_IOS`/`_ANDROID` to `Config.format.tokens`, emitting per-platform Figma code syntax with fallback to `TOKEN` |
 | 043 | Custom Color Format Configuration | Add `Config.format.color` with 9-format enum (HEX default); rename `ColorValue` → `ColorObject`; widen color types with `string` arm |
 | 041 | Layout Positioning — Constraint-Based Naming | Replace `x`/`y`/`layoutPositioning` with constraint-based `position`, `start`, `end`, `top`, `bottom`, center offsets |
 | 040 | Replace `primaryAxisAlignItems` and `counterAxisAlignItems` with `mainAxisAlignment` and `crossAxisAlignment` | Rename to platform-neutral names; add `MainAxisAlignment` and `CrossAxisAlignment` enums; not token-bindable |

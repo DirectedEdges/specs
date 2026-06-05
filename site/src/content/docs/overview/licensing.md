@@ -45,6 +45,42 @@ From your Polar dashboard you can:
 - Purchase top-off generation packs
 - Download invoices
 
+## Team Licensing
+
+Teams can purchase a single subscription that covers multiple seats, with volume discounts that apply automatically at checkout:
+
+| Team size | Discount |
+|-----------|----------|
+| 1–4 seats | None (standard Pro price) |
+| 5–9 seats | 10% off |
+| 10+ seats | 20% off |
+
+Each seat is functionally identical to an individual Pro subscription: when a team member claims their seat, they receive their own plugin and CLI key pair by email, activated and managed the same way as any other Pro subscriber.
+
+### Purchasing and managing seats
+
+A team subscription is purchased by an administrator, who becomes the owner of the subscription and the only person who can adjust it. Seats are managed by email address — the administrator enters each team member's email individually, and Polar sends that person an invitation to claim their seat.
+
+Seats are managed **one at a time** rather than via bulk import or CSV upload. The administrator adds, removes, or reassigns seats individually through the Polar customer portal.
+
+### Claiming a seat
+
+When a team member is invited, they receive an email with a link to claim their seat. **Invitations must be claimed within 24 hours** — after that the invitation expires and the administrator needs to re-send it from the portal. Once claimed, the team member receives their own plugin and CLI keys and activates them like any individual Pro subscriber.
+
+A seat that hasn't been claimed yet still counts toward the subscription's seat total and is billed normally. Administrators can revoke a pending invitation and reassign the seat to a different email at any time.
+
+### Adjusting your subscription
+
+Administrators manage everything from the Polar customer portal — the same portal used for any Pro subscription. From the portal, the administrator can:
+
+- Add new seats or remove existing ones
+- See which seats are claimed and by whom
+- Revoke a seat from a team member who has left
+- Re-send an expired invitation
+- Update payment method, download invoices, and cancel the subscription
+
+The total seat count can be adjusted up or down at any time. Changes are **prorated** on month-to-month invoices — adding a seat mid-cycle adds a partial charge for the remaining days, and removing a seat issues a partial credit applied to the next invoice. The volume discount tier is re-evaluated whenever the seat count crosses a threshold (for example, going from 4 to 5 seats activates the 10% discount on the next invoice).
+
 ## Free vs Pro
 
 ### Free

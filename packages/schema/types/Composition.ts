@@ -1,0 +1,42 @@
+import { Anatomy } from "./Anatomy.js";
+import { Elements } from "./Element.js";
+import { Layout } from "./Layout.js";
+import { SlotContent } from "./SlotContent.js";
+
+/**
+ * A named, authored unit of composed content (ADR-042, ADR-046).
+ *
+ * The top-level `anatomy + elements + layout` triplet IS the primary content —
+ * no wrapper, no reserved `main` key. Optional `slotContent` bundles named
+ * slot fills alongside the primary content for authoring convenience; entries
+ * are reachable by a deeper JSON Pointer (e.g.
+ * `"#/compositions/filterResultsPage/slotContent/pageHeader"`).
+ *
+ * A `SlotContentRef` pointing at a `Composition` entry resolves to its
+ * top-level triplet. A pointer into `slotContent/<key>` resolves to that
+ * `SlotContent` directly. Both yield `anatomy + elements + layout`.
+ */
+export interface Composition {
+  /** Human-readable label for the composition. */
+  title?: string;
+
+  /** Purpose and usage notes for documentation tooling. */
+  description?: string;
+
+  anatomy: Anatomy;
+  elements: Elements;
+  layout: Layout;
+
+  /**
+   * Named slot fills bundled alongside this composition's primary content.
+   * Authoring convenience only — not a scope boundary. Fills here may
+   * reference entries in other compositions via `SlotContentRef`.
+   */
+  slotContent?: Record<string, SlotContent>;
+}
+
+/**
+ * A record of `Composition` entries — the registry shape used by external
+ * composition files (system-scoped, key `compositions:`).
+ */
+export type Compositions = Record<string, Composition>;

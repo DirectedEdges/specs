@@ -1,0 +1,118 @@
+# ADR-046 Option A — Inline nested
+#
+# Slot fills are written directly inside propConfigurations.<slotName> as
+# inline SlotContent objects (anatomy + elements + layout). No registry,
+# no $slotContent pointer. Every fill is anonymous and embedded at the
+# call site.
+#
+# Compare with option-b-groups, option-c-slotcontent, option-d-parts —
+# same Filter Results Page hierarchy, different registry shapes.
+#
+# Why this option loses (see ADR-046 Option A rejection):
+#   - Indentation grows linearly with recursion depth
+#   - No aliasing — identical fills must be duplicated at every call site
+#   - Fills are anonymous; no addressable key for tooling, docs, or audits
+#
+# Hierarchy:
+#   Page.body
+#     ├─ Row "Filter Page Header" (Row.children)
+#     │    ├─ Breadcrumbs, Heading, Tabs
+#     └─ Row "Filter Grid" (Row.children)
+#          ├─ Sidebar → Accordion (label="Filter 1") ← Accordion.children
+#          │               └─ CheckboxGroup           ← CheckboxGroup.children
+#          │                    ├─ Checkbox (Ford)
+#          │                    ├─ Checkbox (Mercedes)
+#          │                    └─ Checkbox (custom=true) ← Checkbox.children
+#          │                         ├─ Text "Toyota"
+#          │                         └─ Badge (appearance=new, label="New")
+#          └─ Main → Card × 4
+
+title: Filter Results Page
+description: |
+  Two-row layout — page header above filter grid. Demonstrates Option A
+  inline nesting: every slot fill is written in-place with no external
+  references.
+
+anatomy:
+  filterPageHeader: { type: instance, instanceOf: Row }
+  filterGrid:       { type: instance, instanceOf: Row }
+
+elements:
+  filterPageHeader:
+    propConfigurations:
+      children:                        # ← level 1: inline SlotContent
+        anatomy:
+          breadcrumbs: { type: instance, instanceOf: Breadcrumbs }
+          heading:     { type: instance, instanceOf: Heading }
+          tabs:        { type: instance, instanceOf: Tabs }
+        elements:
+          heading:
+            propConfigurations:
+              content: Filter Results
+        layout: [breadcrumbs, heading, tabs]
+
+  filterGrid:
+    propConfigurations:
+      children:                        # ← level 1: inline SlotContent
+        anatomy:
+          sidebar: { type: container }
+          make:    { type: instance, instanceOf: Accordion }
+          main:    { type: container }
+          card1:   { type: instance, instanceOf: Card }
+          card2:   { type: instance, instanceOf: Card }
+          card3:   { type: instance, instanceOf: Card }
+          card4:   { type: instance, instanceOf: Card }
+        elements:
+          make:
+            propConfigurations:
+              label: Filter 1
+              open: true
+              children:                # ← level 2: inline SlotContent
+                anatomy:
+                  checkboxGroup: { type: instance, instanceOf: CheckboxGroup }
+                elements:
+                  checkboxGroup:
+                    propConfigurations:
+                      children:        # ← level 3: inline SlotContent
+                        anatomy:
+                          make1: { type: instance, instanceOf: Checkbox }
+                          make2: { type: instance, instanceOf: Checkbox }
+                          make3: { type: instance, instanceOf: Checkbox }
+                        elements:
+                          make1: { propConfigurations: { label: Ford } }
+                          make2: { propConfigurations: { label: Mercedes } }
+                          make3:
+                            propConfigurations:
+                              custom: true
+                              children:  # ← level 4: inline SlotContent
+                                anatomy:
+                                  root:       { type: container }
+                                  toyotaText: { type: text }
+                                  newBadge:   { type: instance, instanceOf: Badge }
+                                elements:
+                                  root:
+                                    styles: { layoutMode: HORIZONTAL }
+                                  toyotaText:
+                                    content: Toyota
+                                  newBadge:
+                                    propConfigurations:
+                                      appearance: new
+                                      label: New
+                                layout:
+                                  - root:
+                                      - toyotaText
+                                      - newBadge
+                        layout: [make1, make2, make3]
+                layout: [checkboxGroup]
+        layout:
+          - sidebar:
+              - make
+          - main:
+              - card1
+              - card2
+              - card3
+              - card4
+
+layout:
+  - filterPageHeader
+  - filterGrid

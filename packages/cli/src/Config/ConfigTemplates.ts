@@ -44,7 +44,7 @@ author: <Your Name Here>
 output:
   # Write one file per component instead of a single library file (default: false)
   splitComponents: false
-  # Split each component into separate api and variants files (default: false)
+  # Split output into separate api, variants, and examples files (default: false)
   splitConcerns: false
   # When splitComponents is true, nest each file in a subfolder (default: false)
   useSubfolders: false
@@ -66,7 +66,8 @@ config:
     # See: https://directededges.github.io/specs/config/layout/
     layout: LAYOUT
 
-    # Token reference format: TOKEN, TOKEN_NAME, TOKEN_FIGMA_EXTENSIONS, FIGMA_NAME, or CUSTOM
+    # Token reference format: TOKEN, TOKEN_NAME, TOKEN_FIGMA_EXTENSIONS, FIGMA_NAME, CUSTOM,
+    # FIGMA_SYNTAX_WEB, FIGMA_SYNTAX_IOS, or FIGMA_SYNTAX_ANDROID
     # See: https://directededges.github.io/specs/config/tokens/
     # Requires a license key to resolve token references in output.
     tokens: TOKEN
@@ -92,8 +93,10 @@ config:
       # exclude:
       #   - '{C} / Examples / {S}'
 
-    # Naming pattern to detect icon glyph instances (e.g. 'DS Icon Glyph /')
-    # glyphNamePattern: 'DS Icon Glyph /'
+    # Naming pattern to detect icon glyph instances. Use {i} as the placeholder
+    # for the glyph name (e.g. 'DS Icon Glyph / {i}' matches
+    # 'DS Icon Glyph / arrow-down' and extracts 'arrow-down').
+    # glyphNamePattern: 'DS Icon Glyph / {i}'
 
     # Naming pattern for the code-only props container layer (e.g. 'Code only props')
     # Presence enables code-only prop extraction from matching layers.

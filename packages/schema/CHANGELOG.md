@@ -5,6 +5,51 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.23.0] - Unreleased
+
+### Added
+
+### Changed
+
+### Removed
+
+
+## [0.22.0] - 2026-05-23
+
+Introduces the composition and slot-content model across ADRs 042, 046–052. `Composition` is a named registry entry with a top-level `anatomy + elements + layout` triplet and an optional `slotContent` map of bundled `SlotContent` fills. `SlotContentRef` (`{ $slotContent }`) is the universal pointer for all slot fills — component-scoped examples, intra-composition bundled fills, and cross-composition references all resolve to `anatomy + elements + layout`. `PropConfigurations` widens to accept `PropBinding` and `SlotContentRef`; `InstanceExample.propConfigurations` widens to accept `SlotContentRef` (not `PropBinding`). `Children` widens to `SlotBinding` for slot-bound containers. `Config` gains the examples-detection settings and output gates (ADR-050).
+
+### Added
+
+- `SlotContent` — `{ anatomy, elements, layout }`; the anonymous structural triplet used as a named slot fill. Carries no metadata; identity lives at the key where it is stored (ADR-046)
+- `Composition` — `{ title?, description?, anatomy, elements, layout, slotContent?: Record<string, SlotContent> }`; a named registry entry whose top-level triplet is the primary content. Optional `slotContent` bundles named fills alongside it for authoring convenience (ADR-042, ADR-046)
+- `Compositions` — `Record<string, Composition>`; registry alias for external composition files
+- `SlotContentRef` — `{ $slotContent: string }`; universal JSON Pointer reference for slot fills. Resolves to a `Composition` entry (top-level triplet), a `Composition.slotContent` entry, or a `Component.slotContentExamples` entry — all yield `anatomy + elements + layout` (ADR-046)
+- `Component.slotContentExamples` — `Record<string, SlotContent>`; named slot-content examples per component, referenceable by `SlotContentRef` from `SlotBinding.examples` and from `Element.propConfigurations` slot-prop entries. `specs-from-figma` de-duplicates entries by structural equality across variants and slots (ADR-047)
+- `SlotBinding` — extends `PropBinding` with optional `examples?: SlotContentRef[]`; used in `Element.children` for slot-bound containers. Each `examples[i]` points to a slot-content entry; emitters currently write a single entry at index 0 — Figma's authoring default for the slot layer. Non-contractual reference material; code consumers handle missing slots through component logic and ignore it (ADR-047)
+- `Component.instanceExamples` — typed as `InstanceExamples` (`Record<string, InstanceExample>`); named documented usages per component (ADR-048)
+- `InstanceExample` — `{ title?, propConfigurations?: Record<string, string | number | boolean | SlotContentRef> }`; scalar props set directly, slot props filled via `SlotContentRef`. `PropBinding` not accepted — documented configurations are not live bindings (ADR-048)
+- `Config.processing.instanceExamples` — `{ scope?: 'PAGE' | 'FILE', match?: string[], exclude?: string[], parentNames?: string[] }`; instance-example detection settings, mirroring `processing.subcomponents`. `scope` is `PAGE | FILE` (`NESTED` is inapplicable); `match` is an **optional** secondary name filter (the primary relevance test is structural identity — the candidate is an instance of the component being generated — so absence accepts every in-scope instance, subject to `exclude`/`parentNames`); `parentNames` filters candidates by immediate-parent frame/section name. Absence of the block is the off-switch — its **presence** enables both detection and output (no separate include flag), like `processing.subcomponents`. Pro-gated. Added to `ResolvedConfig` (with `scope` required, `match` optional) (ADR-050)
+- `Config.include.defaultSlotContent` — `boolean` output gate, default `false`; added to `ResolvedConfig` (required) and `DEFAULT_CONFIG`. Pro-gated — ignored on the free tier (ADR-050)
+- `Config.format.tokens` — adds `FIGMA_SYNTAX_WEB`, `FIGMA_SYNTAX_IOS`, `FIGMA_SYNTAX_ANDROID` profiles emitting per-platform Figma code syntax, falling back to `TOKEN` (ADR-051)
+
+### Changed
+
+- `Children` — widened from `string[] | PropBinding` to `string[] | SlotBinding`; existing `{ $binding }` values still validate because `SlotBinding` is a structural superset of `PropBinding` (ADR-047)
+- `PropConfigurations` — value union widened from `string | number | boolean` to `string | number | boolean | PropBinding | SlotContentRef`; enables scalar prop pass-through (`PropBinding`) and slot-prop fills (`SlotContentRef`). `InstanceExample.propConfigurations` widens separately and does not accept `PropBinding` (ADR-049)
+- `PropConfigurations.$nested` — added reserved key typed as `NestedPropConfiguration[]` (`{ path: string[] }` plus the prop-config payload, keyed value `PropConfigurationValue`); path-addressed configurations of nested descendant instances, where `path` is a list of `instanceOf` element keys to the configured descendant and the terminal instance owns the filled slot/prop. Deep slot fills reuse `SlotContentRef` — no new payload, no `Element` change. `InstanceExample.propConfigurations` does not gain `$nested` (ADR-052)
+
+### Removed
+
+
+## [0.21.0] - 2026-05-22
+
+Extends `Config.format.tokens` with per-platform Figma code syntax profiles. The new `FIGMA_SYNTAX_WEB`, `FIGMA_SYNTAX_IOS`, and `FIGMA_SYNTAX_ANDROID` options emit the platform-specific code syntax authored on Figma variables, falling back to the resolved `TOKEN` reference when no syntax is defined.
+
+### Added
+
+- `Config.format.tokens` — adds `FIGMA_SYNTAX_WEB`, `FIGMA_SYNTAX_IOS`, `FIGMA_SYNTAX_ANDROID` profiles emitting per-platform Figma code syntax, falling back to `TOKEN`
+
+
 ## [0.20.0] - 2026-05-06
 
 Adds configurable color output format (`Config.format.color`) supporting nine format options from hex strings to structured DTCG Color objects. Renames `ColorValue` to `ColorObject` for specificity and widens `ColorStyle`, `Shadow.color`, and `GradientStop.color` to accept formatted color strings alongside structured objects and token references.

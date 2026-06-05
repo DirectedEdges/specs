@@ -1,0 +1,9 @@
+---
+// Force dark theme, hide the theme toggle.
+---
+<script is:inline>
+	document.documentElement.dataset.theme = 'dark';
+	if (typeof localStorage !== 'undefined') {
+		localStorage.setItem('starlight-theme', 'dark');
+	}
+</script>

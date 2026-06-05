@@ -16,6 +16,7 @@ Controls how specs are generated. See the [feature guides](/specs/features/) for
 | `variantDepth` | `1 \| 2 \| 3 \| 9999` | `9999` | Maximum variant nesting depth (9999 = unlimited) |
 | `details` | `'FULL' \| 'LAYERED'` | `'LAYERED'` | Output detail level |
 | `inferNumberProps` | `boolean` | `false` | Infer number-typed props from Figma variant values |
+| `instanceExamples` | `object` | — | **Pro.** Instance example detection — `scope` (PAGE or FILE), `match` patterns, `exclude` patterns, `parentNames` filter. Absent = no detection. Ignored on the free tier |
 
 ## `format`
 
@@ -24,7 +25,7 @@ Controls how specs are generated. See the [feature guides](/specs/features/) for
 | `output` | `'JSON' \| 'YAML'` | `'JSON'` | Output file format |
 | `keys` | `'SAFE' \| 'CAMEL' \| 'SNAKE' \| 'KEBAB' \| 'PASCAL' \| 'TRAIN'` | `'SAFE'` | Key casing style |
 | `layout` | `'LAYOUT' \| 'PARENT_CHILDREN' \| 'BOTH'` | `'LAYOUT'` | Element hierarchy representation |
-| `tokens` | `'TOKEN' \| 'TOKEN_NAME' \| 'TOKEN_FIGMA_EXTENSIONS' \| 'FIGMA_NAME' \| 'CUSTOM'` | `'TOKEN'` | Token reference output format |
+| `tokens` | `'TOKEN' \| 'TOKEN_NAME' \| 'TOKEN_FIGMA_EXTENSIONS' \| 'FIGMA_NAME' \| 'CUSTOM' \| 'FIGMA_SYNTAX_WEB' \| 'FIGMA_SYNTAX_IOS' \| 'FIGMA_SYNTAX_ANDROID'` | `'TOKEN'` | Token reference output format — `FIGMA_SYNTAX_*` emit per-platform Figma code syntax, falling back to `TOKEN` |
 | `color` | `ColorFormat` | `'HEX'` | Color value output format — `HEX`, `HEXA`, `RGB`, `RGBA`, `HSLA`, `HSB`, `OKLCH`, `OKLAB`, or `OBJECT` |
 
 ## `include`
@@ -34,6 +35,9 @@ Controls how specs are generated. See the [feature guides](/specs/features/) for
 | `invalidVariants` | `boolean` | `false` | Include variants marked invalid |
 | `invalidCombinations` | `boolean` | `true` | Include `invalidVariantCombinations` list |
 | `emptyVariants` | `boolean` | `false` | Include variants with no element overrides |
+| `defaultSlotContent` | `boolean` | `false` | **Pro.** Emit the component's default slot content into `Component.slotContentExamples` (structurally detected slot fills). Ignored on the free tier |
+
+`instanceExamples` has no `include` flag — emitting it is driven by the presence of [`processing.instanceExamples`](#processing) (Pro only), like `subcomponents`.
 
 ## DEFAULT_CONFIG
 
@@ -58,8 +62,9 @@ const DEFAULT_CONFIG: ResolvedConfig = {
     invalidVariants: false,
     invalidCombinations: true,
     emptyVariants: false,
+    defaultSlotContent: false,
   },
 };
 ```
 
-Feature-toggle properties (`subcomponents`, `glyphNamePattern`, `codeOnlyPropsPattern`) are absent from `DEFAULT_CONFIG` — their absence means the feature is disabled.
+Feature-toggle properties (`subcomponents`, `instanceExamples`, `glyphNamePattern`, `codeOnlyPropsPattern`) are absent from `DEFAULT_CONFIG` — their absence means the feature is disabled. (The `include.defaultSlotContent` flag is a gate, not a detector, so it carries a `false` default.)

@@ -1,3 +1,65 @@
+/* ── Layout overrides ── */
+
+/* 2× page padding and nav–content gutter at wide viewports */
+@media (min-width: 72rem) {
+	/* Content area padding */
+	.content-panel {
+		padding-left: 3rem !important;
+		padding-right: 3rem !important;
+	}
+	/* Top nav bar padding */
+	.header {
+		padding-left: 3rem !important;
+		padding-right: 3rem !important;
+		gap: 3rem !important;
+	}
+	/* Nav–content gutter */
+	.main-pane {
+		--sl-nav-gap: 3rem;
+	}
+}
+
+/* Remove distinct surface color and borders from nav/sidebar */
+.header,
+nav.sidebar {
+	background-color: var(--sl-color-bg) !important;
+}
+.sidebar-pane {
+	background-color: var(--sl-color-bg) !important;
+}
+/* Remove all divider borders */
+.header {
+	border-bottom-color: transparent !important;
+}
+.sidebar-pane {
+	border-inline-end-color: transparent !important;
+}
+.content-panel + .content-panel {
+	border-top-color: transparent !important;
+}
+.sidebar-content ul ul {
+	border-inline-start-color: transparent !important;
+}
+
+/* +4px spacing between left nav items */
+.sidebar-content li {
+	margin-top: calc(0.75rem + 4px);
+}
+.sidebar-content ul ul li {
+	margin-top: 0;
+}
+
+/* +2px padding within each left nav item (default 0.2em → 8px) */
+.sidebar-content {
+	--sl-sidebar-item-padding-inline: calc(0.5rem + 2px);
+}
+.sidebar-content a {
+	padding-block: calc(0.2em + 5.2px);
+}
+.sidebar-content .group-label {
+	padding-block: calc(0.3em + 2px);
+}
+
 /* Make top-level sidebar links match the style of links inside accordions */
 ul.top-level > li > a.large {
 	font-size: var(--sl-text-sm);
@@ -16,6 +78,11 @@ ul.top-level > li > a.large[aria-current='page']:focus {
 	background-color: var(--sl-color-text-accent);
 }
 
+/* Sidebar Pro badges (rendered by Starlight via `badge: pro`) — all caps */
+.sidebar-content .sl-badge {
+	text-transform: uppercase;
+}
+
 /* Pro badge inline with page title */
 .sl-badge.pro-badge {
 	display: inline-block;
@@ -28,6 +95,7 @@ ul.top-level > li > a.large[aria-current='page']:focus {
 	padding: 0.125rem 0.375rem;
 	color: var(--sl-badge-tip-text);
 	background-color: var(--sl-badge-tip-bg);
+	text-transform: uppercase;
 	vertical-align: middle;
 	margin-left: 0.5rem;
 }
@@ -38,6 +106,45 @@ ul.top-level > li > a.large[aria-current='page']:focus {
 	padding: 0.25rem 0.75rem;
 	margin-left: 0;
 	margin-right: 0.625rem;
+}
+
+/* Experimental badge inline with page title — neutral/gray accent (mirrors
+   .pro-badge but uses Starlight's gray scale instead of the purple tip vars) */
+.sl-badge.experimental-badge {
+	display: inline-block;
+	border: 1px solid var(--sl-color-gray-4);
+	border-radius: 0.25rem;
+	font-family: var(--sl-font-system-mono);
+	font-size: var(--sl-text-xs);
+	font-weight: normal;
+	line-height: 1;
+	padding: 0.125rem 0.375rem;
+	color: var(--sl-color-gray-2);
+	background-color: var(--sl-color-gray-6);
+	text-transform: uppercase;
+	vertical-align: middle;
+	margin-left: 0.5rem;
+}
+
+/* Experimental badge appended after the Pro badge on specific config nav links.
+   Starlight's sidebar `badge` config allows only one badge, so the second
+   (Experimental) pill is rendered via ::after on these two links. */
+.sidebar-content a[href$="/config/default-slot-content/"]::after,
+.sidebar-content a[href$="/config/instance-examples/"]::after {
+	content: "Experimental";
+	display: inline-block;
+	margin-left: 0.375rem;
+	border: 1px solid var(--sl-color-gray-4);
+	border-radius: 0.25rem;
+	font-family: var(--sl-font-system-mono);
+	font-size: var(--sl-text-xs);
+	font-weight: normal;
+	line-height: 1;
+	padding: 0.125rem 0.375rem;
+	color: var(--sl-color-gray-2);
+	background-color: var(--sl-color-gray-6);
+	text-transform: uppercase;
+	vertical-align: middle;
 }
 
 /* Prepend the Pro badge before label text in the Licensing nav link */
@@ -63,9 +170,9 @@ ul.top-level > li > a.large[aria-current='page']:focus {
 	background-color: var(--sl-color-text-accent);
 }
 
-/* Gap between header social links */
-.social-link + .social-link {
-	margin-left: 0.75rem;
+/* Hide social links in header (moved to sidebar) */
+.social-icons {
+	display: none !important;
 }
 
 /* Site title in top nav bar — neutral instead of accent-colored */

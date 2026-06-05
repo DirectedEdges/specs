@@ -5,13 +5,107 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.0] - 2026-05-29
+
+Hardens license-key validation to hard-fail on transient errors and improves actionable error messages for stale or inaccessible Figma file keys.
+
+### Fixed
+
+- **`generate` no longer silently produces free-tier output when a license key can't be validated (#119)** — if a key was supplied (via `-l`, `SPECS_LICENSE_KEY`, or `ANOVA_LICENSE_KEY`) but the license check could not be completed — a transient proxy/network failure or a rate-limit (e.g. the upstream validator returning 429) — the run previously fell back to FREE and wrote free-tier specs under a valid paid key, with only an easily-missed status line. `generate` now hard-fails on these transient states (`network-error`, `error`, and a future `rate-limited`) with an actionable message ("retry in a few seconds, or remove the key for free-tier output") and a retryable exit code (`NETWORK_ERROR`, or `RATE_LIMIT` once the validator distinguishes it). Definitive key rejections (`invalid`/`removed`/`expired`) still fall back to free-tier output as before.
+- **Actionable `fetch`/`generate` error messages for stale or inaccessible Figma file keys (#125)** — a `fetch` that hit a 404 previously surfaced only `HTTP 404 while fetching <alias>.<kind>`, with no hint that the cause was the file key pinned in config. The 404 case now explains that the configured key is likely stale or out of reach (file moved/deleted/recreated, or the token can't open it) and points at `sources.<alias>.key` in the config file. Auth failures are split: 401 reports a missing/invalid/expired `FIGMA_TOKEN` and where to set it (`.env`), while 403 reports valid-but-no-access and points at the same config key. In `generate`, a missing source `.file.json` now tips the user to run `specs fetch` or check `sources.<alias>.key`.
+
+### Dependency updates
+
+- **`@directededges/specs-from-figma` ^0.20.0 → ^0.21.0** — SLOT elements now evaluate the same container-surface styles as frames: auto-layout config, strokes, padding, and corner-smoothing. Slot styling in generated specs is more complete.
+- **`@directededges/specs-schema` ^0.22.0** — no version change.
+
+
+## [0.17.0] - 2026-05-23
+
+Surfaces the new composition/examples model to CLI users: config loading now accepts `include.defaultSlotContent` and the `processing.instanceExamples` block, so generated specs can include slot-content examples and pre-configured instance examples (both Pro-gated). `--split-concerns` gains a third `examples.yaml` output for these examples, and a fix ensures they're no longer silently dropped when splitting concerns.
+
+### Added
+
+- **Examples config (ADR-050)** — `ConfigLoader` now accepts the new `include.defaultSlotContent` flag (added to the include allowlist) and validates `processing.instanceExamples` (`scope` ∈ `PAGE`/`FILE` with `PAGE` fallback; `match` required; `exclude`/`parentNames` array-checked), passing them through to the engine. `instanceExamples` output is driven by the **presence** of `processing.instanceExamples` (no `include.instanceExamples` flag), mirroring `subcomponents`. Both example features are Pro-gated — silently omitted on the free tier. Surfaces `slotContentExamples`/`instanceExamples` generation to CLI users.
+
+### Changed
+
+- **`--split-concerns` now emits a third `examples.yaml`** — slot-content and instance examples are written to `examples.yaml` (per-concern mode) or `<component>/examples.yaml` (combined mode), alongside `api.yaml` and `variants.yaml`. The file is emitted only when at least one component has examples, and components without examples are omitted from it.
+
+### Fixed
+
+- **`--split-concerns` no longer drops examples** — `slotContentExamples` and `instanceExamples` (component- and subcomponent-level) were assigned to neither the `api` nor `variants` concern, so `--split-concerns` silently discarded them, leaving the `$slotContent` references in `default`/`variants` dangling. They are now routed into `examples.yaml`.
+
+### Removed
+
+### Dependency updates
+
+- **`@directededges/specs-schema` ^0.21.0 → ^0.22.0** — adds the composition and slot-content model (ADR-042, 046–052): `Composition`, `SlotContent`, and the universal `SlotContentRef` (`{ $slotContent }`) pointer, plus `Component.slotContentExamples` and `Component.instanceExamples`. Specs can now carry named slot-content examples and documented instance examples, and `Config` gains `processing.instanceExamples` (example detection) and `include.defaultSlotContent` (output gate).
+- **`@directededges/specs-from-figma` ^0.19.0 → ^0.20.0** — detects and emits slot-content examples (de-duplicated across variants and slots) and instance examples (pre-configured usages of a component), both Pro-gated. REST page/file-scoped discovery now correctly finds candidates under `CANVAS` nodes, and a plugin-only hashing bug that collapsed all slot fills into a single example is fixed.
+
+
+## [0.16.0] - 2026-05-22
+
+Adds the platform code-syntax token profiles (`FIGMA_SYNTAX_WEB/IOS/ANDROID`) to config loading and templates, so specs can emit each Figma variable's per-platform code syntax. Picks up upstream transformer improvements: conditional-visibility boolean prop exposure, detection of subcomponents nested inside sections/frames, and a fix for SLOT properties that previously leaked raw GUID objects into output.
+
+### Added
+
+- **Platform code-syntax token profiles (ADR-051, DirectedEdges/specs#103)** — `format.tokens` now accepts `FIGMA_SYNTAX_WEB`, `FIGMA_SYNTAX_IOS`, and `FIGMA_SYNTAX_ANDROID` in config loading and templates, surfacing the platform code-syntax profiles to CLI users. The transformer (specs-from-figma) emits each variable's Figma `codeSyntax` for the selected platform, falling back to the standard token output when a platform has no code syntax defined.
+
+### Dependency updates
+
+- **`@directededges/specs-schema` ^0.20.0 → ^0.21.0** — adds the `FIGMA_SYNTAX_WEB/IOS/ANDROID` `format.tokens` profiles.
+- **`@directededges/specs-from-figma` ^0.18.0 → ^0.19.0** — serializes the new platform code-syntax profiles from Figma `codeSyntax`; specs now expose a boolean-prop reference for conditional visibility bindings; subcomponents nested inside sections/frames are now detected under `subcomponents.scope: PAGE`; SLOT properties no longer emit raw GUID objects into output.
+
+
+## [0.15.1] - 2026-05-20
+
+Patch release fixing the `scan` → `generate` round-trip. `generate` now accepts the v2 (markdown-table) manifests that `scan` has emitted since 0.15.0, restoring the documented workflow.
+
+### Fixed
+
+- **`generate` now accepts v2 (table) manifests** — `generate`'s source auto-detection only recognized the legacy v1 checkbox-list format (`- [`), so any manifest produced by `specs scan` in 0.15.0 failed with `Error: Unrecognized source format`, breaking the documented `scan && generate` round-trip. `generate` now detects v2 manifests via the `**Scan format version:**` header and dispatches to `ManifestParserV2`, while continuing to support v1 manifests and raw JSON files. ([#101](https://github.com/DirectedEdges/specs/issues/101))
+- **Escaped pipes in component names round-trip** — `scan` escapes `|` as `\|` in manifest table cells; `ManifestParserV2` now unescapes them so names like `Toggle | On/Off` parse back to their literal form.
+
+### Dependency updates
+
+- No upstream dependency changes since 0.15.0. Continues to reference `@directededges/specs-schema ^0.20.0` and `@directededges/specs-from-figma ^0.18.0`.
+
+## [0.15.0] - 2026-05-15
+
+`scan` now drives curation from Figma's **Ready for Dev** signal and merges intelligently with prior manifests, preserving manual edits except where Figma's devStatus has changed. Introduces a new v2 manifest format with automatic migration from v1.
+
+### Added
+
+- **Ready-for-Dev curation in `scan`** — Components with `devStatus: READY_FOR_DEV` are now checked by default. Libraries with no devStatus signal anywhere fall back to the legacy heuristic.
+- **Manifest merge on rescan** — Re-running `scan` preserves manual checkbox edits unless `devStatus` changed for a row (Figma wins on flips). `--keep-checks` locks manual edits regardless of devStatus changes; `--reset-checks` ignores the prior manifest entirely.
+- **Glyphs section in scan manifest** — When `config.processing.glyphNamePattern` is set, top-level components matching the pattern are routed to a read-only `## Glyphs` section after `## Components`. Glyph rows have no checkboxes and are excluded from `specs generate`. The section is omitted when no matches are found. Pattern matching reuses the same `{i}`-placeholder semantics as the engine's glyph detection.
+- **v2 manifest format** — New markdown-table format with a `Dev Status` column, `**Scan format version:**` header, and `**File last modified:**` metadata. Legacy v1 (checkbox-list) manifests are detected and migrated automatically.
+
+### Changed
+
+- **Docs updated** — `cli/commands/scan.md`, `cli/getting-started.md`, and `cli/workflows.md` reflect the new curation flow and manifest format.
+
+### Dependency updates
+
+- No upstream dependency changes since 0.14.0. Continues to reference `@directededges/specs-schema ^0.20.0` and `@directededges/specs-from-figma ^0.18.0`.
+
+
+## [0.14.0] - 2026-05-15
+
+Dependency-only release that picks up specs-from-figma 0.18.0. No CLI source changes.
+
+### Dependency updates
+
+- **@directededges/specs-from-figma 0.18.0** — Restores ~170 invalid variants previously dropped by the empty-variant filter, accounting for the bulk of test-round 0009 parity diffs. Fixes a `figma.mixed` Symbol crash on text nodes with mixed text styles. `TEXT` elements now emit explicit size styles (`width`, `height`, `minWidth`, `minHeight`, `maxWidth`, `maxHeight`); `GLYPH` elements now emit shadow/blur effects and aspect-ratio constraints alongside their fill color.
+
 ## [0.13.1] - 2026-05-08
 
 Patch fix for `--split-concerns` output shape.
 
 ### Fixed
 
-- **`props` defaults to `{}` instead of `[]` when a component has no props (#84)** — `splitComponentByConcern` and `extractApiFromSubcomponents` were filling missing `props` with an empty array, producing output that violated the schema (`Props` is an object). Components like `egdsDivider` and `egdsSearchBarExperimental` now emit `props: {}`. The `ComponentApiData` and `SubcomponentApiData` interfaces are corrected to type `props` as `Record<string, any>`.
+- **`props` defaults to `{}` instead of `[]` when a component has no props (#84)** — `splitComponentByConcern` and `extractApiFromSubcomponents` were filling missing `props` with an empty array, producing output that violated the schema (`Props` is an object). Components with no props (e.g. a divider) now emit `props: {}`. The `ComponentApiData` and `SubcomponentApiData` interfaces are corrected to type `props` as `Record<string, any>`.
 
 
 ## [0.13.0] - 2026-05-06
