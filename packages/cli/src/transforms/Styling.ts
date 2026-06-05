@@ -63,16 +63,16 @@ export class StylingTransformer implements Transformer {
 
     const rows = new Map<string, StylingRow>();
 
-    const defaultSection = source.default as Record<string, unknown> | undefined;
-    if (defaultSection?.elements) {
-      collectElements(defaultSection.elements as Record<string, unknown>, elementTypes, rows);
-    }
+    collectDefaultAndVariants(source, elementTypes, rows);
 
-    const variants = (source.variants ?? []) as Array<Record<string, unknown>>;
-    for (const variant of variants) {
-      if (variant.elements) {
-        collectElements(variant.elements as Record<string, unknown>, elementTypes, rows);
-      }
+    // Subcomponents have their own default/variants and anatomy (from api.yaml).
+    const apiSubcomponents = (apiYaml.subcomponents ?? {}) as Record<string, unknown>;
+    const sourceSubcomponents = (source.subcomponents ?? {}) as Record<string, unknown>;
+    for (const [subName, subSource] of Object.entries(sourceSubcomponents)) {
+      const subApiEntry = apiSubcomponents[subName] as Record<string, unknown> | undefined;
+      const subAnatomy = (subApiEntry?.anatomy ?? {}) as Record<string, unknown>;
+      const subElementTypes = extractElementTypes(subAnatomy);
+      collectDefaultAndVariants(subSource as Record<string, unknown>, subElementTypes, rows);
     }
 
     const sorted = Array.from(rows.values()).sort(compareRows);
@@ -160,6 +160,23 @@ function extractElementTypes(anatomy: Record<string, unknown>): Map<string, stri
     }
   }
   return types;
+}
+
+function collectDefaultAndVariants(
+  source: Record<string, unknown>,
+  elementTypes: Map<string, string>,
+  rows: Map<string, StylingRow>
+): void {
+  const defaultSection = source.default as Record<string, unknown> | undefined;
+  if (defaultSection?.elements) {
+    collectElements(defaultSection.elements as Record<string, unknown>, elementTypes, rows);
+  }
+  const variants = (source.variants ?? []) as Array<Record<string, unknown>>;
+  for (const variant of variants) {
+    if (variant.elements) {
+      collectElements(variant.elements as Record<string, unknown>, elementTypes, rows);
+    }
+  }
 }
 
 function collectElements(
