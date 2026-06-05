@@ -1,0 +1,303 @@
+// Maps atomic spec style keys to CSS declarations.
+// Layout-group keys (layoutMode, mainAxisAlignment, crossAxisAlignment, wrap,
+// wrapAlignment, itemSpacing, layoutSizingHorizontal, layoutSizingVertical)
+// are handled by layoutToCSS — they require cross-key context and are skipped here.
+
+import { isTokenRef, tokenVar, dimensionValue, colorValue, sidesValue } from './values.js';
+
+const TEXT_ALIGN_MAP: Record<string, string> = {
+  LEFT: 'left', CENTER: 'center', RIGHT: 'right', JUSTIFIED: 'justify',
+};
+
+const TEXT_CASE_MAP: Record<string, string> = {
+  UPPER: 'uppercase', LOWER: 'lowercase', TITLE: 'capitalize', ORIGINAL: 'none',
+};
+
+const TEXT_DECORATION_MAP: Record<string, string> = {
+  UNDERLINE: 'underline', STRIKETHROUGH: 'line-through', NONE: 'none',
+};
+
+// Figma fontStyle strings that carry weight semantics.
+// Figma uses the style name as a combined weight+style descriptor.
+const FONT_STYLE_WEIGHT_MAP: Record<string, string> = {
+  Thin: '100', ExtraLight: '200', Light: '300', Regular: '400',
+  Medium: '500', SemiBold: '600', Semibold: '600', Bold: '700',
+  ExtraBold: '800', Black: '900',
+};
+
+const FONT_STYLE_ITALIC_SUFFIXES = ['Italic', 'Oblique'];
+
+const DIMENSION_KEYS: Array<[string, string]> = [
+  ['width', 'width'],
+  ['height', 'height'],
+  ['minWidth', 'min-width'],
+  ['minHeight', 'min-height'],
+  ['maxWidth', 'max-width'],
+  ['maxHeight', 'max-height'],
+];
+
+export function styleToCSS(styles: Record<string, unknown>): string[] {
+  const decls: string[] = [];
+
+  // ── Colors ──────────────────────────────────────────────────────────────────
+
+  if ('backgroundColor' in styles) {
+    const v = colorValue(styles.backgroundColor);
+    if (v) decls.push(`background: ${v}`);
+  }
+
+  if ('textColor' in styles) {
+    const v = colorValue(styles.textColor);
+    if (v) decls.push(`color: ${v}`);
+  }
+
+  if ('fillColor' in styles) {
+    const v = colorValue(styles.fillColor);
+    if (v) decls.push(`fill: ${v}`);
+  }
+
+  // ── Opacity ─────────────────────────────────────────────────────────────────
+
+  if ('opacity' in styles && styles.opacity !== undefined) {
+    const v = styles.opacity;
+    if (isTokenRef(v)) decls.push(`opacity: ${tokenVar(v)}`);
+    else if (typeof v === 'number') decls.push(`opacity: ${v}`);
+  }
+
+  // ── Border ──────────────────────────────────────────────────────────────────
+  //
+  // strokes + strokeWeight together form a border. border-style must be emitted
+  // whenever strokes is present and non-null — CSS borders are invisible without it.
+  //
+  // strokeAlign mapping:
+  //   INSIDE  → CSS border (default behavior: border inside element bounds)
+  //   CENTER  → CSS outline (renders centered on element edge, outside box model)
+  //   OUTSIDE → CSS outline (renders outside element bounds)
+  //   null    → remove border (border-width: 0; border-color: transparent)
+
+  const hasStrokes = 'strokes' in styles;
+  const hasStrokeWeight = 'strokeWeight' in styles;
+  const strokeAlign = styles.strokeAlign as string | null | undefined;
+
+  if (hasStrokes) {
+    const strokesVal = styles.strokes;
+    if (strokesVal === null) {
+      // Explicit null: remove border entirely. border-width handled by strokeWeight below.
+      decls.push('border-color: transparent');
+    } else {
+      const v = colorValue(strokesVal);
+      if (v) {
+        if (strokeAlign === 'OUTSIDE' || strokeAlign === 'CENTER') {
+          decls.push(`outline-color: ${v}`);
+          decls.push('outline-style: solid');
+        } else {
+          // INSIDE (default) or unspecified — use CSS border
+          decls.push(`border-color: ${v}`);
+          decls.push('border-style: solid');
+        }
+      }
+    }
+  }
+
+  if (hasStrokeWeight) {
+    const v = styles.strokeWeight;
+    if (v === null) {
+      decls.push('border-width: 0');
+    } else if (typeof v === 'object' && v !== null && !isTokenRef(v)) {
+      decls.push(...sidesValue(v as Record<string, unknown>, 'border-width'));
+    } else {
+      const d = dimensionValue(v);
+      if (d) {
+        if (strokeAlign === 'OUTSIDE' || strokeAlign === 'CENTER') {
+          decls.push(`outline-width: ${d}`);
+        } else {
+          decls.push(`border-width: ${d}`);
+        }
+      }
+    }
+  }
+
+  // ── Corner radius ────────────────────────────────────────────────────────────
+
+  if ('cornerRadius' in styles && styles.cornerRadius !== undefined) {
+    const v = styles.cornerRadius;
+    if (isTokenRef(v)) {
+      decls.push(`border-radius: ${tokenVar(v)}`);
+    } else if (typeof v === 'object' && v !== null) {
+      // Corners object: topStart topEnd bottomEnd bottomStart
+      const c = v as Record<string, unknown>;
+      const vals = [c.topStart, c.topEnd, c.bottomEnd, c.bottomStart].map(dimensionValue);
+      decls.push(`border-radius: ${vals.map(x => x ?? '0').join(' ')}`);
+    } else {
+      const d = dimensionValue(v);
+      if (d) decls.push(`border-radius: ${d}`);
+    }
+  }
+
+  // ── Effects ──────────────────────────────────────────────────────────────────
+
+  if ('effects' in styles && styles.effects !== null && styles.effects !== undefined) {
+    const v = styles.effects;
+    if (isTokenRef(v)) {
+      // Distinguish backdrop-filter (blur) from box-shadow (elevation/shadow) by token name.
+      // Phase 2 will resolve to precise values; this is a best-effort phase-1 mapping.
+      if (/blur/i.test(v.$token)) {
+        decls.push(`backdrop-filter: blur(${tokenVar(v)})`);
+      } else {
+        decls.push(`box-shadow: ${tokenVar(v)}`);
+      }
+    }
+    // Inline Effects objects (drop shadows, blur) deferred to phase 2.
+  }
+
+  // ── Dimensions ───────────────────────────────────────────────────────────────
+
+  for (const [key, cssProp] of DIMENSION_KEYS) {
+    if (key in styles) {
+      const d = dimensionValue((styles as Record<string, unknown>)[key]);
+      if (d && d !== '0') decls.push(`${cssProp}: ${d}`);
+    }
+  }
+
+  // ── Padding ──────────────────────────────────────────────────────────────────
+
+  if ('padding' in styles && styles.padding !== undefined) {
+    const v = styles.padding;
+    if (v === null) {
+      decls.push('padding: 0');
+    } else if (typeof v === 'object' && !isTokenRef(v)) {
+      decls.push(...sidesValue(v as Record<string, unknown>, 'padding'));
+    } else {
+      const d = dimensionValue(v);
+      if (d) decls.push(`padding: ${d}`);
+    }
+  }
+
+  // ── Typography ───────────────────────────────────────────────────────────────
+
+  if ('typography' in styles && styles.typography !== null && styles.typography !== undefined) {
+    const v = styles.typography;
+    if (isTokenRef(v)) {
+      // Typography token → CSS font shorthand placeholder. Phase 2 resolves.
+      decls.push(`font: ${tokenVar(v)}`);
+    } else if (typeof v === 'object') {
+      const t = v as Record<string, unknown>;
+
+      if (t.fontSize !== undefined) {
+        if (isTokenRef(t.fontSize)) decls.push(`font-size: ${tokenVar(t.fontSize)}`);
+        else decls.push(`font-size: ${typeof t.fontSize === 'number' ? `${t.fontSize}px` : t.fontSize}`);
+      }
+      if (t.fontFamily !== undefined) {
+        if (isTokenRef(t.fontFamily)) decls.push(`font-family: ${tokenVar(t.fontFamily)}`);
+        else if (typeof t.fontFamily === 'string') decls.push(`font-family: ${t.fontFamily}`);
+      }
+
+      // fontStyle in Figma encodes weight + italic as a combined name ("SemiBold Italic").
+      // Split into font-weight and font-style separately.
+      if (t.fontStyle !== undefined && (typeof t.fontStyle === 'string' || isTokenRef(t.fontStyle))) {
+        if (isTokenRef(t.fontStyle)) {
+          decls.push(`font-weight: ${tokenVar(t.fontStyle)}`);
+        } else {
+          const parts = (t.fontStyle as string).split(/\s+/);
+          const isItalic = FONT_STYLE_ITALIC_SUFFIXES.some(s => t.fontStyle === s || (t.fontStyle as string).endsWith(` ${s}`));
+          const weightName = parts.find(p => FONT_STYLE_WEIGHT_MAP[p]);
+          if (weightName) decls.push(`font-weight: ${FONT_STYLE_WEIGHT_MAP[weightName]}`);
+          if (isItalic) decls.push('font-style: italic');
+        }
+      }
+
+      // lineHeight from Figma is always in pixels when a number.
+      // Unitless lineHeight in CSS is a multiplier — always append px for numeric values.
+      if (t.lineHeight !== undefined && !isTokenRef(t.lineHeight)) {
+        const lh = t.lineHeight;
+        if (typeof lh === 'number') decls.push(`line-height: ${lh}px`);
+        else if (typeof lh === 'string') decls.push(`line-height: ${lh}`); // "150%" etc.
+      }
+
+      if (t.letterSpacing !== undefined) {
+        if (isTokenRef(t.letterSpacing)) decls.push(`letter-spacing: ${tokenVar(t.letterSpacing)}`);
+        else if (typeof t.letterSpacing === 'number') decls.push(`letter-spacing: ${t.letterSpacing}px`);
+      }
+      if (t.textCase !== undefined && typeof t.textCase === 'string') {
+        const mapped = TEXT_CASE_MAP[t.textCase];
+        if (mapped) decls.push(`text-transform: ${mapped}`);
+      }
+      if (t.textDecoration !== undefined && typeof t.textDecoration === 'string') {
+        const mapped = TEXT_DECORATION_MAP[t.textDecoration];
+        if (mapped) decls.push(`text-decoration: ${mapped}`);
+      }
+    }
+  }
+
+  // ── Text alignment ───────────────────────────────────────────────────────────
+
+  if ('textAlignHorizontal' in styles && styles.textAlignHorizontal !== undefined) {
+    const v = styles.textAlignHorizontal;
+    if (typeof v === 'string' && TEXT_ALIGN_MAP[v]) {
+      decls.push(`text-align: ${TEXT_ALIGN_MAP[v]}`);
+    }
+  }
+
+  // ── Aspect ratio ─────────────────────────────────────────────────────────────
+
+  if ('aspectRatio' in styles && styles.aspectRatio !== null && styles.aspectRatio !== undefined) {
+    const v = styles.aspectRatio as Record<string, number>;
+    if ('x' in v && 'y' in v) {
+      decls.push(`aspect-ratio: ${v.x} / ${v.y}`);
+    }
+  }
+
+  // ── Visibility ───────────────────────────────────────────────────────────────
+
+  if ('visible' in styles && styles.visible === false) {
+    decls.push('display: none');
+  }
+
+  // ── Overflow ─────────────────────────────────────────────────────────────────
+
+  if ('clipContent' in styles && styles.clipContent !== undefined) {
+    if (styles.clipContent === true) decls.push('overflow: hidden');
+    else if (styles.clipContent === false) decls.push('overflow: visible');
+  }
+
+  // ── Transform ────────────────────────────────────────────────────────────────
+
+  if ('rotation' in styles && styles.rotation !== undefined) {
+    const v = styles.rotation;
+    if (isTokenRef(v)) decls.push(`transform: rotate(${tokenVar(v)})`);
+    else if (typeof v === 'number' && v !== 0) decls.push(`transform: rotate(${v}deg)`);
+  }
+
+  // ── Position & offsets ───────────────────────────────────────────────────────
+  //
+  // position: ABSOLUTE is emitted on the element that carries it in the spec.
+  // Any element that has top/bottom/start/end offsets but no explicit position
+  // in its own styles will have received position: absolute from its parent
+  // scope in practice — but CSS does not inherit positioning. We emit
+  // position: absolute whenever any inset offset is present and position is
+  // not explicitly AUTO, so that the offsets have effect.
+
+  // Only emit position when explicitly declared in the spec.
+  // Inset offsets without an explicit position: ABSOLUTE are Figma layout artifacts
+  // and do not imply CSS positioning — the spec always co-emits position: ABSOLUTE.
+  // position: AUTO means the element re-enters auto-layout flow (variant transition
+  // from ABSOLUTE back to AUTO); emit position: static to undo a prior absolute rule.
+  if ('position' in styles) {
+    if (styles.position === 'ABSOLUTE') decls.push('position: absolute');
+    else if (styles.position === 'AUTO') decls.push('position: static');
+  }
+
+  for (const [specKey, cssKey] of [
+    ['top', 'inset-block-start'],
+    ['bottom', 'inset-block-end'],
+    ['start', 'inset-inline-start'],
+    ['end', 'inset-inline-end'],
+  ] as const) {
+    if (specKey in styles && styles[specKey] !== null && styles[specKey] !== undefined) {
+      const d = dimensionValue(styles[specKey]);
+      if (d) decls.push(`${cssKey}: ${d}`);
+    }
+  }
+
+  return decls;
+}
