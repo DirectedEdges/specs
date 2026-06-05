@@ -52,7 +52,7 @@ Owns all CLI and workspace-level configuration definitions.
 - Remove `Config` definition
 - Remove `TransformEntry` definition
 - Remove `TransformConfig` definition
-- Update the `config` property reference on the root component object from `#/definitions/Config` to `workspace.schema.json#/definitions/Config`
+- Update `#/definitions/Metadata/properties/config/$ref` from `#/definitions/Config` to `workspace.schema.json#/definitions/Config`
 
 ### Changes to `types/` — none
 
