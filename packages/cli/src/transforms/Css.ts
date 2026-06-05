@@ -5,6 +5,7 @@ import type { Transformer, TransformerContext } from '../Types/Transformer.js';
 import { styleToCSS } from './css/styleToCSS.js';
 import { layoutToCSS } from './css/layoutToCSS.js';
 import { toKebab } from './css/values.js';
+import { CONCEPT_TABLE, buildStateLookup } from './states.js';
 
 export class CssTransformer implements Transformer {
   readonly name = 'css';
@@ -44,6 +45,14 @@ export class CssTransformer implements Transformer {
       }
     }
 
+    // ── State lookup — built from config.processing.states ────────────────────
+    // Each concept maps a (prop, value) pair to a canonical CSS selector.
+    // Props in classifiedProps use real CSS selectors instead of data attributes.
+    // Any classified prop whose variant value doesn't match a known concept is
+    // the base/rest state — the variant is skipped (base block already covers it).
+    const { lookup: stateLookup, classifiedProps } =
+      buildStateLookup(context.processingStates ?? {});
+
     // ── Variants — in schema order ─────────────────────────────────────────────
     // variants.yaml variant order is intentional: single-prop variants before
     // multi-prop compound variants, matching the layering cascade.
@@ -54,16 +63,42 @@ export class CssTransformer implements Transformer {
       const configEntries = Object.entries(configuration);
       if (configEntries.length === 0) continue;
 
-      const attrSelectors = configEntries
-        .map(([k, v]) => `[data-${toKebab(k)}="${v}"]`)
-        .join('');
+      // Classify each config entry as a state selector or a data attribute.
+      // stateSelSuffixes accumulates the cartesian product of all state selectors —
+      // comma-separated selectors like ':disabled, [aria-disabled="true"]' expand
+      // into multiple suffixes so each gets its own CSS rule.
+      let skip = false;
+      const dataAttrs: string[] = [];
+      let stateSelSuffixes: string[] = [''];
+
+      for (const [k, v] of configEntries) {
+        const vStr = String(v);
+        if (classifiedProps.has(k)) {
+          const concept = stateLookup.get(`${k}::${vStr}`);
+          if (!concept) { skip = true; break; } // unmatched value = base/rest state
+          const conceptEntry = CONCEPT_TABLE[concept];
+          const sel = conceptEntry?.selector ?? `[data-${toKebab(k)}="${vStr}"]`;
+          const parts = sel.split(',').map(s => s.trim());
+          const expanded: string[] = [];
+          for (const existing of stateSelSuffixes) {
+            for (const part of parts) expanded.push(existing + part);
+          }
+          stateSelSuffixes = expanded;
+        } else {
+          dataAttrs.push(`[data-${toKebab(k)}="${vStr}"]`);
+        }
+      }
+      if (skip) continue;
+
+      const dataAttrStr = dataAttrs.join('');
+      const rootBase = `.${componentClass}${dataAttrStr}`;
+      const rootSelectors = stateSelSuffixes.map(s => `${rootBase}${s}`);
 
       const variantElements = (variant.elements ?? {}) as Record<string, Record<string, unknown>>;
 
       for (const [elemKey, elem] of Object.entries(variantElements)) {
-        const selector = elemKey === 'root'
-          ? `.${componentClass}${attrSelectors}`
-          : `.${componentClass}${attrSelectors} ${elemSelector(componentClass, elemKey)}`;
+        const elemSuffix = elemKey === 'root' ? '' : ` ${elemSelector(componentClass, elemKey)}`;
+        const selector = rootSelectors.map(s => `${s}${elemSuffix}`).join(',\n');
 
         const styles = (elem.styles ?? {}) as Record<string, unknown>;
         const decls = [...layoutToCSS(styles, tokensFormat), ...styleToCSS(styles, tokensFormat)];

@@ -1,3 +1,5 @@
+import type { ProcessingStates } from '../transforms/states.js';
+
 export interface TransformerContext {
   /** Absolute path to the component's output subfolder. */
   outputDir: string;
@@ -5,6 +7,10 @@ export interface TransformerContext {
   componentKey: string;
   /** Token format from config.format.tokens. Drives CSS variable resolution. */
   tokensFormat: string;
+  /** Semantic state concept map from config.processing.states. */
+  processingStates?: ProcessingStates;
+  /** Raw options from the matching config.transformers entry (everything except `name`). */
+  transformerOptions?: Record<string, unknown>;
 }
 
 export interface Transformer {

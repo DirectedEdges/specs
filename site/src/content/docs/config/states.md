@@ -7,6 +7,74 @@ description: "Classify Figma variant props as browser-driven or consumer-control
 
 Without this config, every variant prop emits as a `data-*` attribute selector and appears in the contract. With it, the classification is declared once and applied deterministically everywhere.
 
+## Output
+
+### Given this API from Figma
+
+These props are typical outputs from `specs generate` — the raw Figma variant structure before any state classification is applied:
+
+```yaml
+props:
+  state:
+    type: string
+    default: rest
+    enum:
+      - rest
+      - hover
+      - pressed
+  disabled:
+    type: boolean
+    default: false
+  focused:
+    type: boolean
+    default: false
+```
+
+`processing.states` acts on these props downstream — during `specs transform` — to determine CSS selector strategy and contract inclusion. The `api.yaml` itself is not modified.
+
+### CSS
+
+Without `states` config, all variant configuration props produce `data-*` attribute selectors:
+
+```css
+/* Without states config */
+.ds-text-input[data-state="hover"] { … }
+.ds-text-input[data-disabled="true"] { … }
+.ds-text-input[data-focused="true"] { … }
+```
+
+With `states` config, classified props produce semantic selectors:
+
+```css
+/* With states config */
+.ds-text-input:hover { … }
+.ds-text-input:disabled,
+.ds-text-input[aria-disabled="true"] { … }
+.ds-text-input:focus-within { … }
+```
+
+Props not listed in `states` continue to emit as `data-*` attribute selectors. A `null` value means "this is the base/default state — skip variant output entirely" (the base block already covers it).
+
+Comma-separated selector strings (e.g. `':disabled, [aria-disabled="true"]'`) expand into multiple parallel rules automatically.
+
+### Contract
+
+Props with `contract: omit` are excluded from generated Props interfaces. Browser-driven states are never consumer props — the browser fires `:hover`, `:active`, and `:focus-within` without the application setting anything. Omitting them produces a cleaner, more accurate interface.
+
+Props with `contract: keep` (or no `contract` field) remain in the interface. The consumer sets these and the component implementation bridges them to the appropriate HTML or ARIA attribute.
+
+```typescript
+// contract: omit — browser-driven, excluded from interface
+// state (hover, pressed) and focused (:focus-within) are never set by consumers
+
+// contract: keep — consumer-controlled, retained in interface
+interface TextInputProps {
+  disabled?: boolean;   // bridges to :disabled / aria-disabled
+  readOnly?: boolean;   // bridges to [readonly] / aria-readonly
+  validation?: 'none' | 'invalid';  // bridges to aria-invalid
+}
+```
+
 ## Configuration
 
 ```yaml
@@ -42,35 +110,6 @@ config:
         values:
           "true": "[aria-expanded=\"true\"]"
 ```
-
-## Effect on CSS output
-
-Without `states` config, all variant configuration props produce `data-*` attribute selectors:
-
-```css
-/* Without states config */
-.ds-button[data-state="hover"] { … }
-.ds-button[data-disabled="true"] { … }
-```
-
-With `states` config, classified props produce semantic selectors:
-
-```css
-/* With states config */
-.ds-button:hover { … }
-.ds-button:disabled,
-.ds-button[aria-disabled="true"] { … }
-```
-
-Props not listed in `states` continue to emit as `data-*` attribute selectors. A `null` value means "this is the base/default state — skip variant output entirely" (the base block already covers it).
-
-Comma-separated selector strings (e.g. `':disabled, [aria-disabled="true"]'`) expand into multiple parallel rules automatically.
-
-## Effect on contract output
-
-Props with `contract: omit` are excluded from generated Props interfaces. Browser-driven states like `hover` and `pressed` are never consumer props — the browser fires `:hover` and `:active` without the application setting anything. Omitting them produces a cleaner, more accurate interface.
-
-Props with `contract: keep` (or no `contract` field) remain in the interface. The consumer sets these and the component implementation bridges them to the appropriate HTML attribute or ARIA attribute.
 
 ## Properties
 
