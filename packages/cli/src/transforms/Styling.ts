@@ -4,24 +4,44 @@ import yaml from 'yaml';
 import type { Transformer, TransformerContext } from '../Types/Transformer.js';
 
 type StylingCategory = 'VARIABLES' | 'COLOR_STYLES' | 'TEXT_STYLES' | 'EFFECT_STYLES';
-type RawValue = string | number | boolean | null;
+type RawValue = string | number | boolean;
 
 interface StylingRow {
   category: StylingCategory;
   name: string;
   appliedAs: string;
-  rawValue: RawValue;
+  rawValue?: RawValue;
   appliedTo: Map<string, number>;
 }
 
+interface StylingRowJson {
+  name: string;
+  appliedAs: string;
+  rawValue?: RawValue;
+  appliedTo: Record<string, number>;
+}
+
+interface StylingJson {
+  variables: StylingRowJson[];
+  colorStyles: StylingRowJson[];
+  textStyles: StylingRowJson[];
+  effectStyles: StylingRowJson[];
+}
+
 const CATEGORY_ORDER: StylingCategory[] = ['VARIABLES', 'COLOR_STYLES', 'TEXT_STYLES', 'EFFECT_STYLES'];
+
+const CATEGORY_KEY: Record<StylingCategory, keyof StylingJson> = {
+  VARIABLES: 'variables',
+  COLOR_STYLES: 'colorStyles',
+  TEXT_STYLES: 'textStyles',
+  EFFECT_STYLES: 'effectStyles',
+};
 
 export class StylingTransformer implements Transformer {
   readonly name = 'styling';
 
   async run(apiYaml: Record<string, unknown>, context: TransformerContext): Promise<void> {
-    const { outputDir, componentKey } = context;
-    const prefix = toPascalCase(componentKey);
+    const { outputDir } = context;
 
     const anatomy = (apiYaml.anatomy ?? {}) as Record<string, unknown>;
     const elementTypes = extractElementTypes(anatomy);
@@ -47,43 +67,19 @@ export class StylingTransformer implements Transformer {
 
     const sorted = Array.from(rows.values()).sort(compareRows);
 
-    const lines: string[] = [
-      '// Generated. Do not edit — regenerate with `specs transform`.',
-      '',
-      "export type StylingCategory = 'VARIABLES' | 'COLOR_STYLES' | 'TEXT_STYLES' | 'EFFECT_STYLES';",
-      '',
-      'export interface StylingRow {',
-      '  category: StylingCategory;',
-      '  name: string;',
-      '  appliedAs: string;',
-      '  rawValue: string | number | boolean | null;',
-      '  appliedTo: Record<string, number>;',
-      '}',
-      '',
-    ];
-
-    lines.push(`export const ${prefix}Styling: readonly StylingRow[] = [`);
+    const output: StylingJson = { variables: [], colorStyles: [], textStyles: [], effectStyles: [] };
 
     for (const row of sorted) {
-      const appliedToEntries = Array.from(row.appliedTo.entries())
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([k, v]) => `'${escapeSingleQuote(k)}': ${v}`)
-        .join(', ');
-
-      lines.push('  {');
-      lines.push(`    category: '${row.category}',`);
-      lines.push(`    name: '${escapeSingleQuote(row.name)}',`);
-      lines.push(`    appliedAs: '${escapeSingleQuote(row.appliedAs)}',`);
-      lines.push(`    rawValue: ${serializeRawValue(row.rawValue)},`);
-      lines.push(`    appliedTo: { ${appliedToEntries} },`);
-      lines.push('  },');
+      const appliedTo: Record<string, number> = Object.fromEntries(
+        Array.from(row.appliedTo.entries()).sort((a, b) => a[0].localeCompare(b[0]))
+      );
+      const jsonRow: StylingRowJson = { name: row.name, appliedAs: row.appliedAs, appliedTo };
+      if (row.rawValue !== undefined) jsonRow.rawValue = row.rawValue;
+      output[CATEGORY_KEY[row.category]].push(jsonRow);
     }
 
-    lines.push('];');
-    lines.push('');
-
-    const outputPath = path.join(outputDir, 'styling.ts');
-    await fs.writeFile(outputPath, lines.join('\n'), 'utf-8');
+    const outputPath = path.join(outputDir, 'styling.json');
+    await fs.writeFile(outputPath, JSON.stringify(output, null, 2) + '\n', 'utf-8');
   }
 }
 
@@ -134,8 +130,8 @@ function collectTokens(
 
   const tokenRef = asTokenReference(value);
   if (tokenRef) {
-    const appliedAs = appliedAsForPath(keyPath, elementType);
-    const { name, rawValue, category } = resolveToken(tokenRef);
+    const appliedAs = keyPath.join('.');
+    const { name, rawValue, category } = resolveToken(tokenRef, keyPath, elementType);
     const rowKey = `${category}\x00${name}\x00${appliedAs}`;
     const existing = rows.get(rowKey);
     if (existing) {
@@ -147,7 +143,7 @@ function collectTokens(
   }
 
   if (Array.isArray(value)) {
-    // Don't push array index into keyPath — sibling items share the same path.
+    // Don't push array index into keyPath — sibling items share the same appliedAs.
     for (const item of value) {
       collectTokens(elementName, keyPath, item, elementType, rows);
     }
@@ -161,70 +157,38 @@ function collectTokens(
   }
 }
 
-function asTokenReference(value: unknown): { $token: string; $type: string } | null {
+interface TokenRef {
+  $token: string;
+  $type: string;
+  $extensions?: { 'com.figma'?: { rawValue?: RawValue } };
+}
+
+function asTokenReference(value: unknown): TokenRef | null {
   if (
     value !== null &&
     typeof value === 'object' &&
     '$token' in (value as object) &&
     '$type' in (value as object)
   ) {
-    return value as { $token: string; $type: string };
+    return value as TokenRef;
   }
   return null;
 }
 
-function resolveToken(ref: { $token: string; $type: string }): {
-  name: string;
-  rawValue: RawValue;
-  category: StylingCategory;
-} {
-  const category = categoryForType(ref.$type);
-  return { name: ref.$token, rawValue: null, category };
+function resolveToken(
+  ref: TokenRef,
+  keyPath: string[],
+  elementType: string
+): { name: string; rawValue: RawValue | undefined; category: StylingCategory } {
+  const category = categoryForType(ref.$type, keyPath, elementType);
+  const rawValue = ref.$extensions?.['com.figma']?.rawValue;
+  return { name: ref.$token, rawValue, category };
 }
 
-function categoryForType(type: string): StylingCategory {
+function categoryForType(type: string, keyPath: string[], elementType: string): StylingCategory {
   if (type === 'typography') return 'TEXT_STYLES';
   if (type === 'shadow' || type === 'blur' || type === 'effects') return 'EFFECT_STYLES';
   return 'VARIABLES';
-}
-
-function appliedAsForPath(keyPath: string[], elementType: string): string {
-  if (keyPath.length === 0) return 'Unknown';
-  const [root, ...rest] = keyPath;
-  const base = appliedAsForKey(root, elementType);
-  if (rest.length === 0) return base;
-  const suffix = rest.map(k => humanize(k).toLowerCase()).join(' ');
-  return `${base} ${suffix}`;
-}
-
-function appliedAsForKey(key: string, elementType: string): string {
-  switch (key) {
-    case 'fills':
-    case 'backgroundColor':
-      if (elementType === 'text') return 'Text color';
-      if (elementType === 'glyph' || elementType === 'vector') return 'Fill color';
-      return 'Background color';
-    case 'fillColor':
-      return 'Fill color';
-    case 'strokes':
-    case 'strokeColor':
-      return 'Stroke color';
-    case 'borderColor':
-      return 'Border color';
-    case 'typography':
-    case 'textStyleId':
-      return 'Text style';
-    case 'effects':
-    case 'effectStyleId':
-      return 'Effect style';
-    default:
-      return humanize(key);
-  }
-}
-
-function humanize(key: string): string {
-  const spaced = key.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
 function compareRows(a: StylingRow, b: StylingRow): number {
@@ -233,18 +197,4 @@ function compareRows(a: StylingRow, b: StylingRow): number {
   if (catA !== catB) return catA - catB;
   if (a.name !== b.name) return a.name.localeCompare(b.name);
   return a.appliedAs.localeCompare(b.appliedAs);
-}
-
-function escapeSingleQuote(s: string): string {
-  return s.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-}
-
-function serializeRawValue(v: RawValue): string {
-  if (v === null) return 'null';
-  if (typeof v === 'string') return `'${escapeSingleQuote(v)}'`;
-  return String(v);
-}
-
-function toPascalCase(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1);
 }

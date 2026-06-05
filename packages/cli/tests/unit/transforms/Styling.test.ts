@@ -10,9 +10,15 @@ function makeContext(dir: string) {
   return { outputDir: dir, componentKey: 'dsButton' };
 }
 
-async function run(dir: string, apiYaml: Record<string, unknown>): Promise<string> {
+async function run(dir: string, apiYaml: Record<string, unknown>) {
   await transformer.run(apiYaml, makeContext(dir));
-  return fs.readFile(path.join(dir, 'styling.ts'), 'utf-8');
+  const raw = await fs.readFile(path.join(dir, 'styling.json'), 'utf-8');
+  return JSON.parse(raw) as {
+    variables: Array<{ name: string; appliedAs: string; rawValue?: unknown; appliedTo: Record<string, number> }>;
+    colorStyles: Array<{ name: string; appliedAs: string; rawValue?: unknown; appliedTo: Record<string, number> }>;
+    textStyles: Array<{ name: string; appliedAs: string; rawValue?: unknown; appliedTo: Record<string, number> }>;
+    effectStyles: Array<{ name: string; appliedAs: string; rawValue?: unknown; appliedTo: Record<string, number> }>;
+  };
 }
 
 describe('StylingTransformer', () => {
@@ -30,12 +36,12 @@ describe('StylingTransformer', () => {
     expect(transformer.name).toBe('styling');
   });
 
-  it('writes a styling.ts with header and type declarations', async () => {
+  it('writes styling.json with all four category groups', async () => {
     const out = await run(tmpDir, {});
-    expect(out).toContain('// Generated. Do not edit');
-    expect(out).toContain("export type StylingCategory =");
-    expect(out).toContain('export interface StylingRow {');
-    expect(out).toContain('DsButtonStyling');
+    expect(out).toHaveProperty('variables');
+    expect(out).toHaveProperty('colorStyles');
+    expect(out).toHaveProperty('textStyles');
+    expect(out).toHaveProperty('effectStyles');
   });
 
   it('collects variable tokens from default elements', async () => {
@@ -51,13 +57,13 @@ describe('StylingTransformer', () => {
         },
       },
     });
-    expect(out).toContain("category: 'VARIABLES'");
-    expect(out).toContain("name: 'DS Color.Surface.Primary'");
-    expect(out).toContain("appliedAs: 'Background color'");
-    expect(out).toContain("'root': 1");
+    expect(out.variables).toHaveLength(1);
+    expect(out.variables[0].name).toBe('DS Color.Surface.Primary');
+    expect(out.variables[0].appliedAs).toBe('backgroundColor');
+    expect(out.variables[0].appliedTo).toEqual({ root: 1 });
   });
 
-  it('classifies typography tokens as TEXT_STYLES', async () => {
+  it('classifies typography tokens as textStyles', async () => {
     const out = await run(tmpDir, {
       anatomy: { label: { type: 'text' } },
       default: {
@@ -70,12 +76,12 @@ describe('StylingTransformer', () => {
         },
       },
     });
-    expect(out).toContain("category: 'TEXT_STYLES'");
-    expect(out).toContain("name: 'DS Type.Body.Default'");
-    expect(out).toContain("appliedAs: 'Text style'");
+    expect(out.textStyles).toHaveLength(1);
+    expect(out.textStyles[0].name).toBe('DS Type.Body.Default');
+    expect(out.textStyles[0].appliedAs).toBe('typography');
   });
 
-  it('classifies shadow tokens as EFFECT_STYLES', async () => {
+  it('classifies effects tokens as effectStyles', async () => {
     const out = await run(tmpDir, {
       anatomy: { root: { type: 'container' } },
       default: {
@@ -88,9 +94,9 @@ describe('StylingTransformer', () => {
         },
       },
     });
-    expect(out).toContain("category: 'EFFECT_STYLES'");
-    expect(out).toContain("name: 'DS Shadow.Elevation.1'");
-    expect(out).toContain("appliedAs: 'Effect style'");
+    expect(out.effectStyles).toHaveLength(1);
+    expect(out.effectStyles[0].name).toBe('DS Shadow.Elevation.1');
+    expect(out.effectStyles[0].appliedAs).toBe('effects');
   });
 
   it('accumulates appliedTo counts across variants', async () => {
@@ -118,11 +124,11 @@ describe('StylingTransformer', () => {
         },
       ],
     });
-    expect(out).toContain("'root': 2");
+    expect(out.variables[0].appliedTo).toEqual({ root: 2 });
   });
 
   it('deduplicates the same token applied across multiple variants', async () => {
-    await run(tmpDir, {
+    const out = await run(tmpDir, {
       anatomy: { root: { type: 'container' } },
       default: {
         elements: {
@@ -130,69 +136,55 @@ describe('StylingTransformer', () => {
         },
       },
       variants: [
-        {
-          elements: {
-            root: { styles: { backgroundColor: { $token: 'DS Color.Surface.Primary', $type: 'color' } } },
-          },
-        },
-        {
-          elements: {
-            root: { styles: { backgroundColor: { $token: 'DS Color.Surface.Primary', $type: 'color' } } },
-          },
-        },
+        { elements: { root: { styles: { backgroundColor: { $token: 'DS Color.Surface.Primary', $type: 'color' } } } } },
+        { elements: { root: { styles: { backgroundColor: { $token: 'DS Color.Surface.Primary', $type: 'color' } } } } },
       ],
     });
-    const out = await fs.readFile(path.join(tmpDir, 'styling.ts'), 'utf-8');
-    const occurrences = (out.match(/DS Color\.Surface\.Primary/g) ?? []).length;
-    expect(occurrences).toBe(1);
+    expect(out.variables).toHaveLength(1);
   });
 
-  it('uses fillColor appliedAs for glyph elements', async () => {
-    const out = await run(tmpDir, {
-      anatomy: { icon: { type: 'glyph' } },
-      default: {
-        elements: {
-          icon: {
-            styles: {
-              backgroundColor: { $token: 'DS Color.Icon.Primary', $type: 'color' },
-            },
-          },
-        },
-      },
-    });
-    expect(out).toContain("appliedAs: 'Fill color'");
-  });
-
-  it('uses Text color for text elements with fills/backgroundColor', async () => {
-    const out = await run(tmpDir, {
-      anatomy: { label: { type: 'text' } },
-      default: {
-        elements: {
-          label: {
-            styles: {
-              backgroundColor: { $token: 'DS Color.Text.Primary', $type: 'color' },
-            },
-          },
-        },
-      },
-    });
-    expect(out).toContain("appliedAs: 'Text color'");
-  });
-
-  it('humanizes unknown style keys', async () => {
+  it('uses the dot-joined key path as appliedAs for nested tokens', async () => {
     const out = await run(tmpDir, {
       anatomy: { root: { type: 'container' } },
       default: {
         elements: {
           root: {
             styles: {
-              cornerRadius: { $token: 'DS Shape.Radius.Medium', $type: 'dimension' },
+              padding: {
+                start: { $token: 'DS Space.3x', $type: 'dimension' },
+                end: { $token: 'DS Space.3x', $type: 'dimension' },
+                top: 0,
+                bottom: 0,
+              },
             },
           },
         },
       },
     });
-    expect(out).toContain("appliedAs: 'Corner radius'");
+    const appliedAs = out.variables.map(r => r.appliedAs).sort();
+    expect(appliedAs).toEqual(['padding.end', 'padding.start']);
+  });
+
+  it('uses dot-joined path for per-corner radii', async () => {
+    const out = await run(tmpDir, {
+      anatomy: { root: { type: 'container' } },
+      default: {
+        elements: {
+          root: {
+            styles: {
+              cornerRadius: {
+                topStart: { $token: 'DS Shape.Radius.XL', $type: 'dimension' },
+                topEnd: { $token: 'DS Shape.Radius.XL', $type: 'dimension' },
+                bottomStart: 0,
+                bottomEnd: 0,
+              },
+            },
+          },
+        },
+      },
+    });
+    const appliedAs = out.variables.map(r => r.appliedAs).sort();
+    expect(appliedAs).toEqual(['cornerRadius.topEnd', 'cornerRadius.topStart']);
   });
 
   it('skips non-token style values', async () => {
@@ -201,16 +193,51 @@ describe('StylingTransformer', () => {
       default: {
         elements: {
           root: {
+            styles: { visible: true, width: 48, strokes: '#FF0000' },
+          },
+        },
+      },
+    });
+    expect(out.variables).toHaveLength(0);
+    expect(out.colorStyles).toHaveLength(0);
+    expect(out.textStyles).toHaveLength(0);
+    expect(out.effectStyles).toHaveLength(0);
+  });
+
+  it('includes rawValue when present in $extensions', async () => {
+    const out = await run(tmpDir, {
+      anatomy: { root: { type: 'container' } },
+      default: {
+        elements: {
+          root: {
             styles: {
-              visible: true,
-              width: 48,
-              strokes: '#FF0000',
+              backgroundColor: {
+                $token: 'DS Color.Primary',
+                $type: 'color',
+                $extensions: { 'com.figma': { rawValue: '#FF0000' } },
+              },
             },
           },
         },
       },
     });
-    expect(out).toMatch(/DsButtonStyling: readonly StylingRow\[\] = \[\s*\];/);
+    expect(out.variables[0].rawValue).toBe('#FF0000');
+  });
+
+  it('omits rawValue when $extensions are absent', async () => {
+    const out = await run(tmpDir, {
+      anatomy: { root: { type: 'container' } },
+      default: {
+        elements: {
+          root: {
+            styles: {
+              backgroundColor: { $token: 'DS Color.Primary', $type: 'color' },
+            },
+          },
+        },
+      },
+    });
+    expect('rawValue' in out.variables[0]).toBe(false);
   });
 
   it('output is deterministic for the same input', async () => {
@@ -227,25 +254,27 @@ describe('StylingTransformer', () => {
     try {
       const out1 = await run(tmpDir, apiYaml);
       const out2 = await run(tmpDir2, apiYaml);
-      expect(out1).toBe(out2);
+      expect(JSON.stringify(out1)).toBe(JSON.stringify(out2));
     } finally {
       await fs.remove(tmpDir2);
     }
   });
 
-  it('sorts rows: VARIABLES before TEXT_STYLES, then alphabetical by name', async () => {
+  it('sorts rows alphabetically by name within each category', async () => {
     const out = await run(tmpDir, {
-      anatomy: { root: { type: 'container' }, label: { type: 'text' } },
+      anatomy: { root: { type: 'container' } },
       default: {
         elements: {
-          root: { styles: { backgroundColor: { $token: 'DS Color.Zebra', $type: 'color' } } },
-          label: { styles: { typography: { $token: 'DS Type.Body', $type: 'typography' } } },
+          root: {
+            styles: {
+              backgroundColor: { $token: 'DS Color.Zebra', $type: 'color' },
+              strokes: { $token: 'DS Color.Alpha', $type: 'color' },
+            },
+          },
         },
       },
     });
-    const varIdx = out.indexOf("'VARIABLES'");
-    const textIdx = out.indexOf("'TEXT_STYLES'");
-    expect(varIdx).toBeGreaterThan(-1);
-    expect(textIdx).toBeGreaterThan(varIdx);
+    const names = out.variables.map(r => r.name);
+    expect(names).toEqual([...names].sort());
   });
 });
