@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Proposed |
+| **Status** | Accepted |
 | **Authors** | Nathan Curtis |
 | **Date** | 2026-05-08 |
 | **Index** | [RFCs](../README.md) |
