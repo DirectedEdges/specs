@@ -1,4 +1,4 @@
-# ADR 053: Transform Emit Configuration
+# ADR 053: Transform Command and Configuration
 
 **Branch**: `053-transform-emit-config`
 **Created**: 2026-06-05
@@ -11,115 +11,77 @@
 
 ## Context
 
-`specs-cli` currently produces a single artifact per component: a validated YAML contract (`{component}.yaml`). RFC 001 proposes a deterministic emitter registry that projects each contract into ~16 purpose-built files — the Component Dictionary. This requires a new `specs transform` command and a corresponding configuration block so teams can control which emitters run and how.
+`specs-cli` currently produces a single artifact per component: a validated YAML contract (`{component}.yaml`). RFC 001 proposes a deterministic transformer registry that projects each contract into purpose-built derived files — the Component Dictionary.
 
-The existing `Config` type (`types/Config.ts`) covers processing, format, and include settings — all of which describe how a component was ingested. The emitter selection and emitter-specific options are a distinct concern: they describe what to produce from an already-validated contract, not how to ingest it.
+This requires a new `specs transform` command and a corresponding configuration block. The command is conceptually distinct from `specs generate`: `generate` ingests from a source (Figma, HTML prototyping kit, etc.) and produces contracts; `transform` projects from already-validated contracts into derived files. Different triggers, different inputs, different cadences.
 
-This ADR adds:
-- A new `EmitPreset` string literal union (built-in selection presets)
-- A new `EmitGroup` string literal union (named emitter groups from RFC 001)
-- A new `EmitConfig` interface (preset, include, exclude, per-emitter options)
-- An optional `emit` field on `Config` and a required `emit` field on `ResolvedConfig`
-
-The `emit` block lives on `Config` (not as a separate top-level type) so that per-component overrides use the same type as workspace-level configuration — consistent with how `processing`, `format`, and `include` already work.
-
----
-
-## Decision Drivers
-
-- **Additive only**: changes must not break existing consumers of `Config` or `ResolvedConfig`; `emit` must be optional on `Config`
-- **Type ↔ schema symmetry**: every new type has a corresponding JSON schema definition (Constitution I)
-- **No logic**: types and schema only — no emitter discovery, resolution, or registration logic (Constitution II)
-- **Minimal surface**: only the shared vocabulary (preset names, group names, config shape) belongs here; emitter-specific option shapes are caller-opaque for v1 (Constitution III)
-- **Naming — no abbreviations**: `EmitConfig`, `EmitPreset`, `EmitGroup` use full terms; `emit` as a field name is the established verb in this domain (Constitution, naming rule)
-- **Extensibility**: `include` and `exclude` accept `string[]` so custom emitter names (not yet in any group enum) work without a schema bump
+This ADR records the decisions for the command shape and its configuration surface in `specs-schema`.
 
 ---
 
 ## Options Considered
 
-### Option A: Add `emit` to the existing `Config` interface *(Selected)*
-
-Add `emit?: EmitConfig` as an optional block on `Config` alongside `processing`, `format`, and `include`. `EmitConfig`, `EmitPreset`, and `EmitGroup` are new exported types.
-
-**Pros**:
-- Single config type; workspace and per-component emit overrides use the same shape
-- Consistent with existing `Config` block structure — consumers already know how to merge/resolve `Config`
-- `emit` on a component's contract YAML is valid and meaningful (per-component emitter override)
-- Additive only → MINOR bump
-
-**Cons / Trade-offs**:
-- `Config` grows a fourth top-level block; callers that don't use `transform` carry a slightly larger type
-- Per-emitter `options` are typed as `Record<string, Record<string, unknown>>` in v1 — individual emitter option shapes are not yet validated by the schema
-
----
-
-### Option B: New standalone `EmitConfig` type, not on `Config` *(Rejected)*
-
-Export `EmitConfig` as a first-class type unrelated to `Config`. Workspace config tools read it from a separate key.
-
-**Rejected because**: splits what is logically one workspace config object into two separate roots, duplicating the resolution-order problem (`Config` vs. `EmitConfig` merge precedence) and requiring downstream consumers to track two independent config hierarchies. The RFC shows `config.emit` as a sub-key of the workspace config block — that structure is only natural if `emit` is a field on `Config`.
-
----
-
-### Option C: New `WorkspaceConfig` type wrapping both `Config` and `EmitConfig` *(Rejected)*
-
-Add a `WorkspaceConfig` interface that contains `config: Config` and `emit: EmitConfig` as a typed representation of the full `specs.config.yaml` surface.
-
-**Rejected because**: `WorkspaceConfig` is CLI-specific infrastructure, not shared schema vocabulary. Per Constitution III, types exported from this package must represent genuine shared concepts across all consumers — the plugin and `specs-from-figma` have no use for a workspace config wrapper. This belongs in `specs-cli`'s own types, not the schema package.
+*(Pre-decided — no alternatives evaluated)*
 
 ---
 
 ## Decision
 
+### Command shape (`specs-cli`)
+
+```
+specs transform [transformers...]
+  [transformers...]   Zero or more transformer names to run.
+                      Falls back to config.transform if omitted.
+  -o, --output <path> Path to the contracts directory (input and output).
+                      Resolved: flag → config.outputDirectory → default.
+                      Defensive: -i / --input reserved for a future ingest path.
+```
+
+**Examples**:
+```bash
+specs transform                          # config defaults
+specs transform -o ./specs               # explicit directory, config transformer list
+specs transform -o ./specs contract      # single transformer
+specs transform -o ./specs contract css tokens  # multiple transformers
+```
+
+**Resolution order** — mirrors the established `generate` pattern:
+- `-o` flag → `config.outputDirectory` → process working directory default
+- `[transformers...]` positionals → `config.transform` entries → built-in defaults
+
+Assumes contracts were generated with `--split-components --split-concerns --use-subfolders`. Transformed files are written into each component's subfolder alongside its contract files.
+
 ### Type changes (`types/`)
 
 | File | Change | Bump |
 |------|--------|------|
-| `Config.ts` | Add exported type `EmitPreset` | MINOR |
-| `Config.ts` | Add exported type `EmitGroup` | MINOR |
-| `Config.ts` | Add exported interface `EmitConfig` | MINOR |
-| `Config.ts` | Add optional field `emit?: EmitConfig` to `Config` | MINOR |
-| `Config.ts` | Add required field `emit: ResolvedEmitConfig` to `ResolvedConfig` | MINOR |
-| `Config.ts` | Add exported interface `ResolvedEmitConfig` | MINOR |
-| `Config.ts` | Add `emit` entry to `DEFAULT_CONFIG` | MINOR |
-| `types/index.ts` | Export `EmitPreset`, `EmitGroup`, `EmitConfig`, `ResolvedEmitConfig` | MINOR |
+| `Config.ts` | Add exported interface `TransformEntry` | MINOR |
+| `Config.ts` | Add exported interface `TransformConfig` | MINOR |
+| `Config.ts` | Add exported interface `ResolvedTransformConfig` | MINOR |
+| `Config.ts` | Add optional field `transform?: TransformConfig` to `Config` | MINOR |
+| `Config.ts` | Add required field `transform: ResolvedTransformConfig` to `ResolvedConfig` | MINOR |
+| `Config.ts` | Add `transform` entry to `DEFAULT_CONFIG` | MINOR |
+| `types/index.ts` | Export `TransformEntry`, `TransformConfig`, `ResolvedTransformConfig` | MINOR |
 
-**New types** (`types/Config.ts`):
+**New types**:
 
 ```typescript
-// Built-in selection presets for --emit flag and Config.emit.preset
-export type EmitPreset = 'defaults' | 'all' | 'none';
-
-// Named emitter groups from RFC 001 emitter registry
-export type EmitGroup =
-  | 'defaults'
-  | 'contracts'
-  | 'styling'
-  | 'platform'
-  | 'integrations'
-  | 'examples'
-  | 'testing'
-  | 'workspace';
-
-// Emit configuration block — controls which emitters run and how
-export interface EmitConfig {
-  /** Starting selection: a preset name, emitter group name, or built-in preset. Optional; defaults to 'defaults'. */
-  preset?: EmitPreset | EmitGroup;
-  /** Emitter names or group names to add to the preset selection. */
-  include?: string[];
-  /** Emitter names to remove from the selection. */
-  exclude?: string[];
-  /** Per-emitter option overrides, keyed by emitter name. Shape is emitter-defined. */
-  options?: Record<string, Record<string, unknown>>;
+// A single transformer entry: name plus any transformer-specific options inline.
+export interface TransformEntry {
+  name: string;
+  [option: string]: unknown;
 }
 
-// Fully-resolved emit config — all fields present after merge with DEFAULT_CONFIG
-export interface ResolvedEmitConfig {
-  preset: EmitPreset | EmitGroup;
-  include: string[];
-  exclude: string[];
-  options: Record<string, Record<string, unknown>>;
+// Transform configuration block on Config.
+export interface TransformConfig {
+  /** Transformers to run, each with optional inline options. Absence means CLI built-in defaults apply. */
+  transformers?: TransformEntry[];
+}
+
+// Fully-resolved transform config after merge with DEFAULT_CONFIG.
+export interface ResolvedTransformConfig {
+  transformers: TransformEntry[];
 }
 ```
 
@@ -138,8 +100,8 @@ export interface Config {
   processing: { ... };
   format: { ... };
   include: { ... };
-  /** Emitter selection and options for specs transform. Optional; absence means CLI defaults apply. @since 0.24.0 */
-  emit?: EmitConfig;
+  /** Transformer selection and options for specs transform. Optional; absence means CLI defaults apply. @since 0.24.0 */
+  transform?: TransformConfig;
 }
 ```
 
@@ -150,65 +112,54 @@ export const DEFAULT_CONFIG: ResolvedConfig = {
   processing: { ... },
   format: { ... },
   include: { ... },
-  emit: {
-    preset: 'defaults',
-    include: [],
-    exclude: [],
-    options: {},
+  transform: {
+    transformers: [],   // empty = run built-in defaults
   },
 };
+```
+
+**Config example** (`specs.config.yaml`):
+
+```yaml
+transform:
+  transformers:
+    - name: contract
+    - name: css
+      keys: KEBAB
+    - name: tokens
 ```
 
 ### Schema changes (`schema/`)
 
 | File | Change | Bump |
 |------|--------|------|
-| `component.schema.json` | Add `EmitPreset` definition | MINOR |
-| `component.schema.json` | Add `EmitGroup` definition | MINOR |
-| `component.schema.json` | Add `EmitConfig` definition | MINOR |
-| `component.schema.json` | Add `emit` property to `#/definitions/Config` | MINOR |
+| `component.schema.json` | Add `TransformEntry` definition | MINOR |
+| `component.schema.json` | Add `TransformConfig` definition | MINOR |
+| `component.schema.json` | Add `transform` property to `#/definitions/Config` | MINOR |
 
-**New schema definitions** (`component.schema.json`):
+**New schema definitions**:
 
 ```json
-"EmitPreset": {
-  "type": "string",
-  "enum": ["defaults", "all", "none"],
-  "description": "Built-in emitter selection preset."
-},
-"EmitGroup": {
-  "type": "string",
-  "enum": ["defaults", "contracts", "styling", "platform", "integrations", "examples", "testing", "workspace"],
-  "description": "Named emitter group from the RFC 001 registry."
-},
-"EmitConfig": {
+"TransformEntry": {
   "type": "object",
-  "description": "Emitter selection and options for specs transform.",
+  "description": "A single transformer to run, identified by name, with optional inline options.",
   "properties": {
-    "preset": {
-      "oneOf": [
-        { "$ref": "#/definitions/EmitPreset" },
-        { "$ref": "#/definitions/EmitGroup" }
-      ],
-      "description": "Starting selection preset. Defaults to 'defaults'."
-    },
-    "include": {
+    "name": {
+      "type": "string",
+      "description": "Transformer name."
+    }
+  },
+  "required": ["name"],
+  "additionalProperties": true
+},
+"TransformConfig": {
+  "type": "object",
+  "description": "Transformer selection and options for specs transform.",
+  "properties": {
+    "transformers": {
       "type": "array",
-      "items": { "type": "string" },
-      "description": "Emitter names or group names to add to the preset selection."
-    },
-    "exclude": {
-      "type": "array",
-      "items": { "type": "string" },
-      "description": "Emitter names to remove from the selection."
-    },
-    "options": {
-      "type": "object",
-      "description": "Per-emitter option overrides keyed by emitter name.",
-      "additionalProperties": {
-        "type": "object",
-        "additionalProperties": true
-      }
+      "items": { "$ref": "#/definitions/TransformEntry" },
+      "description": "Transformers to run with optional inline options. Absence means CLI built-in defaults apply."
     }
   },
   "additionalProperties": false
@@ -218,17 +169,20 @@ export const DEFAULT_CONFIG: ResolvedConfig = {
 **Addition to `#/definitions/Config/properties`**:
 
 ```json
-"emit": {
-  "$ref": "#/definitions/EmitConfig",
-  "description": "Emitter selection and options for specs transform. Optional; absence means CLI defaults apply."
+"transform": {
+  "$ref": "#/definitions/TransformConfig",
+  "description": "Transformer selection and options for specs transform. Optional; absence means CLI defaults apply."
 }
 ```
 
 ### Notes
 
-- `include` and `exclude` on `EmitConfig` accept `string[]` rather than `Array<EmitGroup | string>` because the string union `EmitGroup | string` collapses to `string` in TypeScript. The valid group names are documented via `EmitGroup` and enforced at the CLI layer, not the schema layer.
-- Per-emitter `options` values are typed as `Record<string, unknown>` in v1. Individual emitter option shapes (e.g. `css.keys`, `tailwind.layer`) are validated in `specs-cli` against emitter-local schemas, not here. If option shapes solidify into a stable cross-consumer contract, a future ADR can type them explicitly.
-- `ResolvedEmitConfig` mirrors the pattern of `ResolvedConfig` — all fields required after merge with `DEFAULT_CONFIG`.
+- `transform` lives on `Config` (not a separate top-level type) so workspace and per-component overrides share the same shape and resolution chain — consistent with `processing`, `format`, and `include`.
+- Transformer names are open strings — not versioned enums. The valid names and groups are enforced in `specs-cli`, not the schema. Adding new transformers requires no schema bump.
+- Per-transformer options sit inline on `TransformEntry` alongside `name` (`additionalProperties: true` in schema). Individual option keys are transformer-defined and validated in `specs-cli`.
+- An empty `transformers: []` in `DEFAULT_CONFIG` means "run built-in defaults." The CLI distinguishes absent config (no `transform` block) from an explicit empty list — both fall back to defaults, but an explicit list with entries overrides them.
+- `ResolvedTransformConfig` is runtime-only and not serialized to component YAML.
+- `-i / --input` is reserved for a future ingest path flag; `-o` handles the current single-directory case where contracts are read from and written to the same location.
 
 ---
 
@@ -236,11 +190,10 @@ export const DEFAULT_CONFIG: ResolvedConfig = {
 
 - **Symmetric**: Yes
 - **Parity check**:
-  - `EmitPreset` → `#/definitions/EmitPreset` (string enum)
-  - `EmitGroup` → `#/definitions/EmitGroup` (string enum)
-  - `EmitConfig` → `#/definitions/EmitConfig` (object with `preset`, `include`, `exclude`, `options`)
-  - `ResolvedEmitConfig` — runtime-only; no schema definition needed (same shape as `EmitConfig` with all fields required; not serialized to component YAML)
-  - `Config.emit` → `#/definitions/Config/properties/emit` (`$ref` to `EmitConfig`)
+  - `TransformEntry` → `#/definitions/TransformEntry` (object, `name` required, additional properties allowed)
+  - `TransformConfig` → `#/definitions/TransformConfig` (object with `transformers` array)
+  - `ResolvedTransformConfig` — runtime-only; no schema definition needed
+  - `Config.transform` → `#/definitions/Config/properties/transform` (`$ref` to `TransformConfig`)
 
 ---
 
@@ -248,9 +201,9 @@ export const DEFAULT_CONFIG: ResolvedConfig = {
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-cli` | Primary consumer — reads `Config.emit` to determine which emitters the `transform` command runs | Implement `transform` command; resolve `Config.emit` from flag → config → `DEFAULT_CONFIG.emit` |
-| `specs-from-figma` | None — does not read or write `Config.emit`; `emit` is ignored during contract generation | Recompile against updated `Config` type |
-| `specs-plugin-2` | None — plugin does not invoke `transform` or read `emit` config | Recompile against updated `Config` type |
+| `specs-cli` | Primary consumer — reads `Config.transform` to resolve which transformers run; implements `transform` command, `-o` flag, positional transformer names, and transformer registry | Implement `transform` command |
+| `specs-from-figma` | None — does not read or write `Config.transform` | Recompile against updated `Config` type |
+| `specs-plugin-2` | None — plugin does not invoke `transform` | Recompile against updated `Config` type |
 
 ---
 
@@ -258,14 +211,13 @@ export const DEFAULT_CONFIG: ResolvedConfig = {
 
 **Version bump**: `0.23.0 → 0.24.0` (`MINOR`)
 
-**Justification**: All changes are additive optional fields on existing interfaces (`Config.emit?`) and new exported types (`EmitPreset`, `EmitGroup`, `EmitConfig`, `ResolvedEmitConfig`). No existing fields are removed, renamed, or narrowed. Per constitution versioning policy: additive → MINOR.
+**Justification**: All changes are additive — optional field on `Config`, new exported types. No existing fields removed, renamed, or narrowed.
 
 ---
 
 ## Consequences
 
-- `Config` gains a fourth top-level block (`emit`) that is optional and ignored by consumers that don't invoke `transform`
-- `specs-cli` can read a fully-typed `EmitConfig` from `specs.config.yaml` and resolve it against `DEFAULT_CONFIG` without defining the shape locally
-- Per-component YAML contracts may carry `config.emit` overrides — the schema validates them against `EmitConfig`
-- `EmitGroup` is the canonical list of RFC 001 emitter group names; adding a new group in a future ADR requires a MINOR bump here
-- Per-emitter option shapes remain untyped in the shared schema (v1); if they grow into a stable cross-consumer contract, a follow-on ADR types them explicitly
+- `Config` gains an optional `transform` block; existing consumers that don't use `specs transform` are unaffected
+- `specs-cli` can read a fully-typed `TransformConfig` from `specs.config.yaml` without defining the shape locally
+- Transformer names are not versioned in the schema; the registry is a CLI concern and can evolve without schema bumps
+- Per-transformer option shapes remain open (`additionalProperties: true`) in v1; a future ADR can add specific option types if they stabilize into a shared contract

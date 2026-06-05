@@ -131,5 +131,12 @@ config:
 
     # Include layered variants that contain no elements (default: false)
     # emptyVariants: false
+
+  # ─── Transform configuration ─────────────────────────────────────────────────
+  # Transformers to run with \`specs transform\`. Absence means CLI defaults apply (contract).
+  # transformers:
+  #   - name: contract
+  #   - name: css
+  #   - name: styling
 `;
 }

@@ -5,6 +5,28 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.24.0] - 2026-06-05
+
+Introduces the transformer pipeline's schema foundation. `Config.transformers` (a flat `TransformEntry[]`) replaces the old two-level `config.transform.transformers` wrapper, and a new `workspace.schema.json` provides IDE validation for `specs.config.yaml`. `Config.processing.states` adds a concept-keyed map that classifies Figma variant props as browser-driven or consumer-controlled states, enabling the `css` transformer to emit semantic CSS selectors and the `contract` transformer to omit browser-driven props from Props interfaces.
+
+### Added
+
+- **`TransformEntry` type (ADR-053)** — `{ name: string; [option: string]: unknown }`. Describes a single transformer entry in `config.transformers`. Transformer-specific options sit inline alongside `name`.
+
+- **`workspace.schema.json` (ADR-054)** — New top-level JSON schema file for the workspace config file (`specs.config.yaml`). Defines the full workspace shape including `dataDirectory`, `outputDirectory`, `sources`, `output`, `author`, and the `config` block (which embeds the component `Config` schema). `Config.transformers` is defined here rather than in the component schema, keeping transform configuration CLI-only and out of the per-component spec.
+
+- **`Config.transformers` — `TransformEntry[]` directly on `Config`** — Replaces the two-level `config.transform.transformers` shape. The wrapper object is gone; `config.transformers` is the array. Absence means CLI defaults apply.
+
+- **`VariantStateEntry` type (ADR-055)** — classifies a Figma variant prop as a semantic state concept; fields: `prop` (string, required), `value` (string, optional — the Figma enum value activating the concept; defaults to `"true"` for boolean props), `contract` (`'omit'` | `'keep'`, optional — overrides the concept's canonical default)
+- **`Config.processing.states` — `Record<string, VariantStateEntry>`** — concept-keyed map (key = concept name, e.g. `hover`, `disabled`); classifies variant props for deterministic use by CSS and contract transformers; absence means all props emit as `data-*` attribute selectors and all props are retained in contracts
+
+### Changed
+
+- **`Config.transform` removed; replaced by `Config.transformers`** — The intermediate `TransformConfig` wrapper object is eliminated. `transform.transformers` collapses to `transformers` directly on `Config`/`ResolvedConfig`.
+
+### Removed
+
+
 ## [0.23.0] - Unreleased
 
 ### Added

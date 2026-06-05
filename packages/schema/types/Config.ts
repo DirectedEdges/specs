@@ -15,12 +15,54 @@
 export type ColorFormat = 'HEX' | 'HEXA' | 'RGB' | 'RGBA' | 'HSLA' | 'HSB' | 'OKLCH' | 'OKLAB' | 'OBJECT';
 
 /**
+ * Classifies a Figma variant prop as a semantic state concept for deterministic
+ * use by transformers and plugin output.
+ *
+ * The map key is the concept name (e.g. `hover`, `disabled`, `focus-within`).
+ * `prop` names the Figma variant prop; `value` is the enum value that activates
+ * the concept (defaults to `"true"` for boolean props). `contract` overrides the
+ * concept's canonical browser-driven / consumer-controlled default — rarely needed.
+ *
+ * @since 0.24.0
+ */
+export interface VariantStateEntry {
+  /** Figma variant prop name (e.g. `state`, `isDisabled`, `focused`). */
+  prop: string;
+  /**
+   * Figma variant value that activates this concept (e.g. `"hover"`, `"pressed"`).
+   * Omit for boolean props — defaults to `"true"`.
+   */
+  value?: string;
+  /**
+   * Contract generation behavior override.
+   * - `'omit'` — browser-driven state; exclude this prop from generated Props interfaces.
+   * - `'keep'` — consumer-controlled state; retain this prop in generated Props interfaces.
+   * When absent, the concept's canonical default applies (omit for pseudo-class concepts,
+   * keep for ARIA-attribute concepts).
+   */
+  contract?: 'omit' | 'keep';
+}
+
+/**
+ * A single transformer to run via `specs transform`, identified by name.
+ * Transformer-specific options sit inline alongside `name`.
+ *
+ * @since 0.24.0
+ */
+export interface TransformEntry {
+  /** Transformer name (e.g. `contract`, `css`, `tokens`). */
+  name: string;
+  [option: string]: unknown;
+}
+
+/**
  * Model configuration used to generate the component spec.
  * Full structure matches the transformer's configuration options.
  *
  * @property processing - Processing options for component transformation.
  * @property format - Output format and key naming conventions.
  * @property include - Feature flags for what to include in output.
+ * @property transformers - Transformer selection and options for `specs transform`.
  */
 export interface Config {
   processing: {
@@ -56,6 +98,8 @@ export interface Config {
       /** Immediate-parent frame or section names a candidate must be contained within. Absence = no parent-name filtering. */
       parentNames?: string[];
     };
+    /** Concept-keyed map classifying Figma variant props as semantic states. Key = concept name (e.g. `hover`, `disabled`). Optional; absence means all variant props emit as data-* attribute selectors and all props are retained in contracts. @since 0.24.0 */
+    states?: Record<string, VariantStateEntry>;
   };
   format: {
     /** Output format. Optional; defaults to JSON. */
@@ -84,6 +128,8 @@ export interface Config {
     /** Include slot content examples in output (ADR-050). Optional; defaults to false. @since 0.21.0 */
     defaultSlotContent?: boolean;
   };
+  /** Transformers to run via `specs transform`, each with optional inline options. Optional; absence means CLI defaults apply. @since 0.24.0 */
+  transformers?: TransformEntry[];
 }
 
 /**
@@ -127,6 +173,8 @@ export interface ResolvedConfig {
       exclude?: string[];
       parentNames?: string[];
     };
+    /** Concept-keyed map classifying Figma variant props as semantic states. Key = concept name (e.g. `hover`, `disabled`). Optional; absence means all variant props emit as data-* attribute selectors and all props are retained in contracts. @since 0.24.0 */
+    states?: Record<string, VariantStateEntry>;
   };
   format: {
     /** Output format. */
@@ -150,6 +198,8 @@ export interface ResolvedConfig {
     /** Include slot content examples in output. */
     defaultSlotContent: boolean;
   };
+  /** Transformers to run via `specs transform`. @since 0.24.0 */
+  transformers: TransformEntry[];
 }
 
 /**
@@ -192,4 +242,5 @@ export const DEFAULT_CONFIG: ResolvedConfig = {
     emptyVariants: false,
     defaultSlotContent: false,
   },
+  transformers: [],
 };

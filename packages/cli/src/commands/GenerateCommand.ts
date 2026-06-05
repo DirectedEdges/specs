@@ -27,6 +27,14 @@ import { CombinedFileWriter } from '../Writers/CombinedFileWriter.js';
 import type { FileWriter, WriteResult } from '../Writers/FileWriter.js';
 import type { OutputFormat } from '../Types/OutputConfig.js';
 
+declare const __SPECS_CLI_VERSION__: string;
+
+const CLI_GENERATOR = {
+  name: '@directededges/specs-cli',
+  version: typeof __SPECS_CLI_VERSION__ !== 'undefined' ? __SPECS_CLI_VERSION__ : 'unknown',
+  url: 'https://www.npmjs.com/package/@directededges/specs-cli',
+};
+
 // Re-export for backward compatibility
 export { ManifestParser } from '../utilities/ManifestParser.js';
 export type { ManifestComponent, ManifestMetadata } from '../utilities/ManifestParser.js';
@@ -306,7 +314,7 @@ export const Generate = new Command('generate')
         componentIds,
         libraryJson,
         modelConfig,
-        { styles, variables, collections, author: config.author },
+        { styles, variables, collections, author: config.author, generator: CLI_GENERATOR },
         (event: ProgressEvent) => {
           if (!isManifest) {
             // File mode: quiet progress (verbose only)
