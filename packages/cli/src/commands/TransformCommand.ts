@@ -86,7 +86,11 @@ export const Transform = new Command('transform')
           const raw = await fs.readFile(apiPath, 'utf-8');
           const apiYaml = yaml.parse(raw) as Record<string, unknown>;
 
-          const context: TransformerContext = { outputDir: componentDir, componentKey };
+          const context: TransformerContext = {
+            outputDir: componentDir,
+            componentKey,
+            tokensFormat: config.config.format.tokens,
+          };
 
           for (const transformer of transformers) {
             await transformer.run(apiYaml, context);

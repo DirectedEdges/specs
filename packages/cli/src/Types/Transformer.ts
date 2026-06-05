@@ -3,6 +3,8 @@ export interface TransformerContext {
   outputDir: string;
   /** camelCase component folder name (e.g. `egdsButton`). */
   componentKey: string;
+  /** Token format from config.format.tokens. Drives CSS variable resolution. */
+  tokensFormat: string;
 }
 
 export interface Transformer {
