@@ -5,7 +5,9 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.24.0] - Unreleased
+## [0.24.0] - 2026-06-05
+
+Introduces the transformer pipeline's schema foundation. `Config.transformers` (a flat `TransformEntry[]`) replaces the old two-level `config.transform.transformers` wrapper, and a new `workspace.schema.json` provides IDE validation for `specs.config.yaml`. `Config.processing.states` adds a concept-keyed map that classifies Figma variant props as browser-driven or consumer-controlled states, enabling the `css` transformer to emit semantic CSS selectors and the `contract` transformer to omit browser-driven props from Props interfaces.
 
 ### Added
 

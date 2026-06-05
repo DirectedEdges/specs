@@ -24,7 +24,7 @@ export type { Composition, Compositions } from './Composition.js';
 
 // Configuration types
 export type { PropConfigurations, PropConfigurationValue, NestedPropConfiguration } from './PropConfigurations.js';
-export type { Config, ResolvedConfig, ColorFormat, VariantStateEntry, TransformEntry, TransformConfig, ResolvedTransformConfig } from './Config.js';
+export type { Config, ResolvedConfig, ColorFormat, VariantStateEntry, TransformEntry } from './Config.js';
 export { DEFAULT_CONFIG } from './Config.js';
 
 // Style types

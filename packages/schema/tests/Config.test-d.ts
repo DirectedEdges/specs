@@ -183,6 +183,7 @@ const resolved: ResolvedConfig = {
   processing: { slotConstraints: false, variantDepth: 9999, details: 'LAYERED', inferNumberProps: false },
   format: { output: 'JSON', keys: 'SAFE', layout: 'LAYOUT', tokens: 'TOKEN', color: 'HEX' },
   include: { invalidVariants: false, invalidCombinations: true, emptyVariants: false, defaultSlotContent: false },
+  transformers: [],
 };
 
 // ─── ResolvedConfig requires defaultable fields — cannot omit them ────────────
