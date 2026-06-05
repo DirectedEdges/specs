@@ -2,6 +2,7 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 
 const pro = { text: 'Pro', variant: 'tip' };
+const experimental = { text: 'Experimental', variant: 'default' };
 
 export default defineConfig({
   site: 'https://directededges.github.io',
@@ -101,8 +102,20 @@ export default defineConfig({
             { label: 'init', slug: 'cli/commands/init' },
             { label: 'fetch', slug: 'cli/commands/fetch' },
             { label: 'scan', slug: 'cli/commands/scan' },
-            { label: 'generate', slug: 'cli/commands/generate' },
             { label: 'applyCustomTokens', slug: 'cli/commands/apply-custom-tokens' },
+            { label: 'generate', slug: 'cli/commands/generate' },
+            { label: 'transform', slug: 'cli/commands/transform' },
+          ],
+        },
+        {
+          label: 'Transforms',
+          collapsed: true,
+          badge: experimental,
+          items: [
+            { label: 'Overview', slug: 'cli/transforms' },
+            { label: 'contract', slug: 'cli/transforms/contract' },
+            { label: 'css', slug: 'cli/transforms/css' },
+            { label: 'styling', slug: 'cli/transforms/styling' },
           ],
         },
         {
@@ -134,6 +147,13 @@ export default defineConfig({
                 { label: 'keys', slug: 'config/keys' },
                 { label: 'layout', slug: 'config/layout' },
                 { label: 'tokens', slug: 'config/tokens', badge: pro },
+              ],
+            },
+            {
+              label: 'Transform',
+              collapsed: true,
+              items: [
+                { label: 'transformers', slug: 'config/transform', badge: experimental },
               ],
             },
             {
