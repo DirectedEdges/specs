@@ -82,6 +82,10 @@ config:
 
 Figma naming conventions don't need to match the concept name. Many design systems name their pointer-down state `pressed` rather than `active` because `pressed` is platform-neutral — it maps to `:active` on web, `UIControlState.highlighted` on iOS, and press `Indication` in Compose. Naming it `active` in Figma would embed a web-specific term into a shared design language. Similarly, a library using `isDisabled` as its boolean prop convention is still expressing the `disabled` concept.
 
+:::tip Setting up for the first time?
+Run the **CSS States Setup** skill in Claude Code — it scans your specs output directory, matches variant props against the concept table, and proposes a ready-to-paste `processing.states` block.
+:::
+
 ### CSS transform
 
 Without `states` config, all variant props produce `data-*` attribute selectors:
