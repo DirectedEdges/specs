@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://specs.directededges.com/workspace.schema.json",
+  "title": "Specs Workspace Configuration",
+  "description": "Schema for workspace-level CLI configuration (specs.config.yaml transform block and related settings).",
+  "definitions": {
+    "TransformEntry": {
+      "type": "object",
+      "description": "A single transformer to run via specs transform, identified by name. Transformer-specific options sit inline alongside name. (ADR-053)",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Transformer name (e.g. contract, css, tokens)."
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": true
+    },
+    "TransformConfig": {
+      "type": "object",
+      "description": "Transformer selection and options for specs transform. (ADR-053)",
+      "properties": {
+        "transformers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TransformEntry"
+          },
+          "description": "Transformers to run with optional inline options. Absence means CLI built-in defaults apply."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

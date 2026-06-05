@@ -16,7 +16,9 @@
     ".": {
       "types": "./types/index.ts",
       "default": "./dist/index.js"
-    }
+    },
+    "./schema/component": "./schema/component.schema.json",
+    "./schema/workspace": "./schema/workspace.schema.json"
   },
   "files": [
     "dist",
