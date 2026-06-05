@@ -1,0 +1,25 @@
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-[var(--btn-gap)]
+           rounded-md border border-[--btn-border] bg-[--btn-bg] text-[--btn-fg]
+           px-[--btn-px] py-[--btn-py];
+    --btn-bg:     theme('colors.mode.button.default.bgColor.rest');
+    --btn-fg:     theme('colors.mode.button.default.fgColor.rest');
+    --btn-border: theme('colors.mode.button.default.borderColor.rest');
+    --btn-gap:    theme('spacing.pattern.size.control.medium.gap');
+    --btn-px:     theme('spacing.pattern.size.control.medium.paddingInline.normal');
+    --btn-py:     theme('spacing.pattern.size.control.medium.paddingBlock');
+  }
+  .btn[data-variant="primary"]  { --btn-bg: theme('colors.mode.button.primary.bgColor.rest');
+                                  --btn-border: theme('colors.mode.button.primary.borderColor.rest');
+                                  --btn-fg: theme('colors.mode.button.primary.fgColor.rest'); }
+  .btn[data-variant="danger"]   { --btn-border: theme('colors.mode.button.danger.borderColor.rest');
+                                  --btn-fg: theme('colors.mode.button.danger.fgColor.rest'); }
+  .btn[data-variant="invisible"]{ --btn-bg: theme('colors.mode.button.invisible.bgColor.rest');
+                                  --btn-fg: theme('colors.mode.button.invisible.fgColor.rest'); }
+  .btn[data-size="small"]       { --btn-px: theme('spacing.pattern.size.control.small.paddingInline.condensed');
+                                  --btn-py: theme('spacing.pattern.size.control.small.paddingBlock'); }
+  .btn[data-size="large"]       { --btn-px: theme('spacing.pattern.size.control.large.paddingInline.spacious');
+                                  --btn-py: theme('spacing.pattern.size.control.large.paddingBlock'); }
+  .btn[data-state="hover"]      { --btn-bg: theme('colors.mode.button.default.bgColor.hover'); }
+}
