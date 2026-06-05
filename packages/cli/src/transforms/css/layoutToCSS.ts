@@ -2,7 +2,7 @@
 // Each key is emitted when present — variant layering mirrors CSS cascading,
 // so if a key appears in a variant it means it changed and should be emitted.
 
-import { isTokenRef, tokenVar, dimensionValue } from './values.js';
+import { isTokenRef, resolveTokenVar, dimensionValue } from './values.js';
 
 const MAIN_AXIS_MAP: Record<string, string> = {
   START: 'flex-start',
@@ -24,7 +24,7 @@ const WRAP_ALIGN_MAP: Record<string, string> = {
   SPACE_BETWEEN: 'space-between',
 };
 
-export function layoutToCSS(styles: Record<string, unknown>): string[] {
+export function layoutToCSS(styles: Record<string, unknown>, tokensFormat = 'TOKEN'): string[] {
   const decls: string[] = [];
 
   if ('layoutMode' in styles) {
@@ -71,12 +71,13 @@ export function layoutToCSS(styles: Record<string, unknown>): string[] {
       // overlapping children and requires margin on child elements instead.
       if (v < 0) return decls; // caller handles via child margins (deferred)
       decls.push(`gap: ${v === 0 ? '0' : `${v}px`}`);
-    } else if (isTokenRef(v)) {
-      decls.push(`gap: ${tokenVar(v)}`);
+    } else if (isTokenRef(v) || (typeof v === 'object' && v !== null && '$cssVar' in (v as object))) {
+      const r = resolveTokenVar(v, tokensFormat);
+      if (r) decls.push(`gap: ${r}`);
     } else if (typeof v === 'object') {
       const is = v as Record<string, unknown>;
-      const h = dimensionValue(is.horizontal);
-      const g = dimensionValue(is.vertical);
+      const h = dimensionValue(is.horizontal, tokensFormat);
+      const g = dimensionValue(is.vertical, tokensFormat);
       if (h && g) decls.push(`gap: ${g} ${h}`);
       else if (h) decls.push(`column-gap: ${h}`);
       else if (g) decls.push(`row-gap: ${g}`);

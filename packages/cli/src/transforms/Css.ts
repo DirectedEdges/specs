@@ -10,7 +10,7 @@ export class CssTransformer implements Transformer {
   readonly name = 'css';
 
   async run(apiYaml: Record<string, unknown>, context: TransformerContext): Promise<void> {
-    const { outputDir, componentKey } = context;
+    const { outputDir, componentKey, tokensFormat } = context;
 
     const variantsPath = path.join(outputDir, 'variants.yaml');
     if (!fs.existsSync(variantsPath)) {
@@ -34,7 +34,7 @@ export class CssTransformer implements Transformer {
     for (const [elemKey, elem] of Object.entries(defaultElements)) {
       const selector = elemSelector(componentClass, elemKey);
       const styles = (elem.styles ?? {}) as Record<string, unknown>;
-      const decls = [...layoutToCSS(styles), ...styleToCSS(styles)];
+      const decls = [...layoutToCSS(styles, tokensFormat), ...styleToCSS(styles, tokensFormat)];
 
       if (decls.length > 0) {
         lines.push(`${selector} {`);
@@ -66,7 +66,7 @@ export class CssTransformer implements Transformer {
           : `.${componentClass}${attrSelectors} ${elemSelector(componentClass, elemKey)}`;
 
         const styles = (elem.styles ?? {}) as Record<string, unknown>;
-        const decls = [...layoutToCSS(styles), ...styleToCSS(styles)];
+        const decls = [...layoutToCSS(styles, tokensFormat), ...styleToCSS(styles, tokensFormat)];
 
         if (decls.length > 0) {
           lines.push(`${selector} {`);

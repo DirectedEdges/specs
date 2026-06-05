@@ -3,7 +3,7 @@
 // wrapAlignment, itemSpacing, layoutSizingHorizontal, layoutSizingVertical)
 // are handled by layoutToCSS — they require cross-key context and are skipped here.
 
-import { isTokenRef, tokenVar, dimensionValue, colorValue, sidesValue } from './values.js';
+import { isTokenRef, resolveTokenVar, dimensionValue, colorValue, sidesValue } from './values.js';
 
 const TEXT_ALIGN_MAP: Record<string, string> = {
   LEFT: 'left', CENTER: 'center', RIGHT: 'right', JUSTIFIED: 'justify',
@@ -36,23 +36,23 @@ const DIMENSION_KEYS: Array<[string, string]> = [
   ['maxHeight', 'max-height'],
 ];
 
-export function styleToCSS(styles: Record<string, unknown>): string[] {
+export function styleToCSS(styles: Record<string, unknown>, tokensFormat = 'TOKEN'): string[] {
   const decls: string[] = [];
 
   // ── Colors ──────────────────────────────────────────────────────────────────
 
   if ('backgroundColor' in styles) {
-    const v = colorValue(styles.backgroundColor);
+    const v = colorValue(styles.backgroundColor, tokensFormat);
     if (v) decls.push(`background: ${v}`);
   }
 
   if ('textColor' in styles) {
-    const v = colorValue(styles.textColor);
+    const v = colorValue(styles.textColor, tokensFormat);
     if (v) decls.push(`color: ${v}`);
   }
 
   if ('fillColor' in styles) {
-    const v = colorValue(styles.fillColor);
+    const v = colorValue(styles.fillColor, tokensFormat);
     if (v) decls.push(`fill: ${v}`);
   }
 
@@ -60,7 +60,8 @@ export function styleToCSS(styles: Record<string, unknown>): string[] {
 
   if ('opacity' in styles && styles.opacity !== undefined) {
     const v = styles.opacity;
-    if (isTokenRef(v)) decls.push(`opacity: ${tokenVar(v)}`);
+    const resolved = resolveTokenVar(v, tokensFormat);
+    if (resolved) decls.push(`opacity: ${resolved}`);
     else if (typeof v === 'number') decls.push(`opacity: ${v}`);
   }
 
@@ -82,16 +83,14 @@ export function styleToCSS(styles: Record<string, unknown>): string[] {
   if (hasStrokes) {
     const strokesVal = styles.strokes;
     if (strokesVal === null) {
-      // Explicit null: remove border entirely. border-width handled by strokeWeight below.
       decls.push('border-color: transparent');
     } else {
-      const v = colorValue(strokesVal);
+      const v = colorValue(strokesVal, tokensFormat);
       if (v) {
         if (strokeAlign === 'OUTSIDE' || strokeAlign === 'CENTER') {
           decls.push(`outline-color: ${v}`);
           decls.push('outline-style: solid');
         } else {
-          // INSIDE (default) or unspecified — use CSS border
           decls.push(`border-color: ${v}`);
           decls.push('border-style: solid');
         }
@@ -104,9 +103,9 @@ export function styleToCSS(styles: Record<string, unknown>): string[] {
     if (v === null) {
       decls.push('border-width: 0');
     } else if (typeof v === 'object' && v !== null && !isTokenRef(v)) {
-      decls.push(...sidesValue(v as Record<string, unknown>, 'border-width'));
+      decls.push(...sidesValue(v as Record<string, unknown>, 'border-width', tokensFormat));
     } else {
-      const d = dimensionValue(v);
+      const d = dimensionValue(v, tokensFormat);
       if (d) {
         if (strokeAlign === 'OUTSIDE' || strokeAlign === 'CENTER') {
           decls.push(`outline-width: ${d}`);
@@ -121,15 +120,17 @@ export function styleToCSS(styles: Record<string, unknown>): string[] {
 
   if ('cornerRadius' in styles && styles.cornerRadius !== undefined) {
     const v = styles.cornerRadius;
-    if (isTokenRef(v)) {
-      decls.push(`border-radius: ${tokenVar(v)}`);
+    const resolved = resolveTokenVar(v, tokensFormat);
+    if (resolved) {
+      decls.push(`border-radius: ${resolved}`);
     } else if (typeof v === 'object' && v !== null) {
       // Corners object: topStart topEnd bottomEnd bottomStart
       const c = v as Record<string, unknown>;
-      const vals = [c.topStart, c.topEnd, c.bottomEnd, c.bottomStart].map(dimensionValue);
+      const vals = [c.topStart, c.topEnd, c.bottomEnd, c.bottomStart]
+        .map(x => dimensionValue(x, tokensFormat));
       decls.push(`border-radius: ${vals.map(x => x ?? '0').join(' ')}`);
     } else {
-      const d = dimensionValue(v);
+      const d = dimensionValue(v, tokensFormat);
       if (d) decls.push(`border-radius: ${d}`);
     }
   }
@@ -139,12 +140,13 @@ export function styleToCSS(styles: Record<string, unknown>): string[] {
   if ('effects' in styles && styles.effects !== null && styles.effects !== undefined) {
     const v = styles.effects;
     if (isTokenRef(v)) {
-      // Distinguish backdrop-filter (blur) from box-shadow (elevation/shadow) by token name.
+      // Distinguish backdrop-filter (blur) from box-shadow by token name.
       // Phase 2 will resolve to precise values; this is a best-effort phase-1 mapping.
+      const resolved = resolveTokenVar(v, tokensFormat) ?? '';
       if (/blur/i.test(v.$token)) {
-        decls.push(`backdrop-filter: blur(${tokenVar(v)})`);
+        decls.push(`backdrop-filter: blur(${resolved})`);
       } else {
-        decls.push(`box-shadow: ${tokenVar(v)}`);
+        decls.push(`box-shadow: ${resolved}`);
       }
     }
     // Inline Effects objects (drop shadows, blur) deferred to phase 2.
@@ -154,7 +156,7 @@ export function styleToCSS(styles: Record<string, unknown>): string[] {
 
   for (const [key, cssProp] of DIMENSION_KEYS) {
     if (key in styles) {
-      const d = dimensionValue((styles as Record<string, unknown>)[key]);
+      const d = dimensionValue((styles as Record<string, unknown>)[key], tokensFormat);
       if (d && d !== '0') decls.push(`${cssProp}: ${d}`);
     }
   }
@@ -166,9 +168,9 @@ export function styleToCSS(styles: Record<string, unknown>): string[] {
     if (v === null) {
       decls.push('padding: 0');
     } else if (typeof v === 'object' && !isTokenRef(v)) {
-      decls.push(...sidesValue(v as Record<string, unknown>, 'padding'));
+      decls.push(...sidesValue(v as Record<string, unknown>, 'padding', tokensFormat));
     } else {
-      const d = dimensionValue(v);
+      const d = dimensionValue(v, tokensFormat);
       if (d) decls.push(`padding: ${d}`);
     }
   }
@@ -177,29 +179,35 @@ export function styleToCSS(styles: Record<string, unknown>): string[] {
 
   if ('typography' in styles && styles.typography !== null && styles.typography !== undefined) {
     const v = styles.typography;
-    if (isTokenRef(v)) {
-      // Typography token → CSS font shorthand placeholder. Phase 2 resolves.
-      decls.push(`font: ${tokenVar(v)}`);
+    const resolved = resolveTokenVar(v, tokensFormat);
+    if (resolved) {
+      // Typography token reference → CSS font shorthand placeholder. Phase 2 resolves.
+      decls.push(`font: ${resolved}`);
     } else if (typeof v === 'object') {
       const t = v as Record<string, unknown>;
 
       if (t.fontSize !== undefined) {
-        if (isTokenRef(t.fontSize)) decls.push(`font-size: ${tokenVar(t.fontSize)}`);
+        const r = resolveTokenVar(t.fontSize, tokensFormat);
+        if (r) decls.push(`font-size: ${r}`);
         else decls.push(`font-size: ${typeof t.fontSize === 'number' ? `${t.fontSize}px` : t.fontSize}`);
       }
       if (t.fontFamily !== undefined) {
-        if (isTokenRef(t.fontFamily)) decls.push(`font-family: ${tokenVar(t.fontFamily)}`);
+        const r = resolveTokenVar(t.fontFamily, tokensFormat);
+        if (r) decls.push(`font-family: ${r}`);
         else if (typeof t.fontFamily === 'string') decls.push(`font-family: ${t.fontFamily}`);
       }
 
       // fontStyle in Figma encodes weight + italic as a combined name ("SemiBold Italic").
       // Split into font-weight and font-style separately.
       if (t.fontStyle !== undefined && (typeof t.fontStyle === 'string' || isTokenRef(t.fontStyle))) {
-        if (isTokenRef(t.fontStyle)) {
-          decls.push(`font-weight: ${tokenVar(t.fontStyle)}`);
-        } else {
-          const parts = (t.fontStyle as string).split(/\s+/);
-          const isItalic = FONT_STYLE_ITALIC_SUFFIXES.some(s => t.fontStyle === s || (t.fontStyle as string).endsWith(` ${s}`));
+        const r = resolveTokenVar(t.fontStyle, tokensFormat);
+        if (r) {
+          decls.push(`font-weight: ${r}`);
+        } else if (typeof t.fontStyle === 'string') {
+          const parts = t.fontStyle.split(/\s+/);
+          const isItalic = FONT_STYLE_ITALIC_SUFFIXES.some(
+            s => t.fontStyle === s || (t.fontStyle as string).endsWith(` ${s}`)
+          );
           const weightName = parts.find(p => FONT_STYLE_WEIGHT_MAP[p]);
           if (weightName) decls.push(`font-weight: ${FONT_STYLE_WEIGHT_MAP[weightName]}`);
           if (isItalic) decls.push('font-style: italic');
@@ -208,14 +216,16 @@ export function styleToCSS(styles: Record<string, unknown>): string[] {
 
       // lineHeight from Figma is always in pixels when a number.
       // Unitless lineHeight in CSS is a multiplier — always append px for numeric values.
-      if (t.lineHeight !== undefined && !isTokenRef(t.lineHeight)) {
-        const lh = t.lineHeight;
-        if (typeof lh === 'number') decls.push(`line-height: ${lh}px`);
-        else if (typeof lh === 'string') decls.push(`line-height: ${lh}`); // "150%" etc.
+      if (t.lineHeight !== undefined) {
+        const r = resolveTokenVar(t.lineHeight, tokensFormat);
+        if (r) decls.push(`line-height: ${r}`);
+        else if (typeof t.lineHeight === 'number') decls.push(`line-height: ${t.lineHeight}px`);
+        else if (typeof t.lineHeight === 'string') decls.push(`line-height: ${t.lineHeight}`);
       }
 
       if (t.letterSpacing !== undefined) {
-        if (isTokenRef(t.letterSpacing)) decls.push(`letter-spacing: ${tokenVar(t.letterSpacing)}`);
+        const r = resolveTokenVar(t.letterSpacing, tokensFormat);
+        if (r) decls.push(`letter-spacing: ${r}`);
         else if (typeof t.letterSpacing === 'number') decls.push(`letter-spacing: ${t.letterSpacing}px`);
       }
       if (t.textCase !== undefined && typeof t.textCase === 'string') {
@@ -264,24 +274,17 @@ export function styleToCSS(styles: Record<string, unknown>): string[] {
 
   if ('rotation' in styles && styles.rotation !== undefined) {
     const v = styles.rotation;
-    if (isTokenRef(v)) decls.push(`transform: rotate(${tokenVar(v)})`);
+    const r = resolveTokenVar(v, tokensFormat);
+    if (r) decls.push(`transform: rotate(${r})`);
     else if (typeof v === 'number' && v !== 0) decls.push(`transform: rotate(${v}deg)`);
   }
 
   // ── Position & offsets ───────────────────────────────────────────────────────
   //
   // position: ABSOLUTE is emitted on the element that carries it in the spec.
-  // Any element that has top/bottom/start/end offsets but no explicit position
-  // in its own styles will have received position: absolute from its parent
-  // scope in practice — but CSS does not inherit positioning. We emit
-  // position: absolute whenever any inset offset is present and position is
-  // not explicitly AUTO, so that the offsets have effect.
-
-  // Only emit position when explicitly declared in the spec.
-  // Inset offsets without an explicit position: ABSOLUTE are Figma layout artifacts
-  // and do not imply CSS positioning — the spec always co-emits position: ABSOLUTE.
   // position: AUTO means the element re-enters auto-layout flow (variant transition
   // from ABSOLUTE back to AUTO); emit position: static to undo a prior absolute rule.
+
   if ('position' in styles) {
     if (styles.position === 'ABSOLUTE') decls.push('position: absolute');
     else if (styles.position === 'AUTO') decls.push('position: static');
@@ -294,7 +297,7 @@ export function styleToCSS(styles: Record<string, unknown>): string[] {
     ['end', 'inset-inline-end'],
   ] as const) {
     if (specKey in styles && styles[specKey] !== null && styles[specKey] !== undefined) {
-      const d = dimensionValue(styles[specKey]);
+      const d = dimensionValue(styles[specKey], tokensFormat);
       if (d) decls.push(`${cssKey}: ${d}`);
     }
   }
