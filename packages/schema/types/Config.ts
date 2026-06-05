@@ -15,12 +15,25 @@
 export type ColorFormat = 'HEX' | 'HEXA' | 'RGB' | 'RGBA' | 'HSLA' | 'HSB' | 'OKLCH' | 'OKLAB' | 'OBJECT';
 
 /**
+ * A single transformer to run via `specs transform`, identified by name.
+ * Transformer-specific options sit inline alongside `name`.
+ *
+ * @since 0.24.0
+ */
+export interface TransformEntry {
+  /** Transformer name (e.g. `contract`, `css`, `tokens`). */
+  name: string;
+  [option: string]: unknown;
+}
+
+/**
  * Model configuration used to generate the component spec.
  * Full structure matches the transformer's configuration options.
  *
  * @property processing - Processing options for component transformation.
  * @property format - Output format and key naming conventions.
  * @property include - Feature flags for what to include in output.
+ * @property transformers - Transformer selection and options for `specs transform`.
  */
 export interface Config {
   processing: {
@@ -84,6 +97,8 @@ export interface Config {
     /** Include slot content examples in output (ADR-050). Optional; defaults to false. @since 0.21.0 */
     defaultSlotContent?: boolean;
   };
+  /** Transformers to run via `specs transform`, each with optional inline options. Optional; absence means CLI defaults apply. @since 0.24.0 */
+  transformers?: TransformEntry[];
 }
 
 /**
@@ -150,6 +165,8 @@ export interface ResolvedConfig {
     /** Include slot content examples in output. */
     defaultSlotContent: boolean;
   };
+  /** Transformers to run via `specs transform`. @since 0.24.0 */
+  transformers: TransformEntry[];
 }
 
 /**
@@ -192,4 +209,5 @@ export const DEFAULT_CONFIG: ResolvedConfig = {
     emptyVariants: false,
     defaultSlotContent: false,
   },
+  transformers: [],
 };

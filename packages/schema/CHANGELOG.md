@@ -9,7 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`TransformEntry` type (ADR-053)** — `{ name: string; [option: string]: unknown }`. Describes a single transformer entry in `config.transformers`. Transformer-specific options sit inline alongside `name`.
+
+- **`workspace.schema.json` (ADR-054)** — New top-level JSON schema file for the workspace config file (`specs.config.yaml`). Defines the full workspace shape including `dataDirectory`, `outputDirectory`, `sources`, `output`, `author`, and the `config` block (which embeds the component `Config` schema). `Config.transformers` is defined here rather than in the component schema, keeping transform configuration CLI-only and out of the per-component spec.
+
+- **`Config.transformers` — `TransformEntry[]` directly on `Config`** — Replaces the two-level `config.transform.transformers` shape. The wrapper object is gone; `config.transformers` is the array. Absence means CLI defaults apply.
+
 ### Changed
+
+- **`Config.transform` removed; replaced by `Config.transformers`** — The intermediate `TransformConfig` wrapper object is eliminated. `transform.transformers` collapses to `transformers` directly on `Config`/`ResolvedConfig`.
 
 ### Removed
 
