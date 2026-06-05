@@ -48,6 +48,7 @@ const CATEGORY_KEY: Record<StylingCategory, keyof StylingJson> = {
 export class StylingTransformer implements Transformer {
   readonly name = 'styling';
 
+  // Flat map: "componentKey" and "componentKey.subName" entries stored together.
   private readonly _componentData = new Map<string, StylingJson>();
 
   async run(apiYaml: Record<string, unknown>, context: TransformerContext): Promise<void> {
@@ -61,37 +62,33 @@ export class StylingTransformer implements Transformer {
     const variantsYaml = await loadVariantsYaml(outputDir);
     const source = variantsYaml ?? apiYaml;
 
-    const rows = new Map<string, StylingRow>();
+    // Build one StylingJson per scope: top-level component + each subcomponent.
+    const scopes = new Map<string, StylingJson>();
 
-    collectDefaultAndVariants(source, elementTypes, rows);
+    const topRows = new Map<string, StylingRow>();
+    collectDefaultAndVariants(source, elementTypes, topRows);
+    scopes.set(componentKey, buildStylingJson(topRows));
 
-    // Subcomponents have their own default/variants and anatomy (from api.yaml).
     const apiSubcomponents = (apiYaml.subcomponents ?? {}) as Record<string, unknown>;
     const sourceSubcomponents = (source.subcomponents ?? {}) as Record<string, unknown>;
     for (const [subName, subSource] of Object.entries(sourceSubcomponents)) {
       const subApiEntry = apiSubcomponents[subName] as Record<string, unknown> | undefined;
       const subAnatomy = (subApiEntry?.anatomy ?? {}) as Record<string, unknown>;
       const subElementTypes = extractElementTypes(subAnatomy);
-      collectDefaultAndVariants(subSource as Record<string, unknown>, subElementTypes, rows);
+      const subRows = new Map<string, StylingRow>();
+      collectDefaultAndVariants(subSource as Record<string, unknown>, subElementTypes, subRows);
+      scopes.set(`${componentKey}.${subName}`, buildStylingJson(subRows));
     }
 
-    const sorted = Array.from(rows.values()).sort(compareRows);
-
-    const output: StylingJson = { variables: [], colorStyles: [], textStyles: [], effectStyles: [] };
-
-    for (const row of sorted) {
-      const appliedTo: Record<string, number> = Object.fromEntries(
-        Array.from(row.appliedTo.entries()).sort((a, b) => a[0].localeCompare(b[0]))
-      );
-      const jsonRow: StylingRowJson = { name: row.name, appliedAs: row.appliedAs, appliedTo };
-      if (row.rawValue !== undefined) jsonRow.rawValue = row.rawValue;
-      output[CATEGORY_KEY[row.category]].push(jsonRow);
+    // Persist each scope to _componentData and write the per-component file.
+    const fileOutput: Record<string, StylingJson> = {};
+    for (const [scopeKey, data] of scopes) {
+      this._componentData.set(scopeKey, data);
+      fileOutput[scopeKey] = data;
     }
-
-    this._componentData.set(componentKey, output);
 
     const outputPath = path.join(outputDir, 'styling.json');
-    await fs.writeFile(outputPath, JSON.stringify(output, null, 2) + '\n', 'utf-8');
+    await fs.writeFile(outputPath, JSON.stringify(fileOutput, null, 2) + '\n', 'utf-8');
   }
 
   async finalize(outputDir: string): Promise<void> {
@@ -106,8 +103,8 @@ export class StylingTransformer implements Transformer {
 
   private async _writeByComponent(dictDir: string): Promise<void> {
     const out: Record<string, StylingJson> = {};
-    for (const [componentKey, data] of Array.from(this._componentData.entries()).sort((a, b) => a[0].localeCompare(b[0]))) {
-      out[componentKey] = stripRawValues(data);
+    for (const [key, data] of Array.from(this._componentData.entries()).sort((a, b) => a[0].localeCompare(b[0]))) {
+      out[key] = stripRawValues(data);
     }
     await fs.writeFile(path.join(dictDir, 'styling.byComponent.json'), JSON.stringify(out, null, 2) + '\n', 'utf-8');
   }
@@ -120,17 +117,31 @@ export class StylingTransformer implements Transformer {
       effectStyles: {},
     };
 
-    for (const [componentKey, data] of Array.from(this._componentData.entries()).sort((a, b) => a[0].localeCompare(b[0]))) {
+    for (const [scopeKey, data] of Array.from(this._componentData.entries()).sort((a, b) => a[0].localeCompare(b[0]))) {
       for (const groupKey of CATEGORY_KEYS) {
         for (const row of data[groupKey]) {
           const entries = out[groupKey][row.name] ?? (out[groupKey][row.name] = []);
-          entries.push({ component: componentKey, appliedAs: row.appliedAs, appliedTo: row.appliedTo });
+          entries.push({ component: scopeKey, appliedAs: row.appliedAs, appliedTo: row.appliedTo });
         }
       }
     }
 
     await fs.writeFile(path.join(dictDir, 'styling.byToken.json'), JSON.stringify(out, null, 2) + '\n', 'utf-8');
   }
+}
+
+function buildStylingJson(rows: Map<string, StylingRow>): StylingJson {
+  const sorted = Array.from(rows.values()).sort(compareRows);
+  const output: StylingJson = { variables: [], colorStyles: [], textStyles: [], effectStyles: [] };
+  for (const row of sorted) {
+    const appliedTo: Record<string, number> = Object.fromEntries(
+      Array.from(row.appliedTo.entries()).sort((a, b) => a[0].localeCompare(b[0]))
+    );
+    const jsonRow: StylingRowJson = { name: row.name, appliedAs: row.appliedAs, appliedTo };
+    if (row.rawValue !== undefined) jsonRow.rawValue = row.rawValue;
+    output[CATEGORY_KEY[row.category]].push(jsonRow);
+  }
+  return output;
 }
 
 function stripRawValues(data: StylingJson): StylingJson {

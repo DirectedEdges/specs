@@ -6,19 +6,19 @@ import { StylingTransformer } from '../../../src/transforms/Styling.js';
 
 const transformer = new StylingTransformer();
 
-function makeContext(dir: string) {
-  return { outputDir: dir, componentKey: 'dsButton' };
+function makeContext(dir: string, componentKey = 'dsButton') {
+  return { outputDir: dir, componentKey };
 }
 
-async function run(dir: string, apiYaml: Record<string, unknown>) {
-  await transformer.run(apiYaml, makeContext(dir));
+async function run(dir: string, apiYaml: Record<string, unknown>, componentKey = 'dsButton') {
+  await transformer.run(apiYaml, makeContext(dir, componentKey));
   const raw = await fs.readFile(path.join(dir, 'styling.json'), 'utf-8');
-  return JSON.parse(raw) as {
+  return JSON.parse(raw) as Record<string, {
     variables: Array<{ name: string; appliedAs: string; rawValue?: unknown; appliedTo: Record<string, number> }>;
     colorStyles: Array<{ name: string; appliedAs: string; rawValue?: unknown; appliedTo: Record<string, number> }>;
     textStyles: Array<{ name: string; appliedAs: string; rawValue?: unknown; appliedTo: Record<string, number> }>;
     effectStyles: Array<{ name: string; appliedAs: string; rawValue?: unknown; appliedTo: Record<string, number> }>;
-  };
+  }>;
 }
 
 describe('StylingTransformer', () => {
@@ -36,12 +36,13 @@ describe('StylingTransformer', () => {
     expect(transformer.name).toBe('styling');
   });
 
-  it('writes styling.json with all four category groups', async () => {
+  it('writes styling.json keyed by componentKey with all four category groups', async () => {
     const out = await run(tmpDir, {});
-    expect(out).toHaveProperty('variables');
-    expect(out).toHaveProperty('colorStyles');
-    expect(out).toHaveProperty('textStyles');
-    expect(out).toHaveProperty('effectStyles');
+    expect(out).toHaveProperty('dsButton');
+    expect(out.dsButton).toHaveProperty('variables');
+    expect(out.dsButton).toHaveProperty('colorStyles');
+    expect(out.dsButton).toHaveProperty('textStyles');
+    expect(out.dsButton).toHaveProperty('effectStyles');
   });
 
   it('collects variable tokens from default elements', async () => {
@@ -57,10 +58,10 @@ describe('StylingTransformer', () => {
         },
       },
     });
-    expect(out.variables).toHaveLength(1);
-    expect(out.variables[0].name).toBe('DS Color.Surface.Primary');
-    expect(out.variables[0].appliedAs).toBe('backgroundColor');
-    expect(out.variables[0].appliedTo).toEqual({ root: 1 });
+    expect(out.dsButton.variables).toHaveLength(1);
+    expect(out.dsButton.variables[0].name).toBe('DS Color.Surface.Primary');
+    expect(out.dsButton.variables[0].appliedAs).toBe('backgroundColor');
+    expect(out.dsButton.variables[0].appliedTo).toEqual({ root: 1 });
   });
 
   it('classifies typography tokens as textStyles', async () => {
@@ -76,9 +77,9 @@ describe('StylingTransformer', () => {
         },
       },
     });
-    expect(out.textStyles).toHaveLength(1);
-    expect(out.textStyles[0].name).toBe('DS Type.Body.Default');
-    expect(out.textStyles[0].appliedAs).toBe('typography');
+    expect(out.dsButton.textStyles).toHaveLength(1);
+    expect(out.dsButton.textStyles[0].name).toBe('DS Type.Body.Default');
+    expect(out.dsButton.textStyles[0].appliedAs).toBe('typography');
   });
 
   it('classifies effects tokens as effectStyles', async () => {
@@ -94,9 +95,9 @@ describe('StylingTransformer', () => {
         },
       },
     });
-    expect(out.effectStyles).toHaveLength(1);
-    expect(out.effectStyles[0].name).toBe('DS Shadow.Elevation.1');
-    expect(out.effectStyles[0].appliedAs).toBe('effects');
+    expect(out.dsButton.effectStyles).toHaveLength(1);
+    expect(out.dsButton.effectStyles[0].name).toBe('DS Shadow.Elevation.1');
+    expect(out.dsButton.effectStyles[0].appliedAs).toBe('effects');
   });
 
   it('accumulates appliedTo counts across variants', async () => {
@@ -124,7 +125,7 @@ describe('StylingTransformer', () => {
         },
       ],
     });
-    expect(out.variables[0].appliedTo).toEqual({ root: 2 });
+    expect(out.dsButton.variables[0].appliedTo).toEqual({ root: 2 });
   });
 
   it('deduplicates the same token applied across multiple variants', async () => {
@@ -140,7 +141,7 @@ describe('StylingTransformer', () => {
         { elements: { root: { styles: { backgroundColor: { $token: 'DS Color.Surface.Primary', $type: 'color' } } } } },
       ],
     });
-    expect(out.variables).toHaveLength(1);
+    expect(out.dsButton.variables).toHaveLength(1);
   });
 
   it('uses the dot-joined key path as appliedAs for nested tokens', async () => {
@@ -161,7 +162,7 @@ describe('StylingTransformer', () => {
         },
       },
     });
-    const appliedAs = out.variables.map(r => r.appliedAs).sort();
+    const appliedAs = out.dsButton.variables.map(r => r.appliedAs).sort();
     expect(appliedAs).toEqual(['padding.end', 'padding.start']);
   });
 
@@ -183,7 +184,7 @@ describe('StylingTransformer', () => {
         },
       },
     });
-    const appliedAs = out.variables.map(r => r.appliedAs).sort();
+    const appliedAs = out.dsButton.variables.map(r => r.appliedAs).sort();
     expect(appliedAs).toEqual(['cornerRadius.topEnd', 'cornerRadius.topStart']);
   });
 
@@ -198,10 +199,10 @@ describe('StylingTransformer', () => {
         },
       },
     });
-    expect(out.variables).toHaveLength(0);
-    expect(out.colorStyles).toHaveLength(0);
-    expect(out.textStyles).toHaveLength(0);
-    expect(out.effectStyles).toHaveLength(0);
+    expect(out.dsButton.variables).toHaveLength(0);
+    expect(out.dsButton.colorStyles).toHaveLength(0);
+    expect(out.dsButton.textStyles).toHaveLength(0);
+    expect(out.dsButton.effectStyles).toHaveLength(0);
   });
 
   it('includes rawValue when present in $extensions', async () => {
@@ -221,7 +222,7 @@ describe('StylingTransformer', () => {
         },
       },
     });
-    expect(out.variables[0].rawValue).toBe('#FF0000');
+    expect(out.dsButton.variables[0].rawValue).toBe('#FF0000');
   });
 
   it('omits rawValue when $extensions are absent', async () => {
@@ -237,7 +238,7 @@ describe('StylingTransformer', () => {
         },
       },
     });
-    expect('rawValue' in out.variables[0]).toBe(false);
+    expect('rawValue' in out.dsButton.variables[0]).toBe(false);
   });
 
   it('output is deterministic for the same input', async () => {
@@ -274,8 +275,54 @@ describe('StylingTransformer', () => {
         },
       },
     });
-    const names = out.variables.map(r => r.name);
+    const names = out.dsButton.variables.map(r => r.name);
     expect(names).toEqual([...names].sort());
+  });
+
+  it('emits separate keys for component and subcomponent', async () => {
+    const out = await run(tmpDir, {
+      anatomy: { root: { type: 'container' } },
+      default: {
+        elements: {
+          root: { styles: { backgroundColor: { $token: 'Color/Primary', $type: 'color' } } },
+        },
+      },
+      subcomponents: {
+        item: {
+          default: {
+            elements: {
+              icon: { styles: { fillColor: { $token: 'Color/On surface', $type: 'color' } } },
+            },
+          },
+        },
+      },
+    }, 'dsButton');
+    expect(out).toHaveProperty('dsButton');
+    expect(out).toHaveProperty('dsButton.item');
+    expect(out['dsButton'].variables[0].name).toBe('Color/Primary');
+    expect(out['dsButton.item'].variables[0].name).toBe('Color/On surface');
+  });
+
+  it('subcomponent tokens do not appear in the top-level component scope', async () => {
+    const out = await run(tmpDir, {
+      anatomy: { root: { type: 'container' } },
+      default: {
+        elements: {
+          root: { styles: { backgroundColor: { $token: 'Color/Primary', $type: 'color' } } },
+        },
+      },
+      subcomponents: {
+        item: {
+          default: {
+            elements: {
+              icon: { styles: { fillColor: { $token: 'Color/On surface', $type: 'color' } } },
+            },
+          },
+        },
+      },
+    });
+    const topNames = out.dsButton.variables.map(r => r.name);
+    expect(topNames).not.toContain('Color/On surface');
   });
 });
 
@@ -376,6 +423,26 @@ describe('StylingTransformer.finalize', () => {
     const { byToken } = await runFinalize();
     expect(byToken.textStyles['Typography/Body']).toHaveLength(1);
     expect(byToken.textStyles['Typography/Body'][0].component).toBe('compB');
+  });
+
+  it('byToken uses dot-path key for subcomponent entries', async () => {
+    const t = new StylingTransformer();
+    const withSub = {
+      anatomy: { root: { type: 'container' } },
+      default: { elements: { root: { styles: { backgroundColor: { $token: 'Color/Primary', $type: 'color' } } } } },
+      subcomponents: {
+        item: {
+          default: { elements: { icon: { styles: { fillColor: { $token: 'Color/On surface', $type: 'color' } } } } },
+        },
+      },
+    };
+    const compDir = path.join(outputDir, 'compSub');
+    await fs.ensureDir(compDir);
+    await t.run(withSub, { outputDir: compDir, componentKey: 'compSub' });
+    await t.finalize!(outputDir);
+    const byToken = JSON.parse(await fs.readFile(path.join(outputDir, '_dictionary', 'styling.byToken.json'), 'utf-8'));
+    const entry = byToken.variables['Color/On surface'][0];
+    expect(entry.component).toBe('compSub.item');
   });
 
   it('does nothing when no components were processed', async () => {
