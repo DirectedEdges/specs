@@ -118,27 +118,45 @@ function collectElements(
     const elementType = elementTypes.get(elementName) ?? 'container';
 
     for (const [styleKey, styleValue] of Object.entries(styles)) {
-      if (styleValue === null || styleValue === undefined) continue;
+      collectTokens(elementName, [styleKey], styleValue, elementType, rows);
+    }
+  }
+}
 
-      const tokenRef = asTokenReference(styleValue);
-      if (tokenRef) {
-        const { name, rawValue, category } = resolveToken(tokenRef);
-        const appliedAs = appliedAsForKey(styleKey, elementType);
-        const rowKey = `${category}\x00${name}\x00${appliedAs}`;
+function collectTokens(
+  elementName: string,
+  keyPath: string[],
+  value: unknown,
+  elementType: string,
+  rows: Map<string, StylingRow>
+): void {
+  if (value === null || value === undefined) return;
 
-        const existing = rows.get(rowKey);
-        if (existing) {
-          existing.appliedTo.set(elementName, (existing.appliedTo.get(elementName) ?? 0) + 1);
-        } else {
-          rows.set(rowKey, {
-            category,
-            name,
-            appliedAs,
-            rawValue,
-            appliedTo: new Map([[elementName, 1]]),
-          });
-        }
-      }
+  const tokenRef = asTokenReference(value);
+  if (tokenRef) {
+    const appliedAs = appliedAsForPath(keyPath, elementType);
+    const { name, rawValue, category } = resolveToken(tokenRef);
+    const rowKey = `${category}\x00${name}\x00${appliedAs}`;
+    const existing = rows.get(rowKey);
+    if (existing) {
+      existing.appliedTo.set(elementName, (existing.appliedTo.get(elementName) ?? 0) + 1);
+    } else {
+      rows.set(rowKey, { category, name, appliedAs, rawValue, appliedTo: new Map([[elementName, 1]]) });
+    }
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    // Don't push array index into keyPath — sibling items share the same path.
+    for (const item of value) {
+      collectTokens(elementName, keyPath, item, elementType, rows);
+    }
+    return;
+  }
+
+  if (typeof value === 'object') {
+    for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+      collectTokens(elementName, [...keyPath, key], child, elementType, rows);
     }
   }
 }
@@ -168,6 +186,15 @@ function categoryForType(type: string): StylingCategory {
   if (type === 'typography') return 'TEXT_STYLES';
   if (type === 'shadow' || type === 'blur' || type === 'effects') return 'EFFECT_STYLES';
   return 'VARIABLES';
+}
+
+function appliedAsForPath(keyPath: string[], elementType: string): string {
+  if (keyPath.length === 0) return 'Unknown';
+  const [root, ...rest] = keyPath;
+  const base = appliedAsForKey(root, elementType);
+  if (rest.length === 0) return base;
+  const suffix = rest.map(k => humanize(k).toLowerCase()).join(' ');
+  return `${base} ${suffix}`;
 }
 
 function appliedAsForKey(key: string, elementType: string): string {
