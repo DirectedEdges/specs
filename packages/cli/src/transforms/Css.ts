@@ -107,10 +107,20 @@ function buildCssLines(
         }
         stateSelSuffixes = expanded;
       } else {
-        dataAttrs.push(`[data-${toKebab(k)}="${vStr}"]`);
+        // Boolean true → presence selector; string value → value selector
+        dataAttrs.push(v === true ? `[data-${toKebab(k)}]` : `[data-${toKebab(k)}="${vStr}"]`);
       }
     }
     if (skip) continue;
+
+    // Guard :hover and :active against firing when disabled, if disabled is configured
+    if (context.processingStates?.['disabled']) {
+      const disabledSel = CONCEPT_TABLE['disabled']?.selector ?? ':disabled';
+      const notGuard = disabledSel.split(',').map(s => `:not(${s.trim()})`).join('');
+      stateSelSuffixes = stateSelSuffixes.map(s =>
+        (s.includes(':hover') || s.includes(':active')) ? s + notGuard : s
+      );
+    }
 
     const dataAttrStr = dataAttrs.join('');
     const rootBase = `.${componentClass}${dataAttrStr}`;
