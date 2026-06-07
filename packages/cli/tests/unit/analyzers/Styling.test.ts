@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
-import { StylingTransformer } from '../../../src/transforms/Styling.js';
+import { StylingAnalyzer } from '../../../src/analyzers/Styling.js';
 
-const transformer = new StylingTransformer();
+const transformer = new StylingAnalyzer();
 
 function makeContext(dir: string, componentKey = 'dsButton') {
   return { outputDir: dir, componentKey };
@@ -21,7 +21,7 @@ async function run(dir: string, apiYaml: Record<string, unknown>, componentKey =
   }>;
 }
 
-describe('StylingTransformer', () => {
+describe('StylingAnalyzer', () => {
   let tmpDir: string;
 
   beforeEach(async () => {
@@ -326,7 +326,7 @@ describe('StylingTransformer', () => {
   });
 });
 
-describe('StylingTransformer.finalize', () => {
+describe('StylingAnalyzer.finalize', () => {
   const TOKEN_A = { $token: 'Color/Primary', $type: 'color' };
   const TOKEN_B = { $token: 'Typography/Body', $type: 'typography' };
 
@@ -361,19 +361,19 @@ describe('StylingTransformer.finalize', () => {
   });
 
   async function runFinalize() {
-    const t = new StylingTransformer();
+    const t = new StylingAnalyzer();
     await t.run(COMP_A, { outputDir: compDirA, componentKey: 'compA' });
     await t.run(COMP_B, { outputDir: compDirB, componentKey: 'compB' });
     await t.finalize!(outputDir);
-    const byComp = JSON.parse(await fs.readFile(path.join(outputDir, '_dictionary', 'styling.byComponent.json'), 'utf-8'));
-    const byToken = JSON.parse(await fs.readFile(path.join(outputDir, '_dictionary', 'styling.byToken.json'), 'utf-8'));
+    const byComp = JSON.parse(await fs.readFile(path.join(outputDir, '_analysis', 'styling.byComponent.json'), 'utf-8'));
+    const byToken = JSON.parse(await fs.readFile(path.join(outputDir, '_analysis', 'styling.byToken.json'), 'utf-8'));
     return { byComp, byToken };
   }
 
-  it('creates _dictionary folder with both files', async () => {
+  it('creates _analysis folder with both files', async () => {
     await runFinalize();
-    expect(fs.existsSync(path.join(outputDir, '_dictionary', 'styling.byComponent.json'))).toBe(true);
-    expect(fs.existsSync(path.join(outputDir, '_dictionary', 'styling.byToken.json'))).toBe(true);
+    expect(fs.existsSync(path.join(outputDir, '_analysis', 'styling.byComponent.json'))).toBe(true);
+    expect(fs.existsSync(path.join(outputDir, '_analysis', 'styling.byToken.json'))).toBe(true);
   });
 
   it('byComponent keys match component names in alphabetical order', async () => {
@@ -390,7 +390,7 @@ describe('StylingTransformer.finalize', () => {
   });
 
   it('byComponent omits rawValue even when present in per-component file', async () => {
-    const t = new StylingTransformer();
+    const t = new StylingAnalyzer();
     const withRaw = {
       anatomy: { root: { type: 'container' } },
       default: { elements: { root: { styles: { backgroundColor: { $token: 'DS/X', $type: 'color', $extensions: { 'com.figma': { rawValue: '#FF0000' } } } } } } },
@@ -399,7 +399,7 @@ describe('StylingTransformer.finalize', () => {
     await fs.ensureDir(compDir);
     await t.run(withRaw, { outputDir: compDir, componentKey: 'compRaw' });
     await t.finalize!(outputDir);
-    const byComp = JSON.parse(await fs.readFile(path.join(outputDir, '_dictionary', 'styling.byComponent.json'), 'utf-8'));
+    const byComp = JSON.parse(await fs.readFile(path.join(outputDir, '_analysis', 'styling.byComponent.json'), 'utf-8'));
     expect('rawValue' in byComp.compRaw.variables[0]).toBe(false);
   });
 
@@ -426,7 +426,7 @@ describe('StylingTransformer.finalize', () => {
   });
 
   it('byToken uses dot-path key for subcomponent entries', async () => {
-    const t = new StylingTransformer();
+    const t = new StylingAnalyzer();
     const withSub = {
       anatomy: { root: { type: 'container' } },
       default: { elements: { root: { styles: { backgroundColor: { $token: 'Color/Primary', $type: 'color' } } } } },
@@ -440,14 +440,14 @@ describe('StylingTransformer.finalize', () => {
     await fs.ensureDir(compDir);
     await t.run(withSub, { outputDir: compDir, componentKey: 'compSub' });
     await t.finalize!(outputDir);
-    const byToken = JSON.parse(await fs.readFile(path.join(outputDir, '_dictionary', 'styling.byToken.json'), 'utf-8'));
+    const byToken = JSON.parse(await fs.readFile(path.join(outputDir, '_analysis', 'styling.byToken.json'), 'utf-8'));
     const entry = byToken.variables['Color/On surface'][0];
     expect(entry.component).toBe('compSub.item');
   });
 
   it('does nothing when no components were processed', async () => {
-    const t = new StylingTransformer();
+    const t = new StylingAnalyzer();
     await t.finalize!(outputDir);
-    expect(fs.existsSync(path.join(outputDir, '_dictionary'))).toBe(false);
+    expect(fs.existsSync(path.join(outputDir, '_analysis'))).toBe(false);
   });
 });

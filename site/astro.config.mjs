@@ -115,7 +115,16 @@ export default defineConfig({
             { label: 'Overview', slug: 'cli/transforms' },
             { label: 'contract', slug: 'cli/transforms/contract' },
             { label: 'css', slug: 'cli/transforms/css' },
-            { label: 'styling', slug: 'cli/transforms/styling' },
+          ],
+        },
+        {
+          label: 'Analyze',
+          collapsed: true,
+          badge: experimental,
+          items: [
+            { label: 'Overview', slug: 'cli/analyze' },
+            { label: 'props', slug: 'cli/analyze/props' },
+            { label: 'styling', slug: 'cli/analyze/styling' },
           ],
         },
         {

@@ -45,7 +45,7 @@ const CATEGORY_KEY: Record<StylingCategory, keyof StylingJson> = {
   EFFECT_STYLES: 'effectStyles',
 };
 
-export class StylingTransformer implements Transformer {
+export class StylingAnalyzer implements Transformer {
   readonly name = 'styling';
 
   // Flat map: "componentKey" and "componentKey.subName" entries stored together.
@@ -91,14 +91,14 @@ export class StylingTransformer implements Transformer {
     await fs.writeFile(outputPath, JSON.stringify(fileOutput, null, 2) + '\n', 'utf-8');
   }
 
-  async finalize(outputDir: string): Promise<void> {
+  async finalize(outputDir: string, analysisDir?: string): Promise<void> {
     if (this._componentData.size === 0) return;
 
-    const dictDir = path.join(outputDir, '_dictionary');
-    await fs.ensureDir(dictDir);
+    const outDir = analysisDir ?? path.join(outputDir, '_analysis');
+    await fs.ensureDir(outDir);
 
-    await this._writeByComponent(dictDir);
-    await this._writeByToken(dictDir);
+    await this._writeByComponent(outDir);
+    await this._writeByToken(outDir);
   }
 
   private async _writeByComponent(dictDir: string): Promise<void> {

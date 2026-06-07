@@ -55,8 +55,8 @@ describe('resolveTransformers', () => {
   });
 
   it('returns multiple transformers in order', () => {
-    const result = transformers.resolveTransformers(['contract', 'css', 'styling']);
-    expect(result.map(t => t.name)).toEqual(['contract', 'css', 'styling']);
+    const result = transformers.resolveTransformers(['contract', 'css']);
+    expect(result.map(t => t.name)).toEqual(['contract', 'css']);
   });
 
   it('warns and skips unknown transformer names', () => {

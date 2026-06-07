@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`specs analyze` command** — New command for on-demand analysis passes over component specs. Accepts one or more analyzer names as positional arguments (`specs analyze props`, `specs analyze props styling`). Output goes to `_analysis/` by default; override with `--analysis <path>`. No config key — analyzers are run on demand, not as part of the regular transform pipeline.
+
+- **`props` analyzer** — Reads every component's `api.yaml` and produces `_analysis/props.yaml`: a cross-library aggregate with six sections — summary counts, prop name frequency, enum discordance (same prop name, divergent value sets), boolean naming patterns, API surface per component, and a slot inventory. Designed as structured input for LLM-assisted API governance analysis.
+
+- **`styling` analyzer** — Moved from the transform registry to the analyzer registry. Writes `_analysis/styling.byComponent.json` and `_analysis/styling.byToken.json` (previously written to `_dictionary/`). Invoke with `specs analyze styling`.
+
 - **`css` transformer: subcomponent support** — For each entry in `variants.yaml`'s `subcomponents` map, emits a `styles.css` inside a dedicated subfolder named after the subcomponent key (e.g. `dsActionList/group/styles.css`). BEM selectors are scoped to the subcomponent's own kebab-case class name (e.g. `.group`, `.group__text`). Subcomponent subdirs are created automatically.
 
 - **`contract` transformer: subcomponent support** — For each entry in `api.yaml`'s `subcomponents` map, emits a `contract.ts` inside a dedicated subfolder named after the subcomponent key (e.g. `dsActionList/group/contract.ts`). Interface and enum type names are prefixed with both the component and subcomponent name (e.g. `DsActionListGroupProps`). Subcomponent subdirs are created automatically.
