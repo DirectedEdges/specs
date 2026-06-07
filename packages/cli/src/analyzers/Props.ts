@@ -70,41 +70,33 @@ interface PropsAggregate {
   slots: SlotEntry[];
 }
 
-export class PropsTransformer implements Transformer {
+export class PropsAnalyzer implements Transformer {
   readonly name = 'props';
 
   private readonly _allProps: PropEntry[] = [];
 
   async run(apiYaml: Record<string, unknown>, context: TransformerContext): Promise<void> {
-    const { outputDir, componentKey } = context;
-
-    const fileOutput: PropsByComponent = {};
+    const { componentKey } = context;
 
     const mainProps = extractProps(componentKey, apiYaml);
     this._allProps.push(...mainProps);
-    fileOutput[componentKey] = mainProps;
 
     const subcomponents = (apiYaml.subcomponents ?? {}) as Record<string, unknown>;
     for (const [subName, subRaw] of Object.entries(subcomponents)) {
       const scopeKey = `${componentKey}.${subName}`;
-      const subProps = extractProps(scopeKey, subRaw as Record<string, unknown>);
-      this._allProps.push(...subProps);
-      fileOutput[scopeKey] = subProps;
+      this._allProps.push(...extractProps(scopeKey, subRaw as Record<string, unknown>));
     }
-
-    const outputPath = path.join(outputDir, 'props.yaml');
-    await fs.writeFile(outputPath, yaml.stringify(fileOutput, { lineWidth: 120 }), 'utf-8');
   }
 
-  async finalize(outputDir: string): Promise<void> {
+  async finalize(outputDir: string, analysisDir?: string): Promise<void> {
     if (this._allProps.length === 0) return;
 
-    const dictDir = path.join(outputDir, '_dictionary');
-    await fs.ensureDir(dictDir);
+    const outDir = analysisDir ?? path.join(outputDir, '_analysis');
+    await fs.ensureDir(outDir);
 
     const aggregate = buildAggregate(this._allProps);
     await fs.writeFile(
-      path.join(dictDir, 'props.aggregate.yaml'),
+      path.join(outDir, 'props.yaml'),
       yaml.stringify(aggregate, { lineWidth: 120 }),
       'utf-8',
     );

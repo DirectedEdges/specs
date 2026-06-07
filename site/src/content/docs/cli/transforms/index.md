@@ -60,13 +60,11 @@ Transformer names can be passed as positional arguments, configured in `specs.co
 |-------------|-------------|-----------------|
 | [`contract`](/specs/cli/transforms/contract/) | `contract.ts` | TypeScript Props interface and defaults constant |
 | [`css`](/specs/cli/transforms/css/) | `styles.css` | CSS rules per anatomy element, with token vars and variant selectors |
-| [`props`](/specs/cli/transforms/props/) | `props.yaml` + `_dictionary/props.aggregate.yaml` | Prop inventory and cross-library aggregate for governance and analysis |
-| [`styling`](/specs/cli/transforms/styling/) | `styling.json` | Token inventory — which variables and styles are applied, and where |
 
 ## Running All Transformers
 
 ```bash
-specs transform contract css props styling
+specs transform contract css
 ```
 
 Or configure them in `specs.config.yaml` so `specs transform` alone is enough:
@@ -76,8 +74,6 @@ config:
   transformers:
     - name: contract
     - name: css
-    - name: props
-    - name: styling
 ```
 
 ## See Also

@@ -5,7 +5,7 @@ description: "Emit a property inventory and cross-library aggregate for governan
 
 <script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
 
-Emits a `props.yaml` file for each component listing every prop — its type, enum values, default, nullability, slot constraints, and Figma source type. After all components are processed, writes `_dictionary/props.aggregate.yaml`: a cross-library summary covering prop name frequency, enum value discordance, boolean naming patterns, API surface per component, and a slot inventory.
+Reads every component's `api.yaml` and produces `_analysis/props.yaml`: a cross-library aggregate covering prop name frequency, enum value discordance, boolean naming patterns, API surface per component, and a slot inventory.
 
 ## Use When
 
@@ -17,85 +17,45 @@ Emits a `props.yaml` file for each component listing every prop — its type, en
 ## Invocation
 
 ```bash
-specs transform props
+specs analyze props
 ```
 
 ## Output
 
-Each component subfolder receives a `props.yaml` file. After all components run, the transformer writes `_dictionary/props.aggregate.yaml`.
+Writes a single file to `_analysis/` after all components are processed.
 
 ```
 specs/
-  _dictionary/
-    props.aggregate.yaml   # cross-library summary
+  _analysis/
+    props.yaml   # cross-library aggregate
   ds-button/
     api.yaml
-    props.yaml             # per-component prop inventory
   ds-alert/
     api.yaml
-    props.yaml
 ```
 
-## Example: Per Component
+## Example: Prop Entries
 
-`props.yaml` is keyed by component scope. Subcomponents appear under their dot-path key (`dsButton.startVisual`) in the same file.
+`_analysis/props.yaml` contains all six aggregate sections (see below). The raw prop data underlying the aggregate uses this shape — one entry per prop per component scope, with subcomponents under dot-path keys (`dsButton.startVisual`):
 
 ```yaml
-dsButton:
-  - component: dsButton
-    name: appearance
-    type: string
-    hasEnum: true
-    enumValues:
-      - filled
-      - outline
-      - text
-    enumCount: 3
-    default: filled
-    nullable: false
-    slotAnyOf: null
-    slotMinItems: null
-    slotMaxItems: null
-    figmaType: null
-  - component: dsButton
-    name: disabled
-    type: boolean
-    hasEnum: false
-    enumValues: null
-    enumCount: 0
-    default: false
-    nullable: false
-    slotAnyOf: null
-    slotMinItems: null
-    slotMaxItems: null
-    figmaType: VARIANT
-  - component: dsButton
-    name: children
-    type: slot
-    hasEnum: false
-    enumValues: null
-    enumCount: 0
-    default: null
-    nullable: false
-    slotAnyOf: null
-    slotMinItems: null
-    slotMaxItems: null
-    figmaType: null
-dsButton.startVisual:
-  - component: dsButton.startVisual
-    name: displayedContent
-    type: string
-    hasEnum: true
-    enumValues:
-      - mark
-      - icon
-    enumCount: 2
-    default: icon
-    nullable: false
-    slotAnyOf: null
-    slotMinItems: null
-    slotMaxItems: null
-    figmaType: null
+# within propNameFrequency / apiSurface source data
+# (not emitted directly, but reflects what each prop entry looks like)
+component: dsButton
+name: appearance
+type: string
+hasEnum: true
+enumValues:
+  - filled
+  - outline
+  - text
+enumCount: 3
+default: filled
+nullable: false
+slotAnyOf: null
+slotMinItems: null
+slotMaxItems: null
+figmaType: null
 ```
 
 Each prop entry has:
@@ -115,9 +75,9 @@ Each prop entry has:
 | `slotMaxItems` | Maximum slot items, or `null` |
 | `figmaType` | Figma property type (`VARIANT`, `TEXT`, etc.), or `null` |
 
-## Example: Aggregate
+## Aggregate Structure
 
-`_dictionary/props.aggregate.yaml` has six sections.
+`_analysis/props.yaml` has six sections.
 
 ### summary
 
@@ -239,7 +199,7 @@ The aggregate YAML is designed to be read by an LLM. Copy the prompt below into 
 ```
 You are a design system architect reviewing a component library's API surface.
 Below is a structured YAML aggregate of every prop across the library, produced
-by `specs transform props`. Analyze it and produce a report covering:
+by `specs analyze props`. Analyze it and produce a report covering:
 
 1. **Naming consistency** — are similar concepts named consistently across
    components? Flag divergent names for the same concept (e.g. `label` vs
@@ -270,18 +230,8 @@ ambiguous, say so and explain what additional context would resolve them.
 <paste aggregate YAML here>
 ```
 
-## Config
-
-No transformer-specific options.
-
-```yaml
-config:
-  transformers:
-    - name: props
-```
-
 ## See Also
 
+- [Analyze overview](/specs/cli/analyze/)
+- [`styling` analyzer](/specs/cli/analyze/styling/)
 - [Transforms overview](/specs/cli/transforms/)
-- [`contract` transformer](/specs/cli/transforms/contract/)
-- [`styling` transformer](/specs/cli/transforms/styling/)

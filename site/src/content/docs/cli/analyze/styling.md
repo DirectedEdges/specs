@@ -16,16 +16,16 @@ Emits a `styling.json` file for each component. Each entry lists the Figma varia
 ## Invocation
 
 ```bash
-specs transform styling
+specs analyze styling
 ```
 
 ## Output
 
-Each component subfolder receives a `styling.json` file.
+Writes two files to `_analysis/` after all components are processed.
 
 ## Example: By Component
 
-Each component subfolder gets its own `styling.json`, keyed by component key (and subcomponent dot-keys). After all components run, the transformer also writes `_dictionary/styling.byComponent.json` — the same structure aggregated across every component in one file. Each entry has four arrays — `variables`, `colorStyles`, `textStyles`, `effectStyles`.
+`_analysis/styling.byComponent.json` contains every component keyed by scope (and subcomponent dot-keys). Each entry has four arrays — `variables`, `colorStyles`, `textStyles`, `effectStyles`.
 
 ```json
 {
@@ -117,7 +117,7 @@ Each token entry has:
 
 ## Example: By Token
 
-After all components are processed, the transformer also writes two aggregate files to a `_dictionary/` folder alongside the component subfolders. `styling.byToken.json` is the token-first view — it answers "which components use this token?" and is useful for auditing token coverage or planning a token rename.
+`_analysis/styling.byToken.json` is the token-first view — it answers "which components use this token?" and is useful for auditing token coverage or planning a token rename.
 
 ```json
 {
@@ -147,18 +147,8 @@ After all components are processed, the transformer also writes two aggregate fi
 }
 ```
 
-## Config
-
-No transformer-specific options.
-
-```yaml
-config:
-  transformers:
-    - name: styling
-```
-
 ## See Also
 
+- [Analyze overview](/specs/cli/analyze/)
+- [`props` analyzer](/specs/cli/analyze/props/)
 - [Transforms overview](/specs/cli/transforms/)
-- [`contract` transformer](/specs/cli/transforms/contract/)
-- [`css` transformer](/specs/cli/transforms/css/)
