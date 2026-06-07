@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`css` transformer: presence selectors for boolean props** — Data attribute selectors for variant props whose value is a JS boolean `true` now emit `[data-x]` (presence) instead of `[data-x="true"]` (value). String-valued props (e.g. `checked: "checked"`, `checked: "indeterminate"`) continue to emit value selectors. Matches the TSX idiom `data-x={value || undefined}`.
+
+- **`css` transformer: `:not(:disabled)` guard on hover/active** — When the `disabled` concept is configured in `processing.states`, `:hover` and `:active` selectors (including compound variants like `[data-checked="checked"]:hover`) are automatically guarded with `:not(:disabled):not([aria-disabled="true"])` to prevent interaction styles from applying to disabled elements.
+
 ### Removed
 
 
