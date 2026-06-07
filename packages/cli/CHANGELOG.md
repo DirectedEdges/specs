@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`props` transformer** — Emits `props.yaml` per component listing every prop with its type, enum values, default, nullability, slot constraints, and Figma source type. Subcomponents appear under dot-path scope keys (`componentKey.subName`) in the same file. After all components run, writes `_dictionary/props.aggregate.yaml` with six cross-library sections: summary counts, prop name frequency, enum discordance (same prop name, divergent value sets), boolean naming patterns, API surface per component, and a slot inventory. Invoke with `specs transform props`.
+
 - **`css` transformer: subcomponent support** — For each entry in `variants.yaml`'s `subcomponents` map, emits a `styles.css` inside a dedicated subfolder named after the subcomponent key (e.g. `dsActionList/group/styles.css`). BEM selectors are scoped to the subcomponent's own kebab-case class name (e.g. `.group`, `.group__text`). Subcomponent subdirs are created automatically.
 
 - **`contract` transformer: subcomponent support** — For each entry in `api.yaml`'s `subcomponents` map, emits a `contract.ts` inside a dedicated subfolder named after the subcomponent key (e.g. `dsActionList/group/contract.ts`). Interface and enum type names are prefixed with both the component and subcomponent name (e.g. `DsActionListGroupProps`). Subcomponent subdirs are created automatically.
