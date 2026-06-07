@@ -141,30 +141,30 @@ When subcomponents are present in `variants.yaml`, each subcomponent gets its ow
 dsActionList/
   styles.css          ← parent component stylesheet (.ds-action-list)
   group/
-    styles.css        ← subcomponent stylesheet (.ds-action-list-group)
+    styles.css        ← subcomponent stylesheet (.group)
   item/
-    styles.css        ← subcomponent stylesheet (.ds-action-list-item)
+    styles.css        ← subcomponent stylesheet (.item)
 ```
 
-The subcomponent `styles.css` follows the same structure as the parent — default element blocks first, then variant blocks — but scoped entirely to the subcomponent class:
+The subcomponent `styles.css` follows the same structure as the parent — default element blocks first, then variant blocks — but BEM selectors are scoped to the subcomponent's own kebab-cased key, not the parent component name:
 
 ```css
 /* Generated. Do not edit — regenerate with `specs transform`. */
 
-.ds-action-list-group {
+.group {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
 }
 
-.ds-action-list-group__label {
+.group__label {
   color: var(--color-text-secondary);
   font: var(--font-label-xs);
 }
 
 /* Variant: divider */
 
-.ds-action-list-group[data-divider] {
+.group[data-divider] {
   border-top: 1px solid var(--color-border-subtle);
 }
 ```
