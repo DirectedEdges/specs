@@ -199,6 +199,86 @@ describe('ContractTransformer', () => {
     });
   });
 
+  describe('subcomponent contracts', () => {
+    async function readSub(dir: string, subKey: string) {
+      return fs.readFile(path.join(dir, subKey, 'contract.ts'), 'utf-8');
+    }
+
+    it('emits contract.ts in a subfolder for each subcomponent', async () => {
+      await transformer.run(
+        { subcomponents: { group: { props: {} } } },
+        makeContext(tmpDir, 'dsActionList'),
+      );
+      expect(fs.existsSync(path.join(tmpDir, 'group', 'contract.ts'))).toBe(true);
+    });
+
+    it('prefixes subcomponent interface with both component and subcomponent names', async () => {
+      await transformer.run(
+        { subcomponents: { group: { props: {} } } },
+        makeContext(tmpDir, 'dsActionList'),
+      );
+      const out = await readSub(tmpDir, 'group');
+      expect(out).toContain('export interface DsActionListGroupProps {');
+    });
+
+    it('prefixes subcomponent enum types with both component and subcomponent names', async () => {
+      await transformer.run(
+        {
+          subcomponents: {
+            item: {
+              props: {
+                size: { type: 'string', enum: ['sm', 'md'], default: 'md' },
+              },
+            },
+          },
+        },
+        makeContext(tmpDir, 'dsActionList'),
+      );
+      const out = await readSub(tmpDir, 'item');
+      expect(out).toContain('export type DsActionListItemSize =');
+      expect(out).toContain("| 'sm'");
+      expect(out).toContain("| 'md';");
+      expect(out).toContain('size?: DsActionListItemSize;');
+      expect(out).toContain('size: "md",');
+    });
+
+    it('emits independent subfolders for multiple subcomponents', async () => {
+      await transformer.run(
+        {
+          subcomponents: {
+            group:  { props: { label: { type: 'string' } } },
+            header: { props: { text:  { type: 'string' } } },
+          },
+        },
+        makeContext(tmpDir, 'dsActionList'),
+      );
+      const groupOut  = await readSub(tmpDir, 'group');
+      const headerOut = await readSub(tmpDir, 'header');
+      expect(groupOut).toContain('export interface DsActionListGroupProps {');
+      expect(groupOut).toContain('label?: string;');
+      expect(headerOut).toContain('export interface DsActionListHeaderProps {');
+      expect(headerOut).toContain('text?: string;');
+    });
+
+    it('does not bleed subcomponent types into the main contract.ts', async () => {
+      const out = await run(tmpDir, {
+        props: { label: { type: 'string' } },
+        subcomponents: { group: { props: { groupProp: { type: 'string' } } } },
+      });
+      expect(out).not.toContain('groupProp');
+      expect(out).not.toContain('Group');
+    });
+
+    it('emits subcomponent contract with generated header', async () => {
+      await transformer.run(
+        { subcomponents: { group: { props: {} } } },
+        makeContext(tmpDir, 'dsActionList'),
+      );
+      const out = await readSub(tmpDir, 'group');
+      expect(out).toContain('// Generated. Do not edit');
+    });
+  });
+
   it('ends with a satisfies clause on the Defaults const', async () => {
     const out = await run(tmpDir, {
       props: { active: { type: 'boolean', default: true } },
