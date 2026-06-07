@@ -11,7 +11,7 @@ Reads every component's `api.yaml` and produces `_analysis/props.yaml`: a cross-
 
 - You want to audit prop naming consistency across a component library.
 - You want to identify enum values that diverge for the same prop name across components.
-- You want a structured input for an LLM to analyze API governance (see [Analyzing with an LLM](#analyzing-with-an-llm)).
+- You want a structured input for an LLM to analyze API governance and produce a dated snapshot report (see [Analyzing with an LLM](#analyzing-with-an-llm)).
 - You want to track how the library's prop surface changes over time by diffing the aggregate YAML.
 
 ## Invocation
@@ -194,41 +194,156 @@ slots:
 
 ## Analyzing with an LLM
 
-The aggregate YAML is designed to be read by an LLM. Copy the prompt below into any LLM, replace `<paste aggregate YAML here>` with the contents of `_dictionary/props.aggregate.yaml`, and send.
+The aggregate YAML is structured for LLM input. The resulting report is useful as a first-pass orientation — it will surface real issues quickly, especially enum discordances and type mismatches that are hard to spot manually across a large library.
+
+The report has a hard limit: it cannot know your team's intent. Deliberate divergences get flagged; context-dependent issues get missed. In large libraries where the YAML exceeds context limits, findings are real but framing may not be. Treat every action item as a hypothesis until verified.
+
+The data file (`props.yaml`) is the durable artifact. It's diffable across runs and reliable. The report is a one-time orientation tool — most valuable the first time a team looks at this, or after a significant expansion of the component library.
+
+Follow the steps below, then save the report as `_analysis/props.report.YYYY-MM-DD.md` next to the data file.
+
+### Step 1 — send the data and ask for questions
+
+For small libraries (under ~80 components), paste the full `_analysis/props.yaml`. For larger libraries, paste sections in order — `summary` + `propNameFrequency` + `enumDiscordance` first, then `booleanNamingPatterns` + `apiSurface` + `slots` as a follow-up message. The LLM will ask if you haven't finished before proceeding.
+
+Before generating the report, the LLM will ask you up to 10 clarifying questions. Answering them takes one message and significantly reduces false findings — it stops the LLM from guessing at intent.
+
+Use this prompt:
 
 ```
 You are a design system architect reviewing a component library's API surface.
-Below is a structured YAML aggregate of every prop across the library, produced
-by `specs analyze props`. Analyze it and produce a report covering:
+Below is structured YAML produced by `specs analyze props`. I will paste it in
+one or more messages — tell me when you are ready for questions or if you need
+more sections.
 
-1. **Naming consistency** — are similar concepts named consistently across
-   components? Flag divergent names for the same concept (e.g. `label` vs
-   `text` vs `title` for visible labels).
+When all sections are in, ask me up to 10 clarifying questions before producing
+the report. Questions should target the findings most likely to be wrong without
+knowing team intent. Format them as a numbered list so I can reply by number.
+Keep each question to one sentence. Prefer questions I can answer in a few words
+or with yes/no. Do not produce the report until I have answered.
 
-2. **Enum governance** — identify enum discordances (same prop name, different
-   value sets). For each, recommend whether to normalize and what the canonical
-   set should be, or explain why the divergence is intentional.
-
-3. **Boolean naming conventions** — is the library consistent in its use of
-   `is`/`has`/`can` prefixes vs bare names? Recommend a convention if mixed.
-
-4. **API complexity** — flag components with unusually high prop counts or
-   enum value totals. Are these justified by the component's role, or do they
-   suggest the component is doing too much?
-
-5. **Slot inventory** — are slot constraints (`anyOf`, `minItems`, `maxItems`)
-   used consistently? Identify slots that would benefit from tighter constraints.
-
-6. **Recommended actions** — a priority-ordered action table with columns:
-   Priority, Finding, Affected components, Effort (S/M/L), Breaking change (Y/N).
-
-Be specific. Reference component and prop names directly. Where findings are
-ambiguous, say so and explain what additional context would resolve them.
+When I have answered, produce a Markdown report using EXACTLY this structure:
 
 ---
 
-<paste aggregate YAML here>
+# Props Governance Report — [Library Name]
+[YYYY-MM-DD] · [N components] · [N props]
+
+## What Should I Do Monday Morning?
+
+List no more than 5 themes — not specific action items, but the most important
+areas that need attention. Each theme is one or two sentences. A reader who
+stops here should know where to focus effort this week.
+
+## Health Overview
+
+A table with one row per section. Use a single word for Signal: Critical,
+Attention, or Good.
+
+| Section | Signal | One-line verdict |
+|---|---|---|
+| Naming consistency | … | … |
+| Enum governance | … | … |
+| Boolean naming | … | … |
+| API complexity | … | … |
+| Slot inventory | … | … |
+
+## 1. Naming Consistency
+
+Analysis of whether similar concepts are named consistently across components.
+Flag divergent names for the same concept (e.g. `label` vs `text` vs `title`).
+
+### Actions
+A tight list of specific changes, each on one line:
+- **[component.prop]** → `newName` — reason. Effort: S. Breaking: Y/N.
+
+## 2. Enum Governance
+
+Identify enum discordances (same prop name, different value sets). For each,
+recommend normalizing with a canonical set, or explain why the divergence is
+intentional.
+
+### Actions
+- **[propName]** on [components]: normalize to `[canonical set]`. Effort: S/M/L. Breaking: Y/N.
+
+## 3. Boolean Naming
+
+Is the library consistent in `is`/`has`/`can` prefix use vs bare names?
+Recommend a convention if mixed.
+
+### Actions
+- (only if there are corrections to make — omit section if convention is clean)
+
+## 4. API Complexity
+
+Flag components with unusually high prop counts or enum totals. Are these
+justified by the component's role, or does the component do too much?
+
+### Actions
+- (only if specific changes are recommended)
+
+## 5. Slot Inventory
+
+Are slot constraints (`anyOf`, `minItems`, `maxItems`) used consistently?
+Identify slots that would benefit from tighter constraints.
+
+### Actions
+- **[component.slotName]** — add `anyOf: [X]`, `minItems: N`. Breaking: N.
+
+## Open Questions
+
+Short list of ambiguities that need a human answer before acting. Reference the
+relevant section or action item for each.
+
+---
+
+Be specific. Reference component and prop names directly. Do not score or grade
+components numerically.
+
+---
+
+<paste summary + propNameFrequency + enumDiscordance here>
 ```
+
+### Step 2 — answer the questions
+
+The LLM will return a numbered list of up to 10 questions. Reply with a matching numbered list — one line per answer. Short answers are fine; yes/no is fine. Skip any question you can't answer and say so.
+
+```
+1. Yes — `state` is Figma-only, not a runtime API prop.
+2. Bare names only, no is/has/can prefixes.
+3. Breaking changes are acceptable — we're pre-1.0.
+4. Unsure.
+5. `helpText` and `description` are intentionally different contexts.
+…
+```
+
+The more direct your answers, the fewer false findings end up in the report.
+
+### Step 3 — paste remaining sections (large libraries only)
+
+If your library has more than ~80 components, paste the remaining YAML before answering questions:
+
+```
+Here are the remaining sections:
+
+---
+
+<paste booleanNamingPatterns + apiSurface + slots here>
+```
+
+### Step 4 — save the report
+
+When the LLM returns the report after your answers, save it to:
+
+```
+specs/
+  _analysis/
+    props.yaml              # data (regenerated by specs analyze props)
+    props.report.2025-06-07.md   # report (manual snapshot — date it)
+```
+
+The date in the filename keeps multiple runs distinct as the library evolves. The report is a snapshot — it will not update when you re-run `specs analyze props`. Re-run the prompt against the new `props.yaml` to produce a new dated report.
 
 ## See Also
 
