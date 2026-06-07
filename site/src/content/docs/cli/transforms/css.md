@@ -5,7 +5,7 @@ description: "Emit a CSS file with custom property rules per component element"
 
 <script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
 
-Emits a `styles.css` file for each component. Each anatomy element becomes a CSS selector; token references become `var(--)` declarations; variant props become `[data-*]` attribute selectors.
+Emits a `styles.css` file for each component. Each anatomy element becomes a CSS selector; token references become `var(--)` declarations; variant props become `[data-*]` attribute selectors. Boolean props use presence selectors (`[data-prop]`); string-valued props use value selectors (`[data-prop="value"]`).
 
 ## Use When
 
@@ -21,7 +21,7 @@ specs transform css
 
 ## Output
 
-Each component subfolder receives a `styles.css` file.
+Each component subfolder receives a `styles.css` file. When subcomponents are present, each also receives a `styles.css` inside its own named subfolder — see [Subcomponent Output](#subcomponent-output) below.
 
 ## Example Output
 
@@ -73,18 +73,18 @@ An Alert component with `severity` and `dismissible` variant props, and anatomy 
 
 /* Variant: dismissible */
 
-.ds-alert[data-dismissible="true"] {
+.ds-alert[data-dismissible] {
   padding-inline-end: var(--space-10);
 }
 
 /* Compound variant: severity + dismissible */
 
-.ds-alert[data-severity="error"][data-dismissible="true"] .ds-alert__icon {
+.ds-alert[data-severity="error"][data-dismissible] .ds-alert__icon {
   fill: var(--color-icon-error-strong);
 }
 ```
 
-Root element selectors use the component's kebab-cased name. Child elements use the `__element` BEM suffix. Variants use `[data-propName="value"]` attribute selectors, with camelCase prop names kebabized. Compound selectors combine multiple variant attributes for intersection overrides.
+Root element selectors use the component's kebab-cased name. Child elements use the `__element` BEM suffix. Variants use `[data-propName]` presence selectors for boolean props and `[data-propName="value"]` value selectors for string enum props, with camelCase prop names kebabized. Compound selectors combine multiple variant attributes for intersection overrides.
 
 ## Token Resolution
 
@@ -117,6 +117,59 @@ config:
 ```
 
 When `processing.states` is absent, all variant props produce `[data-*]` selectors (the default shown in the example above). When present, classified props emit semantic CSS pseudo-classes and ARIA attribute selectors instead.
+
+### Disabled guard on hover and active
+
+When the `disabled` concept is configured in `processing.states`, the transformer automatically appends `:not(:disabled):not([aria-disabled="true"])` to every `:hover` and `:active` selector — including compound variants that mix a data attribute with `:hover` or `:active`. This prevents hover and active styles from firing on disabled elements without any extra CSS to write.
+
+```css
+/* disabled concept configured → hover and active are guarded */
+.ds-button:hover:not(:disabled):not([aria-disabled="true"]) { … }
+.ds-button:active:not(:disabled):not([aria-disabled="true"]) { … }
+
+/* data attribute + :hover compound variant also receives the guard */
+.ds-button[data-variant="primary"]:hover:not(:disabled):not([aria-disabled="true"]) { … }
+```
+
+Selectors that are not `:hover` or `:active` (e.g. `:focus-within`, `:disabled` itself) are never guarded.
+
+## Subcomponent Output
+
+When subcomponents are present in `variants.yaml`, each subcomponent gets its own `styles.css` inside a named subfolder. The subfolder name is the subcomponent's key in the spec (e.g. `group`, `item`). The BEM root class is scoped to the subcomponent's kebab-cased key, not the parent component.
+
+```
+dsActionList/
+  styles.css          ← parent component stylesheet (.ds-action-list)
+  group/
+    styles.css        ← subcomponent stylesheet (.ds-action-list-group)
+  item/
+    styles.css        ← subcomponent stylesheet (.ds-action-list-item)
+```
+
+The subcomponent `styles.css` follows the same structure as the parent — default element blocks first, then variant blocks — but scoped entirely to the subcomponent class:
+
+```css
+/* Generated. Do not edit — regenerate with `specs transform`. */
+
+.ds-action-list-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.ds-action-list-group__label {
+  color: var(--color-text-secondary);
+  font: var(--font-label-xs);
+}
+
+/* Variant: divider */
+
+.ds-action-list-group[data-divider] {
+  border-top: 1px solid var(--color-border-subtle);
+}
+```
+
+Subcomponent stylesheets are fully self-contained — elements and variants from the parent component never appear in them. Configure subcomponent discovery in [`config.processing.subcomponents`](/specs/config/subcomponents/).
 
 ## See Also
 

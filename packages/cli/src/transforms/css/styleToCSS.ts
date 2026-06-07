@@ -279,6 +279,12 @@ export function styleToCSS(styles: Record<string, unknown>, tokensFormat = 'TOKE
     else if (typeof v === 'number' && v !== 0) decls.push(`transform: rotate(${v}deg)`);
   }
 
+  // ── Raw CSS pass-through (injected by CssRule pre-passes) ────────────────────
+
+  if ('_rawCss' in styles && Array.isArray(styles._rawCss)) {
+    for (const line of styles._rawCss as string[]) decls.push(line);
+  }
+
   // ── Position & offsets ───────────────────────────────────────────────────────
   //
   // position: ABSOLUTE is emitted on the element that carries it in the spec.

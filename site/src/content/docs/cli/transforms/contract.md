@@ -23,7 +23,7 @@ This is the CLI default — running `specs transform` with no arguments runs `co
 
 ## Output
 
-Each component subfolder receives a `contract.ts` file.
+Each component subfolder receives a `contract.ts` file. When subcomponents are present, each also receives a `contract.ts` inside its own named subfolder — see [Subcomponent Contracts](#subcomponent-contracts) below.
 
 ## Example Output
 
@@ -71,6 +71,21 @@ config:
 ```
 
 When `processing.states` is absent, all props from `api.yaml` appear in the generated interface. When present, props mapped to browser-driven concepts (`hover`, `active`, `focus`, `focus-within`, etc.) are omitted — the browser fires these without the application setting them.
+
+## Subcomponent Contracts
+
+When subcomponents are present in `api.yaml`, each receives a `contract.ts` inside its own named subfolder. The subfolder name is the subcomponent's key in the spec (e.g. `group`, `item`). Interface and enum type names are prefixed by both component and subcomponent.
+
+```
+dsActionList/
+  contract.ts           ← parent (DsActionListProps, DsActionListDefaults)
+  group/
+    contract.ts         ← subcomponent (DsActionListGroupProps, DsActionListGroupDefaults)
+  item/
+    contract.ts         ← subcomponent (DsActionListItemProps, DsActionListItemDefaults)
+```
+
+The parent `contract.ts` only includes the parent component's own types — subcomponent types do not appear in it. Configure subcomponent discovery in [`config.processing.subcomponents`](/specs/config/subcomponents/).
 
 ## See Also
 
