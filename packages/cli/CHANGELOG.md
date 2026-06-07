@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`contract` transformer: subcomponent support** — For each entry in `api.yaml`'s `subcomponents` map, emits a `contract.ts` inside a dedicated subfolder named after the subcomponent key (e.g. `dsActionList/group/contract.ts`). Interface and enum type names are prefixed with both the component and subcomponent name (e.g. `DsActionListGroupProps`). Subcomponent subdirs are created automatically.
 
+- **`css` transformer: configurable rule pipeline** — The `css` transformer now accepts a `rules` list under its transformer options. Rules run as pre-passes on the structured variants data before CSS emission, enabling semantic rewrites that require cross-variant context. Configure per-component in `specs.config.yaml`:
+  ```yaml
+  transformers:
+    - name: css
+      rules:
+        - border-shift-inset-shadow
+  ```
+
+- **`css` transformer: `border-shift-inset-shadow` rule** — Eliminates layout shift from border-width changes across variants. Detects elements whose `strokeWeight` or `strokes` change in any variant (INSIDE strokes only), rewrites the default block to reserve space with a transparent border (`border: Npx solid transparent`), and rewrites variant stroke changes to `box-shadow: inset 0 0 0 Npx <color>`. OUTSIDE and CENTER strokes are unaffected (they use `outline`, which is already layout-safe).
+
 ### Changed
 
 - **`css` transformer: presence selectors for boolean props** — Data attribute selectors for variant props whose value is a JS boolean `true` now emit `[data-x]` (presence) instead of `[data-x="true"]` (value). String-valued props (e.g. `checked: "checked"`, `checked: "indeterminate"`) continue to emit value selectors. Matches the TSX idiom `data-x={value || undefined}`.
