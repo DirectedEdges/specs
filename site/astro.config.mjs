@@ -115,6 +115,7 @@ export default defineConfig({
             { label: 'Overview', slug: 'cli/transforms' },
             { label: 'contract', slug: 'cli/transforms/contract' },
             { label: 'css', slug: 'cli/transforms/css' },
+            { label: 'props', slug: 'cli/transforms/props' },
             { label: 'styling', slug: 'cli/transforms/styling' },
           ],
         },
