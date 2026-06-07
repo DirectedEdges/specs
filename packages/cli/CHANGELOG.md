@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`contract` transformer: subcomponent support** — For each entry in `api.yaml`'s `subcomponents` map, emits a `contract.ts` inside a dedicated subfolder named after the subcomponent key (e.g. `dsActionList/group/contract.ts`). Interface and enum type names are prefixed with both the component and subcomponent name (e.g. `DsActionListGroupProps`). Subcomponent subdirs are created automatically.
+
 ### Changed
 
 ### Removed
