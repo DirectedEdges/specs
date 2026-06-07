@@ -6,6 +6,7 @@ import { styleToCSS } from './css/styleToCSS.js';
 import { layoutToCSS } from './css/layoutToCSS.js';
 import { toKebab } from './css/values.js';
 import { CONCEPT_TABLE, buildStateLookup } from './states.js';
+import { resolveRules } from './css/rules/index.js';
 
 export class CssTransformer implements Transformer {
   readonly name = 'css';
@@ -45,6 +46,13 @@ function buildCssLines(
   tokensFormat: string | undefined,
   context: TransformerContext,
 ): string[] {
+  // Apply configured rules as pre-passes on the structured variants data
+  const ruleNames = (context.transformerOptions?.rules as string[] | undefined) ?? [];
+  const rules = resolveRules(ruleNames);
+  for (const rule of rules) {
+    variantsYaml = rule.apply(variantsYaml, { tokensFormat });
+  }
+
   const lines: string[] = [
     '/* Generated. Do not edit — regenerate with `specs transform`. */',
     '',

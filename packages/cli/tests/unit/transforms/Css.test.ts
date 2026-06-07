@@ -17,9 +17,9 @@ async function writeVariants(dir: string, data: Record<string, unknown>) {
   await fs.writeFile(path.join(dir, 'variants.yaml'), yaml.stringify(data), 'utf-8');
 }
 
-async function run(dir: string, variantsData: Record<string, unknown>, componentKey = 'dsButton', tokensFormat = 'TOKEN', processingStates?: ProcessingStates) {
+async function run(dir: string, variantsData: Record<string, unknown>, componentKey = 'dsButton', tokensFormat = 'TOKEN', processingStates?: ProcessingStates, transformerOptions?: Record<string, unknown>) {
   await writeVariants(dir, variantsData);
-  await transformer.run({}, makeContext(dir, componentKey, tokensFormat, processingStates));
+  await transformer.run({}, { ...makeContext(dir, componentKey, tokensFormat, processingStates), transformerOptions });
   return fs.readFile(path.join(dir, 'styles.css'), 'utf-8');
 }
 
@@ -495,5 +495,135 @@ describe('CssTransformer', () => {
       },
     });
     expect(out).not.toContain('.ds-button {');
+  });
+
+  describe('border-shift-inset-shadow rule', () => {
+    const rules = { rules: ['border-shift-inset-shadow'] };
+
+    it('is a no-op when no variants change strokeWeight or strokes', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+        variants: [
+          { configuration: { size: 'lg' }, elements: { root: { styles: { layoutMode: 'VERTICAL' } } } },
+        ],
+      }, 'dsButton', 'TOKEN', undefined, rules);
+      expect(out).not.toContain('box-shadow');
+      expect(out).not.toContain('border-color: transparent');
+    });
+
+    it('replaces variant strokeWeight+strokes with box-shadow: inset, not border-width in the variant block', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+        variants: [
+          {
+            configuration: { selected: true },
+            elements: { root: { styles: { strokeWeight: 2, strokes: tokenRef('Color/Border/Selected') } } },
+          },
+        ],
+      }, 'dsButton', 'TOKEN', undefined, rules);
+      expect(out).toContain('box-shadow: inset 0 0 0 2px var(--color-border-selected)');
+      // Variant block should not re-declare border-width (it's handled by box-shadow)
+      const variantBlock = out.split('.ds-button[data-selected]')[1] ?? '';
+      expect(variantBlock).not.toContain('border-width');
+    });
+
+    it('reserves space in the default block with a transparent border at the variant width', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+        variants: [
+          {
+            configuration: { selected: true },
+            elements: { root: { styles: { strokeWeight: 2, strokes: tokenRef('Color/Border/Selected') } } },
+          },
+        ],
+      }, 'dsButton', 'TOKEN', undefined, rules);
+      expect(out).toContain('border-width: 2px');
+      expect(out).toContain('border-color: transparent');
+      expect(out).toContain('border-style: solid');
+    });
+
+    it('uses the default strokeWeight as reservation when already present in default', async () => {
+      const out = await run(tmpDir, {
+        default: {
+          elements: {
+            root: { styles: { strokeWeight: 1, strokes: tokenRef('Color/Border/Default') } },
+          },
+        },
+        variants: [
+          {
+            configuration: { selected: true },
+            elements: { root: { styles: { strokes: tokenRef('Color/Border/Selected') } } },
+          },
+        ],
+      }, 'dsButton', 'TOKEN', undefined, rules);
+      expect(out).toContain('border-width: 1px');
+      expect(out).toContain('border-color: transparent');
+      expect(out).toContain('box-shadow: inset 0 0 0 1px var(--color-border-selected)');
+    });
+
+    it('resolves token refs for both weight and color in the box-shadow value', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: { root: { styles: {} } } },
+        variants: [
+          {
+            configuration: { selected: true },
+            elements: {
+              root: {
+                styles: {
+                  strokeWeight: tokenRef('Border/Width/Focus', 'dimension'),
+                  strokes: tokenRef('Color/Focus/Ring'),
+                },
+              },
+            },
+          },
+        ],
+      }, 'dsButton', 'TOKEN', undefined, rules);
+      expect(out).toContain('box-shadow: inset 0 0 0 var(--border-width-focus) var(--color-focus-ring)');
+    });
+
+    it('does not apply to OUTSIDE strokes (those use outline, not border)', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: { root: { styles: {} } } },
+        variants: [
+          {
+            configuration: { focused: true },
+            elements: {
+              root: { styles: { strokeWeight: 2, strokes: tokenRef('Color/Border/Focus'), strokeAlign: 'OUTSIDE' } },
+            },
+          },
+        ],
+      }, 'dsButton', 'TOKEN', undefined, rules);
+      expect(out).not.toContain('box-shadow: inset');
+      expect(out).toContain('outline-width: 2px');
+    });
+
+    it('throws for unknown rule names', async () => {
+      await expect(
+        run(tmpDir, { default: { elements: {} }, variants: [] }, 'dsButton', 'TOKEN', undefined, { rules: ['nonexistent-rule'] })
+      ).rejects.toThrow('Unknown CSS rule: "nonexistent-rule"');
+    });
+
+    it('applies the rule to subcomponent styles.css', async () => {
+      await writeVariants(tmpDir, {
+        subcomponents: {
+          item: {
+            default: { elements: { root: { styles: {} } } },
+            variants: [
+              {
+                configuration: { selected: true },
+                elements: { root: { styles: { strokeWeight: 2, strokes: tokenRef('Color/Border/Selected') } } },
+              },
+            ],
+          },
+        },
+      });
+      await transformer.run({}, {
+        ...makeContext(tmpDir, 'dsActionList'),
+        transformerOptions: rules,
+      });
+      const subOut = await fs.readFile(path.join(tmpDir, 'item', 'styles.css'), 'utf-8');
+      expect(subOut).toContain('box-shadow: inset 0 0 0 2px var(--color-border-selected)');
+      expect(subOut).toContain('border-color: transparent');
+    });
   });
 });
