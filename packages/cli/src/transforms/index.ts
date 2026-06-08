@@ -1,12 +1,10 @@
 import type { Transformer } from '../Types/Transformer.js';
 import { ContractTransformer } from './Contract.js';
 import { CssTransformer } from './Css.js';
-import { StylingTransformer } from './Styling.js';
 
 const ALL_TRANSFORMERS: Transformer[] = [
   new ContractTransformer(),
   new CssTransformer(),
-  new StylingTransformer(),
 ];
 
 const BY_NAME = new Map(ALL_TRANSFORMERS.map(t => [t.name, t]));

@@ -17,9 +17,9 @@ async function writeVariants(dir: string, data: Record<string, unknown>) {
   await fs.writeFile(path.join(dir, 'variants.yaml'), yaml.stringify(data), 'utf-8');
 }
 
-async function run(dir: string, variantsData: Record<string, unknown>, componentKey = 'dsButton', tokensFormat = 'TOKEN', processingStates?: ProcessingStates) {
+async function run(dir: string, variantsData: Record<string, unknown>, componentKey = 'dsButton', tokensFormat = 'TOKEN', processingStates?: ProcessingStates, transformerOptions?: Record<string, unknown>) {
   await writeVariants(dir, variantsData);
-  await transformer.run({}, makeContext(dir, componentKey, tokensFormat, processingStates));
+  await transformer.run({}, { ...makeContext(dir, componentKey, tokensFormat, processingStates), transformerOptions });
   return fs.readFile(path.join(dir, 'styles.css'), 'utf-8');
 }
 
@@ -200,14 +200,14 @@ describe('CssTransformer', () => {
       ],
     };
 
-    it('emits :hover selector for hover concept', async () => {
+    it('emits :hover selector for hover concept (with :not(:disabled) guard since disabled is configured)', async () => {
       const out = await run(tmpDir, variantsWithStates, 'dsButton', 'TOKEN', states);
-      expect(out).toContain('.ds-button:hover {');
+      expect(out).toContain('.ds-button:hover:not(:disabled):not([aria-disabled="true"]) {');
     });
 
-    it('emits :active selector for active concept mapped to Figma value "pressed"', async () => {
+    it('emits :active selector for active concept mapped to Figma value "pressed" (with :not(:disabled) guard)', async () => {
       const out = await run(tmpDir, variantsWithStates, 'dsButton', 'TOKEN', states);
-      expect(out).toContain('.ds-button:active {');
+      expect(out).toContain('.ds-button:active:not(:disabled):not([aria-disabled="true"]) {');
     });
 
     it('skips the base/rest value — no data-state="rest" or :rest selector', async () => {
@@ -249,7 +249,7 @@ describe('CssTransformer', () => {
       expect(out).toContain('[data-size="lg"]');
     });
 
-    it('combines data-* and state selectors in compound variants', async () => {
+    it('combines data-* and state selectors in compound variants (with :not(:disabled) guard since disabled is configured)', async () => {
       const out = await run(tmpDir, {
         default: { elements: {} },
         variants: [
@@ -259,7 +259,7 @@ describe('CssTransformer', () => {
           },
         ],
       }, 'dsButton', 'TOKEN', states);
-      expect(out).toContain('.ds-button[data-appearance="outline"]:hover {');
+      expect(out).toContain('.ds-button[data-appearance="outline"]:hover:not(:disabled):not([aria-disabled="true"]) {');
     });
 
     it('produces no state-related selectors when processingStates is absent', async () => {
@@ -274,6 +274,218 @@ describe('CssTransformer', () => {
     });
   });
 
+  describe('presence selectors for boolean true variant values', () => {
+    it('emits [data-x] presence selector when variant value is boolean true', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: {} },
+        variants: [
+          {
+            configuration: { disabled: true },
+            elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } },
+          },
+        ],
+      });
+      expect(out).toContain('[data-disabled]');
+      expect(out).not.toContain('[data-disabled="');
+    });
+
+    it('emits [data-x="value"] value selector when variant value is a string', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: {} },
+        variants: [
+          {
+            configuration: { checked: 'checked' },
+            elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } },
+          },
+        ],
+      });
+      expect(out).toContain('[data-checked="checked"]');
+    });
+
+    it('emits distinct value selectors for multi-value string props', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: {} },
+        variants: [
+          {
+            configuration: { checked: 'checked' },
+            elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } },
+          },
+          {
+            configuration: { checked: 'indeterminate' },
+            elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } },
+          },
+        ],
+      });
+      expect(out).toContain('[data-checked="checked"]');
+      expect(out).toContain('[data-checked="indeterminate"]');
+      expect(out).not.toContain('[data-checked]');
+    });
+
+    it('emits presence selector for boolean true alongside a string data-attr in compound variants', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: {} },
+        variants: [
+          {
+            configuration: { appearance: 'outline', selected: true },
+            elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } },
+          },
+        ],
+      });
+      expect(out).toContain('[data-appearance="outline"][data-selected]');
+    });
+  });
+
+  describe(':not(:disabled) guard on hover and active', () => {
+    const statesWithDisabled: ProcessingStates = {
+      hover:    { prop: 'state', value: 'hover' },
+      active:   { prop: 'state', value: 'pressed' },
+      disabled: { prop: 'isDisabled' },
+    };
+
+    it('appends :not(:disabled):not([aria-disabled="true"]) to :hover selector', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: {} },
+        variants: [
+          { configuration: { state: 'hover' }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+        ],
+      }, 'dsButton', 'TOKEN', statesWithDisabled);
+      expect(out).toContain('.ds-button:hover:not(:disabled):not([aria-disabled="true"]) {');
+    });
+
+    it('appends :not(:disabled):not([aria-disabled="true"]) to :active selector', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: {} },
+        variants: [
+          { configuration: { state: 'pressed' }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+        ],
+      }, 'dsButton', 'TOKEN', statesWithDisabled);
+      expect(out).toContain('.ds-button:active:not(:disabled):not([aria-disabled="true"]) {');
+    });
+
+    it('does not add the guard when disabled concept is absent from processingStates', async () => {
+      const statesNoDisabled: ProcessingStates = {
+        hover: { prop: 'state', value: 'hover' },
+      };
+      const out = await run(tmpDir, {
+        default: { elements: {} },
+        variants: [
+          { configuration: { state: 'hover' }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+        ],
+      }, 'dsButton', 'TOKEN', statesNoDisabled);
+      expect(out).toContain('.ds-button:hover {');
+      expect(out).not.toContain(':not(:disabled)');
+    });
+
+    it('applies the guard to compound variants combining data-attr and :hover', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: {} },
+        variants: [
+          {
+            configuration: { appearance: 'outline', state: 'hover' },
+            elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } },
+          },
+        ],
+      }, 'dsButton', 'TOKEN', statesWithDisabled);
+      expect(out).toContain('.ds-button[data-appearance="outline"]:hover:not(:disabled):not([aria-disabled="true"]) {');
+    });
+
+    it('does not add the guard to :focus-within or :disabled selectors', async () => {
+      const statesAll: ProcessingStates = {
+        hover:          { prop: 'state', value: 'hover' },
+        'focus-within': { prop: 'focused' },
+        disabled:       { prop: 'isDisabled' },
+      };
+      const out = await run(tmpDir, {
+        default: { elements: {} },
+        variants: [
+          { configuration: { focused: 'true' },    elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+          { configuration: { isDisabled: 'true' },  elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+        ],
+      }, 'dsButton', 'TOKEN', statesAll);
+      expect(out).not.toContain(':focus-within:not(');
+      expect(out).not.toContain(':disabled:not(');
+    });
+  });
+
+  describe('subcomponent styles', () => {
+    async function runAndReadSub(dir: string, variantsData: Record<string, unknown>, subKey: string, componentKey = 'dsActionList') {
+      await writeVariants(dir, variantsData);
+      await transformer.run({}, makeContext(dir, componentKey));
+      return fs.readFile(path.join(dir, subKey, 'styles.css'), 'utf-8');
+    }
+
+    it('emits styles.css in a subfolder for each subcomponent', async () => {
+      await writeVariants(tmpDir, {
+        subcomponents: {
+          group: {
+            default: { elements: { root: { styles: { layoutMode: 'VERTICAL' } } } },
+            variants: [],
+          },
+        },
+      });
+      await transformer.run({}, makeContext(tmpDir, 'dsActionList'));
+      expect(fs.existsSync(path.join(tmpDir, 'group', 'styles.css'))).toBe(true);
+    });
+
+    it('scopes subcomponent BEM selectors to the subcomponent key, not the parent', async () => {
+      const out = await runAndReadSub(tmpDir, {
+        subcomponents: {
+          group: {
+            default: {
+              elements: {
+                root: { styles: { layoutMode: 'VERTICAL' } },
+                text: { styles: { layoutMode: 'HORIZONTAL' } },
+              },
+            },
+            variants: [],
+          },
+        },
+      }, 'group');
+      expect(out).toContain('.group {');
+      expect(out).toContain('.group__text {');
+      expect(out).not.toContain('ds-action-list');
+    });
+
+    it('emits subcomponent variant selectors scoped to the subcomponent class', async () => {
+      const out = await runAndReadSub(tmpDir, {
+        subcomponents: {
+          item: {
+            default: { elements: {} },
+            variants: [
+              {
+                configuration: { size: 'medium' },
+                elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } },
+              },
+            ],
+          },
+        },
+      }, 'item');
+      expect(out).toContain('.item[data-size="medium"] {');
+    });
+
+    it('emits multiple subcomponent subfolders independently', async () => {
+      await writeVariants(tmpDir, {
+        subcomponents: {
+          group: {
+            default: { elements: { root: { styles: { layoutMode: 'VERTICAL' } } } },
+            variants: [],
+          },
+          header: {
+            default: { elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+            variants: [],
+          },
+        },
+      });
+      await transformer.run({}, makeContext(tmpDir, 'dsActionList'));
+      expect(fs.existsSync(path.join(tmpDir, 'group', 'styles.css'))).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, 'header', 'styles.css'))).toBe(true);
+      const groupOut = await fs.readFile(path.join(tmpDir, 'group', 'styles.css'), 'utf-8');
+      const headerOut = await fs.readFile(path.join(tmpDir, 'header', 'styles.css'), 'utf-8');
+      expect(groupOut).toContain('flex-direction: column');
+      expect(headerOut).toContain('flex-direction: row');
+    });
+  });
+
   it('omits elements with no declarations', async () => {
     const out = await run(tmpDir, {
       default: {
@@ -283,5 +495,135 @@ describe('CssTransformer', () => {
       },
     });
     expect(out).not.toContain('.ds-button {');
+  });
+
+  describe('border-shift-inset-shadow rule', () => {
+    const rules = { rules: ['border-shift-inset-shadow'] };
+
+    it('is a no-op when no variants change strokeWeight or strokes', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+        variants: [
+          { configuration: { size: 'lg' }, elements: { root: { styles: { layoutMode: 'VERTICAL' } } } },
+        ],
+      }, 'dsButton', 'TOKEN', undefined, rules);
+      expect(out).not.toContain('box-shadow');
+      expect(out).not.toContain('border-color: transparent');
+    });
+
+    it('replaces variant strokeWeight+strokes with box-shadow: inset, not border-width in the variant block', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+        variants: [
+          {
+            configuration: { selected: true },
+            elements: { root: { styles: { strokeWeight: 2, strokes: tokenRef('Color/Border/Selected') } } },
+          },
+        ],
+      }, 'dsButton', 'TOKEN', undefined, rules);
+      expect(out).toContain('box-shadow: inset 0 0 0 2px var(--color-border-selected)');
+      // Variant block should not re-declare border-width (it's handled by box-shadow)
+      const variantBlock = out.split('.ds-button[data-selected]')[1] ?? '';
+      expect(variantBlock).not.toContain('border-width');
+    });
+
+    it('reserves space in the default block with a transparent border at the variant width', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+        variants: [
+          {
+            configuration: { selected: true },
+            elements: { root: { styles: { strokeWeight: 2, strokes: tokenRef('Color/Border/Selected') } } },
+          },
+        ],
+      }, 'dsButton', 'TOKEN', undefined, rules);
+      expect(out).toContain('border-width: 2px');
+      expect(out).toContain('border-color: transparent');
+      expect(out).toContain('border-style: solid');
+    });
+
+    it('uses the default strokeWeight as reservation when already present in default', async () => {
+      const out = await run(tmpDir, {
+        default: {
+          elements: {
+            root: { styles: { strokeWeight: 1, strokes: tokenRef('Color/Border/Default') } },
+          },
+        },
+        variants: [
+          {
+            configuration: { selected: true },
+            elements: { root: { styles: { strokes: tokenRef('Color/Border/Selected') } } },
+          },
+        ],
+      }, 'dsButton', 'TOKEN', undefined, rules);
+      expect(out).toContain('border-width: 1px');
+      expect(out).toContain('border-color: transparent');
+      expect(out).toContain('box-shadow: inset 0 0 0 1px var(--color-border-selected)');
+    });
+
+    it('resolves token refs for both weight and color in the box-shadow value', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: { root: { styles: {} } } },
+        variants: [
+          {
+            configuration: { selected: true },
+            elements: {
+              root: {
+                styles: {
+                  strokeWeight: tokenRef('Border/Width/Focus', 'dimension'),
+                  strokes: tokenRef('Color/Focus/Ring'),
+                },
+              },
+            },
+          },
+        ],
+      }, 'dsButton', 'TOKEN', undefined, rules);
+      expect(out).toContain('box-shadow: inset 0 0 0 var(--border-width-focus) var(--color-focus-ring)');
+    });
+
+    it('does not apply to OUTSIDE strokes (those use outline, not border)', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: { root: { styles: {} } } },
+        variants: [
+          {
+            configuration: { focused: true },
+            elements: {
+              root: { styles: { strokeWeight: 2, strokes: tokenRef('Color/Border/Focus'), strokeAlign: 'OUTSIDE' } },
+            },
+          },
+        ],
+      }, 'dsButton', 'TOKEN', undefined, rules);
+      expect(out).not.toContain('box-shadow: inset');
+      expect(out).toContain('outline-width: 2px');
+    });
+
+    it('throws for unknown rule names', async () => {
+      await expect(
+        run(tmpDir, { default: { elements: {} }, variants: [] }, 'dsButton', 'TOKEN', undefined, { rules: ['nonexistent-rule'] })
+      ).rejects.toThrow('Unknown CSS rule: "nonexistent-rule"');
+    });
+
+    it('applies the rule to subcomponent styles.css', async () => {
+      await writeVariants(tmpDir, {
+        subcomponents: {
+          item: {
+            default: { elements: { root: { styles: {} } } },
+            variants: [
+              {
+                configuration: { selected: true },
+                elements: { root: { styles: { strokeWeight: 2, strokes: tokenRef('Color/Border/Selected') } } },
+              },
+            ],
+          },
+        },
+      });
+      await transformer.run({}, {
+        ...makeContext(tmpDir, 'dsActionList'),
+        transformerOptions: rules,
+      });
+      const subOut = await fs.readFile(path.join(tmpDir, 'item', 'styles.css'), 'utf-8');
+      expect(subOut).toContain('box-shadow: inset 0 0 0 2px var(--color-border-selected)');
+      expect(subOut).toContain('border-color: transparent');
+    });
   });
 });

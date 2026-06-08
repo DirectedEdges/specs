@@ -93,15 +93,15 @@ Without `states` config, all variant props produce `data-*` attribute selectors:
 ```css
 /* Without states config */
 .ds-text-input[data-state="hover"] { … }
-.ds-text-input[data-is-disabled="true"] { … }
-.ds-text-input[data-focused="true"] { … }
+.ds-text-input[data-is-disabled] { … }       /* boolean prop → presence selector */
+.ds-text-input[data-focused] { … }            /* boolean prop → presence selector */
 ```
 
 With `states` config, classified props produce semantic selectors:
 
 ```css
-/* With states config */
-.ds-text-input:hover { … }
+/* With states config — disabled concept configured */
+.ds-text-input:hover:not(:disabled):not([aria-disabled="true"]) { … }
 .ds-text-input:disabled,
 .ds-text-input[aria-disabled="true"] { … }
 .ds-text-input:focus-within { … }
