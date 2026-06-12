@@ -13,7 +13,7 @@ function makeContext(dir: string, componentKey = 'dsButton', processingStates?: 
 
 async function run(dir: string, apiYaml: Record<string, unknown>, componentKey = 'dsButton', processingStates?: ProcessingStates) {
   await transformer.run(apiYaml, makeContext(dir, componentKey, processingStates));
-  return fs.readFile(path.join(dir, 'contract.ts'), 'utf-8');
+  return fs.readFile(path.join(dir, 'generated', 'contract.ts'), 'utf-8');
 }
 
 describe('ContractTransformer', () => {
@@ -201,7 +201,7 @@ describe('ContractTransformer', () => {
 
   describe('subcomponent contracts', () => {
     async function readSub(dir: string, subKey: string) {
-      return fs.readFile(path.join(dir, subKey, 'contract.ts'), 'utf-8');
+      return fs.readFile(path.join(dir, 'generated', subKey, 'contract.ts'), 'utf-8');
     }
 
     it('emits contract.ts in a subfolder for each subcomponent', async () => {
@@ -209,7 +209,7 @@ describe('ContractTransformer', () => {
         { subcomponents: { group: { props: {} } } },
         makeContext(tmpDir, 'dsActionList'),
       );
-      expect(fs.existsSync(path.join(tmpDir, 'group', 'contract.ts'))).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, 'generated', 'group', 'contract.ts'))).toBe(true);
     });
 
     it('prefixes subcomponent interface with both component and subcomponent names', async () => {

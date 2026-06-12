@@ -7,6 +7,7 @@ import { layoutToCSS } from './css/layoutToCSS.js';
 import { toKebab } from './css/values.js';
 import { CONCEPT_TABLE, buildStateLookup } from './states.js';
 import { resolveRules } from './css/rules/index.js';
+import { parseLayout, type LayoutNode } from './react/variantAnalysis.js';
 
 export class CssTransformer implements Transformer {
   readonly name = 'css';
@@ -25,7 +26,9 @@ export class CssTransformer implements Transformer {
 
     const componentClass = toKebab(componentKey);
     const lines = buildCssLines(componentClass, variantsYaml, tokensFormat, context);
-    await fs.writeFile(path.join(outputDir, 'styles.css'), lines.join('\n'), 'utf-8');
+    const generatedDir = path.join(outputDir, 'generated');
+    await fs.ensureDir(generatedDir);
+    await fs.writeFile(path.join(generatedDir, 'styles.css'), lines.join('\n'), 'utf-8');
 
     // Subcomponents — each gets styles.css in its own subfolder
     const subcomponents = (variantsYaml.subcomponents ?? {}) as Record<string, unknown>;
@@ -33,7 +36,7 @@ export class CssTransformer implements Transformer {
       const subVariantsYaml = subRaw as Record<string, unknown>;
       const subClass = toKebab(subKey);
       const subLines = buildCssLines(subClass, subVariantsYaml, tokensFormat, context);
-      const subDir = path.join(outputDir, subKey);
+      const subDir = path.join(generatedDir, subKey);
       await fs.ensureDir(subDir);
       await fs.writeFile(path.join(subDir, 'styles.css'), subLines.join('\n'), 'utf-8');
     }
@@ -61,11 +64,42 @@ function buildCssLines(
   // ── Default styles ─────────────────────────────────────────────────────────
   const defaultBlock = variantsYaml.default as Record<string, unknown> | undefined;
   const defaultElements = (defaultBlock?.elements ?? {}) as Record<string, Record<string, unknown>>;
+  const variantList = (variantsYaml.variants ?? []) as Array<Record<string, unknown>>;
+
+  // Elements absent from the default layout but added by variant layouts are
+  // hidden at base and un-hidden under each including variant's selector.
+  const defaultKeys = new Set<string>();
+  collectLayoutKeys(parseLayout(defaultBlock?.layout), defaultKeys);
+  const structuralKeys = new Set<string>();
+  // Parents of absolutely-positioned elements must establish a containing
+  // block, or inset: 0 resolves against the viewport. Their non-absolute
+  // siblings must also be positioned: layout order is Figma children order
+  // (first = back-most, last on top), and only positioned siblings paint in
+  // DOM order — an absolute element would otherwise jump above static ones.
+  const needsRelative = new Set<string>();
+  {
+    const layouts = [parseLayout(defaultBlock?.layout), ...variantList.map(v => parseLayout(v.layout))];
+    for (const layout of layouts) {
+      collectStackingFixes(layout, defaultElements, needsRelative);
+      if (layout !== layouts[0]) {
+        const keys = new Set<string>();
+        collectLayoutKeys(layout, keys);
+        for (const k of keys) if (!defaultKeys.has(k)) structuralKeys.add(k);
+      }
+    }
+  }
 
   for (const [elemKey, elem] of Object.entries(defaultElements)) {
     const selector = elemSelector(componentClass, elemKey);
     const styles = (elem.styles ?? {}) as Record<string, unknown>;
     const decls = [...layoutToCSS(styles, tokensFormat), ...styleToCSS(styles, tokensFormat)];
+
+    if (needsRelative.has(elemKey) && !decls.some(d => d.startsWith('position:'))) {
+      decls.push('position: relative');
+    }
+    if (structuralKeys.has(elemKey)) {
+      decls.push('display: none');
+    }
 
     if (decls.length > 0) {
       lines.push(`${selector} {`);
@@ -136,12 +170,31 @@ function buildCssLines(
 
     const variantElements = (variant.elements ?? {}) as Record<string, Record<string, unknown>>;
 
-    for (const [elemKey, elem] of Object.entries(variantElements)) {
+    // Structural layout changes: a variant layout that adds an element
+    // un-hides it; one that drops a default element hides it.
+    const displayDecls = new Map<string, string>();
+    if (variant.layout) {
+      const variantKeys = new Set<string>();
+      collectLayoutKeys(parseLayout(variant.layout), variantKeys);
+      for (const key of variantKeys) {
+        if (!structuralKeys.has(key)) continue;
+        const styles = (defaultElements[key]?.styles ?? {}) as Record<string, unknown>;
+        displayDecls.set(key, `display: ${styles.layoutMode ? 'flex' : 'block'}`);
+      }
+      for (const key of defaultKeys) {
+        if (key !== 'root' && !variantKeys.has(key)) displayDecls.set(key, 'display: none');
+      }
+    }
+
+    const elemKeys = new Set([...Object.keys(variantElements), ...displayDecls.keys()]);
+    for (const elemKey of elemKeys) {
       const elemSuffix = elemKey === 'root' ? '' : ` ${elemSelector(componentClass, elemKey)}`;
       const selector = rootSelectors.map(s => `${s}${elemSuffix}`).join(',\n');
 
-      const styles = (elem.styles ?? {}) as Record<string, unknown>;
+      const styles = (variantElements[elemKey]?.styles ?? {}) as Record<string, unknown>;
       const decls = [...layoutToCSS(styles, tokensFormat), ...styleToCSS(styles, tokensFormat)];
+      const display = displayDecls.get(elemKey);
+      if (display && !decls.some(d => d.startsWith('display:'))) decls.push(display);
 
       if (decls.length > 0) {
         lines.push(`${selector} {`);
@@ -153,6 +206,39 @@ function buildCssLines(
   }
 
   return lines;
+}
+
+function collectLayoutKeys(nodes: LayoutNode[], into: Set<string>): void {
+  for (const node of nodes) {
+    into.add(node.key);
+    collectLayoutKeys(node.children, into);
+  }
+}
+
+/**
+ * Mark elements that need `position: relative` for correct stacking: the
+ * layout parent of any absolutely-positioned element (containing block), and
+ * that element's non-absolute siblings (so painting follows layout order —
+ * last on top — instead of absolute elements covering static siblings).
+ */
+function collectStackingFixes(
+  nodes: LayoutNode[],
+  elements: Record<string, Record<string, unknown>>,
+  into: Set<string>,
+  parent?: string,
+): void {
+  const isAbsolute = (key: string) =>
+    ((elements[key]?.styles ?? {}) as Record<string, unknown>).position === 'ABSOLUTE';
+
+  if (nodes.some(n => isAbsolute(n.key))) {
+    if (parent) into.add(parent);
+    for (const n of nodes) {
+      if (!isAbsolute(n.key)) into.add(n.key);
+    }
+  }
+  for (const node of nodes) {
+    collectStackingFixes(node.children, elements, into, node.key);
+  }
 }
 
 function elemSelector(componentClass: string, elemKey: string): string {

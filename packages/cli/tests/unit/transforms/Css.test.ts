@@ -20,7 +20,7 @@ async function writeVariants(dir: string, data: Record<string, unknown>) {
 async function run(dir: string, variantsData: Record<string, unknown>, componentKey = 'dsButton', tokensFormat = 'TOKEN', processingStates?: ProcessingStates, transformerOptions?: Record<string, unknown>) {
   await writeVariants(dir, variantsData);
   await transformer.run({}, { ...makeContext(dir, componentKey, tokensFormat, processingStates), transformerOptions });
-  return fs.readFile(path.join(dir, 'styles.css'), 'utf-8');
+  return fs.readFile(path.join(dir, 'generated', 'styles.css'), 'utf-8');
 }
 
 // Minimal helpers to build spec-format style objects
@@ -47,7 +47,7 @@ describe('CssTransformer', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     await transformer.run({}, makeContext(tmpDir));
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('no variants.yaml'));
-    expect(fs.existsSync(path.join(tmpDir, 'styles.css'))).toBe(false);
+    expect(fs.existsSync(path.join(tmpDir, 'generated', 'styles.css'))).toBe(false);
     warnSpy.mockRestore();
   });
 
@@ -411,7 +411,7 @@ describe('CssTransformer', () => {
     async function runAndReadSub(dir: string, variantsData: Record<string, unknown>, subKey: string, componentKey = 'dsActionList') {
       await writeVariants(dir, variantsData);
       await transformer.run({}, makeContext(dir, componentKey));
-      return fs.readFile(path.join(dir, subKey, 'styles.css'), 'utf-8');
+      return fs.readFile(path.join(dir, 'generated', subKey, 'styles.css'), 'utf-8');
     }
 
     it('emits styles.css in a subfolder for each subcomponent', async () => {
@@ -424,7 +424,7 @@ describe('CssTransformer', () => {
         },
       });
       await transformer.run({}, makeContext(tmpDir, 'dsActionList'));
-      expect(fs.existsSync(path.join(tmpDir, 'group', 'styles.css'))).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, 'generated', 'group', 'styles.css'))).toBe(true);
     });
 
     it('scopes subcomponent BEM selectors to the subcomponent key, not the parent', async () => {
@@ -477,10 +477,10 @@ describe('CssTransformer', () => {
         },
       });
       await transformer.run({}, makeContext(tmpDir, 'dsActionList'));
-      expect(fs.existsSync(path.join(tmpDir, 'group', 'styles.css'))).toBe(true);
-      expect(fs.existsSync(path.join(tmpDir, 'header', 'styles.css'))).toBe(true);
-      const groupOut = await fs.readFile(path.join(tmpDir, 'group', 'styles.css'), 'utf-8');
-      const headerOut = await fs.readFile(path.join(tmpDir, 'header', 'styles.css'), 'utf-8');
+      expect(fs.existsSync(path.join(tmpDir, 'generated', 'group', 'styles.css'))).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, 'generated', 'header', 'styles.css'))).toBe(true);
+      const groupOut = await fs.readFile(path.join(tmpDir, 'generated', 'group', 'styles.css'), 'utf-8');
+      const headerOut = await fs.readFile(path.join(tmpDir, 'generated', 'header', 'styles.css'), 'utf-8');
       expect(groupOut).toContain('flex-direction: column');
       expect(headerOut).toContain('flex-direction: row');
     });
@@ -621,9 +621,86 @@ describe('CssTransformer', () => {
         ...makeContext(tmpDir, 'dsActionList'),
         transformerOptions: rules,
       });
-      const subOut = await fs.readFile(path.join(tmpDir, 'item', 'styles.css'), 'utf-8');
+      const subOut = await fs.readFile(path.join(tmpDir, 'generated', 'item', 'styles.css'), 'utf-8');
       expect(subOut).toContain('box-shadow: inset 0 0 0 2px var(--color-border-selected)');
       expect(subOut).toContain('border-color: transparent');
+    });
+  });
+
+  describe('structural layout presence', () => {
+    const structuralVariants = {
+      default: {
+        layout: [{ root: ['label'] }],
+        elements: {
+          root: { styles: { layoutMode: 'HORIZONTAL' } },
+          label: { styles: {} },
+          background: {
+            styles: { position: 'ABSOLUTE', top: 0, bottom: 0, start: 0, end: 0, backgroundColor: tokenRef('Color/Primary') },
+          },
+        },
+      },
+      variants: [
+        {
+          configuration: { appearance: 'overlay' },
+          layout: [{ root: ['background', 'label'] }],
+        },
+      ],
+    };
+
+    it('adds position: relative to the layout parent of an absolute element', async () => {
+      const out = await run(tmpDir, structuralVariants);
+      const rootBlock = out.match(/\.ds-button \{[^}]*\}/)?.[0];
+      expect(rootBlock).toContain('position: relative');
+    });
+
+    it('positions non-absolute siblings so painting follows layout order (last on top)', async () => {
+      const out = await run(tmpDir, structuralVariants);
+      const labelBlock = out.match(/\.ds-button__label \{[^}]*\}/)?.[0];
+      expect(labelBlock).toContain('position: relative');
+    });
+
+    it('does not position siblings when no absolute element shares the parent', async () => {
+      const out = await run(tmpDir, {
+        default: {
+          layout: [{ root: ['icon', 'label'] }],
+          elements: {
+            root: { styles: {} },
+            icon: { styles: { layoutSizingHorizontal: 'HUG' } },
+            label: { styles: { layoutSizingHorizontal: 'HUG' } },
+          },
+        },
+        variants: [],
+      });
+      expect(out.match(/\.ds-button__label \{[^}]*\}/)?.[0]).not.toContain('position: relative');
+    });
+
+    it('hides elements absent from the default layout and un-hides them under including variants', async () => {
+      const out = await run(tmpDir, structuralVariants);
+      const baseBlock = out.match(/\.ds-button__background \{[^}]*\}/)?.[0];
+      expect(baseBlock).toContain('display: none');
+      expect(out).toContain('.ds-button[data-appearance="overlay"] .ds-button__background {');
+      const overlayBlock = out.match(/\.ds-button\[data-appearance="overlay"\] \.ds-button__background \{[^}]*\}/)?.[0];
+      expect(overlayBlock).toContain('display: block');
+    });
+
+    it('hides default elements dropped by a variant layout', async () => {
+      const out = await run(tmpDir, {
+        default: {
+          layout: [{ root: ['icon', 'label'] }],
+          elements: { root: { styles: {} }, icon: { styles: {} }, label: { styles: {} } },
+        },
+        variants: [
+          { configuration: { compact: true }, layout: [{ root: ['label'] }] },
+        ],
+      });
+      const compactIcon = out.match(/\.ds-button\[data-compact\] \.ds-button__icon \{[^}]*\}/)?.[0];
+      expect(compactIcon).toContain('display: none');
+    });
+
+    it('does not hide elements present in the default layout', async () => {
+      const out = await run(tmpDir, structuralVariants);
+      const labelBlock = out.match(/\.ds-button__label \{[^}]*\}/)?.[0];
+      expect(labelBlock ?? '').not.toContain('display: none');
     });
   });
 });
