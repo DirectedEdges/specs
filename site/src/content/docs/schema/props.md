@@ -59,12 +59,12 @@ Inferred from Figma variant values when [`inferNumberProps`](/specs/schema/confi
 | `type` | `'slot'` | Yes | |
 | `default` | `string \| null` | No | Default slot content |
 | `nullable` | `boolean` | No | Whether `null` is a valid value |
-| `minItems` | `number` | No | Minimum number of items (since 0.14.0) |
-| `maxItems` | `number` | No | Maximum number of items (since 0.14.0) |
+| `minChildren` | `number` | No | Minimum number of children the slot accepts (since 0.25.0) |
+| `maxChildren` | `number` | No | Maximum number of children the slot accepts (since 0.25.0) |
 | `anyOf` | `string[]` | No | Permitted component type names (since 0.14.0) |
 | `$extensions` | `PropExtensions` | No | Vendor extensions |
 
-Slot constraint properties (`minItems`, `maxItems`, `anyOf`) are emitted when [`slotConstraints`](/specs/schema/config.md/#processing) is enabled in config.
+Slot constraint properties (`minChildren`, `maxChildren`, `anyOf`) are emitted when [`slotConstraints`](/specs/schema/config.md/#processing) is enabled in config.
 
 ## Extensions
 
@@ -88,5 +88,6 @@ The `$extensions` object holds vendor-specific metadata. Currently only the `com
 ## Further Reading
 
 - [ADR 027 — Code-Only Props](https://github.com/DirectedEdges/specs/blob/main/adr/027-code-only-props.md) — surfaces Figma code-only props with `$extensions` source metadata
-- [ADR 028 — Slot Quantity and Content Constraints](https://github.com/DirectedEdges/specs/blob/main/adr/028-slot-constraints.md) — adds `minItems`, `maxItems`, `anyOf` to SlotProp
+- [ADR 028 — Slot Quantity and Content Constraints](https://github.com/DirectedEdges/specs/blob/main/adr/028-slot-constraints.md) — adds `anyOf` to SlotProp; originally added `minItems`/`maxItems` (renamed in ADR-056)
+- [ADR 056 — Rename SlotProp.minItems/maxItems → minChildren/maxChildren](https://github.com/DirectedEdges/specs/blob/main/adr/056-slot-children-constraints.md) — aligns field names with Figma native `slotSettings`; adds native `preferredValues` resolution
 - [ADR 029 — NumberProp](https://github.com/DirectedEdges/specs/blob/main/adr/029-number-prop.md) — adds the `NumberProp` type with opt-in inference
