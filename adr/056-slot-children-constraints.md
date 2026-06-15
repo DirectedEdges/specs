@@ -2,7 +2,7 @@
 
 **Branch**: `adr/056-slot-children-constraints`
 **Created**: 2026-06-12
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 
