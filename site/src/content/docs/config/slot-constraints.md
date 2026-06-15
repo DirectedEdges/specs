@@ -3,7 +3,7 @@ title: "Slot Constraints"
 description: "Consolidate slot constraints from code-only props into the slot property"
 ---
 
-Consolidate slot constraints (`anyOf`, `minChildren`, `maxChildren`) into the slot property. Constraints are read from two sources — Figma's native `slotSettings` API (when the slot has native settings configured) and code-only props (the legacy naming convention). Both sources produce the same output fields.
+Consolidate slot constraints (`anyOf`, `minItems`, `maxItems`) from code-only props into the slot property. In the example below, the `DS Alert / Actions` subcomponent carries its constraints as code-only props named `childrenAnyof`, `childrenMinitems`, and `childrenMaxitems`.
 
 :::tip[Guide]
 See the [Slot Constraints](/specs/guides/slot-constraints/) guide as well as the [Figma Slots for Repeating Items](https://nathanacurtis.substack.com/p/figma-slots-for-repeating-items) blog post for how constraint consolidation works.
@@ -14,7 +14,7 @@ See the [Slot Constraints](/specs/guides/slot-constraints/) guide as well as the
 ```yaml
 config:
   processing:
-    slotConstraints: true
+    slotConstraints: true  # Consolidate slot constraints from code-only props
 ```
 
 ## Result
@@ -26,13 +26,13 @@ config:
   "props": {
     "children": { "type": "slot" },
     "childrenAnyof": { "type": "string", "examples": ["DS Button"] },
-    "childrenMaxchildren": { "type": "string", "examples": ["2"] },
-    "childrenMinchildren": { "type": "string", "examples": ["1"] }
+    "childrenMaxitems": { "type": "string", "examples": ["2"] },
+    "childrenMinitems": { "type": "string", "examples": ["1"] }
   }
 }
 ```
 
-**With** consolidation (`true`) they collapse into the `children` slot as `anyOf`/`minChildren`/`maxChildren`, and the standalone props are removed:
+**With** consolidation (`true`) they collapse into the `children` slot as `anyOf`/`minItems`/`maxItems`, and the standalone props are removed:
 
 ```json
 {
@@ -40,8 +40,8 @@ config:
     "children": {
       "type": "slot",
       "anyOf": ["DS Button"],
-      "minChildren": 1,
-      "maxChildren": 2
+      "minItems": 1,
+      "maxItems": 2
     }
   }
 }
@@ -51,7 +51,7 @@ config:
 
 - **Type**: boolean
 - **Default**: `false`
-- **Effect**: When `true`, slot constraint metadata is merged into the corresponding slot property — sourced from Figma native `slotSettings` first, falling back to code-only props. When `false`, slot constraints are not consolidated.
+- **Effect**: When `true`, slot constraint metadata discovered in code-only props is merged into the corresponding slot property. When `false`, slot constraints are not consolidated.
 
 ## Path
 

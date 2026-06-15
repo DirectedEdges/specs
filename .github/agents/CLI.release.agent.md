@@ -41,15 +41,8 @@ All commands in this agent run from the **CLI package directory**: `packages/cli
 2. **Verify CHANGELOG**: Read `packages/cli/CHANGELOG.md`. Confirm:
    - An entry exists for this version (e.g., `## [0.6.0]`)
    - The entry has a date (use today if missing)
-   - A **Summary paragraph** exists at the top of the version entry (immediately after the heading). This is written last, after all bullets are done. It must:
-     - Open with the most important user-facing capability in this release
-     - Answer "So what?" — what can users now do that they couldn't before?
-     - Avoid implementation vocabulary (registries, transformer pipelines, ref swaps, upstream) in favor of plain language
-     - Be 2–4 sentences; every sentence should carry meaning a user cares about
-     - If missing or too technical, draft a replacement and update the file before continuing
-   - Individual bullets lead with a **bold plain sentence** that describes what the change *enables* — not just what was added. "A new command for analyzing props across a catalog" not "New command for on-demand analysis passes over component specs." If bullets read like API docs, rewrite them before continuing.
-   - **Empty sections are removed** — if `### Changed`, `### Removed`, or `### Fixed` has no bullets, delete that section heading entirely. Do not leave placeholder empty sections.
-   - The entry has content under at least one of Added/Changed/Fixed
+   - A **Summary** line exists at the top of the version entry (immediately after the heading), providing a high-level overview of this release
+   - The entry has content under Added/Changed/Removed/Fixed
    - A **Dependency updates** subsection summarizes what changed in upstream packages. To write this:
      1. Read the specs-schema CHANGELOG (`packages/schema/CHANGELOG.md`) for the `<schema-version>` entry
      2. Read the specs-from-figma CHANGELOG for the `<specs-from-figma-version>` entry

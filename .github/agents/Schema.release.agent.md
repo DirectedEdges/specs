@@ -36,15 +36,13 @@ All commands in this agent run from the **schema package directory**: `packages/
 2. **Verify CHANGELOG**: Read `packages/schema/CHANGELOG.md`. Confirm:
    - An entry exists for this version (e.g., `## [0.16.0]`)
    - The entry has an appended date (e.g., `## [0.16.0] - 2026-04-05`). If missing, use today's date.
-   - A **Summary paragraph** exists at the top of the version entry (immediately after the heading). This is written last, after all bullets are done. It must:
-     - Open with the most important user-facing capability in this release
-     - Answer "So what?" — what can consumers of this schema now express or do that they couldn't before?
-     - Avoid implementation vocabulary (type aliases, discriminated unions, internal identifiers) in favor of plain language about what the types *enable*
-     - Be 2–4 sentences; every sentence should carry meaning a user cares about
-     - If missing or too technical, draft a replacement and update the file before continuing
-   - Individual bullets lead with a **bold plain sentence** that describes what the property or type *enables* — not just what was added. If bullets read like type declaration docs, rewrite them before continuing.
-   - **Empty sections are removed** — if `### Changed`, `### Removed`, or `### Fixed` has no bullets, delete that section heading entirely.
-   - The entry groups content under at least one of Added/Changed/Removed/Fixed
+   - A **Summary** line exists at the top of the version entry (immediately after the heading), providing a 3–4 sentence high-level overview of the release changes.
+      - If missing, draft one by reading the entry's Added/Changed/Removed/Fixed sections and add it.
+      - When summarizing:
+         - Combine related points into a single summary sentence where possible
+         - Favor summarizing the most impactful changes, such as features at a higher-level in the spec and/or with more individual changelog items
+
+   - The entry groups content under Added/Changed/Removed/Fixed
 
    If incomplete, STOP and report what's missing.
 
