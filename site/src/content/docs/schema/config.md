@@ -12,7 +12,7 @@ Controls how specs are generated. See the [feature guides](/specs/features/) for
 | `subcomponents` | `object` | — | Subcomponent detection — `scope` (NESTED or PAGE), `match` patterns, `exclude` patterns. Absent = no detection |
 | `glyphNamePattern` | `string` | — | Name prefix for identifying glyph/icon instances |
 | `codeOnlyPropsPattern` | `string` | — | Name pattern for code-only prop containers |
-| `slotConstraints` | `boolean` | `false` | Emit `minItems`, `maxItems`, `anyOf` on slot props |
+| `slotConstraints` | `boolean` | `false` | Emit `minChildren`, `maxChildren`, `anyOf` on slot props |
 | `variantDepth` | `1 \| 2 \| 3 \| 9999` | `9999` | Maximum variant nesting depth (9999 = unlimited) |
 | `details` | `'FULL' \| 'LAYERED'` | `'LAYERED'` | Output detail level |
 | `inferNumberProps` | `boolean` | `false` | Infer number-typed props from Figma variant values |

@@ -96,7 +96,7 @@
             "slotConstraints": {
               "type": "boolean",
               "default": false,
-              "description": "Whether to consolidate slot constraints (anyOf, minItems, maxItems) from code-only props into the slot property"
+              "description": "Whether to consolidate slot constraints (anyOf, minChildren, maxChildren) from code-only props into the slot property"
             },
             "variantDepth": {
               "type": "number",
