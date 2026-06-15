@@ -4,6 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 056 | Rename `SlotProp.minItems`/`maxItems` → `minChildren`/`maxChildren` | Align with Figma-native `slotSettings` field names; `anyOf` populated from `preferredValues` when `allowPreferredValuesOnly` is true |
 | 055 | Variant State Classification via `processing.states` | |
 | 054 | Workspace Schema File | |
 | 053 | Transform Command and Configuration | |

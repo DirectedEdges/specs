@@ -395,15 +395,15 @@
         "nullable": {
           "type": "boolean"
         },
-        "minItems": {
+        "minChildren": {
           "type": "integer",
           "minimum": 0,
-          "description": "Minimum number of items this slot accepts"
+          "description": "Minimum number of children this slot accepts"
         },
-        "maxItems": {
+        "maxChildren": {
           "type": "integer",
           "minimum": 0,
-          "description": "Maximum number of items this slot accepts"
+          "description": "Maximum number of children this slot accepts"
         },
         "anyOf": {
           "type": "array",
@@ -525,7 +525,7 @@
       "properties": {
         "path": {
           "type": "array",
-          "minItems": 1,
+          "minChildren": 1,
           "items": {
             "type": "string"
           },
