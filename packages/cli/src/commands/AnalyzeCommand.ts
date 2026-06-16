@@ -90,6 +90,7 @@ export const Analyze = new Command('analyze')
               outputDir: componentDir,
               componentKey,
               tokensFormat: config.config.format.tokens,
+              outputFormat: config.config.format.output,
               processingStates: config.config.processing?.states as ProcessingStates | undefined,
             };
             await analyzer.run(apiYaml, context);

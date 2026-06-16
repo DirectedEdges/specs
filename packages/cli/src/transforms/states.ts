@@ -42,6 +42,12 @@ export function buildStateLookup(states: ProcessingStates): {
   for (const [concept, entry] of Object.entries(states)) {
     const v = entry.value ?? 'true';
     lookup.set(`${entry.prop}::${v}`, concept);
+    // When no value is configured, the concept name itself may serve as the enum
+    // value (e.g. selected: { prop: selected } should match Selected=Selected).
+    // Register a lowercase key so Css.ts can find it via case-insensitive fallback.
+    if (!entry.value) {
+      lookup.set(`${entry.prop}::${concept}`, concept);
+    }
     classifiedProps.add(entry.prop);
   }
   return { lookup, classifiedProps };
