@@ -74,9 +74,11 @@ export class PropsAnalyzer implements Transformer {
   readonly name = 'props';
 
   private readonly _allProps: PropEntry[] = [];
+  private _outputFormat: 'JSON' | 'YAML' = 'JSON';
 
   async run(apiYaml: Record<string, unknown>, context: TransformerContext): Promise<void> {
-    const { componentKey } = context;
+    const { componentKey, outputFormat } = context;
+    this._outputFormat = outputFormat;
 
     const mainProps = extractProps(componentKey, apiYaml);
     this._allProps.push(...mainProps);
@@ -95,11 +97,11 @@ export class PropsAnalyzer implements Transformer {
     await fs.ensureDir(outDir);
 
     const aggregate = buildAggregate(this._allProps);
-    await fs.writeFile(
-      path.join(outDir, 'props.yaml'),
-      yaml.stringify(aggregate, { lineWidth: 120 }),
-      'utf-8',
-    );
+    const ext = this._outputFormat === 'JSON' ? 'json' : 'yaml';
+    const content = this._outputFormat === 'JSON'
+      ? JSON.stringify(aggregate, null, 2) + '\n'
+      : yaml.stringify(aggregate, { lineWidth: 120 });
+    await fs.writeFile(path.join(outDir, `props.${ext}`), content, 'utf-8');
   }
 }
 

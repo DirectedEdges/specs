@@ -50,9 +50,11 @@ export class StylingAnalyzer implements Transformer {
 
   // Flat map: "componentKey" and "componentKey.subName" entries stored together.
   private readonly _componentData = new Map<string, StylingJson>();
+  private _outputFormat: 'JSON' | 'YAML' = 'JSON';
 
   async run(apiYaml: Record<string, unknown>, context: TransformerContext): Promise<void> {
-    const { outputDir, componentKey } = context;
+    const { outputDir, componentKey, outputFormat } = context;
+    this._outputFormat = outputFormat;
 
     const anatomy = (apiYaml.anatomy ?? {}) as Record<string, unknown>;
     const elementTypes = extractElementTypes(anatomy);
@@ -87,8 +89,12 @@ export class StylingAnalyzer implements Transformer {
       fileOutput[scopeKey] = data;
     }
 
-    const outputPath = path.join(outputDir, 'styling.json');
-    await fs.writeFile(outputPath, JSON.stringify(fileOutput, null, 2) + '\n', 'utf-8');
+    const ext = this._outputFormat === 'YAML' ? 'yaml' : 'json';
+    const outputPath = path.join(outputDir, `styling.${ext}`);
+    const content = this._outputFormat === 'YAML'
+      ? yaml.stringify(fileOutput, { lineWidth: 120 })
+      : JSON.stringify(fileOutput, null, 2) + '\n';
+    await fs.writeFile(outputPath, content, 'utf-8');
   }
 
   async finalize(outputDir: string, analysisDir?: string): Promise<void> {
@@ -106,7 +112,11 @@ export class StylingAnalyzer implements Transformer {
     for (const [key, data] of Array.from(this._componentData.entries()).sort((a, b) => a[0].localeCompare(b[0]))) {
       out[key] = stripRawValues(data);
     }
-    await fs.writeFile(path.join(dictDir, 'styling.byComponent.json'), JSON.stringify(out, null, 2) + '\n', 'utf-8');
+    const ext = this._outputFormat === 'YAML' ? 'yaml' : 'json';
+    const content = this._outputFormat === 'YAML'
+      ? yaml.stringify(out, { lineWidth: 120 })
+      : JSON.stringify(out, null, 2) + '\n';
+    await fs.writeFile(path.join(dictDir, `styling.byComponent.${ext}`), content, 'utf-8');
   }
 
   private async _writeByToken(dictDir: string): Promise<void> {
@@ -126,7 +136,11 @@ export class StylingAnalyzer implements Transformer {
       }
     }
 
-    await fs.writeFile(path.join(dictDir, 'styling.byToken.json'), JSON.stringify(out, null, 2) + '\n', 'utf-8');
+    const ext = this._outputFormat === 'YAML' ? 'yaml' : 'json';
+    const content = this._outputFormat === 'YAML'
+      ? yaml.stringify(out, { lineWidth: 120 })
+      : JSON.stringify(out, null, 2) + '\n';
+    await fs.writeFile(path.join(dictDir, `styling.byToken.${ext}`), content, 'utf-8');
   }
 }
 
