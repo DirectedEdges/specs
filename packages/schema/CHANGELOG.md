@@ -5,6 +5,15 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.26.0] - Unreleased
+
+### Added
+
+### Changed
+
+### Removed
+
+
 ## [0.25.0] - 2026-06-15
 
 `SlotProp.minItems`/`maxItems` are renamed to `minChildren`/`maxChildren`, aligning the schema vocabulary with Figma's native `slotSettings` API and with the universal "children" term across React, SwiftUI, and Jetpack Compose. Libraries using Figma's native slot settings can now read constraint values without a translation layer. This release also corrects `Metadata.generator.version` from `number` to `string`, fixing a type mismatch for TypeScript consumers.
