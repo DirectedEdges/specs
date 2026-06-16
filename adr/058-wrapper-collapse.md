@@ -2,7 +2,7 @@
 
 **Branch**: `058-wrapper-collapse`
 **Created**: 2026-06-16
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 
