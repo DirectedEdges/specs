@@ -1,4 +1,4 @@
-# ADR 058: Wrapper Collapse Config Flag
+# ADR 058: Collapsing Wrapped Primitives
 
 **Branch**: `058-wrapper-collapse`
 **Created**: 2026-06-16
