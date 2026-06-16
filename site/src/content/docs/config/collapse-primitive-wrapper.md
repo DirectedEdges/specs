@@ -1,0 +1,73 @@
+---
+title: "Collapse Primitive Wrapper"
+description: "Strip plain container wrappers around a single text or glyph element and promote the leaf to spec root"
+---
+
+When enabled, a component whose root is a plain, style-free container holding a single `text` or `glyph` child is collapsed: the wrapper is stripped and the leaf becomes the spec root. This eliminates structural noise for purely typographic or icon primitives — such as Heading, Paragraph, Body, Label, or Icon components — where the container adds no design-system meaning.
+
+## Configuration
+
+```yaml
+config:
+  processing:
+    collapsePrimitiveWrapper: true
+```
+
+## Result
+
+**Without** collapse (`false`) a Heading component emits a two-node anatomy with a `container` root:
+
+```json
+{
+  "anatomy": {
+    "root": { "name": "Heading", "type": "container" },
+    "Text": { "name": "Text", "type": "text", "parent": "root" }
+  },
+  "elements": {
+    "root": { "type": "container" },
+    "Text": { "type": "text", "fontFamily": "...", "fontSize": 24 }
+  }
+}
+```
+
+**With** collapse (`true`) the wrapper is stripped and the leaf becomes root:
+
+```json
+{
+  "anatomy": {
+    "root": {
+      "name": "Text",
+      "type": "text",
+      "$extensions": { "com.figma.originalName": "Heading" }
+    }
+  },
+  "elements": {
+    "root": { "type": "text", "fontFamily": "...", "fontSize": 24 }
+  }
+}
+```
+
+The `$extensions.com.figma.originalName` field on the anatomy root carries the original Figma layer name so the source layer remains traceable.
+
+## Eligibility
+
+A component qualifies for collapse when **all** of the following are true:
+
+- The root element type is `container`.
+- The root has exactly one anatomy-visible child.
+- That child's type is `text` or `glyph`.
+- The child has no children of its own.
+- The root carries no slot binding on its children.
+- The root carries none of the following styles after default/zero values are stripped: `clipContent`, `cornerRadius`, `strokes`, `strokeAlign`, `strokeWeight`, `itemSpacing`, `padding`, `effects`, `backgroundColor`, `cornerSmoothing`.
+
+Collapse is **all-or-nothing**: if any variant in the component set fails the eligibility check, no collapse occurs for any variant.
+
+## Options
+
+- **Type**: boolean
+- **Default**: `false`
+- **Effect**: When `true`, eligible wrapper-only components are collapsed so the leaf element becomes the spec root. When `false`, the container is emitted as root regardless of structure.
+
+## Path
+
+`config.processing.collapsePrimitiveWrapper`

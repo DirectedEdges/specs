@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `Config.processing.collapsePrimitiveWrapper` — strip plain container wrappers around a single text/glyph child and promote the leaf to spec root; defaults to false (ADR-058)
+
 ### Changed
 
 ### Removed

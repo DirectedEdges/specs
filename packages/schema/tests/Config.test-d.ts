@@ -24,6 +24,7 @@ const fullConfig: Config = {
     glyphNamePattern: 'DS Icon Glyph /',
     codeOnlyPropsPattern: 'Code only props',
     slotConstraints: true,
+    collapsePrimitiveWrapper: false,
     variantDepth: 9999,
     details: 'LAYERED',
     inferNumberProps: true,
@@ -180,7 +181,7 @@ const defaultTokensValue: typeof DEFAULT_CONFIG.format.tokens = 'TOKEN';
 // ─── ResolvedConfig requires all defaultable fields ──────────────────────────
 
 const resolved: ResolvedConfig = {
-  processing: { slotConstraints: false, variantDepth: 9999, details: 'LAYERED', inferNumberProps: false },
+  processing: { slotConstraints: false, collapsePrimitiveWrapper: false, variantDepth: 9999, details: 'LAYERED', inferNumberProps: false },
   format: { output: 'JSON', keys: 'SAFE', layout: 'LAYOUT', tokens: 'TOKEN', color: 'HEX' },
   include: { invalidVariants: false, invalidCombinations: true, emptyVariants: false, defaultSlotContent: false },
   transformers: [],
@@ -197,6 +198,9 @@ const _dRequired: _DRequired = true;
 
 type _SCRequired = ResolvedConfig['processing']['slotConstraints'] extends boolean ? true : never;
 const _scRequired: _SCRequired = true;
+
+type _CPWRequired = ResolvedConfig['processing']['collapsePrimitiveWrapper'] extends boolean ? true : never;
+const _cpwRequired: _CPWRequired = true;
 
 type _INPRequired = ResolvedConfig['processing']['inferNumberProps'] extends boolean ? true : never;
 const _inpRequired: _INPRequired = true;
@@ -239,6 +243,19 @@ const _inferUndefined: Config['processing']['inferNumberProps'] = undefined;
 // ─── slotConstraints is optional ──────────────────────────────────────────────
 
 const _slotConstraintsUndefined: Config['processing']['slotConstraints'] = undefined;
+
+// ─── collapsePrimitiveWrapper is optional on Config ───────────────────────────
+
+const _collapsePrimitiveWrapperUndefined: Config['processing']['collapsePrimitiveWrapper'] = undefined;
+
+const configWithCollapse: Config = {
+  processing: { collapsePrimitiveWrapper: true },
+  format: {},
+  include: {},
+};
+
+// @ts-expect-error — collapsePrimitiveWrapper must be boolean
+const _badCollapse: Config['processing']['collapsePrimitiveWrapper'] = 'yes';
 
 // ─── format.color is optional on Config ─────────────────────────────────────
 
