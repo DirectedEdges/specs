@@ -5,6 +5,12 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.0] - Unreleased
+
+### Fixed
+
+- **CSS transform now emits styling for enum-valued state variants** — When a state in `config.processing.states` maps a prop without an explicit `value` (e.g. `selected: { prop: selected }`), variants whose enum value matches the concept name (case-insensitively, like `Selected=Selected`) now produce CSS selectors. Previously these variants were silently skipped, causing selected-state styling to be missing from `styles.css`.
+
 ## [0.20.0] - 2026-06-07
 
 Introduces the `specs analyze` command with two analyzers: `props` (cross-library prop governance aggregate) and `styling` (token usage dictionary, moved from transforms). Extends the `css` and `contract` transformers with subcomponent support, a configurable CSS rule pipeline, and the `border-shift-inset-shadow` rule. Refines `css` output: boolean props emit presence selectors and disabled guards wrap hover/active.

@@ -95,6 +95,24 @@ describe('buildStateLookup', () => {
     expect(classifiedProps.has('isDisabled')).toBe(true);
     expect(classifiedProps.has('validation')).toBe(true);
   });
+
+  it('also registers concept name as key when no value is specified (enum support)', () => {
+    const { lookup } = buildStateLookup({
+      selected: { prop: 'selected' },
+    });
+    // boolean default still present
+    expect(lookup.get('selected::true')).toBe('selected');
+    // concept name key added for case-insensitive enum matching
+    expect(lookup.get('selected::selected')).toBe('selected');
+  });
+
+  it('does NOT add concept name key when value is explicitly specified', () => {
+    const { lookup } = buildStateLookup({
+      active: { prop: 'state', value: 'pressed' },
+    });
+    expect(lookup.get('state::pressed')).toBe('active');
+    expect(lookup.has('state::active')).toBe(false);
+  });
 });
 
 describe('buildOmittedProps', () => {
