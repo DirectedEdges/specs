@@ -27,32 +27,41 @@ describe('PropsAnalyzer', () => {
     await fs.remove(outputDir);
   });
 
-  async function runAnalyzer(components: Record<string, Record<string, unknown>>) {
+  async function runAnalyzer(components: Record<string, Record<string, unknown>>, outputFormat: 'JSON' | 'YAML' = 'YAML') {
     const a = new PropsAnalyzer();
     for (const [componentKey, apiYaml] of Object.entries(components)) {
       const compDir = path.join(outputDir, componentKey);
       await fs.ensureDir(compDir);
-      await a.run(apiYaml, { outputDir: compDir, componentKey });
+      await a.run(apiYaml, { outputDir: compDir, componentKey, outputFormat });
     }
     await a.finalize!(outputDir, analysisDir);
-    const raw = await fs.readFile(path.join(analysisDir, 'props.yaml'), 'utf-8');
-    return yaml.parse(raw) as AggregateYaml;
+    if (outputFormat === 'JSON') {
+      return JSON.parse(await fs.readFile(path.join(analysisDir, 'props.json'), 'utf-8')) as AggregateYaml;
+    }
+    return yaml.parse(await fs.readFile(path.join(analysisDir, 'props.yaml'), 'utf-8')) as AggregateYaml;
   }
 
   it('has name "props"', () => {
     expect(new PropsAnalyzer().name).toBe('props');
   });
 
-  it('writes _analysis/props.yaml after finalize', async () => {
-    await runAnalyzer({ compA: { props: { label: { type: 'string' } } } });
+  it('writes _analysis/props.yaml when outputFormat is YAML', async () => {
+    await runAnalyzer({ compA: { props: { label: { type: 'string' } } } }, 'YAML');
     expect(fs.existsSync(path.join(analysisDir, 'props.yaml'))).toBe(true);
+    expect(fs.existsSync(path.join(analysisDir, 'props.json'))).toBe(false);
+  });
+
+  it('writes _analysis/props.json when outputFormat is JSON', async () => {
+    await runAnalyzer({ compA: { props: { label: { type: 'string' } } } }, 'JSON');
+    expect(fs.existsSync(path.join(analysisDir, 'props.json'))).toBe(true);
+    expect(fs.existsSync(path.join(analysisDir, 'props.yaml'))).toBe(false);
   });
 
   it('does not write per-component files', async () => {
     const compDir = path.join(outputDir, 'compA');
     await fs.ensureDir(compDir);
     const a = new PropsAnalyzer();
-    await a.run({ props: { label: { type: 'string' } } }, { outputDir: compDir, componentKey: 'compA' });
+    await a.run({ props: { label: { type: 'string' } } }, { outputDir: compDir, componentKey: 'compA', outputFormat: 'YAML' });
     expect(fs.existsSync(path.join(compDir, 'props.yaml'))).toBe(false);
   });
 
