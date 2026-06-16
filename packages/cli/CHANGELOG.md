@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **CSS transform now emits styling for enum-valued state variants** — When a state in `config.processing.states` maps a prop without an explicit `value` (e.g. `selected: { prop: selected }`), variants whose enum value matches the concept name (case-insensitively, like `Selected=Selected`) now produce CSS selectors. Previously these variants were silently skipped, causing selected-state styling to be missing from `styles.css`.
+
 - **`analyze` command respects `format.output` for props and styling (#151)** — `props` and `styling` analyzers now write `.json` or `.yaml` output files (and use the matching serializer) based on `config.format.output`. Previously both were hardcoded: `props` always wrote YAML, `styling` always wrote JSON.
 
 ## [0.20.0] - 2026-06-07

@@ -104,7 +104,7 @@ function buildCssLines(
     for (const [k, v] of configEntries) {
       const vStr = String(v);
       if (classifiedProps.has(k)) {
-        const concept = stateLookup.get(`${k}::${vStr}`);
+        const concept = stateLookup.get(`${k}::${vStr}`) ?? stateLookup.get(`${k}::${vStr.toLowerCase()}`);
         if (!concept) { skip = true; break; } // unmatched value = base/rest state
         const conceptEntry = CONCEPT_TABLE[concept];
         const sel = conceptEntry?.selector ?? `[data-${toKebab(k)}="${vStr}"]`;
