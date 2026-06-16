@@ -4,7 +4,6 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 057 | Fix `Metadata.generator.version` type: `number` → `string` | |
 | 055 | Variant State Classification via `processing.states` | |
 | 054 | Workspace Schema File | |
 | 053 | Transform Command and Configuration | |
