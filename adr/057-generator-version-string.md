@@ -2,7 +2,7 @@
 
 **Branch**: `057-generator-version-string`
 **Created**: 2026-06-15
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

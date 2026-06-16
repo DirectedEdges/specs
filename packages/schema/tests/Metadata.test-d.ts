@@ -15,7 +15,7 @@ const baseConfig: Metadata['config'] = {
 const withoutLicense: Metadata = {
   author: 'test',
   lastUpdated: '2026-02-24T00:00:00Z',
-  generator: { url: 'https://example.com', version: 1, name: 'test' },
+  generator: { url: 'https://example.com', version: '1.10.0', name: 'test' },
   schema: { url: 'https://example.com/schema', version: '1.0.0' },
   source: { pageId: 'p1', nodeId: 'n1', nodeType: 'COMPONENT' },
   config: baseConfig,
@@ -26,7 +26,7 @@ const withLicense: Metadata = {
   ...withoutLicense,
   generator: {
     url: 'https://example.com',
-    version: 1,
+    version: '1.10.0',
     name: 'test',
     license: {
       status: 'VALID',
@@ -41,6 +41,11 @@ const _level: string = withLicense.generator.license!.level;
 
 // generator.license is optional — can be undefined
 const _optional: { status: string; level: string } | undefined = withoutLicense.generator.license;
+
+// generator.version is a string (semver), not a number
+const _version: string = withoutLicense.generator.version;
+// @ts-expect-error — number is not assignable to string
+const _versionBad: Metadata['generator'] = { url: '', version: 1, name: '' };
 
 // ─── schema.latest — optional discovery URL (ADR 023) ───────────────────────
 

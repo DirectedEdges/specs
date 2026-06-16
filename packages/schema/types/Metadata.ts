@@ -25,7 +25,7 @@ export type Metadata = {
   lastUpdated: string;
   generator: {
     url: string;
-    version: number;
+    version: string;
     name: string;
     /**
      * Resolved license state at the time this component spec was generated.
