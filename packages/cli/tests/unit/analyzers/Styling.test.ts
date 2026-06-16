@@ -2,16 +2,17 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
+import yaml from 'yaml';
 import { StylingAnalyzer } from '../../../src/analyzers/Styling.js';
 
 const transformer = new StylingAnalyzer();
 
-function makeContext(dir: string, componentKey = 'dsButton') {
-  return { outputDir: dir, componentKey };
+function makeContext(dir: string, componentKey = 'dsButton', outputFormat: 'JSON' | 'YAML' = 'JSON') {
+  return { outputDir: dir, componentKey, outputFormat };
 }
 
 async function run(dir: string, apiYaml: Record<string, unknown>, componentKey = 'dsButton') {
-  await transformer.run(apiYaml, makeContext(dir, componentKey));
+  await transformer.run(apiYaml, makeContext(dir, componentKey, 'JSON'));
   const raw = await fs.readFile(path.join(dir, 'styling.json'), 'utf-8');
   return JSON.parse(raw) as Record<string, {
     variables: Array<{ name: string; appliedAs: string; rawValue?: unknown; appliedTo: Record<string, number> }>;
@@ -303,6 +304,23 @@ describe('StylingAnalyzer', () => {
     expect(out['dsButton.item'].variables[0].name).toBe('Color/On surface');
   });
 
+  it('writes styling.yaml when outputFormat is YAML', async () => {
+    const t = new StylingAnalyzer();
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'styling-yaml-'));
+    try {
+      await t.run(
+        { anatomy: { root: { type: 'container' } }, default: { elements: { root: { styles: { backgroundColor: { $token: 'DS Color.Primary', $type: 'color' } } } } } },
+        { outputDir: dir, componentKey: 'dsButton', outputFormat: 'YAML' },
+      );
+      expect(fs.existsSync(path.join(dir, 'styling.yaml'))).toBe(true);
+      expect(fs.existsSync(path.join(dir, 'styling.json'))).toBe(false);
+      const parsed = yaml.parse(await fs.readFile(path.join(dir, 'styling.yaml'), 'utf-8'));
+      expect(parsed.dsButton.variables[0].name).toBe('DS Color.Primary');
+    } finally {
+      await fs.remove(dir);
+    }
+  });
+
   it('subcomponent tokens do not appear in the top-level component scope', async () => {
     const out = await run(tmpDir, {
       anatomy: { root: { type: 'container' } },
@@ -360,20 +378,28 @@ describe('StylingAnalyzer.finalize', () => {
     await fs.remove(outputDir);
   });
 
-  async function runFinalize() {
+  async function runFinalize(outputFormat: 'JSON' | 'YAML' = 'JSON') {
     const t = new StylingAnalyzer();
-    await t.run(COMP_A, { outputDir: compDirA, componentKey: 'compA' });
-    await t.run(COMP_B, { outputDir: compDirB, componentKey: 'compB' });
+    await t.run(COMP_A, { outputDir: compDirA, componentKey: 'compA', outputFormat });
+    await t.run(COMP_B, { outputDir: compDirB, componentKey: 'compB', outputFormat });
     await t.finalize!(outputDir);
-    const byComp = JSON.parse(await fs.readFile(path.join(outputDir, '_analysis', 'styling.byComponent.json'), 'utf-8'));
-    const byToken = JSON.parse(await fs.readFile(path.join(outputDir, '_analysis', 'styling.byToken.json'), 'utf-8'));
-    return { byComp, byToken };
+    const ext = outputFormat === 'YAML' ? 'yaml' : 'json';
+    const byCompRaw = await fs.readFile(path.join(outputDir, '_analysis', `styling.byComponent.${ext}`), 'utf-8');
+    const byTokenRaw = await fs.readFile(path.join(outputDir, '_analysis', `styling.byToken.${ext}`), 'utf-8');
+    const parse = outputFormat === 'YAML' ? (s: string) => yaml.parse(s) : (s: string) => JSON.parse(s);
+    return { byComp: parse(byCompRaw), byToken: parse(byTokenRaw) };
   }
 
-  it('creates _analysis folder with both files', async () => {
-    await runFinalize();
+  it('creates _analysis folder with both .json files when outputFormat is JSON', async () => {
+    await runFinalize('JSON');
     expect(fs.existsSync(path.join(outputDir, '_analysis', 'styling.byComponent.json'))).toBe(true);
     expect(fs.existsSync(path.join(outputDir, '_analysis', 'styling.byToken.json'))).toBe(true);
+  });
+
+  it('creates _analysis folder with both .yaml files when outputFormat is YAML', async () => {
+    await runFinalize('YAML');
+    expect(fs.existsSync(path.join(outputDir, '_analysis', 'styling.byComponent.yaml'))).toBe(true);
+    expect(fs.existsSync(path.join(outputDir, '_analysis', 'styling.byToken.yaml'))).toBe(true);
   });
 
   it('byComponent keys match component names in alphabetical order', async () => {
@@ -397,7 +423,7 @@ describe('StylingAnalyzer.finalize', () => {
     };
     const compDir = path.join(outputDir, 'compRaw');
     await fs.ensureDir(compDir);
-    await t.run(withRaw, { outputDir: compDir, componentKey: 'compRaw' });
+    await t.run(withRaw, { outputDir: compDir, componentKey: 'compRaw', outputFormat: 'JSON' });
     await t.finalize!(outputDir);
     const byComp = JSON.parse(await fs.readFile(path.join(outputDir, '_analysis', 'styling.byComponent.json'), 'utf-8'));
     expect('rawValue' in byComp.compRaw.variables[0]).toBe(false);
@@ -438,7 +464,7 @@ describe('StylingAnalyzer.finalize', () => {
     };
     const compDir = path.join(outputDir, 'compSub');
     await fs.ensureDir(compDir);
-    await t.run(withSub, { outputDir: compDir, componentKey: 'compSub' });
+    await t.run(withSub, { outputDir: compDir, componentKey: 'compSub', outputFormat: 'JSON' });
     await t.finalize!(outputDir);
     const byToken = JSON.parse(await fs.readFile(path.join(outputDir, '_analysis', 'styling.byToken.json'), 'utf-8'));
     const entry = byToken.variables['Color/On surface'][0];

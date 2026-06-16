@@ -7,6 +7,8 @@ export interface TransformerContext {
   componentKey: string;
   /** Token format from config.format.tokens. Drives CSS variable resolution. */
   tokensFormat: string;
+  /** Output format from config.format.output. Drives file extension and serialization for analyzers. */
+  outputFormat: 'JSON' | 'YAML';
   /** Semantic state concept map from config.processing.states. */
   processingStates?: ProcessingStates;
   /** Raw options from the matching config.transformers entry (everything except `name`). */
