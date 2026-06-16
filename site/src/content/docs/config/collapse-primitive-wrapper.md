@@ -17,34 +17,23 @@ config:
 
 **Without** collapse (`false`) a Heading component emits a two-node anatomy with a `container` root:
 
-```json
-{
-  "anatomy": {
-    "root": { "name": "Heading", "type": "container" },
-    "Text": { "name": "Text", "type": "text", "parent": "root" }
-  },
-  "elements": {
-    "root": { "type": "container" },
-    "Text": { "type": "text", "fontFamily": "...", "fontSize": 24 }
-  }
-}
+```yaml
+anatomy:
+  root:
+    type: container
+  label:
+    type: text
+    parent: root
 ```
 
 **With** collapse (`true`) the wrapper is stripped and the leaf becomes root:
 
-```json
-{
-  "anatomy": {
-    "root": {
-      "name": "Text",
-      "type": "text",
-      "$extensions": { "com.figma.originalName": "Heading" }
-    }
-  },
-  "elements": {
-    "root": { "type": "text", "fontFamily": "...", "fontSize": 24 }
-  }
-}
+```yaml
+anatomy:
+  root:
+    type: text
+    $extensions:
+      com.figma.originalName: Label
 ```
 
 The `$extensions.com.figma.originalName` field on the anatomy root carries the original Figma layer name so the source layer remains traceable.
