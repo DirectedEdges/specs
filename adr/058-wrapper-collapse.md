@@ -12,7 +12,31 @@
 
 A common Figma construction — particularly for text and icon primitives — is a component whose root layer is a plain, style-free container holding a single `text` or `glyph` child. The wrapper adds no semantic styling (no corner radius, strokes, spacing, effects, or background) and carries no slot binding. From a spec consumer's perspective, the root element *is* the leaf; the container is a Figma-side convenience with no design-system meaning.
 
+Common design-system components that exhibit this pattern:
+
+- **Heading / Title** — a frame named `Heading` or `Title` wrapping a single `Text` layer, where the frame itself carries no visual styling.
+- **Paragraph / Body** — a `Paragraph` or `Body` frame wrapping a single `Text` layer with no border, background, or padding.
+- **Label / Caption** — small typographic components structured identically: one unstyled frame around one text node.
+- **Icon** — a frame wrapping a single vector/glyph node (e.g. a Figma component set for an icon library where each variant is a plain frame containing one `glyph`).
+
 When the generator encounters such a component today, it faithfully emits the wrapper as `root` and the leaf as a child element. This produces a two-node anatomy and a `container` root type even though the component is semantically a single primitive. Consumers (code generators, documentation tools) must either detect and unwrap this pattern themselves or tolerate a structurally inflated spec.
+
+**Collapse eligibility** — a component qualifies for collapse when *all* of the following are true:
+
+- The root element's type is `container`.
+- The root has exactly one anatomy-visible child (children present in both the Figma layer tree and the `Elements` collection after exclusions).
+- That child's type is `text` or `glyph`.
+- The child has no children of its own.
+- The root carries no slot binding on its children.
+- The root carries none of the following styles after default/zero values are stripped: `clipContent`, `cornerRadius`, `strokes`, `strokeAlign`, `strokeWeight`, `itemSpacing`, `padding`, `effects`, `backgroundColor`, `cornerSmoothing`.
+
+**Collapse is blocked** by any of:
+
+- A root that already is a `text` or `glyph` (no wrapper present).
+- A root with more than one visible child (e.g. an icon with a background layer).
+- A root with a slot binding on its children (the wrapper has semantic slot structure).
+- Any non-default value on the disqualifying style keys above (e.g. a corner radius, a border, padding, or a fill color on the container).
+- Any variant where the root fails the check — collapse is all-or-nothing across the component's variant set.
 
 The gap: no `Config` flag exists to tell the generator to collapse this wrapper, leaving downstream tools to implement their own heuristics or accept unnecessary structural noise.
 
@@ -30,20 +54,21 @@ The gap: no `Config` flag exists to tell the generator to collapse this wrapper,
 
 ## Options Considered
 
-### Option A: `processing.wrapperCollapse` *(Selected)*
+### Option A: `processing.collapsePrimitiveWrapper` *(Selected)*
 
 A boolean field on `Config.processing`. When `true`, the generator promotes the single text/glyph child to root and strips the container wrapper. Default: `false`.
 
-**Name rationale**: Names the thing being removed (`wrapper`) and what happens to it (`collapse`). Consistent with other processing booleans (`slotConstraints`, `inferNumberProps`) which name the capability being activated. "Wrapper" is a code-platform-neutral term — React, iOS, and Android all use it to describe decorative containers that carry no semantic substance.
+**Name rationale**: Follows the verb-noun pattern established by `inferNumberProps` (infer + number props). `collapsePrimitiveWrapper` = collapse + primitive wrapper. "Primitive" identifies the element type being revealed (a leaf `text` or `glyph`, the primitive element types in the schema), and "wrapper" names the thing being removed — a code-platform-neutral term that React, iOS, and Android all use for decorative containers that carry no semantic substance. This is more precise than a bare noun phrase (`wrapperCollapse`, `leafCollapse`), which read as noun-verb or noun-noun compounds inconsistent with the rest of the `processing` block.
 
 **Pros**:
 - Additive optional field → MINOR bump only.
 - `false` default leaves all existing specs unchanged.
-- Name is self-describing and matches the processing-block pattern.
+- Verb-noun form is consistent with `inferNumberProps`.
+- "Primitive" scopes the eligible leaf types without needing to enumerate them in the field name.
 - Symmetric: one field in type, one property in schema.
 
 **Cons / Trade-offs**:
-- Consumers must opt in explicitly; no auto-collapse for legacy files without a config update.
+- Longer than a bare noun phrase; consumers must opt in explicitly.
 
 ---
 
@@ -51,7 +76,7 @@ A boolean field on `Config.processing`. When `true`, the generator promotes the 
 
 Same boolean, named from the leaf's perspective (the thing being promoted) rather than the wrapper's (the thing being removed).
 
-**Rejected because**: "Collapse" as a verb applied to the leaf is misleading — the leaf isn't collapsed, it's promoted. The wrapper is what collapses. `wrapperCollapse` more accurately describes the observable effect (the container disappears) and avoids the semantic mismatch.
+**Rejected because**: "Collapse" as a verb applied to the leaf is misleading — the leaf isn't collapsed, it's promoted. The wrapper is what collapses. `collapsePrimitiveWrapper` more accurately describes the observable effect (the container disappears) and avoids the semantic mismatch.
 
 ---
 
@@ -59,7 +84,7 @@ Same boolean, named from the leaf's perspective (the thing being promoted) rathe
 
 Active-verb framing — "promote the leaf to root."
 
-**Rejected because**: Inconsistent with the existing processing-boolean naming convention, which favors noun phrases (`slotConstraints`, `inferNumberProps`, `wrapperCollapse`) over imperative verbs. Diverging from the established pattern increases cognitive friction for users reading a config file.
+**Rejected because**: Describes the effect from the leaf's perspective rather than the operation being performed on the structure. "Promote" is also less precise — it applies broadly to any elevation operation, whereas "collapse" specifically means removing the intermediate container. `collapsePrimitiveWrapper` names both the subject (the primitive wrapper) and the action (collapse), making the config's effect self-evident without consulting documentation.
 
 ---
 
@@ -69,9 +94,9 @@ Active-verb framing — "promote the leaf to root."
 
 | File | Change | Bump |
 |------|--------|------|
-| `types/Config.ts` | Add optional `wrapperCollapse?: boolean` to `Config.processing` | MINOR |
-| `types/Config.ts` | Add required `wrapperCollapse: boolean` to `ResolvedConfig.processing` | MINOR |
-| `types/Config.ts` | Add `wrapperCollapse: false` to `DEFAULT_CONFIG.processing` | MINOR |
+| `types/Config.ts` | Add optional `collapsePrimitiveWrapper?: boolean` to `Config.processing` | MINOR |
+| `types/Config.ts` | Add required `collapsePrimitiveWrapper: boolean` to `ResolvedConfig.processing` | MINOR |
+| `types/Config.ts` | Add `collapsePrimitiveWrapper: false` to `DEFAULT_CONFIG.processing` | MINOR |
 
 **Example — `Config` (partial, `types/Config.ts`)**:
 ```yaml
@@ -84,7 +109,7 @@ processing:
 processing:
   slotConstraints?: boolean
   inferNumberProps?: boolean
-  wrapperCollapse?: boolean   # optional — MINOR
+  collapsePrimitiveWrapper?: boolean   # optional — MINOR
 ```
 
 **Example — `ResolvedConfig` (partial, `types/Config.ts`)**:
@@ -98,7 +123,7 @@ processing:
 processing:
   slotConstraints: boolean
   inferNumberProps: boolean
-  wrapperCollapse: boolean    # required — mirrors resolved pattern
+  collapsePrimitiveWrapper: boolean    # required — mirrors resolved pattern
 ```
 
 **Example — `DEFAULT_CONFIG` (partial, `types/Config.ts`)**:
@@ -112,19 +137,19 @@ processing:
 processing:
   slotConstraints: false
   inferNumberProps: false
-  wrapperCollapse: false
+  collapsePrimitiveWrapper: false
 ```
 
 ### Schema changes (`schema/`)
 
 | File | Change | Bump |
 |------|--------|------|
-| `schema/workspace.schema.json` | Add `wrapperCollapse` boolean property under `#/definitions/Config/properties/processing/properties` | MINOR |
+| `schema/workspace.schema.json` | Add `collapsePrimitiveWrapper` boolean property under `#/definitions/Config/properties/processing/properties` | MINOR |
 
 **Example — new property (`schema/workspace.schema.json`)**:
 ```yaml
 # Under #/definitions/Config/properties/processing/properties
-wrapperCollapse:
+collapsePrimitiveWrapper:
   type: boolean
   default: false
   description: >
@@ -137,7 +162,7 @@ wrapperCollapse:
 
 ### Notes
 
-- `wrapperCollapse` is not added to `required` in the schema — it is optional with a `default` of `false`, matching the pattern for `slotConstraints` and `inferNumberProps`.
+- `collapsePrimitiveWrapper` is not added to `required` in the schema — it is optional with a `default` of `false`, matching the pattern for `slotConstraints` and `inferNumberProps`.
 - The eligibility criteria (disqualifying container styles, slot-bound root, non-singleton children) are implementation details of `specs-from-figma` and are not expressed in the schema.
 
 ---
@@ -145,7 +170,7 @@ wrapperCollapse:
 ## Type ↔ Schema Impact
 
 - **Symmetric**: Yes — one field added to `Config.processing` in `types/Config.ts`; one property added to `Config.properties.processing.properties` in `schema/workspace.schema.json`. Both carry `false` as default, both are optional in the user-facing contract.
-- **Parity check**: `Config.processing.wrapperCollapse?: boolean` ↔ `#/definitions/Config/properties/processing/properties/wrapperCollapse` (`type: boolean`, `default: false`).
+- **Parity check**: `Config.processing.collapsePrimitiveWrapper?: boolean` ↔ `#/definitions/Config/properties/processing/properties/collapsePrimitiveWrapper` (`type: boolean`, `default: false`). Both are absent from `required[]`.
 
 ---
 
@@ -153,7 +178,7 @@ wrapperCollapse:
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | New config field must be read from `ResolvedConfig` and used to gate the wrapper-collapse pass | Read `config.processing.wrapperCollapse`; run collapse only when `true` |
+| `specs-from-figma` | New config field must be read from `ResolvedConfig` and used to gate the wrapper-collapse pass | Read `config.processing.collapsePrimitiveWrapper`; run collapse only when `true` |
 | `specs-plugin-2` | Recompile against updated types; no behavioral change unless the user enables the flag | Recompile; optionally expose toggle in plugin UI |
 | `specs-cli` | Recompile against updated types; config resolution and `DEFAULT_CONFIG` merge continue to work as-is | Recompile; no code changes required |
 
@@ -169,7 +194,7 @@ wrapperCollapse:
 
 ## Consequences
 
-- Consumers can opt in to structurally simpler specs for wrapper-only components by setting `processing.wrapperCollapse: true` in their config.
+- Consumers can opt in to structurally simpler specs for wrapper-only components by setting `processing.collapsePrimitiveWrapper: true` in their config.
 - Existing specs and consumers are unaffected — `false` default reproduces the current behavior exactly.
 - The anatomy `root` entry for a collapsed component will carry the leaf's element type (`text` or `glyph`) rather than `container`, and `$extensions.com.figma.originalName` will record the original Figma layer name.
 - `layout` is cleared on collapsed variants (the wrapper's layout properties are not meaningful on a promoted primitive).
