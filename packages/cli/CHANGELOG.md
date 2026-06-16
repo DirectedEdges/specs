@@ -5,6 +5,15 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.22.0] - Unreleased
+
+### Added
+
+### Changed
+
+### Removed
+
+
 ## [0.21.0] - 2026-06-15
 
 Two bugs in the `css` transformer and `analyze` command are fixed. The `css` transformer now correctly emits selectors for enum-valued state variants (previously silently skipped when no explicit `value` was set). The `analyze` command now respects `format.output` for the `props` and `styling` analyzers instead of hardcoding file formats. Upstream: `specs-schema` v0.25.0 renames `SlotProp.minItems`/`maxItems` to `minChildren`/`maxChildren` and `specs-from-figma` v0.23.0 reads slot constraints natively from Figma's `slotSettings` API.
