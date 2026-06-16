@@ -5,6 +5,21 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.0] - 2026-06-15
+
+Two bugs in the `css` transformer and `analyze` command are fixed. The `css` transformer now correctly emits selectors for enum-valued state variants (previously silently skipped when no explicit `value` was set). The `analyze` command now respects `format.output` for the `props` and `styling` analyzers instead of hardcoding file formats. Upstream: `specs-schema` v0.25.0 renames `SlotProp.minItems`/`maxItems` to `minChildren`/`maxChildren` and `specs-from-figma` v0.23.0 reads slot constraints natively from Figma's `slotSettings` API.
+
+### Fixed
+
+- **CSS transform now emits styling for enum-valued state variants** — When a state in `config.processing.states` maps a prop without an explicit `value` (e.g. `selected: { prop: selected }`), variants whose enum value matches the concept name (case-insensitively, like `Selected=Selected`) now produce CSS selectors. Previously these variants were silently skipped, causing selected-state styling to be missing from `styles.css`.
+
+- **`analyze` command respects `format.output` for props and styling (#151)** — `props` and `styling` analyzers now write `.json` or `.yaml` output files (and use the matching serializer) based on `config.format.output`. Previously both were hardcoded: `props` always wrote YAML, `styling` always wrote JSON.
+
+### Dependency updates
+
+- **`@directededges/specs-schema` bumped to `^0.25.0`** — `SlotProp.minItems`/`maxItems` renamed to `minChildren`/`maxChildren` (aligns with Figma's native `slotSettings` API). `Metadata.generator.version` corrected from `number` to `string`.
+- **`@directededges/specs-from-figma` bumped to `^0.23.0`** — Slot constraints (`minChildren`, `maxChildren`, `anyOf`) now read from Figma's native `slotSettings` when present; libraries using Figma's built-in slot configuration no longer need code-only props for constraints. Legacy `{slot} minItems`/`maxItems` prop names still accepted.
+
 ## [0.20.0] - 2026-06-07
 
 Introduces the `specs analyze` command with two analyzers: `props` (cross-library prop governance aggregate) and `styling` (token usage dictionary, moved from transforms). Extends the `css` and `contract` transformers with subcomponent support, a configurable CSS rule pipeline, and the `border-shift-inset-shadow` rule. Refines `css` output: boolean props emit presence selectors and disabled guards wrap hover/active.

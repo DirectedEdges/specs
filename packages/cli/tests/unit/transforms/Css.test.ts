@@ -262,6 +262,43 @@ describe('CssTransformer', () => {
       expect(out).toContain('.ds-button[data-appearance="outline"]:hover:not(:disabled):not([aria-disabled="true"]) {');
     });
 
+    it('emits [aria-selected="true"] for enum-valued selected prop (Selected=Selected case)', async () => {
+      // Checkbox: selected: { prop: 'selected' } — no value → concept name is the enum value
+      const enumStates: ProcessingStates = {
+        selected: { prop: 'selected' },
+        indeterminate: { prop: 'selected', value: 'Indeterminate' },
+      };
+      const out = await run(tmpDir, {
+        default: { elements: {} },
+        variants: [
+          // Enum value matching concept name (title-cased, as Figma produces)
+          { configuration: { selected: 'Selected' }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+          // Explicit value mapping
+          { configuration: { selected: 'Indeterminate' }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+          // Rest value — should be skipped
+          { configuration: { selected: 'Unselected' }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+        ],
+      }, 'dsCheckbox', 'TOKEN', enumStates);
+      expect(out).toContain('[aria-selected="true"]');
+      expect(out).toContain(':indeterminate,');
+      expect(out).not.toContain('Unselected');
+      expect(out).not.toContain('data-selected=');
+    });
+
+    it('does not regress boolean state props (disabled::true still matches)', async () => {
+      const boolStates: ProcessingStates = {
+        disabled: { prop: 'disabled' },
+      };
+      const out = await run(tmpDir, {
+        default: { elements: {} },
+        variants: [
+          { configuration: { disabled: 'true' }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+        ],
+      }, 'dsButton', 'TOKEN', boolStates);
+      expect(out).toContain('.ds-button:disabled,');
+      expect(out).not.toContain('data-disabled=');
+    });
+
     it('produces no state-related selectors when processingStates is absent', async () => {
       const out = await run(tmpDir, {
         default: { elements: {} },

@@ -137,20 +137,20 @@ const anyFromSlotExt: AnyProp = slotWithExt;
 
 // ─── SlotProp — slot constraints (ADR 028) ──────────────────────────────────
 
-// minItems is optional
-const slotWithMin: SlotProp = { type: 'slot', minItems: 1 };
+// minChildren is optional
+const slotWithMin: SlotProp = { type: 'slot', minChildren: 1 };
 
-// maxItems is optional
-const slotWithMax: SlotProp = { type: 'slot', maxItems: 4 };
+// maxChildren is optional
+const slotWithMax: SlotProp = { type: 'slot', maxChildren: 4 };
 
 // anyOf is optional
 const slotWithAnyOf: SlotProp = { type: 'slot', anyOf: ['Avatar'] };
 
 // All three constraints together
-const slotFullConstraints: SlotProp = { type: 'slot', default: null, nullable: true, minItems: 1, maxItems: 4, anyOf: ['Avatar', 'Badge'] };
+const slotFullConstraints: SlotProp = { type: 'slot', default: null, nullable: true, minChildren: 1, maxChildren: 4, anyOf: ['Avatar', 'Badge'] };
 
 // Constraints with $extensions
-const slotConstraintsWithExt: SlotProp = { type: 'slot', minItems: 1, maxItems: 4, anyOf: ['Avatar'], $extensions: { 'com.figma': { type: 'INSTANCE_SWAP' } } };
+const slotConstraintsWithExt: SlotProp = { type: 'slot', minChildren: 1, maxChildren: 4, anyOf: ['Avatar'], $extensions: { 'com.figma': { type: 'INSTANCE_SWAP' } } };
 
 // No constraints — still valid (backwards compatible)
 const slotNoConstraints: SlotProp = { type: 'slot' };

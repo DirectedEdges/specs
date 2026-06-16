@@ -53,8 +53,8 @@ enumCount: 3
 default: filled
 nullable: false
 slotAnyOf: null
-slotMinItems: null
-slotMaxItems: null
+slotMinChildren: null
+slotMaxChildren: null
 figmaType: null
 ```
 
@@ -71,8 +71,8 @@ Each prop entry has:
 | `default` | Default value, or `null` |
 | `nullable` | `true` when the prop accepts `null` |
 | `slotAnyOf` | Allowed component types for a slot prop, or `null` |
-| `slotMinItems` | Minimum slot items, or `null` |
-| `slotMaxItems` | Maximum slot items, or `null` |
+| `slotMinChildren` | Minimum slot children, or `null` |
+| `slotMaxChildren` | Maximum slot children, or `null` |
 | `figmaType` | Figma property type (`VARIANT`, `TEXT`, etc.), or `null` |
 
 ## Aggregate Structure
@@ -181,14 +181,14 @@ slots:
     name: items
     anyOf:
       - dsActionListItem
-    minItems: null
-    maxItems: null
+    minChildren: null
+    maxChildren: null
     nullable: false
   - component: dsButton
     name: children
     anyOf: null
-    minItems: null
-    maxItems: null
+    minChildren: null
+    maxChildren: null
     nullable: false
 ```
 
@@ -288,7 +288,7 @@ Are slot constraints (`anyOf`, `minItems`, `maxItems`) used consistently?
 Identify slots that would benefit from tighter constraints.
 
 ### Actions
-- **[component.slotName]** — add `anyOf: [X]`, `minItems: N`. Breaking: N.
+- **[component.slotName]** — add `anyOf: [X]`, `minChildren: N`. Breaking: N.
 
 ## Open Questions
 

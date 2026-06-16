@@ -5,6 +5,20 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.25.0] - 2026-06-15
+
+`SlotProp.minItems`/`maxItems` are renamed to `minChildren`/`maxChildren`, aligning the schema vocabulary with Figma's native `slotSettings` API and with the universal "children" term across React, SwiftUI, and Jetpack Compose. Libraries using Figma's native slot settings can now read constraint values without a translation layer. This release also corrects `Metadata.generator.version` from `number` to `string`, fixing a type mismatch for TypeScript consumers.
+
+### Changed
+
+- **Slot child constraints use framework-native naming** — `SlotProp.minItems` and `maxItems` renamed to `minChildren` and `maxChildren` (ADR-056). Aligns with Figma’s `slotSettings.minChildren`/`maxChildren` and the “children” vocabulary used by React, SwiftUI, and Jetpack Compose. specs-from-figma can now read native `slotSettings` values directly without field translation.
+- **Generator version is now correctly typed as a string** — `Metadata.generator.version` corrected from `number` to `string`; the field holds a semver string (e.g. `"1.10.0"`)
+
+### Migration
+
+- `SlotProp.minItems` → `minChildren`, `SlotProp.maxItems` → `maxChildren`: rename field access in any code reading these fields; schema validation will catch mismatches at generate time. Libraries using code-only props must also rename `{slot} minItems`/`{slot} maxItems` to `{slot} minChildren`/`{slot} maxChildren` in Figma.
+- `Metadata.generator.version`: update any code that treated this field as a number; read it as a string instead
+
 ## [0.24.0] - 2026-06-05
 
 Introduces the transformer pipeline's schema foundation. `Config.transformers` (a flat `TransformEntry[]`) replaces the old two-level `config.transform.transformers` wrapper, and a new `workspace.schema.json` provides IDE validation for `specs.config.yaml`. `Config.processing.states` adds a concept-keyed map that classifies Figma variant props as browser-driven or consumer-controlled states, enabling the `css` transformer to emit semantic CSS selectors and the `contract` transformer to omit browser-driven props from Props interfaces.
