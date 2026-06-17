@@ -9,9 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-### Changed
-
-### Removed
+`Config.processing.collapsePrimitiveWrapper` is now wired into the CLI. The config loader defaults it to `false` when absent, and the `init` template includes it as a commented-out option with a description of its behavior.
 
 
 ## [0.21.0] - 2026-06-15
