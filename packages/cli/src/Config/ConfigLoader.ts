@@ -173,6 +173,9 @@ export class ConfigLoader {
     if (typeof corrected.processing.inferNumberProps !== 'boolean') {
       corrected.processing.inferNumberProps = false;
     }
+    if (typeof corrected.processing.collapsePrimitiveWrapper !== 'boolean') {
+      corrected.processing.collapsePrimitiveWrapper = false;
+    }
 
     // Validate processing.subcomponents
     if (corrected.processing.subcomponents !== undefined) {
