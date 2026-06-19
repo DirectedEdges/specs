@@ -164,13 +164,19 @@ export function formatNotFoundError(alias: string, kind: string, configPath: str
   ].join('\n');
 }
 
-export function formatAuthError(status: number, alias: string, kind: string, configPath: string | null): string {
+export function formatAuthError(status: number, alias: string, kind: string, configPath: string | null, key?: string): string {
   if (status === 403) {
+    const keyHint = key ? `  File key: ${key}` : '';
     return [
       `Error: Access denied (403) while fetching ${alias}.${kind}`,
       '  Your FIGMA_TOKEN is valid but cannot access this file.',
       `    • Confirm your Figma account can open the file for sources.${alias}.key`,
       '    • Personal access tokens only reach files your account can view',
+      '    • If your org enforces SAML/SSO, personal access tokens are blocked',
+      '      Use an OAuth token or ask your admin to allow PATs',
+      '      See: https://www.figma.com/developers/api#oauth2',
+      '    • The file may be in personal drafts or a restricted team (403 = exists but no access)',
+      ...(keyHint ? [keyHint] : []),
       `  Check: sources.${alias}.key in ${configReference(configPath)}`
     ].join('\n');
   }
@@ -315,7 +321,7 @@ export const Fetch = new Command('fetch')
           const classification = classifyHttpStatus(status);
 
           if (classification === 'auth') {
-            console.error(formatAuthError(status, entry.alias, kind, configPath));
+            console.error(formatAuthError(status, entry.alias, kind, configPath, options.verbose ? entry.key : undefined));
             process.exit(ERROR_CODES.AUTH_ERROR);
           }
 
