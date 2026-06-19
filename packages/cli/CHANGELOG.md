@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-`Config.processing.collapsePrimitiveWrapper` is now wired into the CLI. The config loader defaults it to `false` when absent, and the `init` template includes it as a commented-out option with a description of its behavior.
+`Config.processing.collapsePrimitiveWrapper` is now wired into the CLI.
+
+- **Improved 403 error guidance in `fetch`** — The access-denied error message now includes two additional diagnostic bullets: one for SAML/SSO-enforced orgs (personal access tokens are blocked; use OAuth or ask your admin to allow PATs — links to `https://www.figma.com/developers/api#oauth2`), and one clarifying that a 403 means the file exists but the account lacks access (e.g. file is in personal drafts or a restricted team). Running `specs fetch --verbose` now also prints the resolved file key in the error output, so the value can be verified directly against the Figma URL without opening the config. The config loader defaults it to `false` when absent, and the `init` template includes it as a commented-out option with a description of its behavior.
 
 
 ## [0.21.0] - 2026-06-15
