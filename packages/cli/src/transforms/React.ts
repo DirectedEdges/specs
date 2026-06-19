@@ -49,6 +49,26 @@ export class ReactTransformer implements Transformer {
     await fs.writeFile(path.join(generatedReactDir, 'scaffold.tsx'), lines.join('\n'), 'utf-8');
 
     await this.seedAuthoredWorkspace(outputDir, componentKey, apiYaml, variantsYaml, analysis, context);
+
+    // Subcomponents — each gets its own scaffold seeded under <subKey>/
+    const subcomponents = (apiYaml.subcomponents ?? {}) as Record<string, unknown>;
+    const subVariantsAll = (variantsYaml.subcomponents ?? {}) as Record<string, unknown>;
+    for (const [subKey, subRaw] of Object.entries(subcomponents)) {
+      const subApi = subRaw as Record<string, unknown>;
+      const subVariantsYaml = (subVariantsAll[subKey] ?? {}) as Record<string, unknown>;
+      const subAnalysis = analyzeVariants(subApi, subVariantsYaml, context.processingStates ?? {});
+      const subDir = path.join(outputDir, subKey);
+      const subContext: TransformerContext = { ...context, outputDir: subDir, componentKey: subKey };
+      const subGeneratedReactDir = path.join(subDir, 'generated', 'react');
+      await fs.ensureDir(subGeneratedReactDir);
+      const subLines = buildScaffoldLines(subKey, subApi, subVariantsYaml, subAnalysis, subContext, {
+        contract: '../contract',
+        css: ['../styles.css'],
+        header: '// Generated. Do not edit — regenerate with `specs transform`.',
+      });
+      await fs.writeFile(path.join(subGeneratedReactDir, 'scaffold.tsx'), subLines.join('\n'), 'utf-8');
+      await this.seedAuthoredWorkspace(subDir, subKey, subApi, subVariantsYaml, subAnalysis, subContext);
+    }
   }
 
   /** Create src/react/ authored files when absent; never overwrite. */

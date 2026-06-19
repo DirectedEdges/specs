@@ -40,7 +40,7 @@ export class ContractTransformer implements Transformer {
         ? analyzeVariants(sub, subVariantsYaml, context.processingStates ?? {}).slots
         : [];
       const subLines = buildContractLines(subPrefix, subProps, omittedProps, subSlots);
-      const subDir = path.join(generatedDir, subKey);
+      const subDir = path.join(outputDir, subKey, 'generated');
       await fs.ensureDir(subDir);
       await fs.writeFile(path.join(subDir, 'contract.ts'), subLines.join('\n'), 'utf-8');
     }

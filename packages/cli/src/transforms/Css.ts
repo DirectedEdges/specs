@@ -36,7 +36,7 @@ export class CssTransformer implements Transformer {
       const subVariantsYaml = subRaw as Record<string, unknown>;
       const subClass = toKebab(subKey);
       const subLines = buildCssLines(subClass, subVariantsYaml, tokensFormat, context);
-      const subDir = path.join(generatedDir, subKey);
+      const subDir = path.join(outputDir, subKey, 'generated');
       await fs.ensureDir(subDir);
       await fs.writeFile(path.join(subDir, 'styles.css'), subLines.join('\n'), 'utf-8');
     }
