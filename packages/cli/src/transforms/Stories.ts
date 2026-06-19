@@ -28,62 +28,87 @@ export class StoriesTransformer implements Transformer {
     }
     const variantsYaml = yaml.parse(await fs.readFile(variantsPath, 'utf-8')) as Record<string, unknown>;
 
+    await this.writeStories(outputDir, componentKey, apiYaml, variantsYaml, context);
+
+    const subcomponents = (apiYaml.subcomponents ?? {}) as Record<string, unknown>;
+    const subVariantsAll = (variantsYaml.subcomponents ?? {}) as Record<string, unknown>;
+    for (const [subKey, subRaw] of Object.entries(subcomponents)) {
+      const subApi = subRaw as Record<string, unknown>;
+      const subVariantsYaml = (subVariantsAll[subKey] ?? {}) as Record<string, unknown>;
+      await this.writeStories(path.join(outputDir, subKey), subKey, subApi, subVariantsYaml, context);
+    }
+  }
+
+  private async writeStories(
+    outputDir: string,
+    componentKey: string,
+    apiYaml: Record<string, unknown>,
+    variantsYaml: Record<string, unknown>,
+    context: TransformerContext,
+  ): Promise<void> {
     const analysis = analyzeVariants(apiYaml, variantsYaml, context.processingStates ?? {});
-    const prefix = toPascalCase(componentKey);
-    const props = (apiYaml.props ?? {}) as Record<string, unknown>;
-    const title = (apiYaml.title as string) ?? prefix;
-
-    const hasDefaults = Object.values(props).some(p => 'default' in (p as Record<string, unknown>));
-
-    // Meta args: defaults + first example value for each string prop, so text
-    // slots render visible content out of the box. Slot-typed props get a
-    // sample string.
-    const exampleArgs: Array<[string, string]> = [];
-    for (const [key, raw] of Object.entries(props)) {
-      const prop = raw as Record<string, unknown>;
-      if (prop.type === 'string' && Array.isArray(prop.examples) && prop.examples.length > 0) {
-        exampleArgs.push([key, JSON.stringify(prop.examples[0])]);
-      } else if (prop.type === 'slot') {
-        exampleArgs.push([key, `'Slot content'`]);
-      }
-    }
-
-    const lines: string[] = [
-      '// Generated. Do not edit — regenerate with `specs transform`.',
-      "import type { Meta, StoryObj } from '@storybook/react';",
-      `import { ${prefix} } from '../../src/react/${prefix}';`,
-      ...(hasDefaults ? [`import { ${prefix}Defaults } from '../contract';`] : []),
-      '',
-      'const meta = {',
-      `  title: 'Components/${title.replace(/'/g, "\\'")}',`,
-      `  component: ${prefix},`,
-      '  args: {',
-      ...(hasDefaults ? [`    ...${prefix}Defaults,`] : []),
-      ...exampleArgs.map(([k, v]) => `    ${k}: ${v},`),
-      '  },',
-      `} satisfies Meta<typeof ${prefix}>;`,
-      '',
-      'export default meta;',
-      'type Story = StoryObj<typeof meta>;',
-      '',
-      'export const Default: Story = {};',
-      '',
-    ];
-
-    const usedNames = new Set(['Default']);
-    for (const { configuration } of analysis.propVariants) {
-      const name = uniqueName(storyName(configuration), usedNames);
-      const args = Object.entries(configuration)
-        .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
-        .join(', ');
-      lines.push(`export const ${name}: Story = { args: { ${args} } };`);
-    }
-    lines.push('');
-
+    const lines = buildStoriesLines(componentKey, apiYaml, analysis);
     const generatedReactDir = path.join(outputDir, 'generated', 'react');
     await fs.ensureDir(generatedReactDir);
     await fs.writeFile(path.join(generatedReactDir, 'stories.tsx'), lines.join('\n'), 'utf-8');
   }
+}
+
+function buildStoriesLines(
+  componentKey: string,
+  apiYaml: Record<string, unknown>,
+  analysis: ReturnType<typeof analyzeVariants>,
+): string[] {
+  const prefix = toPascalCase(componentKey);
+  const props = (apiYaml.props ?? {}) as Record<string, unknown>;
+  const title = (apiYaml.title as string) ?? prefix;
+  const hasDefaults = Object.values(props).some(p => 'default' in (p as Record<string, unknown>));
+
+  // Meta args: defaults + first example value for each string/slot prop so
+  // text slots render visible content out of the box.
+  const exampleArgs: Array<[string, string]> = [];
+  for (const [key, raw] of Object.entries(props)) {
+    const prop = raw as Record<string, unknown>;
+    if (prop.type === 'string' && Array.isArray(prop.examples) && prop.examples.length > 0) {
+      exampleArgs.push([key, JSON.stringify(prop.examples[0])]);
+    } else if (prop.type === 'slot') {
+      exampleArgs.push([key, `'Slot content'`]);
+    }
+  }
+
+  const lines: string[] = [
+    '// Generated. Do not edit — regenerate with `specs transform`.',
+    "import type { Meta, StoryObj } from '@storybook/react';",
+    `import { ${prefix} } from '../../src/react/${prefix}';`,
+    ...(hasDefaults ? [`import { ${prefix}Defaults } from '../contract';`] : []),
+    '',
+    'const meta = {',
+    `  title: 'Components/${title.replace(/'/g, "\\'")}',`,
+    `  component: ${prefix},`,
+    '  args: {',
+    ...(hasDefaults ? [`    ...${prefix}Defaults,`] : []),
+    ...exampleArgs.map(([k, v]) => `    ${k}: ${v},`),
+    '  },',
+    `} satisfies Meta<typeof ${prefix}>;`,
+    '',
+    'export default meta;',
+    'type Story = StoryObj<typeof meta>;',
+    '',
+    'export const Default: Story = {};',
+    '',
+  ];
+
+  const usedNames = new Set(['Default']);
+  for (const { configuration } of analysis.propVariants) {
+    const name = uniqueName(storyName(configuration), usedNames);
+    const args = Object.entries(configuration)
+      .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
+      .join(', ');
+    lines.push(`export const ${name}: Story = { args: { ${args} } };`);
+  }
+  lines.push('');
+
+  return lines;
 }
 
 /** `{ size: 'xS' }` → `SizeXS`; `{ elevated: true }` → `Elevated`; `{ disabled: false }` → `NotDisabled`. */
