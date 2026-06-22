@@ -83,15 +83,19 @@ function normalizeSources(sources?: MinimalConfig['sources']): Array<{ alias: st
   }));
 }
 
-async function figmaFetch(url: string, token: string): Promise<{ status: number; body: string; headers: Headers }> {
+async function figmaFetch(url: string, token: string): Promise<{ status: number; body: string; headers: Headers; stream: ReadableStream<Uint8Array> | null }> {
   const response = await fetch(url, {
     headers: {
       'X-Figma-Token': token
     }
   });
 
-  const body = await response.text();
-  return { status: response.status, body, headers: response.headers };
+  if (response.status !== 200) {
+    const body = await response.text();
+    return { status: response.status, body, headers: response.headers, stream: null };
+  }
+
+  return { status: response.status, body: '', headers: response.headers, stream: response.body };
 }
 
 const RATE_LIMIT_TYPE_LABELS: Record<string, string> = {
@@ -315,7 +319,8 @@ export const Fetch = new Command('fetch')
 
           const stopSpinner = startSpinner(`Downloading: ${entry.alias} ${kind}`);
 
-          const { status, body, headers } = await figmaFetch(url, token);
+          const result = await figmaFetch(url, token);
+          const { status, body, headers, stream } = result;
           const elapsed = stopSpinner();
 
           const classification = classifyHttpStatus(status);
@@ -340,7 +345,29 @@ export const Fetch = new Command('fetch')
           }
 
           const outputPath = path.join(outDir, `${entry.alias}.${kind}.json`);
-          await fs.writeFile(outputPath, body, 'utf-8');
+          if (stream) {
+            const tmpPath = `${outputPath}.tmp`;
+            try {
+              const writeStream = fs.createWriteStream(tmpPath);
+              await new Promise<void>((resolve, reject) => {
+                const reader = stream.getReader();
+                const pump = () =>
+                  reader.read().then(({ done, value }) => {
+                    if (done) { writeStream.end(); return; }
+                    writeStream.write(value, (err) => { if (err) reject(err); else pump(); });
+                  }).catch(reject);
+                writeStream.on('finish', resolve);
+                writeStream.on('error', reject);
+                pump();
+              });
+              await fs.rename(tmpPath, outputPath);
+            } catch (err) {
+              await fs.remove(tmpPath).catch(() => {});
+              throw err;
+            }
+          } else {
+            await fs.writeFile(outputPath, body, 'utf-8');
+          }
 
           console.log(`✓ Downloaded: ${entry.alias} ${kind} (${elapsed})`);
 

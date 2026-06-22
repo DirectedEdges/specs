@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.22.0] - Unreleased
 
+### Fixed
+
+- **`fetch` streams large Figma files to disk instead of buffering in memory** — Previously, `specs fetch` read the entire Figma API response into a JavaScript string before writing it. Files large enough to exceed Node's ~512 MB string limit crashed with `Cannot create a string longer than 0x1fffffe8 characters`. The response body is now streamed directly to a temporary file and renamed into place only on success, so arbitrarily large files are handled without memory pressure and a failed mid-download leaves no partial file behind.
+
 ### Added
 
 `Config.processing.collapsePrimitiveWrapper` is now wired into the CLI.
