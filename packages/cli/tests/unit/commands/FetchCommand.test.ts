@@ -166,6 +166,10 @@ describe('formatAuthError', () => {
       '  Your FIGMA_TOKEN is valid but cannot access this file.',
       '    • Confirm your Figma account can open the file for sources.library.key',
       '    • Personal access tokens only reach files your account can view',
+      '    • If your org enforces SAML/SSO, personal access tokens are blocked',
+      '      Use an OAuth token or ask your admin to allow PATs',
+      '      See: https://www.figma.com/developers/api#oauth2',
+      '    • The file may be in personal drafts or a restricted team (403 = exists but no access)',
       '  Check: sources.library.key in /proj/specs.config.yaml'
     ].join('\n'));
   });
