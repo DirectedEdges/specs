@@ -5,6 +5,15 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.23.0] - Unreleased
+
+### Added
+
+### Changed
+
+### Removed
+
+
 ## [0.22.0] - 2026-06-22
 
 Label and icon components can now produce cleaner specs when `collapsePrimitiveWrapper` is enabled — a plain frame wrapping a lone text or glyph element is stripped out and the primitive becomes the spec root. This release also fixes `specs fetch` crashing on large Figma files and adds clearer diagnostic output for 403 access errors.
