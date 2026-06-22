@@ -5,6 +5,15 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.27.0] - Unreleased
+
+### Added
+
+### Changed
+
+### Removed
+
+
 ## [0.26.0] - 2026-06-22
 
 Specs can now skip redundant wrapper frames around a lone text or glyph child. When `Config.processing.collapsePrimitiveWrapper` is enabled, a plain container holding a single text or icon leaf is collapsed away, promoting the leaf directly to spec root. This produces cleaner specs for simple label or icon components that Figma wraps in an auto-layout frame purely for sizing.
