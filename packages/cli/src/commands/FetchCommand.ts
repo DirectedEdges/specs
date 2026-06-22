@@ -83,15 +83,19 @@ function normalizeSources(sources?: MinimalConfig['sources']): Array<{ alias: st
   }));
 }
 
-async function figmaFetch(url: string, token: string): Promise<{ status: number; body: string; headers: Headers }> {
+async function figmaFetch(url: string, token: string): Promise<{ status: number; body: string; headers: Headers; stream: ReadableStream<Uint8Array> | null }> {
   const response = await fetch(url, {
     headers: {
       'X-Figma-Token': token
     }
   });
 
-  const body = await response.text();
-  return { status: response.status, body, headers: response.headers };
+  if (response.status !== 200) {
+    const body = await response.text();
+    return { status: response.status, body, headers: response.headers, stream: null };
+  }
+
+  return { status: response.status, body: '', headers: response.headers, stream: response.body };
 }
 
 const RATE_LIMIT_TYPE_LABELS: Record<string, string> = {
@@ -164,13 +168,19 @@ export function formatNotFoundError(alias: string, kind: string, configPath: str
   ].join('\n');
 }
 
-export function formatAuthError(status: number, alias: string, kind: string, configPath: string | null): string {
+export function formatAuthError(status: number, alias: string, kind: string, configPath: string | null, key?: string): string {
   if (status === 403) {
+    const keyHint = key ? `  File key: ${key}` : '';
     return [
       `Error: Access denied (403) while fetching ${alias}.${kind}`,
       '  Your FIGMA_TOKEN is valid but cannot access this file.',
       `    • Confirm your Figma account can open the file for sources.${alias}.key`,
       '    • Personal access tokens only reach files your account can view',
+      '    • If your org enforces SAML/SSO, personal access tokens are blocked',
+      '      Use an OAuth token or ask your admin to allow PATs',
+      '      See: https://www.figma.com/developers/api#oauth2',
+      '    • The file may be in personal drafts or a restricted team (403 = exists but no access)',
+      ...(keyHint ? [keyHint] : []),
       `  Check: sources.${alias}.key in ${configReference(configPath)}`
     ].join('\n');
   }
@@ -309,13 +319,14 @@ export const Fetch = new Command('fetch')
 
           const stopSpinner = startSpinner(`Downloading: ${entry.alias} ${kind}`);
 
-          const { status, body, headers } = await figmaFetch(url, token);
+          const result = await figmaFetch(url, token);
+          const { status, body, headers, stream } = result;
           const elapsed = stopSpinner();
 
           const classification = classifyHttpStatus(status);
 
           if (classification === 'auth') {
-            console.error(formatAuthError(status, entry.alias, kind, configPath));
+            console.error(formatAuthError(status, entry.alias, kind, configPath, options.verbose ? entry.key : undefined));
             process.exit(ERROR_CODES.AUTH_ERROR);
           }
 
@@ -334,7 +345,29 @@ export const Fetch = new Command('fetch')
           }
 
           const outputPath = path.join(outDir, `${entry.alias}.${kind}.json`);
-          await fs.writeFile(outputPath, body, 'utf-8');
+          if (stream) {
+            const tmpPath = `${outputPath}.tmp`;
+            try {
+              const writeStream = fs.createWriteStream(tmpPath);
+              await new Promise<void>((resolve, reject) => {
+                const reader = stream.getReader();
+                const pump = () =>
+                  reader.read().then(({ done, value }) => {
+                    if (done) { writeStream.end(); return; }
+                    writeStream.write(value, (err) => { if (err) reject(err); else pump(); });
+                  }).catch(reject);
+                writeStream.on('finish', resolve);
+                writeStream.on('error', reject);
+                pump();
+              });
+              await fs.rename(tmpPath, outputPath);
+            } catch (err) {
+              await fs.remove(tmpPath).catch(() => {});
+              throw err;
+            }
+          } else {
+            await fs.writeFile(outputPath, body, 'utf-8');
+          }
 
           console.log(`✓ Downloaded: ${entry.alias} ${kind} (${elapsed})`);
 

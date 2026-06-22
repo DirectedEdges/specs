@@ -16,6 +16,7 @@ Controls how specs are generated. See the [feature guides](/specs/features/) for
 | `variantDepth` | `1 \| 2 \| 3 \| 9999` | `9999` | Maximum variant nesting depth (9999 = unlimited) |
 | `details` | `'FULL' \| 'LAYERED'` | `'LAYERED'` | Output detail level |
 | `inferNumberProps` | `boolean` | `false` | Infer number-typed props from Figma variant values |
+| `collapsePrimitiveWrapper` | `boolean` | `false` | Strip plain container wrappers around a single text/glyph child and promote the leaf to spec root |
 | `instanceExamples` | `object` | — | **Pro.** Instance example detection — `scope` (PAGE or FILE), `match` patterns, `exclude` patterns, `parentNames` filter. Absent = no detection. Ignored on the free tier |
 
 ## `format`
@@ -47,6 +48,7 @@ The only runtime export from `@directededges/specs-schema`. Provides defaults fo
 const DEFAULT_CONFIG: ResolvedConfig = {
   processing: {
     slotConstraints: false,
+    collapsePrimitiveWrapper: false,
     variantDepth: 9999,
     details: 'LAYERED',
     inferNumberProps: false,

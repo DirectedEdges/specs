@@ -34,6 +34,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 058 | Collapsing Wrapped Primitives — `processing.collapsePrimitiveWrapper` | Add optional boolean to `Config.processing` (default false); strips plain container wrappers around a single text/glyph child and promotes the leaf to spec root |
 | 057 | Fix `Metadata.generator.version` type: `number` → `string` | Corrects type mismatch — field holds semver strings (e.g. `"1.10.0"`) in all producers; was incorrectly typed as `number` |
 | 055 | Variant State Classification via `processing.states` | Add `VariantStateEntry` type; add `Config.processing.states` — classifies Figma variant props as browser-driven or consumer-controlled for CSS selector and contract output |
 | 051 | Platform Code-Syntax Token Profiles | Add `FIGMA_SYNTAX_WEB`/`_IOS`/`_ANDROID` to `Config.format.tokens`, emitting per-platform Figma code syntax with fallback to `TOKEN` |

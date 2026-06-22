@@ -118,6 +118,12 @@ config:
     # valid numbers are emitted as NumberProp instead of StringProp. (default: false)
     # inferNumberProps: false
 
+    # Collapse primitive wrappers: when true, a component whose root is a plain
+    # container wrapping a single text or glyph element (no meaningful container
+    # styles, no slot bindings) is collapsed — the wrapper is stripped and the
+    # leaf becomes the spec root. All-or-nothing across variants. (default: false)
+    # collapsePrimitiveWrapper: false
+
   include:
     # Subcomponent inclusion is controlled by processing.subcomponents above.
     # If the subcomponents block is present, subcomponents are included.

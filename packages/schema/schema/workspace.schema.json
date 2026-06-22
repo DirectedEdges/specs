@@ -98,6 +98,11 @@
               "default": false,
               "description": "Whether to consolidate slot constraints (anyOf, minChildren, maxChildren) from code-only props into the slot property"
             },
+            "collapsePrimitiveWrapper": {
+              "type": "boolean",
+              "default": false,
+              "description": "When true, a component whose root is a plain container wrapping a single text or glyph element (no meaningful container styles, no slot bindings) is collapsed: the wrapper is stripped and the leaf becomes the spec root. All-or-nothing across variants."
+            },
             "variantDepth": {
               "type": "number",
               "enum": [

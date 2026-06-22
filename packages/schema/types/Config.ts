@@ -81,6 +81,14 @@ export interface Config {
     codeOnlyPropsPattern?: string;
     /** Whether to consolidate slot constraints (anyOf, minChildren, maxChildren) from code-only props into the slot property. Optional; defaults to false. @since 0.14.0 */
     slotConstraints?: boolean;
+    /**
+     * When true, a component whose root is a plain container wrapping a single `text` or
+     * `glyph` element (no meaningful container styles, no slot bindings) is collapsed:
+     * the wrapper is stripped and the leaf becomes the spec root. All-or-nothing across
+     * variants — if any variant fails eligibility, no collapse occurs. Defaults to false.
+     * @since 0.26.0
+     */
+    collapsePrimitiveWrapper?: boolean;
     /** Depth of variant expansion: 1-3 or 9999 for unlimited. Optional; defaults to 9999. */
     variantDepth?: 1 | 2 | 3 | 9999;
     /** Level of detail in output. Optional; defaults to LAYERED. */
@@ -160,6 +168,8 @@ export interface ResolvedConfig {
     codeOnlyPropsPattern?: string;
     /** Whether to consolidate slot constraints from code-only props into the slot property. */
     slotConstraints: boolean;
+    /** When true, plain container wrappers around a single text/glyph child are stripped and the leaf is promoted to spec root. */
+    collapsePrimitiveWrapper: boolean;
     /** Depth of variant expansion: 1-3 or 9999 for unlimited. */
     variantDepth: 1 | 2 | 3 | 9999;
     /** Level of detail in output. */
@@ -225,6 +235,7 @@ export interface ResolvedConfig {
 export const DEFAULT_CONFIG: ResolvedConfig = {
   processing: {
     slotConstraints: false,
+    collapsePrimitiveWrapper: false,
     variantDepth: 9999,
     details: 'LAYERED',
     inferNumberProps: false,

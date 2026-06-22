@@ -5,6 +5,26 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.22.0] - 2026-06-22
+
+Label and icon components can now produce cleaner specs when `collapsePrimitiveWrapper` is enabled — a plain frame wrapping a lone text or glyph element is stripped out and the primitive becomes the spec root. This release also fixes `specs fetch` crashing on large Figma files and adds clearer diagnostic output for 403 access errors.
+
+### Added
+
+- **`collapsePrimitiveWrapper` support wired into the CLI** — The config loader defaults `Config.processing.collapsePrimitiveWrapper` to `false` when absent, and the `init` template includes it as a commented-out option with a description of its behavior.
+
+- **Improved 403 error guidance in `fetch`** — The access-denied error message now includes two additional diagnostic bullets: one for SAML/SSO-enforced orgs (personal access tokens are blocked; use OAuth or ask your admin to allow PATs — links to `https://www.figma.com/developers/api#oauth2`), and one clarifying that a 403 means the file exists but the account lacks access (e.g. file is in personal drafts or a restricted team). Running `specs fetch --verbose` now also prints the resolved file key in the error output.
+
+### Fixed
+
+- **`fetch` streams large Figma files to disk instead of buffering in memory** — Previously, `specs fetch` read the entire Figma API response into a JavaScript string before writing it. Files large enough to exceed Node's ~512 MB string limit crashed with `Cannot create a string longer than 0x1fffffe8 characters`. The response body is now streamed directly to a temporary file and renamed into place only on success, so arbitrarily large files are handled without memory pressure and a failed mid-download leaves no partial file behind.
+
+### Dependency updates
+
+- **`@directededges/specs-schema` bumped to `^0.26.0`** — Adds `Config.processing.collapsePrimitiveWrapper` (boolean, default `false`), enabling the new primitive wrapper collapse feature for label and icon components.
+- **`@directededges/specs-from-figma` bumped to `^0.24.0`** — Implements wrapper collapse: strips plain container frames around a single text or glyph child and promotes the leaf to spec root. All-or-nothing per component — every variant must qualify.
+
+
 ## [0.21.0] - 2026-06-15
 
 Two bugs in the `css` transformer and `analyze` command are fixed. The `css` transformer now correctly emits selectors for enum-valued state variants (previously silently skipped when no explicit `value` was set). The `analyze` command now respects `format.output` for the `props` and `styling` analyzers instead of hardcoding file formats. Upstream: `specs-schema` v0.25.0 renames `SlotProp.minItems`/`maxItems` to `minChildren`/`maxChildren` and `specs-from-figma` v0.23.0 reads slot constraints natively from Figma's `slotSettings` API.

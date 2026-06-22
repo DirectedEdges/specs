@@ -55,6 +55,7 @@ describe('ConfigTemplates', () => {
       expect(template).toContain('match:');
       expect(template).toContain('variantDepth');
       expect(template).toContain('details');
+      expect(template).toContain('collapsePrimitiveWrapper');
     });
 
     it('should include format configuration section', () => {

@@ -146,6 +146,7 @@ export default defineConfig({
                 { label: 'codeOnlyPropsPattern', slug: 'config/code-only-props-pattern' },
                 { label: 'slotConstraints', slug: 'config/slot-constraints', badge: pro },
                 { label: 'inferNumberProps', slug: 'config/infer-number-props' },
+                { label: 'collapsePrimitiveWrapper', slug: 'config/collapse-primitive-wrapper' },
                 { label: 'instanceExamples', slug: 'config/instance-examples', badge: pro },
               ],
             },
