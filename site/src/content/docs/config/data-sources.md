@@ -17,6 +17,8 @@ sources:
     data: ['variables','styles']
 ```
 
+Most projects need only one source. A second source is useful when relevant Figma variables live in a separate file — for example, a shared foundations or tokens library that isn't part of the main component file. The `generate` command resolves variables across all configured sources, so any variables defined in `foundations` are available when generating specs from `library`.
+
 For each alias, the CLI uses deterministic filenames in `dataDirectory`:
 
 - `${alias}.file.json` (only if `data` includes `file`)
