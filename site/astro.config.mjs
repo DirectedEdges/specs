@@ -133,7 +133,7 @@ export default defineConfig({
           items: [
             { label: 'Overview', slug: 'config' },
             { label: 'Folders', slug: 'config/folders' },
-            { label: 'Data Sources', slug: 'config/data-sources' },
+            { label: 'sources', slug: 'config/data-sources' },
             { label: 'Output', slug: 'config/output' },
             { label: 'Examples', slug: 'config/examples' },
             {
