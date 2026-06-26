@@ -6,7 +6,7 @@ description: "Style properties and value types"
 The `Styles` object holds visual properties for an element. Every property is optional. Which properties are evaluated depends on the element type.
 
 ```ts
-type Styles = Partial<{ /* 48 properties */ }>;
+type Styles = Partial<{ /* 49 properties */ }>;
 ```
 
 ## Properties
@@ -18,6 +18,7 @@ Combined view: every style property, grouped by category and then by name, with 
 | Border | `cornerRadius` | ✓ |  |  |  |  |
 | Border | `cornerSmoothing` | ✓ |  |  | ✓ |  |
 | Border | `strokeAlign` | ✓ |  |  | ✓ | ✓ |
+| Border | `strokeDashPattern` | ✓ |  |  | ✓ | ✓ |
 | Border | `strokeWeight` | ✓ |  |  | ✓ | ✓ |
 | Color | `backgroundColor` | ✓ |  |  | ✓ |  |
 | Color | `fillColor` |  |  | ✓ | ✓ | ✓ |
@@ -81,6 +82,8 @@ Several spec style keys differ from the Figma node property they read from. Spec
 | `centerHorizontalOffset` | `x` (constraint CENTER) | [ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md) |
 | `centerVerticalOffset` | `y` (constraint CENTER) | [ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md) |
 
+| `strokeDashPattern` | `strokeDashes` | [ADR 059](https://github.com/DirectedEdges/specs/blob/main/adr/059-border-style.md) |
+
 All other style keys — `width`, `height`, `opacity`, `padding`, `itemSpacing`, `cornerRadius`, `strokeWeight`, `rotation`, etc. — use the same name as the Figma node property.
 
 ## Values
@@ -109,6 +112,7 @@ Most properties accept a `Style` value. Some properties accept specialized shape
 | `Position` | Layout positioning mode enum | `"AUTO"`, `"ABSOLUTE"` |
 | `PositionOffset` | Positional offset value | `24` (px), `"25%"` (SCALE), `null` |
 | `AspectRatio` | Width-to-height ratio | `{ x: 16, y: 9 }` |
+| `StrokeDashPattern` | Dash geometry for a dashed stroke — presence signals dashed; null or absent signals solid | `{ dash: 8, gap: 4 }` |
 
 ### Relating properties to values
 
@@ -126,3 +130,4 @@ Most properties accept a `Style` value. Some properties accept specialized shape
 - `position` accepts `Position | null` — not token-bindable.
 - `top`, `bottom`, `start`, `end`, `centerHorizontalOffset`, `centerVerticalOffset` accept `PositionOffset` (`number | string | null`) — not token-bindable.
 - `aspectRatio` accepts `AspectRatio | null`.
+- `strokeDashPattern` accepts `StrokeDashPattern | null` — not token-bindable; presence signals a dashed stroke, null or absent signals solid.
