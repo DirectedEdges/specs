@@ -5,15 +5,11 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.28.0] - Unreleased
+## [0.27.0] - Unreleased
 
 ### Added
 
 - `Styles.strokeDashPattern` — typed as `StrokeDashPattern` (`{ dash: number; gap: number }`) or `null`; presence signals a dashed stroke, null or absent signals solid; maps from Figma `strokeDashes[0]` (dash) and `strokeDashes[1]` (gap)
-
-## [0.27.0] - Unreleased
-
-### Added
 
 ### Changed
 
