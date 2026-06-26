@@ -4,6 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 059 | Border Style and Dash Pattern — `borderStyle` and `borderDashPattern` on `Styles` | |
 | 058 | Wrapper Collapse Config Flag — `processing.wrapperCollapse` | |
 | 057 | Fix `Metadata.generator.version` type: `number` → `string` | |
 | 056 | Rename `SlotProp.minItems`/`maxItems` → `minChildren`/`maxChildren` | Align with Figma-native `slotSettings` field names; `anyOf` populated from `preferredValues` when `allowPreferredValuesOnly` is true |
