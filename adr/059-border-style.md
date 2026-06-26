@@ -165,7 +165,7 @@ Styles.properties.strokeDashPattern:
 
 ## Semver Decision
 
-**Version bump**: `0.27.x → 0.28.0` (`MINOR`)
+**Version bump**: `0.26.x → 0.27.0` (`MINOR`)
 
 **Justification**: One new optional field on an existing type. No existing type signature, field name, or schema property is removed or renamed. Additive change → `MINOR` per constitution versioning rule.
 

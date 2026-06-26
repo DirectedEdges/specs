@@ -41,7 +41,7 @@ export type Styles = Partial<{
   strokeAlign: Style;
   /** Stroke weight. Scalar when uniform; `Sides` object when per-side values differ. @since 1.0.0 */
   strokeWeight: Style | Sides;
-  /** Dash pattern for a stroke. Present (non-null) when the stroke is dashed; null or absent when solid. Structural property — not token-bindable. @since 0.28.0 */
+  /** Dash pattern for a stroke. Present (non-null) when the stroke is dashed; null or absent when solid. Structural property — not token-bindable. @since 0.27.0 */
   strokeDashPattern: StrokeDashPattern | null;
   typography: TokenReference | Typography;
   textAlignHorizontal: Style;
@@ -263,7 +263,7 @@ export type CrossAxisAlignment = 'START' | 'END' | 'CENTER' | 'STRETCH' | 'BASEL
  * Dash geometry for a dashed stroke.
  * Presence on `Styles.strokeDashPattern` indicates a dashed stroke; null or absent indicates solid.
  * `dash` and `gap` are in pixels and correspond to index 0 and 1 of Figma's `strokeDashes` array.
- * @since 0.28.0
+ * @since 0.27.0
  */
 export interface StrokeDashPattern {
   /** Dash segment length in pixels */
