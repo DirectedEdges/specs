@@ -5,10 +5,12 @@ description: "Embedded child component definitions and $ref linking"
 
 <script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge pro-badge">Pro</span>')</script>
 
-Subcomponents are smaller components embedded within a parent component's spec. They follow the same structure as a top-level `Component` but without `metadata` or nested subcomponents.
+Subcomponents are smaller components embedded within a parent component's spec. They follow the same structure as a top-level `Component` but without `metadata` or nested subcomponents. An optional `source` field carries the Figma node identity needed for reverse-direction tooling.
 
 ```ts
-type Subcomponent = Omit<Component, 'metadata' | 'subcomponents'>;
+type Subcomponent = Omit<Component, 'metadata' | 'subcomponents'> & {
+  source?: SubcomponentSource;
+};
 type Subcomponents = Record<string, Subcomponent>;
 ```
 
@@ -24,6 +26,33 @@ A `Subcomponent` contains:
 | `default` | [`Variant`](/specs/schema/variants.md/#variant) | Yes | Default variant |
 | `variants` | [`Variant[]`](variants.md) | No | Variant overrides |
 | `invalidVariantCombinations` | [`PropConfigurations[]`](prop-configurations.md) | No | Invalid prop combinations |
+| `source` | `SubcomponentSource` | No | Figma source identity for this subcomponent's node |
+
+### SubcomponentSource
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `pageId` | `string` | Figma page ID containing this subcomponent's node |
+| `nodeId` | `string` | Figma node ID for this subcomponent's component node |
+| `nodeType` | `'COMPONENT' \| 'COMPONENT_SET' \| 'FRAME'` | Figma node type |
+
+```yaml
+subcomponents:
+  formLabel:
+    title: Form / Label
+    source:
+      pageId: "790:6766"
+      nodeId: "1477:200"
+      nodeType: COMPONENT
+    anatomy:
+      root:
+        type: container
+    default:
+      layout:
+        - root
+      elements:
+        root: {}
+```
 
 ## Linking
 

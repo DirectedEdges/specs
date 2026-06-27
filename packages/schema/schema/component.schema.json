@@ -941,9 +941,30 @@
       ],
       "additionalProperties": false
     },
+    "SubcomponentSource": {
+      "type": "object",
+      "description": "Figma source identity for a subcomponent node. Carries pageId, nodeId, and nodeType to enable reverse-direction tools to resolve a subcomponent back to its originating Figma node.",
+      "properties": {
+        "pageId": {
+          "type": "string",
+          "description": "The Figma page ID containing this subcomponent's node."
+        },
+        "nodeId": {
+          "type": "string",
+          "description": "The Figma node ID for this subcomponent's component node."
+        },
+        "nodeType": {
+          "type": "string",
+          "description": "The Figma node type.",
+          "enum": ["COMPONENT", "COMPONENT_SET", "FRAME"]
+        }
+      },
+      "required": ["pageId", "nodeId", "nodeType"],
+      "additionalProperties": false
+    },
     "Subcomponent": {
       "type": "object",
-      "description": "A subcomponent's data, derived from ComponentData but excluding metadata and subcomponents.",
+      "description": "A subcomponent's data, derived from ComponentData but excluding metadata and subcomponents. The optional source field carries Figma node identity for reverse-direction tooling.",
       "allOf": [
         {
           "$ref": "#/definitions/Component"
@@ -960,7 +981,13 @@
             ]
           }
         }
-      ]
+      ],
+      "properties": {
+        "source": {
+          "$ref": "#/definitions/SubcomponentSource",
+          "description": "Figma source identity for this subcomponent's node. Populated by the generator; absent in specs produced before ADR-060."
+        }
+      }
     },
     "NumberProp": {
       "type": "object",
