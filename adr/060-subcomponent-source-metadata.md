@@ -2,7 +2,7 @@
 
 **Branch**: `060-subcomponent-source-metadata`
 **Created**: 2026-06-27
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 
