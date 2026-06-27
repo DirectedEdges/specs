@@ -4,6 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 060 | Subcomponent Figma Source Identity — `Subcomponent.source` | |
 | 059 | Border Style and Dash Pattern — `borderStyle` and `borderDashPattern` on `Styles` | |
 | 058 | Wrapper Collapse Config Flag — `processing.wrapperCollapse` | |
 | 057 | Fix `Metadata.generator.version` type: `number` → `string` | |
