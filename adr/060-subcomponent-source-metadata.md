@@ -196,9 +196,9 @@ Subcomponent:
 
 ## Semver Decision
 
-**Version bump**: `0.27.x → 0.28.0` (`MINOR`)
+**Version bump**: within `0.27.x` — no version change required
 
-**Justification**: All changes are additive — a new optional field on `Subcomponent` and a new exported type `SubcomponentSource`. No existing field is removed, renamed, or narrowed. Per the constitution: "MINOR for additive types or new optional fields."
+**Justification**: This change ships as part of the active `release/schema-0.27.0-cli-0.23.0` release. All changes are additive (optional field, new exported type); no bump beyond the release version is warranted.
 
 ---
 
