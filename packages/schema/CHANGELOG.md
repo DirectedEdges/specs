@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `Styles.strokeDashPattern` — typed as `StrokeDashPattern` (`{ dash: number; gap: number }`) or `null`; presence signals a dashed stroke, null or absent signals solid; maps from Figma `strokeDashes[0]` (dash) and `strokeDashes[1]` (gap)
+- `Subcomponent.source` — optional `SubcomponentSource` (`{ pageId, nodeId, nodeType }`) carrying the Figma node identity for each inline subcomponent; enables reverse-direction tools to resolve `SubcomponentRef` entries to Figma nodes without side-channels
 
 ### Changed
 

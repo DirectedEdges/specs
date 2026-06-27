@@ -12,7 +12,7 @@ export type { Anatomy, AnatomyElement, ElementTypeRef, SubcomponentRef } from '.
 export type { Props, AnyProp, BooleanProp, StringProp, EnumProp, SlotProp, NumberProp, FigmaCodeOnlySource, FigmaPropExtension, PropExtensions } from './Props.js';
 export type { Variant, Variants } from './Variant.js';
 export type { Metadata } from './Metadata.js';
-export type { Subcomponent, Subcomponents } from './Subcomponent.js';
+export type { Subcomponent, Subcomponents, SubcomponentSource } from './Subcomponent.js';
 export type { InstanceExample, InstanceExamples } from './InstanceExample.js';
 
 // Element and structure types
