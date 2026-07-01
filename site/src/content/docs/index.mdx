@@ -24,6 +24,8 @@ head:
 ---
 
 import { Card, CardGrid, LinkCard, LinkButton } from '@astrojs/starlight/components';
+import { Image } from 'astro:assets';
+import specsWorkflow from '../../assets/specs-workflow.png';
 
 ## Generate specs your way
 
@@ -51,6 +53,18 @@ import { Card, CardGrid, LinkCard, LinkButton } from '@astrojs/starlight/compone
 
 </Card>
 </CardGrid>
+
+## How Specs fits in your workflow
+
+Specs is the primary way teams hand off design intent in Figma to developers and agents building components in code. Rather than re-describing a component in a ticket or a screenshot, the component itself becomes the source of truth — captured once, structured consistently, and reusable everywhere downstream.
+
+<Image src={specsWorkflow} alt="Diagram titled 'Specs workflow'. A legend distinguishes scripted steps, shown in orange, from agentic steps, shown in blue. On the left, a Figma icon feeds the Specs 2 Plugin and the Specs CLI's fetch-scan-generate commands, both scripted; both produce Specs data, shown as a central database icon. From Specs data, a scripted arrow leads to Specs CLI transform, which produces starter code (CSS, TSX, contract, Stories, and more); an agentic arrow carries that starter code onward to a Prototype Library as well as React, Android, and iOS libraries. Specs data also connects bidirectionally, in agentic blue, to a node labeled Agents, who likewise produce the React, Android, and iOS libraries. Below, a scripted arrow leads from Specs data to Specs CLI analyze, which produces library data (tokens, props, and more), which in turn produces reports on drift and quality, shown via an agentic arrow. Completing the loop, Specs CLI write, via the write bridge, takes Specs data and writes components back into the original Figma file, shown by a scripted arrow returning to the Figma icon." />
+
+- **Plugin** — generate and review specs directly on the Figma canvas.
+- **`fetch` → `scan` → `generate`** — pull specs in bulk, whether scheduled, per release, or on change.
+- **Write bridge** *(under development)* — write components from spec into Figma assets.
+- **[`transform`](/specs/cli/transforms/)** — drive generated code: CSS, TSX scaffolds, TS contracts, Storybook stories, and more.
+- **[`analyze`](/specs/cli/analyze/)** — feed monitored analyses that flag drift and quality gaps over time.
 
 ## Computation over inference
 
