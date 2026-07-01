@@ -26,10 +26,10 @@ You **MUST** consider the user input before proceeding (if not empty).
 1. **Gather intent** — collect all information from the user before doing any exploration. This step has two parts:
 
    **Step 1a — Detect release branch (silent, no user prompt)**
-   Before asking any questions, run `git rev-parse --abbrev-ref HEAD` to get the current branch. Infer `RELEASE_BRANCH`:
-   - If the branch looks like a semver release (e.g., `0.13.0`), use it directly as `RELEASE_BRANCH`.
-   - If the branch matches an ADR name pattern (e.g., `009-color-values`), determine the release branch by reading `package.json` version.
-   - If the branch is `main` or doesn't match either pattern, fall back to reading `package.json` version and using the current minor version as `RELEASE_BRANCH`.
+   Before asking any questions, find the active release branch with `git branch -r --list 'origin/release/*'`. Infer `RELEASE_BRANCH`:
+   - If exactly one `origin/release/*` branch exists, use it as `RELEASE_BRANCH`. Do not cross-reference it against `package.json` version — the branch name reflects where the release started, not the final published version.
+   - If multiple `origin/release/*` branches exist, pick the most recently created one (latest commit date) as the default and surface it in Question 2 for confirmation.
+   - If no `origin/release/*` branch exists, fall back to `main` and note this in Question 2 so the user can confirm or provide a branch.
 
    **Step 1b — Sync release branch and determine next ADR number (silent, no user prompt)**
    Run `git fetch origin $RELEASE_BRANCH` and fast-forward the local branch if behind (`git pull origin $RELEASE_BRANCH`). Then determine `NEXT_ADR_NUMBER` by finding the highest existing ADR number across **both** sources (zero-padded to 3 digits):

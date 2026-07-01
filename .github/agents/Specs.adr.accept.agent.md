@@ -39,9 +39,11 @@ You **MUST** consider the user input before proceeding (if not empty).
    - If no entry exists in the Draft table (older ADR created before INDEX tracking), add the row directly to the Accepted table.
 
 6. **Determine release branch**: Release branches follow the `release/<pkg>-<version>` convention and may jointly cover multiple published packages (e.g., `release/schema-0.21.0-cli-0.16.0`). Do **not** invent a bare version-number branch (e.g., `0.21.0`).
-   1. Read the ADR's `## Semver Decision` section to find the schema target version.
-   2. Find the active in-flight release branch with `git branch -r --list 'origin/release/*'`. If one already exists that targets this schema version, use it as `$RELEASE_BRANCH` (the ADR folds into the in-progress release rather than opening a new one).
-   3. Only if no matching release branch exists, create one from `main` following the `release/<pkg>-<version>` convention, naming every package the release will publish.
+   1. Find active in-flight release branches with `git branch -r --list 'origin/release/*'`.
+   2. **Default: use the existing active release branch.** ADR branches are started from the current release branch, so the active branch is the correct target. Do not cross-reference the ADR's semver version against the branch name — the branch name reflects where the release *started*, not the final published version.
+   3. If exactly one release branch exists, use it as `$RELEASE_BRANCH` without asking.
+   4. If multiple release branches exist, pick the one the ADR branch was based on (`git merge-base --fork-point` or ask the user).
+   5. Only if **no** release branch exists at all, create one from `main` following the `release/<pkg>-<version>` convention, naming every package the release will publish.
 
 7. **Create PR**: Commit any uncommitted changes (the status flip and INDEX update), push `$BRANCH`, and open a PR into the release branch using `gh pr create --base $RELEASE_BRANCH`.
 

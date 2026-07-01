@@ -5,6 +5,16 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.27.0] - 2026-07-01
+
+Dashed strokes are now first-class, typed data instead of falling through as an unrecognized style, and subcomponents carry enough Figma node identity for reverse-direction tools to resolve them back to a canvas location without a side-channel lookup.
+
+### Added
+
+- **Dashed strokes are typed and preserved in output** — `Styles.strokeDashPattern` is typed as `StrokeDashPattern` (`{ dash: number; gap: number }`) or `null`; presence signals a dashed stroke, null or absent signals solid. Maps from Figma `strokeDashes[0]` (dash) and `strokeDashes[1]` (gap).
+- **Subcomponents carry their Figma source identity** — `Subcomponent.source` is an optional `SubcomponentSource` (`{ pageId, nodeId, nodeType }`) enabling reverse-direction tools to resolve `SubcomponentRef` entries back to Figma nodes without side-channels.
+
+
 ## [0.26.0] - 2026-06-22
 
 Specs can now skip redundant wrapper frames around a lone text or glyph child. When `Config.processing.collapsePrimitiveWrapper` is enabled, a plain container holding a single text or icon leaf is collapsed away, promoting the leaf directly to spec root. This produces cleaner specs for simple label or icon components that Figma wraps in an auto-layout frame purely for sizing.

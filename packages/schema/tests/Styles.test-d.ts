@@ -9,6 +9,7 @@ import type {
   AngularGradient, GradientValue, AspectRatioValue, AspectRatioStyle,
   Sides, Corners, ItemSpacing, LayoutMode, WrapAlignment,
   MainAxisAlignment, CrossAxisAlignment, Position, PositionOffset,
+  StrokeDashPattern,
 } from '../types/index.js';
 
 // ─── ColorStyle ────────────────────────────────────────────────────────────
@@ -793,3 +794,48 @@ const _oldY: Styles = { y: 16 };
 
 // @ts-expect-error: layoutPositioning no longer exists on Styles
 const _oldLayoutPositioning: Styles = { layoutPositioning: 'ABSOLUTE' };
+
+// ─── StrokeDashPattern ────────────────────────────────────────────────────────
+
+// Valid object with both required fields
+const dashSolid: StrokeDashPattern = { dash: 8, gap: 4 };
+const dashEqual: StrokeDashPattern = { dash: 4, gap: 4 };
+
+// @ts-expect-error: missing required gap
+const _missingGap: StrokeDashPattern = { dash: 8 };
+
+// @ts-expect-error: missing required dash
+const _missingDash: StrokeDashPattern = { gap: 4 };
+
+// @ts-expect-error: string not assignable to number for dash
+const _stringDash: StrokeDashPattern = { dash: '8px', gap: 4 };
+
+// @ts-expect-error: string not assignable to number for gap
+const _stringGap: StrokeDashPattern = { dash: 8, gap: '4px' };
+
+// ─── Styles.strokeDashPattern (StrokeDashPattern | null) ─────────────────────
+
+// Present = dashed stroke
+const withDashPattern: Styles = { strokeDashPattern: { dash: 8, gap: 4 } };
+
+// null = solid stroke (explicit)
+const withSolidExplicit: Styles = { strokeDashPattern: null };
+
+// absent = solid stroke (omitted is valid — Styles fields are all optional)
+const withSolidOmitted: Styles = {};
+
+// Combined with other stroke fields
+const dashedBorder: Styles = {
+  strokes: '#FF0000',
+  strokeWeight: 1,
+  strokeDashPattern: { dash: 6, gap: 3 },
+};
+
+// @ts-expect-error: TokenReference is not valid for strokeDashPattern (not token-bindable)
+const _dashToken: Styles = { strokeDashPattern: { $token: 'Border.Dash', $type: 'string' } satisfies TokenReference };
+
+// @ts-expect-error: plain number is not valid for strokeDashPattern
+const _dashNumber: Styles = { strokeDashPattern: 8 };
+
+// @ts-expect-error: string is not valid for strokeDashPattern
+const _dashString: Styles = { strokeDashPattern: 'dashed' };

@@ -133,7 +133,7 @@ export default defineConfig({
           items: [
             { label: 'Overview', slug: 'config' },
             { label: 'Folders', slug: 'config/folders' },
-            { label: 'Data Sources', slug: 'config/data-sources' },
+            { label: 'sources', slug: 'config/data-sources' },
             { label: 'Output', slug: 'config/output' },
             { label: 'Examples', slug: 'config/examples' },
             {
@@ -148,6 +148,7 @@ export default defineConfig({
                 { label: 'inferNumberProps', slug: 'config/infer-number-props' },
                 { label: 'collapsePrimitiveWrapper', slug: 'config/collapse-primitive-wrapper' },
                 { label: 'instanceExamples', slug: 'config/instance-examples', badge: pro },
+                { label: 'states', slug: 'config/states', badge: experimental },
               ],
             },
             {
@@ -157,6 +158,7 @@ export default defineConfig({
                 { label: 'keys', slug: 'config/keys' },
                 { label: 'layout', slug: 'config/layout' },
                 { label: 'tokens', slug: 'config/tokens', badge: pro },
+                { label: 'color', slug: 'config/color' },
               ],
             },
             {

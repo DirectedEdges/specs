@@ -12,7 +12,7 @@ export type { Anatomy, AnatomyElement, ElementTypeRef, SubcomponentRef } from '.
 export type { Props, AnyProp, BooleanProp, StringProp, EnumProp, SlotProp, NumberProp, FigmaCodeOnlySource, FigmaPropExtension, PropExtensions } from './Props.js';
 export type { Variant, Variants } from './Variant.js';
 export type { Metadata } from './Metadata.js';
-export type { Subcomponent, Subcomponents } from './Subcomponent.js';
+export type { Subcomponent, Subcomponents, SubcomponentSource } from './Subcomponent.js';
 export type { InstanceExample, InstanceExamples } from './InstanceExample.js';
 
 // Element and structure types
@@ -28,7 +28,7 @@ export type { Config, ResolvedConfig, ColorFormat, VariantStateEntry, TransformE
 export { DEFAULT_CONFIG } from './Config.js';
 
 // Style types
-export type { Styles, Style, ColorStyle, ColorObject, StyleKey, TokenReference, AspectRatioValue, AspectRatioStyle, Typography, Sides, Corners, ItemSpacing, LayoutMode, WrapAlignment, MainAxisAlignment, CrossAxisAlignment, Position, PositionOffset } from './Styles.js';
+export type { Styles, Style, ColorStyle, ColorObject, StyleKey, TokenReference, AspectRatioValue, AspectRatioStyle, Typography, Sides, Corners, ItemSpacing, LayoutMode, WrapAlignment, MainAxisAlignment, CrossAxisAlignment, Position, PositionOffset, StrokeDashPattern } from './Styles.js';
 export type { Shadow, Blur, Effects } from './Effects.js';
 export type { GradientStop, GradientCenter, LinearGradient, RadialGradient, AngularGradient, GradientValue } from './Gradient.js';
 
