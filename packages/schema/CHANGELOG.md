@@ -5,6 +5,15 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.28.0] - Unreleased
+
+### Added
+
+### Changed
+
+### Removed
+
+
 ## [0.27.0] - 2026-07-01
 
 Dashed strokes are now first-class, typed data instead of falling through as an unrecognized style, and subcomponents carry enough Figma node identity for reverse-direction tools to resolve them back to a canvas location without a side-channel lookup.
