@@ -1,9 +1,9 @@
 /**
- * Write Command - Stub pointer to the figma-from-specs writer bridge client
+ * Render Command - Stub pointer to the figma-from-specs writer bridge client
  *
  * Purpose:
- * - Give the fetch → scan → generate → write demo flow a single, consistent
- *   `specs write` entry point while the writer lives in specs-from-figma's
+ * - Give the fetch → scan → generate → render demo flow a single, consistent
+ *   `specs render` entry point while the writer lives in specs-from-figma's
  *   src-figma-writer/bridge/write.js (see project-011 notes: promotes into
  *   specs-cli + MCP tools later).
  * - This command only works against a local specs-from-figma checkout on
@@ -43,12 +43,12 @@ function resolveDefaultAlias(sources: Record<string, { data?: string[] }>): stri
   return candidate ? candidate[0] : null;
 }
 
-export const Write = new Command('write')
-  .description('Write a spec (or manifest) to Figma via the figma-from-specs bridge [demo stub]')
+export const Render = new Command('render')
+  .description('Render a spec (or manifest) into Figma via the figma-from-specs bridge [demo stub]')
   .argument('[specPath]', 'Path to a spec YAML file (default: {dataDirectory}/{alias}.write-manifest.md from config)')
   .option('-m, --manifest <path>', 'Path to a write-manifest.md file')
   .option('--config <path>', 'Path to config file (specs.config.yaml)')
-  .option('--no-return-spec', 'Skip round-trip spec read after write')
+  .option('--no-return-spec', 'Skip round-trip spec read after render')
   .action(async (specPath: string | undefined, options: { manifest?: string; config?: string; returnSpec: boolean; verbose?: boolean }) => {
     const bridgeScript = resolveBridgeScript();
 
