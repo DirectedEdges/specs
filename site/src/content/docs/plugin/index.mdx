@@ -1,0 +1,73 @@
+---
+title: "Figma Plugin"
+description: "Generate a complete, visual component specification directly on the Figma canvas — no CLI, no setup, no leaving the file."
+template: splash
+hero:
+  title: Specs Figma Plugin
+  tagline: Select a component. Click Generate. Get a complete, structured specification — anatomy, props, layout, modes, styling, and raw data — drawn directly in Figma.
+  actions:
+    - text: Open in Figma
+      link: https://www.figma.com/community/plugin/1549454283615386215/specs-2-formerly-anova
+      variant: primary
+      icon: external
+    - text: Explore Settings
+      link: /specs/settings/
+      variant: minimal
+      icon: right-arrow
+---
+
+import { Card, CardGrid, LinkButton } from '@astrojs/starlight/components';
+import ImagePlaceholder from '../../../components/ImagePlaceholder.astro';
+import PreviewCard from '../../../components/PreviewCard.astro';
+
+<ImagePlaceholder maxWidth="none" aspectRatio="21 / 6" />
+
+## No handoff tax
+
+A designer finishes a component. An engineer needs to know exactly how it's built. Today that gap gets filled with screenshots, Slack threads, and re-explaining the same thing twice. The Specs Figma Plugin closes it: select the component, generate, and a complete visual spec appears next to it on the canvas — same file, same context, zero re-typing.
+
+<CardGrid>
+<Card title="Free, forever">
+
+Anatomy, Props, Layout, Modes, Styling, and Data — every section that answers "how is this actually built" is free for every user, no subscription required.
+
+</Card>
+<Card title="Built for both audiences">
+
+Designers get a visual, annotated breakdown they can read at a glance. Engineers and AI agents get the same information as structured data, ready to paste into a ticket, a prompt, or a pipeline.
+
+</Card>
+</CardGrid>
+
+## Six sections, one click
+
+Generating a spec produces every section below — a complete picture of the component, not a sample.
+
+<div class="preview-grid">
+<PreviewCard href="/specs/plugin/anatomy/" title="Anatomy" description="Numbered markers over every meaningful element, with their key attributes listed alongside" />
+<PreviewCard href="/specs/plugin/props/" title="Props" description="Every property, its options, and exactly what changes on the canvas when it's set" />
+<PreviewCard href="/specs/plugin/layout/" title="Layout" description="Direction, alignment, resizing, padding, and spacing annotated directly on the artwork" />
+<PreviewCard href="/specs/plugin/modes/" title="Modes" description="Side-by-side exhibits for every light/dark or other variable mode the component uses" />
+<PreviewCard href="/specs/plugin/styling/" title="Styling" description="Every detected variable and style, what role it plays, and where it's applied" />
+<PreviewCard href="/specs/plugin/data/" title="Data" description="The same spec as structured YAML or JSON — a ready-made contract for AI/LLM tools" />
+</div>
+
+## Make it match your system
+
+Pro unlocks formatting controls that reshape the spec itself — not just what it contains, but how it looks and reads.
+
+<div class="preview-grid">
+<PreviewCard href="/specs/plugin/multi-column-layout/" title="Multi-Column Layout" description="Tile exhibits into a 2, 3, or 4-column grid instead of one long column" />
+<PreviewCard href="/specs/plugin/color/" title="Color" description="Bind every spec color to real Figma variables, including a Dark mode" />
+<PreviewCard href="/specs/plugin/dark-mode/" title="Dark Mode" description="Toggle specs between Light and Dark at the page, spec, or artwork level" />
+<PreviewCard href="/specs/plugin/spacing/" title="Spacing" description="Bind spec spacing and padding to variables your team can retheme" />
+<PreviewCard href="/specs/plugin/text/" title="Text" description="Apply local text styles so spec typography matches your file's system" />
+</div>
+
+## Pairs with the CLI
+
+Generate one component at a time in Figma, or a whole library in bulk from the command line — both produce the same schema-valid data. <LinkButton href="/specs/cli/getting-started/" variant="minimal" icon="right-arrow">See the CLI</LinkButton>
+
+---
+
+[Settings](/specs/settings/) · [Licensing](/specs/overview/licensing/) · [Report an Issue](https://github.com/DirectedEdges/specs/issues)

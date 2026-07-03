@@ -99,7 +99,7 @@ Token references are resolved to CSS `var(--)` based on `config.format.tokens`:
 
 ## Config
 
-No transformer-specific options. Token format comes from `config.format.tokens`. Selector strategy for variant props comes from [`config.processing.states`](/specs/config/states/).
+No transformer-specific options. Token format comes from `config.format.tokens`. Selector strategy for variant props comes from [`config.processing.states`](/specs/settings/states/).
 
 ```yaml
 config:
@@ -169,12 +169,12 @@ The subcomponent `styles.css` follows the same structure as the parent — defau
 }
 ```
 
-Subcomponent stylesheets are fully self-contained — elements and variants from the parent component never appear in them. Configure subcomponent discovery in [`config.processing.subcomponents`](/specs/config/subcomponents/).
+Subcomponent stylesheets are fully self-contained — elements and variants from the parent component never appear in them. Configure subcomponent discovery in [`config.processing.subcomponents`](/specs/settings/subcomponents/).
 
 ## See Also
 
 - [Transforms overview](/specs/cli/transforms/)
-- [`processing.states` config](/specs/config/states/) — classify variant props as semantic states
+- [`processing.states` config](/specs/settings/states/) — classify variant props as semantic states
 - [`contract` transformer](/specs/cli/transforms/contract/)
 - [`styling` transformer](/specs/cli/transforms/styling/)
-- [tokens config](/specs/config/tokens/)
+- [tokens config](/specs/settings/tokens/)

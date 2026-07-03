@@ -87,7 +87,7 @@ components:
 or `instanceExamples`; components without examples are omitted from it. Without this
 file the `$slotContent` references in `default`/`variants` would have no target.
 
-Example output is a [Pro feature](/specs/config/default-slot-content/) — on the free tier no example data is produced, so `examples.yaml` is never written.
+Example output is a [Pro feature](/specs/settings/default-slot-content/) — on the free tier no example data is produced, so `examples.yaml` is never written.
 
 ## `useSubfolders`
 
@@ -160,7 +160,7 @@ specs/
 
 ## CLI Flag Priority
 
-Output configuration follows the standard [priority system](/specs/config/#priority-system):
+Output configuration follows the standard [priority system](/specs/settings/#priority-system):
 
 1. **CLI flags** (highest): `--split-components`, `--split-concerns`, `--use-subfolders`
 2. **Config file**: `output` field in `specs.config.yaml`

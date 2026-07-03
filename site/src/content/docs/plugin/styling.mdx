@@ -1,0 +1,45 @@
+---
+title: "Styling"
+description: "Detected variables, styles and raw values used across a component's design"
+---
+
+import ImagePlaceholder from '../../../components/ImagePlaceholder.astro';
+
+<ImagePlaceholder maxWidth="none" aspectRatio="21 / 6" />
+
+Styling generates an inventory of every variable, color style, text style, and effect style detected on a component, laid out as a set of tables directly on the canvas. It's where you go to confirm which design tokens a component actually consumes — and to catch raw, un-tokenized values that slipped in instead.
+
+## What It Includes
+
+- **Variables** — Figma variables bound to any element, shown as a pill with the variable's name
+- **Color Styles** — named fill or stroke styles applied to any element
+- **Text Styles** — named text styles applied to any element
+- **Effect Styles** — named effect styles (shadows, blurs) applied to any element
+- **Applied as** — the role the variable or style plays where it's used (e.g. Background color, Text color, Stroke color, Text style, Effect style)
+- **Applied to** — which element(s) use it, with a count when the same variable or style repeats across multiple elements
+- **Raw value** — for variables only, the underlying resolved value (e.g. a hex color, a number, a string)
+
+## Related Settings
+
+- **[Tokens](/specs/settings/tokens/)** — Switches variable pills to a platform's code syntax name
+- **[Color](/specs/settings/color/)** — Formats resolved raw color values, e.g. hex vs RGB
+
+## Examples
+
+### Basic Styling Inventory
+
+A component with a handful of bound variables and styles produces four tables — Variables, Color Styles, Text Styles, Effect Styles — each listing one row per distinct variable or style, its applied role, and what it's applied to. Any category with nothing detected still gets its own table, with a plain line reading "No [category] were detected" instead of rows.
+
+<ImagePlaceholder caption="A Button component's Styling section: a Variables table with a few token rows, a Color Styles table with one entry, and empty Text Styles and Effect Styles tables each reading 'No text styles were detected' / 'No effect styles were detected.'" />
+
+### Aggregated Across Variants and Elements
+
+When the same variable or style is reused across multiple elements, or across multiple variants of the component, Styling collapses it into a single row rather than repeating it. The "Applied to" column lists every element that uses it, with a count in parentheses when an element uses it more than once — so a heavily reused token still shows as one line, not a wall of duplicates.
+
+<ImagePlaceholder caption="A Card component's Variables table where a single spacing token's 'Applied to' cell reads 'Container (3), Header, Icon' — showing reuse across three instances in the container and one use each elsewhere." />
+
+### Dense Token Inventories
+
+Components built on many small variables — deeply tokenized color, spacing, and typography systems — can produce long tables with dozens of rows, each with a long "Applied to" list and truncated raw values. In these cases, the inventory is still accurate, but scanning it for a specific token takes more effort; searching the table for a known variable or style name is more reliable than reading it top to bottom.
+
+<ImagePlaceholder caption="A themed Card component's Variables table, dozens of rows deep, with long comma-separated 'Applied to' lists and several raw value cells truncated to their max width." />

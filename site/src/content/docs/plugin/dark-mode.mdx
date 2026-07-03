@@ -1,0 +1,39 @@
+---
+title: "Dark Mode"
+description: "Toggle generated specs between Light and Dark using the Specs collection's variable modes"
+---
+
+<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge pro-badge">Pro</span>')</script>
+
+import ImagePlaceholder from '../../../components/ImagePlaceholder.astro';
+
+<ImagePlaceholder maxWidth="none" aspectRatio="21 / 6" />
+
+Once [Color](/specs/plugin/color/) is enabled, the `Specs` variable collection carries both a Light and a Dark value for every color. Dark Mode is the act of switching which mode is active — at the whole-page level, a single Specification, or one artwork frame at a time — using Figma's own mode switcher, with no need to regenerate anything.
+
+## What It Includes
+
+- **Page-level mode** — sets the default mode for every spec on the current page
+- **Specification-level mode** — overrides the page default for one Specifications frame or a single spec frame
+- **Artwork-level mode** — overrides the mode for just an artwork frame, independent of the spec around it
+- **Live switching** — plugin-generated elements (markers, annotations, backgrounds) recolor immediately; a component's own artwork is unaffected, since its fills are the design's, not the spec's
+
+## Examples
+
+### Switching an Entire Page
+
+Deselecting everything on the page and setting the `Specs` collection's mode from the Page section of the Design panel switches every spec on that page to Dark at once.
+
+<ImagePlaceholder caption="The Design panel's Page section with the Specs collection's mode set to Dark, recoloring every spec frame on the page." />
+
+### Switching One Specification
+
+Selecting a single Specifications frame or an individual spec frame and setting its mode overrides the page default for just that selection — useful for keeping one spec in Light for a screenshot while the rest of the page is Dark.
+
+<ImagePlaceholder caption="A single spec frame selected with its Specs mode set to Dark while the rest of the page stays in Light mode." />
+
+### Artwork Stays As-Designed
+
+Switching a spec's mode never touches the artwork frame's own fills — only plugin-generated markers, annotations, and backgrounds respond to the Specs collection. If artwork becomes hard to see against a Dark background, adjust the artwork frame's own mode or its underlying color values directly.
+
+<ImagePlaceholder caption="An artwork frame's fills remaining unchanged after its surrounding spec switches to Dark mode, since artwork colors come from the component's own design, not the Specs collection." />

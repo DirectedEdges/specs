@@ -1,0 +1,32 @@
+---
+title: "Data"
+description: "A raw YAML or JSON serialization of the component spec, written directly onto the canvas as a contract for AI/LLM tools"
+---
+
+import ImagePlaceholder from '../../../components/ImagePlaceholder.astro';
+
+<ImagePlaceholder maxWidth="none" aspectRatio="21 / 6" />
+
+Data prints the component's full spec as a single block of YAML or JSON text right on the canvas. Rather than translating the spec into diagrams or lists like the other sections, it hands over the same structured data an AI/LLM tool would consume — useful when you want to copy the exact contract an assistant sees, or spot-check what the underlying spec actually contains.
+
+## What It Includes
+
+- **Serialized text** — the full component spec rendered as one text block, formatted as YAML or JSON
+- **Format** — controlled by the plugin's Format Output setting; YAML by default, or JSON when selected
+- **Full detail** — every field the spec produces for the component, including whatever depth of variant and detail data the plugin's settings currently include
+- **One block per component** — the main component gets one Data block, and each documented subcomponent gets its own separate Data block with its own slice of the spec
+
+## Related Settings
+
+- **[Output Format](/specs/settings/output-format/)** — Chooses `YAML` or `JSON` for the block
+- **[Keys](/specs/settings/keys/)** — Renames keys, such as `camelCase` or `snake_case`
+- **[Variant Depth](/specs/settings/variant-depth/)** — More depth means more variant entries
+- **[Details](/specs/settings/details/)** — `LAYERED` vs `FULL` changes how much gets captured
+
+## Examples
+
+### Basic Data
+
+A simple component with a handful of props and no subcomponents produces one Data block: a single, readable text node holding the serialized spec.
+
+<ImagePlaceholder caption="A Button component's Data section — a single YAML text block listing its props, styling, and other spec fields." />

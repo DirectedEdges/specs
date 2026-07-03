@@ -1,0 +1,84 @@
+---
+import { Image } from 'astro:assets';
+
+interface Props {
+  href: string;
+  title: string;
+  description: string;
+  image?: ImageMetadata;
+  imageAlt?: string;
+}
+
+const { href, title, description, image, imageAlt = '' } = Astro.props;
+---
+
+<a class="preview-card" href={href}>
+  <span class="preview-card__media">
+    {image
+      ? <Image src={image} alt={imageAlt} width={640} height={360} />
+      : <span class="preview-card__placeholder">Screenshot placeholder</span>
+    }
+  </span>
+  <span class="preview-card__body">
+    <span class="preview-card__title">{title}</span>
+    <span class="preview-card__description">{description}</span>
+  </span>
+</a>
+
+<style>
+  .preview-card {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: var(--sl-shadow-sm);
+    text-decoration: none;
+  }
+
+  .preview-card:hover {
+    background: var(--sl-color-gray-7, var(--sl-color-gray-6));
+    border-color: var(--sl-color-gray-2);
+  }
+
+  .preview-card__media {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background-color: var(--sl-color-gray-6);
+    overflow: hidden;
+  }
+
+  .preview-card__media :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .preview-card__placeholder {
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-3);
+  }
+
+  .preview-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem;
+  }
+
+  .preview-card__title {
+    color: var(--sl-color-white);
+    font-weight: 600;
+    font-size: var(--sl-text-lg);
+    line-height: var(--sl-line-height-headings);
+  }
+
+  .preview-card__description {
+    color: var(--sl-color-gray-3);
+    line-height: 1.5;
+    font-size: var(--sl-text-sm);
+  }
+</style>

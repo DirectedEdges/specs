@@ -1,0 +1,34 @@
+---
+title: "Color"
+description: "Generate a Specs color variable collection — including Light and Dark modes — and bind it across the canvas output"
+---
+
+<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge pro-badge">Pro</span>')</script>
+
+import ImagePlaceholder from '../../../components/ImagePlaceholder.astro';
+
+<ImagePlaceholder maxWidth="none" aspectRatio="21 / 6" />
+
+By default, every color in a generated spec — backgrounds, markers, annotations, attribute text — is a hardcoded value. Turning on Color replaces those hardcoded values with real Figma color variables in a dedicated `Specs` collection, so the whole spec's palette can be edited or retheme in one place instead of regenerating it.
+
+## What It Includes
+
+- **Specs collection** — creates or reuses a `Specs` variable collection, hidden from publishing
+- **Light and Dark modes** — every color variable is set for both a Light and a Dark mode value on the same collection
+- **Full coverage** — every hardcoded color used across all output sections (fills, strokes, text, markers, annotations) binds to one of these variables instead
+
+## Examples
+
+### Enabling Color
+
+Checking "Color including dark mode, using variables" under Custom Styling makes the plugin look for a `Specs` collection the next time specs are generated — creating it if absent — and binds every spec color to a variable in it instead of a hardcoded value.
+
+<ImagePlaceholder caption="The plugin's Custom Styling settings with the Color checkbox enabled, and the Figma variables panel showing the generated Specs collection." />
+
+### Reusing an Existing Collection
+
+Once a `Specs` collection exists in the file, subsequent spec generations reuse its variables rather than creating duplicates — so updating a variable's value (say, changing the annotation marker color) updates every spec that references it, past and future.
+
+<ImagePlaceholder caption="The Specs collection's variable list, with a single marker-color variable referenced by multiple previously generated specs." />
+
+Once Color is enabled, the collection's Light/Dark modes can be toggled directly in Figma — see [Dark Mode](/specs/plugin/dark-mode/) for how.

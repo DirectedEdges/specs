@@ -175,7 +175,7 @@ Separate API specification, variant configuration, and examples.
 - **Default**: `false` (complete component data in each file)
 - **Output**: Up to three files: `api.yaml` (anatomy, props), `variants.yaml` (default, variants), and `examples.yaml` (slotContentExamples, instanceExamples)
 - `examples.yaml` is written only when at least one component has example data; components without examples are omitted from it.
-- Example output (`slotContentExamples`, `instanceExamples`) is a [Pro feature](/specs/config/default-slot-content/) — on the free tier it is omitted, so `examples.yaml` is not produced.
+- Example output (`slotContentExamples`, `instanceExamples`) is a [Pro feature](/specs/settings/default-slot-content/) — on the free tier it is omitted, so `examples.yaml` is not produced.
 
 ```bash
 specs generate components.md -o specs/ --split-concerns
@@ -294,5 +294,5 @@ specs generate
 
 **See Also:**
 - [Scan Command](/specs/cli/commands/scan/) - Create component manifest
-- [Configuration Reference](/specs/config/) - Format and config options
+- [Configuration Reference](/specs/settings/) - Format and config options
 - [Getting Started](/specs/cli/getting-started/) - Installation and license setup

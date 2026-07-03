@@ -65,7 +65,7 @@ Each concept resolves to a canonical CSS selector and determines whether the pro
 
 ### Mapping Props to Concepts
 
-Declare mappings under `processing.states` in your [specs configuration](/config/). Use `prop` to name the Figma variant prop and `value` for the specific enum value that activates the concept.
+Declare mappings under `processing.states` in your [specs configuration](/settings/). Use `prop` to name the Figma variant prop and `value` for the specific enum value that activates the concept.
 
 ```yaml title="Partial specs.config.yaml"
 config:
@@ -169,4 +169,4 @@ Run [`specs transform css`](/specs/cli/commands/transform/) to regenerate styles
 
 - [`css` transformer](/specs/cli/transforms/css/) — CSS output affected by this classification
 - [`contract` transformer](/specs/cli/transforms/contract/) — Props interface affected by `contract: omit`
-- [`subcomponents`](/specs/config/subcomponents/) — another presence-driven `processing` option
+- [`subcomponents`](/specs/settings/subcomponents/) — another presence-driven `processing` option

@@ -55,7 +55,7 @@ Enum props emit a companion union type. Nullable props are typed `T | null`. All
 
 ## Config
 
-No transformer-specific options. Prop omission for browser-driven states comes from [`config.processing.states`](/specs/config/states/).
+No transformer-specific options. Prop omission for browser-driven states comes from [`config.processing.states`](/specs/settings/states/).
 
 ```yaml
 config:
@@ -85,11 +85,11 @@ dsActionList/
     contract.ts         ← subcomponent (DsActionListItemProps, DsActionListItemDefaults)
 ```
 
-The parent `contract.ts` only includes the parent component's own types — subcomponent types do not appear in it. Configure subcomponent discovery in [`config.processing.subcomponents`](/specs/config/subcomponents/).
+The parent `contract.ts` only includes the parent component's own types — subcomponent types do not appear in it. Configure subcomponent discovery in [`config.processing.subcomponents`](/specs/settings/subcomponents/).
 
 ## See Also
 
 - [Transforms overview](/specs/cli/transforms/)
-- [`processing.states` config](/specs/config/states/) — classify which props are browser-driven vs consumer-controlled
+- [`processing.states` config](/specs/settings/states/) — classify which props are browser-driven vs consumer-controlled
 - [`css` transformer](/specs/cli/transforms/css/)
 - [`styling` transformer](/specs/cli/transforms/styling/)

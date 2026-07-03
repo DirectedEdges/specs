@@ -79,4 +79,4 @@ config:
 ## See Also
 
 - [`transform` command](/specs/cli/commands/transform/) — full CLI reference
-- [transform config](/specs/config/transform/) — configure default transformers
+- [transform config](/specs/settings/transform/) — configure default transformers

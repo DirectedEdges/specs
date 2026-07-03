@@ -1,0 +1,31 @@
+---
+title: "Modes"
+description: "Visual differences for each detected mode — how a component's styling changes across variable modes like light and dark theme"
+---
+
+import ImagePlaceholder from '../../../components/ImagePlaceholder.astro';
+
+<ImagePlaceholder maxWidth="none" aspectRatio="21 / 6" />
+
+Modes generates a side-by-side exhibit for every Figma variable mode a component actually uses — most commonly light and dark theme, but any variable collection with multiple modes qualifies. It exists to answer one question at a glance: does this component still look right when the mode changes, and what exactly is different?
+
+## What It Includes
+
+- **Collection subsections** — one subsection per variable collection the component draws from (e.g. a "Theme" collection), only when that collection has two or more modes
+- **Mode exhibits** — one exhibit per mode within a collection, each rendering the component with that mode explicitly applied
+- **Artwork** — a copy of the component's artwork forced into the given mode, so the rendered appearance reflects real mode-bound values rather than defaults
+- **Content style list** — the styling values in effect for that mode, shown alongside the artwork
+
+## Examples
+
+### Basic Modes
+
+A component bound to a single variable collection with two modes — like a Theme collection with Light and Dark — gets one subsection with two exhibits side by side: the artwork rendered in each mode, plus its resolved styling values.
+
+<ImagePlaceholder caption="A Button component's Modes section for its Theme collection — Light and Dark exhibits side by side, each showing the button's artwork and resolved styling values." />
+
+### Multiple Collections
+
+A component can draw from more than one qualifying variable collection at once — for example a Theme collection (Light/Dark) alongside a separate Density collection (Comfortable/Compact). Each collection gets its own subsection, and each subsection lists all of its modes as exhibits, so the total number of exhibits multiplies with the number of collections and modes involved.
+
+<ImagePlaceholder caption="A Card component's Modes section showing two subsections — Theme with Light/Dark exhibits, and Density with Comfortable/Compact exhibits — stacked beneath one another." />

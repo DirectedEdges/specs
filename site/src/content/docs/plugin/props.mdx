@@ -1,0 +1,46 @@
+---
+title: "Props"
+description: "Variant differences plus booleans and slots — how a component's properties change its appearance"
+---
+
+import ImagePlaceholder from '../../../components/ImagePlaceholder.astro';
+
+<ImagePlaceholder maxWidth="none" aspectRatio="21 / 6" />
+
+Props generates a canvas-native reference for every property a component exposes: a table listing each one, followed by exhibits showing what actually changes when a variant, boolean, or slot property is set. It's the place to look when you need to know not just that a prop exists, but what visibly happens when it's used.
+
+## What It Includes
+
+- **Properties table** — every prop by name, type, default value, and (for variant props) its full list of options
+- **Variant subsections** — one subsection per variant property, with an exhibit per non-default option showing the artwork and only the elements that differ from default
+- **Additional variants** — exhibits for variant combinations spanning two or more properties, where layering multiple configurations together introduces styling or bindings the single-prop exhibits don't show
+- **Additional properties** — a shared subsection tiling boolean and slot prop exhibits together, each with outlined artwork and its associated elements
+
+## Related Settings
+
+- **[Details](/specs/settings/details/)** — FULL renders only the properties table; LAYERED adds variant exhibits
+- **[Variant Depth](/specs/settings/variant-depth/)** — Limits how many variant property dimensions get their own subsection
+- **[Invalid Variants](/specs/settings/invalid-variants/)** — Includes otherwise-invalid options as placeholder exhibits per property
+- **[Invalid Combinations](/specs/settings/invalid-combinations/)** — Determines which multi-prop states appear in Additional variants
+- **[Empty Variants](/specs/settings/empty-variants/)** — Includes variant exhibits that show no differing elements
+- **[Code-Only Props Pattern](/specs/settings/code-only-props-pattern/)** — Adds hidden behavioral props as rows in the properties table
+
+## Examples
+
+### Basic Props
+
+A component with a single variant property produces a properties table, one variant subsection for that property, and an exhibit per non-default option — the artwork alongside only the elements that changed from the default.
+
+<ImagePlaceholder caption="A Button component's Props table (Type, Size, Default, Options) followed by a Size variant subsection showing Small and Large exhibits." />
+
+### Multiplying Variants, Booleans, and Slots
+
+Components with several variant properties get one subsection per property, each with its own set of exhibits. If any variant combines two or more properties in a way that introduces additional styling or bindings, those combinations get their own "Additional variants" exhibits. Boolean and slot props tile into a shared "Additional properties" grid, one labeled exhibit per prop, each showing the property set to true (booleans) or its slot outlined in place (slots) with the associated elements listed underneath.
+
+<ImagePlaceholder caption="A Select component with separate Size and State variant subsections, an Additional variants exhibit for the combined 'Size: Large, State: Error' configuration, and an Additional properties grid with exhibits for 'disabled' (boolean) and 'icon' (slot)." />
+
+### When Additional Properties Gets Crowded
+
+Components with many boolean and slot props tile all of them into the same "Additional properties" grid, since each is a small, independently labeled exhibit. As the count climbs, the grid can grow into a long, repetitive wall of near-identical artwork and outline callouts, making it harder to scan for a specific prop.
+
+<ImagePlaceholder caption="A dense Card component's Additional properties grid, with a dozen boolean and slot exhibits tiled together, making any single prop harder to pick out." />

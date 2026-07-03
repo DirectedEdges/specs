@@ -1,0 +1,32 @@
+---
+title: "Spacing"
+description: "Generate a Specs Layout variable collection and bind spacing/padding values across the canvas output"
+---
+
+<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge pro-badge">Pro</span>')</script>
+
+import ImagePlaceholder from '../../../components/ImagePlaceholder.astro';
+
+<ImagePlaceholder maxWidth="none" aspectRatio="21 / 6" />
+
+By default, the spacing and padding values shown in Layout annotations are hardcoded numbers. Turning on Spacing replaces them with real Figma number variables in a dedicated `Specs Layout` collection, so a team's spacing scale can be edited in one place instead of regenerating specs to change it.
+
+## What It Includes
+
+- **Specs Layout collection** — creates or reuses a `Specs Layout` variable collection, hidden from publishing, with a single `Default` mode
+- **Number variables** — one variable per distinct spacing/padding value the plugin uses (e.g. marker offsets, padding pill sizes)
+- **Full coverage** — every hardcoded spacing value used in annotations and layout markers binds to one of these variables instead
+
+## Examples
+
+### Enabling Spacing
+
+Checking "Spacing, using variables" under Custom Styling makes the plugin look for a `Specs Layout` collection the next time specs are generated — creating it if absent — and binds spacing values to variables in it instead of hardcoded numbers.
+
+<ImagePlaceholder caption="The plugin's Custom Styling settings with the Spacing checkbox enabled, and the Figma variables panel showing the generated Specs Layout collection." />
+
+### Reusing an Existing Collection
+
+Once a `Specs Layout` collection exists in the file, later spec generations reuse its variables rather than duplicating them — so adjusting one variable's value (say, the default padding-marker offset) updates every spec that references it.
+
+<ImagePlaceholder caption="The Specs Layout collection's variable list, with a single spacing variable referenced by multiple previously generated specs." />

@@ -293,3 +293,10 @@ mobile-starlight-toc {
 .releases-toc a:hover {
 	color: var(--sl-color-text-accent);
 }
+
+/* Plugin Overview: image + title + description card grid */
+.preview-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 1rem;
+}

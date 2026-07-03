@@ -1,0 +1,45 @@
+---
+title: "Anatomy"
+description: "Numbered, labeled breakdown of a component's structure directly on the Figma canvas"
+---
+
+import ImagePlaceholder from '../../../components/ImagePlaceholder.astro';
+
+<ImagePlaceholder maxWidth="none" aspectRatio="21 / 6" />
+
+Anatomy generates a labeled breakdown of a component right on the Figma canvas — a copy of the component with numbered markers over its meaningful parts, paired with a list that names each part and its key attributes. It's the fastest way to see what a component is actually made of without opening its layers panel or reading spec data directly.
+
+## What It Includes
+
+- **Numbered markers** — a copy of the component's artwork with a marker over each meaningful element
+- **Content list** — a matching list naming every marked element by number
+- **Attributes** — key visual values per element: color, size, corner radius, strokes, effects, typography
+- **Bindings** — prop bindings and other dynamic bindings that drive an element's appearance
+- **Variant exhibits** — additional exhibits for variants that reveal elements hidden by default (e.g. an icon that only appears when a prop is on)
+
+## Related Settings
+
+- **[Variant Depth](/specs/settings/variant-depth/)** — More depth means more variant exhibits to check for revealed elements
+- **[Glyph Name Pattern](/specs/settings/glyph-name-pattern/)** — Matched icon layers get typed as glyphs with resolved names
+- **[Subcomponents](/specs/settings/subcomponents/)** — Discovered subcomponents get their own separate Anatomy exhibits
+- **[Collapse Primitive Wrapper](/specs/settings/collapse-primitive-wrapper/)** — Strips wrapper containers, changing the root element markers
+
+## Examples
+
+### Basic Anatomy
+
+A single component with a handful of elements produces one exhibit: the artwork with numbered markers, and a content list naming each one with its attributes.
+
+<ImagePlaceholder caption="A Button component's Anatomy exhibit — numbered markers over the label and icon, with a matching attribute list." />
+
+### Multiple Anatomy Blocks
+
+When a component has variants that reveal elements hidden by default — like a badge that only appears in an "active" state — Specs adds a second exhibit just for that variant. It shows only the newly revealed elements and how they differ from the default, so nothing already shown gets repeated.
+
+<ImagePlaceholder caption="A Toggle component with two Anatomy exhibits: the default state, and a second exhibit showing the elements revealed only in the 'active' variant." />
+
+### When Anatomy Gets Crowded
+
+Components with many small, tightly packed, or visually similar elements can produce an exhibit that's harder to read than it is useful — overlapping markers and a long, repetitive attribute list. In these cases, treat Anatomy as a starting point rather than the full picture, and cross-reference the component's other spec sections for the details that got crowded out.
+
+<ImagePlaceholder caption="A dense Table component's Anatomy exhibit, where overlapping markers and repetitive attributes make the output harder to scan." />
