@@ -60,6 +60,7 @@ Transformer names can be passed as positional arguments, configured in `specs.co
 |-------------|-------------|-----------------|
 | [`contract`](/specs/cli/transforms/contract/) | `contract.ts` | TypeScript Props interface and defaults constant |
 | [`css`](/specs/cli/transforms/css/) | `styles.css` | CSS rules per anatomy element, with token vars and variant selectors |
+| [`component-md`](/specs/cli/transforms/component-md/) | `component.md` | Single-file markdown reference — props, anatomy, layout, tokens, states, variant deltas |
 
 ## Running All Transformers
 
