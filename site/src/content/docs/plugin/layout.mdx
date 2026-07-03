@@ -7,16 +7,23 @@ import ImagePlaceholder from '../../../components/ImagePlaceholder.astro';
 
 <ImagePlaceholder maxWidth="none" aspectRatio="21 / 6" />
 
-Layout generates a set of annotated exhibits showing how a component's auto-layout containers are configured — direction, alignment, resizing, padding, and item spacing — drawn as markers directly over a copy of the component's artwork. It's the section to check when you need to know exactly how much space is baked into a component, or how its containers stretch and align, without digging through Figma's own layout panel.
+The Layout section provides an annotated breakdown of a component's auto-layout containers, including direction, alignment, resizing, padding, and spacing markers over the artwork, with a matching content list per container.
 
 ## What It Includes
 
-- **Direction arrow** — shows whether a container lays out horizontally or vertically, including wrap
-- **Alignment icon** — shows how children are aligned on both axes (e.g. "Top left", "Middle center", "Spaced equally")
+The artwork includes:
+
+- **Direction arrow** — whether a container lays out horizontally or vertically, including wrap
+- **Alignment icon** — how children are aligned on both axes (e.g. "Top left", "Middle center", "Spaced equally")
 - **Resizing markers** — separate vertical and horizontal markers showing whether a container is fixed, hugging, or filling
 - **Padding markers** — a marker per side (top, bottom, start, end) with its value, only shown where padding is greater than zero
 - **Item spacing markers** — markers between children showing the gap distributed along the axis
+
+The content includes:
+
 - **Layout Content list** — a text list pairing each annotated container with its direction, alignment, resizing, padding, and spacing values
+
+Additional container exhibits are included for each nested, non-instance auto-layout container using horizontal or vertical layout; instance elements and Grid-layout containers don't get their own exhibit. Additional variant subsections appear whenever layout-relevant properties change.
 
 ## Related Settings
 

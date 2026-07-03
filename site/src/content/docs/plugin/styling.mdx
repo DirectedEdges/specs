@@ -7,14 +7,19 @@ import ImagePlaceholder from '../../../components/ImagePlaceholder.astro';
 
 <ImagePlaceholder maxWidth="none" aspectRatio="21 / 6" />
 
-Styling generates an inventory of every variable, color style, text style, and effect style detected on a component, laid out as a set of tables directly on the canvas. It's where you go to confirm which design tokens a component actually consumes — and to catch raw, un-tokenized values that slipped in instead.
+The Styling section provides an inventory of every variable and style detected on a component, including one table per category and, for variables, their resolved raw value.
 
 ## What It Includes
+
+Tables included: 
 
 - **Variables** — Figma variables bound to any element, shown as a pill with the variable's name
 - **Color Styles** — named fill or stroke styles applied to any element
 - **Text Styles** — named text styles applied to any element
 - **Effect Styles** — named effect styles (shadows, blurs) applied to any element
+
+Per table, each row includes:
+
 - **Applied as** — the role the variable or style plays where it's used (e.g. Background color, Text color, Stroke color, Text style, Effect style)
 - **Applied to** — which element(s) use it, with a count when the same variable or style repeats across multiple elements
 - **Raw value** — for variables only, the underlying resolved value (e.g. a hex color, a number, a string)
@@ -38,8 +43,3 @@ When the same variable or style is reused across multiple elements, or across mu
 
 <ImagePlaceholder caption="A Card component's Variables table where a single spacing token's 'Applied to' cell reads 'Container (3), Header, Icon' — showing reuse across three instances in the container and one use each elsewhere." />
 
-### Dense Token Inventories
-
-Components built on many small variables — deeply tokenized color, spacing, and typography systems — can produce long tables with dozens of rows, each with a long "Applied to" list and truncated raw values. In these cases, the inventory is still accurate, but scanning it for a specific token takes more effort; searching the table for a known variable or style name is more reliable than reading it top to bottom.
-
-<ImagePlaceholder caption="A themed Card component's Variables table, dozens of rows deep, with long comma-separated 'Applied to' lists and several raw value cells truncated to their max width." />

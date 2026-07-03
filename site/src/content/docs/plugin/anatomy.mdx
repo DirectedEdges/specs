@@ -7,15 +7,22 @@ import ImagePlaceholder from '../../../components/ImagePlaceholder.astro';
 
 <ImagePlaceholder maxWidth="none" aspectRatio="21 / 6" />
 
-Anatomy generates a labeled breakdown of a component right on the Figma canvas — a copy of the component with numbered markers over its meaningful parts, paired with a list that names each part and its key attributes. It's the fastest way to see what a component is actually made of without opening its layers panel or reading spec data directly.
+The Anatomy section provides a labeled breakdown of a component, including a component copy, numbered markers over meaningful parts, and a list naming and listing styles and bindings of each part.
 
 ## What It Includes
 
-- **Numbered markers** — a copy of the component's artwork with a marker over each meaningful element
-- **Content list** — a matching list naming every marked element by number
-- **Attributes** — key visual values per element: color, size, corner radius, strokes, effects, typography
-- **Bindings** — prop bindings and other dynamic bindings that drive an element's appearance
-- **Variant exhibits** — additional exhibits for variants that reveal elements hidden by default (e.g. an icon that only appears when a prop is on)
+The artwork includes:
+
+- **Component instance** — a copy of the component's default
+- **Numbered markers** — over each uniquely named element
+
+The content includes:
+
+- **Numbered Element** — matching every marked element by number
+- **Attributes** — of styles like color, size, corner radius, strokes, effects, and typography in their default values
+- **Bindings** — of text, boolean, instance swap and slot props
+
+Additional variant exhibits are included whenever a new, uniquely named layer is detected.
 
 ## Related Settings
 

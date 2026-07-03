@@ -7,14 +7,25 @@ import ImagePlaceholder from '../../../components/ImagePlaceholder.astro';
 
 <ImagePlaceholder maxWidth="none" aspectRatio="21 / 6" />
 
-Props generates a canvas-native reference for every property a component exposes: a table listing each one, followed by exhibits showing what actually changes when a variant, boolean, or slot property is set. It's the place to look when you need to know not just that a prop exists, but what visibly happens when it's used.
+The Props section provides a canvas-native reference for every property, including a properties table, per-property variant exhibits, and combined boolean/slot exhibits.
 
 ## What It Includes
 
-- **Properties table** — every prop by name, type, default value, and (for variant props) its full list of options
-- **Variant subsections** — one subsection per variant property, with an exhibit per non-default option showing the artwork and only the elements that differ from default
-- **Additional variants** — exhibits for variant combinations spanning two or more properties, where layering multiple configurations together introduces styling or bindings the single-prop exhibits don't show
-- **Additional properties** — a shared subsection tiling boolean and slot prop exhibits together, each with outlined artwork and its associated elements
+A variant example is emitted for every variant property, with one exhibit per non-default option. If a combination of two or more variant properties introduces new styling or bindings, an additional exhibit is emitted for that combination. Boolean and slot props are grouped into a shared "Additional properties" grid, with one labeled exhibit per prop.
+
+The artwork includes:
+
+- **Component instance** — configured to show the component with that property signature relative to the default
+
+The content includes:
+
+- **Elements** — for each element that changed from the default
+- **Attributes** — of styles like color, size, corner radius, strokes, effects, and typography different than the default
+- **Bindings** — of text, boolean, instance swap and slot props different than the default
+
+Additional variants and properties subsections are included whenever a combination or prop introduces style or binding changes. The content of that variant then expresses what's different for that variant relative to all the matching variants shown prior.
+
+Boolean and slot props tile into a shared "Additional properties" grid, one labeled exhibit per prop, each showing the property set to true (booleans) or its slot outlined in place (slots) with the associated elements listed underneath and highlighted in the artwork.
 
 ## Related Settings
 
@@ -33,14 +44,13 @@ A component with a single variant property produces a properties table, one vari
 
 <ImagePlaceholder caption="A Button component's Props table (Type, Size, Default, Options) followed by a Size variant subsection showing Small and Large exhibits." />
 
-### Multiplying Variants, Booleans, and Slots
+### Multiplying Variants
 
-Components with several variant properties get one subsection per property, each with its own set of exhibits. If any variant combines two or more properties in a way that introduces additional styling or bindings, those combinations get their own "Additional variants" exhibits. Boolean and slot props tile into a shared "Additional properties" grid, one labeled exhibit per prop, each showing the property set to true (booleans) or its slot outlined in place (slots) with the associated elements listed underneath.
+Components with several variant properties get one subsection per property, each with its own set of exhibits. If any variant combines two or more properties in a way that introduces additional styling or bindings, those combinations get their own "Additional variants" exhibits. 
 
 <ImagePlaceholder caption="A Select component with separate Size and State variant subsections, an Additional variants exhibit for the combined 'Size: Large, State: Error' configuration, and an Additional properties grid with exhibits for 'disabled' (boolean) and 'icon' (slot)." />
 
-### When Additional Properties Gets Crowded
+### Booleans and Slots
 
-Components with many boolean and slot props tile all of them into the same "Additional properties" grid, since each is a small, independently labeled exhibit. As the count climbs, the grid can grow into a long, repetitive wall of near-identical artwork and outline callouts, making it harder to scan for a specific prop.
+<ImagePlaceholder caption="A Select component with separate Size and State variant subsections, an Additional variants exhibit for the combined 'Size: Large, State: Error' configuration, and an Additional properties grid with exhibits for 'disabled' (boolean) and 'icon' (slot)." />
 
-<ImagePlaceholder caption="A dense Card component's Additional properties grid, with a dozen boolean and slot exhibits tiled together, making any single prop harder to pick out." />

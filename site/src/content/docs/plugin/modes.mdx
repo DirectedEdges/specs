@@ -7,14 +7,19 @@ import ImagePlaceholder from '../../../components/ImagePlaceholder.astro';
 
 <ImagePlaceholder maxWidth="none" aspectRatio="21 / 6" />
 
-Modes generates a side-by-side exhibit for every Figma variable mode a component actually uses — most commonly light and dark theme, but any variable collection with multiple modes qualifies. It exists to answer one question at a glance: does this component still look right when the mode changes, and what exactly is different?
+The Modes section provides a side-by-side comparison for every variable mode a component uses, including per-mode artwork and a matching content list of resolved styling values.
 
 ## What It Includes
 
-- **Collection subsections** — one subsection per variable collection the component draws from (e.g. a "Theme" collection), only when that collection has two or more modes
-- **Mode exhibits** — one exhibit per mode within a collection, each rendering the component with that mode explicitly applied
-- **Artwork** — a copy of the component's artwork forced into the given mode, so the rendered appearance reflects real mode-bound values rather than defaults
+The artwork includes:
+
+- **Mode artwork** — a copy of the component forced into each mode, so the rendered appearance reflects real mode-bound values rather than defaults
+
+The content includes:
+
 - **Content style list** — the styling values in effect for that mode, shown alongside the artwork
+
+A collection subsection is included for every qualifying variable collection (two or more modes), with one exhibit per mode inside it.
 
 ## Examples
 
