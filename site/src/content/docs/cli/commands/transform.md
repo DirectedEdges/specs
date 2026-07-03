@@ -40,6 +40,7 @@ Show detailed output during transformation.
 | `contract` *(default)* | TypeScript Props interface and defaults per component |
 | `css` | CSS custom property rules per component |
 | `styling` | Token inventory per component |
+| `component-md` | Single-file markdown reference per component |
 
 ## See Also
 
