@@ -5,6 +5,15 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.25.0] - Unreleased
+
+### Added
+
+### Changed
+
+### Removed
+
+
 ## [0.24.0] - 2026-07-04
 
 `specs transform` gains two new transformers — `react` and `stories` — that scaffold a working React component and a matching Storybook page directly from the spec, plus a `--components` filter to scope a run to specific components. The `contract` and `css` transformers pick up complementary additions (slot visibility rules, structural CSS fixes) to support the new component scaffolding. Generated filenames are now prefixed with the component name for clarity outside the folder tree — a breaking change for any tooling that hardcodes the old unprefixed filenames.
