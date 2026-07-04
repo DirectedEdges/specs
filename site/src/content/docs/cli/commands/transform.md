@@ -4,7 +4,7 @@ title: "transform"
 
 <script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
 
-Project component spec files into derived artifacts — contracts, styles, and token inventories.
+Fans component spec files out into derived artifacts — contracts, styles, React components, and Storybook stories.
 
 ## Usage
 
@@ -19,7 +19,7 @@ specs transform [transformers...] [options]
 One or more transformer names to run. When omitted, uses `config.transform.transformers` from your config file, then falls back to the CLI default (`contract`).
 
 ```bash
-specs transform contract css styling
+specs transform contract css react stories
 ```
 
 ## Options
@@ -30,6 +30,13 @@ Override the output directory for generated artifacts.
 ### `--config <path>`
 Use a specific config file.
 
+### `--components <keys...>`
+Only transform the named component folders instead of every component discovered in the output directory. Unknown component keys log a warning and are skipped.
+
+```bash
+specs transform react stories --components dsAlert dsBadge
+```
+
 ### `--verbose`
 Show detailed output during transformation.
 
@@ -37,11 +44,12 @@ Show detailed output during transformation.
 
 | Name | Output |
 |------|--------|
-| `contract` *(default)* | TypeScript Props interface and defaults per component |
+| `contract` *(default)* | TypeScript Props interface and defaults, plus Slots/SlotRules per component |
 | `css` | CSS custom property rules per component |
-| `styling` | Token inventory per component |
+| `react` | A working React component scaffold, seeded once into an authored file |
+| `stories` | A Storybook CSF page per component |
 
 ## See Also
 
-- [transform config](/specs/config/transform/) — configure which transformers run by default
-- [tokens config](/specs/config/tokens/) — control how token references are serialized in spec output
+- [transform config](/specs/settings/transform/) — configure which transformers run by default
+- [tokens config](/specs/settings/tokens/) — control how token references are serialized in spec output

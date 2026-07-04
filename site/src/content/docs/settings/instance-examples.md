@@ -10,7 +10,7 @@ Instance examples are real-world usages of a component placed in your Figma file
 
 A candidate qualifies primarily by **identity**: it must be an *instance of the component being generated* (one of its variants). Naming is not the relevance test — that's what `match` is for, and `match` is optional. This means example instances can be named anything; they don't need to reference the component name.
 
-The **presence** of `processing.instanceExamples` is the on-switch — the same opt-in model as [`subcomponents`](/specs/config/subcomponents/). There is no separate `include` flag: when the block is present (and the license is Pro), examples are detected *and* emitted. When it is absent, no detection runs.
+The **presence** of `processing.instanceExamples` is the on-switch — the same opt-in model as [`subcomponents`](/specs/settings/subcomponents/). There is no separate `include` flag: when the block is present (and the license is Pro), examples are detected *and* emitted. When it is absent, no detection runs.
 
 ## Configuration
 
@@ -114,6 +114,6 @@ Instance example detection and output requires a [Pro license](/specs/overview/l
 ## See Also
 
 - [Guide: Instance (Ready-Made) Examples](/specs/guides/instance-examples/) — authoring example frames end to end
-- [`defaultSlotContent`](/specs/config/default-slot-content/) — the separate default-slot-content output flag
+- [`defaultSlotContent`](/specs/settings/default-slot-content/) — the separate default-slot-content output flag
 - [Schema: Component](/specs/schema/component/) — the `instanceExamples` registry shape
-- [`subcomponents`](/specs/config/subcomponents/) — the presence-driven detection model this mirrors
+- [`subcomponents`](/specs/settings/subcomponents/) — the presence-driven detection model this mirrors

@@ -5,40 +5,55 @@ description: "Project component spec files into derived artifacts using specs tr
 
 <script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
 
-Transforms project a component specification into artifacts your codebase can consume: a TypeScript contract, a baseline stylesheet, a token inventory. Instead of writing those by hand, you derive them from the spec and keep them in sync as the design evolves. This concept is described in [RFC 001: Component Dictionary](https://github.com/DirectedEdges/specs/blob/main/rfc/001-component-dictionary/README.md).
+The `transform` command fans a component specification out into artifacts your codebase can consume: a TypeScript contract, a baseline stylesheet, a working component, a token inventory. Instead of writing those by hand, you derive them from the spec and keep them in sync as the design evolves. This concept is described in [RFC 001: Component Dictionary](https://github.com/DirectedEdges/specs/blob/main/rfc/001-component-dictionary/README.md).
 
 Transforms take spec data as far as it deterministically goes — every prop, token, and style Figma captured — before inference enters the picture. Structured spec data is stable, regeneratable, and cheap to re-read; it's the right foundation for agents and tooling to build on, not a replacement for them. What the spec can't know — behavior, interaction states, accessibility semantics — belongs to agentically-extended specs and the authored files that live alongside.
 
-#### Spec output
+## Output
 
 ```
 output/
   _dictionary/
-    styling.byComponent.json   # token usage indexed by component
+    styling.byComponent.json   # token usage indexed by component (specs analyze)
     styling.byToken.json       # token usage indexed by token name across components
 
-  ds-alert/
+  dsAlert/
     api.yaml            # spec
     variants.yaml       # variant data
-    contract.ts         # generated — props interface and defaults
-    styles.css          # generated — baseline token rules
-    styling.json        # generated — token inventory
+    generated/
+      DsAlert.contract.ts     # from specs transform contract
+      DsAlert.styles.css      # from specs transform css
+      react/
+        DsAlert.scaffold.tsx  # from specs transform react — always current, do not edit
+        DsAlert.stories.tsx   # from specs transform stories
+    src/
+      react/
+        DsAlert.tsx             # seeded once by react transformer, then human-owned
+        DsAlert.extensions.css  # authored — styling the spec can't express
+        DsAlert.proposed.css    # authored — styling proposed for promotion into the spec
 ```
 
-#### React component or prototyping kit
+Every transform output file — generated and authored — is PascalCase-prefixed with the component name (`DsAlert.*`), even though the folder itself already scopes it to that component; this keeps filenames self-describing when opened outside the tree (an editor tab, a diff view, a search result). All generated output for a component lives under its `generated/` subfolder, keeping it clearly separated from the source `api.yaml`/`variants.yaml` and from anything you author. The `react` transformer is the one exception that writes outside `generated/`: it seeds a one-time authored copy under `src/react/`, described in [Authored vs. Generated](#authored-vs-generated) below.
 
-```
-src/components/DsAlert/
-  generated/
-    contract.ts         # from specs transform
-    styles.css          # from specs transform
-  DsAlert.tsx           # implementation
-  extensions.css        # overrides, states, and behavior not regenerated
-  DsAlert.test.tsx
-  index.ts
-```
+#### Authored vs. Generated
+
+`contract`, `css`, `react`, and `stories` all regenerate their `generated/` output on every run — never edit those files directly, since the next `specs transform` overwrites them.
+
+The `react` transformer additionally seeds `src/react/{Component}.tsx` plus `.extensions.css` and `.proposed.css` the first time it runs for a component. Those three files are created once and never touched again, even on subsequent runs — they're yours to implement against. The `stories` transformer imports this authored component, not the regenerated scaffold, so Storybook always reflects what you've built.
 
 ## How It Works
+
+### Prerequisites
+
+`specs transform` discovers components by scanning the output directory for subfolders that each contain an `api.yaml`. That exact shape — a per-component subfolder with `api.yaml` and `variants.yaml` inside it — only comes from running `generate` with **both** `--split-components` and `--split-concerns`:
+
+```bash
+specs generate --split-components --split-concerns
+```
+
+If you only see a single `library.yaml`, or `{Component}.yaml` files with no `api.yaml` inside, re-run `generate` with both flags above before transforming.
+
+### Processing
 
 `specs transform` discovers component subfolders under the output directory (each must contain an `api.yaml`), then runs one or more named transformers against every component.
 
@@ -48,23 +63,35 @@ specs transform [transformers...] [options]
 
 Transformer names can be passed as positional arguments, configured in `specs.config.yaml`, or left absent to use the CLI default (`contract`).
 
-## Transformer Resolution Order
+#### Resolution Order
 
-1. Positional arguments — `specs transform css styling`
+1. Positional arguments — `specs transform css react`
 2. `config.transform.transformers` in `specs.config.yaml`
 3. CLI default: `contract`
 
-## Available Transformers
+## Types
 
 | Transformer | Output file | What it produces |
 |-------------|-------------|-----------------|
-| [`contract`](/specs/cli/transforms/contract/) | `contract.ts` | TypeScript Props interface and defaults constant |
-| [`css`](/specs/cli/transforms/css/) | `styles.css` | CSS rules per anatomy element, with token vars and variant selectors |
+| [`contract`](/specs/cli/transforms/contract/) | `generated/{Component}.contract.ts` | TypeScript Props interface and defaults constant, plus Slots/SlotRules when `variants.yaml` is present |
+| [`css`](/specs/cli/transforms/css/) | `generated/{Component}.styles.css` | CSS rules per anatomy element, with token vars, variant selectors, and structural presence/stacking fixes |
+| [`react`](/specs/cli/transforms/react/) | `generated/react/{Component}.scaffold.tsx` + seeded `src/react/{Component}.tsx` | A working React component wired to the contract and stylesheet, seeded once into an authored file you own |
+| [`stories`](/specs/cli/transforms/stories/) | `generated/react/{Component}.stories.tsx` | A Storybook CSF page with a story per prop-expressible variant, importing the authored component |
+
+`react` and `stories` both require `variants.yaml` — components without it are skipped with a warning.
+
+### Filtering by Component
+
+By default `specs transform` runs against every component subfolder in the output directory. Use `--components` to scope a run to specific components:
+
+```bash
+specs transform react stories --components dsAlert dsBadge
+```
 
 ## Running All Transformers
 
 ```bash
-specs transform contract css
+specs transform contract css react stories
 ```
 
 Or configure them in `specs.config.yaml` so `specs transform` alone is enough:
@@ -74,9 +101,13 @@ config:
   transformers:
     - name: contract
     - name: css
+    - name: react
+    - name: stories
 ```
+
+`react` and `stories` both assume `contract` and `css` have already produced `generated/{Component}.contract.ts` and `generated/{Component}.styles.css` for the component — list them in this order.
 
 ## See Also
 
 - [`transform` command](/specs/cli/commands/transform/) — full CLI reference
-- [transform config](/specs/config/transform/) — configure default transformers
+- [transform config](/specs/settings/transform/) — configure default transformers

@@ -1,0 +1,28 @@
+---
+title: "Text"
+description: "Generate local Specs text styles and apply them across the canvas output's typography"
+---
+
+<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge pro-badge">Pro</span>')</script>
+
+import Figure from '../../../components/Figure.astro';
+import textHero from '../../../assets/plugin/Text.png';
+import customStyling from '../../../assets/plugin/CustomStyling.png';
+
+By default, every piece of text in a generated spec — headings, labels, attribute values — uses hardcoded font settings. Turning on Text creates a set of local text styles named `Specs/...` (e.g. `Specs/Heading/Title`) and applies them instead, so a team can restyle a spec's typeface, weight, or size in one place instead of regenerating it.
+
+<Figure src={textHero} alt="Figma's Text Styles panel listing the Specs style groups (Annotations, Heading, Body, Table, Text), with the Edit text style dialog open on the Title style (Inter Bold, 64/Auto)" maxWidth="none" />
+
+## How It Works
+
+Open the plugin's Settings tab and check **"Typography, using text styles"** under Custom Styling, then generate as usual.
+
+<Figure src={customStyling} alt="The plugin's Custom Styling settings, with checkboxes for Color including dark mode, Typography, and Spacing" caption="The plugin's Custom Styling settings — check 'Typography, using text styles' to enable Text." />
+
+## What It Includes
+
+- **Local text styles** — creates or reuses text styles named `Specs/<category>/<name>` (e.g. `Specs/Heading/Title`, `Specs/Text/Element`)
+- **One style per text role** — headings, section titles, table headers, attribute labels, and values each get their own named style
+- **Full coverage** — every piece of text across all output sections binds to one of these styles instead of a hardcoded font setting
+
+Editing a generated style's font — for example changing `Specs/Heading/Title` from Inter to a team's primary typeface — updates every heading in every spec that references that style, without regenerating anything.

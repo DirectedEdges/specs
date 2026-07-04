@@ -28,7 +28,7 @@ interface SlotContent {
 
 `SlotContent` entries are stored in named registries and referenced — never inlined — by a [`SlotContentRef`](/specs/schema/slot-content-ref/) (`$slotContent` pointer):
 
-- **`Component.slotContentExamples`** — component-scoped fills, e.g. `"#/components/pill/slotContentExamples/composedLabel"`. Emitted when [`include.defaultSlotContent`](/specs/config/default-slot-content/) is on.
+- **`Component.slotContentExamples`** — component-scoped fills, e.g. `"#/components/pill/slotContentExamples/composedLabel"`. Emitted when [`include.defaultSlotContent`](/specs/settings/default-slot-content/) is on.
 - **`Composition.slotContent`** — fills bundled alongside a [`Composition`](/specs/schema/composition/)'s primary content, e.g. `"#/compositions/filterResultsPage/slotContent/pageHeader"`.
 
 specs-from-figma de-duplicates entries by structural equality across variants and slots — identical fills share a single registry entry.

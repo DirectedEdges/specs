@@ -1,0 +1,25 @@
+---
+title: "Data"
+description: "A raw YAML or JSON serialization of the component spec, written directly onto the canvas as a contract for AI/LLM tools"
+---
+
+import Figure from '../../../components/Figure.astro';
+import dataHero from '../../../assets/plugin/Data.png';
+
+The Data section provides the component's full spec as a single block of text, including every field the plugin's current settings produce, formatted as YAML or JSON.
+
+<Figure src={dataHero} alt="A Data section on the Figma canvas, showing an Alert component's spec serialized as a YAML text block with title, anatomy, and props fields" maxWidth="none" />
+
+## What It Includes
+
+- **Serialized text** — the full component spec rendered as one text block, formatted as YAML or JSON
+- **Format** — controlled by the plugin's Format Output setting; YAML by default, or JSON when selected
+- **Full detail** — every field the spec produces for the component, including whatever depth of variant and detail data the plugin's settings currently include
+- **One block per component** — the main component gets one Data block, and each documented subcomponent gets its own separate Data block with its own slice of the spec
+
+## Related Settings
+
+- **[Output Format](/specs/settings/output-format/)** — Chooses `YAML` or `JSON` for the block
+- **[Keys](/specs/settings/keys/)** — Renames keys, such as `camelCase` or `snake_case`
+- **[Variant Depth](/specs/settings/variant-depth/)** — More depth means more variant entries
+- **[Details](/specs/settings/details/)** — `LAYERED` vs `FULL` changes how much gets captured

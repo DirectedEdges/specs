@@ -34,11 +34,11 @@ Slot fills encountered inside an example instance are contributed to the shared 
 
 ## Detection
 
-How example instances are harvested from a Figma file is controlled by [`processing.instanceExamples`](/specs/config/instance-examples/).
+How example instances are harvested from a Figma file is controlled by [`processing.instanceExamples`](/specs/settings/instance-examples/).
 
 ## Further Reading
 
 - [Component Examples as Data](https://nathanacurtis.substack.com/p/component-examples-as-data) — the thinking behind examples in the spec
 - [ADR 048 — Component Instance Examples](https://github.com/DirectedEdges/specs/blob/main/adr/048-component-instance-examples.md)
-- [Instance Examples (config)](/specs/config/instance-examples/) — detection setup
+- [Instance Examples (config)](/specs/settings/instance-examples/) — detection setup
 - [Instance Examples (guide)](/specs/guides/instance-examples/)

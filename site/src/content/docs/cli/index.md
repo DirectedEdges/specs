@@ -90,7 +90,9 @@ data/
 
 - **Node.js** 18 or higher
 - **Figma access token** (for `fetch`) via `FIGMA_TOKEN`
-- **Figma REST API data** (JSON files from Figma API endpoints, produced by `fetch`)
+- **Figma REST API data** (JSON files from Figma API endpoints, produced by `fetch`):
+  - `file` — any Figma plan with REST API access
+  - `variables` / `styles` — Figma restricts these REST endpoints to organizations on an **Enterprise** plan, regardless of your Specs license
 - **License key** (optional) via `SPECS_LICENSE_KEY` for Pro features
 
 See [Getting Started](/specs/cli/getting-started/) for installation instructions.
@@ -99,4 +101,4 @@ See [Getting Started](/specs/cli/getting-started/) for installation instructions
 
 - [Getting Started](/specs/cli/getting-started/) - Installation, license, and quick start
 - [Workflows](/specs/cli/workflows/) - Real-world usage patterns and CI/CD
-- [Configuration](/specs/config/) - Config file reference
+- [Configuration](/specs/settings/) - Config file reference

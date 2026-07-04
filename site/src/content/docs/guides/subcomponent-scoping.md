@@ -136,4 +136,4 @@ subcomponents:
 ## Further Reading
 
 - [ADR 031 — Subcomponent Search Scope](https://github.com/DirectedEdges/specs/blob/main/adr/031-subcomponent-search-scope.md) — architecture decision record covering the `scope`, `match`, and `exclude` design
-- [CLI Configuration](/specs/config/) — full config reference
+- [CLI Configuration](/specs/settings/) — full config reference

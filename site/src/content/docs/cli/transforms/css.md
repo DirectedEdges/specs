@@ -5,7 +5,7 @@ description: "Emit a CSS file with custom property rules per component element"
 
 <script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
 
-Emits a `styles.css` file for each component. Each anatomy element becomes a CSS selector; token references become `var(--)` declarations; variant props become `[data-*]` attribute selectors. Boolean props use presence selectors (`[data-prop]`); string-valued props use value selectors (`[data-prop="value"]`).
+Emits a `{Component}.styles.css` file for each component. Each anatomy element becomes a CSS selector; token references become `var(--)` declarations; variant props become `[data-*]` attribute selectors. Boolean props use presence selectors (`[data-prop]`); string-valued props use value selectors (`[data-prop="value"]`).
 
 ## Use When
 
@@ -21,7 +21,7 @@ specs transform css
 
 ## Output
 
-Each component subfolder receives a `styles.css` file. When subcomponents are present, each also receives a `styles.css` inside its own named subfolder — see [Subcomponent Output](#subcomponent-output) below.
+Each component subfolder receives a `generated/{Component}.styles.css` file, PascalCase-prefixed with the component name (e.g. `generated/DsAlert.styles.css`). When subcomponents are present, each also receives a `generated/{Sub}.styles.css` inside its own named subfolder, prefixed with just the subcomponent's own name — see [Subcomponent Output](#subcomponent-output) below.
 
 ## Example Output
 
@@ -99,7 +99,7 @@ Token references are resolved to CSS `var(--)` based on `config.format.tokens`:
 
 ## Config
 
-No transformer-specific options. Token format comes from `config.format.tokens`. Selector strategy for variant props comes from [`config.processing.states`](/specs/config/states/).
+No transformer-specific options. Token format comes from `config.format.tokens`. Selector strategy for variant props comes from [`config.processing.states`](/specs/settings/states/).
 
 ```yaml
 config:
@@ -133,20 +133,53 @@ When the `disabled` concept is configured in `processing.states`, the transforme
 
 Selectors that are not `:hover` or `:active` (e.g. `:focus-within`, `:disabled` itself) are never guarded.
 
+## Structural Presence and Stacking
+
+Two structural adjustments are derived from comparing the default layout against every variant layout — no configuration needed.
+
+**Structurally-absent elements.** When a variant's layout includes an element the default layout omits, that element is hidden at the base (`display: none`) and un-hidden only under the variant selector(s) that include it:
+
+```css
+.ds-select__clear-icon {
+  display: none;
+}
+
+.ds-select[data-clearable] .ds-select__clear-icon {
+  display: flex;
+}
+```
+
+**Stacking and containing blocks.** Any element with `position: ABSOLUTE` in the spec needs its layout parent to establish a containing block, or `inset`/offset values resolve against the viewport instead. The transformer adds `position: relative` to that parent automatically. Non-absolute siblings of the absolute element also get `position: relative` — without it, the absolutely-positioned element paints above them regardless of Figma layer order, since only positioned elements participate in stacking order in DOM paint sequence:
+
+```css
+.ds-badge__container {
+  position: relative; /* containing block for .ds-badge__dot */
+}
+
+.ds-badge__label {
+  position: relative; /* keeps layer order vs. the absolute dot */
+}
+```
+
+`position: relative` is only added when the element doesn't already declare its own `position` value.
+
 ## Subcomponent Output
 
-When subcomponents are present in `variants.yaml`, each subcomponent gets its own `styles.css` inside a named subfolder. The subfolder name is the subcomponent's key in the spec (e.g. `group`, `item`). The BEM root class is scoped to the subcomponent's kebab-cased key, not the parent component.
+When subcomponents are present in `variants.yaml`, each subcomponent gets its own `{Sub}.styles.css` inside a named subfolder. The subfolder name is the subcomponent's key in the spec (e.g. `group`, `item`), and the filename prefix is just that subcomponent's own PascalCase name — the folder already disambiguates it from the parent. The BEM root class inside the file is scoped to the subcomponent's kebab-cased key, not the parent component.
 
 ```
 dsActionList/
-  styles.css          ← parent component stylesheet (.ds-action-list)
+  generated/
+    DsActionList.styles.css    ← parent component stylesheet (.ds-action-list)
   group/
-    styles.css        ← subcomponent stylesheet (.group)
+    generated/
+      Group.styles.css         ← subcomponent stylesheet (.group)
   item/
-    styles.css        ← subcomponent stylesheet (.item)
+    generated/
+      Item.styles.css          ← subcomponent stylesheet (.item)
 ```
 
-The subcomponent `styles.css` follows the same structure as the parent — default element blocks first, then variant blocks — but BEM selectors are scoped to the subcomponent's own kebab-cased key, not the parent component name:
+The subcomponent stylesheet follows the same structure as the parent — default element blocks first, then variant blocks — but BEM selectors are scoped to the subcomponent's own kebab-cased key, not the parent component name:
 
 ```css
 /* Generated. Do not edit — regenerate with `specs transform`. */
@@ -169,12 +202,12 @@ The subcomponent `styles.css` follows the same structure as the parent — defau
 }
 ```
 
-Subcomponent stylesheets are fully self-contained — elements and variants from the parent component never appear in them. Configure subcomponent discovery in [`config.processing.subcomponents`](/specs/config/subcomponents/).
+Subcomponent stylesheets are fully self-contained — elements and variants from the parent component never appear in them. Configure subcomponent discovery in [`config.processing.subcomponents`](/specs/settings/subcomponents/).
 
 ## See Also
 
 - [Transforms overview](/specs/cli/transforms/)
-- [`processing.states` config](/specs/config/states/) — classify variant props as semantic states
+- [`processing.states` config](/specs/settings/states/) — classify variant props as semantic states
 - [`contract` transformer](/specs/cli/transforms/contract/)
-- [`styling` transformer](/specs/cli/transforms/styling/)
-- [tokens config](/specs/config/tokens/)
+- [`react` transformer](/specs/cli/transforms/react/) — imports this stylesheet into the generated and authored components
+- [tokens config](/specs/settings/tokens/)

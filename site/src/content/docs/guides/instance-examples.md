@@ -34,7 +34,7 @@ instanceExamples:
 
 ## Configuration
 
-Detection mirrors [`subcomponents`](/specs/config/subcomponents/): the **presence** of `processing.instanceExamples` is the on-switch. There is no separate `include` flag — when the block is present (and the license is Pro), examples are detected *and* emitted.
+Detection mirrors [`subcomponents`](/specs/settings/subcomponents/): the **presence** of `processing.instanceExamples` is the on-switch. There is no separate `include` flag — when the block is present (and the license is Pro), examples are detected *and* emitted.
 
 ```yaml
 # specs.config.yaml
@@ -68,7 +68,7 @@ Instance examples require a [Pro license](/specs/overview/licensing/). On the fr
 
 ## Further Reading
 
-- [`processing.instanceExamples`](/specs/config/instance-examples/) — config reference
+- [`processing.instanceExamples`](/specs/settings/instance-examples/) — config reference
 - [Default Slot Content](/specs/guides/default-slot-content/) — the sibling feature
-- [`subcomponents`](/specs/config/subcomponents/) — the presence-driven detection model this mirrors
+- [`subcomponents`](/specs/settings/subcomponents/) — the presence-driven detection model this mirrors
 - [Schema: Component](/specs/schema/component/) — the `instanceExamples` registry shape

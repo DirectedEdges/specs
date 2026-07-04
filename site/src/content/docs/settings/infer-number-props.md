@@ -3,7 +3,7 @@ title: "Infer Number Props"
 description: "Automatically emit numeric code-only props as NumberProp instead of StringProp"
 ---
 
-When enabled, TEXT code-only props whose default and all examples parse as valid numbers (no leading zeros) are emitted as `NumberProp` instead of `StringProp`. The example below uses a Text Area that exposes [code-only props](/specs/config/code-only-props/) whose values are purely numeric strings — `minRows` = `"2"`, `maxRows` = `"6"`, `minLength` = `"3"`.
+When enabled, TEXT code-only props whose default and all examples parse as valid numbers (no leading zeros) are emitted as `NumberProp` instead of `StringProp`. The example below uses a Text Area that exposes [code-only props](/specs/settings/code-only-props/) whose values are purely numeric strings — `minRows` = `"2"`, `maxRows` = `"6"`, `minLength` = `"3"`.
 
 :::tip[Guide]
 See [Number Inference](/specs/guides/number-inference/) for how inference works and when to use it.

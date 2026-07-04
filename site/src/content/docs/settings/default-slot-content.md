@@ -8,7 +8,7 @@ description: "Emit the component's structurally-detected default slot content as
 
 When `true`, the generator emits `Component.slotContentExamples` — the **default content placed inside a component's slot layers**, captured structurally and referenced from each slot binding via `$slotContent`. Defaults to `false`, so output for unannotated components is unchanged until you opt in.
 
-Unlike [`instanceExamples`](/specs/config/instance-examples/), slot content examples need **no detection config** — they are derived structurally from whatever content sits inside slot layers. This flag is the only control.
+Unlike [`instanceExamples`](/specs/settings/instance-examples/), slot content examples need **no detection config** — they are derived structurally from whatever content sits inside slot layers. This flag is the only control.
 
 ## Configuration
 
@@ -83,5 +83,5 @@ With `defaultSlotContent: false` (the default), the slot binding carries no `$sl
 ## See Also
 
 - [Guide: Default Slot Content](/specs/guides/default-slot-content/) — what it captures and how to author it
-- [`processing.instanceExamples`](/specs/config/instance-examples/) — the separate, presence-driven instance-example feature
+- [`processing.instanceExamples`](/specs/settings/instance-examples/) — the separate, presence-driven instance-example feature
 - [Schema: Component](/specs/schema/component/) — `slotContentExamples` registry shape

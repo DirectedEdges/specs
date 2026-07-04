@@ -5,6 +5,28 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.24.0] - 2026-07-04
+
+`specs transform` gains two new transformers — `react` and `stories` — that scaffold a working React component and a matching Storybook page directly from the spec, plus a `--components` filter to scope a run to specific components. The `contract` and `css` transformers pick up complementary additions (slot visibility rules, structural CSS fixes) to support the new component scaffolding. Generated filenames are now prefixed with the component name for clarity outside the folder tree — a breaking change for any tooling that hardcodes the old unprefixed filenames.
+
+### Added
+
+- **`react` transformer** — Emits a working React component (`generated/react/{Component}.scaffold.tsx`) with BEM markup from the merged layout tree, `data-*` variant attributes, ARIA state attributes, and slot/element rendering gated on the visibility rules from `contract`. Also seeds a one-time authored copy into `src/react/{Component}.tsx` plus empty `{Component}.extensions.css` and `{Component}.proposed.css` files — created once, never overwritten on subsequent runs. Subcomponents get their own scaffold and seeded authored files under their own subfolder. Instance-typed elements render as a placeholder comment (not yet implemented). Requires `variants.yaml`; components without it are skipped with a warning.
+- **`stories` transformer** — Emits a Storybook CSF page (`generated/react/{Component}.stories.tsx`) with a `Default` story plus one story per variant configuration expressible through props. Imports the **authored** component seeded by `react`, not the regenerated scaffold, so Storybook reflects implementation changes. Meta args combine the contract's `Defaults` with example values for string/slot props. Variants driven purely by browser-fired states (`:hover`, `:active`) are skipped, since they have no corresponding prop. Also requires `variants.yaml`. Subcomponents get their own stories file, importing their own authored component.
+- **`contract` transformer emits `Slots` and `SlotRules`** — When `variants.yaml` is present, the contract now also emits a `{Component}Slots` interface and a `{Component}SlotRules` const describing which anatomy elements are content-injection points and when each renders (`always`, `whenTrue`, `whenNotNull`, `whenValue`). Consumed by the `react` transformer to gate element rendering. Slots come from anatomy `slot` elements (typed `unknown`) and bound `text` elements (typed `string`); a slot is required only when its rule is `always`.
+- **`transform --components <keys...>`** — Scopes a `specs transform` run to specific component folders instead of every component discovered in the output directory. Unknown keys log a warning and are skipped.
+
+### Changed
+
+- **`css` transformer now handles structurally-absent elements and stacking/containing-block fixes** — Elements present in some variant layouts but absent from the default layout are now hidden at the base (`display: none`) and un-hidden only under the variant selectors that include them. Elements with `position: ABSOLUTE` now get their layout parent promoted to `position: relative` (establishing a containing block), and that parent's non-absolute siblings also get `position: relative` so DOM paint order matches Figma's layer order instead of the absolute element covering static siblings. Both derived automatically from comparing default vs. variant layouts — no configuration needed.
+- **Generated transform output filenames are now prefixed with the component name** — `contract.ts` → `{Component}.contract.ts`, `styles.css` → `{Component}.styles.css`, and the new `react`/`stories` output follow the same convention (`{Component}.scaffold.tsx`, `{Component}.stories.tsx`). Subcomponent output is prefixed with just the subcomponent's own name (e.g. `Group.contract.ts`), not the parent's, since the subfolder already disambiguates it. This is a breaking rename for anything that reads the previous unprefixed filenames directly.
+- **Clearer `transform` prerequisite guidance** — The "no specs directory" and "no component directories" error messages no longer suggest `--use-subfolders`, which has no effect once `--split-concerns` is set. The correct prerequisite is `specs generate --split-components --split-concerns`.
+
+### Dependency updates
+
+- **`@directededges/specs-from-figma` ^0.26.0** — Fixes a casing bug where variant `configuration` values, instance `propConfigurations`, and `invalidVariantCombinations` were being reformatted (e.g. `Error` → `error`) while enum values and defaults were not, causing per-variant style overrides and invalid-combination checks to silently fail to match. Also fixes default slot content being pruned away when the slot itself is hidden by a conditional visibility prop — generated specs no longer lose default content for these slots.
+
+
 ## [0.23.0] - 2026-07-01
 
 Specs generated by the CLI now capture dashed stroke styling and record where each subcomponent lives back in the source Figma file — both come from upstream engine and schema updates, with no CLI-side changes required to pick them up.

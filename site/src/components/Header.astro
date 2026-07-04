@@ -1,0 +1,195 @@
+---
+// Custom Header override for Starlight.
+// Preserves the default header's site title, search, theme toggle, and
+// social icons, and adds right-aligned section links plus a Slack icon.
+import config from 'virtual:starlight/user-config';
+
+import LanguageSelect from 'virtual:starlight/components/LanguageSelect';
+import Search from 'virtual:starlight/components/Search';
+import SiteTitle from 'virtual:starlight/components/SiteTitle';
+import SocialIcons from 'virtual:starlight/components/SocialIcons';
+import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
+
+/**
+ * Render the `Search` component if Pagefind is enabled or the default search component has been overridden.
+ */
+const shouldRenderSearch =
+  config.pagefind || config.components.Search !== '@astrojs/starlight/components/Search.astro';
+
+const SECTION_LINKS = [
+  { label: 'Plugin', href: '/specs/plugin/', prefix: '/specs/plugin/' },
+  { label: 'Command Line', href: '/specs/cli/', prefix: '/specs/cli/' },
+  { label: 'Schema', href: '/specs/schema/', prefix: '/specs/schema/' },
+  // Points at the Settings section home for now, per explicit instruction.
+  // TODO: point to the future consolidated Docs section landing page once Settings+Guides are merged.
+  { label: 'Docs', href: '/specs/settings/', prefix: '/specs/settings/' },
+];
+
+const pathname = Astro.url.pathname;
+
+// Slack has no confirmed workspace URL for Specs 2 yet.
+// TODO: set real Slack workspace URL for Specs 2.
+const SLACK_URL = '#';
+
+// Real Slack mark (the four-lobe pinwheel), sourced from Slack.svg,
+// viewBox 0 0 123 123. Colors set to currentColor to match other icons.
+const SLACK_PATHS = [
+  'M25.8 77.5999C25.8 84.6999 20 90.5 12.9 90.5C5.8 90.5 0 84.6999 0 77.5999C0 70.4999 5.8 64.7 12.9 64.7H25.8V77.5999Z',
+  'M32.3 77.5999C32.3 70.4999 38.1001 64.7 45.2001 64.7C52.3001 64.7 58.1 70.4999 58.1 77.5999V109.9C58.1 117 52.3001 122.8 45.2001 122.8C38.1001 122.8 32.3 117 32.3 109.9V77.5999Z',
+  'M45.2001 25.8C38.1001 25.8 32.3 20 32.3 12.9C32.3 5.8 38.1001 0 45.2001 0C52.3001 0 58.1 5.8 58.1 12.9V25.8H45.2001Z',
+  'M45.2 32.3C52.3 32.3 58.1 38.1001 58.1 45.2001C58.1 52.3001 52.3 58.1 45.2 58.1H12.9C5.8 58.1 0 52.3001 0 45.2001C0 38.1001 5.8 32.3 12.9 32.3H45.2Z',
+  'M97 45.2001C97 38.1001 102.8 32.3 109.9 32.3C117 32.3 122.8 38.1001 122.8 45.2001C122.8 52.3001 117 58.1 109.9 58.1H97V45.2001Z',
+  'M90.5 45.2C90.5 52.3 84.6999 58.1 77.5999 58.1C70.4999 58.1 64.7 52.3 64.7 45.2V12.9C64.7 5.8 70.4999 0 77.5999 0C84.6999 0 90.5 5.8 90.5 12.9V45.2Z',
+  'M77.5999 97C84.6999 97 90.5 102.8 90.5 109.9C90.5 117 84.6999 122.8 77.5999 122.8C70.4999 122.8 64.7 117 64.7 109.9V97H77.5999Z',
+  'M77.5999 90.5C70.4999 90.5 64.7 84.6999 64.7 77.5999C64.7 70.4999 70.4999 64.7 77.5999 64.7H109.9C117 64.7 122.8 70.4999 122.8 77.5999C122.8 84.6999 117 90.5 109.9 90.5H77.5999Z',
+];
+---
+
+<div class="header sl-flex">
+  <div class="title-wrapper sl-flex">
+    <SiteTitle {...Astro.props} />
+  </div>
+  <div class="search-wrapper sl-flex">
+    {shouldRenderSearch && <Search {...Astro.props} />}
+  </div>
+  <div class="sl-hidden md:sl-flex right-group">
+    <nav class="section-links">
+      {SECTION_LINKS.map((link) => (
+        <a
+          href={link.href}
+          class="section-link"
+          aria-current={pathname.startsWith(link.prefix) ? 'page' : undefined}
+        >
+          {link.label}
+        </a>
+      ))}
+    </nav>
+    <div class="sl-flex social-icons">
+      <SocialIcons {...Astro.props} />
+      <a href={SLACK_URL} rel="me" class="social-link" aria-label="Specs Slack Support" title="Specs Slack Support">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 123 123"
+          fill="currentColor"
+          aria-hidden="true"
+          class="social-icon"
+        >
+          {SLACK_PATHS.map((d) => <path d={d} />)}
+        </svg>
+        <span class="social-label">Slack</span>
+      </a>
+    </div>
+    <ThemeSelect {...Astro.props} />
+    <LanguageSelect {...Astro.props} />
+  </div>
+</div>
+
+<style>
+  .header {
+    gap: var(--sl-nav-gap);
+    align-items: center;
+    height: 100%;
+  }
+
+  .title-wrapper {
+    /* Prevent long titles overflowing and covering the search and menu buttons on narrow viewports. */
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .right-group,
+  .social-icons {
+    gap: 1rem;
+    align-items: center;
+  }
+  .social-icons::after {
+    content: '';
+    height: 2rem;
+    border-inline-end: 1px solid var(--sl-color-gray-5);
+  }
+
+  .section-links {
+    display: flex;
+    align-items: center;
+    gap: 2.5rem;
+    margin-inline-end: 1rem;
+    white-space: nowrap;
+  }
+
+  .section-link {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--sl-color-gray-2);
+    text-decoration: none;
+  }
+
+  .section-link:hover {
+    color: var(--sl-color-white);
+  }
+
+  .section-link[aria-current='page'] {
+    color: var(--sl-color-text-accent);
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
+  }
+
+  .social-link,
+  .right-group :global(.social-link) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    gap: 0.375em;
+    color: var(--sl-color-white);
+    text-decoration: none;
+    padding: 0;
+    margin: 0;
+  }
+  .social-link:hover,
+  .right-group :global(.social-link:hover) {
+    opacity: 0.66;
+  }
+  .social-icon,
+  .right-group :global(.social-icon) {
+    width: 1.25rem;
+    height: 1.25rem;
+    flex-shrink: 0;
+  }
+  .social-label,
+  .social-icons :global(.social-label) {
+    /* Icon-only in the header to keep the right-hand group narrow; the
+       text label still exists for assistive tech via aria-label/sr text. */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  @media (min-width: 50rem) {
+    .header {
+      /* Simple three-part layout: title takes what it needs, search takes
+         and centers within the remaining space, right-group takes what it
+         needs. This replaces Starlight's default sidebar-aware grid math,
+         which sized the right-hand column so tightly around content-column
+         alignment that our added nav links pushed the social/theme/language
+         icons entirely past the viewport's right edge. */
+      display: flex;
+    }
+
+    .search-wrapper {
+      flex: 1 1 auto;
+      justify-content: center;
+      min-width: 0;
+    }
+
+    .right-group {
+      flex-shrink: 0;
+    }
+  }
+</style>
