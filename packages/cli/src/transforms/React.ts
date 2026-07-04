@@ -39,14 +39,15 @@ export class ReactTransformer implements Transformer {
 
     const analysis = analyzeVariants(apiYaml, variantsYaml, context.processingStates ?? {});
 
+    const prefix = toPascalCase(componentKey);
     const generatedReactDir = path.join(outputDir, 'generated', 'react');
     await fs.ensureDir(generatedReactDir);
     const lines = buildScaffoldLines(componentKey, apiYaml, variantsYaml, analysis, context, {
-      contract: '../contract',
-      css: ['../styles.css'],
+      contract: `../${prefix}.contract`,
+      css: [`../${prefix}.styles.css`],
       header: '// Generated. Do not edit — regenerate with `specs transform`.',
     });
-    await fs.writeFile(path.join(generatedReactDir, 'scaffold.tsx'), lines.join('\n'), 'utf-8');
+    await fs.writeFile(path.join(generatedReactDir, `${prefix}.scaffold.tsx`), lines.join('\n'), 'utf-8');
 
     await this.seedAuthoredWorkspace(outputDir, componentKey, apiYaml, variantsYaml, analysis, context);
 
@@ -57,16 +58,17 @@ export class ReactTransformer implements Transformer {
       const subApi = subRaw as Record<string, unknown>;
       const subVariantsYaml = (subVariantsAll[subKey] ?? {}) as Record<string, unknown>;
       const subAnalysis = analyzeVariants(subApi, subVariantsYaml, context.processingStates ?? {});
+      const subPrefix = toPascalCase(subKey);
       const subDir = path.join(outputDir, subKey);
       const subContext: TransformerContext = { ...context, outputDir: subDir, componentKey: subKey };
       const subGeneratedReactDir = path.join(subDir, 'generated', 'react');
       await fs.ensureDir(subGeneratedReactDir);
       const subLines = buildScaffoldLines(subKey, subApi, subVariantsYaml, subAnalysis, subContext, {
-        contract: '../contract',
-        css: ['../styles.css'],
+        contract: `../${subPrefix}.contract`,
+        css: [`../${subPrefix}.styles.css`],
         header: '// Generated. Do not edit — regenerate with `specs transform`.',
       });
-      await fs.writeFile(path.join(subGeneratedReactDir, 'scaffold.tsx'), subLines.join('\n'), 'utf-8');
+      await fs.writeFile(path.join(subGeneratedReactDir, `${subPrefix}.scaffold.tsx`), subLines.join('\n'), 'utf-8');
       await this.seedAuthoredWorkspace(subDir, subKey, subApi, subVariantsYaml, subAnalysis, subContext);
     }
   }
@@ -87,8 +89,8 @@ export class ReactTransformer implements Transformer {
     const componentPath = path.join(srcReactDir, `${prefix}.tsx`);
     if (!fs.existsSync(componentPath)) {
       const lines = buildScaffoldLines(componentKey, apiYaml, variantsYaml, analysis, context, {
-        contract: '../../generated/contract',
-        css: ['../../generated/styles.css', `./${prefix}.proposed.css`, `./${prefix}.extensions.css`],
+        contract: `../../generated/${prefix}.contract`,
+        css: [`../../generated/${prefix}.styles.css`, `./${prefix}.proposed.css`, `./${prefix}.extensions.css`],
         header: '// Authored component — seeded once by `specs transform`, never overwritten.\n'
           + '// The always-current generated reference lives at ../../generated/react/scaffold.tsx.',
       });

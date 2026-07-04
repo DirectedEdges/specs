@@ -26,14 +26,15 @@ export class ContractTransformer implements Transformer {
     const mainLines = buildContractLines(prefix, (apiYaml.props ?? {}) as Record<string, unknown>, omittedProps, slots);
     const generatedDir = path.join(outputDir, 'generated');
     await fs.ensureDir(generatedDir);
-    await fs.writeFile(path.join(generatedDir, 'contract.ts'), mainLines.join('\n'), 'utf-8');
+    await fs.writeFile(path.join(generatedDir, `${prefix}.contract.ts`), mainLines.join('\n'), 'utf-8');
 
-    // Subcomponents — each gets its own subfolder/contract.ts
+    // Subcomponents — each gets its own subfolder/{Sub}.contract.ts
     const subcomponents = (apiYaml.subcomponents ?? {}) as Record<string, unknown>;
     const subVariants = (variantsYaml?.subcomponents ?? {}) as Record<string, unknown>;
     for (const [subKey, subRaw] of Object.entries(subcomponents)) {
       const sub = subRaw as Record<string, unknown>;
       const subPrefix = `${prefix}${toPascalCase(subKey)}`;
+      const subFilePrefix = toPascalCase(subKey);
       const subProps = (sub.props ?? {}) as Record<string, unknown>;
       const subVariantsYaml = subVariants[subKey] as Record<string, unknown> | undefined;
       const subSlots = subVariantsYaml
@@ -42,7 +43,7 @@ export class ContractTransformer implements Transformer {
       const subLines = buildContractLines(subPrefix, subProps, omittedProps, subSlots);
       const subDir = path.join(outputDir, subKey, 'generated');
       await fs.ensureDir(subDir);
-      await fs.writeFile(path.join(subDir, 'contract.ts'), subLines.join('\n'), 'utf-8');
+      await fs.writeFile(path.join(subDir, `${subFilePrefix}.contract.ts`), subLines.join('\n'), 'utf-8');
     }
   }
 }

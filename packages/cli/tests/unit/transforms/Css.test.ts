@@ -17,10 +17,14 @@ async function writeVariants(dir: string, data: Record<string, unknown>) {
   await fs.writeFile(path.join(dir, 'variants.yaml'), yaml.stringify(data), 'utf-8');
 }
 
+function toPascalCase(str: string): string {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
 async function run(dir: string, variantsData: Record<string, unknown>, componentKey = 'dsButton', tokensFormat = 'TOKEN', processingStates?: ProcessingStates, transformerOptions?: Record<string, unknown>) {
   await writeVariants(dir, variantsData);
   await transformer.run({}, { ...makeContext(dir, componentKey, tokensFormat, processingStates), transformerOptions });
-  return fs.readFile(path.join(dir, 'generated', 'styles.css'), 'utf-8');
+  return fs.readFile(path.join(dir, 'generated', `${toPascalCase(componentKey)}.styles.css`), 'utf-8');
 }
 
 // Minimal helpers to build spec-format style objects
@@ -47,7 +51,7 @@ describe('CssTransformer', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     await transformer.run({}, makeContext(tmpDir));
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('no variants.yaml'));
-    expect(fs.existsSync(path.join(tmpDir, 'generated', 'styles.css'))).toBe(false);
+    expect(fs.existsSync(path.join(tmpDir, 'generated', 'DsButton.styles.css'))).toBe(false);
     warnSpy.mockRestore();
   });
 
@@ -448,10 +452,10 @@ describe('CssTransformer', () => {
     async function runAndReadSub(dir: string, variantsData: Record<string, unknown>, subKey: string, componentKey = 'dsActionList') {
       await writeVariants(dir, variantsData);
       await transformer.run({}, makeContext(dir, componentKey));
-      return fs.readFile(path.join(dir, 'generated', subKey, 'styles.css'), 'utf-8');
+      return fs.readFile(path.join(dir, subKey, 'generated', `${toPascalCase(subKey)}.styles.css`), 'utf-8');
     }
 
-    it('emits styles.css in a subfolder for each subcomponent', async () => {
+    it('emits {Sub}.styles.css in a subfolder for each subcomponent', async () => {
       await writeVariants(tmpDir, {
         subcomponents: {
           group: {
@@ -461,7 +465,7 @@ describe('CssTransformer', () => {
         },
       });
       await transformer.run({}, makeContext(tmpDir, 'dsActionList'));
-      expect(fs.existsSync(path.join(tmpDir, 'generated', 'group', 'styles.css'))).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, 'group', 'generated', 'Group.styles.css'))).toBe(true);
     });
 
     it('scopes subcomponent BEM selectors to the subcomponent key, not the parent', async () => {
@@ -514,10 +518,10 @@ describe('CssTransformer', () => {
         },
       });
       await transformer.run({}, makeContext(tmpDir, 'dsActionList'));
-      expect(fs.existsSync(path.join(tmpDir, 'generated', 'group', 'styles.css'))).toBe(true);
-      expect(fs.existsSync(path.join(tmpDir, 'generated', 'header', 'styles.css'))).toBe(true);
-      const groupOut = await fs.readFile(path.join(tmpDir, 'generated', 'group', 'styles.css'), 'utf-8');
-      const headerOut = await fs.readFile(path.join(tmpDir, 'generated', 'header', 'styles.css'), 'utf-8');
+      expect(fs.existsSync(path.join(tmpDir, 'group', 'generated', 'Group.styles.css'))).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, 'header', 'generated', 'Header.styles.css'))).toBe(true);
+      const groupOut = await fs.readFile(path.join(tmpDir, 'group', 'generated', 'Group.styles.css'), 'utf-8');
+      const headerOut = await fs.readFile(path.join(tmpDir, 'header', 'generated', 'Header.styles.css'), 'utf-8');
       expect(groupOut).toContain('flex-direction: column');
       expect(headerOut).toContain('flex-direction: row');
     });
@@ -658,7 +662,7 @@ describe('CssTransformer', () => {
         ...makeContext(tmpDir, 'dsActionList'),
         transformerOptions: rules,
       });
-      const subOut = await fs.readFile(path.join(tmpDir, 'generated', 'item', 'styles.css'), 'utf-8');
+      const subOut = await fs.readFile(path.join(tmpDir, 'item', 'generated', 'Item.styles.css'), 'utf-8');
       expect(subOut).toContain('box-shadow: inset 0 0 0 2px var(--color-border-selected)');
       expect(subOut).toContain('border-color: transparent');
     });

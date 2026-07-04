@@ -25,20 +25,22 @@ export class CssTransformer implements Transformer {
     const variantsYaml = yaml.parse(raw) as Record<string, unknown>;
 
     const componentClass = toKebab(componentKey);
+    const prefix = toPascalCase(componentKey);
     const lines = buildCssLines(componentClass, variantsYaml, tokensFormat, context);
     const generatedDir = path.join(outputDir, 'generated');
     await fs.ensureDir(generatedDir);
-    await fs.writeFile(path.join(generatedDir, 'styles.css'), lines.join('\n'), 'utf-8');
+    await fs.writeFile(path.join(generatedDir, `${prefix}.styles.css`), lines.join('\n'), 'utf-8');
 
-    // Subcomponents — each gets styles.css in its own subfolder
+    // Subcomponents — each gets {Sub}.styles.css in its own subfolder
     const subcomponents = (variantsYaml.subcomponents ?? {}) as Record<string, unknown>;
     for (const [subKey, subRaw] of Object.entries(subcomponents)) {
       const subVariantsYaml = subRaw as Record<string, unknown>;
       const subClass = toKebab(subKey);
+      const subFilePrefix = toPascalCase(subKey);
       const subLines = buildCssLines(subClass, subVariantsYaml, tokensFormat, context);
       const subDir = path.join(outputDir, subKey, 'generated');
       await fs.ensureDir(subDir);
-      await fs.writeFile(path.join(subDir, 'styles.css'), subLines.join('\n'), 'utf-8');
+      await fs.writeFile(path.join(subDir, `${subFilePrefix}.styles.css`), subLines.join('\n'), 'utf-8');
     }
   }
 }
@@ -239,6 +241,10 @@ function collectStackingFixes(
   for (const node of nodes) {
     collectStackingFixes(node.children, elements, into, node.key);
   }
+}
+
+function toPascalCase(str: string): string {
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 function elemSelector(componentClass: string, elemKey: string): string {

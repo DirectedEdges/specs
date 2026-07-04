@@ -113,6 +113,8 @@ export default defineConfig({
                 { label: 'Overview', slug: 'cli/transforms' },
                 { label: 'contract', slug: 'cli/transforms/contract' },
                 { label: 'css', slug: 'cli/transforms/css' },
+                { label: 'react', slug: 'cli/transforms/react' },
+                { label: 'stories', slug: 'cli/transforms/stories' },
               ],
             },
             {

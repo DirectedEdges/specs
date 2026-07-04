@@ -23,7 +23,7 @@ This is the CLI default — running `specs transform` with no arguments runs `co
 
 ## Output
 
-Each component subfolder receives a `contract.ts` file. When subcomponents are present, each also receives a `contract.ts` inside its own named subfolder — see [Subcomponent Contracts](#subcomponent-contracts) below.
+Each component subfolder receives a `generated/{Component}.contract.ts` file, PascalCase-prefixed with the component name (e.g. `generated/DsAlert.contract.ts`). When subcomponents are present, each also receives a `generated/{Sub}.contract.ts` inside its own named subfolder, prefixed with just the subcomponent's own name — see [Subcomponent Contracts](#subcomponent-contracts) below.
 
 ## Example Output
 
@@ -53,6 +53,39 @@ export const DsAlertDefaults = {
 
 Enum props emit a companion union type. Nullable props are typed `T | null`. All props are optional — the `Defaults` const covers the required baseline.
 
+## Slots and Visibility
+
+When `variants.yaml` is present alongside `api.yaml`, the contract also emits a `Slots` interface and a `SlotRules` const describing which anatomy elements are content-injection points and when each one renders. Slots come from anatomy `slot` elements (unknown content, typed `unknown`) and bound `text` elements (string content, typed `string`). Without `variants.yaml`, slot output is omitted — the contract falls back to props and defaults only.
+
+```ts
+export interface DsAlertSlots {
+  body: string;
+  action?: unknown;
+}
+
+export type DsAlertSlotVisibility =
+  | { kind: 'always' }
+  | { kind: 'whenTrue'; prop: keyof DsAlertProps }
+  | { kind: 'whenNotNull'; prop: keyof DsAlertProps }
+  | { kind: 'whenValue'; prop: keyof DsAlertProps; value: string };
+
+export const DsAlertSlotRules = {
+  body: { kind: 'always' },
+  action: { kind: 'whenNotNull', prop: 'onDismiss' },
+} satisfies Record<keyof DsAlertSlots, DsAlertSlotVisibility>;
+```
+
+A slot is required (non-optional in `Slots`) only when its rule is `always`. The four rule kinds:
+
+| Kind | Meaning |
+|------|---------|
+| `always` | The slot is always present. |
+| `whenTrue` | Present when the named boolean prop is `true`. |
+| `whenNotNull` | Present when the named prop is not `null`/`undefined`. |
+| `whenValue` | Present when the named prop equals a specific value. |
+
+`SlotRules` is consumed by the [`react` transformer](/specs/cli/transforms/react/) to gate rendering of the corresponding element. Rules inferred with a caveat (e.g. a controlling prop identified heuristically rather than from an explicit spec binding) carry an inline comment on their `SlotRules` entry.
+
 ## Config
 
 No transformer-specific options. Prop omission for browser-driven states comes from [`config.processing.states`](/specs/settings/states/).
@@ -74,22 +107,26 @@ When `processing.states` is absent, all props from `api.yaml` appear in the gene
 
 ## Subcomponent Contracts
 
-When subcomponents are present in `api.yaml`, each receives a `contract.ts` inside its own named subfolder. The subfolder name is the subcomponent's key in the spec (e.g. `group`, `item`). Interface and enum type names are prefixed by both component and subcomponent.
+When subcomponents are present in `api.yaml`, each receives a `generated/{Sub}.contract.ts` inside its own named subfolder. The subfolder name is the subcomponent's key in the spec (e.g. `group`, `item`), and the filename prefix is just that subcomponent's own PascalCase name — the folder already disambiguates it from the parent, so the file prefix doesn't repeat the parent name. The TypeScript interface and enum type names inside the file are the exception: those are prefixed by both component and subcomponent, since they need to stay unique if ever imported side by side.
 
 ```
 dsActionList/
-  contract.ts           ← parent (DsActionListProps, DsActionListDefaults)
+  generated/
+    DsActionList.contract.ts    ← parent (DsActionListProps, DsActionListDefaults)
   group/
-    contract.ts         ← subcomponent (DsActionListGroupProps, DsActionListGroupDefaults)
+    generated/
+      Group.contract.ts         ← subcomponent (DsActionListGroupProps, DsActionListGroupDefaults)
   item/
-    contract.ts         ← subcomponent (DsActionListItemProps, DsActionListItemDefaults)
+    generated/
+      Item.contract.ts          ← subcomponent (DsActionListItemProps, DsActionListItemDefaults)
 ```
 
-The parent `contract.ts` only includes the parent component's own types — subcomponent types do not appear in it. Configure subcomponent discovery in [`config.processing.subcomponents`](/specs/settings/subcomponents/).
+The parent contract file only includes the parent component's own types — subcomponent types do not appear in it. Configure subcomponent discovery in [`config.processing.subcomponents`](/specs/settings/subcomponents/).
 
 ## See Also
 
 - [Transforms overview](/specs/cli/transforms/)
 - [`processing.states` config](/specs/settings/states/) — classify which props are browser-driven vs consumer-controlled
 - [`css` transformer](/specs/cli/transforms/css/)
-- [`styling` transformer](/specs/cli/transforms/styling/)
+- [`react` transformer](/specs/cli/transforms/react/) — consumes `Slots`/`SlotRules` to gate element rendering
+- [`stories` transformer](/specs/cli/transforms/stories/)

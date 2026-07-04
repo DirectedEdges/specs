@@ -14,7 +14,8 @@ config:
   transformers:
     - name: contract
     - name: css
-    - name: styling
+    - name: react
+    - name: stories
 ```
 
 ## `transformers`
@@ -25,9 +26,12 @@ An array of `{ name }` entries identifying which transformers to run. Names must
 
 | Name | Output |
 |------|--------|
-| `contract` *(default)* | TypeScript Props interface and defaults per component |
+| `contract` *(default)* | TypeScript Props interface and defaults, plus Slots/SlotRules per component |
 | `css` | CSS custom property rules per component |
-| `styling` | Token inventory per component |
+| `react` | A working React component scaffold, seeded once into an authored file |
+| `stories` | A Storybook CSF page per component |
+
+`react` and `stories` both require `variants.yaml` and expect `contract` and `css` to run first, since they import `generated/{Component}.contract.ts` and `generated/{Component}.styles.css`.
 
 ## Default
 

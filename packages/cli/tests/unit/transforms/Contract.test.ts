@@ -11,9 +11,13 @@ function makeContext(dir: string, componentKey = 'dsButton', processingStates?: 
   return { outputDir: dir, componentKey, tokensFormat: 'TOKEN', processingStates };
 }
 
+function toPascalCase(str: string): string {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
 async function run(dir: string, apiYaml: Record<string, unknown>, componentKey = 'dsButton', processingStates?: ProcessingStates) {
   await transformer.run(apiYaml, makeContext(dir, componentKey, processingStates));
-  return fs.readFile(path.join(dir, 'generated', 'contract.ts'), 'utf-8');
+  return fs.readFile(path.join(dir, 'generated', `${toPascalCase(componentKey)}.contract.ts`), 'utf-8');
 }
 
 describe('ContractTransformer', () => {
@@ -201,15 +205,15 @@ describe('ContractTransformer', () => {
 
   describe('subcomponent contracts', () => {
     async function readSub(dir: string, subKey: string) {
-      return fs.readFile(path.join(dir, 'generated', subKey, 'contract.ts'), 'utf-8');
+      return fs.readFile(path.join(dir, subKey, 'generated', `${toPascalCase(subKey)}.contract.ts`), 'utf-8');
     }
 
-    it('emits contract.ts in a subfolder for each subcomponent', async () => {
+    it('emits {Sub}.contract.ts in a subfolder for each subcomponent', async () => {
       await transformer.run(
         { subcomponents: { group: { props: {} } } },
         makeContext(tmpDir, 'dsActionList'),
       );
-      expect(fs.existsSync(path.join(tmpDir, 'generated', 'group', 'contract.ts'))).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, 'group', 'generated', 'Group.contract.ts'))).toBe(true);
     });
 
     it('prefixes subcomponent interface with both component and subcomponent names', async () => {

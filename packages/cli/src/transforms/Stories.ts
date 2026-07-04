@@ -47,10 +47,11 @@ export class StoriesTransformer implements Transformer {
     context: TransformerContext,
   ): Promise<void> {
     const analysis = analyzeVariants(apiYaml, variantsYaml, context.processingStates ?? {});
+    const prefix = toPascalCase(componentKey);
     const lines = buildStoriesLines(componentKey, apiYaml, analysis);
     const generatedReactDir = path.join(outputDir, 'generated', 'react');
     await fs.ensureDir(generatedReactDir);
-    await fs.writeFile(path.join(generatedReactDir, 'stories.tsx'), lines.join('\n'), 'utf-8');
+    await fs.writeFile(path.join(generatedReactDir, `${prefix}.stories.tsx`), lines.join('\n'), 'utf-8');
   }
 }
 
@@ -80,7 +81,7 @@ function buildStoriesLines(
     '// Generated. Do not edit — regenerate with `specs transform`.',
     "import type { Meta, StoryObj } from '@storybook/react';",
     `import { ${prefix} } from '../../src/react/${prefix}';`,
-    ...(hasDefaults ? [`import { ${prefix}Defaults } from '../contract';`] : []),
+    ...(hasDefaults ? [`import { ${prefix}Defaults } from '../${prefix}.contract';`] : []),
     '',
     'const meta = {',
     `  title: 'Components/${title.replace(/'/g, "\\'")}',`,
