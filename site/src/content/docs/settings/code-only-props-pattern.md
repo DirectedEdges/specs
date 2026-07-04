@@ -40,7 +40,7 @@ When the pattern matches, the container **and all of its children are omitted fr
 
 `minRows`, `maxRows`, and `minLength` appear in `props` but **not** in `anatomy` — the only trace of the code-only props layer is the props themselves.
 
-Their numeric values (`"2"`, `"6"`, `"3"`) remain strings here. Pair this with [`inferNumberProps`](/specs/config/infer-number-props/) to emit them as `NumberProp` (`2`, `6`, `3`) instead.
+Their numeric values (`"2"`, `"6"`, `"3"`) remain strings here. Pair this with [`inferNumberProps`](/specs/settings/infer-number-props/) to emit them as `NumberProp` (`2`, `6`, `3`) instead.
 
 Without `codeOnlyPropsPattern`, the container and its children are treated as ordinary layout elements — they appear in `anatomy`/`elements` and no props are extracted.
 

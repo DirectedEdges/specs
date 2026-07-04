@@ -64,6 +64,6 @@ These are two different things, often confused:
 
 ## Further Reading
 
-- [`defaultSlotContent`](/specs/config/default-slot-content/) — config reference
+- [`defaultSlotContent`](/specs/settings/default-slot-content/) — config reference
 - [Instance (Ready-Made) Examples](/specs/guides/instance-examples/) — the sibling feature
 - [Schema: Component](/specs/schema/component/) — the `slotContentExamples` registry shape

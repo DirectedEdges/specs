@@ -1,0 +1,35 @@
+---
+title: "Color"
+description: "Generate a Specs color variable collection — including Light and Dark modes — and bind it across the canvas output"
+---
+
+<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge pro-badge">Pro</span>')</script>
+
+import Figure from '../../../components/Figure.astro';
+import colorHero from '../../../assets/plugin/Color.png';
+import darkModeCollectionModes from '../../../assets/plugin/DarkModeCollectionModes.png';
+import customStyling from '../../../assets/plugin/CustomStyling.png';
+
+By default, every color in a generated spec — backgrounds, markers, annotations, attribute text — is a hardcoded value. Turning on Color replaces those hardcoded values with real Figma color variables in a dedicated `Specs` collection, so the whole spec's palette can be edited or retheme in one place instead of regenerating it.
+
+<Figure src={colorHero} alt="Figma's variable picker open on a Fill property, showing the Specs collection's Attributes and Annotation color variables available to apply like any other Figma variable" maxWidth="none" />
+
+## How It Works
+
+Open the plugin's Settings tab and check **"Color including dark mode, using variables"** under Custom Styling, then generate as usual.
+
+<Figure src={customStyling} alt="The plugin's Custom Styling settings, with checkboxes for Color including dark mode, Typography, and Spacing" caption="The plugin's Custom Styling settings — check 'Color including dark mode, using variables' to enable Color (and with it, Dark Mode)." />
+
+## What It Includes
+
+- **Specs collection** — creates or reuses a `Specs` variable collection, hidden from publishing
+- **Light and Dark modes** — every color variable is set for both a Light and a Dark mode value on the same collection
+- **Full coverage** — every hardcoded color used across all output sections (fills, strokes, text, markers, annotations) binds to one of these variables instead
+
+## Variables You Can Customize
+
+Each variable carries independently editable Light and Dark values, directly in Figma's Variables panel — so if the default palette doesn't fit your file, adjust it once and every future spec inherits the change.
+
+<Figure src={darkModeCollectionModes} alt="The Specs collection's Variables panel, listing color roles like Icon stroke, Style fill, Style text, Variable fill, Token fill, and Dependency text, each with separately editable Light and Dark hex values" caption="The Specs collection's Variables panel: every color role — icon stroke, style and variable fill/stroke/text, raw value text, token fill/text, dependency fill/stroke/text — carries independently editable Light and Dark values." maxWidth="none" />
+
+Once Color is enabled, the collection's Light/Dark modes can be toggled directly in Figma — see [Dark Mode](/specs/plugin/dark-mode/) for how.

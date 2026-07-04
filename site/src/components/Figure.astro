@@ -1,0 +1,35 @@
+---
+import { Image } from 'astro:assets';
+
+interface Props {
+  src: ImageMetadata;
+  alt: string;
+  caption?: string;
+  maxWidth?: string;
+  maxHeight?: string;
+}
+
+const { src, alt, caption, maxWidth = '500px', maxHeight } = Astro.props;
+
+const imageStyle = maxHeight
+  ? { display: 'block', maxHeight, width: 'auto', maxWidth: '100%', marginInline: 'auto' }
+  : { display: 'block', width: '100%' };
+---
+
+<figure style={{ maxWidth: maxHeight ? '100%' : maxWidth, marginInline: 'auto' }}>
+  <Image src={src} alt={alt} style={imageStyle} />
+  {caption && <figcaption>{caption}</figcaption>}
+</figure>
+
+<style>
+  figure {
+    margin-bottom: 0;
+  }
+
+  figcaption {
+    margin-top: 0.25rem;
+    text-align: center;
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-3);
+  }
+</style>

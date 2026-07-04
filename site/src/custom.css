@@ -170,11 +170,6 @@ ul.top-level > li > a.large[aria-current='page']:focus {
 	background-color: var(--sl-color-text-accent);
 }
 
-/* Hide social links in header (moved to sidebar) */
-.social-icons {
-	display: none !important;
-}
-
 /* Site title in top nav bar — neutral instead of accent-colored */
 .site-title {
 	color: var(--sl-color-white) !important;
@@ -292,4 +287,65 @@ mobile-starlight-toc {
 }
 .releases-toc a:hover {
 	color: var(--sl-color-text-accent);
+}
+
+/* Plugin Overview: image + title + description card grid */
+.preview-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	grid-auto-rows: 1fr;
+	gap: 1rem;
+	align-items: stretch;
+}
+
+/* Override Starlight's global sibling-spacing rule (margin-top on any block
+   following a sibling), which otherwise pushes down every card except the
+   first in the row since grid items are still DOM siblings. */
+.preview-grid > * {
+	margin-top: 0 !important;
+}
+
+.preview-grid .sl-link-card {
+	height: 100%;
+	box-sizing: border-box;
+}
+
+.preview-grid--3col {
+	grid-template-columns: repeat(3, 1fr);
+}
+
+.preview-grid--4col {
+	grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 62rem) {
+	.preview-grid--3col,
+	.preview-grid--4col {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
+@media (max-width: 38rem) {
+	.preview-grid--3col,
+	.preview-grid--4col {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* Landing pages only (any page with hero: frontmatter, per Starlight's
+   data-has-hero attribute): bigger, centered section intros. Sized with
+   clamp() so they scale down on narrow viewports instead of staying fixed
+   at the desktop size — same fluid-scaling approach Hero.astro uses for
+   the hero title/tagline, since 48px exceeds Starlight's own --sl-text-h2
+   ceiling and so needs its own responsive range. */
+html[data-has-hero] .sl-markdown-content h2 {
+	font-size: clamp(var(--sl-text-h2), calc(1rem + 3vw), 48px);
+	padding-top: clamp(1rem, 4vw, 32px);
+	text-align: center;
+}
+
+html[data-has-hero] .sl-markdown-content h2 + p {
+	font-size: clamp(var(--sl-text-base), calc(0.5rem + 1.5vw), 24px);
+	padding-bottom: clamp(0.5rem, 2vw, 16px);
+	text-align: center;
 }
