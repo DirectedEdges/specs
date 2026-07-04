@@ -5,28 +5,29 @@ description: "Generate a Specs Layout variable collection and bind spacing/paddi
 
 <script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge pro-badge">Pro</span>')</script>
 
-import ImagePlaceholder from '../../../components/ImagePlaceholder.astro';
+import Figure from '../../../components/Figure.astro';
+import spacingHero from '../../../assets/plugin/Spacing.png';
+import spacingVariables from '../../../assets/plugin/SpacingVariables.png';
+import customStyling from '../../../assets/plugin/CustomStyling.png';
 
-<ImagePlaceholder maxWidth="none" aspectRatio="21 / 6" />
+By default, the spacing and padding the plugin uses to arrange its own generated output — the gaps between specs, sections, and titles — are hardcoded numbers. Turning on Spacing replaces them with real Figma number variables in a dedicated `Specs Layout` collection, so a team's spacing scale can be edited in one place instead of regenerating specs to change it.
 
-By default, the spacing and padding values shown in Layout annotations are hardcoded numbers. Turning on Spacing replaces them with real Figma number variables in a dedicated `Specs Layout` collection, so a team's spacing scale can be edited in one place instead of regenerating specs to change it.
+<Figure src={spacingHero} alt="A Layout section's exhibits on the Figma canvas, whose surrounding spacing and padding are governed by the Specs Layout variable collection" maxWidth="none" />
+
+## How It Works
+
+Open the plugin's Settings tab and check **"Spacing, using variables"** under Custom Styling, then generate as usual.
+
+<Figure src={customStyling} alt="The plugin's Custom Styling settings, with checkboxes for Color including dark mode, Typography, and Spacing" caption="The plugin's Custom Styling settings — check 'Spacing, using variables' to enable Spacing." />
 
 ## What It Includes
 
 - **Specs Layout collection** — creates or reuses a `Specs Layout` variable collection, hidden from publishing, with a single `Default` mode
-- **Number variables** — one variable per distinct spacing/padding value the plugin uses (e.g. marker offsets, padding pill sizes)
-- **Full coverage** — every hardcoded spacing value used in annotations and layout markers binds to one of these variables instead
+- **Number variables** — one variable per internal spacing or padding role the plugin uses to arrange its own output (e.g. item spacing between specs, sections, and titles; padding within title blocks)
+- **Full coverage** — every one of these internal spacing values binds to a variable instead of a hardcoded number
 
-## Examples
+## Variables You Can Customize
 
-### Enabling Spacing
+Each variable is named for the role it plays in the plugin's own output — not the spacing of the component you're documenting — grouped by the part of the spec it spaces out.
 
-Checking "Spacing, using variables" under Custom Styling makes the plugin look for a `Specs Layout` collection the next time specs are generated — creating it if absent — and binds spacing values to variables in it instead of hardcoded numbers.
-
-<ImagePlaceholder caption="The plugin's Custom Styling settings with the Spacing checkbox enabled, and the Figma variables panel showing the generated Specs Layout collection." />
-
-### Reusing an Existing Collection
-
-Once a `Specs Layout` collection exists in the file, later spec generations reuse its variables rather than duplicating them — so adjusting one variable's value (say, the default padding-marker offset) updates every spec that references it.
-
-<ImagePlaceholder caption="The Specs Layout collection's variable list, with a single spacing variable referenced by multiple previously generated specs." />
+<Figure src={spacingVariables} alt="The Specs Layout collection's variable list, grouped by Specs, Spec, Title, and Section, each with an itemSpacing or padding variable and its default value" caption="The Specs Layout collection's variables, grouped by the part of the output they space: Specs (itemSpacing: 128), Spec (itemSpacing: 48), Title (itemSpacing: 48, padding: 64), and Section (itemSpacing: 64)." maxWidth="none" />

@@ -3,13 +3,18 @@ title: "Props"
 description: "Variant differences plus booleans and slots — how a component's properties change its appearance"
 ---
 
-import ImagePlaceholder from '../../../components/ImagePlaceholder.astro';
-
-<ImagePlaceholder maxWidth="none" aspectRatio="21 / 6" />
+import Figure from '../../../components/Figure.astro';
+import propsHero from '../../../assets/plugin/Props.png';
+import propsAdditionalProperties from '../../../assets/plugin/PropsAdditionalProperties.png';
+import propsAdditionalVariants from '../../../assets/plugin/PropsAdditionalVariants.png';
 
 The Props section provides a canvas-native reference for every property, including a properties table, per-property variant exhibits, and combined boolean/slot exhibits.
 
+<Figure src={propsHero} alt="A Props exhibit on the Figma canvas, showing a properties table alongside variant, additional-variants, and additional-properties exhibits" maxWidth="none" />
+
 ## What It Includes
+
+A properties table sits above the variant exhibits, listing every prop by name, type, default value, and (for variant props) its full list of options.
 
 A variant example is emitted for every variant property, with one exhibit per non-default option. If a combination of two or more variant properties introduces new styling or bindings, an additional exhibit is emitted for that combination. Boolean and slot props are grouped into a shared "Additional properties" grid, with one labeled exhibit per prop.
 
@@ -38,19 +43,15 @@ Boolean and slot props tile into a shared "Additional properties" grid, one labe
 
 ## Examples
 
-### Basic Props
+### Additional Variants
 
-A component with a single variant property produces a properties table, one variant subsection for that property, and an exhibit per non-default option — the artwork alongside only the elements that changed from the default.
+Components with several variant properties get one subsection per property, each with its own set of exhibits. If any variant combines two or more properties in a way that introduces additional styling or bindings, those combinations get their own "Additional variants" exhibits.
 
-<ImagePlaceholder caption="A Button component's Props table (Type, Size, Default, Options) followed by a Size variant subsection showing Small and Large exhibits." />
-
-### Multiplying Variants
-
-Components with several variant properties get one subsection per property, each with its own set of exhibits. If any variant combines two or more properties in a way that introduces additional styling or bindings, those combinations get their own "Additional variants" exhibits. 
-
-<ImagePlaceholder caption="A Select component with separate Size and State variant subsections, an Additional variants exhibit for the combined 'Size: Large, State: Error' configuration, and an Additional properties grid with exhibits for 'disabled' (boolean) and 'icon' (slot)." />
+<Figure src={propsAdditionalVariants} alt="A Badge component's Additional variants section, with four exhibits for Appearance × Subtle combinations: Informational, Success, and Error (Subtle: true) in one row, and Warning (Subtle: true) wrapping to the next" caption="A Badge component's Additional variants: four Appearance × Subtle combinations (Informational, Success, Error, Warning — each Subtle: true), each exhibit showing the root, Icon, and Label token bindings that combination introduces." maxWidth="none" />
 
 ### Booleans and Slots
 
-<ImagePlaceholder caption="A Select component with separate Size and State variant subsections, an Additional variants exhibit for the combined 'Size: Large, State: Error' configuration, and an Additional properties grid with exhibits for 'disabled' (boolean) and 'icon' (slot)." />
+Boolean and slot props don't get their own variant subsections — instead, every boolean and slot prop on the component tiles into one shared "Additional properties" grid, each exhibit outlining the associated element in blue (booleans) or magenta (slots), with the associated element named underneath.
+
+<Figure src={propsAdditionalProperties} alt="A Form label component's Additional properties grid, with three boolean exhibits (Show Help text, Required, Show Tooltip) each outlined in blue, and a Children slot exhibit outlined in magenta" caption="A Form label component's Additional properties grid: 'Show Help text', 'Required', and 'Show Tooltip' (booleans, each with their associated element outlined in blue) and 'Children' (slot, outlined in magenta) wrapping to its own row." maxWidth="none" />
 

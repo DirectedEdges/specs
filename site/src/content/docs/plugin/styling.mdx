@@ -3,11 +3,13 @@ title: "Styling"
 description: "Detected variables, styles and raw values used across a component's design"
 ---
 
-import ImagePlaceholder from '../../../components/ImagePlaceholder.astro';
-
-<ImagePlaceholder maxWidth="none" aspectRatio="21 / 6" />
+import Figure from '../../../components/Figure.astro';
+import stylingHero from '../../../assets/plugin/Styling.png';
+import stylingLong from '../../../assets/plugin/StylingLong.png';
 
 The Styling section provides an inventory of every variable and style detected on a component, including one table per category and, for variables, their resolved raw value.
+
+<Figure src={stylingHero} alt="A Styling Variables table, listing tokens by name, applied role, applied element, and raw value" maxWidth="none" />
 
 ## What It Includes
 
@@ -31,15 +33,9 @@ Per table, each row includes:
 
 ## Examples
 
-### Basic Styling Inventory
-
-A component with a handful of bound variables and styles produces four tables — Variables, Color Styles, Text Styles, Effect Styles — each listing one row per distinct variable or style, its applied role, and what it's applied to. Any category with nothing detected still gets its own table, with a plain line reading "No [category] were detected" instead of rows.
-
-<ImagePlaceholder caption="A Button component's Styling section: a Variables table with a few token rows, a Color Styles table with one entry, and empty Text Styles and Effect Styles tables each reading 'No text styles were detected' / 'No effect styles were detected.'" />
-
 ### Aggregated Across Variants and Elements
 
-When the same variable or style is reused across multiple elements, or across multiple variants of the component, Styling collapses it into a single row rather than repeating it. The "Applied to" column lists every element that uses it, with a count in parentheses when an element uses it more than once — so a heavily reused token still shows as one line, not a wall of duplicates.
+A component with many appearance variants — like an Alert's Basic, Error, Info, Success, and Warning states — produces one row per token per variant, so every combination it can take gets its own line in the Variables table. Categories with nothing detected still get their own table, with a plain line reading "No [category] were detected" instead of rows.
 
-<ImagePlaceholder caption="A Card component's Variables table where a single spacing token's 'Applied to' cell reads 'Container (3), Header, Icon' — showing reuse across three instances in the container and one use each elsewhere." />
+<Figure src={stylingLong} alt="An Alert component's Styling section: a long Variables table listing tokens across every appearance variant (Basic, Error, Info, Success, Warning), followed by empty Color Styles, Text Styles, and Effect Styles tables" caption="An Alert component's Styling section: a long Variables table listing tokens across every appearance variant (Basic, Error, Info, Success, Warning), followed by empty Color Styles, Text Styles, and Effect Styles tables each reading 'No ... were detected.'" maxWidth="none" />
 

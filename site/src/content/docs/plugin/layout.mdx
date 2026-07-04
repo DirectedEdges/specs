@@ -3,11 +3,13 @@ title: "Layout"
 description: "Spacing and padding across variants, annotated directly on a component's artwork"
 ---
 
-import ImagePlaceholder from '../../../components/ImagePlaceholder.astro';
-
-<ImagePlaceholder maxWidth="none" aspectRatio="21 / 6" />
+import Figure from '../../../components/Figure.astro';
+import layoutHero from '../../../assets/plugin/Layout.png';
+import layoutMultiple from '../../../assets/plugin/LayoutMultiple.png';
 
 The Layout section provides an annotated breakdown of a component's auto-layout containers, including direction, alignment, resizing, padding, and spacing markers over the artwork, with a matching content list per container.
+
+<Figure src={layoutHero} alt="A Layout exhibit on the Figma canvas, showing a direction arrow, padding and item-spacing markers over a component's artwork, with a matching content list" maxWidth="none" />
 
 ## What It Includes
 
@@ -33,14 +35,8 @@ Additional container exhibits are included for each nested, non-instance auto-la
 
 ## Examples
 
-### Basic Layout
-
-A component with one auto-layout container produces a single exhibit: the artwork annotated with a direction arrow, alignment icon, resizing markers, and padding/spacing markers, paired with a Layout Content entry listing the same values as text.
-
-<ImagePlaceholder caption="A Button component's Layout exhibit — a direction arrow, alignment icon, and padding markers over the artwork, with a matching Layout Content entry." />
-
 ### Multiple Layout Containers and Variants
 
-Components with nested auto-layout containers get one exhibit per container. When a variant changes layout-relevant properties on a container — different padding, alignment, or resizing — Specs adds a "Default" subsection alongside a subsection per affected variant, and each variant's exhibit annotates only the properties that changed rather than repeating everything already shown in Default.
+Components with nested auto-layout containers get one exhibit per container — here, a root container, its Children wrapper, and a nested Text group each get their own exhibit and Layout Content entry, annotated with their own direction, resizing, padding, and item-spacing values. When a variant changes layout-relevant properties on a container, Specs adds a subsection per affected variant, annotating only what changed rather than repeating everything already shown.
 
-<ImagePlaceholder caption="A Card component with nested containers: a 'Default' subsection showing the outer and inner container layouts, plus a 'Density = compact' subsection annotating only the padding values that changed." />
+<Figure src={layoutMultiple} alt="Three Layout exhibits for nested auto-layout containers: root (horizontal, padded), Children (vertical, filling), and Text (vertical, tight item spacing), each with its own content list" caption="A component with three nested auto-layout containers — root (horizontal, padded), Children (vertical, filling), and Text (vertical, tight item spacing) — each with its own exhibit and Layout Content entry." maxWidth="none" />

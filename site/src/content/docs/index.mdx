@@ -54,9 +54,9 @@ import specsWorkflow from '../../assets/specs-workflow.png';
 </Card>
 </CardGrid>
 
-## How Specs fits in your workflow
+## Fit specs into your workflow
 
-Specs is the primary way teams hand off design intent in Figma to developers and agents building components in code. Rather than re-describing a component in a ticket or a screenshot, the component itself becomes the source of truth — captured once, structured consistently, and reusable everywhere downstream.
+Compile your Figma-based design intent so agents can build components in code.
 
 <Image src={specsWorkflow} alt="Diagram titled 'Specs workflow'. A legend distinguishes scripted steps, shown in orange, from agentic steps, shown in blue. On the left, Figma assets connect, via scripted orange arrows, to the Plugin and to CLI generate, which both feed a central Specs data icon; CLI write completes a scripted loop back from Specs data to Figma assets, alongside CLI generate and the Plugin, indicating specs can both be pulled from and written back into Figma. A separate agentic blue arrow connects Specs data to a Prototypes node near Figma, showing agents can work directly against Figma prototypes. On the right, a scripted arrow leads from Specs data to CLI transform, which produces generated code; agentic arrows carry that code onward to a Prototype Library and to a React Library. Specs data also fans out directly via agentic arrows to React, Android, and iOS libraries, representing agents and engineers building production libraries straight from spec data. Below, a scripted arrow leads from Specs data to CLI analyze, which produces library data (tokens, props, and more), which an agentic arrow turns into reports on drift and quality." />
 
@@ -68,7 +68,7 @@ Specs is the primary way teams hand off design intent in Figma to developers and
 
 ## Computation over inference
 
-Extracting a spec is mechanical: enumerate the variants, diff the styles, record what changes. That's a job for computation, not guesswork — which is why Specs is faster, cheaper, and repeatable where pointing an agent at raw Figma is none of those.
+Don't start agents prematurely. Extract from Figma faster, cheaper, and more reliably - over and over.
 
 |  | Specs ecosystem | Agentic Figma extraction |
 |---|---|---|
@@ -76,11 +76,11 @@ Extracting a spec is mechanical: enumerate the variants, diff the styles, record
 | **AI cost** | Scripts require 0 AI tokens | 25/50/100,000+ tokens per component |
 | **Repeatability** | Deterministic, mechanical | Inference errors, gaps, and overconfidence |
 | **Output** | Schema-valid YAML/MD, ideal for testing & versioning | Unstructured Markdown means unpredictable verification |
-| **Platforms** | Schema oriented towards x-platform concepts | Interprets and infers intents |
+| **Platforms** | Schema-based, x-platform | Guessing your intents |
 
 ## Every layer and property accounted for
 
-A single spec records the whole component — not a sample. Every part below is extracted deterministically and kept compact.
+A single spec records everything in Figma about a component, deterministic and compact.
 
 <div class="feature-grid">
 <CardGrid>
@@ -98,7 +98,7 @@ A single spec records the whole component — not a sample. Every part below is 
 
 ## Robust at the core, extensible at the edges
 
-Specs is built to handle whatever a real component library throws at it — and to bend to how your system works: variant explosions, slot rules, hidden props, custom naming, and more. New here? Start with **Variant Layering** — it's the idea that keeps every spec compact.
+Blend determinism with adaptability to generate specs based on how your system works.
 
 <div class="guide-gallery">
 <CardGrid>

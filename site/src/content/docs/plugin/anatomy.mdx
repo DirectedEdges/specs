@@ -3,11 +3,14 @@ title: "Anatomy"
 description: "Numbered, labeled breakdown of a component's structure directly on the Figma canvas"
 ---
 
-import ImagePlaceholder from '../../../components/ImagePlaceholder.astro';
-
-<ImagePlaceholder maxWidth="none" aspectRatio="21 / 6" />
+import Figure from '../../../components/Figure.astro';
+import anatomyHero from '../../../assets/plugin/Anatomy.png';
+import anatomyMulti from '../../../assets/plugin/AnatomyMulti.png';
+import anatomyCrowded from '../../../assets/plugin/AnatomyCrowded.png';
 
 The Anatomy section provides a labeled breakdown of a component, including a component copy, numbered markers over meaningful parts, and a list naming and listing styles and bindings of each part.
+
+<Figure src={anatomyHero} alt="An Anatomy exhibit on the Figma canvas, showing numbered markers over a component's artwork alongside a matching content list" maxWidth="none" />
 
 ## What It Includes
 
@@ -33,20 +36,14 @@ Additional variant exhibits are included whenever a new, uniquely named layer is
 
 ## Examples
 
-### Basic Anatomy
-
-A single component with a handful of elements produces one exhibit: the artwork with numbered markers, and a content list naming each one with its attributes.
-
-<ImagePlaceholder caption="A Button component's Anatomy exhibit — numbered markers over the label and icon, with a matching attribute list." />
-
 ### Multiple Anatomy Blocks
 
-When a component has variants that reveal elements hidden by default — like a badge that only appears in an "active" state — Specs adds a second exhibit just for that variant. It shows only the newly revealed elements and how they differ from the default, so nothing already shown gets repeated.
+When a component has variants that reveal elements hidden by default — like an error message that only appears in an "error" state — Specs adds a second exhibit just for that variant. It shows only the newly revealed elements, so nothing already shown gets repeated.
 
-<ImagePlaceholder caption="A Toggle component with two Anatomy exhibits: the default state, and a second exhibit showing the elements revealed only in the 'active' variant." />
+<Figure src={anatomyMulti} alt="Two Anatomy exhibits for a Checkbox Group component: a default exhibit marking root, Group label, and Items, and a second exhibit marking only the Error message revealed in that variant" caption="A Checkbox Group component's Anatomy: the default exhibit marks root, Group label, and Items (1–3); a second exhibit for the error variant marks only the newly revealed Error message (4), without repeating what's already shown." maxWidth="none" />
 
 ### When Anatomy Gets Crowded
 
 Components with many small, tightly packed, or visually similar elements can produce an exhibit that's harder to read than it is useful — overlapping markers and a long, repetitive attribute list. In these cases, treat Anatomy as a starting point rather than the full picture, and cross-reference the component's other spec sections for the details that got crowded out.
 
-<ImagePlaceholder caption="A dense Table component's Anatomy exhibit, where overlapping markers and repetitive attributes make the output harder to scan." />
+<Figure src={anatomyCrowded} alt="A Date Picker component's Anatomy exhibit, densely packed with numbered markers 1 through 59 and overlapping leader lines connecting them to individual calendar dates and controls" caption="A Date Picker component's Anatomy exhibit — 59 markers connect via overlapping leader lines to individual dates, controls, and labels, illustrating how quickly a small, repetitive element set can overwhelm the output." maxWidth="none" />

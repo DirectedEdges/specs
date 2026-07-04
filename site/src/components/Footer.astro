@@ -1,0 +1,111 @@
+---
+// Custom Footer override for Starlight.
+// Preserves the default per-page "Edit page" / "Last updated" metadata and
+// pagination, and adds a site-wide links row plus a static copyright notice.
+import EditLink from 'virtual:starlight/components/EditLink';
+import LastUpdated from 'virtual:starlight/components/LastUpdated';
+import Pagination from 'virtual:starlight/components/Pagination';
+import config from 'virtual:starlight/user-config';
+import { Icon } from '@astrojs/starlight/components';
+
+const FOOTER_LINKS = [
+  { label: 'About', href: '/specs/overview/aboutspecs/' },
+  { label: 'Support', href: 'https://github.com/DirectedEdges/specs/issues' },
+  { label: 'License', href: '/specs/overview/license/' },
+  { label: 'Terms of Service', href: '/specs/overview/terms-of-service/' },
+];
+
+// Static build-time value — do not derive from `new Date()`/`Date.now()`.
+const COPYRIGHT_YEAR = 2026;
+---
+
+<footer class="sl-flex">
+  <div class="meta sl-flex">
+    <EditLink {...Astro.props} />
+    <LastUpdated {...Astro.props} />
+  </div>
+  <Pagination {...Astro.props} />
+
+  <div class="site-links sl-flex">
+    <nav class="footer-links">
+      {FOOTER_LINKS.map((link) => (
+        <a href={link.href} class="footer-link">
+          {link.label}
+        </a>
+      ))}
+    </nav>
+    <p class="copyright">© Directed Edges, LLC {COPYRIGHT_YEAR}</p>
+  </div>
+
+  {
+    config.credits && (
+      <a class="kudos sl-flex" href="https://starlight.astro.build">
+        <Icon name={'starlight'} /> {Astro.locals.t('builtWithStarlight.label')}
+      </a>
+    )
+  }
+</footer>
+
+<style>
+  footer {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .meta {
+    gap: 0.75rem 3rem;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    margin-top: 3rem;
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-3);
+  }
+  .meta > :global(p:only-child) {
+    margin-inline-start: auto;
+  }
+
+  .site-links {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--sl-color-gray-5);
+    text-align: center;
+  }
+
+  .footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem 1.5rem;
+  }
+
+  .footer-link {
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-2);
+    text-decoration: none;
+  }
+  .footer-link:hover {
+    color: var(--sl-color-white);
+  }
+
+  .copyright {
+    font-size: var(--sl-text-xs);
+    color: var(--sl-color-gray-3);
+    margin: 0;
+  }
+
+  .kudos {
+    align-items: center;
+    gap: 0.5em;
+    margin: 1.5rem auto;
+    font-size: var(--sl-text-xs);
+    text-decoration: none;
+    color: var(--sl-color-gray-3);
+  }
+  .kudos :global(svg) {
+    color: var(--sl-color-orange);
+  }
+  .kudos:hover {
+    color: var(--sl-color-white);
+  }
+</style>

@@ -19,6 +19,9 @@ export default defineConfig({
         SocialIcons: './src/components/SocialIcons.astro',
         ThemeSelect: './src/components/ThemeSelect.astro',
         Sidebar: './src/components/Sidebar.astro',
+        Hero: './src/components/Hero.astro',
+        Header: './src/components/Header.astro',
+        Footer: './src/components/Footer.astro',
       },
       customCss: ['./src/custom.css'],
       head: [
@@ -63,7 +66,7 @@ export default defineConfig({
         { label: 'Releases', slug: 'overview/releases' },
         { label: 'Licensing', slug: 'overview/licensing', badge: pro },
         {
-          label: 'Figma Plugin',
+          label: 'Specs 2 Figma Plugin',
           collapsed: true,
           items: [
             { label: 'Overview', slug: 'plugin' },

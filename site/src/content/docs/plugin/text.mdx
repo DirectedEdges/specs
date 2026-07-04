@@ -5,11 +5,19 @@ description: "Generate local Specs text styles and apply them across the canvas 
 
 <script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge pro-badge">Pro</span>')</script>
 
-import ImagePlaceholder from '../../../components/ImagePlaceholder.astro';
-
-<ImagePlaceholder maxWidth="none" aspectRatio="21 / 6" />
+import Figure from '../../../components/Figure.astro';
+import textHero from '../../../assets/plugin/Text.png';
+import customStyling from '../../../assets/plugin/CustomStyling.png';
 
 By default, every piece of text in a generated spec — headings, labels, attribute values — uses hardcoded font settings. Turning on Text creates a set of local text styles named `Specs/...` (e.g. `Specs/Heading/Title`) and applies them instead, so a team can restyle a spec's typeface, weight, or size in one place instead of regenerating it.
+
+<Figure src={textHero} alt="Figma's Text Styles panel listing the Specs style groups (Annotations, Heading, Body, Table, Text), with the Edit text style dialog open on the Title style (Inter Bold, 64/Auto)" maxWidth="none" />
+
+## How It Works
+
+Open the plugin's Settings tab and check **"Typography, using text styles"** under Custom Styling, then generate as usual.
+
+<Figure src={customStyling} alt="The plugin's Custom Styling settings, with checkboxes for Color including dark mode, Typography, and Spacing" caption="The plugin's Custom Styling settings — check 'Typography, using text styles' to enable Text." />
 
 ## What It Includes
 
@@ -17,16 +25,4 @@ By default, every piece of text in a generated spec — headings, labels, attrib
 - **One style per text role** — headings, section titles, table headers, attribute labels, and values each get their own named style
 - **Full coverage** — every piece of text across all output sections binds to one of these styles instead of a hardcoded font setting
 
-## Examples
-
-### Enabling Text
-
-Checking "Typography, using text styles" under Custom Styling makes the plugin look for local `Specs/...` text styles the next time specs are generated — creating any missing ones — and applies them instead of hardcoded font settings.
-
-<ImagePlaceholder caption="The plugin's Custom Styling settings with the Text checkbox enabled, and the Figma text styles panel showing the generated Specs/ styles." />
-
-### Restyling the Whole Spec
-
 Editing a generated style's font — for example changing `Specs/Heading/Title` from Inter to a team's primary typeface — updates every heading in every spec that references that style, without regenerating anything.
-
-<ImagePlaceholder caption="The Specs/Heading/Title text style's font changed to a custom typeface, with every spec heading in the file updating to match." />
