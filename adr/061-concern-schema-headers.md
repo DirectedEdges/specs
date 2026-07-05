@@ -70,6 +70,14 @@ One schema and one type, `PartialComponent`, where every `Component` field is op
 
 ---
 
+### Option C: Workspace-level `yaml.schemas` glob mapping instead of a per-file header comment
+
+Since every output mode produces deterministically-named files (`api.yaml`, `variants.yaml`, `examples.yaml` at a known base dir, or `<Component>/api.yaml` etc.), a one-time `yaml.schemas` mapping in `.vscode/settings.json` (or documented for users to add) could associate each glob pattern with its schema URL, giving RedHat YAML validation without touching generated file content or adding any `Config` field at all. `Component`'s existing `metadata.schema.url` data field already carries the resolved URL for programmatic consumers (round-trip tooling, version checks); this option would rely on it being the *only* schema pointer, with the editor association handled entirely out-of-band.
+
+**Rejected because**: the mapping doesn't travel with the file. A generated spec pasted into a gist, copied into another repo, or opened outside the workspace that configured the mapping loses validation entirely, whereas a self-contained header comment keeps working anywhere the RedHat extension is installed. `metadata.schema.url` alone doesn't help here either — the extension does not scan arbitrary data keys for schema hints, only the `yaml.schemas` setting or the modeline comment. The per-file comment and `metadata.schema.url` are not redundant in purpose: one is a data-plane field for programmatic consumers, the other is an editor-plane directive with its own reserved syntax — they happen to carry the same URL, generated from the same source, rather than being computed independently.
+
+---
+
 ## Decision
 
 ### Type changes (`types/`)
@@ -206,9 +214,9 @@ When `true` (default) and `format.output = 'YAML'`, `specs-cli` writes `# yaml-l
 
 ## Semver Decision
 
-**Version bump**: `0.28.0 → 0.29.0` (`MINOR`)
+**Version bump**: none beyond the active release target — lands within `0.28.0` (the version `release/schema-0.28.0+cli-0.25.0` already targets for this cycle), classified `MINOR` relative to the prior published version.
 
-**Justification**: Every change is additive — six new schema files, three new types, one new optional `Config.format` field with a documented default. No existing type, field, or schema is removed, renamed, or made stricter. Per constitution Versioning Policy, additive types and optional fields are MINOR.
+**Justification**: Every change is additive — six new schema files, three new types, one new optional `Config.format` field with a documented default. No existing type, field, or schema is removed, renamed, or made stricter. Per constitution Versioning Policy, additive types and optional fields are MINOR. This ADR does not introduce a further bump on top of the release branch's reserved version.
 
 ---
 
