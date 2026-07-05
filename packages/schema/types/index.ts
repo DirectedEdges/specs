@@ -14,6 +14,7 @@ export type { Variant, Variants } from './Variant.js';
 export type { Metadata } from './Metadata.js';
 export type { Subcomponent, Subcomponents, SubcomponentSource } from './Subcomponent.js';
 export type { InstanceExample, InstanceExamples } from './InstanceExample.js';
+export type { ComponentApi, ComponentVariants, ComponentExamples } from './ComponentConcerns.js';
 
 // Element and structure types
 export type { Element, Elements, ElementType } from './Element.js';

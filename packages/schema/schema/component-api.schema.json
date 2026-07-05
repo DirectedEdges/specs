@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "version": "0.28.0",
+  "title": "Specs Component API Concern Schema",
+  "description": "The api concern subset of a component: title, anatomy, props, metadata. Produced by specs-cli's --split-concerns output (api.yaml files) (ADR-061).",
+  "$comment": "Copyright (c) 2025 Directed Edges. Licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Attribution required.",
+  "definitions": {
+    "ComponentApi": {
+      "type": "object",
+      "properties": {
+        "title": { "$ref": "component.schema.json#/definitions/Component/properties/title" },
+        "anatomy": { "$ref": "component.schema.json#/definitions/Anatomy" },
+        "props": { "$ref": "component.schema.json#/definitions/Props" },
+        "metadata": { "$ref": "component.schema.json#/definitions/Metadata" },
+        "subcomponents": {
+          "type": "object",
+          "description": "The api concern of this component's subcomponents, keyed by name.",
+          "additionalProperties": {
+            "allOf": [
+              { "$ref": "#/definitions/ComponentApi" },
+              {
+                "not": {
+                  "properties": { "metadata": {}, "subcomponents": {} },
+                  "required": ["metadata", "subcomponents"]
+                }
+              }
+            ]
+          }
+        }
+      },
+      "required": ["title", "anatomy"],
+      "additionalProperties": false
+    }
+  },
+  "$ref": "#/definitions/ComponentApi"
+}

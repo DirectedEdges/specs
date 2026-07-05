@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `ComponentApi`, `ComponentVariants`, `ComponentExamples` — concern-split subsets of `Component`, each with a matching schema (`component-api`, `component-variants`, `component-examples`) and library-wide set wrapper (`components-api`, `components-variants`, `components-examples`); validates `specs-cli`'s `--split-concerns` output
+
 ### Changed
 
 ### Removed
