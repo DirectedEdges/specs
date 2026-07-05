@@ -4,6 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 061 | Schema Entry Points for Concern-Split Output, and a YAML Schema Header Comment | |
 | 059 | Border Style and Dash Pattern — `borderStyle` and `borderDashPattern` on `Styles` | |
 | 058 | Wrapper Collapse Config Flag — `processing.wrapperCollapse` | |
 | 057 | Fix `Metadata.generator.version` type: `number` → `string` | |
