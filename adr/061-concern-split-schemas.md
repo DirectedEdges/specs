@@ -1,6 +1,6 @@
 # ADR: Schema Entry Points for Concern-Split Output
 
-**Branch**: `061-concern-schema-headers`
+**Branch**: `061-concern-split-schemas`
 **Created**: 2026-07-05
 **Status**: DRAFT
 **Deciders**: Nathan Curtis (author)
