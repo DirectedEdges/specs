@@ -487,7 +487,12 @@ export const Generate = new Command('generate')
       const writeResult: WriteResult = await writer.write(manifest);
 
       if (writeResult.warnings.length > 0) {
-        writeResult.warnings.forEach(warning => console.log(warning));
+        const isOverwriteWarning = (warning: string) => warning.includes('Overwriting existing file');
+        const overwriteCount = writeResult.warnings.filter(isOverwriteWarning).length;
+        if (overwriteCount > 0) {
+          console.log('Warning: Overwrote existing file(s)');
+        }
+        writeResult.warnings.filter(warning => !isOverwriteWarning(warning)).forEach(warning => console.log(warning));
       }
 
       if (writeResult.errors.length > 0) {
@@ -495,14 +500,6 @@ export const Generate = new Command('generate')
         process.exit(ERROR_CODES.FILE_ERROR);
       }
 
-      if (writeResult.filesWritten.length === 1) {
-        console.log(`✓ Saved to ${writeResult.filesWritten[0]}`);
-      } else {
-        console.log(`✓ Generated ${writeResult.filesWritten.length} files in ${path.relative(process.cwd(), baseDir)}/`);
-        writeResult.filesWritten.forEach(file => {
-          console.log(`  ${file}`);
-        });
-      }
 
       process.exit(errors.length > 0 ? ERROR_CODES.GENERAL_ERROR : ERROR_CODES.SUCCESS);
 
