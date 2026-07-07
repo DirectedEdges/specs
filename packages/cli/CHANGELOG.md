@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`specs generate` write output simplified** — Per-file "Overwriting existing file" warnings now collapse into a single summary line instead of one per file, and the redundant "✓ Saved to"/"✓ Generated N files" success echo has been removed.
+
 ### Removed
 
 
