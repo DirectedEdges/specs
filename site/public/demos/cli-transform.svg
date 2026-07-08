@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1108 720" role="img" aria-label="Transform to code — video coming soon">
+  <rect width="1108" height="720" fill="#181c22"/>
+  <rect x="1" y="1" width="1106" height="718" fill="none" stroke="#2c333d" stroke-width="2"/>
+  <circle cx="554" cy="300" r="60" fill="#232932"/>
+  <path d="M537 271 L586 300 L537 329 Z" fill="#e8590c"/>
+  <text x="554" y="412" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="38" font-weight="600" fill="#e7ebf0">Transform to code</text>
+  <text x="554" y="452" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="22" fill="#8b95a3">7 of 8 · Video coming soon</text>
+</svg>

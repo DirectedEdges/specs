@@ -26,6 +26,7 @@ head:
 import { Card, CardGrid, LinkCard, LinkButton } from '@astrojs/starlight/components';
 import { Image } from 'astro:assets';
 import specsWorkflow from '../../assets/specs-workflow.png';
+import DemoCarousel from '../../components/DemoCarousel.astro';
 
 ## Generate specs your way
 
@@ -54,11 +55,15 @@ import specsWorkflow from '../../assets/specs-workflow.png';
 </Card>
 </CardGrid>
 
+## See it in action
+
+<DemoCarousel />
+
 ## Fit specs into your workflow
 
 Compile your Figma-based design intent so agents can build components in code.
 
-<Image src={specsWorkflow} alt="Diagram titled 'Specs workflow'. A legend distinguishes scripted steps, shown in orange, from agentic steps, shown in blue. On the left, Figma assets connect, via scripted orange arrows, to the Plugin and to CLI generate, which both feed a central Specs data icon; CLI write completes a scripted loop back from Specs data to Figma assets, alongside CLI generate and the Plugin, indicating specs can both be pulled from and written back into Figma. A separate agentic blue arrow connects Specs data to a Prototypes node near Figma, showing agents can work directly against Figma prototypes. On the right, a scripted arrow leads from Specs data to CLI transform, which produces generated code; agentic arrows carry that code onward to a Prototype Library and to a React Library. Specs data also fans out directly via agentic arrows to React, Android, and iOS libraries, representing agents and engineers building production libraries straight from spec data. Below, a scripted arrow leads from Specs data to CLI analyze, which produces library data (tokens, props, and more), which an agentic arrow turns into reports on drift and quality." />
+<Image src={specsWorkflow} alt="Diagram of the Specs workflow across three columns: Design, Specs, and Code. A legend distinguishes generated steps, shown in orange, agentic inference, shown in blue, and human-authored content, shown in yellow. On the left, the Design column holds Figma and a React prototype. Orange generated arrows labeled Plugin and fetch + generate carry Figma data into the central Specs column, and an orange render arrow returns from Specs to Figma, indicating specs can also be written back into Figma. The Specs column stacks four artifacts: api.yaml (partly human authored), variants.yaml, examples.yaml, and supplement.md (human authored with agentic input). Blue agentic arrows loop between the prototype and Specs, showing agents working against specs while prototyping. On the right, an orange arrow leads from Specs to generated code — CSS, contract, and TSX scaffold — which feeds a React prototyping kit and, via a dashed line, the Code column. Blue agentic arrows fan out from Specs directly to React, Android, and iOS libraries, representing agents and engineers building production libraries straight from spec data. Below, an orange arrow leads from Specs to analysis and monitoring covering tokens, props, slots, graphs, and more." />
 
 - **Plugin** — generate and review specs directly on the Figma canvas.
 - **`fetch` → `scan` → `generate`** — pull specs in bulk, whether scheduled, per release, or on change.

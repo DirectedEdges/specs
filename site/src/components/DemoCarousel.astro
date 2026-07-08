@@ -1,0 +1,247 @@
+---
+// Demo video switcher: stacked labels on the left, one media pane on the right.
+// The pane is locked to 1108×720 — the fixed window size all demos are recorded
+// at — so clips are never cropped or letterboxed. Each entry renders its
+// placeholder poster until a `video` path is set, at which point the pane
+// becomes a <video> with native controls (incl. fullscreen).
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+interface Demo {
+  id: string;
+  label: string;
+  description: string;
+  poster: string;
+  video?: string;
+}
+
+const demos: Demo[] = [
+  {
+    id: 'plugin-generate',
+    label: 'Generate on canvas',
+    description: 'Spec any component, on canvas, in seconds',
+    poster: '/demos/plugin-generate.svg',
+  },
+  {
+    id: 'plugin-customize',
+    label: 'Customize the output',
+    description: 'Style the spec output your way',
+    poster: '/demos/plugin-customize.svg',
+  },
+  {
+    id: 'plugin-settings',
+    label: 'Match your conventions',
+    description: 'Tune generation to subcomponents, glyphs, naming, and examples',
+    poster: '/demos/plugin-settings.svg',
+  },
+  {
+    id: 'plugin-extract',
+    label: 'Copy data to LLMs',
+    description: 'Copy structured spec data straight into an LLM',
+    poster: '/demos/plugin-extract.svg',
+  },
+  {
+    id: 'cli-setup',
+    label: 'Set up the CLI',
+    description: 'init, fetch, and scan in under a minute',
+    poster: '/demos/cli-setup.svg',
+  },
+  {
+    id: 'cli-generate',
+    label: 'Generate in bulk',
+    description: '50 component specs in under 60 seconds',
+    poster: '/demos/cli-generate.svg',
+  },
+  {
+    id: 'cli-transform',
+    label: 'Transform to code',
+    description: 'Reshape output for your files, formats, and data',
+    poster: '/demos/cli-transform.svg',
+  },
+  {
+    id: 'cli-analyze',
+    label: 'Analyze your system',
+    description: 'Query your whole system’s consistency',
+    poster: '/demos/cli-analyze.svg',
+  },
+];
+---
+
+<section class="demo-carousel">
+  <div class="demo-nav" role="tablist" aria-label="Product demos" aria-orientation="vertical">
+    {demos.map((demo, i) => (
+      <button
+        type="button"
+        role="tab"
+        id={`demo-tab-${demo.id}`}
+        aria-controls={`demo-panel-${demo.id}`}
+        aria-selected={i === 0 ? 'true' : 'false'}
+        tabindex={i === 0 ? 0 : -1}
+        class="demo-tab"
+      >
+        <span class="demo-tab-label">{demo.label}</span>
+        <span class="demo-tab-desc">{demo.description}</span>
+      </button>
+    ))}
+  </div>
+  <div class="demo-stage">
+    {demos.map((demo, i) => (
+      <div
+        role="tabpanel"
+        id={`demo-panel-${demo.id}`}
+        aria-labelledby={`demo-tab-${demo.id}`}
+        class="demo-panel"
+        hidden={i !== 0}
+      >
+        {demo.video ? (
+          <video
+            controls
+            playsinline
+            muted
+            preload="none"
+            poster={base + demo.poster}
+            src={base + demo.video}
+          />
+        ) : (
+          <img
+            src={base + demo.poster}
+            alt={`${demo.label} — video coming soon`}
+            loading={i === 0 ? 'eager' : 'lazy'}
+            width="1108"
+            height="720"
+          />
+        )}
+      </div>
+    ))}
+  </div>
+</section>
+
+<style>
+  .demo-carousel {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  /* Stage first on small screens so the media isn't pushed below 8 buttons */
+  .demo-stage {
+    order: -1;
+  }
+
+  .demo-nav {
+    display: flex;
+    gap: 0.25rem;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+  }
+
+  .demo-tab {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    text-align: left;
+    padding: 0.6rem 0.9rem;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    font: inherit;
+  }
+
+  .demo-tab-label {
+    font-size: var(--sl-text-sm);
+    font-weight: 600;
+    color: var(--sl-color-gray-2);
+    white-space: nowrap;
+  }
+
+  .demo-tab-desc {
+    display: none;
+    font-size: var(--sl-text-xs);
+    color: var(--sl-color-gray-3);
+  }
+
+  .demo-tab:hover .demo-tab-label {
+    color: var(--sl-color-white);
+  }
+
+  .demo-tab[aria-selected='true'] {
+    background-color: var(--sl-color-accent-low);
+    border-color: var(--sl-color-accent);
+  }
+
+  .demo-tab[aria-selected='true'] .demo-tab-label {
+    color: var(--sl-color-text-accent);
+  }
+
+  .demo-panel img,
+  .demo-panel video {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1108 / 720;
+    object-fit: cover;
+    border-radius: 4px;
+    background-color: var(--sl-color-gray-6);
+  }
+
+  /* Desktop: 20/80 columns, labels stacked on the left */
+  @media (min-width: 72rem) {
+    .demo-carousel {
+      grid-template-columns: 1fr 4fr;
+      align-items: start;
+    }
+
+    .demo-stage {
+      order: 0;
+    }
+
+    .demo-nav {
+      flex-direction: column;
+      overflow-x: visible;
+      padding-bottom: 0;
+    }
+
+    .demo-tab-label {
+      white-space: normal;
+    }
+
+    .demo-tab[aria-selected='true'] .demo-tab-desc {
+      display: block;
+    }
+  }
+</style>
+
+<script>
+  const carousel = document.querySelector('.demo-carousel');
+  if (carousel) {
+    const tabs = [...carousel.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    const panels = [...carousel.querySelectorAll<HTMLElement>('[role="tabpanel"]')];
+
+    const select = (index: number, focus = false) => {
+      tabs.forEach((tab, i) => {
+        tab.setAttribute('aria-selected', i === index ? 'true' : 'false');
+        tab.tabIndex = i === index ? 0 : -1;
+      });
+      panels.forEach((panel, i) => {
+        panel.hidden = i !== index;
+        const video = panel.querySelector('video');
+        if (video && i !== index) video.pause();
+      });
+      const video = panels[index].querySelector('video');
+      if (video) video.play().catch(() => {});
+      if (focus) tabs[index].focus();
+    };
+
+    tabs.forEach((tab, i) => {
+      tab.addEventListener('click', () => select(i));
+      tab.addEventListener('keydown', (event) => {
+        const step =
+          event.key === 'ArrowDown' || event.key === 'ArrowRight' ? 1 :
+          event.key === 'ArrowUp' || event.key === 'ArrowLeft' ? -1 : 0;
+        if (!step) return;
+        event.preventDefault();
+        select((i + step + tabs.length) % tabs.length, true);
+      });
+    });
+  }
+</script>
