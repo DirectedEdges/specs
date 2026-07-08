@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "version": "0.28.0",
+  "title": "Specs Component Examples Concern Schema",
+  "description": "The examples concern subset of a component: slotContentExamples, instanceExamples, metadata. Produced by specs-cli's --split-concerns output (examples.yaml files), omitted for components with no example data (ADR-061).",
+  "$comment": "Copyright (c) 2025 Directed Edges. Licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Attribution required.",
+  "definitions": {
+    "ComponentExamples": {
+      "type": "object",
+      "properties": {
+        "metadata": { "$ref": "component.schema.json#/definitions/Metadata" },
+        "slotContentExamples": {
+          "type": "object",
+          "description": "Named slot-content examples for this component.",
+          "patternProperties": {
+            "^[a-zA-Z0-9_-]+$": { "$ref": "component.schema.json#/definitions/SlotContent" }
+          },
+          "additionalProperties": false
+        },
+        "instanceExamples": { "$ref": "component.schema.json#/definitions/InstanceExamples" },
+        "subcomponents": {
+          "type": "object",
+          "description": "The examples concern of this component's subcomponents, keyed by name.",
+          "additionalProperties": {
+            "allOf": [
+              { "$ref": "#/definitions/ComponentExamples" },
+              {
+                "not": {
+                  "properties": { "metadata": {}, "subcomponents": {} },
+                  "required": ["metadata", "subcomponents"]
+                }
+              }
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$ref": "#/definitions/ComponentExamples"
+}

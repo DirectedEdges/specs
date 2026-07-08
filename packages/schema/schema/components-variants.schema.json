@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "version": "0.28.0",
+  "title": "Specs Components Variants Concern Set Schema",
+  "description": "A library-wide variants-concern manifest: a set of named components, each conforming to the Specs component-variants concern schema, plus generation metadata. Produced by specs-cli's --split-concerns output (library-wide variants.yaml) (ADR-061).",
+  "$comment": "Copyright (c) 2025 Directed Edges. Licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Attribution required.",
+  "type": "object",
+  "properties": {
+    "components": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z0-9_-]+$": { "$ref": "component-variants.schema.json" }
+      },
+      "additionalProperties": false
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Generation metadata for this manifest file, distinct from any individual component's Metadata.",
+      "properties": {
+        "generatedAt": { "type": "string", "format": "date-time", "description": "ISO 8601 timestamp of when this manifest was generated." },
+        "componentCount": { "type": "integer", "description": "Number of components included in this manifest." },
+        "concern": { "const": "variants", "description": "The concern this manifest represents." }
+      },
+      "required": ["generatedAt", "componentCount", "concern"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["components"],
+  "additionalProperties": false
+}

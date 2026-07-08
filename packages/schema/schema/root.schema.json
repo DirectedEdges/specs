@@ -5,6 +5,12 @@
   "version": "0.12.0",
   "oneOf": [
     { "$ref": "component.schema.json" },
-    { "$ref": "components.schema.json" }
+    { "$ref": "components.schema.json" },
+    { "$ref": "component-api.schema.json" },
+    { "$ref": "component-variants.schema.json" },
+    { "$ref": "component-examples.schema.json" },
+    { "$ref": "components-api.schema.json" },
+    { "$ref": "components-variants.schema.json" },
+    { "$ref": "components-examples.schema.json" }
   ]
 }
