@@ -6,12 +6,16 @@ hero:
   title: Specs from Figma, repeatable and fast
   tagline: Turn Figma components into compact, complete, schema-valid specifications — one structured source of truth that engineers and AI agents build on across web, iOS, and Android.
   actions:
+    - text: Open the plugin
+      link: https://www.figma.com/community/plugin/1549454283615386215/specs-2-formerly-anova
+      variant: primary
+      icon: right-arrow
+    - text: Set up the CLI
+      link: /specs/cli/getting-started/
+      variant: primary
+      icon: right-arrow
     - text: Explore the schema
       link: /specs/schema/
-      variant: minimal
-      icon: right-arrow
-    - text: Releases
-      link: /specs/overview/releases/
       variant: minimal
       icon: right-arrow
     - text: Licensing
@@ -20,44 +24,25 @@ hero:
       icon: right-arrow
 head:
   - tag: style
-    content: '.sl-markdown-content .card{padding:clamp(1rem,calc(0.125rem + 3vw),2.5rem);background-color:var(--sl-color-gray-6);border-radius:4px}.sl-markdown-content .card .body ul{font-size:var(--sl-text-sm);padding-inline-start:0;list-style-position:inside}.guide-gallery .sl-link-card{background-color:var(--sl-color-gray-6);border-radius:4px}.guide-gallery .card-grid>:first-child .sl-link-card,.guide-gallery .card-grid>:first-child.sl-link-card{background-color:var(--sl-color-accent-low);border-color:var(--sl-color-accent)}.guide-gallery .card-grid>:first-child .title{color:var(--sl-color-text-accent)}.feature-grid .sl-link-card{background-color:var(--sl-color-gray-6);border-radius:4px}@media (min-width:72rem){.guide-gallery .card-grid{grid-template-columns:repeat(4,1fr)}.feature-grid .card-grid{grid-template-columns:repeat(3,1fr)}}@media (min-width:50rem){.content-panel .hero{padding-block-end:2rem}}.hero .actions{gap:0.75rem;font-size:var(--sl-text-sm)}.hero .actions>a{color:var(--sl-color-gray-2)}.hero .actions>a:hover{color:var(--sl-color-white)}.hero .actions>a+a::before{content:"·";margin-inline-end:0.75rem;color:var(--sl-color-gray-4)}.sl-markdown-content .page-footer{margin-top:4rem;padding-top:1.5rem;border-top:1px solid var(--sl-color-hairline);font-size:var(--sl-text-sm);color:var(--sl-color-gray-3)}.sl-markdown-content .page-footer p{margin-top:0.5rem}.sl-markdown-content .page-footer a{color:var(--sl-color-gray-2)}.sl-markdown-content .page-footer a:hover{color:var(--sl-color-white)}'
+    content: '.sl-markdown-content .card{padding:clamp(1rem,calc(0.125rem + 3vw),2.5rem);background-color:var(--sl-color-gray-6);border-radius:4px}.sl-markdown-content .card .body ul{font-size:var(--sl-text-sm);padding-inline-start:0;list-style-position:inside}.guide-gallery .sl-link-card{background-color:var(--sl-color-gray-6);border-radius:4px}.guide-gallery .card-grid>:first-child .sl-link-card,.guide-gallery .card-grid>:first-child.sl-link-card{background-color:var(--sl-color-accent-low);border-color:var(--sl-color-accent)}.guide-gallery .card-grid>:first-child .title{color:var(--sl-color-text-accent)}.feature-grid .sl-link-card{background-color:var(--sl-color-gray-6);border-radius:4px}@media (min-width:72rem){.guide-gallery .card-grid{grid-template-columns:repeat(4,1fr)}.feature-grid .card-grid{grid-template-columns:repeat(3,1fr)}}@media (min-width:50rem){.content-panel .hero{padding-block-end:2rem}}.hero .actions{gap:0.75rem;font-size:var(--sl-text-sm)}.hero .actions>a.minimal{color:var(--sl-color-gray-2)}.hero .actions>a.minimal:hover{color:var(--sl-color-white)}.hero .actions>a.minimal+a.minimal::before{content:"·";margin-inline-end:0.75rem;color:var(--sl-color-gray-4)}.sl-markdown-content .page-footer{margin-top:4rem;padding-top:1.5rem;border-top:1px solid var(--sl-color-hairline);font-size:var(--sl-text-sm);color:var(--sl-color-gray-3)}.sl-markdown-content .page-footer p{margin-top:0.5rem}.sl-markdown-content .page-footer a{color:var(--sl-color-gray-2)}.sl-markdown-content .page-footer a:hover{color:var(--sl-color-white)}'
 ---
 
-import { Card, CardGrid, LinkCard, LinkButton } from '@astrojs/starlight/components';
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 import { Image } from 'astro:assets';
 import specsWorkflow from '../../assets/specs-workflow.png';
 import DemoCarousel from '../../components/DemoCarousel.astro';
 
-## Generate specs your way
+## Figma plugin for on-canvas specs
 
-<CardGrid>
-<Card title="Plugin for designers in Figma">
+Generate and review specs on the canvas without leaving Figma — styled your way and tuned to your file's conventions.
 
-- Visualize stling on-canvas in complete detail
-- Sections for anatomy, props, layout, modes, styles
-- Copy/paste spec data into LLMs
-- Customize output for styling and layout
-- Configure advanced settings for extracted data
+<DemoCarousel set="plugin" />
 
-<LinkButton href="https://www.figma.com/community/plugin/1549454283615386215/specs-2-formerly-anova" variant="primary" icon="right-arrow">Open the plugin</LinkButton>
+## Commands for LLMs, agents, and pipelines
 
-</Card>
-<Card title="Commands for LLM chats and pipelines">
+Spec an entire library from your terminal in minutes — then transform, analyze, and feed it to agents and CI.
 
-- Quickly setup and fetch data
-- Generate 50 component specs in &lt;1 minute
-- Configure files, formats, and data
-- Leverage data for analysis _and_ inference
-- Architect for continuous integration
-
-<LinkButton href="/specs/cli/getting-started/" variant="primary" icon="right-arrow">Set up the CLI</LinkButton>
-
-</Card>
-</CardGrid>
-
-## See it in action
-
-<DemoCarousel />
+<DemoCarousel set="cli" />
 
 ## Fit specs into your workflow
 

@@ -1,87 +1,110 @@
 ---
-// Demo video switcher: stacked labels on the left, one media pane on the right.
+// Demo video switcher: stacked labels on one side, one media pane on the other.
 // The pane is locked to 1108×720 — the fixed window size all demos are recorded
 // at — so clips are never cropped or letterboxed. Each entry renders its
 // placeholder poster until a `video` path is set, at which point the pane
 // becomes a <video> with native controls (incl. fullscreen).
+//
+// Props: `set` picks which four demos to show.
+import pluginIntroVideo from '../assets/videos/PluginIntro.mp4';
+
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 interface Demo {
   id: string;
   label: string;
   description: string;
+  /** public/ path, served with the base prefix */
   poster: string;
+  /** imported src/assets URL — already includes the base prefix */
   video?: string;
 }
 
-const demos: Demo[] = [
-  {
-    id: 'plugin-generate',
-    label: 'Generate on canvas',
-    description: 'Spec any component, on canvas, in seconds',
-    poster: '/demos/plugin-generate.svg',
-  },
-  {
-    id: 'plugin-customize',
-    label: 'Customize the output',
-    description: 'Style the spec output your way',
-    poster: '/demos/plugin-customize.svg',
-  },
-  {
-    id: 'plugin-settings',
-    label: 'Match your conventions',
-    description: 'Tune generation to subcomponents, glyphs, naming, and examples',
-    poster: '/demos/plugin-settings.svg',
-  },
-  {
-    id: 'plugin-extract',
-    label: 'Copy data to LLMs',
-    description: 'Copy structured spec data straight into an LLM',
-    poster: '/demos/plugin-extract.svg',
-  },
-  {
-    id: 'cli-setup',
-    label: 'Set up the CLI',
-    description: 'init, fetch, and scan in under a minute',
-    poster: '/demos/cli-setup.svg',
-  },
-  {
-    id: 'cli-generate',
-    label: 'Generate in bulk',
-    description: '50 component specs in under 60 seconds',
-    poster: '/demos/cli-generate.svg',
-  },
-  {
-    id: 'cli-transform',
-    label: 'Transform to code',
-    description: 'Reshape output for your files, formats, and data',
-    poster: '/demos/cli-transform.svg',
-  },
-  {
-    id: 'cli-analyze',
-    label: 'Analyze your system',
-    description: 'Query your whole system’s consistency',
-    poster: '/demos/cli-analyze.svg',
-  },
-];
+const sets: Record<string, Demo[]> = {
+  plugin: [
+    {
+      id: 'plugin-generate',
+      label: 'Generate canvas output',
+      description: 'Include anatomy, props, layout and more',
+      poster: '/demos/plugin-generate.svg',
+      video: pluginIntroVideo,
+    },
+    {
+      id: 'plugin-settings',
+      label: 'Match library conventions',
+      description: 'Tune to subcomponents, glyphs, naming, and examples',
+      poster: '/demos/plugin-settings.svg',
+    },
+    {
+      id: 'plugin-customize',
+      label: 'Customize spec styling',
+      description: 'Style the spec color, space and text',
+      poster: '/demos/plugin-customize.svg',
+    },
+    {
+      id: 'plugin-extract',
+      label: 'Extract data to LLMs',
+      description: 'Copy structured spec data of a library',
+      poster: '/demos/plugin-extract.svg',
+    },
+  ],
+  cli: [
+    {
+      id: 'cli-generate',
+      label: 'Generate library specs',
+      description: 'Process 50 components in a minute for your pipeline',
+      poster: '/demos/cli-generate.svg',
+    },
+    {
+      id: 'cli-setup',
+      label: 'Set up an environment',
+      description: 'One-time setup for sources, settings and scanning',
+      poster: '/demos/cli-setup.svg',
+    },
+    {
+      id: 'cli-transform',
+      label: 'Transform to code',
+      description: 'Reshape data into CSS, contracts and scaffolds',
+      poster: '/demos/cli-transform.svg',
+    },
+    {
+      id: 'cli-analyze',
+      label: 'Analyze system health',
+      description: 'Track system quality of props, tokens, and beyond',
+      poster: '/demos/cli-analyze.svg',
+    },
+  ],
+};
+
+interface Props {
+  set: keyof typeof sets;
+}
+
+const { set } = Astro.props;
+const demos = sets[set];
 ---
 
-<section class="demo-carousel">
-  <div class="demo-nav" role="tablist" aria-label="Product demos" aria-orientation="vertical">
-    {demos.map((demo, i) => (
-      <button
-        type="button"
-        role="tab"
-        id={`demo-tab-${demo.id}`}
-        aria-controls={`demo-panel-${demo.id}`}
-        aria-selected={i === 0 ? 'true' : 'false'}
-        tabindex={i === 0 ? 0 : -1}
-        class="demo-tab"
-      >
-        <span class="demo-tab-label">{demo.label}</span>
-        <span class="demo-tab-desc">{demo.description}</span>
-      </button>
-    ))}
+{/* not-content exempts the internals from Starlight's markdown flow spacing
+    (margin-top on sibling blocks), which otherwise pushes the stage 1rem
+    below the nav and pads out the gap between nav items */}
+<section class="demo-carousel not-content">
+  <div class="demo-aside">
+    <div class="demo-nav" role="tablist" aria-label="Product demos" aria-orientation="vertical">
+      {demos.map((demo, i) => (
+        <button
+          type="button"
+          role="tab"
+          id={`demo-tab-${demo.id}`}
+          aria-controls={`demo-panel-${demo.id}`}
+          aria-selected={i === 0 ? 'true' : 'false'}
+          tabindex={i === 0 ? 0 : -1}
+          class="demo-tab"
+        >
+          <span class="demo-tab-label">{demo.label}</span>
+          <span class="demo-tab-desc">{demo.description}</span>
+        </button>
+      ))}
+    </div>
   </div>
   <div class="demo-stage">
     {demos.map((demo, i) => (
@@ -99,7 +122,7 @@ const demos: Demo[] = [
             muted
             preload="none"
             poster={base + demo.poster}
-            src={base + demo.video}
+            src={demo.video}
           />
         ) : (
           <img
@@ -122,9 +145,15 @@ const demos: Demo[] = [
     margin-top: 1.5rem;
   }
 
-  /* Stage first on small screens so the media isn't pushed below 8 buttons */
+  /* Stage first on small screens so the media isn't pushed below the buttons */
   .demo-stage {
     order: -1;
+  }
+
+  .demo-aside {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
   }
 
   .demo-nav {
@@ -174,17 +203,31 @@ const demos: Demo[] = [
     color: var(--sl-color-text-accent);
   }
 
+  /* min-width: 0 lets the media shrink with the viewport — grid items
+     otherwise refuse to go below the media's intrinsic 1108px width */
+  .demo-stage,
+  .demo-aside {
+    min-width: 0;
+  }
+
   .demo-panel img,
   .demo-panel video {
     display: block;
     width: 100%;
+    /* height: auto overrides the height="720" presentational attribute,
+       which otherwise fixes images at 720px tall at narrow widths */
+    height: auto;
     aspect-ratio: 1108 / 720;
     object-fit: cover;
     border-radius: 4px;
     background-color: var(--sl-color-gray-6);
   }
 
-  /* Desktop: 20/80 columns, labels stacked on the left */
+  .demo-panel video {
+    cursor: pointer;
+  }
+
+  /* Desktop: 20/80 columns, labels stacked beside the pane */
   @media (min-width: 72rem) {
     .demo-carousel {
       grid-template-columns: 1fr 4fr;
@@ -205,15 +248,14 @@ const demos: Demo[] = [
       white-space: normal;
     }
 
-    .demo-tab[aria-selected='true'] .demo-tab-desc {
+    .demo-tab-desc {
       display: block;
     }
   }
 </style>
 
 <script>
-  const carousel = document.querySelector('.demo-carousel');
-  if (carousel) {
+  document.querySelectorAll('.demo-carousel').forEach((carousel) => {
     const tabs = [...carousel.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
     const panels = [...carousel.querySelectorAll<HTMLElement>('[role="tabpanel"]')];
 
@@ -243,5 +285,33 @@ const demos: Demo[] = [
         select((i + step + tabs.length) % tabs.length, true);
       });
     });
-  }
+
+    panels.forEach((panel, i) => {
+      const video = panel.querySelector('video');
+      if (!video) return;
+
+      // Click anywhere on the video toggles playback — except the bottom
+      // strip, where clicks belong to the native control bar
+      video.addEventListener('click', (event) => {
+        const rect = video.getBoundingClientRect();
+        if (rect.bottom - event.clientY <= 48) return;
+        if (video.paused) video.play().catch(() => {});
+        else video.pause();
+      });
+
+      // Auto-advance through the set once; stop after the last tab
+      video.addEventListener('ended', () => {
+        if (i < panels.length - 1) select(i + 1);
+      });
+    });
+
+    // Pause this row's videos when the carousel scrolls out of view
+    new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) {
+          carousel.querySelectorAll('video').forEach((video) => video.pause());
+        }
+      }
+    }).observe(carousel);
+  });
 </script>
