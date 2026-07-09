@@ -48,8 +48,8 @@ export type Styles = Partial<{
   textAlignVertical: Style;
   /** Whether text truncates with a trailing ellipsis when content exceeds bounds. Structural property — not token-bindable. Present on TEXT element type only. @since 0.28.0 */
   textTruncation: TextTruncation | null;
-  /** Maximum number of lines before `ENDING` truncation applies; `null` or absent means no limit. Structural property — not token-bindable. Present on TEXT element type only. @since 0.28.0 */
-  maxLines: MaxLines;
+  /** Maximum number of lines before `ENDING` truncation applies; `null` or absent means no limit. Present on TEXT element type only. @since 0.28.0 */
+  maxLines: Style;
   textColor: ColorStyle;
   /** Alignment along the main axis (depends on `layoutMode`). Structural property — not token-bindable. @since 0.18.0 */
   mainAxisAlignment: MainAxisAlignment | null;
@@ -269,13 +269,6 @@ export type CrossAxisAlignment = 'START' | 'END' | 'CENTER' | 'STRETCH' | 'BASEL
  * @since 0.28.0
  */
 export type TextTruncation = 'DISABLED' | 'ENDING';
-
-/**
- * Maximum number of lines before truncation, or `null` for no limit.
- * Only meaningful when `textTruncation` is `'ENDING'`. Structural property that cannot be token-bound.
- * @since 0.28.0
- */
-export type MaxLines = number | null;
 
 /**
  * Dash geometry for a dashed stroke.

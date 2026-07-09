@@ -9,7 +9,7 @@ import type {
   AngularGradient, GradientValue, AspectRatioValue, AspectRatioStyle,
   Sides, Corners, ItemSpacing, LayoutMode, WrapAlignment,
   MainAxisAlignment, CrossAxisAlignment, Position, PositionOffset,
-  StrokeDashPattern, TextTruncation, MaxLines,
+  StrokeDashPattern, TextTruncation,
 } from '../types/index.js';
 
 // ─── ColorStyle ────────────────────────────────────────────────────────────
@@ -876,21 +876,7 @@ const _ttStyleNumber: Styles = { textTruncation: 1 };
 // @ts-expect-error: arbitrary string is not valid for textTruncation
 const _ttArbitrary: Styles = { textTruncation: 'CLIP' };
 
-// ─── MaxLines ───────────────────────────────────────────────────────────────
-
-// number is valid
-const _mlNumber: MaxLines = 3;
-
-// null is valid (no limit)
-const _mlNull: MaxLines = null;
-
-// @ts-expect-error: string is not valid MaxLines
-const _mlString: MaxLines = '3';
-
-// @ts-expect-error: boolean is not valid MaxLines
-const _mlBool: MaxLines = true;
-
-// ─── Styles.maxLines (MaxLines) ──────────────────────────────────────────────
+// ─── Styles.maxLines (Style — a plain number like width/opacity) ─────────────
 
 // number line count
 const withMaxLines: Styles = { maxLines: 2 };
@@ -901,8 +887,10 @@ const withMaxLinesNull: Styles = { maxLines: null };
 // absent is valid
 const withNoMaxLines: Styles = {};
 
-// @ts-expect-error: TokenReference is not valid for maxLines (not token-bindable)
-const _mlToken: Styles = { maxLines: { $token: 'Text.MaxLines', $type: 'number' } satisfies TokenReference };
+// TokenReference is valid — maxLines is an ordinary Style number, token-bindable
+const withMaxLinesToken: Styles = {
+  maxLines: { $token: 'Text.MaxLines', $type: 'number' } satisfies TokenReference,
+};
 
-// @ts-expect-error: string is not valid for maxLines
-const _mlStyleString: Styles = { maxLines: '2' };
+// @ts-expect-error: boolean-only object is not a valid Style for maxLines
+const _mlBadObject: Styles = { maxLines: { value: 2 } };

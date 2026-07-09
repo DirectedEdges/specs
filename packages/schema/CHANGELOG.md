@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `Styles.textTruncation` — typed as `TextTruncation` (`'DISABLED' | 'ENDING'`) or `null`; whether text truncates with a trailing ellipsis (TEXT only, not token-bindable)
-- `Styles.maxLines` — typed as `MaxLines` (`number | null`); maximum line count before `'ENDING'` truncation applies (TEXT only, not token-bindable)
+- `Styles.maxLines` — maximum line count before `'ENDING'` truncation applies; null for no limit (TEXT only)
 
 ### Changed
 

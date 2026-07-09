@@ -116,7 +116,6 @@ Most properties accept a `Style` value. Some properties accept specialized shape
 | `AspectRatio` | Width-to-height ratio | `{ x: 16, y: 9 }` |
 | `StrokeDashPattern` | Dash geometry for a dashed stroke — presence signals dashed; null or absent signals solid | `{ dash: 8, gap: 4 }` |
 | `TextTruncation` | Text truncation mode enum | `"DISABLED"`, `"ENDING"` |
-| `MaxLines` | Maximum line count before truncation, or null for no limit | `2`, `null` |
 
 ### Relating properties to values
 
@@ -136,4 +135,4 @@ Most properties accept a `Style` value. Some properties accept specialized shape
 - `aspectRatio` accepts `AspectRatio | null`.
 - `strokeDashPattern` accepts `StrokeDashPattern | null` — not token-bindable; presence signals a dashed stroke, null or absent signals solid.
 - `textTruncation` accepts `TextTruncation | null` (`"DISABLED" | "ENDING"`) — not token-bindable; `"ENDING"` truncates overflowing text with a trailing ellipsis.
-- `maxLines` accepts `MaxLines` (`number | null`) — not token-bindable; the line limit before `textTruncation: "ENDING"` applies, or `null` for no limit.
+- `maxLines` accepts any `Style` (a plain number like other sizes); the line limit before `textTruncation: "ENDING"` applies, or `null` for no limit.
