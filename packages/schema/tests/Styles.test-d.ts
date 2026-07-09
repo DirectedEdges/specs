@@ -9,7 +9,7 @@ import type {
   AngularGradient, GradientValue, AspectRatioValue, AspectRatioStyle,
   Sides, Corners, ItemSpacing, LayoutMode, WrapAlignment,
   MainAxisAlignment, CrossAxisAlignment, Position, PositionOffset,
-  StrokeDashPattern,
+  StrokeDashPattern, TextTruncation, MaxLines,
 } from '../types/index.js';
 
 // ─── ColorStyle ────────────────────────────────────────────────────────────
@@ -839,3 +839,70 @@ const _dashNumber: Styles = { strokeDashPattern: 8 };
 
 // @ts-expect-error: string is not valid for strokeDashPattern
 const _dashString: Styles = { strokeDashPattern: 'dashed' };
+
+// ─── TextTruncation ───────────────────────────────────────────────────────────
+
+// Valid enum values
+const _ttDisabled: TextTruncation = 'DISABLED';
+const _ttEnding: TextTruncation = 'ENDING';
+
+// @ts-expect-error: arbitrary string is not valid TextTruncation
+const _ttBad: TextTruncation = 'MIDDLE';
+
+// @ts-expect-error: number is not valid TextTruncation
+const _ttNumber: TextTruncation = 0;
+
+// @ts-expect-error: lowercase is not valid (SCREAMING_CASE required)
+const _ttLowercase: TextTruncation = 'ending';
+
+// ─── Styles.textTruncation (TextTruncation | null) ───────────────────────────
+
+// Valid enum values on Styles
+const withTruncationDisabled: Styles = { textTruncation: 'DISABLED' };
+const withTruncationEnding: Styles = { textTruncation: 'ENDING' };
+
+// null is valid
+const withTruncationNull: Styles = { textTruncation: null };
+
+// absent is valid (all Styles fields optional)
+const withNoTruncation: Styles = {};
+
+// @ts-expect-error: TokenReference is not valid for textTruncation (not token-bindable)
+const _ttToken: Styles = { textTruncation: { $token: 'Text.Truncation', $type: 'string' } satisfies TokenReference };
+
+// @ts-expect-error: number is not valid for textTruncation
+const _ttStyleNumber: Styles = { textTruncation: 1 };
+
+// @ts-expect-error: arbitrary string is not valid for textTruncation
+const _ttArbitrary: Styles = { textTruncation: 'CLIP' };
+
+// ─── MaxLines ───────────────────────────────────────────────────────────────
+
+// number is valid
+const _mlNumber: MaxLines = 3;
+
+// null is valid (no limit)
+const _mlNull: MaxLines = null;
+
+// @ts-expect-error: string is not valid MaxLines
+const _mlString: MaxLines = '3';
+
+// @ts-expect-error: boolean is not valid MaxLines
+const _mlBool: MaxLines = true;
+
+// ─── Styles.maxLines (MaxLines) ──────────────────────────────────────────────
+
+// number line count
+const withMaxLines: Styles = { maxLines: 2 };
+
+// null (no limit)
+const withMaxLinesNull: Styles = { maxLines: null };
+
+// absent is valid
+const withNoMaxLines: Styles = {};
+
+// @ts-expect-error: TokenReference is not valid for maxLines (not token-bindable)
+const _mlToken: Styles = { maxLines: { $token: 'Text.MaxLines', $type: 'number' } satisfies TokenReference };
+
+// @ts-expect-error: string is not valid for maxLines
+const _mlStyleString: Styles = { maxLines: '2' };

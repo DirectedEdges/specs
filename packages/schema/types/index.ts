@@ -28,7 +28,7 @@ export type { Config, ResolvedConfig, ColorFormat, VariantStateEntry, TransformE
 export { DEFAULT_CONFIG } from './Config.js';
 
 // Style types
-export type { Styles, Style, ColorStyle, ColorObject, StyleKey, TokenReference, AspectRatioValue, AspectRatioStyle, Typography, Sides, Corners, ItemSpacing, LayoutMode, WrapAlignment, MainAxisAlignment, CrossAxisAlignment, Position, PositionOffset, StrokeDashPattern } from './Styles.js';
+export type { Styles, Style, ColorStyle, ColorObject, StyleKey, TokenReference, AspectRatioValue, AspectRatioStyle, Typography, Sides, Corners, ItemSpacing, LayoutMode, WrapAlignment, MainAxisAlignment, CrossAxisAlignment, Position, PositionOffset, StrokeDashPattern, TextTruncation, MaxLines } from './Styles.js';
 export type { Shadow, Blur, Effects } from './Effects.js';
 export type { GradientStop, GradientCenter, LinearGradient, RadialGradient, AngularGradient, GradientValue } from './Gradient.js';
 

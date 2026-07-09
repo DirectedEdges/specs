@@ -41,6 +41,8 @@
         "typography": { "$ref": "#/definitions/TypographyStyleValue", "description": "Typography properties. TokenReference when the node references a named text style; Typography when defined inline." },
         "textAlignHorizontal": { "$ref": "#/definitions/StringStyleValue", "description": "Horizontal text alignment" },
         "textAlignVertical": { "$ref": "#/definitions/StringStyleValue", "description": "Vertical text alignment" },
+        "textTruncation": { "$ref": "#/definitions/TextTruncationStyleValue", "description": "Whether text truncates with a trailing ellipsis when content exceeds bounds. Structural property — not token-bindable." },
+        "maxLines": { "$ref": "#/definitions/MaxLinesStyleValue", "description": "Maximum number of lines before ENDING truncation applies; null or absent means no limit. Structural property — not token-bindable." },
         "mainAxisAlignment": { "$ref": "#/definitions/MainAxisAlignmentStyleValue", "description": "Alignment along the main axis (depends on layoutMode). Structural property — not token-bindable." },
         "primaryAxisSizingMode": { "$ref": "#/definitions/StringStyleValue", "description": "Primary axis sizing mode" },
         "crossAxisAlignment": { "$ref": "#/definitions/CrossAxisAlignmentStyleValue", "description": "Alignment along the cross axis (perpendicular to layoutMode). Structural property — not token-bindable." },
@@ -378,6 +380,20 @@
       "description": "Cross axis alignment value. Structural property — not token-bindable.",
       "oneOf": [
         { "type": "string", "enum": ["START", "END", "CENTER", "STRETCH", "BASELINE"] },
+        { "type": "null" }
+      ]
+    },
+    "TextTruncationStyleValue": {
+      "description": "Text truncation value. Structural property — not token-bindable.",
+      "oneOf": [
+        { "type": "string", "enum": ["DISABLED", "ENDING"] },
+        { "type": "null" }
+      ]
+    },
+    "MaxLinesStyleValue": {
+      "description": "Maximum line count before truncation, or null for no limit. Not token-bindable.",
+      "oneOf": [
+        { "type": "number" },
         { "type": "null" }
       ]
     },

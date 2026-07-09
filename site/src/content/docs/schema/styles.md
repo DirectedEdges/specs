@@ -50,8 +50,10 @@ Combined view: every style property, grouped by category and then by name, with 
 | Size | `width` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Spacing | `itemSpacing` | ✓ |  |  |  |  |
 | Spacing | `padding` | ✓ |  |  |  |  |
+| Text | `maxLines` |  | ✓ |  |  |  |
 | Text | `textAlignHorizontal` |  | ✓ |  |  |  |
 | Text | `textAlignVertical` |  | ✓ |  |  |  |
+| Text | `textTruncation` |  | ✓ |  |  |  |
 | Text | `typography` |  | ✓ |  |  |  |
 | Transform | `rotation` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Visibility | `clipContent` | ✓ |  |  |  |  |
@@ -113,6 +115,8 @@ Most properties accept a `Style` value. Some properties accept specialized shape
 | `PositionOffset` | Positional offset value | `24` (px), `"25%"` (SCALE), `null` |
 | `AspectRatio` | Width-to-height ratio | `{ x: 16, y: 9 }` |
 | `StrokeDashPattern` | Dash geometry for a dashed stroke — presence signals dashed; null or absent signals solid | `{ dash: 8, gap: 4 }` |
+| `TextTruncation` | Text truncation mode enum | `"DISABLED"`, `"ENDING"` |
+| `MaxLines` | Maximum line count before truncation, or null for no limit | `2`, `null` |
 
 ### Relating properties to values
 
@@ -131,3 +135,5 @@ Most properties accept a `Style` value. Some properties accept specialized shape
 - `top`, `bottom`, `start`, `end`, `centerHorizontalOffset`, `centerVerticalOffset` accept `PositionOffset` (`number | string | null`) — not token-bindable.
 - `aspectRatio` accepts `AspectRatio | null`.
 - `strokeDashPattern` accepts `StrokeDashPattern | null` — not token-bindable; presence signals a dashed stroke, null or absent signals solid.
+- `textTruncation` accepts `TextTruncation | null` (`"DISABLED" | "ENDING"`) — not token-bindable; `"ENDING"` truncates overflowing text with a trailing ellipsis.
+- `maxLines` accepts `MaxLines` (`number | null`) — not token-bindable; the line limit before `textTruncation: "ENDING"` applies, or `null` for no limit.
