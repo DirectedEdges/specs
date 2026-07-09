@@ -82,7 +82,7 @@ The full shape adds raw Figma provenance under `$extensions`. For variables the 
 
 ### CUSTOM
 
-`CUSTOM` substitutes your own token shapes for Specs' built-in ones. Before generating, run [`applyCustomTokens`](/specs/cli/commands/apply-custom-tokens/) to inject a `$custom` object onto each variable and style in your fetched data; when `CUSTOM` is active, that object becomes the property value verbatim. References that never received a `$custom` object fall back to the `TOKEN_FIGMA_EXTENSIONS` shape.
+`CUSTOM` substitutes your own token shapes for Specs' built-in ones. Before generating, run [`applyCustomTokens`](/cli/commands/apply-custom-tokens/) to inject a `$custom` object onto each variable and style in your fetched data; when `CUSTOM` is active, that object becomes the property value verbatim. References that never received a `$custom` object fall back to the `TOKEN_FIGMA_EXTENSIONS` shape.
 
 ```json
 {
@@ -103,7 +103,7 @@ specs applyCustomTokens mapping.json     # 2. Inject $custom objects into the da
 specs generate                           # 3. Generate — uses $custom objects verbatim
 ```
 
-The `applyCustomTokens` command auto-discovers variables/styles files from `dataDirectory` and `sources` in this config, or accepts explicit `-v`/`-s` paths. See [`applyCustomTokens` command](/specs/cli/commands/apply-custom-tokens/) for the full mapping file format and pipeline details.
+The `applyCustomTokens` command auto-discovers variables/styles files from `dataDirectory` and `sources` in this config, or accepts explicit `-v`/`-s` paths. See [`applyCustomTokens` command](/cli/commands/apply-custom-tokens/) for the full mapping file format and pipeline details.
 
 ### FIGMA_SYNTAX_WEB / FIGMA_SYNTAX_IOS / FIGMA_SYNTAX_ANDROID
 
@@ -132,5 +132,5 @@ When a token has no code syntax defined for the chosen platform, the profile **f
 
 ## See Also
 
-- [`applyCustomTokens` command](/specs/cli/commands/apply-custom-tokens/) — mapping file format and pipeline for the `CUSTOM` profile
+- [`applyCustomTokens` command](/cli/commands/apply-custom-tokens/) — mapping file format and pipeline for the `CUSTOM` profile
 - [ADR 007 — Token Reference Config](https://github.com/DirectedEdges/specs/blob/main/adr/007-token-reference-config.md) — the decision consolidating token formatting into a single enum

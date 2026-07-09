@@ -43,4 +43,4 @@ config:
 
 ## See Also
 
-- [Key Formatting guide](/specs/guides/key-formatting/) - Detailed formatting behavior and edge cases
+- [Key Formatting guide](/guides/key-formatting/) - Detailed formatting behavior and edge cases

@@ -17,12 +17,12 @@ const shouldRenderSearch =
   config.pagefind || config.components.Search !== '@astrojs/starlight/components/Search.astro';
 
 const SECTION_LINKS = [
-  { label: 'Plugin', href: '/specs/plugin/', prefix: '/specs/plugin/' },
-  { label: 'Commands', href: '/specs/cli/', prefix: '/specs/cli/' },
-  { label: 'Schema', href: '/specs/schema/', prefix: '/specs/schema/' },
+  { label: 'Plugin', href: '/plugin/', prefix: '/plugin/' },
+  { label: 'Commands', href: '/cli/', prefix: '/cli/' },
+  { label: 'Schema', href: '/schema/', prefix: '/schema/' },
   // Points at the Settings section home for now, per explicit instruction.
   // TODO: point to the future consolidated Docs section landing page once Settings+Guides are merged.
-  { label: 'Docs', href: '/specs/settings/', prefix: '/specs/settings/' },
+  { label: 'Docs', href: '/settings/', prefix: '/settings/' },
 ];
 
 const pathname = Astro.url.pathname;

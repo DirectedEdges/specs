@@ -19,9 +19,9 @@ This keeps specs compact. A component with 5 boolean props would need 32 flat va
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `configuration` | [`PropConfigurations`](/specs/schema/prop-configurations/) | No | Prop values that activate this variant |
-| `layout` | [`Layout`](/specs/schema/layout/) | No | Layout tree for this variant |
-| `elements` | [`Elements`](/specs/schema/elements/) | No | Element overrides — only changed properties |
+| `configuration` | [`PropConfigurations`](/schema/prop-configurations/) | No | Prop values that activate this variant |
+| `layout` | [`Layout`](/schema/layout/) | No | Layout tree for this variant |
+| `elements` | [`Elements`](/schema/elements/) | No | Element overrides — only changed properties |
 | `invalid` | `boolean` | No | `true` for invalid/excluded variant combinations |
 
 ## Resolution
@@ -30,6 +30,6 @@ When a variant's `configuration` matches the current prop values, its `elements`
 
 ## Invalid Variants
 
-Variants with `invalid: true` represent prop combinations that exist in Figma but are semantically invalid. They are excluded from output by default (controlled by [`include.invalidVariants`](/specs/schema/config.md/#include) in config).
+Variants with `invalid: true` represent prop combinations that exist in Figma but are semantically invalid. They are excluded from output by default (controlled by [`include.invalidVariants`](/schema/config.md/#include) in config).
 
 The top-level `invalidVariantCombinations` array lists prop combinations that should never occur together, separately from the variant list.

@@ -146,12 +146,12 @@ elements:
 
 Pro features are never stripped from output — they're simply not created at the free tier. If a style property has a bound Figma variable, free-tier output shows the raw resolved value; pro-tier output shows the token reference alongside the value.
 
-> **Note**: Token references require that your source config includes `variables` in the `data` array. Style references require `styles`. See [Configuration](/specs/settings/) for details.
+> **Note**: Token references require that your source config includes `variables` in the `data` array. Style references require `styles`. See [Configuration](/settings/) for details.
 
 :::caution[Fetching variables and styles requires a Figma Enterprise plan]
 A Specs Pro license controls whether **already-fetched** variable and style data gets turned into token references and style references — it does not control whether that data can be fetched from Figma in the first place.
 
-Figma's REST API restricts the `variables` and `styles` endpoints to organizations on an **Enterprise** plan, regardless of your Specs license. If your Figma organization isn't on Enterprise, `specs fetch` can still fetch `file` data, but `variables` and `styles` fetches will fail — so a Pro license alone won't produce design token references or named style references. This restriction is specific to the CLI's REST-based `fetch`; it doesn't apply to the Figma Plugin, which reads variables and styles directly from the open file via Figma's Plugin API. See [CLI Requirements](/specs/cli/#requirements) for details.
+Figma's REST API restricts the `variables` and `styles` endpoints to organizations on an **Enterprise** plan, regardless of your Specs license. If your Figma organization isn't on Enterprise, `specs fetch` can still fetch `file` data, but `variables` and `styles` fetches will fail — so a Pro license alone won't produce design token references or named style references. This restriction is specific to the CLI's REST-based `fetch`; it doesn't apply to the Figma Plugin, which reads variables and styles directly from the open file via Figma's Plugin API. See [CLI Requirements](/cli/#requirements) for details.
 :::
 
 ### Config Settings and Licensing
@@ -254,6 +254,6 @@ License terms depend on your plan, but generally, no. Each Pro license is intend
 
 ## See Also
 
-- [Getting Started](/specs/overview/cli/getting-started/) — Installation and first spec
-- [Configuration Reference](/specs/settings/) — All config options
-- [Config Schema](/specs/overview/schema/config/) — Config type reference and defaults
+- [Getting Started](/overview/cli/getting-started/) — Installation and first spec
+- [Configuration Reference](/settings/) — All config options
+- [Config Schema](/overview/schema/config/) — Config type reference and defaults

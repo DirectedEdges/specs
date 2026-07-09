@@ -13,7 +13,7 @@ interface SlotBinding extends PropBinding {
 }
 ```
 
-Because `SlotBinding extends` [`PropBinding`](/specs/schema/prop-binding/), existing `{ $binding }` values still validate — the slot variant simply adds an optional `examples` array.
+Because `SlotBinding extends` [`PropBinding`](/schema/prop-binding/), existing `{ $binding }` values still validate — the slot variant simply adds an optional `examples` array.
 
 ## `string[]`
 
@@ -27,14 +27,14 @@ children:
 
 ## `SlotBinding`
 
-When an element's children are driven by a slot prop, `children` is a [`PropBinding`](/specs/schema/prop-binding/) (a `$binding` JSON Pointer to the slot prop) optionally carrying authored example fills.
+When an element's children are driven by a slot prop, `children` is a [`PropBinding`](/schema/prop-binding/) (a `$binding` JSON Pointer to the slot prop) optionally carrying authored example fills.
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
 | `$binding` | `string` | Yes | JSON Pointer to the slot prop (e.g. `#/props/children`) |
-| `examples` | [`SlotContentRef[]`](/specs/schema/slot-content-ref/) | No | Authored example fills for the slot |
+| `examples` | [`SlotContentRef[]`](/schema/slot-content-ref/) | No | Authored example fills for the slot |
 
-Each `examples[i]` is a [`SlotContentRef`](/specs/schema/slot-content-ref/) pointing into a [`slotContentExamples`](/specs/schema/slot-content/) registry or a [`Composition`](/specs/schema/composition/). Emitters currently write at most one entry — `examples[0]` is Figma's authoring default for the slot layer — but the array shape leaves room for more.
+Each `examples[i]` is a [`SlotContentRef`](/schema/slot-content-ref/) pointing into a [`slotContentExamples`](/schema/slot-content/) registry or a [`Composition`](/schema/composition/). Emitters currently write at most one entry — `examples[0]` is Figma's authoring default for the slot layer — but the array shape leaves room for more.
 
 ```yaml
 children:
@@ -48,4 +48,4 @@ children:
 ## Further Reading
 
 - [ADR 046 — Slots and Slot References](https://github.com/DirectedEdges/specs/blob/main/adr/046-slots-and-slot-references.md)
-- [defaultSlotContent (config)](/specs/settings/default-slot-content/) — emit captured default fills into `examples`
+- [defaultSlotContent (config)](/settings/default-slot-content/) — emit captured default fills into `examples`

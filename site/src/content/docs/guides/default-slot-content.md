@@ -52,7 +52,7 @@ config:
 **Default**: `false`. Existing output is unchanged until you opt in.
 
 :::note[Pro feature]
-`defaultSlotContent` requires a [Pro license](/specs/overview/licensing/). On the free tier the flag is ignored — no slot content is emitted. In the Figma plugin the control is hidden until a Pro license is active.
+`defaultSlotContent` requires a [Pro license](/overview/licensing/). On the free tier the flag is ignored — no slot content is emitted. In the Figma plugin the control is hidden until a Pro license is active.
 :::
 
 ## Default Slot Content vs. Instance Examples
@@ -60,10 +60,10 @@ config:
 These are two different things, often confused:
 
 - **Default slot content** (this guide) — the content *inside a slot*, captured structurally. No detection config; `defaultSlotContent` is the only switch.
-- **[Instance (ready-made) examples](/specs/guides/instance-examples/)** — whole pre-configured *instances* of a component, detected from named frames via `processing.instanceExamples`.
+- **[Instance (ready-made) examples](/guides/instance-examples/)** — whole pre-configured *instances* of a component, detected from named frames via `processing.instanceExamples`.
 
 ## Further Reading
 
-- [`defaultSlotContent`](/specs/settings/default-slot-content/) — config reference
-- [Instance (Ready-Made) Examples](/specs/guides/instance-examples/) — the sibling feature
-- [Schema: Component](/specs/schema/component/) — the `slotContentExamples` registry shape
+- [`defaultSlotContent`](/settings/default-slot-content/) — config reference
+- [Instance (Ready-Made) Examples](/guides/instance-examples/) — the sibling feature
+- [Schema: Component](/schema/component/) — the `slotContentExamples` registry shape

@@ -8,7 +8,7 @@ description: "Emit the component's structurally-detected default slot content as
 
 When `true`, the generator emits `Component.slotContentExamples` — the **default content placed inside a component's slot layers**, captured structurally and referenced from each slot binding via `$slotContent`. Defaults to `false`, so output for unannotated components is unchanged until you opt in.
 
-Unlike [`instanceExamples`](/specs/settings/instance-examples/), slot content examples need **no detection config** — they are derived structurally from whatever content sits inside slot layers. This flag is the only control.
+Unlike [`instanceExamples`](/settings/instance-examples/), slot content examples need **no detection config** — they are derived structurally from whatever content sits inside slot layers. This flag is the only control.
 
 ## Configuration
 
@@ -78,10 +78,10 @@ With `defaultSlotContent: false` (the default), the slot binding carries no `$sl
 
 ## Licensing
 
-`defaultSlotContent` output requires a [Pro license](/specs/overview/licensing/). On the free tier the flag is silently ignored — slot content is neither stamped nor emitted, regardless of config. This applies to the CLI, the REST API, and the Figma plugin (where the control is hidden until a Pro license is active).
+`defaultSlotContent` output requires a [Pro license](/overview/licensing/). On the free tier the flag is silently ignored — slot content is neither stamped nor emitted, regardless of config. This applies to the CLI, the REST API, and the Figma plugin (where the control is hidden until a Pro license is active).
 
 ## See Also
 
-- [Guide: Default Slot Content](/specs/guides/default-slot-content/) — what it captures and how to author it
-- [`processing.instanceExamples`](/specs/settings/instance-examples/) — the separate, presence-driven instance-example feature
-- [Schema: Component](/specs/schema/component/) — `slotContentExamples` registry shape
+- [Guide: Default Slot Content](/guides/default-slot-content/) — what it captures and how to author it
+- [`processing.instanceExamples`](/settings/instance-examples/) — the separate, presence-driven instance-example feature
+- [Schema: Component](/schema/component/) — `slotContentExamples` registry shape

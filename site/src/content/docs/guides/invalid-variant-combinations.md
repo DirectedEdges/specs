@@ -132,8 +132,8 @@ When `true`, the component output includes the `invalidVariantCombinations` fiel
 
 ## See Also
 
-- [Variant Layering](/specs/guides/variant-layering/) — how variants accumulate properties
-- [Variant Depth](/specs/guides/variant-depth/) — controlling variant expansion depth
-- [Variants](/specs/schema/variants/) — variant schema reference
-- [Component](/specs/schema/component/) — top-level component schema
-- [Config](/specs/schema/config/) — full configuration options
+- [Variant Layering](/guides/variant-layering/) — how variants accumulate properties
+- [Variant Depth](/guides/variant-depth/) — controlling variant expansion depth
+- [Variants](/schema/variants/) — variant schema reference
+- [Component](/schema/component/) — top-level component schema
+- [Config](/schema/config/) — full configuration options

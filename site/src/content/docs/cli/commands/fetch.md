@@ -13,7 +13,7 @@ specs fetch [options]
 
 - `FIGMA_TOKEN` must be set in your environment.
 - `specs.config.yaml` must include `dataDirectory` (or deprecated `sourceDirectory`) and `sources`.
-- Fetching `variables` or `styles` requires your Figma organization to be on an **Enterprise** plan — Figma restricts those REST endpoints regardless of your Specs license. `file` data works on any plan. See [CLI Requirements](/specs/cli/#requirements).
+- Fetching `variables` or `styles` requires your Figma organization to be on an **Enterprise** plan — Figma restricts those REST endpoints regardless of your Specs license. `file` data works on any plan. See [CLI Requirements](/cli/#requirements).
 
 ## Options
 
@@ -84,5 +84,5 @@ If you use `applyCustomTokens` with branch-fetched data, be aware that Figma var
 ---
 
 **See Also:**
-- [Configuration Reference](/specs/settings/) - dataDirectory and sources setup
-- [Generate Command](/specs/cli/commands/generate/) - Processing fetched data
+- [Configuration Reference](/settings/) - dataDirectory and sources setup
+- [Generate Command](/cli/commands/generate/) - Processing fetched data

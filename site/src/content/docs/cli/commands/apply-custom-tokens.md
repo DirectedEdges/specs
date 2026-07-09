@@ -5,7 +5,7 @@ description: "Inject your team's token shapes into fetched Figma data so generat
 
 ## The Problem
 
-Specs generates token references in a fixed shape — `{ $token, $type }` or one of the other [built-in profiles](/specs/settings/tokens/). But many teams already have a token system with its own naming conventions and output shapes: Style Dictionary aliases, JSON schema references, platform-specific formats, or custom structures built for their toolchain.
+Specs generates token references in a fixed shape — `{ $token, $type }` or one of the other [built-in profiles](/settings/tokens/). But many teams already have a token system with its own naming conventions and output shapes: Style Dictionary aliases, JSON schema references, platform-specific formats, or custom structures built for their toolchain.
 
 You can't make Specs guess your format. You need a way to say: _"For this Figma variable, output **this exact object** instead."_
 
@@ -214,12 +214,12 @@ If your data files were fetched from a Figma branch (using a branch file key in 
 
 Inspect the fetched files directly to verify which IDs are present. If you maintain separate mapping files per branch, keep them alongside the branch data.
 
-See [Fetching Figma Branches](/specs/cli/commands/fetch/#fetching-figma-branches) for details.
+See [Fetching Figma Branches](/cli/commands/fetch/#fetching-figma-branches) for details.
 
 ---
 
 **See Also:**
-- [Tokens configuration](/specs/settings/tokens/) — all token profiles compared
-- [Configuration Reference](/specs/settings/) — `dataDirectory` and `sources` setup
-- [Generate Command](/specs/cli/commands/generate/) — processing augmented data
-- [Fetch Command](/specs/cli/commands/fetch/) — fetching raw data before augmentation
+- [Tokens configuration](/settings/tokens/) — all token profiles compared
+- [Configuration Reference](/settings/) — `dataDirectory` and `sources` setup
+- [Generate Command](/cli/commands/generate/) — processing augmented data
+- [Fetch Command](/cli/commands/fetch/) — fetching raw data before augmentation

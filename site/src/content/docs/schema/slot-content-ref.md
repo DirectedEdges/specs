@@ -26,17 +26,17 @@ The pointer resolves to one of three targets — all yielding an `anatomy + elem
 
 | Target | Example pointer | Resolves to |
 |--------|-----------------|-------------|
-| [`Component.slotContentExamples`](/specs/schema/slot-content/) entry | `#/components/pill/slotContentExamples/composedLabel` | that [`SlotContent`](/specs/schema/slot-content/) |
-| [`Composition`](/specs/schema/composition/) entry | `#/compositions/pageGrid` | the composition's top-level triplet |
-| [`Composition.slotContent`](/specs/schema/composition/) entry | `#/compositions/filterResultsPage/slotContent/pageHeader` | that [`SlotContent`](/specs/schema/slot-content/) |
+| [`Component.slotContentExamples`](/schema/slot-content/) entry | `#/components/pill/slotContentExamples/composedLabel` | that [`SlotContent`](/schema/slot-content/) |
+| [`Composition`](/schema/composition/) entry | `#/compositions/pageGrid` | the composition's top-level triplet |
+| [`Composition.slotContent`](/schema/composition/) entry | `#/compositions/filterResultsPage/slotContent/pageHeader` | that [`SlotContent`](/schema/slot-content/) |
 
 The `$slotContent` key discriminates the reference — it names the *act of filling a slot*, not the target type.
 
 ## Where it appears
 
-- **[`SlotBinding.examples`](/specs/schema/children/)** — Figma's authoring default for a slot layer.
-- **`Element.propConfigurations`** slot-prop entries — see [Prop Configurations](/specs/schema/prop-configurations/).
-- **[`InstanceExample.propConfigurations`](/specs/schema/instance-examples/)** — the slot-prop value in a documented whole-component usage.
+- **[`SlotBinding.examples`](/schema/children/)** — Figma's authoring default for a slot layer.
+- **`Element.propConfigurations`** slot-prop entries — see [Prop Configurations](/schema/prop-configurations/).
+- **[`InstanceExample.propConfigurations`](/schema/instance-examples/)** — the slot-prop value in a documented whole-component usage.
 
 ## Further Reading
 

@@ -37,8 +37,8 @@ specs analyze props --analysis ./reports
 
 | Analyzer | Output | What it produces |
 |----------|--------|-----------------|
-| [`props`](/specs/cli/analyze/props/) | `_analysis/props.yaml` | Cross-library prop inventory — frequency, enum discordance, API surface, slots |
-| [`styling`](/specs/cli/analyze/styling/) | `_analysis/styling.byComponent.json`, `_analysis/styling.byToken.json` | Token usage indexed by component and by token name |
+| [`props`](/cli/analyze/props/) | `_analysis/props.yaml` | Cross-library prop inventory — frequency, enum discordance, API surface, slots |
+| [`styling`](/cli/analyze/styling/) | `_analysis/styling.byComponent.json`, `_analysis/styling.byToken.json` | Token usage indexed by component and by token name |
 
 ## Output Directory
 
@@ -56,5 +56,5 @@ specs/
 
 ## See Also
 
-- [`analyze` command](/specs/cli/commands/analyze/) — full CLI reference
-- [Transforms overview](/specs/cli/transforms/) — build artifacts (contract, css)
+- [`analyze` command](/cli/commands/analyze/) — full CLI reference
+- [Transforms overview](/cli/transforms/) — build artifacts (contract, css)

@@ -3,7 +3,7 @@ title: "Config"
 description: "Generation configuration — processing, format, and inclusion options"
 ---
 
-Controls how specs are generated. See the [feature guides](/specs/features/) for detailed explanations of each option.
+Controls how specs are generated. See the [feature guides](/features/) for detailed explanations of each option.
 
 ## `processing`
 
