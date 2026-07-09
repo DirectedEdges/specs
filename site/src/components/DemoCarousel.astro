@@ -6,7 +6,18 @@
 // becomes a <video> with native controls (incl. fullscreen).
 //
 // Props: `set` picks which four demos to show.
-import pluginIntroVideo from '../assets/videos/PluginIntro.mp4';
+import pluginIntroVideo from '../assets/demoCarousel/PluginIntro.mp4';
+import pluginIntroPoster from '../assets/demoCarousel/PluginIntro.png';
+import pluginSettingsVideo from '../assets/demoCarousel/PluginSettings.mp4';
+import pluginSettingsPoster from '../assets/demoCarousel/PluginSettings.png';
+import pluginCustomizeVideo from '../assets/demoCarousel/PluginCustomization.mp4';
+import pluginCustomizePoster from '../assets/demoCarousel/PluginCustomization.png';
+import pluginExtractVideo from '../assets/demoCarousel/PluginData.mp4';
+import pluginExtractPoster from '../assets/demoCarousel/PluginData.png';
+import cliGenerateVideo from '../assets/demoCarousel/CommandGenerate.mp4';
+import cliGeneratePoster from '../assets/demoCarousel/CommandGenerate.png';
+import cliSetupVideo from '../assets/demoCarousel/CommandSetup.mp4';
+import cliSetupPoster from '../assets/demoCarousel/CommandSetup.png';
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
@@ -14,7 +25,7 @@ interface Demo {
   id: string;
   label: string;
   description: string;
-  /** public/ path, served with the base prefix */
+  /** render-ready URL (imported asset, or a base-prefixed public path) */
   poster: string;
   /** imported src/assets URL — already includes the base prefix */
   video?: string;
@@ -25,27 +36,30 @@ const sets: Record<string, Demo[]> = {
     {
       id: 'plugin-generate',
       label: 'Generate canvas output',
-      description: 'Include anatomy, props, layout and more',
-      poster: '/demos/plugin-generate.svg',
+      description: 'Add anatomy, props, layout, styling, modes and data',
+      poster: pluginIntroPoster.src,
       video: pluginIntroVideo,
     },
     {
       id: 'plugin-settings',
-      label: 'Match library conventions',
-      description: 'Tune to subcomponents, glyphs, naming, and examples',
-      poster: '/demos/plugin-settings.svg',
+      label: 'Match naming conventions',
+      description: 'Detect your subcomponents, glyphs, and examples',
+      poster: pluginSettingsPoster.src,
+      video: pluginSettingsVideo,
     },
     {
       id: 'plugin-customize',
-      label: 'Customize spec styling',
-      description: 'Style the spec color, space and text',
-      poster: '/demos/plugin-customize.svg',
+      label: 'Custom styling',
+      description: 'Style color, space and text to your preferences',
+      poster: pluginCustomizePoster.src,
+      video: pluginCustomizeVideo,
     },
     {
       id: 'plugin-extract',
       label: 'Extract data to LLMs',
       description: 'Copy structured spec data of a library',
-      poster: '/demos/plugin-extract.svg',
+      poster: pluginExtractPoster.src,
+      video: pluginExtractVideo,
     },
   ],
   cli: [
@@ -53,26 +67,30 @@ const sets: Record<string, Demo[]> = {
       id: 'cli-generate',
       label: 'Generate library specs',
       description: 'Process 50 components in a minute for your pipeline',
-      poster: '/demos/cli-generate.svg',
+      poster: cliGeneratePoster.src,
+      video: cliGenerateVideo,
     },
     {
       id: 'cli-setup',
       label: 'Set up an environment',
       description: 'One-time setup for sources, settings and scanning',
-      poster: '/demos/cli-setup.svg',
+      poster: cliSetupPoster.src,
+      video: cliSetupVideo,
     },
-    {
-      id: 'cli-transform',
-      label: 'Transform to code',
-      description: 'Reshape data into CSS, contracts and scaffolds',
-      poster: '/demos/cli-transform.svg',
-    },
-    {
-      id: 'cli-analyze',
-      label: 'Analyze system health',
-      description: 'Track system quality of props, tokens, and beyond',
-      poster: '/demos/cli-analyze.svg',
-    },
+    // Pending recording — restore once CommandTransform / CommandAnalyze
+    // are added to assets/demoCarousel/ (with their .png posters + imports).
+    // {
+    //   id: 'cli-transform',
+    //   label: 'Transform to code',
+    //   description: 'Reshape data into CSS, contracts and scaffolds',
+    //   poster: `${base}/demos/cli-transform.svg`,
+    // },
+    // {
+    //   id: 'cli-analyze',
+    //   label: 'Analyze system health',
+    //   description: 'Track system quality of props, tokens, and beyond',
+    //   poster: `${base}/demos/cli-analyze.svg`,
+    // },
   ],
 };
 
@@ -127,15 +145,14 @@ const navLabels: Record<string, string> = {
           <video
             controls
             playsinline
-            muted
             preload="none"
-            poster={base + demo.poster}
+            poster={demo.poster}
             src={demo.video}
             aria-label={`${demo.label} — ${demo.description}`}
           />
         ) : (
           <img
-            src={base + demo.poster}
+            src={demo.poster}
             alt={`${demo.label} — video coming soon`}
             loading={i === 0 ? 'eager' : 'lazy'}
             width="1108"
@@ -275,7 +292,16 @@ const navLabels: Record<string, string> = {
     const tabs = [...carousel.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
     const panels = [...carousel.querySelectorAll<HTMLElement>('[role="tabpanel"]')];
 
+    // Pending "advance to next clip" timer; cancelled the moment the user
+    // takes over (switches tab, pauses/clicks a video) or scrolls the row away.
+    let advanceTimer: ReturnType<typeof setTimeout> | undefined;
+    const cancelAdvance = () => {
+      clearTimeout(advanceTimer);
+      advanceTimer = undefined;
+    };
+
     const select = (index: number, focus = false) => {
+      cancelAdvance();
       tabs.forEach((tab, i) => {
         tab.setAttribute('aria-selected', i === index ? 'true' : 'false');
         tab.tabIndex = i === index ? 0 : -1;
@@ -312,26 +338,32 @@ const navLabels: Record<string, string> = {
       if (!video) return;
 
       // Click anywhere on the video toggles playback — except the bottom
-      // strip, where clicks belong to the native control bar
+      // strip, where clicks belong to the native control bar. Any manual
+      // toggle also stops the auto-advance chain.
       video.addEventListener('click', (event) => {
         const rect = video.getBoundingClientRect();
         if (rect.bottom - event.clientY <= 48) return;
+        cancelAdvance();
         if (video.paused) video.play().catch(() => {});
         else video.pause();
       });
 
-      // Auto-advance through the set once; stop after the last tab.
-      // Skipped under prefers-reduced-motion — content that starts moving
-      // without an explicit request is exactly what that setting refuses.
+      // When a clip finishes, hold for 3s then advance to the next tab.
+      // Stops at the last tab — no wrap back to the first. Cancelled if the
+      // user takes over before it fires. Skipped under prefers-reduced-motion.
       video.addEventListener('ended', () => {
-        if (!reducedMotion.matches && i < panels.length - 1) select(i + 1);
+        if (reducedMotion.matches || i === panels.length - 1) return;
+        cancelAdvance();
+        advanceTimer = setTimeout(() => select(i + 1), 3000);
       });
     });
 
-    // Pause this row's videos when the carousel scrolls out of view
+    // Pause this row's videos and drop any queued advance when the carousel
+    // scrolls out of view
     new IntersectionObserver((entries) => {
       for (const entry of entries) {
         if (!entry.isIntersecting) {
+          cancelAdvance();
           carousel.querySelectorAll('video').forEach((video) => video.pause());
         }
       }
