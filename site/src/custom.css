@@ -336,10 +336,10 @@ mobile-starlight-toc {
    data-has-hero attribute): bigger, centered section intros. Sized with
    clamp() so they scale down on narrow viewports instead of staying fixed
    at the desktop size — same fluid-scaling approach Hero.astro uses for
-   the hero title/tagline, since 48px exceeds Starlight's own --sl-text-h2
+   the hero title/tagline, since 40px exceeds Starlight's own --sl-text-h2
    ceiling and so needs its own responsive range. */
 html[data-has-hero] .sl-markdown-content h2 {
-	font-size: clamp(var(--sl-text-h2), calc(1rem + 3vw), 48px);
+	font-size: clamp(var(--sl-text-h2), calc(1rem + 3vw), 40px);
 	padding-top: clamp(1rem, 4vw, 32px);
 	text-align: center;
 }
@@ -348,4 +348,32 @@ html[data-has-hero] .sl-markdown-content h2 + p {
 	font-size: clamp(var(--sl-text-base), calc(0.5rem + 1.5vw), 24px);
 	padding-bottom: clamp(0.5rem, 2vw, 16px);
 	text-align: center;
+	max-width: 700px;
+	line-height: 1.2;
+	/* max-width alone leaves the block hugging the left edge of the content
+	   column; auto inline margins keep it centered */
+	margin-inline: auto;
+}
+
+/* Center the hero title, tagline, and action links. Starlight centers the
+   hero copy only below 50rem; these override its desktop left-alignment.
+   Starlight's hero grid also reserves a 4fr right column for a hero image at
+   ≥50rem even when no image is set — collapse it so the copy centers within
+   the full content width (no hero page on this site uses an image). */
+html[data-has-hero] .hero {
+	grid-template-columns: 1fr;
+}
+html[data-has-hero] .hero .copy {
+	align-items: center;
+	text-align: center;
+}
+html[data-has-hero] .hero .actions {
+	justify-content: center;
+}
+
+/* Hero tagline: match the section-intro paragraph styling (h2 + p above) */
+html[data-has-hero] .hero .tagline {
+	font-size: clamp(var(--sl-text-base), calc(0.5rem + 1.5vw), 24px);
+	max-width: 700px;
+	line-height: 1.2;
 }
