@@ -19,8 +19,6 @@ import cliGeneratePoster from '../assets/demoCarousel/CommandGenerate.png';
 import cliSetupVideo from '../assets/demoCarousel/CommandSetup.mp4';
 import cliSetupPoster from '../assets/demoCarousel/CommandSetup.png';
 
-const base = import.meta.env.BASE_URL.replace(/\/$/, '');
-
 interface Demo {
   id: string;
   label: string;
@@ -78,18 +76,21 @@ const sets: Record<string, Demo[]> = {
       video: cliSetupVideo,
     },
     // Pending recording — restore once CommandTransform / CommandAnalyze
-    // are added to assets/demoCarousel/ (with their .png posters + imports).
+    // are added to assets/demoCarousel/ (with their .png posters + imports,
+    // set the poster to `cliTransformPoster.src` / `cliAnalyzePoster.src`).
     // {
     //   id: 'cli-transform',
     //   label: 'Transform to code',
     //   description: 'Reshape data into CSS, contracts and scaffolds',
-    //   poster: `${base}/demos/cli-transform.svg`,
+    //   poster: cliTransformPoster.src,
+    //   video: cliTransformVideo,
     // },
     // {
     //   id: 'cli-analyze',
     //   label: 'Analyze system health',
     //   description: 'Track system quality of props, tokens, and beyond',
-    //   poster: `${base}/demos/cli-analyze.svg`,
+    //   poster: cliAnalyzePoster.src,
+    //   video: cliAnalyzeVideo,
     // },
   ],
 };
