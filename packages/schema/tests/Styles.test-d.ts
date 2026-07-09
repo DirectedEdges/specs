@@ -9,7 +9,7 @@ import type {
   AngularGradient, GradientValue, AspectRatioValue, AspectRatioStyle,
   Sides, Corners, ItemSpacing, LayoutMode, WrapAlignment,
   MainAxisAlignment, CrossAxisAlignment, Position, PositionOffset,
-  StrokeDashPattern, TextTruncation,
+  StrokeDashPattern, TextOverflow,
 } from '../types/index.js';
 
 // ─── ColorStyle ────────────────────────────────────────────────────────────
@@ -840,41 +840,44 @@ const _dashNumber: Styles = { strokeDashPattern: 8 };
 // @ts-expect-error: string is not valid for strokeDashPattern
 const _dashString: Styles = { strokeDashPattern: 'dashed' };
 
-// ─── TextTruncation ───────────────────────────────────────────────────────────
+// ─── TextOverflow ─────────────────────────────────────────────────────────────
 
 // Valid enum values
-const _ttDisabled: TextTruncation = 'DISABLED';
-const _ttEnding: TextTruncation = 'ENDING';
+const _toClip: TextOverflow = 'CLIP';
+const _toEllipsis: TextOverflow = 'ELLIPSIS';
 
-// @ts-expect-error: arbitrary string is not valid TextTruncation
-const _ttBad: TextTruncation = 'MIDDLE';
+// @ts-expect-error: arbitrary string is not valid TextOverflow
+const _toBad: TextOverflow = 'FADE';
 
-// @ts-expect-error: number is not valid TextTruncation
-const _ttNumber: TextTruncation = 0;
+// @ts-expect-error: Figma's raw value is not valid TextOverflow (remapped in the generator)
+const _toFigmaRaw: TextOverflow = 'ENDING';
+
+// @ts-expect-error: number is not valid TextOverflow
+const _toNumber: TextOverflow = 0;
 
 // @ts-expect-error: lowercase is not valid (SCREAMING_CASE required)
-const _ttLowercase: TextTruncation = 'ending';
+const _toLowercase: TextOverflow = 'clip';
 
-// ─── Styles.textTruncation (TextTruncation | null) ───────────────────────────
+// ─── Styles.textOverflow (TextOverflow | null) ───────────────────────────────
 
 // Valid enum values on Styles
-const withTruncationDisabled: Styles = { textTruncation: 'DISABLED' };
-const withTruncationEnding: Styles = { textTruncation: 'ENDING' };
+const withOverflowClip: Styles = { textOverflow: 'CLIP' };
+const withOverflowEllipsis: Styles = { textOverflow: 'ELLIPSIS' };
 
 // null is valid
-const withTruncationNull: Styles = { textTruncation: null };
+const withOverflowNull: Styles = { textOverflow: null };
 
 // absent is valid (all Styles fields optional)
-const withNoTruncation: Styles = {};
+const withNoOverflow: Styles = {};
 
-// @ts-expect-error: TokenReference is not valid for textTruncation (not token-bindable)
-const _ttToken: Styles = { textTruncation: { $token: 'Text.Truncation', $type: 'string' } satisfies TokenReference };
+// @ts-expect-error: TokenReference is not valid for textOverflow (not token-bindable)
+const _toToken: Styles = { textOverflow: { $token: 'Text.Overflow', $type: 'string' } satisfies TokenReference };
 
-// @ts-expect-error: number is not valid for textTruncation
-const _ttStyleNumber: Styles = { textTruncation: 1 };
+// @ts-expect-error: number is not valid for textOverflow
+const _toStyleNumber: Styles = { textOverflow: 1 };
 
-// @ts-expect-error: arbitrary string is not valid for textTruncation
-const _ttArbitrary: Styles = { textTruncation: 'CLIP' };
+// @ts-expect-error: arbitrary string is not valid for textOverflow
+const _toArbitrary: Styles = { textOverflow: 'FADE' };
 
 // ─── Styles.maxLines (Style — a plain number like width/opacity) ─────────────
 

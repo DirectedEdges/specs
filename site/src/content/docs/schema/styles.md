@@ -53,7 +53,7 @@ Combined view: every style property, grouped by category and then by name, with 
 | Text | `maxLines` |  | ✓ |  |  |  |
 | Text | `textAlignHorizontal` |  | ✓ |  |  |  |
 | Text | `textAlignVertical` |  | ✓ |  |  |  |
-| Text | `textTruncation` |  | ✓ |  |  |  |
+| Text | `textOverflow` |  | ✓ |  |  |  |
 | Text | `typography` |  | ✓ |  |  |  |
 | Transform | `rotation` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Visibility | `clipContent` | ✓ |  |  |  |  |
@@ -85,6 +85,7 @@ Several spec style keys differ from the Figma node property they read from. Spec
 | `centerVerticalOffset` | `y` (constraint CENTER) | [ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md) |
 
 | `strokeDashPattern` | `strokeDashes` | [ADR 059](https://github.com/DirectedEdges/specs/blob/main/adr/059-border-style.md) |
+| `textOverflow` | `textTruncation` (values remapped: `DISABLED`→`CLIP`, `ENDING`→`ELLIPSIS`) | [ADR 062](https://github.com/DirectedEdges/specs/blob/main/adr/062-text-truncation.md) |
 
 All other style keys — `width`, `height`, `opacity`, `padding`, `itemSpacing`, `cornerRadius`, `strokeWeight`, `rotation`, etc. — use the same name as the Figma node property.
 
@@ -115,7 +116,7 @@ Most properties accept a `Style` value. Some properties accept specialized shape
 | `PositionOffset` | Positional offset value | `24` (px), `"25%"` (SCALE), `null` |
 | `AspectRatio` | Width-to-height ratio | `{ x: 16, y: 9 }` |
 | `StrokeDashPattern` | Dash geometry for a dashed stroke — presence signals dashed; null or absent signals solid | `{ dash: 8, gap: 4 }` |
-| `TextTruncation` | Text truncation mode enum | `"DISABLED"`, `"ENDING"` |
+| `TextOverflow` | Text overflow handling enum | `"CLIP"`, `"ELLIPSIS"` |
 
 ### Relating properties to values
 
@@ -134,5 +135,5 @@ Most properties accept a `Style` value. Some properties accept specialized shape
 - `top`, `bottom`, `start`, `end`, `centerHorizontalOffset`, `centerVerticalOffset` accept `PositionOffset` (`number | string | null`) — not token-bindable.
 - `aspectRatio` accepts `AspectRatio | null`.
 - `strokeDashPattern` accepts `StrokeDashPattern | null` — not token-bindable; presence signals a dashed stroke, null or absent signals solid.
-- `textTruncation` accepts `TextTruncation | null` (`"DISABLED" | "ENDING"`) — not token-bindable; `"ENDING"` truncates overflowing text with a trailing ellipsis.
-- `maxLines` accepts any `Style` (a plain number like other sizes); the line limit before `textTruncation: "ENDING"` applies, or `null` for no limit.
+- `textOverflow` accepts `TextOverflow | null` (`"CLIP" | "ELLIPSIS"`) — not token-bindable; `"ELLIPSIS"` truncates overflowing text with a trailing ellipsis, `"CLIP"` cuts it off. Named after CSS `text-overflow` / Compose `TextOverflow`.
+- `maxLines` accepts any `Style` (a plain number like other sizes); the line limit before `textOverflow: "ELLIPSIS"` applies, or `null` for no limit.

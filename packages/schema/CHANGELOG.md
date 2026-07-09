@@ -9,8 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `Styles.textTruncation` — typed as `TextTruncation` (`'DISABLED' | 'ENDING'`) or `null`; whether text truncates with a trailing ellipsis (TEXT only, not token-bindable)
-- `Styles.maxLines` — maximum line count before `'ENDING'` truncation applies; null for no limit (TEXT only)
+- `Styles.textOverflow` — typed as `TextOverflow` (`'CLIP' | 'ELLIPSIS'`) or `null`; how overflowing text is handled (TEXT only, not token-bindable). Named after CSS `text-overflow` / Compose `TextOverflow`
+- `Styles.maxLines` — maximum line count before `'ELLIPSIS'` text overflow applies; null for no limit (TEXT only)
 
 ### Changed
 

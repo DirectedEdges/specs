@@ -4,7 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 062 | Text Truncation Style Keys — `textTruncation` and `maxLines` on `Styles` | |
+| 062 | Text Overflow & Max Lines — `textOverflow` and `maxLines` on `Styles` | |
 | 061 | Schema Entry Points for Concern-Split Output | |
 | 059 | Border Style and Dash Pattern — `borderStyle` and `borderDashPattern` on `Styles` | |
 | 058 | Wrapper Collapse Config Flag — `processing.wrapperCollapse` | |

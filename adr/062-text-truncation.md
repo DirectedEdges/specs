@@ -1,4 +1,4 @@
-# ADR: Text truncation style keys (`textTruncation`, `maxLines`)
+# ADR: Text overflow style keys (`textOverflow`, `maxLines`)
 
 **Branch**: `062-text-truncation`
 **Created**: 2026-07-09
@@ -10,58 +10,81 @@
 
 ## Context
 
-A text node in Figma can be configured to truncate its content with an ellipsis when the content exceeds the node's bounds. Two `TextNode` properties govern this behaviour:
+A text node in Figma can be configured to truncate its content with an ellipsis when the content exceeds the node's bounds. Two Figma properties govern this — `textTruncation` (`'DISABLED' | 'ENDING'`) and `maxLines` (`number | null`, only meaningful when truncation is on). Neither is currently represented in the schema: `Styles` in `types/Styles.ts` and the `Styles` definition in `schema/styles.schema.json` have no key for either, and `StyleKey` does not enumerate them. Truncation configuration is therefore silently dropped from spec output — a fidelity gap for line-clamped labels, single-line truncating text, and any component whose text-overflow behaviour is part of its design contract.
 
-- [`textTruncation`](https://developers.figma.com/docs/plugins/api/properties/TextNode-texttruncation/) — `'DISABLED' | 'ENDING'`. Whether truncation with a trailing ellipsis is applied. A closed enum.
-- [`maxLines`](https://developers.figma.com/docs/plugins/api/properties/TextNode-maxlines/) — `number | null`. The maximum number of lines a text node may reach before it truncates. Only meaningful when `textTruncation` is `'ENDING'`; `null` means no line limit. An ordinary number.
+Both properties belong to the `TEXT` element type only. They are available in **both** runtimes: the Plugin API exposes them as top-level `TextNode` properties, and the REST API nests them under the node's `style` object (`TypeStyle.textTruncation`, `TypeStyle.maxLines`).
 
-Neither property is currently represented in the schema. `Styles` in `types/Styles.ts` and the `Styles` definition in `schema/styles.schema.json` have no key for either, and `StyleKey` does not enumerate them. As a result, truncation configuration is silently dropped from spec output — a fidelity gap for line-clamped labels, single-line truncating text, and any component whose text overflow behaviour is part of its design contract.
+### Naming — how each platform models this
 
-Both properties belong to the `TEXT` element type only. `textTruncation` is a structural enum that is not token-bindable. `maxLines` is a plain number — the same shape as `width`, `height`, `opacity`, and `cornerSmoothing`, all of which are already typed as `Style`.
+The schema names identifiers by code-platform vocabulary, not Figma's (Constitution VI). Comparing the three target platforms:
+
+**Truncation / overflow handling**
+
+| Platform | Property | Values |
+|----------|----------|--------|
+| Web (CSS) | `text-overflow` | `clip` \| `ellipsis` (+ `<string>`) |
+| Android (Compose) | `overflow: TextOverflow` | `Clip` \| `Ellipsis` \| `Visible` \| `StartEllipsis` \| `MiddleEllipsis` |
+| iOS (SwiftUI) | `truncationMode` | `.head` \| `.middle` \| `.tail` |
+| Figma | `textTruncation` | `DISABLED` \| `ENDING` |
+
+**Maximum line count**
+
+| Platform | Property |
+|----------|----------|
+| Android (Compose) | `maxLines: Int` |
+| iOS (SwiftUI) | `lineLimit(Int?)` |
+| Web (CSS) | `line-clamp: <n>` |
+| Figma | `maxLines` |
+
+Reading these against the constitution's naming rules:
+
+- **Property name → `textOverflow`.** The term "overflow" is shared by **two** code platforms (CSS `text-overflow`, Compose `TextOverflow`); "truncation" by only one (SwiftUI `truncationMode`) plus Figma. Constitution VI rule 1 (favor a term 2+ code platforms share) selects **overflow**. The `text` prefix disambiguates from container overflow (already modelled by `clipContent`).
+- **Values → `'CLIP' | 'ELLIPSIS'`.** CSS (`clip`/`ellipsis`) and Compose (`Clip`/`Ellipsis`) agree on these value names too — again 2 code platforms (rule 1). SCREAMING_CASE per the Styles enum-casing rule. The set extends cleanly to Compose's `VISIBLE` / `START_ELLIPSIS` / `MIDDLE_ELLIPSIS` if ever needed. No platform models this as a boolean — all use an enum — so a boolean is rejected as a dead-end that cannot express clip-vs-visible or truncation position.
+- **`maxLines` kept.** Android/Compose uses exactly `maxLines`; it is unabbreviated and unambiguous under a `TEXT` element. No platform uses `maxTextLines`; SwiftUI's `lineLimit` is the only alternative and is less transparent. `maxLines` is a plain number, so it is typed as `Style` like every other numeric key (`width`, `opacity`, `cornerSmoothing`) — not a named type.
+
+Figma's `textTruncation` values (`DISABLED`/`ENDING`) are remapped to the platform vocabulary by the transformer (`DISABLED → CLIP`, `ENDING → ELLIPSIS`), the same way `mainAxisAlignment` remaps Figma's `MIN`/`MAX`.
 
 ---
 
 ## Decision Drivers
 
-- **Additive-only** — introduce new optional keys without altering any existing type or schema, so downstream consumers incur no breaking change (MINOR bump).
+- **Additive-only** — new optional keys, no change to any existing type or schema (MINOR bump).
 - **Type ↔ schema parity** — every new `types/` field has a matching `schema/` definition; no drift (Constitution I).
-- **Structural-enum typing rule** — a closed, non-token-bindable value set MUST be a named type, not `Style` (Constitution "Typing — structural enums vs. `Style`"). This governs `textTruncation`.
-- **Consistency for plain numbers** — a numeric property with no closed value set is typed as `Style`, exactly like every other numeric key on `Styles` (`width`, `opacity`, `cornerSmoothing`). This governs `maxLines`. The named-narrow-type rule targets shapes like `PositionOffset` (`number | string | null`), not a plain number.
-- **Naming governance** — field names and enum values chosen per Constitution VI (code-platforms-first), documented below.
+- **Structural-enum typing rule** — a closed, non-token-bindable value set MUST be a named type, not `Style` (Constitution "Typing — structural enums vs. `Style`"). Governs `textOverflow`.
+- **Consistency for plain numbers** — a numeric property with no closed value set is typed as `Style`, like every other numeric key. Governs `maxLines`.
+- **Code-platforms-first naming** — names and values chosen per Constitution VI, as derived above.
 - **No runtime logic** — this package gains only type declarations and schema definitions (Constitution II).
 
 ---
 
 ## Options Considered
 
-### Option A: `textTruncation` as a named enum; `maxLines` as `Style` *(Selected)*
+### Option A: `textOverflow: 'CLIP' | 'ELLIPSIS'` (named enum); `maxLines: Style` *(Selected)*
 
-- `textTruncation`: `TextTruncation | null` where `type TextTruncation = 'DISABLED' | 'ENDING'`, with a `TextTruncationStyleValue` schema definition — mirrors `LayoutMode`/`Position`.
-- `maxLines`: `Style`, with the shared `NumberStyleValue` schema definition — mirrors `width`, `opacity`, `cornerSmoothing`.
+- `textOverflow`: `TextOverflow | null` where `type TextOverflow = 'CLIP' | 'ELLIPSIS'`, with a `TextOverflowStyleValue` schema definition — mirrors `LayoutMode`/`Position`, and mirrors CSS/Compose for both the name and the values.
+- `maxLines`: `Style`, reusing the shared `NumberStyleValue` schema definition — mirrors `width`, `opacity`, `cornerSmoothing`.
 
 **Pros**:
-- Each property is typed by its actual nature: a closed enum gets a named type; a plain number gets `Style`.
-- `maxLines` stays consistent with every other numeric key and needs no bespoke type or schema definition.
-- `Style` correctly permits a `TokenReference` for `maxLines`, matching Figma's variable-binding capability for numeric properties and the transformer's existing treatment (a token-bindable pure number).
+- Name and values both satisfy the 2-code-platform rule (CSS + Compose), fully unbiasing from Figma.
+- Each property is typed by its actual nature: closed enum → named type; plain number → `Style`.
+- `Style` correctly permits a `TokenReference` for `maxLines`, matching Figma's variable-binding capability for numeric properties.
 
 **Cons / Trade-offs**:
-- Two properties in the same feature are typed differently. This reflects a real difference in their value domains, not an inconsistency.
+- The transformer must remap Figma's `DISABLED`/`ENDING` to `CLIP`/`ELLIPSIS` — a small, well-precedented value map (like `mainAxisAlignment`).
 
 ---
 
-### Option B: Both as named structural types (`TextTruncation`, `MaxLines`) *(Rejected)*
+### Option B: Keep Figma's `textTruncation` with `'DISABLED' | 'ENDING'` *(Rejected)*
 
-Give `maxLines` a dedicated `MaxLines = number | null` type and a `MaxLinesStyleValue` schema definition.
-
-**Rejected because**: `maxLines` is a plain number with no closed value set and is token-bindable like other numeric properties. A named narrow type is reserved for non-`Style` shapes such as `PositionOffset`. Introducing `MaxLines` would make `maxLines` gratuitously inconsistent with `width`, `height`, and `opacity`, and would wrongly exclude `TokenReference` from its value set.
+**Rejected because**: both the name ("truncation") and the values (`DISABLED`/`ENDING`) are Figma-only; no code platform uses them. Violates Constitution VI, which prefers code-platform vocabulary and treats Figma as the data source, not the naming authority.
 
 ---
 
-### Option C: Both as generic `Style` *(Rejected)*
+### Option C: Model overflow as a boolean *(Rejected)*
 
-Type `textTruncation` as `Style` too (like the grandfathered `textAlignHorizontal`).
+A boolean such as `truncate: true | false`.
 
-**Rejected because**: `textTruncation` has a closed, non-token-bindable value set, so the "structural enums vs. `Style`" rule requires a named type. `Style` would also wrongly imply it can carry `TokenReference`/`PropBinding`/`Conditional`. The `textAlignHorizontal: Style` typing is a grandfathered inconsistency, not a precedent to extend.
+**Rejected because**: no target platform models this as a boolean — all use an enum. A boolean cannot express clip-vs-visible or truncation position (start/middle/end), is not extensible, and reads worse (`textOverflow: ELLIPSIS` is clearer than `truncate: true`).
 
 ---
 
@@ -73,61 +96,56 @@ Add two flat, optional, `TEXT`-only style keys to `Styles`, one named enum type,
 
 | File | Change | Bump |
 |------|--------|------|
-| `types/Styles.ts` | Add field `textTruncation: TextTruncation \| null` to `Styles` | MINOR |
+| `types/Styles.ts` | Add field `textOverflow: TextOverflow \| null` to `Styles` | MINOR |
 | `types/Styles.ts` | Add field `maxLines: Style` to `Styles` | MINOR |
-| `types/Styles.ts` | Add `export type TextTruncation = 'DISABLED' \| 'ENDING'` | MINOR |
-| `types/index.ts` | Re-export `TextTruncation` from the barrel | MINOR |
-| `types/Styles.ts` | Add `'textTruncation'` and `'maxLines'` to the `StyleKey` union | MINOR |
+| `types/Styles.ts` | Add `export type TextOverflow = 'CLIP' \| 'ELLIPSIS'` | MINOR |
+| `types/index.ts` | Re-export `TextOverflow` from the barrel | MINOR |
+| `types/Styles.ts` | Add `'textOverflow'` and `'maxLines'` to the `StyleKey` union | MINOR |
 
 **Example — new shape** (`types/Styles.ts`):
 ```yaml
 # After — within the Styles Partial
 Styles:
-  # …existing text keys…
   textAlignHorizontal: Style
   textAlignVertical: Style
-  # Whether text truncates with a trailing ellipsis. Structural — not token-bindable. TEXT only.
-  textTruncation: TextTruncation | null
-  # Max line count before ENDING truncation applies; null = no limit. Plain number. TEXT only.
+  # How overflowing text is handled. Structural — not token-bindable. TEXT only.
+  textOverflow: TextOverflow | null
+  # Max line count before ELLIPSIS overflow applies; null = no limit. Plain number. TEXT only.
   maxLines: Style
 
 # New named type (enum only — maxLines needs none)
-TextTruncation: "'DISABLED' | 'ENDING'"
+TextOverflow: "'CLIP' | 'ELLIPSIS'"
 ```
 
 ### Schema changes (`schema/`)
 
 | File | Change | Bump |
 |------|--------|------|
-| `schema/styles.schema.json` | Add property `textTruncation` → `#/definitions/TextTruncationStyleValue` under `Styles.properties` | MINOR |
+| `schema/styles.schema.json` | Add property `textOverflow` → `#/definitions/TextOverflowStyleValue` under `Styles.properties` | MINOR |
 | `schema/styles.schema.json` | Add property `maxLines` → `#/definitions/NumberStyleValue` under `Styles.properties` | MINOR |
-| `schema/styles.schema.json` | Add definition `TextTruncationStyleValue` | MINOR |
+| `schema/styles.schema.json` | Add definition `TextOverflowStyleValue` | MINOR |
 
 **Example — new shape** (`schema/styles.schema.json`):
 ```yaml
-# Under #/definitions/Styles/properties (additionalProperties stays false)
-textTruncation:
-  $ref: "#/definitions/TextTruncationStyleValue"
-  description: "Whether text truncates with a trailing ellipsis when content exceeds bounds. Structural property — not token-bindable."
+textOverflow:
+  $ref: "#/definitions/TextOverflowStyleValue"
+  description: "How overflowing text is handled — CLIP (cut off) or ELLIPSIS (trailing ellipsis). Structural property — not token-bindable."
 maxLines:
-  $ref: "#/definitions/NumberStyleValue"   # reuses the shared number value (number | TokenReference | null)
-  description: "Maximum number of lines before ENDING truncation applies; null or absent means no limit."
+  $ref: "#/definitions/NumberStyleValue"   # reuses number | TokenReference | null
+  description: "Maximum number of lines before ELLIPSIS overflow applies; null or absent means no limit."
 
-# New definition (mirror LayoutModeStyleValue)
-TextTruncationStyleValue:
-  description: "Text truncation value. Structural property — not token-bindable."
+TextOverflowStyleValue:
+  description: "Text overflow handling value. Structural property — not token-bindable."
   oneOf:
-    - { type: string, enum: ["DISABLED", "ENDING"] }
+    - { type: string, enum: ["CLIP", "ELLIPSIS"] }
     - { type: "null" }
 ```
 
 ### Notes
 
-- **`maxLines` reuses `NumberStyleValue`** — the same definition backing `width`, `height`, `opacity`, and `cornerSmoothing` (`number | TokenReference | null`). No new type or schema definition is introduced for it.
-- **Both keys optional** — `Styles` is a `Partial`; the keys are present only for `TEXT` elements. `additionalProperties: false` on the `Styles` schema definition means the new properties MUST be declared there for valid text output to pass validation.
-- **`| null` on `textTruncation`** — mirrors the sibling structural enums (`LayoutMode`, `Position`, `MainAxisAlignment`), all typed `TypeName | null`.
-- **Naming — `maxLines`** (Constitution VI, rule 2): a single code platform, Android/Jetpack Compose, names this property exactly `maxLines`, coinciding with Figma's name — zero transformer translation. (SwiftUI `lineLimit`, React Native `numberOfLines` diverge; no 2+ code-platform consensus, so rule 1 does not apply.)
-- **Naming — `textTruncation` and values `DISABLED`/`ENDING`** (Constitution VI, rule 3): no code-platform consensus exists for the truncation-mode concept (SwiftUI `truncationMode`, CSS `text-overflow`, Android `TextOverflow`, React Native `ellipsizeMode` all differ). Deferring to Figma's `textTruncation` name and its `'DISABLED' | 'ENDING'` values avoids a lossy mode-mapping table and preserves reverse-direction round-trip fidelity. Values are already `SCREAMING_CASE`, satisfying the enum-casing rule.
+- **`maxLines` reuses `NumberStyleValue`** — the shared definition (`number | TokenReference | null`) backing `width`, `opacity`, `cornerSmoothing`. No new type or schema definition for it.
+- **Both keys optional** — `Styles` is a `Partial`; present only for `TEXT` elements. `additionalProperties: false` on the `Styles` definition means the new properties MUST be declared there for valid text output.
+- **`| null` on `textOverflow`** — mirrors the sibling structural enums (`LayoutMode`, `Position`, `MainAxisAlignment`), all typed `TypeName | null`.
 
 ---
 
@@ -135,9 +153,9 @@ TextTruncationStyleValue:
 
 - **Symmetric**: Yes.
 - **Parity check**:
-  - `Styles.textTruncation` (`TextTruncation | null`) ↔ `Styles.properties.textTruncation` → `TextTruncationStyleValue` (`enum ["DISABLED","ENDING"]` ∪ `null`).
+  - `Styles.textOverflow` (`TextOverflow | null`) ↔ `Styles.properties.textOverflow` → `TextOverflowStyleValue` (`enum ["CLIP","ELLIPSIS"]` ∪ `null`).
   - `Styles.maxLines` (`Style`) ↔ `Styles.properties.maxLines` → `NumberStyleValue` (`number` ∪ `TokenReference` ∪ `null`).
-  - `StyleKey` gains `'textTruncation'` and `'maxLines'`, matching the two new `Styles` properties.
+  - `StyleKey` gains `'textOverflow'` and `'maxLines'`, matching the two new `Styles` properties.
 
 ---
 
@@ -145,7 +163,7 @@ TextTruncationStyleValue:
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | Emits the two new keys for `TEXT` elements | None — generator already reads `textTruncation` (pureString) and `maxLines` (pureNumber) and emits them; recompiles against the new types |
+| `specs-from-figma` | Emits the two new keys for `TEXT` elements in both runtimes | None — generator already implemented: a `textOverflow` handler remaps Figma `textTruncation` → `CLIP`/`ELLIPSIS`; `maxLines` reads as a pure number. REST adapter surfaces both from `TypeStyle` via node getters. Recompiles against the new types |
 | `specs-cli` | New keys may appear in validated/serialized output | Recompile against the new schema version; no code change |
 | `specs-plugin-2` | New keys may appear in plugin-side spec output | Recompile against the new types; no code change |
 
@@ -155,15 +173,16 @@ TextTruncationStyleValue:
 
 **Version bump**: `0.28.0 → 0.28.0` (`MINOR`; lands within the in-progress, unreleased `0.28.0`)
 
-**Justification**: All changes are additive — two new optional fields on `Styles`, one new exported type, two additive `StyleKey` members, and one additive schema definition (plus a reuse of the existing `NumberStyleValue`). No existing type, field, or schema property is removed, renamed, or restructured. Additive changes are `MINOR` per Constitution III and the Versioning policy. Because `0.28.0` is unreleased, the additions ride within that MINOR release.
+**Justification**: All changes are additive — two new optional fields on `Styles`, one new exported type, two additive `StyleKey` members, and one additive schema definition (plus reuse of `NumberStyleValue`). No existing type, field, or schema property is removed, renamed, or restructured. Additive changes are `MINOR` per Constitution III and the Versioning policy. Because `0.28.0` is unreleased, the additions ride within that MINOR release.
 
 ---
 
 ## Consequences
 
-- Spec output faithfully represents text truncation configuration; line-clamped and single-line-truncating text no longer lose that information.
-- Reverse-direction tooling (`figma-from-specs`) gains named keys to write `textTruncation` and `maxLines` back to a Figma `TextNode`.
-- `maxLines` behaves like every other numeric style key — it can carry a plain number, a `TokenReference`, or `null`, and needs no special handling in consumers.
+- Spec output faithfully represents text-overflow configuration in both Plugin and REST runtimes; line-clamped and truncating text no longer lose that information.
+- The schema uses code-platform vocabulary (`textOverflow`, `CLIP`/`ELLIPSIS`) rather than Figma's (`textTruncation`, `DISABLED`/`ENDING`); the transformer owns the one-way value remap.
+- `maxLines` behaves like every other numeric style key — a plain number, a `TokenReference`, or `null` — and needs no special handling in consumers.
+- Reverse-direction tooling (`figma-from-specs`) gains named keys to write both back to a Figma `TextNode`, inverting the remap.
 - Consumers validating against `schema/styles.schema.json` must adopt schema `0.28.0`; text nodes carrying the new keys would fail validation against `0.27.0` (`additionalProperties: false`).
-- `TextTruncation` becomes part of the public type surface and is subject to the stability rules of Constitution III going forward.
-- The grandfathered `textAlignHorizontal: Style` / `textAlignVertical: Style` typing remains untouched; this ADR does not retrofit those to named types.
+- `TextOverflow` becomes part of the public type surface, subject to the stability rules of Constitution III.
+- The grandfathered `textAlignHorizontal: Style` / `textAlignVertical: Style` typing remains untouched.
