@@ -3,8 +3,8 @@ title: Introduction
 description: Specs is a deterministic system for generating structured UI component specifications from Figma.
 template: splash
 hero:
-  title: Specs from Figma, repeatable and fast
-  tagline: Turn Figma components into compact, complete, schema-valid specifications — one structured source of truth that engineers and AI agents build on across web, iOS, and Android.
+  title: Specs as your component canon — change after change
+  tagline: Compact, complete, and schema-valid specs by plugins, commands or LLMs as the record engineers, agents, and pipelines build from
   actions:
     - text: Open the plugin
       link: https://www.figma.com/community/plugin/1549454283615386215/specs-2-formerly-anova
@@ -24,37 +24,34 @@ hero:
       icon: right-arrow
 head:
   - tag: style
-    content: '.sl-markdown-content .card{padding:clamp(1rem,calc(0.125rem + 3vw),2.5rem);background-color:var(--sl-color-gray-6);border-radius:4px}.sl-markdown-content .card .body ul{font-size:var(--sl-text-sm);padding-inline-start:0;list-style-position:inside}.guide-gallery .sl-link-card{background-color:var(--sl-color-gray-6);border-radius:4px}.guide-gallery .card-grid>:first-child .sl-link-card,.guide-gallery .card-grid>:first-child.sl-link-card{background-color:var(--sl-color-accent-low);border-color:var(--sl-color-accent)}.guide-gallery .card-grid>:first-child .title{color:var(--sl-color-text-accent)}.feature-grid .sl-link-card{background-color:var(--sl-color-gray-6);border-radius:4px}@media (min-width:72rem){.guide-gallery .card-grid{grid-template-columns:repeat(4,1fr)}.feature-grid .card-grid{grid-template-columns:repeat(3,1fr)}}@media (min-width:50rem){.content-panel .hero{padding-block-end:2rem}}.hero .actions{gap:0.75rem;font-size:var(--sl-text-sm)}.hero .actions>a.minimal{color:var(--sl-color-gray-2)}.hero .actions>a.minimal:hover{color:var(--sl-color-white)}.hero .actions>a.minimal+a.minimal::before{content:"·";margin-inline-end:0.75rem;color:var(--sl-color-gray-4)}.sl-markdown-content .page-footer{margin-top:4rem;padding-top:1.5rem;border-top:1px solid var(--sl-color-hairline);font-size:var(--sl-text-sm);color:var(--sl-color-gray-3)}.sl-markdown-content .page-footer p{margin-top:0.5rem}.sl-markdown-content .page-footer a{color:var(--sl-color-gray-2)}.sl-markdown-content .page-footer a:hover{color:var(--sl-color-white)}'
+    content: '.sl-markdown-content .card{padding:clamp(1rem,calc(0.125rem + 3vw),2.5rem);background-color:var(--sl-color-gray-6);border-radius:4px}.sl-markdown-content .card .body ul{font-size:var(--sl-text-sm);padding-inline-start:0;list-style-position:inside}.guide-gallery .sl-link-card{background-color:var(--sl-color-gray-6);border-radius:4px}.guide-gallery .card-grid>:first-child .sl-link-card,.guide-gallery .card-grid>:first-child.sl-link-card{background-color:var(--sl-color-accent-low);border-color:var(--sl-color-accent)}.guide-gallery .card-grid>:first-child .title{color:var(--sl-color-text-accent)}.feature-grid .sl-link-card{background-color:var(--sl-color-gray-6);border-radius:4px}@media (min-width:72rem){.guide-gallery .card-grid{grid-template-columns:repeat(4,1fr)}.feature-grid .card-grid{grid-template-columns:repeat(3,1fr)}}@media (min-width:50rem){.content-panel .hero{padding-block-end:2rem}}.hero .actions{gap:0.75rem;font-size:var(--sl-text-sm)}.hero .actions>a.primary{margin-inline-end:1rem}.hero .actions>a.minimal{color:var(--sl-color-gray-2)}.hero .actions>a.minimal:hover{color:var(--sl-color-white)}.hero .actions>a.minimal+a.minimal::before{content:"·";margin-inline-end:0.75rem;color:var(--sl-color-gray-4)}.sl-markdown-content .accent-word{color:var(--sl-color-text-accent);font-style:italic}'
 ---
 
 import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 import { Image } from 'astro:assets';
 import specsWorkflow from '../../assets/specs-workflow.png';
+import homeHero from '../../assets/plugin/HomeHero.png';
 import DemoCarousel from '../../components/DemoCarousel.astro';
 
-## Figma plugin for on-canvas specs
+<Image src={homeHero} alt="Composite view of the Specs plugin in Figma: the plugin UI panel alongside a generated on-canvas spec output and the structured spec data it extracts." />
 
-Generate and review specs on the canvas without leaving Figma — styled your way and tuned to your file's conventions.
+## Review and verify specs on Figma's canvas
+
+Use the Specs 2 plugin to create specs on the canvas — styled your way and tuned to your library's conventions.
 
 <DemoCarousel set="plugin" />
 
-## Commands for LLMs, agents, and pipelines
+## Run commands in LLM chats, agents, and pipelines
 
-Spec an entire library from your terminal in minutes — then transform, analyze, and feed it to agents and CI.
+Generate – and regenerate – an entire library in a minute that feeds specs, code and more data into your agentic workflow
 
 <DemoCarousel set="cli" />
 
-## Fit specs into your workflow
+## A system to synchronize your design intent
 
-Compile your Figma-based design intent so agents can build components in code.
+When every surface from prototype to production reads from one record, change stops being a handoff and starts to become <em class="accent-word">sync</em>.
 
 <Image src={specsWorkflow} alt="Diagram of the Specs workflow across three columns: Design, Specs, and Code. A legend distinguishes generated steps, shown in orange, agentic inference, shown in blue, and human-authored content, shown in yellow. On the left, the Design column holds Figma and a React prototype. Orange generated arrows labeled Plugin and fetch + generate carry Figma data into the central Specs column, and an orange render arrow returns from Specs to Figma, indicating specs can also be written back into Figma. The Specs column stacks four artifacts: api.yaml (partly human authored), variants.yaml, examples.yaml, and supplement.md (human authored with agentic input). Blue agentic arrows loop between the prototype and Specs, showing agents working against specs while prototyping. On the right, an orange arrow leads from Specs to generated code — CSS, contract, and TSX scaffold — which feeds a React prototyping kit and, via a dashed line, the Code column. Blue agentic arrows fan out from Specs directly to React, Android, and iOS libraries, representing agents and engineers building production libraries straight from spec data. Below, an orange arrow leads from Specs to analysis and monitoring covering tokens, props, slots, graphs, and more." />
-
-- **Plugin** — generate and review specs directly on the Figma canvas.
-- **`fetch` → `scan` → `generate`** — pull specs in bulk, whether scheduled, per release, or on change.
-- **Write bridge** *(under development)* — write components from spec into Figma assets.
-- **[`transform`](/specs/cli/transforms/)** — drive generated code: CSS, TSX scaffolds, TS contracts, Storybook stories, and more.
-- **[`analyze`](/specs/cli/analyze/)** — feed monitored analyses that flag drift and quality gaps over time.
 
 ## Computation over inference
 
@@ -106,13 +103,3 @@ Blend determinism with adaptability to generate specs based on how your system w
 <LinkCard title="Layout Positioning" href="/specs/guides/layout-positioning/" description="Map Figma constraints to positioning" />
 </CardGrid>
 </div>
-
-<footer class="page-footer">
-
-Schema licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) · CLI under [MIT](https://github.com/DirectedEdges/specs/blob/main/packages/cli/LICENSE). When reusing the schema, credit **Nathan Curtis** and link this repository — see the [full license](/specs/overview/license/) for attribution details.
-
-[License](/specs/overview/license/) · [Licensing](/specs/overview/licensing/) · [Terms of Service](/specs/overview/terms-of-service/) · [GitHub](https://github.com/DirectedEdges/specs)
-
-Independent project, not affiliated with Figma Inc.
-
-</footer>

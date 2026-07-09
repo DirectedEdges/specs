@@ -82,6 +82,13 @@ interface Props {
 
 const { set } = Astro.props;
 const demos = sets[set];
+
+// Distinct accessible names — two identically-labeled tablists on one page
+// are indistinguishable to screen reader users
+const navLabels: Record<string, string> = {
+  plugin: 'Figma plugin demos',
+  cli: 'Command demos',
+};
 ---
 
 {/* not-content exempts the internals from Starlight's markdown flow spacing
@@ -89,7 +96,7 @@ const demos = sets[set];
     below the nav and pads out the gap between nav items */}
 <section class="demo-carousel not-content">
   <div class="demo-aside">
-    <div class="demo-nav" role="tablist" aria-label="Product demos" aria-orientation="vertical">
+    <div class="demo-nav" role="tablist" aria-label={navLabels[set]} aria-orientation="vertical">
       {demos.map((demo, i) => (
         <button
           type="button"
@@ -114,6 +121,7 @@ const demos = sets[set];
         aria-labelledby={`demo-tab-${demo.id}`}
         class="demo-panel"
         hidden={i !== 0}
+        tabindex={demo.video ? undefined : 0}
       >
         {demo.video ? (
           <video
@@ -123,6 +131,7 @@ const demos = sets[set];
             preload="none"
             poster={base + demo.poster}
             src={demo.video}
+            aria-label={`${demo.label} — ${demo.description}`}
           />
         ) : (
           <img
@@ -194,6 +203,11 @@ const demos = sets[set];
     color: var(--sl-color-white);
   }
 
+  .demo-tab:focus-visible {
+    outline: 2px solid var(--sl-color-accent);
+    outline-offset: 2px;
+  }
+
   .demo-tab[aria-selected='true'] {
     background-color: var(--sl-color-accent-low);
     border-color: var(--sl-color-accent);
@@ -255,6 +269,8 @@ const demos = sets[set];
 </style>
 
 <script>
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
   document.querySelectorAll('.demo-carousel').forEach((carousel) => {
     const tabs = [...carousel.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
     const panels = [...carousel.querySelectorAll<HTMLElement>('[role="tabpanel"]')];
@@ -270,13 +286,18 @@ const demos = sets[set];
         if (video && i !== index) video.pause();
       });
       const video = panels[index].querySelector('video');
-      if (video) video.play().catch(() => {});
+      if (video && !reducedMotion.matches) video.play().catch(() => {});
       if (focus) tabs[index].focus();
     };
 
     tabs.forEach((tab, i) => {
       tab.addEventListener('click', () => select(i));
       tab.addEventListener('keydown', (event) => {
+        if (event.key === 'Home' || event.key === 'End') {
+          event.preventDefault();
+          select(event.key === 'Home' ? 0 : tabs.length - 1, true);
+          return;
+        }
         const step =
           event.key === 'ArrowDown' || event.key === 'ArrowRight' ? 1 :
           event.key === 'ArrowUp' || event.key === 'ArrowLeft' ? -1 : 0;
@@ -299,9 +320,11 @@ const demos = sets[set];
         else video.pause();
       });
 
-      // Auto-advance through the set once; stop after the last tab
+      // Auto-advance through the set once; stop after the last tab.
+      // Skipped under prefers-reduced-motion — content that starts moving
+      // without an explicit request is exactly what that setting refuses.
       video.addEventListener('ended', () => {
-        if (i < panels.length - 1) select(i + 1);
+        if (!reducedMotion.matches && i < panels.length - 1) select(i + 1);
       });
     });
 
