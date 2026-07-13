@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `Styles.textOverflow` — typed as `TextOverflow` (`'CLIP' | 'ELLIPSIS'`) or `null`; how overflowing text is handled (TEXT only, not token-bindable). Named after CSS `text-overflow` / Compose `TextOverflow`
+- `Styles.maxLines` — maximum line count before `'ELLIPSIS'` text overflow applies; null for no limit (TEXT only)
+
 ### Changed
 
 ### Removed

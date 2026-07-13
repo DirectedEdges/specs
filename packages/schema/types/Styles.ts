@@ -46,6 +46,10 @@ export type Styles = Partial<{
   typography: TokenReference | Typography;
   textAlignHorizontal: Style;
   textAlignVertical: Style;
+  /** How overflowing text is handled — `CLIP` (cut off) or `ELLIPSIS` (trailing ellipsis). Structural property — not token-bindable. Present on TEXT element type only. @since 0.28.0 */
+  textOverflow: TextOverflow | null;
+  /** Maximum number of lines before `ELLIPSIS` text overflow applies; `null` or absent means no limit. Present on TEXT element type only. @since 0.28.0 */
+  maxLines: Style;
   textColor: ColorStyle;
   /** Alignment along the main axis (depends on `layoutMode`). Structural property — not token-bindable. @since 0.18.0 */
   mainAxisAlignment: MainAxisAlignment | null;
@@ -260,6 +264,14 @@ export type MainAxisAlignment = 'START' | 'END' | 'CENTER' | 'SPACE_BETWEEN';
 export type CrossAxisAlignment = 'START' | 'END' | 'CENTER' | 'STRETCH' | 'BASELINE';
 
 /**
+ * How text is handled when it overflows its bounds. Structural property that cannot be token-bound.
+ * `'CLIP'` cuts the text off; `'ELLIPSIS'` truncates with a trailing ellipsis.
+ * Named after CSS `text-overflow` and Jetpack Compose `TextOverflow` (values `clip`/`ellipsis`).
+ * @since 0.28.0
+ */
+export type TextOverflow = 'CLIP' | 'ELLIPSIS';
+
+/**
  * Dash geometry for a dashed stroke.
  * Presence on `Styles.strokeDashPattern` indicates a dashed stroke; null or absent indicates solid.
  * `dash` and `gap` are in pixels and correspond to index 0 and 1 of Figma's `strokeDashes` array.
@@ -337,6 +349,8 @@ export type StyleKey =
   | 'typography'
   | 'textAlignHorizontal'
   | 'textAlignVertical'
+  | 'textOverflow'
+  | 'maxLines'
   | 'textColor'
   | 'mainAxisAlignment'
   | 'primaryAxisSizingMode'
