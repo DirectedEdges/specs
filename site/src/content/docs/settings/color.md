@@ -39,4 +39,4 @@ config:
 
 ## See Also
 
-- [Config schema reference](/specs/schema/config/) - Full configuration documentation
+- [Config schema reference](/schema/config/) - Full configuration documentation

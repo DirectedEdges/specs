@@ -21,9 +21,9 @@ A `Subcomponent` contains:
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
 | `title` | `string` | Yes | Subcomponent name |
-| `anatomy` | [`Anatomy`](/specs/schema/anatomy/) | Yes | Element map |
-| `props` | [`Props`](/specs/schema/props/) | No | Prop definitions |
-| `default` | [`Variant`](/specs/schema/variants.md/#variant) | Yes | Default variant |
+| `anatomy` | [`Anatomy`](/schema/anatomy/) | Yes | Element map |
+| `props` | [`Props`](/schema/props/) | No | Prop definitions |
+| `default` | [`Variant`](/schema/variants.md/#variant) | Yes | Default variant |
 | `variants` | [`Variant[]`](variants.md) | No | Variant overrides |
 | `invalidVariantCombinations` | [`PropConfigurations[]`](prop-configurations.md) | No | Invalid prop combinations |
 | `source` | `SubcomponentSource` | No | Figma source identity for this subcomponent's node |
@@ -70,7 +70,7 @@ The `$ref` is a JSON Pointer into the same spec document.
 
 ## Detection
 
-Subcomponent detection is controlled by [`config.processing.subcomponents`](/specs/schema/config.md/#processing):
+Subcomponent detection is controlled by [`config.processing.subcomponents`](/schema/config.md/#processing):
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|

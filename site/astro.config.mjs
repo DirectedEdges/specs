@@ -5,8 +5,7 @@ const pro = { text: 'Pro', variant: 'tip' };
 const experimental = { text: 'Experimental', variant: 'default' };
 
 export default defineConfig({
-  site: 'https://directededges.github.io',
-  base: '/specs',
+  site: 'https://www.specsplugin.com',
   server: { port: 4323 },
   integrations: [
     starlight({

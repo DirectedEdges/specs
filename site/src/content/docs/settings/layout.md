@@ -59,4 +59,4 @@ The same `DS Alert` hierarchy — a `root` containing `decorativeIcon` and `chil
 
 ## See Also
 
-- [Data Layout guide](/specs/guides/data-layout/) - Comparison of layout representations
+- [Data Layout guide](/guides/data-layout/) - Comparison of layout representations

@@ -123,7 +123,7 @@ Adds configurable color output format (`Config.format.color`) supporting nine fo
 
 ## [0.19.0] - 2026-04-28
 
-Replaces Figma-raw `x`, `y`, and `layoutPositioning` with constraint-based positioning properties. `position` replaces `layoutPositioning` as a strict `Position` enum. Directional offsets (`top`, `bottom`, `start`, `end`, `centerHorizontalOffset`, `centerVerticalOffset`) replace `x`/`y` with anchor semantics derived from Figma constraints. See the [Layout Positioning guide](/specs/guides/layout-positioning/) for constraint mapping rules and platform usage examples.
+Replaces Figma-raw `x`, `y`, and `layoutPositioning` with constraint-based positioning properties. `position` replaces `layoutPositioning` as a strict `Position` enum. Directional offsets (`top`, `bottom`, `start`, `end`, `centerHorizontalOffset`, `centerVerticalOffset`) replace `x`/`y` with anchor semantics derived from Figma constraints. See the [Layout Positioning guide](/guides/layout-positioning/) for constraint mapping rules and platform usage examples.
 
 ### Added
 

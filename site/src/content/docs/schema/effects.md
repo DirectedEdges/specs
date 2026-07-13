@@ -3,7 +3,7 @@ title: "Effects"
 description: "Shadows and blur effects"
 ---
 
-An `Effects` object holds shadow and blur definitions. It appears on the `effects` style property as an alternative to a [`TokenReference`](/specs/schema/token-reference/).
+An `Effects` object holds shadow and blur definitions. It appears on the `effects` style property as an alternative to a [`TokenReference`](/schema/token-reference/).
 
 ```ts
 interface Effects {
@@ -38,7 +38,7 @@ interface Effects {
 | `offsetY` | `number \| TokenReference` | Yes | Vertical offset |
 | `blur` | `number \| TokenReference` | Yes | Blur radius |
 | `spread` | `number \| TokenReference` | Yes | Spread distance |
-| `color` | `string \| TokenReference` | Yes | Shadow color (`#RRGGBBAA` or [token](/specs/schema/token-reference/)) |
+| `color` | `string \| TokenReference` | Yes | Shadow color (`#RRGGBBAA` or [token](/schema/token-reference/)) |
 
 ### Blur
 

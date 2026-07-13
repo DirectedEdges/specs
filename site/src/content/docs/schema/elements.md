@@ -3,7 +3,7 @@ title: "Elements"
 description: "Element runtime properties and children"
 ---
 
-Within a [variant](/specs/schema/variants/), each element is described by the `Element` type. This carries the element's runtime properties — its children, parent, styles, content, and any prop-driven behavior.
+Within a [variant](/schema/variants/), each element is described by the `Element` type. This carries the element's runtime properties — its children, parent, styles, content, and any prop-driven behavior.
 
 ```ts
 type Elements = Record<string, Element>;
@@ -15,8 +15,8 @@ type Elements = Record<string, Element>;
 |----------|------|----------|-------------|
 | `children` | `string[] \| SlotBinding` | No | Child element names, or a `SlotBinding` to a slot prop. `SlotBinding` extends `PropBinding` with optional `examples?: SlotContentRef[]` — authored sample fills for the slot (e.g. Figma's authoring default at index 0). Non-contractual; code consumers may ignore. |
 | `parent` | `string \| null` | No | Parent element key (`null` for root) |
-| `styles` | [`Styles`](/specs/schema/styles/) | No | Visual style properties |
-| `propConfigurations` | [`PropConfigurations`](/specs/schema/prop-configurations/) | No | Prop values that must hold for this element to appear |
+| `styles` | [`Styles`](/schema/styles/) | No | Visual style properties |
+| `propConfigurations` | [`PropConfigurations`](/schema/prop-configurations/) | No | Prop values that must hold for this element to appear |
 | `instanceOf` | `string \| PropBinding \| SubcomponentRef` | No | Component name, binding, or subcomponent ref |
 | `content` | `string \| PropBinding` | No | Text content or glyph name, or a binding to a prop |
 

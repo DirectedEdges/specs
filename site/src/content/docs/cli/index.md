@@ -8,11 +8,11 @@ The Specs command-line interface (CLI) generates design system specifications fr
 
 | Command | Purpose | Output |
 |---------|---------|--------|
-| [`init`](/specs/cli/commands/init/) | Initialize config file with defaults | `specs.config.yaml` |
-| [`fetch`](/specs/cli/commands/fetch/) | Download raw REST payloads from Figma | JSON files in `dataDirectory` |
-| [`scan`](/specs/cli/commands/scan/) | List all components in file | Markdown manifest |
-| [`generate`](/specs/cli/commands/generate/) | Generate specs from a manifest or single component | YAML/JSON spec file(s) |
-| [`applyCustomTokens`](/specs/cli/commands/apply-custom-tokens/) | Inject `$custom` objects into fetched data | Modified variables/styles JSON |
+| [`init`](/cli/commands/init/) | Initialize config file with defaults | `specs.config.yaml` |
+| [`fetch`](/cli/commands/fetch/) | Download raw REST payloads from Figma | JSON files in `dataDirectory` |
+| [`scan`](/cli/commands/scan/) | List all components in file | Markdown manifest |
+| [`generate`](/cli/commands/generate/) | Generate specs from a manifest or single component | YAML/JSON spec file(s) |
+| [`applyCustomTokens`](/cli/commands/apply-custom-tokens/) | Inject `$custom` objects into fetched data | Modified variables/styles JSON |
 
 ### Global Options
 
@@ -35,7 +35,7 @@ With a **Pro license**, specs also include design token references, variable bin
 | Design token references | — | Yes |
 | Variable and visibility bindings | — | Yes |
 
-Set up your license key in your environment to unlock Pro features. See [Getting Started — License](/specs/cli/getting-started/#step-3-set-your-license-key-optional).
+Set up your license key in your environment to unlock Pro features. See [Getting Started — License](/cli/getting-started/#step-3-set-your-license-key-optional).
 
 ## Output Format
 
@@ -95,10 +95,10 @@ data/
   - `variables` / `styles` — Figma restricts these REST endpoints to organizations on an **Enterprise** plan, regardless of your Specs license
 - **License key** (optional) via `SPECS_LICENSE_KEY` for Pro features
 
-See [Getting Started](/specs/cli/getting-started/) for installation instructions.
+See [Getting Started](/cli/getting-started/) for installation instructions.
 
 ## See Also
 
-- [Getting Started](/specs/cli/getting-started/) - Installation, license, and quick start
-- [Workflows](/specs/cli/workflows/) - Real-world usage patterns and CI/CD
-- [Configuration](/specs/settings/) - Config file reference
+- [Getting Started](/cli/getting-started/) - Installation, license, and quick start
+- [Workflows](/cli/workflows/) - Real-world usage patterns and CI/CD
+- [Configuration](/settings/) - Config file reference

@@ -59,5 +59,5 @@ An asset must match at least one `match` pattern to be considered a subcomponent
 
 ## See Also
 
-- [Subcomponents guide](/specs/guides/subcomponent-scoping/) - Detailed patterns and strategies
-- [Schema: Subcomponents](/specs/schema/subcomponents/) - Subcomponent schema reference
+- [Subcomponents guide](/guides/subcomponent-scoping/) - Detailed patterns and strategies
+- [Schema: Subcomponents](/schema/subcomponents/) - Subcomponent schema reference

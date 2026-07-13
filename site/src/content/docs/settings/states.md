@@ -5,8 +5,8 @@ description: "Classify Figma variant props as browser-driven or consumer-control
 
 `processing.states` classifies your library's Figma variant props as semantic states, enabling two downstream behaviors:
 
-- The [`css` transformer](/specs/cli/transforms/css/) emits real CSS pseudo-classes and ARIA attribute selectors instead of `data-*` attributes for classified props.
-- The [`contract` transformer](/specs/cli/transforms/contract/) omits browser-driven props from generated Props interfaces.
+- The [`css` transformer](/cli/transforms/css/) emits real CSS pseudo-classes and ARIA attribute selectors instead of `data-*` attributes for classified props.
+- The [`contract` transformer](/cli/transforms/contract/) omits browser-driven props from generated Props interfaces.
 
 Declare the classification once and both transforms apply it consistently.
 
@@ -159,7 +159,7 @@ config:
 | `contract` | `"omit"` \| `"keep"` | No | concept default | Override the concept's default contract behavior. Rarely needed. |
 
 
-Run [`specs transform css`](/specs/cli/commands/transform/) to regenerate stylesheets after updating this config. Absence of `processing.states` is safe — all variant props continue to emit as `data-*` selectors.
+Run [`specs transform css`](/cli/commands/transform/) to regenerate stylesheets after updating this config. Absence of `processing.states` is safe — all variant props continue to emit as `data-*` selectors.
 
 ## Path
 
@@ -167,6 +167,6 @@ Run [`specs transform css`](/specs/cli/commands/transform/) to regenerate styles
 
 ## See Also
 
-- [`css` transformer](/specs/cli/transforms/css/) — CSS output affected by this classification
-- [`contract` transformer](/specs/cli/transforms/contract/) — Props interface affected by `contract: omit`
-- [`subcomponents`](/specs/settings/subcomponents/) — another presence-driven `processing` option
+- [`css` transformer](/cli/transforms/css/) — CSS output affected by this classification
+- [`contract` transformer](/cli/transforms/contract/) — Props interface affected by `contract: omit`
+- [`subcomponents`](/settings/subcomponents/) — another presence-driven `processing` option

@@ -38,7 +38,7 @@ specs generate data/library.file.json \
   -o specs/button-icon.yaml
 ```
 
-Use `--format json` to output JSON instead of YAML. See [Output configuration](/specs/settings/output/) for all output modes and format options.
+Use `--format json` to output JSON instead of YAML. See [Output configuration](/settings/output/) for all output modes and format options.
 
 ---
 
@@ -95,7 +95,7 @@ specs generate components.md \
   --verbose
 ```
 
-Split output into per-component files, subfolders, or separate API and variant files using [output mode flags](/specs/settings/output/).
+Split output into per-component files, subfolders, or separate API and variant files using [output mode flags](/settings/output/).
 
 ---
 
@@ -245,5 +245,5 @@ git commit -m "manifest: keep DS Tooltip NEW unchecked — pending API redesign"
 
 ## See Also
 
-- [CLI Overview](/specs/cli/) - Commands, Free vs Pro, output format
-- [Settings](/specs/settings/) - Config file reference
+- [CLI Overview](/cli/) - Commands, Free vs Pro, output format
+- [Settings](/settings/) - Config file reference

@@ -18,10 +18,10 @@ interface Sides {
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `top` | [`Style`](/specs/schema/styles.md/#values) | No | Top edge |
-| `end` | [`Style`](/specs/schema/styles.md/#values) | No | Inline-end (right in LTR) |
-| `bottom` | [`Style`](/specs/schema/styles.md/#values) | No | Bottom edge |
-| `start` | [`Style`](/specs/schema/styles.md/#values) | No | Inline-start (left in LTR) |
+| `top` | [`Style`](/schema/styles.md/#values) | No | Top edge |
+| `end` | [`Style`](/schema/styles.md/#values) | No | Inline-end (right in LTR) |
+| `bottom` | [`Style`](/schema/styles.md/#values) | No | Bottom edge |
+| `start` | [`Style`](/schema/styles.md/#values) | No | Inline-start (left in LTR) |
 
 Side names use logical directions (`start`/`end`) rather than physical (`left`/`right`) for bidirectional layout support.
 

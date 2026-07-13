@@ -30,7 +30,7 @@ specs generate
 specs generate components.md -o specs/library.yaml
 ```
 
-The manifest references the source file and tracks which components to include. See [Scan Command](/specs/cli/commands/scan/) for creating manifests.
+The manifest references the source file and tracks which components to include. See [Scan Command](/cli/commands/scan/) for creating manifests.
 
 ### File Mode
 
@@ -89,7 +89,7 @@ export SPECS_LICENSE_KEY="your-license-key"
 specs generate components.md -o specs/all.yaml
 ```
 
-See [Getting Started — License](/specs/cli/getting-started.md/#step-3-set-your-license-key-optional) for setup details.
+See [Getting Started — License](/cli/getting-started.md/#step-3-set-your-license-key-optional) for setup details.
 
 ### `-o, --output <path>`
 Output file or directory path. Accepts both file paths and directory paths.
@@ -175,7 +175,7 @@ Separate API specification, variant configuration, and examples.
 - **Default**: `false` (complete component data in each file)
 - **Output**: Up to three files: `api.yaml` (anatomy, props), `variants.yaml` (default, variants), and `examples.yaml` (slotContentExamples, instanceExamples)
 - `examples.yaml` is written only when at least one component has example data; components without examples are omitted from it.
-- Example output (`slotContentExamples`, `instanceExamples`) is a [Pro feature](/specs/settings/default-slot-content/) — on the free tier it is omitted, so `examples.yaml` is not produced.
+- Example output (`slotContentExamples`, `instanceExamples`) is a [Pro feature](/settings/default-slot-content/) — on the free tier it is omitted, so `examples.yaml` is not produced.
 
 ```bash
 specs generate components.md -o specs/ --split-concerns
@@ -293,6 +293,6 @@ specs generate
 ---
 
 **See Also:**
-- [Scan Command](/specs/cli/commands/scan/) - Create component manifest
-- [Configuration Reference](/specs/settings/) - Format and config options
-- [Getting Started](/specs/cli/getting-started/) - Installation and license setup
+- [Scan Command](/cli/commands/scan/) - Create component manifest
+- [Configuration Reference](/settings/) - Format and config options
+- [Getting Started](/cli/getting-started/) - Installation and license setup

@@ -5,7 +5,7 @@ description: "Scaffold a working React component from the spec, then seed an aut
 
 <script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
 
-Emits a functioning React component — BEM markup from the merged layout tree, `data-*` variant attributes, ARIA state attributes, and slot/element rendering gated on the visibility rules from the [`contract` transformer](/specs/cli/transforms/contract/). Also seeds a one-time authored copy of that component into your source tree, which the [`stories` transformer](/specs/cli/transforms/stories/) imports.
+Emits a functioning React component — BEM markup from the merged layout tree, `data-*` variant attributes, ARIA state attributes, and slot/element rendering gated on the visibility rules from the [`contract` transformer](/cli/transforms/contract/). Also seeds a one-time authored copy of that component into your source tree, which the [`stories` transformer](/cli/transforms/stories/) imports.
 
 ## Use When
 
@@ -89,7 +89,7 @@ export function DsAlert(props: DsAlertScaffoldProps) {
 
 ## Rendering Rules
 
-- **Root element** gets the component's kebab-cased class, every variant prop as a `data-*` attribute (boolean props use presence attributes, string/enum props use value attributes), and ARIA attributes for any prop classified in [`config.processing.states`](/specs/settings/states/) whose selector resolves to an `aria-*` attribute.
+- **Root element** gets the component's kebab-cased class, every variant prop as a `data-*` attribute (boolean props use presence attributes, string/enum props use value attributes), and ARIA attributes for any prop classified in [`config.processing.states`](/settings/states/) whose selector resolves to an `aria-*` attribute.
 - **Child elements** get the `__element` BEM suffix, matching the `css` transformer's selectors.
 - **Slot-typed elements** with a `slot` type surface as an additional `React.ReactNode` prop on `{Component}ScaffoldProps` (not in the spec-derived `Props` interface itself), rendered as `{p.slotName}`.
 - **Text elements** bound to a prop render `{p.propName}`; text elements with static spec content render that content verbatim (escaped for JSX).
@@ -114,7 +114,7 @@ Each subcomponent gets its own `generated/react/{Subcomponent}.scaffold.tsx` and
 
 ## See Also
 
-- [Transforms overview](/specs/cli/transforms/)
-- [`contract` transformer](/specs/cli/transforms/contract/) — Props, Slots, and SlotRules consumed here
-- [`css` transformer](/specs/cli/transforms/css/) — stylesheet imported by both the generated and authored component
-- [`stories` transformer](/specs/cli/transforms/stories/) — imports the authored component, not the generated scaffold
+- [Transforms overview](/cli/transforms/)
+- [`contract` transformer](/cli/transforms/contract/) — Props, Slots, and SlotRules consumed here
+- [`css` transformer](/cli/transforms/css/) — stylesheet imported by both the generated and authored component
+- [`stories` transformer](/cli/transforms/stories/) — imports the authored component, not the generated scaffold

@@ -82,4 +82,4 @@ model:
 
 ## See Also
 
-- [CLI Configuration](/specs/settings/) — full config reference
+- [CLI Configuration](/settings/) — full config reference

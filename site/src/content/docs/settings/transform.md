@@ -43,5 +43,5 @@ Omitting `config.transform` entirely is equivalent to running `specs transform c
 
 ## See Also
 
-- [`transform` command](/specs/cli/commands/transform/) — CLI usage, arguments, and options
-- [tokens config](/specs/settings/tokens/) — control how token references are serialized in spec output
+- [`transform` command](/cli/commands/transform/) — CLI usage, arguments, and options
+- [tokens config](/settings/tokens/) — control how token references are serialized in spec output

@@ -84,11 +84,11 @@ A slot is required (non-optional in `Slots`) only when its rule is `always`. The
 | `whenNotNull` | Present when the named prop is not `null`/`undefined`. |
 | `whenValue` | Present when the named prop equals a specific value. |
 
-`SlotRules` is consumed by the [`react` transformer](/specs/cli/transforms/react/) to gate rendering of the corresponding element. Rules inferred with a caveat (e.g. a controlling prop identified heuristically rather than from an explicit spec binding) carry an inline comment on their `SlotRules` entry.
+`SlotRules` is consumed by the [`react` transformer](/cli/transforms/react/) to gate rendering of the corresponding element. Rules inferred with a caveat (e.g. a controlling prop identified heuristically rather than from an explicit spec binding) carry an inline comment on their `SlotRules` entry.
 
 ## Config
 
-No transformer-specific options. Prop omission for browser-driven states comes from [`config.processing.states`](/specs/settings/states/).
+No transformer-specific options. Prop omission for browser-driven states comes from [`config.processing.states`](/settings/states/).
 
 ```yaml
 config:
@@ -121,12 +121,12 @@ dsActionList/
       Item.contract.ts          ← subcomponent (DsActionListItemProps, DsActionListItemDefaults)
 ```
 
-The parent contract file only includes the parent component's own types — subcomponent types do not appear in it. Configure subcomponent discovery in [`config.processing.subcomponents`](/specs/settings/subcomponents/).
+The parent contract file only includes the parent component's own types — subcomponent types do not appear in it. Configure subcomponent discovery in [`config.processing.subcomponents`](/settings/subcomponents/).
 
 ## See Also
 
-- [Transforms overview](/specs/cli/transforms/)
-- [`processing.states` config](/specs/settings/states/) — classify which props are browser-driven vs consumer-controlled
-- [`css` transformer](/specs/cli/transforms/css/)
-- [`react` transformer](/specs/cli/transforms/react/) — consumes `Slots`/`SlotRules` to gate element rendering
-- [`stories` transformer](/specs/cli/transforms/stories/)
+- [Transforms overview](/cli/transforms/)
+- [`processing.states` config](/settings/states/) — classify which props are browser-driven vs consumer-controlled
+- [`css` transformer](/cli/transforms/css/)
+- [`react` transformer](/cli/transforms/react/) — consumes `Slots`/`SlotRules` to gate element rendering
+- [`stories` transformer](/cli/transforms/stories/)
