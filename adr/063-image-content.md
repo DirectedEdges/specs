@@ -34,7 +34,7 @@ Per Constitution VI (code-platforms-first), comparing the targets:
 
 | Platform | Layer image API | Scale/fit |
 |----------|-----------------|-----------|
-| Web (CSS) | `background-image: url(...)` | `background-size: cover` (FILL) / `contain` (FIT) |
+| Web (CSS) | `background-image: url(...)` | `object-fit` / `background-size`: `cover` / `contain` |
 | Web (React) | `<img src>`, `background-image` | `object-fit: cover / contain` |
 | iOS (SwiftUI) | `.background { Image(...) }` | `.scaledToFill()` / `.scaledToFit()` |
 | Android (Compose) | `Image(...)` / `Modifier.paint` | `ContentScale.Crop` / `Fit` |
@@ -42,7 +42,12 @@ Per Constitution VI (code-platforms-first), comparing the targets:
 
 - **Fill key → `backgroundImage`.** CSS names exactly `background-image`, a longhand sibling of `background-color`; the schema already has `backgroundColor`. Rule 1 (a term 2+ code platforms share — CSS + React/DOM `background-image`) selects `backgroundImage`, and it parallels the existing key. A node can carry an image over a color, so a **separate key** (not an arm on `backgroundColor`) also matches CSS, where the two coexist.
 - **Reference key → `$image`.** Follows the schema's `$`-prefixed pointer convention (`$token`, `$binding`, `$slotContent`); names the act of pointing at a stored image.
-- **Scale mode values → Figma's `FILL` / `FIT`.** Every platform expresses cover-vs-contain, but under different names (CSS `cover/contain`, SwiftUI `scaledToFill/scaledToFit`, Compose `Crop/Fit`); mapping is lossy and no two code platforms share spellings. Rule 3 applies: defer to Figma's vocabulary where no code-platform consensus exists and deviating is costly. **`CROP` and `TILE` are out of scope for this ADR** — `CROP` needs a crop transform (deferred, below) and `TILE` has no clean cover/contain analogue. SCREAMING_CASE per the Styles enum-casing rule; `ImageScaleMode` is a closed, non-token-bindable set → a named type.
+- **Scale mode values → `COVER` / `CONTAIN`.** Two concepts — fill-the-box-and-crop vs. fit-entirely-inside — are named differently on every platform (see the Scale/fit column above). Reading against Constitution VI:
+  - **Cover concept**: no two code platforms share a term (CSS `cover`, SwiftUI `fill`, Compose `Crop`) → rule 1 yields nothing; rule 2 applies → favor a single strong code platform → web `cover`.
+  - **Contain concept**: SwiftUI (`fit`) and Compose (`Fit`) agree, so strict rule 1 would suggest `FIT`, while CSS says `contain`. We deliberately take **`contain`** to keep a **single-origin, coherent pair** — `cover`/`contain` are the two CSS keywords, the most recognized pairing in code — rather than splitting the pair across vocabularies (`cover`/`fit`).
+  - **Avoiding Figma's `FILL` is itself a driver**: CSS `object-fit: fill` and Compose `FillBounds` both mean *stretch, ignoring aspect ratio* — the opposite behaviour — so `FILL` is a false friend for the web/Android audience. `cover` carries no such collision.
+  - SCREAMING_CASE per the Styles enum-casing rule → `'COVER' | 'CONTAIN'`, exactly as ADR-062 rendered CSS's `clip`/`ellipsis` as `TextOverflow = 'CLIP' | 'ELLIPSIS'`. `ImageScaleMode` is a closed, non-token-bindable set → a named type.
+  - The transformer remaps Figma's `FILL → COVER` and `FIT → CONTAIN` (the same one-way value map ADR-062 uses for `textTruncation` and `mainAxisAlignment` for `MIN`/`MAX`). **`CROP` and `TILE` remain out of scope** — `CROP` needs a crop transform (deferred, below) and `TILE` has no clean cover/contain analogue.
 
 ---
 
@@ -114,7 +119,7 @@ default:
       styles:
         backgroundImage:
           $image: "card.examples#/images/hero"
-          scaleMode: FILL          # optional; FILL | FIT; absent = FILL
+          scaleMode: COVER         # optional; COVER | CONTAIN; absent = COVER
 
 # card — examples.yaml
 images:
@@ -161,7 +166,7 @@ Add an `images` registry to `Component`, an `ImageValue`-typed `backgroundImage`
 
 | File | Change | Bump |
 |------|--------|------|
-| `types/Image.ts` *(new)* | Add `ImageScaleMode = 'FILL' \| 'FIT'` | MINOR |
+| `types/Image.ts` *(new)* | Add `ImageScaleMode = 'COVER' \| 'CONTAIN'` | MINOR |
 | `types/Image.ts` *(new)* | Add `ImageValue` (`{ $image: string; scaleMode?: ImageScaleMode }`) | MINOR |
 | `types/Image.ts` *(new)* | Add `Images = Record<string, string>` (registry: id → data URI / URL / path) | MINOR |
 | `types/Image.ts` *(new)* | Add `ImageProp` (`type: 'image'`) | MINOR |
@@ -177,8 +182,8 @@ Add an `images` registry to `Component`, an `ImageValue`-typed `backgroundImage`
 
 **Example — new shapes** (`types/Image.ts`):
 ```yaml
-# Scale mode — structural enum, not token-bindable, Figma vocabulary (rule 3). FILL | FIT only. Optional; default FILL.
-ImageScaleMode: "'FILL' | 'FIT'"
+# Scale mode — web vocabulary (CSS object-fit), SCREAMING_CASE. Not token-bindable. Optional; default COVER.
+ImageScaleMode: "'COVER' | 'CONTAIN'"
 
 # A layer-fill value: a reference into the images registry plus optional scale mode. An OBJECT so
 # rotation/opacity/filters can be added later as optional subproperties without a breaking change.
@@ -252,8 +257,8 @@ ImageValue:
 
 ImageScaleModeValue:
   type: string
-  enum: ["FILL", "FIT"]
-  description: "How the image scales into its layer. Figma vocabulary — structural, not token-bindable. Absent = FILL."
+  enum: ["COVER", "CONTAIN"]
+  description: "How the image scales into its layer (CSS object-fit vocabulary). Structural, not token-bindable. Absent = COVER. Transformer remaps Figma FILL→COVER, FIT→CONTAIN."
 
 ImageStyleValue:
   description: "Container image fill value — an ImageValue object, or null."
@@ -302,7 +307,7 @@ ImageBinding:
 ### Notes
 
 - **Sourcing binds through `propConfigurations`, never through `backgroundImage`.** A parent forwarding an image into a nested image component uses an `ImageBinding` under that instance's `propConfigurations`, exactly like any other forwarded prop. `Styles.backgroundImage` carries only a static/example `ImageValue` for the no-component fallback.
-- **`scaleMode` placement.** For the **image component**, `scaleMode` (`FILL`/`FIT`) is an ordinary prop/variant of that component (e.g. an `EnumProp` with `enum: ["FILL","FIT"]`) — no schema-special handling. For the **fallback fill**, it is `ImageValue.scaleMode`. Answering the sibling-vs-subproperty question: it is a **subproperty** of the `backgroundImage` object.
+- **`scaleMode` placement.** For the **image component**, `scaleMode` (`COVER`/`CONTAIN`) is an ordinary prop/variant of that component (e.g. an `EnumProp` with `enum: ["COVER","CONTAIN"]`) — no schema-special handling. For the **fallback fill**, it is `ImageValue.scaleMode`. Answering the sibling-vs-subproperty question: it is a **subproperty** of the `backgroundImage` object.
 - **Why `backgroundImage` is an object.** It already needs `$image` + optional `scaleMode`, and modelling it as an object (not a bare pointer) means `rotation`, `opacity`, and `filters` can be added later as optional subproperties without a breaking change. This also keeps a fill's own opacity/rotation distinct from the node's `styles.opacity`/`styles.rotation`.
 - **Registry value & data storage (answers Q2).** Each entry is one string: a `data:` URI (self-contained), an external URL, or an emitted asset path. `imageHash` is **not** stored — it is Figma's byte-fetch key, resolved at extraction time into the stored value; the `$image` pointer replaces it. Whether the transformer emits inline data or an external asset is a transformer/CLI concern (this package stays logic-free).
 - **Reference form.** `$image` and `ImageProp.default` are pointers into an `images` registry — root-relative (`#/images/hero`) in a single-file spec, or carrying the component + concern prefix (`card.examples#/images/hero`) in concern-split output (ADR-061); the cross-file addressing follows ADR-061, not this ADR.
@@ -313,7 +318,7 @@ ImageBinding:
 
 The Figma `ImagePaint` surface is larger than this ADR; the following are intentionally excluded and can be added additively later:
 
-- **`CROP` / `TILE` scale modes** — `CROP` requires a crop transform; `TILE` has no clean cover/contain analogue. Only `FILL` / `FIT`.
+- **`CROP` / `TILE` scale modes** (Figma) — `CROP` requires a crop transform; `TILE` has no clean cover/contain analogue. Only `COVER` / `CONTAIN` are supported.
 - **Per-fill `rotation` and `opacity`** — for the **image-component** path these are already expressible on the **instance element's** `styles.rotation` / `styles.opacity`; for the **fallback fill** they would become optional subproperties of the `backgroundImage` object, but their cross-platform mapping (CSS/iOS/Android) is unresolved, so they are deferred. The object shape reserves room for them.
 - **`imageTransform`** (crop/pan matrix), **`scalingFactor`** (TILE zoom), **`filters`** (exposure/contrast/saturation/temperature/tint/highlights/shadows) — not modelled.
 - **`visible`** on the paint — a paint-level visibility toggle is not surfaced; layer visibility is already handled by `styles.visible`.
@@ -324,7 +329,7 @@ The Figma `ImagePaint` surface is larger than this ADR; the following are intent
 
 - **Symmetric**: Yes.
 - **Parity check**:
-  - `ImageScaleMode` ↔ `ImageScaleModeValue` (`enum ["FILL","FIT"]`).
+  - `ImageScaleMode` ↔ `ImageScaleModeValue` (`enum ["COVER","CONTAIN"]`).
   - `ImageValue` (`{ $image, scaleMode? }`) ↔ `#/definitions/ImageValue` (`$image` required, `scaleMode` optional).
   - `Styles.backgroundImage` (`ImageValue | null`) ↔ `Styles.properties.backgroundImage` → `ImageStyleValue`; `StyleKey` gains `'backgroundImage'`.
   - `Images` (`Record<string, string>`) ↔ `#/definitions/Images`; `Component.images` ↔ component `images` property.
@@ -359,6 +364,6 @@ The Figma `ImagePaint` surface is larger than this ADR; the following are intent
 - Sourcing an image into a component flows through the normal prop-forwarding channel (`propConfigurations`), keeping `backgroundImage` a plain, unbound fill and avoiding a second "bindable fill" concept.
 - Example images ride on the binding (`ImageBinding.examples`), exactly like slot authoring defaults (`SlotBinding.examples`).
 - `ColorStyle` remains color-only; `backgroundImage` is a distinct fill whose object shape reserves room for `rotation`/`opacity`/`filters` without a future break.
-- Reverse-direction tooling (`figma-from-specs`) gains named keys to reconstruct an `ImagePaint` (`$image` → `imageHash` via the registry, `scaleMode` direct) and to write image-valued component props.
+- Reverse-direction tooling (`figma-from-specs`) gains named keys to reconstruct an `ImagePaint` (`$image` → `imageHash` via the registry; `scaleMode` inverts the remap — `COVER → FILL`, `CONTAIN → FIT`) and to write image-valued component props.
 - `ImageScaleMode`, `ImageValue`, `Images`, `ImageProp`, and `ImageBinding` become part of the public type surface, subject to Constitution III stability rules.
 - Consumers validating against `schema/*` must adopt `0.28.0`; components carrying `backgroundImage`, `images`, or an `image` prop would fail validation against `0.27.0` (`additionalProperties: false`).
