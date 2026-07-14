@@ -4,6 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 063 | Image Content — `ImageValue` fills, an `images` registry, and `ImageProp` | |
 | 062 | Text Overflow & Max Lines — `textOverflow` and `maxLines` on `Styles` | |
 | 061 | Schema Entry Points for Concern-Split Output | |
 | 059 | Border Style and Dash Pattern — `borderStyle` and `borderDashPattern` on `Styles` | |
