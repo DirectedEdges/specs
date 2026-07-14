@@ -54,6 +54,8 @@ Per Constitution VI (code-platforms-first), comparing the targets:
 ## Decision Drivers
 
 - **Both DS patterns must be expressible** — nested-image-component and image-as-a-layer-fill are both real; the schema should not force one into the other's shape. Which one the transformer emits is a **config choice**, not an inference.
+- **The fallback must be optional, not forced** — a consumer with a designated image component may want it used *exclusively*, with no `backgroundImage` for stray fills. The config must express that (via `imageComponent.fallback: false`) without making it the default; forcing the fallback is over-opinionated.
+- **First-class unresolved state (two-phase detect → resolve)** — image bytes may be fetched separately from generation (behind a `--get-images` flag, in a subsequent command) or not at all. A spec must be structurally valid and its `$image` references non-dangling *before* any bytes exist, in every runtime. The registry must be able to express an unresolved entry.
 - **Bindings flow through props, not fills** — when a designated image component exists, a parent forwards its image prop into the nested instance via `propConfigurations` (the same channel as every other forwarded prop), *not* by prop-binding a `backgroundImage` style. `backgroundImage` is reserved for the distinct no-component case.
 - **Store the data once, reference many times** — the same image appears across variants (default / hover / focus) and across a fill and the prop that feeds it. Inline duplication is unacceptable; a referenced registry mirrors `slotContentExamples` dedup (ADR-047).
 - **Reuse the established binding pattern** — a bound prop that carries an authoring-default value already exists as `SlotBinding` (ADR-047: `PropBinding` + `examples?: SlotContentRef[]`). Images follow the same shape with an image payload.
@@ -69,18 +71,19 @@ Per Constitution VI (code-platforms-first), comparing the targets:
 
 ### Option A: Config-driven dual model — nested image component *or* `backgroundImage` fallback, both over one `images` registry *(Selected)*
 
-- **`Component.images`** — a registry (`Record<string, string>`) holding each distinct image's data once, keyed by id. The value is the data itself — a `data:` URI, external URL, or emitted asset path. Lives in the *examples* concern (ADR-061), beside `slotContentExamples`. Answers Q2.
+- **`Component.images`** — a registry (`Record<string, string>`) holding each distinct image once, keyed by id. The value is either resolved data — a `data:` URI, external URL, or emitted asset path — or an unresolved **`figma:<imageRef>`** placeholder (the Figma image hash, pending fetch). Lives in the *examples* concern (ADR-061), beside `slotContentExamples`. Answers Q2.
 - **`ImageProp`** (`type: 'image'`) — the type of an image source property (the designated component's source prop, and any parent prop forwarded into it). Minimal: no `examples` on the prop.
 - **`ImageBinding`** — `PropBinding` + `examples?: ImageValue[]`, used **in `propConfigurations`** to forward a parent image prop into a nested image instance's source prop, carrying the authoring-default image seen in Figma. Mirrors `SlotBinding` (ADR-047).
 - **`Styles.backgroundImage`** — an `ImageValue` object (`{ $image, scaleMode? }`) or `null`; the **fallback** for a container image fill when no image component is configured.
-- **`Config.processing.imageComponent`** — `{ name, sourceProperty }` or absent, selecting the mode; **`Config.include.imageData`** — the on/off switch.
+- **`Config.processing.imageComponent`** — `{ name, sourceProperty, fallback? }` or absent, selecting the mode; **`Config.include.imageData`** — the on/off switch.
 
-**How the config drives it** (`Config.processing.imageComponent`):
+**How the config drives it** (all gated by `Config.include.imageData: true`):
 
-- **absent / `null`** → images are processed only as `backgroundImage` on `container` elements.
-- **present** → both `name` and `sourceProperty` are required. The transformer treats instances of `name` as the image primitive and forwards image props into its `sourceProperty` via `propConfigurations`; any image fill **not** on that component falls back to `backgroundImage` on containers.
+- **`imageComponent` absent / `null`** → every image fill is emitted as `backgroundImage` on `container` elements. No designated component, so this is the only representation possible.
+- **`imageComponent` present, `fallback` unset or `true` (default)** → `name` and `sourceProperty` are required. Instances of `name` are the image primitive; image props forward into its `sourceProperty` via `propConfigurations`. Any image fill **outside** that component still falls back to `backgroundImage` on containers — faithful capture, no data loss.
+- **`imageComponent` present, `fallback: false`** → the designated component is the **only** image representation; image fills outside it are **not** emitted as `backgroundImage`. This is the "images must always route through the image component" contract. The transformer surfaces a diagnostic for any stray fill rather than silently dropping it (not a hard error — the pipeline stays deterministic and non-failing).
 
-Nothing is processed at all unless `Config.include.imageData` is `true`.
+The `fallback` default is `true` so the *default* behaviour never loses data; strictness is strictly opt-in.
 
 **Image as a nested component** (`imageComponent: { name: dsImage, sourceProperty: source }`):
 
@@ -158,6 +161,37 @@ images:
 
 ---
 
+### Option E: `type: image` + repo-relative file paths written by the plugin *(Rejected)*
+
+The registry reference is a repo-relative file path (e.g. `./assets/userPhoto.png`), and the Figma plugin downloads each image's bytes and writes it as a file into the consumer's repo.
+
+**Rejected because**:
+- The **Figma plugin runtime has no filesystem access** — it runs sandboxed, with node built-ins (`fs`, `path`, `os`) stubbed out of the plugin build; it cannot deterministically write files into a local repo. Extraction must yield a value the plugin *can* produce (bytes → `data:` URI), not a side-effecting file write.
+- The spec becomes **non-self-contained and non-portable** — it is meaningless without its sibling asset files in the exact expected layout, breaking the "portable, self-contained by default" driver and the schema's deterministic, side-effect-free output rule.
+- The current design still **permits** a CLI to emit asset files and store the resulting path as a registry value (an opt-in output form) — but that is a CLI concern layered on top, never the model's basis and never the plugin's job.
+
+---
+
+### Option F: `type: string` + repo-relative file path (no image prop type) *(Rejected)*
+
+Reuse `StringProp`; the prop value is a file-path string. No `ImageProp`, `ImageValue`, or `images` registry.
+
+**Rejected because**:
+- A `StringProp` cannot distinguish an image from arbitrary text, carries no `scaleMode`, and its `examples` are plain strings with no registry or dedup — the same reasons `ImageProp` is justified over `StringProp` (see Context). Reverse tooling and code generators lose the semantic signal that this input *is* an image.
+- Inherits Option E's file-path portability problem (paths, not data) on top of the typing loss.
+
+---
+
+### Option G: `type: image` + CDN URLs *(Rejected)*
+
+The registry reference is a CDN URL pointing at a hosted copy of each image.
+
+**Rejected because**:
+- **There is no CDN** hosting these design-system images, and standing one up is out of scope.
+- Figma identifies image fills by content **`imageHash`**, not by any stable public URL; deriving or matching a CDN URL for a given fill from Figma data is near impossible. The current design permits an *external URL* as one registry-value form when a consumer genuinely has hosted assets, but it never assumes or requires a CDN.
+
+---
+
 ## Decision
 
 Add an `images` registry to `Component`, an `ImageValue`-typed `backgroundImage` fallback fill to `Styles`, an `ImageProp` to the prop union, and an `ImageBinding` (PropBinding + image examples) used in `propConfigurations`. Gate the whole feature on `Config.include.imageData` and select the mode with `Config.processing.imageComponent`. New types live in a new `types/Image.ts`.
@@ -178,7 +212,7 @@ Add an `images` registry to `Component`, an `ImageValue`-typed `backgroundImage`
 | `types/Component.ts` | Add field `images?: Images` to `Component` | MINOR |
 | `types/index.ts` | Re-export `ImageScaleMode`, `ImageValue`, `Images`, `ImageProp`, `ImageBinding` | MINOR |
 | `types/Config.ts` | Add `include.imageData?: boolean` (default false) to `Config` / required on `ResolvedConfig` | MINOR |
-| `types/Config.ts` | Add `processing.imageComponent?: { name: string; sourceProperty: string }` to `Config` and `ResolvedConfig` | MINOR |
+| `types/Config.ts` | Add `processing.imageComponent?: { name: string; sourceProperty: string; fallback?: boolean }` to `Config` and `ResolvedConfig` | MINOR |
 
 **Example — new shapes** (`types/Image.ts`):
 ```yaml
@@ -191,7 +225,7 @@ ImageValue:
   $image: string            # pointer, e.g. "#/images/hero" or "card.examples#/images/hero"
   scaleMode?: ImageScaleMode
 
-# Registry: id → the image data itself (data: URI, external URL, or emitted asset path)
+# Registry: id → resolved data (data: URI / external URL / asset path) OR "figma:<imageRef>" (unresolved placeholder)
 Images: "Record<string, string>"   # keys ^[a-zA-Z0-9_-]+$
 
 # Image-valued prop — minimal; example images live on the binding, not here
@@ -222,10 +256,11 @@ Styles:
 # Config.include
 imageData?: boolean            # default false — process images at all
 
-# Config.processing — absent = backgroundImage-on-containers-only; present = require both fields
+# Config.processing — absent = backgroundImage-on-containers-only; present = name & sourceProperty required
 imageComponent?:
   name: string                 # designated image component name (e.g. "dsImage")
   sourceProperty: string       # its image source prop name (e.g. "source")
+  fallback?: boolean           # default true; false = component is the only image representation (no backgroundImage)
 ```
 
 ### Schema changes (`schema/`)
@@ -238,7 +273,7 @@ imageComponent?:
 | `schema/component.schema.json` | Add definition `Images` | MINOR |
 | `schema/component.schema.json` | Add `#/definitions/ImageProp` to the `AnyProp` `oneOf` and define `ImageProp` | MINOR |
 | `schema/component.schema.json` | Add `#/definitions/ImageBinding` to the `PropConfigurationValue` `oneOf` and define it | MINOR |
-| Config schema | Add `include.imageData` (boolean) and `processing.imageComponent` (`{ name, sourceProperty }`, both required when present) | MINOR |
+| Config schema | Add `include.imageData` (boolean) and `processing.imageComponent` (`{ name, sourceProperty, fallback? }`; `name` & `sourceProperty` required when present, `fallback` optional boolean) | MINOR |
 
 **Example — new shapes** (`schema/styles.schema.json`):
 ```yaml
@@ -279,7 +314,7 @@ Images:
   patternProperties:
     "^[a-zA-Z0-9_-]+$":
       type: string
-      description: "Image data — a data: URI, an external URL, or an emitted asset path."
+      description: "Resolved image data (a data: URI, external URL, or emitted asset path) OR an unresolved 'figma:<imageRef>' placeholder holding the Figma image hash pending fetch. Discriminated by scheme."
   additionalProperties: false
 
 ImageProp:
@@ -309,7 +344,10 @@ ImageBinding:
 - **Sourcing binds through `propConfigurations`, never through `backgroundImage`.** A parent forwarding an image into a nested image component uses an `ImageBinding` under that instance's `propConfigurations`, exactly like any other forwarded prop. `Styles.backgroundImage` carries only a static/example `ImageValue` for the no-component fallback.
 - **`scaleMode` placement.** For the **image component**, `scaleMode` (`COVER`/`CONTAIN`) is an ordinary prop/variant of that component (e.g. an `EnumProp` with `enum: ["COVER","CONTAIN"]`) — no schema-special handling. For the **fallback fill**, it is `ImageValue.scaleMode`. Answering the sibling-vs-subproperty question: it is a **subproperty** of the `backgroundImage` object.
 - **Why `backgroundImage` is an object.** It already needs `$image` + optional `scaleMode`, and modelling it as an object (not a bare pointer) means `rotation`, `opacity`, and `filters` can be added later as optional subproperties without a breaking change. This also keeps a fill's own opacity/rotation distinct from the node's `styles.opacity`/`styles.rotation`.
-- **Registry value & data storage (answers Q2).** Each entry is one string: a `data:` URI (self-contained), an external URL, or an emitted asset path. `imageHash` is **not** stored — it is Figma's byte-fetch key, resolved at extraction time into the stored value; the `$image` pointer replaces it. Whether the transformer emits inline data or an external asset is a transformer/CLI concern (this package stays logic-free).
+- **`imageComponent.fallback` resolution.** Optional in `Config` (default `true`); on `ResolvedConfig`, when `imageComponent` is present, `fallback` is required-with-default `true` — matching how every other defaulted property is required on the resolved shape. `imageComponent` itself stays optional on both (a feature toggle, like `subcomponents`/`instanceExamples`).
+- **Registry value & data storage (answers Q2).** Each entry is one string in one of four forms, discriminated by scheme: a `data:` URI (self-contained, resolved), an external URL, an emitted asset path, or **`figma:<imageRef>`** — an *unresolved* placeholder carrying the Figma image hash for a byte-fetch that has not run yet. Whether/when the transformer resolves a placeholder into data is a transformer/CLI concern (this package stays logic-free).
+- **Unresolved images live in the registry *value*, not `$image`.** `$image` stays a uniform registry pointer; the unresolved Figma hash rides in the registry entry's value as `figma:<imageRef>`. This keeps every reference stable across resolution (a `--get-images` run rewrites one value per image, not every occurrence in variants/bindings/props), preserves dedup, and lets even the size-constrained plugin runtime emit the tiny placeholder registry so `$image` never dangles. Overloading `$image` to be *either* a pointer *or* a raw hash was considered and rejected — it splits `$image` into two syntactic forms and forces reference rewrites on resolution, for no gain over the value-placeholder.
+- **Two-phase resolution.** Detection (`include.imageData`) emits `$image` references and an `images` registry that may hold `figma:` placeholders. A later resolution step — a `--get-images` flag or a subsequent command (REST: the Get Image Fills call; plugin: on-demand) — swaps each placeholder for resolved data. A spec is valid and fully structured before any bytes are fetched.
 - **Reference form.** `$image` and `ImageProp.default` are pointers into an `images` registry — root-relative (`#/images/hero`) in a single-file spec, or carrying the component + concern prefix (`card.examples#/images/hero`) in concern-split output (ADR-061); the cross-file addressing follows ADR-061, not this ADR.
 - **`ImageBinding` reuses `SlotBinding`'s shape** (ADR-047: `PropBinding` + `examples?`), here with `examples?: ImageValue[]`.
 - **`backgroundImage` optional & non-text.** `Styles` is a `Partial`; present only where a container image fill exists (not `TEXT`/`GLYPH`). `additionalProperties: false` on `Styles` requires the property be declared for valid output.
@@ -335,7 +373,7 @@ The Figma `ImagePaint` surface is larger than this ADR; the following are intent
   - `Images` (`Record<string, string>`) ↔ `#/definitions/Images`; `Component.images` ↔ component `images` property.
   - `ImageProp` ↔ `#/definitions/ImageProp`, added to `AnyProp` `oneOf`.
   - `ImageBinding` ↔ `#/definitions/ImageBinding`, added to `PropConfigurationValue` `oneOf`.
-  - `Config.include.imageData` ↔ `include.imageData` (boolean); `Config.processing.imageComponent` ↔ `processing.imageComponent` (`{ name, sourceProperty }`, both required when present).
+  - `Config.include.imageData` ↔ `include.imageData` (boolean); `Config.processing.imageComponent` ↔ `processing.imageComponent` (`{ name, sourceProperty, fallback? }` — `name` & `sourceProperty` required when present, `fallback` optional).
 
 ---
 
@@ -343,9 +381,18 @@ The Figma `ImagePaint` surface is larger than this ADR; the following are intent
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | When `include.imageData` is true: extract `IMAGE` fills, dedup into the `images` registry, and either forward into the configured `imageComponent` via `propConfigurations` (`ImageBinding`) or emit `backgroundImage` on containers. Both runtimes: Plugin `getImageByHash(...).getBytesAsync()`; REST images endpoint. | New extraction/registry/dedup logic and the component-vs-fallback branch; recompile against new types. The largest downstream work item. |
-| `specs-cli` | New keys/registry may appear in output; `include.imageData` and `processing.imageComponent` become config options; asset emission may write sidecar files. | Recompile against new schema; surface the new config; implement asset-file emission for the URL/path form. |
-| `specs-plugin-2` | New keys/registry may appear in plugin-side output. | Recompile against new types; extract image fills/props in the plugin runtime. |
+| `specs-from-figma` | When `include.imageData` is true: extract `IMAGE` fills, dedup into the `images` registry, and either forward into the configured `imageComponent` via `propConfigurations` (`ImageBinding`) or emit `backgroundImage` on containers. When `imageComponent.fallback` is `false`, suppress the `backgroundImage` fallback and emit a diagnostic for stray fills. The two runtimes resolve image bytes differently — see **Runtime notes** below. | New extraction/registry/dedup logic, the component-vs-fallback branch, the `fallback: false` diagnostic, and the per-runtime byte-resolution path; recompile against new types. The largest downstream work item. |
+| `specs-cli` | New keys/registry may appear in output; `include.imageData` and `processing.imageComponent` become config options; a resolution step turns `figma:` placeholders into data; asset emission may write sidecar files. | Recompile against new schema; surface the new config; add a **`--get-images`** resolution path (or subsequent command) that calls Get Image Fills, fetches bytes, and rewrites `figma:<imageRef>` placeholders to `data:` URIs/assets; implement asset-file emission for the URL/path form. |
+| `specs-plugin-2` | New keys/registry may appear in plugin-side output; the plugin needs a new **Settings UI**; and it **cannot embed raw image bytes** on the component asset (Figma saved-data size limits) — see **Runtime notes** below. | Recompile against new types; extract image fills/props in the plugin runtime. Emit the `images` registry with **`figma:` placeholders** (not bytes) and duplicate detected images into the **Styling Inventory** (200×200 boxes). Add a Settings UI: a plugin-specific **"Process images"** checkbox (→ `include.imageData`) that reveals a **type** selector — **Background Fill only** (no `imageComponent`), **Component only** (`imageComponent` + `fallback: false`), **Component and Background Fill** (`imageComponent` + `fallback: true`) — with **component name** and **prop name** fields (→ `name` / `sourceProperty`, both required) shown for the two component options. Config options are identical to the REST/CLI path; only the resolved bytes are absent. |
+
+### Runtime notes (populating the `images` data)
+
+The `images` registry is one string per image, but the two runtimes obtain and deliver that data very differently — an asymmetry consumers must expect:
+
+- **REST** — `GET /v1/files/:key` represents image fills only as `imageRef` hashes inside `fills[]`; the raw bytes are **not** in the file JSON. Resolving them requires a **second call**, `GET /v1/files/:key/images` (Get Image Fills), which returns a map of `imageRef` → a **temporary S3 download URL (expires ~14 days)**. Until that call runs (it may be gated behind a `--get-images` flag or a separate command), the registry holds `figma:<imageRef>` placeholders. When it runs, because the S3 URLs expire, the transformer fetches the bytes and stores a self-contained `data:` URI (or emits an asset) rather than persisting the S3 URL.
+- **Plugin** — Figma caps the data saved on a node/component asset, so embedding raw image **bytes** would blow that budget. The plugin emits the `images` registry with **`figma:<imageRef>` placeholders** (tiny strings, within budget) rather than data, and additionally duplicates each detected image into the **Styling Inventory** section (e.g. 200×200 boxes) for human reference. Config options match the REST/CLI path; only the resolved bytes are absent.
+
+Because both runtimes emit the placeholder registry, `$image` pointers (on `backgroundImage`, `ImageBinding.examples`, `ImageProp.default`) **always resolve to a registry entry** — resolved data or a `figma:` placeholder — and never dangle, in any runtime. This is the two-phase model (see Notes), not a per-runtime special case.
 
 ---
 
@@ -360,6 +407,9 @@ The Figma `ImagePaint` surface is larger than this ADR; the following are intent
 ## Consequences
 
 - Spec output faithfully represents imagery in both DS patterns — nested image component (via `propConfigurations` + `ImageBinding`) and layer fill (via `backgroundImage`) — selected deterministically by `Config.processing.imageComponent`, and gated by `Config.include.imageData`. Image fills are no longer silently dropped.
+- A consumer can enforce a single image representation (`imageComponent.fallback: false`) so images always route through the designated component, without the schema imposing that opinion by default (default `fallback: true` keeps faithful capture).
+- Image processing is **two-phase**: detection (`include.imageData`) emits `$image` references and an `images` registry whose values may be `figma:<imageRef>` placeholders; a later resolution step (`--get-images` / subsequent command; REST's Get Image Fills call) swaps placeholders for `data:` URIs or assets. A spec is valid and fully structured before any bytes are fetched, and `$image` references never dangle — they always resolve to a registry entry, resolved or placeholder.
+- Runtime differences narrow to byte *resolution* (see Runtime notes): REST needs the Get Image Fills call (temporary S3 URLs); the plugin keeps placeholder values and surfaces bytes visually via the Styling Inventory. Consumers needing embedded data use the REST/CLI resolution path.
 - A single `Component.images` registry stores each image once; fills, bindings, and props reference it, so no image duplicates across variants or between a fill and its feeding prop.
 - Sourcing an image into a component flows through the normal prop-forwarding channel (`propConfigurations`), keeping `backgroundImage` a plain, unbound fill and avoiding a second "bindable fill" concept.
 - Example images ride on the binding (`ImageBinding.examples`), exactly like slot authoring defaults (`SlotBinding.examples`).
