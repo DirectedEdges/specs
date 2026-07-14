@@ -91,9 +91,9 @@ When `imageData` is `false`, none of this is emitted.
 
 `name` and `sourceProperty` are both required when `imageComponent` is present.
 
-## Scale Mode
+## Object Fit
 
-Image fills carry an optional `scaleMode` using CSS `object-fit` vocabulary — `COVER` (default) or `CONTAIN`. Figma's `FILL`/`FIT` are remapped to `COVER`/`CONTAIN`; `CROP` and `TILE` are unsupported. For a designated image component, expose scale as an ordinary prop of that component instead.
+Image fills carry an optional `objectFit` using CSS `object-fit` vocabulary — `COVER` (default) or `CONTAIN`. Figma's `scaleMode` is remapped: `FILL → COVER`, `FIT → CONTAIN`, with `CROP`/`TILE` lossily coerced to `COVER` so no image fill is dropped. For a designated image component, expose fit as an ordinary prop of that component instead.
 
 ## Storage and Two-Phase Resolution
 

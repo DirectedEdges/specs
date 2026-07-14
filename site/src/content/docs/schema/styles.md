@@ -119,8 +119,8 @@ Most properties accept a `Style` value. Some properties accept specialized shape
 | `AspectRatio` | Width-to-height ratio | `{ x: 16, y: 9 }` |
 | `StrokeDashPattern` | Dash geometry for a dashed stroke — presence signals dashed; null or absent signals solid | `{ dash: 8, gap: 4 }` |
 | `TextOverflow` | Text overflow handling enum | `"CLIP"`, `"ELLIPSIS"` |
-| `ImageValue` | Image fill — registry reference plus optional scale mode | `{ $image: "#/images/hero", scaleMode: "COVER" }` |
-| `ImageScaleMode` | Image scale mode enum | `"COVER"`, `"CONTAIN"` |
+| `ImageValue` | Image fill — registry reference plus optional fit | `{ $image: "#/images/hero", objectFit: "COVER" }` |
+| `ObjectFit` | Image fit enum (CSS `object-fit` vocabulary) | `"COVER"`, `"CONTAIN"` |
 
 ### Relating properties to values
 

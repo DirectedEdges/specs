@@ -20,7 +20,7 @@ default:
       styles:
         backgroundImage:
           $image: "card.examples#/images/hero"
-          scaleMode: COVER          # COVER (default) or CONTAIN
+          objectFit: COVER          # COVER (default) or CONTAIN
 
 images:
   hero: "data:image/jpeg;base64,/9j/4AAQ..."
@@ -30,7 +30,7 @@ images:
 
 ### Image as a layer fill
 
-No designated image component — the image is painted directly on a container. It lands on [`Styles.backgroundImage`](/specs/schema/styles/) as an `ImageValue` (`{ $image, scaleMode? }`). This is the default when no image component is configured.
+No designated image component — the image is painted directly on a container. It lands on [`Styles.backgroundImage`](/specs/schema/styles/) as an `ImageValue` (`{ $image, objectFit? }`). This is the default when no image component is configured.
 
 ### Image as a component
 
@@ -81,9 +81,9 @@ config:
 | Component + fill | `imageComponent`, `fallback: true` (default) | Image props route through the component; stray fills still fall back to `backgroundImage` |
 | Component only | `imageComponent`, `fallback: false` | The component is the **only** image representation; stray fills are not emitted (a diagnostic is surfaced) |
 
-## Scale Mode
+## Object Fit
 
-`scaleMode` uses CSS `object-fit` vocabulary — `COVER` (fill the box and crop, the default) or `CONTAIN` (fit entirely inside). Figma's `FILL`/`FIT` are remapped to `COVER`/`CONTAIN`; `CROP` and `TILE` are not supported.
+`objectFit` uses CSS `object-fit` vocabulary — `COVER` (fill the box and crop, the default) or `CONTAIN` (fit entirely inside). Figma's `scaleMode` is remapped: `FILL → COVER`, `FIT → CONTAIN`, and `CROP`/`TILE` are lossily coerced to `COVER` so no image fill is dropped. For a designated image component, expose fit as an ordinary prop of that component instead.
 
 ## How Image Data Is Stored
 

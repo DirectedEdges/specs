@@ -238,17 +238,17 @@
         { "type": "null" }
       ]
     },
-    "ImageScaleModeValue": {
+    "ObjectFitValue": {
       "type": "string",
       "enum": ["COVER", "CONTAIN"],
-      "description": "How the image scales into its layer (CSS object-fit vocabulary). Structural property — not token-bindable. Absent means COVER. Transformer remaps Figma FILL->COVER, FIT->CONTAIN; Figma CROP and TILE are unsupported."
+      "description": "How the image is fitted to its layer (CSS object-fit vocabulary). Structural property — not token-bindable. Absent means COVER. Transformer remaps Figma FILL->COVER, FIT->CONTAIN, and lossily coerces CROP->COVER, TILE->COVER so no image fill is dropped."
     },
     "ImageValue": {
       "type": "object",
-      "description": "An image fill value — a reference into an images registry plus optional scale mode.",
+      "description": "An image fill value — a reference into an images registry plus optional fit.",
       "properties": {
         "$image": { "type": "string", "description": "Pointer into an images registry, e.g. '#/images/hero' (single-file) or 'card.examples#/images/hero' (concern-split)." },
-        "scaleMode": { "$ref": "#/definitions/ImageScaleModeValue" }
+        "objectFit": { "$ref": "#/definitions/ObjectFitValue" }
       },
       "required": ["$image"],
       "additionalProperties": false

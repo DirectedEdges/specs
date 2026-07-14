@@ -1077,14 +1077,28 @@
     },
     "Images": {
       "type": "object",
-      "description": "Registry of image data keyed by identifier (ADR-063). Each value is a data: URI, external URL, emitted asset path, or a 'figma:<imageRef>' unresolved placeholder. Discriminated by scheme.",
+      "description": "Registry of image data keyed by identifier (ADR-063). De-duplicated so each distinct image is stored once. Lives in the examples concern (examples.yaml under specs-cli --split-concerns).",
       "patternProperties": {
         "^[a-zA-Z0-9_-]+$": {
-          "type": "string",
-          "description": "Resolved image data (data: URI, external URL, or emitted asset path) or an unresolved 'figma:<imageRef>' placeholder holding the Figma image hash pending fetch."
+          "$ref": "#/definitions/ImageData"
         }
       },
       "additionalProperties": false
+    },
+    "ImageData": {
+      "description": "A registry image value — resolved image data or an unresolved Figma placeholder, formally discriminated by scheme.",
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^figma:.+$",
+          "description": "Unresolved placeholder — 'figma:<imageRef>' holding the Figma image hash pending a byte-fetch."
+        },
+        {
+          "type": "string",
+          "pattern": "^(?!figma:).+$",
+          "description": "Resolved image data — a data: URI, external URL, or emitted asset path."
+        }
+      ]
     }
   },
   "$ref": "#/definitions/Component"

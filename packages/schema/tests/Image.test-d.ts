@@ -1,14 +1,16 @@
 /**
  * Type-level tests for image content (ADR-063):
- * ImageScaleMode, ImageValue, Images, ImageProp, ImageBinding,
+ * ObjectFit, ImageValue, FigmaImageRef, ImageData, Images, ImageProp, ImageBinding,
  * Styles.backgroundImage, and Config image fields.
  *
  * These files are intentionally never executed — they are compiled with tsc
  * to assert that the type shape is correct.
  */
 import type {
-  ImageScaleMode,
+  ObjectFit,
   ImageValue,
+  FigmaImageRef,
+  ImageData,
   Images,
   ImageProp,
   ImageBinding,
@@ -19,28 +21,37 @@ import type {
   Config,
 } from '../types/index.js';
 
-// ─── ImageScaleMode ───────────────────────────────────────────────────────────
+// ─── ObjectFit ────────────────────────────────────────────────────────────────
 
-const scaleCover: ImageScaleMode = 'COVER';
-const scaleContain: ImageScaleMode = 'CONTAIN';
+const fitCover: ObjectFit = 'COVER';
+const fitContain: ObjectFit = 'CONTAIN';
 
-// @ts-expect-error: FILL is Figma vocabulary, not a valid ImageScaleMode
-const _scaleFill: ImageScaleMode = 'FILL';
+// @ts-expect-error: FILL is Figma vocabulary, not a valid ObjectFit
+const _fitFill: ObjectFit = 'FILL';
 
-// @ts-expect-error: CROP is out of scope
-const _scaleCrop: ImageScaleMode = 'CROP';
+// @ts-expect-error: CROP is coerced to COVER by the transformer, not a value
+const _fitCrop: ObjectFit = 'CROP';
 
 // ─── ImageValue ─────────────────────────────────────────────────────────────
 
-// $image required; scaleMode optional
+// $image required; objectFit optional
 const imageMinimal: ImageValue = { $image: '#/images/hero' };
-const imageWithScale: ImageValue = { $image: 'card.examples#/images/hero', scaleMode: 'CONTAIN' };
+const imageWithFit: ImageValue = { $image: 'card.examples#/images/hero', objectFit: 'CONTAIN' };
 
 // @ts-expect-error: $image is required
-const _imageNoRef: ImageValue = { scaleMode: 'COVER' };
+const _imageNoRef: ImageValue = { objectFit: 'COVER' };
 
-// @ts-expect-error: scaleMode must be an ImageScaleMode
-const _imageBadScale: ImageValue = { $image: '#/images/hero', scaleMode: 'STRETCH' };
+// @ts-expect-error: objectFit must be an ObjectFit
+const _imageBadFit: ImageValue = { $image: '#/images/hero', objectFit: 'STRETCH' };
+
+// ─── FigmaImageRef / ImageData ──────────────────────────────────────────────
+
+const placeholder: FigmaImageRef = 'figma:abc123def456';
+const resolvedData: ImageData = 'data:image/png;base64,iVBORw0KG...';
+const placeholderData: ImageData = placeholder;
+
+// @ts-expect-error: a FigmaImageRef must start with the figma: scheme
+const _badPlaceholder: FigmaImageRef = 'abc123def456';
 
 // ─── Images registry ──────────────────────────────────────────────────────────
 
@@ -88,7 +99,7 @@ const configValFromBinding: PropConfigurationValue = bindingWithExamples;
 
 // ─── Styles.backgroundImage ─────────────────────────────────────────────────
 
-const stylesWithImage: Styles = { backgroundImage: { $image: '#/images/hero', scaleMode: 'COVER' } };
+const stylesWithImage: Styles = { backgroundImage: { $image: '#/images/hero', objectFit: 'COVER' } };
 const stylesImageNull: Styles = { backgroundImage: null };
 
 // @ts-expect-error: backgroundImage does not accept an ImageBinding (sourcing binds via propConfigurations)

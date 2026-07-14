@@ -42,12 +42,14 @@ Per Constitution VI (code-platforms-first), comparing the targets:
 
 - **Fill key → `backgroundImage`.** CSS names exactly `background-image`, a longhand sibling of `background-color`; the schema already has `backgroundColor`. Rule 1 (a term 2+ code platforms share — CSS + React/DOM `background-image`) selects `backgroundImage`, and it parallels the existing key. A node can carry an image over a color, so a **separate key** (not an arm on `backgroundColor`) also matches CSS, where the two coexist.
 - **Reference key → `$image`.** Follows the schema's `$`-prefixed pointer convention (`$token`, `$binding`, `$slotContent`); names the act of pointing at a stored image.
-- **Scale mode values → `COVER` / `CONTAIN`.** Two concepts — fill-the-box-and-crop vs. fit-entirely-inside — are named differently on every platform (see the Scale/fit column above). Reading against Constitution VI:
-  - **Cover concept**: no two code platforms share a term (CSS `cover`, SwiftUI `fill`, Compose `Crop`) → rule 1 yields nothing; rule 2 applies → favor a single strong code platform → web `cover`.
-  - **Contain concept**: SwiftUI (`fit`) and Compose (`Fit`) agree, so strict rule 1 would suggest `FIT`, while CSS says `contain`. We deliberately take **`contain`** to keep a **single-origin, coherent pair** — `cover`/`contain` are the two CSS keywords, the most recognized pairing in code — rather than splitting the pair across vocabularies (`cover`/`fit`).
-  - **Avoiding Figma's `FILL` is itself a driver**: CSS `object-fit: fill` and Compose `FillBounds` both mean *stretch, ignoring aspect ratio* — the opposite behaviour — so `FILL` is a false friend for the web/Android audience. `cover` carries no such collision.
-  - SCREAMING_CASE per the Styles enum-casing rule → `'COVER' | 'CONTAIN'`, exactly as ADR-062 rendered CSS's `clip`/`ellipsis` as `TextOverflow = 'CLIP' | 'ELLIPSIS'`. `ImageScaleMode` is a closed, non-token-bindable set → a named type.
-  - The transformer remaps Figma's `FILL → COVER` and `FIT → CONTAIN` (the same one-way value map ADR-062 uses for `textTruncation` and `mainAxisAlignment` for `MIN`/`MAX`). **`CROP` and `TILE` remain out of scope** — `CROP` needs a crop transform (deferred, below) and `TILE` has no clean cover/contain analogue.
+- **Fit field → `objectFit` (type `ObjectFit`).** The property answering "how is the image fitted to its box" is named differently on every code platform — CSS `object-fit`, Compose `contentScale`, SwiftUI `contentMode`, React Native `resizeMode` — so rule 1 (2+ agree) yields nothing. Rule 2 selects a single strong code platform → web/CSS **`object-fit`**, which keeps the field in the same vocabulary as its `COVER`/`CONTAIN` values *and* its sibling key `backgroundImage`, biasing code over Figma's `scaleMode` — the same move ADR-062 made naming `textOverflow`/`TextOverflow` after CSS.
+  - **Why not Figma's `scaleMode`?** Only Figma unifies fill/fit/crop/tile into one enum; no code platform does. On code platforms, tiling is a *separate* property (CSS `background-repeat`, SwiftUI `resizingMode: .tile`, Compose `TileMode`) and crop is fit *plus* a position/transform — and Figma's `CROP`/`TILE` even carry extra data (`imageTransform`, `scalingFactor`). Modelled faithfully, `CROP`/`TILE` are not `objectFit` values; they belong in their own future fields. Naming the field `objectFit` keeps the fit axis pure and refuses to import Figma's conflation (Constitution VI).
+- **Fit values → `COVER` / `CONTAIN`.** Two concepts — fill-the-box-and-crop vs. fit-entirely-inside:
+  - **Cover concept**: no two code platforms share a term (CSS `cover`, SwiftUI `fill`, Compose `Crop`) → rule 2 → web `cover`.
+  - **Contain concept**: SwiftUI (`fit`) and Compose (`Fit`) agree, so strict rule 1 would suggest `FIT`, while CSS says `contain`. We deliberately take **`contain`** to keep a **single-origin, coherent pair** with `cover` — the two CSS `object-fit` keywords — rather than splitting the pair (`cover`/`fit`).
+  - **Avoiding Figma's `FILL` is itself a driver**: CSS `object-fit: fill` and Compose `FillBounds` both mean *stretch, ignoring aspect ratio* — the opposite behaviour — so `FILL` is a false friend. `cover` carries no such collision.
+  - SCREAMING_CASE per the Styles enum-casing rule → `ObjectFit = 'COVER' | 'CONTAIN'`, exactly as ADR-062 rendered CSS's `clip`/`ellipsis` as `TextOverflow = 'CLIP' | 'ELLIPSIS'`. A closed, non-token-bindable set → a named type.
+  - The transformer remaps Figma's `scaleMode`: `FILL → COVER`, `FIT → CONTAIN`, and **lossily coerces `CROP → COVER` and `TILE → COVER`** — so an image with *any* Figma scale mode is still captured (no silent drop), even though the crop rectangle / tile repeat is not yet represented. Faithful `CROP`/`TILE` modelling is deferred to their own fields (see Out of Scope).
 
 ---
 
@@ -60,7 +62,7 @@ Per Constitution VI (code-platforms-first), comparing the targets:
 - **Store the data once, reference many times** — the same image appears across variants (default / hover / focus) and across a fill and the prop that feeds it. Inline duplication is unacceptable; a referenced registry mirrors `slotContentExamples` dedup (ADR-047).
 - **Reuse the established binding pattern** — a bound prop that carries an authoring-default value already exists as `SlotBinding` (ADR-047: `PropBinding` + `examples?: SlotContentRef[]`). Images follow the same shape with an image payload.
 - **Portable, self-contained by default** — a bare Figma `imageHash` is useless outside Figma. The stored value must be resolvable by a downstream consumer (a `data:` URI, an external URL, or an emitted asset path).
-- **Room to grow without breaking** — `backgroundImage` is an **object**, not a bare pointer, so `scaleMode` (now) and `rotation` / `opacity` / `filters` (later) attach as optional subproperties additively.
+- **Room to grow without breaking** — `backgroundImage` is an **object**, not a bare pointer, so `objectFit` (now) and `rotation` / `opacity` / `filters` (later) attach as optional subproperties additively.
 - **No color-semantics pollution** — `ColorStyle` (shared by `textColor`, `strokes`, `fillColor`, `backgroundColor`) must stay color-only; an image is not a color.
 - **Additive-only** — new optional types, fields, and schema definitions; no existing type or schema changes (MINOR bump).
 - **Type ↔ schema parity** (Constitution I) and **no runtime logic** (Constitution II).
@@ -71,10 +73,10 @@ Per Constitution VI (code-platforms-first), comparing the targets:
 
 ### Option A: Config-driven dual model — nested image component *or* `backgroundImage` fallback, both over one `images` registry *(Selected)*
 
-- **`Component.images`** — a registry (`Record<string, string>`) holding each distinct image once, keyed by id. The value is either resolved data — a `data:` URI, external URL, or emitted asset path — or an unresolved **`figma:<imageRef>`** placeholder (the Figma image hash, pending fetch). Lives in the *examples* concern (ADR-061), beside `slotContentExamples`. Answers Q2.
+- **`Component.images`** — a registry (`Record<string, ImageData>`) holding each distinct image once, keyed by id. Each value is either resolved data — a `data:` URI, external URL, or emitted asset path — or an unresolved **`figma:<imageRef>`** placeholder (the Figma image hash, pending fetch); the schema formally distinguishes the two by scheme (`ImageData`). Lives in the *examples* concern (ADR-061), beside `slotContentExamples` — under specs-cli `--split-concerns` it is emitted in `examples.yaml`, which is where the concern-split `$image` prefix (`<component>.examples#/images/...`) comes from. Answers Q2.
 - **`ImageProp`** (`type: 'image'`) — the type of an image source property (the designated component's source prop, and any parent prop forwarded into it). Minimal: no `examples` on the prop.
 - **`ImageBinding`** — `PropBinding` + `examples?: ImageValue[]`, used **in `propConfigurations`** to forward a parent image prop into a nested image instance's source prop, carrying the authoring-default image seen in Figma. Mirrors `SlotBinding` (ADR-047).
-- **`Styles.backgroundImage`** — an `ImageValue` object (`{ $image, scaleMode? }`) or `null`; the **fallback** for a container image fill when no image component is configured.
+- **`Styles.backgroundImage`** — an `ImageValue` object (`{ $image, objectFit? }`) or `null`; the **fallback** for a container image fill when no image component is configured.
 - **`Config.processing.imageComponent`** — `{ name, sourceProperty, fallback? }` or absent, selecting the mode; **`Config.include.imageData`** — the on/off switch.
 
 **How the config drives it** (all gated by `Config.include.imageData: true`):
@@ -122,7 +124,7 @@ default:
       styles:
         backgroundImage:
           $image: "card.examples#/images/hero"
-          scaleMode: COVER         # optional; COVER | CONTAIN; absent = COVER
+          objectFit: COVER         # optional; COVER | CONTAIN; absent = COVER
 
 # card — examples.yaml
 images:
@@ -177,7 +179,7 @@ The registry reference is a repo-relative file path (e.g. `./assets/userPhoto.pn
 Reuse `StringProp`; the prop value is a file-path string. No `ImageProp`, `ImageValue`, or `images` registry.
 
 **Rejected because**:
-- A `StringProp` cannot distinguish an image from arbitrary text, carries no `scaleMode`, and its `examples` are plain strings with no registry or dedup — the same reasons `ImageProp` is justified over `StringProp` (see Context). Reverse tooling and code generators lose the semantic signal that this input *is* an image.
+- A `StringProp` cannot distinguish an image from arbitrary text, carries no `objectFit`, and its `examples` are plain strings with no registry or dedup — the same reasons `ImageProp` is justified over `StringProp` (see Context). Reverse tooling and code generators lose the semantic signal that this input *is* an image.
 - Inherits Option E's file-path portability problem (paths, not data) on top of the typing loss.
 
 ---
@@ -200,9 +202,10 @@ Add an `images` registry to `Component`, an `ImageValue`-typed `backgroundImage`
 
 | File | Change | Bump |
 |------|--------|------|
-| `types/Image.ts` *(new)* | Add `ImageScaleMode = 'COVER' \| 'CONTAIN'` | MINOR |
-| `types/Image.ts` *(new)* | Add `ImageValue` (`{ $image: string; scaleMode?: ImageScaleMode }`) | MINOR |
-| `types/Image.ts` *(new)* | Add `Images = Record<string, string>` (registry: id → data URI / URL / path) | MINOR |
+| `types/Image.ts` *(new)* | Add `ObjectFit = 'COVER' \| 'CONTAIN'` | MINOR |
+| `types/Image.ts` *(new)* | Add `ImageValue` (`{ $image: string; objectFit?: ObjectFit }`) | MINOR |
+| `types/Image.ts` *(new)* | Add `FigmaImageRef = ``figma:${string}``` and `ImageData = FigmaImageRef \| string` | MINOR |
+| `types/Image.ts` *(new)* | Add `Images = Record<string, ImageData>` (registry: id → resolved data or placeholder) | MINOR |
 | `types/Image.ts` *(new)* | Add `ImageProp` (`type: 'image'`) | MINOR |
 | `types/Image.ts` *(new)* | Add `ImageBinding` (`PropBinding & { examples?: ImageValue[] }`) | MINOR |
 | `types/Styles.ts` | Add field `backgroundImage: ImageValue \| null` to `Styles` | MINOR |
@@ -210,23 +213,25 @@ Add an `images` registry to `Component`, an `ImageValue`-typed `backgroundImage`
 | `types/Props.ts` | Add `ImageProp` to the `AnyProp` union | MINOR |
 | `types/PropConfigurations.ts` | Add `ImageBinding` to the `PropConfigurationValue` union | MINOR |
 | `types/Component.ts` | Add field `images?: Images` to `Component` | MINOR |
-| `types/index.ts` | Re-export `ImageScaleMode`, `ImageValue`, `Images`, `ImageProp`, `ImageBinding` | MINOR |
+| `types/index.ts` | Re-export `ObjectFit`, `ImageValue`, `FigmaImageRef`, `ImageData`, `Images`, `ImageProp`, `ImageBinding` | MINOR |
 | `types/Config.ts` | Add `include.imageData?: boolean` (default false) to `Config` / required on `ResolvedConfig` | MINOR |
 | `types/Config.ts` | Add `processing.imageComponent?: { name: string; sourceProperty: string; fallback?: boolean }` to `Config` and `ResolvedConfig` | MINOR |
 
 **Example — new shapes** (`types/Image.ts`):
 ```yaml
-# Scale mode — web vocabulary (CSS object-fit), SCREAMING_CASE. Not token-bindable. Optional; default COVER.
-ImageScaleMode: "'COVER' | 'CONTAIN'"
+# Object fit — CSS object-fit vocabulary, SCREAMING_CASE. Not token-bindable. Optional; default COVER.
+ObjectFit: "'COVER' | 'CONTAIN'"
 
-# A layer-fill value: a reference into the images registry plus optional scale mode. An OBJECT so
+# A layer-fill value: a reference into the images registry plus optional fit. An OBJECT so
 # rotation/opacity/filters can be added later as optional subproperties without a breaking change.
 ImageValue:
   $image: string            # pointer, e.g. "#/images/hero" or "card.examples#/images/hero"
-  scaleMode?: ImageScaleMode
+  objectFit?: ObjectFit
 
-# Registry: id → resolved data (data: URI / external URL / asset path) OR "figma:<imageRef>" (unresolved placeholder)
-Images: "Record<string, string>"   # keys ^[a-zA-Z0-9_-]+$
+# Registry value: resolved data OR an unresolved Figma placeholder, formally distinguished by scheme.
+FigmaImageRef: "`figma:${string}`"           # e.g. "figma:a1b2c3..."
+ImageData: "FigmaImageRef | string"          # placeholder | data: URI | external URL | asset path
+Images: "Record<string, ImageData>"          # keys ^[a-zA-Z0-9_-]+$
 
 # Image-valued prop — minimal; example images live on the binding, not here
 ImageProp:
@@ -268,9 +273,9 @@ imageComponent?:
 | File | Change | Bump |
 |------|--------|------|
 | `schema/styles.schema.json` | Add property `backgroundImage` → `#/definitions/ImageStyleValue` under `Styles.properties` | MINOR |
-| `schema/styles.schema.json` | Add definitions `ImageStyleValue`, `ImageValue`, `ImageScaleModeValue` | MINOR |
+| `schema/styles.schema.json` | Add definitions `ImageStyleValue`, `ImageValue`, `ObjectFitValue` | MINOR |
 | `schema/component.schema.json` | Add property `images` → `#/definitions/Images` on the component object | MINOR |
-| `schema/component.schema.json` | Add definition `Images` | MINOR |
+| `schema/component.schema.json` | Add definitions `Images` and `ImageData` (the `figma:` placeholder / resolved-data scheme split) | MINOR |
 | `schema/component.schema.json` | Add `#/definitions/ImageProp` to the `AnyProp` `oneOf` and define `ImageProp` | MINOR |
 | `schema/component.schema.json` | Add `#/definitions/ImageBinding` to the `PropConfigurationValue` `oneOf` and define it | MINOR |
 | Config schema | Add `include.imageData` (boolean) and `processing.imageComponent` (`{ name, sourceProperty, fallback? }`; `name` & `sourceProperty` required when present, `fallback` optional boolean) | MINOR |
@@ -283,17 +288,17 @@ backgroundImage:
 
 ImageValue:
   type: object
-  description: "A layer image fill — a reference into an images registry plus optional scale mode."
+  description: "A layer image fill — a reference into an images registry plus optional fit."
   properties:
     $image:    { type: string, description: "Pointer into an images registry, e.g. '#/images/hero'." }
-    scaleMode: { $ref: "#/definitions/ImageScaleModeValue" }
+    objectFit: { $ref: "#/definitions/ObjectFitValue" }
   required: ["$image"]
   additionalProperties: false
 
-ImageScaleModeValue:
+ObjectFitValue:
   type: string
   enum: ["COVER", "CONTAIN"]
-  description: "How the image scales into its layer (CSS object-fit vocabulary). Structural, not token-bindable. Absent = COVER. Transformer remaps Figma FILL→COVER, FIT→CONTAIN."
+  description: "How the image is fitted to its layer (CSS object-fit vocabulary). Structural, not token-bindable. Absent = COVER. Transformer remaps Figma FILL→COVER, FIT→CONTAIN and coerces CROP→COVER, TILE→COVER."
 
 ImageStyleValue:
   description: "Container image fill value — an ImageValue object, or null."
@@ -304,7 +309,7 @@ ImageStyleValue:
 
 **Example — new shapes** (`schema/component.schema.json`):
 ```yaml
-# On the component object, beside slotContentExamples (the "examples" concern)
+# On the component object, beside slotContentExamples (the "examples" concern — examples.yaml under --split-concerns)
 images:
   $ref: "#/definitions/Images"
   description: "Registry of image data referenced by backgroundImage fills (ImageValue.$image), ImageBinding examples, and ImageProp default. De-duplicated by the transformer."
@@ -312,10 +317,15 @@ images:
 Images:
   type: object
   patternProperties:
-    "^[a-zA-Z0-9_-]+$":
-      type: string
-      description: "Resolved image data (a data: URI, external URL, or emitted asset path) OR an unresolved 'figma:<imageRef>' placeholder holding the Figma image hash pending fetch. Discriminated by scheme."
+    "^[a-zA-Z0-9_-]+$": { $ref: "#/definitions/ImageData" }
   additionalProperties: false
+
+# The figma: placeholder is a formal schema arm, not a bare string convention
+ImageData:
+  description: "A registry image value — resolved data or an unresolved Figma placeholder, discriminated by scheme."
+  oneOf:
+    - { type: string, pattern: "^figma:.+$", description: "Unresolved placeholder — 'figma:<imageRef>' holding the Figma image hash pending fetch." }
+    - { type: string, pattern: "^(?!figma:).+$", description: "Resolved image data — a data: URI, external URL, or emitted asset path." }
 
 ImageProp:
   type: object
@@ -342,11 +352,12 @@ ImageBinding:
 ### Notes
 
 - **Sourcing binds through `propConfigurations`, never through `backgroundImage`.** A parent forwarding an image into a nested image component uses an `ImageBinding` under that instance's `propConfigurations`, exactly like any other forwarded prop. `Styles.backgroundImage` carries only a static/example `ImageValue` for the no-component fallback.
-- **`scaleMode` placement.** For the **image component**, `scaleMode` (`COVER`/`CONTAIN`) is an ordinary prop/variant of that component (e.g. an `EnumProp` with `enum: ["COVER","CONTAIN"]`) — no schema-special handling. For the **fallback fill**, it is `ImageValue.scaleMode`. Answering the sibling-vs-subproperty question: it is a **subproperty** of the `backgroundImage` object.
-- **Why `backgroundImage` is an object.** It already needs `$image` + optional `scaleMode`, and modelling it as an object (not a bare pointer) means `rotation`, `opacity`, and `filters` can be added later as optional subproperties without a breaking change. This also keeps a fill's own opacity/rotation distinct from the node's `styles.opacity`/`styles.rotation`.
+- **Where image-source props come from.** Figma has no native image-typed component property, so an `ImageProp` is not extracted from a Figma property directly — it originates from an existing **code-only prop** (ADR-027; `$extensions.com.figma.source.kind = 'codeOnlyProp'`), which Figma surfaces as a `string`. The transformer re-types a conventionally-named code-only prop as `type: image` — initially a hard-coded name (e.g. a code-only prop named `imageSource`) mapped to `ImageProp` instead of `StringProp`. This is transformer behaviour, not a schema mechanism; the schema only defines the resulting `ImageProp` shape.
+- **`objectFit` placement.** For the **image component**, fit (`COVER`/`CONTAIN`) is an ordinary prop/variant of that component (e.g. an `EnumProp` with `enum: ["COVER","CONTAIN"]`) — no schema-special handling. For the **fallback fill**, it is `ImageValue.objectFit`. Answering the sibling-vs-subproperty question: it is a **subproperty** of the `backgroundImage` object.
+- **Why `backgroundImage` is an object.** It already needs `$image` + optional `objectFit`, and modelling it as an object (not a bare pointer) means `rotation`, `opacity`, and `filters` can be added later as optional subproperties without a breaking change. This also keeps a fill's own opacity/rotation distinct from the node's `styles.opacity`/`styles.rotation`.
 - **`imageComponent.fallback` resolution.** Optional in `Config` (default `true`); on `ResolvedConfig`, when `imageComponent` is present, `fallback` is required-with-default `true` — matching how every other defaulted property is required on the resolved shape. `imageComponent` itself stays optional on both (a feature toggle, like `subcomponents`/`instanceExamples`).
 - **Registry value & data storage (answers Q2).** Each entry is one string in one of four forms, discriminated by scheme: a `data:` URI (self-contained, resolved), an external URL, an emitted asset path, or **`figma:<imageRef>`** — an *unresolved* placeholder carrying the Figma image hash for a byte-fetch that has not run yet. Whether/when the transformer resolves a placeholder into data is a transformer/CLI concern (this package stays logic-free).
-- **Unresolved images live in the registry *value*, not `$image`.** `$image` stays a uniform registry pointer; the unresolved Figma hash rides in the registry entry's value as `figma:<imageRef>`. This keeps every reference stable across resolution (a `--get-images` run rewrites one value per image, not every occurrence in variants/bindings/props), preserves dedup, and lets even the size-constrained plugin runtime emit the tiny placeholder registry so `$image` never dangles. Overloading `$image` to be *either* a pointer *or* a raw hash was considered and rejected — it splits `$image` into two syntactic forms and forces reference rewrites on resolution, for no gain over the value-placeholder.
+- **Unresolved images live in the registry *value*, not `$image`.** `$image` stays a uniform registry pointer; the unresolved Figma hash rides in the registry entry's value as `figma:<imageRef>`. This keeps every reference stable across resolution (a `--get-images` run rewrites one value per image, not every occurrence in variants/bindings/props), preserves dedup, and lets any detection-only or size-constrained producer emit the tiny placeholder registry so `$image` never dangles. Overloading `$image` to be *either* a pointer *or* a raw hash was considered and rejected — it splits `$image` into two syntactic forms and forces reference rewrites on resolution, for no gain over the value-placeholder.
 - **Two-phase resolution.** Detection (`include.imageData`) emits `$image` references and an `images` registry that may hold `figma:` placeholders. A later resolution step — a `--get-images` flag or a subsequent command (REST: the Get Image Fills call; plugin: on-demand) — swaps each placeholder for resolved data. A spec is valid and fully structured before any bytes are fetched.
 - **Reference form.** `$image` and `ImageProp.default` are pointers into an `images` registry — root-relative (`#/images/hero`) in a single-file spec, or carrying the component + concern prefix (`card.examples#/images/hero`) in concern-split output (ADR-061); the cross-file addressing follows ADR-061, not this ADR.
 - **`ImageBinding` reuses `SlotBinding`'s shape** (ADR-047: `PropBinding` + `examples?`), here with `examples?: ImageValue[]`.
@@ -356,7 +367,7 @@ ImageBinding:
 
 The Figma `ImagePaint` surface is larger than this ADR; the following are intentionally excluded and can be added additively later:
 
-- **`CROP` / `TILE` scale modes** (Figma) — `CROP` requires a crop transform; `TILE` has no clean cover/contain analogue. Only `COVER` / `CONTAIN` are supported.
+- **Faithful `CROP` / `TILE` rendering** (Figma) — these are **coerced to `COVER`** so the image is still captured (no silent drop), but the crop rectangle (`imageTransform`) and tile repeat (`scalingFactor`) are not represented. Modelled faithfully they are separate axes from fit — a crop-transform field and a repeat/tiling field, matching how CSS/SwiftUI/Compose separate them from `object-fit` — so they belong in their own future fields, not as `objectFit` values.
 - **Per-fill `rotation` and `opacity`** — for the **image-component** path these are already expressible on the **instance element's** `styles.rotation` / `styles.opacity`; for the **fallback fill** they would become optional subproperties of the `backgroundImage` object, but their cross-platform mapping (CSS/iOS/Android) is unresolved, so they are deferred. The object shape reserves room for them.
 - **`imageTransform`** (crop/pan matrix), **`scalingFactor`** (TILE zoom), **`filters`** (exposure/contrast/saturation/temperature/tint/highlights/shadows) — not modelled.
 - **`visible`** on the paint — a paint-level visibility toggle is not surfaced; layer visibility is already handled by `styles.visible`.
@@ -367,10 +378,11 @@ The Figma `ImagePaint` surface is larger than this ADR; the following are intent
 
 - **Symmetric**: Yes.
 - **Parity check**:
-  - `ImageScaleMode` ↔ `ImageScaleModeValue` (`enum ["COVER","CONTAIN"]`).
-  - `ImageValue` (`{ $image, scaleMode? }`) ↔ `#/definitions/ImageValue` (`$image` required, `scaleMode` optional).
+  - `ObjectFit` ↔ `ObjectFitValue` (`enum ["COVER","CONTAIN"]`).
+  - `ImageValue` (`{ $image, objectFit? }`) ↔ `#/definitions/ImageValue` (`$image` required, `objectFit` optional).
+  - `FigmaImageRef` / `ImageData` ↔ `#/definitions/ImageData` (a `oneOf` of the `^figma:` placeholder arm and the non-`figma:` resolved-data arm).
   - `Styles.backgroundImage` (`ImageValue | null`) ↔ `Styles.properties.backgroundImage` → `ImageStyleValue`; `StyleKey` gains `'backgroundImage'`.
-  - `Images` (`Record<string, string>`) ↔ `#/definitions/Images`; `Component.images` ↔ component `images` property.
+  - `Images` (`Record<string, ImageData>`) ↔ `#/definitions/Images` (values → `#/definitions/ImageData`); `Component.images` ↔ component `images` property.
   - `ImageProp` ↔ `#/definitions/ImageProp`, added to `AnyProp` `oneOf`.
   - `ImageBinding` ↔ `#/definitions/ImageBinding`, added to `PropConfigurationValue` `oneOf`.
   - `Config.include.imageData` ↔ `include.imageData` (boolean); `Config.processing.imageComponent` ↔ `processing.imageComponent` (`{ name, sourceProperty, fallback? }` — `name` & `sourceProperty` required when present, `fallback` optional).
@@ -381,9 +393,11 @@ The Figma `ImagePaint` surface is larger than this ADR; the following are intent
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | When `include.imageData` is true: extract `IMAGE` fills, dedup into the `images` registry, and either forward into the configured `imageComponent` via `propConfigurations` (`ImageBinding`) or emit `backgroundImage` on containers. When `imageComponent.fallback` is `false`, suppress the `backgroundImage` fallback and emit a diagnostic for stray fills. The two runtimes resolve image bytes differently — see **Runtime notes** below. | New extraction/registry/dedup logic, the component-vs-fallback branch, the `fallback: false` diagnostic, and the per-runtime byte-resolution path; recompile against new types. The largest downstream work item. |
+| `specs-from-figma` | When `include.imageData` is true: extract `IMAGE` fills, dedup into the `images` registry, and either forward into the configured `imageComponent` via `propConfigurations` (`ImageBinding`) or emit `backgroundImage` on containers. When `imageComponent.fallback` is `false`, suppress the `backgroundImage` fallback and emit a diagnostic for stray fills. Emits `ImageProp` by re-typing a conventionally-named **code-only prop** (ADR-027) — initially a hard-coded name such as `imageSource` — from `string` to `type: image` (see Notes). The two runtimes resolve image bytes differently — see **Runtime notes** below. | New extraction/registry/dedup logic, the component-vs-fallback branch, the `fallback: false` diagnostic, the code-only-prop → `ImageProp` re-typing, and the per-runtime byte-resolution path; recompile against new types. The largest downstream work item. |
 | `specs-cli` | New keys/registry may appear in output; `include.imageData` and `processing.imageComponent` become config options; a resolution step turns `figma:` placeholders into data; asset emission may write sidecar files. | Recompile against new schema; surface the new config; add a **`--get-images`** resolution path (or subsequent command) that calls Get Image Fills, fetches bytes, and rewrites `figma:<imageRef>` placeholders to `data:` URIs/assets; implement asset-file emission for the URL/path form. |
-| `specs-plugin-2` | New keys/registry may appear in plugin-side output; the plugin needs a new **Settings UI**; and it **cannot embed raw image bytes** on the component asset (Figma saved-data size limits) — see **Runtime notes** below. | Recompile against new types; extract image fills/props in the plugin runtime. Emit the `images` registry with **`figma:` placeholders** (not bytes) and duplicate detected images into the **Styling Inventory** (200×200 boxes). Add a Settings UI: a plugin-specific **"Process images"** checkbox (→ `include.imageData`) that reveals a **type** selector — **Background Fill only** (no `imageComponent`), **Component only** (`imageComponent` + `fallback: false`), **Component and Background Fill** (`imageComponent` + `fallback: true`) — with **component name** and **prop name** fields (→ `name` / `sourceProperty`, both required) shown for the two component options. Config options are identical to the REST/CLI path; only the resolved bytes are absent. |
+| `specs-plugin-2` | New keys/registry may appear in plugin-side output; the plugin needs settings to drive image processing; and it **cannot embed raw image bytes** on the component asset (Figma saved-data size limits) — see **Runtime notes** below. | Recompile against new types; extract image fills/props in the plugin runtime. Emit the `images` registry with **`figma:` placeholders** (not bytes) and duplicate detected images into the **Styling Inventory** (200×200 boxes). Surface the config (`include.imageData`, `processing.imageComponent`) in settings. **A concrete UI is a suggested starting point, not part of this decision** — see the note below. |
+
+**Suggested plugin Settings UI (non-binding — a starting point informed by this ADR, not a schema decision):** a **"Process images"** checkbox (→ `include.imageData`) revealing a **type** selector — **Background Fill only** (no `imageComponent`), **Component only** (`imageComponent` + `fallback: false`), **Component and Background Fill** (`imageComponent` + `fallback: true`) — with **component name** and **prop name** fields (→ `name` / `sourceProperty`, both required) shown for the two component modes. The config options are identical to the REST/CLI path; only the resolved bytes differ.
 
 ### Runtime notes (populating the `images` data)
 
@@ -414,6 +428,6 @@ Because both runtimes emit the placeholder registry, `$image` pointers (on `back
 - Sourcing an image into a component flows through the normal prop-forwarding channel (`propConfigurations`), keeping `backgroundImage` a plain, unbound fill and avoiding a second "bindable fill" concept.
 - Example images ride on the binding (`ImageBinding.examples`), exactly like slot authoring defaults (`SlotBinding.examples`).
 - `ColorStyle` remains color-only; `backgroundImage` is a distinct fill whose object shape reserves room for `rotation`/`opacity`/`filters` without a future break.
-- Reverse-direction tooling (`figma-from-specs`) gains named keys to reconstruct an `ImagePaint` (`$image` → `imageHash` via the registry; `scaleMode` inverts the remap — `COVER → FILL`, `CONTAIN → FIT`) and to write image-valued component props.
-- `ImageScaleMode`, `ImageValue`, `Images`, `ImageProp`, and `ImageBinding` become part of the public type surface, subject to Constitution III stability rules.
+- Reverse-direction tooling (`figma-from-specs`) gains named keys to reconstruct an `ImagePaint` (`$image` → `imageHash` via the registry; `objectFit` inverts the remap — `COVER → FILL`, `CONTAIN → FIT`; `CROP`/`TILE` were coerced away, so they are lossy and not recoverable) and to write image-valued component props.
+- `ObjectFit`, `ImageValue`, `FigmaImageRef`, `ImageData`, `Images`, `ImageProp`, and `ImageBinding` become part of the public type surface, subject to Constitution III stability rules.
 - Consumers validating against `schema/*` must adopt `0.28.0`; components carrying `backgroundImage`, `images`, or an `image` prop would fail validation against `0.27.0` (`additionalProperties: false`).

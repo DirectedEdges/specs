@@ -2,43 +2,57 @@ import { PropBinding } from "./PropBinding.js";
 import { PropExtensions } from "./Props.js";
 
 /**
- * How an image scales into its layer. Structural property — not token-bindable.
- * Named after CSS `object-fit` (`cover`/`contain`); the transformer remaps
- * Figma's `scaleMode` values `FILL → COVER` and `FIT → CONTAIN`. Figma's `CROP`
- * and `TILE` are not supported. Absent means `COVER`.
+ * How an image is fitted to its layer. Structural property — not token-bindable.
+ * Named after CSS `object-fit` (`cover`/`contain`), biasing code over Figma's
+ * `scaleMode` per Constitution VI. The transformer remaps Figma's `scaleMode`:
+ * `FILL → COVER`, `FIT → CONTAIN`, and lossily coerces `CROP → COVER` and
+ * `TILE → COVER` (so no image fill is silently dropped). Absent means `COVER`.
  * @since 0.28.0
  */
-export type ImageScaleMode = 'COVER' | 'CONTAIN';
+export type ObjectFit = 'COVER' | 'CONTAIN';
 
 /**
- * An image fill value: a reference into an `images` registry plus optional scale mode.
+ * An image fill value: a reference into an `images` registry plus optional fit.
  *
  * `$image` is a pointer into a `Component.images` registry — root-relative in a
  * single-file spec (e.g. `"#/images/hero"`) or carrying the component + concern
  * prefix in concern-split output (e.g. `"card.examples#/images/hero"`). Modelled
- * as an object (not a bare pointer) so `scaleMode` — and future optional
+ * as an object (not a bare pointer) so `objectFit` — and future optional
  * subproperties — attach without a breaking change.
  * @since 0.28.0
  */
 export interface ImageValue {
   /** Pointer into an `images` registry, e.g. `"#/images/hero"`. */
   $image: string;
-  /** How the image scales into its layer. Absent means `COVER`. */
-  scaleMode?: ImageScaleMode;
+  /** How the image is fitted to its layer. Absent means `COVER`. */
+  objectFit?: ObjectFit;
 }
+
+/**
+ * An unresolved image placeholder — the Figma image hash carried as
+ * `figma:<imageRef>` while the bytes have not been fetched yet (two-phase
+ * detect → resolve). The schema formally distinguishes this form from resolved
+ * data by the `figma:` scheme.
+ * @since 0.28.0
+ */
+export type FigmaImageRef = `figma:${string}`;
+
+/**
+ * A registry value: resolved image data — a `data:` URI (self-contained), an
+ * external URL, or an emitted asset path — or an unresolved `FigmaImageRef`
+ * placeholder. Both are strings; the JSON schema constrains the two forms by
+ * scheme (the authoritative validation contract).
+ * @since 0.28.0
+ */
+export type ImageData = FigmaImageRef | string;
 
 /**
  * Registry of image data, keyed by identifier (`^[a-zA-Z0-9_-]+$`), referenced
  * by `ImageValue.$image`, `ImageBinding.examples`, and `ImageProp.default`.
- *
- * Each value is one string in one of four scheme-discriminated forms: a `data:`
- * URI (self-contained, resolved), an external URL, an emitted asset path, or
- * `"figma:<imageRef>"` — an unresolved placeholder holding the Figma image hash
- * pending a byte-fetch (two-phase detect → resolve). specs-from-figma
- * de-duplicates entries so each distinct image is stored once.
+ * specs-from-figma de-duplicates entries so each distinct image is stored once.
  * @since 0.28.0
  */
-export type Images = Record<string, string>;
+export type Images = Record<string, ImageData>;
 
 /**
  * Image-valued property definition (e.g. a `dsImage` `source` prop, or a parent
