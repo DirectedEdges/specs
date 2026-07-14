@@ -14,6 +14,7 @@
         "opacity": { "$ref": "#/definitions/NumberStyleValue", "description": "Opacity 0-1" },
         "locked": { "$ref": "#/definitions/BooleanStyleValue", "description": "Lock state" },
         "backgroundColor": { "$ref": "#/definitions/ColorStyleValue", "description": "Background fill color. Present on all non-text element types. Represented in Figma as fills." },
+        "backgroundImage": { "$ref": "#/definitions/ImageStyleValue", "description": "Image fill painted on a layer. Present on non-text element types. Fallback representation used when no image component is configured. Represented in Figma as an IMAGE-type fill." },
         "fillColor": { "$ref": "#/definitions/ColorStyleValue", "description": "Glyph fill color. Present on GLYPH element type only. Represented in Figma as fills." },
         "textColor": { "$ref": "#/definitions/ColorStyleValue", "description": "Text fill color. Present on TEXT element type only. Represented in Figma as fills." },
         "effects": { "$ref": "#/definitions/EffectsStyleValue", "description": "Effect output. TokenReference when the node references a named effects style; Effects when effects are defined inline. Replaces effectStyleId." },
@@ -234,6 +235,28 @@
         { "$ref": "#/definitions/ColorObject", "description": "Inline resolved color value with colorSpace, components, optional alpha, and optional 6-digit hex fallback." },
         { "$ref": "#/definitions/TokenReference" },
         { "$ref": "#/definitions/GradientValue" },
+        { "type": "null" }
+      ]
+    },
+    "ImageScaleModeValue": {
+      "type": "string",
+      "enum": ["COVER", "CONTAIN"],
+      "description": "How the image scales into its layer (CSS object-fit vocabulary). Structural property — not token-bindable. Absent means COVER. Transformer remaps Figma FILL->COVER, FIT->CONTAIN; Figma CROP and TILE are unsupported."
+    },
+    "ImageValue": {
+      "type": "object",
+      "description": "An image fill value — a reference into an images registry plus optional scale mode.",
+      "properties": {
+        "$image": { "type": "string", "description": "Pointer into an images registry, e.g. '#/images/hero' (single-file) or 'card.examples#/images/hero' (concern-split)." },
+        "scaleMode": { "$ref": "#/definitions/ImageScaleModeValue" }
+      },
+      "required": ["$image"],
+      "additionalProperties": false
+    },
+    "ImageStyleValue": {
+      "description": "Container image fill value — an ImageValue object, or null. Fallback representation used when no image component is configured.",
+      "oneOf": [
+        { "$ref": "#/definitions/ImageValue" },
         { "type": "null" }
       ]
     },

@@ -18,6 +18,7 @@ Controls how specs are generated. See the [feature guides](/specs/features/) for
 | `inferNumberProps` | `boolean` | `false` | Infer number-typed props from Figma variant values |
 | `collapsePrimitiveWrapper` | `boolean` | `false` | Strip plain container wrappers around a single text/glyph child and promote the leaf to spec root |
 | `instanceExamples` | `object` | — | **Pro.** Instance example detection — `scope` (PAGE or FILE), `match` patterns, `exclude` patterns, `parentNames` filter. Absent = no detection. Ignored on the free tier |
+| `imageComponent` | `object` | — | Designated image component — `name` and `sourceProperty` (both required), optional `fallback` (default `true`). Absent = image fills emit as `Styles.backgroundImage` on containers only. When present, image props route through the component; `fallback: false` suppresses the container fallback. Requires `include.imageData` |
 
 ## `format`
 
@@ -37,6 +38,7 @@ Controls how specs are generated. See the [feature guides](/specs/features/) for
 | `invalidCombinations` | `boolean` | `true` | Include `invalidVariantCombinations` list |
 | `emptyVariants` | `boolean` | `false` | Include variants with no element overrides |
 | `defaultSlotContent` | `boolean` | `false` | **Pro.** Emit the component's default slot content into `Component.slotContentExamples` (structurally detected slot fills). Ignored on the free tier |
+| `imageData` | `boolean` | `false` | Process image fills and props — emit `Styles.backgroundImage`, `ImageProp`, and the `Component.images` registry. When `false`, images are not processed |
 
 `instanceExamples` has no `include` flag — emitting it is driven by the presence of [`processing.instanceExamples`](#processing) (Pro only), like `subcomponents`.
 
@@ -65,6 +67,7 @@ const DEFAULT_CONFIG: ResolvedConfig = {
     invalidCombinations: true,
     emptyVariants: false,
     defaultSlotContent: false,
+    imageData: false,
   },
 };
 ```

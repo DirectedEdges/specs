@@ -2,6 +2,7 @@ import { PropBinding } from "./PropBinding.js";
 import { Conditional } from "./Conditional.js";
 import { Effects } from "./Effects.js";
 import { GradientValue } from "./Gradient.js";
+import { ImageValue } from "./Image.js";
 
 export type Styles = Partial<{
   rotation: Style;
@@ -9,6 +10,8 @@ export type Styles = Partial<{
   opacity: Style;
   locked: Style;
   backgroundColor: ColorStyle;
+  /** Image fill painted on a layer. Present on non-text element types. Fallback representation used when no image component is configured. Absent when there is no image fill. @since 0.28.0 */
+  backgroundImage: ImageValue | null;
   /** Glyph fill color. Present on GLYPH element type only. Represented in Figma as fills. @since 0.13.0 */
   fillColor: ColorStyle;
   effects: TokenReference | Effects;
@@ -323,6 +326,7 @@ export type StyleKey =
   | 'opacity'
   | 'locked'
   | 'backgroundColor'
+  | 'backgroundImage'
   | 'fillColor'
   | 'effects'
   | 'clipContent'

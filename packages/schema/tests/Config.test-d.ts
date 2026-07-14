@@ -183,7 +183,7 @@ const defaultTokensValue: typeof DEFAULT_CONFIG.format.tokens = 'TOKEN';
 const resolved: ResolvedConfig = {
   processing: { slotConstraints: false, collapsePrimitiveWrapper: false, variantDepth: 9999, details: 'LAYERED', inferNumberProps: false },
   format: { output: 'JSON', keys: 'SAFE', layout: 'LAYOUT', tokens: 'TOKEN', color: 'HEX' },
-  include: { invalidVariants: false, invalidCombinations: true, emptyVariants: false, defaultSlotContent: false },
+  include: { invalidVariants: false, invalidCombinations: true, emptyVariants: false, defaultSlotContent: false, imageData: false },
   transformers: [],
 };
 

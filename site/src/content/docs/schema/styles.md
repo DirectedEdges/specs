@@ -25,6 +25,7 @@ Combined view: every style property, grouped by category and then by name, with 
 | Color | `strokes` | ✓ |  |  | ✓ | ✓ |
 | Color | `textColor` |  | ✓ |  |  |  |
 | Effects | `effects` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Image | `backgroundImage` | ✓ |  |  | ✓ |  |
 | Layout (child) | `bottom` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Layout (child) | `centerHorizontalOffset` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Layout (child) | `centerVerticalOffset` | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -70,6 +71,7 @@ Several spec style keys differ from the Figma node property they read from. Spec
 | Spec key | Figma property | ADR |
 |----------|---------------|-----|
 | `backgroundColor` | `fills` | [ADR 009](https://github.com/DirectedEdges/specs/blob/main/adr/009-color-values.md) |
+| `backgroundImage` | `fills` (IMAGE) | [ADR 063](https://github.com/DirectedEdges/specs/blob/main/adr/063-image-content.md) |
 | `textColor` | `fills` | [ADR 009](https://github.com/DirectedEdges/specs/blob/main/adr/009-color-values.md) |
 | `fillColor` | `fills` | [ADR 013](https://github.com/DirectedEdges/specs/blob/main/adr/013-icon-fillColor.md) |
 | `wrap` | `layoutWrap` | [ADR 039](https://github.com/DirectedEdges/specs/blob/main/adr/039-wrap-alignment.md) |
@@ -117,11 +119,14 @@ Most properties accept a `Style` value. Some properties accept specialized shape
 | `AspectRatio` | Width-to-height ratio | `{ x: 16, y: 9 }` |
 | `StrokeDashPattern` | Dash geometry for a dashed stroke — presence signals dashed; null or absent signals solid | `{ dash: 8, gap: 4 }` |
 | `TextOverflow` | Text overflow handling enum | `"CLIP"`, `"ELLIPSIS"` |
+| `ImageValue` | Image fill — registry reference plus optional scale mode | `{ $image: "#/images/hero", scaleMode: "COVER" }` |
+| `ImageScaleMode` | Image scale mode enum | `"COVER"`, `"CONTAIN"` |
 
 ### Relating properties to values
 
 - Most properties accept any `Style` (literal, token, binding, or conditional).
 - `backgroundColor`, `fillColor`, `strokes`, `textColor` accept `string | TokenReference | GradientValue | null`.
+- `backgroundImage` accepts `ImageValue | null` — a container image fill used when no image component is configured; not token-bindable.
 - `typography` accepts `TokenReference | Typography`.
 - `effects` accepts `TokenReference | Effects`.
 - `padding`, `strokeWeight` accept `Style | Sides`.

@@ -6,6 +6,7 @@ import { Metadata } from "./Metadata.js";
 import { PropConfigurations } from "./PropConfigurations.js";
 import { InstanceExamples } from "./InstanceExample.js";
 import { SlotContent } from "./SlotContent.js";
+import { Images } from "./Image.js";
 
 /**
  * Represents a component specification in the Specs format.
@@ -73,4 +74,13 @@ export type Component = {
    * variants and slots — identical fills share one entry.
    */
   slotContentExamples?: Record<string, SlotContent>;
+
+  /**
+   * Registry of image data referenced by `backgroundImage` fills
+   * (`ImageValue.$image`), `ImageBinding` examples, and `ImageProp` defaults.
+   * Each value is a `data:` URI, external URL, emitted asset path, or a
+   * `"figma:<imageRef>"` unresolved placeholder. specs-from-figma
+   * de-duplicates so each distinct image is stored once. @since 0.28.0
+   */
+  images?: Images;
 };

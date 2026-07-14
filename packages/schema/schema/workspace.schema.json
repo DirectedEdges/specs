@@ -167,6 +167,30 @@
               "additionalProperties": {
                 "$ref": "#/definitions/VariantStateEntry"
               }
+            },
+            "imageComponent": {
+              "type": "object",
+              "description": "Designated image component (ADR-063). When present, instances of `name` are the image primitive and image props forward into `sourceProperty`; absence emits image fills as Styles.backgroundImage on container elements only. Requires include.imageData.",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "The designated image component name (e.g. 'dsImage')."
+                },
+                "sourceProperty": {
+                  "type": "string",
+                  "description": "The image source prop name on the component (e.g. 'source')."
+                },
+                "fallback": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Whether image fills outside the designated component still emit as backgroundImage on containers. When false, the component is the only image representation and stray fills are not emitted."
+                }
+              },
+              "required": [
+                "name",
+                "sourceProperty"
+              ],
+              "additionalProperties": false
             }
           },
           "required": [],
@@ -264,6 +288,11 @@
               "type": "boolean",
               "default": false,
               "description": "Include the component's default slot content as examples in output (ADR-050, Pro). Defaults to false."
+            },
+            "imageData": {
+              "type": "boolean",
+              "default": false,
+              "description": "Process image fills and props (ADR-063). When false, images are not processed. Defaults to false."
             }
           },
           "required": [],

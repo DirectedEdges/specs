@@ -7,7 +7,7 @@ Props define the configurable inputs of a component. Each prop has a type, a def
 
 ```ts
 type Props = Record<string, AnyProp>;
-type AnyProp = BooleanProp | StringProp | EnumProp | NumberProp | SlotProp;
+type AnyProp = BooleanProp | StringProp | EnumProp | NumberProp | SlotProp | ImageProp;
 ```
 
 ## Prop Kinds
@@ -66,6 +66,17 @@ Inferred from Figma variant values when [`inferNumberProps`](/specs/schema/confi
 
 Slot constraint properties (`minChildren`, `maxChildren`, `anyOf`) are emitted when [`slotConstraints`](/specs/schema/config.md/#processing) is enabled in config.
 
+### ImageProp
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `type` | `'image'` | Yes | |
+| `default` | `string \| null` | No | Default image — an `images` registry reference, or null |
+| `nullable` | `boolean` | No | Whether `null` is a valid value |
+| `$extensions` | `PropExtensions` | No | Vendor extensions |
+
+An image-valued property (e.g. a `dsImage` `source` prop). The authoring-default image rides on the [`ImageBinding`](/specs/schema/prop-configurations/) at the binding site, not on the prop. Emitted when [`imageData`](/specs/schema/config/#include) is enabled (since 0.28.0).
+
 ## Extensions
 
 The `$extensions` object holds vendor-specific metadata. Currently only the `com.figma` extension is defined.
@@ -91,3 +102,4 @@ The `$extensions` object holds vendor-specific metadata. Currently only the `com
 - [ADR 028 — Slot Quantity and Content Constraints](https://github.com/DirectedEdges/specs/blob/main/adr/028-slot-constraints.md) — adds `anyOf` to SlotProp; originally added `minItems`/`maxItems` (renamed in ADR-056)
 - [ADR 056 — Rename SlotProp.minItems/maxItems → minChildren/maxChildren](https://github.com/DirectedEdges/specs/blob/main/adr/056-slot-children-constraints.md) — aligns field names with Figma native `slotSettings`; adds native `preferredValues` resolution
 - [ADR 029 — NumberProp](https://github.com/DirectedEdges/specs/blob/main/adr/029-number-prop.md) — adds the `NumberProp` type with opt-in inference
+- [ADR 063 — Image Content](https://github.com/DirectedEdges/specs/blob/main/adr/063-image-content.md) — adds the `ImageProp` type and image fills/registry

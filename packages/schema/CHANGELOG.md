@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `Styles.textOverflow` — typed as `TextOverflow` (`'CLIP' | 'ELLIPSIS'`) or `null`; how overflowing text is handled (TEXT only, not token-bindable). Named after CSS `text-overflow` / Compose `TextOverflow`
 - `Styles.maxLines` — maximum line count before `'ELLIPSIS'` text overflow applies; null for no limit (TEXT only)
+- `Styles.backgroundImage` — container image fill, typed as `ImageValue` (`{ $image, scaleMode?: 'COVER' | 'CONTAIN' }`) or `null` (ADR-063)
+- `Component.images` — registry of image data by id (`data:` URI, external URL, asset path, or `figma:<imageRef>` placeholder)
+- `ImageProp` — `type: 'image'` property added to `AnyProp` for image-source properties
+- `ImageBinding` — `{ $binding, examples? }` added to `PropConfigurationValue`, forwarding an image into a nested instance
+- `Config.processing.imageComponent` — designate an image component (`name`, `sourceProperty`, optional `fallback`)
+- `Config.include.imageData` — process image fills and props (default false)
 
 ### Changed
 

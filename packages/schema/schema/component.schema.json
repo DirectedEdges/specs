@@ -65,6 +65,10 @@
             }
           },
           "additionalProperties": false
+        },
+        "images": {
+          "$ref": "#/definitions/Images",
+          "description": "Registry of image data referenced by backgroundImage fills, ImageBinding examples, and ImageProp defaults. De-duplicated so each distinct image is stored once (ADR-063)."
         }
       },
       "required": [
@@ -230,6 +234,9 @@
         },
         {
           "$ref": "#/definitions/NumberProp"
+        },
+        {
+          "$ref": "#/definitions/ImageProp"
         }
       ]
     },
@@ -480,7 +487,7 @@
       ]
     },
     "PropConfigurationValue": {
-      "description": "The value of a single prop configuration entry (ADR-049): a scalar, a PropBinding for pass-through to a parent prop, or a SlotContentRef under a slot-prop key for a named slot-content fill.",
+      "description": "The value of a single prop configuration entry (ADR-049): a scalar, a PropBinding for pass-through to a parent prop, a SlotContentRef under a slot-prop key for a named slot-content fill, or an ImageBinding under an image-prop key forwarding an image into a nested image instance (ADR-063).",
       "oneOf": [
         {
           "type": "string"
@@ -496,6 +503,9 @@
         },
         {
           "$ref": "#/definitions/SlotContentRef"
+        },
+        {
+          "$ref": "#/definitions/ImageBinding"
         }
       ]
     },
@@ -1014,6 +1024,65 @@
       ],
       "patternProperties": {
         "^\\$": {}
+      },
+      "additionalProperties": false
+    },
+    "ImageProp": {
+      "type": "object",
+      "description": "Image-valued property definition (ADR-063). The authoring-default image rides on the ImageBinding at the binding site, not here.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "image"
+        },
+        "default": {
+          "type": ["string", "null"],
+          "description": "Default image — an images registry reference, or null."
+        },
+        "nullable": {
+          "type": "boolean"
+        },
+        "$extensions": {
+          "$ref": "#/definitions/PropExtensions"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "patternProperties": {
+        "^\\$": {}
+      },
+      "additionalProperties": false
+    },
+    "ImageBinding": {
+      "type": "object",
+      "description": "A prop-bound image forwarded into a nested image instance's source prop, carrying authoring-default example images. PropBinding extended with examples (mirrors SlotBinding, ADR-047).",
+      "properties": {
+        "$binding": {
+          "type": "string",
+          "description": "JSON Pointer to the bound prop, e.g. '#/props/image'."
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "$ref": "styles.schema.json#/definitions/ImageValue"
+          },
+          "description": "Authoring-default example images seen in Figma. Non-contractual reference material."
+        }
+      },
+      "required": [
+        "$binding"
+      ],
+      "additionalProperties": false
+    },
+    "Images": {
+      "type": "object",
+      "description": "Registry of image data keyed by identifier (ADR-063). Each value is a data: URI, external URL, emitted asset path, or a 'figma:<imageRef>' unresolved placeholder. Discriminated by scheme.",
+      "patternProperties": {
+        "^[a-zA-Z0-9_-]+$": {
+          "type": "string",
+          "description": "Resolved image data (data: URI, external URL, or emitted asset path) or an unresolved 'figma:<imageRef>' placeholder holding the Figma image hash pending fetch."
+        }
       },
       "additionalProperties": false
     }

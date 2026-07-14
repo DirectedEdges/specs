@@ -108,6 +108,15 @@ export interface Config {
     };
     /** Concept-keyed map classifying Figma variant props as semantic states. Key = concept name (e.g. `hover`, `disabled`). Optional; absence means all variant props emit as data-* attribute selectors and all props are retained in contracts. @since 0.24.0 */
     states?: Record<string, VariantStateEntry>;
+    /** Designated image component. When present, instances of `name` are treated as the image primitive and image props forward into its `sourceProperty` via propConfigurations; both fields are required. Absence means image fills are emitted as `Styles.backgroundImage` on container elements only. Requires `include.imageData`. @since 0.28.0 */
+    imageComponent?: {
+      /** The designated image component name (e.g. `dsImage`). */
+      name: string;
+      /** The image source prop name on the component (e.g. `source`). */
+      sourceProperty: string;
+      /** Whether image fills outside the designated component still emit as `backgroundImage` on containers. Optional; defaults to true. When false, the component is the only image representation and stray fills are not emitted. */
+      fallback?: boolean;
+    };
   };
   format: {
     /** Output format. Optional; defaults to JSON. */
@@ -135,6 +144,8 @@ export interface Config {
     emptyVariants?: boolean;
     /** Include slot content examples in output (ADR-050). Optional; defaults to false. @since 0.21.0 */
     defaultSlotContent?: boolean;
+    /** Process image fills and props. Optional; defaults to false. When false, images are not processed. @since 0.28.0 */
+    imageData?: boolean;
   };
   /** Transformers to run via `specs transform`, each with optional inline options. Optional; absence means CLI defaults apply. @since 0.24.0 */
   transformers?: TransformEntry[];
@@ -185,6 +196,15 @@ export interface ResolvedConfig {
     };
     /** Concept-keyed map classifying Figma variant props as semantic states. Key = concept name (e.g. `hover`, `disabled`). Optional; absence means all variant props emit as data-* attribute selectors and all props are retained in contracts. @since 0.24.0 */
     states?: Record<string, VariantStateEntry>;
+    /** Designated image component (ADR-063). Optional; absence means image fills emit as `backgroundImage` on containers only. When present, `fallback` is required-with-default true. */
+    imageComponent?: {
+      /** The designated image component name (e.g. `dsImage`). */
+      name: string;
+      /** The image source prop name on the component (e.g. `source`). */
+      sourceProperty: string;
+      /** Whether image fills outside the designated component still emit as `backgroundImage` on containers. When false, the component is the only image representation. */
+      fallback: boolean;
+    };
   };
   format: {
     /** Output format. */
@@ -207,6 +227,8 @@ export interface ResolvedConfig {
     emptyVariants: boolean;
     /** Include slot content examples in output. */
     defaultSlotContent: boolean;
+    /** Whether image fills and props are processed. */
+    imageData: boolean;
   };
   /** Transformers to run via `specs transform`. @since 0.24.0 */
   transformers: TransformEntry[];
@@ -231,6 +253,7 @@ export interface ResolvedConfig {
  * - include.emptyVariants: false reduces output size by excluding semantically empty layered variants
  * - include.defaultSlotContent: false — opt-in (ADR-050); off by default so unannotated components are unchanged
  *   (instanceExamples have no include flag — presence of processing.instanceExamples is the on-switch, like subcomponents)
+ * - include.imageData: false — opt-in (ADR-063); off by default so image fills/props are not processed unless requested
  */
 export const DEFAULT_CONFIG: ResolvedConfig = {
   processing: {
@@ -252,6 +275,7 @@ export const DEFAULT_CONFIG: ResolvedConfig = {
     invalidCombinations: true,
     emptyVariants: false,
     defaultSlotContent: false,
+    imageData: false,
   },
   transformers: [],
 };

@@ -32,6 +32,9 @@ export type { Styles, Style, ColorStyle, ColorObject, StyleKey, TokenReference, 
 export type { Shadow, Blur, Effects } from './Effects.js';
 export type { GradientStop, GradientCenter, LinearGradient, RadialGradient, AngularGradient, GradientValue } from './Gradient.js';
 
+// Image types
+export type { ImageScaleMode, ImageValue, Images, ImageProp, ImageBinding } from './Image.js';
+
 // Reference types
 export type { PropBinding, BindingKey } from './PropBinding.js';
 export type { SlotContentRef } from './SlotContentRef.js';
