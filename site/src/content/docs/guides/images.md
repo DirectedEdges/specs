@@ -38,23 +38,24 @@ Your system has a designated image primitive (say `dsImage`) with an image `sour
 
 ```yaml
 # dsAvatar references dsImage
-props:
-  image:
-    type: image
-    nullable: true
-elements:
-  imageComponent:
-    type: instance
-    instanceOf: dsImage
-
-default:
+dsAvatar:
+  props:
+    image:
+      type: image
+      nullable: true
   elements:
     imageComponent:
-      propConfigurations:
-        source:
-          $binding: "#/props/image"
-          examples:
-            - $image: "dsAvatar.examples#/images/userPhoto"
+      type: instance
+      instanceOf: dsImage
+
+  default:
+    elements:
+      imageComponent:
+        propConfigurations:
+          source:
+            $binding: "#/props/image"
+            examples:
+              - $image: "dsAvatar.examples#/images/userPhoto"
 ```
 
 Sourcing binds through `propConfigurations`, never through `backgroundImage` — `backgroundImage` is reserved for the no-component fill case.
@@ -89,13 +90,10 @@ config:
 
 The `images` registry stores each image once. A value is an emitted asset path (the standard resolved form), a `data:` URI, an external URL, or — when the bytes have not been fetched yet — a `figma:<imageRef>` **placeholder**. Image processing is two-phase:
 
+The Figma plugin cannot embed raw image bytes on the component asset (Figma caps saved data), so it emits `figma:` placeholders and additionally duplicates each detected image into the **Foundations** section for human reference. The REST/CLI path is how you get actual image files.
+
 1. **Detect** (`include.imageData`) — emit `$image` references and the registry, values possibly `figma:` placeholders.
-2. **Resolve** — `specs generate --get-images` fetches the bytes, writes each distinct image once to `_images/<imageHash>.<ext>` inside the output directory, and swaps each placeholder for the file's path relative to the referencing spec file.
-
-Because references always resolve to a registry entry (resolved or placeholder), a spec is valid before any bytes exist — `$image` pointers never dangle.
-
-:::note[Plugin runtime]
-The Figma plugin cannot embed raw image bytes on the component asset (Figma caps saved data), so it emits `figma:` placeholders and additionally duplicates each detected image into the **Styling Inventory** for human reference. The REST/CLI path is how you get embedded image data.
+2. **Resolve** (CLI's `generate` command only) — `specs generate --get-images` fetches the bytes, writes each distinct image once to `_images/<imageHash>.<ext>` inside the output directory, and swaps each placeholder for the file's path relative to the referencing spec file.
 :::
 
 ## Further Reading
