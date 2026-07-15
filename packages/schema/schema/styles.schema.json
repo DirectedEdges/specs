@@ -254,9 +254,10 @@
       "additionalProperties": false
     },
     "ImageStyleValue": {
-      "description": "Container image fill value — an ImageValue object, or null. Fallback representation used when no image component is configured.",
+      "description": "Container image fill value — an ImageValue object, a TokenReference (when the fill comes from an applied Figma fill style whose paint is an image), or null. Fallback representation used when no image component is configured.",
       "oneOf": [
         { "$ref": "#/definitions/ImageValue" },
+        { "$ref": "#/definitions/TokenReference" },
         { "type": "null" }
       ]
     },

@@ -10,8 +10,8 @@ export type Styles = Partial<{
   opacity: Style;
   locked: Style;
   backgroundColor: ColorStyle;
-  /** Image fill painted on a layer. Present on non-text element types. Fallback representation used when no image component is configured. Absent when there is no image fill. @since 0.28.0 */
-  backgroundImage: ImageValue | null;
+  /** Image fill painted on a layer. Present on container element types. Fallback representation used when no image component is configured. A `TokenReference` when the image fill comes from an applied Figma fill style (the style reference routes here — not to `backgroundColor` — when the styled paint is an image). Absent when there is no image fill. @since 0.28.0 */
+  backgroundImage: ImageValue | TokenReference | null;
   /** Glyph fill color. Present on GLYPH element type only. Represented in Figma as fills. @since 0.13.0 */
   fillColor: ColorStyle;
   effects: TokenReference | Effects;

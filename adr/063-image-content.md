@@ -208,7 +208,7 @@ Add an `images` registry to `Component`, an `ImageValue`-typed `backgroundImage`
 | `types/Image.ts` *(new)* | Add `Images = Record<string, ImageData>` (registry: id → resolved data or placeholder) | MINOR |
 | `types/Image.ts` *(new)* | Add `ImageProp` (`type: 'image'`) | MINOR |
 | `types/Image.ts` *(new)* | Add `ImageBinding` (`PropBinding & { examples?: ImageValue[] }`) | MINOR |
-| `types/Styles.ts` | Add field `backgroundImage: ImageValue \| null` to `Styles` | MINOR |
+| `types/Styles.ts` | Add field `backgroundImage: ImageValue \| TokenReference \| null` to `Styles` | MINOR |
 | `types/Styles.ts` | Add `'backgroundImage'` to the `StyleKey` union | MINOR |
 | `types/Props.ts` | Add `ImageProp` to the `AnyProp` union | MINOR |
 | `types/PropConfigurations.ts` | Add `ImageBinding` to the `PropConfigurationValue` union | MINOR |
@@ -351,6 +351,7 @@ ImageBinding:
 
 ### Notes
 
+- **Fill-style precedence (2026-07-15 revision).** A Figma fill *style* (`fillStyleId`) whose styled paint is an **image** routes its style reference to `backgroundImage` as a `TokenReference` — never to `backgroundColor`, which stays color-only and emits nothing for an image paint. `Styles.backgroundImage` is therefore `ImageValue | TokenReference | null` (schema: `ImageStyleValue` gains the `TokenReference` arm). A style-referenced image contributes no `images` registry entry — the token names the style; the pixels stay Figma-side, like every other tokenized value. The paint's `scaleMode` is not carried on the token form (fit belongs to the style's own definition).
 - **Sourcing binds through `propConfigurations`, never through `backgroundImage`.** A parent forwarding an image into a nested image component uses an `ImageBinding` under that instance's `propConfigurations`, exactly like any other forwarded prop. `Styles.backgroundImage` carries only a static/example `ImageValue` for the no-component fallback.
 - **Where image-source props come from.** Figma has no native image-typed component property, so an `ImageProp` is not extracted from a Figma property directly — it originates from an existing **code-only prop** (ADR-027; `$extensions.com.figma.source.kind = 'codeOnlyProp'`), which Figma surfaces as a `string`. The transformer re-types a conventionally-named code-only prop as `type: image` — initially a hard-coded name (e.g. a code-only prop named `imageSource`) mapped to `ImageProp` instead of `StringProp`. This is transformer behaviour, not a schema mechanism; the schema only defines the resulting `ImageProp` shape.
 - **`objectFit` placement.** For the **image component**, fit (`COVER`/`CONTAIN`) is an ordinary prop/variant of that component (e.g. an `EnumProp` with `enum: ["COVER","CONTAIN"]`) — no schema-special handling. For the **fallback fill**, it is `ImageValue.objectFit`. Answering the sibling-vs-subproperty question: it is a **subproperty** of the `backgroundImage` object.
