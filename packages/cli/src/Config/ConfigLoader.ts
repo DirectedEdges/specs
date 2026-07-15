@@ -192,6 +192,25 @@ export class ConfigLoader {
       }
     }
 
+    // Validate processing.imageComponent (ADR-063) — when present, name and
+    // sourceProperty must be non-empty strings; fallback resolves to its
+    // required-with-default form (true) on the resolved shape.
+    if (corrected.processing.imageComponent !== undefined) {
+      const ic = corrected.processing.imageComponent as unknown as Record<string, unknown>;
+      const validName = typeof ic?.name === 'string' && (ic.name as string).trim() !== '';
+      const validProp = typeof ic?.sourceProperty === 'string' && (ic.sourceProperty as string).trim() !== '';
+      if (!validName || !validProp) {
+        console.warn('Invalid processing.imageComponent: name and sourceProperty must be non-empty strings. Removing imageComponent config.');
+        delete corrected.processing.imageComponent;
+      } else {
+        corrected.processing.imageComponent = {
+          name: (ic.name as string).trim(),
+          sourceProperty: (ic.sourceProperty as string).trim(),
+          fallback: ic.fallback !== false,
+        };
+      }
+    }
+
     // Validate processing.instanceExamples (ADR-050)
     if (corrected.processing.instanceExamples !== undefined) {
       const ie = corrected.processing.instanceExamples;
@@ -256,7 +275,7 @@ export class ConfigLoader {
     // the presence of processing.subcomponents, and instanceExamples likewise by
     // the presence of processing.instanceExamples (so include.instanceExamples is
     // not a valid key).
-    const validIncludeKeys = new Set(['invalidVariants', 'invalidCombinations', 'emptyVariants', 'defaultSlotContent']);
+    const validIncludeKeys = new Set(['invalidVariants', 'invalidCombinations', 'emptyVariants', 'defaultSlotContent', 'imageData']);
     for (const key of Object.keys(corrected.include)) {
       if (!validIncludeKeys.has(key)) {
         delete (corrected.include as Record<string, unknown>)[key];
@@ -271,6 +290,15 @@ export class ConfigLoader {
     }
     if (dsc !== true) {
       corrected.include.defaultSlotContent = false;
+    }
+
+    // imageData (ADR-063) likewise activates only on a literal boolean `true`.
+    const img = (corrected.include as Record<string, unknown>).imageData;
+    if (img !== undefined && typeof img !== 'boolean') {
+      console.warn(`Invalid include.imageData: expected boolean, got ${typeof img}. Using default: false`);
+    }
+    if (img !== true) {
+      corrected.include.imageData = false;
     }
 
     return corrected;

@@ -225,6 +225,34 @@ specs/
     └── dsCard.yaml
 ```
 
+### `--get-images`
+Resolve unresolved image placeholders into real image files. Requires `include.imageData: true` in config, a configured source file key, and the `FIGMA_TOKEN` environment variable (the same token `specs fetch` uses).
+
+```bash
+specs generate components.md -o specs/ --split-components --get-images
+```
+
+Generation alone (the *detect* phase) records each image fill as a `figma:<imageHash>` placeholder in the component's `images` registry — structurally complete, but with no pixels. With `--get-images`, the CLI calls Figma's Get Image Fills endpoint, downloads each distinct image once, writes it as `_images/<imageHash>.<ext>` inside the output directory (format detected from the bytes — png, jpg, gif, or webp), and rewrites each registry value to a path relative to the spec file that references it:
+
+```yaml
+# without --get-images (detect phase)
+images:
+  dsCard__hero: figma:705867125834a686a51bdf161a0a39cdba0f9a58
+
+# with --get-images
+images:
+  dsCard__hero: _images/705867125834a686a51bdf161a0a39cdba0f9a58.png
+```
+
+```
+specs/
+├── _images/
+│   └── 705867125834a686a51bdf161a0a39cdba0f9a58.png
+└── dsCard.yaml
+```
+
+`$image` pointers (in `backgroundImage` fills and `ImageBinding` examples) are unaffected — resolution rewrites one registry value per image, never the references. Files are named by Figma's content hash, so an image shared by many components is downloaded and stored once, and re-runs are idempotent. Figma's download URLs are temporary and are never persisted. With `--use-subfolders` (or the combined component + concern layout), references become `../_images/...` so they still resolve relative to each spec file.
+
 ### `--config <path>`
 Path to configuration file.
 

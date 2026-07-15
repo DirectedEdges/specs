@@ -1,0 +1,154 @@
+/**
+ * ImageFillsResolver - resolves `figma:<imageHash>` placeholders (ADR-063)
+ *
+ * Purpose: the second phase of the two-phase image model. Generation (detect)
+ * emits component `images` registries whose values are `figma:<imageHash>`
+ * placeholders. This resolver — run by `specs generate --get-images` — turns
+ * those placeholders into emitted asset files:
+ *
+ * 1. Collect every distinct placeholder hash across the generated components.
+ * 2. Call Figma's Get Image Fills endpoint (`GET /v1/files/:key/images`),
+ *    which returns temporary S3 download URLs (~14-day expiry).
+ * 3. Download each image's bytes, detect the format from magic bytes, and
+ *    write `{outputDir}/_images/{imageHash}.{ext}` — hash-named so the same
+ *    image used by many components dedups to one file and re-runs are
+ *    idempotent. `_images` avoids collision with any component named
+ *    "images" and marks the folder as non-component content.
+ * 4. Rewrite each registry value from `figma:<imageHash>` to a path relative
+ *    to the referencing spec file (`_images/...`, or `../_images/...` when
+ *    component subfolders are in use).
+ *
+ * The temporary S3 URLs are never persisted — only the downloaded bytes and
+ * the relative file path survive (ADR-063 runtime notes).
+ */
+
+import fs from 'fs-extra';
+import path from 'path';
+
+/** Figma Get Image Fills response shape. */
+interface GetImageFillsResponse {
+  error?: boolean;
+  status?: number;
+  meta?: { images?: Record<string, string> };
+}
+
+const PLACEHOLDER_PREFIX = 'figma:';
+
+/** Directory (inside the output directory) that resolved image files are written to. */
+export const IMAGES_DIR_NAME = '_images';
+
+export class ImageFillsResolver {
+  /**
+   * Collect every distinct placeholder hash from the components' `images`
+   * registries. Non-placeholder values (already-resolved data) are ignored.
+   */
+  public static collectPlaceholderHashes(components: Array<{ spec: Record<string, unknown> }>): Set<string> {
+    const hashes = new Set<string>();
+    for (const { spec } of components) {
+      const images = spec.images as Record<string, unknown> | undefined;
+      if (!images) continue;
+      for (const value of Object.values(images)) {
+        if (typeof value === 'string' && value.startsWith(PLACEHOLDER_PREFIX)) {
+          hashes.add(value.slice(PLACEHOLDER_PREFIX.length));
+        }
+      }
+    }
+    return hashes;
+  }
+
+  /**
+   * Fetch the hash → temporary-S3-URL map for a file via Get Image Fills.
+   * Throws with an actionable message on auth/permission failures.
+   */
+  public static async fetchImageUrls(fileKey: string, token: string): Promise<Record<string, string>> {
+    const response = await fetch(`https://api.figma.com/v1/files/${fileKey}/images`, {
+      headers: { 'X-Figma-Token': token },
+    });
+
+    if (response.status !== 200) {
+      const body = await response.text();
+      throw new Error(`Get Image Fills failed for file ${fileKey} (HTTP ${response.status}): ${body.slice(0, 200)}`);
+    }
+
+    const json = await response.json() as GetImageFillsResponse;
+    return json.meta?.images ?? {};
+  }
+
+  /**
+   * Download each requested hash's bytes and write hash-named files into
+   * `{outputDir}/_images/`. Returns hash → filename for the rewrite step.
+   * Hashes missing from the URL map (e.g. an image deleted from the file
+   * since generation) are skipped with a warning — their placeholders remain.
+   */
+  public static async downloadAndWrite(
+    hashes: Set<string>,
+    urls: Record<string, string>,
+    outputDir: string
+  ): Promise<Map<string, string>> {
+    const imagesDir = path.join(outputDir, IMAGES_DIR_NAME);
+    const written = new Map<string, string>();
+    if (hashes.size === 0) return written;
+    await fs.ensureDir(imagesDir);
+
+    for (const hash of hashes) {
+      const url = urls[hash];
+      if (!url) {
+        console.warn(`Warning: image ${PLACEHOLDER_PREFIX}${hash} was not returned by Get Image Fills — placeholder left unresolved`);
+        continue;
+      }
+
+      const response = await fetch(url);
+      if (response.status !== 200) {
+        console.warn(`Warning: image ${PLACEHOLDER_PREFIX}${hash} download failed (HTTP ${response.status}) — placeholder left unresolved`);
+        continue;
+      }
+
+      const bytes = Buffer.from(await response.arrayBuffer());
+      const filename = `${hash}.${ImageFillsResolver.detectExtension(bytes)}`;
+      await fs.writeFile(path.join(imagesDir, filename), bytes);
+      written.set(hash, filename);
+    }
+
+    return written;
+  }
+
+  /**
+   * Rewrite `figma:<imageHash>` registry values to relative file paths in
+   * place. `relativePrefix` is the path from the referencing spec file's
+   * directory to the `_images` directory (e.g. `_images/` at the output root,
+   * `../_images/` from a component subfolder).
+   */
+  public static rewritePlaceholders(
+    components: Array<{ spec: Record<string, unknown> }>,
+    hashToFilename: Map<string, string>,
+    relativePrefix: string
+  ): number {
+    let rewritten = 0;
+    for (const { spec } of components) {
+      const images = spec.images as Record<string, unknown> | undefined;
+      if (!images) continue;
+      for (const [key, value] of Object.entries(images)) {
+        if (typeof value !== 'string' || !value.startsWith(PLACEHOLDER_PREFIX)) continue;
+        const filename = hashToFilename.get(value.slice(PLACEHOLDER_PREFIX.length));
+        if (!filename) continue;
+        images[key] = `${relativePrefix}${filename}`;
+        rewritten++;
+      }
+    }
+    return rewritten;
+  }
+
+  /**
+   * Detect the image format from magic bytes. Figma image fills are PNG,
+   * JPEG, GIF, or WebP; anything unrecognized falls back to `png` with a
+   * warning rather than an extension-less file.
+   */
+  public static detectExtension(bytes: Buffer): string {
+    if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return 'png';
+    if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'jpg';
+    if (bytes.length >= 4 && bytes.toString('ascii', 0, 4) === 'GIF8') return 'gif';
+    if (bytes.length >= 12 && bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP') return 'webp';
+    console.warn('Warning: unrecognized image format — writing with .png extension');
+    return 'png';
+  }
+}

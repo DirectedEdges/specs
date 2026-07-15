@@ -26,6 +26,7 @@ import { ConcernFileWriter } from '../Writers/ConcernFileWriter.js';
 import { CombinedFileWriter } from '../Writers/CombinedFileWriter.js';
 import type { FileWriter, WriteResult } from '../Writers/FileWriter.js';
 import type { OutputFormat } from '../Types/OutputConfig.js';
+import { ImageFillsResolver, IMAGES_DIR_NAME } from '../utilities/ImageFillsResolver.js';
 
 declare const __SPECS_CLI_VERSION__: string;
 
@@ -65,6 +66,7 @@ interface GenerateOptions {
   splitComponents?: boolean;
   splitConcerns?: boolean;
   useSubfolders?: boolean;
+  getImages?: boolean;
 }
 
 export const Generate = new Command('generate')
@@ -81,6 +83,7 @@ export const Generate = new Command('generate')
   .option('--split-components', 'Create separate file per component')
   .option('--split-concerns', 'Separate API, variants, and examples into different files')
   .option('--use-subfolders', 'Organize component files in subdirectories (requires --split-components)')
+  .option('--get-images', 'Resolve figma: image placeholders into files under _images/ (requires include.imageData and FIGMA_TOKEN)')
   .option('--verbose', 'Enable detailed logging', false)
   .action(async (source: string | undefined, options: GenerateOptions) => {
     try {
@@ -415,6 +418,10 @@ export const Generate = new Command('generate')
       // File mode stdout (no -o)
       // ---------------------------------------------------------------
       if (!isManifest && !options.output && !config.outputDirectory) {
+        if (options.getImages) {
+          console.error('Error: --get-images requires an output directory (set outputDirectory in config or pass -o) so image files have somewhere to be written');
+          process.exit(ERROR_CODES.INVALID_ARGS);
+        }
         const componentData = processedComponents[0].spec;
         const outputFormat = options.format
           ? options.format.toLowerCase()
@@ -469,6 +476,43 @@ export const Generate = new Command('generate')
       const outputFileName = (!outputConfig.splitComponents && !outputConfig.splitConcerns)
         ? path.basename(outputPath)
         : undefined;
+
+      // ---------------------------------------------------------------
+      // Image resolution (ADR-063, --get-images): swap figma:<imageHash>
+      // placeholders for files written under {baseDir}/_images/, referenced
+      // relative to the spec file that points at them. Runs before the
+      // manifest so writers serialize the resolved registry values.
+      // ---------------------------------------------------------------
+      if (options.getImages) {
+        const hashes = ImageFillsResolver.collectPlaceholderHashes(processedComponents);
+        if (hashes.size === 0) {
+          console.log(modelConfig.include.imageData
+            ? 'Note: --get-images found no unresolved image placeholders'
+            : 'Note: --get-images has no effect — include.imageData is not enabled in config');
+        } else {
+          const token = process.env.FIGMA_TOKEN;
+          if (!token) {
+            console.error('Error: --get-images requires the FIGMA_TOKEN environment variable (same token as `specs fetch`)');
+            process.exit(ERROR_CODES.INVALID_ARGS);
+          }
+          const sources = config.sources ?? {};
+          const fileKey = sources.library?.key
+            ?? Object.values(sources).find(s => Array.isArray(s.data) && s.data.includes('file'))?.key;
+          if (!fileKey) {
+            console.error('Error: --get-images requires a configured source file key (sources.<alias>.key in specs.config.yaml)');
+            process.exit(ERROR_CODES.INVALID_ARGS);
+          }
+
+          const urls = await ImageFillsResolver.fetchImageUrls(fileKey, token);
+          const files = await ImageFillsResolver.downloadAndWrite(hashes, urls, baseDir);
+          // Spec files sit one level below baseDir when components get their own
+          // folders (subfolders, or the component+concern combined layout).
+          const inComponentFolders = !!outputConfig.splitComponents && (!!outputConfig.useSubfolders || !!outputConfig.splitConcerns);
+          const relativePrefix = inComponentFolders ? `../${IMAGES_DIR_NAME}/` : `${IMAGES_DIR_NAME}/`;
+          const rewritten = ImageFillsResolver.rewritePlaceholders(processedComponents, files, relativePrefix);
+          console.log(`✓ Resolved ${rewritten} image reference(s) into ${files.size} file(s) under ${IMAGES_DIR_NAME}/`);
+        }
+      }
 
       const manifest = new FileManifest(processedComponents, outputConfig, baseDir, outputFileName);
 

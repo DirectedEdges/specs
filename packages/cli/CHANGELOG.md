@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Image config surface (ADR-063)** — `include.imageData` (default `false`) now passes config validation instead of being stripped by the include-key allowlist, activating only on a literal `true` (like `defaultSlotContent`). `processing.imageComponent` is validated when present: `name` and `sourceProperty` must be non-empty strings (trimmed), `fallback` resolves to its required-with-default `true`; an invalid block is removed with a warning.
+- **`specs generate --get-images` (ADR-063 resolution phase)** — Resolves `figma:<imageHash>` placeholders left by the detect phase into real files. Calls Figma's Get Image Fills endpoint (requires `FIGMA_TOKEN` and a configured source key), downloads each distinct image once, writes `_images/<imageHash>.<ext>` inside the output directory (format detected from magic bytes: png/jpg/gif/webp), and rewrites each `Component.images` registry value to a path relative to the referencing spec file (`_images/...`, or `../_images/...` in per-component-folder layouts). `$image` pointers are untouched; temporary S3 URLs are never persisted; unresolvable hashes keep their placeholder with a warning.
+
 ### Changed
 
 - **`specs generate` write output simplified** — Per-file "Overwriting existing file" warnings now collapse into a single summary line instead of one per file, and the redundant "✓ Saved to"/"✓ Generated N files" success echo has been removed.
