@@ -86,7 +86,8 @@ export interface TokenReference {
   /**
    * DTCG token type (Format Module §9). Standard values: color, dimension, string, number, boolean,
    * shadow, gradient, typography. "effects" is a Specs extension for EffectsGroup references
-   * (multi-shadow + blur composite) with no DTCG equivalent.
+   * (multi-shadow + blur composite) with no DTCG equivalent. "image" is a Specs extension for
+   * fill-style references whose styled paint is an image (ADR-063), likewise without a DTCG equivalent.
    */
   $type:
     | 'color'
@@ -97,7 +98,8 @@ export interface TokenReference {
     | 'shadow'
     | 'gradient'
     | 'typography'
-    | 'effects';
+    | 'effects'
+    | 'image';
   /** Tool-specific metadata per DTCG §5.2.3 (reverse domain name notation). Optional; not required for platform code generation. */
   $extensions?: {
     'com.figma'?: {

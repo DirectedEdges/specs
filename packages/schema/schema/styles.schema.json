@@ -601,8 +601,8 @@
         },
         "$type": {
           "type": "string",
-          "enum": ["color", "dimension", "string", "number", "boolean", "shadow", "gradient", "typography", "effects"],
-          "description": "DTCG token type (Format Module \u00a79). 'effects' is a Specs extension for EffectsGroup references (multi-shadow + blur composite) with no DTCG equivalent."
+          "enum": ["color", "dimension", "string", "number", "boolean", "shadow", "gradient", "typography", "effects", "image"],
+          "description": "DTCG token type (Format Module \u00a79). 'effects' is a Specs extension for EffectsGroup references (multi-shadow + blur composite) with no DTCG equivalent. 'image' is a Specs extension for fill-style references whose styled paint is an image (ADR-063), likewise without a DTCG equivalent."
         },
         "$extensions": {
           "type": "object",

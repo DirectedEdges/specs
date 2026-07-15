@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `Styles.textOverflow` — typed as `TextOverflow` (`'CLIP' | 'ELLIPSIS'`) or `null`; how overflowing text is handled (TEXT only, not token-bindable). Named after CSS `text-overflow` / Compose `TextOverflow`
 - `Styles.maxLines` — maximum line count before `'ELLIPSIS'` text overflow applies; null for no limit (TEXT only)
-- `Styles.backgroundImage` — container image fill, typed as `ImageValue` (`{ $image, objectFit?: 'COVER' | 'CONTAIN' }`), a `TokenReference` (an applied Figma fill style whose paint is an image routes its style reference here, not to `backgroundColor`), or `null` (ADR-063)
+- `Styles.backgroundImage` — container image fill, typed as `ImageValue` (`{ $image, objectFit?: 'COVER' | 'CONTAIN' }`), a `TokenReference` with `$type: 'image'` (an applied Figma fill style whose paint is an image routes its style reference here, not to `backgroundColor`; `image` joins the `$type` set as a Specs extension), or `null` (ADR-063)
 - `Component.images` — registry of `ImageData` by id — resolved data (`data:` URI, URL, asset path) or a `figma:<imageRef>` placeholder
 - `ImageProp` — `type: 'image'` property added to `AnyProp` for image-source properties
 - `ImageBinding` — `{ $binding, examples? }` added to `PropConfigurationValue`, forwarding an image into a nested instance
