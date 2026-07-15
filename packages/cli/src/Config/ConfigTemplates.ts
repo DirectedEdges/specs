@@ -15,7 +15,7 @@ export function generateConfigTemplate(): string {
   return `# Specs CLI Configuration
 #
 # This file configures how Specs fetches and processes Figma component data.
-# See: https://directededges.github.io/specs/config/
+# See: https://directededges.github.io/specs/settings/
 
 # ─── 'fetch'ed Sources (CLI only) ─────────────────────────────────────────────
 # Where Figma data is fetched from and stored locally.
@@ -50,7 +50,7 @@ output:
   useSubfolders: false
 
 # ─── Configuration options (same as the Figma plugin) ──────────────────────────────
-# See: https://directededges.github.io/specs/config/
+# See: https://directededges.github.io/specs/settings/
 
 config:
 
@@ -59,27 +59,27 @@ config:
     output: JSON
 
     # Key name transformation: SAFE, CAMEL, SNAKE, KEBAB, PASCAL, TRAIN
-    # See: https://directededges.github.io/specs/config/keys/
+    # See: https://directededges.github.io/specs/guides/key-formatting/
     keys: SAFE
 
     # Layout representation: LAYOUT, PARENT_CHILDREN, or BOTH
-    # See: https://directededges.github.io/specs/config/layout/
+    # See: https://directededges.github.io/specs/guides/data-layout/
     layout: LAYOUT
 
     # Token reference format: TOKEN, TOKEN_NAME, TOKEN_FIGMA_EXTENSIONS, FIGMA_NAME, CUSTOM,
     # FIGMA_SYNTAX_WEB, FIGMA_SYNTAX_IOS, or FIGMA_SYNTAX_ANDROID
-    # See: https://directededges.github.io/specs/config/tokens/
+    # See: https://directededges.github.io/specs/settings/tokens/
     # Requires a license key to resolve token references in output.
     tokens: TOKEN
 
     # Color value format: HEX, HEXA, RGB, RGBA, HSLA, HSB, OKLCH, OKLAB, or OBJECT
-    # See: https://directededges.github.io/specs/config/color/
+    # See: https://directededges.github.io/specs/settings/color/
     color: HEX
 
   processing:
     # Subcomponent discovery configuration.
     # Presence of this block enables subcomponent detection; remove to disable.
-    # See: https://directededges.github.io/specs/config/subcomponents/
+    # See: https://directededges.github.io/specs/guides/subcomponent-scoping/
     subcomponents:
       # Where to search: NESTED (component anatomy only) or PAGE (also search Figma page)
       # scope: NESTED
@@ -107,11 +107,11 @@ config:
     slotConstraints: false
 
     # Maximum variant property depth to process: 1, 2, 3, or 9999 (unlimited)
-    # See: https://directededges.github.io/specs/config/variant-depth/
+    # See: https://directededges.github.io/specs/guides/variant-depth/
     variantDepth: 9999
 
     # Detail level for variant data: FULL or LAYERED
-    # See: https://directededges.github.io/specs/config/details/
+    # See: https://directededges.github.io/specs/guides/variant-layering/
     details: LAYERED
 
     # Infer number props: when true, TEXT code-only props whose values parse as
@@ -123,6 +123,41 @@ config:
     # styles, no slot bindings) is collapsed — the wrapper is stripped and the
     # leaf becomes the spec root. All-or-nothing across variants. (default: false)
     # collapsePrimitiveWrapper: false
+
+    # Instance example detection (Pro). Presence of this block is the on-switch.
+    # See: https://directededges.github.io/specs/guides/instance-examples/
+    # instanceExamples:
+    #   # Where to search for candidate instances: PAGE or FILE (default: PAGE)
+    #   scope: PAGE
+    #   # Optional name filter; {C} = component name. Omit to match every
+    #   # in-scope instance of the component.
+    #   match:
+    #     - '{C} Example'
+    #   # A candidate's immediate parent frame or section must match one of these.
+    #   parentNames:
+    #     - Examples
+
+    # Semantic states: classify Figma variant props as state concepts, keyed by
+    # concept name. Absence means all variant props emit as data-* selectors.
+    # See: https://directededges.github.io/specs/settings/states/
+    # states:
+    #   hover:
+    #     prop: state
+    #     value: hover
+    #   disabled:
+    #     prop: disabled   # boolean prop — value defaults to "true"
+
+    # Designated image component: instances of this component are the image
+    # primitive, and image props route through its source prop. Requires
+    # include.imageData below. Absence means image fills emit as
+    # backgroundImage on containers only.
+    # See: https://directededges.github.io/specs/guides/images/
+    # imageComponent:
+    #   name: DS Image
+    #   sourceProperty: imageSource
+    #   # Whether image fills outside the component still emit as
+    #   # backgroundImage (default: true). false = component-only.
+    #   fallback: true
 
   include:
     # Subcomponent inclusion is controlled by processing.subcomponents above.
@@ -137,6 +172,15 @@ config:
 
     # Include layered variants that contain no elements (default: false)
     # emptyVariants: false
+
+    # Emit the component's default slot content as examples (Pro; default: false)
+    # See: https://directededges.github.io/specs/guides/default-slot-content/
+    # defaultSlotContent: false
+
+    # Process image fills and props — backgroundImage, ImageProp, and the images
+    # registry. Resolve placeholders into files with \`specs generate --get-images\`.
+    # See: https://directededges.github.io/specs/guides/images/
+    # imageData: false
 
   # ─── Transform configuration ─────────────────────────────────────────────────
   # Transformers to run with \`specs transform\`. Absence means CLI defaults apply (contract).

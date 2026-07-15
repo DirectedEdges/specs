@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import yaml from 'yaml';
 import { generateConfigTemplate } from '../../../src/Config/ConfigTemplates.js';
 
 describe('ConfigTemplates', () => {
@@ -7,6 +8,18 @@ describe('ConfigTemplates', () => {
       const template = generateConfigTemplate();
       expect(template).toBeTruthy();
       expect(typeof template).toBe('string');
+      // Must parse as YAML — commented example blocks included.
+      expect(() => yaml.parse(template)).not.toThrow();
+    });
+
+    it('documents every feature-toggle block (commented) with a doc link', () => {
+      const template = generateConfigTemplate();
+      for (const block of ['instanceExamples:', 'states:', 'imageComponent:', 'defaultSlotContent:', 'imageData:']) {
+        expect(template).toContain(block);
+      }
+      expect(template).toContain('directededges.github.io/specs/guides/images/');
+      expect(template).toContain('directededges.github.io/specs/guides/instance-examples/');
+      expect(template).toContain('directededges.github.io/specs/settings/states/');
     });
 
     it('should include dataDirectory with default value', () => {
@@ -25,12 +38,12 @@ describe('ConfigTemplates', () => {
       const template = generateConfigTemplate();
       expect(template).toContain('#');
       expect(template).toContain('Specs CLI Configuration');
-      expect(template).toContain('directededges.github.io/specs/config/');
+      expect(template).toContain('directededges.github.io/specs/settings/');
     });
 
     it('should include doc URL references', () => {
       const template = generateConfigTemplate();
-      expect(template).toContain('directededges.github.io/specs/config/');
+      expect(template).toContain('directededges.github.io/specs/settings/');
       expect(template).toContain('directededges.github.io/specs/');
     });
 

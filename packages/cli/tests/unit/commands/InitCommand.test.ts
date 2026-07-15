@@ -44,7 +44,7 @@ describe('InitCommand', () => {
     it('should include inline documentation', () => {
       const template = generateConfigTemplate();
       expect(template).toContain('# Specs CLI Configuration');
-      expect(template).toContain('directededges.github.io/specs/config/');
+      expect(template).toContain('directededges.github.io/specs/settings/');
     });
 
     it('should mention defaults in comments', () => {
@@ -159,7 +159,7 @@ describe('InitCommand', () => {
     it('should have all required documentation URLs', () => {
       const template = generateConfigTemplate();
       const requiredUrls = [
-        'directededges.github.io/specs/config/',
+        'directededges.github.io/specs/settings/',
         'directededges.github.io/specs/',
       ];
 
