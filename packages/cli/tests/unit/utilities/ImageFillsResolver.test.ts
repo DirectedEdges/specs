@@ -5,7 +5,9 @@
  * integration path.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import fs from 'fs-extra';
+import path from 'path';
 import { ImageFillsResolver, IMAGES_DIR_NAME } from '../../../src/utilities/ImageFillsResolver.js';
 
 function component(images?: Record<string, string>): { spec: Record<string, unknown> } {
@@ -56,6 +58,35 @@ describe('ImageFillsResolver.rewritePlaceholders', () => {
     const count = ImageFillsResolver.rewritePlaceholders([a], new Map([['hash-1', 'hash-1.png']]), `${IMAGES_DIR_NAME}/`);
     expect(count).toBe(0);
     expect((a.spec.images as Record<string, string>).hero).toBe('_images/hash-1.png');
+  });
+});
+
+describe('ImageFillsResolver.findExisting', () => {
+  let testDir: string;
+
+  beforeEach(() => {
+    testDir = path.join(process.cwd(), 'tests', 'tmp', `images-${Date.now()}`);
+    fs.ensureDirSync(path.join(testDir, IMAGES_DIR_NAME));
+  });
+
+  afterEach(() => {
+    fs.removeSync(testDir);
+  });
+
+  it('reuses hash-named files already in _images/, regardless of extension', async () => {
+    fs.writeFileSync(path.join(testDir, IMAGES_DIR_NAME, 'hash-1.png'), 'x');
+    fs.writeFileSync(path.join(testDir, IMAGES_DIR_NAME, 'hash-2.jpg'), 'x');
+
+    const existing = await ImageFillsResolver.findExisting(new Set(['hash-1', 'hash-2', 'hash-3']), testDir);
+    expect(existing).toEqual(new Map([
+      ['hash-1', 'hash-1.png'],
+      ['hash-2', 'hash-2.jpg'],
+    ]));
+  });
+
+  it('returns empty when _images/ does not exist', async () => {
+    const existing = await ImageFillsResolver.findExisting(new Set(['hash-1']), path.join(testDir, 'nowhere'));
+    expect(existing.size).toBe(0);
   });
 });
 

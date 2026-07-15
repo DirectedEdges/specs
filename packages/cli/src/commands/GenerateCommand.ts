@@ -490,27 +490,37 @@ export const Generate = new Command('generate')
             ? 'Note: --get-images found no unresolved image placeholders'
             : 'Note: --get-images has no effect — include.imageData is not enabled in config');
         } else {
-          const token = process.env.FIGMA_TOKEN;
-          if (!token) {
-            console.error('Error: --get-images requires the FIGMA_TOKEN environment variable (same token as `specs fetch`)');
-            process.exit(ERROR_CODES.INVALID_ARGS);
-          }
-          const sources = config.sources ?? {};
-          const fileKey = sources.library?.key
-            ?? Object.values(sources).find(s => Array.isArray(s.data) && s.data.includes('file'))?.key;
-          if (!fileKey) {
-            console.error('Error: --get-images requires a configured source file key (sources.<alias>.key in specs.config.yaml)');
-            process.exit(ERROR_CODES.INVALID_ARGS);
+          // Reuse hash-named files already present in _images/ — only the
+          // remainder needs the token, the API call, and downloads.
+          const files = await ImageFillsResolver.findExisting(hashes, baseDir);
+          const missing = new Set([...hashes].filter(hash => !files.has(hash)));
+
+          if (missing.size > 0) {
+            const token = process.env.FIGMA_TOKEN;
+            if (!token) {
+              console.error('Error: --get-images requires the FIGMA_TOKEN environment variable (same token as `specs fetch`)');
+              process.exit(ERROR_CODES.INVALID_ARGS);
+            }
+            const sources = config.sources ?? {};
+            const fileKey = sources.library?.key
+              ?? Object.values(sources).find(s => Array.isArray(s.data) && s.data.includes('file'))?.key;
+            if (!fileKey) {
+              console.error('Error: --get-images requires a configured source file key (sources.<alias>.key in specs.config.yaml)');
+              process.exit(ERROR_CODES.INVALID_ARGS);
+            }
+
+            const urls = await ImageFillsResolver.fetchImageUrls(fileKey, token);
+            const downloaded = await ImageFillsResolver.downloadAndWrite(missing, urls, baseDir);
+            for (const [hash, filename] of downloaded) files.set(hash, filename);
           }
 
-          const urls = await ImageFillsResolver.fetchImageUrls(fileKey, token);
-          const files = await ImageFillsResolver.downloadAndWrite(hashes, urls, baseDir);
           // Spec files sit one level below baseDir when components get their own
           // folders (subfolders, or the component+concern combined layout).
           const inComponentFolders = !!outputConfig.splitComponents && (!!outputConfig.useSubfolders || !!outputConfig.splitConcerns);
           const relativePrefix = inComponentFolders ? `../${IMAGES_DIR_NAME}/` : `${IMAGES_DIR_NAME}/`;
           const rewritten = ImageFillsResolver.rewritePlaceholders(processedComponents, files, relativePrefix);
-          console.log(`✓ Resolved ${rewritten} image reference(s) into ${files.size} file(s) under ${IMAGES_DIR_NAME}/`);
+          const reused = hashes.size - missing.size;
+          console.log(`✓ Resolved ${rewritten} image reference(s) into ${files.size} file(s) under ${IMAGES_DIR_NAME}/ (${reused} reused, ${missing.size} downloaded)`);
         }
       }
 

@@ -57,6 +57,26 @@ export class ImageFillsResolver {
   }
 
   /**
+   * Find hashes whose files already exist in `{outputDir}/_images/` — those
+   * are reused as-is (hash-named files are content-addressed, so an existing
+   * file is by definition current). Returns hash → existing filename.
+   * Callers only call Get Image Fills / download for the remainder, so a
+   * fully-resolved re-run needs no token and no network at all.
+   */
+  public static async findExisting(hashes: Set<string>, outputDir: string): Promise<Map<string, string>> {
+    const existing = new Map<string, string>();
+    const imagesDir = path.join(outputDir, IMAGES_DIR_NAME);
+    if (!(await fs.pathExists(imagesDir))) return existing;
+
+    const files = await fs.readdir(imagesDir);
+    for (const hash of hashes) {
+      const match = files.find(f => f.startsWith(`${hash}.`));
+      if (match) existing.set(hash, match);
+    }
+    return existing;
+  }
+
+  /**
    * Fetch the hash → temporary-S3-URL map for a file via Get Image Fills.
    * Throws with an actionable message on auth/permission failures.
    */
