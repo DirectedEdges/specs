@@ -23,7 +23,7 @@ default:
           objectFit: COVER          # COVER (default) or CONTAIN
 
 images:
-  hero: "data:image/jpeg;base64,/9j/4AAQ..."
+  hero: "_images/705867125834a686a51bdf161a0a39cdba0f9a58.jpg"
 ```
 
 ## The Two Patterns
@@ -87,10 +87,10 @@ config:
 
 ## How Image Data Is Stored
 
-The `images` registry stores each image once. A value is a self-contained `data:` URI, an external URL, an emitted asset path, or — when the bytes have not been fetched yet — a `figma:<imageRef>` **placeholder**. Image processing is two-phase:
+The `images` registry stores each image once. A value is an emitted asset path (the standard resolved form), a `data:` URI, an external URL, or — when the bytes have not been fetched yet — a `figma:<imageRef>` **placeholder**. Image processing is two-phase:
 
 1. **Detect** (`include.imageData`) — emit `$image` references and the registry, values possibly `figma:` placeholders.
-2. **Resolve** — a later step (a `--get-images` run or subsequent command) fetches the bytes and swaps each placeholder for `data:` data.
+2. **Resolve** — `specs generate --get-images` fetches the bytes, writes each distinct image once to `_images/<imageHash>.<ext>` inside the output directory, and swaps each placeholder for the file's path relative to the referencing spec file.
 
 Because references always resolve to a registry entry (resolved or placeholder), a spec is valid before any bytes exist — `$image` pointers never dangle.
 
