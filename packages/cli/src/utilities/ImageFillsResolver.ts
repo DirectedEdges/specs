@@ -39,17 +39,32 @@ export const IMAGES_DIR_NAME = '_images';
 
 export class ImageFillsResolver {
   /**
+   * Yield every `images` registry in a component spec: the component's own,
+   * and one per subcomponent (subcomponents run the same detection pipeline
+   * with their own registry, serialized inside the parent's spec file).
+   */
+  private static *registries(spec: Record<string, unknown>): IterableIterator<Record<string, unknown>> {
+    if (spec.images) yield spec.images as Record<string, unknown>;
+    const subcomponents = spec.subcomponents as Record<string, Record<string, unknown>> | undefined;
+    if (!subcomponents) return;
+    for (const subcomponent of Object.values(subcomponents)) {
+      if (subcomponent?.images) yield subcomponent.images as Record<string, unknown>;
+    }
+  }
+
+  /**
    * Collect every distinct placeholder hash from the components' `images`
-   * registries. Non-placeholder values (already-resolved data) are ignored.
+   * registries (including subcomponent registries). Non-placeholder values
+   * (already-resolved data) are ignored.
    */
   public static collectPlaceholderHashes(components: Array<{ spec: Record<string, unknown> }>): Set<string> {
     const hashes = new Set<string>();
     for (const { spec } of components) {
-      const images = spec.images as Record<string, unknown> | undefined;
-      if (!images) continue;
-      for (const value of Object.values(images)) {
-        if (typeof value === 'string' && value.startsWith(PLACEHOLDER_PREFIX)) {
-          hashes.add(value.slice(PLACEHOLDER_PREFIX.length));
+      for (const images of ImageFillsResolver.registries(spec)) {
+        for (const value of Object.values(images)) {
+          if (typeof value === 'string' && value.startsWith(PLACEHOLDER_PREFIX)) {
+            hashes.add(value.slice(PLACEHOLDER_PREFIX.length));
+          }
         }
       }
     }
@@ -145,14 +160,14 @@ export class ImageFillsResolver {
   ): number {
     let rewritten = 0;
     for (const { spec } of components) {
-      const images = spec.images as Record<string, unknown> | undefined;
-      if (!images) continue;
-      for (const [key, value] of Object.entries(images)) {
-        if (typeof value !== 'string' || !value.startsWith(PLACEHOLDER_PREFIX)) continue;
-        const filename = hashToFilename.get(value.slice(PLACEHOLDER_PREFIX.length));
-        if (!filename) continue;
-        images[key] = `${relativePrefix}${filename}`;
-        rewritten++;
+      for (const images of ImageFillsResolver.registries(spec)) {
+        for (const [key, value] of Object.entries(images)) {
+          if (typeof value !== 'string' || !value.startsWith(PLACEHOLDER_PREFIX)) continue;
+          const filename = hashToFilename.get(value.slice(PLACEHOLDER_PREFIX.length));
+          if (!filename) continue;
+          images[key] = `${relativePrefix}${filename}`;
+          rewritten++;
+        }
       }
     }
     return rewritten;

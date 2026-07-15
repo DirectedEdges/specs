@@ -30,6 +30,17 @@ describe('ImageFillsResolver.collectPlaceholderHashes', () => {
     ]);
     expect(hashes).toEqual(new Set(['hash-2']));
   });
+
+  it('collects from subcomponent registries too', () => {
+    const spec = {
+      title: 'Main',
+      images: { root: 'figma:hash-main' },
+      subcomponents: {
+        media: { title: 'Main / Media', images: { root: 'figma:hash-sub' } },
+      },
+    } as Record<string, unknown>;
+    expect(ImageFillsResolver.collectPlaceholderHashes([{ spec }])).toEqual(new Set(['hash-main', 'hash-sub']));
+  });
 });
 
 describe('ImageFillsResolver.rewritePlaceholders', () => {
@@ -51,6 +62,23 @@ describe('ImageFillsResolver.rewritePlaceholders', () => {
     const a = component({ hero: 'figma:hash-1' });
     ImageFillsResolver.rewritePlaceholders([a], new Map([['hash-1', 'hash-1.jpg']]), `../${IMAGES_DIR_NAME}/`);
     expect((a.spec.images as Record<string, string>).hero).toBe('../_images/hash-1.jpg');
+  });
+
+  it('rewrites subcomponent registry values too', () => {
+    const spec = {
+      images: { root: 'figma:hash-main' },
+      subcomponents: {
+        media: { images: { root: 'figma:hash-sub' } },
+      },
+    } as Record<string, unknown>;
+    const count = ImageFillsResolver.rewritePlaceholders(
+      [{ spec }],
+      new Map([['hash-main', 'hash-main.png'], ['hash-sub', 'hash-sub.jpg']]),
+      `${IMAGES_DIR_NAME}/`
+    );
+    expect(count).toBe(2);
+    expect((spec.subcomponents as Record<string, { images: Record<string, string> }>).media.images.root)
+      .toBe('_images/hash-sub.jpg');
   });
 
   it('does not touch already-resolved values', () => {
