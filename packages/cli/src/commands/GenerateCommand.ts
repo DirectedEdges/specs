@@ -69,6 +69,19 @@ interface GenerateOptions {
   getImages?: boolean;
 }
 
+/**
+ * Resolve the config source alias that carries the component file: `library`
+ * when configured with `data: [file]`, else the first source that is.
+ * Single source of truth for the default-manifest path, the manifest-mode
+ * component file, and the --get-images file key.
+ */
+function resolveFileSourceAlias(sources: NonNullable<ReturnType<ConfigLoader['load']>['sources']> | undefined): string | null {
+  const entries = sources ?? {};
+  if (entries.library && Array.isArray(entries.library.data) && entries.library.data.includes('file')) return 'library';
+  const candidate = Object.entries(entries).find(([, s]) => Array.isArray(s.data) && s.data.includes('file'));
+  return candidate ? candidate[0] : null;
+}
+
 export const Generate = new Command('generate')
   .description('Generate component specifications from Figma data or manifest')
   .argument('[source]', 'Path to Figma JSON file or markdown manifest (default: {dataDirectory}/{alias}.manifest.md from config)')
@@ -106,12 +119,7 @@ export const Generate = new Command('generate')
       // Resolve default source path: {dataDirectory}/{alias}.manifest.md
       // Alias preference: `library` if configured with `data: [file]`, else first source with `data: [file]`.
       if (!source) {
-        const sources = config.sources || {};
-        const defaultAlias = (() => {
-          if (sources.library && Array.isArray(sources.library.data) && sources.library.data.includes('file')) return 'library';
-          const candidate = Object.entries(sources).find(([, s]) => Array.isArray(s.data) && s.data.includes('file'));
-          return candidate ? candidate[0] : null;
-        })();
+        const defaultAlias = resolveFileSourceAlias(config.sources);
 
         if (!defaultAlias) {
           console.error('Error: No source argument provided and no default manifest could be resolved');
@@ -194,12 +202,7 @@ export const Generate = new Command('generate')
         console.log(`✓ Loaded manifest: ${components.length} components (${selectedComponents.length} selected)`);
 
         // Determine source file
-        const componentSourceAlias = (() => {
-          const sources = config.sources || {};
-          if (sources.library && Array.isArray(sources.library.data) && sources.library.data.includes('file')) return 'library';
-          const candidates = Object.entries(sources).filter(([, s]) => Array.isArray(s.data) && s.data.includes('file'));
-          return candidates.length > 0 ? candidates[0][0] : null;
-        })();
+        const componentSourceAlias = resolveFileSourceAlias(config.sources);
 
         const sourceFile = metadata.file || (componentSourceAlias ? path.join(sourceDir, `${componentSourceAlias}.file.json`) : undefined);
 
@@ -501,9 +504,8 @@ export const Generate = new Command('generate')
               console.error('Error: --get-images requires the FIGMA_TOKEN environment variable (same token as `specs fetch`)');
               process.exit(ERROR_CODES.INVALID_ARGS);
             }
-            const sources = config.sources ?? {};
-            const fileKey = sources.library?.key
-              ?? Object.values(sources).find(s => Array.isArray(s.data) && s.data.includes('file'))?.key;
+            const fileSourceAlias = resolveFileSourceAlias(config.sources);
+            const fileKey = fileSourceAlias ? config.sources?.[fileSourceAlias]?.key : undefined;
             if (!fileKey) {
               console.error('Error: --get-images requires a configured source file key (sources.<alias>.key in specs.config.yaml)');
               process.exit(ERROR_CODES.INVALID_ARGS);

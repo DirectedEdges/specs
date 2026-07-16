@@ -116,24 +116,29 @@ const componentWithImages: Component = {
 
 // ─── Config image fields ──────────────────────────────────────────────────────
 
-// include.imageData optional boolean
-const configImageDataOn: Config = { processing: {}, format: {}, include: { imageData: true } };
-const configImageDataOff: Config = { processing: {}, format: {}, include: {} };
-
-// processing.imageComponent optional; name + sourceProperty required, fallback optional
-const configImageComponent: Config = {
-  processing: { imageComponent: { name: 'dsImage', sourceProperty: 'source' } },
+// processing.images: presence-switched block; every member optional on Config
+const configImagesAbsent: Config = { processing: {}, format: {}, include: {} };
+const configImagesFillsOnly: Config = {
+  processing: { images: { backgroundImage: true } },
   format: {},
   include: {},
 };
-const configImageComponentStrict: Config = {
-  processing: { imageComponent: { name: 'dsImage', sourceProperty: 'source', fallback: false } },
+const configImagesComponent: Config = {
+  processing: { images: { imageComponent: 'dsImage', sourceProps: ['source'] } },
+  format: {},
+  include: {},
+};
+const configImagesAllTriggers: Config = {
+  processing: { images: { backgroundImage: true, imageComponent: 'dsImage', sourceProps: ['source', 'image'] } },
   format: {},
   include: {},
 };
 
-// @ts-expect-error: imageComponent requires sourceProperty
-const _configImageComponentMissing: Config = { processing: { imageComponent: { name: 'dsImage' } }, format: {}, include: {} };
+// @ts-expect-error: imageComponent is a plain name string, not the retired { name, sourceProperty } object
+const _configImagesV1Shape: Config = { processing: { images: { imageComponent: { name: 'dsImage' } } }, format: {}, include: {} };
 
-// @ts-expect-error: imageData must be a boolean
-const _configBadImageData: Config = { processing: {}, format: {}, include: { imageData: 'yes' } };
+// @ts-expect-error: sourceProps must be a string array
+const _configBadSourceProps: Config = { processing: { images: { sourceProps: 'source' } }, format: {}, include: {} };
+
+// @ts-expect-error: include.imageData was retired — the processing.images block presence is the on-switch
+const _configRetiredImageData: Config = { processing: {}, format: {}, include: { imageData: true } };
