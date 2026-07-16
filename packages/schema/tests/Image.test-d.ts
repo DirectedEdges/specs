@@ -123,7 +123,7 @@ const componentWithImages: Component = {
   title: 'Card',
   anatomy: {},
   default: {},
-  images: { hero: 'data:image/png;base64,AAAA' },
+  images: { hero: { src: 'data:image/png;base64,AAAA' } },
 };
 
 // ─── Config image fields ──────────────────────────────────────────────────────

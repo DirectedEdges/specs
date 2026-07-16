@@ -2,7 +2,7 @@
 
 **Branch**: `063-image-content`
 **Created**: 2026-07-14
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 
