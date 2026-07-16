@@ -556,7 +556,7 @@
       "properties": {
         "path": {
           "type": "array",
-          "minChildren": 1,
+          "minItems": 1,
           "items": {
             "type": "string"
           },
