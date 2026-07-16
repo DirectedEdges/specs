@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Image config surface (ADR-063)** — `processing.images` is validated when present (presence is the on-switch): `backgroundImage` coerces to a literal boolean, `sourceProps` must be a non-empty array of strings (trimmed), and `imageComponent` requires a non-empty `sourceProps` (its forwarding target is `sourceProps[0]`) — invalid members are dropped with warnings. The images registry joins the *examples* concern under `--split-concerns` (emitted in `examples.yaml`, counted toward whether that file is written).
+- **`specs generate --get-images` (ADR-063 resolution phase)** — Resolves unresolved registry entries (Figma identity in `$extensions['com.figma'].imageHash`, no `src`) into real files. Calls Figma's Get Image Fills endpoint (requires `FIGMA_TOKEN` and a configured source key), downloads each distinct image once, writes `_images/<imageHash>.<ext>` inside the output directory (format detected from magic bytes: png/jpg/gif/webp), and adds `src` to each entry — a path relative to the referencing spec file (`_images/...`, or `../_images/...` in per-component-folder layouts). The Figma identity survives for reverse-direction tooling; `$image` pointers are untouched; temporary S3 URLs are never persisted; unresolvable hashes stay unresolved with a warning.
+
 ### Changed
 
 - **`specs generate` write output simplified** — Per-file "Overwriting existing file" warnings now collapse into a single summary line instead of one per file, and the redundant "✓ Saved to"/"✓ Generated N files" success echo has been removed.

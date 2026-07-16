@@ -19,6 +19,7 @@ The `Component` type is the root object of every spec. It contains the component
 | `metadata` | [`Metadata`](/specs/schema/metadata/) | No | Generation metadata (author, schema version, config) |
 | `instanceExamples` | [`InstanceExamples`](/specs/schema/instance-examples/) | No | **Pro.** Documented whole-component usage examples (emitted only with a Pro license) |
 | `slotContentExamples` | `Record<string, `[`SlotContent`](/specs/schema/slot-content/)`>` | No | **Pro.** Named slot-content fills, referenced by [`SlotContentRef`](/specs/schema/slot-content-ref/) from slot bindings and from `Element.propConfigurations` slot-prop entries |
+| `images` | `Record<string, ImageData>` | No | Registry of image data keyed by id, referenced by `Styles.backgroundImage`, `ImageBinding` examples, and `ImageProp` defaults. Each entry carries the Figma identity in `$extensions['com.figma'].imageHash`; resolution adds `src` (asset path, `data:` URI, or URL) without replacing it. Emitted when [`processing.images`](/specs/schema/config/#processingimages) is configured |
 
 ## Examples and composed content
 

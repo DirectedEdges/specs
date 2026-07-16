@@ -1,5 +1,6 @@
 import { PropBinding } from "./PropBinding.js";
 import { SlotContentRef } from "./SlotContentRef.js";
+import { ImageBinding } from "./Image.js";
 
 /**
  * The value of a single prop configuration entry (ADR-049).
@@ -12,13 +13,17 @@ import { SlotContentRef } from "./SlotContentRef.js";
  *   `{ $slotContent: "#/components/pill/slotContentExamples/composedLabel" }`.
  *   Used under a slot-prop key to fill a nested instance's slot with named
  *   content.
+ * - `ImageBinding` — a `PropBinding` under an image-prop key carrying
+ *   authoring-default example images (`examples: ImageValue[]`), used to
+ *   forward a parent image prop into a nested image instance's source prop.
  */
 export type PropConfigurationValue =
   | string
   | number
   | boolean
   | PropBinding
-  | SlotContentRef;
+  | SlotContentRef
+  | ImageBinding;
 
 /**
  * A path-addressed configuration of a nested descendant instance (ADR-052).
