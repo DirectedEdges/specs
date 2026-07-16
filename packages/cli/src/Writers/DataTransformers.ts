@@ -46,13 +46,14 @@ export interface SubcomponentVariantsData {
 
 /**
  * Examples concern data extracted from component
- * Contains: slotContentExamples, instanceExamples, subcomponents (recursive)
- * Metadata always appears last in serialization. Fields are present only when
- * the component actually has them.
+ * Contains: slotContentExamples, instanceExamples, images, subcomponents
+ * (recursive). Metadata always appears last in serialization. Fields are
+ * present only when the component actually has them.
  */
 export interface ComponentExamplesData {
   slotContentExamples?: Record<string, any>;
   instanceExamples?: Record<string, any>;
+  images?: Record<string, string>;
   subcomponents?: Record<string, SubcomponentExamplesData>;
   metadata: any;
 }
@@ -63,6 +64,7 @@ export interface ComponentExamplesData {
 export interface SubcomponentExamplesData {
   slotContentExamples?: Record<string, any>;
   instanceExamples?: Record<string, any>;
+  images?: Record<string, string>;
   subcomponents?: Record<string, SubcomponentExamplesData>;
   metadata: any;
 }
@@ -113,6 +115,10 @@ export function splitComponentByConcern(data: Record<string, any>): {
   const examples: ComponentExamplesData = { metadata: data.metadata };
   if (data.slotContentExamples) examples.slotContentExamples = data.slotContentExamples;
   if (data.instanceExamples) examples.instanceExamples = data.instanceExamples;
+  // images registry (ADR-063) lives in the examples concern, beside
+  // slotContentExamples — without this, --split-concerns would silently DROP
+  // the registry and leave $image references dangling.
+  if (data.images) examples.images = data.images;
   if (data.subcomponents) {
     const subExamples = extractExamplesFromSubcomponents(data.subcomponents);
     if (subExamples) examples.subcomponents = subExamples;
@@ -129,6 +135,7 @@ export function hasExampleData(examples: ComponentExamplesData | SubcomponentExa
   return Boolean(
     (examples.slotContentExamples && Object.keys(examples.slotContentExamples).length > 0) ||
     (examples.instanceExamples && Object.keys(examples.instanceExamples).length > 0) ||
+    (examples.images && Object.keys(examples.images).length > 0) ||
     (examples.subcomponents && Object.keys(examples.subcomponents).length > 0)
   );
 }
@@ -218,6 +225,7 @@ export function extractExamplesFromSubcomponents(
     const examplesData: SubcomponentExamplesData = { metadata: data.metadata };
     if (data.slotContentExamples) examplesData.slotContentExamples = data.slotContentExamples;
     if (data.instanceExamples) examplesData.instanceExamples = data.instanceExamples;
+    if (data.images) examplesData.images = data.images;
 
     // Recursively handle nested subcomponents
     const nested = extractExamplesFromSubcomponents(data.subcomponents);
