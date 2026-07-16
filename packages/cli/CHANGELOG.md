@@ -5,7 +5,9 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.25.0] - Unreleased
+## [0.25.0] - 2026-07-16
+
+Generated specs can now include the images your components actually use. Enable `processing.images` in config and image fills emit as typed `backgroundImage` values backed by a per-component `images` registry; then run `specs generate --get-images` to download each referenced image once into an `_images/` folder and point every registry entry at a real file. Text truncation (`textOverflow`, `maxLines`) is now captured on text elements, rotated elements keep their sub-degree precision, and `specs generate` output is quieter — per-file overwrite warnings collapse into a single summary line.
 
 ### Added
 
@@ -16,8 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`specs generate` write output simplified** — Per-file "Overwriting existing file" warnings now collapse into a single summary line instead of one per file, and the redundant "✓ Saved to"/"✓ Generated N files" success echo has been removed.
 
-### Removed
+### Dependency updates
 
+- **`@directededges/specs-schema` ^0.28.0** — Adds the image vocabulary generated specs now use: the `backgroundImage` style, the per-component `images` registry, image-typed props, image bindings for forwarding into nested instances, and the `Config.processing.images` block. Also adds `textOverflow`/`maxLines` for text elements, and fixes several false validation failures — color token references with resolved color values, subcomponent `source` identity, and collapsed-root `originalName` provenance now validate cleanly, while `$nested` configurations with an empty path are correctly rejected.
+- **`@directededges/specs-from-figma` ^0.27.0** — Implements image detection: image fills on containers emit `backgroundImage` entries into the `images` registry instead of being silently dropped, image-source props re-type to image props, and a designated image component forwards images into the instances that render them. Text elements now carry `textOverflow` and `maxLines`, and rotated elements no longer lose sub-degree precision in CLI output (restoring parity with the plugin).
 
 ## [0.24.0] - 2026-07-04
 
