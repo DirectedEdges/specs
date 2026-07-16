@@ -109,40 +109,66 @@ export class ImageFillsResolver {
     return json.meta?.images ?? {};
   }
 
+  /** Concurrent download limit — parallel enough to hide S3 latency, polite enough not to hammer it. */
+  private static readonly DOWNLOAD_CONCURRENCY = 6;
+
   /**
    * Download each requested hash's bytes and write hash-named files into
-   * `{outputDir}/_images/`. Returns hash → filename for the rewrite step.
-   * Hashes missing from the URL map (e.g. an image deleted from the file
-   * since generation) are skipped with a warning — their placeholders remain.
+   * `{outputDir}/_images/`. Downloads run concurrently (bounded pool) —
+   * hash-named files make completion order irrelevant. Returns hash →
+   * filename for the rewrite step. Hashes missing from the URL map (e.g. an
+   * image deleted from the file since generation) are skipped with a warning
+   * — their placeholders remain. `onProgress` fires after each completed
+   * download (success or failure) with the running count.
    */
   public static async downloadAndWrite(
     hashes: Set<string>,
     urls: Record<string, string>,
-    outputDir: string
+    outputDir: string,
+    onProgress?: (completed: number, total: number) => void
   ): Promise<Map<string, string>> {
     const imagesDir = path.join(outputDir, IMAGES_DIR_NAME);
     const written = new Map<string, string>();
     if (hashes.size === 0) return written;
     await fs.ensureDir(imagesDir);
 
+    const queue: string[] = [];
     for (const hash of hashes) {
-      const url = urls[hash];
-      if (!url) {
+      if (urls[hash]) {
+        queue.push(hash);
+      } else {
         console.warn(`Warning: image ${PLACEHOLDER_PREFIX}${hash} was not returned by Get Image Fills — placeholder left unresolved`);
-        continue;
       }
-
-      const response = await fetch(url);
-      if (response.status !== 200) {
-        console.warn(`Warning: image ${PLACEHOLDER_PREFIX}${hash} download failed (HTTP ${response.status}) — placeholder left unresolved`);
-        continue;
-      }
-
-      const bytes = Buffer.from(await response.arrayBuffer());
-      const filename = `${hash}.${ImageFillsResolver.detectExtension(bytes)}`;
-      await fs.writeFile(path.join(imagesDir, filename), bytes);
-      written.set(hash, filename);
     }
+
+    const total = queue.length;
+    let completed = 0;
+
+    const worker = async (): Promise<void> => {
+      for (let hash = queue.shift(); hash !== undefined; hash = queue.shift()) {
+        try {
+          const response = await fetch(urls[hash]);
+          if (response.status !== 200) {
+            console.warn(`Warning: image ${PLACEHOLDER_PREFIX}${hash} download failed (HTTP ${response.status}) — placeholder left unresolved`);
+          } else {
+            const bytes = Buffer.from(await response.arrayBuffer());
+            const filename = `${hash}.${ImageFillsResolver.detectExtension(bytes)}`;
+            await fs.writeFile(path.join(imagesDir, filename), bytes);
+            written.set(hash, filename);
+          }
+        } catch (error) {
+          console.warn(`Warning: image ${PLACEHOLDER_PREFIX}${hash} download failed (${error instanceof Error ? error.message : String(error)}) — placeholder left unresolved`);
+        }
+        completed++;
+        onProgress?.(completed, total);
+      }
+    };
+
+    const workers = Array.from(
+      { length: Math.min(ImageFillsResolver.DOWNLOAD_CONCURRENCY, total) },
+      () => worker()
+    );
+    await Promise.all(workers);
 
     return written;
   }

@@ -5,7 +5,7 @@
  * integration path.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs-extra';
 import path from 'path';
 import { ImageFillsResolver, IMAGES_DIR_NAME } from '../../../src/utilities/ImageFillsResolver.js';
@@ -115,6 +115,56 @@ describe('ImageFillsResolver.findExisting', () => {
   it('returns empty when _images/ does not exist', async () => {
     const existing = await ImageFillsResolver.findExisting(new Set(['hash-1']), path.join(testDir, 'nowhere'));
     expect(existing.size).toBe(0);
+  });
+});
+
+describe('ImageFillsResolver.downloadAndWrite', () => {
+  let testDir: string;
+  const PNG_BYTES = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).buffer;
+
+  beforeEach(() => {
+    testDir = path.join(process.cwd(), 'tests', 'tmp', `dl-${Date.now()}`);
+    fs.ensureDirSync(testDir);
+  });
+
+  afterEach(() => {
+    fs.removeSync(testDir);
+    vi.unstubAllGlobals();
+  });
+
+  it('downloads concurrently, writes hash-named files, and reports monotonic progress', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      status: 200,
+      arrayBuffer: async () => PNG_BYTES.slice(0),
+    })));
+
+    const hashes = new Set(['h1', 'h2', 'h3']);
+    const urls = { h1: 'u1', h2: 'u2', h3: 'u3' };
+    const progress: Array<[number, number]> = [];
+
+    const written = await ImageFillsResolver.downloadAndWrite(hashes, urls, testDir, (c, t) => progress.push([c, t]));
+
+    expect(written).toEqual(new Map([['h1', 'h1.png'], ['h2', 'h2.png'], ['h3', 'h3.png']]));
+    expect(fs.existsSync(path.join(testDir, IMAGES_DIR_NAME, 'h2.png'))).toBe(true);
+    expect(progress.map(([c]) => c)).toEqual([1, 2, 3]);
+    expect(progress.every(([, t]) => t === 3)).toBe(true);
+  });
+
+  it('counts failed downloads in progress but leaves them out of the result', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => url === 'bad'
+      ? { status: 404, arrayBuffer: async () => new ArrayBuffer(0) }
+      : { status: 200, arrayBuffer: async () => PNG_BYTES.slice(0) }));
+
+    const progress: Array<[number, number]> = [];
+    const written = await ImageFillsResolver.downloadAndWrite(
+      new Set(['ok', 'fail']),
+      { ok: 'good', fail: 'bad' },
+      testDir,
+      (c, t) => progress.push([c, t])
+    );
+
+    expect(written).toEqual(new Map([['ok', 'ok.png']]));
+    expect(progress.at(-1)).toEqual([2, 2]);
   });
 });
 

@@ -509,8 +509,13 @@ export const Generate = new Command('generate')
               process.exit(ERROR_CODES.INVALID_ARGS);
             }
 
+            console.log(`Requesting image download URLs from Figma (${missing.size} image(s))...`);
             const urls = await ImageFillsResolver.fetchImageUrls(fileKey, token);
-            const downloaded = await ImageFillsResolver.downloadAndWrite(missing, urls, baseDir);
+            process.stdout.write(`Images downloading (0/${missing.size})`);
+            const downloaded = await ImageFillsResolver.downloadAndWrite(missing, urls, baseDir, (completed, total) => {
+              process.stdout.write(`\rImages downloading (${completed}/${total})`);
+              if (completed === total) process.stdout.write('\n');
+            });
             for (const [hash, filename] of downloaded) files.set(hash, filename);
           }
 
