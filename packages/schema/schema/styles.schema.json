@@ -615,8 +615,8 @@
                 "name": { "type": "string", "description": "Figma name within collection, e.g. 'Text/Primary'" },
                 "collectionName": { "type": "string", "description": "Figma collection name, e.g. 'DS Color' (variables only)" },
                 "rawValue": {
-                  "oneOf": [{ "type": "string" }, { "type": "number" }, { "type": "boolean" }],
-                  "description": "Value resolved by Figma at extraction time. No DTCG equivalent; Figma extraction provenance only."
+                  "oneOf": [{ "type": "string" }, { "type": "number" }, { "type": "boolean" }, { "$ref": "#/definitions/ColorObject" }],
+                  "description": "Value resolved by Figma at extraction time. Color tokens resolve to a DTCG Color object. No DTCG equivalent; Figma extraction provenance only."
                 }
               },
               "required": ["id"],

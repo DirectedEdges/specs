@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+### Fixed
+
+- **Color token references no longer fail validation on their resolved raw value** — the `rawValue` provenance field on a token reference now accepts a DTCG Color object (the shape the generator emits for color tokens) alongside string, number, and boolean, clearing false schema violations on token-bound fills and gradient stops.
+
 
 ## [0.27.0] - 2026-07-01
 
