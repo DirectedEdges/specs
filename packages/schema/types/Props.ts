@@ -1,3 +1,5 @@
+import { ImageProp } from "./Image.js";
+
 /**
  * Represents properties of a component.
  */
@@ -6,7 +8,7 @@ export type Props = Record<string, AnyProp>;
 /**
  * Union of all supported property types
  */
-export type AnyProp = BooleanProp | StringProp | EnumProp | SlotProp | NumberProp;
+export type AnyProp = BooleanProp | StringProp | EnumProp | SlotProp | NumberProp | ImageProp;
 
 /**
  * Provenance metadata for props extracted from a Figma code-only container layer.

@@ -65,6 +65,14 @@
             }
           },
           "additionalProperties": false
+        },
+        "images": {
+          "$ref": "#/definitions/Images",
+          "description": "Registry of image data referenced by backgroundImage fills, ImageBinding examples, and ImageProp defaults. De-duplicated so each distinct image is stored once (ADR-063)."
+        },
+        "source": {
+          "$ref": "#/definitions/SubcomponentSource",
+          "description": "Figma source identity, populated by the generator on subcomponent entries (ADR-060); top-level components carry identity in metadata.source instead. Declared here because Subcomponent composes this closed definition via allOf and draft-07 has no unevaluatedProperties."
         }
       },
       "required": [
@@ -197,6 +205,23 @@
             }
           ],
           "description": "The component or component set name that this instance element references, or a subcomponent reference"
+        },
+        "$extensions": {
+          "type": "object",
+          "description": "Platform extensions. com.figma carries extraction provenance.",
+          "properties": {
+            "com.figma": {
+              "type": "object",
+              "properties": {
+                "originalName": {
+                  "type": "string",
+                  "description": "Original Figma layer name before primitive-wrapper collapse promoted this element to root (ADR-058)."
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
         }
       },
       "required": [
@@ -230,6 +255,9 @@
         },
         {
           "$ref": "#/definitions/NumberProp"
+        },
+        {
+          "$ref": "#/definitions/ImageProp"
         }
       ]
     },
@@ -480,7 +508,7 @@
       ]
     },
     "PropConfigurationValue": {
-      "description": "The value of a single prop configuration entry (ADR-049): a scalar, a PropBinding for pass-through to a parent prop, or a SlotContentRef under a slot-prop key for a named slot-content fill.",
+      "description": "The value of a single prop configuration entry (ADR-049): a scalar, a PropBinding for pass-through to a parent prop, a SlotContentRef under a slot-prop key for a named slot-content fill, or an ImageBinding under an image-prop key forwarding an image into a nested image instance (ADR-063).",
       "oneOf": [
         {
           "type": "string"
@@ -496,6 +524,9 @@
         },
         {
           "$ref": "#/definitions/SlotContentRef"
+        },
+        {
+          "$ref": "#/definitions/ImageBinding"
         }
       ]
     },
@@ -525,7 +556,7 @@
       "properties": {
         "path": {
           "type": "array",
-          "minChildren": 1,
+          "minItems": 1,
           "items": {
             "type": "string"
           },
@@ -1014,6 +1045,93 @@
       ],
       "patternProperties": {
         "^\\$": {}
+      },
+      "additionalProperties": false
+    },
+    "ImageProp": {
+      "type": "object",
+      "description": "Image-valued property definition (ADR-063). The authoring-default image rides on the ImageBinding at the binding site, not here.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "image"
+        },
+        "default": {
+          "type": ["string", "null"],
+          "description": "Default image — an images registry reference, or null."
+        },
+        "nullable": {
+          "type": "boolean"
+        },
+        "$extensions": {
+          "$ref": "#/definitions/PropExtensions"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "patternProperties": {
+        "^\\$": {}
+      },
+      "additionalProperties": false
+    },
+    "ImageBinding": {
+      "type": "object",
+      "description": "A prop-bound image forwarded into a nested image instance's source prop, carrying authoring-default example images. PropBinding extended with examples (mirrors SlotBinding, ADR-047).",
+      "properties": {
+        "$binding": {
+          "type": "string",
+          "description": "JSON Pointer to the bound prop, e.g. '#/props/image'."
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "$ref": "styles.schema.json#/definitions/ImageValue"
+          },
+          "description": "Authoring-default example images seen in Figma. Non-contractual reference material."
+        }
+      },
+      "required": [
+        "$binding"
+      ],
+      "additionalProperties": false
+    },
+    "Images": {
+      "type": "object",
+      "description": "Registry of image data keyed by identifier (ADR-063). De-duplicated so each distinct image is stored once. Lives in the examples concern (examples.yaml under specs-cli --split-concerns).",
+      "patternProperties": {
+        "^[a-zA-Z0-9_-]+$": {
+          "$ref": "#/definitions/ImageData"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ImageData": {
+      "type": "object",
+      "description": "A registry entry for one distinct image. Two-phase, expressed structurally: 'src' absent = unresolved (detect phase); resolution ADDS 'src', so the Figma identity in $extensions survives for reverse-direction tooling.",
+      "properties": {
+        "src": {
+          "type": "string",
+          "description": "Resolved image source — an emitted asset path (the standard resolved form, relative to the referencing spec file), a data: URI, or an external URL. Absent = unresolved."
+        },
+        "$extensions": {
+          "type": "object",
+          "description": "Platform extensions. com.figma carries extraction provenance.",
+          "properties": {
+            "com.figma": {
+              "type": "object",
+              "properties": {
+                "imageHash": {
+                  "type": "string",
+                  "description": "The Figma image content hash (Plugin ImagePaint.imageHash / REST fills[].imageRef) — reverse-direction tooling reconstructs an ImagePaint from it."
+                }
+              },
+              "required": ["imageHash"],
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
       },
       "additionalProperties": false
     }

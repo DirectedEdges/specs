@@ -4,8 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 063 | Image Content — `ImageValue` fills, an `images` registry, and `ImageProp` | |
-| 062 | Text Truncation Style Keys — `textTruncation` and `maxLines` on `Styles` | |
+| 062 | Text Overflow & Max Lines — `textOverflow` and `maxLines` on `Styles` | |
 | 061 | Schema Entry Points for Concern-Split Output | |
 | 059 | Border Style and Dash Pattern — `borderStyle` and `borderDashPattern` on `Styles` | |
 | 058 | Wrapper Collapse Config Flag — `processing.wrapperCollapse` | |
@@ -38,6 +37,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 063 | Image Content — `backgroundImage` fill, an `images` registry, `ImageProp`, and `ImageBinding` | Add `backgroundImage` fills, a `Component.images` registry (Figma identity + optional `src`), `ImageProp`/`ImageBinding`, and presence-switched `processing.images` |
 | 060 | Subcomponent Figma Source Identity — `Subcomponent.source` | Add optional `SubcomponentSource` (`pageId`, `nodeId`, `nodeType`) to `Subcomponent`; enables reverse-direction tools to resolve `SubcomponentRef` to Figma nodes |
 | 059 | Stroke Dash Pattern — `strokeDashPattern` on `Styles` | Add `StrokeDashPattern { dash, gap }` structural type; presence = dashed stroke, null/absent = solid; not token-bindable |
 | 058 | Collapsing Wrapped Primitives — `processing.collapsePrimitiveWrapper` | Add optional boolean to `Config.processing` (default false); strips plain container wrappers around a single text/glyph child and promotes the leaf to spec root |

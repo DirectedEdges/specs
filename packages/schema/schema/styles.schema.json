@@ -14,6 +14,7 @@
         "opacity": { "$ref": "#/definitions/NumberStyleValue", "description": "Opacity 0-1" },
         "locked": { "$ref": "#/definitions/BooleanStyleValue", "description": "Lock state" },
         "backgroundColor": { "$ref": "#/definitions/ColorStyleValue", "description": "Background fill color. Present on all non-text element types. Represented in Figma as fills." },
+        "backgroundImage": { "$ref": "#/definitions/ImageStyleValue", "description": "Image fill painted on a layer. Present on non-text element types. Fallback representation used when no image component is configured. Represented in Figma as an IMAGE-type fill." },
         "fillColor": { "$ref": "#/definitions/ColorStyleValue", "description": "Glyph fill color. Present on GLYPH element type only. Represented in Figma as fills." },
         "textColor": { "$ref": "#/definitions/ColorStyleValue", "description": "Text fill color. Present on TEXT element type only. Represented in Figma as fills." },
         "effects": { "$ref": "#/definitions/EffectsStyleValue", "description": "Effect output. TokenReference when the node references a named effects style; Effects when effects are defined inline. Replaces effectStyleId." },
@@ -41,6 +42,8 @@
         "typography": { "$ref": "#/definitions/TypographyStyleValue", "description": "Typography properties. TokenReference when the node references a named text style; Typography when defined inline." },
         "textAlignHorizontal": { "$ref": "#/definitions/StringStyleValue", "description": "Horizontal text alignment" },
         "textAlignVertical": { "$ref": "#/definitions/StringStyleValue", "description": "Vertical text alignment" },
+        "textOverflow": { "$ref": "#/definitions/TextOverflowStyleValue", "description": "How overflowing text is handled — CLIP (cut off) or ELLIPSIS (trailing ellipsis). Structural property — not token-bindable." },
+        "maxLines": { "$ref": "#/definitions/NumberStyleValue", "description": "Maximum number of lines before ELLIPSIS text overflow applies; null or absent means no limit." },
         "mainAxisAlignment": { "$ref": "#/definitions/MainAxisAlignmentStyleValue", "description": "Alignment along the main axis (depends on layoutMode). Structural property — not token-bindable." },
         "primaryAxisSizingMode": { "$ref": "#/definitions/StringStyleValue", "description": "Primary axis sizing mode" },
         "crossAxisAlignment": { "$ref": "#/definitions/CrossAxisAlignmentStyleValue", "description": "Alignment along the cross axis (perpendicular to layoutMode). Structural property — not token-bindable." },
@@ -235,6 +238,29 @@
         { "type": "null" }
       ]
     },
+    "ObjectFitValue": {
+      "type": "string",
+      "enum": ["COVER", "CONTAIN"],
+      "description": "How the image is fitted to its layer (CSS object-fit vocabulary). Structural property — not token-bindable. Absent means COVER. Transformer remaps Figma FILL->COVER, FIT->CONTAIN, and lossily coerces CROP->COVER, TILE->COVER so no image fill is dropped."
+    },
+    "ImageValue": {
+      "type": "object",
+      "description": "An image fill value — a reference into an images registry plus optional fit.",
+      "properties": {
+        "$image": { "type": "string", "description": "Pointer into an images registry, e.g. '#/images/hero' (single-file) or 'card.examples#/images/hero' (concern-split)." },
+        "objectFit": { "$ref": "#/definitions/ObjectFitValue" }
+      },
+      "required": ["$image"],
+      "additionalProperties": false
+    },
+    "ImageStyleValue": {
+      "description": "Container image fill value — an ImageValue object, a TokenReference (when the fill comes from an applied Figma fill style whose paint is an image), or null. Fallback representation used when no image component is configured.",
+      "oneOf": [
+        { "$ref": "#/definitions/ImageValue" },
+        { "$ref": "#/definitions/TokenReference" },
+        { "type": "null" }
+      ]
+    },
     "StringStyleValue": {
       "description": "Pure string style value (from StringStyle processor)",
       "oneOf": [
@@ -378,6 +404,13 @@
       "description": "Cross axis alignment value. Structural property — not token-bindable.",
       "oneOf": [
         { "type": "string", "enum": ["START", "END", "CENTER", "STRETCH", "BASELINE"] },
+        { "type": "null" }
+      ]
+    },
+    "TextOverflowStyleValue": {
+      "description": "Text overflow handling value. Structural property — not token-bindable.",
+      "oneOf": [
+        { "type": "string", "enum": ["CLIP", "ELLIPSIS"] },
         { "type": "null" }
       ]
     },
@@ -568,8 +601,8 @@
         },
         "$type": {
           "type": "string",
-          "enum": ["color", "dimension", "string", "number", "boolean", "shadow", "gradient", "typography", "effects"],
-          "description": "DTCG token type (Format Module \u00a79). 'effects' is a Specs extension for EffectsGroup references (multi-shadow + blur composite) with no DTCG equivalent."
+          "enum": ["color", "dimension", "string", "number", "boolean", "shadow", "gradient", "typography", "effects", "image"],
+          "description": "DTCG token type (Format Module \u00a79). 'effects' is a Specs extension for EffectsGroup references (multi-shadow + blur composite) with no DTCG equivalent. 'image' is a Specs extension for fill-style references whose styled paint is an image (ADR-063), likewise without a DTCG equivalent."
         },
         "$extensions": {
           "type": "object",
@@ -582,8 +615,8 @@
                 "name": { "type": "string", "description": "Figma name within collection, e.g. 'Text/Primary'" },
                 "collectionName": { "type": "string", "description": "Figma collection name, e.g. 'DS Color' (variables only)" },
                 "rawValue": {
-                  "oneOf": [{ "type": "string" }, { "type": "number" }, { "type": "boolean" }],
-                  "description": "Value resolved by Figma at extraction time. No DTCG equivalent; Figma extraction provenance only."
+                  "oneOf": [{ "type": "string" }, { "type": "number" }, { "type": "boolean" }, { "$ref": "#/definitions/ColorObject" }],
+                  "description": "Value resolved by Figma at extraction time. Color tokens resolve to a DTCG Color object. No DTCG equivalent; Figma extraction provenance only."
                 }
               },
               "required": ["id"],

@@ -71,6 +71,44 @@ const boolTokenRef: TokenReference = {
   },
 };
 
+// rawValue may be a DTCG Color object (color tokens resolve to one at extraction time)
+const colorObjectTokenRef: TokenReference = {
+  $token: 'TEST Resources.blue-500',
+  $type: 'color',
+  $extensions: {
+    'com.figma': {
+      id: 'VariableID:1295:846',
+      name: 'blue-500',
+      collectionName: 'TEST Resources',
+      rawValue: { colorSpace: 'srgb', components: [0, 0, 1], hex: '#0000FF' },
+    },
+  },
+};
+
+// ColorObject rawValue with alpha and 'none' components
+const colorObjectAlphaTokenRef: TokenReference = {
+  $token: 'DS Color.Overlay.Scrim',
+  $type: 'color',
+  $extensions: {
+    'com.figma': {
+      id: 'VAR:def',
+      rawValue: { colorSpace: 'oklch', components: [0.5, 'none', 240], alpha: 0.4 },
+    },
+  },
+};
+
+const _rawValueMissingColorSpace: TokenReference = {
+  $token: 'x',
+  $type: 'color',
+  $extensions: {
+    'com.figma': {
+      id: 'VAR:ghi',
+      // @ts-expect-error: colorSpace is required on a color-object rawValue
+      rawValue: { components: [0, 0, 1] },
+    },
+  },
+};
+
 // ─── All $type values compile ───────────────────────────────────────────────
 
 const _color:      TokenReference = { $token: 'x', $type: 'color' };

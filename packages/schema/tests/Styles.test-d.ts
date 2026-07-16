@@ -9,7 +9,7 @@ import type {
   AngularGradient, GradientValue, AspectRatioValue, AspectRatioStyle,
   Sides, Corners, ItemSpacing, LayoutMode, WrapAlignment,
   MainAxisAlignment, CrossAxisAlignment, Position, PositionOffset,
-  StrokeDashPattern,
+  StrokeDashPattern, TextOverflow,
 } from '../types/index.js';
 
 // ─── ColorStyle ────────────────────────────────────────────────────────────
@@ -839,3 +839,61 @@ const _dashNumber: Styles = { strokeDashPattern: 8 };
 
 // @ts-expect-error: string is not valid for strokeDashPattern
 const _dashString: Styles = { strokeDashPattern: 'dashed' };
+
+// ─── TextOverflow ─────────────────────────────────────────────────────────────
+
+// Valid enum values
+const _toClip: TextOverflow = 'CLIP';
+const _toEllipsis: TextOverflow = 'ELLIPSIS';
+
+// @ts-expect-error: arbitrary string is not valid TextOverflow
+const _toBad: TextOverflow = 'FADE';
+
+// @ts-expect-error: Figma's raw value is not valid TextOverflow (remapped in the generator)
+const _toFigmaRaw: TextOverflow = 'ENDING';
+
+// @ts-expect-error: number is not valid TextOverflow
+const _toNumber: TextOverflow = 0;
+
+// @ts-expect-error: lowercase is not valid (SCREAMING_CASE required)
+const _toLowercase: TextOverflow = 'clip';
+
+// ─── Styles.textOverflow (TextOverflow | null) ───────────────────────────────
+
+// Valid enum values on Styles
+const withOverflowClip: Styles = { textOverflow: 'CLIP' };
+const withOverflowEllipsis: Styles = { textOverflow: 'ELLIPSIS' };
+
+// null is valid
+const withOverflowNull: Styles = { textOverflow: null };
+
+// absent is valid (all Styles fields optional)
+const withNoOverflow: Styles = {};
+
+// @ts-expect-error: TokenReference is not valid for textOverflow (not token-bindable)
+const _toToken: Styles = { textOverflow: { $token: 'Text.Overflow', $type: 'string' } satisfies TokenReference };
+
+// @ts-expect-error: number is not valid for textOverflow
+const _toStyleNumber: Styles = { textOverflow: 1 };
+
+// @ts-expect-error: arbitrary string is not valid for textOverflow
+const _toArbitrary: Styles = { textOverflow: 'FADE' };
+
+// ─── Styles.maxLines (Style — a plain number like width/opacity) ─────────────
+
+// number line count
+const withMaxLines: Styles = { maxLines: 2 };
+
+// null (no limit)
+const withMaxLinesNull: Styles = { maxLines: null };
+
+// absent is valid
+const withNoMaxLines: Styles = {};
+
+// TokenReference is valid — maxLines is an ordinary Style number, token-bindable
+const withMaxLinesToken: Styles = {
+  maxLines: { $token: 'Text.MaxLines', $type: 'number' } satisfies TokenReference,
+};
+
+// @ts-expect-error: boolean-only object is not a valid Style for maxLines
+const _mlBadObject: Styles = { maxLines: { value: 2 } };

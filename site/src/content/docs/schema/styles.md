@@ -25,6 +25,7 @@ Combined view: every style property, grouped by category and then by name, with 
 | Color | `strokes` | ✓ |  |  | ✓ | ✓ |
 | Color | `textColor` |  | ✓ |  |  |  |
 | Effects | `effects` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Image | `backgroundImage` | ✓ |  |  | ✓ |  |
 | Layout (child) | `bottom` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Layout (child) | `centerHorizontalOffset` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Layout (child) | `centerVerticalOffset` | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -50,8 +51,10 @@ Combined view: every style property, grouped by category and then by name, with 
 | Size | `width` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Spacing | `itemSpacing` | ✓ |  |  |  |  |
 | Spacing | `padding` | ✓ |  |  |  |  |
+| Text | `maxLines` |  | ✓ |  |  |  |
 | Text | `textAlignHorizontal` |  | ✓ |  |  |  |
 | Text | `textAlignVertical` |  | ✓ |  |  |  |
+| Text | `textOverflow` |  | ✓ |  |  |  |
 | Text | `typography` |  | ✓ |  |  |  |
 | Transform | `rotation` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Visibility | `clipContent` | ✓ |  |  |  |  |
@@ -68,6 +71,7 @@ Several spec style keys differ from the Figma node property they read from. Spec
 | Spec key | Figma property | ADR |
 |----------|---------------|-----|
 | `backgroundColor` | `fills` | [ADR 009](https://github.com/DirectedEdges/specs/blob/main/adr/009-color-values.md) |
+| `backgroundImage` | `fills` (IMAGE) | [ADR 063](https://github.com/DirectedEdges/specs/blob/main/adr/063-image-content.md) |
 | `textColor` | `fills` | [ADR 009](https://github.com/DirectedEdges/specs/blob/main/adr/009-color-values.md) |
 | `fillColor` | `fills` | [ADR 013](https://github.com/DirectedEdges/specs/blob/main/adr/013-icon-fillColor.md) |
 | `wrap` | `layoutWrap` | [ADR 039](https://github.com/DirectedEdges/specs/blob/main/adr/039-wrap-alignment.md) |
@@ -83,6 +87,7 @@ Several spec style keys differ from the Figma node property they read from. Spec
 | `centerVerticalOffset` | `y` (constraint CENTER) | [ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md) |
 
 | `strokeDashPattern` | `strokeDashes` | [ADR 059](https://github.com/DirectedEdges/specs/blob/main/adr/059-border-style.md) |
+| `textOverflow` | `textTruncation` (values remapped: `DISABLED`→`CLIP`, `ENDING`→`ELLIPSIS`) | [ADR 062](https://github.com/DirectedEdges/specs/blob/main/adr/062-text-truncation.md) |
 
 All other style keys — `width`, `height`, `opacity`, `padding`, `itemSpacing`, `cornerRadius`, `strokeWeight`, `rotation`, etc. — use the same name as the Figma node property.
 
@@ -113,11 +118,15 @@ Most properties accept a `Style` value. Some properties accept specialized shape
 | `PositionOffset` | Positional offset value | `24` (px), `"25%"` (SCALE), `null` |
 | `AspectRatio` | Width-to-height ratio | `{ x: 16, y: 9 }` |
 | `StrokeDashPattern` | Dash geometry for a dashed stroke — presence signals dashed; null or absent signals solid | `{ dash: 8, gap: 4 }` |
+| `TextOverflow` | Text overflow handling enum | `"CLIP"`, `"ELLIPSIS"` |
+| `ImageValue` | Image fill — registry reference plus optional fit | `{ $image: "#/images/hero", objectFit: "COVER" }` |
+| `ObjectFit` | Image fit enum (CSS `object-fit` vocabulary) | `"COVER"`, `"CONTAIN"` |
 
 ### Relating properties to values
 
 - Most properties accept any `Style` (literal, token, binding, or conditional).
 - `backgroundColor`, `fillColor`, `strokes`, `textColor` accept `string | TokenReference | GradientValue | null`.
+- `backgroundImage` accepts `ImageValue | null` — a container image fill used when no image component is configured; not token-bindable.
 - `typography` accepts `TokenReference | Typography`.
 - `effects` accepts `TokenReference | Effects`.
 - `padding`, `strokeWeight` accept `Style | Sides`.
@@ -131,3 +140,5 @@ Most properties accept a `Style` value. Some properties accept specialized shape
 - `top`, `bottom`, `start`, `end`, `centerHorizontalOffset`, `centerVerticalOffset` accept `PositionOffset` (`number | string | null`) — not token-bindable.
 - `aspectRatio` accepts `AspectRatio | null`.
 - `strokeDashPattern` accepts `StrokeDashPattern | null` — not token-bindable; presence signals a dashed stroke, null or absent signals solid.
+- `textOverflow` accepts `TextOverflow | null` (`"CLIP" | "ELLIPSIS"`) — not token-bindable; `"ELLIPSIS"` truncates overflowing text with a trailing ellipsis, `"CLIP"` cuts it off. Named after CSS `text-overflow` / Compose `TextOverflow`.
+- `maxLines` accepts any `Style` (a plain number like other sizes); the line limit before `textOverflow: "ELLIPSIS"` applies, or `null` for no limit.

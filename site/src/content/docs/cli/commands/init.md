@@ -27,7 +27,7 @@ The init command creates a `specs.config.yaml` file with the following structure
 # Specs CLI Configuration (production-ready defaults)
 #
 # This file configures how Specs fetches and processes Figma component data.
-# See: https://directededges.github.io/specs/settings/ for complete documentation.
+# See: https://www.specsplugin.com/settings/ for complete documentation.
 
 # Where fetch writes payloads, and where generate reads from.
 # See: https://docs.specs.dev/settings/data-sources
@@ -114,7 +114,7 @@ specs init
 #    3. Run: specs scan
 #    4. Run: specs generate
 #
-# 📖 Documentation: https://directededges.github.io/specs/settings/
+# 📖 Documentation: https://www.specsplugin.com/settings/
 ```
 
 ### Example 2: Environment-Specific Configs
