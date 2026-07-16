@@ -73,10 +73,10 @@ Transformer names can be passed as positional arguments, configured in `specs.co
 
 | Transformer | Output file | What it produces |
 |-------------|-------------|-----------------|
-| [`contract`](/specs/cli/transforms/contract/) | `generated/{Component}.contract.ts` | TypeScript Props interface and defaults constant, plus Slots/SlotRules when `variants.yaml` is present |
-| [`css`](/specs/cli/transforms/css/) | `generated/{Component}.styles.css` | CSS rules per anatomy element, with token vars, variant selectors, and structural presence/stacking fixes |
-| [`react`](/specs/cli/transforms/react/) | `generated/react/{Component}.scaffold.tsx` + seeded `src/react/{Component}.tsx` | A working React component wired to the contract and stylesheet, seeded once into an authored file you own |
-| [`stories`](/specs/cli/transforms/stories/) | `generated/react/{Component}.stories.tsx` | A Storybook CSF page with a story per prop-expressible variant, importing the authored component |
+| [`contract`](/cli/transforms/contract/) | `generated/{Component}.contract.ts` | TypeScript Props interface and defaults constant, plus Slots/SlotRules when `variants.yaml` is present |
+| [`css`](/cli/transforms/css/) | `generated/{Component}.styles.css` | CSS rules per anatomy element, with token vars, variant selectors, and structural presence/stacking fixes |
+| [`react`](/cli/transforms/react/) | `generated/react/{Component}.scaffold.tsx` + seeded `src/react/{Component}.tsx` | A working React component wired to the contract and stylesheet, seeded once into an authored file you own |
+| [`stories`](/cli/transforms/stories/) | `generated/react/{Component}.stories.tsx` | A Storybook CSF page with a story per prop-expressible variant, importing the authored component |
 
 `react` and `stories` both require `variants.yaml` — components without it are skipped with a warning.
 
@@ -109,5 +109,5 @@ config:
 
 ## See Also
 
-- [`transform` command](/specs/cli/commands/transform/) — full CLI reference
-- [transform config](/specs/settings/transform/) — configure default transformers
+- [`transform` command](/cli/commands/transform/) — full CLI reference
+- [transform config](/settings/transform/) — configure default transformers

@@ -101,14 +101,14 @@ Most properties accept a `Style` value. Some properties accept specialized shape
 | `number` | Literal number value | `16` |
 | `boolean` | Literal boolean value | `true` |
 | `null` | Absent or cleared value | `null` |
-| [`TokenReference`](/specs/schema/token-reference/) | Reference to a design token | `{ $token: "DS.Space.400", $type: "dimension" }` |
-| [`PropBinding`](/specs/schema/prop-binding/) | Dynamic link to a prop value | `{ $binding: "#/props/label" }` |
-| [`Conditional`](/specs/schema/conditional/) | Value that depends on a prop's state | `{ if: { condition: ..., then: 8, else: 12 } }` |
-| [`GradientValue`](/specs/schema/gradient-value/) | Linear, radial, or angular gradient | `{ type: "LINEAR", angle: 90, stops: [...] }` |
-| [`Typography`](/specs/schema/typography/) | Text style object with individual properties | `{ fontSize: 14, fontFamily: "Inter" }` |
-| [`Effects`](/specs/schema/effects/) | Shadows and blurs | `{ shadows: [...], layerBlur: { ... } }` |
-| [`Sides`](/specs/schema/sides/) | Per-side values for padding or stroke weight | `{ top: 8, end: 12, bottom: 8, start: 12 }` |
-| [`Corners`](/specs/schema/corners/) | Per-corner values for corner radius | `{ topStart: 4, topEnd: 4, bottomEnd: 0, bottomStart: 0 }` |
+| [`TokenReference`](/schema/token-reference/) | Reference to a design token | `{ $token: "DS.Space.400", $type: "dimension" }` |
+| [`PropBinding`](/schema/prop-binding/) | Dynamic link to a prop value | `{ $binding: "#/props/label" }` |
+| [`Conditional`](/schema/conditional/) | Value that depends on a prop's state | `{ if: { condition: ..., then: 8, else: 12 } }` |
+| [`GradientValue`](/schema/gradient-value/) | Linear, radial, or angular gradient | `{ type: "LINEAR", angle: 90, stops: [...] }` |
+| [`Typography`](/schema/typography/) | Text style object with individual properties | `{ fontSize: 14, fontFamily: "Inter" }` |
+| [`Effects`](/schema/effects/) | Shadows and blurs | `{ shadows: [...], layerBlur: { ... } }` |
+| [`Sides`](/schema/sides/) | Per-side values for padding or stroke weight | `{ top: 8, end: 12, bottom: 8, start: 12 }` |
+| [`Corners`](/schema/corners/) | Per-corner values for corner radius | `{ topStart: 4, topEnd: 4, bottomEnd: 0, bottomStart: 0 }` |
 | `ItemSpacing` | Per-axis gap values | `{ horizontal: 16, vertical: 8 }` |
 | `LayoutMode` | Auto-layout direction enum | `"NONE"`, `"HORIZONTAL"`, `"VERTICAL"` |
 | `WrapAlignment` | Wrap line distribution enum | `"START"`, `"SPACE_BETWEEN"` |

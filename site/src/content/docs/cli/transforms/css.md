@@ -99,7 +99,7 @@ Token references are resolved to CSS `var(--)` based on `config.format.tokens`:
 
 ## Config
 
-No transformer-specific options. Token format comes from `config.format.tokens`. Selector strategy for variant props comes from [`config.processing.states`](/specs/settings/states/).
+No transformer-specific options. Token format comes from `config.format.tokens`. Selector strategy for variant props comes from [`config.processing.states`](/settings/states/).
 
 ```yaml
 config:
@@ -202,12 +202,12 @@ The subcomponent stylesheet follows the same structure as the parent — default
 }
 ```
 
-Subcomponent stylesheets are fully self-contained — elements and variants from the parent component never appear in them. Configure subcomponent discovery in [`config.processing.subcomponents`](/specs/settings/subcomponents/).
+Subcomponent stylesheets are fully self-contained — elements and variants from the parent component never appear in them. Configure subcomponent discovery in [`config.processing.subcomponents`](/settings/subcomponents/).
 
 ## See Also
 
-- [Transforms overview](/specs/cli/transforms/)
-- [`processing.states` config](/specs/settings/states/) — classify variant props as semantic states
-- [`contract` transformer](/specs/cli/transforms/contract/)
-- [`react` transformer](/specs/cli/transforms/react/) — imports this stylesheet into the generated and authored components
-- [tokens config](/specs/settings/tokens/)
+- [Transforms overview](/cli/transforms/)
+- [`processing.states` config](/settings/states/) — classify variant props as semantic states
+- [`contract` transformer](/cli/transforms/contract/)
+- [`react` transformer](/cli/transforms/react/) — imports this stylesheet into the generated and authored components
+- [tokens config](/settings/tokens/)

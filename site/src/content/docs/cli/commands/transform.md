@@ -51,5 +51,5 @@ Show detailed output during transformation.
 
 ## See Also
 
-- [transform config](/specs/settings/transform/) — configure which transformers run by default
-- [tokens config](/specs/settings/tokens/) — control how token references are serialized in spec output
+- [transform config](/settings/transform/) — configure which transformers run by default
+- [tokens config](/settings/tokens/) — control how token references are serialized in spec output

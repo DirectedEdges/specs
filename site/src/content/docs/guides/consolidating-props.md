@@ -25,7 +25,7 @@ The same pattern appears with icons. An icon element needs:
 1. **Show Icon** (boolean) — toggles the instance layer's visibility
 2. **Icon** (instance swap) — selects which icon to display
 
-Developers think of this as one thing: an icon is either provided or it isn't. When the icon is an instance swap that matches a [glyph name pattern](/specs/guides/glyph-name-pattern/), Specs classifies it as a `glyph` content type — but the two-prop problem remains the same.
+Developers think of this as one thing: an icon is either provided or it isn't. When the icon is an instance swap that matches a [glyph name pattern](/guides/glyph-name-pattern/), Specs classifies it as a `glyph` content type — but the two-prop problem remains the same.
 
 When these prop pairs aren't consolidated, consumers of the spec must manually understand which booleans correspond to which content props and how they interact — duplicating logic that Specs can infer automatically.
 
@@ -105,7 +105,7 @@ The engine recognizes three types of content bindings:
 
 ## Conditional Visibility in Variants
 
-When a pair is active, the element's visibility is no longer a bare `true` or `false`. Instead, the spec expresses it as a [conditional](/specs/schema/conditional/) — a structured expression that says "this element is visible when the prop is not null." This connects the element-level rendering decision back to the prop API.
+When a pair is active, the element's visibility is no longer a bare `true` or `false`. Instead, the spec expresses it as a [conditional](/schema/conditional/) — a structured expression that says "this element is visible when the prop is not null." This connects the element-level rendering decision back to the prop API.
 
 For example, a Button's default variant with a consolidated label and icon:
 
@@ -142,7 +142,7 @@ Rather than requiring consumers to cross-reference `showLabel: true` with a sepa
 
 ## See Also
 
-- [Icon Glyphs guide](/specs/guides/glyph-name-pattern/) — How icon instances are classified as glyphs
-- [Schema: Conditional](/specs/schema/conditional/) — Conditional expression syntax
-- [Schema: Props](/specs/schema/props/) — Prop types and nullability
-- [Schema: Elements](/specs/schema/elements/) — Element visibility bindings
+- [Icon Glyphs guide](/guides/glyph-name-pattern/) — How icon instances are classified as glyphs
+- [Schema: Conditional](/schema/conditional/) — Conditional expression syntax
+- [Schema: Props](/schema/props/) — Prop types and nullability
+- [Schema: Elements](/schema/elements/) — Element visibility bindings

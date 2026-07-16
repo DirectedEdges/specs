@@ -6,7 +6,7 @@ description: "Consolidate slot constraints from code-only props into the slot pr
 Consolidate slot constraints (`anyOf`, `minChildren`, `maxChildren`) into the slot property. Constraints are read from two sources — Figma's native `slotSettings` API (when the slot has native settings configured) and code-only props (the legacy naming convention). Both sources produce the same output fields.
 
 :::tip[Guide]
-See the [Slot Constraints](/specs/guides/slot-constraints/) guide as well as the [Figma Slots for Repeating Items](https://nathanacurtis.substack.com/p/figma-slots-for-repeating-items) blog post for how constraint consolidation works.
+See the [Slot Constraints](/guides/slot-constraints/) guide as well as the [Figma Slots for Repeating Items](https://nathanacurtis.substack.com/p/figma-slots-for-repeating-items) blog post for how constraint consolidation works.
 :::
 
 ## Configuration

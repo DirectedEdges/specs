@@ -9,9 +9,9 @@ Image processing is controlled by one config block: `processing.images`. Its **p
 
 Three triggers, combinable freely:
 
-- **`backgroundImage`** — detect `IMAGE`-type fills on container elements and emit them as [`Styles.backgroundImage`](/specs/schema/styles/). When paired with `imageComponent`, this doubles as the fallback for fills outside the designated component.
+- **`backgroundImage`** — detect `IMAGE`-type fills on container elements and emit them as [`Styles.backgroundImage`](/schema/styles/). When paired with `imageComponent`, this doubles as the fallback for fills outside the designated component.
 - **`imageComponent`** — designate an image component by name: instances of it are the image primitive, and their image routes through the source prop (`sourceProps[0]`) via `propConfigurations`. Requires a non-empty `sourceProps`.
-- **`sourceProps`** — code-only prop names (exact, raw Figma names — the same convention as subcomponent and glyph patterns) that re-type from `StringProp` to [`ImageProp`](/specs/schema/props/) on any component. The **first** entry is the designated image component's own source prop.
+- **`sourceProps`** — code-only prop names (exact, raw Figma names — the same convention as subcomponent and glyph patterns) that re-type from `StringProp` to [`ImageProp`](/schema/props/) on any component. The **first** entry is the designated image component's own source prop.
 
 Background fills only:
 
@@ -108,7 +108,7 @@ The REST runtime resolves entries via a second call (Get Image Fills, whose S3 U
 
 ## See Also
 
-- [Guide: Images](/specs/guides/images/) — the two patterns end to end
-- [Schema: Styles](/specs/schema/styles/) — the `backgroundImage` value shape
-- [Schema: Props](/specs/schema/props/) — the `ImageProp` shape
-- [Schema: Component](/specs/schema/component/) — the `images` registry
+- [Guide: Images](/guides/images/) — the two patterns end to end
+- [Schema: Styles](/schema/styles/) — the `backgroundImage` value shape
+- [Schema: Props](/schema/props/) — the `ImageProp` shape
+- [Schema: Component](/schema/component/) — the `images` registry

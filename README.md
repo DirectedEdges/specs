@@ -20,9 +20,9 @@ Specs is a fast, deterministic ecosystem for defining and generating production-
 - Set up for continuous integration
 - Configure the files, formats, and data you need
 
-[Set up the CLI →](https://directededges.github.io/specs/cli/getting-started/)
+[Set up the CLI →](https://www.specsplugin.com/cli/getting-started/)
 
-Both the plugin and CLI generate specs consistent with the [Specs schema](https://directededges.github.io/specs/schema/), a specifications model architected to unify component definitions for implementation across web, iOS, Android, and Figma.
+Both the plugin and CLI generate specs consistent with the [Specs schema](https://www.specsplugin.com/schema/), a specifications model architected to unify component definitions for implementation across web, iOS, Android, and Figma.
 
 ## Repeatable, production-grade specs in seconds
 
@@ -63,10 +63,10 @@ specs generate
 ```
 
 Helpful documentation includes:
-- [Overview](https://directededges.github.io/specs/cli/)
-- [Getting started](https://directededges.github.io/specs/cli/getting-started/)
-- [Configuration file](https://directededges.github.io/specs/cli/configuration/) details
-- Per [command](https://directededges.github.io/specs/cli/commands/) instructions and flags
+- [Overview](https://www.specsplugin.com/cli/)
+- [Getting started](https://www.specsplugin.com/cli/getting-started/)
+- [Configuration file](https://www.specsplugin.com/cli/configuration/) details
+- Per [command](https://www.specsplugin.com/cli/commands/) instructions and flags
 
 
 ### `@directededges/specs-schema`
@@ -83,7 +83,7 @@ Exports include:
 - [TypeScript types](packages/schema/types/) — complete type definitions for all schema entities (`Component`, `Config`, `Styles`, `Element`, `AnyProp`, etc.)
 - `DEFAULT_CONFIG` — a runtime configuration object controlling output shape (format, token resolution, variant depth, etc.)
 
-Learn more in the [Schema docs](https://directededges.github.io/specs/schema/), including details on each property including component, variants, styles, props and more.
+Learn more in the [Schema docs](https://www.specsplugin.com/schema/), including details on each property including component, variants, styles, props and more.
 
 ### `@directededges/specs-from-figma`
 

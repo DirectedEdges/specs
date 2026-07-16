@@ -6,7 +6,7 @@ description: "Naming pattern used to detect the code-only props container layer"
 Naming pattern used to detect the code-only props container layer. When absent, no code-only prop extraction is performed. A `Code only props` layer is a tiny, clipped container parked at `(0,0)` that holds child layers bound to behavioral component properties with no visual representation — for example, a Text Area's `minRows`/`maxRows` sizing bounds and a `minLength` constraint.
 
 :::tip[Guide]
-See the [Code-Only Props](/specs/guides/code-only-props/) guide as well as the [Code-Only Props in Figma](https://nathanacurtis.substack.com/p/code-only-props-in-figma) blog post for how detection and extraction works.
+See the [Code-Only Props](/guides/code-only-props/) guide as well as the [Code-Only Props in Figma](https://nathanacurtis.substack.com/p/code-only-props-in-figma) blog post for how detection and extraction works.
 :::
 
 ## Configuration
@@ -40,7 +40,7 @@ When the pattern matches, the container **and all of its children are omitted fr
 
 `minRows`, `maxRows`, and `minLength` appear in `props` but **not** in `anatomy` — the only trace of the code-only props layer is the props themselves.
 
-Their numeric values (`"2"`, `"6"`, `"3"`) remain strings here. Pair this with [`inferNumberProps`](/specs/settings/infer-number-props/) to emit them as `NumberProp` (`2`, `6`, `3`) instead.
+Their numeric values (`"2"`, `"6"`, `"3"`) remain strings here. Pair this with [`inferNumberProps`](/settings/infer-number-props/) to emit them as `NumberProp` (`2`, `6`, `3`) instead.
 
 Without `codeOnlyPropsPattern`, the container and its children are treated as ordinary layout elements — they appear in `anatomy`/`elements` and no props are extracted.
 

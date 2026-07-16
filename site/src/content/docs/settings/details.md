@@ -26,4 +26,4 @@ config:
 
 ## See Also
 
-- [Variant Layering guide](/specs/guides/variant-layering/) - How layered format works
+- [Variant Layering guide](/guides/variant-layering/) - How layered format works

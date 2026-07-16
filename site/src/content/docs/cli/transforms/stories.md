@@ -5,7 +5,7 @@ description: "Emit a Storybook CSF page with one story per prop-expressible vari
 
 <script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
 
-Emits a Storybook Component Story Format (CSF) page for each component: a `Default` story plus one story per variant configuration that can be expressed through props. It imports the **authored** component seeded by the [`react` transformer](/specs/cli/transforms/react/), so Storybook always reflects your implementation, not the regenerated reference scaffold.
+Emits a Storybook Component Story Format (CSF) page for each component: a `Default` story plus one story per variant configuration that can be expressed through props. It imports the **authored** component seeded by the [`react` transformer](/cli/transforms/react/), so Storybook always reflects your implementation, not the regenerated reference scaffold.
 
 ## Use When
 
@@ -92,6 +92,6 @@ Each subcomponent gets its own `generated/react/{Subcomponent}.stories.tsx`, imp
 
 ## See Also
 
-- [Transforms overview](/specs/cli/transforms/)
-- [`react` transformer](/specs/cli/transforms/react/) — seeds the authored component these stories import
-- [`contract` transformer](/specs/cli/transforms/contract/) — source of `Defaults` used in story args
+- [Transforms overview](/cli/transforms/)
+- [`react` transformer](/cli/transforms/react/) — seeds the authored component these stories import
+- [`contract` transformer](/cli/transforms/contract/) — source of `Defaults` used in story args

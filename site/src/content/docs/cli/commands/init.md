@@ -141,5 +141,5 @@ specs init --force
 ---
 
 **See Also:**
-- [Configuration Reference](/specs/settings/) - Config file options
-- [Getting Started](/specs/cli/getting-started/) - Quick start guide
+- [Configuration Reference](/settings/) - Config file options
+- [Getting Started](/cli/getting-started/) - Quick start guide

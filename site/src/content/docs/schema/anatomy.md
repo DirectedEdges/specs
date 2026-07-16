@@ -53,7 +53,7 @@ type SubcomponentRef = { $ref: string };
 // e.g. { $ref: "#/subcomponents/formLabel" }
 ```
 
-Within variants, each element's runtime properties (children, styles, content) are described by the [`Element`](/specs/schema/elements/) type. The element tree can also be expressed as a recursive [`Layout`](/specs/schema/layout/).
+Within variants, each element's runtime properties (children, styles, content) are described by the [`Element`](/schema/elements/) type. The element tree can also be expressed as a recursive [`Layout`](/schema/layout/).
 
 ## Further Reading
 

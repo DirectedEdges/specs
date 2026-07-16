@@ -149,6 +149,6 @@ Each token entry has:
 
 ## See Also
 
-- [Analyze overview](/specs/cli/analyze/)
-- [`props` analyzer](/specs/cli/analyze/props/)
-- [Transforms overview](/specs/cli/transforms/)
+- [Analyze overview](/cli/analyze/)
+- [`props` analyzer](/cli/analyze/props/)
+- [Transforms overview](/cli/transforms/)

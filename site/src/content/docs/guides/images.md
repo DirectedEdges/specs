@@ -11,7 +11,7 @@ Until now the schema had no representation for images at all. An `IMAGE`-type fi
 
 ## What It Does
 
-When [`processing.images`](/specs/settings/images/) is configured, the engine captures image fills and image-source props and stores each distinct image once in a `Component.images` registry, referenced by an `$image` pointer:
+When [`processing.images`](/settings/images/) is configured, the engine captures image fills and image-source props and stores each distinct image once in a `Component.images` registry, referenced by an `$image` pointer:
 
 ```yaml
 default:
@@ -34,7 +34,7 @@ images:
 
 ### Image as a layer fill
 
-No designated image component — the image is painted directly on a container. It lands on [`Styles.backgroundImage`](/specs/schema/styles/) as an `ImageValue` (`{ $image, objectFit? }`). This is the default when no image component is configured.
+No designated image component — the image is painted directly on a container. It lands on [`Styles.backgroundImage`](/schema/styles/) as an `ImageValue` (`{ $image, objectFit? }`). This is the default when no image component is configured.
 
 ### Image as a component
 
@@ -66,7 +66,7 @@ Sourcing binds through `propConfigurations`, never through `backgroundImage` —
 
 ## Configuration
 
-Everything lives in one block: [`processing.images`](/specs/settings/images/). Its presence is the on-switch, and each member is an independent representation trigger:
+Everything lives in one block: [`processing.images`](/settings/images/). Its presence is the on-switch, and each member is an independent representation trigger:
 
 ```yaml
 # specs.config.yaml
@@ -101,8 +101,8 @@ The Figma plugin cannot embed raw image bytes on the component asset (Figma caps
 
 ## Further Reading
 
-- [`processing.images`](/specs/settings/images/) — config reference
-- [Schema: Styles](/specs/schema/styles/) — the `backgroundImage` value shape
-- [Schema: Props](/specs/schema/props/) — the `ImageProp` shape
-- [Schema: Prop Configurations](/specs/schema/prop-configurations/) — the `ImageBinding` shape
-- [Schema: Component](/specs/schema/component/) — the `images` registry
+- [`processing.images`](/settings/images/) — config reference
+- [Schema: Styles](/schema/styles/) — the `backgroundImage` value shape
+- [Schema: Props](/schema/props/) — the `ImageProp` shape
+- [Schema: Prop Configurations](/schema/prop-configurations/) — the `ImageBinding` shape
+- [Schema: Component](/schema/component/) — the `images` registry

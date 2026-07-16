@@ -24,5 +24,5 @@ config:
 
 ## See Also
 
-- [Variant Depth guide](/specs/guides/variant-depth/) - How depth affects variant expansion
-- [Variant Layering guide](/specs/guides/variant-layering/) - How properties accumulate across variants
+- [Variant Depth guide](/guides/variant-depth/) - How depth affects variant expansion
+- [Variant Layering guide](/guides/variant-layering/) - How properties accumulate across variants

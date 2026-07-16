@@ -63,4 +63,4 @@ sources:
     data: ['file', 'variables', 'styles']
 ```
 
-Branch data includes unpublished changes — variables, styles, and components that haven't been merged or published to main. See [Fetching Figma Branches](/specs/cli/commands/fetch/#fetching-figma-branches) for implications.
+Branch data includes unpublished changes — variables, styles, and components that haven't been merged or published to main. See [Fetching Figma Branches](/cli/commands/fetch/#fetching-figma-branches) for implications.

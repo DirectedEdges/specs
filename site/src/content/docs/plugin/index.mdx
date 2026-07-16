@@ -11,7 +11,7 @@ hero:
       variant: primary
       icon: external
     - text: Explore Settings
-      link: /specs/settings/
+      link: /settings/
       variant: minimal
       icon: right-arrow
     - text: Buy Pro license
@@ -41,12 +41,12 @@ import pluginSettings from '../../../assets/plugin/PluginSettings.png';
 Generate a complete picture of the component, in exhaustive visual detail
 
 <div class="preview-grid preview-grid--3col">
-<PreviewCard href="/specs/plugin/anatomy/" title="Anatomy" description="Numbered markers annotate every element, with key attributes listed alongside" image={cardAnatomy} imageAlt="Numbered markers over a component's artwork" />
-<PreviewCard href="/specs/plugin/props/" title="Props" description="Every property, its options, and exactly what changes on the canvas when it's set" image={cardProps} imageAlt="A Success appearance exhibit with its property attributes listed" />
-<PreviewCard href="/specs/plugin/layout/" title="Layout" description="Direction, alignment, resizing, padding, and spacing annotated directly on the artwork" image={cardLayout} imageAlt="Direction, padding, and item-spacing markers over a component's artwork" />
-<PreviewCard href="/specs/plugin/modes/" title="Modes" description="Side-by-side exhibits for every light/dark or other variable mode the component uses" image={cardModes} imageAlt="Three corner-radius mode exhibits shown side by side" />
-<PreviewCard href="/specs/plugin/styling/" title="Styling" description="Every detected variable and style, what role it plays, and where it's applied" image={cardStyling} imageAlt="A Variables table listing token names, applied roles, and raw values" />
-<PreviewCard href="/specs/plugin/data/" title="Data" description="The same spec as structured YAML or JSON — a ready-made contract for AI/LLM tools" image={cardData} imageAlt="A YAML text block of a component's serialized spec" />
+<PreviewCard href="/plugin/anatomy/" title="Anatomy" description="Numbered markers annotate every element, with key attributes listed alongside" image={cardAnatomy} imageAlt="Numbered markers over a component's artwork" />
+<PreviewCard href="/plugin/props/" title="Props" description="Every property, its options, and exactly what changes on the canvas when it's set" image={cardProps} imageAlt="A Success appearance exhibit with its property attributes listed" />
+<PreviewCard href="/plugin/layout/" title="Layout" description="Direction, alignment, resizing, padding, and spacing annotated directly on the artwork" image={cardLayout} imageAlt="Direction, padding, and item-spacing markers over a component's artwork" />
+<PreviewCard href="/plugin/modes/" title="Modes" description="Side-by-side exhibits for every light/dark or other variable mode the component uses" image={cardModes} imageAlt="Three corner-radius mode exhibits shown side by side" />
+<PreviewCard href="/plugin/styling/" title="Styling" description="Every detected variable and style, what role it plays, and where it's applied" image={cardStyling} imageAlt="A Variables table listing token names, applied roles, and raw values" />
+<PreviewCard href="/plugin/data/" title="Data" description="The same spec as structured YAML or JSON — a ready-made contract for AI/LLM tools" image={cardData} imageAlt="A YAML text block of a component's serialized spec" />
 </div>
 
 ## Format it to match your system
@@ -54,13 +54,13 @@ Generate a complete picture of the component, in exhaustive visual detail
 Reshape the spec styling — not just what it contains, but how it looks
 
 <div class="preview-grid preview-grid--4col">
-<LinkCard href="/specs/plugin/color/" title="Color" description="Bind specs to variables that alias to your library" />
-<LinkCard href="/specs/plugin/dark-mode/" title="Dark Mode" description="Show specs in Light and Dark mode at any level" />
-<LinkCard href="/specs/plugin/spacing/" title="Spacing" description="Customize spec spacing to use your variables" />
-<LinkCard href="/specs/plugin/text/" title="Text" description="Apply text styles so output matches your typography" />
+<LinkCard href="/plugin/color/" title="Color" description="Bind specs to variables that alias to your library" />
+<LinkCard href="/plugin/dark-mode/" title="Dark Mode" description="Show specs in Light and Dark mode at any level" />
+<LinkCard href="/plugin/spacing/" title="Spacing" description="Customize spec spacing to use your variables" />
+<LinkCard href="/plugin/text/" title="Text" description="Apply text styles so output matches your typography" />
 </div>
 
-<p style="margin-top: 4rem">Also, <a href="/specs/plugin/multi-column-layout/">Multi-Column Layout</a> reshapes how a spec's exhibits are arranged — tiling them into a 2, 3, or 4-column grid instead of one long column — so a spec reads well whether it's a quick one-off or a dense reference sheet.</p>
+<p style="margin-top: 4rem">Also, <a href="/plugin/multi-column-layout/">Multi-Column Layout</a> reshapes how a spec's exhibits are arranged — tiling them into a 2, 3, or 4-column grid instead of one long column — so a spec reads well whether it's a quick one-off or a dense reference sheet.</p>
 
 <Figure src={homeMultiColumn} alt="The same Alert component's Appearance section shown in 1, 2, and 3-column layouts side by side" maxWidth="none" />
 
@@ -72,11 +72,11 @@ Set specs to match how you name and model components and systems in Figma
 
 Settings go beyond how elements are detected — they cover every stage, from what counts as a match to how the resulting data itself is formatted.
 
-- **Format**: [Tokens](/specs/settings/tokens/), [color values](/specs/settings/color/), [data format](/specs/settings/output-format/), [key values](/specs/settings/keys/)
-- **Variants**: [variant depth](/specs/settings/variant-depth/), [empty variants](/specs/settings/empty-variants/), [invalid variants](/specs/settings/invalid-variants/), [invalid combinations](/specs/settings/invalid-combinations/)
-- **Elements**: [icon glyphs](/specs/settings/glyph-name-pattern/), [subcomponents](/specs/settings/subcomponents/), [collapsed wrappers](/specs/settings/collapse-primitive-wrapper/), [default slot content](/specs/settings/default-slot-content/), [instance examples](/specs/settings/instance-examples/)
-- **Props**: [code-only props](/specs/settings/code-only-props-pattern/), [slot constraints](/specs/settings/slot-constraints/), [inferred number props](/specs/settings/infer-number-props/)
-- **Layout**: [layout representation](/specs/settings/layout/)
+- **Format**: [Tokens](/settings/tokens/), [color values](/settings/color/), [data format](/settings/output-format/), [key values](/settings/keys/)
+- **Variants**: [variant depth](/settings/variant-depth/), [empty variants](/settings/empty-variants/), [invalid variants](/settings/invalid-variants/), [invalid combinations](/settings/invalid-combinations/)
+- **Elements**: [icon glyphs](/settings/glyph-name-pattern/), [subcomponents](/settings/subcomponents/), [collapsed wrappers](/settings/collapse-primitive-wrapper/), [default slot content](/settings/default-slot-content/), [instance examples](/settings/instance-examples/)
+- **Props**: [code-only props](/settings/code-only-props-pattern/), [slot constraints](/settings/slot-constraints/), [inferred number props](/settings/infer-number-props/)
+- **Layout**: [layout representation](/settings/layout/)
 
 ## Deliver data into agentic workflows
 
