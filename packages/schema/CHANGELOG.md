@@ -21,6 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+### Fixed
+
+- **Color token references no longer fail validation on their resolved raw value** — the `rawValue` provenance field on a token reference now accepts a DTCG Color object (the shape the generator emits for color tokens) alongside string, number, and boolean, clearing false schema violations on token-bound fills and gradient stops.
+- **Subcomponent source identity no longer fails validation** — subcomponent entries carrying the ADR-060 `source` field (pageId/nodeId/nodeType) were rejected because the closed Component definition composed via allOf could not admit it; the property is now declared where draft-07 requires it.
+- **Collapsed-root anatomy provenance no longer fails validation** — anatomy elements now accept `$extensions['com.figma'].originalName` (written by primitive-wrapper collapse, ADR-058) in both the JSON schema and the `AnatomyElement` type.
+
 
 ## [0.27.0] - 2026-07-01
 

@@ -26,6 +26,23 @@ export type SubcomponentRef = {
 };
 
 /**
+ * Figma extraction provenance for an anatomy element.
+ * @since 0.28.0
+ */
+export interface FigmaAnatomyElementExtension {
+  /** Original Figma layer name before primitive-wrapper collapse promoted this element to root (ADR-058). */
+  originalName?: string;
+}
+
+/**
+ * DTCG-style platform extensions for an anatomy element.
+ * @since 0.28.0
+ */
+export interface AnatomyElementExtensions {
+  'com.figma'?: FigmaAnatomyElementExtension;
+}
+
+/**
  * Represents an element within the anatomy of a component.
  */
 export type AnatomyElement = {
@@ -37,4 +54,6 @@ export type AnatomyElement = {
   detectedIn?: string;
   /** The component or component set name that this instance element references, or a subcomponent reference. */
   instanceOf?: string | SubcomponentRef;
+  /** Platform extensions; com.figma carries extraction provenance. */
+  $extensions?: AnatomyElementExtensions;
 };

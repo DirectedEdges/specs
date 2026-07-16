@@ -109,8 +109,8 @@ export interface TokenReference {
       name?: string;
       /** Figma collection name, e.g. "DS Color" (variables only; presence distinguishes variable from named-style reference). */
       collectionName?: string;
-      /** Value resolved by Figma at extraction time. No DTCG equivalent; Figma extraction provenance only. */
-      rawValue?: string | number | boolean;
+      /** Value resolved by Figma at extraction time. Color tokens resolve to a DTCG Color object. No DTCG equivalent; Figma extraction provenance only. */
+      rawValue?: string | number | boolean | ColorObject;
     };
   };
 }
