@@ -5,21 +5,19 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.28.0] - Unreleased
+## [0.28.0] - 2026-07-16
+
+Specs can now describe images. A container's image fill is captured as a typed background image, image-source properties become a first-class prop type, and every image a component references is collected in a single registry — resolved to a data URI, URL, or asset path when available. Text truncation is also now expressible: specs record how overflowing text is handled and the line limit at which truncation begins.
 
 ### Added
 
-- `Styles.textOverflow` — typed as `TextOverflow` (`'CLIP' | 'ELLIPSIS'`) or `null`; how overflowing text is handled (TEXT only, not token-bindable). Named after CSS `text-overflow` / Compose `TextOverflow`
-- `Styles.maxLines` — maximum line count before `'ELLIPSIS'` text overflow applies; null for no limit (TEXT only)
-- `Styles.backgroundImage` — container image fill, typed as `ImageValue` (`{ $image, objectFit?: 'COVER' | 'CONTAIN' }`), a `TokenReference` with `$type: 'image'` (an applied Figma fill style whose paint is an image routes its style reference here, not to `backgroundColor`; `image` joins the `$type` set as a Specs extension), or `null` (ADR-063)
-- `Component.images` — registry of `ImageData` by id — resolved data (`data:` URI, URL, asset path) or a `figma:<imageRef>` placeholder
-- `ImageProp` — `type: 'image'` property added to `AnyProp` for image-source properties
-- `ImageBinding` — `{ $binding, examples? }` added to `PropConfigurationValue`, forwarding an image into a nested instance
-- `Config.processing.images` — image processing block (ADR-063); presence is the on-switch, like `subcomponents`. Independent triggers: `backgroundImage` (detect image fills; the fallback when a component is designated), `imageComponent` (designated component name; requires `sourceProps`), and `sourceProps` (raw Figma code-only prop names that re-type to `ImageProp`; the first entry is the designated component's own source prop)
-
-### Changed
-
-### Removed
+- **Text overflow handling is now captured** — `Styles.textOverflow`, typed as `TextOverflow` (`'CLIP' | 'ELLIPSIS'`) or `null`, records how overflowing text is handled (TEXT only, not token-bindable). Named after CSS `text-overflow` / Compose `TextOverflow`
+- **Line limits are now captured** — `Styles.maxLines` records the maximum line count before `'ELLIPSIS'` text overflow applies; null for no limit (TEXT only)
+- **Container image fills are first-class styles** — `Styles.backgroundImage`, typed as `ImageValue` (`{ $image, objectFit?: 'COVER' | 'CONTAIN' }`), a `TokenReference` with `$type: 'image'` (an applied Figma fill style whose paint is an image routes its style reference here, not to `backgroundColor`; `image` joins the `$type` set as a Specs extension), or `null` (ADR-063)
+- **Every image a component references is collected in one registry** — `Component.images` maps ids to `ImageData`: resolved data (`data:` URI, URL, asset path) or a `figma:<imageRef>` placeholder
+- **Image-source properties are a first-class prop type** — `ImageProp` (`type: 'image'`) joins `AnyProp` for properties that supply an image source
+- **Images can be forwarded into nested instances** — `ImageBinding` (`{ $binding, examples? }`) joins `PropConfigurationValue`, routing an image prop into a subcomponent instance
+- **Image processing is opt-in via config** — `Config.processing.images` (ADR-063); presence is the on-switch, like `subcomponents`. Independent triggers: `backgroundImage` (detect image fills; the fallback when a component is designated), `imageComponent` (designated component name; requires `sourceProps`), and `sourceProps` (raw Figma code-only prop names that re-type to `ImageProp`; the first entry is the designated component's own source prop)
 
 ### Fixed
 
