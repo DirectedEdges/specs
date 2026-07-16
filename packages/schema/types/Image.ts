@@ -29,22 +29,36 @@ export interface ImageValue {
 }
 
 /**
- * An unresolved image placeholder — the Figma image hash carried as
- * `figma:<imageRef>` while the bytes have not been fetched yet (two-phase
- * detect → resolve). The schema formally distinguishes this form from resolved
- * data by the `figma:` scheme.
+ * Figma extraction provenance for a registry image — the content hash that
+ * identifies the image inside Figma (Plugin `ImagePaint.imageHash`; REST
+ * `fills[].imageRef`). Not required by platform consumers; reverse-direction
+ * tooling uses it to reconstruct an `ImagePaint` (and to reuse the same Figma
+ * image across round-trips) without re-uploading bytes.
  * @since 0.28.0
  */
-export type FigmaImageRef = `figma:${string}`;
+export interface FigmaImageExtension {
+  imageHash: string;
+}
+
+/** DTCG §5.2.3-style platform extensions for a registry image. @since 0.28.0 */
+export interface ImageDataExtensions {
+  'com.figma'?: FigmaImageExtension;
+}
 
 /**
- * A registry value: resolved image data — a `data:` URI (self-contained), an
- * external URL, or an emitted asset path — or an unresolved `FigmaImageRef`
- * placeholder. Both are strings; the JSON schema constrains the two forms by
- * scheme (the authoritative validation contract).
+ * A registry entry for one distinct image. Two-phase (detect → resolve),
+ * expressed structurally: `src` absent means unresolved (the detect phase in
+ * both runtimes — tiny enough for the plugin's saved-data budget); resolution
+ * ADDS `src` rather than replacing anything, so the Figma identity in
+ * `$extensions` survives for reverse-direction tooling.
  * @since 0.28.0
  */
-export type ImageData = FigmaImageRef | string;
+export interface ImageData {
+  /** Resolved image source — an emitted asset path (the standard resolved form, relative to the referencing spec file), a `data:` URI, or an external URL. Absent = unresolved. */
+  src?: string;
+  /** Figma extraction provenance (`imageHash`). */
+  $extensions?: ImageDataExtensions;
+}
 
 /**
  * Registry of image data, keyed by identifier (`^[a-zA-Z0-9_-]+$`), referenced

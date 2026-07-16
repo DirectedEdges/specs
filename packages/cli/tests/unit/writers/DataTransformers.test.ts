@@ -87,10 +87,10 @@ describe('splitComponentByConcern — images registry (ADR-063)', () => {
       title: 'egdsAvatar',
       anatomy: {},
       default: {},
-      images: { egdsAvatar__image: '_images/d54334d2.png' },
+      images: { egdsAvatar__image: { src: '_images/d54334d2.png' } },
       metadata: {},
     });
-    expect(examples.images).toEqual({ egdsAvatar__image: '_images/d54334d2.png' });
+    expect(examples.images).toEqual({ egdsAvatar__image: { src: '_images/d54334d2.png' } });
     expect((api as Record<string, unknown>).images).toBeUndefined();
     expect((variants as Record<string, unknown>).images).toBeUndefined();
     // Images alone must be enough for examples.yaml to be written.
@@ -100,11 +100,11 @@ describe('splitComponentByConcern — images registry (ADR-063)', () => {
   it('routes subcomponent images into the subcomponent examples concern', () => {
     const subExamples = extractExamplesFromSubcomponents({
       media: {
-        images: { media__root: 'figma:abc' },
+        images: { media__root: { $extensions: { 'com.figma': { imageHash: 'abc' } } } },
         metadata: {},
       },
     });
-    expect(subExamples?.media.images).toEqual({ media__root: 'figma:abc' });
+    expect(subExamples?.media.images).toEqual({ media__root: { $extensions: { 'com.figma': { imageHash: 'abc' } } } });
   });
 });
 

@@ -1,6 +1,6 @@
 /**
  * ImageFillsResolver unit tests (ADR-063 --get-images)
- * Covers the pure pieces: placeholder collection, registry rewriting, and
+ * Covers the pure pieces: unresolved-hash collection, src application, and
  * magic-byte extension detection. Network/file steps are exercised by the
  * integration path.
  */
@@ -10,23 +10,29 @@ import fs from 'fs-extra';
 import path from 'path';
 import { ImageFillsResolver, IMAGES_DIR_NAME } from '../../../src/utilities/ImageFillsResolver.js';
 
-function component(images?: Record<string, string>): { spec: Record<string, unknown> } {
+type Entry = { src?: string; $extensions?: { 'com.figma'?: { imageHash: string } } };
+
+function unresolved(imageHash: string): Entry {
+  return { $extensions: { 'com.figma': { imageHash } } };
+}
+
+function component(images?: Record<string, Entry>): { spec: Record<string, unknown> } {
   return { spec: images ? { title: 'X', images } : { title: 'X' } };
 }
 
-describe('ImageFillsResolver.collectPlaceholderHashes', () => {
+describe('ImageFillsResolver.collectUnresolvedHashes', () => {
   it('collects distinct hashes across components', () => {
-    const hashes = ImageFillsResolver.collectPlaceholderHashes([
-      component({ a: 'figma:hash-1', b: 'figma:hash-2' }),
-      component({ c: 'figma:hash-1' }),
+    const hashes = ImageFillsResolver.collectUnresolvedHashes([
+      component({ a: unresolved('hash-1'), b: unresolved('hash-2') }),
+      component({ c: unresolved('hash-1') }),
       component(),
     ]);
     expect(hashes).toEqual(new Set(['hash-1', 'hash-2']));
   });
 
-  it('ignores already-resolved values', () => {
-    const hashes = ImageFillsResolver.collectPlaceholderHashes([
-      component({ a: '_images/hash-1.png', b: 'figma:hash-2' }),
+  it('ignores entries that already carry src', () => {
+    const hashes = ImageFillsResolver.collectUnresolvedHashes([
+      component({ a: { src: '_images/hash-1.png', ...unresolved('hash-1') }, b: unresolved('hash-2') }),
     ]);
     expect(hashes).toEqual(new Set(['hash-2']));
   });
@@ -34,58 +40,58 @@ describe('ImageFillsResolver.collectPlaceholderHashes', () => {
   it('collects from subcomponent registries too', () => {
     const spec = {
       title: 'Main',
-      images: { root: 'figma:hash-main' },
+      images: { root: unresolved('hash-main') },
       subcomponents: {
-        media: { title: 'Main / Media', images: { root: 'figma:hash-sub' } },
+        media: { title: 'Main / Media', images: { root: unresolved('hash-sub') } },
       },
     } as Record<string, unknown>;
-    expect(ImageFillsResolver.collectPlaceholderHashes([{ spec }])).toEqual(new Set(['hash-main', 'hash-sub']));
+    expect(ImageFillsResolver.collectUnresolvedHashes([{ spec }])).toEqual(new Set(['hash-main', 'hash-sub']));
   });
 });
 
-describe('ImageFillsResolver.rewritePlaceholders', () => {
-  it('rewrites placeholders to prefixed filenames and leaves unresolved ones', () => {
-    const a = component({ hero: 'figma:hash-1', banner: 'figma:missing' });
-    const count = ImageFillsResolver.rewritePlaceholders(
+describe('ImageFillsResolver.applyResolvedSources', () => {
+  it('adds src to resolved entries — the Figma identity survives — and leaves missing hashes untouched', () => {
+    const a = component({ hero: unresolved('hash-1'), banner: unresolved('missing') });
+    const count = ImageFillsResolver.applyResolvedSources(
       [a],
       new Map([['hash-1', 'hash-1.png']]),
       `${IMAGES_DIR_NAME}/`
     );
     expect(count).toBe(1);
     expect(a.spec.images).toEqual({
-      hero: '_images/hash-1.png',
-      banner: 'figma:missing',
+      hero: { src: '_images/hash-1.png', $extensions: { 'com.figma': { imageHash: 'hash-1' } } },
+      banner: unresolved('missing'),
     });
   });
 
   it('uses the subfolder prefix when spec files live one level down', () => {
-    const a = component({ hero: 'figma:hash-1' });
-    ImageFillsResolver.rewritePlaceholders([a], new Map([['hash-1', 'hash-1.jpg']]), `../${IMAGES_DIR_NAME}/`);
-    expect((a.spec.images as Record<string, string>).hero).toBe('../_images/hash-1.jpg');
+    const a = component({ hero: unresolved('hash-1') });
+    ImageFillsResolver.applyResolvedSources([a], new Map([['hash-1', 'hash-1.jpg']]), `../${IMAGES_DIR_NAME}/`);
+    expect((a.spec.images as Record<string, Entry>).hero.src).toBe('../_images/hash-1.jpg');
   });
 
-  it('rewrites subcomponent registry values too', () => {
+  it('resolves subcomponent registry entries too', () => {
     const spec = {
-      images: { root: 'figma:hash-main' },
+      images: { root: unresolved('hash-main') },
       subcomponents: {
-        media: { images: { root: 'figma:hash-sub' } },
+        media: { images: { root: unresolved('hash-sub') } },
       },
     } as Record<string, unknown>;
-    const count = ImageFillsResolver.rewritePlaceholders(
+    const count = ImageFillsResolver.applyResolvedSources(
       [{ spec }],
       new Map([['hash-main', 'hash-main.png'], ['hash-sub', 'hash-sub.jpg']]),
       `${IMAGES_DIR_NAME}/`
     );
     expect(count).toBe(2);
-    expect((spec.subcomponents as Record<string, { images: Record<string, string> }>).media.images.root)
+    expect((spec.subcomponents as Record<string, { images: Record<string, Entry> }>).media.images.root.src)
       .toBe('_images/hash-sub.jpg');
   });
 
-  it('does not touch already-resolved values', () => {
-    const a = component({ hero: '_images/hash-1.png' });
-    const count = ImageFillsResolver.rewritePlaceholders([a], new Map([['hash-1', 'hash-1.png']]), `${IMAGES_DIR_NAME}/`);
+  it('does not touch entries that already carry src', () => {
+    const a = component({ hero: { src: '_images/hash-1.png', ...unresolved('hash-1') } });
+    const count = ImageFillsResolver.applyResolvedSources([a], new Map([['hash-1', 'other.png']]), `${IMAGES_DIR_NAME}/`);
     expect(count).toBe(0);
-    expect((a.spec.images as Record<string, string>).hero).toBe('_images/hash-1.png');
+    expect((a.spec.images as Record<string, Entry>).hero.src).toBe('_images/hash-1.png');
   });
 });
 

@@ -96,7 +96,7 @@ export const Generate = new Command('generate')
   .option('--split-components', 'Create separate file per component')
   .option('--split-concerns', 'Separate API, variants, and examples into different files')
   .option('--use-subfolders', 'Organize component files in subdirectories (requires --split-components)')
-  .option('--get-images', 'Resolve figma: image placeholders into files under _images/ (requires processing.images in config and FIGMA_TOKEN)')
+  .option('--get-images', 'Resolve unresolved registry images into files under _images/ (requires processing.images in config and FIGMA_TOKEN)')
   .option('--verbose', 'Enable detailed logging', false)
   .action(async (source: string | undefined, options: GenerateOptions) => {
     try {
@@ -481,13 +481,13 @@ export const Generate = new Command('generate')
         : undefined;
 
       // ---------------------------------------------------------------
-      // Image resolution (ADR-063, --get-images): swap figma:<imageHash>
-      // placeholders for files written under {baseDir}/_images/, referenced
+      // Image resolution (ADR-063, --get-images): add src to unresolved
+      // registry entries — files written under {baseDir}/_images/, referenced
       // relative to the spec file that points at them. Runs before the
       // manifest so writers serialize the resolved registry values.
       // ---------------------------------------------------------------
       if (options.getImages) {
-        const hashes = ImageFillsResolver.collectPlaceholderHashes(processedComponents);
+        const hashes = ImageFillsResolver.collectUnresolvedHashes(processedComponents);
         if (hashes.size === 0) {
           console.log(modelConfig.processing.images
             ? 'Note: --get-images found no unresolved image placeholders'
@@ -525,9 +525,9 @@ export const Generate = new Command('generate')
           // folders (subfolders, or the component+concern combined layout).
           const inComponentFolders = !!outputConfig.splitComponents && (!!outputConfig.useSubfolders || !!outputConfig.splitConcerns);
           const relativePrefix = inComponentFolders ? `../${IMAGES_DIR_NAME}/` : `${IMAGES_DIR_NAME}/`;
-          const rewritten = ImageFillsResolver.rewritePlaceholders(processedComponents, files, relativePrefix);
+          const resolvedCount = ImageFillsResolver.applyResolvedSources(processedComponents, files, relativePrefix);
           const reused = hashes.size - missing.size;
-          console.log(`✓ Resolved ${rewritten} image reference(s) into ${files.size} file(s) under ${IMAGES_DIR_NAME}/ (${reused} reused, ${missing.size} downloaded)`);
+          console.log(`✓ Resolved ${resolvedCount} image reference(s) into ${files.size} file(s) under ${IMAGES_DIR_NAME}/ (${reused} reused, ${missing.size} downloaded)`);
         }
       }
 

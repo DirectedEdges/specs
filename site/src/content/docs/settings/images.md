@@ -73,7 +73,11 @@ components:
               examples:
                 - $image: "dsAvatar.examples#/images/userPhoto"
     images:
-      userPhoto: "_images/89b270d29dd5ea753b71af11bfcf1bf0ecc851cf.png"
+      userPhoto:
+        src: "_images/89b270d29dd5ea753b71af11bfcf1bf0ecc851cf.png"
+        $extensions:
+          com.figma:
+            imageHash: 89b270d29dd5ea753b71af11bfcf1bf0ecc851cf
 ```
 
 When the `images` block is absent, none of this is emitted.
@@ -94,9 +98,9 @@ Image fills carry an optional `objectFit` using CSS `object-fit` vocabulary — 
 
 ## Storage and Two-Phase Resolution
 
-Each `images` value is one string: an emitted asset path (the standard resolved form), a `data:` URI, an external URL, or a `figma:<imageRef>` **placeholder** for image bytes not yet fetched. Detection emits references and (possibly placeholder) registry entries; a later resolution step — `specs generate --get-images` — writes each distinct image to `_images/<imageHash>.<ext>` inside the output directory and swaps each placeholder for the file's spec-file-relative path. `$image` pointers always resolve to a registry entry, so they never dangle.
+Each `images` entry is an object holding the Figma identity in `$extensions['com.figma'].imageHash` and — once resolved — a `src` (an emitted asset path, the standard resolved form; a `data:` URI and external URL are also valid). Two-phase, structurally: `src` absent means **unresolved** (the detect phase); the resolution step — `specs generate --get-images` — writes each distinct image to `_images/<imageHash>.<ext>` inside the output directory and **adds** `src` (a spec-file-relative path), so the identity survives for reverse-direction tooling. `$image` pointers always resolve to a registry entry, so they never dangle.
 
-The REST runtime resolves placeholders via a second call (Get Image Fills, whose S3 URLs expire ~14 days), downloading the bytes into emitted files — never persisting the URL or embedding base64. The Figma plugin cannot write files or embed raw bytes on the asset (saved-data limits), so it emits `figma:` placeholders and duplicates detected images into the Styling Inventory for human reference.
+The REST runtime resolves entries via a second call (Get Image Fills, whose S3 URLs expire ~14 days), downloading the bytes into emitted files — never persisting the URL or embedding base64. The Figma plugin cannot write files or embed raw bytes on the asset (saved-data limits), so it emits identity-only entries and duplicates detected images into the Foundations section's Images subsection for human reference.
 
 ## Paths
 

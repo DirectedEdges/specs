@@ -53,7 +53,7 @@ export interface SubcomponentVariantsData {
 export interface ComponentExamplesData {
   slotContentExamples?: Record<string, any>;
   instanceExamples?: Record<string, any>;
-  images?: Record<string, string>;
+  images?: Record<string, unknown>;
   subcomponents?: Record<string, SubcomponentExamplesData>;
   metadata: any;
 }
@@ -64,7 +64,7 @@ export interface ComponentExamplesData {
 export interface SubcomponentExamplesData {
   slotContentExamples?: Record<string, any>;
   instanceExamples?: Record<string, any>;
-  images?: Record<string, string>;
+  images?: Record<string, unknown>;
   subcomponents?: Record<string, SubcomponentExamplesData>;
   metadata: any;
 }

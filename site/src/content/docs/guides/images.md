@@ -23,7 +23,11 @@ default:
           objectFit: COVER          # COVER (default) or CONTAIN
 
 images:
-  hero: "_images/705867125834a686a51bdf161a0a39cdba0f9a58.jpg"
+  hero:
+    src: "_images/705867125834a686a51bdf161a0a39cdba0f9a58.jpg"
+    $extensions:
+      com.figma:
+        imageHash: 705867125834a686a51bdf161a0a39cdba0f9a58
 ```
 
 ## The Two Patterns
@@ -87,17 +91,17 @@ config:
 
 ## How Image Data Is Stored
 
-The `images` registry stores each image once. A value is an emitted asset path (the standard resolved form), a `data:` URI, an external URL, or — when the bytes have not been fetched yet — a `figma:<imageRef>` **placeholder**. Image processing is two-phase:
+The `images` registry stores each image once. An entry carries the Figma identity (`$extensions['com.figma'].imageHash`) and — once resolved — a `src`: an emitted asset path (the standard resolved form), a `data:` URI, or an external URL. `src` absent means **unresolved**. Image processing is two-phase:
 
-The Figma plugin cannot embed raw image bytes on the component asset (Figma caps saved data), so it emits `figma:` placeholders and additionally duplicates each detected image into the **Foundations** section for human reference. The REST/CLI path is how you get actual image files.
+The Figma plugin cannot embed raw image bytes on the component asset (Figma caps saved data), so it emits identity-only entries and additionally duplicates each detected image into the **Foundations** section for human reference. The REST/CLI path is how you get actual image files.
 
-1. **Detect** (`include.imageData`) — emit `$image` references and the registry, values possibly `figma:` placeholders.
-2. **Resolve** (CLI's `generate` command only) — `specs generate --get-images` fetches the bytes, writes each distinct image once to `_images/<imageHash>.<ext>` inside the output directory, and swaps each placeholder for the file's path relative to the referencing spec file.
+1. **Detect** — emit `$image` references and the registry, entries carrying only the Figma identity.
+2. **Resolve** (CLI's `generate` command only) — `specs generate --get-images` fetches the bytes, writes each distinct image once to `_images/<imageHash>.<ext>` inside the output directory, and ADDS `src` (the file's path relative to the referencing spec file); the identity survives for reverse-direction tooling.
 :::
 
 ## Further Reading
 
-- [`include.imageData` and `processing.imageComponent`](/specs/settings/images/) — config reference
+- [`processing.images`](/specs/settings/images/) — config reference
 - [Schema: Styles](/specs/schema/styles/) — the `backgroundImage` value shape
 - [Schema: Props](/specs/schema/props/) — the `ImageProp` shape
 - [Schema: Prop Configurations](/specs/schema/prop-configurations/) — the `ImageBinding` shape

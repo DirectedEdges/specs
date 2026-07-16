@@ -1,6 +1,6 @@
 /**
  * Type-level tests for image content (ADR-063):
- * ObjectFit, ImageValue, FigmaImageRef, ImageData, Images, ImageProp, ImageBinding,
+ * ObjectFit, ImageValue, ImageData, Images, ImageProp, ImageBinding,
  * Styles.backgroundImage, and Config image fields.
  *
  * These files are intentionally never executed — they are compiled with tsc
@@ -9,7 +9,6 @@
 import type {
   ObjectFit,
   ImageValue,
-  FigmaImageRef,
   ImageData,
   Images,
   ImageProp,
@@ -44,24 +43,37 @@ const _imageNoRef: ImageValue = { objectFit: 'COVER' };
 // @ts-expect-error: objectFit must be an ObjectFit
 const _imageBadFit: ImageValue = { $image: '#/images/hero', objectFit: 'STRETCH' };
 
-// ─── FigmaImageRef / ImageData ──────────────────────────────────────────────
+// ─── ImageData ────────────────────────────────────────────────────────────────
 
-const placeholder: FigmaImageRef = 'figma:abc123def456';
-const resolvedData: ImageData = 'data:image/png;base64,iVBORw0KG...';
-const placeholderData: ImageData = placeholder;
+// Unresolved (detect phase): src absent, Figma identity in $extensions
+const unresolvedData: ImageData = {
+  $extensions: { 'com.figma': { imageHash: 'abc123def456' } },
+};
 
-// @ts-expect-error: a FigmaImageRef must start with the figma: scheme
-const _badPlaceholder: FigmaImageRef = 'abc123def456';
+// Resolved: resolution ADDS src; the identity survives
+const resolvedData: ImageData = {
+  src: '_images/abc123def456.png',
+  $extensions: { 'com.figma': { imageHash: 'abc123def456' } },
+};
+
+// src alone is valid (e.g. an externally-authored spec with no Figma origin)
+const externalData: ImageData = { src: 'https://cdn.example.com/logo.png' };
+
+// @ts-expect-error: imageHash is required inside the com.figma extension
+const _badExtension: ImageData = { $extensions: { 'com.figma': {} } };
+
+// @ts-expect-error: the retired string form (figma:<hash> / bare path) is no longer valid
+const _retiredStringForm: ImageData = 'figma:abc123def456';
 
 // ─── Images registry ──────────────────────────────────────────────────────────
 
 const images: Images = {
-  hero: 'data:image/png;base64,iVBORw0KG...',
-  userPhoto: 'figma:abc123def456',
-  logo: 'https://cdn.example.com/logo.png',
+  hero: { src: 'data:image/png;base64,iVBORw0KG...' },
+  userPhoto: { $extensions: { 'com.figma': { imageHash: 'abc123def456' } } },
+  logo: { src: 'https://cdn.example.com/logo.png' },
 };
 
-// @ts-expect-error: registry values must be strings
+// @ts-expect-error: registry values must be ImageData objects
 const _imagesBadValue: Images = { hero: 42 };
 
 // ─── ImageProp ────────────────────────────────────────────────────────────────

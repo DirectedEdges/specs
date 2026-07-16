@@ -1,12 +1,12 @@
 /**
- * ImageFillsResolver - resolves `figma:<imageHash>` placeholders (ADR-063)
+ * ImageFillsResolver - resolves unresolved registry images (ADR-063)
  *
  * Purpose: the second phase of the two-phase image model. Generation (detect)
- * emits component `images` registries whose values are `figma:<imageHash>`
- * placeholders. This resolver — run by `specs generate --get-images` — turns
- * those placeholders into emitted asset files:
+ * emits component `images` registries whose entries carry only the Figma
+ * identity (`$extensions['com.figma'].imageHash`, no `src`). This resolver —
+ * run by `specs generate --get-images` — turns those into emitted asset files:
  *
- * 1. Collect every distinct placeholder hash across the generated components.
+ * 1. Collect every distinct unresolved hash across the generated components.
  * 2. Call Figma's Get Image Fills endpoint (`GET /v1/files/:key/images`),
  *    which returns temporary S3 download URLs (~14-day expiry).
  * 3. Download each image's bytes, detect the format from magic bytes, and
@@ -14,9 +14,9 @@
  *    image used by many components dedups to one file and re-runs are
  *    idempotent. `_images` avoids collision with any component named
  *    "images" and marks the folder as non-component content.
- * 4. Rewrite each registry value from `figma:<imageHash>` to a path relative
- *    to the referencing spec file (`_images/...`, or `../_images/...` when
- *    component subfolders are in use).
+ * 4. ADD `src` to each entry — a path relative to the referencing spec file
+ *    (`_images/...`, or `../_images/...` when component subfolders are in
+ *    use). The Figma identity survives for reverse-direction tooling.
  *
  * The temporary S3 URLs are never persisted — only the downloaded bytes and
  * the relative file path survive (ADR-063 runtime notes).
@@ -24,6 +24,7 @@
 
 import fs from 'fs-extra';
 import path from 'path';
+import type { ImageData } from '@directededges/specs-schema';
 
 /** Figma Get Image Fills response shape. */
 interface GetImageFillsResponse {
@@ -32,7 +33,17 @@ interface GetImageFillsResponse {
   meta?: { images?: Record<string, string> };
 }
 
-const PLACEHOLDER_PREFIX = 'figma:';
+/** The Figma image hash of a registry entry, or undefined. */
+function imageHashOf(entry: unknown): string | undefined {
+  return (entry as ImageData | undefined)?.$extensions?.['com.figma']?.imageHash;
+}
+
+/** Named guard: a registry entry that is still awaiting resolution. */
+function isUnresolved(entry: unknown): entry is ImageData {
+  return typeof entry === 'object' && entry !== null
+    && (entry as ImageData).src === undefined
+    && imageHashOf(entry) !== undefined;
+}
 
 /** Directory (inside the output directory) that resolved image files are written to. */
 export const IMAGES_DIR_NAME = '_images';
@@ -53,18 +64,16 @@ export class ImageFillsResolver {
   }
 
   /**
-   * Collect every distinct placeholder hash from the components' `images`
-   * registries (including subcomponent registries). Non-placeholder values
-   * (already-resolved data) are ignored.
+   * Collect every distinct unresolved hash from the components' `images`
+   * registries (including subcomponent registries). Entries that already
+   * carry a `src` are ignored.
    */
-  public static collectPlaceholderHashes(components: Array<{ spec: Record<string, unknown> }>): Set<string> {
+  public static collectUnresolvedHashes(components: Array<{ spec: Record<string, unknown> }>): Set<string> {
     const hashes = new Set<string>();
     for (const { spec } of components) {
       for (const images of ImageFillsResolver.registries(spec)) {
         for (const value of Object.values(images)) {
-          if (typeof value === 'string' && value.startsWith(PLACEHOLDER_PREFIX)) {
-            hashes.add(value.slice(PLACEHOLDER_PREFIX.length));
-          }
+          if (isUnresolved(value)) hashes.add(imageHashOf(value)!);
         }
       }
     }
@@ -137,7 +146,7 @@ export class ImageFillsResolver {
       if (urls[hash]) {
         queue.push(hash);
       } else {
-        console.warn(`Warning: image ${PLACEHOLDER_PREFIX}${hash} was not returned by Get Image Fills — placeholder left unresolved`);
+        console.warn(`Warning: image ${hash} was not returned by Get Image Fills — entry left unresolved`);
       }
     }
 
@@ -149,7 +158,7 @@ export class ImageFillsResolver {
         try {
           const response = await fetch(urls[hash]);
           if (response.status !== 200) {
-            console.warn(`Warning: image ${PLACEHOLDER_PREFIX}${hash} download failed (HTTP ${response.status}) — placeholder left unresolved`);
+            console.warn(`Warning: image ${hash} download failed (HTTP ${response.status}) — entry left unresolved`);
           } else {
             const bytes = Buffer.from(await response.arrayBuffer());
             const filename = `${hash}.${ImageFillsResolver.detectExtension(bytes)}`;
@@ -157,7 +166,7 @@ export class ImageFillsResolver {
             written.set(hash, filename);
           }
         } catch (error) {
-          console.warn(`Warning: image ${PLACEHOLDER_PREFIX}${hash} download failed (${error instanceof Error ? error.message : String(error)}) — placeholder left unresolved`);
+          console.warn(`Warning: image ${hash} download failed (${error instanceof Error ? error.message : String(error)}) — entry left unresolved`);
         }
         completed++;
         onProgress?.(completed, total);
@@ -174,29 +183,31 @@ export class ImageFillsResolver {
   }
 
   /**
-   * Rewrite `figma:<imageHash>` registry values to relative file paths in
-   * place. `relativePrefix` is the path from the referencing spec file's
-   * directory to the `_images` directory (e.g. `_images/` at the output root,
+   * ADD `src` to unresolved registry entries in place — resolution never
+   * replaces the entry, so the Figma identity in `$extensions` survives.
+   * `relativePrefix` is the path from the referencing spec file's directory
+   * to the `_images` directory (e.g. `_images/` at the output root,
    * `../_images/` from a component subfolder).
    */
-  public static rewritePlaceholders(
+  public static applyResolvedSources(
     components: Array<{ spec: Record<string, unknown> }>,
     hashToFilename: Map<string, string>,
     relativePrefix: string
   ): number {
-    let rewritten = 0;
+    let resolved = 0;
     for (const { spec } of components) {
       for (const images of ImageFillsResolver.registries(spec)) {
         for (const [key, value] of Object.entries(images)) {
-          if (typeof value !== 'string' || !value.startsWith(PLACEHOLDER_PREFIX)) continue;
-          const filename = hashToFilename.get(value.slice(PLACEHOLDER_PREFIX.length));
+          if (!isUnresolved(value)) continue;
+          const filename = hashToFilename.get(imageHashOf(value)!);
           if (!filename) continue;
-          images[key] = `${relativePrefix}${filename}`;
-          rewritten++;
+          // Rebuild with src first so it serializes ahead of $extensions.
+          images[key] = { src: `${relativePrefix}${filename}`, ...value };
+          resolved++;
         }
       }
     }
-    return rewritten;
+    return resolved;
   }
 
   /**

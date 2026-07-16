@@ -1086,19 +1086,33 @@
       "additionalProperties": false
     },
     "ImageData": {
-      "description": "A registry image value — resolved image data or an unresolved Figma placeholder, formally discriminated by scheme.",
-      "oneOf": [
-        {
+      "type": "object",
+      "description": "A registry entry for one distinct image. Two-phase, expressed structurally: 'src' absent = unresolved (detect phase); resolution ADDS 'src', so the Figma identity in $extensions survives for reverse-direction tooling.",
+      "properties": {
+        "src": {
           "type": "string",
-          "pattern": "^figma:.+$",
-          "description": "Unresolved placeholder — 'figma:<imageRef>' holding the Figma image hash pending a byte-fetch."
+          "description": "Resolved image source — an emitted asset path (the standard resolved form, relative to the referencing spec file), a data: URI, or an external URL. Absent = unresolved."
         },
-        {
-          "type": "string",
-          "pattern": "^(?!figma:).+$",
-          "description": "Resolved image data — a data: URI, external URL, or emitted asset path."
+        "$extensions": {
+          "type": "object",
+          "description": "Platform extensions. com.figma carries extraction provenance.",
+          "properties": {
+            "com.figma": {
+              "type": "object",
+              "properties": {
+                "imageHash": {
+                  "type": "string",
+                  "description": "The Figma image content hash (Plugin ImagePaint.imageHash / REST fills[].imageRef) — reverse-direction tooling reconstructs an ImagePaint from it."
+                }
+              },
+              "required": ["imageHash"],
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
         }
-      ]
+      },
+      "additionalProperties": false
     }
   },
   "$ref": "#/definitions/Component"

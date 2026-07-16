@@ -33,7 +33,7 @@ export type { Shadow, Blur, Effects } from './Effects.js';
 export type { GradientStop, GradientCenter, LinearGradient, RadialGradient, AngularGradient, GradientValue } from './Gradient.js';
 
 // Image types
-export type { ObjectFit, ImageValue, FigmaImageRef, ImageData, Images, ImageProp, ImageBinding } from './Image.js';
+export type { ObjectFit, ImageValue, FigmaImageExtension, ImageDataExtensions, ImageData, Images, ImageProp, ImageBinding } from './Image.js';
 
 // Reference types
 export type { PropBinding, BindingKey } from './PropBinding.js';

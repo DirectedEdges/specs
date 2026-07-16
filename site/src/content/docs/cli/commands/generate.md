@@ -226,22 +226,29 @@ specs/
 ```
 
 ### `--get-images`
-Resolve unresolved image placeholders into real image files. Requires a [`processing.images`](/specs/settings/images/) block in config, a configured source file key, and the `FIGMA_TOKEN` environment variable (the same token `specs fetch` uses).
+Resolve unresolved registry images into real image files. Requires a [`processing.images`](/specs/settings/images/) block in config, a configured source file key, and the `FIGMA_TOKEN` environment variable (the same token `specs fetch` uses).
 
 ```bash
 specs generate components.md -o specs/ --split-components --get-images
 ```
 
-Generation alone (the *detect* phase) records each image fill as a `figma:<imageHash>` placeholder in the component's `images` registry — structurally complete, but with no pixels. With `--get-images`, the CLI calls Figma's Get Image Fills endpoint, downloads each distinct image once, writes it as `_images/<imageHash>.<ext>` inside the output directory (format detected from the bytes — png, jpg, gif, or webp), and rewrites each registry value to a path relative to the spec file that references it:
+Generation alone (the *detect* phase) records each image fill as an unresolved registry entry — the Figma identity in `$extensions['com.figma'].imageHash`, no `src` — structurally complete, but with no pixels. With `--get-images`, the CLI calls Figma's Get Image Fills endpoint, downloads each distinct image once, writes it as `_images/<imageHash>.<ext>` inside the output directory (format detected from the bytes — png, jpg, gif, or webp), and **adds** `src` to each entry — a path relative to the spec file that references it. The Figma identity survives for reverse-direction tooling:
 
 ```yaml
 # without --get-images (detect phase)
 images:
-  dsCard__hero: figma:705867125834a686a51bdf161a0a39cdba0f9a58
+  dsCard__hero:
+    $extensions:
+      com.figma:
+        imageHash: 705867125834a686a51bdf161a0a39cdba0f9a58
 
-# with --get-images
+# with --get-images — src is ADDED; the identity survives
 images:
-  dsCard__hero: _images/705867125834a686a51bdf161a0a39cdba0f9a58.png
+  dsCard__hero:
+    src: _images/705867125834a686a51bdf161a0a39cdba0f9a58.png
+    $extensions:
+      com.figma:
+        imageHash: 705867125834a686a51bdf161a0a39cdba0f9a58
 ```
 
 ```
@@ -251,7 +258,7 @@ specs/
 └── dsCard.yaml
 ```
 
-`$image` pointers (in `backgroundImage` fills and `ImageBinding` examples) are unaffected — resolution rewrites one registry value per image, never the references. Files are named by Figma's content hash, so an image shared by many components is downloaded and stored once, and re-runs are idempotent. Figma's download URLs are temporary and are never persisted. With `--use-subfolders` (or the combined component + concern layout), references become `../_images/...` so they still resolve relative to each spec file.
+`$image` pointers (in `backgroundImage` fills and `ImageBinding` examples) are unaffected — resolution touches one registry entry per image, never the references. Files are named by Figma's content hash, so an image shared by many components is downloaded and stored once, and re-runs are idempotent. Figma's download URLs are temporary and are never persisted. With `--use-subfolders` (or the combined component + concern layout), `src` becomes `../_images/...` so it still resolves relative to each spec file.
 
 ### `--config <path>`
 Path to configuration file.
