@@ -108,14 +108,14 @@ export interface Config {
     };
     /** Concept-keyed map classifying Figma variant props as semantic states. Key = concept name (e.g. `hover`, `disabled`). Optional; absence means all variant props emit as data-* attribute selectors and all props are retained in contracts. @since 0.24.0 */
     states?: Record<string, VariantStateEntry>;
-    /** Designated image component. When present, instances of `name` are treated as the image primitive and image props forward into its `sourceProperty` via propConfigurations; both fields are required. Absence means image fills are emitted as `Styles.backgroundImage` on container elements only. Requires `include.imageData`. @since 0.28.0 */
-    imageComponent?: {
-      /** The designated image component name (e.g. `dsImage`). */
-      name: string;
-      /** The image source prop name on the component (e.g. `source`). */
-      sourceProperty: string;
-      /** Whether image fills outside the designated component still emit as `backgroundImage` on containers. Optional; defaults to true. When false, the component is the only image representation and stray fills are not emitted. */
-      fallback?: boolean;
+    /** Image processing (ADR-063). Presence of this block is the on-switch (like `subcomponents`); each member is an independent representation trigger. Absence means images are not processed at all. @since 0.28.0 */
+    images?: {
+      /** Detect image fills on container elements and emit them as `Styles.backgroundImage`. When paired with `imageComponent`, this is the fallback for fills outside the designated component. Optional; defaults to false. */
+      backgroundImage?: boolean;
+      /** Designated image component name (e.g. `dsImage`). Instances of it are the image primitive; their image routes through the source prop (`sourceProps[0]`) via propConfigurations. Requires a non-empty `sourceProps`. */
+      imageComponent?: string;
+      /** Code-only prop names (raw Figma names, like subcomponent/glyph patterns) that re-type from StringProp to ImageProp on any component. The FIRST entry is the designated image component's own source prop — the forwarding target. Optional; absence means no props re-type. */
+      sourceProps?: string[];
     };
   };
   format: {
@@ -144,8 +144,6 @@ export interface Config {
     emptyVariants?: boolean;
     /** Include slot content examples in output (ADR-050). Optional; defaults to false. @since 0.21.0 */
     defaultSlotContent?: boolean;
-    /** Process image fills and props. Optional; defaults to false. When false, images are not processed. @since 0.28.0 */
-    imageData?: boolean;
   };
   /** Transformers to run via `specs transform`, each with optional inline options. Optional; absence means CLI defaults apply. @since 0.24.0 */
   transformers?: TransformEntry[];
@@ -196,14 +194,14 @@ export interface ResolvedConfig {
     };
     /** Concept-keyed map classifying Figma variant props as semantic states. Key = concept name (e.g. `hover`, `disabled`). Optional; absence means all variant props emit as data-* attribute selectors and all props are retained in contracts. @since 0.24.0 */
     states?: Record<string, VariantStateEntry>;
-    /** Designated image component (ADR-063). Optional; absence means image fills emit as `backgroundImage` on containers only. When present, `fallback` is required-with-default true. */
-    imageComponent?: {
-      /** The designated image component name (e.g. `dsImage`). */
-      name: string;
-      /** The image source prop name on the component (e.g. `source`). */
-      sourceProperty: string;
-      /** Whether image fills outside the designated component still emit as `backgroundImage` on containers. When false, the component is the only image representation. */
-      fallback: boolean;
+    /** Image processing (ADR-063). Presence is the on-switch; absence means images are not processed. When present, `backgroundImage` and `sourceProps` are required-with-defaults (false, []). `imageComponent` requires a non-empty `sourceProps`; `sourceProps[0]` is its source prop. */
+    images?: {
+      /** Detect image fills → `Styles.backgroundImage` (the fallback when `imageComponent` is set). */
+      backgroundImage: boolean;
+      /** Designated image component name. Absence = no component routing. */
+      imageComponent?: string;
+      /** Code-only prop names (raw Figma names) that re-type to ImageProp; `sourceProps[0]` is the forwarding target on designated instances. */
+      sourceProps: string[];
     };
   };
   format: {
@@ -227,8 +225,6 @@ export interface ResolvedConfig {
     emptyVariants: boolean;
     /** Include slot content examples in output. */
     defaultSlotContent: boolean;
-    /** Whether image fills and props are processed. */
-    imageData: boolean;
   };
   /** Transformers to run via `specs transform`. @since 0.24.0 */
   transformers: TransformEntry[];
@@ -253,7 +249,7 @@ export interface ResolvedConfig {
  * - include.emptyVariants: false reduces output size by excluding semantically empty layered variants
  * - include.defaultSlotContent: false — opt-in (ADR-050); off by default so unannotated components are unchanged
  *   (instanceExamples have no include flag — presence of processing.instanceExamples is the on-switch, like subcomponents)
- * - include.imageData: false — opt-in (ADR-063); off by default so image fills/props are not processed unless requested
+ * - processing.images: absent — image processing is presence-switched (ADR-063), like subcomponents
  */
 export const DEFAULT_CONFIG: ResolvedConfig = {
   processing: {
@@ -275,7 +271,6 @@ export const DEFAULT_CONFIG: ResolvedConfig = {
     invalidCombinations: true,
     emptyVariants: false,
     defaultSlotContent: false,
-    imageData: false,
   },
   transformers: [],
 };

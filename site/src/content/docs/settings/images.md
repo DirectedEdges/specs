@@ -1,61 +1,60 @@
 ---
 title: "Images"
-description: "Process image fills and image-source props — the imageData gate and the imageComponent mode selector"
+description: "Process image fills and image-source props — the processing.images block and its representation triggers"
 ---
 
-Image processing is controlled by two config keys: `include.imageData` turns it on, and `processing.imageComponent` selects how images are represented. Both are off/absent by default, so components are unchanged unless you opt in.
+Image processing is controlled by one config block: `processing.images`. Its **presence** is the on-switch (like `subcomponents`), and each member is an **independent representation trigger**. Absent by default, so components are unchanged unless you opt in.
 
-## `include.imageData`
+## `processing.images`
 
-The on-switch. When `true`, the engine captures `IMAGE`-type fills and image-source props — emitting [`Styles.backgroundImage`](/specs/schema/styles/), [`ImageProp`](/specs/schema/props/), and the [`Component.images`](/specs/schema/component/) registry. When `false` (default), images are not processed at all.
+Three triggers, combinable freely:
 
-```yaml
-config:
-  include:
-    imageData: true
-```
+- **`backgroundImage`** — detect `IMAGE`-type fills on container elements and emit them as [`Styles.backgroundImage`](/specs/schema/styles/). When paired with `imageComponent`, this doubles as the fallback for fills outside the designated component.
+- **`imageComponent`** — designate an image component by name: instances of it are the image primitive, and their image routes through the source prop (`sourceProps[0]`) via `propConfigurations`. Requires a non-empty `sourceProps`.
+- **`sourceProps`** — code-only prop names (exact, raw Figma names — the same convention as subcomponent and glyph patterns) that re-type from `StringProp` to [`ImageProp`](/specs/schema/props/) on any component. The **first** entry is the designated image component's own source prop.
 
-## `processing.imageComponent`
-
-Selects the mode. **Absent** means image fills are emitted only as `backgroundImage` on container elements. **Present** designates an image component: instances of `name` are treated as the image primitive, and image props forward into its `sourceProperty` via `propConfigurations`.
-
-Background-fill only — no designated component:
+Background fills only:
 
 ```yaml
 config:
-  include:
-    imageData: true
-  # no processing.imageComponent
-```
-
-Component with background-fill fallback (default) — image props route through `dsImage`; any image fill outside it still emits as `backgroundImage`:
-
-```yaml
-config:
-  include:
-    imageData: true
   processing:
-    imageComponent:
-      name: dsImage
-      sourceProperty: source
+    images:
+      backgroundImage: true
 ```
 
-Component only — the designated component is the sole image representation; stray fills are not emitted:
+Component with background-fill fallback — image props route through `dsImage`; any image fill outside it still emits as `backgroundImage`:
 
 ```yaml
 config:
-  include:
-    imageData: true
   processing:
-    imageComponent:
-      name: dsImage
-      sourceProperty: source
-      fallback: false
+    images:
+      backgroundImage: true
+      imageComponent: dsImage
+      sourceProps: [source, image]
+```
+
+Component only — the designated component is the sole image representation; stray fills are not detected:
+
+```yaml
+config:
+  processing:
+    images:
+      imageComponent: dsImage
+      sourceProps: [source]
+```
+
+Typed image props only — re-type `image`-named code-only props without detecting fills or designating a component:
+
+```yaml
+config:
+  processing:
+    images:
+      sourceProps: [image]
 ```
 
 ## Result
 
-With `imageData` on, images are stored once in the `Component.images` registry and referenced by `$image`. A layer fill lands on `backgroundImage`; a sourced image forwards through `propConfigurations` as an `ImageBinding`:
+With images processing on, images are stored once in the `Component.images` registry and referenced by `$image`. A layer fill lands on `backgroundImage`; a sourced image forwards through `propConfigurations` as an `ImageBinding`:
 
 ```yaml
 components:
@@ -77,19 +76,17 @@ components:
       userPhoto: "_images/89b270d29dd5ea753b71af11bfcf1bf0ecc851cf.png"
 ```
 
-When `imageData` is `false`, none of this is emitted.
+When the `images` block is absent, none of this is emitted.
 
 ## Properties
 
-`processing.imageComponent`:
+`processing.images`:
 
 | Property | Type | Required | Default | Description |
 |----------|------|----------|---------|-------------|
-| `name` | `string` | Yes | — | The designated image component name (e.g. `dsImage`) |
-| `sourceProperty` | `string` | Yes | — | The image source prop name on that component (e.g. `source`) |
-| `fallback` | `boolean` | No | `true` | Whether image fills outside the component still emit as `backgroundImage` on containers. `false` = the component is the only image representation; stray fills are not emitted (a diagnostic is surfaced) |
-
-`name` and `sourceProperty` are both required when `imageComponent` is present.
+| `backgroundImage` | `boolean` | No | `false` | Detect image fills on containers as `Styles.backgroundImage`; the fallback for stray fills when `imageComponent` is set |
+| `imageComponent` | `string` | No | — | Designated image component name (e.g. `dsImage`). Requires a non-empty `sourceProps` — `sourceProps[0]` is its source prop |
+| `sourceProps` | `string[]` | No | — | Raw Figma code-only prop names that re-type to `ImageProp` on any component |
 
 ## Object Fit
 
@@ -103,8 +100,7 @@ The REST runtime resolves placeholders via a second call (Get Image Fills, whose
 
 ## Paths
 
-- `config.include.imageData`
-- `config.processing.imageComponent`
+- `config.processing.images`
 
 ## See Also
 

@@ -14,7 +14,7 @@ describe('ConfigTemplates', () => {
 
     it('documents every feature-toggle block (commented) with a doc link', () => {
       const template = generateConfigTemplate();
-      for (const block of ['instanceExamples:', 'states:', 'imageComponent:', 'defaultSlotContent:', 'imageData:']) {
+      for (const block of ['instanceExamples:', 'states:', 'images:', 'imageComponent:', 'sourceProps:', 'defaultSlotContent:']) {
         expect(template).toContain(block);
       }
       expect(template).toContain('directededges.github.io/specs/guides/images/');

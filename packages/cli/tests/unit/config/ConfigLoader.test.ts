@@ -495,75 +495,76 @@ config:
     });
   });
 
-  describe('include.imageData validation (ADR-063)', () => {
-    it('preserves a literal true through the include allowlist', () => {
-      const configPath = path.join(testDir, 'specs.config.yaml');
-      fs.writeFileSync(configPath, 'config:\n  include:\n    imageData: true');
-
-      const config = configLoader.load();
-      expect(config.config.include.imageData).toBe(true);
-    });
-
-    it('defaults to false when omitted', () => {
-      const configPath = path.join(testDir, 'specs.config.yaml');
-      fs.writeFileSync(configPath, 'config:\n  include:\n    invalidVariants: true');
-
-      const config = configLoader.load();
-      expect(config.config.include.imageData).toBe(false);
-    });
-
-    it('coerces a non-boolean imageData value to false', () => {
+  describe('processing.images validation (ADR-063)', () => {
+    it('resolves a full block: backgroundImage, trimmed imageComponent, trimmed sourceProps', () => {
       const configPath = path.join(testDir, 'specs.config.json');
       fs.writeFileSync(configPath, JSON.stringify({
-        config: { include: { imageData: 'yes' } },
+        config: { processing: { images: { backgroundImage: true, imageComponent: ' DS Image ', sourceProps: [' imageSource ', 'src'] } } },
       }));
 
       const config = configLoader.load();
-      expect(config.config.include.imageData).toBe(false);
-    });
-  });
-
-  describe('processing.imageComponent validation (ADR-063)', () => {
-    it('preserves a valid block, trims fields, and defaults fallback to true', () => {
-      const configPath = path.join(testDir, 'specs.config.json');
-      fs.writeFileSync(configPath, JSON.stringify({
-        config: { processing: { imageComponent: { name: ' DS Image ', sourceProperty: 'imageSource' } } },
-      }));
-
-      const config = configLoader.load();
-      expect(config.config.processing.imageComponent).toEqual({
-        name: 'DS Image',
-        sourceProperty: 'imageSource',
-        fallback: true,
+      expect(config.config.processing.images).toEqual({
+        backgroundImage: true,
+        imageComponent: 'DS Image',
+        sourceProps: ['imageSource', 'src'],
       });
     });
 
-    it('preserves an explicit fallback: false', () => {
+    it('fills-only: backgroundImage alone resolves with defaults', () => {
+      const configPath = path.join(testDir, 'specs.config.yaml');
+      fs.writeFileSync(configPath, 'config:\n  processing:\n    images:\n      backgroundImage: true');
+
+      const config = configLoader.load();
+      expect(config.config.processing.images).toEqual({ backgroundImage: true, sourceProps: [] });
+    });
+
+    it('sourceProps-only: re-typing without fills or component', () => {
       const configPath = path.join(testDir, 'specs.config.json');
       fs.writeFileSync(configPath, JSON.stringify({
-        config: { processing: { imageComponent: { name: 'DS Image', sourceProperty: 'imageSource', fallback: false } } },
+        config: { processing: { images: { sourceProps: ['Image'] } } },
       }));
 
       const config = configLoader.load();
-      expect(config.config.processing.imageComponent?.fallback).toBe(false);
+      expect(config.config.processing.images).toEqual({ backgroundImage: false, sourceProps: ['Image'] });
     });
 
-    it('removes the block when name or sourceProperty is missing or blank', () => {
+    it('imageComponent without sourceProps is dropped (needs a forwarding target)', () => {
       const configPath = path.join(testDir, 'specs.config.json');
       fs.writeFileSync(configPath, JSON.stringify({
-        config: { processing: { imageComponent: { name: 'DS Image', sourceProperty: '  ' } } },
+        config: { processing: { images: { backgroundImage: true, imageComponent: 'DS Image' } } },
       }));
 
       const config = configLoader.load();
-      expect(config.config.processing.imageComponent).toBeUndefined();
+      expect(config.config.processing.images).toEqual({ backgroundImage: true, sourceProps: [] });
+      expect(config.config.processing.images).not.toHaveProperty('imageComponent');
     });
 
-    it('is absent by default', () => {
+    it('coerces a non-boolean backgroundImage to false', () => {
+      const configPath = path.join(testDir, 'specs.config.json');
+      fs.writeFileSync(configPath, JSON.stringify({
+        config: { processing: { images: { backgroundImage: 'yes' } } },
+      }));
+
+      const config = configLoader.load();
+      expect(config.config.processing.images?.backgroundImage).toBe(false);
+    });
+
+    it('is absent by default (presence is the on-switch)', () => {
       const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, 'config:\n  processing:\n    variantDepth: 2');
 
       const config = configLoader.load();
-      expect(config.config.processing.imageComponent).toBeUndefined();
+      expect(config.config.processing.images).toBeUndefined();
+    });
+
+    it('strips the retired include.imageData key', () => {
+      const configPath = path.join(testDir, 'specs.config.json');
+      fs.writeFileSync(configPath, JSON.stringify({
+        config: { include: { imageData: true } },
+      }));
+
+      const config = configLoader.load();
+      expect((config.config.include as Record<string, unknown>).imageData).toBeUndefined();
     });
   });
 

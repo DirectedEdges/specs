@@ -23,7 +23,6 @@ Controls how specs are generated. See the [settings reference](/specs/settings/)
 | [`invalidCombinations`](/specs/guides/invalid-variant-combinations/) | `boolean` | `true` | Include `invalidVariantCombinations` list |
 | [`emptyVariants`](/specs/settings/empty-variants/) | `boolean` | `false` | Include variants with no element overrides |
 | [`defaultSlotContent`](/specs/guides/default-slot-content/) | `boolean` | `false` | **Pro.** Emit the component's default slot content into `Component.slotContentExamples` (structurally detected slot fills). Ignored on the free tier |
-| [`imageData`](/specs/guides/images/) | `boolean` | `false` | Process image fills and props — emit `Styles.backgroundImage`, `ImageProp`, and the `Component.images` registry. When `false`, images are not processed |
 
 `instanceExamples` has no `include` flag — emitting it is driven by the presence of [`processing.instanceExamples`](#processinginstanceexamples) (Pro only), like `subcomponents`.
 
@@ -41,7 +40,7 @@ Controls how specs are generated. See the [settings reference](/specs/settings/)
 | [`collapsePrimitiveWrapper`](/specs/settings/collapse-primitive-wrapper/) | `boolean` | `false` | Strip plain container wrappers around a single text/glyph child and promote the leaf to spec root |
 | [`instanceExamples`](/specs/guides/instance-examples/) | `object` | — | **Pro.** Instance example detection. Absent = no detection; ignored on the free tier. See [`processing.instanceExamples`](#processinginstanceexamples) |
 | [`states`](/specs/settings/states/) | `object` | — | Concept-keyed map classifying Figma variant props as semantic states. Absent = all variant props emit as `data-*` attribute selectors. See [`processing.states`](#processingstates) |
-| [`imageComponent`](/specs/guides/images/) | `object` | — | Designated image component. Absent = image fills emit as `Styles.backgroundImage` on containers only. Requires `include.imageData`. See [`processing.imageComponent`](#processingimagecomponent) |
+| [`images`](/specs/guides/images/) | `object` | — | Image processing (ADR-063). Presence is the on-switch; each member is an independent representation trigger. Absent = images are not processed. See [`processing.images`](#processingimages) |
 
 ### `processing.subcomponents`
 
@@ -74,15 +73,15 @@ A map keyed by [state concept](/specs/settings/states/) name (e.g. `hover`, `dis
 | `value` | `string` | `"true"` | Variant value that activates this concept (e.g. `"hover"`). Omit for boolean props |
 | `contract` | `'omit' \| 'keep'` | *(per concept)* | Contract generation override — exclude (`omit`, browser-driven) or retain (`keep`, consumer-controlled) the prop in generated Props interfaces |
 
-### `processing.imageComponent`
+### `processing.images`
 
-Selects the [image representation mode](/specs/guides/images/) when `include.imageData` is on. Absent = background fills only.
+Presence of this block is the on-switch for [image processing](/specs/guides/images/); each member is an independent representation trigger.
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `name` | `string` | *(required)* | The designated image component's name (e.g. `DS Image`). Instances of it are treated as the image primitive |
-| `sourceProperty` | `string` | *(required)* | The image component's source prop. Host image props forward into it via `propConfigurations` |
-| `fallback` | `boolean` | `true` | Whether image fills outside the designated component still emit as `backgroundImage`. When `false`, the component is the only image representation and stray fills are skipped |
+| `backgroundImage` | `boolean` | `false` | Detect image fills on containers as `Styles.backgroundImage`; the fallback for stray fills when `imageComponent` is set |
+| `imageComponent` | `string` | — | Designated image component name (e.g. `DS Image`). Instances of it are the image primitive; their image routes through `sourceProps[0]`. Requires a non-empty `sourceProps` |
+| `sourceProps` | `string[]` | — | Raw Figma code-only prop names that re-type to `ImageProp` on any component; the first entry is the designated component's own source prop |
 
 ## DEFAULT_CONFIG
 
@@ -109,10 +108,9 @@ const DEFAULT_CONFIG: ResolvedConfig = {
     invalidCombinations: true,
     emptyVariants: false,
     defaultSlotContent: false,
-    imageData: false,
   },
   transformers: [],
 };
 ```
 
-The object-valued options (`subcomponents`, `instanceExamples`, `states`, `imageComponent`) and the pattern strings (`glyphNamePattern`, `codeOnlyPropsPattern`) are **deliberately absent** — they are feature toggles whose *presence* is the on-switch. Absence means "feature off"; there is no meaningful default value to provide, and they are typed as optional on `ResolvedConfig` for exactly that reason. They are never `null`: a `null` would introduce a third state ("present but empty") that no consumer distinguishes from absence, so the schema does not allow it. (`include.defaultSlotContent` and `include.imageData` look similar but are gates over independently-detected data rather than detectors, so they carry a real `false` default.)
+The object-valued options (`subcomponents`, `instanceExamples`, `states`, `images`) and the pattern strings (`glyphNamePattern`, `codeOnlyPropsPattern`) are **deliberately absent** — they are feature toggles whose *presence* is the on-switch. Absence means "feature off"; there is no meaningful default value to provide, and they are typed as optional on `ResolvedConfig` for exactly that reason. They are never `null`: a `null` would introduce a third state ("present but empty") that no consumer distinguishes from absence, so the schema does not allow it. (`include.defaultSlotContent` looks similar but is a gate over independently-detected data rather than a detector, so it carries a real `false` default.)

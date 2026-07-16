@@ -83,7 +83,7 @@ export const Generate = new Command('generate')
   .option('--split-components', 'Create separate file per component')
   .option('--split-concerns', 'Separate API, variants, and examples into different files')
   .option('--use-subfolders', 'Organize component files in subdirectories (requires --split-components)')
-  .option('--get-images', 'Resolve figma: image placeholders into files under _images/ (requires include.imageData and FIGMA_TOKEN)')
+  .option('--get-images', 'Resolve figma: image placeholders into files under _images/ (requires processing.images in config and FIGMA_TOKEN)')
   .option('--verbose', 'Enable detailed logging', false)
   .action(async (source: string | undefined, options: GenerateOptions) => {
     try {
@@ -486,9 +486,9 @@ export const Generate = new Command('generate')
       if (options.getImages) {
         const hashes = ImageFillsResolver.collectPlaceholderHashes(processedComponents);
         if (hashes.size === 0) {
-          console.log(modelConfig.include.imageData
+          console.log(modelConfig.processing.images
             ? 'Note: --get-images found no unresolved image placeholders'
-            : 'Note: --get-images has no effect — include.imageData is not enabled in config');
+            : 'Note: --get-images has no effect — processing.images is not configured');
         } else {
           // Reuse hash-named files already present in _images/ — only the
           // remainder needs the token, the API call, and downloads.

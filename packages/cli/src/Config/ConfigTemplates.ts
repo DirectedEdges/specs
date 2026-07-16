@@ -147,17 +147,20 @@ config:
     #   disabled:
     #     prop: disabled   # boolean prop — value defaults to "true"
 
-    # Designated image component: instances of this component are the image
-    # primitive, and image props route through its source prop. Requires
-    # include.imageData below. Absence means image fills emit as
-    # backgroundImage on containers only.
+    # Image processing: presence of this block is the on-switch; each member
+    # is an independent representation trigger.
     # See: https://directededges.github.io/specs/guides/images/
-    # imageComponent:
-    #   name: DS Image
-    #   sourceProperty: imageSource
-    #   # Whether image fills outside the component still emit as
-    #   # backgroundImage (default: true). false = component-only.
-    #   fallback: true
+    # images:
+    #   # Detect image fills on containers as backgroundImage; also the
+    #   # fallback for fills outside the designated component.
+    #   backgroundImage: true
+    #   # Designated image component; instances route their image through the
+    #   # first source prop below. Requires sourceProps.
+    #   imageComponent: DS Image
+    #   # Code-only prop names (exact Figma names) typed as images; the first
+    #   # is the image component's own source prop.
+    #   sourceProps:
+    #     - imageSource
 
   include:
     # Subcomponent inclusion is controlled by processing.subcomponents above.
@@ -177,10 +180,6 @@ config:
     # See: https://directededges.github.io/specs/guides/default-slot-content/
     # defaultSlotContent: false
 
-    # Process image fills and props — backgroundImage, ImageProp, and the images
-    # registry. Resolve placeholders into files with \`specs generate --get-images\`.
-    # See: https://directededges.github.io/specs/guides/images/
-    # imageData: false
 
   # ─── Transform configuration ─────────────────────────────────────────────────
   # Transformers to run with \`specs transform\`. Absence means CLI defaults apply (contract).

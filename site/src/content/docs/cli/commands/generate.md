@@ -226,7 +226,7 @@ specs/
 ```
 
 ### `--get-images`
-Resolve unresolved image placeholders into real image files. Requires `include.imageData: true` in config, a configured source file key, and the `FIGMA_TOKEN` environment variable (the same token `specs fetch` uses).
+Resolve unresolved image placeholders into real image files. Requires a [`processing.images`](/specs/settings/images/) block in config, a configured source file key, and the `FIGMA_TOKEN` environment variable (the same token `specs fetch` uses).
 
 ```bash
 specs generate components.md -o specs/ --split-components --get-images

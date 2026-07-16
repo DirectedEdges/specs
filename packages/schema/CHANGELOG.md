@@ -15,8 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Component.images` — registry of `ImageData` by id — resolved data (`data:` URI, URL, asset path) or a `figma:<imageRef>` placeholder
 - `ImageProp` — `type: 'image'` property added to `AnyProp` for image-source properties
 - `ImageBinding` — `{ $binding, examples? }` added to `PropConfigurationValue`, forwarding an image into a nested instance
-- `Config.processing.imageComponent` — designate an image component (`name`, `sourceProperty`, optional `fallback`)
-- `Config.include.imageData` — process image fills and props (default false)
+- `Config.processing.images` — image processing block (ADR-063); presence is the on-switch, like `subcomponents`. Independent triggers: `backgroundImage` (detect image fills; the fallback when a component is designated), `imageComponent` (designated component name; requires `sourceProps`), and `sourceProps` (raw Figma code-only prop names that re-type to `ImageProp`; the first entry is the designated component's own source prop)
 
 ### Changed
 

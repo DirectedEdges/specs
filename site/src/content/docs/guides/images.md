@@ -11,7 +11,7 @@ Until now the schema had no representation for images at all. An `IMAGE`-type fi
 
 ## What It Does
 
-When [`include.imageData`](/specs/settings/images/) is enabled, the engine captures image fills and image-source props and stores each distinct image once in a `Component.images` registry, referenced by an `$image` pointer:
+When [`processing.images`](/specs/settings/images/) is configured, the engine captures image fills and image-source props and stores each distinct image once in a `Component.images` registry, referenced by an `$image` pointer:
 
 ```yaml
 default:
@@ -62,25 +62,24 @@ Sourcing binds through `propConfigurations`, never through `backgroundImage` —
 
 ## Configuration
 
-Everything is gated by `include.imageData`. The presence and shape of [`processing.imageComponent`](/specs/settings/images/) selects the mode:
+Everything lives in one block: [`processing.images`](/specs/settings/images/). Its presence is the on-switch, and each member is an independent representation trigger:
 
 ```yaml
 # specs.config.yaml
 config:
-  include:
-    imageData: true            # required — process images at all
   processing:
-    imageComponent:            # optional — designate an image component
-      name: dsImage
-      sourceProperty: source
-      fallback: true           # optional; default true
+    images:
+      backgroundImage: true      # detect image fills → Styles.backgroundImage
+      imageComponent: dsImage    # designate an image component (requires sourceProps)
+      sourceProps: [source]      # code-only props typed as images; first = dsImage's source prop
 ```
 
-| Mode | Config | Behavior |
+| Goal | Config | Behavior |
 |------|--------|----------|
-| Background fill only | no `imageComponent` | Every image fill → `backgroundImage` on containers |
-| Component + fill | `imageComponent`, `fallback: true` (default) | Image props route through the component; stray fills still fall back to `backgroundImage` |
-| Component only | `imageComponent`, `fallback: false` | The component is the **only** image representation; stray fills are not emitted (a diagnostic is surfaced) |
+| Background fills only | `backgroundImage: true` | Every image fill → `backgroundImage` on containers |
+| Component + fill fallback | `imageComponent` + `sourceProps` + `backgroundImage: true` | Image props route through the component; stray fills still emit as `backgroundImage` |
+| Component only | `imageComponent` + `sourceProps` | The component is the **only** image representation; stray fills are not detected |
+| Typed image props only | `sourceProps` alone | Listed code-only props re-type to `ImageProp`; no fill detection, no component routing |
 
 ## Object Fit
 

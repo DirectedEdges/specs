@@ -192,21 +192,38 @@ export class ConfigLoader {
       }
     }
 
-    // Validate processing.imageComponent (ADR-063) — when present, name and
-    // sourceProperty must be non-empty strings; fallback resolves to its
-    // required-with-default form (true) on the resolved shape.
-    if (corrected.processing.imageComponent !== undefined) {
-      const ic = corrected.processing.imageComponent as unknown as Record<string, unknown>;
-      const validName = typeof ic?.name === 'string' && (ic.name as string).trim() !== '';
-      const validProp = typeof ic?.sourceProperty === 'string' && (ic.sourceProperty as string).trim() !== '';
-      if (!validName || !validProp) {
-        console.warn('Invalid processing.imageComponent: name and sourceProperty must be non-empty strings. Removing imageComponent config.');
-        delete corrected.processing.imageComponent;
+    // Validate processing.images (ADR-063). Presence of the block is the
+    // on-switch; each member is an independent representation trigger.
+    if (corrected.processing.images !== undefined) {
+      const img = corrected.processing.images as unknown as Record<string, unknown>;
+      if (img === null || typeof img !== 'object') {
+        console.warn('Invalid processing.images: expected an object. Removing images config.');
+        delete corrected.processing.images;
       } else {
-        corrected.processing.imageComponent = {
-          name: (ic.name as string).trim(),
-          sourceProperty: (ic.sourceProperty as string).trim(),
-          fallback: ic.fallback !== false,
+        if (img.backgroundImage !== undefined && typeof img.backgroundImage !== 'boolean') {
+          console.warn(`Invalid processing.images.backgroundImage: expected boolean, got ${typeof img.backgroundImage}. Using default: false`);
+        }
+        const sourceProps = Array.isArray(img.sourceProps)
+          ? (img.sourceProps as unknown[]).filter((p): p is string => typeof p === 'string' && p.trim() !== '').map(p => p.trim())
+          : [];
+        if (img.sourceProps !== undefined && (!Array.isArray(img.sourceProps) || sourceProps.length === 0)) {
+          console.warn('Invalid processing.images.sourceProps: expected a non-empty array of strings. Ignoring sourceProps.');
+        }
+        let imageComponent = typeof img.imageComponent === 'string' && (img.imageComponent as string).trim() !== ''
+          ? (img.imageComponent as string).trim()
+          : undefined;
+        if (img.imageComponent !== undefined && !imageComponent) {
+          console.warn('Invalid processing.images.imageComponent: expected a non-empty string. Ignoring imageComponent.');
+        }
+        // The designated component needs a forwarding target: sourceProps[0].
+        if (imageComponent && sourceProps.length === 0) {
+          console.warn('processing.images.imageComponent requires a non-empty sourceProps (sourceProps[0] is its source prop). Ignoring imageComponent.');
+          imageComponent = undefined;
+        }
+        corrected.processing.images = {
+          backgroundImage: img.backgroundImage === true,
+          ...(imageComponent && { imageComponent }),
+          sourceProps,
         };
       }
     }
@@ -275,7 +292,7 @@ export class ConfigLoader {
     // the presence of processing.subcomponents, and instanceExamples likewise by
     // the presence of processing.instanceExamples (so include.instanceExamples is
     // not a valid key).
-    const validIncludeKeys = new Set(['invalidVariants', 'invalidCombinations', 'emptyVariants', 'defaultSlotContent', 'imageData']);
+    const validIncludeKeys = new Set(['invalidVariants', 'invalidCombinations', 'emptyVariants', 'defaultSlotContent']);
     for (const key of Object.keys(corrected.include)) {
       if (!validIncludeKeys.has(key)) {
         delete (corrected.include as Record<string, unknown>)[key];
@@ -290,15 +307,6 @@ export class ConfigLoader {
     }
     if (dsc !== true) {
       corrected.include.defaultSlotContent = false;
-    }
-
-    // imageData (ADR-063) likewise activates only on a literal boolean `true`.
-    const img = (corrected.include as Record<string, unknown>).imageData;
-    if (img !== undefined && typeof img !== 'boolean') {
-      console.warn(`Invalid include.imageData: expected boolean, got ${typeof img}. Using default: false`);
-    }
-    if (img !== true) {
-      corrected.include.imageData = false;
     }
 
     return corrected;
