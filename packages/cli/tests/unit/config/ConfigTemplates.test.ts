@@ -17,9 +17,9 @@ describe('ConfigTemplates', () => {
       for (const block of ['instanceExamples:', 'states:', 'images:', 'imageComponent:', 'sourceProps:', 'defaultSlotContent:']) {
         expect(template).toContain(block);
       }
-      expect(template).toContain('directededges.github.io/specs/guides/images/');
-      expect(template).toContain('directededges.github.io/specs/guides/instance-examples/');
-      expect(template).toContain('directededges.github.io/specs/settings/states/');
+      expect(template).toContain('www.specsplugin.com/guides/images/');
+      expect(template).toContain('www.specsplugin.com/guides/instance-examples/');
+      expect(template).toContain('www.specsplugin.com/settings/states/');
     });
 
     it('should include dataDirectory with default value', () => {
@@ -38,13 +38,13 @@ describe('ConfigTemplates', () => {
       const template = generateConfigTemplate();
       expect(template).toContain('#');
       expect(template).toContain('Specs CLI Configuration');
-      expect(template).toContain('directededges.github.io/specs/settings/');
+      expect(template).toContain('www.specsplugin.com/settings/');
     });
 
     it('should include doc URL references', () => {
       const template = generateConfigTemplate();
-      expect(template).toContain('directededges.github.io/specs/settings/');
-      expect(template).toContain('directededges.github.io/specs/');
+      expect(template).toContain('www.specsplugin.com/settings/');
+      expect(template).toContain('www.specsplugin.com/');
     });
 
     it('should include Figma sources section', () => {

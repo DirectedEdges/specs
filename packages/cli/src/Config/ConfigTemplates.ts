@@ -15,7 +15,7 @@ export function generateConfigTemplate(): string {
   return `# Specs CLI Configuration
 #
 # This file configures how Specs fetches and processes Figma component data.
-# See: https://directededges.github.io/specs/settings/
+# See: https://www.specsplugin.com/settings/
 
 # ─── 'fetch'ed Sources (CLI only) ─────────────────────────────────────────────
 # Where Figma data is fetched from and stored locally.
@@ -50,7 +50,7 @@ output:
   useSubfolders: false
 
 # ─── Configuration options (same as the Figma plugin) ──────────────────────────────
-# See: https://directededges.github.io/specs/settings/
+# See: https://www.specsplugin.com/settings/
 
 config:
 
@@ -59,27 +59,27 @@ config:
     output: JSON
 
     # Key name transformation: SAFE, CAMEL, SNAKE, KEBAB, PASCAL, TRAIN
-    # See: https://directededges.github.io/specs/guides/key-formatting/
+    # See: https://www.specsplugin.com/guides/key-formatting/
     keys: SAFE
 
     # Layout representation: LAYOUT, PARENT_CHILDREN, or BOTH
-    # See: https://directededges.github.io/specs/guides/data-layout/
+    # See: https://www.specsplugin.com/guides/data-layout/
     layout: LAYOUT
 
     # Token reference format: TOKEN, TOKEN_NAME, TOKEN_FIGMA_EXTENSIONS, FIGMA_NAME, CUSTOM,
     # FIGMA_SYNTAX_WEB, FIGMA_SYNTAX_IOS, or FIGMA_SYNTAX_ANDROID
-    # See: https://directededges.github.io/specs/settings/tokens/
+    # See: https://www.specsplugin.com/settings/tokens/
     # Requires a license key to resolve token references in output.
     tokens: TOKEN
 
     # Color value format: HEX, HEXA, RGB, RGBA, HSLA, HSB, OKLCH, OKLAB, or OBJECT
-    # See: https://directededges.github.io/specs/settings/color/
+    # See: https://www.specsplugin.com/settings/color/
     color: HEX
 
   processing:
     # Subcomponent discovery configuration.
     # Presence of this block enables subcomponent detection; remove to disable.
-    # See: https://directededges.github.io/specs/guides/subcomponent-scoping/
+    # See: https://www.specsplugin.com/guides/subcomponent-scoping/
     subcomponents:
       # Where to search: NESTED (component anatomy only) or PAGE (also search Figma page)
       # scope: NESTED
@@ -107,11 +107,11 @@ config:
     slotConstraints: false
 
     # Maximum variant property depth to process: 1, 2, 3, or 9999 (unlimited)
-    # See: https://directededges.github.io/specs/guides/variant-depth/
+    # See: https://www.specsplugin.com/guides/variant-depth/
     variantDepth: 9999
 
     # Detail level for variant data: FULL or LAYERED
-    # See: https://directededges.github.io/specs/guides/variant-layering/
+    # See: https://www.specsplugin.com/guides/variant-layering/
     details: LAYERED
 
     # Infer number props: when true, TEXT code-only props whose values parse as
@@ -125,7 +125,7 @@ config:
     # collapsePrimitiveWrapper: false
 
     # Instance example detection (Pro). Presence of this block is the on-switch.
-    # See: https://directededges.github.io/specs/guides/instance-examples/
+    # See: https://www.specsplugin.com/guides/instance-examples/
     # instanceExamples:
     #   # Where to search for candidate instances: PAGE or FILE (default: PAGE)
     #   scope: PAGE
@@ -139,7 +139,7 @@ config:
 
     # Semantic states: classify Figma variant props as state concepts, keyed by
     # concept name. Absence means all variant props emit as data-* selectors.
-    # See: https://directededges.github.io/specs/settings/states/
+    # See: https://www.specsplugin.com/settings/states/
     # states:
     #   hover:
     #     prop: state
@@ -149,7 +149,7 @@ config:
 
     # Image processing: presence of this block is the on-switch; each member
     # is an independent representation trigger.
-    # See: https://directededges.github.io/specs/guides/images/
+    # See: https://www.specsplugin.com/guides/images/
     # images:
     #   # Detect image fills on containers as backgroundImage; also the
     #   # fallback for fills outside the designated component.
@@ -177,7 +177,7 @@ config:
     # emptyVariants: false
 
     # Emit the component's default slot content as examples (Pro; default: false)
-    # See: https://directededges.github.io/specs/guides/default-slot-content/
+    # See: https://www.specsplugin.com/guides/default-slot-content/
     # defaultSlotContent: false
 
 
