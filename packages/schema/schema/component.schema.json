@@ -69,6 +69,10 @@
         "images": {
           "$ref": "#/definitions/Images",
           "description": "Registry of image data referenced by backgroundImage fills, ImageBinding examples, and ImageProp defaults. De-duplicated so each distinct image is stored once (ADR-063)."
+        },
+        "source": {
+          "$ref": "#/definitions/SubcomponentSource",
+          "description": "Figma source identity, populated by the generator on subcomponent entries (ADR-060); top-level components carry identity in metadata.source instead. Declared here because Subcomponent composes this closed definition via allOf and draft-07 has no unevaluatedProperties."
         }
       },
       "required": [
@@ -201,6 +205,23 @@
             }
           ],
           "description": "The component or component set name that this instance element references, or a subcomponent reference"
+        },
+        "$extensions": {
+          "type": "object",
+          "description": "Platform extensions. com.figma carries extraction provenance.",
+          "properties": {
+            "com.figma": {
+              "type": "object",
+              "properties": {
+                "originalName": {
+                  "type": "string",
+                  "description": "Original Figma layer name before primitive-wrapper collapse promoted this element to root (ADR-058)."
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
         }
       },
       "required": [
