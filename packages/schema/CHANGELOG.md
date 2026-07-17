@@ -5,6 +5,15 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.29.0] - Unreleased
+
+### Added
+
+### Changed
+
+### Removed
+
+
 ## [0.28.0] - 2026-07-16
 
 Specs can now describe images. A container's image fill is captured as a typed background image, image-source properties become a first-class prop type, and every image a component references is collected in a single registry — resolved to a data URI, URL, or asset path when available. Text truncation is also now expressible: specs record how overflowing text is handled and the line limit at which truncation begins.
