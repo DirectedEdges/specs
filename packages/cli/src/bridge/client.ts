@@ -46,7 +46,7 @@ export interface RenderResponse {
 }
 
 export async function postRender(body: RenderRequestBody): Promise<RenderResponse> {
-  const res = await fetch(`http://localhost:${HTTP_PORT}/write`, {
+  const res = await fetch(`http://localhost:${HTTP_PORT}/render`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),

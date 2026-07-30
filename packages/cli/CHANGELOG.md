@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The bridge protocol now speaks "render" everywhere, not "write"** — The WebSocket message the plugin receives (`writeComponent`→`renderComponent`), its result event, the `POST /write`→`POST /render` HTTP control endpoint, and the `--write`→`--render` debug flag are all renamed. Finishes the write→render terminology cleanup for the bridge that was deferred while the bridge server migration from specs-from-figma was still in flight.
+
 ### Removed
 
 ## [0.25.0] - 2026-07-16

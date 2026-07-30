@@ -68,7 +68,7 @@ Bridge.command('start')
 
     console.log(`Bridge started (pid ${child.pid}).`);
     console.log('  WebSocket : ws://localhost:9001  (plugin)');
-    console.log('  HTTP      : http://localhost:9002/write  (control)');
+    console.log('  HTTP      : http://localhost:9002/render  (control)');
     console.log(`  Logs      : ${BRIDGE_LOG_FILE}`);
     console.log('Enable the CLI Bridge in the Specs 2 plugin to connect.');
   });

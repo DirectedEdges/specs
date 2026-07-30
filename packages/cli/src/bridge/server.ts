@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Bridge server — persistent WebSocket server for the Specs 2 CLI bridge.
 // Stays running until Ctrl+C (or SIGTERM from `specs bridge stop`). Accepts
-// multiple writeComponent commands per session, and multiple simultaneously
+// multiple renderComponent commands per session, and multiple simultaneously
 // connected Figma files (each with its own plugin connection).
 //
 // Ports:
@@ -9,7 +9,7 @@
 //   9002 — HTTP, control endpoint for the CLI (`specs render`) or scripts
 //
 // HTTP API:
-//   POST http://localhost:9002/write
+//   POST http://localhost:9002/render
 //   Body: { "specPath": "/abs/path/to/spec.yaml", "pageId": "1462-365", "fileKey": "..." }
 //   fileKey is optional when exactly one plugin is connected; required (and
 //   validated) when more than one is connected.
@@ -18,7 +18,7 @@
 //   Response: { "connections": [{ "fileKey": "...", "fileName": "...", "connected": true }] }
 //
 // CLI (one-shot render, then stays running):
-//   node bridge-server.js [--workspace /path/to/workspace] --write path/to/spec.yaml [--pageId 1462-365]
+//   node bridge-server.js [--workspace /path/to/workspace] --render path/to/spec.yaml [--pageId 1462-365]
 //
 // Workspace resolution (in order of precedence):
 //   1. --workspace <path> CLI flag
@@ -32,7 +32,7 @@
 //   replaces a single "activeSocket" variable, which had a real bug: with only
 //   one tracked socket, an older connection's close event would null out a
 //   newer, still-live connection's reference. Every request (getPageId,
-//   writeComponent) carries a generated requestId; the plugin must echo it
+//   renderComponent) carries a generated requestId; the plugin must echo it
 //   back on the matching result message, so responses route to the right
 //   caller even with multiple connections and requests in flight.
 
@@ -47,7 +47,7 @@ import { RequestTracker } from './requestTracker.js';
 
 type Manifest = Record<string, string>;
 
-interface WriteResult {
+interface RenderResult {
   success: boolean;
   nodeId?: string;
   specData?: unknown;
@@ -94,7 +94,7 @@ function resolveDirs(fromPath: string): { specsDir: string; dataDir: string; wor
 
 console.log(`\nSpecs 2 — CLI bridge`);
 console.log(`  WebSocket : ws://localhost:${WS_PORT}  (plugin)`);
-console.log(`  HTTP      : http://localhost:${HTTP_PORT}/write  (control)`);
+console.log(`  HTTP      : http://localhost:${HTTP_PORT}/render  (control)`);
 console.log(`  Enable the CLI Bridge in the Specs 2 plugin to connect.`);
 console.log(`  Ctrl+C to stop.\n`);
 
@@ -107,7 +107,7 @@ const registry = new ConnectionRegistry<WebSocket>();
 
 // Pending requests keyed by a generated requestId, so responses route to the
 // right caller regardless of which connection they came from.
-const requests = new RequestTracker<string | WriteResult>();
+const requests = new RequestTracker<string | RenderResult>();
 
 wss.on('connection', (ws: WebSocket) => {
   // This connection's fileKey isn't known until its 'hello' message arrives.
@@ -126,7 +126,7 @@ wss.on('connection', (ws: WebSocket) => {
       return;
     }
 
-    if (msg.type === 'pageId-result' || msg.type === 'writeComponent-result') {
+    if (msg.type === 'pageId-result' || msg.type === 'renderComponent-result') {
       const requestId = msg.requestId as string | undefined;
       if (!requestId) return; // no way to route this response
 
@@ -135,7 +135,7 @@ wss.on('connection', (ws: WebSocket) => {
         return;
       }
 
-      // writeComponent-result
+      // renderComponent-result
       if (msg.success) {
         const nodeId = msg.nodeId as string;
         const specData = msg.specData ?? null;
@@ -176,9 +176,9 @@ const http = createServer((req, res) => {
     return;
   }
 
-  if (req.method !== 'POST' || req.url !== '/write') {
+  if (req.method !== 'POST' || req.url !== '/render') {
     res.writeHead(405);
-    res.end(JSON.stringify({ error: 'Only POST /write or GET /status is supported.' }));
+    res.end(JSON.stringify({ error: 'Only POST /render or GET /status is supported.' }));
     return;
   }
 
@@ -232,7 +232,7 @@ const http = createServer((req, res) => {
 
     const shouldReturnSpec = typeof returnSpec === 'boolean' ? returnSpec : true;
 
-    sendWrite(specArg, pageId, shouldReturnSpec, {}, fileKey, preParsedSpec)
+    sendRender(specArg, pageId, shouldReturnSpec, {}, fileKey, preParsedSpec)
       .then((result) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(result));
@@ -521,7 +521,7 @@ async function drainManifest(specPaths: string[], rawPageId: string | null, file
     console.log(`Rendering ${i + 1}/${total}: ${name}…`);
 
     try {
-      const result = await sendWrite(specPath, rawPageId, false, instanceIdAccumulator, fileKey);
+      const result = await sendRender(specPath, rawPageId, false, instanceIdAccumulator, fileKey);
       if (result.success && result.nodeId) {
         instanceIdAccumulator[name] = result.nodeId;
         results.push({ name, nodeId: result.nodeId });
@@ -554,9 +554,9 @@ function getCurrentPageId(conn: Connection<WebSocket>): Promise<string> {
 }
 
 /**
- * Send a single writeComponent message over the WebSocket and wait for the result.
+ * Send a single renderComponent message over the WebSocket and wait for the result.
  */
-async function sendWrite(specPath: string, rawPageId: string | null, returnSpec = true, instanceIdOverrides: Manifest = {}, fileKey?: string, preParsedSpec?: Record<string, unknown>): Promise<WriteResult> {
+async function sendRender(specPath: string, rawPageId: string | null, returnSpec = true, instanceIdOverrides: Manifest = {}, fileKey?: string, preParsedSpec?: Record<string, unknown>): Promise<RenderResult> {
   const conn = registry.resolve(fileKey);
 
   let spec: Record<string, unknown>;
@@ -596,34 +596,34 @@ async function sendWrite(specPath: string, rawPageId: string | null, returnSpec 
 
   console.log(`Rendering: ${componentName} → page ${pageId} (${conn.fileKey})`);
 
-  const { requestId, promise } = requests.create(60000, 'Timed out waiting for writeComponent-result.');
-  conn.ws.send(JSON.stringify({ type: 'writeComponent', requestId, spec, pageId, returnSpec, instanceIdManifest: manifest, glyphIdManifest, stylesManifest, variablesManifest }));
-  return promise as Promise<WriteResult>;
+  const { requestId, promise } = requests.create(60000, 'Timed out waiting for renderComponent-result.');
+  conn.ws.send(JSON.stringify({ type: 'renderComponent', requestId, spec, pageId, returnSpec, instanceIdManifest: manifest, glyphIdManifest, stylesManifest, variablesManifest }));
+  return promise as Promise<RenderResult>;
 }
 
-// ── CLI: --write flag ─────────────────────────────────────────────────────────
+// ── CLI: --render flag ────────────────────────────────────────────────────────
 //
-// node bridge-server.js --write /abs/path/to/spec.yaml [--pageId 1462-365]
+// node bridge-server.js --render /abs/path/to/spec.yaml [--pageId 1462-365]
 // Debug shortcut — only works when exactly one plugin is connected.
 
-const writeIdx = process.argv.indexOf('--write');
-if (writeIdx !== -1) {
-  const specArg = process.argv[writeIdx + 1];
+const renderIdx = process.argv.indexOf('--render');
+if (renderIdx !== -1) {
+  const specArg = process.argv[renderIdx + 1];
   const pageIdIdx = process.argv.indexOf('--pageId');
   const rawPageId = pageIdIdx !== -1 ? process.argv[pageIdIdx + 1] : DEFAULT_PAGE_ID;
 
-  if (!specArg) { console.error('--write requires a spec path'); process.exit(1); }
-  if (!isAbsolute(specArg)) { console.error('--write path must be absolute'); process.exit(1); }
+  if (!specArg) { console.error('--render requires a spec path'); process.exit(1); }
+  if (!isAbsolute(specArg)) { console.error('--render path must be absolute'); process.exit(1); }
 
-  const tryWrite = (): void => {
+  const tryRender = (): void => {
     if (registry.size > 0) {
-      sendWrite(specArg, rawPageId)
+      sendRender(specArg, rawPageId)
         .then((r) => { if (r.specData) console.log('Spec data received. Ready for diff.'); })
         .catch((e) => console.error((e as Error).message));
     } else {
       console.log('Waiting for plugin to connect…');
-      setTimeout(tryWrite, 1000);
+      setTimeout(tryRender, 1000);
     }
   };
-  setTimeout(tryWrite, 500);
+  setTimeout(tryRender, 500);
 }
