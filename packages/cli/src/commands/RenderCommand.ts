@@ -35,7 +35,8 @@ export const Render = new Command('render')
   .option('--config <path>', 'Path to config file (specs.config.yaml)')
   .option('--no-return-spec', 'Skip round-trip spec read after rendering in Figma')
   .option('--file <fileKey>', 'Target a specific connected Figma file (prompts to choose if more than one is connected in an interactive terminal; required otherwise)')
-  .action(async (specPath: string | undefined, options: { manifest?: string; config?: string; returnSpec: boolean; file?: string; verbose?: boolean }) => {
+  .option('--overwrite', 'Delete any existing page component with the same title before rendering (without this, a title collision is an error)')
+  .action(async (specPath: string | undefined, options: { manifest?: string; config?: string; returnSpec: boolean; file?: string; overwrite?: boolean; verbose?: boolean }) => {
     let manifestPath = options.manifest;
 
     if (!specPath && !manifestPath) {
@@ -66,7 +67,7 @@ export const Render = new Command('render')
         const absManifestPath = path.resolve(manifestPath);
         console.log(`Posting manifest: ${absManifestPath}`);
         const fileKey = await resolveFileKey(options.file);
-        const result = await postRender({ manifestPath: absManifestPath, fileKey });
+        const result = await postRender({ manifestPath: absManifestPath, fileKey, overwrite: options.overwrite });
 
         if (!result.success) {
           console.error(`Error: ${result.error}`);
@@ -84,7 +85,7 @@ export const Render = new Command('render')
         const { spec, resolvePath } = loadSpec(specPath);
         console.log(`Posting spec: ${resolvePath}`);
         const fileKey = await resolveFileKey(options.file);
-        const result = await postRender({ specPath: resolvePath, spec, returnSpec: options.returnSpec, fileKey });
+        const result = await postRender({ specPath: resolvePath, spec, returnSpec: options.returnSpec, fileKey, overwrite: options.overwrite });
 
         if (!result.success) {
           const msg = typeof result.error === 'string' ? result.error : JSON.stringify(result.error);

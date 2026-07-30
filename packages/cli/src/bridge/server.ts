@@ -236,14 +236,14 @@ const http = createServer((req, res) => {
   let body = '';
   req.on('data', (chunk) => { body += chunk; });
   req.on('end', () => {
-    let params: { specPath?: string; spec?: Record<string, unknown>; manifestPath?: string; pageId?: string | null; returnSpec?: boolean; fileKey?: string };
+    let params: { specPath?: string; spec?: Record<string, unknown>; manifestPath?: string; pageId?: string | null; returnSpec?: boolean; fileKey?: string; overwrite?: boolean };
     try { params = JSON.parse(body); } catch {
       res.writeHead(400);
       res.end(JSON.stringify({ error: 'Invalid JSON body.' }));
       return;
     }
 
-    const { specPath: specArg, spec: preParsedSpec, manifestPath: manifestArg, pageId = null, returnSpec, fileKey } = params;
+    const { specPath: specArg, spec: preParsedSpec, manifestPath: manifestArg, pageId = null, returnSpec, fileKey, overwrite } = params;
 
     if (!specArg && !manifestArg) {
       res.writeHead(400);
@@ -262,7 +262,7 @@ const http = createServer((req, res) => {
         res.end(JSON.stringify({ success: false, error: (e as Error).message }));
         return;
       }
-      drainManifest(specPaths, pageId, fileKey)
+      drainManifest(specPaths, pageId, fileKey, overwrite)
         .then((summary) => {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: true, ...summary }));
@@ -283,7 +283,7 @@ const http = createServer((req, res) => {
 
     const shouldReturnSpec = typeof returnSpec === 'boolean' ? returnSpec : true;
 
-    sendRender(specArg, pageId, shouldReturnSpec, {}, fileKey, preParsedSpec)
+    sendRender(specArg, pageId, shouldReturnSpec, {}, fileKey, preParsedSpec, overwrite)
       .then((result) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(result));
@@ -569,7 +569,7 @@ function parseRenderManifest(manifestPath: string): string[] {
 /**
  * Drain a render manifest queue sequentially, accumulating instanceIds for dependency resolution.
  */
-async function drainManifest(specPaths: string[], rawPageId: string | null, fileKey?: string) {
+async function drainManifest(specPaths: string[], rawPageId: string | null, fileKey?: string, overwrite?: boolean) {
   const results: Array<{ name: string; nodeId?: string; error?: string }> = [];
   const instanceIdAccumulator: Manifest = {};
   const total = specPaths.length;
@@ -582,7 +582,7 @@ async function drainManifest(specPaths: string[], rawPageId: string | null, file
     console.log(`Rendering ${i + 1}/${total}: ${name}…`);
 
     try {
-      const result = await sendRender(specPath, rawPageId, false, instanceIdAccumulator, fileKey);
+      const result = await sendRender(specPath, rawPageId, false, instanceIdAccumulator, fileKey, undefined, overwrite);
       if (result.success && result.nodeId) {
         instanceIdAccumulator[name] = result.nodeId;
         results.push({ name, nodeId: result.nodeId });
@@ -627,7 +627,7 @@ async function sendGenerateFromSelection(fileKey?: string): Promise<GenerateResu
 /**
  * Send a single renderComponent message over the WebSocket and wait for the result.
  */
-async function sendRender(specPath: string, rawPageId: string | null, returnSpec = true, instanceIdOverrides: Manifest = {}, fileKey?: string, preParsedSpec?: Record<string, unknown>): Promise<RenderResult> {
+async function sendRender(specPath: string, rawPageId: string | null, returnSpec = true, instanceIdOverrides: Manifest = {}, fileKey?: string, preParsedSpec?: Record<string, unknown>, overwrite?: boolean): Promise<RenderResult> {
   const conn = registry.resolve(fileKey);
 
   let spec: Record<string, unknown>;
@@ -668,7 +668,7 @@ async function sendRender(specPath: string, rawPageId: string | null, returnSpec
   console.log(`Rendering: ${componentName} → page ${pageId} (${conn.fileKey})`);
 
   const { requestId, promise } = requests.create(60000, 'Timed out waiting for renderComponent-result.');
-  conn.ws.send(JSON.stringify({ type: 'renderComponent', requestId, spec, pageId, returnSpec, instanceIdManifest: manifest, glyphIdManifest, stylesManifest, variablesManifest }));
+  conn.ws.send(JSON.stringify({ type: 'renderComponent', requestId, spec, pageId, returnSpec, instanceIdManifest: manifest, glyphIdManifest, stylesManifest, variablesManifest, overwrite }));
   return promise as Promise<RenderResult>;
 }
 
