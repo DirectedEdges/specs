@@ -51,6 +51,7 @@ import { ConnectionRegistry, type Connection } from './connections.js';
 import { RequestTracker } from './requestTracker.js';
 
 type Manifest = Record<string, string>;
+type GlyphManifest = Record<string, { id: string; key?: string }>;
 
 interface RenderResult {
   success: boolean;
@@ -315,9 +316,13 @@ function readJson(filePath: string, label: string): Record<string, unknown> | nu
 // ── Manifest builders ─────────────────────────────────────────────────────────
 
 /**
- * Build a glyph manifest from a scan manifest.md file.
+ * Build a glyph manifest from a scan manifest.md file. Each entry's `id` is a
+ * same-file node id (fast path); `key` is the published component's stable
+ * cross-file key, cross-referenced from the fetched file's top-level `components`
+ * map (fileDataPath) — used as a fallback when rendering into a different file
+ * than the glyph's source (figma.importComponentByKeyAsync on the plugin side).
  */
-function buildGlyphManifest(spec: Record<string, unknown>, manifestPath: string): Manifest {
+function buildGlyphManifest(spec: Record<string, unknown>, manifestPath: string, fileDataPath: string): GlyphManifest {
   const pattern = (spec as { metadata?: { config?: { processing?: { glyphNamePattern?: unknown } } } })
     ?.metadata?.config?.processing?.glyphNamePattern;
   if (!pattern || typeof pattern !== 'string') return {};
@@ -330,10 +335,13 @@ function buildGlyphManifest(spec: Record<string, unknown>, manifestPath: string)
     return {};
   }
 
+  const fileComponents = readJson(fileDataPath, 'Glyph manifest')?.components as
+    Record<string, { key?: string }> | undefined;
+
   const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace('\\{i\\}', '(.+)');
   const regex = new RegExp(`^${escaped}$`);
 
-  const result: Manifest = {};
+  const result: GlyphManifest = {};
   for (const line of content.split('\n')) {
     const match = line.match(/^\|\s*(?:\[.?\]\s*\|\s*)?(.+?)\s*\|\s*(\S+)\s*\|\s*COMPONENT\s*\|/);
     if (!match) continue;
@@ -343,7 +351,10 @@ function buildGlyphManifest(spec: Record<string, unknown>, manifestPath: string)
     if (!glyphMatch) continue;
     const glyphName = glyphMatch[1].trim();
     if (!glyphName) continue;
-    if (!result[glyphName]) result[glyphName] = id;
+    if (!result[glyphName]) {
+      const key = fileComponents?.[id]?.key;
+      result[glyphName] = key ? { id, key } : { id };
+    }
   }
 
   console.log(`  Glyph manifest: ${Object.keys(result).length} glyphs`);
@@ -636,7 +647,7 @@ async function sendRender(specPath: string, rawPageId: string | null, returnSpec
   const manifest = buildManifest(spec, specsDir);
   Object.assign(manifest, instanceIdOverrides);
 
-  const glyphIdManifest = buildGlyphManifest(spec, pathResolve(dataDir, workspaceName + '.manifest.md'));
+  const glyphIdManifest = buildGlyphManifest(spec, pathResolve(dataDir, workspaceName + '.manifest.md'), pathResolve(dataDir, workspaceName + '.file.json'));
   const stylesManifest = buildStylesManifest(pathResolve(dataDir, workspaceName + '.file.json'));
   const variablesManifest = buildVariablesManifest(pathResolve(dataDir, workspaceName + '.variables.json'));
 
