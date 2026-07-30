@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 // Bridge server — persistent WebSocket server for the Specs 2 CLI bridge.
 // Stays running until Ctrl+C (or SIGTERM from `specs bridge stop`). Accepts
-// multiple renderComponent commands per session, and multiple simultaneously
-// connected Figma files (each with its own plugin connection).
+// multiple renderComponent/generateFromSelection commands per session, and
+// multiple simultaneously connected Figma files (each with its own plugin
+// connection).
 //
 // Ports:
 //   9001 — WebSocket, for plugin connections (ui.html) — one per open Figma file
-//   9002 — HTTP, control endpoint for the CLI (`specs render`) or scripts
+//   9002 — HTTP, control endpoint for the CLI (`specs render` / `specs generate`) or scripts
 //
 // HTTP API:
 //   POST http://localhost:9002/render
@@ -14,6 +15,10 @@
 //   fileKey is optional when exactly one plugin is connected; required (and
 //   validated) when more than one is connected.
 //   Response: { "success": true, "nodeId": "...", "specData": {...} }
+//   POST http://localhost:9002/generate
+//   Body: { "fileKey": "..." }  (fileKey optional under the same single-connection rule)
+//   Generates a spec from the plugin's current Figma selection — no REST fetch needed.
+//   Response: { "success": true, "nodeId": "...", "name": "...", "specData": {...} }
 //   GET  http://localhost:9002/status
 //   Response: { "connections": [{ "fileKey": "...", "fileName": "...", "connected": true }] }
 //
@@ -50,6 +55,14 @@ type Manifest = Record<string, string>;
 interface RenderResult {
   success: boolean;
   nodeId?: string;
+  specData?: unknown;
+  error?: string;
+}
+
+interface GenerateResult {
+  success: boolean;
+  nodeId?: string;
+  name?: string;
   specData?: unknown;
   error?: string;
 }
@@ -107,7 +120,7 @@ const registry = new ConnectionRegistry<WebSocket>();
 
 // Pending requests keyed by a generated requestId, so responses route to the
 // right caller regardless of which connection they came from.
-const requests = new RequestTracker<string | RenderResult>();
+const requests = new RequestTracker<string | RenderResult | GenerateResult>();
 
 wss.on('connection', (ws: WebSocket) => {
   // This connection's fileKey isn't known until its 'hello' message arrives.
@@ -126,12 +139,25 @@ wss.on('connection', (ws: WebSocket) => {
       return;
     }
 
-    if (msg.type === 'pageId-result' || msg.type === 'renderComponent-result') {
+    if (msg.type === 'pageId-result' || msg.type === 'renderComponent-result' || msg.type === 'generateFromSelection-result') {
       const requestId = msg.requestId as string | undefined;
       if (!requestId) return; // no way to route this response
 
       if (msg.type === 'pageId-result') {
         requests.resolve(requestId, msg.pageId as string);
+        return;
+      }
+
+      if (msg.type === 'generateFromSelection-result') {
+        if (msg.success) {
+          const nodeId = msg.nodeId as string;
+          const name = msg.name as string | undefined;
+          console.log(`✓ Generated from selection. nodeId: ${nodeId}`);
+          requests.resolve(requestId, { success: true, nodeId, name, specData: msg.specData ?? null });
+        } else {
+          console.error(`✗ Generate from selection failed: ${msg.error}`);
+          requests.resolve(requestId, { success: false, error: msg.error as string });
+        }
         return;
       }
 
@@ -176,9 +202,33 @@ const http = createServer((req, res) => {
     return;
   }
 
+  if (req.method === 'POST' && req.url === '/generate') {
+    let genBody = '';
+    req.on('data', (chunk) => { genBody += chunk; });
+    req.on('end', () => {
+      let params: { fileKey?: string };
+      try { params = genBody ? JSON.parse(genBody) : {}; } catch {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Invalid JSON body.' }));
+        return;
+      }
+
+      sendGenerateFromSelection(params.fileKey)
+        .then((result) => {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(result));
+        })
+        .catch((err) => {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: String(err) }));
+        });
+    });
+    return;
+  }
+
   if (req.method !== 'POST' || req.url !== '/render') {
     res.writeHead(405);
-    res.end(JSON.stringify({ error: 'Only POST /render or GET /status is supported.' }));
+    res.end(JSON.stringify({ error: 'Only POST /render, POST /generate, or GET /status is supported.' }));
     return;
   }
 
@@ -551,6 +601,16 @@ function getCurrentPageId(conn: Connection<WebSocket>): Promise<string> {
   const { requestId, promise } = requests.create(5000, 'Timed out waiting for pageId-result.');
   conn.ws.send(JSON.stringify({ type: 'getPageId', requestId }));
   return promise as Promise<string>;
+}
+
+/**
+ * Ask a specific connection's plugin to generate a spec from its current Figma selection.
+ */
+async function sendGenerateFromSelection(fileKey?: string): Promise<GenerateResult> {
+  const conn = registry.resolve(fileKey);
+  const { requestId, promise } = requests.create(60000, 'Timed out waiting for generateFromSelection-result.');
+  conn.ws.send(JSON.stringify({ type: 'generateFromSelection', requestId }));
+  return promise as Promise<GenerateResult>;
 }
 
 /**
