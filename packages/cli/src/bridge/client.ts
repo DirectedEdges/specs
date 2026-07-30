@@ -2,8 +2,14 @@
 
 import { HTTP_PORT } from './config.js';
 
-export interface BridgeStatus {
+export interface BridgeConnection {
+  fileKey: string;
+  fileName?: string;
   connected: boolean;
+}
+
+export interface BridgeStatus {
+  connections: BridgeConnection[];
 }
 
 export async function getBridgeStatus(timeoutMs = 1500): Promise<BridgeStatus> {
@@ -22,6 +28,7 @@ export interface RenderRequestBody {
   manifestPath?: string;
   pageId?: string;
   returnSpec?: boolean;
+  fileKey?: string;
 }
 
 export interface RenderResponse {

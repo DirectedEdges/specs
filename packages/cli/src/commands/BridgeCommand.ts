@@ -107,8 +107,15 @@ Bridge.command('status')
     }
 
     try {
-      const { connected } = await getBridgeStatus();
-      console.log(`Bridge running (pid ${pid}). Plugin: ${connected ? 'connected' : 'not connected'}.`);
+      const { connections } = await getBridgeStatus();
+      if (connections.length === 0) {
+        console.log(`Bridge running (pid ${pid}). No plugin connected.`);
+      } else {
+        console.log(`Bridge running (pid ${pid}). ${connections.length} plugin${connections.length === 1 ? '' : 's'} connected:`);
+        for (const c of connections) {
+          console.log(`  ${c.fileKey}${c.fileName ? ` (${c.fileName})` : ''} — ${c.connected ? 'connected' : 'disconnected'}`);
+        }
+      }
       process.exit(ERROR_CODES.SUCCESS);
     } catch {
       console.log(`Bridge running (pid ${pid}), but the control port isn't responding.`);

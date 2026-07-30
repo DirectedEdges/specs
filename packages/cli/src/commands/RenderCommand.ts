@@ -32,7 +32,8 @@ export const Render = new Command('render')
   .option('-m, --manifest <path>', 'Path to a render-manifest.md file')
   .option('--config <path>', 'Path to config file (specs.config.yaml)')
   .option('--no-return-spec', 'Skip round-trip spec read after rendering in Figma')
-  .action(async (specPath: string | undefined, options: { manifest?: string; config?: string; returnSpec: boolean; verbose?: boolean }) => {
+  .option('--file <fileKey>', 'Target a specific connected Figma file (required if more than one plugin is connected)')
+  .action(async (specPath: string | undefined, options: { manifest?: string; config?: string; returnSpec: boolean; file?: string; verbose?: boolean }) => {
     let manifestPath = options.manifest;
 
     if (!specPath && !manifestPath) {
@@ -62,7 +63,7 @@ export const Render = new Command('render')
       if (manifestPath) {
         const absManifestPath = path.resolve(manifestPath);
         console.log(`Posting manifest: ${absManifestPath}`);
-        const result = await postRender({ manifestPath: absManifestPath });
+        const result = await postRender({ manifestPath: absManifestPath, fileKey: options.file });
 
         if (!result.success) {
           console.error(`Error: ${result.error}`);
@@ -79,7 +80,7 @@ export const Render = new Command('render')
       } else if (specPath) {
         const absSpecPath = path.resolve(specPath);
         console.log(`Posting spec: ${absSpecPath}`);
-        const result = await postRender({ specPath: absSpecPath, returnSpec: options.returnSpec });
+        const result = await postRender({ specPath: absSpecPath, returnSpec: options.returnSpec, fileKey: options.file });
 
         if (!result.success) {
           const msg = typeof result.error === 'string' ? result.error : JSON.stringify(result.error);
