@@ -72,14 +72,14 @@ FIGMA_TOKEN=your_figma_token_here
 
 To create a token, go to [Figma Settings → Tokens](https://www.figma.com/settings/tokens), click **Create a new token**, and select these scopes: `file_metadata:read`, `file_content:read`, `library_assets:read`, `library_content:read`, and `file_variables:read`.
 
-A **license key** is optional — Specs CLI works at a free tier without one. To unlock Pro features, add `SPECS_LICENSE_KEY` to your `.env` file. See [Licensing](/specs/overview/licensing/) for details.
+A **license key** is optional — Specs CLI works at a free tier without one. To unlock Pro features, add `SPECS_LICENSE_KEY` to your `.env` file. See [Licensing](/overview/licensing/) for details.
 
 ### Other configuration (optional)
 
 The defaults from `specs init` work well for most setups. When you're ready to customize, these options are available in `specs.config.yaml`:
 
 - **`dataDirectory` / `outputDirectory`** — where fetched data is stored and specs are written. Defaults: `./data` and `./specs`.
-- **`config`** — controls output format (JSON/YAML, key casing, token format), processing behavior (variant depth, detail level), and what to include. See [Configuration Reference](/specs/schema/config/).
+- **`config`** — controls output format (JSON/YAML, key casing, token format), processing behavior (variant depth, detail level), and what to include. See [Configuration Reference](/schema/config/).
 - **`output`** — controls file organization: split per component, split by concern, use subfolders. All default to `false`.
 
 ## Step 3: Fetch the Figma file
@@ -110,7 +110,7 @@ Then open the generated manifest (e.g., `data/library.manifest.md`) and adjust t
 | [ ] | Slot utility | 12:5 | COMPONENT | NONE |
 ```
 
-By default, `scan` checks only components marked **Ready for Dev** in Figma. If your file has no Dev Mode status set anywhere, it falls back to including every `COMPONENT_SET` and standalone `COMPONENT`. Re-running `scan` preserves your manual edits and only flips checkboxes when a component's `Dev Status` actually changes — pass `--keep-checks` to preserve them even then. See the [`scan`](/specs/cli/commands/scan/) reference for full merge behavior.
+By default, `scan` checks only components marked **Ready for Dev** in Figma. If your file has no Dev Mode status set anywhere, it falls back to including every `COMPONENT_SET` and standalone `COMPONENT`. Re-running `scan` preserves your manual edits and only flips checkboxes when a component's `Dev Status` actually changes — pass `--keep-checks` to preserve them even then. See the [`scan`](/cli/commands/scan/) reference for full merge behavior.
 
 ## Step 5: Generate specs
 

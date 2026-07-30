@@ -16,7 +16,7 @@ Generation metadata attached to the spec. Present when the spec was produced by 
 | `generator.license` | `object` | No | License status (`status`: VALID/EXPIRED/NONE) and `level` (FREE/PRO/EXTENDED) |
 | `schema` | `object` | Yes | Schema version info — `url`, `version`, and optional `latest` URL |
 | `source` | `object` | Yes | Figma source — `pageId`, `nodeId`, `nodeType` (COMPONENT, COMPONENT_SET, or FRAME) |
-| `config` | [`Config`](/specs/schema/config/) | Yes | The configuration used to generate this spec |
+| `config` | [`Config`](/schema/config/) | Yes | The configuration used to generate this spec |
 
 ## Further Reading
 

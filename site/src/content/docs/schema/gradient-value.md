@@ -91,7 +91,7 @@ stops:
 | Property | Type | Description |
 |----------|------|-------------|
 | `position` | `number` | Position along the gradient vector (0–1) |
-| `color` | `string \| TokenReference` | Hex color (`#RRGGBBAA`) or [token reference](/specs/schema/token-reference/) |
+| `color` | `string \| TokenReference` | Hex color (`#RRGGBBAA`) or [token reference](/schema/token-reference/) |
 
 ### GradientCenter
 

@@ -26,6 +26,7 @@ import { ConcernFileWriter } from '../Writers/ConcernFileWriter.js';
 import { CombinedFileWriter } from '../Writers/CombinedFileWriter.js';
 import type { FileWriter, WriteResult } from '../Writers/FileWriter.js';
 import type { OutputFormat } from '../Types/OutputConfig.js';
+import { ImageFillsResolver, IMAGES_DIR_NAME } from '../utilities/ImageFillsResolver.js';
 
 declare const __SPECS_CLI_VERSION__: string;
 
@@ -65,6 +66,20 @@ interface GenerateOptions {
   splitComponents?: boolean;
   splitConcerns?: boolean;
   useSubfolders?: boolean;
+  getImages?: boolean;
+}
+
+/**
+ * Resolve the config source alias that carries the component file: `library`
+ * when configured with `data: [file]`, else the first source that is.
+ * Single source of truth for the default-manifest path, the manifest-mode
+ * component file, and the --get-images file key.
+ */
+function resolveFileSourceAlias(sources: NonNullable<ReturnType<ConfigLoader['load']>['sources']> | undefined): string | null {
+  const entries = sources ?? {};
+  if (entries.library && Array.isArray(entries.library.data) && entries.library.data.includes('file')) return 'library';
+  const candidate = Object.entries(entries).find(([, s]) => Array.isArray(s.data) && s.data.includes('file'));
+  return candidate ? candidate[0] : null;
 }
 
 export const Generate = new Command('generate')
@@ -81,6 +96,7 @@ export const Generate = new Command('generate')
   .option('--split-components', 'Create separate file per component')
   .option('--split-concerns', 'Separate API, variants, and examples into different files')
   .option('--use-subfolders', 'Organize component files in subdirectories (requires --split-components)')
+  .option('--get-images', 'Resolve unresolved registry images into files under _images/ (requires processing.images in config and FIGMA_TOKEN)')
   .option('--verbose', 'Enable detailed logging', false)
   .action(async (source: string | undefined, options: GenerateOptions) => {
     try {
@@ -103,12 +119,7 @@ export const Generate = new Command('generate')
       // Resolve default source path: {dataDirectory}/{alias}.manifest.md
       // Alias preference: `library` if configured with `data: [file]`, else first source with `data: [file]`.
       if (!source) {
-        const sources = config.sources || {};
-        const defaultAlias = (() => {
-          if (sources.library && Array.isArray(sources.library.data) && sources.library.data.includes('file')) return 'library';
-          const candidate = Object.entries(sources).find(([, s]) => Array.isArray(s.data) && s.data.includes('file'));
-          return candidate ? candidate[0] : null;
-        })();
+        const defaultAlias = resolveFileSourceAlias(config.sources);
 
         if (!defaultAlias) {
           console.error('Error: No source argument provided and no default manifest could be resolved');
@@ -191,12 +202,7 @@ export const Generate = new Command('generate')
         console.log(`✓ Loaded manifest: ${components.length} components (${selectedComponents.length} selected)`);
 
         // Determine source file
-        const componentSourceAlias = (() => {
-          const sources = config.sources || {};
-          if (sources.library && Array.isArray(sources.library.data) && sources.library.data.includes('file')) return 'library';
-          const candidates = Object.entries(sources).filter(([, s]) => Array.isArray(s.data) && s.data.includes('file'));
-          return candidates.length > 0 ? candidates[0][0] : null;
-        })();
+        const componentSourceAlias = resolveFileSourceAlias(config.sources);
 
         const sourceFile = metadata.file || (componentSourceAlias ? path.join(sourceDir, `${componentSourceAlias}.file.json`) : undefined);
 
@@ -415,6 +421,10 @@ export const Generate = new Command('generate')
       // File mode stdout (no -o)
       // ---------------------------------------------------------------
       if (!isManifest && !options.output && !config.outputDirectory) {
+        if (options.getImages) {
+          console.error('Error: --get-images requires an output directory (set outputDirectory in config or pass -o) so image files have somewhere to be written');
+          process.exit(ERROR_CODES.INVALID_ARGS);
+        }
         const componentData = processedComponents[0].spec;
         const outputFormat = options.format
           ? options.format.toLowerCase()
@@ -470,6 +480,57 @@ export const Generate = new Command('generate')
         ? path.basename(outputPath)
         : undefined;
 
+      // ---------------------------------------------------------------
+      // Image resolution (ADR-063, --get-images): add src to unresolved
+      // registry entries — files written under {baseDir}/_images/, referenced
+      // relative to the spec file that points at them. Runs before the
+      // manifest so writers serialize the resolved registry values.
+      // ---------------------------------------------------------------
+      if (options.getImages) {
+        const hashes = ImageFillsResolver.collectUnresolvedHashes(processedComponents);
+        if (hashes.size === 0) {
+          console.log(modelConfig.processing.images
+            ? 'Note: --get-images found no unresolved image placeholders'
+            : 'Note: --get-images has no effect — processing.images is not configured');
+        } else {
+          // Reuse hash-named files already present in _images/ — only the
+          // remainder needs the token, the API call, and downloads.
+          const files = await ImageFillsResolver.findExisting(hashes, baseDir);
+          const missing = new Set([...hashes].filter(hash => !files.has(hash)));
+
+          if (missing.size > 0) {
+            const token = process.env.FIGMA_TOKEN;
+            if (!token) {
+              console.error('Error: --get-images requires the FIGMA_TOKEN environment variable (same token as `specs fetch`)');
+              process.exit(ERROR_CODES.INVALID_ARGS);
+            }
+            const fileSourceAlias = resolveFileSourceAlias(config.sources);
+            const fileKey = fileSourceAlias ? config.sources?.[fileSourceAlias]?.key : undefined;
+            if (!fileKey) {
+              console.error('Error: --get-images requires a configured source file key (sources.<alias>.key in specs.config.yaml)');
+              process.exit(ERROR_CODES.INVALID_ARGS);
+            }
+
+            console.log(`Requesting image download URLs from Figma (${missing.size} image(s))...`);
+            const urls = await ImageFillsResolver.fetchImageUrls(fileKey, token);
+            process.stdout.write(`Images downloading (0/${missing.size})`);
+            const downloaded = await ImageFillsResolver.downloadAndWrite(missing, urls, baseDir, (completed, total) => {
+              process.stdout.write(`\rImages downloading (${completed}/${total})`);
+              if (completed === total) process.stdout.write('\n');
+            });
+            for (const [hash, filename] of downloaded) files.set(hash, filename);
+          }
+
+          // Spec files sit one level below baseDir when components get their own
+          // folders (subfolders, or the component+concern combined layout).
+          const inComponentFolders = !!outputConfig.splitComponents && (!!outputConfig.useSubfolders || !!outputConfig.splitConcerns);
+          const relativePrefix = inComponentFolders ? `../${IMAGES_DIR_NAME}/` : `${IMAGES_DIR_NAME}/`;
+          const resolvedCount = ImageFillsResolver.applyResolvedSources(processedComponents, files, relativePrefix);
+          const reused = hashes.size - missing.size;
+          console.log(`✓ Resolved ${resolvedCount} image reference(s) into ${files.size} file(s) under ${IMAGES_DIR_NAME}/ (${reused} reused, ${missing.size} downloaded)`);
+        }
+      }
+
       const manifest = new FileManifest(processedComponents, outputConfig, baseDir, outputFileName);
 
       // Select appropriate writer
@@ -487,7 +548,12 @@ export const Generate = new Command('generate')
       const writeResult: WriteResult = await writer.write(manifest);
 
       if (writeResult.warnings.length > 0) {
-        writeResult.warnings.forEach(warning => console.log(warning));
+        const isOverwriteWarning = (warning: string) => warning.includes('Overwriting existing file');
+        const overwriteCount = writeResult.warnings.filter(isOverwriteWarning).length;
+        if (overwriteCount > 0) {
+          console.log('Warning: Overwrote existing file(s)');
+        }
+        writeResult.warnings.filter(warning => !isOverwriteWarning(warning)).forEach(warning => console.log(warning));
       }
 
       if (writeResult.errors.length > 0) {
@@ -495,14 +561,6 @@ export const Generate = new Command('generate')
         process.exit(ERROR_CODES.FILE_ERROR);
       }
 
-      if (writeResult.filesWritten.length === 1) {
-        console.log(`✓ Saved to ${writeResult.filesWritten[0]}`);
-      } else {
-        console.log(`✓ Generated ${writeResult.filesWritten.length} files in ${path.relative(process.cwd(), baseDir)}/`);
-        writeResult.filesWritten.forEach(file => {
-          console.log(`  ${file}`);
-        });
-      }
 
       process.exit(errors.length > 0 ? ERROR_CODES.GENERAL_ERROR : ERROR_CODES.SUCCESS);
 

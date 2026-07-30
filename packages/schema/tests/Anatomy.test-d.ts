@@ -89,3 +89,15 @@ if (typeof element.type === 'string') {
 } else {
   const _ref: string = element.type.$ref;
 }
+
+// AnatomyElement.$extensions carries collapse provenance (ADR-058)
+const collapsedRoot: AnatomyElement = {
+  type: 'text',
+  $extensions: { 'com.figma': { originalName: 'Text' } },
+};
+
+const badExtension: AnatomyElement = {
+  type: 'text',
+  // @ts-expect-error — unknown extension members are rejected
+  $extensions: { 'com.figma': { layerName: 'Text' } },
+};

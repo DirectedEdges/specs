@@ -34,7 +34,7 @@ instanceExamples:
 
 ## Configuration
 
-Detection mirrors [`subcomponents`](/specs/config/subcomponents/): the **presence** of `processing.instanceExamples` is the on-switch. There is no separate `include` flag — when the block is present (and the license is Pro), examples are detected *and* emitted.
+Detection mirrors [`subcomponents`](/settings/subcomponents/): the **presence** of `processing.instanceExamples` is the on-switch. There is no separate `include` flag — when the block is present (and the license is Pro), examples are detected *and* emitted.
 
 ```yaml
 # specs.config.yaml
@@ -54,7 +54,7 @@ config:
 - `scope` — `PAGE` (component's page) or `FILE` (all pages, e.g. a dedicated Examples page).
 
 :::note[Pro feature]
-Instance examples require a [Pro license](/specs/overview/licensing/). On the free tier `processing.instanceExamples` is ignored — no detection, no output. In the Figma plugin the control is hidden until a Pro license is active.
+Instance examples require a [Pro license](/overview/licensing/). On the free tier `processing.instanceExamples` is ignored — no detection, no output. In the Figma plugin the control is hidden until a Pro license is active.
 :::
 
 ## Naming Tips
@@ -64,11 +64,11 @@ Instance examples require a [Pro license](/specs/overview/licensing/). On the fr
 ## Instance Examples vs. Default Slot Content
 
 - **Instance examples** (this guide) — whole pre-configured *instances*, detected from named frames.
-- **[Default slot content](/specs/guides/default-slot-content/)** — the content *inside a slot*, captured structurally with no detection config.
+- **[Default slot content](/guides/default-slot-content/)** — the content *inside a slot*, captured structurally with no detection config.
 
 ## Further Reading
 
-- [`processing.instanceExamples`](/specs/config/instance-examples/) — config reference
-- [Default Slot Content](/specs/guides/default-slot-content/) — the sibling feature
-- [`subcomponents`](/specs/config/subcomponents/) — the presence-driven detection model this mirrors
-- [Schema: Component](/specs/schema/component/) — the `instanceExamples` registry shape
+- [`processing.instanceExamples`](/settings/instance-examples/) — config reference
+- [Default Slot Content](/guides/default-slot-content/) — the sibling feature
+- [`subcomponents`](/settings/subcomponents/) — the presence-driven detection model this mirrors
+- [Schema: Component](/schema/component/) — the `instanceExamples` registry shape

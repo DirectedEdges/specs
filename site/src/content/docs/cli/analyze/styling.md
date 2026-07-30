@@ -197,6 +197,6 @@ Note that "unused" means unused *by the analyzed component specs* — a token ma
 
 ## See Also
 
-- [Analyze overview](/specs/cli/analyze/)
-- [`props` analyzer](/specs/cli/analyze/props/)
-- [Transforms overview](/specs/cli/transforms/)
+- [Analyze overview](/cli/analyze/)
+- [`props` analyzer](/cli/analyze/props/)
+- [Transforms overview](/cli/transforms/)

@@ -12,6 +12,7 @@ const ERROR_CODES = { SUCCESS: 0, INVALID_ARGS: 2, FILE_ERROR: 3, GENERAL_ERROR:
 interface TransformOptions {
   output?: string;
   config?: string;
+  components?: string[];
   verbose: boolean;
 }
 
@@ -20,6 +21,7 @@ export const Transform = new Command('transform')
   .argument('[transformers...]', 'Transformer names to run (default: contract)')
   .option('-o, --output <path>', 'Path to the specs directory (input and output)')
   .option('--config <path>', 'Path to config file (specs.config.yaml)')
+  .option('--components <keys...>', 'Only transform these component folders (default: all)')
   .option('--verbose', 'Enable detailed logging', false)
   .action(async (transformerNames: string[], options: TransformOptions) => {
     try {
@@ -35,7 +37,7 @@ export const Transform = new Command('transform')
 
       if (!fs.existsSync(outputPath)) {
         console.error(`Error: specs directory not found: ${outputPath}`);
-        console.error('Tip: run `specs generate --split-components --split-concerns --use-subfolders` first');
+        console.error('Tip: run `specs generate --split-components --split-concerns` first');
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
 
@@ -67,14 +69,23 @@ export const Transform = new Command('transform')
 
       // Discover component subfolders — each must contain api.yaml
       const entries = await fs.readdir(outputPath, { withFileTypes: true });
-      const componentDirs = entries
+      let componentDirs = entries
         .filter(e => e.isDirectory())
         .map(e => e.name)
         .filter(name => fs.existsSync(path.join(outputPath, name, 'api.yaml')));
 
+      if (options.components && options.components.length > 0) {
+        const requested = new Set(options.components);
+        const missing = options.components.filter(c => !componentDirs.includes(c));
+        for (const m of missing) {
+          console.warn(`Warning: component "${m}" not found in ${outputPath} — skipping`);
+        }
+        componentDirs = componentDirs.filter(name => requested.has(name));
+      }
+
       if (componentDirs.length === 0) {
         console.error(`Error: no component directories with api.yaml found in ${outputPath}`);
-        console.error('Tip: run `specs generate --split-components --split-concerns --use-subfolders` first');
+        console.error('Tip: run `specs generate --split-components --split-concerns` first');
         process.exit(ERROR_CODES.FILE_ERROR);
       }
 

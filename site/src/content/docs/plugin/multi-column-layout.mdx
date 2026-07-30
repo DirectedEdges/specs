@@ -1,0 +1,34 @@
+---
+title: "Multi-Column Layout"
+description: "Arrange spec exhibits in a single vertical column or a multi-column grid, directly on the Figma canvas"
+---
+
+import Figure from '../../../components/Figure.astro';
+import multiColumnHero from '../../../assets/plugin/MultiColumn.png';
+import multiColumn1 from '../../../assets/plugin/MultiColumn1.png';
+import multiColumn2 from '../../../assets/plugin/MultiColumn2.png';
+
+Multi-Column Layout controls how exhibits are arranged within a section or subsection — stacked one after another in a single column, or tiled into a grid of 2, 3, or 4 columns. It applies wherever exhibits appear (Anatomy, Props, Layout, Modes, Styling), so a single setting reshapes the arrangement across the whole spec.
+
+<Figure src={multiColumnHero} alt="An Alert component's Appearance section tiled into a 3-column grid, with Informational, Basic, and Success exhibits in the first row and Error and Warning wrapping to a second row" maxWidth="none" />
+
+## What It Includes
+
+- **Column count** — choose 1 (single column), 2, 3, or 4 columns; applies to every section built from exhibits
+- **Native Figma Grid** — multi-column output uses Figma's own Grid layout, so columns hug their content and reflow the way any Figma grid does
+- **Artwork/content orientation** — a single column keeps each exhibit's artwork and content side by side (artwork left, content right); 2+ columns stack artwork above content within each exhibit instead
+- **Uniform column widths** — after generation, all gridded artwork and content frames are normalized to a shared width, so columns line up evenly instead of hugging their own content unevenly
+
+## Examples
+
+### Single Column (Default)
+
+With the column count left at 1, every exhibit lays out horizontally — artwork on the left, content on the right — stacked one after another down the section.
+
+<Figure src={multiColumn1} alt="An Alert component's Appearance section in single-column mode: Informational, Basic, Success, and Error exhibits stacked vertically, each with artwork on the left and its content list on the right" caption="An Alert component's Appearance section in single-column mode: each exhibit — Informational, Basic, Success, Error — shows artwork on the left and its content list on the right, stacked one after another." maxWidth="none" />
+
+### Multi-Column Grid
+
+Setting the column count to 2 or more switches exhibits into a Figma Grid: each exhibit stacks its artwork above its content, and exhibits tile left-to-right, wrapping into additional rows once a row fills. Column widths are normalized afterward so every column lines up evenly, regardless of how wide any single exhibit's content happens to be.
+
+<Figure src={multiColumn2} alt="The same Alert component's Appearance section set to 2 columns: Informational and Basic exhibits side by side in the first row, Success and Error wrapping to the second row, each with artwork stacked above its content" caption="The same Alert component's Appearance section set to 2 columns: exhibits now stack artwork above content and tile two per row — Informational and Basic, then Success and Error wrapping to a second row." maxWidth="none" />

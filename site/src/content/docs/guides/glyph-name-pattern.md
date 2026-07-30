@@ -154,5 +154,5 @@ This binding is created automatically — no additional configuration needed. It
 
 ## Further Reading
 
-- [CLI Configuration](/specs/config/) — full config reference
-- [Subcomponent Scoping](/specs/guides/subcomponent-scoping/) — related config for detecting subcomponents (separate from glyph detection)
+- [CLI Configuration](/settings/) — full config reference
+- [Subcomponent Scoping](/guides/subcomponent-scoping/) — related config for detecting subcomponents (separate from glyph detection)

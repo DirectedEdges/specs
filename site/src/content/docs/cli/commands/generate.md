@@ -30,7 +30,7 @@ specs generate
 specs generate components.md -o specs/library.yaml
 ```
 
-The manifest references the source file and tracks which components to include. See [Scan Command](/specs/cli/commands/scan/) for creating manifests.
+The manifest references the source file and tracks which components to include. See [Scan Command](/cli/commands/scan/) for creating manifests.
 
 ### File Mode
 
@@ -89,7 +89,7 @@ export SPECS_LICENSE_KEY="your-license-key"
 specs generate components.md -o specs/all.yaml
 ```
 
-See [Getting Started — License](/specs/cli/getting-started.md/#step-3-set-your-license-key-optional) for setup details.
+See [Getting Started — License](/cli/getting-started.md/#step-3-set-your-license-key-optional) for setup details.
 
 ### `-o, --output <path>`
 Output file or directory path. Accepts both file paths and directory paths.
@@ -175,7 +175,7 @@ Separate API specification, variant configuration, and examples.
 - **Default**: `false` (complete component data in each file)
 - **Output**: Up to three files: `api.yaml` (anatomy, props), `variants.yaml` (default, variants), and `examples.yaml` (slotContentExamples, instanceExamples)
 - `examples.yaml` is written only when at least one component has example data; components without examples are omitted from it.
-- Example output (`slotContentExamples`, `instanceExamples`) is a [Pro feature](/specs/config/default-slot-content/) — on the free tier it is omitted, so `examples.yaml` is not produced.
+- Example output (`slotContentExamples`, `instanceExamples`) is a [Pro feature](/settings/default-slot-content/) — on the free tier it is omitted, so `examples.yaml` is not produced.
 
 ```bash
 specs generate components.md -o specs/ --split-concerns
@@ -224,6 +224,41 @@ specs/
 └── dsCard/
     └── dsCard.yaml
 ```
+
+### `--get-images`
+Resolve unresolved registry images into real image files. Requires a [`processing.images`](/settings/images/) block in config, a configured source file key, and the `FIGMA_TOKEN` environment variable (the same token `specs fetch` uses).
+
+```bash
+specs generate components.md -o specs/ --split-components --get-images
+```
+
+Generation alone (the *detect* phase) records each image fill as an unresolved registry entry — the Figma identity in `$extensions['com.figma'].imageHash`, no `src` — structurally complete, but with no pixels. With `--get-images`, the CLI calls Figma's Get Image Fills endpoint, downloads each distinct image once, writes it as `_images/<imageHash>.<ext>` inside the output directory (format detected from the bytes — png, jpg, gif, or webp), and **adds** `src` to each entry — a path relative to the spec file that references it. The Figma identity survives for reverse-direction tooling:
+
+```yaml
+# without --get-images (detect phase)
+images:
+  dsCard__hero:
+    $extensions:
+      com.figma:
+        imageHash: 705867125834a686a51bdf161a0a39cdba0f9a58
+
+# with --get-images — src is ADDED; the identity survives
+images:
+  dsCard__hero:
+    src: _images/705867125834a686a51bdf161a0a39cdba0f9a58.png
+    $extensions:
+      com.figma:
+        imageHash: 705867125834a686a51bdf161a0a39cdba0f9a58
+```
+
+```
+specs/
+├── _images/
+│   └── 705867125834a686a51bdf161a0a39cdba0f9a58.png
+└── dsCard.yaml
+```
+
+`$image` pointers (in `backgroundImage` fills and `ImageBinding` examples) are unaffected — resolution touches one registry entry per image, never the references. Files are named by Figma's content hash, so an image shared by many components is downloaded and stored once, and re-runs are idempotent. Figma's download URLs are temporary and are never persisted. With `--use-subfolders` (or the combined component + concern layout), `src` becomes `../_images/...` so it still resolves relative to each spec file.
 
 ### `--config <path>`
 Path to configuration file.
@@ -293,6 +328,6 @@ specs generate
 ---
 
 **See Also:**
-- [Scan Command](/specs/cli/commands/scan/) - Create component manifest
-- [Configuration Reference](/specs/config/) - Format and config options
-- [Getting Started](/specs/cli/getting-started/) - Installation and license setup
+- [Scan Command](/cli/commands/scan/) - Create component manifest
+- [Configuration Reference](/settings/) - Format and config options
+- [Getting Started](/cli/getting-started/) - Installation and license setup

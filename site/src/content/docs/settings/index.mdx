@@ -1,0 +1,248 @@
+---
+title: "Settings"
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+import Figure from '../../../components/Figure.astro';
+import pluginSettingsFormat from '../../../assets/plugin-settings-format.png';
+
+Settings give you technical control over how specs are created — the same settings surface drives both the Figma plugin and the CLI, so a component produces the same structured output no matter which one generates it.
+
+<Tabs>
+<TabItem label="Figma Plugin">
+
+The plugin's **Settings** tab exposes the same options as the CLI's config file, right next to the canvas where you're generating specs.
+
+<Figure
+  src={pluginSettingsFormat}
+  alt="The plugin's Settings tab, showing the Format section with File, Key case and delimiter, Token, and Color options"
+  caption="The Format section of the plugin's Settings tab."
+/>
+
+### Format
+
+The **Format** section controls how spec data is serialized once it's extracted:
+
+- [Output Format](/settings/output-format/) — Serializes specs as `YAML` or `JSON`
+- [Keys](/settings/keys/) — Renames keys, such as `camelCase` or `snake_case`
+- [Tokens](/settings/tokens/) — Serializes as forms such as a name string or `{ $token, $type }` object
+- [Color](/settings/color/) — Formats color, such as `#FF6600` or `{ colorSpace, components }`
+
+### Variants
+
+The **Variants** section controls how variant property combinations are compared and included:
+
+- [Variant Depth](/settings/variant-depth/) — Compares depths such as `1` prop at a time or `9999` (all combos)
+- [Empty Variants](/settings/empty-variants/) — Includes variants like `{ a:2, b:2 }` with no overrides
+- [Invalid Variants](/settings/invalid-variants/) — Includes invalid combos, e.g. `disabled:true, hover:true`
+- [Invalid Combinations](/settings/invalid-combinations/) — Summarizes as `invalidPropConfigurations: { disabled:true }`
+
+### Elements
+
+The **Elements** section controls which layers are detected as special-purpose content:
+
+- [Glyph Name Pattern](/settings/glyph-name-pattern/) — Matches names like `DS Icon Glyph / check`
+- [Subcomponents](/settings/subcomponents/) — Matches names like `Card / _ / Header` within `NESTED` or `PAGE`
+- [Collapse Primitive Wrapper](/settings/collapse-primitive-wrapper/) — Collapses a wrapper around a lone `text` or `glyph` child
+- [Default Slot Content](/settings/default-slot-content/) — Emits authored defaults as `slotContentExamples`
+- [Instance Examples](/settings/instance-examples/) — Detects frames like `{C} Example` as `instanceExamples`
+- [Images](/settings/images/) — Captures image fills as `backgroundImage` or routes them through an image component
+
+### Props
+
+The **Props** section controls how code-only and inferred props are detected:
+
+- [Code-Only Props Pattern](/settings/code-only-props-pattern/) — Detects a layer like `Code only props`
+- [Slot Constraints](/settings/slot-constraints/) — Merges `anyOf`, `minChildren`, `maxChildren` into the slot prop
+- [Infer Number Props](/settings/infer-number-props/) — Emits `minRows: 2` as `NumberProp` instead of `StringProp`
+
+### Layout
+
+The **Layout** section controls how element hierarchy is represented:
+
+- [Layout](/settings/layout/) — Nests such as `layout:` or flattens as `elements: { parent, children }`
+
+</TabItem>
+<TabItem label="Command Line (CLI)">
+
+The CLI reads settings from `specs.config.yaml`, layered with command-line flags and convention-based fallbacks, so a project's output stays consistent across every `specs` invocation.
+
+## Priority System
+
+The CLI applies settings using three priority levels:
+
+1. **CLI flags** (highest) - Explicit overrides for individual commands
+2. **Config file** - Project defaults via `specs.config.yaml`
+3. **Fallbacks** (lowest) - Convention-based defaults when no sources are configured
+
+### CLI Flags
+
+CLI flags always override settings from the config file:
+
+```bash
+# Config has format.output: JSON
+# Flag overrides to YAML
+specs generate data/library.file.json -c Button --format yaml
+```
+
+**Available flag overrides**:
+- `--format` → overrides `config.format.output`
+- `--variables` → overrides the variables file path for that run
+- `--styles` → overrides the styles file path for that run
+
+### Config File
+
+Settings from `specs.config.yaml` apply when no CLI flag is provided. Use `--config` to point at a project-specific file instead of the default location:
+
+```bash
+specs generate data/library.file.json \
+  -c "Button" \
+  --config ./configs/mobile.config.yaml \
+  -o specs/mobile/button.yaml
+```
+
+### Fallbacks
+
+Convention-based defaults when no sources are configured and no flags are provided:
+
+```
+project/
+├── specs.config.yaml  # Config (if exists)
+├── data/
+│   ├── library.file.json      # Main file (specified in command)
+│   └── foundations/           # Auto-discovery directory
+│       ├── variables.json     # Auto-discovered
+│       └── styles.json        # Auto-discovered
+```
+
+## Settings File
+
+### Location
+
+The CLI looks for a settings file in these locations (in order):
+
+1. `./specs.config.yaml` (current directory)
+2. `./specs.config.json` (current directory)
+3. `~/.specs/config.yaml` (user home directory)
+4. Custom path via `--config <path>` flag
+
+### Format
+
+The settings file can be written in YAML or JSON:
+
+```yaml
+# specs.config.yaml
+
+# Where `specs fetch` writes payloads, and where `generate` loads them from
+dataDirectory: ./data
+
+# Default location for generated spec files (can override with -o flag)
+outputDirectory: ./specs
+
+# Figma file keys and which payloads to fetch/load
+sources:
+  library:
+    key: REPLACE_WITH_LIBRARY_FILE_KEY
+    data: ['file','variables','styles']
+  foundations:
+    key: REPLACE_WITH_FOUNDATIONS_FILE_KEY
+    data: ['variables','styles']
+
+# Processing and output settings (shared with the Figma plugin)
+config:
+  format:
+    output: YAML
+    keys: SAFE
+    layout: LAYOUT
+    tokens: TOKEN
+
+  processing:
+    subcomponents:
+      match:
+        - '{C} / _ / {S}'
+    variantDepth: 2
+    details: LAYERED
+
+  include:
+    invalidVariants: false
+    invalidCombinations: true
+```
+
+## Validation
+
+The CLI validates every setting value and provides helpful error messages:
+
+```bash
+$ specs generate data/library.file.json -c Button
+Warning: Invalid format.keys: 'invalid'. Using default: SAFE.
+Valid values: SAFE, CAMEL, SNAKE, KEBAB, PASCAL, TRAIN
+```
+
+Invalid values fall back to defaults with warnings, so builds continue.
+
+## Best Practices
+
+### 1. Version Control Your Settings File
+
+Commit `specs.config.yaml` to share settings across the team:
+
+```bash
+git add specs.config.yaml
+git commit -m "Add Specs CLI configuration"
+```
+
+### 2. Environment-Specific Settings Files
+
+Use a different settings file for each environment:
+
+```
+project/
+├── specs.config.yaml           # Default (development)
+├── .specs.production.yaml       # Production
+└── .specs.staging.yaml          # Staging
+```
+
+```bash
+# Development (uses default)
+specs generate data/library.file.json -c Button
+
+# Production
+specs generate data/library.file.json -c Button --config .specs.production.yaml
+```
+
+### 3. Document Custom Patterns
+
+Add comments to explain project-specific settings:
+
+```yaml
+config:
+  processing:
+    # Match direct children and underscore-nested subcomponents
+    subcomponents:
+      match:
+        - '{C} / {S}'
+        - '{C} / _ / {S}'
+      exclude:
+        - '{C} / Examples / {S}'
+
+    # Only 2 levels: size + variant (not size + variant + state)
+    variantDepth: 2
+```
+
+### 4. Consistent Key Format
+
+Choose one key format and stick with it:
+
+```yaml
+config:
+  format:
+    keys: CAMEL  # All keys in camelCase for consistency
+```
+
+## See Also
+
+- [CLI Overview](/cli/) - CLI command options
+- [Getting Started](/cli/getting-started/) - Installation and setup
+
+</TabItem>
+</Tabs>

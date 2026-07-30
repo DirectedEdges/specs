@@ -178,7 +178,7 @@ width: null
 
 ## Variant-by-variant differences
 
-Specs emits all positioning properties on every variant — active keys carry their computed value, inactive keys carry `null`. This ensures [variant layering](/specs/guides/variant-layering) can detect any constraint change between variants: a key that's absent can't be compared.
+Specs emits all positioning properties on every variant — active keys carry their computed value, inactive keys carry `null`. This ensures [variant layering](/guides/variant-layering) can detect any constraint change between variants: a key that's absent can't be compared.
 
 ### Constraint type change: MIN → STRETCH
 

@@ -239,6 +239,6 @@ Manifests produced by older versions of `scan` (checkbox-list format like `- [x]
 ---
 
 **See Also:**
-- [Generate Command](/specs/cli/commands/generate/) - Generate specs from manifest or single component
-- [glyphNamePattern](/specs/config/glyph-name-pattern/) - Pattern syntax that drives Glyphs-section partitioning
-- [Configuration Reference](/specs/config/) - Format and config options
+- [Generate Command](/cli/commands/generate/) - Generate specs from manifest or single component
+- [glyphNamePattern](/settings/glyph-name-pattern/) - Pattern syntax that drives Glyphs-section partitioning
+- [Configuration Reference](/settings/) - Format and config options

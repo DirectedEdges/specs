@@ -347,6 +347,6 @@ The date in the filename keeps multiple runs distinct as the library evolves. Th
 
 ## See Also
 
-- [Analyze overview](/specs/cli/analyze/)
-- [`styling` analyzer](/specs/cli/analyze/styling/)
-- [Transforms overview](/specs/cli/transforms/)
+- [Analyze overview](/cli/analyze/)
+- [`styling` analyzer](/cli/analyze/styling/)
+- [Transforms overview](/cli/transforms/)
