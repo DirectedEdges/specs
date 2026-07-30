@@ -1,39 +1,22 @@
 /**
- * Render Command - Stub pointer to the figma-from-specs render bridge client
+ * Render Command
  *
- * Purpose:
- * - Give the fetch → scan → generate → render demo flow a single, consistent
- *   `specs render` entry point while the bridge client lives in
- *   specs-from-figma's src-figma-writer/bridge/write.js (see project-011
- *   notes: promotes into specs-cli + MCP tools later).
- * - This command only works against a local specs-from-figma checkout on
- *   feat/figma-writer (linked via file:/workspace symlink) — it resolves
- *   src-figma-writer/bridge/write.js relative to the resolved package root,
- *   which does not exist in a published npm install.
+ * Sends a spec (or a render manifest) to the local CLI bridge, which relays
+ * it to a connected Specs 2 Figma plugin to create or update the matching
+ * component live in Figma. See `specs bridge` to start/stop the bridge.
  */
 
 import { Command } from 'commander';
-import { spawn } from 'child_process';
 import fs from 'fs-extra';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { ConfigLoader } from '../Config/ConfigLoader.js';
+import { postRender } from '../bridge/client.js';
 
 const ERROR_CODES = {
   SUCCESS: 0,
   GENERAL_ERROR: 1,
   INVALID_ARGS: 2,
-  NOT_AVAILABLE: 7
 };
-
-function resolveBridgeScript(): string {
-  // package "exports" only exposes "." (dist/index.js), not package.json,
-  // so resolve the entry point and walk up to the package root.
-  const entryUrl = import.meta.resolve('@directededges/specs-from-figma');
-  const entryPath = fileURLToPath(entryUrl);
-  const repoRoot = path.dirname(path.dirname(entryPath)); // strip dist/index.js
-  return path.join(repoRoot, 'src-figma-writer', 'bridge', 'write.js'); // bridge client script name unchanged
-}
 
 // Resolve default alias the same way Generate/Scan do: `library` if it
 // declares `data: [file]`, else the first source that does.
@@ -44,21 +27,12 @@ function resolveDefaultAlias(sources: Record<string, { data?: string[] }>): stri
 }
 
 export const Render = new Command('render')
-  .description('Render a spec (or manifest) into Figma via the figma-from-specs bridge [demo stub]')
+  .description('Render a spec (or manifest) into Figma via the local CLI bridge')
   .argument('[specPath]', 'Path to a spec YAML file (default: {dataDirectory}/{alias}.render-manifest.md from config)')
   .option('-m, --manifest <path>', 'Path to a render-manifest.md file')
   .option('--config <path>', 'Path to config file (specs.config.yaml)')
   .option('--no-return-spec', 'Skip round-trip spec read after rendering in Figma')
   .action(async (specPath: string | undefined, options: { manifest?: string; config?: string; returnSpec: boolean; verbose?: boolean }) => {
-    const bridgeScript = resolveBridgeScript();
-
-    if (!fs.existsSync(bridgeScript)) {
-      console.error('Error: figma-from-specs render bridge not found.');
-      console.error(`  Expected: ${bridgeScript}`);
-      console.error('  This command only works against a local specs-from-figma checkout on feat/figma-writer.');
-      process.exit(ERROR_CODES.NOT_AVAILABLE);
-    }
-
     let manifestPath = options.manifest;
 
     if (!specPath && !manifestPath) {
@@ -84,25 +58,48 @@ export const Render = new Command('render')
       console.log(`Using default render manifest: ${path.relative(process.cwd(), manifestPath)}`);
     }
 
-    const args: string[] = [];
-    if (manifestPath) options.manifest = manifestPath;
-    if (options.manifest) {
-      args.push('--manifest', path.resolve(options.manifest));
-    } else if (specPath) {
-      args.push(path.resolve(specPath));
-    }
-    if (!options.returnSpec) {
-      args.push('--no-return-spec');
-    }
+    try {
+      if (manifestPath) {
+        const absManifestPath = path.resolve(manifestPath);
+        console.log(`Posting manifest: ${absManifestPath}`);
+        const result = await postRender({ manifestPath: absManifestPath });
 
-    const child = spawn('node', [bridgeScript, ...args], { stdio: 'inherit' });
+        if (!result.success) {
+          console.error(`Error: ${result.error}`);
+          process.exit(ERROR_CODES.GENERAL_ERROR);
+        }
 
-    child.on('exit', (code) => {
-      process.exit(code ?? ERROR_CODES.GENERAL_ERROR);
-    });
+        console.log(`\nDone: ${result.written} rendered in Figma, ${result.failed} failed.`);
+        if ((result.failed ?? 0) > 0) {
+          for (const r of result.results ?? []) {
+            if (r.error) console.error(`  ✗ ${r.name}: ${r.error}`);
+          }
+          process.exit(ERROR_CODES.GENERAL_ERROR);
+        }
+      } else if (specPath) {
+        const absSpecPath = path.resolve(specPath);
+        console.log(`Posting spec: ${absSpecPath}`);
+        const result = await postRender({ specPath: absSpecPath, returnSpec: options.returnSpec });
 
-    child.on('error', (error) => {
-      console.error(`Error: ${error.message}`);
+        if (!result.success) {
+          const msg = typeof result.error === 'string' ? result.error : JSON.stringify(result.error);
+          console.error(`✗ Render failed: ${msg}`);
+          process.exit(ERROR_CODES.GENERAL_ERROR);
+        }
+
+        console.log(`✓ Rendered in Figma. nodeId: ${result.nodeId}`);
+        if (result.specData) {
+          console.log('Spec round-trip data received.');
+        }
+      }
+    } catch (e) {
+      const err = e as NodeJS.ErrnoException;
+      if (err.cause && (err.cause as NodeJS.ErrnoException).code === 'ECONNREFUSED') {
+        console.error('Error: bridge is not running.');
+        console.error('  Start it with: specs bridge start');
+      } else {
+        console.error(`Error: ${err.message}`);
+      }
       process.exit(ERROR_CODES.GENERAL_ERROR);
-    });
+    }
   });
