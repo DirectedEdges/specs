@@ -11,6 +11,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { ConfigLoader } from '../Config/ConfigLoader.js';
 import { postRender } from '../bridge/client.js';
+import { loadSpec } from '../Render/SpecLoader.js';
 
 const ERROR_CODES = {
   SUCCESS: 0,
@@ -78,9 +79,9 @@ export const Render = new Command('render')
           process.exit(ERROR_CODES.GENERAL_ERROR);
         }
       } else if (specPath) {
-        const absSpecPath = path.resolve(specPath);
-        console.log(`Posting spec: ${absSpecPath}`);
-        const result = await postRender({ specPath: absSpecPath, returnSpec: options.returnSpec, fileKey: options.file });
+        const { spec, resolvePath } = loadSpec(specPath);
+        console.log(`Posting spec: ${resolvePath}`);
+        const result = await postRender({ specPath: resolvePath, spec, returnSpec: options.returnSpec, fileKey: options.file });
 
         if (!result.success) {
           const msg = typeof result.error === 'string' ? result.error : JSON.stringify(result.error);
