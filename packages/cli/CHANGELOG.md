@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`specs generate --from-selection`** — A third source mode for `generate`, alongside REST-file and manifest: generates a spec directly from whatever's selected in a connected Figma file via the CLI bridge, no REST fetch needed. Errors clearly when 2+ plugins are connected and no `--file <fileKey>` target is given, when nothing is selected, or when the selection isn't a component/component set/frame. Output location and structure follow the same config-driven resolution (`--output`, `--split-components`, `--split-concerns`, etc.) that file and manifest mode already use.
+- **`specs generate --from-bridge`** — A third source mode for `generate`, alongside REST-file and manifest: generates a spec directly from whatever's selected in a connected Figma file via the CLI bridge, no REST fetch needed. Errors clearly when 2+ plugins are connected and no `--file <fileKey>` target is given, when nothing is selected, or when the selection isn't a component/component set/frame. Output location and structure follow the same config-driven resolution (`--output`, `--split-components`, `--split-concerns`, etc.) that file and manifest mode already use.
 
 ### Changed
 

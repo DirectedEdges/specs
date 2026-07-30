@@ -4,9 +4,9 @@
  * Auto-detects source type:
  * - JSON file → file mode (single component with -c)
  * - Markdown manifest → manifest mode (multiple components from checkboxes)
- * - --from-selection → selection mode (current Figma selection via CLI bridge)
+ * - --from-bridge → bridge mode (current Figma selection via CLI bridge)
  *
- * File/manifest modes use Components.fromRestApi() batch API. Selection mode
+ * File/manifest modes use Components.fromRestApi() batch API. Bridge mode
  * gets an already-generated spec from the plugin over the bridge — no REST fetch.
  */
 
@@ -71,7 +71,7 @@ interface GenerateOptions {
   splitConcerns?: boolean;
   useSubfolders?: boolean;
   getImages?: boolean;
-  fromSelection?: boolean;
+  fromBridge?: boolean;
   file?: string;
 }
 
@@ -263,8 +263,8 @@ export const Generate = new Command('generate')
   .option('--split-concerns', 'Separate API, variants, and examples into different files')
   .option('--use-subfolders', 'Organize component files in subdirectories (requires --split-components)')
   .option('--get-images', 'Resolve unresolved registry images into files under _images/ (requires processing.images in config and FIGMA_TOKEN)')
-  .option('--from-selection', 'Generate from the current selection in a connected Figma file via the CLI bridge (no REST fetch)')
-  .option('--file <fileKey>', 'Target a specific connected Figma file with --from-selection (required if more than one plugin is connected)')
+  .option('--from-bridge', 'Generate from the current selection in a connected Figma file via the CLI bridge (no REST fetch)')
+  .option('--file <fileKey>', 'Target a specific connected Figma file with --from-bridge (required if more than one plugin is connected)')
   .option('--verbose', 'Enable detailed logging', false)
   .action(async (source: string | undefined, options: GenerateOptions) => {
     try {
@@ -278,13 +278,13 @@ export const Generate = new Command('generate')
       }
 
       // ---------------------------------------------------------------
-      // SELECTION MODE (--from-selection): bypass REST fetch entirely —
+      // BRIDGE MODE (--from-bridge): bypass REST fetch entirely —
       // the plugin has already generated the spec from the current
       // selection; just relay it through the same output writers.
       // ---------------------------------------------------------------
-      if (options.fromSelection) {
+      if (options.fromBridge) {
         if (source) {
-          console.error('Error: --from-selection does not take a source argument (it reads the current Figma selection).');
+          console.error('Error: --from-bridge does not take a source argument (it reads the current Figma selection).');
           process.exit(ERROR_CODES.INVALID_ARGS);
         }
 
