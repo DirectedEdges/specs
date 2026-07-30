@@ -33,6 +33,8 @@ export interface RenderRequestBody {
   pageId?: string;
   returnSpec?: boolean;
   fileKey?: string;
+  /** Delete a same-titled page node before rendering, instead of erroring on the collision. */
+  overwrite?: boolean;
 }
 
 export interface RenderResponse {
