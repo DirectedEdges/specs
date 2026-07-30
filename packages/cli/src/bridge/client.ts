@@ -53,3 +53,24 @@ export async function postRender(body: RenderRequestBody): Promise<RenderRespons
   });
   return (await res.json()) as RenderResponse;
 }
+
+export interface GenerateFromSelectionRequestBody {
+  fileKey?: string;
+}
+
+export interface GenerateFromSelectionResponse {
+  success: boolean;
+  nodeId?: string;
+  name?: string;
+  specData?: unknown;
+  error?: unknown;
+}
+
+export async function postGenerateFromSelection(body: GenerateFromSelectionRequestBody = {}): Promise<GenerateFromSelectionResponse> {
+  const res = await fetch(`http://localhost:${HTTP_PORT}/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  return (await res.json()) as GenerateFromSelectionResponse;
+}

@@ -45,7 +45,18 @@ describe('GenerateCommand', () => {
       expect(options).toContain('--split-components');
       expect(options).toContain('--split-concerns');
       expect(options).toContain('--use-subfolders');
+      expect(options).toContain('--from-selection');
+      expect(options).toContain('--file');
       expect(options).toContain('--verbose');
+    });
+
+    it('--from-selection and --file are not mandatory (opt-in source mode)', () => {
+      const fromSelection = Generate.options.find(o => o.long === '--from-selection');
+      const file = Generate.options.find(o => o.long === '--file');
+      expect(fromSelection).toBeDefined();
+      expect(fromSelection!.mandatory).toBeFalsy();
+      expect(file).toBeDefined();
+      expect(file!.mandatory).toBeFalsy();
     });
 
     it('has short aliases for key options', () => {

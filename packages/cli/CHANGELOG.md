@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`specs generate --from-selection`** — A third source mode for `generate`, alongside REST-file and manifest: generates a spec directly from whatever's selected in a connected Figma file via the CLI bridge, no REST fetch needed. Errors clearly when 2+ plugins are connected and no `--file <fileKey>` target is given, when nothing is selected, or when the selection isn't a component/component set/frame. Output location and structure follow the same config-driven resolution (`--output`, `--split-components`, `--split-concerns`, etc.) that file and manifest mode already use.
+
 ### Changed
 
 - **The bridge protocol now speaks "render" everywhere, not "write"** — The WebSocket message the plugin receives (`writeComponent`→`renderComponent`), its result event, the `POST /write`→`POST /render` HTTP control endpoint, and the `--write`→`--render` debug flag are all renamed. Finishes the write→render terminology cleanup for the bridge that was deferred while the bridge server migration from specs-from-figma was still in flight.
