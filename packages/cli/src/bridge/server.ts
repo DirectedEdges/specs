@@ -185,14 +185,14 @@ const http = createServer((req, res) => {
   let body = '';
   req.on('data', (chunk) => { body += chunk; });
   req.on('end', () => {
-    let params: { specPath?: string; manifestPath?: string; pageId?: string | null; returnSpec?: boolean; fileKey?: string };
+    let params: { specPath?: string; spec?: Record<string, unknown>; manifestPath?: string; pageId?: string | null; returnSpec?: boolean; fileKey?: string };
     try { params = JSON.parse(body); } catch {
       res.writeHead(400);
       res.end(JSON.stringify({ error: 'Invalid JSON body.' }));
       return;
     }
 
-    const { specPath: specArg, manifestPath: manifestArg, pageId = null, returnSpec, fileKey } = params;
+    const { specPath: specArg, spec: preParsedSpec, manifestPath: manifestArg, pageId = null, returnSpec, fileKey } = params;
 
     if (!specArg && !manifestArg) {
       res.writeHead(400);
@@ -232,7 +232,7 @@ const http = createServer((req, res) => {
 
     const shouldReturnSpec = typeof returnSpec === 'boolean' ? returnSpec : true;
 
-    sendWrite(specArg, pageId, shouldReturnSpec, {}, fileKey)
+    sendWrite(specArg, pageId, shouldReturnSpec, {}, fileKey, preParsedSpec)
       .then((result) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(result));
@@ -556,14 +556,18 @@ function getCurrentPageId(conn: Connection<WebSocket>): Promise<string> {
 /**
  * Send a single writeComponent message over the WebSocket and wait for the result.
  */
-async function sendWrite(specPath: string, rawPageId: string | null, returnSpec = true, instanceIdOverrides: Manifest = {}, fileKey?: string): Promise<WriteResult> {
+async function sendWrite(specPath: string, rawPageId: string | null, returnSpec = true, instanceIdOverrides: Manifest = {}, fileKey?: string, preParsedSpec?: Record<string, unknown>): Promise<WriteResult> {
   const conn = registry.resolve(fileKey);
 
   let spec: Record<string, unknown>;
-  try {
-    spec = parse(readFileSync(specPath, 'utf8'));
-  } catch (e) {
-    throw new Error(`Error reading spec: ${(e as Error).message}`);
+  if (preParsedSpec) {
+    spec = preParsedSpec;
+  } else {
+    try {
+      spec = parse(readFileSync(specPath, 'utf8'));
+    } catch (e) {
+      throw new Error(`Error reading spec: ${(e as Error).message}`);
+    }
   }
 
   const dirs = resolveDirs(specPath);

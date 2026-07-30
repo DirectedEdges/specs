@@ -25,6 +25,10 @@ export async function getBridgeStatus(timeoutMs = 1500): Promise<BridgeStatus> {
 
 export interface RenderRequestBody {
   specPath?: string;
+  /** Pre-parsed, pre-merged component spec. When present, the bridge relays
+   * it as-is instead of reading/parsing specPath itself. specPath is still
+   * required alongside it to derive the workspace (specsDir/dataDir). */
+  spec?: Record<string, unknown>;
   manifestPath?: string;
   pageId?: string;
   returnSpec?: boolean;
