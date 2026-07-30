@@ -1,18 +1,21 @@
 #!/usr/bin/env node
 // Bridge server — persistent WebSocket server for the Specs 2 CLI bridge.
 // Stays running until Ctrl+C (or SIGTERM from `specs bridge stop`). Accepts
-// multiple writeComponent commands per session.
+// multiple writeComponent commands per session, and multiple simultaneously
+// connected Figma files (each with its own plugin connection).
 //
 // Ports:
-//   9001 — WebSocket, for plugin connection (ui.html)
+//   9001 — WebSocket, for plugin connections (ui.html) — one per open Figma file
 //   9002 — HTTP, control endpoint for the CLI (`specs render`) or scripts
 //
 // HTTP API:
 //   POST http://localhost:9002/write
-//   Body: { "specPath": "/abs/path/to/spec.yaml", "pageId": "1462-365" }
+//   Body: { "specPath": "/abs/path/to/spec.yaml", "pageId": "1462-365", "fileKey": "..." }
+//   fileKey is optional when exactly one plugin is connected; required (and
+//   validated) when more than one is connected.
 //   Response: { "success": true, "nodeId": "...", "specData": {...} }
 //   GET  http://localhost:9002/status
-//   Response: { "connected": boolean }
+//   Response: { "connections": [{ "fileKey": "...", "fileName": "...", "connected": true }] }
 //
 // CLI (one-shot render, then stays running):
 //   node bridge-server.js [--workspace /path/to/workspace] --write path/to/spec.yaml [--pageId 1462-365]
@@ -22,6 +25,16 @@
 //   2. WORKSPACE_DIR env var
 //   3. Derived per-request from the specPath/manifestPath (walks up to find specs/ + data/ sibling dirs)
 //   4. SPECS_DIR / DATA_DIR env vars as explicit overrides for non-standard layouts
+//
+// Multi-connection protocol:
+//   Each plugin connection sends { type: 'hello', fileKey, fileName? } immediately
+//   on connect. The server tracks connections in a Map keyed by fileKey — this
+//   replaces a single "activeSocket" variable, which had a real bug: with only
+//   one tracked socket, an older connection's close event would null out a
+//   newer, still-live connection's reference. Every request (getPageId,
+//   writeComponent) carries a generated requestId; the plugin must echo it
+//   back on the matching result message, so responses route to the right
+//   caller even with multiple connections and requests in flight.
 
 import { WebSocketServer, type WebSocket } from 'ws';
 import { createServer } from 'http';
@@ -29,6 +42,8 @@ import { readFileSync, readdirSync, statSync } from 'fs';
 import { resolve as pathResolve, isAbsolute, basename, dirname } from 'path';
 import { parse } from 'yaml';
 import { WS_PORT, HTTP_PORT, DEFAULT_PAGE_ID, resolveWorkspaceDir } from './config.js';
+import { ConnectionRegistry, type Connection } from './connections.js';
+import { RequestTracker } from './requestTracker.js';
 
 type Manifest = Record<string, string>;
 
@@ -83,54 +98,64 @@ console.log(`  HTTP      : http://localhost:${HTTP_PORT}/write  (control)`);
 console.log(`  Enable the CLI Bridge in the Specs 2 plugin to connect.`);
 console.log(`  Ctrl+C to stop.\n`);
 
-// ── WebSocket server (plugin connection) ──────────────────────────────────────
+// ── WebSocket server (plugin connections) ─────────────────────────────────────
 
 const wss = new WebSocketServer({ port: WS_PORT });
-let activeSocket: WebSocket | null = null;
 
-// Pending write callbacks: resolve when writeComponent-result arrives
-let pendingResolve: ((result: WriteResult) => void) | null = null;
-let pendingReject: ((error: WriteResult) => void) | null = null;
+// Keyed by Figma file key. One entry per connected plugin instance.
+const registry = new ConnectionRegistry<WebSocket>();
 
-// Pending getPageId callback
-let pendingPageIdResolve: ((pageId: string) => void) | null = null;
+// Pending requests keyed by a generated requestId, so responses route to the
+// right caller regardless of which connection they came from.
+const requests = new RequestTracker<string | WriteResult>();
 
 wss.on('connection', (ws: WebSocket) => {
-  activeSocket = ws;
-  console.log('Plugin connected.');
+  // This connection's fileKey isn't known until its 'hello' message arrives.
+  let thisFileKey: string | null = null;
+  console.log('Plugin socket opened, awaiting hello…');
 
   ws.on('message', (data: Buffer) => {
     let msg: Record<string, unknown>;
     try { msg = JSON.parse(data.toString()); } catch { return; }
 
-    if (msg.type === 'pageId-result') {
-      pendingPageIdResolve?.(msg.pageId as string);
-      pendingPageIdResolve = null;
+    if (msg.type === 'hello') {
+      thisFileKey = msg.fileKey as string;
+      const fileName = msg.fileName as string | undefined;
+      registry.register(thisFileKey, ws, fileName);
+      console.log(`Plugin connected: ${thisFileKey}${fileName ? ` (${fileName})` : ''}`);
       return;
     }
 
-    if (msg.type === 'writeComponent-result') {
+    if (msg.type === 'pageId-result' || msg.type === 'writeComponent-result') {
+      const requestId = msg.requestId as string | undefined;
+      if (!requestId) return; // no way to route this response
+
+      if (msg.type === 'pageId-result') {
+        requests.resolve(requestId, msg.pageId as string);
+        return;
+      }
+
+      // writeComponent-result
       if (msg.success) {
         const nodeId = msg.nodeId as string;
         const specData = msg.specData ?? null;
         console.log(`✓ Rendered in Figma. nodeId: ${nodeId}`);
         if (specData) console.log('  Spec round-trip: received generated spec data.');
-        pendingResolve?.({ success: true, nodeId, specData });
+        requests.resolve(requestId, { success: true, nodeId, specData });
       } else {
         console.error(`✗ Render failed: ${msg.error}`);
-        pendingResolve?.({ success: false, error: msg.error as string });
+        requests.resolve(requestId, { success: false, error: msg.error as string });
       }
-      pendingResolve = null;
-      pendingReject = null;
     }
   });
 
   ws.on('close', () => {
-    activeSocket = null;
-    pendingReject?.({ success: false, error: 'Plugin disconnected before responding.' });
-    pendingResolve = null;
-    pendingReject = null;
-    console.log('Plugin disconnected.');
+    if (thisFileKey) {
+      registry.unregister(thisFileKey);
+      console.log(`Plugin disconnected: ${thisFileKey}`);
+    } else {
+      console.log('Plugin socket closed before hello.');
+    }
   });
 
   ws.on('error', (e: Error) => console.error('Socket error:', e.message));
@@ -146,9 +171,8 @@ wss.on('error', (e: NodeJS.ErrnoException) => {
 
 const http = createServer((req, res) => {
   if (req.method === 'GET' && req.url === '/status') {
-    const connected = !!activeSocket && activeSocket.readyState === 1;
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ connected }));
+    res.end(JSON.stringify({ connections: registry.list() }));
     return;
   }
 
@@ -161,14 +185,14 @@ const http = createServer((req, res) => {
   let body = '';
   req.on('data', (chunk) => { body += chunk; });
   req.on('end', () => {
-    let params: { specPath?: string; manifestPath?: string; pageId?: string | null; returnSpec?: boolean };
+    let params: { specPath?: string; manifestPath?: string; pageId?: string | null; returnSpec?: boolean; fileKey?: string };
     try { params = JSON.parse(body); } catch {
       res.writeHead(400);
       res.end(JSON.stringify({ error: 'Invalid JSON body.' }));
       return;
     }
 
-    const { specPath: specArg, manifestPath: manifestArg, pageId = null, returnSpec } = params;
+    const { specPath: specArg, manifestPath: manifestArg, pageId = null, returnSpec, fileKey } = params;
 
     if (!specArg && !manifestArg) {
       res.writeHead(400);
@@ -187,7 +211,7 @@ const http = createServer((req, res) => {
         res.end(JSON.stringify({ success: false, error: (e as Error).message }));
         return;
       }
-      drainManifest(specPaths, pageId)
+      drainManifest(specPaths, pageId, fileKey)
         .then((summary) => {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: true, ...summary }));
@@ -208,7 +232,7 @@ const http = createServer((req, res) => {
 
     const shouldReturnSpec = typeof returnSpec === 'boolean' ? returnSpec : true;
 
-    sendWrite(specArg, pageId, shouldReturnSpec)
+    sendWrite(specArg, pageId, shouldReturnSpec, {}, fileKey)
       .then((result) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(result));
@@ -484,7 +508,7 @@ function parseRenderManifest(manifestPath: string): string[] {
 /**
  * Drain a render manifest queue sequentially, accumulating instanceIds for dependency resolution.
  */
-async function drainManifest(specPaths: string[], rawPageId: string | null) {
+async function drainManifest(specPaths: string[], rawPageId: string | null, fileKey?: string) {
   const results: Array<{ name: string; nodeId?: string; error?: string }> = [];
   const instanceIdAccumulator: Manifest = {};
   const total = specPaths.length;
@@ -497,7 +521,7 @@ async function drainManifest(specPaths: string[], rawPageId: string | null) {
     console.log(`Rendering ${i + 1}/${total}: ${name}…`);
 
     try {
-      const result = await sendWrite(specPath, rawPageId, false, instanceIdAccumulator);
+      const result = await sendWrite(specPath, rawPageId, false, instanceIdAccumulator, fileKey);
       if (result.success && result.nodeId) {
         instanceIdAccumulator[name] = result.nodeId;
         results.push({ name, nodeId: result.nodeId });
@@ -521,32 +545,19 @@ async function drainManifest(specPaths: string[], rawPageId: string | null) {
 // ── Shared render logic ───────────────────────────────────────────────────────
 
 /**
- * Ask the plugin for the current Figma page ID.
+ * Ask a specific connection's plugin for the current Figma page ID.
  */
-function getCurrentPageId(): Promise<string> {
-  return new Promise((resolve, reject) => {
-    if (!activeSocket || activeSocket.readyState !== 1) {
-      reject(new Error('No plugin connected.'));
-      return;
-    }
-    pendingPageIdResolve = resolve;
-    activeSocket.send(JSON.stringify({ type: 'getPageId' }));
-    setTimeout(() => {
-      if (pendingPageIdResolve === resolve) {
-        pendingPageIdResolve = null;
-        reject(new Error('Timed out waiting for pageId-result.'));
-      }
-    }, 5000);
-  });
+function getCurrentPageId(conn: Connection<WebSocket>): Promise<string> {
+  const { requestId, promise } = requests.create(5000, 'Timed out waiting for pageId-result.');
+  conn.ws.send(JSON.stringify({ type: 'getPageId', requestId }));
+  return promise as Promise<string>;
 }
 
 /**
  * Send a single writeComponent message over the WebSocket and wait for the result.
  */
-async function sendWrite(specPath: string, rawPageId: string | null, returnSpec = true, instanceIdOverrides: Manifest = {}): Promise<WriteResult> {
-  if (!activeSocket || activeSocket.readyState !== 1) {
-    throw new Error('No plugin connected. Enable the CLI Bridge in Specs 2 first.');
-  }
+async function sendWrite(specPath: string, rawPageId: string | null, returnSpec = true, instanceIdOverrides: Manifest = {}, fileKey?: string): Promise<WriteResult> {
+  const conn = registry.resolve(fileKey);
 
   let spec: Record<string, unknown>;
   try {
@@ -565,13 +576,13 @@ async function sendWrite(specPath: string, rawPageId: string | null, returnSpec 
   const stylesManifest = buildStylesManifest(pathResolve(dataDir, workspaceName + '.file.json'));
   const variablesManifest = buildVariablesManifest(pathResolve(dataDir, workspaceName + '.variables.json'));
 
-  // Resolve page ID: use provided value, or ask the plugin for the current page.
+  // Resolve page ID: use provided value, or ask this connection's plugin for its current page.
   let pageId: string;
   if (rawPageId) {
     pageId = rawPageId.replace(/-/g, ':');
   } else {
-    pageId = await getCurrentPageId();
-    console.log(`  Page ID: ${pageId} (from plugin current page)`);
+    pageId = await getCurrentPageId(conn);
+    console.log(`  Page ID: ${pageId} (from plugin current page, ${conn.fileKey})`);
   }
 
   const specTyped = spec as { components?: Record<string, { title?: string }> };
@@ -579,26 +590,17 @@ async function sendWrite(specPath: string, rawPageId: string | null, returnSpec 
     ?? Object.keys(specTyped.components ?? {})[0]
     ?? specPath;
 
-  console.log(`Rendering: ${componentName} → page ${pageId}`);
+  console.log(`Rendering: ${componentName} → page ${pageId} (${conn.fileKey})`);
 
-  return new Promise((resolve, reject) => {
-    pendingResolve = resolve;
-    pendingReject = reject;
-    activeSocket!.send(JSON.stringify({ type: 'writeComponent', spec, pageId, returnSpec, instanceIdManifest: manifest, glyphIdManifest, stylesManifest, variablesManifest }));
-
-    setTimeout(() => {
-      if (pendingResolve === resolve) {
-        pendingResolve = null;
-        pendingReject = null;
-        reject(new Error('Timed out waiting for writeComponent-result.'));
-      }
-    }, 60000);
-  });
+  const { requestId, promise } = requests.create(60000, 'Timed out waiting for writeComponent-result.');
+  conn.ws.send(JSON.stringify({ type: 'writeComponent', requestId, spec, pageId, returnSpec, instanceIdManifest: manifest, glyphIdManifest, stylesManifest, variablesManifest }));
+  return promise as Promise<WriteResult>;
 }
 
 // ── CLI: --write flag ─────────────────────────────────────────────────────────
 //
 // node bridge-server.js --write /abs/path/to/spec.yaml [--pageId 1462-365]
+// Debug shortcut — only works when exactly one plugin is connected.
 
 const writeIdx = process.argv.indexOf('--write');
 if (writeIdx !== -1) {
@@ -610,7 +612,7 @@ if (writeIdx !== -1) {
   if (!isAbsolute(specArg)) { console.error('--write path must be absolute'); process.exit(1); }
 
   const tryWrite = (): void => {
-    if (activeSocket && activeSocket.readyState === 1) {
+    if (registry.size > 0) {
       sendWrite(specArg, rawPageId)
         .then((r) => { if (r.specData) console.log('Spec data received. Ready for diff.'); })
         .catch((e) => console.error((e as Error).message));
