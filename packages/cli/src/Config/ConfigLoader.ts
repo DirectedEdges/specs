@@ -192,6 +192,42 @@ export class ConfigLoader {
       }
     }
 
+    // Validate processing.images (ADR-063). Presence of the block is the
+    // on-switch; each member is an independent representation trigger.
+    if (corrected.processing.images !== undefined) {
+      const img = corrected.processing.images as unknown as Record<string, unknown>;
+      if (img === null || typeof img !== 'object') {
+        console.warn('Invalid processing.images: expected an object. Removing images config.');
+        delete corrected.processing.images;
+      } else {
+        if (img.backgroundImage !== undefined && typeof img.backgroundImage !== 'boolean') {
+          console.warn(`Invalid processing.images.backgroundImage: expected boolean, got ${typeof img.backgroundImage}. Using default: false`);
+        }
+        const sourceProps = Array.isArray(img.sourceProps)
+          ? (img.sourceProps as unknown[]).filter((p): p is string => typeof p === 'string' && p.trim() !== '').map(p => p.trim())
+          : [];
+        if (img.sourceProps !== undefined && (!Array.isArray(img.sourceProps) || sourceProps.length === 0)) {
+          console.warn('Invalid processing.images.sourceProps: expected a non-empty array of strings. Ignoring sourceProps.');
+        }
+        let imageComponent = typeof img.imageComponent === 'string' && (img.imageComponent as string).trim() !== ''
+          ? (img.imageComponent as string).trim()
+          : undefined;
+        if (img.imageComponent !== undefined && !imageComponent) {
+          console.warn('Invalid processing.images.imageComponent: expected a non-empty string. Ignoring imageComponent.');
+        }
+        // The designated component needs a forwarding target: sourceProps[0].
+        if (imageComponent && sourceProps.length === 0) {
+          console.warn('processing.images.imageComponent requires a non-empty sourceProps (sourceProps[0] is its source prop). Ignoring imageComponent.');
+          imageComponent = undefined;
+        }
+        corrected.processing.images = {
+          backgroundImage: img.backgroundImage === true,
+          ...(imageComponent && { imageComponent }),
+          sourceProps,
+        };
+      }
+    }
+
     // Validate processing.instanceExamples (ADR-050)
     if (corrected.processing.instanceExamples !== undefined) {
       const ie = corrected.processing.instanceExamples;

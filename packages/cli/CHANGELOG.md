@@ -5,6 +5,55 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.26.0] - Unreleased
+
+### Added
+
+### Changed
+
+### Removed
+
+
+## [0.25.0] - 2026-07-16
+
+Generated specs can now include the images your components actually use. Enable `processing.images` in config and image fills emit as typed `backgroundImage` values backed by a per-component `images` registry; then run `specs generate --get-images` to download each referenced image once into an `_images/` folder and point every registry entry at a real file. Text truncation (`textOverflow`, `maxLines`) is now captured on text elements, rotated elements keep their sub-degree precision, and `specs generate` output is quieter — per-file overwrite warnings collapse into a single summary line.
+
+### Added
+
+- **Image config surface (ADR-063)** — `processing.images` is validated when present (presence is the on-switch): `backgroundImage` coerces to a literal boolean, `sourceProps` must be a non-empty array of strings (trimmed), and `imageComponent` requires a non-empty `sourceProps` (its forwarding target is `sourceProps[0]`) — invalid members are dropped with warnings. The images registry joins the *examples* concern under `--split-concerns` (emitted in `examples.yaml`, counted toward whether that file is written).
+- **`specs generate --get-images` (ADR-063 resolution phase)** — Resolves unresolved registry entries (Figma identity in `$extensions['com.figma'].imageHash`, no `src`) into real files. Calls Figma's Get Image Fills endpoint (requires `FIGMA_TOKEN` and a configured source key), downloads each distinct image once, writes `_images/<imageHash>.<ext>` inside the output directory (format detected from magic bytes: png/jpg/gif/webp), and adds `src` to each entry — a path relative to the referencing spec file (`_images/...`, or `../_images/...` in per-component-folder layouts). The Figma identity survives for reverse-direction tooling; `$image` pointers are untouched; temporary S3 URLs are never persisted; unresolvable hashes stay unresolved with a warning.
+
+### Changed
+
+- **`specs generate` write output simplified** — Per-file "Overwriting existing file" warnings now collapse into a single summary line instead of one per file, and the redundant "✓ Saved to"/"✓ Generated N files" success echo has been removed.
+
+### Dependency updates
+
+- **`@directededges/specs-schema` ^0.28.0** — Adds the image vocabulary generated specs now use: the `backgroundImage` style, the per-component `images` registry, image-typed props, image bindings for forwarding into nested instances, and the `Config.processing.images` block. Also adds `textOverflow`/`maxLines` for text elements, and fixes several false validation failures — color token references with resolved color values, subcomponent `source` identity, and collapsed-root `originalName` provenance now validate cleanly, while `$nested` configurations with an empty path are correctly rejected.
+- **`@directededges/specs-from-figma` ^0.27.0** — Implements image detection: image fills on containers emit `backgroundImage` entries into the `images` registry instead of being silently dropped, image-source props re-type to image props, and a designated image component forwards images into the instances that render them. Text elements now carry `textOverflow` and `maxLines`, and rotated elements no longer lose sub-degree precision in CLI output (restoring parity with the plugin).
+
+## [0.24.0] - 2026-07-04
+
+`specs transform` gains two new transformers — `react` and `stories` — that scaffold a working React component and a matching Storybook page directly from the spec, plus a `--components` filter to scope a run to specific components. The `contract` and `css` transformers pick up complementary additions (slot visibility rules, structural CSS fixes) to support the new component scaffolding. Generated filenames are now prefixed with the component name for clarity outside the folder tree — a breaking change for any tooling that hardcodes the old unprefixed filenames.
+
+### Added
+
+- **`react` transformer** — Emits a working React component (`generated/react/{Component}.scaffold.tsx`) with BEM markup from the merged layout tree, `data-*` variant attributes, ARIA state attributes, and slot/element rendering gated on the visibility rules from `contract`. Also seeds a one-time authored copy into `src/react/{Component}.tsx` plus empty `{Component}.extensions.css` and `{Component}.proposed.css` files — created once, never overwritten on subsequent runs. Subcomponents get their own scaffold and seeded authored files under their own subfolder. Instance-typed elements render as a placeholder comment (not yet implemented). Requires `variants.yaml`; components without it are skipped with a warning.
+- **`stories` transformer** — Emits a Storybook CSF page (`generated/react/{Component}.stories.tsx`) with a `Default` story plus one story per variant configuration expressible through props. Imports the **authored** component seeded by `react`, not the regenerated scaffold, so Storybook reflects implementation changes. Meta args combine the contract's `Defaults` with example values for string/slot props. Variants driven purely by browser-fired states (`:hover`, `:active`) are skipped, since they have no corresponding prop. Also requires `variants.yaml`. Subcomponents get their own stories file, importing their own authored component.
+- **`contract` transformer emits `Slots` and `SlotRules`** — When `variants.yaml` is present, the contract now also emits a `{Component}Slots` interface and a `{Component}SlotRules` const describing which anatomy elements are content-injection points and when each renders (`always`, `whenTrue`, `whenNotNull`, `whenValue`). Consumed by the `react` transformer to gate element rendering. Slots come from anatomy `slot` elements (typed `unknown`) and bound `text` elements (typed `string`); a slot is required only when its rule is `always`.
+- **`transform --components <keys...>`** — Scopes a `specs transform` run to specific component folders instead of every component discovered in the output directory. Unknown keys log a warning and are skipped.
+
+### Changed
+
+- **`css` transformer now handles structurally-absent elements and stacking/containing-block fixes** — Elements present in some variant layouts but absent from the default layout are now hidden at the base (`display: none`) and un-hidden only under the variant selectors that include them. Elements with `position: ABSOLUTE` now get their layout parent promoted to `position: relative` (establishing a containing block), and that parent's non-absolute siblings also get `position: relative` so DOM paint order matches Figma's layer order instead of the absolute element covering static siblings. Both derived automatically from comparing default vs. variant layouts — no configuration needed.
+- **Generated transform output filenames are now prefixed with the component name** — `contract.ts` → `{Component}.contract.ts`, `styles.css` → `{Component}.styles.css`, and the new `react`/`stories` output follow the same convention (`{Component}.scaffold.tsx`, `{Component}.stories.tsx`). Subcomponent output is prefixed with just the subcomponent's own name (e.g. `Group.contract.ts`), not the parent's, since the subfolder already disambiguates it. This is a breaking rename for anything that reads the previous unprefixed filenames directly.
+- **Clearer `transform` prerequisite guidance** — The "no specs directory" and "no component directories" error messages no longer suggest `--use-subfolders`, which has no effect once `--split-concerns` is set. The correct prerequisite is `specs generate --split-components --split-concerns`.
+
+### Dependency updates
+
+- **`@directededges/specs-from-figma` ^0.26.0** — Fixes a casing bug where variant `configuration` values, instance `propConfigurations`, and `invalidVariantCombinations` were being reformatted (e.g. `Error` → `error`) while enum values and defaults were not, causing per-variant style overrides and invalid-combination checks to silently fail to match. Also fixes default slot content being pruned away when the slot itself is hidden by a conditional visibility prop — generated specs no longer lose default content for these slots.
+
+
 ## [0.23.0] - 2026-07-01
 
 Specs generated by the CLI now capture dashed stroke styling and record where each subcomponent lives back in the source Figma file — both come from upstream engine and schema updates, with no CLI-side changes required to pick them up.

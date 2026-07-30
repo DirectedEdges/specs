@@ -2,6 +2,7 @@ import { PropBinding } from "./PropBinding.js";
 import { Conditional } from "./Conditional.js";
 import { Effects } from "./Effects.js";
 import { GradientValue } from "./Gradient.js";
+import { ImageValue } from "./Image.js";
 
 export type Styles = Partial<{
   rotation: Style;
@@ -9,6 +10,8 @@ export type Styles = Partial<{
   opacity: Style;
   locked: Style;
   backgroundColor: ColorStyle;
+  /** Image fill painted on a layer. Present on container element types. Fallback representation used when no image component is configured. A `TokenReference` when the image fill comes from an applied Figma fill style (the style reference routes here — not to `backgroundColor` — when the styled paint is an image). Absent when there is no image fill. @since 0.28.0 */
+  backgroundImage: ImageValue | TokenReference | null;
   /** Glyph fill color. Present on GLYPH element type only. Represented in Figma as fills. @since 0.13.0 */
   fillColor: ColorStyle;
   effects: TokenReference | Effects;
@@ -46,6 +49,10 @@ export type Styles = Partial<{
   typography: TokenReference | Typography;
   textAlignHorizontal: Style;
   textAlignVertical: Style;
+  /** How overflowing text is handled — `CLIP` (cut off) or `ELLIPSIS` (trailing ellipsis). Structural property — not token-bindable. Present on TEXT element type only. @since 0.28.0 */
+  textOverflow: TextOverflow | null;
+  /** Maximum number of lines before `ELLIPSIS` text overflow applies; `null` or absent means no limit. Present on TEXT element type only. @since 0.28.0 */
+  maxLines: Style;
   textColor: ColorStyle;
   /** Alignment along the main axis (depends on `layoutMode`). Structural property — not token-bindable. @since 0.18.0 */
   mainAxisAlignment: MainAxisAlignment | null;
@@ -79,7 +86,8 @@ export interface TokenReference {
   /**
    * DTCG token type (Format Module §9). Standard values: color, dimension, string, number, boolean,
    * shadow, gradient, typography. "effects" is a Specs extension for EffectsGroup references
-   * (multi-shadow + blur composite) with no DTCG equivalent.
+   * (multi-shadow + blur composite) with no DTCG equivalent. "image" is a Specs extension for
+   * fill-style references whose styled paint is an image (ADR-063), likewise without a DTCG equivalent.
    */
   $type:
     | 'color'
@@ -90,7 +98,8 @@ export interface TokenReference {
     | 'shadow'
     | 'gradient'
     | 'typography'
-    | 'effects';
+    | 'effects'
+    | 'image';
   /** Tool-specific metadata per DTCG §5.2.3 (reverse domain name notation). Optional; not required for platform code generation. */
   $extensions?: {
     'com.figma'?: {
@@ -100,8 +109,8 @@ export interface TokenReference {
       name?: string;
       /** Figma collection name, e.g. "DS Color" (variables only; presence distinguishes variable from named-style reference). */
       collectionName?: string;
-      /** Value resolved by Figma at extraction time. No DTCG equivalent; Figma extraction provenance only. */
-      rawValue?: string | number | boolean;
+      /** Value resolved by Figma at extraction time. Color tokens resolve to a DTCG Color object. No DTCG equivalent; Figma extraction provenance only. */
+      rawValue?: string | number | boolean | ColorObject;
     };
   };
 }
@@ -260,6 +269,14 @@ export type MainAxisAlignment = 'START' | 'END' | 'CENTER' | 'SPACE_BETWEEN';
 export type CrossAxisAlignment = 'START' | 'END' | 'CENTER' | 'STRETCH' | 'BASELINE';
 
 /**
+ * How text is handled when it overflows its bounds. Structural property that cannot be token-bound.
+ * `'CLIP'` cuts the text off; `'ELLIPSIS'` truncates with a trailing ellipsis.
+ * Named after CSS `text-overflow` and Jetpack Compose `TextOverflow` (values `clip`/`ellipsis`).
+ * @since 0.28.0
+ */
+export type TextOverflow = 'CLIP' | 'ELLIPSIS';
+
+/**
  * Dash geometry for a dashed stroke.
  * Presence on `Styles.strokeDashPattern` indicates a dashed stroke; null or absent indicates solid.
  * `dash` and `gap` are in pixels and correspond to index 0 and 1 of Figma's `strokeDashes` array.
@@ -311,6 +328,7 @@ export type StyleKey =
   | 'opacity'
   | 'locked'
   | 'backgroundColor'
+  | 'backgroundImage'
   | 'fillColor'
   | 'effects'
   | 'clipContent'
@@ -337,6 +355,8 @@ export type StyleKey =
   | 'typography'
   | 'textAlignHorizontal'
   | 'textAlignVertical'
+  | 'textOverflow'
+  | 'maxLines'
   | 'textColor'
   | 'mainAxisAlignment'
   | 'primaryAxisSizingMode'

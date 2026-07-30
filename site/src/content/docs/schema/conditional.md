@@ -28,7 +28,7 @@ interface Conditional {
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
 | `operation` | `string` | Yes | Operation to perform |
-| `args.value` | [`PropBinding`](/specs/schema/prop-binding/) | Yes | The prop to test |
+| `args.value` | [`PropBinding`](/schema/prop-binding/) | Yes | The prop to test |
 | `args.compareTo` | `string \| number \| boolean \| null` | No | Comparison value (omitted for unary operations) |
 
 ### Operations

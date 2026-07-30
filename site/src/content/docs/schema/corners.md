@@ -18,10 +18,10 @@ interface Corners {
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `topStart` | [`Style`](/specs/schema/styles.md/#values) | No | Top-start corner |
-| `topEnd` | [`Style`](/specs/schema/styles.md/#values) | No | Top-end corner |
-| `bottomEnd` | [`Style`](/specs/schema/styles.md/#values) | No | Bottom-end corner |
-| `bottomStart` | [`Style`](/specs/schema/styles.md/#values) | No | Bottom-start corner |
+| `topStart` | [`Style`](/schema/styles.md/#values) | No | Top-start corner |
+| `topEnd` | [`Style`](/schema/styles.md/#values) | No | Top-end corner |
+| `bottomEnd` | [`Style`](/schema/styles.md/#values) | No | Bottom-end corner |
+| `bottomStart` | [`Style`](/schema/styles.md/#values) | No | Bottom-start corner |
 
 Corner names use logical directions (`topStart`/`bottomEnd`) rather than physical (`topLeft`/`bottomRight`) for bidirectional layout support.
 

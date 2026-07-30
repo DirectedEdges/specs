@@ -1,0 +1,41 @@
+---
+interface Props {
+  caption?: string;
+  maxWidth?: string;
+  aspectRatio?: string;
+}
+
+const { caption, maxWidth = '500px', aspectRatio = '16 / 10' } = Astro.props;
+---
+
+<figure style={{ maxWidth, marginInline: 'auto' }}>
+  <div class="placeholder" style={{ aspectRatio }}>
+    <span>Screenshot placeholder</span>
+  </div>
+  {caption && <figcaption>{caption}</figcaption>}
+</figure>
+
+<style>
+  figure {
+    margin-bottom: 0;
+  }
+
+  .placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    border: 1px dashed var(--sl-color-gray-4);
+    border-radius: 4px;
+    background-color: var(--sl-color-gray-6);
+    color: var(--sl-color-gray-3);
+    font-size: var(--sl-text-sm);
+  }
+
+  figcaption {
+    margin-top: 0.25rem;
+    text-align: center;
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-3);
+  }
+</style>

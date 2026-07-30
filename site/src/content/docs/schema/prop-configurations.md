@@ -8,7 +8,7 @@ A flat map of prop names to the values they must hold for a condition to apply, 
 ```ts
 type PropConfigurations = Record<
   string,
-  string | number | boolean | PropBinding | CompositionRef
+  string | number | boolean | PropBinding | CompositionRef | ImageBinding
 >;
 ```
 
@@ -17,6 +17,7 @@ type PropConfigurations = Record<
 | `string \| number \| boolean` | Anywhere `PropConfigurations` is used | Static scalar prop value |
 | `PropBinding` (`{ $binding }`) | `Element.propConfigurations` only | Pass-through binding to a parent prop |
 | `CompositionRef` (`{ $composition }`) | `Element.propConfigurations` only, under a slot-prop key | JSON Pointer to a named `Composition` (in `Component.slotContent` or in an external composition file) used to fill a nested instance's slot |
+| `ImageBinding` (`{ $binding, examples? }`) | `Element.propConfigurations` only, under an image-prop key | Forwards a parent image prop into a nested image instance's source prop, carrying authoring-default example images (since 0.28.0) |
 
 `InstanceExample.propConfigurations` is scalar-only by design — `PropBinding` and `CompositionRef` are not permitted there.
 
@@ -24,8 +25,8 @@ type PropConfigurations = Record<
 
 PropConfigurations appear in four places:
 
-- **Variant `configuration`** — declares which prop combination activates a [variant](/specs/schema/variants.md/#variant). When all listed props match their specified values, the variant's overrides are applied.
-- **`invalidVariantCombinations`** — an array on the [Component](/specs/schema/component/) root that declares prop combinations which should never occur together.
+- **Variant `configuration`** — declares which prop combination activates a [variant](/schema/variants.md/#variant). When all listed props match their specified values, the variant's overrides are applied.
+- **`invalidVariantCombinations`** — an array on the [Component](/schema/component/) root that declares prop combinations which should never occur together.
 - **`Element.propConfigurations`** — sets prop values on a nested instance element; accepts the full union (scalars, `PropBinding`, `CompositionRef`).
 - **`InstanceExample.propConfigurations`** — documents a complete scalar-prop configuration; scalars only.
 

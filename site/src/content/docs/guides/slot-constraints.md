@@ -86,4 +86,4 @@ The field names `minChildren`/`maxChildren` align with Figma's native `slotSetti
 
 - [Code-Only Props in Figma](https://nathanacurtis.substack.com/p/code-only-props-in-figma) — the convention for encoding developer-facing properties on Figma layers
 - [Figma Slots for Repeating Items](https://nathanacurtis.substack.com/p/figma-slots-for-repeating-items) — design patterns for slots with quantity and content-type constraints
-- [CLI Configuration](/specs/config/) — full config reference
+- [CLI Configuration](/settings/) — full config reference

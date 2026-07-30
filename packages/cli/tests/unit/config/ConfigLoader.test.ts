@@ -495,6 +495,79 @@ config:
     });
   });
 
+  describe('processing.images validation (ADR-063)', () => {
+    it('resolves a full block: backgroundImage, trimmed imageComponent, trimmed sourceProps', () => {
+      const configPath = path.join(testDir, 'specs.config.json');
+      fs.writeFileSync(configPath, JSON.stringify({
+        config: { processing: { images: { backgroundImage: true, imageComponent: ' DS Image ', sourceProps: [' imageSource ', 'src'] } } },
+      }));
+
+      const config = configLoader.load();
+      expect(config.config.processing.images).toEqual({
+        backgroundImage: true,
+        imageComponent: 'DS Image',
+        sourceProps: ['imageSource', 'src'],
+      });
+    });
+
+    it('fills-only: backgroundImage alone resolves with defaults', () => {
+      const configPath = path.join(testDir, 'specs.config.yaml');
+      fs.writeFileSync(configPath, 'config:\n  processing:\n    images:\n      backgroundImage: true');
+
+      const config = configLoader.load();
+      expect(config.config.processing.images).toEqual({ backgroundImage: true, sourceProps: [] });
+    });
+
+    it('sourceProps-only: re-typing without fills or component', () => {
+      const configPath = path.join(testDir, 'specs.config.json');
+      fs.writeFileSync(configPath, JSON.stringify({
+        config: { processing: { images: { sourceProps: ['Image'] } } },
+      }));
+
+      const config = configLoader.load();
+      expect(config.config.processing.images).toEqual({ backgroundImage: false, sourceProps: ['Image'] });
+    });
+
+    it('imageComponent without sourceProps is dropped (needs a forwarding target)', () => {
+      const configPath = path.join(testDir, 'specs.config.json');
+      fs.writeFileSync(configPath, JSON.stringify({
+        config: { processing: { images: { backgroundImage: true, imageComponent: 'DS Image' } } },
+      }));
+
+      const config = configLoader.load();
+      expect(config.config.processing.images).toEqual({ backgroundImage: true, sourceProps: [] });
+      expect(config.config.processing.images).not.toHaveProperty('imageComponent');
+    });
+
+    it('coerces a non-boolean backgroundImage to false', () => {
+      const configPath = path.join(testDir, 'specs.config.json');
+      fs.writeFileSync(configPath, JSON.stringify({
+        config: { processing: { images: { backgroundImage: 'yes' } } },
+      }));
+
+      const config = configLoader.load();
+      expect(config.config.processing.images?.backgroundImage).toBe(false);
+    });
+
+    it('is absent by default (presence is the on-switch)', () => {
+      const configPath = path.join(testDir, 'specs.config.yaml');
+      fs.writeFileSync(configPath, 'config:\n  processing:\n    variantDepth: 2');
+
+      const config = configLoader.load();
+      expect(config.config.processing.images).toBeUndefined();
+    });
+
+    it('strips the retired include.imageData key', () => {
+      const configPath = path.join(testDir, 'specs.config.json');
+      fs.writeFileSync(configPath, JSON.stringify({
+        config: { include: { imageData: true } },
+      }));
+
+      const config = configLoader.load();
+      expect((config.config.include as Record<string, unknown>).imageData).toBeUndefined();
+    });
+  });
+
   describe('Merging with defaults', () => {
     it('should merge partial config with defaults', () => {
       const configPath = path.join(testDir, 'specs.config.yaml');

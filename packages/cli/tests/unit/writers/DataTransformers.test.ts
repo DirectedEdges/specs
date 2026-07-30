@@ -81,6 +81,33 @@ describe('splitComponentByConcern — examples concern', () => {
   });
 });
 
+describe('splitComponentByConcern — images registry (ADR-063)', () => {
+  it('routes images into examples and counts as example data — the egdsAvatar case', () => {
+    const { api, variants, examples } = splitComponentByConcern({
+      title: 'egdsAvatar',
+      anatomy: {},
+      default: {},
+      images: { egdsAvatar__image: { src: '_images/d54334d2.png' } },
+      metadata: {},
+    });
+    expect(examples.images).toEqual({ egdsAvatar__image: { src: '_images/d54334d2.png' } });
+    expect((api as Record<string, unknown>).images).toBeUndefined();
+    expect((variants as Record<string, unknown>).images).toBeUndefined();
+    // Images alone must be enough for examples.yaml to be written.
+    expect(hasExampleData(examples)).toBe(true);
+  });
+
+  it('routes subcomponent images into the subcomponent examples concern', () => {
+    const subExamples = extractExamplesFromSubcomponents({
+      media: {
+        images: { media__root: { $extensions: { 'com.figma': { imageHash: 'abc' } } } },
+        metadata: {},
+      },
+    });
+    expect(subExamples?.media.images).toEqual({ media__root: { $extensions: { 'com.figma': { imageHash: 'abc' } } } });
+  });
+});
+
 describe('splitComponentByConcern — single-example-kind components', () => {
   it('routes ONLY instanceExamples (no slotContentExamples) into examples', () => {
     const { api, variants, examples } = splitComponentByConcern({

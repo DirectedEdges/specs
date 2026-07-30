@@ -167,6 +167,28 @@
               "additionalProperties": {
                 "$ref": "#/definitions/VariantStateEntry"
               }
+            },
+            "images": {
+              "type": "object",
+              "description": "Image processing (ADR-063). Presence of this block is the on-switch (like subcomponents); each member is an independent representation trigger. Absence means images are not processed.",
+              "properties": {
+                "backgroundImage": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Detect image fills on container elements as Styles.backgroundImage. When paired with imageComponent, this is the fallback for fills outside the designated component."
+                },
+                "imageComponent": {
+                  "type": "string",
+                  "description": "Designated image component name (e.g. 'dsImage'). Instances of it are the image primitive; their image routes through sourceProps[0]. Requires a non-empty sourceProps."
+                },
+                "sourceProps": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Code-only prop names (raw Figma names) that re-type from StringProp to ImageProp on any component. The first entry is the designated image component's own source prop."
+                }
+              },
+              "required": [],
+              "additionalProperties": false
             }
           },
           "required": [],

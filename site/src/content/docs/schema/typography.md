@@ -3,7 +3,7 @@ title: "Typography"
 description: "Text style properties for font, spacing, and alignment"
 ---
 
-A `Typography` object holds individual text style properties. It appears on the `typography` style property as an alternative to a [`TokenReference`](/specs/schema/token-reference/) — when the text style is not backed by a single token, the individual properties are listed instead.
+A `Typography` object holds individual text style properties. It appears on the `typography` style property as an alternative to a [`TokenReference`](/schema/token-reference/) — when the text style is not backed by a single token, the individual properties are listed instead.
 
 ```ts
 interface Typography {
@@ -49,7 +49,7 @@ interface Typography {
 | `string` | Literal string value | `"Inter"` |
 | `boolean` | Literal boolean value | `true` |
 | `'mixed'` | Multiple conflicting values within a single text node | `"mixed"` |
-| [`TokenReference`](/specs/schema/token-reference/) | Reference to a design token | `{ $token: "DS.Font.Size.400", $type: "dimension" }` |
+| [`TokenReference`](/schema/token-reference/) | Reference to a design token | `{ $token: "DS.Font.Size.400", $type: "dimension" }` |
 | `'NONE' \| 'CAP_HEIGHT'` | Leading trim enum (for `leadingTrim` only) | `"CAP_HEIGHT"` |
 
 ## Example
