@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
-import type { Transformer, TransformerContext } from '../Types/Transformer.js';
+import type { AnalyzerFoundations, Transformer, TransformerContext } from '../Types/Transformer.js';
 
 type StylingCategory = 'VARIABLES' | 'COLOR_STYLES' | 'TEXT_STYLES' | 'EFFECT_STYLES';
 type RawValue = string | number | boolean;
@@ -33,6 +33,26 @@ interface ByTokenEntry {
   appliedAs: string;
   appliedTo: Record<string, number>;
 }
+
+interface UnusedCategorySummary {
+  total: number;
+  used: number;
+  unused: number;
+}
+
+interface UnusedJson {
+  summary: Record<keyof StylingJson, UnusedCategorySummary>;
+  variables: string[];
+  colorStyles: string[];
+  textStyles: string[];
+  effectStyles: string[];
+}
+
+const STYLE_TYPE_CATEGORY: Record<string, keyof StylingJson> = {
+  FILL: 'colorStyles',
+  TEXT: 'textStyles',
+  EFFECT: 'effectStyles',
+};
 
 const CATEGORY_ORDER: StylingCategory[] = ['VARIABLES', 'COLOR_STYLES', 'TEXT_STYLES', 'EFFECT_STYLES'];
 
@@ -97,7 +117,7 @@ export class StylingAnalyzer implements Transformer {
     await fs.writeFile(outputPath, content, 'utf-8');
   }
 
-  async finalize(outputDir: string, analysisDir?: string): Promise<void> {
+  async finalize(outputDir: string, analysisDir?: string, foundations?: AnalyzerFoundations): Promise<void> {
     if (this._componentData.size === 0) return;
 
     const outDir = analysisDir ?? path.join(outputDir, '_analysis');
@@ -105,6 +125,9 @@ export class StylingAnalyzer implements Transformer {
 
     await this._writeByComponent(outDir);
     await this._writeByToken(outDir);
+    if (foundations) {
+      await this._writeUnused(outDir, foundations);
+    }
   }
 
   private async _writeByComponent(dictDir: string): Promise<void> {
@@ -141,6 +164,66 @@ export class StylingAnalyzer implements Transformer {
       ? yaml.stringify(out, { lineWidth: 120 })
       : JSON.stringify(out, null, 2) + '\n';
     await fs.writeFile(path.join(dictDir, `styling.byToken.${ext}`), content, 'utf-8');
+  }
+
+  private async _writeUnused(dictDir: string, foundations: AnalyzerFoundations): Promise<void> {
+    // Token names referenced anywhere in the analyzed specs, across all
+    // categories — a token counts as used regardless of how it was classified.
+    const used = new Set<string>();
+    for (const data of this._componentData.values()) {
+      for (const groupKey of CATEGORY_KEYS) {
+        for (const row of data[groupKey]) used.add(row.name);
+      }
+    }
+
+    // Full token universe from the fetched foundations data, named exactly as
+    // the transformer names $token references: collection-prefixed variables,
+    // raw names for styles. Sets dedupe the dual-indexed styles map.
+    const universe: Record<keyof StylingJson, Set<string>> = {
+      variables: new Set(),
+      colorStyles: new Set(),
+      textStyles: new Set(),
+      effectStyles: new Set(),
+    };
+
+    for (const variable of foundations.variables.values()) {
+      const collectionName = foundations.collections.get(variable.variableCollectionId)?.name;
+      const prefix = collectionName ?? '[collection-name-unresolved]';
+      universe.variables.add(`${prefix}/${variable.name}`);
+    }
+
+    for (const style of foundations.styles.values()) {
+      const category = STYLE_TYPE_CATEGORY[style.type];
+      if (category) universe[category].add(style.name);
+    }
+
+    const out: UnusedJson = {
+      summary: {
+        variables: { total: 0, used: 0, unused: 0 },
+        colorStyles: { total: 0, used: 0, unused: 0 },
+        textStyles: { total: 0, used: 0, unused: 0 },
+        effectStyles: { total: 0, used: 0, unused: 0 },
+      },
+      variables: [],
+      colorStyles: [],
+      textStyles: [],
+      effectStyles: [],
+    };
+
+    for (const groupKey of CATEGORY_KEYS) {
+      const unused = Array.from(universe[groupKey])
+        .filter(name => !used.has(name))
+        .sort((a, b) => a.localeCompare(b));
+      const total = universe[groupKey].size;
+      out.summary[groupKey] = { total, used: total - unused.length, unused: unused.length };
+      out[groupKey] = unused;
+    }
+
+    const ext = this._outputFormat === 'YAML' ? 'yaml' : 'json';
+    const content = this._outputFormat === 'YAML'
+      ? yaml.stringify(out, { lineWidth: 120 })
+      : JSON.stringify(out, null, 2) + '\n';
+    await fs.writeFile(path.join(dictDir, `styling.unused.${ext}`), content, 'utf-8');
   }
 }
 

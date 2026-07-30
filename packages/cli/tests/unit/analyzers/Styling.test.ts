@@ -477,3 +477,143 @@ describe('StylingAnalyzer.finalize', () => {
     expect(fs.existsSync(path.join(outputDir, '_analysis'))).toBe(false);
   });
 });
+
+describe('StylingAnalyzer unused tokens', () => {
+  const USED_VARIABLE = { $token: 'Color/Primary', $type: 'color' };
+  const USED_TEXT_STYLE = { $token: 'Typography/Body', $type: 'typography' };
+
+  const COMPONENT = {
+    anatomy: { root: { type: 'container' }, label: { type: 'text' } },
+    default: {
+      elements: {
+        root: { styles: { backgroundColor: USED_VARIABLE } },
+        label: { styles: { typography: USED_TEXT_STYLE } },
+      },
+    },
+  };
+
+  function makeFoundations() {
+    return {
+      variables: new Map([
+        ['VariableID:1', { name: 'Primary', variableCollectionId: 'VC:1', resolvedType: 'COLOR' }],
+        ['VariableID:2', { name: 'Never used', variableCollectionId: 'VC:1', resolvedType: 'COLOR' }],
+      ]),
+      collections: new Map([['VC:1', { name: 'Color' }]]),
+      styles: new Map([
+        ['S:fill', { id: 'S:fill', name: 'Brand/Accent', type: 'FILL' }],
+        ['S:text', { id: 'S:text', name: 'Typography/Body', type: 'TEXT' }],
+        ['S:text2', { id: 'S:text2', name: 'Typography/Caption', type: 'TEXT' }],
+        ['S:effect', { id: 'S:effect', name: 'Shadow/Low', type: 'EFFECT' }],
+        ['S:grid', { id: 'S:grid', name: 'Grid/Columns', type: 'GRID' }],
+      ]),
+    };
+  }
+
+  let outputDir: string;
+
+  beforeEach(async () => {
+    outputDir = await fs.mkdtemp(path.join(os.tmpdir(), 'styling-unused-'));
+  });
+
+  afterEach(async () => {
+    await fs.remove(outputDir);
+  });
+
+  async function runUnused(
+    foundations: ReturnType<typeof makeFoundations> | undefined,
+    outputFormat: 'JSON' | 'YAML' = 'JSON',
+  ) {
+    const t = new StylingAnalyzer();
+    const compDir = path.join(outputDir, 'comp');
+    await fs.ensureDir(compDir);
+    await t.run(COMPONENT, { outputDir: compDir, componentKey: 'comp', outputFormat });
+    await t.finalize!(outputDir, undefined, foundations);
+    const ext = outputFormat === 'YAML' ? 'yaml' : 'json';
+    const unusedPath = path.join(outputDir, '_analysis', `styling.unused.${ext}`);
+    if (!fs.existsSync(unusedPath)) return null;
+    const raw = await fs.readFile(unusedPath, 'utf-8');
+    return outputFormat === 'YAML' ? yaml.parse(raw) : JSON.parse(raw);
+  }
+
+  it('writes styling.unused.json when foundations are provided', async () => {
+    const out = await runUnused(makeFoundations());
+    expect(out).not.toBeNull();
+    expect(out).toHaveProperty('summary');
+    expect(out).toHaveProperty('variables');
+    expect(out).toHaveProperty('colorStyles');
+    expect(out).toHaveProperty('textStyles');
+    expect(out).toHaveProperty('effectStyles');
+  });
+
+  it('does not write styling.unused when foundations are absent', async () => {
+    const out = await runUnused(undefined);
+    expect(out).toBeNull();
+  });
+
+  it('excludes used tokens and lists unmatched ones', async () => {
+    const out = await runUnused(makeFoundations());
+    expect(out.variables).toEqual(['Color/Never used']);
+    expect(out.textStyles).toEqual(['Typography/Caption']);
+  });
+
+  it('prefixes variable names with their collection name', async () => {
+    const out = await runUnused(makeFoundations());
+    expect(out.variables).toContain('Color/Never used');
+    expect(out.variables).not.toContain('Never used');
+  });
+
+  it('uses the unresolved-collection placeholder when the collection is missing', async () => {
+    const foundations = makeFoundations();
+    foundations.variables.set('VariableID:3', { name: 'Orphan', variableCollectionId: 'VC:missing', resolvedType: 'FLOAT' });
+    const out = await runUnused(foundations);
+    expect(out.variables).toContain('[collection-name-unresolved]/Orphan');
+  });
+
+  it('categorizes styles by style type and skips GRID styles', async () => {
+    const out = await runUnused(makeFoundations());
+    expect(out.colorStyles).toEqual(['Brand/Accent']);
+    expect(out.effectStyles).toEqual(['Shadow/Low']);
+    const all = [...out.variables, ...out.colorStyles, ...out.textStyles, ...out.effectStyles];
+    expect(all).not.toContain('Grid/Columns');
+  });
+
+  it('counts a token as used regardless of the category it was classified under', async () => {
+    // 'Color/Primary' is referenced as a variable; a FILL style with the same
+    // name must not be reported as an unused color style.
+    const foundations = makeFoundations();
+    foundations.styles.set('S:fill2', { id: 'S:fill2', name: 'Color/Primary', type: 'FILL' });
+    const out = await runUnused(foundations);
+    expect(out.colorStyles).not.toContain('Color/Primary');
+  });
+
+  it('dedupes styles indexed under multiple map keys', async () => {
+    const foundations = makeFoundations();
+    const dual = { id: 'S:dual', name: 'Shadow/High', type: 'EFFECT' };
+    foundations.styles.set('S:dual', dual);
+    foundations.styles.set('keyhash-for-dual', dual);
+    const out = await runUnused(foundations);
+    expect(out.effectStyles.filter((n: string) => n === 'Shadow/High')).toHaveLength(1);
+  });
+
+  it('summary counts total, used, and unused per category', async () => {
+    const out = await runUnused(makeFoundations());
+    expect(out.summary.variables).toEqual({ total: 2, used: 1, unused: 1 });
+    expect(out.summary.textStyles).toEqual({ total: 2, used: 1, unused: 1 });
+    expect(out.summary.colorStyles).toEqual({ total: 1, used: 0, unused: 1 });
+    expect(out.summary.effectStyles).toEqual({ total: 1, used: 0, unused: 1 });
+  });
+
+  it('sorts unused names alphabetically', async () => {
+    const foundations = makeFoundations();
+    foundations.variables.set('VariableID:4', { name: 'Aardvark', variableCollectionId: 'VC:1', resolvedType: 'COLOR' });
+    const out = await runUnused(foundations);
+    expect(out.variables).toEqual([...out.variables].sort());
+  });
+
+  it('writes styling.unused.yaml when outputFormat is YAML', async () => {
+    const out = await runUnused(makeFoundations(), 'YAML');
+    expect(out).not.toBeNull();
+    expect(out.variables).toEqual(['Color/Never used']);
+    expect(fs.existsSync(path.join(outputDir, '_analysis', 'styling.unused.json'))).toBe(false);
+  });
+});

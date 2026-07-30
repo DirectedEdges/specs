@@ -9,10 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`specs analyze styling` now reports unused tokens** — A third aggregate report, `_analysis/styling.unused.{json|yaml}`, lists every token in the fetched foundations data (variables, color styles, text styles, effect styles) that no analyzed spec references, with a per-category `summary` of total/used/unused counts. Variables are matched by their collection-prefixed name (`Collection name/Variable name`), styles by name; grid styles are excluded. The report requires `{alias}.variables.json` / `{alias}.styles.json` in the data directory and is skipped when absent.
+
 ### Changed
 
 ### Removed
-
 
 ## [0.25.0] - 2026-07-16
 

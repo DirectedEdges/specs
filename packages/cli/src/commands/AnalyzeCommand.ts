@@ -4,6 +4,7 @@ import path from 'path';
 import yaml from 'yaml';
 import { ConfigLoader } from '../Config/ConfigLoader.js';
 import { resolveAnalyzers } from '../analyzers/index.js';
+import { loadFoundations } from '../utilities/loadFoundations.js';
 import type { TransformerContext } from '../Types/Transformer.js';
 import type { ProcessingStates } from '../transforms/states.js';
 
@@ -107,9 +108,32 @@ export const Analyze = new Command('analyze')
         }
       }
 
+      // Load the full token universe (variables, styles) from fetched data
+      // files so analyzers can report tokens never referenced by any spec.
+      const dataDir = config.dataDirectory ? path.resolve(config.dataDirectory) : path.resolve(process.cwd());
+      const foundationsPathsFor = (kind: 'variables' | 'styles'): string[] =>
+        Object.entries(config.sources || {})
+          .filter(([, s]) => Array.isArray(s.data) && s.data.includes(kind))
+          .map(([alias]) => path.join(dataDir, `${alias}.${kind}.json`))
+          .filter(p => fs.existsSync(p));
+
+      const variablesPaths = foundationsPathsFor('variables');
+      const stylesPaths = foundationsPathsFor('styles');
+      const foundations = variablesPaths.length > 0 || stylesPaths.length > 0
+        ? await loadFoundations(variablesPaths, stylesPaths)
+        : undefined;
+
+      if (options.verbose) {
+        if (foundations) {
+          console.log(`[analyze] foundations: ${foundations.variables.size} variables, ${foundations.styles.size} styles`);
+        } else {
+          console.log('[analyze] foundations: no data files found — skipping unused-token analysis');
+        }
+      }
+
       for (const analyzer of analyzers) {
         if (analyzer.finalize) {
-          await analyzer.finalize(outputPath, analysisDir);
+          await analyzer.finalize(outputPath, analysisDir, foundations);
         }
       }
 
