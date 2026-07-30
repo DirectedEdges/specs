@@ -329,5 +329,6 @@ specs generate
 
 **See Also:**
 - [Scan Command](/cli/commands/scan/) - Create component manifest
+- [Render Command](/cli/commands/render/) - Send a generated spec back into Figma
 - [Configuration Reference](/settings/) - Format and config options
 - [Getting Started](/cli/getting-started/) - Installation and license setup

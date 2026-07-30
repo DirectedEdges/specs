@@ -1,11 +1,11 @@
 /**
- * Render Command - Stub pointer to the figma-from-specs writer bridge client
+ * Render Command - Stub pointer to the figma-from-specs render bridge client
  *
  * Purpose:
  * - Give the fetch → scan → generate → render demo flow a single, consistent
- *   `specs render` entry point while the writer lives in specs-from-figma's
- *   src-figma-writer/bridge/write.js (see project-011 notes: promotes into
- *   specs-cli + MCP tools later).
+ *   `specs render` entry point while the bridge client lives in
+ *   specs-from-figma's src-figma-writer/bridge/write.js (see project-011
+ *   notes: promotes into specs-cli + MCP tools later).
  * - This command only works against a local specs-from-figma checkout on
  *   feat/figma-writer (linked via file:/workspace symlink) — it resolves
  *   src-figma-writer/bridge/write.js relative to the resolved package root,
@@ -32,7 +32,7 @@ function resolveBridgeScript(): string {
   const entryUrl = import.meta.resolve('@directededges/specs-from-figma');
   const entryPath = fileURLToPath(entryUrl);
   const repoRoot = path.dirname(path.dirname(entryPath)); // strip dist/index.js
-  return path.join(repoRoot, 'src-figma-writer', 'bridge', 'write.js');
+  return path.join(repoRoot, 'src-figma-writer', 'bridge', 'write.js'); // bridge client script name unchanged
 }
 
 // Resolve default alias the same way Generate/Scan do: `library` if it
@@ -45,15 +45,15 @@ function resolveDefaultAlias(sources: Record<string, { data?: string[] }>): stri
 
 export const Render = new Command('render')
   .description('Render a spec (or manifest) into Figma via the figma-from-specs bridge [demo stub]')
-  .argument('[specPath]', 'Path to a spec YAML file (default: {dataDirectory}/{alias}.write-manifest.md from config)')
-  .option('-m, --manifest <path>', 'Path to a write-manifest.md file')
+  .argument('[specPath]', 'Path to a spec YAML file (default: {dataDirectory}/{alias}.render-manifest.md from config)')
+  .option('-m, --manifest <path>', 'Path to a render-manifest.md file')
   .option('--config <path>', 'Path to config file (specs.config.yaml)')
-  .option('--no-return-spec', 'Skip round-trip spec read after render')
+  .option('--no-return-spec', 'Skip round-trip spec read after rendering in Figma')
   .action(async (specPath: string | undefined, options: { manifest?: string; config?: string; returnSpec: boolean; verbose?: boolean }) => {
     const bridgeScript = resolveBridgeScript();
 
     if (!fs.existsSync(bridgeScript)) {
-      console.error('Error: figma-from-specs writer bridge not found.');
+      console.error('Error: figma-from-specs render bridge not found.');
       console.error(`  Expected: ${bridgeScript}`);
       console.error('  This command only works against a local specs-from-figma checkout on feat/figma-writer.');
       process.exit(ERROR_CODES.NOT_AVAILABLE);
@@ -73,15 +73,15 @@ export const Render = new Command('render')
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
 
-      const defaultManifest = path.join(dataDir, `${defaultAlias}.write-manifest.md`);
+      const defaultManifest = path.join(dataDir, `${defaultAlias}.render-manifest.md`);
       if (!fs.existsSync(defaultManifest)) {
         console.error(`Error: provide a spec path or --manifest <path>.`);
-        console.error(`Tip: no default write manifest found at ${defaultManifest}`);
+        console.error(`Tip: no default render manifest found at ${defaultManifest}`);
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
 
       manifestPath = defaultManifest;
-      console.log(`Using default write manifest: ${path.relative(process.cwd(), manifestPath)}`);
+      console.log(`Using default render manifest: ${path.relative(process.cwd(), manifestPath)}`);
     }
 
     const args: string[] = [];
