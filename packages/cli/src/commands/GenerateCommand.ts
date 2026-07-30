@@ -31,6 +31,7 @@ import type { FileWriter, WriteResult } from '../Writers/FileWriter.js';
 import type { OutputFormat } from '../Types/OutputConfig.js';
 import { ImageFillsResolver, IMAGES_DIR_NAME } from '../utilities/ImageFillsResolver.js';
 import { postGenerateFromSelection } from '../bridge/client.js';
+import { resolveFileKey } from '../bridge/pickConnection.js';
 
 declare const __SPECS_CLI_VERSION__: string;
 
@@ -264,7 +265,7 @@ export const Generate = new Command('generate')
   .option('--use-subfolders', 'Organize component files in subdirectories (requires --split-components)')
   .option('--get-images', 'Resolve unresolved registry images into files under _images/ (requires processing.images in config and FIGMA_TOKEN)')
   .option('--from-bridge', 'Generate from the current selection in a connected Figma file via the CLI bridge (no REST fetch)')
-  .option('--file <fileKey>', 'Target a specific connected Figma file with --from-bridge (required if more than one plugin is connected)')
+  .option('--file <fileKey>', 'Target a specific connected Figma file with --from-bridge (prompts to choose if more than one is connected in an interactive terminal; required otherwise)')
   .option('--verbose', 'Enable detailed logging', false)
   .action(async (source: string | undefined, options: GenerateOptions) => {
     try {
@@ -290,7 +291,8 @@ export const Generate = new Command('generate')
 
         let result;
         try {
-          result = await postGenerateFromSelection({ fileKey: options.file });
+          const fileKey = await resolveFileKey(options.file);
+          result = await postGenerateFromSelection({ fileKey });
         } catch (e) {
           const err = e as NodeJS.ErrnoException;
           if (err.cause && (err.cause as NodeJS.ErrnoException).code === 'ECONNREFUSED') {

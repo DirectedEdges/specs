@@ -11,6 +11,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { ConfigLoader } from '../Config/ConfigLoader.js';
 import { postRender } from '../bridge/client.js';
+import { resolveFileKey } from '../bridge/pickConnection.js';
 import { loadSpec } from '../Render/SpecLoader.js';
 
 const ERROR_CODES = {
@@ -33,7 +34,7 @@ export const Render = new Command('render')
   .option('-m, --manifest <path>', 'Path to a render-manifest.md file')
   .option('--config <path>', 'Path to config file (specs.config.yaml)')
   .option('--no-return-spec', 'Skip round-trip spec read after rendering in Figma')
-  .option('--file <fileKey>', 'Target a specific connected Figma file (required if more than one plugin is connected)')
+  .option('--file <fileKey>', 'Target a specific connected Figma file (prompts to choose if more than one is connected in an interactive terminal; required otherwise)')
   .action(async (specPath: string | undefined, options: { manifest?: string; config?: string; returnSpec: boolean; file?: string; verbose?: boolean }) => {
     let manifestPath = options.manifest;
 
@@ -64,7 +65,8 @@ export const Render = new Command('render')
       if (manifestPath) {
         const absManifestPath = path.resolve(manifestPath);
         console.log(`Posting manifest: ${absManifestPath}`);
-        const result = await postRender({ manifestPath: absManifestPath, fileKey: options.file });
+        const fileKey = await resolveFileKey(options.file);
+        const result = await postRender({ manifestPath: absManifestPath, fileKey });
 
         if (!result.success) {
           console.error(`Error: ${result.error}`);
@@ -81,7 +83,8 @@ export const Render = new Command('render')
       } else if (specPath) {
         const { spec, resolvePath } = loadSpec(specPath);
         console.log(`Posting spec: ${resolvePath}`);
-        const result = await postRender({ specPath: resolvePath, spec, returnSpec: options.returnSpec, fileKey: options.file });
+        const fileKey = await resolveFileKey(options.file);
+        const result = await postRender({ specPath: resolvePath, spec, returnSpec: options.returnSpec, fileKey });
 
         if (!result.success) {
           const msg = typeof result.error === 'string' ? result.error : JSON.stringify(result.error);
