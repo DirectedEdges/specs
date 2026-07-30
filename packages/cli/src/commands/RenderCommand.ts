@@ -36,8 +36,18 @@ export const Render = new Command('render')
   .option('--no-return-spec', 'Skip round-trip spec read after rendering in Figma')
   .option('--file <fileKey>', 'Target a specific connected Figma file (prompts to choose if more than one is connected in an interactive terminal; required otherwise)')
   .option('--overwrite', 'Delete any existing page component with the same title before rendering (without this, a title collision is an error)')
-  .action(async (specPath: string | undefined, options: { manifest?: string; config?: string; returnSpec: boolean; file?: string; overwrite?: boolean; verbose?: boolean }) => {
+  .option('--watch', 'Watch the spec path and re-render on every change (implies --overwrite)')
+  .action(async (specPath: string | undefined, options: { manifest?: string; config?: string; returnSpec: boolean; file?: string; overwrite?: boolean; watch?: boolean; verbose?: boolean }) => {
     let manifestPath = options.manifest;
+
+    if (options.watch) {
+      if (manifestPath || !specPath) {
+        console.error('Error: --watch requires a single spec path (not --manifest).');
+        process.exit(ERROR_CODES.INVALID_ARGS);
+      }
+      await watchAndRender(specPath, options);
+      return;
+    }
 
     if (!specPath && !manifestPath) {
       const configLoader = new ConfigLoader();
@@ -82,21 +92,7 @@ export const Render = new Command('render')
           process.exit(ERROR_CODES.GENERAL_ERROR);
         }
       } else if (specPath) {
-        const { spec, resolvePath } = loadSpec(specPath);
-        console.log(`Posting spec: ${resolvePath}`);
-        const fileKey = await resolveFileKey(options.file);
-        const result = await postRender({ specPath: resolvePath, spec, returnSpec: options.returnSpec, fileKey, overwrite: options.overwrite });
-
-        if (!result.success) {
-          const msg = typeof result.error === 'string' ? result.error : JSON.stringify(result.error);
-          console.error(`✗ Render failed: ${msg}`);
-          process.exit(ERROR_CODES.GENERAL_ERROR);
-        }
-
-        console.log(`✓ Rendered in Figma. nodeId: ${result.nodeId}`);
-        if (result.specData) {
-          console.log('Spec round-trip data received.');
-        }
+        await renderSpecPath(specPath, options);
       }
     } catch (e) {
       const err = e as NodeJS.ErrnoException;
@@ -109,3 +105,74 @@ export const Render = new Command('render')
       process.exit(ERROR_CODES.GENERAL_ERROR);
     }
   });
+
+// Shared by the one-shot render path and each watch-triggered re-render.
+// Throws on failure; caller decides whether that's fatal (one-shot) or just
+// logged and retried on the next change (watch).
+async function renderSpecPath(
+  specPath: string,
+  options: { file?: string; returnSpec?: boolean; overwrite?: boolean }
+): Promise<void> {
+  const { spec, resolvePath } = loadSpec(specPath);
+  console.log(`Posting spec: ${resolvePath}`);
+  const fileKey = await resolveFileKey(options.file);
+  const result = await postRender({ specPath: resolvePath, spec, returnSpec: options.returnSpec, fileKey, overwrite: options.overwrite });
+
+  if (!result.success) {
+    const msg = typeof result.error === 'string' ? result.error : JSON.stringify(result.error);
+    throw new Error(`Render failed: ${msg}`);
+  }
+
+  console.log(`✓ Rendered in Figma. nodeId: ${result.nodeId}`);
+  if (result.specData) {
+    console.log('Spec round-trip data received.');
+  }
+}
+
+const WATCH_DEBOUNCE_MS = 300;
+
+async function watchAndRender(
+  specPath: string,
+  options: { file?: string; returnSpec?: boolean }
+): Promise<void> {
+  const absSpecPath = path.resolve(specPath);
+  if (!fs.existsSync(absSpecPath)) {
+    console.error(`Error: Spec path not found: ${absSpecPath}`);
+    process.exit(ERROR_CODES.INVALID_ARGS);
+  }
+  const watchTarget = fs.statSync(absSpecPath).isDirectory() ? absSpecPath : path.dirname(absSpecPath);
+
+  let rendering = false;
+  let pending = false;
+  let debounceTimer: NodeJS.Timeout | undefined;
+
+  const runRender = async () => {
+    if (rendering) {
+      pending = true;
+      return;
+    }
+    rendering = true;
+    try {
+      await renderSpecPath(absSpecPath, { ...options, overwrite: true });
+    } catch (e) {
+      console.error(`✗ ${(e as Error).message}`);
+    } finally {
+      rendering = false;
+      if (pending) {
+        pending = false;
+        void runRender();
+      }
+    }
+  };
+
+  const scheduleRender = () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(runRender, WATCH_DEBOUNCE_MS);
+  };
+
+  console.log(`Watching ${path.relative(process.cwd(), watchTarget) || '.'} for changes...`);
+  fs.watch(watchTarget, { recursive: true }, scheduleRender);
+
+  await runRender();
+  await new Promise(() => {}); // keep the process alive until Ctrl+C
+}
