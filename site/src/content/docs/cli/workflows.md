@@ -9,6 +9,8 @@ Three ways to generate specs, depending on how many components you need:
 - [**Many Components**](#many-components) — curate a manifest and generate in batch
 - [**CI/CD Integration**](#cicd-integration) — automate generation in a pipeline
 
+There's also a reverse direction — turning a spec back into a live Figma component with [`render`](#render-to-figma). Unlike the workflows above, it's inherently interactive (it needs an open Figma session) and isn't a fit for CI/CD.
+
 ## Single Component
 
 Generate a spec for one component:
@@ -172,6 +174,26 @@ echo "Sync complete!"
 
 ---
 
+## Render to Figma
+
+Turn a spec back into a live Figma component. This needs a running CLI bridge and an open Figma session — see the [Render to Figma guide](/guides/render-to-figma/) for full setup.
+
+```bash
+# One-time per session: start the bridge, then in Figma enable
+# the CLI Bridge in the Specs 2 plugin and navigate to the target page.
+node src-figma-writer/bridge/server.js
+```
+
+```bash
+# Render one component
+specs render specs/deButton.yaml
+
+# Or render a curated batch
+specs render --manifest data/library.render-manifest.md
+```
+
+---
+
 ## Tips
 
 ### Pipe to Other Tools
@@ -247,3 +269,4 @@ git commit -m "manifest: keep DS Tooltip NEW unchecked — pending API redesign"
 
 - [CLI Overview](/cli/) - Commands, Free vs Pro, output format
 - [Settings](/settings/) - Config file reference
+- [Render to Figma](/guides/render-to-figma/) - CLI bridge setup and usage

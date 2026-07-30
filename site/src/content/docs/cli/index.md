@@ -13,6 +13,7 @@ The Specs command-line interface (CLI) generates design system specifications fr
 | [`scan`](/cli/commands/scan/) | List all components in file | Markdown manifest |
 | [`generate`](/cli/commands/generate/) | Generate specs from a manifest or single component | YAML/JSON spec file(s) |
 | [`applyCustomTokens`](/cli/commands/apply-custom-tokens/) | Inject `$custom` objects into fetched data | Modified variables/styles JSON |
+| [`render`](/cli/commands/render/) *(experimental)* | Send a spec to the CLI bridge to render it live in Figma | Live Figma component |
 
 ### Global Options
 
@@ -94,6 +95,7 @@ data/
   - `file` — any Figma plan with REST API access
   - `variables` / `styles` — Figma restricts these REST endpoints to organizations on an **Enterprise** plan, regardless of your Specs license
 - **License key** (optional) via `SPECS_LICENSE_KEY` for Pro features
+- **A running CLI bridge and open Figma session** (for `render` only) — see the [Render to Figma guide](/guides/render-to-figma/)
 
 See [Getting Started](/cli/getting-started/) for installation instructions.
 
