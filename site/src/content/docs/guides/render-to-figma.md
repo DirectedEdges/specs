@@ -15,7 +15,7 @@ You don't need to understand how the plugin builds the component — that part j
 
 Three things run at once, on your machine, for the duration of a render session:
 
-1. **The bridge server** — a Node process, started manually, that stays running in the background. It listens for render requests and forwards them to Figma.
+1. **The bridge server** — a background process, started with [`specs bridge start`](/cli/commands/bridge/), that stays running until you stop it. It listens for render requests and forwards them to Figma.
 2. **The Specs 2 plugin, open in Figma, with its CLI Bridge connected** — this is what actually builds the component, inside the file you have open.
 3. **Your workspace** — the directory holding your specs and the data Specs has scanned from your Figma file.
 
@@ -30,11 +30,11 @@ specs render  →  bridge server  →  Specs 2 plugin (in Figma)  →  component
 
 ### Local setup
 
-- A **local, file-linked checkout of `specs-from-figma`** on the branch that includes the writer (`render` isn't available in a published npm install — see [Availability](/cli/commands/render/#availability)).
-- The **bridge server running**, started once per session and left running:
+- The **bridge server running**, started once per session:
   ```bash
-  node src-figma-writer/bridge/server.js
+  specs bridge start
   ```
+  Check it any time with `specs bridge status`, and stop it with `specs bridge stop` when you're done. See the [`bridge` command reference](/cli/commands/bridge/) for details.
 - **Figma open**, with the target file loaded and the Specs 2 plugin running, its **CLI Bridge enabled and connected** to the bridge server. If the plugin was already open before you started the server, toggle the CLI Bridge off and back on to connect.
 - The right **Figma page active**. The bridge renders to whatever page is currently open in Figma at the moment you run `render` — navigate there first.
 
@@ -103,13 +103,14 @@ Done: 6 rendered in Figma, 0 failed.
 
 | Symptom | Fix |
 |---|---|
-| Exits immediately with code `7` | You're not on a local `specs-from-figma` checkout with the writer available — see [Availability](/cli/commands/render/#availability) |
+| `Error: bridge is not running.` | Run `specs bridge start`, then retry |
 | `No plugin connected` | Enable the CLI Bridge in the Specs 2 plugin; if it was already open, toggle it off and on |
-| Nothing happens / times out | Confirm the bridge server is running and check you're on the intended page in Figma |
+| Nothing happens / times out | Run `specs bridge status` to confirm the plugin shows connected, and check you're on the intended page in Figma |
 | Missing glyphs, styles, or variable bindings | Run `specs scan` to refresh the workspace's data files, then render again |
 
 ## Further Reading
 
+- [`bridge` command reference](/cli/commands/bridge/) — start/stop/status, logs, pid file
 - [`render` command reference](/cli/commands/render/) — flags and exit codes
 - [`scan`](/cli/commands/scan/) — keeps glyph, style, and variable data current for rendering
 - [`generate`](/cli/commands/generate/) — produces the specs that `render` consumes

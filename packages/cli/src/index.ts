@@ -29,13 +29,14 @@ import { Analyze } from './commands/AnalyzeCommand.js';
 import { ApplyCustomTokens } from './commands/ApplyCustomTokensCommand.js';
 import { Transform } from './commands/TransformCommand.js';
 import { Render } from './commands/RenderCommand.js';
+import { Bridge } from './commands/BridgeCommand.js';
 
 declare const __SPECS_CLI_VERSION__;
 
 // Backward compatibility: export Scan also as Audit
 export const Audit = Scan;
 
-export { Generate, Scan, Fetch, Init, ApplyCustomTokens, Transform, Analyze, Render };
+export { Generate, Scan, Fetch, Init, ApplyCustomTokens, Transform, Analyze, Render, Bridge };
 
 export const commands = {
   Init,
@@ -46,6 +47,7 @@ export const commands = {
   Transform,
   Analyze,
   Render,
+  Bridge,
 };
 
 export function createProgram(): Command {
@@ -64,6 +66,7 @@ export function createProgram(): Command {
   program.addCommand(Transform);
   program.addCommand(Analyze);
   program.addCommand(Render);
+  program.addCommand(Bridge);
 
   // Deprecated alias: 'audit' → 'scan'
   const auditAlias = new Command('audit')

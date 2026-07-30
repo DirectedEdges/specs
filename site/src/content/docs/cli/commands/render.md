@@ -6,7 +6,7 @@ title: "render"
 
 Sends a spec (or a batch of specs) to a running CLI bridge, which renders the matching component live in a Figma file — creating or updating it.
 
-This is the reverse of the rest of the CLI: instead of reading Figma and producing a spec, `render` reads a spec and renders it in Figma. It requires a local CLI bridge session — see the [Render to Figma guide](/guides/render-to-figma/) for full setup before running this command for the first time.
+This is the reverse of the rest of the CLI: instead of reading Figma and producing a spec, `render` reads a spec and renders it in Figma. It requires the bridge to be running (`specs bridge start`) with a connected Figma plugin — see the [Render to Figma guide](/guides/render-to-figma/) for full setup before running this command for the first time.
 
 ## Usage
 
@@ -64,18 +64,14 @@ specs render specs/deButton.yaml --no-return-spec
 | Code | Meaning |
 |------|---------|
 | `0` | Success |
-| `1` | General error (bridge unreachable, render failed) |
+| `1` | General error — bridge unreachable (run `specs bridge start`), render failed, or the plugin isn't connected |
 | `2` | Invalid arguments — no spec path resolvable and no default render manifest found |
-| `7` | CLI bridge not available in this install (see below) |
-
-## Availability
-
-`render` only works against a local, file-linked checkout of `@directededges/specs-from-figma` on its writer branch — it is not available in a published `specs-cli` install from npm. Running it in an unsupported environment exits immediately with code `7` and a message pointing at this limitation.
 
 ---
 
 **See Also:**
 
+- [`bridge`](/cli/commands/bridge/) — start/stop/check the bridge `render` talks to
 - [Render to Figma](/guides/render-to-figma/) — bridge architecture, setup, and prerequisites
 - [`scan`](/cli/commands/scan/) — refreshes the manifest data `render` uses to bind styles, variables, and glyphs
 - [`generate`](/cli/commands/generate/) — produces the specs that `render` consumes

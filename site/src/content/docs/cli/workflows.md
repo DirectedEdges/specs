@@ -181,7 +181,7 @@ Turn a spec back into a live Figma component. This needs a running CLI bridge an
 ```bash
 # One-time per session: start the bridge, then in Figma enable
 # the CLI Bridge in the Specs 2 plugin and navigate to the target page.
-node src-figma-writer/bridge/server.js
+specs bridge start
 ```
 
 ```bash
