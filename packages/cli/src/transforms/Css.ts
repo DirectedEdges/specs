@@ -1,4 +1,5 @@
 import fs from 'fs-extra';
+import { writeAtomic } from './writeAtomic.js';
 import path from 'path';
 import yaml from 'yaml';
 import type { Transformer, TransformerContext } from '../Types/Transformer.js';
@@ -29,7 +30,7 @@ export class CssTransformer implements Transformer {
     const lines = buildCssLines(componentClass, variantsYaml, tokensFormat, context, anatomyTypes(apiYaml));
     const generatedDir = path.join(outputDir, 'generated');
     await fs.ensureDir(generatedDir);
-    await fs.writeFile(path.join(generatedDir, `${prefix}.styles.css`), lines.join('\n'), 'utf-8');
+    await writeAtomic(path.join(generatedDir, `${prefix}.styles.css`), lines.join('\n'));
 
     // Subcomponents — each gets {Sub}.styles.css in its own subfolder
     const subcomponents = (variantsYaml.subcomponents ?? {}) as Record<string, unknown>;
@@ -42,7 +43,7 @@ export class CssTransformer implements Transformer {
       const subLines = buildCssLines(subClass, subVariantsYaml, tokensFormat, context, subTypes);
       const subDir = path.join(outputDir, subKey, 'generated');
       await fs.ensureDir(subDir);
-      await fs.writeFile(path.join(subDir, `${subFilePrefix}.styles.css`), subLines.join('\n'), 'utf-8');
+      await writeAtomic(path.join(subDir, `${subFilePrefix}.styles.css`), subLines.join('\n'));
     }
   }
 }

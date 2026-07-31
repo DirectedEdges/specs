@@ -1,4 +1,5 @@
 import fs from 'fs-extra';
+import { writeAtomic } from './writeAtomic.js';
 import path from 'path';
 import yaml from 'yaml';
 import type { Transformer, TransformerContext } from '../Types/Transformer.js';
@@ -26,7 +27,7 @@ export class ContractTransformer implements Transformer {
     const mainLines = buildContractLines(prefix, (apiYaml.props ?? {}) as Record<string, unknown>, omittedProps, slots);
     const generatedDir = path.join(outputDir, 'generated');
     await fs.ensureDir(generatedDir);
-    await fs.writeFile(path.join(generatedDir, `${prefix}.contract.ts`), mainLines.join('\n'), 'utf-8');
+    await writeAtomic(path.join(generatedDir, `${prefix}.contract.ts`), mainLines.join('\n'));
 
     // Subcomponents — each gets its own subfolder/{Sub}.contract.ts
     const subcomponents = (apiYaml.subcomponents ?? {}) as Record<string, unknown>;
@@ -44,7 +45,7 @@ export class ContractTransformer implements Transformer {
       const subLines = buildContractLines(subFilePrefix, subProps, omittedProps, subSlots);
       const subDir = path.join(outputDir, subKey, 'generated');
       await fs.ensureDir(subDir);
-      await fs.writeFile(path.join(subDir, `${subFilePrefix}.contract.ts`), subLines.join('\n'), 'utf-8');
+      await writeAtomic(path.join(subDir, `${subFilePrefix}.contract.ts`), subLines.join('\n'));
     }
   }
 }

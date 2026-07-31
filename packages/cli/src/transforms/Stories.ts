@@ -1,4 +1,5 @@
 import fs from 'fs-extra';
+import { writeAtomic } from './writeAtomic.js';
 import path from 'path';
 import yaml from 'yaml';
 import type { Transformer, TransformerContext } from '../Types/Transformer.js';
@@ -97,7 +98,7 @@ export class StoriesTransformer implements Transformer {
     const lines = buildStoriesLines(componentKey, apiYaml, analysis, parent, variantsYaml, composeCtx, context.processingStates ?? {});
     const generatedReactDir = path.join(outputDir, 'generated', 'react');
     await fs.ensureDir(generatedReactDir);
-    await fs.writeFile(path.join(generatedReactDir, `${prefix}.stories.tsx`), lines.join('\n'), 'utf-8');
+    await writeAtomic(path.join(generatedReactDir, `${prefix}.stories.tsx`), lines.join('\n'));
   }
 }
 

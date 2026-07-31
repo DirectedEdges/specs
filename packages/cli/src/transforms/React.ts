@@ -1,4 +1,5 @@
 import fs from 'fs-extra';
+import { writeAtomic } from './writeAtomic.js';
 import path from 'path';
 import yaml from 'yaml';
 import type { Transformer, TransformerContext } from '../Types/Transformer.js';
@@ -57,7 +58,7 @@ export class ReactTransformer implements Transformer {
       css: [`../${prefix}.styles.css`],
       header: '// Generated. Do not edit — regenerate with `specs transform`.',
     }, composition, false);
-    await fs.writeFile(path.join(generatedReactDir, `${prefix}.scaffold.tsx`), lines.join('\n'), 'utf-8');
+    await writeAtomic(path.join(generatedReactDir, `${prefix}.scaffold.tsx`), lines.join('\n'));
 
     await this.seedAuthoredWorkspace(outputDir, componentKey, apiYaml, variantsYaml, analysis, context, composition, false);
 
@@ -78,7 +79,7 @@ export class ReactTransformer implements Transformer {
         css: [`../${subPrefix}.styles.css`],
         header: '// Generated. Do not edit — regenerate with `specs transform`.',
       }, composition, true);
-      await fs.writeFile(path.join(subGeneratedReactDir, `${subPrefix}.scaffold.tsx`), subLines.join('\n'), 'utf-8');
+      await writeAtomic(path.join(subGeneratedReactDir, `${subPrefix}.scaffold.tsx`), subLines.join('\n'));
       await this.seedAuthoredWorkspace(subDir, subKey, subApi, subVariantsYaml, subAnalysis, subContext, composition, true);
     }
   }
@@ -106,19 +107,19 @@ export class ReactTransformer implements Transformer {
         header: '// Authored component — seeded once by `specs transform`, never overwritten.\n'
           + '// The always-current generated reference lives at ../../generated/react/scaffold.tsx.',
       }, composition, isSub);
-      await fs.writeFile(componentPath, lines.join('\n'), 'utf-8');
+      await writeAtomic(componentPath, lines.join('\n'));
     }
 
     const extensionsPath = path.join(srcReactDir, `${prefix}.extensions.css`);
     if (!fs.existsSync(extensionsPath)) {
-      await fs.writeFile(extensionsPath,
-        '/* Authored extensions — styling the spec cannot express. Never overwritten. */\n', 'utf-8');
+      await writeAtomic(extensionsPath,
+        '/* Authored extensions — styling the spec cannot express. Never overwritten. */\n');
     }
 
     const proposedPath = path.join(srcReactDir, `${prefix}.proposed.css`);
     if (!fs.existsSync(proposedPath)) {
-      await fs.writeFile(proposedPath,
-        '/* Authored proposals — styling that could be promoted into the spec. Never overwritten. */\n', 'utf-8');
+      await writeAtomic(proposedPath,
+        '/* Authored proposals — styling that could be promoted into the spec. Never overwritten. */\n');
     }
   }
 }
