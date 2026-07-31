@@ -175,9 +175,9 @@ function buildStoriesLines(
   const lines: string[] = [
     '// Generated. Do not edit — regenerate with `specs transform`.',
     "import type { Meta, StoryObj } from '@storybook/react';",
-    // JSX in slot args compiles to React.createElement under the classic
-    // runtime — the explicit import keeps the file self-sufficient.
-    ...(slotJsxArgs.size > 0 ? ["import * as React from 'react';"] : []),
+    // The sticker sheet (and slot args) are JSX, which compiles to
+    // React.createElement under the classic runtime.
+    "import * as React from 'react';",
     `import { ${prefix} } from '../../src/react/${prefix}';`,
     ...(hasDefaults ? [`import { ${prefix}Defaults } from '../${prefix}.contract';`] : []),
     ...[...slotImports.entries()].map(([n, p]) => `import { ${n} } from '${p}';`),
@@ -206,7 +206,7 @@ function buildStoriesLines(
     '',
   ];
 
-  const usedNames = new Set(['Default']);
+  const usedNames = new Set(['Default', 'StickerSheet']);
   for (const { configuration } of analysis.propVariants) {
     const name = uniqueName(storyName(configuration), usedNames);
     const args = Object.entries(configuration)
@@ -215,8 +215,56 @@ function buildStoriesLines(
     lines.push(`export const ${name}: Story = { args: { ${args} } };`);
   }
   lines.push('');
+  lines.push(...buildStickerSheetLines(prefix, analysis));
 
   return lines;
+}
+
+/**
+ * One story rendering every prop-expressible variant in a labeled grid — the
+ * "sticker sheet" view. Cells inherit the meta args (defaults, example text,
+ * composed slot content) with the variant configuration spread on top.
+ */
+function buildStickerSheetLines(
+  prefix: string,
+  analysis: ReturnType<typeof analyzeVariants>,
+): string[] {
+  const cells: Array<{ label: string; overrides: string }> = [{ label: 'Default', overrides: '' }];
+  for (const { configuration } of analysis.propVariants) {
+    const label = Object.entries(configuration)
+      .map(([k, v]) => (v === true ? k : v === false ? `not ${k}` : `${k}: ${v}`))
+      .join(' · ');
+    const overrides = Object.entries(configuration)
+      .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
+      .join(', ');
+    cells.push({ label, overrides });
+  }
+
+  return [
+    'const sheetCell: React.CSSProperties = { display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8 };',
+    'const sheetLabel: React.CSSProperties = { font: "11px system-ui", color: "#666" };',
+    '',
+    'export const StickerSheet: Story = {',
+    "  parameters: { layout: 'padded', controls: { disable: true } },",
+    '  render: (args) => (',
+    '    <div style={{ display: "flex", flexWrap: "wrap", gap: "32px 40px", alignItems: "flex-start" }}>',
+    ...cells.flatMap(({ label, overrides }) => [
+      '      <div style={sheetCell}>',
+      `        <span style={sheetLabel}>${escapeJsxText(label)}</span>`,
+      overrides
+        ? `        <${prefix} {...args} {...{ ${overrides} }} />`
+        : `        <${prefix} {...args} />`,
+      '      </div>',
+    ]),
+    '    </div>',
+    '  ),',
+    '};',
+    '',
+  ];
+}
+
+function escapeJsxText(text: string): string {
+  return text.replace(/[{}<>]/g, c => `{'${c}'}`);
 }
 
 /** `{ size: 'xS' }` → `SizeXS`; `{ elevated: true }` → `Elevated`; `{ disabled: false }` → `NotDisabled`. */
