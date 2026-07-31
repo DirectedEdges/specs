@@ -36,7 +36,22 @@ const DIMENSION_KEYS: Array<[string, string]> = [
   ['maxHeight', 'max-height'],
 ];
 
-export function styleToCSS(styles: Record<string, unknown>, tokensFormat = 'TOKEN'): string[] {
+export interface StyleToCSSOptions {
+  /**
+   * Whether coordinates without an explicit position imply absolute placement.
+   * True for children of non-auto-layout parents (Figma places them
+   * absolutely); false inside auto-layout flow, where stray coordinates are
+   * layout metadata, not offsets.
+   */
+  inferAbsolute?: boolean;
+}
+
+export function styleToCSS(
+  styles: Record<string, unknown>,
+  tokensFormat = 'TOKEN',
+  elemType?: string,
+  options: StyleToCSSOptions = {},
+): string[] {
   const decls: string[] = [];
 
   // ── Colors ──────────────────────────────────────────────────────────────────
@@ -53,7 +68,14 @@ export function styleToCSS(styles: Record<string, unknown>, tokensFormat = 'TOKE
 
   if ('fillColor' in styles) {
     const v = colorValue(styles.fillColor, tokensFormat);
-    if (v) decls.push(`fill: ${v}`);
+    if (v) {
+      // Anatomy type decides the paint target: glyphs/vectors render as
+      // mask-tinted boxes (background-color shows through the mask shape);
+      // shape elements render as plain boxes; untyped keeps legacy fill.
+      if (elemType === 'glyph' || elemType === 'vector') decls.push(`background-color: ${v}`);
+      else if (elemType === undefined) decls.push(`fill: ${v}`);
+      else decls.push(`background: ${v}`);
+    }
   }
 
   // ── Opacity ─────────────────────────────────────────────────────────────────
@@ -299,6 +321,8 @@ export function styleToCSS(styles: Record<string, unknown>, tokensFormat = 'TOKE
   if ('position' in styles) {
     if (styles.position === 'ABSOLUTE') decls.push('position: absolute');
     else if (styles.position === 'AUTO') decls.push('position: static');
+  } else if (options.inferAbsolute && hasInsets(styles)) {
+    decls.push('position: absolute');
   }
 
   for (const [specKey, cssKey] of [
@@ -314,4 +338,29 @@ export function styleToCSS(styles: Record<string, unknown>, tokensFormat = 'TOKE
   }
 
   return decls;
+}
+
+/** True when any inset coordinate (top/bottom/start/end) is present and non-null. */
+export function hasInsets(styles: Record<string, unknown>): boolean {
+  return ['top', 'bottom', 'start', 'end'].some(
+    k => k in styles && styles[k] !== null && styles[k] !== undefined
+  );
+}
+
+/**
+ * Whether coordinates imply Figma absolute placement, given the parent's
+ * layout. Outside auto-layout, any coordinates do. Inside auto-layout,
+ * children are flow-placed, so coordinates only mean layoutPositioning:
+ * ABSOLUTE when they are meaningful — non-zero, or anchored on opposing
+ * sides (top+bottom / start+end). Zero-only single anchors are canvas noise.
+ */
+export function impliesAbsolute(styles: Record<string, unknown>, parentAutoLayout: boolean): boolean {
+  if ('position' in styles) return styles.position === 'ABSOLUTE';
+  if (!hasInsets(styles)) return false;
+  if (!parentAutoLayout) return true;
+  const val = (k: string) => styles[k];
+  const present = (k: string) => k in styles && val(k) !== null && val(k) !== undefined;
+  const nonZero = ['top', 'bottom', 'start', 'end'].some(k => present(k) && val(k) !== 0);
+  const opposing = (present('top') && present('bottom')) || (present('start') && present('end'));
+  return nonZero || opposing;
 }

@@ -2,7 +2,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
 import type { Transformer, TransformerContext } from '../Types/Transformer.js';
-import { styleToCSS } from './css/styleToCSS.js';
+import { styleToCSS, impliesAbsolute } from './css/styleToCSS.js';
 import { layoutToCSS } from './css/layoutToCSS.js';
 import { toKebab } from './css/values.js';
 import { CONCEPT_TABLE, buildStateLookup } from './states.js';
@@ -26,18 +26,20 @@ export class CssTransformer implements Transformer {
 
     const componentClass = toKebab(componentKey);
     const prefix = toPascalCase(componentKey);
-    const lines = buildCssLines(componentClass, variantsYaml, tokensFormat, context);
+    const lines = buildCssLines(componentClass, variantsYaml, tokensFormat, context, anatomyTypes(apiYaml));
     const generatedDir = path.join(outputDir, 'generated');
     await fs.ensureDir(generatedDir);
     await fs.writeFile(path.join(generatedDir, `${prefix}.styles.css`), lines.join('\n'), 'utf-8');
 
     // Subcomponents — each gets {Sub}.styles.css in its own subfolder
     const subcomponents = (variantsYaml.subcomponents ?? {}) as Record<string, unknown>;
+    const apiSubs = (apiYaml.subcomponents ?? {}) as Record<string, unknown>;
     for (const [subKey, subRaw] of Object.entries(subcomponents)) {
       const subVariantsYaml = subRaw as Record<string, unknown>;
       const subClass = toKebab(subKey);
       const subFilePrefix = toPascalCase(subKey);
-      const subLines = buildCssLines(subClass, subVariantsYaml, tokensFormat, context);
+      const subTypes = anatomyTypes((apiSubs[subKey] ?? {}) as Record<string, unknown>);
+      const subLines = buildCssLines(subClass, subVariantsYaml, tokensFormat, context, subTypes);
       const subDir = path.join(outputDir, subKey, 'generated');
       await fs.ensureDir(subDir);
       await fs.writeFile(path.join(subDir, `${subFilePrefix}.styles.css`), subLines.join('\n'), 'utf-8');
@@ -45,11 +47,22 @@ export class CssTransformer implements Transformer {
   }
 }
 
+/** api.yaml anatomy → element key → type ("container" | "rectangle" | "ellipse" | "vector" | "text" | …). */
+function anatomyTypes(apiYaml: Record<string, unknown>): Record<string, string> {
+  const anatomy = (apiYaml.anatomy ?? {}) as Record<string, Record<string, unknown>>;
+  const types: Record<string, string> = {};
+  for (const [key, entry] of Object.entries(anatomy)) {
+    if (entry && typeof entry.type === 'string') types[key] = entry.type;
+  }
+  return types;
+}
+
 function buildCssLines(
   componentClass: string,
   variantsYaml: Record<string, unknown>,
   tokensFormat: string | undefined,
   context: TransformerContext,
+  elemTypes: Record<string, string> = {},
 ): string[] {
   // Apply configured rules as pre-passes on the structured variants data
   const ruleNames = (context.transformerOptions?.rules as string[] | undefined) ?? [];
@@ -79,10 +92,13 @@ function buildCssLines(
   // (first = back-most, last on top), and only positioned siblings paint in
   // DOM order — an absolute element would otherwise jump above static ones.
   const needsRelative = new Set<string>();
+  // Element key → parent element key, from the default layout tree.
+  const parentOf = new Map<string, string>();
   {
     const layouts = [parseLayout(defaultBlock?.layout), ...variantList.map(v => parseLayout(v.layout))];
     for (const layout of layouts) {
       collectStackingFixes(layout, defaultElements, needsRelative);
+      collectParents(layout, parentOf);
       if (layout !== layouts[0]) {
         const keys = new Set<string>();
         collectLayoutKeys(layout, keys);
@@ -90,12 +106,52 @@ function buildCssLines(
       }
     }
   }
+  // Parent flex direction context for FILL sizing translation.
+  const parentLayoutMode = (elemKey: string): string | null => {
+    const parent = parentOf.get(elemKey);
+    if (!parent) return null;
+    const styles = (defaultElements[parent]?.styles ?? {}) as Record<string, unknown>;
+    return (styles.layoutMode as string | undefined) ?? null;
+  };
+  const parentIsAutoLayout = (elemKey: string): boolean => {
+    const mode = parentLayoutMode(elemKey);
+    return mode === 'HORIZONTAL' || mode === 'VERTICAL';
+  };
+  // Coordinates imply absolute placement per impliesAbsolute; roots never infer.
+  const inferAbsolute = (elemKey: string): boolean =>
+    parentOf.has(elemKey) &&
+    impliesAbsolute(
+      (defaultElements[elemKey]?.styles ?? {}) as Record<string, unknown>,
+      parentIsAutoLayout(elemKey)
+    );
 
   for (const [elemKey, elem] of Object.entries(defaultElements)) {
     const selector = elemSelector(componentClass, elemKey);
     const styles = (elem.styles ?? {}) as Record<string, unknown>;
-    const decls = [...layoutToCSS(styles, tokensFormat), ...styleToCSS(styles, tokensFormat)];
+    const decls = [
+      ...layoutToCSS(styles, tokensFormat, parentLayoutMode(elemKey)),
+      ...styleToCSS(styles, tokensFormat, elemTypes[elemKey], { inferAbsolute: inferAbsolute(elemKey) }),
+    ];
 
+    // Ellipses are circular unless the spec sets an explicit radius.
+    if (elemTypes[elemKey] === 'ellipse' && !decls.some(d => d.startsWith('border-radius:'))) {
+      decls.push('border-radius: 50%');
+    }
+    // Glyphs/vectors paint their background-color through a mask image the
+    // scaffold provides via --glyph (an unresolvable mask renders nothing).
+    if (elemTypes[elemKey] === 'glyph' || elemTypes[elemKey] === 'vector') {
+      decls.push('mask: var(--glyph, none) no-repeat center / contain');
+      decls.push('-webkit-mask: var(--glyph, none) no-repeat center / contain');
+    }
+    // A full-bleed absolute child visually IS its rounded parent's surface —
+    // without inheriting the radius, its background paints square corners.
+    if (
+      !decls.some(d => d.startsWith('border-radius:')) &&
+      coversParent(styles, (defaultElements[parentOf.get(elemKey) ?? '']?.styles ?? {}) as Record<string, unknown>) &&
+      'cornerRadius' in ((defaultElements[parentOf.get(elemKey) ?? '']?.styles ?? {}) as Record<string, unknown>)
+    ) {
+      decls.push('border-radius: inherit');
+    }
     if (needsRelative.has(elemKey) && !decls.some(d => d.startsWith('position:'))) {
       decls.push('position: relative');
     }
@@ -194,7 +250,10 @@ function buildCssLines(
       const selector = rootSelectors.map(s => `${s}${elemSuffix}`).join(',\n');
 
       const styles = (variantElements[elemKey]?.styles ?? {}) as Record<string, unknown>;
-      const decls = [...layoutToCSS(styles, tokensFormat), ...styleToCSS(styles, tokensFormat)];
+      const decls = [
+        ...layoutToCSS(styles, tokensFormat, parentLayoutMode(elemKey)),
+        ...styleToCSS(styles, tokensFormat, elemTypes[elemKey], { inferAbsolute: inferAbsolute(elemKey) }),
+      ];
       const display = displayDecls.get(elemKey);
       if (display && !decls.some(d => d.startsWith('display:'))) decls.push(display);
 
@@ -217,6 +276,32 @@ function collectLayoutKeys(nodes: LayoutNode[], into: Set<string>): void {
   }
 }
 
+function collectParents(nodes: LayoutNode[], into: Map<string, string>, parent?: string): void {
+  for (const node of nodes) {
+    if (parent && !into.has(node.key)) into.set(node.key, parent);
+    collectParents(node.children, into, node.key);
+  }
+}
+
+/**
+ * True when an absolutely-placed child exactly covers its parent's bounds:
+ * either zero insets on all sides, or zero offset with dimensions equal to
+ * the parent's.
+ */
+function coversParent(styles: Record<string, unknown>, parentStyles: Record<string, unknown>): boolean {
+  const n = (v: unknown) => (typeof v === 'number' ? v : undefined);
+  const allInsetsZero =
+    n(styles.top) === 0 && n(styles.bottom) === 0 && n(styles.start) === 0 && n(styles.end) === 0;
+  const sameSizeAtOrigin =
+    n(styles.top) === 0 &&
+    n(styles.start) === 0 &&
+    n(styles.width) !== undefined &&
+    n(styles.width) === n(parentStyles.width) &&
+    n(styles.height) !== undefined &&
+    n(styles.height) === n(parentStyles.height);
+  return allInsetsZero || sameSizeAtOrigin;
+}
+
 /**
  * Mark elements that need `position: relative` for correct stacking: the
  * layout parent of any absolutely-positioned element (containing block), and
@@ -229,8 +314,14 @@ function collectStackingFixes(
   into: Set<string>,
   parent?: string,
 ): void {
-  const isAbsolute = (key: string) =>
-    ((elements[key]?.styles ?? {}) as Record<string, unknown>).position === 'ABSOLUTE';
+  const parentStyles = (elements[parent ?? '']?.styles ?? {}) as Record<string, unknown>;
+  const parentAutoLayout =
+    parentStyles.layoutMode === 'HORIZONTAL' || parentStyles.layoutMode === 'VERTICAL';
+  const isAbsolute = (key: string) => {
+    if (parent === undefined) return false; // roots never infer
+    const styles = (elements[key]?.styles ?? {}) as Record<string, unknown>;
+    return impliesAbsolute(styles, parentAutoLayout);
+  };
 
   if (nodes.some(n => isAbsolute(n.key))) {
     if (parent) into.add(parent);

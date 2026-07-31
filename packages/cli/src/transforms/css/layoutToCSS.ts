@@ -24,7 +24,11 @@ const WRAP_ALIGN_MAP: Record<string, string> = {
   SPACE_BETWEEN: 'space-between',
 };
 
-export function layoutToCSS(styles: Record<string, unknown>, tokensFormat = 'TOKEN'): string[] {
+export function layoutToCSS(
+  styles: Record<string, unknown>,
+  tokensFormat = 'TOKEN',
+  parentLayoutMode?: string | null,
+): string[] {
   const decls: string[] = [];
 
   if ('layoutMode' in styles) {
@@ -84,16 +88,27 @@ export function layoutToCSS(styles: Record<string, unknown>, tokensFormat = 'TOK
     }
   }
 
+  // FILL translation depends on the parent's flex direction: fill along the
+  // parent's main axis grows; fill along the cross axis stretches; with no
+  // flex parent (root, or non-auto-layout parent) it is a plain 100%.
   if ('layoutSizingHorizontal' in styles) {
     const v = styles.layoutSizingHorizontal as string | undefined;
     if (v === 'HUG') decls.push('width: fit-content');
-    else if (v === 'FILL') decls.push('flex-grow: 1');
+    else if (v === 'FILL') {
+      if (parentLayoutMode === 'HORIZONTAL') decls.push('flex: 1 0 0');
+      else if (parentLayoutMode === 'VERTICAL') decls.push('align-self: stretch');
+      else decls.push('width: 100%');
+    }
   }
 
   if ('layoutSizingVertical' in styles) {
     const v = styles.layoutSizingVertical as string | undefined;
     if (v === 'HUG') decls.push('height: fit-content');
-    else if (v === 'FILL') decls.push('align-self: stretch');
+    else if (v === 'FILL') {
+      if (parentLayoutMode === 'VERTICAL') decls.push('flex: 1 0 0');
+      else if (parentLayoutMode === 'HORIZONTAL') decls.push('align-self: stretch');
+      else decls.push('height: 100%');
+    }
   }
 
   return decls;
