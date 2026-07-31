@@ -91,6 +91,12 @@ export interface ComposeContext {
    * props the contract omits).
    */
   targetProps?: Map<string, Set<string>>;
+  /**
+   * Browser-state props omitted from EVERY contract (config.processing.states
+   * is global) — always stripped from composed props, even for targets whose
+   * contracts aren't known (sibling components).
+   */
+  omittedProps?: Set<string>;
 }
 
 export interface ComposedJsx {
@@ -248,6 +254,7 @@ function propsToJsx(
   const childBlocks: string[] = [];
   for (const [key, value] of Object.entries(pc)) {
     if (!/^[A-Za-z_$][\w$]*$/.test(key)) continue;
+    if (ctx.omittedProps?.has(key)) continue; // browser-state props never surface
     if (knownProps && !knownProps.has(key)) continue;
     if (value === null || value === undefined) continue;
     if (typeof value === 'object') {
@@ -289,6 +296,7 @@ export function propsObjectSource(
   const entries: string[] = [];
   for (const [key, value] of Object.entries(pc)) {
     if (!/^[A-Za-z_$][\w$]*$/.test(key)) continue;
+    if (ctx.omittedProps?.has(key)) continue; // browser-state props never surface
     if (knownProps && !knownProps.has(key)) continue;
     if (value === null || value === undefined) continue;
     if (typeof value === 'object') {

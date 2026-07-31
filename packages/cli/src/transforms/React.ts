@@ -232,6 +232,7 @@ function buildScaffoldLines(
         componentDirAbs: composition.componentDirAbs,
         examples: composition.examples,
         targetProps: composition.targetProps,
+        omittedProps: composition.omittedProps,
       }
     : undefined;
 

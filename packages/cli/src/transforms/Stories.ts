@@ -48,7 +48,7 @@ export class StoriesTransformer implements Transformer {
       const subProps = ((subRaw as Record<string, unknown>).props ?? {}) as Record<string, unknown>;
       targetProps.set(toPascalCase(k), new Set(Object.keys(subProps).filter(p => !omitted.has(p))));
     }
-    const composition: CompositionInfo = { examples, componentKey, subKeys, componentDirAbs: outputDir, targetProps };
+    const composition: CompositionInfo = { examples, componentKey, subKeys, componentDirAbs: outputDir, targetProps, omittedProps: omitted };
 
     await this.writeStories(outputDir, componentKey, apiYaml, variantsYaml, context, undefined, composition);
 
@@ -91,6 +91,7 @@ export class StoriesTransformer implements Transformer {
           componentDirAbs: composition.componentDirAbs,
           examples: composition.examples,
           targetProps: composition.targetProps,
+          omittedProps: composition.omittedProps,
         }
       : undefined;
     const lines = buildStoriesLines(componentKey, apiYaml, analysis, parent, variantsYaml, composeCtx, context.processingStates ?? {});
@@ -106,6 +107,7 @@ interface CompositionInfo {
   subKeys: string[];
   componentDirAbs: string;
   targetProps: Map<string, Set<string>>;
+  omittedProps: Set<string>;
 }
 
 function buildStoriesLines(
