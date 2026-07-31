@@ -47,6 +47,21 @@ export class CssTransformer implements Transformer {
   }
 }
 
+/** Glyphs, raw vectors, and icon-wrapper instances (instance with a name propConfiguration). */
+function isGlyphLike(elemType: string | undefined, elem: Record<string, unknown> | undefined): boolean {
+  if (elemType === 'glyph' || elemType === 'vector') return true;
+  if (elemType !== 'instance') return false;
+  const pc = (elem?.propConfigurations ?? {}) as Record<string, unknown>;
+  return typeof pc.name === 'string';
+}
+
+/** Parse a "WxH" size propConfiguration ("16x16") into pixel dimensions. */
+function glyphConfigSize(elem: Record<string, unknown> | undefined): { w: number; h: number } | null {
+  const pc = (elem?.propConfigurations ?? {}) as Record<string, unknown>;
+  const m = typeof pc.size === 'string' ? pc.size.match(/^(\d+)x(\d+)$/) : null;
+  return m ? { w: Number(m[1]), h: Number(m[2]) } : null;
+}
+
 /** api.yaml anatomy → element key → type ("container" | "rectangle" | "ellipse" | "vector" | "text" | …). */
 function anatomyTypes(apiYaml: Record<string, unknown>): Record<string, string> {
   const anatomy = (apiYaml.anatomy ?? {}) as Record<string, Record<string, unknown>>;
@@ -139,9 +154,25 @@ function buildCssLines(
     }
     // Glyphs/vectors paint their background-color through a mask image the
     // scaffold provides via --glyph (an unresolvable mask renders nothing).
-    if (elemTypes[elemKey] === 'glyph' || elemTypes[elemKey] === 'vector') {
+    // Instance elements with a `name` propConfiguration are icon-wrapper
+    // instances and take the same fallback. Spans need block display; without
+    // a fill they tint with the inherited text color; instance glyphs take
+    // their dimensions from a "WxH" size propConfiguration when present.
+    if (isGlyphLike(elemTypes[elemKey], elem)) {
       decls.push('mask: var(--glyph, none) no-repeat center / contain');
       decls.push('-webkit-mask: var(--glyph, none) no-repeat center / contain');
+      if (!decls.some(d => d.startsWith('display:'))) decls.push('display: block');
+      if (!decls.some(d => d.startsWith('background'))) decls.push('background-color: currentColor');
+      // HUG on an empty masked span collapses to 0 — the configured instance
+      // size is the glyph's intrinsic size, so it wins over fit-content.
+      const size = glyphConfigSize(elem);
+      if (size) {
+        const fitless = decls.filter(d => d !== 'width: fit-content' && d !== 'height: fit-content');
+        decls.length = 0;
+        decls.push(...fitless);
+        if (!decls.some(d => d.startsWith('width:'))) decls.push(`width: ${size.w}px`);
+        if (!decls.some(d => d.startsWith('height:'))) decls.push(`height: ${size.h}px`);
+      }
     }
     // A full-bleed absolute child visually IS its rounded parent's surface —
     // without inheriting the radius, its background paints square corners.

@@ -156,7 +156,7 @@ function buildScaffoldLines(
     '  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as Partial<T>;',
     '}',
     '',
-    ...(hasGlyphs(anatomy)
+    ...(hasGlyphs(anatomy, defaultElements)
       ? [
           "// Glyph assets served from the workspace assets directory (see `fetch`).",
           "const GLYPH_BASE = '/assets/icons';",
@@ -214,8 +214,16 @@ function renderNode(node: LayoutNode, ctx: RenderContext, depth: number, isRoot:
   const condition = buildCondition(node, ctx);
 
   // Glyphs render as self-closing masked spans: the CSS paints the element's
-  // fill color through the icon's SVG via mask-image (--glyph).
-  if (elemType === 'glyph' || elemType === 'vector') {
+  // fill color through the icon's SVG via mask-image (--glyph). Instance
+  // elements carrying a `name` propConfiguration are icon-wrapper instances
+  // and take the same path.
+  const elemDef = (ctx.defaultElements[node.key] ?? {}) as Record<string, unknown>;
+  const instanceGlyphName = (() => {
+    if (elemType !== 'instance') return undefined;
+    const pc = (elemDef.propConfigurations ?? {}) as Record<string, unknown>;
+    return typeof pc.name === 'string' ? pc.name : undefined;
+  })();
+  if (elemType === 'glyph' || elemType === 'vector' || instanceGlyphName !== undefined) {
     const nameExpr = glyphNameExpr(node.key, ctx);
     const line =
       `<span className="${className}"` +
@@ -355,20 +363,33 @@ function elementContent(elemKey: string, elemType: string, ctx: RenderContext): 
   return undefined;
 }
 
-function hasGlyphs(anatomy: Record<string, Record<string, unknown>>): boolean {
-  return Object.values(anatomy).some(e => e?.type === 'glyph' || e?.type === 'vector');
+function hasGlyphs(
+  anatomy: Record<string, Record<string, unknown>>,
+  defaultElements: Record<string, Record<string, unknown>>,
+): boolean {
+  return Object.entries(anatomy).some(([key, e]) => {
+    if (e?.type === 'glyph' || e?.type === 'vector') return true;
+    if (e?.type !== 'instance') return false;
+    const pc = ((defaultElements[key] ?? {}).propConfigurations ?? {}) as Record<string, unknown>;
+    return typeof pc.name === 'string';
+  });
 }
 
 /**
  * Expression for a glyph's icon name: a bound prop, the literal content
- * string, or the element key as a last-resort slug (raw vectors like a
- * checkbox check often share their element name with an icon asset).
+ * string, a `name` propConfiguration (icon-wrapper instances), or the
+ * element key as a last-resort slug (raw vectors like a checkbox check often
+ * share their element name with an icon asset).
  */
 function glyphNameExpr(elemKey: string, ctx: RenderContext): string {
   const elem = (ctx.defaultElements[elemKey] ?? {}) as Record<string, unknown>;
   const prop = bindingProp(elem.content);
   if (prop) return `p.${prop}`;
   if (typeof elem.content === 'string') return JSON.stringify(elem.content);
+  const pc = (elem.propConfigurations ?? {}) as Record<string, unknown>;
+  const nameProp = bindingProp(pc.name);
+  if (nameProp) return `p.${nameProp}`;
+  if (typeof pc.name === 'string') return JSON.stringify(pc.name);
   return JSON.stringify(elemKey);
 }
 

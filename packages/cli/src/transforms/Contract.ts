@@ -137,7 +137,7 @@ function buildSlotLines(prefix: string, slots: SlotInfo[]): string[] {
   for (const slot of slots) {
     const optional = slot.rule.kind === 'always' ? '' : '?';
     const tsType = slot.slotType === 'text' ? 'string' : 'unknown';
-    lines.push(`  ${slot.elementKey}${optional}: ${tsType};`);
+    lines.push(`  ${safeKey(slot.elementKey)}${optional}: ${tsType};`);
   }
   lines.push('}');
   lines.push('');
@@ -161,12 +161,17 @@ function buildSlotLines(prefix: string, slots: SlotInfo[]): string[] {
       value = `{ kind: '${rule.kind}', prop: '${rule.prop}' }`;
     }
     const comment = slot.warning ? ` // ${slot.warning}` : '';
-    lines.push(`  ${slot.elementKey}: ${value},${comment}`);
+    lines.push(`  ${safeKey(slot.elementKey)}: ${value},${comment}`);
   }
   lines.push(`} satisfies Record<keyof ${prefix}Slots, ${prefix}SlotVisibility>;`);
   lines.push('');
 
   return lines;
+}
+
+/** Emit object/interface keys safely: quote anything that isn't a valid identifier (e.g. an empty layer name). */
+function safeKey(key: string): string {
+  return /^[A-Za-z_$][\w$]*$/.test(key) ? key : JSON.stringify(key);
 }
 
 function toPascalCase(str: string): string {
