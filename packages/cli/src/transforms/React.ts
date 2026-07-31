@@ -257,7 +257,7 @@ function buildScaffoldLines(
   // Leaf components with no layout tree (pure-glyph/text primitives) must
   // still return valid TSX — an empty return ( ); does not parse.
   if (bodyLines.length === 0) {
-    bodyLines.push(`    <div className="${componentClass}" />`);
+    bodyLines.push(`    <div className="${componentClass}" data-element="root" />`);
   }
 
   const lines: string[] = [
@@ -373,7 +373,7 @@ function renderNode(node: LayoutNode, ctx: RenderContext, depth: number, isRoot:
         if (deltaSrc) spreads.push(`{...(${cond} ? ${deltaSrc} : {})}`);
       }
       const inner = `<${target.name}${spreads.length ? ' ' + spreads.join(' ') : ''} />`;
-      const open = `<${tag} className="${className}">`;
+      const open = `<${tag} className="${className}" data-element="${node.key}">`;
       const innerPad = pad + (condition ? '  ' : '');
       const body = [innerPad + open, `${innerPad}  ${inner}`, `${innerPad}</${tag}>`];
       if (condition) {
@@ -395,7 +395,7 @@ function renderNode(node: LayoutNode, ctx: RenderContext, depth: number, isRoot:
   if (elemType === 'glyph' || elemType === 'vector' || instanceGlyphName !== undefined) {
     const nameExpr = glyphNameExpr(node.key, ctx);
     const line =
-      `<span className="${className}"` +
+      `<span className="${className}" data-element="${node.key}"` +
       ` style={{ ['--glyph' as string]: glyphUrl(${nameExpr}) } as React.CSSProperties}` +
       ' aria-hidden="true" />';
     if (condition) {
@@ -410,7 +410,7 @@ function renderNode(node: LayoutNode, ctx: RenderContext, depth: number, isRoot:
 
   const open = attrs.length > 0
     ? [`<${tag}`, ...attrs.map(a => `  ${a}`), '>']
-    : [`<${tag} className="${className}">`];
+    : [`<${tag} className="${className}" data-element="${node.key}">`];
   const body: string[] = [];
 
   if (attrs.length > 0) {
@@ -463,7 +463,9 @@ function buildCondition(node: LayoutNode, ctx: RenderContext): string | undefine
 
 /** Root element attributes: className, variant data attributes, state aria attributes. */
 function rootAttrs(ctx: RenderContext): string[] {
-  const attrs: string[] = [`className="${ctx.componentClass}"`];
+  // Every rendered element carries its spec identity; the component's top
+  // node is the `root` element, mirroring the schema's elements taxonomy.
+  const attrs: string[] = [`className="${ctx.componentClass}"`, 'data-element="root"'];
 
   // Variant props → data attributes, mirroring the css transformer's selectors:
   // boolean → presence attribute when true; enum/string → value attribute.

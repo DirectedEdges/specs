@@ -152,7 +152,7 @@ function renderEntry(
       .toLowerCase();
     const mask = `url('${GLYPH_BASE}/${slug}.svg') no-repeat center / contain`;
     return [
-      `${indent}<span aria-hidden="true" style={{ display: 'inline-block', width: ${w}, height: ${h}, backgroundColor: 'currentColor', WebkitMask: "${mask}", mask: "${mask}" }} />`,
+      `${indent}<span data-element="${key}" aria-hidden="true" style={{ display: 'inline-block', width: ${w}, height: ${h}, backgroundColor: 'currentColor', WebkitMask: "${mask}", mask: "${mask}" }} />`,
     ];
   }
 
@@ -163,13 +163,14 @@ function renderEntry(
     const anatomyType = (example.anatomy?.[key]?.type as string | undefined) ?? (typeof elem.content === 'string' ? 'text' : 'container');
     const styleSrc = rawElementStyle(styles, anatomyType);
     const styleAttr = styleSrc ? ` style={${styleSrc}}` : '';
+    const idAttr = ` data-element="${key}"`;
     if (anatomyType === 'text') {
       const content = typeof elem.content === 'string' ? elem.content : '';
-      return [`${indent}<span${styleAttr}>${escapeJsxText(content)}</span>`];
+      return [`${indent}<span${idAttr}${styleAttr}>${escapeJsxText(content)}</span>`];
     }
     const children = childEntries.flatMap(c => renderEntry(c, example, ctx, `${indent}  `, imports));
-    if (children.length === 0) return [`${indent}<div${styleAttr} />`];
-    return [`${indent}<div${styleAttr}>`, ...children, `${indent}</div>`];
+    if (children.length === 0) return [`${indent}<div${idAttr}${styleAttr} />`];
+    return [`${indent}<div${idAttr}${styleAttr}>`, ...children, `${indent}</div>`];
   }
 
   const label = typeof instanceOf === 'string' ? instanceOf : JSON.stringify(instanceOf);
