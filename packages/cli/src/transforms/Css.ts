@@ -9,6 +9,7 @@ import { toKebab } from './css/values.js';
 import { CONCEPT_TABLE, buildStateLookup } from './states.js';
 import { resolveRules } from './css/rules/index.js';
 import { parseLayout, type LayoutNode } from './react/variantAnalysis.js';
+import { loadExamples, type ExamplesData } from './react/slotComposition.js';
 
 export class CssTransformer implements Transformer {
   readonly name = 'css';
@@ -27,7 +28,15 @@ export class CssTransformer implements Transformer {
 
     const componentClass = toKebab(componentKey);
     const prefix = toPascalCase(componentKey);
-    const lines = buildCssLines(componentClass, variantsYaml, tokensFormat, context, anatomyTypes(apiYaml));
+    // Images registry (ADR-063): backgroundImage fills resolve against it;
+    // urls are emitted relative to each stylesheet's location.
+    const examples = loadExamples(outputDir);
+    const imagesDirAbs = path.join(outputDir, '..', '_images');
+    const lines = buildCssLines(componentClass, variantsYaml, tokensFormat, context, anatomyTypes(apiYaml), {
+      examples,
+      imagesDirAbs,
+      relPrefix: '../../_images',
+    });
     const generatedDir = path.join(outputDir, 'generated');
     await fs.ensureDir(generatedDir);
     await writeAtomic(path.join(generatedDir, `${prefix}.styles.css`), lines.join('\n'));
@@ -40,12 +49,57 @@ export class CssTransformer implements Transformer {
       const subClass = toKebab(subKey);
       const subFilePrefix = toPascalCase(subKey);
       const subTypes = anatomyTypes((apiSubs[subKey] ?? {}) as Record<string, unknown>);
-      const subLines = buildCssLines(subClass, subVariantsYaml, tokensFormat, context, subTypes);
+      const subLines = buildCssLines(subClass, subVariantsYaml, tokensFormat, context, subTypes, {
+        examples,
+        imagesDirAbs,
+        relPrefix: '../../../_images',
+      });
       const subDir = path.join(outputDir, subKey, 'generated');
       await fs.ensureDir(subDir);
       await writeAtomic(path.join(subDir, `${subFilePrefix}.styles.css`), subLines.join('\n'));
     }
   }
+}
+
+interface ImagesCssContext {
+  examples: ExamplesData | undefined;
+  imagesDirAbs: string;
+  relPrefix: string;
+}
+
+/** backgroundImage style ({ $image, objectFit? } | null) → CSS declarations. */
+function backgroundImageDecls(value: unknown, images: ImagesCssContext | undefined): string[] {
+  if (value === null) return ['background-image: none'];
+  if (!images?.examples || !value || typeof value !== 'object') return [];
+  const v = value as Record<string, unknown>;
+  if (typeof v.$image !== 'string') return [];
+  const id = v.$image.match(/#\/components\/[^/]+\/images\/(.+)$/)?.[1];
+  const entry = id ? images.examples.images[id] : undefined;
+  if (!entry) return [];
+  let file: string | undefined;
+  if (typeof entry.src === 'string' && /^(data:|https?:)/.test(entry.src)) {
+    return imageDecls(`url('${entry.src}')`, v.objectFit);
+  }
+  if (typeof entry.src === 'string') {
+    file = path.basename(entry.src);
+  } else {
+    const hash = entry.$extensions?.['com.figma']?.imageHash;
+    if (hash) {
+      try {
+        file = fs.readdirSync(images.imagesDirAbs).find(f => f.startsWith(hash));
+      } catch {
+        file = undefined;
+      }
+    }
+  }
+  if (!file) return [];
+  return imageDecls(`url('${images.relPrefix}/${file}')`, v.objectFit);
+}
+
+function imageDecls(url: string, objectFit: unknown): string[] {
+  const decls = [`background-image: ${url}`, 'background-position: center', 'background-repeat: no-repeat'];
+  decls.push(`background-size: ${objectFit === 'CONTAIN' ? 'contain' : 'cover'}`);
+  return decls;
 }
 
 /** Glyphs, raw vectors, and icon-wrapper instances (instance with a name propConfiguration). */
@@ -79,6 +133,7 @@ function buildCssLines(
   tokensFormat: string | undefined,
   context: TransformerContext,
   elemTypes: Record<string, string> = {},
+  images?: ImagesCssContext,
 ): string[] {
   // Apply configured rules as pre-passes on the structured variants data
   const ruleNames = (context.transformerOptions?.rules as string[] | undefined) ?? [];
@@ -148,6 +203,7 @@ function buildCssLines(
       ...layoutToCSS(styles, tokensFormat, parentLayoutMode(elemKey)),
       ...styleToCSS(styles, tokensFormat, elemTypes[elemKey], { inferAbsolute: inferAbsolute(elemKey) }),
     ];
+    if ('backgroundImage' in styles) decls.push(...backgroundImageDecls(styles.backgroundImage, images));
 
     // Ellipses are circular unless the spec sets an explicit radius.
     if (elemTypes[elemKey] === 'ellipse' && !decls.some(d => d.startsWith('border-radius:'))) {
@@ -286,6 +342,7 @@ function buildCssLines(
         ...layoutToCSS(styles, tokensFormat, parentLayoutMode(elemKey)),
         ...styleToCSS(styles, tokensFormat, elemTypes[elemKey], { inferAbsolute: inferAbsolute(elemKey) }),
       ];
+      if ('backgroundImage' in styles) decls.push(...backgroundImageDecls(styles.backgroundImage, images));
       const display = displayDecls.get(elemKey);
       if (display && !decls.some(d => d.startsWith('display:'))) decls.push(display);
 

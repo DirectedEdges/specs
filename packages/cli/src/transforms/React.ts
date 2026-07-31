@@ -171,7 +171,7 @@ function buildComposition(
     }
   }
   return {
-    examples: loadExamples(outputDir) ?? { main: {}, subs: {} },
+    examples: loadExamples(outputDir) ?? { main: {}, subs: {}, images: {} },
     componentKey,
     subKeys: Object.keys(subcomponents),
     componentDirAbs: outputDir,
@@ -238,6 +238,11 @@ function buildScaffoldLines(
     : undefined;
 
   const instanceImports = new Map<string, string>();
+  // ADR-063: the component's image source prop (first image-typed prop) drives
+  // any element carrying a backgroundImage fill at runtime.
+  const imagePropName = Object.entries(props).find(
+    ([, p]) => (p as Record<string, unknown>).type === 'image',
+  )?.[0];
   const ctx: RenderContext = {
     componentClass,
     anatomy,
@@ -250,6 +255,7 @@ function buildScaffoldLines(
     composition,
     instanceImports,
     selfName: prefix,
+    imagePropName,
   };
 
   const bodyLines: string[] = [];
@@ -321,6 +327,8 @@ interface RenderContext {
   instanceImports: Map<string, string>;
   /** The component's own name — never imported into itself. */
   selfName: string;
+  /** First image-typed prop — drives backgroundImage elements at runtime (ADR-063). */
+  imagePropName?: string;
 }
 
 function renderNode(node: LayoutNode, ctx: RenderContext, depth: number, isRoot: boolean): string[] {
@@ -353,13 +361,14 @@ function renderNode(node: LayoutNode, ctx: RenderContext, depth: number, isRoot:
       if (base) spreads.push(`{...${base}}`);
       // Shared-prop pass-through: when parent and instance expose the same
       // contract prop (e.g. checked), bind it directly — dynamic wins over
-      // the static instance configuration.
+      // the static instance configuration, but only when actually set, so an
+      // undefined parent prop never clobbers a configured/example fallback.
       const omittedSet = ctx.composition?.omittedProps ?? new Set<string>();
       const shared = Object.keys(ctx.props).filter(
         k => known?.has(k) && !omittedSet.has(k) && /^[A-Za-z_$][\w$]*$/.test(k),
       );
-      if (shared.length) {
-        spreads.push(`{...{ ${shared.map(k => `${k}: p.${k}`).join(', ')} }}`);
+      for (const k of shared) {
+        spreads.push(`{...(p.${k} !== undefined ? { ${k}: p.${k} } : {})}`);
       }
       for (const variant of ctx.variants) {
         const variantElems = (variant.elements ?? {}) as Record<string, Record<string, unknown>>;
@@ -410,9 +419,18 @@ function renderNode(node: LayoutNode, ctx: RenderContext, depth: number, isRoot:
   const content = elementContent(node.key, elemType, ctx);
   const children = node.children.flatMap(c => renderNode(c, ctx, depth + (condition ? 2 : 1), false));
 
+  // Elements with a backgroundImage fill take the component's image source
+  // prop at runtime; the generated CSS carries the authoring-default fill.
+  const elemStyles = (elemDef.styles ?? {}) as Record<string, unknown>;
+  const imageStyleAttr =
+    ctx.imagePropName && 'backgroundImage' in elemStyles
+      ? `style={p.${ctx.imagePropName} ? { backgroundImage: \`url(\${p.${ctx.imagePropName}})\` } : undefined}`
+      : undefined;
+  if (imageStyleAttr && attrs.length > 0) attrs.push(imageStyleAttr);
+
   const open = attrs.length > 0
     ? [`<${tag}`, ...attrs.map(a => `  ${a}`), '>']
-    : [`<${tag} className="${className}" data-element="${node.key}">`];
+    : [`<${tag} className="${className}" data-element="${node.key}"${imageStyleAttr ? ' ' + imageStyleAttr : ''}>`];
   const body: string[] = [];
 
   if (attrs.length > 0) {

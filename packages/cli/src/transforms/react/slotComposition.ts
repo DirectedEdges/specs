@@ -26,10 +26,21 @@ export interface SlotExample {
   layout: SlotLayoutEntry[];
 }
 
+/** ADR-063 images registry entry: src when resolved, Figma identity always. */
+export interface ImageEntry {
+  src?: string;
+  $extensions?: { 'com.figma'?: { imageHash?: string } };
+}
+
 export interface ExamplesData {
   main: Record<string, SlotExample>;
   subs: Record<string, Record<string, SlotExample>>;
+  /** Component images registry (ADR-063), keyed by image id. */
+  images: Record<string, ImageEntry>;
 }
+
+/** URL base where the workspace's emitted image assets are served (storybook staticDirs). */
+export const IMAGE_BASE = '/assets/images';
 
 /** Parse <componentDir>/examples.yaml, if present. */
 export function loadExamples(componentDir: string): ExamplesData | undefined {
@@ -38,12 +49,41 @@ export function loadExamples(componentDir: string): ExamplesData | undefined {
   const parsed = yaml.parse(fs.readFileSync(p, 'utf-8')) as Record<string, unknown> | null;
   if (!parsed) return undefined;
   const main = (parsed.slotContentExamples ?? {}) as Record<string, SlotExample>;
+  const images = (parsed.images ?? {}) as Record<string, ImageEntry>;
   const subs: ExamplesData['subs'] = {};
   const subBlocks = (parsed.subcomponents ?? {}) as Record<string, Record<string, unknown>>;
   for (const [k, block] of Object.entries(subBlocks)) {
     subs[k] = (block.slotContentExamples ?? {}) as Record<string, SlotExample>;
+    Object.assign(images, (block.images ?? {}) as Record<string, ImageEntry>);
   }
-  return { main, subs };
+  return { main, subs, images };
+}
+
+/**
+ * Resolve a `$image` ref ("#/components/<c>/images/<id>") to a web URL under
+ * IMAGE_BASE. Uses the registry entry's `src` when resolved; otherwise falls
+ * back to the emitted asset convention — a `_images/<imageHash>.<ext>` file
+ * beside the component directories.
+ */
+export function resolveImageUrl(ref: string, ctx: ComposeContext): string | undefined {
+  const id = ref.match(/#\/components\/[^/]+\/images\/(.+)$/)?.[1];
+  if (!id) return undefined;
+  const entry = ctx.examples.images[id];
+  if (!entry) return undefined;
+  if (typeof entry.src === 'string') {
+    // Emitted asset paths are workspace-relative; serve by basename under IMAGE_BASE.
+    if (/^(data:|https?:)/.test(entry.src)) return entry.src;
+    return `${IMAGE_BASE}/${path.basename(entry.src)}`;
+  }
+  const hash = entry.$extensions?.['com.figma']?.imageHash;
+  if (!hash) return undefined;
+  const imagesDir = path.join(ctx.componentDirAbs, '..', '_images');
+  try {
+    const file = fs.readdirSync(imagesDir).find(f => f.startsWith(hash));
+    return file ? `${IMAGE_BASE}/${file}` : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -310,7 +350,23 @@ export function propsObjectSource(
         }
       } else if (typeof o.$binding === 'string') {
         const m = o.$binding.match(/^#\/props\/(.+)$/);
-        if (m && /^[A-Za-z_$][\w$]*$/.test(m[1])) entries.push(`${key}: ${bindingVar}.${m[1]}`);
+        if (m && /^[A-Za-z_$][\w$]*$/.test(m[1])) {
+          // ImageBinding (ADR-063): a bound prop carrying an authoring-default
+          // image example — the example is the fallback when the prop is unset.
+          const imageExample = Array.isArray(o.examples)
+            ? (o.examples as Array<Record<string, unknown>>).find(e => typeof e?.$image === 'string')
+            : undefined;
+          const fallback = imageExample ? resolveImageUrl(imageExample.$image as string, ctx) : undefined;
+          entries.push(
+            fallback
+              ? `${key}: ${bindingVar}.${m[1]} ?? ${JSON.stringify(fallback)}`
+              : `${key}: ${bindingVar}.${m[1]}`,
+          );
+        }
+      } else if (typeof o.$image === 'string') {
+        // Static image value — resolve to a served asset URL.
+        const url = resolveImageUrl(o.$image, ctx);
+        if (url) entries.push(`${key}: ${JSON.stringify(url)}`);
       }
       continue;
     }

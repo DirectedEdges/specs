@@ -175,6 +175,11 @@ function buildStoriesLines(
     }
   }
 
+  // Roots that FILL horizontally collapse to zero width in the centered
+  // layout (fit-content canvas) — give them the full-width padded canvas.
+  const rootStyles = (((variantsYaml?.default as Record<string, unknown> | undefined)?.elements as Record<string, Record<string, unknown>> | undefined)?.root?.styles ?? {}) as Record<string, unknown>;
+  const rootFills = rootStyles.layoutSizingHorizontal === 'FILL';
+
   const lines: string[] = [
     '// Generated. Do not edit — regenerate with `specs transform`.',
     "import type { Meta, StoryObj } from '@storybook/react';",
@@ -188,6 +193,7 @@ function buildStoriesLines(
     'const meta = {',
     `  title: 'Components/${title.replace(/'/g, "\\'")}',`,
     ...(explicitId ? [`  id: '${explicitId}',`] : []),
+    ...(rootFills ? ["  parameters: { layout: 'padded' },"] : []),
     `  component: ${prefix},`,
     '  args: {',
     ...(hasDefaults ? [`    ...${prefix}Defaults,`] : []),
