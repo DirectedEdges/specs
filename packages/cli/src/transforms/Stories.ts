@@ -3,6 +3,15 @@ import path from 'path';
 import yaml from 'yaml';
 import type { Transformer, TransformerContext } from '../Types/Transformer.js';
 import { analyzeVariants } from './react/variantAnalysis.js';
+import { buildOmittedProps } from './states.js';
+import {
+  loadExamples,
+  resolveSlotRef,
+  slotExampleRef,
+  composeSlotJsx,
+  type ComposeContext,
+  type ExamplesData,
+} from './react/slotComposition.js';
 
 /**
  * Emits `generated/react/stories.tsx` — one Storybook CSF page per component,
@@ -28,7 +37,20 @@ export class StoriesTransformer implements Transformer {
     }
     const variantsYaml = yaml.parse(await fs.readFile(variantsPath, 'utf-8')) as Record<string, unknown>;
 
-    await this.writeStories(outputDir, componentKey, apiYaml, variantsYaml, context);
+    const examples = loadExamples(outputDir);
+    const subcomponentsMap = (apiYaml.subcomponents ?? {}) as Record<string, unknown>;
+    const subKeys = Object.keys(subcomponentsMap);
+    // Known prop names per subcomponent import name, minus state-machine props
+    // the contracts omit — composed JSX must type-check against the contracts.
+    const omitted = buildOmittedProps(context.processingStates ?? {});
+    const targetProps = new Map<string, Set<string>>();
+    for (const [k, subRaw] of Object.entries(subcomponentsMap)) {
+      const subProps = ((subRaw as Record<string, unknown>).props ?? {}) as Record<string, unknown>;
+      targetProps.set(toPascalCase(k), new Set(Object.keys(subProps).filter(p => !omitted.has(p))));
+    }
+    const composition: CompositionInfo = { examples, componentKey, subKeys, componentDirAbs: outputDir, targetProps };
+
+    await this.writeStories(outputDir, componentKey, apiYaml, variantsYaml, context, undefined, composition);
 
     const parentTitle = (apiYaml.title as string) ?? toPascalCase(componentKey);
     const subcomponents = (apiYaml.subcomponents ?? {}) as Record<string, unknown>;
@@ -43,7 +65,7 @@ export class StoriesTransformer implements Transformer {
       await this.writeStories(path.join(outputDir, subKey), subKey, subApi, subVariantsYaml, context, {
         title: parentTitle,
         key: componentKey,
-      });
+      }, composition);
     }
   }
 
@@ -54,14 +76,36 @@ export class StoriesTransformer implements Transformer {
     variantsYaml: Record<string, unknown>,
     context: TransformerContext,
     parent?: { title: string; key: string },
+    composition?: CompositionInfo,
   ): Promise<void> {
     const analysis = analyzeVariants(apiYaml, variantsYaml, context.processingStates ?? {});
     const prefix = toPascalCase(componentKey);
-    const lines = buildStoriesLines(componentKey, apiYaml, analysis, parent);
+    // Stories live at <dir>/generated/react/: the component root is 2 up for
+    // the main component, 3 up (through the parent dir) for subcomponents.
+    const composeCtx: ComposeContext | undefined = composition?.examples
+      ? {
+          componentKey: composition.componentKey,
+          subKeys: composition.subKeys,
+          upToComponentRoot: parent ? '../../..' : '../..',
+          upToSpecsRoot: parent ? '../../../..' : '../../..',
+          componentDirAbs: composition.componentDirAbs,
+          examples: composition.examples,
+          targetProps: composition.targetProps,
+        }
+      : undefined;
+    const lines = buildStoriesLines(componentKey, apiYaml, analysis, parent, variantsYaml, composeCtx);
     const generatedReactDir = path.join(outputDir, 'generated', 'react');
     await fs.ensureDir(generatedReactDir);
     await fs.writeFile(path.join(generatedReactDir, `${prefix}.stories.tsx`), lines.join('\n'), 'utf-8');
   }
+}
+
+interface CompositionInfo {
+  examples: ExamplesData | undefined;
+  componentKey: string;
+  subKeys: string[];
+  componentDirAbs: string;
+  targetProps: Map<string, Set<string>>;
 }
 
 function buildStoriesLines(
@@ -69,6 +113,8 @@ function buildStoriesLines(
   apiYaml: Record<string, unknown>,
   analysis: ReturnType<typeof analyzeVariants>,
   parent?: { title: string; key: string },
+  variantsYaml?: Record<string, unknown>,
+  composeCtx?: ComposeContext,
 ): string[] {
   const prefix = toPascalCase(componentKey);
   const props = (apiYaml.props ?? {}) as Record<string, unknown>;
@@ -87,6 +133,27 @@ function buildStoriesLines(
   const explicitId = parent ? `${camelKebab(parent.key)}-${camelKebab(componentKey)}-sub` : undefined;
   const hasDefaults = Object.values(props).some(p => 'default' in (p as Record<string, unknown>));
 
+  // Slot props with a bound $slotContent example compose real subcomponent
+  // JSX; the rest fall back to a plain text placeholder.
+  const slotJsxArgs = new Map<string, string[]>();
+  const slotImports = new Map<string, string>();
+  if (composeCtx) {
+    const defaultElements = ((variantsYaml?.default as Record<string, unknown> | undefined)?.elements ?? {}) as Record<string, Record<string, unknown>>;
+    for (const slot of analysis.slots) {
+      if (slot.slotType !== 'slot' || !slot.prop) continue;
+      const ref = slotExampleRef(defaultElements[slot.elementKey]);
+      if (!ref) continue;
+      const example = resolveSlotRef(ref, composeCtx.examples);
+      if (!example) continue;
+      const composed = composeSlotJsx(example, composeCtx, '        ');
+      if (composed.lines.length === 0) continue;
+      slotJsxArgs.set(slot.prop, composed.lines);
+      for (const [n, p] of composed.imports) {
+        if (n !== prefix) slotImports.set(n, p); // never re-import the component itself
+      }
+    }
+  }
+
   // Meta args: defaults + first example value for each string/slot prop so
   // text slots render visible content out of the box.
   const exampleArgs: Array<[string, string]> = [];
@@ -94,7 +161,7 @@ function buildStoriesLines(
     const prop = raw as Record<string, unknown>;
     if (prop.type === 'string' && Array.isArray(prop.examples) && prop.examples.length > 0) {
       exampleArgs.push([key, JSON.stringify(prop.examples[0])]);
-    } else if (prop.type === 'slot') {
+    } else if (prop.type === 'slot' && !slotJsxArgs.has(key)) {
       exampleArgs.push([key, `'Slot content'`]);
     }
   }
@@ -102,8 +169,12 @@ function buildStoriesLines(
   const lines: string[] = [
     '// Generated. Do not edit — regenerate with `specs transform`.',
     "import type { Meta, StoryObj } from '@storybook/react';",
+    // JSX in slot args compiles to React.createElement under the classic
+    // runtime — the explicit import keeps the file self-sufficient.
+    ...(slotJsxArgs.size > 0 ? ["import * as React from 'react';"] : []),
     `import { ${prefix} } from '../../src/react/${prefix}';`,
     ...(hasDefaults ? [`import { ${prefix}Defaults } from '../${prefix}.contract';`] : []),
+    ...[...slotImports.entries()].map(([n, p]) => `import { ${n} } from '${p}';`),
     '',
     'const meta = {',
     `  title: 'Components/${title.replace(/'/g, "\\'")}',`,
@@ -112,6 +183,13 @@ function buildStoriesLines(
     '  args: {',
     ...(hasDefaults ? [`    ...${prefix}Defaults,`] : []),
     ...exampleArgs.map(([k, v]) => `    ${k}: ${v},`),
+    ...[...slotJsxArgs.entries()].flatMap(([k, jsx]) => [
+      `    ${k}: (`,
+      '      <>',
+      ...jsx,
+      '      </>',
+      '    ),',
+    ]),
     '  },',
     `} satisfies Meta<typeof ${prefix}>;`,
     '',

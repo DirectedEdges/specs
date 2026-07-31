@@ -55,7 +55,13 @@ export function collectGlyphComponents(document: unknown, pattern: string): Arra
 
   const seen = new Set<string>();
   for (const glyph of found) {
-    const base = glyph.name.trim().replace(/[\s_]+/g, '-').replace(/-+/g, '-').toLowerCase();
+    // Kebabize camelCase too, matching the scaffold's glyphUrl slugging.
+    const base = glyph.name
+      .trim()
+      .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+      .replace(/[\s_]+/g, '-')
+      .replace(/-+/g, '-')
+      .toLowerCase();
     glyph.slug = seen.has(base) ? `${base}-${glyph.id.replace(':', '-')}` : base;
     seen.add(base);
   }

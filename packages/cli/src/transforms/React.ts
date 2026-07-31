@@ -5,6 +5,14 @@ import type { Transformer, TransformerContext } from '../Types/Transformer.js';
 import { toKebab } from './css/values.js';
 import { CONCEPT_TABLE } from './states.js';
 import { analyzeVariants, type LayoutNode, type VariantAnalysis } from './react/variantAnalysis.js';
+import { buildOmittedProps } from './states.js';
+import {
+  loadExamples,
+  resolveInstanceTarget,
+  propsObjectSource,
+  type ComposeContext,
+  type ExamplesData,
+} from './react/slotComposition.js';
 
 /**
  * Emits `generated/react/scaffold.tsx` — a functioning React component that
@@ -39,6 +47,8 @@ export class ReactTransformer implements Transformer {
 
     const analysis = analyzeVariants(apiYaml, variantsYaml, context.processingStates ?? {});
 
+    const composition = buildComposition(outputDir, componentKey, apiYaml, variantsYaml, context);
+
     const prefix = toPascalCase(componentKey);
     const generatedReactDir = path.join(outputDir, 'generated', 'react');
     await fs.ensureDir(generatedReactDir);
@@ -46,10 +56,10 @@ export class ReactTransformer implements Transformer {
       contract: `../${prefix}.contract`,
       css: [`../${prefix}.styles.css`],
       header: '// Generated. Do not edit — regenerate with `specs transform`.',
-    });
+    }, composition, false);
     await fs.writeFile(path.join(generatedReactDir, `${prefix}.scaffold.tsx`), lines.join('\n'), 'utf-8');
 
-    await this.seedAuthoredWorkspace(outputDir, componentKey, apiYaml, variantsYaml, analysis, context);
+    await this.seedAuthoredWorkspace(outputDir, componentKey, apiYaml, variantsYaml, analysis, context, composition, false);
 
     // Subcomponents — each gets its own scaffold seeded under <subKey>/
     const subcomponents = (apiYaml.subcomponents ?? {}) as Record<string, unknown>;
@@ -67,9 +77,9 @@ export class ReactTransformer implements Transformer {
         contract: `../${subPrefix}.contract`,
         css: [`../${subPrefix}.styles.css`],
         header: '// Generated. Do not edit — regenerate with `specs transform`.',
-      });
+      }, composition, true);
       await fs.writeFile(path.join(subGeneratedReactDir, `${subPrefix}.scaffold.tsx`), subLines.join('\n'), 'utf-8');
-      await this.seedAuthoredWorkspace(subDir, subKey, subApi, subVariantsYaml, subAnalysis, subContext);
+      await this.seedAuthoredWorkspace(subDir, subKey, subApi, subVariantsYaml, subAnalysis, subContext, composition, true);
     }
   }
 
@@ -81,6 +91,8 @@ export class ReactTransformer implements Transformer {
     variantsYaml: Record<string, unknown>,
     analysis: VariantAnalysis,
     context: TransformerContext,
+    composition?: Composition,
+    isSub = false,
   ): Promise<void> {
     const srcReactDir = path.join(outputDir, 'src', 'react');
     await fs.ensureDir(srcReactDir);
@@ -93,7 +105,7 @@ export class ReactTransformer implements Transformer {
         css: [`../../generated/${prefix}.styles.css`, `./${prefix}.proposed.css`, `./${prefix}.extensions.css`],
         header: '// Authored component — seeded once by `specs transform`, never overwritten.\n'
           + '// The always-current generated reference lives at ../../generated/react/scaffold.tsx.',
-      });
+      }, composition, isSub);
       await fs.writeFile(componentPath, lines.join('\n'), 'utf-8');
     }
 
@@ -117,6 +129,69 @@ interface ScaffoldImports {
   header: string;
 }
 
+/** Cross-cutting data for composing nested instances into scaffolds. */
+interface Composition {
+  examples: ExamplesData;
+  componentKey: string;
+  subKeys: string[];
+  componentDirAbs: string;
+  /** Known prop names per import name (contract-visible props only). */
+  targetProps: Map<string, Set<string>>;
+  omittedProps: Set<string>;
+}
+
+function buildComposition(
+  outputDir: string,
+  componentKey: string,
+  apiYaml: Record<string, unknown>,
+  variantsYaml: Record<string, unknown>,
+  context: TransformerContext,
+): Composition {
+  const subcomponents = (apiYaml.subcomponents ?? {}) as Record<string, unknown>;
+  const omitted = buildOmittedProps(context.processingStates ?? {});
+  const targetProps = new Map<string, Set<string>>();
+  for (const [k, subRaw] of Object.entries(subcomponents)) {
+    const subProps = ((subRaw as Record<string, unknown>).props ?? {}) as Record<string, unknown>;
+    targetProps.set(toPascalCase(k), new Set(Object.keys(subProps).filter(p => !omitted.has(p))));
+  }
+  // Sibling components referenced by string instanceOf: read their api.yaml
+  // once so composed props are filtered against the sibling's contract too.
+  for (const name of collectInstanceOfStrings(variantsYaml)) {
+    const pascal = toPascalCase(name);
+    if (targetProps.has(pascal)) continue;
+    const siblingApi = path.join(outputDir, '..', name, 'api.yaml');
+    if (!fs.existsSync(siblingApi)) continue;
+    try {
+      const parsed = yaml.parse(fs.readFileSync(siblingApi, 'utf-8')) as Record<string, unknown>;
+      const sibProps = (parsed.props ?? {}) as Record<string, unknown>;
+      targetProps.set(pascal, new Set(Object.keys(sibProps).filter(p => !omitted.has(p))));
+    } catch {
+      // unreadable sibling spec — leave unfiltered
+    }
+  }
+  return {
+    examples: loadExamples(outputDir) ?? { main: {}, subs: {} },
+    componentKey,
+    subKeys: Object.keys(subcomponents),
+    componentDirAbs: outputDir,
+    targetProps,
+    omittedProps: omitted,
+  };
+}
+
+/** All string instanceOf values anywhere in the variants tree. */
+function collectInstanceOfStrings(node: unknown, into: Set<string> = new Set()): Set<string> {
+  if (Array.isArray(node)) {
+    for (const item of node) collectInstanceOfStrings(item, into);
+  } else if (node && typeof node === 'object') {
+    for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+      if (k === 'instanceOf' && typeof v === 'string') into.add(v);
+      else collectInstanceOfStrings(v, into);
+    }
+  }
+  return into;
+}
+
 function buildScaffoldLines(
   componentKey: string,
   apiYaml: Record<string, unknown>,
@@ -124,6 +199,8 @@ function buildScaffoldLines(
   analysis: VariantAnalysis,
   context: TransformerContext,
   imports: ScaffoldImports,
+  composition?: Composition,
+  isSub = false,
 ): string[] {
   const prefix = toPascalCase(componentKey);
   const componentClass = toKebab(componentKey);
@@ -139,6 +216,45 @@ function buildScaffoldLines(
     .filter(s => s.slotType === 'slot' && s.prop)
     .map(s => s.prop as string);
 
+  // Scaffolds live 2 directories below the component root (src/react or
+  // generated/react); subcomponents sit one directory deeper.
+  const composeCtx: ComposeContext | undefined = composition
+    ? {
+        componentKey: composition.componentKey,
+        subKeys: composition.subKeys,
+        upToComponentRoot: isSub ? '../../..' : '../..',
+        upToSpecsRoot: isSub ? '../../../..' : '../../..',
+        componentDirAbs: composition.componentDirAbs,
+        examples: composition.examples,
+        targetProps: composition.targetProps,
+      }
+    : undefined;
+
+  const instanceImports = new Map<string, string>();
+  const ctx: RenderContext = {
+    componentClass,
+    anatomy,
+    props,
+    defaultElements,
+    analysis,
+    processingStates: context.processingStates ?? {},
+    variants: (variantsYaml.variants ?? []) as Array<Record<string, unknown>>,
+    composeCtx,
+    composition,
+    instanceImports,
+    selfName: prefix,
+  };
+
+  const bodyLines: string[] = [];
+  for (const node of analysis.layout) {
+    bodyLines.push(...renderNode(node, ctx, 2, true));
+  }
+  // Leaf components with no layout tree (pure-glyph/text primitives) must
+  // still return valid TSX — an empty return ( ); does not parse.
+  if (bodyLines.length === 0) {
+    bodyLines.push(`    <div className="${componentClass}" />`);
+  }
+
   const lines: string[] = [
     imports.header,
     "import * as React from 'react';",
@@ -146,6 +262,7 @@ function buildScaffoldLines(
     hasDefaults
       ? `import { ${prefix}Defaults, type ${prefix}Props } from '${imports.contract}';`
       : `import { type ${prefix}Props } from '${imports.contract}';`,
+    ...[...instanceImports.entries()].map(([n, p]) => `import { ${n} } from '${p}';`),
     '',
     `export interface ${prefix}ScaffoldProps extends ${prefix}Props {`,
     ...nodeSlotProps.map(p => `  ${p}?: React.ReactNode;`),
@@ -162,7 +279,8 @@ function buildScaffoldLines(
           "const GLYPH_BASE = '/assets/icons';",
           'function glyphUrl(name: unknown): string | undefined {',
           '  if (name == null) return undefined;',
-          "  const slug = String(name).trim().replace(/[\\s_]+/g, '-').replace(/-+/g, '-').toLowerCase();",
+          '  // Kebabize camelCase too — icon names arrive as "expandMore" under CAMEL key formatting.',
+          "  const slug = String(name).trim().replace(/([a-z0-9])([A-Z])/g, '$1-$2').replace(/[\\s_]+/g, '-').replace(/-+/g, '-').toLowerCase();",
           "  return `url('${GLYPH_BASE}/${slug}.svg')`;",
           '}',
           '',
@@ -175,19 +293,7 @@ function buildScaffoldLines(
     '  return (',
   ];
 
-  const ctx: RenderContext = {
-    componentClass,
-    anatomy,
-    props,
-    defaultElements,
-    analysis,
-    processingStates: context.processingStates ?? {},
-  };
-
-  for (const node of analysis.layout) {
-    lines.push(...renderNode(node, ctx, 2, true));
-  }
-
+  lines.push(...bodyLines);
   lines.push('  );');
   lines.push('}');
   lines.push('');
@@ -201,6 +307,13 @@ interface RenderContext {
   defaultElements: Record<string, Record<string, unknown>>;
   analysis: VariantAnalysis;
   processingStates: NonNullable<TransformerContext['processingStates']>;
+  variants: Array<Record<string, unknown>>;
+  composeCtx?: ComposeContext;
+  composition?: Composition;
+  /** import name → module path, filled while rendering nested instances */
+  instanceImports: Map<string, string>;
+  /** The component's own name — never imported into itself. */
+  selfName: string;
 }
 
 function renderNode(node: LayoutNode, ctx: RenderContext, depth: number, isRoot: boolean): string[] {
@@ -213,11 +326,62 @@ function renderNode(node: LayoutNode, ctx: RenderContext, depth: number, isRoot:
   // structural-presence conditions from variant layouts.
   const condition = buildCondition(node, ctx);
 
+  // Nested instances: resolve instanceOf to a generated component
+  // (subcomponent of this component, or a sibling component) and render it
+  // inside the wrapper element with its configured props. Variant-specific
+  // propConfigurations become conditional spreads gated on real props.
+  const elemDef = (ctx.defaultElements[node.key] ?? {}) as Record<string, unknown>;
+  if (elemType === 'instance' && ctx.composeCtx) {
+    const target = resolveInstanceTarget(elemDef.instanceOf ?? ctx.anatomy[node.key]?.instanceOf, ctx.composeCtx);
+    if (target && target.name !== ctx.selfName) {
+      ctx.instanceImports.set(target.name, target.importPath);
+      const known = ctx.composeCtx.targetProps?.get(target.name);
+      const spreads: string[] = [];
+      const base = propsObjectSource(
+        (elemDef.propConfigurations ?? {}) as Record<string, unknown>,
+        ctx.composeCtx,
+        ctx.instanceImports,
+        known,
+      );
+      if (base) spreads.push(`{...${base}}`);
+      // Shared-prop pass-through: when parent and instance expose the same
+      // contract prop (e.g. checked), bind it directly — dynamic wins over
+      // the static instance configuration.
+      const omittedSet = ctx.composition?.omittedProps ?? new Set<string>();
+      const shared = Object.keys(ctx.props).filter(
+        k => known?.has(k) && !omittedSet.has(k) && /^[A-Za-z_$][\w$]*$/.test(k),
+      );
+      if (shared.length) {
+        spreads.push(`{...{ ${shared.map(k => `${k}: p.${k}`).join(', ')} }}`);
+      }
+      for (const variant of ctx.variants) {
+        const variantElems = (variant.elements ?? {}) as Record<string, Record<string, unknown>>;
+        const delta = (variantElems[node.key]?.propConfigurations ?? undefined) as Record<string, unknown> | undefined;
+        if (!delta) continue;
+        const cond = configToExpr(
+          (variant.configuration ?? {}) as Record<string, unknown>,
+          ctx.props,
+          ctx.composition?.omittedProps ?? new Set(),
+        );
+        if (!cond) continue; // browser-state-driven variant — CSS handles it
+        const deltaSrc = propsObjectSource(delta, ctx.composeCtx, ctx.instanceImports, known);
+        if (deltaSrc) spreads.push(`{...(${cond} ? ${deltaSrc} : {})}`);
+      }
+      const inner = `<${target.name}${spreads.length ? ' ' + spreads.join(' ') : ''} />`;
+      const open = `<${tag} className="${className}">`;
+      const innerPad = pad + (condition ? '  ' : '');
+      const body = [innerPad + open, `${innerPad}  ${inner}`, `${innerPad}</${tag}>`];
+      if (condition) {
+        return [`${pad}{${condition} && (`, ...body, `${pad})}`];
+      }
+      return body;
+    }
+  }
+
   // Glyphs render as self-closing masked spans: the CSS paints the element's
   // fill color through the icon's SVG via mask-image (--glyph). Instance
   // elements carrying a `name` propConfiguration are icon-wrapper instances
   // and take the same path.
-  const elemDef = (ctx.defaultElements[node.key] ?? {}) as Record<string, unknown>;
   const instanceGlyphName = (() => {
     if (elemType !== 'instance') return undefined;
     const pc = (elemDef.propConfigurations ?? {}) as Record<string, unknown>;
@@ -361,6 +525,25 @@ function elementContent(elemKey: string, elemType: string, ctx: RenderContext): 
     return `{/* instance: ${ref ?? 'unresolved'} — placeholder until instance slots land */}`;
   }
   return undefined;
+}
+
+/**
+ * A variant configuration as a boolean expression over contract props, or
+ * null when any key isn't a real prop (browser-state-driven variants).
+ */
+function configToExpr(
+  config: Record<string, unknown>,
+  props: Record<string, unknown>,
+  omitted: Set<string>,
+): string | null {
+  const parts: string[] = [];
+  for (const [k, v] of Object.entries(config)) {
+    if (!(k in props) || omitted.has(k) || !/^[A-Za-z_$][\w$]*$/.test(k)) return null;
+    if (v === true) parts.push(`p.${k}`);
+    else if (v === false) parts.push(`!p.${k}`);
+    else parts.push(`p.${k} === ${JSON.stringify(v)}`);
+  }
+  return parts.length ? parts.join(' && ') : null;
 }
 
 function hasGlyphs(

@@ -1,0 +1,264 @@
+// Slot-content composition from examples.yaml.
+//
+// variants.yaml binds slot elements to examples:
+//   children:
+//     $binding: "#/props/children"
+//     examples:
+//       - $slotContent: "#/components/<comp>/slotContentExamples/<id>"
+//
+// examples.yaml holds the referenced blocks: { anatomy, elements (instanceOf +
+// propConfigurations), layout (ordered element keys, repeats allowed) }.
+// This module resolves those refs and emits JSX that composes the instanced
+// subcomponents/sibling components, recursively following nested $slotContent
+// refs inside propConfigurations.
+
+import fs from 'fs-extra';
+import path from 'path';
+import yaml from 'yaml';
+
+export interface SlotExample {
+  anatomy?: Record<string, Record<string, unknown>>;
+  elements: Record<string, Record<string, unknown>>;
+  layout: string[];
+}
+
+export interface ExamplesData {
+  main: Record<string, SlotExample>;
+  subs: Record<string, Record<string, SlotExample>>;
+}
+
+/** Parse <componentDir>/examples.yaml, if present. */
+export function loadExamples(componentDir: string): ExamplesData | undefined {
+  const p = path.join(componentDir, 'examples.yaml');
+  if (!fs.existsSync(p)) return undefined;
+  const parsed = yaml.parse(fs.readFileSync(p, 'utf-8')) as Record<string, unknown> | null;
+  if (!parsed) return undefined;
+  const main = (parsed.slotContentExamples ?? {}) as Record<string, SlotExample>;
+  const subs: ExamplesData['subs'] = {};
+  const subBlocks = (parsed.subcomponents ?? {}) as Record<string, Record<string, unknown>>;
+  for (const [k, block] of Object.entries(subBlocks)) {
+    subs[k] = (block.slotContentExamples ?? {}) as Record<string, SlotExample>;
+  }
+  return { main, subs };
+}
+
+/**
+ * Resolve a $slotContent ref:
+ *   #/components/<comp>/slotContentExamples/<id>
+ *   #/components/<comp>/subcomponents/<sub>/slotContentExamples/<id>
+ */
+export function resolveSlotRef(ref: string, examples: ExamplesData): SlotExample | undefined {
+  const subMatch = ref.match(/#\/components\/[^/]+\/subcomponents\/([^/]+)\/slotContentExamples\/(.+)$/);
+  if (subMatch) return examples.subs[subMatch[1]]?.[subMatch[2]];
+  const mainMatch = ref.match(/#\/components\/[^/]+\/slotContentExamples\/(.+)$/);
+  if (mainMatch) return examples.main[mainMatch[1]];
+  return undefined;
+}
+
+/** Extract the first $slotContent ref from a slot element's binding block. */
+export function slotExampleRef(elem: Record<string, unknown> | undefined): string | undefined {
+  const children = elem?.children as Record<string, unknown> | undefined;
+  const examples = children?.examples;
+  if (!Array.isArray(examples)) return undefined;
+  for (const entry of examples) {
+    if (entry && typeof entry === 'object' && typeof (entry as Record<string, unknown>).$slotContent === 'string') {
+      return (entry as Record<string, unknown>).$slotContent as string;
+    }
+  }
+  return undefined;
+}
+
+export interface ComposeContext {
+  /** Top-level component key (e.g. deActionList). */
+  componentKey: string;
+  /** Subcomponent keys of the top-level component. */
+  subKeys: string[];
+  /** Relative path from the emitting file's directory to the component root. */
+  upToComponentRoot: string;
+  /** Relative path from the emitting file's directory to the specs root (siblings). */
+  upToSpecsRoot: string;
+  /** Absolute path of the top-level component directory (sibling existence checks). */
+  componentDirAbs: string;
+  examples: ExamplesData;
+  /**
+   * Known prop names per import name (subcomponents of the current component).
+   * When present for a target, unknown propConfigurations keys are dropped so
+   * generated JSX type-checks against the target's contract (e.g. state-machine
+   * props the contract omits).
+   */
+  targetProps?: Map<string, Set<string>>;
+}
+
+export interface ComposedJsx {
+  lines: string[];
+  /** import name → module path */
+  imports: Map<string, string>;
+}
+
+const GLYPH_BASE = '/assets/icons';
+
+/** Compose a slot example into JSX lines (one per instance in layout order). */
+export function composeSlotJsx(example: SlotExample, ctx: ComposeContext, indent: string): ComposedJsx {
+  const imports = new Map<string, string>();
+  const lines: string[] = [];
+  for (const key of example.layout ?? []) {
+    const elem = (example.elements?.[key] ?? {}) as Record<string, unknown>;
+    lines.push(...renderInstance(key, elem, ctx, indent, imports));
+  }
+  return { lines, imports };
+}
+
+function renderInstance(
+  key: string,
+  elem: Record<string, unknown>,
+  ctx: ComposeContext,
+  indent: string,
+  imports: Map<string, string>,
+): string[] {
+  const instanceOf = elem.instanceOf;
+  const pc = (elem.propConfigurations ?? {}) as Record<string, unknown>;
+  const target = resolveInstanceTarget(instanceOf, ctx);
+
+  if (target) {
+    imports.set(target.name, target.importPath);
+    const known = ctx.targetProps?.get(target.name);
+    const { attrs, childBlocks } = propsToJsx(pc, ctx, indent, imports, known);
+    if (childBlocks.length === 0) {
+      return [`${indent}<${target.name}${attrs} />`];
+    }
+    return [`${indent}<${target.name}${attrs}>`, ...childBlocks, `${indent}</${target.name}>`];
+  }
+
+  // Icon-wrapper fallback: unresolvable instance with a name propConfiguration
+  // renders as a self-contained masked span (no external CSS dependency).
+  if (typeof pc.name === 'string') {
+    const styles = (elem.styles ?? {}) as Record<string, unknown>;
+    const sizeMatch = typeof pc.size === 'string' ? pc.size.match(/^(\d+)x(\d+)$/) : null;
+    const w = typeof styles.width === 'number' ? styles.width : sizeMatch ? Number(sizeMatch[1]) : 16;
+    const h = typeof styles.height === 'number' ? styles.height : sizeMatch ? Number(sizeMatch[2]) : 16;
+    const slug = pc.name
+      .trim()
+      .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+      .replace(/[\s_]+/g, '-')
+      .replace(/-+/g, '-')
+      .toLowerCase();
+    const mask = `url('${GLYPH_BASE}/${slug}.svg') no-repeat center / contain`;
+    return [
+      `${indent}<span aria-hidden="true" style={{ display: 'inline-block', width: ${w}, height: ${h}, backgroundColor: 'currentColor', WebkitMask: "${mask}", mask: "${mask}" }} />`,
+    ];
+  }
+
+  const label = typeof instanceOf === 'string' ? instanceOf : key;
+  return [`${indent}{/* instance: ${label} — no generated component found */}`];
+}
+
+export interface InstanceTarget { name: string; importPath: string }
+
+export function resolveInstanceTarget(instanceOf: unknown, ctx: ComposeContext): InstanceTarget | undefined {
+  // { $ref: '#/subcomponents/<k>' }
+  if (instanceOf && typeof instanceOf === 'object') {
+    const ref = (instanceOf as Record<string, unknown>).$ref;
+    if (typeof ref === 'string') {
+      const k = ref.replace(/^#\/subcomponents\//, '');
+      if (ctx.subKeys.includes(k)) return subTarget(k, ctx);
+    }
+    return undefined;
+  }
+  if (typeof instanceOf !== 'string') return undefined;
+
+  // Subcomponent by naming convention: <componentKey><PascalSubKey>
+  for (const k of ctx.subKeys) {
+    if (instanceOf.toLowerCase() === `${ctx.componentKey}${k}`.toLowerCase()) return subTarget(k, ctx);
+  }
+  // Sibling generated component: specs/<instanceOf>/ exists
+  const siblingDir = path.join(ctx.componentDirAbs, '..', instanceOf);
+  if (fs.existsSync(path.join(siblingDir, 'src', 'react'))) {
+    const name = toPascalCase(instanceOf);
+    return { name, importPath: `${ctx.upToSpecsRoot}/${instanceOf}/src/react/${name}` };
+  }
+  return undefined;
+}
+
+function subTarget(subKey: string, ctx: ComposeContext): InstanceTarget {
+  const name = toPascalCase(subKey);
+  return { name, importPath: `${ctx.upToComponentRoot}/${subKey}/src/react/${name}` };
+}
+
+/** propConfigurations → JSX attribute string + child blocks for `children` slot content. */
+function propsToJsx(
+  pc: Record<string, unknown>,
+  ctx: ComposeContext,
+  indent: string,
+  imports: Map<string, string>,
+  knownProps?: Set<string>,
+): { attrs: string; childBlocks: string[] } {
+  const parts: string[] = [];
+  const childBlocks: string[] = [];
+  for (const [key, value] of Object.entries(pc)) {
+    if (!/^[A-Za-z_$][\w$]*$/.test(key)) continue;
+    if (knownProps && !knownProps.has(key)) continue;
+    if (value === null || value === undefined) continue;
+    if (typeof value === 'object') {
+      const ref = (value as Record<string, unknown>).$slotContent;
+      if (typeof ref === 'string') {
+        const nested = resolveSlotRef(ref, ctx.examples);
+        if (nested) {
+          const composed = composeSlotJsx(nested, ctx, `${indent}    `);
+          for (const [n, p] of composed.imports) imports.set(n, p);
+          if (key === 'children') {
+            childBlocks.push(...composed.lines);
+          } else {
+            parts.push(`${key}={<>\n${composed.lines.join('\n')}\n${indent}  </>}`);
+          }
+        }
+      }
+      continue; // other object shapes ($binding etc.) are not renderable in examples
+    }
+    if (typeof value === 'string') parts.push(`${key}=${JSON.stringify(value)}`);
+    else if (typeof value === 'boolean') parts.push(value ? `${key}` : `${key}={false}`);
+    else if (typeof value === 'number') parts.push(`${key}={${value}}`);
+  }
+  return { attrs: parts.length ? ' ' + parts.join(' ') : '', childBlocks };
+}
+
+/**
+ * propConfigurations → a JS object-literal source string for spreading onto a
+ * nested component ({ a: 1, b: "x", items: (<>…</>) }). Values may be
+ * primitives, prop bindings (rendered against `bindingVar`), or nested
+ * $slotContent refs (composed recursively). Returns undefined when empty.
+ */
+export function propsObjectSource(
+  pc: Record<string, unknown>,
+  ctx: ComposeContext,
+  imports: Map<string, string>,
+  knownProps?: Set<string>,
+  bindingVar = 'p',
+): string | undefined {
+  const entries: string[] = [];
+  for (const [key, value] of Object.entries(pc)) {
+    if (!/^[A-Za-z_$][\w$]*$/.test(key)) continue;
+    if (knownProps && !knownProps.has(key)) continue;
+    if (value === null || value === undefined) continue;
+    if (typeof value === 'object') {
+      const o = value as Record<string, unknown>;
+      if (typeof o.$slotContent === 'string') {
+        const nested = resolveSlotRef(o.$slotContent, ctx.examples);
+        if (nested) {
+          const composed = composeSlotJsx(nested, ctx, '        ');
+          for (const [n, p] of composed.imports) imports.set(n, p);
+          entries.push(`${key}: (<>\n${composed.lines.join('\n')}\n      </>)`);
+        }
+      } else if (typeof o.$binding === 'string') {
+        const m = o.$binding.match(/^#\/props\/(.+)$/);
+        if (m && /^[A-Za-z_$][\w$]*$/.test(m[1])) entries.push(`${key}: ${bindingVar}.${m[1]}`);
+      }
+      continue;
+    }
+    entries.push(`${key}: ${JSON.stringify(value)}`);
+  }
+  return entries.length ? `{ ${entries.join(', ')} }` : undefined;
+}
+
+function toPascalCase(str: string): string {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
