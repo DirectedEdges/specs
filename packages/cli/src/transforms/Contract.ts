@@ -33,14 +33,15 @@ export class ContractTransformer implements Transformer {
     const subVariants = (variantsYaml?.subcomponents ?? {}) as Record<string, unknown>;
     for (const [subKey, subRaw] of Object.entries(subcomponents)) {
       const sub = subRaw as Record<string, unknown>;
-      const subPrefix = `${prefix}${toPascalCase(subKey)}`;
+      // Export names must match the file prefix — scaffold/stories import
+      // `${SubPrefix}Defaults` from `./${SubPrefix}.contract`.
       const subFilePrefix = toPascalCase(subKey);
       const subProps = (sub.props ?? {}) as Record<string, unknown>;
       const subVariantsYaml = subVariants[subKey] as Record<string, unknown> | undefined;
       const subSlots = subVariantsYaml
         ? analyzeVariants(sub, subVariantsYaml, context.processingStates ?? {}).slots
         : [];
-      const subLines = buildContractLines(subPrefix, subProps, omittedProps, subSlots);
+      const subLines = buildContractLines(subFilePrefix, subProps, omittedProps, subSlots);
       const subDir = path.join(outputDir, subKey, 'generated');
       await fs.ensureDir(subDir);
       await fs.writeFile(path.join(subDir, `${subFilePrefix}.contract.ts`), subLines.join('\n'), 'utf-8');

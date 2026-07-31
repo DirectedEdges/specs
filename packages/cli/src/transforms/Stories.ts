@@ -30,12 +30,20 @@ export class StoriesTransformer implements Transformer {
 
     await this.writeStories(outputDir, componentKey, apiYaml, variantsYaml, context);
 
+    const parentTitle = (apiYaml.title as string) ?? toPascalCase(componentKey);
     const subcomponents = (apiYaml.subcomponents ?? {}) as Record<string, unknown>;
     const subVariantsAll = (variantsYaml.subcomponents ?? {}) as Record<string, unknown>;
     for (const [subKey, subRaw] of Object.entries(subcomponents)) {
       const subApi = subRaw as Record<string, unknown>;
       const subVariantsYaml = (subVariantsAll[subKey] ?? {}) as Record<string, unknown>;
-      await this.writeStories(path.join(outputDir, subKey), subKey, subApi, subVariantsYaml, context);
+      // Nest under the parent title so subcomponent stories sit inside the
+      // parent's nav group, and give them a key-derived id — title-derived ids
+      // can collide with a standalone component of the same flattened name
+      // ("DE Checkbox/Control" vs "DE Checkbox Control").
+      await this.writeStories(path.join(outputDir, subKey), subKey, subApi, subVariantsYaml, context, {
+        title: parentTitle,
+        key: componentKey,
+      });
     }
   }
 
@@ -45,10 +53,11 @@ export class StoriesTransformer implements Transformer {
     apiYaml: Record<string, unknown>,
     variantsYaml: Record<string, unknown>,
     context: TransformerContext,
+    parent?: { title: string; key: string },
   ): Promise<void> {
     const analysis = analyzeVariants(apiYaml, variantsYaml, context.processingStates ?? {});
     const prefix = toPascalCase(componentKey);
-    const lines = buildStoriesLines(componentKey, apiYaml, analysis);
+    const lines = buildStoriesLines(componentKey, apiYaml, analysis, parent);
     const generatedReactDir = path.join(outputDir, 'generated', 'react');
     await fs.ensureDir(generatedReactDir);
     await fs.writeFile(path.join(generatedReactDir, `${prefix}.stories.tsx`), lines.join('\n'), 'utf-8');
@@ -59,10 +68,18 @@ function buildStoriesLines(
   componentKey: string,
   apiYaml: Record<string, unknown>,
   analysis: ReturnType<typeof analyzeVariants>,
+  parent?: { title: string; key: string },
 ): string[] {
   const prefix = toPascalCase(componentKey);
   const props = (apiYaml.props ?? {}) as Record<string, unknown>;
-  const title = (apiYaml.title as string) ?? prefix;
+  // Normalize " / " → "/" so Figma-style separators don't create nav levels
+  // with stray leading/trailing spaces.
+  const ownTitle = ((apiYaml.title as string) ?? prefix).replace(/\s*\/\s*/g, '/');
+  // Subcomponent titles from Figma repeat the parent name ("DE Checkbox / Control");
+  // strip it so the nav leaf is just the subcomponent's own name.
+  const leaf = parent ? ownTitle.replace(new RegExp(`^${escapeRegExp(parent.title)}\\s*/\\s*`), '') : ownTitle;
+  const title = parent ? `${parent.title}/${leaf}` : ownTitle;
+  const explicitId = parent ? `${camelKebab(parent.key)}-${camelKebab(componentKey)}-sub` : undefined;
   const hasDefaults = Object.values(props).some(p => 'default' in (p as Record<string, unknown>));
 
   // Meta args: defaults + first example value for each string/slot prop so
@@ -85,6 +102,7 @@ function buildStoriesLines(
     '',
     'const meta = {',
     `  title: 'Components/${title.replace(/'/g, "\\'")}',`,
+    ...(explicitId ? [`  id: '${explicitId}',`] : []),
     `  component: ${prefix},`,
     '  args: {',
     ...(hasDefaults ? [`    ...${prefix}Defaults,`] : []),
@@ -134,4 +152,13 @@ function uniqueName(base: string, used: Set<string>): string {
 
 function toPascalCase(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+/** camelCase key → kebab-case id segment ("deCheckbox" → "de-checkbox"). */
+function camelKebab(str: string): string {
+  return str.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '');
+}
+
+function escapeRegExp(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

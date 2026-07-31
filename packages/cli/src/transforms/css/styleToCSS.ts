@@ -186,21 +186,26 @@ export function styleToCSS(styles: Record<string, unknown>, tokensFormat = 'TOKE
     } else if (typeof v === 'object') {
       const t = v as Record<string, unknown>;
 
+      // Sub-properties are literal values unless they are explicit token refs —
+      // a plain string here ("Inter", "Regular", "120%") is data, not a token name.
       if (t.fontSize !== undefined) {
-        const r = resolveTokenVar(t.fontSize, tokensFormat);
+        const r = isTokenRef(t.fontSize) ? resolveTokenVar(t.fontSize, tokensFormat) : null;
         if (r) decls.push(`font-size: ${r}`);
         else decls.push(`font-size: ${typeof t.fontSize === 'number' ? `${t.fontSize}px` : t.fontSize}`);
       }
       if (t.fontFamily !== undefined) {
-        const r = resolveTokenVar(t.fontFamily, tokensFormat);
+        const r = isTokenRef(t.fontFamily) ? resolveTokenVar(t.fontFamily, tokensFormat) : null;
         if (r) decls.push(`font-family: ${r}`);
-        else if (typeof t.fontFamily === 'string') decls.push(`font-family: ${t.fontFamily}`);
+        else if (typeof t.fontFamily === 'string') {
+          const fam = /\s/.test(t.fontFamily) ? `"${t.fontFamily}"` : t.fontFamily;
+          decls.push(`font-family: ${fam}`);
+        }
       }
 
       // fontStyle in Figma encodes weight + italic as a combined name ("SemiBold Italic").
       // Split into font-weight and font-style separately.
       if (t.fontStyle !== undefined && (typeof t.fontStyle === 'string' || isTokenRef(t.fontStyle))) {
-        const r = resolveTokenVar(t.fontStyle, tokensFormat);
+        const r = isTokenRef(t.fontStyle) ? resolveTokenVar(t.fontStyle, tokensFormat) : null;
         if (r) {
           decls.push(`font-weight: ${r}`);
         } else if (typeof t.fontStyle === 'string') {
@@ -217,14 +222,14 @@ export function styleToCSS(styles: Record<string, unknown>, tokensFormat = 'TOKE
       // lineHeight from Figma is always in pixels when a number.
       // Unitless lineHeight in CSS is a multiplier — always append px for numeric values.
       if (t.lineHeight !== undefined) {
-        const r = resolveTokenVar(t.lineHeight, tokensFormat);
+        const r = isTokenRef(t.lineHeight) ? resolveTokenVar(t.lineHeight, tokensFormat) : null;
         if (r) decls.push(`line-height: ${r}`);
         else if (typeof t.lineHeight === 'number') decls.push(`line-height: ${t.lineHeight}px`);
         else if (typeof t.lineHeight === 'string') decls.push(`line-height: ${t.lineHeight}`);
       }
 
       if (t.letterSpacing !== undefined) {
-        const r = resolveTokenVar(t.letterSpacing, tokensFormat);
+        const r = isTokenRef(t.letterSpacing) ? resolveTokenVar(t.letterSpacing, tokensFormat) : null;
         if (r) decls.push(`letter-spacing: ${r}`);
         else if (typeof t.letterSpacing === 'number') decls.push(`letter-spacing: ${t.letterSpacing}px`);
       }
