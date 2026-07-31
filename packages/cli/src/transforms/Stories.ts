@@ -78,7 +78,12 @@ function buildStoriesLines(
   // Subcomponent titles from Figma repeat the parent name ("DE Checkbox / Control");
   // strip it so the nav leaf is just the subcomponent's own name.
   const leaf = parent ? ownTitle.replace(new RegExp(`^${escapeRegExp(parent.title)}\\s*/\\s*`), '') : ownTitle;
-  const title = parent ? `${parent.title}/${leaf}` : ownTitle;
+  // Drop path segments that sanitize to an empty id part ("_" separators in
+  // Figma names) — Storybook's manager crashes on them.
+  const title = (parent ? `${parent.title}/${leaf}` : ownTitle)
+    .split('/')
+    .filter(seg => seg.toLowerCase().replace(/[^a-z0-9]+/g, '').length > 0)
+    .join('/');
   const explicitId = parent ? `${camelKebab(parent.key)}-${camelKebab(componentKey)}-sub` : undefined;
   const hasDefaults = Object.values(props).some(p => 'default' in (p as Record<string, unknown>));
 
