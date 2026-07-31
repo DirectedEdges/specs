@@ -216,16 +216,18 @@ describe('ContractTransformer', () => {
       expect(fs.existsSync(path.join(tmpDir, 'group', 'generated', 'Group.contract.ts'))).toBe(true);
     });
 
-    it('prefixes subcomponent interface with both component and subcomponent names', async () => {
+    // Subcomponent export names use the file prefix (Group, not DsActionListGroup)
+    // so they match what the scaffold and stories import from ./Group.contract.
+    it('names subcomponent interface with the subcomponent file prefix', async () => {
       await transformer.run(
         { subcomponents: { group: { props: {} } } },
         makeContext(tmpDir, 'dsActionList'),
       );
       const out = await readSub(tmpDir, 'group');
-      expect(out).toContain('export interface DsActionListGroupProps {');
+      expect(out).toContain('export interface GroupProps {');
     });
 
-    it('prefixes subcomponent enum types with both component and subcomponent names', async () => {
+    it('names subcomponent enum types with the subcomponent file prefix', async () => {
       await transformer.run(
         {
           subcomponents: {
@@ -239,10 +241,10 @@ describe('ContractTransformer', () => {
         makeContext(tmpDir, 'dsActionList'),
       );
       const out = await readSub(tmpDir, 'item');
-      expect(out).toContain('export type DsActionListItemSize =');
+      expect(out).toContain('export type ItemSize =');
       expect(out).toContain("| 'sm'");
       expect(out).toContain("| 'md';");
-      expect(out).toContain('size?: DsActionListItemSize;');
+      expect(out).toContain('size?: ItemSize;');
       expect(out).toContain('size: "md",');
     });
 
@@ -258,9 +260,9 @@ describe('ContractTransformer', () => {
       );
       const groupOut  = await readSub(tmpDir, 'group');
       const headerOut = await readSub(tmpDir, 'header');
-      expect(groupOut).toContain('export interface DsActionListGroupProps {');
+      expect(groupOut).toContain('export interface GroupProps {');
       expect(groupOut).toContain('label?: string;');
-      expect(headerOut).toContain('export interface DsActionListHeaderProps {');
+      expect(headerOut).toContain('export interface HeaderProps {');
       expect(headerOut).toContain('text?: string;');
     });
 
