@@ -15,11 +15,15 @@
 import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
+import { kebabizePath, isTokenRef } from '../css/values.js';
+
+/** Layout entries are element names, or { name: [childEntries] } for nesting. */
+export type SlotLayoutEntry = string | Record<string, SlotLayoutEntry[]>;
 
 export interface SlotExample {
   anatomy?: Record<string, Record<string, unknown>>;
   elements: Record<string, Record<string, unknown>>;
-  layout: string[];
+  layout: SlotLayoutEntry[];
 }
 
 export interface ExamplesData {
@@ -97,24 +101,29 @@ export interface ComposedJsx {
 
 const GLYPH_BASE = '/assets/icons';
 
-/** Compose a slot example into JSX lines (one per instance in layout order). */
+/** Compose a slot example into JSX lines (one per layout entry, recursive). */
 export function composeSlotJsx(example: SlotExample, ctx: ComposeContext, indent: string): ComposedJsx {
   const imports = new Map<string, string>();
   const lines: string[] = [];
-  for (const key of example.layout ?? []) {
-    const elem = (example.elements?.[key] ?? {}) as Record<string, unknown>;
-    lines.push(...renderInstance(key, elem, ctx, indent, imports));
+  for (const entry of example.layout ?? []) {
+    lines.push(...renderEntry(entry, example, ctx, indent, imports));
   }
   return { lines, imports };
 }
 
-function renderInstance(
-  key: string,
-  elem: Record<string, unknown>,
+function renderEntry(
+  entry: SlotLayoutEntry,
+  example: SlotExample,
   ctx: ComposeContext,
   indent: string,
   imports: Map<string, string>,
 ): string[] {
+  const [key, childEntries] =
+    typeof entry === 'string' ? [entry, [] as SlotLayoutEntry[]] : (Object.entries(entry)[0] ?? ['', []]);
+  const elem = (example.elements?.[key] ?? {}) as Record<string, unknown>;
+  const styles = (elem.styles ?? {}) as Record<string, unknown>;
+  if (styles.visible === false) return [];
+
   const instanceOf = elem.instanceOf;
   const pc = (elem.propConfigurations ?? {}) as Record<string, unknown>;
   const target = resolveInstanceTarget(instanceOf, ctx);
@@ -132,7 +141,6 @@ function renderInstance(
   // Icon-wrapper fallback: unresolvable instance with a name propConfiguration
   // renders as a self-contained masked span (no external CSS dependency).
   if (typeof pc.name === 'string') {
-    const styles = (elem.styles ?? {}) as Record<string, unknown>;
     const sizeMatch = typeof pc.size === 'string' ? pc.size.match(/^(\d+)x(\d+)$/) : null;
     const w = typeof styles.width === 'number' ? styles.width : sizeMatch ? Number(sizeMatch[1]) : 16;
     const h = typeof styles.height === 'number' ? styles.height : sizeMatch ? Number(sizeMatch[2]) : 16;
@@ -148,8 +156,51 @@ function renderInstance(
     ];
   }
 
-  const label = typeof instanceOf === 'string' ? instanceOf : key;
+  // Raw element (no instanceOf): a plain container/text node from the example
+  // fill. Containers become flex divs; text leaves carry their content string.
+  // Minimal inline styling — enough shape and typography to read correctly.
+  if (instanceOf === null || instanceOf === undefined) {
+    const anatomyType = (example.anatomy?.[key]?.type as string | undefined) ?? (typeof elem.content === 'string' ? 'text' : 'container');
+    const styleSrc = rawElementStyle(styles, anatomyType);
+    const styleAttr = styleSrc ? ` style={${styleSrc}}` : '';
+    if (anatomyType === 'text') {
+      const content = typeof elem.content === 'string' ? elem.content : '';
+      return [`${indent}<span${styleAttr}>${escapeJsxText(content)}</span>`];
+    }
+    const children = childEntries.flatMap(c => renderEntry(c, example, ctx, `${indent}  `, imports));
+    if (children.length === 0) return [`${indent}<div${styleAttr} />`];
+    return [`${indent}<div${styleAttr}>`, ...children, `${indent}</div>`];
+  }
+
+  const label = typeof instanceOf === 'string' ? instanceOf : JSON.stringify(instanceOf);
   return [`${indent}{/* instance: ${label} — no generated component found */}`];
+}
+
+/** Inline style source for a raw example element (subset: flex, gap, color, font). */
+function rawElementStyle(styles: Record<string, unknown>, anatomyType: string): string | undefined {
+  const entries: string[] = [];
+  const tokenVar = (v: unknown): string | undefined =>
+    isTokenRef(v) ? `var(--${kebabizePath((v as { $token: string }).$token)})` : undefined;
+
+  if (anatomyType !== 'text') {
+    const mode = styles.layoutMode;
+    if (mode === 'VERTICAL' || mode === 'HORIZONTAL') {
+      entries.push(`display: 'flex'`, `flexDirection: '${mode === 'VERTICAL' ? 'column' : 'row'}'`);
+    }
+    const gapVar = tokenVar(styles.itemSpacing);
+    if (gapVar) entries.push(`gap: '${gapVar}'`);
+    else if (typeof styles.itemSpacing === 'number') entries.push(`gap: ${styles.itemSpacing}`);
+    if (styles.layoutSizingHorizontal === 'FILL') entries.push(`alignSelf: 'stretch'`);
+  }
+  const colorVar = tokenVar(styles.textColor);
+  if (colorVar) entries.push(`color: '${colorVar}'`);
+  const fontVar = tokenVar(styles.typography);
+  if (fontVar) entries.push(`font: '${fontVar}'`);
+  return entries.length ? `{ ${entries.join(', ')} }` : undefined;
+}
+
+function escapeJsxText(text: string): string {
+  return text.replace(/[{}<>]/g, c => `{'${c}'}`);
 }
 
 export interface InstanceTarget { name: string; importPath: string }
