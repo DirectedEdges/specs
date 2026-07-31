@@ -209,7 +209,12 @@ function buildScaffoldLines(
   const defaultBlock = (variantsYaml.default ?? {}) as Record<string, unknown>;
   const defaultElements = (defaultBlock.elements ?? {}) as Record<string, Record<string, unknown>>;
 
-  const hasDefaults = Object.values(props).some(p => 'default' in (p as Record<string, unknown>));
+  // Mirror the contract's Defaults condition: omitted (state-machine) props
+  // don't count — a component whose only default is `state` has no Defaults export.
+  const omittedForDefaults = buildOmittedProps(context.processingStates ?? {});
+  const hasDefaults = Object.entries(props).some(
+    ([k, p]) => !omittedForDefaults.has(k) && 'default' in (p as Record<string, unknown>),
+  );
 
   // Slot-typed elements bring a ReactNode prop into the scaffold's props.
   const nodeSlotProps = analysis.slots

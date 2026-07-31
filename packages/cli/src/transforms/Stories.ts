@@ -93,7 +93,7 @@ export class StoriesTransformer implements Transformer {
           targetProps: composition.targetProps,
         }
       : undefined;
-    const lines = buildStoriesLines(componentKey, apiYaml, analysis, parent, variantsYaml, composeCtx);
+    const lines = buildStoriesLines(componentKey, apiYaml, analysis, parent, variantsYaml, composeCtx, context.processingStates ?? {});
     const generatedReactDir = path.join(outputDir, 'generated', 'react');
     await fs.ensureDir(generatedReactDir);
     await fs.writeFile(path.join(generatedReactDir, `${prefix}.stories.tsx`), lines.join('\n'), 'utf-8');
@@ -115,6 +115,7 @@ function buildStoriesLines(
   parent?: { title: string; key: string },
   variantsYaml?: Record<string, unknown>,
   composeCtx?: ComposeContext,
+  processingStates: NonNullable<TransformerContext['processingStates']> = {},
 ): string[] {
   const prefix = toPascalCase(componentKey);
   const props = (apiYaml.props ?? {}) as Record<string, unknown>;
@@ -131,7 +132,12 @@ function buildStoriesLines(
     .filter(seg => seg.toLowerCase().replace(/[^a-z0-9]+/g, '').length > 0)
     .join('/');
   const explicitId = parent ? `${camelKebab(parent.key)}-${camelKebab(componentKey)}-sub` : undefined;
-  const hasDefaults = Object.values(props).some(p => 'default' in (p as Record<string, unknown>));
+  // Mirror the contract's Defaults condition: omitted (state-machine) props
+  // don't count — a component whose only default is `state` has no Defaults export.
+  const omittedForDefaults = buildOmittedProps(processingStates);
+  const hasDefaults = Object.entries(props).some(
+    ([k, p]) => !omittedForDefaults.has(k) && 'default' in (p as Record<string, unknown>),
+  );
 
   // Slot props with a bound $slotContent example compose real subcomponent
   // JSX; the rest fall back to a plain text placeholder.
