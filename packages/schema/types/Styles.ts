@@ -47,7 +47,8 @@ export type Styles = Partial<{
   /** Dash pattern for a stroke. Present (non-null) when the stroke is dashed; null or absent when solid. Structural property — not token-bindable. @since 0.27.0 */
   strokeDashPattern: StrokeDashPattern | null;
   typography: TokenReference | Typography;
-  textAlignHorizontal: Style;
+  /** Horizontal text alignment using logical inline-axis directions (`START`/`END`). `JUSTIFY` maps from Figma's `JUSTIFIED`. Structural property — not token-bindable. Present on TEXT element type only. @since 0.29.0 */
+  textAlignHorizontal: TextAlignHorizontal | null;
   textAlignVertical: Style;
   /** How overflowing text is handled — `CLIP` (cut off) or `ELLIPSIS` (trailing ellipsis). Structural property — not token-bindable. Present on TEXT element type only. @since 0.28.0 */
   textOverflow: TextOverflow | null;
@@ -267,6 +268,17 @@ export type MainAxisAlignment = 'START' | 'END' | 'CENTER' | 'SPACE_BETWEEN';
  * @since 0.18.0
  */
 export type CrossAxisAlignment = 'START' | 'END' | 'CENTER' | 'STRETCH' | 'BASELINE';
+
+/**
+ * Horizontal text alignment using logical inline-axis directions.
+ * `START` resolves to left in LTR and right in RTL; `END` is the inverse.
+ * Structural property that cannot be token-bound.
+ * Values follow CSS Logical Properties (`text-align: start | end | justify`),
+ * Jetpack Compose (`TextAlign.Start/End/Justify`), and Flutter; Figma's
+ * physical `LEFT`/`RIGHT`/`JUSTIFIED` values are mapped at extraction time.
+ * @since 0.29.0
+ */
+export type TextAlignHorizontal = 'START' | 'CENTER' | 'END' | 'JUSTIFY';
 
 /**
  * How text is handled when it overflows its bounds. Structural property that cannot be token-bound.

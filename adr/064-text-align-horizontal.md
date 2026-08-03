@@ -2,7 +2,7 @@
 
 **Branch**: `064-text-align-horizontal`
 **Created**: 2026-08-03
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

@@ -9,7 +9,7 @@ import type {
   AngularGradient, GradientValue, AspectRatioValue, AspectRatioStyle,
   Sides, Corners, ItemSpacing, LayoutMode, WrapAlignment,
   MainAxisAlignment, CrossAxisAlignment, Position, PositionOffset,
-  StrokeDashPattern, TextOverflow,
+  StrokeDashPattern, TextAlignHorizontal, TextOverflow,
 } from '../types/index.js';
 
 // ─── ColorStyle ────────────────────────────────────────────────────────────
@@ -839,6 +839,56 @@ const _dashNumber: Styles = { strokeDashPattern: 8 };
 
 // @ts-expect-error: string is not valid for strokeDashPattern
 const _dashString: Styles = { strokeDashPattern: 'dashed' };
+
+// ─── TextAlignHorizontal ──────────────────────────────────────────────────────
+
+// Valid enum values
+const _taStart: TextAlignHorizontal = 'START';
+const _taCenter: TextAlignHorizontal = 'CENTER';
+const _taEnd: TextAlignHorizontal = 'END';
+const _taJustify: TextAlignHorizontal = 'JUSTIFY';
+
+// Figma's physical raw values must NOT compile — remapped in the generator
+// @ts-expect-error: LEFT is not valid TextAlignHorizontal (maps to START)
+const _taLeft: TextAlignHorizontal = 'LEFT';
+
+// @ts-expect-error: RIGHT is not valid TextAlignHorizontal (maps to END)
+const _taRight: TextAlignHorizontal = 'RIGHT';
+
+// @ts-expect-error: JUSTIFIED is not valid TextAlignHorizontal (maps to JUSTIFY)
+const _taJustified: TextAlignHorizontal = 'JUSTIFIED';
+
+// @ts-expect-error: number is not valid TextAlignHorizontal
+const _taNumber: TextAlignHorizontal = 0;
+
+// @ts-expect-error: lowercase is not valid (SCREAMING_CASE required)
+const _taLowercase: TextAlignHorizontal = 'start';
+
+// ─── Styles.textAlignHorizontal (TextAlignHorizontal | null) ─────────────────
+
+// Valid enum values on Styles
+const withAlignStart: Styles = { textAlignHorizontal: 'START' };
+const withAlignCenter: Styles = { textAlignHorizontal: 'CENTER' };
+const withAlignEnd: Styles = { textAlignHorizontal: 'END' };
+const withAlignJustify: Styles = { textAlignHorizontal: 'JUSTIFY' };
+
+// null is valid
+const withAlignNull: Styles = { textAlignHorizontal: null };
+
+// absent is valid (all Styles fields optional)
+const withNoAlign: Styles = {};
+
+// @ts-expect-error: TokenReference is not valid for textAlignHorizontal (not token-bindable)
+const _taToken: Styles = { textAlignHorizontal: { $token: 'Text.Align', $type: 'string' } satisfies TokenReference };
+
+// @ts-expect-error: arbitrary string is not valid for textAlignHorizontal
+const _taArbitrary: Styles = { textAlignHorizontal: 'MIDDLE' };
+
+// @ts-expect-error: Figma-raw LEFT is not valid for textAlignHorizontal
+const _taStyleLeft: Styles = { textAlignHorizontal: 'LEFT' };
+
+// @ts-expect-error: number is not valid for textAlignHorizontal
+const _taStyleNumber: Styles = { textAlignHorizontal: 1 };
 
 // ─── TextOverflow ─────────────────────────────────────────────────────────────
 
