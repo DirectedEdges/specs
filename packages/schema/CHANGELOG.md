@@ -11,7 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `Styles.textAlignHorizontal` — narrowed from `Style` to `TextAlignHorizontal` (`'START' | 'CENTER' | 'END' | 'JUSTIFY'`) or `null`; logical inline-axis directions, not token-bindable (ADR-064)
+
 ### Removed
+
+### Migration
+
+- `Styles.textAlignHorizontal` values `LEFT`/`RIGHT`/`JUSTIFIED` → `START`/`END`/`JUSTIFY`: read the logical enum; resolve `START`/`END` by writing direction and regenerate any stored specs
 
 
 ## [0.28.0] - 2026-07-16
