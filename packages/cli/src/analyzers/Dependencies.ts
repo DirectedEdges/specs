@@ -5,16 +5,21 @@ import type { Transformer, TransformerContext } from '../Types/Transformer.js';
 
 type EdgeKind = 'instance' | 'slot' | 'example';
 
+/** Which spec section a prop configuration site was found in. */
+type SiteOrigin = 'default' | 'variant' | 'example';
+
 interface UsageSite {
   target: string;
   prop: string;
   value: string;
+  origin: SiteOrigin;
 }
 
 interface NestedSite {
   anchorTarget: string;
   path: string[];
   props: Array<{ prop: string; value: string }>;
+  origin: SiteOrigin;
 }
 
 interface SpecRecord {
@@ -62,9 +67,23 @@ interface GraphJson {
   edges: EdgeJson[];
 }
 
+interface ConsumerUsage {
+  default: number;
+  variants: number;
+  examples: number;
+  values: Record<string, number>;
+}
+
 interface PropUsageEntry {
   configuredBy: number;
+  consumers: Record<string, ConsumerUsage>;
   values: Record<string, string[]>;
+}
+
+interface PropUsageAccumulator {
+  sites: number;
+  consumers: Map<string, { default: number; variants: number; examples: number; values: Map<string, number> }>;
+  values: Map<string, Set<string>>;
 }
 
 interface ByComponentEntry {
@@ -191,25 +210,32 @@ export class DependenciesAnalyzer implements Transformer {
 
   private _aggregatePropUsage(
     resolve: (name: string) => { id: string; external: boolean }
-  ): Map<string, Map<string, { sites: number; values: Map<string, Set<string>> }>> {
-    const usage = new Map<string, Map<string, { sites: number; values: Map<string, Set<string>> }>>();
-    const addSite = (targetKey: string, consumer: string, prop: string, value: string): void => {
+  ): Map<string, Map<string, PropUsageAccumulator>> {
+    const usage = new Map<string, Map<string, PropUsageAccumulator>>();
+    const addSite = (targetKey: string, consumer: string, prop: string, value: string, origin: SiteOrigin): void => {
       const perProp = usage.get(targetKey) ?? usage.set(targetKey, new Map()).get(targetKey)!;
-      const entry = perProp.get(prop) ?? perProp.set(prop, { sites: 0, values: new Map() }).get(prop)!;
+      const entry = perProp.get(prop)
+        ?? perProp.set(prop, { sites: 0, consumers: new Map(), values: new Map() }).get(prop)!;
       entry.sites++;
       (entry.values.get(value) ?? entry.values.set(value, new Set()).get(value)!).add(consumer);
+      const consumerEntry = entry.consumers.get(consumer)
+        ?? entry.consumers.set(consumer, { default: 0, variants: 0, examples: 0, values: new Map() }).get(consumer)!;
+      if (origin === 'default') consumerEntry.default++;
+      else if (origin === 'variant') consumerEntry.variants++;
+      else consumerEntry.examples++;
+      consumerEntry.values.set(value, (consumerEntry.values.get(value) ?? 0) + 1);
     };
 
     for (const [consumer, record] of this._records) {
       for (const site of record.usageSites) {
         const { id, external } = resolve(site.target);
         if (external) continue;
-        addSite(id, consumer, site.prop, site.value);
+        addSite(id, consumer, site.prop, site.value, site.origin);
       }
       for (const nested of record.nestedSites) {
         const terminal = this._resolveNestedTerminal(nested, resolve);
         if (!terminal) continue;
-        for (const { prop, value } of nested.props) addSite(terminal, consumer, prop, value);
+        for (const { prop, value } of nested.props) addSite(terminal, consumer, prop, value, nested.origin);
       }
     }
     return usage;
@@ -293,7 +319,7 @@ export class DependenciesAnalyzer implements Transformer {
     reverse: Map<string, Set<string>>,
     contractForward: Map<string, Set<string>>,
     contractReverse: Map<string, Set<string>>,
-    propUsage: Map<string, Map<string, { sites: number; values: Map<string, Set<string>> }>>
+    propUsage: Map<string, Map<string, PropUsageAccumulator>>
   ): Promise<void> {
     const out: Record<string, ByComponentEntry> = {};
 
@@ -322,6 +348,18 @@ export class DependenciesAnalyzer implements Transformer {
         const entry = perProp?.get(prop);
         usage[prop] = {
           configuredBy: entry?.sites ?? 0,
+          consumers: Object.fromEntries(
+            Array.from(entry?.consumers.entries() ?? [])
+              .sort((a, b) => a[0].localeCompare(b[0]))
+              .map(([consumer, c]) => [consumer, {
+                default: c.default,
+                variants: c.variants,
+                examples: c.examples,
+                values: Object.fromEntries(
+                  Array.from(c.values.entries()).sort((a, b) => a[0].localeCompare(b[0]))
+                ),
+              }])
+          ),
           values: Object.fromEntries(
             Array.from(entry?.values.entries() ?? [])
               .sort((a, b) => a[0].localeCompare(b[0]))
@@ -489,12 +527,12 @@ function collectVariantSections(
 ): void {
   const defaultSection = source.default as Record<string, unknown> | undefined;
   if (defaultSection?.elements) {
-    collectElements(defaultSection.elements as Record<string, unknown>, props, record);
+    collectElements(defaultSection.elements as Record<string, unknown>, props, record, 'default');
   }
   const variants = (source.variants ?? []) as Array<Record<string, unknown>>;
   for (const variant of variants) {
     if (variant.elements) {
-      collectElements(variant.elements as Record<string, unknown>, props, record);
+      collectElements(variant.elements as Record<string, unknown>, props, record, 'variant');
     }
   }
 }
@@ -502,7 +540,8 @@ function collectVariantSections(
 function collectElements(
   elements: Record<string, unknown>,
   props: Record<string, unknown>,
-  record: SpecRecord
+  record: SpecRecord,
+  origin: SiteOrigin
 ): void {
   for (const [elementKey, raw] of Object.entries(elements)) {
     const element = raw as Record<string, unknown>;
@@ -528,7 +567,7 @@ function collectElements(
     const resolvedTarget = target ?? record.elementTargets.get(elementKey) ?? null;
     const configurations = element.propConfigurations as Record<string, unknown> | undefined;
     if (configurations) {
-      collectPropConfigurations(configurations, resolvedTarget, record);
+      collectPropConfigurations(configurations, resolvedTarget, record, origin);
     }
   }
 }
@@ -536,7 +575,8 @@ function collectElements(
 function collectPropConfigurations(
   configurations: Record<string, unknown>,
   target: string | null,
-  record: SpecRecord
+  record: SpecRecord,
+  origin: SiteOrigin
 ): void {
   for (const [prop, rawValue] of Object.entries(configurations)) {
     if (prop === '$nested') {
@@ -550,14 +590,14 @@ function collectPropConfigurations(
           const serialized = serializeConfigValue(nestedValue);
           if (serialized !== null) nestedProps.push({ prop: nestedProp, value: serialized });
         }
-        record.nestedSites.push({ anchorTarget: target, path: pathSegments as string[], props: nestedProps });
+        record.nestedSites.push({ anchorTarget: target, path: pathSegments as string[], props: nestedProps, origin });
       }
       continue;
     }
 
     if (!target) continue;
     const serialized = serializeConfigValue(rawValue);
-    if (serialized !== null) record.usageSites.push({ target, prop, value: serialized });
+    if (serialized !== null) record.usageSites.push({ target, prop, value: serialized, origin });
   }
 }
 
@@ -598,7 +638,7 @@ function collectExampleContent(
 
     const configurations = element.propConfigurations as Record<string, unknown> | undefined;
     if (configurations && target) {
-      collectPropConfigurations(configurations, target, record);
+      collectPropConfigurations(configurations, target, record, 'example');
     }
   }
 

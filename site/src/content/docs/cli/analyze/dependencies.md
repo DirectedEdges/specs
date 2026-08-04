@@ -104,7 +104,9 @@ The raw graph — the durable, diffable artifact. `summary` carries library-wide
 
 The blast-radius view — one entry per analyzed component, so answering "what breaks if this changes" is a single lookup with no traversal. `transitiveDependents` and `transitiveDependencies` map each indirect relation to its depth.
 
-`propUsage` inverts the edges: for each of the component's props, how many configuration sites set it across all consumers, and which value each consumer chose. Every declared prop appears — a prop with `configuredBy: 0` is never touched by any dependent, a strong signal when weighing a breaking change against its real usage. Bound values are recorded as `$binding:<propName>` markers and slot fills as `$slotContent:<exampleName>`.
+`propUsage` inverts the edges: for each of the component's props, how many configuration sites set it across all consumers (`configuredBy`), broken down per consumer and per value. A *site* is one configuration of the prop in one place — the consumer's `default` configuration, one of its `variants`, or one of its `slotContentExamples` — and each consumer's entry counts sites by section, so `{ "default": 1, "variants": 5 }` reads as "configured in the default and in five variants." Per-consumer `values` counts how many sites set each value.
+
+Every declared prop appears — a prop with `configuredBy: 0` is never touched by any dependent, a strong signal when weighing a breaking change against its real usage. The `values` roll-up answers the reverse question — which consumers use a given value — when assessing a value-level change. Bound values are recorded as `$binding:<propName>` markers and slot fills as `$slotContent:<exampleName>`.
 
 ```json
 {
@@ -118,10 +120,14 @@ The blast-radius view — one entry per analyzed component, so answering "what b
     "propUsage": {
       "size": {
         "configuredBy": 2,
+        "consumers": {
+          "dsButton": { "default": 1, "variants": 1, "examples": 0, "values": { "Small": 2 } }
+        },
         "values": { "Small": ["dsButton"] }
       },
       "appearance": {
         "configuredBy": 0,
+        "consumers": {},
         "values": {}
       }
     }
@@ -129,7 +135,7 @@ The blast-radius view — one entry per analyzed component, so answering "what b
 }
 ```
 
-Here a change to `dsIcon` impacts `dsButton` directly and `dsCard` at depth 2; `dsCard` may also compose an Icon through its `media` slot. Consumers rely on `size` — but `appearance` is never configured, so changing its values touches no dependent.
+Here a change to `dsIcon` impacts `dsButton` directly and `dsCard` at depth 2; `dsCard` may also compose an Icon through its `media` slot. Button configures `size` in its default and one variant — but `appearance` is never configured, so changing its values touches no dependent.
 
 ## Visualizing the Graph
 

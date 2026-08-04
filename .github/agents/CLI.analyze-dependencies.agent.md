@@ -97,7 +97,9 @@ Root/leaf/interior; degrees; cycles if any; external references if any.
 Direct, then transitive with depth, then contract relations.
 
 ## Prop Utilization
-Props ranked by configuredBy, with value → consumer breakdowns.
+Props ranked by configuredBy. For each prop, a per-consumer table from the
+`consumers` block: which components configure it, in how many default /
+variant / example sites, and which values (with per-value site counts).
 Call out props no consumer configures.
 ```
 

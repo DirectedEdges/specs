@@ -380,7 +380,38 @@ describe('DependenciesAnalyzer', () => {
 
     it('reports declared props never configured with zero usage', async () => {
       const { byComponent } = await runAll({ dsIcon: ICON, dsButton: BUTTON });
-      expect(byComponent.dsIcon.propUsage.appearance).toEqual({ configuredBy: 0, values: {} });
+      expect(byComponent.dsIcon.propUsage.appearance).toEqual({ configuredBy: 0, consumers: {}, values: {} });
+    });
+
+    it('breaks down usage per consumer by default and variant sites', async () => {
+      // BUTTON configures startIcon.size in its default and in one variant.
+      const { byComponent } = await runAll({ dsIcon: ICON, dsButton: BUTTON });
+      expect(byComponent.dsIcon.propUsage.size.consumers).toEqual({
+        dsButton: { default: 1, variants: 1, examples: 0, values: { Small: 2 } },
+      });
+      expect(byComponent.dsIcon.propUsage.glyph.consumers).toEqual({
+        dsButton: { default: 1, variants: 0, examples: 0, values: { check: 1 } },
+      });
+    });
+
+    it('attributes slotContentExamples configuration sites to examples', async () => {
+      const dialog = {
+        anatomy: { root: { type: 'container' } },
+        default: { elements: {} },
+        slotContentExamples: {
+          actions: {
+            anatomy: { action1: { type: 'instance', instanceOf: 'dsButton' } },
+            elements: {
+              action1: { instanceOf: 'dsButton', propConfigurations: { size: 'Small' } },
+            },
+            layout: ['action1'],
+          },
+        },
+      };
+      const { byComponent } = await runAll({ dsButton: BUTTON, dsIcon: ICON, dsDialog: dialog });
+      expect(byComponent.dsButton.propUsage.size.consumers.dsDialog).toEqual({
+        default: 0, variants: 0, examples: 1, values: { Small: 1 },
+      });
     });
 
     it('records prop bindings as $binding markers', async () => {
