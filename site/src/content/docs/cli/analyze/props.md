@@ -349,4 +349,5 @@ The date in the filename keeps multiple runs distinct as the library evolves. Th
 
 - [Analyze overview](/cli/analyze/)
 - [`styling` analyzer](/cli/analyze/styling/)
+- [`dependencies` analyzer](/cli/analyze/dependencies/)
 - [Transforms overview](/cli/transforms/)
