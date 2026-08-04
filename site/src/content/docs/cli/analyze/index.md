@@ -38,7 +38,7 @@ specs analyze props --analysis ./reports
 | Analyzer | Output | What it produces |
 |----------|--------|-----------------|
 | [`props`](/cli/analyze/props/) | `_analysis/props.yaml` | Cross-library prop inventory — frequency, enum discordance, API surface, slots |
-| [`styling`](/cli/analyze/styling/) | `_analysis/styling.byComponent.json`, `_analysis/styling.byToken.json` | Token usage indexed by component and by token name |
+| [`styling`](/cli/analyze/styling/) | `_analysis/styling.byComponent.json`, `_analysis/styling.byToken.json`, `_analysis/styling.unused.json` | Token usage indexed by component and by token name, plus tokens no spec references |
 
 ## Output Directory
 
@@ -48,6 +48,7 @@ specs/
     props.yaml                    # from specs analyze props
     styling.byComponent.json      # from specs analyze styling
     styling.byToken.json          # from specs analyze styling
+    styling.unused.json           # from specs analyze styling
   ds-button/
     api.yaml
     contract.ts

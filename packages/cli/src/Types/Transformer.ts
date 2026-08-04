@@ -15,9 +15,20 @@ export interface TransformerContext {
   transformerOptions?: Record<string, unknown>;
 }
 
+/**
+ * Structural subset of the foundations maps produced by loadFoundations().
+ * Gives analyzers the full token universe (variables, collections, styles)
+ * without depending on @directededges/specs-from-figma types.
+ */
+export interface AnalyzerFoundations {
+  variables: Map<string, { name: string; variableCollectionId: string; resolvedType?: string }>;
+  collections: Map<string, { name: string }>;
+  styles: Map<string, { id: string; name: string; type: string }>;
+}
+
 export interface Transformer {
   readonly name: string;
   run(apiYaml: Record<string, unknown>, context: TransformerContext): Promise<void>;
   /** Called once after all components have been processed. Use for cross-component aggregate output. */
-  finalize?(outputDir: string, analysisDir?: string): Promise<void>;
+  finalize?(outputDir: string, analysisDir?: string, foundations?: AnalyzerFoundations): Promise<void>;
 }

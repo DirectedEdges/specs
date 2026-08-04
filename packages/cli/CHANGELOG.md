@@ -13,13 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`render`/`generate --from-bridge` prompt to pick a file when multiple are connected** — In an interactive terminal, omitting `--file` with 2+ connected plugins now shows a numbered list (by file name) to choose from instead of failing immediately. Non-interactive runs (scripts, CI) are unaffected — they still fail loud with the existing ambiguity error rather than hang waiting on input.
 - **The bridge's glyph manifest now carries each icon's published component key** — Cross-referenced from the fetched file's `components` map alongside the existing same-file node id, so `render` can place icons that live in a separate Figma library file (see the matching specs-from-figma and specs-plugin-2 changes).
 - **`render --overwrite`** — A title collision on the target page (an existing node with the same name as the spec being rendered) is now a hard error by default instead of silently deleting the existing node. Pass `--overwrite` to restore the old delete-and-recreate behavior explicitly.
+- **`specs analyze styling` now reports unused tokens** — A third aggregate report, `_analysis/styling.unused.{json|yaml}`, lists every token in the fetched foundations data (variables, color styles, text styles, effect styles) that no analyzed spec references, with a per-category `summary` of total/used/unused counts. Variables are matched by their collection-prefixed name (`Collection name/Variable name`), styles by name; grid styles are excluded. The report requires `{alias}.variables.json` / `{alias}.styles.json` in the data directory and is skipped when absent.
 
 ### Changed
 
 - **The bridge protocol now speaks "render" everywhere, not "write"** — The WebSocket message the plugin receives (`writeComponent`→`renderComponent`), its result event, the `POST /write`→`POST /render` HTTP control endpoint, and the `--write`→`--render` debug flag are all renamed. Finishes the write→render terminology cleanup for the bridge that was deferred while the bridge server migration from specs-from-figma was still in flight.
 
 ### Removed
-
 
 ## [0.25.0] - 2026-07-16
 

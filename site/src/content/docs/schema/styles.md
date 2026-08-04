@@ -88,6 +88,7 @@ Several spec style keys differ from the Figma node property they read from. Spec
 
 | `strokeDashPattern` | `strokeDashes` | [ADR 059](https://github.com/DirectedEdges/specs/blob/main/adr/059-border-style.md) |
 | `textOverflow` | `textTruncation` (values remapped: `DISABLED`→`CLIP`, `ENDING`→`ELLIPSIS`) | [ADR 062](https://github.com/DirectedEdges/specs/blob/main/adr/062-text-truncation.md) |
+| `textAlignHorizontal` | `textAlignHorizontal` (values remapped to logical directions: `LEFT`→`START`, `RIGHT`→`END`, `JUSTIFIED`→`JUSTIFY`) | [ADR 064](https://github.com/DirectedEdges/specs/blob/main/adr/064-text-align-horizontal.md) |
 
 All other style keys — `width`, `height`, `opacity`, `padding`, `itemSpacing`, `cornerRadius`, `strokeWeight`, `rotation`, etc. — use the same name as the Figma node property.
 
@@ -118,6 +119,7 @@ Most properties accept a `Style` value. Some properties accept specialized shape
 | `PositionOffset` | Positional offset value | `24` (px), `"25%"` (SCALE), `null` |
 | `AspectRatio` | Width-to-height ratio | `{ x: 16, y: 9 }` |
 | `StrokeDashPattern` | Dash geometry for a dashed stroke — presence signals dashed; null or absent signals solid | `{ dash: 8, gap: 4 }` |
+| `TextAlignHorizontal` | Horizontal text alignment enum using logical inline-axis directions | `"START"`, `"CENTER"`, `"END"`, `"JUSTIFY"` |
 | `TextOverflow` | Text overflow handling enum | `"CLIP"`, `"ELLIPSIS"` |
 | `ImageValue` | Image fill — registry reference plus optional fit | `{ $image: "#/images/hero", objectFit: "COVER" }` |
 | `ObjectFit` | Image fit enum (CSS `object-fit` vocabulary) | `"COVER"`, `"CONTAIN"` |
@@ -140,5 +142,6 @@ Most properties accept a `Style` value. Some properties accept specialized shape
 - `top`, `bottom`, `start`, `end`, `centerHorizontalOffset`, `centerVerticalOffset` accept `PositionOffset` (`number | string | null`) — not token-bindable.
 - `aspectRatio` accepts `AspectRatio | null`.
 - `strokeDashPattern` accepts `StrokeDashPattern | null` — not token-bindable; presence signals a dashed stroke, null or absent signals solid.
+- `textAlignHorizontal` accepts `TextAlignHorizontal | null` (`"START" | "CENTER" | "END" | "JUSTIFY"`) — not token-bindable; logical directions resolve by writing direction (`"START"` is left in LTR, right in RTL). Figma's `LEFT`/`RIGHT`/`JUSTIFIED` are remapped at extraction.
 - `textOverflow` accepts `TextOverflow | null` (`"CLIP" | "ELLIPSIS"`) — not token-bindable; `"ELLIPSIS"` truncates overflowing text with a trailing ellipsis, `"CLIP"` cuts it off. Named after CSS `text-overflow` / Compose `TextOverflow`.
 - `maxLines` accepts any `Style` (a plain number like other sizes); the line limit before `textOverflow: "ELLIPSIS"` applies, or `null` for no limit.

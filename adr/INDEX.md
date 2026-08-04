@@ -4,6 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 064 | Tighten `textAlignHorizontal` to a Logical-Direction String Enum | |
 | 062 | Text Overflow & Max Lines — `textOverflow` and `maxLines` on `Styles` | |
 | 061 | Schema Entry Points for Concern-Split Output | |
 | 059 | Border Style and Dash Pattern — `borderStyle` and `borderDashPattern` on `Styles` | |
@@ -37,6 +38,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 064 | Tighten `textAlignHorizontal` to a Logical-Direction String Enum | Narrow from `Style` to `TextAlignHorizontal \| null` (`'START' \| 'CENTER' \| 'END' \| 'JUSTIFY'`); Figma `LEFT`/`RIGHT`/`JUSTIFIED` remapped |
 | 063 | Image Content — `backgroundImage` fill, an `images` registry, `ImageProp`, and `ImageBinding` | Add `backgroundImage` fills, a `Component.images` registry (Figma identity + optional `src`), `ImageProp`/`ImageBinding`, and presence-switched `processing.images` |
 | 060 | Subcomponent Figma Source Identity — `Subcomponent.source` | Add optional `SubcomponentSource` (`pageId`, `nodeId`, `nodeType`) to `Subcomponent`; enables reverse-direction tools to resolve `SubcomponentRef` to Figma nodes |
 | 059 | Stroke Dash Pattern — `strokeDashPattern` on `Styles` | Add `StrokeDashPattern { dash, gap }` structural type; presence = dashed stroke, null/absent = solid; not token-bindable |
