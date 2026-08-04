@@ -17,7 +17,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Outline
 
-1. **Setup**: Run `.specify/scripts/bash/check-prerequisites.sh --json --paths-only` from repo root. Parse `REPO_ROOT`, `BRANCH`. All paths must be absolute.
+1. **Setup**: Run `scripts/check-prerequisites.sh --json --paths-only` from repo root. Parse `REPO_ROOT`, `BRANCH`. All paths must be absolute.
    - Derive `ADR_NAME` from `BRANCH`:
      - The branch name must match an ADR name pattern (e.g., `009-color-values` — starts with a number sequence followed by a hyphen). If it does not, halt: "You must be on an ADR branch (format: `###-short-description`) to implement an ADR."
    - Derive `RELEASE_BRANCH`:
@@ -25,7 +25,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 2. **Load context**:
    - **REQUIRED**: Read `$REPO_ROOT/adr/$ADR_NAME.md` — source of truth for what changes and why
-   - **REQUIRED**: Read `.specify/memory/constitution.md` — all six gates must pass
+   - **REQUIRED**: Read `packages/schema/CONSTITUTION.md` — all six gates must pass
    - Read every `types/*.ts` file named in the ADR Decision section
    - Read every `schema/*.json` file named in the ADR Decision section
    - Read `package.json` for the current version
@@ -53,7 +53,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - If exit code ≠ 0: display errors, revert the files changed in steps 5–6, and halt. Report the specific errors for the author to resolve in the ADR before re-running.
 
 8. **Gate — JSON Schema validation**:
-   - Run: `.specify/scripts/bash/validate-schema.sh`
+   - Run: `scripts/validate-schema.sh`
    - If any schema fails: revert steps 5–6 changes and halt. Report which file failed and why.
 
 9. **Write or update tests**:

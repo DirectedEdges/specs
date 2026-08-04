@@ -61,13 +61,13 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 2. **Branch setup**:
    - If not already on `$ADR_BRANCH`, check if it exists — switch to it or create it from `$RELEASE_BRANCH`. The branch must exist before running `check-prerequisites.sh` (it validates the branch name pattern).
-   - Run `.specify/scripts/bash/check-prerequisites.sh --json --paths-only` from the **git repo root** (the directory containing `.git/`). Parse `REPO_ROOT` from the JSON output. **Do not guess `REPO_ROOT`** — always derive it from the script output.
+   - Run `scripts/check-prerequisites.sh --json --paths-only` from the **git repo root** (the directory containing `.git/`). Parse `REPO_ROOT` from the JSON output. **Do not guess `REPO_ROOT`** — always derive it from the script output.
    - Verify `$RELEASE_BRANCH` is synced with remote (already fetched and fast-forwarded in Step 1b).
    - Set `SPEC_FILE=$REPO_ROOT/adr/$ADR_NAME.md`. The `adr/` directory is at the **repo root**, not inside any package subdirectory.
    - If `$SPEC_FILE` exists, read it and continue editing rather than overwriting.
    - All paths must be absolute.
 
-3. **Load context**: Read `.specify/memory/constitution.md` and `.specify/templates/adr-template.md` (the output template).
+3. **Load context**: Read `packages/schema/CONSTITUTION.md` and `adr/adr-template.md` (the output template).
 
 4. **Targeted exploration**: Using `CHANGE_DESCRIPTION` as your guide, read **only** the specific type and schema files relevant to the proposed change. Do not scan directories broadly. If the user said "border properties on Styles", read `types/Styles.ts` and `schema/Styles.yaml` — not everything in `types/` and `schema/`. Determine:
    - Which schema files in `schema/` are affected
