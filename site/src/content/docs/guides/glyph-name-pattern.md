@@ -129,7 +129,7 @@ The right pattern depends on how your Figma library names its icon glyph compone
 
 ## Fetching the Assets
 
-The same pattern powers asset download: `specs fetch` with `icons` in a source's `data` array walks the fetched file payload for components matching `glyphNamePattern` and downloads each one as an SVG to `<dataDirectory>/icons/`:
+The same pattern powers asset download: `specs fetch` with `icons` in a source's `data` array walks the fetched file payload for components matching `glyphNamePattern` and downloads each one as an SVG to `<outputDirectory>/_icons/`, beside the `_images/` assets:
 
 ```yaml
 sources:

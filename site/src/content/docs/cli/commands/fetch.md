@@ -16,6 +16,7 @@ specs fetch [options]
 - Fetching `variables` or `styles` requires your Figma organization to be on an **Enterprise** plan — Figma restricts those REST endpoints regardless of your Specs license. `file` and `icons` data work on any plan. See [CLI Requirements](/cli/#requirements).
 - Fetching `icons` additionally requires:
   - `config.processing.glyphNamePattern` set in your config (see [Glyph Name Pattern](/guides/glyph-name-pattern/))
+  - `outputDirectory` set in your config — icon assets are written to the spec workspace, not the data directory
   - the source's `file` payload — listed before `icons` in the same `data` array, or fetched in a previous run
 
 ## Options
@@ -71,7 +72,7 @@ sources:
 How it works:
 
 - Glyph components are **derived from the file payload** — every `COMPONENT` node whose name matches `config.processing.glyphNamePattern` (with `{i}` capturing the icon name). No `scan` step is involved.
-- SVGs are exported through the Figma images API in batches and written to `<dataDirectory>/icons/`.
+- SVGs are exported through the Figma images API in batches and written to `<outputDirectory>/_icons/` — beside the `_images/` assets and the component specs that reference them, not into the regenerable data cache.
 - Filenames are stable kebab-case slugs of the captured icon name, including camelCase splitting: `expandMore` → `expand-more.svg`, `Arrow Left` → `arrow-left.svg`.
 - Two icons that slug identically keep the first as-is; later duplicates are suffixed with their node id so nothing is silently dropped.
 
@@ -90,7 +91,7 @@ Because glyphs come from the saved file payload, `icons` runs after the other ki
 specs fetch --only library --verbose
 ```
 
-The downloaded assets match the slugs referenced by generated component output (masked glyph spans resolve `/assets/icons/<slug>.svg`), so serving `<dataDirectory>/icons/` as a static assets directory — for example in Storybook — makes icons render without further mapping.
+The downloaded assets match the slugs referenced by generated component output (masked glyph spans resolve `/assets/icons/<slug>.svg`), so serving `<outputDirectory>/_icons/` as a static assets directory — for example in Storybook — makes icons render without further mapping. Keeping icons in the spec workspace means a cloned workspace renders completely without re-fetching.
 
 ## Fetching Figma Branches
 

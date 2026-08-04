@@ -28,6 +28,7 @@ type FetchKind = 'file' | 'variables' | 'styles' | 'icons';
 type MinimalConfig = {
   dataDirectory?: string;
   sourceDirectory?: string; // deprecated alias
+  outputDirectory?: string; // icons land beside the specs they serve
   sources?: Record<string, { key: string; data: FetchKind[] }>;
   config?: { processing?: { glyphNamePattern?: string } };
 };
@@ -435,6 +436,12 @@ export const Fetch = new Command('fetch')
             console.error(`Error: sources.${entry.alias}.data includes "icons" but config.processing.glyphNamePattern is not set`);
             process.exit(ERROR_CODES.INVALID_ARGS);
           }
+          // Icons are consumed by generated component output, so they live in
+          // the durable spec workspace (beside _images/), not the data cache.
+          if (!config.outputDirectory) {
+            console.error(`Error: sources.${entry.alias}.data includes "icons" but outputDirectory is not set in config`);
+            process.exit(ERROR_CODES.INVALID_ARGS);
+          }
           const filePath = path.join(outDir, `${entry.alias}.file.json`);
           if (!fs.existsSync(filePath)) {
             console.error(`Error: icons require the file payload — fetch "file" for ${entry.alias} first (${filePath} not found)`);
@@ -444,7 +451,7 @@ export const Fetch = new Command('fetch')
           const stopSpinner = startSpinner(`Downloading: ${entry.alias} icons`);
           const fileJson = JSON.parse(await fs.readFile(filePath, 'utf-8')) as { document?: unknown };
           const glyphs = collectGlyphComponents(fileJson.document, pattern);
-          const iconsDir = path.join(outDir, 'icons');
+          const iconsDir = path.join(path.resolve(configDir, config.outputDirectory), '_icons');
           await fs.ensureDir(iconsDir);
 
           let downloaded = 0;
