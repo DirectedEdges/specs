@@ -71,7 +71,7 @@ npm run build --workspace=packages/cli      # Build CLI only
 
 ## Schema Governance
 
-All `specs-schema` type and schema changes must pass the 6-gate Constitution Check defined in `.specify/memory/constitution.md`. The constitution enforces type–schema parity, no-logic exports, minimal stable API, and strict naming conventions.
+All `specs-schema` type and schema changes must pass the 6-gate Constitution Check defined in `packages/schema/CONSTITUTION.md`. The constitution enforces type–schema parity, no-logic exports, minimal stable API, and strict naming conventions.
 
 ## ADR Lifecycle
 
