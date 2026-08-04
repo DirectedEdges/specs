@@ -23,13 +23,62 @@ const ERROR_CODES = {
   RATE_LIMIT: 6
 };
 
-type FetchKind = 'file' | 'variables' | 'styles';
+type FetchKind = 'file' | 'variables' | 'styles' | 'icons';
 
 type MinimalConfig = {
   dataDirectory?: string;
   sourceDirectory?: string; // deprecated alias
   sources?: Record<string, { key: string; data: FetchKind[] }>;
+  config?: { processing?: { glyphNamePattern?: string } };
 };
+
+/**
+ * Walk the file document for COMPONENT nodes whose name matches the
+ * glyphNamePattern ("DS Icon asset / {i}" — {i} captures the icon name).
+ * Duplicate slugs keep the first occurrence and suffix later ones with the
+ * node id so nothing is silently dropped.
+ */
+export function collectGlyphComponents(document: unknown, pattern: string): Array<{ id: string; name: string; slug: string }> {
+  const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\{i\\\}/g, '(.+)');
+  const regex = new RegExp(`^${escaped}$`);
+  const found: Array<{ id: string; name: string; slug: string }> = [];
+  const walk = (node: unknown): void => {
+    if (!node || typeof node !== 'object') return;
+    const n = node as { id?: string; name?: string; type?: string; children?: unknown[] };
+    if (n.type === 'COMPONENT' && typeof n.name === 'string' && typeof n.id === 'string') {
+      const match = n.name.match(regex);
+      if (match) found.push({ id: n.id, name: match[1] ?? n.name, slug: '' });
+    }
+    for (const child of n.children ?? []) walk(child);
+  };
+  walk(document);
+
+  const seen = new Set<string>();
+  for (const glyph of found) {
+    // Kebabize camelCase too, matching the scaffold's glyphUrl slugging.
+    const base = glyph.name
+      .trim()
+      .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+      .replace(/[\s_]+/g, '-')
+      .replace(/-+/g, '-')
+      .toLowerCase();
+    glyph.slug = seen.has(base) ? `${base}-${glyph.id.replace(':', '-')}` : base;
+    seen.add(base);
+  }
+  return found;
+}
+
+async function streamToString(stream: ReadableStream<Uint8Array> | null): Promise<string> {
+  if (!stream) return '';
+  const chunks: Buffer[] = [];
+  const reader = stream.getReader();
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(Buffer.from(value));
+  }
+  return Buffer.concat(chunks).toString('utf-8');
+}
 
 function findConfigFile(cwd: string): string | null {
   const locations = [
@@ -305,7 +354,7 @@ export const Fetch = new Command('fetch')
       }
 
       for (const entry of selected) {
-        for (const kind of entry.fetch) {
+        for (const kind of entry.fetch.filter(k => k !== 'icons')) {
           const url =
             kind === 'file'
               ? `https://api.figma.com/v1/files/${entry.key}${options.geometry ? '?geometry=paths' : ''}`
@@ -375,6 +424,67 @@ export const Fetch = new Command('fetch')
             const relativeOut = path.relative(process.cwd(), outputPath);
             console.log(`[CLI] Wrote: ${relativeOut}`);
           }
+        }
+
+        // Icons run after the other kinds: glyph components are derived from
+        // the saved file payload, so `file` must be present (fetched this run
+        // or a previous one) before icons can resolve.
+        if (entry.fetch.includes('icons')) {
+          const pattern = config.config?.processing?.glyphNamePattern;
+          if (!pattern) {
+            console.error(`Error: sources.${entry.alias}.data includes "icons" but config.processing.glyphNamePattern is not set`);
+            process.exit(ERROR_CODES.INVALID_ARGS);
+          }
+          const filePath = path.join(outDir, `${entry.alias}.file.json`);
+          if (!fs.existsSync(filePath)) {
+            console.error(`Error: icons require the file payload — fetch "file" for ${entry.alias} first (${filePath} not found)`);
+            process.exit(ERROR_CODES.FILE_ERROR);
+          }
+
+          const stopSpinner = startSpinner(`Downloading: ${entry.alias} icons`);
+          const fileJson = JSON.parse(await fs.readFile(filePath, 'utf-8')) as { document?: unknown };
+          const glyphs = collectGlyphComponents(fileJson.document, pattern);
+          const iconsDir = path.join(outDir, 'icons');
+          await fs.ensureDir(iconsDir);
+
+          let downloaded = 0;
+          const CHUNK = 50;
+          for (let i = 0; i < glyphs.length; i += CHUNK) {
+            const chunk = glyphs.slice(i, i + CHUNK);
+            const ids = chunk.map(g => g.id).join(',');
+            const url = `https://api.figma.com/v1/images/${entry.key}?ids=${encodeURIComponent(ids)}&format=svg`;
+            const result = await figmaFetch(url, token);
+            if (result.status !== 200) {
+              stopSpinner();
+              const classification = classifyHttpStatus(result.status);
+              if (classification === 'auth') {
+                console.error(formatAuthError(result.status, entry.alias, 'icons', configPath));
+                process.exit(ERROR_CODES.AUTH_ERROR);
+              }
+              if (classification === 'rate') {
+                console.error(formatRateLimitError(entry.alias, 'icons', result.headers));
+                process.exit(ERROR_CODES.RATE_LIMIT);
+              }
+              console.error(`Error: HTTP ${result.status} while exporting ${entry.alias} icons`);
+              process.exit(ERROR_CODES.NETWORK_ERROR);
+            }
+            const payload = JSON.parse(await streamToString(result.stream)) as { err?: string; images: Record<string, string | null> };
+            if (payload.err) {
+              stopSpinner();
+              console.error(`Error: images API error while exporting ${entry.alias} icons: ${payload.err}`);
+              process.exit(ERROR_CODES.NETWORK_ERROR);
+            }
+            for (const glyph of chunk) {
+              const imageUrl = payload.images[glyph.id];
+              if (!imageUrl) continue;
+              const svgRes = await fetch(imageUrl);
+              if (!svgRes.ok) continue;
+              await fs.writeFile(path.join(iconsDir, `${glyph.slug}.svg`), await svgRes.text(), 'utf-8');
+              downloaded++;
+            }
+          }
+          const elapsed = stopSpinner();
+          console.log(`✓ Downloaded: ${entry.alias} icons (${downloaded}/${glyphs.length} glyphs, ${elapsed})`);
         }
       }
 
