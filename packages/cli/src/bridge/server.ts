@@ -14,7 +14,8 @@
 //   Body: { "specPath": "/abs/path/to/spec.yaml", "pageId": "1462-365", "fileKey": "..." }
 //   fileKey is optional when exactly one plugin is connected; required (and
 //   validated) when more than one is connected.
-//   Response: { "success": true, "nodeId": "...", "specData": {...} }
+//   Response: { "success": true, "nodeId": "..." }  (round-trip spec read is
+//   an explicit second call — POST /generate — not a render side effect)
 //   POST http://localhost:9002/generate
 //   Body: { "fileKey": "..." }  (fileKey optional under the same single-connection rule)
 //   Generates a spec from the plugin's current Figma selection — no REST fetch needed.
@@ -56,7 +57,6 @@ type GlyphManifest = Record<string, { id: string; key?: string }>;
 interface RenderResult {
   success: boolean;
   nodeId?: string;
-  specData?: unknown;
   error?: string;
 }
 
@@ -165,10 +165,8 @@ wss.on('connection', (ws: WebSocket) => {
       // renderComponent-result
       if (msg.success) {
         const nodeId = msg.nodeId as string;
-        const specData = msg.specData ?? null;
         console.log(`✓ Rendered in Figma. nodeId: ${nodeId}`);
-        if (specData) console.log('  Spec round-trip: received generated spec data.');
-        requests.resolve(requestId, { success: true, nodeId, specData });
+        requests.resolve(requestId, { success: true, nodeId });
       } else {
         console.error(`✗ Render failed: ${msg.error}`);
         requests.resolve(requestId, { success: false, error: msg.error as string });
@@ -236,14 +234,14 @@ const http = createServer((req, res) => {
   let body = '';
   req.on('data', (chunk) => { body += chunk; });
   req.on('end', () => {
-    let params: { specPath?: string; spec?: Record<string, unknown>; manifestPath?: string; pageId?: string | null; returnSpec?: boolean; fileKey?: string; overwrite?: boolean };
+    let params: { specPath?: string; spec?: Record<string, unknown>; manifestPath?: string; pageId?: string | null; fileKey?: string; overwrite?: boolean };
     try { params = JSON.parse(body); } catch {
       res.writeHead(400);
       res.end(JSON.stringify({ error: 'Invalid JSON body.' }));
       return;
     }
 
-    const { specPath: specArg, spec: preParsedSpec, manifestPath: manifestArg, pageId = null, returnSpec, fileKey, overwrite } = params;
+    const { specPath: specArg, spec: preParsedSpec, manifestPath: manifestArg, pageId = null, fileKey, overwrite } = params;
 
     if (!specArg && !manifestArg) {
       res.writeHead(400);
@@ -281,9 +279,7 @@ const http = createServer((req, res) => {
       return;
     }
 
-    const shouldReturnSpec = typeof returnSpec === 'boolean' ? returnSpec : true;
-
-    sendRender(specArg, pageId, shouldReturnSpec, {}, fileKey, preParsedSpec, overwrite)
+    sendRender(specArg, pageId, {}, fileKey, preParsedSpec, overwrite)
       .then((result) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(result));
@@ -627,7 +623,7 @@ async function sendGenerateFromSelection(fileKey?: string): Promise<GenerateResu
 /**
  * Send a single renderComponent message over the WebSocket and wait for the result.
  */
-async function sendRender(specPath: string, rawPageId: string | null, returnSpec = true, instanceIdOverrides: Manifest = {}, fileKey?: string, preParsedSpec?: Record<string, unknown>, overwrite?: boolean): Promise<RenderResult> {
+async function sendRender(specPath: string, rawPageId: string | null, instanceIdOverrides: Manifest = {}, fileKey?: string, preParsedSpec?: Record<string, unknown>, overwrite?: boolean): Promise<RenderResult> {
   const conn = registry.resolve(fileKey);
 
   let spec: Record<string, unknown>;
@@ -668,7 +664,7 @@ async function sendRender(specPath: string, rawPageId: string | null, returnSpec
   console.log(`Rendering: ${componentName} → page ${pageId} (${conn.fileKey})`);
 
   const { requestId, promise } = requests.create(60000, 'Timed out waiting for renderComponent-result.');
-  conn.ws.send(JSON.stringify({ type: 'renderComponent', requestId, spec, pageId, returnSpec, instanceIdManifest: manifest, glyphIdManifest, stylesManifest, variablesManifest, overwrite }));
+  conn.ws.send(JSON.stringify({ type: 'renderComponent', requestId, spec, pageId, instanceIdManifest: manifest, glyphIdManifest, stylesManifest, variablesManifest, overwrite }));
   return promise as Promise<RenderResult>;
 }
 
@@ -689,7 +685,6 @@ if (renderIdx !== -1) {
   const tryRender = (): void => {
     if (registry.size > 0) {
       sendRender(specArg, rawPageId)
-        .then((r) => { if (r.specData) console.log('Spec data received. Ready for diff.'); })
         .catch((e) => console.error((e as Error).message));
     } else {
       console.log('Waiting for plugin to connect…');

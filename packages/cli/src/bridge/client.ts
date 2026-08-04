@@ -31,16 +31,16 @@ export interface RenderRequestBody {
   spec?: Record<string, unknown>;
   manifestPath?: string;
   pageId?: string;
-  returnSpec?: boolean;
   fileKey?: string;
   /** Delete a same-titled page node before rendering, instead of erroring on the collision. */
   overwrite?: boolean;
 }
 
+// Render reports success/failure only — the round-trip spec read is a second,
+// explicit call (`specs generate --from-bridge`), not a render side effect.
 export interface RenderResponse {
   success: boolean;
   nodeId?: string;
-  specData?: unknown;
   written?: number;
   failed?: number;
   results?: Array<{ name: string; nodeId?: string; error?: string }>;

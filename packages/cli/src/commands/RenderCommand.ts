@@ -33,11 +33,10 @@ export const Render = new Command('render')
   .argument('[specPath]', 'Path to a spec YAML file (default: {dataDirectory}/{alias}.render-manifest.md from config)')
   .option('-m, --manifest <path>', 'Path to a render-manifest.md file')
   .option('--config <path>', 'Path to config file (specs.config.yaml)')
-  .option('--no-return-spec', 'Skip round-trip spec read after rendering in Figma')
   .option('--file <fileKey>', 'Target a specific connected Figma file (prompts to choose if more than one is connected in an interactive terminal; required otherwise)')
   .option('--overwrite', 'Delete any existing page component with the same title before rendering (without this, a title collision is an error)')
   .option('--watch', 'Watch the spec path and re-render on every change (implies --overwrite)')
-  .action(async (specPath: string | undefined, options: { manifest?: string; config?: string; returnSpec: boolean; file?: string; overwrite?: boolean; watch?: boolean; verbose?: boolean }) => {
+  .action(async (specPath: string | undefined, options: { manifest?: string; config?: string; file?: string; overwrite?: boolean; watch?: boolean; verbose?: boolean }) => {
     let manifestPath = options.manifest;
 
     if (options.watch) {
@@ -111,29 +110,28 @@ export const Render = new Command('render')
 // logged and retried on the next change (watch).
 async function renderSpecPath(
   specPath: string,
-  options: { file?: string; returnSpec?: boolean; overwrite?: boolean }
+  options: { file?: string; overwrite?: boolean }
 ): Promise<void> {
   const { spec, resolvePath } = loadSpec(specPath);
   console.log(`Posting spec: ${resolvePath}`);
   const fileKey = await resolveFileKey(options.file);
-  const result = await postRender({ specPath: resolvePath, spec, returnSpec: options.returnSpec, fileKey, overwrite: options.overwrite });
+  const result = await postRender({ specPath: resolvePath, spec, fileKey, overwrite: options.overwrite });
 
   if (!result.success) {
     const msg = typeof result.error === 'string' ? result.error : JSON.stringify(result.error);
     throw new Error(`Render failed: ${msg}`);
   }
 
+  // Success is the whole contract — reading the produced component's spec is
+  // an explicit second call (`specs generate --from-bridge`), not a side effect.
   console.log(`✓ Rendered in Figma. nodeId: ${result.nodeId}`);
-  if (result.specData) {
-    console.log('Spec round-trip data received.');
-  }
 }
 
 const WATCH_DEBOUNCE_MS = 300;
 
 async function watchAndRender(
   specPath: string,
-  options: { file?: string; returnSpec?: boolean }
+  options: { file?: string }
 ): Promise<void> {
   const absSpecPath = path.resolve(specPath);
   if (!fs.existsSync(absSpecPath)) {
