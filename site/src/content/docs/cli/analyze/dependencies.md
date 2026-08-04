@@ -45,11 +45,13 @@ Not every reference implies the same certainty, so edges carry a `kind`:
 
 | Kind | Source | Certainty | In blast radius? |
 |------|--------|-----------|------------------|
-| `instance` | A placed instance — `instanceOf` on an anatomy or variant element | The dependency exists in the shipped component | Yes |
-| `slot` | A slot prop's `anyOf` constraint | The component *may* be composed there | No — listed as potential |
-| `example` | A `slotContentExamples` composition | Observed in documented examples, not contractual | No — listed as potential |
+| `instance` | A placed instance — `instanceOf` on an anatomy or variant element | The component's shipped anatomy contains it | Yes |
+| `slot` | A slot prop's `anyOf` constraint | The component's contract admits it | No — listed as a contract relation |
+| `example` | A `slotContentExamples` composition | The component's documented examples compose it | No — listed as a contract relation |
 
-The transitive closure (blast radius) is computed over `instance` edges only. Folding "may compose" edges into it would make every radius maximal and meaningless; instead, slot and example relations appear separately as `potentialDependents` / `potentialDependencies` so you can widen the radius deliberately.
+Every edge is a proven fact read from the spec; the kinds differ in *what changes propagate through them*. An `instance` edge transmits any change — styling, props, structure — because the dependent's own rendered output contains the dependency. A `slot` or `example` edge couples the components at the contract and documentation level: renaming or deleting the target invalidates the dependent's `anyOf` list or examples, but changing the target's styling touches nothing the dependent itself renders.
+
+The transitive closure (blast radius) is therefore computed over `instance` edges only — folding "may compose" edges into it would make every radius maximal and meaningless. Slot and example relations appear separately as `contractDependents` / `contractDependencies`. For contract-level changes (deleting a component, renaming it, changing what it fundamentally is), read `contractDependents` as part of the blast radius.
 
 ## How Dependencies Are Collected
 
@@ -111,8 +113,8 @@ The blast-radius view — one entry per analyzed component, so answering "what b
     "transitiveDependents": { "dsCard": 2 },
     "directDependencies": [],
     "transitiveDependencies": {},
-    "potentialDependents": ["dsCard"],
-    "potentialDependencies": [],
+    "contractDependents": ["dsCard"],
+    "contractDependencies": [],
     "propUsage": {
       "size": {
         "configuredBy": 2,
@@ -131,7 +133,7 @@ Here a change to `dsIcon` impacts `dsButton` directly and `dsCard` at depth 2; `
 
 ## Visualizing the Graph
 
-`dependencies.graph` maps mechanically onto a [Mermaid](https://mermaid.js.org) flowchart — each edge becomes an arrow, with dashed arrows for potential (slot/example) relations. Hand the JSON to an LLM and ask for exactly this, or generate it with a few lines of scripting, then paste into any Mermaid renderer:
+`dependencies.graph` maps mechanically onto a [Mermaid](https://mermaid.js.org) flowchart — each edge becomes an arrow, with dashed arrows for contract (slot/example) relations. Hand the JSON to an LLM and ask for exactly this, or generate it with a few lines of scripting, then paste into any Mermaid renderer:
 
 ```
 flowchart TD

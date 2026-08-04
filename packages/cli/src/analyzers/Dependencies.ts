@@ -72,8 +72,8 @@ interface ByComponentEntry {
   transitiveDependents: Record<string, number>;
   directDependencies: string[];
   transitiveDependencies: Record<string, number>;
-  potentialDependents: string[];
-  potentialDependencies: string[];
+  contractDependents: string[];
+  contractDependencies: string[];
   propUsage: Record<string, PropUsageEntry>;
 }
 
@@ -173,12 +173,12 @@ export class DependenciesAnalyzer implements Transformer {
     // Adjacency over instance edges: forward = dependencies, reverse = dependents.
     const forward = new Map<string, Set<string>>();
     const reverse = new Map<string, Set<string>>();
-    const potentialForward = new Map<string, Set<string>>();
-    const potentialReverse = new Map<string, Set<string>>();
+    const contractForward = new Map<string, Set<string>>();
+    const contractReverse = new Map<string, Set<string>>();
     for (const edge of edgeMap.values()) {
       const [fwd, rev] = edge.kind === 'instance'
         ? [forward, reverse]
-        : [potentialForward, potentialReverse];
+        : [contractForward, contractReverse];
       (fwd.get(edge.from) ?? fwd.set(edge.from, new Set()).get(edge.from)!).add(edge.to);
       (rev.get(edge.to) ?? rev.set(edge.to, new Set()).get(edge.to)!).add(edge.from);
     }
@@ -186,7 +186,7 @@ export class DependenciesAnalyzer implements Transformer {
     const propUsage = this._aggregatePropUsage(resolve);
 
     await this._writeGraph(outDir, known, externals, edgeMap, forward, reverse);
-    await this._writeByComponent(outDir, known, forward, reverse, potentialForward, potentialReverse, propUsage);
+    await this._writeByComponent(outDir, known, forward, reverse, contractForward, contractReverse, propUsage);
   }
 
   private _aggregatePropUsage(
@@ -291,8 +291,8 @@ export class DependenciesAnalyzer implements Transformer {
     known: Set<string>,
     forward: Map<string, Set<string>>,
     reverse: Map<string, Set<string>>,
-    potentialForward: Map<string, Set<string>>,
-    potentialReverse: Map<string, Set<string>>,
+    contractForward: Map<string, Set<string>>,
+    contractReverse: Map<string, Set<string>>,
     propUsage: Map<string, Map<string, { sites: number; values: Map<string, Set<string>> }>>
   ): Promise<void> {
     const out: Record<string, ByComponentEntry> = {};
@@ -308,7 +308,7 @@ export class DependenciesAnalyzer implements Transformer {
             .filter(([, depth]) => depth > 1)
             .sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0]))
         );
-      const potential = (map: Map<string, Set<string>>, structural: Map<string, number>): string[] =>
+      const contractRelations = (map: Map<string, Set<string>>, structural: Map<string, number>): string[] =>
         Array.from(map.get(key) ?? [])
           .filter(id => structural.get(id) !== 1)
           .sort((a, b) => a.localeCompare(b));
@@ -335,8 +335,8 @@ export class DependenciesAnalyzer implements Transformer {
         transitiveDependents: transitive(dependents),
         directDependencies: direct(dependencies),
         transitiveDependencies: transitive(dependencies),
-        potentialDependents: potential(potentialReverse, dependents),
-        potentialDependencies: potential(potentialForward, dependencies),
+        contractDependents: contractRelations(contractReverse, dependents),
+        contractDependencies: contractRelations(contractForward, dependencies),
         propUsage: usage,
       };
     }

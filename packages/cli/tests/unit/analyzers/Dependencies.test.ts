@@ -277,11 +277,11 @@ describe('DependenciesAnalyzer', () => {
       };
       const { byComponent } = await runAll({ dsIcon: ICON, dsToolbar: toolbar });
       expect(byComponent.dsIcon.directDependents).toEqual([]);
-      expect(byComponent.dsIcon.potentialDependents).toEqual(['dsToolbar']);
-      expect(byComponent.dsToolbar.potentialDependencies).toEqual(['dsIcon']);
+      expect(byComponent.dsIcon.contractDependents).toEqual(['dsToolbar']);
+      expect(byComponent.dsToolbar.contractDependencies).toEqual(['dsIcon']);
     });
 
-    it('omits a potential dependent that is already a direct structural dependent', async () => {
+    it('omits a contract dependent that is already a direct structural dependent', async () => {
       const both = {
         anatomy: { icon: { type: 'instance', instanceOf: 'dsIcon' } },
         props: { extra: { type: 'slot', anyOf: ['dsIcon'] } },
@@ -289,7 +289,7 @@ describe('DependenciesAnalyzer', () => {
       };
       const { byComponent } = await runAll({ dsIcon: ICON, dsChip: both });
       expect(byComponent.dsIcon.directDependents).toEqual(['dsChip']);
-      expect(byComponent.dsIcon.potentialDependents).toEqual([]);
+      expect(byComponent.dsIcon.contractDependents).toEqual([]);
     });
 
     it('collects slot edges from subcomponent props', async () => {
