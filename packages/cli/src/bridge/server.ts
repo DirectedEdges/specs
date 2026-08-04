@@ -51,8 +51,10 @@ import { WS_PORT, HTTP_PORT, DEFAULT_PAGE_ID, resolveWorkspaceDir } from './conf
 import { ConnectionRegistry, type Connection } from './connections.js';
 import { RequestTracker } from './requestTracker.js';
 
-type Manifest = Record<string, string>;
-type GlyphManifest = Record<string, { id: string; key?: string }>;
+/** id = same-file node id (fast path); key = published cross-file key (fallback import). */
+type ComponentEntry = { id: string; key?: string };
+type Manifest = Record<string, ComponentEntry>;
+type GlyphManifest = Record<string, ComponentEntry>;
 
 interface RenderResult {
   success: boolean;
@@ -458,11 +460,24 @@ function collectSpecFiles(specsDir: string): Array<{ key: string; path: string }
 }
 
 /**
- * Build a flat manifest of spec key → Figma nodeId by scanning specsDir.
- * Also layers in subcomponent ref aliases from the current spec.
+ * Build a flat manifest of spec key → component entry by scanning specsDir.
+ * Also layers in subcomponent ref aliases from the current spec. Published
+ * cross-file keys are cross-referenced from the fetched file's top-level
+ * `components`/`componentSets` maps (fileDataPath) — instances usually target
+ * component sets, so both maps are consulted.
  */
-function buildManifest(spec: Record<string, unknown>, specsDir: string): Manifest {
+function buildManifest(spec: Record<string, unknown>, specsDir: string, fileDataPath: string): Manifest {
   const manifest: Manifest = {};
+
+  const fileData = readJson(fileDataPath, 'Instance manifest');
+  const fileRefs = {
+    ...(fileData?.components as Record<string, { key?: string }> | undefined ?? {}),
+    ...(fileData?.componentSets as Record<string, { key?: string }> | undefined ?? {}),
+  };
+  const entryFor = (id: string): ComponentEntry => {
+    const key = fileRefs[id]?.key;
+    return key ? { id, key } : { id };
+  };
 
   const specFiles = collectSpecFiles(specsDir);
   // Deduplicate by key: first nodeId found wins (variants.yaml before api.yaml, etc.)
@@ -471,7 +486,7 @@ function buildManifest(spec: Record<string, unknown>, specsDir: string): Manifes
     try {
       const s = parse(readFileSync(path, 'utf8')) as { metadata?: { source?: { nodeId?: string } } };
       const nodeId = s.metadata?.source?.nodeId;
-      if (nodeId) manifest[key] = nodeId;
+      if (nodeId) manifest[key] = entryFor(nodeId);
     } catch {
       // Skip unreadable or non-spec files silently
     }
@@ -486,7 +501,7 @@ function buildManifest(spec: Record<string, unknown>, specsDir: string): Manifes
   if (subcomponents) {
     for (const [refKey, sub] of Object.entries(subcomponents)) {
       if (sub.source?.nodeId) {
-        manifest[refKey] = sub.source.nodeId;
+        manifest[refKey] = entryFor(sub.source.nodeId);
       } else if (sub.title) {
         const titleKey = toCamelCase(sub.title);
         if (manifest[titleKey]) manifest[refKey] = manifest[titleKey];
@@ -578,9 +593,9 @@ async function drainManifest(specPaths: string[], rawPageId: string | null, file
     console.log(`Rendering ${i + 1}/${total}: ${name}…`);
 
     try {
-      const result = await sendRender(specPath, rawPageId, false, instanceIdAccumulator, fileKey, undefined, overwrite);
+      const result = await sendRender(specPath, rawPageId, instanceIdAccumulator, fileKey, undefined, overwrite);
       if (result.success && result.nodeId) {
-        instanceIdAccumulator[name] = result.nodeId;
+        instanceIdAccumulator[name] = { id: result.nodeId };
         results.push({ name, nodeId: result.nodeId });
       } else {
         const errMsg = result.error ?? 'Unknown error';
@@ -640,7 +655,7 @@ async function sendRender(specPath: string, rawPageId: string | null, instanceId
   const dirs = resolveDirs(specPath);
   const { specsDir, dataDir, workspaceName } = dirs;
 
-  const manifest = buildManifest(spec, specsDir);
+  const manifest = buildManifest(spec, specsDir, pathResolve(dataDir, workspaceName + '.file.json'));
   Object.assign(manifest, instanceIdOverrides);
 
   const glyphIdManifest = buildGlyphManifest(spec, pathResolve(dataDir, workspaceName + '.manifest.md'), pathResolve(dataDir, workspaceName + '.file.json'));
