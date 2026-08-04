@@ -75,6 +75,14 @@ How it works:
 - Filenames are stable kebab-case slugs of the captured icon name, including camelCase splitting: `expandMore` → `expand-more.svg`, `Arrow Left` → `arrow-left.svg`.
 - Two icons that slug identically keep the first as-is; later duplicates are suffixed with their node id so nothing is silently dropped.
 
+### What gets exported
+
+Each glyph is exported through Figma's images API, which renders the component **as it currently appears**:
+
+- Only layers visible in the component's saved state are included — hidden layers are omitted from the SVG.
+- Variables resolve to their default modes; the export does not enumerate other modes or variable states.
+- One component exports one SVG. If a glyph component packs multiple icons toggled by boolean variables, only the default-visible icon is exported — that authoring pattern is not supported. Use one component per icon for complete asset coverage.
+
 Because glyphs come from the saved file payload, `icons` runs after the other kinds. If the payload is missing, fetch exits with an error telling you to fetch `file` first.
 
 ```bash
