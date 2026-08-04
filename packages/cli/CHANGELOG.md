@@ -5,6 +5,12 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- **`specs fetch` icons** — a fourth data kind alongside `file`, `variables`, and `styles`: fetch derives the library's icon glyphs from the downloaded file payload (no `scan` required) and downloads their SVG assets with stable kebab-case slugs.
+
 ## [0.26.0] - Unreleased
 
 ### Added
