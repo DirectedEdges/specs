@@ -97,10 +97,18 @@ Root/leaf/interior; degrees; cycles if any; external references if any.
 Direct, then transitive with depth, then contract relations.
 
 ## Prop Utilization
-Props ranked by configuredBy. For each prop, a per-consumer table from the
-`consumers` block: which components configure it, in how many default /
-variant / example sites, and which values (with per-value site counts).
-Call out props no consumer configures.
+Props ranked by configuredBy. For each prop, a block in this exact shape —
+one bullet per consumer, EVERY consumer enumerated from the `consumers`
+block. Never summarize consumers in prose ("the other three...") and never
+merge them into one line:
+
+**{prop}** — {configuredBy} sites
+- `{consumer}` — {default} default, {variants} variant, {examples} example sites · values: {value} ({count}), …
+- `{consumer}` — …
+
+Omit zero-count sections from a bullet (write "2 default" not
+"2 default, 0 variant, 0 example"). After the blocks, list any props no
+consumer configures.
 ```
 
 ### 7. Offer to save
