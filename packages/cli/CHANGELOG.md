@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- **`render` no longer returns the produced component's spec** — the `--no-return-spec` flag is gone and render reports success/failure plus the node id only. The round trip is now an explicit second call: `specs generate --from-bridge` reads the just-rendered selection through the same bridge. The plugin no longer runs a spec-generation pass (page navigation, selection swap) as a render side effect.
+
 ## [0.25.0] - 2026-07-16
 
 Generated specs can now include the images your components actually use. Enable `processing.images` in config and image fills emit as typed `backgroundImage` values backed by a per-component `images` registry; then run `specs generate --get-images` to download each referenced image once into an `_images/` folder and point every registry entry at a real file. Text truncation (`textOverflow`, `maxLines`) is now captured on text elements, rotated elements keep their sub-degree precision, and `specs generate` output is quieter — per-file overwrite warnings collapse into a single summary line.
