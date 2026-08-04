@@ -13,7 +13,11 @@ specs fetch [options]
 
 - `FIGMA_TOKEN` must be set in your environment.
 - `specs.config.yaml` must include `dataDirectory` (or deprecated `sourceDirectory`) and `sources`.
-- Fetching `variables` or `styles` requires your Figma organization to be on an **Enterprise** plan — Figma restricts those REST endpoints regardless of your Specs license. `file` data works on any plan. See [CLI Requirements](/cli/#requirements).
+- Fetching `variables` or `styles` requires your Figma organization to be on an **Enterprise** plan — Figma restricts those REST endpoints regardless of your Specs license. `file` and `icons` data work on any plan. See [CLI Requirements](/cli/#requirements).
+- Fetching `icons` additionally requires:
+  - `config.processing.glyphNamePattern` set in your config (see [Glyph Name Pattern](/guides/glyph-name-pattern/))
+  - `outputDirectory` set in your config — icon assets are written to the spec workspace, not the data directory
+  - the source's `file` payload — listed before `icons` in the same `data` array, or fetched in a previous run
 
 ## Options
 
@@ -53,6 +57,41 @@ specs fetch --verbose
 # Only refresh foundations payloads
 specs fetch --only foundations --verbose
 ```
+
+## Fetching Icon Assets
+
+Add `icons` to a source's `data` array to download the library's icon glyphs as SVG files:
+
+```yaml
+sources:
+  library:
+    key: YOUR_FILE_KEY
+    data: ['file', 'variables', 'styles', 'icons']
+```
+
+How it works:
+
+- Glyph components are **derived from the file payload** — every `COMPONENT` node whose name matches `config.processing.glyphNamePattern` (with `{i}` capturing the icon name). No `scan` step is involved.
+- SVGs are exported through the Figma images API in batches and written to `<outputDirectory>/_icons/` — beside the `_images/` assets and the component specs that reference them, not into the regenerable data cache.
+- Filenames are stable kebab-case slugs of the captured icon name, including camelCase splitting: `expandMore` → `expand-more.svg`, `Arrow Left` → `arrow-left.svg`.
+- Two icons that slug identically keep the first as-is; later duplicates are suffixed with their node id so nothing is silently dropped.
+
+### What gets exported
+
+Each glyph is exported through Figma's images API, which renders the component **as it currently appears**:
+
+- Only layers visible in the component's saved state are included — hidden layers are omitted from the SVG.
+- Variables resolve to their default modes; the export does not enumerate other modes or variable states.
+- One component exports one SVG. If a glyph component packs multiple icons toggled by boolean variables, only the default-visible icon is exported — that authoring pattern is not supported. Use one component per icon for complete asset coverage.
+
+Because glyphs come from the saved file payload, `icons` runs after the other kinds. If the payload is missing, fetch exits with an error telling you to fetch `file` first.
+
+```bash
+# Refresh just the icon assets (file payload already on disk)
+specs fetch --only library --verbose
+```
+
+The downloaded assets match the slugs referenced by generated component output (masked glyph spans resolve `/assets/icons/<slug>.svg`), so serving `<outputDirectory>/_icons/` as a static assets directory — for example in Storybook — makes icons render without further mapping. Keeping icons in the spec workspace means a cloned workspace renders completely without re-fetching.
 
 ## Fetching Figma Branches
 
