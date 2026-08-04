@@ -5,8 +5,11 @@
 
 import { isTokenRef, resolveTokenVar, dimensionValue, colorValue, sidesValue } from './values.js';
 
+// ADR-064 logical directions (START/END/JUSTIFY → CSS logical text-align),
+// plus the pre-064 physical literals so existing generated specs keep working.
 const TEXT_ALIGN_MAP: Record<string, string> = {
-  LEFT: 'left', CENTER: 'center', RIGHT: 'right', JUSTIFIED: 'justify',
+  START: 'start', CENTER: 'center', END: 'end', JUSTIFY: 'justify',
+  LEFT: 'left', RIGHT: 'right', JUSTIFIED: 'justify',
 };
 
 const TEXT_CASE_MAP: Record<string, string> = {
