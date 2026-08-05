@@ -1,80 +1,91 @@
-# ADR: Explicit `nullable` Emission for Code-Only Text Props
+# ADR: Document the `nullable` Default and Add `NumberProp.nullable`
 
 **Branch**: `065-code-only-text-prop-nullable`
 **Created**: 2026-08-05
 **Status**: DRAFT
 **Deciders**: Nathan Curtis (author)
-**Supersedes**: *(none)*
+**Supersedes**: *(none — extends ADR-019 and ADR-022)*
 
 ---
 
 ## Context
 
-Props sourced from a Figma code-only container layer (`$extensions['com.figma'].source.kind: 'codeOnlyProp'`) with a Figma-native `TEXT` type land in the spec as either:
-
-- `StringProp` (`type: string`), or
-- `NumberProp` (`type: number`) — when the authored value is cast to a numeric type.
-
-`nullable` today is an optional, tri-state-by-omission field on `StringProp`, `EnumProp`, and `SlotProp`:
+`nullable?: boolean` is an optional field on `StringProp`, `EnumProp`, `SlotProp`, and `ImageProp`. Introduced by ADR-019 and extended to `SlotProp` by ADR-022, it has never had a documented meaning for its **absence**:
 
 ```yaml
 # types/Props.ts — current
 StringProp:
   type: 'string'
   default?: string | null
-  nullable?: boolean
+  nullable?: boolean        # no JSDoc at all
   examples?: string[]
+
+EnumProp:
+  type: 'string'
+  default: string
+  enum: string[]
+  nullable?: boolean        # no JSDoc at all
 ```
 
-Two problems follow from this shape:
+The schema is equally silent — `"nullable": { "type": "boolean" }` with no `description` and no `default`. The docs table says only "Whether `null` is a valid value", Required: No. Neither ADR-019 nor ADR-022 states what omission means.
 
-- **`NumberProp` cannot express nullability at all.** It has no `nullable` field, so a `TEXT` code-only prop cast to `type: number` loses the nullability signal that the same prop would carry as a `StringProp`. Identical Figma authoring produces contract-inconsistent output based only on the inferred value type.
-- **Omission is ambiguous.** Because `nullable` is optional and no emission rule is recorded in the contract, a consumer reading a prop with no `nullable` key cannot distinguish "this prop was evaluated and accepts no null" from "nullability was never determined". Code generators must guess whether to emit `string | null` or `string`.
+This is a genuine contract gap, and it has already produced divergence:
 
-The intended emission rule — an empty authored default means nullability is undetermined and `nullable` is omitted; a non-empty authored default means the prop is known not to accept null and `nullable: false` is emitted explicitly — is only expressible if every prop type that a code-only `TEXT` prop can become carries the field.
+- **Producers treat omission as "nullable"**. `nullable` is written in only two situations: `false` on variant-derived enum props, and `true` on paired content props. Every other string prop, every number prop, and every code-only `TEXT` prop omits the field — because a string prop with no closed value set is understood to accept null.
+- **Consumers treat omission as "not nullable"**. Reading tools test `prop.nullable === true`, so an omitted field collapses to `false`, and generated TypeScript emits `string` where `string | null` is meant. Other consumers ignore the field entirely.
+
+The gap is not merely documentary — it produces incorrect generated types today, and the contract offers no text a consumer could have read to get it right.
+
+A second, narrower gap compounds this. A code-only Figma `TEXT` prop materializes as either a `StringProp` or — when `processing.inferNumberProps` applies and the authored value is numeric — a `NumberProp`. `NumberProp` has no `nullable` field at all, so identical Figma authoring produces contract-inconsistent output based only on the inferred value type, and a numeric prop cannot assert non-nullability even when it demonstrably has a value.
 
 ---
 
 ## Decision Drivers
 
-- **Type ↔ schema symmetry** (Constitution I): every type change has a schema counterpart, and vice versa.
-- **Consistent contract across value types**: a `TEXT` code-only prop must express the same nullability vocabulary whether it materializes as `type: string` or `type: number`.
-- **Additive-only where possible**: avoid a `MAJOR` bump on every downstream consumer for what is a gap-filling field.
-- **Unambiguous signal over inference**: consumers must not infer nullability from the presence or emptiness of `default`.
-- **No logic in this package** (Constitution II): the emission rule is a contract-level definition here; the evaluation itself belongs to the transformer.
-- **Naming governance** (Constitution VI): `nullable` is already the established field name across `StringProp`, `EnumProp`, `SlotProp`, and `ImageProp` — consistency within the contract governs.
+- **The contract must be self-describing** (Constitution III): a consumer reading `types/` and `schema/` alone must be able to determine nullability. An unstated convention that lives only in producer behavior is not a contract.
+- **Consistent vocabulary across value types**: a `TEXT` code-only prop must express nullability the same way whether it materializes as `type: string` or `type: number`.
+- **Open value sets differ from closed ones**: a prop with an `enum` enumerates every value it accepts; null is not among them unless stated. A prop with no enumerated set has no such closure.
+- **Type ↔ schema symmetry** (Constitution I): every type change has a schema counterpart.
+- **Additive where possible**: prefer a `MINOR` bump over forcing field presence on four types.
+- **No logic in this package** (Constitution II): the default is a contract-level definition; evaluating it belongs to consumers.
 
 ---
 
 ## Options Considered
 
-### Option A: Add optional `nullable?: boolean` to `NumberProp` and document the emission rule *(Selected)*
+### Option A: Document the default as absent ≡ nullable for open-valued props; add `NumberProp.nullable` *(Selected)*
 
-Bring `NumberProp` in line with the other prop types by adding the same optional `nullable` field, and record in the field documentation that omission means "undetermined" while `false` means "explicitly known not nullable".
+State the default explicitly in types, schema, and docs:
+
+- `StringProp`, `NumberProp` — absent ≡ `true` (accepts null)
+- `EnumProp`, `BooleanProp` — absent ≡ `false` (the value set is closed)
+
+Add optional `nullable?: boolean` to `NumberProp` so the `false` override is expressible for numeric props.
 
 **Pros**:
-- Additive optional field on one type → `MINOR`, no consumer recompilation break.
-- Restores symmetry across all value-carrying prop types; the same authored Figma prop yields the same vocabulary regardless of inferred type.
-- The tri-state (`true` / `false` / absent) is expressible without a new type or sentinel value.
+- Matches what producers already emit — no producer change is required for correctness.
+- The discriminator is a structural fact already present in the prop (`enum` present or not), not an out-of-band convention.
+- Structurally additive: one new optional field plus annotations → `MINOR`.
+- Makes the emission rule for code-only `TEXT` props expressible: omit `nullable` when the authored default is empty; emit `nullable: false` when it is non-empty.
 
 **Cons / Trade-offs**:
-- Preserves an optional field whose absence remains meaningful — consumers must handle three states, not two.
+- Consumers currently reading `prop.nullable === true` must change; today they would report the opposite of the documented default. This is a behavioral change in generated output even though the schema change is annotation-only.
 
 ---
 
-### Option B: Make `nullable` required on all prop types *(Rejected)*
+### Option B: Document the default as absent ≡ `false` for all prop types *(Rejected)*
 
-Promote `nullable` to a required `boolean` on `StringProp`, `EnumProp`, `SlotProp`, and `NumberProp`.
+Canonize the reading consumers use today, and require producers to emit `nullable: true` explicitly wherever null is accepted.
 
-**Rejected because**: It is a breaking change to field presence on four types → `MAJOR` per the constitution's versioning rule, and it destroys the "undetermined" state that an empty authored default legitimately produces. Every prop would be forced to assert a nullability it may not know.
+**Rejected because**: It contradicts producer behavior across every string and number prop, so it would require the transformer to start writing `nullable: true` on essentially every open-valued prop — a far larger producer change than the consumer change in Option A, and it makes the common case the verbose one. It also erases the `enum`/no-`enum` distinction that already carries the meaning structurally.
 
 ---
 
-### Option C: Leave `NumberProp` as-is and have consumers infer nullability from `default` *(Rejected)*
+### Option C: Make `nullable` required on all prop types *(Rejected)*
 
-No contract change; consumers treat a missing or empty `default` as nullable.
+Promote `nullable` to a required `boolean` on `StringProp`, `EnumProp`, `SlotProp`, `NumberProp`, and `ImageProp`.
 
-**Rejected because**: It pushes an inference rule into every consumer independently (Constitution III — the contract must be self-describing for all consumers equally), and it conflates "no default authored" with "accepts null", which are distinct facts.
+**Rejected because**: Changing field presence on five types is breaking → `MAJOR` per the constitution's versioning rule. It also forces every prop to restate a fact that the presence or absence of `enum` already determines, inflating output for no gain in expressiveness.
 
 ---
 
@@ -85,7 +96,8 @@ No contract change; consumers treat a missing or empty `default` as nullable.
 | File | Change | Bump |
 |------|--------|------|
 | `Props.ts` | Added optional field `nullable?: boolean` to `NumberProp` | MINOR |
-| `Props.ts` | Documentation-only: clarify `nullable` semantics on `StringProp`, `EnumProp`, `SlotProp`, `NumberProp` | PATCH |
+| `Props.ts` | Added JSDoc stating the documented default on `nullable` for `StringProp`, `EnumProp`, `SlotProp`, `NumberProp` | PATCH |
+| `Image.ts` | Added JSDoc stating the documented default on `ImageProp.nullable` | PATCH |
 
 **Example — new shape** (`types/Props.ts`):
 
@@ -100,14 +112,25 @@ NumberProp:
 NumberProp:
   type: 'number'
   default?: number
-  nullable?: boolean   # optional — MINOR
+  nullable?: boolean   # optional — defaults to true when absent — MINOR
   examples?: number[]
 ```
 
-**Semantics recorded for `nullable` on all prop types that carry it**:
+**Documented default, by prop type**:
+
+| Prop type | Absent `nullable` means | Rationale |
+|-----------|-------------------------|-----------|
+| `StringProp` | `true` | Open value set — no enumeration closes it |
+| `NumberProp` | `true` | Open value set |
+| `SlotProp` | `true` | Open content set; a slot may be empty |
+| `ImageProp` | `true` | Open value set |
+| `EnumProp` | `false` | `enum` enumerates every accepted value; null is not among them unless stated |
+| `BooleanProp` | *(n/a — no field)* | Booleans are inherently non-nullable |
+
+**Emission for code-only `TEXT` props** (the case that surfaced this):
 
 ```yaml
-# Undetermined — no authored default to evaluate; nullable is omitted
+# Empty authored default — nullable omitted, reads as true
 label:
   type: string
   $extensions:
@@ -117,7 +140,7 @@ label:
         kind: codeOnlyProp
         layer: label
 
-# Explicitly not nullable — a non-empty authored default exists
+# Non-empty authored default — nullable: false emitted explicitly
 headingLevel:
   type: number
   default: 2
@@ -135,7 +158,7 @@ headingLevel:
 | File | Change | Bump |
 |------|--------|------|
 | `component.schema.json` | Added property `nullable` to `#/definitions/NumberProp/properties` | MINOR |
-| `component.schema.json` | Added/aligned `description` on `nullable` under `#/definitions/StringProp`, `#/definitions/EnumProp`, `#/definitions/SlotProp`, `#/definitions/NumberProp` | PATCH |
+| `component.schema.json` | Added `description` and `default` annotations to `nullable` under `#/definitions/StringProp`, `#/definitions/EnumProp`, `#/definitions/SlotProp`, `#/definitions/NumberProp`, `#/definitions/ImageProp` | PATCH |
 
 **Example — new shape** (`schema/component.schema.json`):
 
@@ -143,22 +166,29 @@ headingLevel:
 # New property under #/definitions/NumberProp/properties
 nullable:
   type: boolean
-  description: "Whether this prop accepts a null value. Omitted when nullability is undetermined; false asserts the prop does not accept null."
-  # not in required[] — optional field
+  default: true
+  description: "Whether this prop accepts a null value. Absent means true — a number prop has an open value set."
+
+# Annotation added under #/definitions/EnumProp/properties
+nullable:
+  type: boolean
+  default: false
+  description: "Whether this prop accepts a null value. Absent means false — enum enumerates every accepted value."
 ```
 
 ### Notes
 
-- `nullable` stays optional on every prop type. Absence is a meaningful third state and MUST NOT be read as `false`.
-- `NumberProp` has no `$extensions` property today; this ADR does not change that.
-- `ImageProp.nullable` is out of scope — image props are not produced from code-only `TEXT` layers.
+- `#/definitions/NumberProp` sets `additionalProperties: false`, so it rejects `nullable` today. Adding the property is required for the field to validate at all.
+- The JSON Schema `default` keyword is an annotation, not a validation constraint. It records the contract; it does not cause validators to inject the value.
+- `SlotProp` and `ImageProp` are included in the default table because leaving them undocumented perpetuates the exact gap this ADR closes. Both follow the open-value-set rule.
+- Producers emitting `nullable: false` on variant-derived enum props are now redundant with the documented default. Removing that write is optional cleanup, not required — an explicit value that matches the default is always valid.
 
 ---
 
 ## Type ↔ Schema Impact
 
 - **Symmetric**: Yes.
-- **Parity check**: `NumberProp.nullable` in `types/Props.ts` ↔ `#/definitions/NumberProp/properties/nullable` in `schema/component.schema.json`. Both optional (not listed in `required`). Existing `nullable` fields on `StringProp`, `EnumProp`, and `SlotProp` already have schema counterparts and receive description text only.
+- **Parity check**: `NumberProp.nullable` in `types/Props.ts` ↔ `#/definitions/NumberProp/properties/nullable`, optional in both (not listed in `required`). Documented defaults appear as JSDoc in `types/` and as `default` + `description` annotations in `schema/` — the same statement in each artifact's native idiom.
 
 ---
 
@@ -166,9 +196,11 @@ nullable:
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | Emission rule becomes expressible for numeric code-only props | Emit `nullable: false` when a code-only `TEXT` prop has a non-empty authored default; omit `nullable` when the default is empty — for both the `string` and `number` output types |
-| `specs-cli` | Widened prop shape in validated and generated output | Recompile against the new schema version; surface `nullable` for numeric props wherever it is already surfaced for string props |
-| `specs-plugin-2` | Same widened prop shape | Recompile; no behavioral change required |
+| `specs-from-figma` | Producer behavior already matches the documented default | Emit `nullable: false` on code-only `TEXT` props with a non-empty authored default, for both the `string` and `number` output types; omit `nullable` when the default is empty. Optionally drop the now-redundant `false` on variant-derived enum props |
+| `specs-cli` | **Behavioral change** — contract generation and prop analysis currently read an omitted `nullable` as not-nullable, which inverts the documented default | Update nullability reads to apply the per-type default instead of testing for an explicit `true`. Generated TypeScript for open-valued props will widen to include `null` |
+| `specs-cli` (react/stories transforms) | Nullability is not consulted when deriving prop optionality | Apply the documented default when deciding optional vs required props |
+| `specs-plugin-2` | Widened prop shape only | Recompile; no behavioral change |
+| `figma-from-specs` | Nullability is not consulted | No action required now; the documented default applies if nullability is honored later |
 
 ---
 
@@ -176,14 +208,17 @@ nullable:
 
 **Version bump**: `0.29.0 → 0.30.0` (`MINOR`)
 
-**Justification**: The only structural change is one additive optional field (`NumberProp.nullable`) plus documentation text on existing fields. Per the constitution's versioning rule — "`MINOR` for additive types or new optional fields" — no existing field is removed, renamed, or made required, so no consumer breaks.
+**Justification**: The only structural change is one additive optional field (`NumberProp.nullable`); everything else is `description`/`default` annotation and JSDoc. No field is removed, renamed, or made required, so nothing that validates today stops validating. Per the constitution's versioning rule — "`MINOR` for additive types or new optional fields."
+
+**Flagged**: although the version bump is `MINOR` by the structural test, the documented default is semantically significant. Consumers that currently read `nullable === true` produce output contradicting the contract this ADR records, and correcting them changes their generated artifacts. The bump understates the consumer-visible effect; the `CHANGELOG` entry must call this out rather than listing the change as a plain additive field.
 
 ---
 
 ## Consequences
 
+- Nullability is determinable from `types/` and `schema/` alone, without knowing producer conventions.
+- The `enum`/no-`enum` distinction becomes the documented discriminator for the default, rather than an unwritten rule.
 - A code-only Figma `TEXT` prop expresses nullability identically whether it materializes as `type: string` or `type: number`.
-- Consumers can distinguish three states: `nullable: true` (accepts null), `nullable: false` (asserted not null), absent (undetermined).
-- Code generators can emit a non-optional numeric type with confidence when `nullable: false` is present, instead of defensively widening to `number | null`.
-- Specs produced before this version will not carry `nullable: false` on props that would now receive it; consumers comparing specs across versions will see added keys, not changed values.
-- Any tool validating against `schema/component.schema.json` must upgrade to the new version to accept `nullable` on `NumberProp` — `additionalProperties: false` on that definition rejects it today.
+- Generated TypeScript for open-valued props widens to include `null` once consumers apply the default — correcting output that is wrong today.
+- `nullable: false` becomes meaningful on open-valued props: an explicit assertion that a value always exists, distinct from the permissive default.
+- Specs produced before this version are unchanged on disk; only their interpretation is corrected. No regeneration is required for validity.
