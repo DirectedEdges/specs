@@ -206,7 +206,7 @@ nullable:
 
 ## Semver Decision
 
-**Version bump**: `0.29.0 → 0.30.0` (`MINOR`)
+**Version bump**: `0.28.0 → 0.29.0` (`MINOR`) — folded into the unreleased `0.29.0` on `release/schema-0.29.0+cli-0.26.0`, which is already a `MINOR` in flight. No separate bump.
 
 **Justification**: The only structural change is one additive optional field (`NumberProp.nullable`); everything else is `description`/`default` annotation and JSDoc. No field is removed, renamed, or made required, so nothing that validates today stops validating. Per the constitution's versioning rule — "`MINOR` for additive types or new optional fields."
 

@@ -9,8 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `NumberProp.nullable` — optional flag, previously unexpressible on numeric props (ADR-065)
+
 ### Changed
 
+- `nullable` — absence is now documented: `true` for `StringProp`, `NumberProp`, `SlotProp`, `ImageProp`; `false` for `EnumProp` (ADR-065)
 - `Styles.textAlignHorizontal` — narrowed from `Style` to `TextAlignHorizontal` (`'START' | 'CENTER' | 'END' | 'JUSTIFY'`) or `null`; logical inline-axis directions, not token-bindable (ADR-064)
 
 ### Removed

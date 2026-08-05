@@ -67,6 +67,11 @@ export interface StringProp {
   type: 'string';
   /** @deprecated Use `examples` for demo content */
   default?: string | null;
+  /**
+   * Whether this prop accepts a null value.
+   * Absent means `true` — a string prop has an open value set, so null is
+   * accepted unless `false` explicitly asserts otherwise. @since 0.29.0
+   */
   nullable?: boolean;
   /** Sample values demonstrating typical content for this prop */
   examples?: string[];
@@ -81,6 +86,11 @@ export interface EnumProp {
   type: 'string';
   default: string;
   enum: string[];
+  /**
+   * Whether this prop accepts a null value.
+   * Absent means `false` — `enum` enumerates every accepted value, and null is
+   * not among them unless `true` explicitly admits it. @since 0.29.0
+   */
   nullable?: boolean;
   /** DTCG §5.2.3 platform-specific extensions. @since 0.14.0 */
   $extensions?: PropExtensions;
@@ -93,6 +103,12 @@ export interface NumberProp {
   type: 'number';
   /** Default numeric value. Optional — omitted when no meaningful default exists. */
   default?: number;
+  /**
+   * Whether this prop accepts a null value.
+   * Absent means `true` — a number prop has an open value set, so null is
+   * accepted unless `false` explicitly asserts otherwise. @since 0.29.0
+   */
+  nullable?: boolean;
   /** Sample numeric values demonstrating typical content for this prop */
   examples?: number[];
 }
@@ -104,7 +120,11 @@ export interface SlotProp {
   type: 'slot';
   /** Default slot content. Optional — omitted when no meaningful default exists. */
   default?: string | null;
-  /** Whether this slot prop accepts a null value */
+  /**
+   * Whether this slot prop accepts a null value.
+   * Absent means `true` — a slot has an open content set and may be empty,
+   * unless `false` explicitly asserts otherwise. @since 0.29.0
+   */
   nullable?: boolean;
   /** Minimum number of children this slot accepts. @since 0.25.0 */
   minChildren?: number;
