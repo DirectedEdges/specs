@@ -1,165 +1,190 @@
 ---
 title: "generate"
 ---
-Generate component specifications from Figma data. Accepts either a markdown manifest (for multiple components) or a JSON file with a component flag (for a single component). The source argument is optional — without it, `generate` uses the default manifest location derived from your config.
-
-## Usage
+Generate component specifications from Figma. There are three ways to run it, distinguished by where the Figma data comes from: a **manifest** listing many components, a **JSON file** plus one named component, or the **live Figma file** itself over the CLI bridge.
 
 ```bash
-# Zero-config: uses default manifest from config (recommended)
-specs generate
-
-# From an explicit manifest (multiple components)
-specs generate <manifest.md> [options]
-
-# From a JSON file (single component)
-specs generate <file.json> -c <component> [options]
+specs generate                                    # manifest mode — many components
+specs generate <file.json> -c <component>         # single component mode
+specs generate --from-bridge                      # bridge mode — live selection
 ```
 
-## Source Modes
+| Mode | Source | Produces | Use it when |
+|------|--------|----------|-------------|
+| [Manifest](#manifest-mode) | `.md` manifest + downloaded JSON | Every selected component | Generating or regenerating the library |
+| [Single component](#single-component-mode) | Downloaded JSON + `-c` | One component | Setting up or iterating on one spec |
+| [Bridge](#bridge-mode) | The connected Figma file, live | The current selection | Checking work in progress, or a `render` round-trip |
 
-### Manifest Mode (recommended)
+Manifest and single component mode both read a Figma REST API snapshot that `specs fetch` downloaded, and run the transformer inside the CLI. Bridge mode reads nothing from disk — the plugin generates against the live document and the CLI only writes the result out.
 
-Pass a markdown manifest created by `scan` to generate specs for all selected components in one pass. This is faster than running `generate` multiple times, because the file is loaded and indexed once.
+## Manifest Mode
+
+Pass a markdown manifest created by [`scan`](/cli/commands/scan/) to generate specs for all selected components in one pass. The manifest points at the source JSON file and tracks which components are included (`[x]`). This is faster than running `generate` per component, because the file is loaded and indexed once.
+
+The full workflow:
 
 ```bash
-# Uses the default manifest from config: {dataDirectory}/{alias}.manifest.md
-specs generate
+# 1. Download the Figma data
+specs fetch
 
-# Or pass an explicit manifest path
+# 2. Build a manifest of everything in the file
+specs scan
+
+# 3. Curate — edit data/library.manifest.md and check [x] the components you want
+
+# 4. Generate
+specs generate
+```
+
+With no arguments, step 4 uses the default manifest (`{dataDirectory}/{alias}.manifest.md`) and writes to `config.outputDirectory`. Pass either explicitly to override:
+
+```bash
 specs generate components.md -o specs/library.yaml
 ```
 
-The manifest references the source file and tracks which components to include. See [Scan Command](/cli/commands/scan/) for creating manifests.
-
-### File Mode
-
-Pass a Figma JSON file directly and specify a single component by name or node ID. Useful when setting up a new component or quickly iterating on one spec.
+Manifest mode requires an output destination — `-o` or `config.outputDirectory` — since it can produce many files. Control the file layout with [`--split-components`](#--split-components), [`--split-concerns`](#--split-concerns), and [`--use-subfolders`](#--use-subfolders):
 
 ```bash
+specs generate -o specs/ --split-components
+```
+
+```
+✓ Loaded manifest: 150 components (42 selected)
+⏳ Processing 42 components...
+
+[1/42] DS Accordion... ✓
+[2/42] DS Alert... ✓
+...
+[42/42] DS Toggle... ✓
+
+✓ Generated specs
+  - 42 components successful
+```
+
+Components that fail are reported individually and the rest still generate; the run exits non-zero if any failed.
+
+## Single Component Mode
+
+Pass a Figma JSON file directly and name one component with `-c`, by name or node ID. Useful when setting up a new component, or iterating quickly on one spec without touching the rest of the library.
+
+```bash
+specs fetch
 specs generate data/library.file.json -c "DS Button" -o specs/button.yaml
 ```
 
-## Arguments
-
-### `[source]` (optional)
-Path to a markdown manifest or Figma REST API JSON file.
-
-- **Not provided**: defaults to `{dataDirectory}/{alias}.manifest.md`, where `dataDirectory` comes from `specs.config.yaml` and `alias` is `library` if configured with `data: [file]`, otherwise the first source alias with `data: [file]`. This matches the default output of `specs scan`.
-- **Manifest path (`.md`)**: manifest mode (multiple components)
-- **Figma JSON (`.json`)**: file mode (requires `-c`)
+The component is resolved against the JSON file's components and component sets. Node IDs work equally well, and are the reliable choice when a name contains special characters or is duplicated:
 
 ```bash
-# Default: data/library.manifest.md (from config)
-specs generate
-
-# Explicit manifest
-specs generate components.md -o specs/all.yaml
-
-# JSON file
-specs generate data/library.file.json -c "Button" -o specs/button.yaml
+specs generate data/library.file.json -c "1234:5678" -o specs/button.yaml
 ```
+
+Without `-o` (and with no `config.outputDirectory`), the spec goes to stdout — handy for piping:
+
+```bash
+specs generate data/library.file.json -c "DS Button" -f yaml | yq '.dsButton.anatomy'
+```
+
+Variables and styles are resolved from your configured sources; without config, `generate` falls back to `foundations/variables.json` and `foundations/styles.json` next to the JSON file. Override either with [`-v`](#-v---variables-path) / [`-s`](#-s---styles-path).
+
+## Bridge Mode
+
+Generate from whatever is selected right now in a connected Figma file — no `specs fetch`, no downloaded JSON. Requires the [bridge](/cli/commands/bridge/) running and the Specs 2 plugin open in Figma with its **CLI Bridge** toggle enabled.
+
+```bash
+specs bridge start
+specs generate --from-bridge -o specs/button.yaml
+```
+
+```
+✓ Generated from selection: DS Button
+✓ Saved to specs/button.yaml
+```
+
+Because the plugin does the generating, bridge mode behaves differently from the other two in ways worth knowing:
+
+- **The plugin's settings and license govern the spec.** The config that shaped the output — `Config` keys, formatting, tier-gated detail — is the plugin's, not your `specs.config.yaml`. `-l/--license` has no effect; the plugin uses the license stored in its own UI.
+- **Your CLI config still controls where and how the spec is written.** `outputDirectory`, `format.output`, and the output flags all apply as usual.
+- **The output is as current as the file.** Unsaved and just-edited work is included, so this reflects the document rather than the last fetch.
+- **`-c`, `-v`, `-s`, and `--data-dir` are ignored**, and passing a `source` argument is an error.
+
+The selection must be a component, component set, or frame. To target something other than the selection — for a repeatable script, where relying on a manual selection is fragile — pass [`--node`](#--node-id). When several Figma files are connected to one bridge, pick one with [`--file`](#--file-filekey).
+
+Since bridge mode reads the live document, it closes the loop on [`render`](/cli/commands/render/) — render a spec into Figma, then read the result back and compare:
+
+```bash
+specs bridge start
+specs render specs/dsButton.yaml
+specs generate --from-bridge -o specs/roundtrip/dsButton.yaml
+diff specs/dsButton.yaml specs/roundtrip/dsButton.yaml
+```
+
+Common failures:
+
+- `Error: bridge is not running.` — start it with `specs bridge start`.
+- `Nothing selected in Figma...` — select a component, component set, or frame in the connected file.
+- `Selection must be a component, component set, or frame — got INSTANCE.` — select the source component rather than an instance of it.
+
+## Arguments
+
+### `[source]`
+Path to a markdown manifest or a Figma REST API JSON file. The mode is detected from its content.
+
+- **Not provided**: defaults to `{dataDirectory}/{alias}.manifest.md`, where `dataDirectory` comes from `specs.config.yaml` and `alias` is `library` if configured with `data: [file]`, otherwise the first source alias with `data: [file]`. This matches the default output of `specs scan`.
+- **Markdown manifest**: manifest mode.
+- **Figma JSON**: single component mode — requires `-c`.
+- **Bridge mode**: takes no source argument; passing one is an error.
 
 ## Options
 
 ### `-c, --component <name|id>`
-Component name or Figma node ID. Required in file mode, ignored in manifest mode.
+Component name or Figma node ID. Required in single component mode; ignored in manifest and bridge mode.
 
-```bash
-# By name
-specs generate data/library.file.json -c "DS Button"
+### `-o, --output <path>`
+Output file or directory path.
 
-# By node ID (useful for names with special characters)
-specs generate data/library.file.json -c "1234:5678"
-```
+- **File path**: writes all output to a single file (e.g. `-o specs/library.yaml`).
+- **Directory path**: writes output files into the directory (e.g. `-o specs/`).
+- **Not provided**: falls back to `config.outputDirectory` (default `./specs`). Required in manifest mode if that isn't configured; single component and bridge mode write to stdout instead.
+
+### `-f, --format <format>`
+Output format: `yaml` or `json`. Defaults to `config.format.output` (or JSON with no config); the flag takes precedence.
 
 ### `-l, --license <key>`
 License key for premium features.
 
-When a valid Pro license is provided, generated specs include additional detail such as design token references, variable bindings, and visibility bindings. Without a license (or with an invalid key), specs are generated at the free tier — full structure and variants, but with raw values instead of token references.
+With a valid Pro license, generated specs include additional detail such as design token references, variable bindings, and visibility bindings. Without one (or with an invalid key), specs are generated at the free tier — full structure and variants, but raw values instead of token references.
 
 **Resolution priority**: `--license` flag > `SPECS_LICENSE_KEY` env > `ANOVA_LICENSE_KEY` env
 
 ```bash
-# Via flag
-specs generate components.md -o specs/all.yaml -l "your-license-key"
-
-# Via environment variable (recommended)
 export SPECS_LICENSE_KEY="your-license-key"
-specs generate components.md -o specs/all.yaml
+specs generate
 ```
 
-See [Getting Started — License](/cli/getting-started.md/#step-3-set-your-license-key-optional) for setup details.
-
-### `-o, --output <path>`
-Output file or directory path. Accepts both file paths and directory paths.
-
-- **File path**: Writes all output to a single file (e.g., `-o specs/library.yaml`)
-- **Directory path**: Writes output files into the directory (e.g., `-o specs/`)
-- **Not provided (manifest mode)**: Falls back to `config.outputDirectory` (default `./specs`)
-- **Not provided (file mode)**: Outputs to stdout
-
-```bash
-# Single file
-specs generate components.md -o specs/library.yaml
-
-# Directory for split output
-specs generate components.md -o specs/ --split-components
-
-# Manifest mode without -o: uses config.outputDirectory
-specs generate components.md
-
-# Output to stdout (file mode)
-specs generate data/library.file.json -c "Button" | yq .
-```
-
-### `-f, --format <format>`
-Output format: `yaml` or `json`.
-
-- **Default**: Uses `config.format.output` from config (or `JSON` if no config)
-- **Override**: CLI flag takes precedence over config
-
-```bash
-specs generate components.md --format yaml -o specs/library.yaml
-```
+No effect in bridge mode, where the plugin's own license applies. See [Getting Started — License](/cli/getting-started.md/#step-3-set-your-license-key-optional) for setup.
 
 ### `--data-dir <dir>`
-Override the data directory used for resolving input files and auxiliary data (variables, styles). Defaults to `dataDirectory` from config, or `./data` if not configured.
-
-```bash
-specs generate components.md --data-dir ./custom-data -o specs/library.yaml
-```
+Override the data directory used for resolving input files and auxiliary data (variables, styles). Defaults to `dataDirectory` from config, or `./data`.
 
 ### `-v, --variables <path>`
 External variables JSON file.
 
 - **Default** (no flag): loads all `${alias}.variables.json` for aliases in config whose `data` includes `variables`.
-- **Fallback** (no sources configured): tries `foundations/variables.json` next to the `<file>`.
-- **Override**: CLI flag replaces that list for this run.
-
-```bash
-specs generate data/library.file.json -c "Button" --variables data/library.variables.json
-```
+- **Fallback** (no sources configured): tries `foundations/variables.json` next to the source JSON file.
+- **Override**: the flag replaces that list for this run.
 
 ### `-s, --styles <path>`
 External styles JSON file.
 
 - **Default** (no flag): loads all `${alias}.styles.json` for aliases in config whose `data` includes `styles`.
-- **Fallback** (no sources configured): tries `foundations/styles.json` next to the `<file>`.
-- **Override**: CLI flag replaces that list for this run.
-
-```bash
-specs generate data/library.file.json -c "Button" --styles data/library.styles.json
-```
+- **Fallback** (no sources configured): tries `foundations/styles.json` next to the source JSON file.
+- **Override**: the flag replaces that list for this run.
 
 ### `--split-components`
-Create a separate file per component (manifest mode only).
-
-- **Default**: `false` (single file with all components)
-- **Output**: Individual files named `componentName.yaml`
+Create a separate file per component, instead of one file containing all of them.
 
 ```bash
-specs generate components.md -o specs/ --split-components
+specs generate -o specs/ --split-components
 ```
 
 ```
@@ -170,15 +195,10 @@ specs/
 ```
 
 ### `--split-concerns`
-Separate API specification, variant configuration, and examples.
-
-- **Default**: `false` (complete component data in each file)
-- **Output**: Up to three files: `api.yaml` (anatomy, props), `variants.yaml` (default, variants), and `examples.yaml` (slotContentExamples, instanceExamples)
-- `examples.yaml` is written only when at least one component has example data; components without examples are omitted from it.
-- Example output (`slotContentExamples`, `instanceExamples`) is a [Pro feature](/settings/default-slot-content/) — on the free tier it is omitted, so `examples.yaml` is not produced.
+Separate API specification, variant configuration, and examples into up to three files: `api.yaml` (anatomy, props), `variants.yaml` (default, variants), and `examples.yaml` (`slotContentExamples`, `instanceExamples`).
 
 ```bash
-specs generate components.md -o specs/ --split-concerns
+specs generate -o specs/ --split-concerns
 ```
 
 ```
@@ -188,10 +208,12 @@ specs/
 └── examples.yaml
 ```
 
-When combined with `--split-components`, each component gets its own directory with concern files (`examples.yaml` appears only for components that have examples):
+`examples.yaml` is written only when at least one component has example data, and components without examples are omitted from it. Example output is a [Pro feature](/settings/default-slot-content/) — on the free tier it's omitted entirely, so no `examples.yaml` is produced.
+
+Combined with `--split-components`, each component gets its own directory of concern files:
 
 ```bash
-specs generate components.md -o specs/ --split-components --split-concerns
+specs generate -o specs/ --split-components --split-concerns
 ```
 
 ```
@@ -212,7 +234,7 @@ specs/
 Organize component files in subdirectories (requires `--split-components`). Wraps each component file in its own folder.
 
 ```bash
-specs generate components.md -o specs/ --split-components --use-subfolders
+specs generate -o specs/ --split-components --use-subfolders
 ```
 
 ```
@@ -229,7 +251,7 @@ specs/
 Resolve unresolved registry images into real image files. Requires a [`processing.images`](/settings/images/) block in config, a configured source file key, and the `FIGMA_TOKEN` environment variable (the same token `specs fetch` uses).
 
 ```bash
-specs generate components.md -o specs/ --split-components --get-images
+specs generate -o specs/ --split-components --get-images
 ```
 
 Generation alone (the *detect* phase) records each image fill as an unresolved registry entry — the Figma identity in `$extensions['com.figma'].imageHash`, no `src` — structurally complete, but with no pixels. With `--get-images`, the CLI calls Figma's Get Image Fills endpoint, downloads each distinct image once, writes it as `_images/<imageHash>.<ext>` inside the output directory (format detected from the bytes — png, jpg, gif, or webp), and **adds** `src` to each entry — a path relative to the spec file that references it. The Figma identity survives for reverse-direction tooling:
@@ -260,75 +282,36 @@ specs/
 
 `$image` pointers (in `backgroundImage` fills and `ImageBinding` examples) are unaffected — resolution touches one registry entry per image, never the references. Files are named by Figma's content hash, so an image shared by many components is downloaded and stored once, and re-runs are idempotent. Figma's download URLs are temporary and are never persisted. With `--use-subfolders` (or the combined component + concern layout), `src` becomes `../_images/...` so it still resolves relative to each spec file.
 
+### `--from-bridge`
+Generate from the current selection in a connected Figma file via the [CLI bridge](/cli/commands/bridge/), instead of from a manifest or downloaded JSON. See [Bridge Mode](#bridge-mode).
+
+### `--file <fileKey>`
+Target a specific connected Figma file (bridge mode only). More than one file can be connected to a single bridge at once.
+
+- **One file connected**: not needed.
+- **Several connected, interactive terminal**: omitting it prints a numbered picker and prompts you to choose.
+- **Several connected, non-interactive (scripts, CI)**: required — the run fails rather than hanging on a prompt.
+
+### `--node <id>`
+Generate from a specific node ID instead of the current selection (bridge mode only). The plugin selects the node first, switching pages if the node lives on another one, then restores the page you were on.
+
 ### `--config <path>`
-Path to configuration file.
+Path to a configuration file, when it isn't the `specs.config.yaml` in the working directory.
 
 ```bash
-specs generate components.md --config configs/mobile.yaml -o specs/mobile.yaml
+specs generate --config configs/mobile.yaml -o specs/mobile.yaml
 ```
 
 ### `--verbose`
-Enable detailed logging with progress indicator.
-
-```bash
-specs generate components.md --verbose -o specs/library.yaml
-```
-
-**Manifest mode output:**
-```
-✓ Loaded manifest: 150 components (42 selected)
-⏳ Processing 42 components...
-
-[1/42] DS Accordion... ✓
-[2/42] DS Alert... ✓
-...
-[42/42] DS Toggle... ✓
-
-✓ Generated specs
-  - 42 components successful
-✓ Saved to specs/library.yaml
-```
-
-## Examples
-
-### Manifest workflow
-
-```bash
-# 1. Fetch data
-specs fetch
-
-# 2. Create manifest (auto-resolves configured source; writes to data/library.manifest.md by default)
-specs scan
-
-# 3. Curate (edit data/library.manifest.md to select [x] components)
-
-# 4. Generate specs (uses default manifest + outputDirectory from config)
-specs generate
-```
-
-### Single component
-
-```bash
-specs generate data/library.file.json -c "DS Button" -o specs/button.yaml
-```
-
-### Per-component files
-
-```bash
-specs generate components.md -o specs/ --split-components
-```
-
-### With license key
-
-```bash
-export SPECS_LICENSE_KEY="your-license-key"
-specs generate
-```
+Enable detailed logging — resolved config path, source and mode detection, foundations loaded, and per-component progress.
 
 ---
 
 **See Also:**
 - [Scan Command](/cli/commands/scan/) - Create component manifest
+- [Fetch Command](/cli/commands/fetch/) - Download Figma data for manifest and single component mode
 - [Render Command](/cli/commands/render/) - Send a generated spec back into Figma
+- [Bridge Command](/cli/commands/bridge/) - Start the local bridge used by `--from-bridge`
+- [Render to Figma](/guides/render-to-figma/) - Bridge architecture, setup, and prerequisites
 - [Configuration Reference](/settings/) - Format and config options
 - [Getting Started](/cli/getting-started/) - Installation and license setup
