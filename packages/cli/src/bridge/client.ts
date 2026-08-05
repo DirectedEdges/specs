@@ -41,6 +41,8 @@ export interface RenderRequestBody {
 export interface RenderResponse {
   success: boolean;
   nodeId?: string;
+  /** Non-fatal render degradations reported by the plugin (font fallbacks, skipped keys). */
+  warnings?: string[];
   written?: number;
   failed?: number;
   results?: Array<{ name: string; nodeId?: string; error?: string }>;
@@ -58,6 +60,8 @@ export async function postRender(body: RenderRequestBody): Promise<RenderRespons
 
 export interface GenerateFromSelectionRequestBody {
   fileKey?: string;
+  /** Generate from this node instead of the current selection (the plugin selects it first). */
+  nodeId?: string;
 }
 
 export interface GenerateFromSelectionResponse {

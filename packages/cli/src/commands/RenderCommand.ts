@@ -9,10 +9,11 @@
 import { Command } from 'commander';
 import fs from 'fs-extra';
 import path from 'path';
+import { createInterface } from 'readline';
 import { ConfigLoader } from '../Config/ConfigLoader.js';
 import { postRender } from '../bridge/client.js';
 import { resolveFileKey } from '../bridge/pickConnection.js';
-import { loadSpec } from '../Render/SpecLoader.js';
+import { findComponentFolders, isComponentFolder, loadSpec } from '../Render/SpecLoader.js';
 
 const ERROR_CODES = {
   SUCCESS: 0,
@@ -30,13 +31,14 @@ function resolveDefaultAlias(sources: Record<string, { data?: string[] }>): stri
 
 export const Render = new Command('render')
   .description('Render a spec (or manifest) into Figma via the local CLI bridge')
-  .argument('[specPath]', 'Path to a spec YAML file (default: {dataDirectory}/{alias}.render-manifest.md from config)')
+  .argument('[specPath]', 'Path to a spec YAML file, a component folder, or a directory of component folders (default: {dataDirectory}/{alias}.render-manifest.md from config, else {outputDirectory})')
   .option('-m, --manifest <path>', 'Path to a render-manifest.md file')
   .option('--config <path>', 'Path to config file (specs.config.yaml)')
   .option('--file <fileKey>', 'Target a specific connected Figma file (prompts to choose if more than one is connected in an interactive terminal; required otherwise)')
+  .option('--page <id>', 'Render onto this page id instead of the plugin\'s current page (recommended for scripted runs — immune to page drift)')
   .option('--overwrite', 'Delete any existing page component with the same title before rendering (without this, a title collision is an error)')
   .option('--watch', 'Watch the spec path and re-render on every change (implies --overwrite)')
-  .action(async (specPath: string | undefined, options: { manifest?: string; config?: string; file?: string; overwrite?: boolean; watch?: boolean; verbose?: boolean }) => {
+  .action(async (specPath: string | undefined, options: { manifest?: string; config?: string; file?: string; page?: string; overwrite?: boolean; watch?: boolean; verbose?: boolean }) => {
     let manifestPath = options.manifest;
 
     if (options.watch) {
@@ -48,27 +50,34 @@ export const Render = new Command('render')
       return;
     }
 
+    // Zero-arg resolution, in order: the default render manifest (curated and
+    // ordered, so it wins wherever one exists), then the configured
+    // outputDirectory as a batch of component folders.
     if (!specPath && !manifestPath) {
       const configLoader = new ConfigLoader();
       const config = configLoader.load(options.config);
       const dataDir = config.dataDirectory ? path.resolve(config.dataDirectory) : path.join(process.cwd(), 'data');
       const defaultAlias = resolveDefaultAlias(config.sources || {});
 
-      if (!defaultAlias) {
+      const defaultManifest = defaultAlias
+        ? path.join(dataDir, `${defaultAlias}.render-manifest.md`)
+        : null;
+
+      if (defaultManifest && fs.existsSync(defaultManifest)) {
+        manifestPath = defaultManifest;
+        console.log(`Using default render manifest: ${path.relative(process.cwd(), manifestPath)}`);
+      } else if (config.outputDirectory && fs.existsSync(path.resolve(config.outputDirectory))) {
+        specPath = path.resolve(config.outputDirectory);
+        console.log(`Using output directory: ${path.relative(process.cwd(), specPath) || '.'}`);
+      } else {
         console.error('Error: provide a spec path or --manifest <path>.');
-        console.error('Tip: no default could be resolved — configure a source with `data: [file]` in specs.config.yaml.');
+        if (defaultManifest) {
+          console.error(`Tip: no default render manifest found at ${defaultManifest}, and no outputDirectory to fall back to.`);
+        } else {
+          console.error('Tip: no default could be resolved — configure a source with `data: [file]` in specs.config.yaml.');
+        }
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
-
-      const defaultManifest = path.join(dataDir, `${defaultAlias}.render-manifest.md`);
-      if (!fs.existsSync(defaultManifest)) {
-        console.error(`Error: provide a spec path or --manifest <path>.`);
-        console.error(`Tip: no default render manifest found at ${defaultManifest}`);
-        process.exit(ERROR_CODES.INVALID_ARGS);
-      }
-
-      manifestPath = defaultManifest;
-      console.log(`Using default render manifest: ${path.relative(process.cwd(), manifestPath)}`);
     }
 
     try {
@@ -76,7 +85,7 @@ export const Render = new Command('render')
         const absManifestPath = path.resolve(manifestPath);
         console.log(`Posting manifest: ${absManifestPath}`);
         const fileKey = await resolveFileKey(options.file);
-        const result = await postRender({ manifestPath: absManifestPath, fileKey, overwrite: options.overwrite });
+        const result = await postRender({ manifestPath: absManifestPath, fileKey, pageId: options.page, overwrite: options.overwrite });
 
         if (!result.success) {
           console.error(`Error: ${result.error}`);
@@ -91,7 +100,18 @@ export const Render = new Command('render')
           process.exit(ERROR_CODES.GENERAL_ERROR);
         }
       } else if (specPath) {
-        await renderSpecPath(specPath, options);
+        const absSpecPath = path.resolve(specPath);
+        if (!fs.existsSync(absSpecPath)) {
+          console.error(`Error: Spec path not found: ${absSpecPath}`);
+          process.exit(ERROR_CODES.INVALID_ARGS);
+        }
+
+        const isBatchDir = fs.statSync(absSpecPath).isDirectory() && !isComponentFolder(absSpecPath);
+        if (isBatchDir) {
+          await renderBatchDirectory(absSpecPath, options);
+        } else {
+          await renderSpecPath(absSpecPath, options);
+        }
       }
     } catch (e) {
       const err = e as NodeJS.ErrnoException;
@@ -110,12 +130,12 @@ export const Render = new Command('render')
 // logged and retried on the next change (watch).
 async function renderSpecPath(
   specPath: string,
-  options: { file?: string; overwrite?: boolean }
+  options: { file?: string; page?: string; overwrite?: boolean }
 ): Promise<void> {
   const { spec, resolvePath } = loadSpec(specPath);
   console.log(`Posting spec: ${resolvePath}`);
   const fileKey = await resolveFileKey(options.file);
-  const result = await postRender({ specPath: resolvePath, spec, fileKey, overwrite: options.overwrite });
+  const result = await postRender({ specPath: resolvePath, spec, fileKey, pageId: options.page, overwrite: options.overwrite });
 
   if (!result.success) {
     const msg = typeof result.error === 'string' ? result.error : JSON.stringify(result.error);
@@ -124,7 +144,73 @@ async function renderSpecPath(
 
   // Success is the whole contract — reading the produced component's spec is
   // an explicit second call (`specs generate --from-bridge`), not a side effect.
+  for (const w of result.warnings ?? []) console.warn(`  ⚠ ${w}`);
   console.log(`✓ Rendered in Figma. nodeId: ${result.nodeId}`);
+}
+
+function confirm(question: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    rl.question(`${question} [y/N]: `, (answer) => {
+      rl.close();
+      resolve(/^y(es)?$/i.test(answer.trim()));
+    });
+  });
+}
+
+/**
+ * Render every component folder found beneath a directory, sequentially and in
+ * path order — same contract as a manifest batch, minus the curated ordering.
+ * One failure doesn't abort the run; the exit code reflects the total.
+ */
+async function renderBatchDirectory(
+  absDir: string,
+  options: { file?: string; page?: string; overwrite?: boolean },
+  // In watch mode a batch is re-run on every change: don't re-confirm, and
+  // don't exit the process on a failure the next save might fix.
+  { watch = false }: { watch?: boolean } = {}
+): Promise<void> {
+  const folders = findComponentFolders(absDir);
+
+  if (folders.length === 0) {
+    const msg = `no component folders found in ${absDir}\nTip: a component folder holds api.(yaml|json) and variants.(yaml|json), at most two levels deep.`;
+    if (watch) throw new Error(msg);
+    console.error(`Error: ${msg}`);
+    process.exit(ERROR_CODES.INVALID_ARGS);
+  }
+
+  console.log(`Found ${folders.length} component${folders.length === 1 ? '' : 's'} in ${path.relative(process.cwd(), absDir) || '.'}:`);
+  for (const folder of folders) console.log(`  - ${path.relative(absDir, folder)}`);
+
+  // --overwrite deletes each existing same-titled component before re-rendering,
+  // so a multi-component sweep is worth confirming when someone is there to ask.
+  if (!watch && options.overwrite && folders.length > 1 && process.stdin.isTTY && process.stdout.isTTY) {
+    const ok = await confirm(`\nOverwrite ${folders.length} components in the connected Figma file?`);
+    if (!ok) {
+      console.log('Aborted.');
+      return;
+    }
+  }
+
+  // Resolve the target file once, so an ambiguous bridge doesn't prompt per component.
+  const resolved = { ...options, file: (await resolveFileKey(options.file)) ?? options.file };
+
+  let written = 0;
+  const failures: string[] = [];
+
+  for (const folder of folders) {
+    try {
+      await renderSpecPath(folder, resolved);
+      written++;
+    } catch (e) {
+      const name = path.relative(absDir, folder);
+      failures.push(name);
+      console.error(`  ✗ ${name}: ${(e as Error).message}`);
+    }
+  }
+
+  console.log(`\nDone: ${written} rendered in Figma, ${failures.length} failed.`);
+  if (failures.length > 0 && !watch) process.exit(ERROR_CODES.GENERAL_ERROR);
 }
 
 const WATCH_DEBOUNCE_MS = 300;
@@ -138,7 +224,9 @@ async function watchAndRender(
     console.error(`Error: Spec path not found: ${absSpecPath}`);
     process.exit(ERROR_CODES.INVALID_ARGS);
   }
-  const watchTarget = fs.statSync(absSpecPath).isDirectory() ? absSpecPath : path.dirname(absSpecPath);
+  const isDir = fs.statSync(absSpecPath).isDirectory();
+  const watchTarget = isDir ? absSpecPath : path.dirname(absSpecPath);
+  const isBatchDir = isDir && !isComponentFolder(absSpecPath);
 
   let rendering = false;
   let pending = false;
@@ -151,7 +239,11 @@ async function watchAndRender(
     }
     rendering = true;
     try {
-      await renderSpecPath(absSpecPath, { ...options, overwrite: true });
+      if (isBatchDir) {
+        await renderBatchDirectory(absSpecPath, { ...options, overwrite: true }, { watch: true });
+      } else {
+        await renderSpecPath(absSpecPath, { ...options, overwrite: true });
+      }
     } catch (e) {
       console.error(`✗ ${(e as Error).message}`);
     } finally {

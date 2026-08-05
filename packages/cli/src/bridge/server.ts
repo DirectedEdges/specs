@@ -167,8 +167,10 @@ wss.on('connection', (ws: WebSocket) => {
       // renderComponent-result
       if (msg.success) {
         const nodeId = msg.nodeId as string;
+        const warnings = Array.isArray(msg.warnings) && msg.warnings.length > 0 ? (msg.warnings as string[]) : undefined;
         console.log(`✓ Rendered in Figma. nodeId: ${nodeId}`);
-        requests.resolve(requestId, { success: true, nodeId });
+        for (const w of warnings ?? []) console.warn(`  ⚠ ${w}`);
+        requests.resolve(requestId, warnings ? { success: true, nodeId, warnings } : { success: true, nodeId });
       } else {
         console.error(`✗ Render failed: ${msg.error}`);
         requests.resolve(requestId, { success: false, error: msg.error as string });
@@ -207,14 +209,14 @@ const http = createServer((req, res) => {
     let genBody = '';
     req.on('data', (chunk) => { genBody += chunk; });
     req.on('end', () => {
-      let params: { fileKey?: string };
+      let params: { fileKey?: string; nodeId?: string };
       try { params = genBody ? JSON.parse(genBody) : {}; } catch {
         res.writeHead(400);
         res.end(JSON.stringify({ error: 'Invalid JSON body.' }));
         return;
       }
 
-      sendGenerateFromSelection(params.fileKey)
+      sendGenerateFromSelection(params.fileKey, params.nodeId)
         .then((result) => {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify(result));
@@ -626,12 +628,13 @@ function getCurrentPageId(conn: Connection<WebSocket>): Promise<string> {
 }
 
 /**
- * Ask a specific connection's plugin to generate a spec from its current Figma selection.
+ * Ask a specific connection's plugin to generate a spec from its current Figma
+ * selection, or from an explicit nodeId (the plugin selects that node first).
  */
-async function sendGenerateFromSelection(fileKey?: string): Promise<GenerateResult> {
+async function sendGenerateFromSelection(fileKey?: string, nodeId?: string): Promise<GenerateResult> {
   const conn = registry.resolve(fileKey);
   const { requestId, promise } = requests.create(60000, 'Timed out waiting for generateFromSelection-result.');
-  conn.ws.send(JSON.stringify({ type: 'generateFromSelection', requestId }));
+  conn.ws.send(JSON.stringify({ type: 'generateFromSelection', requestId, nodeId }));
   return promise as Promise<GenerateResult>;
 }
 

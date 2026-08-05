@@ -18,11 +18,28 @@ specs render [specPath] [options]
 
 ### `[specPath]`
 
-Path to a single spec YAML file to render. Optional — when omitted, `render` looks for `--manifest`, then falls back to a default render manifest at `{dataDirectory}/{alias}.render-manifest.md` (same source-alias resolution as [`generate`](/cli/commands/generate/) and [`scan`](/cli/commands/scan/)).
+What to render. Three shapes are accepted:
+
+- **A spec file** (`.yaml`, `.yml`, `.json`) — one component.
+- **A component folder** — a directory holding `api.*` and `variants.*` (plus optional `examples.*`), as produced by `generate --split-components --split-concerns`. Renders that one component.
+- **A directory of component folders** — renders every component beneath it, sequentially, in path order.
 
 ```bash
-specs render specs/deButton.yaml
+specs render specs/deButton.yaml     # one spec file
+specs render specs/deButton/         # one component folder
+specs render specs/                  # every component in the directory
+specs render specs/forms/            # every component in one group
 ```
+
+Batch scanning looks at most two levels deep, so both `specs/deButton/` and `specs/forms/deInput/` are found. It never descends into a component folder.
+
+Optional — when omitted, `render` resolves in this order:
+
+1. `--manifest`, if passed.
+2. The default render manifest at `{dataDirectory}/{alias}.render-manifest.md` (same source-alias resolution as [`generate`](/cli/commands/generate/) and [`scan`](/cli/commands/scan/)).
+3. The configured `outputDirectory`, as a batch.
+
+A manifest wins wherever one exists — it's the only place render *order* can be expressed, which matters when one component's spec references another. A directory batch renders in path order, so cross-component references may need a manifest instead.
 
 ## Options
 
@@ -52,8 +69,14 @@ specs render specs/deButton.yaml --no-return-spec
 # Render one component
 specs render specs/deButton.yaml
 
-# Render a curated batch
+# Render a curated, explicitly ordered batch
 specs render --manifest data/library.render-manifest.md
+
+# Render every component in the output directory
+specs render specs/
+
+# Same, resolved from config (manifest first, then outputDirectory)
+specs render
 
 # Render without the round-trip spec check
 specs render specs/deButton.yaml --no-return-spec

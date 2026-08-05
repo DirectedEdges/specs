@@ -74,6 +74,7 @@ interface GenerateOptions {
   getImages?: boolean;
   fromBridge?: boolean;
   file?: string;
+  node?: string;
 }
 
 /**
@@ -266,6 +267,7 @@ export const Generate = new Command('generate')
   .option('--get-images', 'Resolve unresolved registry images into files under _images/ (requires processing.images in config and FIGMA_TOKEN)')
   .option('--from-bridge', 'Generate from the current selection in a connected Figma file via the CLI bridge (no REST fetch)')
   .option('--file <fileKey>', 'Target a specific connected Figma file with --from-bridge (prompts to choose if more than one is connected in an interactive terminal; required otherwise)')
+  .option('--node <id>', 'With --from-bridge: generate from this node id instead of the current selection')
   .option('--verbose', 'Enable detailed logging', false)
   .action(async (source: string | undefined, options: GenerateOptions) => {
     try {
@@ -292,7 +294,7 @@ export const Generate = new Command('generate')
         let result;
         try {
           const fileKey = await resolveFileKey(options.file);
-          result = await postGenerateFromSelection({ fileKey });
+          result = await postGenerateFromSelection({ fileKey, nodeId: options.node });
         } catch (e) {
           const err = e as NodeJS.ErrnoException;
           if (err.cause && (err.cause as NodeJS.ErrnoException).code === 'ECONNREFUSED') {

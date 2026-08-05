@@ -5,6 +5,8 @@
  *  - a split-concerns component folder — api.(yaml|json) + variants.(yaml|json)
  *    + optional examples.(yaml|json), as produced by
  *    `generate --split-components --split-concerns`
+ *  - a parent directory of those — see `findComponentFolders`, which collects
+ *    every component folder beneath it for a batch render
  *
  * Format (JSON vs YAML) is detected per-file by extension. The result is
  * always a single merged, in-memory component spec — the bridge/plugin never
@@ -95,6 +97,36 @@ function loadSplitConcernsFolder(dir: string): Record<string, unknown> {
   const examples = examplesPath ? readSpecFile(examplesPath) : undefined;
 
   return mergeConcerns(api, variants, examples);
+}
+
+/** A directory is a component folder when it carries both required concerns. */
+export function isComponentFolder(dir: string): boolean {
+  return Boolean(findConcernFile(dir, 'api') && findConcernFile(dir, 'variants'));
+}
+
+/**
+ * How far below a parent directory component folders are looked for. 1 covers
+ * the flat `specs/deButton/` layout; 2 also covers one level of grouping,
+ * `specs/forms/deInput/`. Deeper nesting is intentionally not scanned — a batch
+ * render should stay predictable about what it will touch.
+ */
+const MAX_SCAN_DEPTH = 2;
+
+/**
+ * Collect every component folder at or beneath `dir`, sorted by path for a
+ * deterministic render order. If `dir` is itself a component folder it is the
+ * only result — scanning never descends into a component.
+ */
+export function findComponentFolders(dir: string, maxDepth = MAX_SCAN_DEPTH): string[] {
+  if (isComponentFolder(dir)) return [dir];
+  if (maxDepth < 1) return [];
+
+  const found: string[] = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (!entry.isDirectory() || entry.name.startsWith('.')) continue;
+    found.push(...findComponentFolders(path.join(dir, entry.name), maxDepth - 1));
+  }
+  return found.sort();
 }
 
 /**

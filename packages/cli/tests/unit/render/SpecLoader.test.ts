@@ -3,7 +3,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { stringify } from 'yaml';
-import { loadSpec } from '../../../src/Render/SpecLoader';
+import { findComponentFolders, loadSpec } from '../../../src/Render/SpecLoader';
 import { splitComponentByConcern } from '../../../src/Writers/DataTransformers';
 
 const tmpDirs: string[] = [];
@@ -150,5 +150,56 @@ describe('loadSpec — split-concerns folder', () => {
     expect(sub.title).toBe('Icon');
     expect(sub.props).toEqual({ size: { type: 'number' } });
     expect(sub.default).toEqual({ size: 16 });
+  });
+});
+
+describe('findComponentFolders', () => {
+  function makeComponent(dir: string, name: string): string {
+    const folder = path.join(dir, name);
+    fs.mkdirSync(folder, { recursive: true });
+    const { api, variants } = splitComponentByConcern(COMPONENT);
+    fs.writeFileSync(path.join(folder, 'api.yaml'), stringify(api), 'utf8');
+    fs.writeFileSync(path.join(folder, 'variants.yaml'), stringify(variants), 'utf8');
+    return folder;
+  }
+
+  it('returns the directory itself when it is a component folder', () => {
+    const dir = makeTmpDir();
+    const folder = makeComponent(dir, 'deButton');
+
+    expect(findComponentFolders(folder)).toEqual([folder]);
+  });
+
+  it('finds component folders one and two levels down, in path order', () => {
+    const dir = makeTmpDir();
+    const button = makeComponent(dir, 'deButton');
+    const input = makeComponent(dir, path.join('forms', 'deInput'));
+
+    expect(findComponentFolders(dir)).toEqual([button, input].sort());
+  });
+
+  it('does not descend past two levels', () => {
+    const dir = makeTmpDir();
+    makeComponent(dir, path.join('a', 'b', 'deTooBuried'));
+
+    expect(findComponentFolders(dir)).toEqual([]);
+  });
+
+  it('does not descend into a component folder', () => {
+    const dir = makeTmpDir();
+    const button = makeComponent(dir, 'deButton');
+    makeComponent(button, 'nested');
+
+    expect(findComponentFolders(dir)).toEqual([button]);
+  });
+
+  it('ignores dot-directories and folders missing a required concern', () => {
+    const dir = makeTmpDir();
+    const button = makeComponent(dir, 'deButton');
+    makeComponent(dir, '.cache');
+    fs.mkdirSync(path.join(dir, 'deHalf'));
+    fs.writeFileSync(path.join(dir, 'deHalf', 'api.yaml'), stringify({}), 'utf8');
+
+    expect(findComponentFolders(dir)).toEqual([button]);
   });
 });
