@@ -55,6 +55,10 @@ import { RequestTracker } from './requestTracker.js';
 type ComponentEntry = { id: string; key?: string };
 type Manifest = Record<string, ComponentEntry>;
 type GlyphManifest = Record<string, ComponentEntry>;
+/** key = variable key; published=false marks a variable hidden from publishing, which is
+ *  therefore absent from the team library and cannot be imported by key. */
+type VariableEntry = { key: string; published: boolean };
+type VariablesManifest = Record<string, VariableEntry>;
 
 interface RenderResult {
   success: boolean;
@@ -388,12 +392,12 @@ function buildStylesManifest(fileDataPath: string): Manifest {
 /**
  * Build a variables manifest from the variables JSON file.
  */
-function buildVariablesManifest(variablesJsonPath: string): Manifest {
+function buildVariablesManifest(variablesJsonPath: string): VariablesManifest {
   const data = readJson(variablesJsonPath, 'Variables manifest');
   if (!data) return {};
 
   const meta = (data.meta ?? data) as {
-    variables?: Record<string, { name?: string; key?: string; variableCollectionId?: string }>;
+    variables?: Record<string, { name?: string; key?: string; variableCollectionId?: string; hiddenFromPublishing?: boolean }>;
     variableCollections?: Record<string, { name?: string }>;
   };
   const vars = meta.variables;
@@ -408,17 +412,21 @@ function buildVariablesManifest(variablesJsonPath: string): Manifest {
     if (col.name) colNames[id] = col.name;
   }
 
-  const result: Manifest = {};
+  const result: VariablesManifest = {};
+  let unpublished = 0;
   for (const varDef of Object.values(vars)) {
     const name = varDef.name;
     const key = varDef.key;
     const colName = (varDef.variableCollectionId ? colNames[varDef.variableCollectionId] : undefined) ?? '';
     if (!name || !key) continue;
     const tokenPath = colName ? `${colName}/${name}` : name;
-    result[tokenPath] = key;
+    const published = varDef.hiddenFromPublishing !== true;
+    if (!published) unpublished++;
+    result[tokenPath] = { key, published };
   }
 
-  console.log(`  Variables manifest: ${Object.keys(result).length} entries`);
+  const suffix = unpublished > 0 ? ` (${unpublished} hidden from publishing — not importable by key)` : '';
+  console.log(`  Variables manifest: ${Object.keys(result).length} entries${suffix}`);
   return result;
 }
 
