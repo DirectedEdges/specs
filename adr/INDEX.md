@@ -4,6 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 065 | Explicit `nullable` Emission for Code-Only Text Props | |
 | 064 | Tighten `textAlignHorizontal` to a Logical-Direction String Enum | |
 | 062 | Text Overflow & Max Lines — `textOverflow` and `maxLines` on `Styles` | |
 | 061 | Schema Entry Points for Concern-Split Output | |
