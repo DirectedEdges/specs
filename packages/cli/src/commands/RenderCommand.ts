@@ -38,7 +38,8 @@ export const Render = new Command('render')
   .option('--page <id>', 'Render onto this page id instead of the plugin\'s current page (recommended for scripted runs — immune to page drift)')
   .option('--overwrite', 'Delete any existing page component with the same title before rendering (without this, a title collision is an error)')
   .option('--watch', 'Watch the spec path and re-render on every change (implies --overwrite)')
-  .action(async (specPath: string | undefined, options: { manifest?: string; config?: string; file?: string; page?: string; overwrite?: boolean; watch?: boolean; verbose?: boolean }) => {
+  .option('--strict', 'Fail the render when an instance element cannot be resolved, instead of rendering a component with missing content')
+  .action(async (specPath: string | undefined, options: { manifest?: string; config?: string; file?: string; page?: string; overwrite?: boolean; watch?: boolean; strict?: boolean; verbose?: boolean }) => {
     let manifestPath = options.manifest;
 
     if (options.watch) {
@@ -130,8 +131,8 @@ export const Render = new Command('render')
 // logged and retried on the next change (watch).
 async function renderSpecPath(
   specPath: string,
-  options: { file?: string; page?: string; overwrite?: boolean }
-): Promise<void> {
+  options: { file?: string; page?: string; overwrite?: boolean; strict?: boolean }
+): Promise<number> {
   const { spec, resolvePath } = loadSpec(specPath);
   console.log(`Posting spec: ${resolvePath}`);
   const fileKey = await resolveFileKey(options.file);
@@ -145,7 +146,35 @@ async function renderSpecPath(
   // Success is the whole contract — reading the produced component's spec is
   // an explicit second call (`specs generate --from-bridge`), not a side effect.
   for (const w of result.warnings ?? []) console.warn(`  ⚠ ${w}`);
+
+  // A render that could not place an instance produced a component missing
+  // content, so "✓ Rendered" on its own overstates what happened. Say it plainly
+  // — a per-warning line scrolls past in a batch, a count does not.
+  const dropped = countDroppedInstances(result.warnings);
+  if (dropped > 0) {
+    console.warn(
+      `  ⚠ INCOMPLETE: ${dropped} instance element(s) could not be resolved and were not rendered. ` +
+      'The component exists in Figma but is missing content.'
+    );
+    if (options.strict) {
+      throw new Error(
+        `Render incomplete: ${dropped} instance element(s) not rendered (--strict). ` +
+        'Drop --strict to accept an incomplete render.'
+      );
+    }
+  }
+
   console.log(`✓ Rendered in Figma. nodeId: ${result.nodeId}`);
+  return dropped;
+}
+
+/**
+ * Warnings that mean content is missing from the rendered component, as opposed to
+ * cosmetic degradations (font fallbacks, skipped style keys) which leave it complete.
+ * Matched on the writer's own message text — see `Elements.createChild`.
+ */
+function countDroppedInstances(warnings?: string[]): number {
+  return (warnings ?? []).filter((w) => w.includes('no manifest entry for')).length;
 }
 
 function confirm(question: string): Promise<boolean> {
@@ -165,7 +194,7 @@ function confirm(question: string): Promise<boolean> {
  */
 async function renderBatchDirectory(
   absDir: string,
-  options: { file?: string; page?: string; overwrite?: boolean },
+  options: { file?: string; page?: string; overwrite?: boolean; strict?: boolean },
   // In watch mode a batch is re-run on every change: don't re-confirm, and
   // don't exit the process on a failure the next save might fix.
   { watch = false }: { watch?: boolean } = {}
@@ -196,12 +225,14 @@ async function renderBatchDirectory(
   const resolved = { ...options, file: (await resolveFileKey(options.file)) ?? options.file };
 
   let written = 0;
+  const incomplete: string[] = [];
   const failures: string[] = [];
 
   for (const folder of folders) {
     try {
-      await renderSpecPath(folder, resolved);
+      const dropped = await renderSpecPath(folder, resolved);
       written++;
+      if (dropped > 0) incomplete.push(`${path.relative(absDir, folder)} (${dropped})`);
     } catch (e) {
       const name = path.relative(absDir, folder);
       failures.push(name);
@@ -210,6 +241,11 @@ async function renderBatchDirectory(
   }
 
   console.log(`\nDone: ${written} rendered in Figma, ${failures.length} failed.`);
+  // Incomplete renders succeeded, so they are not failures — but a sweep that
+  // silently produced components missing content is exactly what this reports.
+  if (incomplete.length > 0) {
+    console.warn(`⚠ ${incomplete.length} rendered with missing content: ${incomplete.join(', ')}`);
+  }
   if (failures.length > 0 && !watch) process.exit(ERROR_CODES.GENERAL_ERROR);
 }
 
