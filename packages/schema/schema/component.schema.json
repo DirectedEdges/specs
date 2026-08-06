@@ -357,7 +357,9 @@
           ]
         },
         "nullable": {
-          "type": "boolean"
+          "type": "boolean",
+          "default": true,
+          "description": "Whether this prop accepts a null value. Absent means true — a string prop has an open value set, so null is accepted unless false explicitly asserts otherwise."
         },
         "examples": {
           "type": "array",
@@ -397,7 +399,9 @@
           }
         },
         "nullable": {
-          "type": "boolean"
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this prop accepts a null value. Absent means false — enum enumerates every accepted value, and null is not among them unless true explicitly admits it."
         },
         "$extensions": {
           "$ref": "#/definitions/PropExtensions"
@@ -421,7 +425,9 @@
           ]
         },
         "nullable": {
-          "type": "boolean"
+          "type": "boolean",
+          "default": true,
+          "description": "Whether this slot prop accepts a null value. Absent means true — a slot has an open content set and may be empty, unless false explicitly asserts otherwise."
         },
         "minChildren": {
           "type": "integer",
@@ -1032,6 +1038,11 @@
         "default": {
           "type": "number"
         },
+        "nullable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether this prop accepts a null value. Absent means true — a number prop has an open value set, so null is accepted unless false explicitly asserts otherwise."
+        },
         "examples": {
           "type": "array",
           "items": {
@@ -1061,7 +1072,9 @@
           "description": "Default image — an images registry reference, or null."
         },
         "nullable": {
-          "type": "boolean"
+          "type": "boolean",
+          "default": true,
+          "description": "Whether this prop accepts a null value. Absent means true — an image prop has an open value set, so null is accepted unless false explicitly asserts otherwise."
         },
         "$extensions": {
           "$ref": "#/definitions/PropExtensions"

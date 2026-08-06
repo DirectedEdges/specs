@@ -78,7 +78,11 @@ export interface ImageProp {
   type: 'image';
   /** Default image — an `images` registry reference, or null. */
   default?: string | null;
-  /** Whether this prop accepts a null value. */
+  /**
+   * Whether this prop accepts a null value.
+   * Absent means `true` — an image prop has an open value set, so null is
+   * accepted unless `false` explicitly asserts otherwise. @since 0.29.0
+   */
   nullable?: boolean;
   /** DTCG §5.2.3 platform-specific extensions. */
   $extensions?: PropExtensions;
