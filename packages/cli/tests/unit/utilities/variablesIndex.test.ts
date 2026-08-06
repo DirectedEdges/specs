@@ -24,22 +24,28 @@ const VARIABLES_JSON = {
 };
 
 describe('buildVariablesIndex', () => {
-  it('indexes the same entry under both the variable id and the token path', () => {
+  it('maps a token name to the key and the id it was fetched with', () => {
     const index = buildVariablesIndex(VARIABLES_JSON);
 
-    expect(index.byId['VariableID:1:23']).toEqual({ key: 'key-spacing-md', published: true });
-    expect(index.byPath['Spacing/md']).toEqual({ key: 'key-spacing-md', published: true });
+    expect(index['Spacing/md']).toEqual({
+      key: 'key-spacing-md',
+      id: 'VariableID:1:23',
+      published: true,
+    });
   });
 
-  it('marks variables hidden from publishing as unpublished', () => {
+  it('marks a variable hidden from publishing as unpublished, keeping its id', () => {
     const index = buildVariablesIndex(VARIABLES_JSON);
 
-    expect(index.byId['VariableID:2:34'].published).toBe(false);
-    expect(index.byPath['Color/brand/primary'].published).toBe(false);
+    expect(index['Color/brand/primary']).toEqual({
+      key: 'key-color-brand-primary',
+      id: 'VariableID:2:34',
+      published: false,
+    });
     expect(countUnpublished(index)).toBe(1);
   });
 
-  it('indexes an unnamed variable by id only — the path axis needs a name', () => {
+  it('omits an unnamed variable — the name is the only thing a spec can reference', () => {
     const index = buildVariablesIndex({
       meta: {
         variableCollections: { 'VariableCollectionId:1:1': { name: 'Spacing' } },
@@ -47,11 +53,10 @@ describe('buildVariablesIndex', () => {
       },
     });
 
-    expect(index.byId['VariableID:3:45']).toEqual({ key: 'key-nameless', published: true });
-    expect(Object.keys(index.byPath)).toHaveLength(0);
+    expect(Object.keys(index)).toHaveLength(0);
   });
 
-  it('omits a keyless variable from both axes — the key is what the index exists to supply', () => {
+  it('keeps a keyless variable as unpublished, so its id can still resolve in its own file', () => {
     const index = buildVariablesIndex({
       meta: {
         variableCollections: { 'VariableCollectionId:1:1': { name: 'Spacing' } },
@@ -59,8 +64,7 @@ describe('buildVariablesIndex', () => {
       },
     });
 
-    expect(Object.keys(index.byId)).toHaveLength(0);
-    expect(Object.keys(index.byPath)).toHaveLength(0);
+    expect(index['Spacing/lg']).toEqual({ key: '', id: 'VariableID:4:56', published: false });
   });
 
   it('falls back to a bare name when the collection cannot be named', () => {
@@ -71,13 +75,13 @@ describe('buildVariablesIndex', () => {
       },
     });
 
-    expect(index.byPath['orphan']).toEqual({ key: 'key-orphan', published: true });
+    expect(index['orphan']).toMatchObject({ key: 'key-orphan', published: true });
   });
 
-  it('returns empty axes for missing, empty, or malformed input', () => {
-    expect(buildVariablesIndex(null)).toEqual({ byId: {}, byPath: {} });
-    expect(buildVariablesIndex(undefined)).toEqual({ byId: {}, byPath: {} });
-    expect(buildVariablesIndex({})).toEqual({ byId: {}, byPath: {} });
-    expect(buildVariablesIndex({ meta: { variables: {} } })).toEqual({ byId: {}, byPath: {} });
+  it('returns an empty index for missing, empty, or malformed input', () => {
+    expect(buildVariablesIndex(null)).toEqual({});
+    expect(buildVariablesIndex(undefined)).toEqual({});
+    expect(buildVariablesIndex({})).toEqual({});
+    expect(buildVariablesIndex({ meta: { variables: {} } })).toEqual({});
   });
 });

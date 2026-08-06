@@ -56,9 +56,8 @@ import { buildVariablesIndex, countUnpublished, type VariablesIndex } from '../u
 type ComponentEntry = { id: string; key?: string };
 type Manifest = Record<string, ComponentEntry>;
 type GlyphManifest = Record<string, ComponentEntry>;
-/** Both lookup axes over the fetched variables file. A spec reaches a variable by its
- *  `$extensions['com.figma'].id` when it has one, and by token path when it carries no
- *  Figma extensions at all — so render is given both. */
+/** Token name → the handles that name resolves to. A spec references a variable by name only,
+ *  so this is what gives the name meaning on the render side. */
 type VariablesManifest = VariablesIndex;
 
 interface RenderResult {
@@ -395,18 +394,18 @@ function buildStylesManifest(fileDataPath: string): Manifest {
  */
 function buildVariablesManifest(variablesJsonPath: string): VariablesManifest {
   const data = readJson(variablesJsonPath, 'Variables manifest');
-  if (!data) return { byId: {}, byPath: {} };
+  if (!data) return {};
 
   const index = buildVariablesIndex((data.meta ? data : { meta: data }) as Parameters<typeof buildVariablesIndex>[0]);
-  const ids = Object.keys(index.byId).length;
-  if (ids === 0) {
-    console.warn(`  Variables manifest: no keyed variables in file — variable binding disabled`);
+  const names = Object.keys(index).length;
+  if (names === 0) {
+    console.warn(`  Variables manifest: no named variables in file — variable binding disabled`);
     return index;
   }
 
   const unpublished = countUnpublished(index);
-  const suffix = unpublished > 0 ? ` (${unpublished} hidden from publishing — not importable by key)` : '';
-  console.log(`  Variables manifest: ${ids} by id, ${Object.keys(index.byPath).length} by path${suffix}`);
+  const suffix = unpublished > 0 ? ` (${unpublished} not importable from the library — id fallback only)` : '';
+  console.log(`  Variables manifest: ${names} token names${suffix}`);
   return index;
 }
 
