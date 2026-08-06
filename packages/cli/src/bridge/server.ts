@@ -50,15 +50,16 @@ import { parse } from 'yaml';
 import { WS_PORT, HTTP_PORT, DEFAULT_PAGE_ID, resolveWorkspaceDir } from './config.js';
 import { ConnectionRegistry, type Connection } from './connections.js';
 import { RequestTracker } from './requestTracker.js';
+import { buildVariablesIndex, countUnpublished, type VariablesIndex } from '../utilities/variablesIndex.js';
 
 /** id = same-file node id (fast path); key = published cross-file key (fallback import). */
 type ComponentEntry = { id: string; key?: string };
 type Manifest = Record<string, ComponentEntry>;
 type GlyphManifest = Record<string, ComponentEntry>;
-/** key = variable key; published=false marks a variable hidden from publishing, which is
- *  therefore absent from the team library and cannot be imported by key. */
-type VariableEntry = { key: string; published: boolean };
-type VariablesManifest = Record<string, VariableEntry>;
+/** Both lookup axes over the fetched variables file. A spec reaches a variable by its
+ *  `$extensions['com.figma'].id` when it has one, and by token path when it carries no
+ *  Figma extensions at all — so render is given both. */
+type VariablesManifest = VariablesIndex;
 
 interface RenderResult {
   success: boolean;
@@ -394,40 +395,19 @@ function buildStylesManifest(fileDataPath: string): Manifest {
  */
 function buildVariablesManifest(variablesJsonPath: string): VariablesManifest {
   const data = readJson(variablesJsonPath, 'Variables manifest');
-  if (!data) return {};
+  if (!data) return { byId: {}, byPath: {} };
 
-  const meta = (data.meta ?? data) as {
-    variables?: Record<string, { name?: string; key?: string; variableCollectionId?: string; hiddenFromPublishing?: boolean }>;
-    variableCollections?: Record<string, { name?: string }>;
-  };
-  const vars = meta.variables;
-  const cols = meta.variableCollections;
-  if (!vars || !cols) {
-    console.warn(`  Variables manifest: no variables/collections in file — variable binding disabled`);
-    return {};
+  const index = buildVariablesIndex((data.meta ? data : { meta: data }) as Parameters<typeof buildVariablesIndex>[0]);
+  const ids = Object.keys(index.byId).length;
+  if (ids === 0) {
+    console.warn(`  Variables manifest: no keyed variables in file — variable binding disabled`);
+    return index;
   }
 
-  const colNames: Record<string, string> = {};
-  for (const [id, col] of Object.entries(cols)) {
-    if (col.name) colNames[id] = col.name;
-  }
-
-  const result: VariablesManifest = {};
-  let unpublished = 0;
-  for (const varDef of Object.values(vars)) {
-    const name = varDef.name;
-    const key = varDef.key;
-    const colName = (varDef.variableCollectionId ? colNames[varDef.variableCollectionId] : undefined) ?? '';
-    if (!name || !key) continue;
-    const tokenPath = colName ? `${colName}/${name}` : name;
-    const published = varDef.hiddenFromPublishing !== true;
-    if (!published) unpublished++;
-    result[tokenPath] = { key, published };
-  }
-
+  const unpublished = countUnpublished(index);
   const suffix = unpublished > 0 ? ` (${unpublished} hidden from publishing — not importable by key)` : '';
-  console.log(`  Variables manifest: ${Object.keys(result).length} entries${suffix}`);
-  return result;
+  console.log(`  Variables manifest: ${ids} by id, ${Object.keys(index.byPath).length} by path${suffix}`);
+  return index;
 }
 
 /**
