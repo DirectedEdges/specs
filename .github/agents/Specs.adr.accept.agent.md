@@ -12,7 +12,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Outline
 
-1. **Setup**: Run `.specify/scripts/bash/check-prerequisites.sh --json --paths-only` from repo root. Parse `REPO_ROOT`, `BRANCH`. All paths must be absolute.
+1. **Setup**: Run `scripts/check-prerequisites.sh --json --paths-only` from repo root. Parse `REPO_ROOT`, `BRANCH`. All paths must be absolute.
    - Derive `ADR_NAME` from `BRANCH`:
      - Use `BRANCH` directly as `ADR_NAME` (e.g., `011-icon-glyph-as-content`).
    - The branch name must match an ADR name pattern (starts with a number sequence followed by a hyphen, e.g., `011-`). If no ADR number is found, halt: "Branch does not appear to be an ADR branch."
@@ -25,7 +25,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 3. **Re-run validation gates**:
    - Run: `tsc -p tsconfig.build.json --noEmit`
      - If exit code ≠ 0: halt and display errors. Do not set ACCEPTED.
-   - Run: `.specify/scripts/bash/validate-schema.sh`
+   - Run: `scripts/validate-schema.sh`
      - If any schema fails: halt and report. Do not set ACCEPTED.
    - Run: `tsc --noEmit --strict tests/*.test-d.ts` (if `tests/*.test-d.ts` files exist)
      - If exit code ≠ 0: halt and display errors. Do not set ACCEPTED.

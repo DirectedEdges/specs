@@ -1,0 +1,18 @@
+{
+  "yaml.schemas": {
+    "./packages/schema/schema/workspace.schema.json": ["specs.config.yaml", "specs.config.yml"],
+    "./packages/schema/schema/components.schema.json": [
+      "library.yaml",
+      "components.yaml",
+      "tests/tmp/*.yaml"
+    ],
+    "./packages/schema/schema/root.schema.json": [
+      "**/*api.yaml",
+      "**/*variants.yaml",
+      "**/*examples.yaml"
+    ],
+    "./packages/schema/schema/component.schema.json": [
+      "adr/research/**/example.component.*.yaml"
+    ]
+  }
+}

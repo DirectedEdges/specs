@@ -190,6 +190,25 @@ const _numberStringDefault: NumberProp = { type: 'number', default: '24' };
 // @ts-expect-error: examples must be number[], not string[]
 const _numberStringExamples: NumberProp = { type: 'number', examples: ['1', '2'] };
 
+// ─── nullable (ADR 065) ───────────────────────────────────────────────────────
+
+// nullable is optional on NumberProp — absent means true
+const numberNullableAbsent: NumberProp = { type: 'number', default: 2 };
+
+// nullable: false explicitly asserts the prop always has a value
+const numberNotNullable: NumberProp = { type: 'number', default: 2, nullable: false };
+const numberNullable: NumberProp = { type: 'number', nullable: true };
+
+// @ts-expect-error: nullable must be boolean, not string
+const _numberNullableString: NumberProp = { type: 'number', nullable: 'false' };
+
+// nullable: false is expressible on every open-valued prop type
+const stringNotNullable: StringProp = { type: 'string', default: 'Label', nullable: false };
+const slotNotNullable: SlotProp = { type: 'slot', default: 'Content', nullable: false };
+
+// EnumProp defaults to non-nullable; nullable: true admits null explicitly
+const enumNullable: EnumProp = { type: 'string', default: 'sm', enum: ['sm', 'lg'], nullable: true };
+
 // NumberProp is assignable to AnyProp
 const anyFromNumber: AnyProp = { type: 'number' } satisfies NumberProp;
 const anyFromNumberFull: AnyProp = { type: 'number', default: 10, examples: [10, 20] } satisfies NumberProp;

@@ -27,7 +27,7 @@ type AnyProp = BooleanProp | StringProp | EnumProp | NumberProp | SlotProp | Ima
 | `type` | `'string'` | Yes | |
 | `default` | `string` | Yes | Default value (must be in `enum`) |
 | `enum` | `string[]` | Yes | Allowed values |
-| `nullable` | `boolean` | No | Whether `null` is a valid value |
+| `nullable` | `boolean` | No | Whether `null` is a valid value — absent means `false` |
 | `$extensions` | `PropExtensions` | No | Vendor extensions |
 
 ### StringProp
@@ -36,7 +36,7 @@ type AnyProp = BooleanProp | StringProp | EnumProp | NumberProp | SlotProp | Ima
 |----------|------|----------|-------------|
 | `type` | `'string'` | Yes | |
 | `default` | `string \| null` | No | Deprecated — use `examples` |
-| `nullable` | `boolean` | No | Whether `null` is a valid value |
+| `nullable` | `boolean` | No | Whether `null` is a valid value — absent means `true` |
 | `examples` | `string[]` | No | Example values |
 | `$extensions` | `PropExtensions` | No | Vendor extensions |
 
@@ -48,6 +48,7 @@ A `StringProp` is distinguished from an `EnumProp` by the absence of `enum`.
 |----------|------|----------|-------------|
 | `type` | `'number'` | Yes | |
 | `default` | `number` | No | Default value |
+| `nullable` | `boolean` | No | Whether `null` is a valid value — absent means `true` (since 0.29.0) |
 | `examples` | `number[]` | No | Example values |
 
 Inferred from Figma variant values when [`inferNumberProps`](/schema/config.md/#processing) is enabled.
@@ -58,7 +59,7 @@ Inferred from Figma variant values when [`inferNumberProps`](/schema/config.md/#
 |----------|------|----------|-------------|
 | `type` | `'slot'` | Yes | |
 | `default` | `string \| null` | No | Default slot content |
-| `nullable` | `boolean` | No | Whether `null` is a valid value |
+| `nullable` | `boolean` | No | Whether `null` is a valid value — absent means `true` |
 | `minChildren` | `number` | No | Minimum number of children the slot accepts (since 0.25.0) |
 | `maxChildren` | `number` | No | Maximum number of children the slot accepts (since 0.25.0) |
 | `anyOf` | `string[]` | No | Permitted component type names (since 0.14.0) |
@@ -72,10 +73,37 @@ Slot constraint properties (`minChildren`, `maxChildren`, `anyOf`) are emitted w
 |----------|------|----------|-------------|
 | `type` | `'image'` | Yes | |
 | `default` | `string \| null` | No | Default image — an `images` registry reference, or null |
-| `nullable` | `boolean` | No | Whether `null` is a valid value |
+| `nullable` | `boolean` | No | Whether `null` is a valid value — absent means `true` |
 | `$extensions` | `PropExtensions` | No | Vendor extensions |
 
 An image-valued property (e.g. a `dsImage` `source` prop). The authoring-default image rides on the [`ImageBinding`](/schema/prop-configurations/) at the binding site, not on the prop. Emitted for code-only props named in [`processing.images.sourceProps`](/schema/config/#processingimages) (since 0.28.0).
+
+## Nullability
+
+`nullable` is optional on every prop kind that carries it. Its absence is meaningful, and what it means depends on whether the prop's value set is open or closed:
+
+| Prop kind | Absent `nullable` means | Why |
+|-----------|-------------------------|-----|
+| `StringProp` | `true` | Open value set — nothing enumerates it |
+| `NumberProp` | `true` | Open value set |
+| `SlotProp` | `true` | Open content set; a slot may be empty |
+| `ImageProp` | `true` | Open value set |
+| `EnumProp` | `false` | `enum` lists every accepted value, and `null` is not one of them |
+| `BooleanProp` | *(no field)* | Booleans are never nullable |
+
+An explicit `nullable: false` on an open-valued prop asserts that a value always exists — useful when a code-only prop was authored with a non-empty default:
+
+```yaml
+props:
+  # No nullable key — accepts null
+  label:
+    type: string
+  # Explicitly asserts a value is always present
+  headingLevel:
+    type: number
+    default: 2
+    nullable: false
+```
 
 ## Extensions
 

@@ -9,7 +9,7 @@
 - **Ignore Documentation Files:** Unless explicitly asked, do not ingest `.md` or `.txt` files from `/docs`, `/specs` or `/adr` folders into chat context.
 
 ## Project Constitution
-- **Always apply**: The project constitution at `.specify/memory/constitution.md` governs all development decisions. Read it when planning or reviewing changes to ensure alignment with core principles, quality gates, and governance rules.
+- **Always apply**: The project constitution at `packages/schema/CONSTITUTION.md` governs all development decisions. Read it when planning or reviewing changes to ensure alignment with core principles, quality gates, and governance rules.
 
 ## Response Style
 - **Be Concise:** Keep explanations very brief unless asked for a report.

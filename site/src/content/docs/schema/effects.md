@@ -17,9 +17,9 @@ interface Effects {
 
 | Name | Category | Description |
 |------|----------|-------------|
-| `shadows` | shadow | Array of drop and inner shadow definitions |
-| `layerBlur` | blur | Layer blur (`filter: blur()`) |
-| `backgroundBlur` | blur | Background blur (`backdrop-filter: blur()`) |
+| [`shadows`](/schema/effects/shadows/) | shadow | Array of drop and inner shadow definitions |
+| [`layerBlur`](/schema/effects/layer-blur/) | blur | Layer blur (`filter: blur()`) |
+| [`backgroundBlur`](/schema/effects/background-blur/) | blur | Background blur (`backdrop-filter: blur()`) |
 
 ## Values
 

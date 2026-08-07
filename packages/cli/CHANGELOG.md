@@ -5,6 +5,28 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- **`specs fetch` icons** — a fourth data kind alongside `file`, `variables`, and `styles`: fetch derives the library's icon glyphs from the downloaded file payload (no `scan` required) and downloads their SVG assets with stable kebab-case slugs.
+
+## [0.26.0] - 2026-08-07
+
+Two new `specs analyze` reports help you understand a design system at scale. `specs analyze dependencies` maps how components compose one another — instances, slot constraints, and example compositions — so you can answer "what's the blast radius of changing this component?" and "which props does anyone actually use?" `specs analyze styling` now also flags tokens nobody references, surfacing dead variables and styles you can safely retire.
+
+### Added
+
+- **`specs analyze dependencies` — component dependency graph** — A new analyzer that builds a directed graph of how components compose one another from `instanceOf` references, answering "what is the blast radius of changing this component?" and "which of its props do consumers actually use?". Edges carry a kind — `instance` (placed instances), `slot` (`anyOf` constraints), `example` (`slotContentExamples` compositions) — and the blast-radius closure runs over `instance` edges only, with slot/example coupling reported separately as contract relations. Unmatched references become nodes flagged `external`; subcomponents collapse into their parent; split-concerns layouts (`variants.yaml`, `examples.yaml`) and `$nested` deep configurations are supported. Two aggregates land in `_analysis/` (extension follows `format.output`):
+  - `dependencies.graph.{json|yaml}` — nodes with degrees, typed edges with element/slot/example labels, plus roots, leaves, cycles, and external counts.
+  - `dependencies.byComponent.{json|yaml}` — per component: direct and transitive dependents/dependencies with min depth, contract relations, and `propUsage` — per prop: total configuration sites, per-consumer breakdown by section (`default`/`variants`/`examples`) with per-value site counts, and a value → consumers roll-up. Props no consumer configures appear with `configuredBy: 0`.
+- **`specs analyze styling` now reports unused tokens** — A third aggregate report, `_analysis/styling.unused.{json|yaml}`, lists every token in the fetched foundations data (variables, color styles, text styles, effect styles) that no analyzed spec references, with a per-category `summary` of total/used/unused counts. Variables are matched by their collection-prefixed name (`Collection name/Variable name`), styles by name; grid styles are excluded. The report requires `{alias}.variables.json` / `{alias}.styles.json` in the data directory and is skipped when absent.
+
+### Dependency updates
+
+- **`@directededges/specs-schema` ^0.29.0** — Numeric properties can now be marked nullable (`NumberProp.nullable`), matching strings, slots, and images. Horizontal text alignment now uses logical inline-axis direction (`START`/`END`/`CENTER`/`JUSTIFY`) instead of physical `LEFT`/`RIGHT`/`JUSTIFIED`, so generated specs read correctly regardless of writing direction.
+- **`@directededges/specs-from-figma` ^0.28.0** — Horizontal text alignment extraction now emits the new logical directions. Code-only text props whose default is only whitespace are recognized as empty placeholders instead of literal example content. Several extraction bugs are fixed: slot resolution for unpublished local components, gradient center coordinates, number-named layers, and anatomy/element ordering.
+
 ## [0.25.0] - 2026-07-16
 
 Generated specs can now include the images your components actually use. Enable `processing.images` in config and image fills emit as typed `backgroundImage` values backed by a per-component `images` registry; then run `specs generate --get-images` to download each referenced image once into an `_images/` folder and point every registry entry at a real file. Text truncation (`textOverflow`, `maxLines`) is now captured on text elements, rotated elements keep their sub-degree precision, and `specs generate` output is quieter — per-file overwrite warnings collapse into a single summary line.

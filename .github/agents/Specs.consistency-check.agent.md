@@ -25,7 +25,7 @@ The four areas and their relationships:
 
 ### 1. Setup
 
-Run `.specify/scripts/bash/check-prerequisites.sh --json --paths-only` from repo root. Parse `REPO_ROOT` and `BRANCH`. All paths must be absolute.
+Run `scripts/check-prerequisites.sh --json --paths-only` from repo root. Parse `REPO_ROOT` and `BRANCH`. All paths must be absolute.
 
 ### 2. Detect changed files
 
