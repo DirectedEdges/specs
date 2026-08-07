@@ -11,7 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`specs fetch` icons** — a fourth data kind alongside `file`, `variables`, and `styles`: fetch derives the library's icon glyphs from the downloaded file payload (no `scan` required) and downloads their SVG assets with stable kebab-case slugs.
 
-## [0.26.0] - Unreleased
+## [0.26.0] - 2026-08-07
+
+Two new `specs analyze` reports help you understand a design system at scale. `specs analyze dependencies` maps how components compose one another — instances, slot constraints, and example compositions — so you can answer "what's the blast radius of changing this component?" and "which props does anyone actually use?" `specs analyze styling` now also flags tokens nobody references, surfacing dead variables and styles you can safely retire.
 
 ### Added
 
@@ -20,9 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `dependencies.byComponent.{json|yaml}` — per component: direct and transitive dependents/dependencies with min depth, contract relations, and `propUsage` — per prop: total configuration sites, per-consumer breakdown by section (`default`/`variants`/`examples`) with per-value site counts, and a value → consumers roll-up. Props no consumer configures appear with `configuredBy: 0`.
 - **`specs analyze styling` now reports unused tokens** — A third aggregate report, `_analysis/styling.unused.{json|yaml}`, lists every token in the fetched foundations data (variables, color styles, text styles, effect styles) that no analyzed spec references, with a per-category `summary` of total/used/unused counts. Variables are matched by their collection-prefixed name (`Collection name/Variable name`), styles by name; grid styles are excluded. The report requires `{alias}.variables.json` / `{alias}.styles.json` in the data directory and is skipped when absent.
 
-### Changed
+### Dependency updates
 
-### Removed
+- **`@directededges/specs-schema` ^0.29.0** — Numeric properties can now be marked nullable (`NumberProp.nullable`), matching strings, slots, and images. Horizontal text alignment now uses logical inline-axis direction (`START`/`END`/`CENTER`/`JUSTIFY`) instead of physical `LEFT`/`RIGHT`/`JUSTIFIED`, so generated specs read correctly regardless of writing direction.
+- **`@directededges/specs-from-figma` ^0.28.0** — Horizontal text alignment extraction now emits the new logical directions. Code-only text props whose default is only whitespace are recognized as empty placeholders instead of literal example content. Several extraction bugs are fixed: slot resolution for unpublished local components, gradient center coordinates, number-named layers, and anatomy/element ordering.
 
 ## [0.25.0] - 2026-07-16
 
