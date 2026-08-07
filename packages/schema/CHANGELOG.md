@@ -5,6 +5,15 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+### Changed
+
+### Removed
+
+
 ## [0.29.0] - 2026-08-07
 
 Numeric properties can now be marked nullable, matching the flexibility already available on strings, slots, and images. Horizontal text alignment now uses logical inline-axis direction (`START`/`END`) instead of physical `LEFT`/`RIGHT`, so specs read correctly regardless of writing direction.
