@@ -1,147 +1,74 @@
 ---
 title: "Styles"
 description: "Style properties and value types"
+tableOfContents: false
 ---
 
-The `Styles` object holds visual properties for an element. Every property is optional. Which properties are evaluated depends on the element type.
+The `Styles` object holds visual properties for an element. Every property is optional. Which properties are evaluated depends on the element type. Source: [`packages/schema/types/Styles.ts`](https://github.com/DirectedEdges/specs/blob/main/packages/schema/types/Styles.ts).
 
-```ts
-type Styles = Partial<{ /* 49 properties */ }>;
-```
+| Property | Value type | Figma key (if different) |
+|---|---|---|
+| [`aspectRatio`](/schema/styles/aspect-ratio/) | `AspectRatioValue` | — |
+| [`backgroundBlur`](/schema/effects/background-blur/) | `Blur` | *(via `effects`)* |
+| [`backgroundColor`](/schema/styles/background-color/) | `ColorStyle` | `fills` <small>[ADR 009](https://github.com/DirectedEdges/specs/blob/main/adr/009-color-values.md)</small> |
+| [`backgroundImage`](/schema/styles/background-image/) | `ImageValue`<br>`TokenReference` | `fills` (IMAGE) <small>[ADR 063](https://github.com/DirectedEdges/specs/blob/main/adr/063-image-content.md)</small> |
+| [`bottom`](/schema/styles/bottom/) | `PositionOffset` | `y` and constraints <small>[ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md)</small> |
+| [`centerHorizontalOffset`](/schema/styles/center-horizontal-offset/) | `PositionOffset` | `x` and constraints <small>[ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md)</small> |
+| [`centerVerticalOffset`](/schema/styles/center-vertical-offset/) | `PositionOffset` | `y` and constraints <small>[ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md)</small> |
+| [`clipContent`](/schema/styles/clip-content/) | `Style` | — |
+| [`cornerRadius`](/schema/styles/corner-radius/) | `Style`<br>`Corners` | — |
+| [`cornerSmoothing`](/schema/styles/corner-smoothing/) | `Style` | — |
+| [`crossAxisAlignment`](/schema/styles/cross-axis-alignment/) | `CrossAxisAlignment` | `counterAxisAlignItems` <small>[ADR 040](https://github.com/DirectedEdges/specs/blob/main/adr/040-layout-alignment.md)</small> |
+| [`effects`](/schema/effects/) | `TokenReference`<br>`Effects` | — |
+| [`end`](/schema/styles/end/) | `PositionOffset` | `x` and constraints <small>[ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md)</small> |
+| [`fillColor`](/schema/styles/fill-color/) | `ColorStyle` | `fills` <small>[ADR 013](https://github.com/DirectedEdges/specs/blob/main/adr/013-icon-fillColor.md)</small> |
+| [`fontFamily`](/schema/typography/font-family/) | `string`<br>`TokenReference` | *(via `typography`)* |
+| [`fontSize`](/schema/typography/font-size/) | `number`<br>`TokenReference` | *(via `typography`)* |
+| [`fontStyle`](/schema/typography/font-style/) | `string`<br>`TokenReference` | *(via `typography`)* |
+| [`hangingList`](/schema/typography/hanging-list/) | `boolean` | *(via `typography`)* |
+| [`hangingPunctuation`](/schema/typography/hanging-punctuation/) | `boolean` | *(via `typography`)* |
+| [`height`](/schema/styles/height/) | `Style` | — |
+| [`itemReverseZIndex`](/schema/styles/item-reverse-z-index/) | `Style` | — |
+| [`itemSpacing`](/schema/styles/item-spacing/) | `Style`<br>`ItemSpacing` | — |
+| [`layerBlur`](/schema/effects/layer-blur/) | `Blur` | *(via `effects`)* |
+| [`layoutMode`](/schema/styles/layout-mode/) | `LayoutMode` | — |
+| [`layoutSizingHorizontal`](/schema/styles/layout-sizing-horizontal/) | `Style` | — |
+| [`layoutSizingVertical`](/schema/styles/layout-sizing-vertical/) | `Style` | — |
+| [`leadingTrim`](/schema/typography/leading-trim/) | `string` | *(via `typography`)* |
+| [`letterSpacing`](/schema/typography/letter-spacing/) | `number`<br>`TokenReference` | *(via `typography`)* |
+| [`lineHeight`](/schema/typography/line-height/) | `number`<br>`string`<br>`TokenReference` | *(via `typography`)* |
+| [`listSpacing`](/schema/typography/list-spacing/) | `number` | *(via `typography`)* |
+| [`locked`](/schema/styles/locked/) | `Style` | — |
+| [`mainAxisAlignment`](/schema/styles/main-axis-alignment/) | `MainAxisAlignment` | `primaryAxisAlignItems` <small>[ADR 040](https://github.com/DirectedEdges/specs/blob/main/adr/040-layout-alignment.md)</small> |
+| [`maxHeight`](/schema/styles/max-height/) | `Style` | — |
+| [`maxLines`](/schema/styles/max-lines/) | `Style` | — |
+| [`maxWidth`](/schema/styles/max-width/) | `Style` | — |
+| [`minHeight`](/schema/styles/min-height/) | `Style` | — |
+| [`minWidth`](/schema/styles/min-width/) | `Style` | — |
+| [`opacity`](/schema/styles/opacity/) | `Style` | — |
+| [`padding`](/schema/styles/padding/) | `Style`<br>`Sides` | — |
+| [`paragraphIndent`](/schema/typography/paragraph-indent/) | `number`<br>`TokenReference` | *(via `typography`)* |
+| [`paragraphSpacing`](/schema/typography/paragraph-spacing/) | `number`<br>`TokenReference` | *(via `typography`)* |
+| [`position`](/schema/styles/position/) | `Position` | `layoutPositioning` <small>[ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md)</small> |
+| [`primaryAxisSizingMode`](/schema/styles/primary-axis-sizing-mode/) | `Style` | — |
+| [`rotation`](/schema/styles/rotation/) | `Style` | — |
+| [`shadows`](/schema/effects/shadows/) | `Shadow[]` | *(via `effects`)* |
+| [`start`](/schema/styles/start/) | `PositionOffset` | `x` and constraints <small>[ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md)</small> |
+| [`strokeAlign`](/schema/styles/stroke-align/) | `Style` | — |
+| [`strokeDashPattern`](/schema/styles/stroke-dash-pattern/) | `StrokeDashPattern` | `strokeDashes` <small>[ADR 059](https://github.com/DirectedEdges/specs/blob/main/adr/059-border-style.md)</small> |
+| [`strokeWeight`](/schema/styles/stroke-weight/) | `Style`<br>`Sides` | — |
+| [`strokes`](/schema/styles/strokes/) | `ColorStyle` | — |
+| [`textAlignHorizontal`](/schema/styles/text-align-horizontal/) | `TextAlignHorizontal` | `textAlignHorizontal` (remapped) <small>[ADR 064](https://github.com/DirectedEdges/specs/blob/main/adr/064-text-align-horizontal.md)</small> |
+| [`textAlignVertical`](/schema/styles/text-align-vertical/) | `Style` | — |
+| [`textCase`](/schema/typography/text-case/) | `string` | *(via `typography`)* |
+| [`textColor`](/schema/styles/text-color/) | `ColorStyle` | `fills` <small>[ADR 009](https://github.com/DirectedEdges/specs/blob/main/adr/009-color-values.md)</small> |
+| [`textDecoration`](/schema/typography/text-decoration/) | `string` | *(via `typography`)* |
+| [`textOverflow`](/schema/styles/text-overflow/) | `TextOverflow` | `textTruncation` (remapped) <small>[ADR 062](https://github.com/DirectedEdges/specs/blob/main/adr/062-text-truncation.md)</small> |
+| [`top`](/schema/styles/top/) | `PositionOffset` | `y` and constraints <small>[ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md)</small> |
+| [`typography`](/schema/typography/) | `TokenReference`<br>`Typography` | — |
+| [`visible`](/schema/styles/visible/) | `boolean`<br>`TokenReference`<br>`PropBinding`<br>`Conditional` | — |
+| [`width`](/schema/styles/width/) | `Style` | — |
+| [`wrap`](/schema/styles/wrap/) | `Style` | `layoutWrap` <small>[ADR 039](https://github.com/DirectedEdges/specs/blob/main/adr/039-wrap-alignment.md)</small> |
+| [`wrapAlignment`](/schema/styles/wrap-alignment/) | `WrapAlignment` | `counterAxisAlignContent` <small>[ADR 039](https://github.com/DirectedEdges/specs/blob/main/adr/039-wrap-alignment.md)</small> |
 
-## Properties
-
-Combined view: every style property, grouped by category and then by name, with the element-type categories it is evaluated for. `container` covers `COMPONENT`/`FRAME`/`SLOT`/`INSTANCE`; `vectors` covers `RECTANGLE`/`VECTOR`/`ELLIPSE`/`STAR`/`POLYGON`; `text`, `glyph`, and `line` cover their like-named element types.
-
-| Category | Name | container | text | glyph | vectors | line |
-|----------|------|-----------|------|-------|---------|------|
-| Border | `cornerRadius` | ✓ |  |  |  |  |
-| Border | `cornerSmoothing` | ✓ |  |  | ✓ |  |
-| Border | `strokeAlign` | ✓ |  |  | ✓ | ✓ |
-| Border | `strokeDashPattern` | ✓ |  |  | ✓ | ✓ |
-| Border | `strokeWeight` | ✓ |  |  | ✓ | ✓ |
-| Color | `backgroundColor` | ✓ |  |  | ✓ |  |
-| Color | `fillColor` |  |  | ✓ | ✓ | ✓ |
-| Color | `strokes` | ✓ |  |  | ✓ | ✓ |
-| Color | `textColor` |  | ✓ |  |  |  |
-| Effects | `effects` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Image | `backgroundImage` | ✓ |  |  | ✓ |  |
-| Layout (child) | `bottom` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Layout (child) | `centerHorizontalOffset` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Layout (child) | `centerVerticalOffset` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Layout (child) | `end` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Layout (child) | `layoutSizingHorizontal` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Layout (child) | `layoutSizingVertical` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Layout (child) | `position` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Layout (child) | `start` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Layout (child) | `top` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Layout (parent) | `crossAxisAlignment` | ✓ |  |  |  |  |
-| Layout (parent) | `itemReverseZIndex` | ✓ |  |  |  |  |
-| Layout (parent) | `layoutMode` | ✓ |  |  |  |  |
-| Layout (parent) | `mainAxisAlignment` | ✓ |  |  |  |  |
-| Layout (parent) | `primaryAxisSizingMode` | ✓ |  |  |  |  |
-| Layout (parent) | `wrap` | ✓ |  |  |  |  |
-| Layout (parent) | `wrapAlignment` | ✓ |  |  |  |  |
-| Size | `aspectRatio` | ✓ | ✓ | ✓ | ✓ |  |
-| Size | `height` | ✓ | ✓ | ✓ | ✓ |  |
-| Size | `maxHeight` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Size | `maxWidth` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Size | `minHeight` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Size | `minWidth` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Size | `width` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Spacing | `itemSpacing` | ✓ |  |  |  |  |
-| Spacing | `padding` | ✓ |  |  |  |  |
-| Text | `maxLines` |  | ✓ |  |  |  |
-| Text | `textAlignHorizontal` |  | ✓ |  |  |  |
-| Text | `textAlignVertical` |  | ✓ |  |  |  |
-| Text | `textOverflow` |  | ✓ |  |  |  |
-| Text | `typography` |  | ✓ |  |  |  |
-| Transform | `rotation` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Visibility | `clipContent` | ✓ |  |  |  |  |
-| Visibility | `locked` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Visibility | `opacity` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Visibility | `visible` | ✓ | ✓ | ✓ | ✓ | ✓ |
-
-**Note on the `vectors` column.** This column unions `RECTANGLE` with the vector-family element types (`VECTOR`, `ELLIPSE`, `STAR`, `POLYGON`), which share most styling but split on color: `backgroundColor` is evaluated only for `RECTANGLE`, while `fillColor` is evaluated only for the vector family. Both show ✓ under `vectors` here, but a given element of one subtype will only honor one or the other.
-
-## Key Mapping from Figma
-
-Several spec style keys differ from the Figma node property they read from. Specs renames these to be more semantic and self-describing. Keys not listed here pass through unchanged (e.g. `opacity` reads `node.opacity`).
-
-| Spec key | Figma property | ADR |
-|----------|---------------|-----|
-| `backgroundColor` | `fills` | [ADR 009](https://github.com/DirectedEdges/specs/blob/main/adr/009-color-values.md) |
-| `backgroundImage` | `fills` (IMAGE) | [ADR 063](https://github.com/DirectedEdges/specs/blob/main/adr/063-image-content.md) |
-| `textColor` | `fills` | [ADR 009](https://github.com/DirectedEdges/specs/blob/main/adr/009-color-values.md) |
-| `fillColor` | `fills` | [ADR 013](https://github.com/DirectedEdges/specs/blob/main/adr/013-icon-fillColor.md) |
-| `wrap` | `layoutWrap` | [ADR 039](https://github.com/DirectedEdges/specs/blob/main/adr/039-wrap-alignment.md) |
-| `wrapAlignment` | `counterAxisAlignContent` | [ADR 039](https://github.com/DirectedEdges/specs/blob/main/adr/039-wrap-alignment.md) |
-| `mainAxisAlignment` | `primaryAxisAlignItems` | [ADR 040](https://github.com/DirectedEdges/specs/blob/main/adr/040-layout-alignment.md) |
-| `crossAxisAlignment` | `counterAxisAlignItems` | [ADR 040](https://github.com/DirectedEdges/specs/blob/main/adr/040-layout-alignment.md) |
-| `position` | `layoutPositioning` | [ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md) |
-| `top` | `y` (constraint MIN/STRETCH/SCALE) | [ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md) |
-| `bottom` | `y` (constraint MAX/STRETCH) | [ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md) |
-| `start` | `x` (constraint MIN/STRETCH/SCALE) | [ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md) |
-| `end` | `x` (constraint MAX/STRETCH) | [ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md) |
-| `centerHorizontalOffset` | `x` (constraint CENTER) | [ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md) |
-| `centerVerticalOffset` | `y` (constraint CENTER) | [ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md) |
-
-| `strokeDashPattern` | `strokeDashes` | [ADR 059](https://github.com/DirectedEdges/specs/blob/main/adr/059-border-style.md) |
-| `textOverflow` | `textTruncation` (values remapped: `DISABLED`→`CLIP`, `ENDING`→`ELLIPSIS`) | [ADR 062](https://github.com/DirectedEdges/specs/blob/main/adr/062-text-truncation.md) |
-| `textAlignHorizontal` | `textAlignHorizontal` (values remapped to logical directions: `LEFT`→`START`, `RIGHT`→`END`, `JUSTIFIED`→`JUSTIFY`) | [ADR 064](https://github.com/DirectedEdges/specs/blob/main/adr/064-text-align-horizontal.md) |
-
-All other style keys — `width`, `height`, `opacity`, `padding`, `itemSpacing`, `cornerRadius`, `strokeWeight`, `rotation`, etc. — use the same name as the Figma node property.
-
-## Values
-
-Most properties accept a `Style` value. Some properties accept specialized shapes instead of or in addition to `Style`.
-
-| Name | Description | Example |
-|------|-------------|---------|
-| `string` | Literal string value | `"HORIZONTAL"` |
-| `number` | Literal number value | `16` |
-| `boolean` | Literal boolean value | `true` |
-| `null` | Absent or cleared value | `null` |
-| [`TokenReference`](/schema/token-reference/) | Reference to a design token | `{ $token: "DS.Space.400", $type: "dimension" }` |
-| [`PropBinding`](/schema/prop-binding/) | Dynamic link to a prop value | `{ $binding: "#/props/label" }` |
-| [`Conditional`](/schema/conditional/) | Value that depends on a prop's state | `{ if: { condition: ..., then: 8, else: 12 } }` |
-| [`GradientValue`](/schema/gradient-value/) | Linear, radial, or angular gradient | `{ type: "LINEAR", angle: 90, stops: [...] }` |
-| [`Typography`](/schema/typography/) | Text style object with individual properties | `{ fontSize: 14, fontFamily: "Inter" }` |
-| [`Effects`](/schema/effects/) | Shadows and blurs | `{ shadows: [...], layerBlur: { ... } }` |
-| [`Sides`](/schema/sides/) | Per-side values for padding or stroke weight | `{ top: 8, end: 12, bottom: 8, start: 12 }` |
-| [`Corners`](/schema/corners/) | Per-corner values for corner radius | `{ topStart: 4, topEnd: 4, bottomEnd: 0, bottomStart: 0 }` |
-| `ItemSpacing` | Per-axis gap values | `{ horizontal: 16, vertical: 8 }` |
-| `LayoutMode` | Auto-layout direction enum | `"NONE"`, `"HORIZONTAL"`, `"VERTICAL"` |
-| `WrapAlignment` | Wrap line distribution enum | `"START"`, `"SPACE_BETWEEN"` |
-| `MainAxisAlignment` | Main axis alignment enum | `"START"`, `"END"`, `"CENTER"`, `"SPACE_BETWEEN"` |
-| `CrossAxisAlignment` | Cross axis alignment enum | `"START"`, `"END"`, `"CENTER"`, `"STRETCH"`, `"BASELINE"` |
-| `Position` | Layout positioning mode enum | `"AUTO"`, `"ABSOLUTE"` |
-| `PositionOffset` | Positional offset value | `24` (px), `"25%"` (SCALE), `null` |
-| `AspectRatio` | Width-to-height ratio | `{ x: 16, y: 9 }` |
-| `StrokeDashPattern` | Dash geometry for a dashed stroke — presence signals dashed; null or absent signals solid | `{ dash: 8, gap: 4 }` |
-| `TextAlignHorizontal` | Horizontal text alignment enum using logical inline-axis directions | `"START"`, `"CENTER"`, `"END"`, `"JUSTIFY"` |
-| `TextOverflow` | Text overflow handling enum | `"CLIP"`, `"ELLIPSIS"` |
-| `ImageValue` | Image fill — registry reference plus optional fit | `{ $image: "#/images/hero", objectFit: "COVER" }` |
-| `ObjectFit` | Image fit enum (CSS `object-fit` vocabulary) | `"COVER"`, `"CONTAIN"` |
-
-### Relating properties to values
-
-- Most properties accept any `Style` (literal, token, binding, or conditional).
-- `backgroundColor`, `fillColor`, `strokes`, `textColor` accept `string | TokenReference | GradientValue | null`.
-- `backgroundImage` accepts `ImageValue | null` — a container image fill used when no image component is configured; not token-bindable.
-- `typography` accepts `TokenReference | Typography`.
-- `effects` accepts `TokenReference | Effects`.
-- `padding`, `strokeWeight` accept `Style | Sides`.
-- `cornerRadius` accepts `Style | Corners`.
-- `itemSpacing` accepts `Style | ItemSpacing`.
-- `layoutMode` accepts `LayoutMode | null` — not token-bindable.
-- `wrapAlignment` accepts `WrapAlignment | null` — not token-bindable.
-- `mainAxisAlignment` accepts `MainAxisAlignment | null` — not token-bindable.
-- `crossAxisAlignment` accepts `CrossAxisAlignment | null` — not token-bindable.
-- `position` accepts `Position | null` — not token-bindable.
-- `top`, `bottom`, `start`, `end`, `centerHorizontalOffset`, `centerVerticalOffset` accept `PositionOffset` (`number | string | null`) — not token-bindable.
-- `aspectRatio` accepts `AspectRatio | null`.
-- `strokeDashPattern` accepts `StrokeDashPattern | null` — not token-bindable; presence signals a dashed stroke, null or absent signals solid.
-- `textAlignHorizontal` accepts `TextAlignHorizontal | null` (`"START" | "CENTER" | "END" | "JUSTIFY"`) — not token-bindable; logical directions resolve by writing direction (`"START"` is left in LTR, right in RTL). Figma's `LEFT`/`RIGHT`/`JUSTIFIED` are remapped at extraction.
-- `textOverflow` accepts `TextOverflow | null` (`"CLIP" | "ELLIPSIS"`) — not token-bindable; `"ELLIPSIS"` truncates overflowing text with a trailing ellipsis, `"CLIP"` cuts it off. Named after CSS `text-overflow` / Compose `TextOverflow`.
-- `maxLines` accepts any `Style` (a plain number like other sizes); the line limit before `textOverflow: "ELLIPSIS"` applies, or `null` for no limit.
+Element-type applicability (`container`/`text`/`glyph`/`vectors`/`line`) moves to per-property pages once those exist.
