@@ -38,6 +38,7 @@ const fullConfig: Config = {
   format: {
     output: 'JSON',
     keys: 'SAFE',
+    figmaKeys: 'SENTENCE',
     layout: 'LAYOUT',
     tokens: 'TOKEN',
     color: 'HEX',
@@ -178,11 +179,24 @@ const defaultIsValidConfig: Config = DEFAULT_CONFIG;
 
 const defaultTokensValue: typeof DEFAULT_CONFIG.format.tokens = 'TOKEN';
 
+// ─── format.figmaKeys (ADR-066) ──────────────────────────────────────────────
+
+// Optional on Config — absence means SENTENCE
+const noFigmaKeys: Config = { processing: {}, format: {}, include: {} };
+
+const sentenceKeys: Config = { processing: {}, format: { figmaKeys: 'SENTENCE' }, include: {} };
+const titleKeys: Config = { processing: {}, format: { figmaKeys: 'TITLE' }, include: {} };
+
+// @ts-expect-error — figmaKeys is deliberately narrower than format.keys
+const kebabFigmaKeys: Config = { processing: {}, format: { figmaKeys: 'KEBAB' }, include: {} };
+
+const defaultFigmaKeysValue: typeof DEFAULT_CONFIG.format.figmaKeys = 'SENTENCE';
+
 // ─── ResolvedConfig requires all defaultable fields ──────────────────────────
 
 const resolved: ResolvedConfig = {
   processing: { slotConstraints: false, collapsePrimitiveWrapper: false, variantDepth: 9999, details: 'LAYERED', inferNumberProps: false },
-  format: { output: 'JSON', keys: 'SAFE', layout: 'LAYOUT', tokens: 'TOKEN', color: 'HEX' },
+  format: { output: 'JSON', keys: 'SAFE', figmaKeys: 'SENTENCE', layout: 'LAYOUT', tokens: 'TOKEN', color: 'HEX' },
   include: { invalidVariants: false, invalidCombinations: true, emptyVariants: false, defaultSlotContent: false },
   transformers: [],
 };

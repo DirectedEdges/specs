@@ -89,12 +89,79 @@ model:
 
 **Choose one format and use it consistently.** Mixing formats across different spec runs creates the same inconsistency problem you're trying to solve. Set the format once in your config file and leave it.
 
-**`SAFE` is lossless; everything else is lossy.** The `SAFE` format preserves the original name exactly. All other formats discard information (casing, separators, spaces). If you need the original Figma name alongside a transformed key, `SAFE` is the only format that preserves it.
+**`SAFE` is lossless; everything else is lossy.** The `SAFE` format preserves the original name exactly. All other formats discard information (casing, separators, spaces). Names that would lose information are preserved separately — see [Round-Trip Safety](#round-trip-safety) below.
 
 **Match your consuming platform.** If your specs feed a React component library, use `CAMEL`. If they feed a Python SDK, use `SNAKE`. The format should eliminate transformation work for the most common consumer, not add it.
 
 **Special characters are handled gracefully.** Keys containing special characters (slashes, dots, brackets) are cleaned during transformation. The `SAFE` format preserves them as-is; other formats normalize them into the target convention.
 
+## Round-Trip Safety
+
+Formatting a key is one-way: `Icon leading`, `Icon-leading`, and `Icon_leading` all become `icon-leading` under `KEBAB`, and the formatted key alone cannot say which one it came from. That matters when a spec is rendered back into Figma, where layer and property names are the identity used to match existing nodes.
+
+Two settings make the round trip reliable.
+
+### The source convention
+
+`figmaKeys` declares the convention your Figma file already uses, so a formatted key has a defined name to reverse into:
+
+```yaml
+model:
+  format:
+    figmaKeys: SENTENCE   # what your Figma file uses
+    keys: KEBAB           # what the spec emits
+```
+
+| Value | Shape | Example |
+|-------|-------|---------|
+| `SENTENCE` (default) | First word capitalized, rest lowercase | `Icon leading` |
+| `TITLE` | Every word capitalized | `Icon Leading` |
+
+### The safe key grammar
+
+A Figma name survives every `keys` format when it satisfies all of the following:
+
+- ASCII letters and digits only — no `&`, `+`, `/`, `.`, parentheses, punctuation, or accented characters
+- Exactly one space between words, with no leading, trailing, or repeated spaces
+- No word begins with a digit
+- Casing matches your declared `figmaKeys`
+
+```yaml
+# figmaKeys: SENTENCE
+
+# Safe — reconstructs under every keys format
+Icon leading
+Label
+Badge count 2
+
+# Unsafe — the Figma name is preserved separately
+Icon-leading        # separator is not a space
+URL field           # inner capitals are lost
+Icon 2 leading      # digit-leading word loses its boundary
+Cut & paste         # the symbol and its word boundary are deleted
+```
+
+### What happens to unsafe names
+
+Unsafe names are fully supported — nothing is rejected. When a key cannot reconstruct its Figma name, that name is recorded on the definition:
+
+```yaml
+anatomy:
+  icon-leading:          # safe — nothing extra emitted
+    type: glyph
+  url-field:
+    type: text
+    $extensions:
+      com.figma:
+        name: URL field
+```
+
+References elsewhere in the spec (`elements`, `propConfigurations`) keep pointing at the formatted key; the Figma name is resolved through the definition.
+
+Because well-formed names emit nothing, the presence of `com.figma.name` doubles as a signal that a Figma layer or property name is worth tidying.
+
 ## See Also
 
+- [Keys](/settings/keys/) — the output convention setting
+- [Figma Keys](/settings/figma-keys/) — the source convention setting
 - [CLI Configuration](/settings/) — full config reference

@@ -33,10 +33,10 @@ anatomy:
   root:
     type: text
     $extensions:
-      com.figma.originalName: Label
+      com.figma.name: Label
 ```
 
-The `$extensions.com.figma.originalName` field on the anatomy root carries the original Figma layer name so the source layer remains traceable.
+The `$extensions.com.figma.name` field on the anatomy root carries the Figma layer name so the source layer remains traceable.
 
 ## Eligibility
 

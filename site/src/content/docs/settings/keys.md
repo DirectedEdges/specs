@@ -41,6 +41,9 @@ config:
     keys: CAMEL  # Transform keys to camelCase
 ```
 
+Every value other than `SAFE` is a lossy projection of the Figma name. Names that cannot be reconstructed from the formatted key are preserved in `$extensions.com.figma.name` on the definition, so the spec stays reversible into Figma.
+
 ## See Also
 
+- [Figma Keys](/settings/figma-keys/) - The convention your Figma file uses, and the target keys reverse into
 - [Key Formatting guide](/guides/key-formatting/) - Detailed formatting behavior and edge cases

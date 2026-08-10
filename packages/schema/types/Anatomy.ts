@@ -30,8 +30,14 @@ export type SubcomponentRef = {
  * @since 0.28.0
  */
 export interface FigmaAnatomyElementExtension {
-  /** Original Figma layer name before primitive-wrapper collapse promoted this element to root (ADR-058). */
-  originalName?: string;
+  /**
+   * The element's name in Figma, recorded when the anatomy key diverges from it —
+   * either because primitive-wrapper collapse promoted this element to root (ADR-058)
+   * or because `format.keys` could not represent the name losslessly (ADR-066).
+   * Absent when the key reconstructs the Figma name under `format.figmaKeys`.
+   * @since 0.30.0 — renamed from `originalName`
+   */
+  name?: string;
 }
 
 /**

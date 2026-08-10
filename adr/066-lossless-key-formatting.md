@@ -417,9 +417,9 @@ The read site in `figma-from-specs` is the one hazard: because it declares the e
 
 ## Semver Decision
 
-**Version bump**: `0.30.0 → 0.31.0` (`MAJOR`-class, released as a pre-1.0 minor)
+**Version bump**: none — lands in the in-flight `0.30.0` (`MAJOR`-class change, released as a pre-1.0 minor)
 
-**Justification**: Renaming `originalName` → `name` removes a published field name, which the constitution classes as `MAJOR`. The package is pre-1.0 and already releases breaking narrowing changes as minors — `0.29.0` narrowed `Styles.textAlignHorizontal` from `Style` to a string enum — so this ships as `0.31.0` under that established convention. All other changes are additive: `FigmaPropExtension.name` and `Config.format.figmaKeys` are optional, and the safe-key definitions are referenced only from descriptions. `ResolvedConfig.format.figmaKeys` is required, but `ResolvedConfig` is the post-defaulting shape and `DEFAULT_CONFIG` supplies `SENTENCE`, so no caller loses a valid construction.
+**Justification**: Renaming `originalName` → `name` removes a published field name, which the constitution classes as `MAJOR`. The package is pre-1.0 and already releases breaking narrowing changes as minors — `0.29.0` narrowed `Styles.textAlignHorizontal` from `Style` to a string enum. `0.30.0` is unreleased and is the version this ADR lands in, so it absorbs the change and `package.json` is unchanged. All other changes are additive: `FigmaPropExtension.name` and `Config.format.figmaKeys` are optional, and the safe-key definitions are referenced only from descriptions. `ResolvedConfig.format.figmaKeys` is required, but `ResolvedConfig` is the post-defaulting shape and `DEFAULT_CONFIG` supplies `SENTENCE`, so no caller loses a valid construction.
 
 ---
 

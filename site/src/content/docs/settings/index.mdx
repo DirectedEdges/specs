@@ -25,6 +25,7 @@ The **Format** section controls how spec data is serialized once it's extracted:
 
 - [Output Format](/settings/output-format/) — Serializes specs as `YAML` or `JSON`
 - [Keys](/settings/keys/) — Renames keys, such as `camelCase` or `snake_case`
+- [Figma Keys](/settings/figma-keys/) — Declares the convention your Figma file uses, keeping renamed keys reversible
 - [Tokens](/settings/tokens/) — Serializes as forms such as a name string or `{ $token, $type }` object
 - [Color](/settings/color/) — Formats color, such as `#FF6600` or `{ colorSpace, components }`
 
@@ -153,6 +154,7 @@ config:
   format:
     output: YAML
     keys: SAFE
+    figmaKeys: SENTENCE
     layout: LAYOUT
     tokens: TOKEN
 

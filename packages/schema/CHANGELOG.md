@@ -9,9 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `Config.format.figmaKeys` — naming convention the Figma file uses (`SENTENCE` | `TITLE`, default `SENTENCE`); the reversal target for `format.keys` (ADR-066)
+- `FigmaPropExtension.name` — Figma property name, emitted when the prop key cannot reconstruct it (ADR-066)
+- `SafeKeySentence` and `SafeKeyTitle` schema definitions — the key grammar that survives every `format.keys` value (ADR-066)
+
 ### Changed
 
+- `FigmaAnatomyElementExtension.name` — renamed from `originalName`; now records the Figma layer name for key divergence as well as wrapper collapse (ADR-066)
+
 ### Removed
+
+### Migration
+
+`FigmaAnatomyElementExtension.originalName` → `FigmaAnatomyElementExtension.name`: read `$extensions['com.figma'].name` instead; the value and its collapse-provenance meaning are unchanged. Consumers that read the extension through an inline structural type will not see a compile error — update those call sites explicitly.
 
 
 ## [0.29.0] - 2026-08-07
