@@ -33,35 +33,15 @@ specs render specs/forms/            # every component in one group
 
 Batch scanning looks at most two levels deep, so both `specs/deButton/` and `specs/forms/deInput/` are found. It never descends into a component folder.
 
-Optional — when omitted, `render` resolves in this order:
+Optional — when omitted, `render` uses the configured `outputDirectory` as a batch.
 
-1. `--manifest`, if passed.
-2. The default render manifest at `{dataDirectory}/{alias}.render-manifest.md` (same source-alias resolution as [`generate`](/cli/commands/generate/) and [`scan`](/cli/commands/scan/)).
-3. The configured `outputDirectory`, as a batch.
-
-A manifest wins wherever one exists — it's the only place render *order* can be expressed, which matters when one component's spec references another. A directory batch renders in path order, so cross-component references may need a manifest instead.
+A directory batch renders in path order. Render order isn't configurable, so when one component's spec references another, render them individually in the order you need.
 
 ## Options
-
-### `-m, --manifest <path>`
-
-Render every spec listed in a render manifest — a plain text file, one relative spec path per line, `#`-prefixed lines ignored. Specs render sequentially, in file order, so later entries in the same batch can reference components rendered earlier in it.
-
-```bash
-specs render --manifest data/library.render-manifest.md
-```
 
 ### `--config <path>`
 
 Use a specific config file instead of the default `specs.config.yaml`.
-
-### `--no-return-spec`
-
-By default, `render` asks the bridge to generate a fresh spec from the newly rendered Figma node and prints a confirmation that it received it — useful for spot-checking that the render landed as expected. Pass `--no-return-spec` to skip this and only get the node ID back.
-
-```bash
-specs render specs/deButton.yaml --no-return-spec
-```
 
 ## Examples
 
@@ -69,17 +49,11 @@ specs render specs/deButton.yaml --no-return-spec
 # Render one component
 specs render specs/deButton.yaml
 
-# Render a curated, explicitly ordered batch
-specs render --manifest data/library.render-manifest.md
-
 # Render every component in the output directory
 specs render specs/
 
-# Same, resolved from config (manifest first, then outputDirectory)
+# Same, resolved from config (outputDirectory)
 specs render
-
-# Render without the round-trip spec check
-specs render specs/deButton.yaml --no-return-spec
 ```
 
 ## Exit Codes
@@ -88,7 +62,7 @@ specs render specs/deButton.yaml --no-return-spec
 |------|---------|
 | `0` | Success |
 | `1` | General error — bridge unreachable (run `specs bridge start`), render failed, or the plugin isn't connected |
-| `2` | Invalid arguments — no spec path resolvable and no default render manifest found |
+| `2` | Invalid arguments — no spec path given and no `outputDirectory` to fall back to |
 
 ---
 

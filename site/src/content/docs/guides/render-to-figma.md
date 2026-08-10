@@ -51,7 +51,6 @@ my-workspace/
     library.manifest.md       # from `specs scan`
     library.file.json         # from `specs scan`
     library.variables.json    # from `specs scan`
-    library.render-manifest.md # optional, for batch renders
 ```
 
 A spec rendered by `render` binds glyphs, styles, and variables using the data files your last `specs scan` produced. If you've added or renamed components in Figma, or updated styles or variables, **run `specs scan` again before rendering** so those bindings are current. Everything else — resolving the spec's structure into Figma nodes, styles, and variants — is handled automatically; there's no manual prep beyond having an up-to-date scan and a spec generated the normal way with [`generate`](/cli/commands/generate/).
@@ -72,22 +71,15 @@ On success:
 
 The node ID is the Figma node that was created or updated — open it directly in Figma via `figma.com/file/.../?node-id=1234-5678`.
 
-### A batch, via manifest
+### A batch, from a directory
 
-A render manifest lists spec paths to render in sequence, one per line:
-
-```
-# data/library.render-manifest.md
-deAlert.yaml
-deAvatar.yaml
-deBadge.yaml
-```
+Point `render` at a directory of component folders to render every component beneath it:
 
 ```bash
-specs render --manifest data/library.render-manifest.md
+specs render specs/
 ```
 
-Renders happen one at a time, in file order — this lets a later spec in the batch reference a component the batch already rendered earlier in the same run. On completion:
+Renders happen one at a time, in path order. On completion:
 
 ```
 Done: 6 rendered in Figma, 0 failed.
@@ -95,7 +87,7 @@ Done: 6 rendered in Figma, 0 failed.
 
 ### What to expect
 
-- **A round-trip check by default.** After rendering, the bridge asks the plugin to generate a fresh spec from the node it just created and hands it back to the CLI — a quick way to confirm the render produced something. Skip it with `--no-return-spec` if you don't need it.
+- **No round-trip check.** `render` reports success or failure and the node ID — nothing more. To read back what actually landed in Figma, run [`generate --from-bridge`](/cli/commands/generate/#bridge-mode) as a separate step.
 - **One render at a time.** The bridge holds a single render slot; concurrent `render` calls queue rather than run in parallel.
 - **This is a young feature.** The writer is under active development — expect rough edges on more elaborate components, and treat every render as something to visually check in Figma afterward rather than a guaranteed match to the source spec.
 

@@ -29,7 +29,6 @@ export interface RenderRequestBody {
    * it as-is instead of reading/parsing specPath itself. specPath is still
    * required alongside it to derive the workspace (specsDir/dataDir). */
   spec?: Record<string, unknown>;
-  manifestPath?: string;
   pageId?: string;
   fileKey?: string;
   /** Delete a same-titled page node before rendering, instead of erroring on the collision. */
@@ -43,9 +42,6 @@ export interface RenderResponse {
   nodeId?: string;
   /** Non-fatal render degradations reported by the plugin (font fallbacks, skipped keys). */
   warnings?: string[];
-  written?: number;
-  failed?: number;
-  results?: Array<{ name: string; nodeId?: string; error?: string }>;
   error?: unknown;
 }
 

@@ -29,7 +29,7 @@
 // Workspace resolution (in order of precedence):
 //   1. --workspace <path> CLI flag
 //   2. WORKSPACE_DIR env var
-//   3. Derived per-request from the specPath/manifestPath (walks up to find specs/ + data/ sibling dirs)
+//   3. Derived per-request from the specPath (walks up to find specs/ + data/ sibling dirs)
 //   4. SPECS_DIR / DATA_DIR env vars as explicit overrides for non-standard layouts
 //
 // Multi-connection protocol:
@@ -45,7 +45,7 @@
 import { WebSocketServer, type WebSocket } from 'ws';
 import { createServer } from 'http';
 import { readFileSync, readdirSync, statSync } from 'fs';
-import { resolve as pathResolve, isAbsolute, basename, dirname } from 'path';
+import { resolve as pathResolve, isAbsolute, basename } from 'path';
 import { parse } from 'yaml';
 import { WS_PORT, HTTP_PORT, DEFAULT_PAGE_ID, resolveWorkspaceDir } from './config.js';
 import { ConnectionRegistry, type Connection } from './connections.js';
@@ -247,41 +247,18 @@ const http = createServer((req, res) => {
   let body = '';
   req.on('data', (chunk) => { body += chunk; });
   req.on('end', () => {
-    let params: { specPath?: string; spec?: Record<string, unknown>; manifestPath?: string; pageId?: string | null; fileKey?: string; overwrite?: boolean };
+    let params: { specPath?: string; spec?: Record<string, unknown>; pageId?: string | null; fileKey?: string; overwrite?: boolean };
     try { params = JSON.parse(body); } catch {
       res.writeHead(400);
       res.end(JSON.stringify({ error: 'Invalid JSON body.' }));
       return;
     }
 
-    const { specPath: specArg, spec: preParsedSpec, manifestPath: manifestArg, pageId = null, fileKey, overwrite } = params;
+    const { specPath: specArg, spec: preParsedSpec, pageId = null, fileKey, overwrite } = params;
 
-    if (!specArg && !manifestArg) {
+    if (!specArg) {
       res.writeHead(400);
-      res.end(JSON.stringify({ error: 'specPath or manifestPath is required.' }));
-      return;
-    }
-
-    // Manifest path: drain the queue, return summary
-    if (manifestArg) {
-      const manifestPath = isAbsolute(manifestArg) ? manifestArg : pathResolve(process.cwd(), manifestArg);
-      let specPaths: string[];
-      try {
-        specPaths = parseRenderManifest(manifestPath);
-      } catch (e) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: false, error: (e as Error).message }));
-        return;
-      }
-      drainManifest(specPaths, pageId, fileKey, overwrite)
-        .then((summary) => {
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, ...summary }));
-        })
-        .catch((err) => {
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: false, error: errorMessage(err) }));
-        });
+      res.end(JSON.stringify({ error: 'specPath is required.' }));
       return;
     }
 
@@ -292,7 +269,7 @@ const http = createServer((req, res) => {
       return;
     }
 
-    sendRender(specArg, pageId, {}, fileKey, preParsedSpec, overwrite)
+    sendRender(specArg, pageId, fileKey, preParsedSpec, overwrite)
       .then((result) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(result));
@@ -539,75 +516,6 @@ function resolveSourceAlias(workspaceDir: string): string {
   return basename(workspaceDir);
 }
 
-// ── Render manifest parser ────────────────────────────────────────────────────
-
-/**
- * Parse a render manifest file.
- * Lines starting with # are comments; blank lines are ignored.
- * Relative paths resolve against the workspace specs/ dir derived from the manifest's location.
- * Absolute paths pass through unchanged.
- */
-function parseRenderManifest(manifestPath: string): string[] {
-  let content: string;
-  try {
-    content = readFileSync(manifestPath, 'utf8');
-  } catch (e) {
-    throw new Error(`Cannot read render manifest "${manifestPath}": ${(e as Error).message}`);
-  }
-
-  // Derive specs dir from manifest location: manifest lives in data/, workspace is its parent.
-  const manifestWorkspaceDir = resolveWorkspaceDir(manifestPath) ?? dirname(dirname(manifestPath));
-  const manifestSpecsDir = pathResolve(manifestWorkspaceDir, 'specs');
-
-  const paths: string[] = [];
-  for (const raw of content.split('\n')) {
-    const line = raw.trim();
-    if (!line || line.startsWith('#')) continue;
-    paths.push(isAbsolute(line) ? line : pathResolve(manifestSpecsDir, line));
-  }
-
-  if (paths.length === 0) throw new Error(`Render manifest "${manifestPath}" contains no spec entries.`);
-  console.log(`  Render manifest: ${paths.length} specs`);
-  return paths;
-}
-
-/**
- * Drain a render manifest queue sequentially, accumulating instanceIds for dependency resolution.
- */
-async function drainManifest(specPaths: string[], rawPageId: string | null, fileKey?: string, overwrite?: boolean) {
-  const results: Array<{ name: string; nodeId?: string; error?: string }> = [];
-  const instanceIdAccumulator: Manifest = {};
-  const total = specPaths.length;
-
-  for (let i = 0; i < specPaths.length; i++) {
-    const specPath = specPaths[i];
-    const name = basename(dirname(specPath)) === 'specs'
-      ? basename(specPath, '.yaml')
-      : basename(dirname(specPath)); // subdirectory layout: use dir name as key
-    console.log(`Rendering ${i + 1}/${total}: ${name}…`);
-
-    try {
-      const result = await sendRender(specPath, rawPageId, instanceIdAccumulator, fileKey, undefined, overwrite);
-      if (result.success && result.nodeId) {
-        instanceIdAccumulator[name] = { id: result.nodeId };
-        results.push({ name, nodeId: result.nodeId });
-      } else {
-        const errMsg = result.error ?? 'Unknown error';
-        console.error(`  ✗ ${name}: ${errMsg}`);
-        results.push({ name, error: errMsg });
-      }
-    } catch (e) {
-      console.error(`  ✗ ${name}: ${(e as Error).message}`);
-      results.push({ name, error: (e as Error).message });
-    }
-  }
-
-  const written = results.filter((r) => !r.error).length;
-  const failed = results.filter((r) => r.error).length;
-  console.log(`\nManifest complete: ${written} rendered in Figma, ${failed} failed.`);
-  return { written, failed, results };
-}
-
 // ── Shared render logic ───────────────────────────────────────────────────────
 
 /**
@@ -633,7 +541,7 @@ async function sendGenerateFromSelection(fileKey?: string, nodeId?: string): Pro
 /**
  * Send a single renderComponent message over the WebSocket and wait for the result.
  */
-async function sendRender(specPath: string, rawPageId: string | null, instanceIdOverrides: Manifest = {}, fileKey?: string, preParsedSpec?: Record<string, unknown>, overwrite?: boolean): Promise<RenderResult> {
+async function sendRender(specPath: string, rawPageId: string | null, fileKey?: string, preParsedSpec?: Record<string, unknown>, overwrite?: boolean): Promise<RenderResult> {
   const conn = registry.resolve(fileKey);
 
   let spec: Record<string, unknown>;
@@ -651,7 +559,6 @@ async function sendRender(specPath: string, rawPageId: string | null, instanceId
   const { specsDir, dataDir, workspaceName } = dirs;
 
   const manifest = buildManifest(spec, specsDir, pathResolve(dataDir, workspaceName + '.file.json'));
-  Object.assign(manifest, instanceIdOverrides);
 
   const glyphIdManifest = buildGlyphManifest(spec, pathResolve(dataDir, workspaceName + '.manifest.md'), pathResolve(dataDir, workspaceName + '.file.json'));
   const stylesManifest = buildStylesManifest(pathResolve(dataDir, workspaceName + '.file.json'));

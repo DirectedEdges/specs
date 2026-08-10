@@ -1,9 +1,9 @@
 /**
  * Render Command
  *
- * Sends a spec (or a render manifest) to the local CLI bridge, which relays
- * it to a connected Specs 2 Figma plugin to create or update the matching
- * component live in Figma. See `specs bridge` to start/stop the bridge.
+ * Sends a spec to the local CLI bridge, which relays it to a connected
+ * Specs 2 Figma plugin to create or update the matching component live in
+ * Figma. See `specs bridge` to start/stop the bridge.
  */
 
 import { Command } from 'commander';
@@ -21,98 +21,53 @@ const ERROR_CODES = {
   INVALID_ARGS: 2,
 };
 
-// Resolve default alias the same way Generate/Scan do: `library` if it
-// declares `data: [file]`, else the first source that does.
-function resolveDefaultAlias(sources: Record<string, { data?: string[] }>): string | null {
-  if (sources.library && Array.isArray(sources.library.data) && sources.library.data.includes('file')) return 'library';
-  const candidate = Object.entries(sources).find(([, s]) => Array.isArray(s.data) && s.data.includes('file'));
-  return candidate ? candidate[0] : null;
-}
-
 export const Render = new Command('render')
-  .description('Render a spec (or manifest) into Figma via the local CLI bridge')
-  .argument('[specPath]', 'Path to a spec YAML file, a component folder, or a directory of component folders (default: {dataDirectory}/{alias}.render-manifest.md from config, else {outputDirectory})')
-  .option('-m, --manifest <path>', 'Path to a render-manifest.md file')
+  .description('Render a spec into Figma via the local CLI bridge')
+  .argument('[specPath]', 'Path to a spec YAML file, a component folder, or a directory of component folders (default: {outputDirectory} from config)')
   .option('--config <path>', 'Path to config file (specs.config.yaml)')
   .option('--file <fileKey>', 'Target a specific connected Figma file (prompts to choose if more than one is connected in an interactive terminal; required otherwise)')
   .option('--page <id>', 'Render onto this page id instead of the plugin\'s current page (recommended for scripted runs — immune to page drift)')
   .option('--overwrite', 'Delete any existing page component with the same title before rendering (without this, a title collision is an error)')
   .option('--watch', 'Watch the spec path and re-render on every change (implies --overwrite)')
   .option('--strict', 'Fail the render when an instance element cannot be resolved, instead of rendering a component with missing content')
-  .action(async (specPath: string | undefined, options: { manifest?: string; config?: string; file?: string; page?: string; overwrite?: boolean; watch?: boolean; strict?: boolean; verbose?: boolean }) => {
-    let manifestPath = options.manifest;
-
+  .action(async (specPath: string | undefined, options: { config?: string; file?: string; page?: string; overwrite?: boolean; watch?: boolean; strict?: boolean; verbose?: boolean }) => {
     if (options.watch) {
-      if (manifestPath || !specPath) {
-        console.error('Error: --watch requires a single spec path (not --manifest).');
+      if (!specPath) {
+        console.error('Error: --watch requires a spec path.');
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
       await watchAndRender(specPath, options);
       return;
     }
 
-    // Zero-arg resolution, in order: the default render manifest (curated and
-    // ordered, so it wins wherever one exists), then the configured
-    // outputDirectory as a batch of component folders.
-    if (!specPath && !manifestPath) {
+    // Zero-arg resolution: the configured outputDirectory, as a batch of
+    // component folders.
+    if (!specPath) {
       const configLoader = new ConfigLoader();
       const config = configLoader.load(options.config);
-      const dataDir = config.dataDirectory ? path.resolve(config.dataDirectory) : path.join(process.cwd(), 'data');
-      const defaultAlias = resolveDefaultAlias(config.sources || {});
 
-      const defaultManifest = defaultAlias
-        ? path.join(dataDir, `${defaultAlias}.render-manifest.md`)
-        : null;
-
-      if (defaultManifest && fs.existsSync(defaultManifest)) {
-        manifestPath = defaultManifest;
-        console.log(`Using default render manifest: ${path.relative(process.cwd(), manifestPath)}`);
-      } else if (config.outputDirectory && fs.existsSync(path.resolve(config.outputDirectory))) {
+      if (config.outputDirectory && fs.existsSync(path.resolve(config.outputDirectory))) {
         specPath = path.resolve(config.outputDirectory);
         console.log(`Using output directory: ${path.relative(process.cwd(), specPath) || '.'}`);
       } else {
-        console.error('Error: provide a spec path or --manifest <path>.');
-        if (defaultManifest) {
-          console.error(`Tip: no default render manifest found at ${defaultManifest}, and no outputDirectory to fall back to.`);
-        } else {
-          console.error('Tip: no default could be resolved — configure a source with `data: [file]` in specs.config.yaml.');
-        }
+        console.error('Error: provide a spec path.');
+        console.error('Tip: no outputDirectory to fall back to — set one in specs.config.yaml.');
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
     }
 
     try {
-      if (manifestPath) {
-        const absManifestPath = path.resolve(manifestPath);
-        console.log(`Posting manifest: ${absManifestPath}`);
-        const fileKey = await resolveFileKey(options.file);
-        const result = await postRender({ manifestPath: absManifestPath, fileKey, pageId: options.page, overwrite: options.overwrite });
+      const absSpecPath = path.resolve(specPath);
+      if (!fs.existsSync(absSpecPath)) {
+        console.error(`Error: Spec path not found: ${absSpecPath}`);
+        process.exit(ERROR_CODES.INVALID_ARGS);
+      }
 
-        if (!result.success) {
-          console.error(`Error: ${result.error}`);
-          process.exit(ERROR_CODES.GENERAL_ERROR);
-        }
-
-        console.log(`\nDone: ${result.written} rendered in Figma, ${result.failed} failed.`);
-        if ((result.failed ?? 0) > 0) {
-          for (const r of result.results ?? []) {
-            if (r.error) console.error(`  ✗ ${r.name}: ${r.error}`);
-          }
-          process.exit(ERROR_CODES.GENERAL_ERROR);
-        }
-      } else if (specPath) {
-        const absSpecPath = path.resolve(specPath);
-        if (!fs.existsSync(absSpecPath)) {
-          console.error(`Error: Spec path not found: ${absSpecPath}`);
-          process.exit(ERROR_CODES.INVALID_ARGS);
-        }
-
-        const isBatchDir = fs.statSync(absSpecPath).isDirectory() && !isComponentFolder(absSpecPath);
-        if (isBatchDir) {
-          await renderBatchDirectory(absSpecPath, options);
-        } else {
-          await renderSpecPath(absSpecPath, options);
-        }
+      const isBatchDir = fs.statSync(absSpecPath).isDirectory() && !isComponentFolder(absSpecPath);
+      if (isBatchDir) {
+        await renderBatchDirectory(absSpecPath, options);
+      } else {
+        await renderSpecPath(absSpecPath, options);
       }
     } catch (e) {
       const err = e as NodeJS.ErrnoException;
@@ -189,8 +144,7 @@ function confirm(question: string): Promise<boolean> {
 
 /**
  * Render every component folder found beneath a directory, sequentially and in
- * path order — same contract as a manifest batch, minus the curated ordering.
- * One failure doesn't abort the run; the exit code reflects the total.
+ * path order. One failure doesn't abort the run; the exit code reflects the total.
  */
 async function renderBatchDirectory(
   absDir: string,

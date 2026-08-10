@@ -188,8 +188,8 @@ specs bridge start
 # Render one component
 specs render specs/deButton.yaml
 
-# Or render a curated batch
-specs render --manifest data/library.render-manifest.md
+# Or render every component in a directory
+specs render specs/
 ```
 
 ---
