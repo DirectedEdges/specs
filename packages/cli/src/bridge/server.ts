@@ -202,6 +202,11 @@ wss.on('error', (e: NodeJS.ErrnoException) => {
 
 // ── HTTP control server ───────────────────────────────────────────────────────
 
+/** Callers prefix what they print with "Error: ", so report the bare message. */
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 const http = createServer((req, res) => {
   if (req.method === 'GET' && req.url === '/status') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -227,7 +232,7 @@ const http = createServer((req, res) => {
         })
         .catch((err) => {
           res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: false, error: String(err) }));
+          res.end(JSON.stringify({ success: false, error: errorMessage(err) }));
         });
     });
     return;
@@ -275,7 +280,7 @@ const http = createServer((req, res) => {
         })
         .catch((err) => {
           res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: false, error: String(err) }));
+          res.end(JSON.stringify({ success: false, error: errorMessage(err) }));
         });
       return;
     }
@@ -294,7 +299,7 @@ const http = createServer((req, res) => {
       })
       .catch((err) => {
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: false, error: String(err) }));
+        res.end(JSON.stringify({ success: false, error: errorMessage(err) }));
       });
   });
 });

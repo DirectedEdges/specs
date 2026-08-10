@@ -194,6 +194,39 @@ specs render --manifest data/library.render-manifest.md
 
 ---
 
+## Generate from the Current Selection
+
+When the component you want is already open in Figma, skip the fetch entirely and generate from the live selection over the same bridge. See [Bridge Mode](/cli/commands/generate/#bridge-mode) for the full behavior.
+
+```bash
+# Bridge running, Specs 2 plugin open with CLI Bridge enabled,
+# and the component selected in Figma.
+specs generate --from-bridge -o specs/dsButton.yaml
+```
+
+The spec reflects the document as it stands right now, including unsaved edits — useful while iterating on a component rather than after a fetch.
+
+```bash
+# Pin the node instead of relying on a manual selection
+specs generate --from-bridge --node 5507:123 -o specs/dsButton.yaml
+
+# Pick a file when several are connected to one bridge
+specs bridge status
+specs generate --from-bridge --file abc123XYZ -o specs/dsButton.yaml
+```
+
+With 2+ files connected and no `--file`, an interactive terminal prompts you to choose; scripts and CI fail with the ambiguity error instead of hanging.
+
+Pair it with `render` to round-trip a spec and diff the result:
+
+```bash
+specs render specs/dsButton.yaml
+specs generate --from-bridge -o specs/roundtrip/dsButton.yaml
+diff specs/dsButton.yaml specs/roundtrip/dsButton.yaml
+```
+
+---
+
 ## Tips
 
 ### Pipe to Other Tools
