@@ -20,6 +20,7 @@ export default defineConfig({
         Sidebar: './src/components/Sidebar.astro',
         Hero: './src/components/Hero.astro',
         Header: './src/components/Header.astro',
+        PageTitle: './src/components/PageTitle.astro',
         Footer: './src/components/Footer.astro',
       },
       customCss: ['./src/custom.css'],
