@@ -2,7 +2,7 @@
 
 **Branch**: `066-lossless-key-formatting`
 **Created**: 2026-08-10
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none — extends ADR-058)*
 

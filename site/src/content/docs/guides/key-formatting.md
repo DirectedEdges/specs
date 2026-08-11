@@ -114,16 +114,22 @@ model:
 
 | Value | Shape | Example |
 |-------|-------|---------|
-| `SENTENCE` (default) | First word capitalized, rest lowercase | `Icon leading` |
+| `NONE` (default) | No convention declared | — |
+| `SENTENCE` | First word capitalized, rest lowercase | `Icon leading` |
 | `TITLE` | Every word capitalized | `Icon Leading` |
 
+Everything in the rest of this guide is **opt-in**. Under the `NONE` default, names are formatted per `keys` and nothing else happens: no grammar check, no preserved names, no defined reversal. Declaring `SENTENCE` or `TITLE` turns all of it on, and your specs grow an extension block for each name that needs one. Declare a convention when you intend to render specs back into Figma, or when you want divergent names surfaced.
+
 ### The safe key grammar
+
+*Applies when `figmaKeys` is `SENTENCE` or `TITLE`.*
 
 A Figma name survives every `keys` format when it satisfies all of the following:
 
 - ASCII letters and digits only — no `&`, `+`, `/`, `.`, parentheses, punctuation, or accented characters
 - Exactly one space between words, with no leading, trailing, or repeated spaces
-- No word begins with a digit
+- Each word is either all letters or all digits — `Badge count 2` is fine, `Badge count2` is not
+- The name does not begin with a digit
 - Casing matches your declared `figmaKeys`
 
 ```yaml
@@ -132,13 +138,32 @@ A Figma name survives every `keys` format when it satisfies all of the following
 # Safe — reconstructs under every keys format
 Icon leading
 Label
-Badge count 2
+Badge count 2       # the digit is its own word, so the boundary survives
+Icon 2 leading
 
 # Unsafe — the Figma name is preserved separately
 Icon-leading        # separator is not a space
 URL field           # inner capitals are lost
-Icon 2 leading      # digit-leading word loses its boundary
+Badge count2        # letters and digits share a word
+2 icons             # begins with a digit
 Cut & paste         # the symbol and its word boundary are deleted
+```
+
+A digit run always counts as its own word, in both directions. That is what lets `Badge count 2` become `badgeCount2` and come back intact — and why `Badge count2` cannot, since it formats to the same key but is not the same name.
+
+### Names already in your output convention
+
+Figma files are rarely uniform. If yours is mostly sentence case but a few properties were named `isDisabled` for the engineers consuming them, those names fail the grammar — yet they are already exactly what you want on both sides.
+
+Such names are passed through unformatted and recorded, so rendering the spec back into Figma restores `isDisabled` rather than rewriting it to `Is disabled`:
+
+```yaml
+props:
+  isDisabled:
+    type: boolean
+    $extensions:
+      com.figma:
+        name: isDisabled
 ```
 
 ### What happens to unsafe names
@@ -159,6 +184,13 @@ anatomy:
 References elsewhere in the spec (`elements`, `propConfigurations`) keep pointing at the formatted key; the Figma name is resolved through the definition.
 
 Because well-formed names emit nothing, the presence of `com.figma.name` doubles as a signal that a Figma layer or property name is worth tidying.
+
+### What is not covered
+
+The Figma names of anatomy elements and props are preserved, including those nested inside compositions and slot content. Two things are not:
+
+- **Variant option values.** The values inside a variant prop's `options` are formatted like keys, but no Figma name is recorded for them.
+- **Titles.** Component and subcomponent titles are never formatted — they carry the Figma name verbatim already, so there is nothing to preserve.
 
 ## See Also
 
