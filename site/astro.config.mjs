@@ -239,6 +239,11 @@ export default defineConfig({
             { label: 'Variant Layering', slug: 'guides/variant-layering' },
           ],
         },
+        {
+          label: 'Decision Records',
+          collapsed: true,
+          autogenerate: { directory: 'adr' },
+        },
         { label: 'License (Legal)', slug: 'overview/license' },
         { label: 'Terms of Service', slug: 'overview/terms-of-service' },
       ],
