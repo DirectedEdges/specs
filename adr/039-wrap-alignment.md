@@ -3,6 +3,7 @@
 **Branch**: `039-wrap-alignment`
 **Created**: 2026-04-20
 **Status**: ACCEPTED
+**Summary**: `wrap` and `wrapAlignment` with a `WrapAlignment` enum replace `layoutWrap` and `counterAxisAlignContent`.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

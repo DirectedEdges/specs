@@ -3,6 +3,7 @@
 **Branch**: `037-item-spacing`
 **Created**: 2026-04-20
 **Status**: ACCEPTED
+**Summary**: An `ItemSpacing` type gives `itemSpacing` a bi-axial shape, replacing the separate `counterAxisSpacing` property.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

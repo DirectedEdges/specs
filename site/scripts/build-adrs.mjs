@@ -34,14 +34,6 @@ function extractStatus(md) {
   return m ? m[1].replace(/[^A-Z]/gi, '').toUpperCase() : null;
 }
 
-/** Clip to a word boundary so summaries stay scannable in the index. */
-function truncate(text, limit = 160) {
-  if (text.length <= limit) return text;
-  const clipped = text.slice(0, limit);
-  const lastSpace = clipped.lastIndexOf(' ');
-  return `${clipped.slice(0, lastSpace > 0 ? lastSpace : limit).replace(/[.,;:—-]$/, '')}…`;
-}
-
 /** Escape text destined for raw HTML in the generated index. */
 function escapeHtml(text) {
   return text
@@ -52,54 +44,23 @@ function escapeHtml(text) {
 }
 
 /**
- * Markdown inside a raw HTML block is passed through untouched, so titles
- * carrying `code spans` need them rendered here.
+ * Markdown inside a raw HTML block is passed through untouched, so text
+ * carrying `code spans` needs them rendered here.
  */
-function escapeTitle(title) {
-  return escapeHtml(title).replace(/`([^`]+)`/g, '<code>$1</code>');
+function renderInline(text) {
+  return escapeHtml(text).replace(/`([^`]+)`/g, '<code>$1</code>');
 }
 
 /**
- * First sentence of the Context section, flattened to plain text, for use as
- * the page description and the index summary.
+ * The `**Summary**:` line from the metadata block, authored at implementation
+ * time. There is deliberately no fallback — an unwritten summary shows up as a
+ * blank index row rather than as plausible-looking prose lifted from Context.
  */
 function extractSummary(md) {
-  const after = md.split(/^##\s+Context\s*$/m)[1];
-  if (!after) return null;
-  const section = after.split(/^##\s+/m)[0];
-
-  // Fenced blocks and tables read as prose once flattened — drop them first.
-  const prose = section
-    .replace(/^```[\s\S]*?^```/gm, '')
-    .replace(/^\|.*$/gm, '');
-
-  let leadIn = null;
-
-  for (const raw of prose.split('\n\n')) {
-    const para = raw.trim();
-    if (!para || para.startsWith('#') || para.startsWith('-') || para.startsWith('>')) continue;
-
-    const flat = para
-      .replace(/\s+/g, ' ')
-      .replace(/`([^`]*)`/g, '$1')
-      .replace(/\*\*([^*]*)\*\*/g, '$1')
-      .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-      .trim();
-
-    // A paragraph ending in a colon introduces a list or block — its sentence
-    // is only half the thought, so keep looking.
-    if (flat.endsWith(':')) {
-      leadIn ??= flat;
-      continue;
-    }
-
-    const sentence = flat.match(/^.*?\.(?=\s|$)/)?.[0];
-    if (!sentence || sentence.length < 30) continue;
-    return truncate(sentence);
-  }
-
-  // Some Contexts are only a lead-in followed by a list or code block.
-  return leadIn ? truncate(leadIn.replace(/:$/, '.')) : null;
+  const m = md.match(/^\*\*Summary\*\*:\s*(.+)$/m);
+  if (!m) return null;
+  const text = m[1].trim();
+  return /^\*\(.*\)\*$/.test(text) ? null : text;
 }
 
 /** Drop the H1 — Starlight renders the title from frontmatter. */
@@ -124,7 +85,9 @@ for (const file of files) {
     console.warn(`⚠ ${file}: no H1 title, skipped`);
     continue;
   }
-  adrs.push({ number, slug, title, summary: extractSummary(md), body: stripTitle(md) });
+  const summary = extractSummary(md);
+  if (!summary) console.warn(`⚠ ${file}: no **Summary** in the metadata block`);
+  adrs.push({ number, slug, title, summary, body: stripTitle(md) });
 }
 
 rmSync(outDir, { recursive: true, force: true });
@@ -134,7 +97,7 @@ for (const adr of adrs) {
   const frontmatter = [
     '---',
     `title: ${yaml(adr.title)}`,
-    adr.summary ? `description: ${yaml(adr.summary)}` : null,
+    adr.summary ? `description: ${yaml(adr.summary.replace(/`/g, ''))}` : null,
     '---',
   ]
     .filter(Boolean)
@@ -147,11 +110,11 @@ const rows = [...adrs]
   .reverse()
   .map(a => {
     const summary = a.summary
-      ? `\n<p class="adr-summary">${escapeHtml(a.summary)}</p>`
+      ? `\n<p class="adr-summary">${renderInline(a.summary)}</p>`
       : '';
     return `<tr>
 <td class="adr-number">${a.number}</td>
-<td class="adr-entry"><a href="/adr/${a.slug}/">${escapeTitle(a.title)}</a>${summary}</td>
+<td class="adr-entry"><a href="/adr/${a.slug}/">${renderInline(a.title)}</a>${summary}</td>
 </tr>`;
   })
   .join('\n');

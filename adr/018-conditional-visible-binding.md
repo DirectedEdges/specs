@@ -3,6 +3,7 @@
 **Branch**: `018-conditional-visible-binding`
 **Created**: 2026-03-10
 **Status**: ACCEPTED
+**Summary**: A `Conditional` type with condition expressions lets `visible` test a prop value rather than mirror it.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

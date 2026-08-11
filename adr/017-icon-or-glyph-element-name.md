@@ -3,6 +3,7 @@
 **Branch**: `017-icon-or-glyph-element-name`
 **Created**: 2026-03-10
 **Status**: ACCEPTED
+**Summary**: A `glyph` element type, `GlyphProp` and `glyphNamePattern` emit icons as first-class by applying Figma conventions.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

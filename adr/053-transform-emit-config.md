@@ -3,6 +3,7 @@
 **Branch**: `053-transform-emit-config`
 **Created**: 2026-06-05
 **Status**: ACCEPTED
+**Summary**: A `transform` config block with `TransformEntry` drives the `specs transform` command's code artifact output.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 **RFC**: [RFC 001: Component Dictionary](../rfc/001-component-dictionary/README.md)

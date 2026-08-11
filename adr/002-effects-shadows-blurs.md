@@ -3,6 +3,7 @@
 **Branch**: `v0.11.0`
 **Created**: 2026-02-24
 **Status**: ACCEPTED
+**Summary**: An `effects` property with `Shadow`, `Blur` and `Effects` types replaces `effectStyleId` to describe shadows and blurs.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

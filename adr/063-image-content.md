@@ -3,6 +3,7 @@
 **Branch**: `063-image-content`
 **Created**: 2026-07-14
 **Status**: ACCEPTED
+**Summary**: Images are supported by `backgroundImage` style, `ImageProp` and binding in components and examples.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 
