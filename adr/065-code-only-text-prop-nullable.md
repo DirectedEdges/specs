@@ -3,6 +3,7 @@
 **Branch**: `065-code-only-text-prop-nullable`
 **Created**: 2026-08-05
 **Status**: ACCEPTED
+**Summary**: `NumberProp` gains `nullable`, and JSDoc documents the default each prop type applies when `nullable` is absent.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none — extends ADR-019 and ADR-022)*
 

@@ -3,6 +3,7 @@
 **Branch**: `053-transform-emit-config`
 **Created**: 2026-06-05
 **Status**: ACCEPTED
+**Summary**: A `workspace.schema.json` file describes `specs.config.yaml`, covering sources, output and the `config` block.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 **Follows**: [ADR 053](053-transform-emit-config.md)

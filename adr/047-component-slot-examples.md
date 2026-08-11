@@ -3,6 +3,7 @@
 **Branch**: `047-component-slot-examples`
 **Created**: 2026-04-29
 **Status**: ACCEPTED
+**Summary**: A `slotContentExamples` registry and `SlotBinding` carry example slot fills, referenced rather than duplicated across variants.
 **Deciders**: Nathan Curtis (author)
 **Depends on**: [ADR-042 — Composition Structural Type](042-composition-type), [ADR-046 — Slots and Slot References](046-slots-and-slot-references)
 **Extended by**: ADR-048 (Component Instance Examples), ADR-049 (Prop Configurations and Bindings)

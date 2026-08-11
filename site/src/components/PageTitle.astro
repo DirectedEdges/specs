@@ -1,0 +1,68 @@
+---
+// Custom PageTitle override for Starlight.
+// ADR record pages sit outside the sidebar tree, so they arrive with no
+// surrounding context. Give them a crumb back to the index and an eyebrow
+// naming the section, then defer to the default title rendering.
+import Default from '@astrojs/starlight/components/PageTitle.astro';
+
+const pathname = Astro.url.pathname;
+// Matches a record page (/adr/059-border-style/) but not the index (/adr/).
+const isAdrRecord = /^\/adr\/[^/]+\/?$/.test(pathname);
+---
+
+{
+  isAdrRecord && (
+    <div class="adr-context">
+      <a class="adr-crumb" href="/adr/">
+        <svg viewBox="0 0 16 16" aria-hidden="true" width="14" height="14">
+          <path
+            d="M10 3L5 8l5 5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.75"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        ADRs Index
+      </a>
+      <p class="adr-eyebrow">ADR</p>
+    </div>
+  )
+}
+
+<Default {...Astro.props}><slot /></Default>
+
+<style>
+  .adr-context {
+    margin-bottom: 0;
+  }
+
+  /* Starlight gives the h1 its own margin-top, which wins the margin
+     collapse against .adr-context — zero it so the eyebrow hugs the title. */
+  .adr-context + :global(h1) {
+    margin-top: 0.1rem;
+  }
+
+  .adr-crumb {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-3);
+    text-decoration: none;
+  }
+
+  .adr-crumb:hover {
+    color: var(--sl-color-text-accent);
+  }
+
+  .adr-eyebrow {
+    margin: 1.1rem 0 0;
+    font-size: var(--sl-text-xs);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sl-color-gray-3);
+  }
+</style>

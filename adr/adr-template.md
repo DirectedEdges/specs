@@ -3,6 +3,7 @@
 **Branch**: `[###-short-name]`
 **Created**: [DATE]
 **Status**: DRAFT
+**Summary**: *(written at implementation — see `/specs.adr.implement`)*
 **Deciders**: [Author] (author), [name], [name]
 **Supersedes**: *(none, or link to prior ADR)*
 

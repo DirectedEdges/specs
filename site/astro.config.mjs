@@ -20,6 +20,7 @@ export default defineConfig({
         Sidebar: './src/components/Sidebar.astro',
         Hero: './src/components/Hero.astro',
         Header: './src/components/Header.astro',
+        PageTitle: './src/components/PageTitle.astro',
         Footer: './src/components/Footer.astro',
       },
       customCss: ['./src/custom.css'],
@@ -63,6 +64,7 @@ export default defineConfig({
         { label: 'About Specs', slug: 'overview/aboutspecs' },
         { label: 'Getting Started', slug: 'cli/getting-started' },
         { label: 'Releases', slug: 'overview/releases' },
+        { label: 'Decision Records (ADRs)', slug: 'adr' },
         { label: 'Licensing', slug: 'overview/licensing', badge: pro },
         {
           label: 'Specs 2 Figma Plugin',

@@ -377,3 +377,84 @@ html[data-has-hero] .hero .tagline {
 	max-width: 700px;
 	line-height: 1.2;
 }
+
+/* ── ADR index ───────────────────────────────────────────────── */
+
+.adr-index {
+	width: 100%;
+	border-collapse: collapse;
+	margin-top: 1.5rem;
+}
+
+.adr-index td {
+	padding: 0.75rem 0;
+	border-bottom: 1px solid var(--sl-color-gray-5);
+	vertical-align: baseline;
+}
+
+.adr-index .adr-number {
+	width: 3.5rem;
+	padding-right: 1rem;
+	font-family: var(--__sl-font-mono);
+	font-size: var(--sl-text-sm);
+	color: var(--sl-color-gray-3);
+	white-space: nowrap;
+}
+
+.adr-index .adr-entry a {
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.adr-index .adr-entry a:hover {
+	text-decoration: underline;
+}
+
+.adr-index .adr-summary {
+	margin: 0.25rem 0 0;
+	font-size: var(--sl-text-sm);
+	line-height: 1.5;
+	color: var(--sl-color-gray-3);
+}
+
+/* ── ADR metadata block ──────────────────────────────────────── */
+
+.adr-meta {
+	margin: 0 0 2rem;
+	padding: 0.6rem 1.25rem;
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: 0.5rem;
+	background-color: var(--sl-color-gray-7, var(--sl-color-gray-6));
+	font-size: var(--sl-text-sm);
+}
+
+.adr-meta-row {
+	display: grid;
+	grid-template-columns: 7rem 1fr;
+	gap: 0 1rem;
+	padding: 0.4rem 0;
+}
+
+.adr-meta-row + .adr-meta-row {
+	border-top: 1px solid var(--sl-color-gray-5);
+}
+
+.adr-meta dt {
+	font-weight: 600;
+	color: var(--sl-color-gray-2);
+}
+
+.adr-meta dd {
+	margin: 0;
+	color: var(--sl-color-gray-1);
+}
+
+.adr-meta dd > :first-child { margin-top: 0; }
+.adr-meta dd > :last-child { margin-bottom: 0; }
+
+@media (max-width: 30rem) {
+	.adr-meta-row {
+		grid-template-columns: 1fr;
+		gap: 0.1rem;
+	}
+}

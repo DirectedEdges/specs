@@ -3,6 +3,7 @@
 **Branch**: `v0.11.0/006-token-references`
 **Created**: 2026-02-28
 **Status**: ACCEPTED
+**Summary**: A single `TokenReference` type replaces `VariableStyle` and `FigmaStyle` for variables, named styles and composite references.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

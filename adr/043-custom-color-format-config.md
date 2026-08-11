@@ -3,6 +3,7 @@
 **Branch**: `043-custom-color-format-config`
 **Created**: 2026-05-01
 **Status**: ACCEPTED
+**Summary**: A `format.color` option with a `ColorFormat` type emits color as hex, RGB, HSL, OKLCH or object.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

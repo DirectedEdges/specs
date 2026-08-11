@@ -3,6 +3,7 @@
 **Branch**: `023-schema-compliance-fixes`
 **Created**: 2026-03-13
 **Status**: ACCEPTED
+**Summary**: `SlotProp.default` becomes optional and pattern properties admit `$`-prefixed keys, bringing types and schema back into compliance.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none — extends ADR 022 for `SlotProp.default` optionality)*
 

@@ -3,6 +3,7 @@
 **Branch**: `066-lossless-key-formatting`
 **Created**: 2026-08-10
 **Status**: ACCEPTED
+**Summary**: A `format.figmaKeys` option and safe key grammar preserve Figma layer names losslessly through `com.figma.name`.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none — extends ADR-058)*
 

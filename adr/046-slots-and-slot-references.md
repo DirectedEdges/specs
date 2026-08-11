@@ -3,6 +3,7 @@
 **Branch**: `046-slots-and-slot-references`
 **Created**: 2026-05-18
 **Status**: ACCEPTED
+**Summary**: A `SlotContent` triplet and `SlotContentRef` pointer let compositions fill slots by reference.
 **Deciders**: Nathan Curtis (author)
 **Depends on**: [ADR-042 — Composition Structural Type](042-composition-type)
 **Extended by**: ADR-047 (Component Slot Examples), ADR-049 (Prop Configurations and Bindings)

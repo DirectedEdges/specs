@@ -3,6 +3,7 @@
 **Branch**: `016-element-content`
 **Created**: 2026-03-10
 **Status**: ACCEPTED
+**Summary**: A `content` property replaces `text`, identifying literal or bound content on any element type.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 
