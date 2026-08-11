@@ -131,10 +131,17 @@ export interface Config {
     /**
      * Naming convention the Figma file uses for layer names and component property
      * names. The reversal target for `keys` — a renderer reconstructs a Figma name by
-     * re-formatting the spec key into this convention. Optional; defaults to SENTENCE.
+     * re-formatting the spec key into this convention.
+     *
+     * NONE declares no convention: the safe key grammar is not evaluated, no
+     * `$extensions['com.figma'].name` is emitted for format divergence, and reversal
+     * is undefined. Declaring SENTENCE or TITLE opts the catalog into all three, at
+     * the cost of an extension on every name outside the grammar.
+     *
+     * Optional; defaults to NONE.
      * @since 0.30.0
      */
-    figmaKeys?: 'SENTENCE' | 'TITLE';
+    figmaKeys?: 'NONE' | 'SENTENCE' | 'TITLE';
     /** Layout representation format. Optional; defaults to LAYOUT. */
     layout?: 'LAYOUT' | 'PARENT_CHILDREN' | 'BOTH';
     /**
@@ -221,8 +228,8 @@ export interface ResolvedConfig {
     output: 'JSON' | 'YAML';
     /** Key naming convention. */
     keys: 'SAFE' | 'CAMEL' | 'SNAKE' | 'KEBAB' | 'PASCAL' | 'TRAIN';
-    /** Naming convention the Figma file uses — the reversal target for `keys`. @since 0.30.0 */
-    figmaKeys: 'SENTENCE' | 'TITLE';
+    /** Naming convention the Figma file uses — the reversal target for `keys`. NONE declares none. @since 0.30.0 */
+    figmaKeys: 'NONE' | 'SENTENCE' | 'TITLE';
     /** Layout representation format. */
     layout: 'LAYOUT' | 'PARENT_CHILDREN' | 'BOTH';
     /** Token reference serialization profile. */
@@ -255,7 +262,7 @@ export interface ResolvedConfig {
  * - processing.details: LAYERED reduces output size by only showing differences from default
  * - processing.inferNumberProps: false — opt-in feature, off by default
  * - format.keys: SAFE prevents corruption of special characters while maintaining readability
- * - format.figmaKeys: SENTENCE matches the prevailing convention for Figma layer and property names (ADR-066)
+ * - format.figmaKeys: NONE declares no source convention — the safe key grammar, the name extension, and reversal are opt-in (ADR-066)
  * - format.layout: LAYOUT provides tree structure with layout properties
  * - format.tokens: TOKEN provides platform-neutral token references with $token path and $type
  * - format.color: HEX matches historical v1 behaviour and maximises human readability
@@ -277,7 +284,7 @@ export const DEFAULT_CONFIG: ResolvedConfig = {
   format: {
     output: 'JSON',
     keys: 'SAFE',
-    figmaKeys: 'SENTENCE',
+    figmaKeys: 'NONE',
     layout: 'LAYOUT',
     tokens: 'TOKEN',
     color: 'HEX',

@@ -211,7 +211,7 @@ The forward direction is not the problem — `CAMEL` is idempotent over an alrea
 
 #### Option A: Detect destination-format names, pass through, and record `name` *(Selected)*
 
-A source name that does not match the declared `figmaKeys` grammar but *does* match the grammar of the declared `format.keys` value is **already in the destination format**. It is passed through unformatted, and `com.figma.name` is emitted so reversal restores it verbatim rather than re-deriving it.
+A source name that fails the declared `figmaKeys` grammar but that `format.keys` leaves unchanged — formatting it is a no-op — is **already in the destination format**. It is passed through unformatted, and `com.figma.name` is emitted so reversal restores it verbatim rather than re-deriving it. The Decision states the predicate exactly.
 
 ```yaml
 # figmaKeys: SENTENCE, keys: CAMEL

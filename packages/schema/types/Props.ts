@@ -36,9 +36,13 @@ export interface FigmaPropExtension {
   /** Provenance metadata — present only for props extracted from a code-only container layer. @since 0.14.0 */
   source?: FigmaCodeOnlySource;
   /**
-   * The Figma component-property name, recorded when the prop key diverges from it
-   * under `format.keys` (ADR-066). Absent when the key reconstructs the Figma name
-   * under `format.figmaKeys`.
+   * The Figma component-property name (ADR-066). Recorded when the name fell outside
+   * the safe key grammar, or when it was already written in the destination format and
+   * passed through unformatted — in which case reversal is identity, not re-derivation.
+   *
+   * Both triggers require `format.figmaKeys` to be other than NONE. Under NONE no
+   * source convention is declared, so divergence is not evaluated and this field is
+   * absent however the key was derived.
    * @since 0.30.0
    */
   name?: string;

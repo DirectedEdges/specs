@@ -222,11 +222,12 @@
             "figmaKeys": {
               "type": "string",
               "enum": [
+                "NONE",
                 "SENTENCE",
                 "TITLE"
               ],
-              "default": "SENTENCE",
-              "description": "Naming convention the Figma file uses for layer names and component property names. The reversal target for keys — a renderer reconstructs a Figma name by re-formatting the spec key into this convention. Defaults to SENTENCE."
+              "default": "NONE",
+              "description": "Naming convention the Figma file uses for layer names and component property names. The reversal target for keys — a renderer reconstructs a Figma name by re-formatting the spec key into this convention. NONE declares no convention: the safe key grammar is not evaluated, no $extensions['com.figma'].name is emitted for format divergence, and reversal is undefined. Declaring SENTENCE or TITLE opts in to all three. Defaults to NONE."
             },
             "layout": {
               "type": "string",
