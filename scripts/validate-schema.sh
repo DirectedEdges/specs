@@ -7,7 +7,7 @@
 #
 # Usage: ./validate-schema.sh [--json] [--schema-dir <path>]
 #   --json          Output results in JSON format
-#   --schema-dir    Override the schema directory (default: <repo-root>/schema)
+#   --schema-dir    Override the schema directory (default: <repo-root>/packages/schema/schema)
 
 set -e
 
@@ -23,10 +23,16 @@ for arg in "$@"; do
   esac
 done
 
-# Locate repo root and schema dir
+# Locate repo root and schema dir. This script lives at <repo-root>/scripts/, so the
+# repo root is one level up — it previously assumed the old spec-kit location three
+# levels down, which resolved outside the repo entirely.
 SCRIPT_DIR="$(CDPATH="" cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(CDPATH="" cd "$SCRIPT_DIR/../../.." && pwd)"
-SCHEMA_DIR="${SCHEMA_DIR:-$REPO_ROOT/schema}"
+if git -C "$SCRIPT_DIR" rev-parse --show-toplevel >/dev/null 2>&1; then
+  REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
+else
+  REPO_ROOT="$(CDPATH="" cd "$SCRIPT_DIR/.." && pwd)"
+fi
+SCHEMA_DIR="${SCHEMA_DIR:-$REPO_ROOT/packages/schema/schema}"
 
 if [ ! -d "$SCHEMA_DIR" ]; then
   echo "ERROR: Schema directory not found: $SCHEMA_DIR" >&2

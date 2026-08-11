@@ -62,6 +62,13 @@ config:
     # See: https://www.specsplugin.com/guides/key-formatting/
     keys: SAFE
 
+    # Naming convention your Figma file uses for layer and property names, and the
+    # target a spec reverses into when rendered back to Figma: NONE, SENTENCE, or TITLE.
+    # NONE declares no convention — names are not checked and none are preserved.
+    # Declaring one records the Figma name wherever a key cannot reconstruct it.
+    # See: https://www.specsplugin.com/settings/figma-keys/
+    # figmaKeys: NONE
+
     # Layout representation: LAYOUT, PARENT_CHILDREN, or BOTH
     # See: https://www.specsplugin.com/guides/data-layout/
     layout: LAYOUT

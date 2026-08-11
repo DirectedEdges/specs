@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `format.figmaKeys` in the generated `specs.config.yaml` template — commented out at its `NONE` default, documenting the opt-in that enables the safe key grammar and Figma name preservation (ADR-066)
+- `specs analyze keys` — reports Figma layer and property names a formatted key cannot reconstruct, written to `_analysis/keys.yaml`. Organized `byComponent` as a designer's checklist — each component splitting into `props` and `anatomy`, with an empty surface omitted — then `byCause` for systemic problems and `byName` for a name repeated across the library. Requires `format.figmaKeys` to declare a convention; empty under the `NONE` default (ADR-066)
+
 ### Changed
 
 ### Removed

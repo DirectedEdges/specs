@@ -97,6 +97,21 @@ const slotWithExt: SlotProp = { type: 'slot', $extensions: { 'com.figma': { type
 // $extensions with empty com.figma
 const boolEmptyFigma: BooleanProp = { type: 'boolean', default: true, $extensions: { 'com.figma': {} } };
 
+// com.figma.name preserves a Figma property name the key could not represent (ADR-066)
+const boolDivergentKey: BooleanProp = {
+  type: 'boolean',
+  default: false,
+  $extensions: { 'com.figma': { type: 'BOOLEAN', name: 'Cut & paste' } },
+};
+
+// name is optional — safe keys emit no name at all
+const enumSafeKey: EnumProp = {
+  type: 'string',
+  default: 'sm',
+  enum: ['sm', 'md'],
+  $extensions: { 'com.figma': { type: 'VARIANT' } },
+};
+
 // $extensions with empty object
 const boolEmptyExt: BooleanProp = { type: 'boolean', default: true, $extensions: {} };
 

@@ -17,12 +17,25 @@ You **MUST** consider the user input before proceeding (if not empty).
      - Use `BRANCH` directly as `ADR_NAME` (e.g., `011-icon-glyph-as-content`).
    - The branch name must match an ADR name pattern (starts with a number sequence followed by a hyphen, e.g., `011-`). If no ADR number is found, halt: "Branch does not appear to be an ADR branch."
 
-2. **Load context**:
-   - **REQUIRED**: Read `$REPO_ROOT/adr/$ADR_NAME.md` — confirm Status is `DRAFT` (if already `ACCEPTED`, report and halt)
-   - Confirm that `types/`, `schema/`, `package.json`, and `CHANGELOG.md` have been modified by the implement agent (check git status or file timestamps)
-   - If no changes are detected, halt: "Run the implement agent first."
+2. **Check for an existing PR — do this before any other work.** An ADR branch may already be in review from an earlier session; this command must never open a second PR for the same branch.
 
-3. **Re-run validation gates**:
+   ```bash
+   gh pr list --head "$BRANCH" --state all --json number,title,state,baseRefName,url
+   ```
+
+   - **An OPEN PR exists** → set `EXISTING_PR` to its number and `$RELEASE_BRANCH` to its `baseRefName`. This run is an *update*, not a creation. Skip step 7 (release-branch determination) — the existing PR's base is authoritative. Report the PR number and base to the user before continuing.
+   - **A MERGED PR exists** → halt: "This ADR branch was already merged in PR #N. Accepting again would need a new branch."
+   - **A CLOSED (unmerged) PR exists** → do not reopen or replace it silently. Report it and ask the user whether to open a new PR or reopen that one.
+   - **No PR exists** → normal path; `EXISTING_PR` is unset.
+
+3. **Load context**:
+   - **REQUIRED**: Read `$REPO_ROOT/adr/$ADR_NAME.md` — confirm Status is `DRAFT`.
+     - If already `ACCEPTED` **and** `EXISTING_PR` is set with no uncommitted changes, halt: "ADR is already accepted and PR #N is open — nothing to do."
+     - If already `ACCEPTED` and there *are* uncommitted changes, this is a follow-up edit: skip the status flip in step 5, and continue so the changes are validated, committed, and pushed to the existing PR.
+   - Confirm that `types/`, `schema/`, `package.json`, and `CHANGELOG.md` have been modified by the implement agent (check git status or file timestamps)
+   - If no changes are detected **and** `EXISTING_PR` is unset, halt: "Run the implement agent first."
+
+4. **Re-run validation gates**:
    - Run: `tsc -p tsconfig.build.json --noEmit`
      - If exit code ≠ 0: halt and display errors. Do not set ACCEPTED.
    - Run: `scripts/validate-schema.sh`
@@ -30,29 +43,34 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Run: `tsc --noEmit --strict tests/*.test-d.ts` (if `tests/*.test-d.ts` files exist)
      - If exit code ≠ 0: halt and display errors. Do not set ACCEPTED.
 
-4. **Mark ADR ACCEPTED**: In `$REPO_ROOT/adr/$ADR_NAME.md` header, change `Status: DRAFT` to `Status: ACCEPTED`.
+5. **Mark ADR ACCEPTED**: In `$REPO_ROOT/adr/$ADR_NAME.md` header, change `Status: DRAFT` to `Status: ACCEPTED`. Skip if step 3 determined the ADR is already `ACCEPTED`.
 
-5. **Update INDEX**: Read `adr/INDEX.md` and update the entry for this ADR:
+6. **Update INDEX**: Read `adr/INDEX.md` and update the entry for this ADR:
    - Move the row from the **Draft** table to the **Accepted** table (descending by number).
    - Update the **Title** to match the final ADR heading (it may have changed during implementation).
    - Add a **Highlights** summary (max 144 characters) describing the key change as accepted.
    - If no entry exists in the Draft table (older ADR created before INDEX tracking), add the row directly to the Accepted table.
 
-6. **Determine release branch**: Release branches follow the `release/<pkg>-<version>` convention and may jointly cover multiple published packages (e.g., `release/schema-0.21.0-cli-0.16.0`). Do **not** invent a bare version-number branch (e.g., `0.21.0`).
+7. **Determine release branch** *(skip entirely if `EXISTING_PR` is set — use that PR's base)*: Release branches follow the `release/<pkg>-<version>` convention and may jointly cover multiple published packages (e.g., `release/schema-0.21.0-cli-0.16.0`). Do **not** invent a bare version-number branch (e.g., `0.21.0`).
    1. Find active in-flight release branches with `git branch -r --list 'origin/release/*'`.
    2. **Default: use the existing active release branch.** ADR branches are started from the current release branch, so the active branch is the correct target. Do not cross-reference the ADR's semver version against the branch name — the branch name reflects where the release *started*, not the final published version.
    3. If exactly one release branch exists, use it as `$RELEASE_BRANCH` without asking.
    4. If multiple release branches exist, pick the one the ADR branch was based on (`git merge-base --fork-point` or ask the user).
    5. Only if **no** release branch exists at all, create one from `main` following the `release/<pkg>-<version>` convention, naming every package the release will publish.
 
-7. **Create PR**: Commit any uncommitted changes (the status flip and INDEX update), push `$BRANCH`, and open a PR into the release branch using `gh pr create --base $RELEASE_BRANCH`.
+8. **Push, and create the PR only if there isn't one**: Commit any uncommitted changes (the status flip and INDEX update) and push `$BRANCH`.
+   - **`EXISTING_PR` set** → the push updates that PR. Do **not** run `gh pr create`. Read the PR's current body (`gh pr view $EXISTING_PR --json body`) and, if it no longer describes what is on the branch, offer to update it with `gh pr edit $EXISTING_PR --body-file <path>` — ask first, since the user may have written it by hand.
+   - **`EXISTING_PR` unset** → open a PR into the release branch with `gh pr create --base $RELEASE_BRANCH`.
+   - Pass long PR bodies via `--body-file`, not an inline heredoc — bodies containing backticks and quotes break shell parsing.
 
-8. **Report**: Confirm all gates passed, the ADR is ACCEPTED, and the PR has been created. List the next steps:
+9. **Report**: Confirm all gates passed, the ADR is ACCEPTED, and state whether the PR was **created** or an **existing PR was updated** (with its number). List the next steps:
    - Review and merge the PR into the release branch
    - When all ADRs for the release are complete, merge `$RELEASE_BRANCH` into `main` and `npm publish`
 
 ## Key rules
 
 - This command only flips the ADR status — it does not apply any code changes.
-- Status MUST only move to `ACCEPTED` after all three validation gates pass in step 3.
+- Status MUST only move to `ACCEPTED` after all three validation gates pass in step 4.
+- **Never open a second PR for a branch that already has one.** Step 2 runs before everything else for this reason. This command is re-runnable: an ADR branch may already be in review from an earlier session, and re-running must update that PR, not duplicate it.
+- Verify repo and PR state by querying it — never infer from the conversation or assume a branch is fresh.
 - Use absolute paths for all file operations.

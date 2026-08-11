@@ -124,11 +124,21 @@
     },
     "Anatomy": {
       "type": "object",
-      "description": "The structural elements that make up the component. Element names format depends on user settings.",
+      "description": "The structural elements that make up the component. Keys are formatted per format.keys. A key whose Figma name did not satisfy the safe key grammar (see SafeKeySentence / SafeKeyTitle) carries that name in $extensions['com.figma'].name.",
       "examples": [],
       "additionalProperties": {
         "$ref": "#/definitions/AnatomyElement"
       }
+    },
+    "SafeKeySentence": {
+      "type": "string",
+      "pattern": "^[A-Z][a-z]*( ([a-z]+|[0-9]+))*$",
+      "description": "A round-trip-safe Figma name under format.figmaKeys SENTENCE: ASCII letters and digits, single-space word separators, sentence case, each word either all letters or all digits, never beginning with a digit. Names matching this pattern reconstruct identically from the output of any format.keys value; names that do not require $extensions['com.figma'].name."
+    },
+    "SafeKeyTitle": {
+      "type": "string",
+      "pattern": "^[A-Z][a-z]*( ([A-Z][a-z]*|[0-9]+))*$",
+      "description": "As SafeKeySentence, but for format.figmaKeys TITLE — every letter word capitalized."
     },
     "ElementType": {
       "type": "string",
@@ -213,9 +223,9 @@
             "com.figma": {
               "type": "object",
               "properties": {
-                "originalName": {
+                "name": {
                   "type": "string",
-                  "description": "Original Figma layer name before primitive-wrapper collapse promoted this element to root (ADR-058)."
+                  "description": "The element's name in Figma. Recorded on any of three triggers: primitive-wrapper collapse promoted this element to root (ADR-058), always and independent of format.figmaKeys; the name fell outside the safe key grammar so format.keys could not represent it losslessly (ADR-066); or the name was already written in the destination format and passed through unformatted, making reversal identity rather than re-derivation (ADR-066). The latter two apply only when format.figmaKeys is not NONE — under NONE, format divergence is not evaluated and this field is absent however the key was derived."
                 }
               },
               "additionalProperties": false
@@ -231,7 +241,7 @@
     },
     "Props": {
       "type": "object",
-      "description": "",
+      "description": "Component properties. Keys are formatted per format.keys. A key whose Figma property name did not satisfy the safe key grammar (see SafeKeySentence / SafeKeyTitle) carries that name in $extensions['com.figma'].name.",
       "examples": [],
       "additionalProperties": {
         "$ref": "#/definitions/AnyProp"
@@ -302,6 +312,10 @@
         "source": {
           "$ref": "#/definitions/FigmaCodeOnlySource",
           "description": "Provenance metadata \u2014 present only for props extracted from a code-only container layer"
+        },
+        "name": {
+          "type": "string",
+          "description": "The Figma component-property name (ADR-066). Recorded when the name fell outside the safe key grammar, or when it was already written in the destination format and passed through unformatted — in which case reversal is identity, not re-derivation. Both triggers require format.figmaKeys to be other than NONE; under NONE this field is absent however the key was derived."
         }
       },
       "additionalProperties": true
@@ -1049,6 +1063,9 @@
             "type": "number"
           },
           "description": "Sample numeric values demonstrating typical content for this prop"
+        },
+        "$extensions": {
+          "$ref": "#/definitions/PropExtensions"
         }
       },
       "required": [

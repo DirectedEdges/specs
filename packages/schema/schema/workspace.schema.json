@@ -217,7 +217,17 @@
                 "TRAIN"
               ],
               "default": "SAFE",
-              "description": "Key naming convention. Defaults to SAFE."
+              "description": "Key naming convention applied to anatomy keys, prop keys, and every reference to them. Every value other than SAFE is a lossy projection of the Figma name; names outside the safe key grammar are preserved in $extensions['com.figma'].name (ADR-066). Defaults to SAFE."
+            },
+            "figmaKeys": {
+              "type": "string",
+              "enum": [
+                "NONE",
+                "SENTENCE",
+                "TITLE"
+              ],
+              "default": "NONE",
+              "description": "Naming convention the Figma file uses for layer names and component property names. The reversal target for keys — a renderer reconstructs a Figma name by re-formatting the spec key into this convention. NONE declares no convention: the safe key grammar is not evaluated, no $extensions['com.figma'].name is emitted for format divergence, and reversal is undefined. Declaring SENTENCE or TITLE opts in to all three. Defaults to NONE."
             },
             "layout": {
               "type": "string",
