@@ -416,3 +416,42 @@ html[data-has-hero] .hero .tagline {
 	line-height: 1.5;
 	color: var(--sl-color-gray-3);
 }
+
+/* ── ADR metadata block ──────────────────────────────────────── */
+
+.adr-meta {
+	margin: 0 0 2rem;
+	padding: 1rem 1.25rem;
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: 0.5rem;
+	background-color: var(--sl-color-gray-7, var(--sl-color-gray-6));
+	font-size: var(--sl-text-sm);
+}
+
+.adr-meta-row {
+	display: grid;
+	grid-template-columns: 7rem 1fr;
+	gap: 0.5rem 1rem;
+	padding: 0.3rem 0;
+}
+
+.adr-meta-row + .adr-meta-row {
+	border-top: 1px solid var(--sl-color-gray-5);
+}
+
+.adr-meta dt {
+	font-weight: 600;
+	color: var(--sl-color-gray-2);
+}
+
+.adr-meta dd {
+	margin: 0;
+	color: var(--sl-color-gray-1);
+}
+
+@media (max-width: 30rem) {
+	.adr-meta-row {
+		grid-template-columns: 1fr;
+		gap: 0.15rem;
+	}
+}

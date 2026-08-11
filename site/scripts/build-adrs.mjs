@@ -48,7 +48,10 @@ function escapeHtml(text) {
  * carrying `code spans` needs them rendered here.
  */
 function renderInline(text) {
-  return escapeHtml(text).replace(/`([^`]+)`/g, '<code>$1</code>');
+  return escapeHtml(text)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>');
 }
 
 /**
@@ -66,6 +69,24 @@ function extractSummary(md) {
 /** Drop the H1 — Starlight renders the title from frontmatter. */
 function stripTitle(md) {
   return md.replace(/^#\s+.+$/m, '').replace(/^\n+/, '');
+}
+
+/**
+ * The `**Key**: value` lines opening every ADR are consecutive, so markdown
+ * joins them into one run-on paragraph. Render them as a label/value grid
+ * instead, and drop the horizontal rule that followed the block.
+ */
+function formatMetadata(md) {
+  return md.replace(
+    /^((?:\*\*[A-Za-z]+\*\*:.*\n)+)(\n---\n)?/,
+    (match, block) => {
+      const rows = [...block.matchAll(/^\*\*([A-Za-z]+)\*\*:\s*(.*)$/gm)].map(
+        ([, key, value]) =>
+          `<div class="adr-meta-row"><dt>${key}</dt><dd>${renderInline(value.trim())}</dd></div>`,
+      );
+      return rows.length ? `<dl class="adr-meta">\n${rows.join('\n')}\n</dl>\n` : match;
+    },
+  );
 }
 
 const files = readdirSync(srcDir)
@@ -87,7 +108,7 @@ for (const file of files) {
   }
   const summary = extractSummary(md);
   if (!summary) console.warn(`⚠ ${file}: no **Summary** in the metadata block`);
-  adrs.push({ number, slug, title, summary, body: stripTitle(md) });
+  adrs.push({ number, slug, title, summary, body: formatMetadata(stripTitle(md)) });
 }
 
 rmSync(outDir, { recursive: true, force: true });
