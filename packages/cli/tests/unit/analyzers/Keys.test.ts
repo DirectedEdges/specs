@@ -13,7 +13,11 @@ type KeysYaml = {
     divergentNames: number;
     causeDistribution: Record<string, number>;
   };
-  byComponent: Record<string, { divergent: number; names: Array<{ key: string; figmaName: string; surface: string; cause: string }> }>;
+  byComponent: Record<string, {
+    divergent: number;
+    props?: Array<{ key: string; figmaName: string; cause: string }>;
+    anatomy?: Array<{ key: string; figmaName: string; cause: string }>;
+  }>;
   byCause: Array<{ cause: string; occurrences: number; names: string[] }>;
   byName: Array<{ figmaName: string; occurrences: number; components: string[]; cause: string }>;
 };
@@ -67,10 +71,20 @@ describe('KeysAnalyzer', () => {
     });
 
     expect(result!.byComponent.dsAlert.divergent).toBe(2);
-    expect(result!.byComponent.dsAlert.names).toEqual([
-      { key: 'fullBleed', figmaName: 'Full Bleed', surface: 'prop', cause: 'casing' },
-      { key: 'iconLeading', figmaName: 'Icon Leading', surface: 'anatomy', cause: 'casing' },
+    expect(result!.byComponent.dsAlert.props).toEqual([
+      { key: 'fullBleed', figmaName: 'Full Bleed', cause: 'casing' },
     ]);
+    expect(result!.byComponent.dsAlert.anatomy).toEqual([
+      { key: 'iconLeading', figmaName: 'Icon Leading', cause: 'casing' },
+    ]);
+  });
+
+  it('omits a surface array entirely when it is empty', async () => {
+    const result = await runAnalyzer({
+      dsBadge: { props: { fullBleed: withName('boolean', 'Full Bleed') } },
+    });
+    expect(result!.byComponent.dsBadge).not.toHaveProperty('anatomy');
+    expect(result!.byComponent.dsBadge.props).toHaveLength(1);
   });
 
   it('counts every name, not only divergent ones', async () => {
@@ -131,7 +145,7 @@ describe('KeysAnalyzer', () => {
       const result = await runAnalyzer({
         dsX: { anatomy: { k: withName('text', figmaName as string) } },
       });
-      expect(result!.byComponent.dsX.names[0].cause).toBe(expected);
+      expect(result!.byComponent.dsX.anatomy![0].cause).toBe(expected);
     });
 
     it('ranks causes by frequency', async () => {

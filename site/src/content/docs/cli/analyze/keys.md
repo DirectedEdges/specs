@@ -75,25 +75,23 @@ The checklist. Names are grouped under the component they belong to, because tha
 byComponent:
   dsAlert:
     divergent: 1
-    names:
+    props:
       - key: fullBleed
         figmaName: Full Bleed
-        surface: prop
         cause: casing
   dsAvatar:
     divergent: 2
-    names:
+    props:
       - key: a11yLabel
         figmaName: A11y label
-        surface: prop
         cause: mixed-letter-digit
+    anatomy:
       - key: startIcon
         figmaName: Start Icon
-        surface: anatomy
         cause: casing
 ```
 
-`surface` is `anatomy` or `prop` — the layer name or the component property name.
+Names appear under `props` (component property names) or `anatomy` (layer names). A surface with nothing to fix is omitted.
 
 ### byCause
 

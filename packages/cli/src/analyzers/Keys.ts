@@ -28,13 +28,14 @@ type Cause =
 interface NameEntry {
   key: string;
   figmaName: string;
-  surface: Surface;
   cause: Cause;
 }
 
+/** Empty surfaces are omitted rather than emitted as `[]`, to keep the checklist quiet. */
 interface ComponentEntry {
   divergent: number;
-  names: NameEntry[];
+  props?: NameEntry[];
+  anatomy?: NameEntry[];
 }
 
 interface CauseEntry {
@@ -65,6 +66,7 @@ interface KeysAggregate {
 
 interface Collected extends NameEntry {
   component: string;
+  surface: Surface;
 }
 
 export class KeysAnalyzer implements Transformer {
@@ -138,14 +140,22 @@ export class KeysAnalyzer implements Transformer {
   }
 
   private buildAggregate(): KeysAggregate {
-    const byComponent: Record<string, ComponentEntry> = {};
+    const surfaces = new Map<string, { props: NameEntry[]; anatomy: NameEntry[] }>();
     for (const entry of this._divergent) {
-      const bucket = (byComponent[entry.component] ??= { divergent: 0, names: [] });
-      bucket.names.push({ key: entry.key, figmaName: entry.figmaName, surface: entry.surface, cause: entry.cause });
-      bucket.divergent++;
+      const bucket = surfaces.get(entry.component)
+        ?? surfaces.set(entry.component, { props: [], anatomy: [] }).get(entry.component)!;
+      const list = entry.surface === 'prop' ? bucket.props : bucket.anatomy;
+      list.push({ key: entry.key, figmaName: entry.figmaName, cause: entry.cause });
     }
-    for (const bucket of Object.values(byComponent)) {
-      bucket.names.sort((a, b) => a.figmaName.localeCompare(b.figmaName));
+    const byComponent: Record<string, ComponentEntry> = {};
+    for (const [component, { props, anatomy }] of surfaces) {
+      props.sort((a, b) => a.figmaName.localeCompare(b.figmaName));
+      anatomy.sort((a, b) => a.figmaName.localeCompare(b.figmaName));
+      byComponent[component] = {
+        divergent: props.length + anatomy.length,
+        ...(props.length ? { props } : {}),
+        ...(anatomy.length ? { anatomy } : {}),
+      };
     }
 
     const causeDistribution: Record<string, number> = {};
