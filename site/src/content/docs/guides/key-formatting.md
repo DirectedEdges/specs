@@ -151,11 +151,11 @@ Cut & paste         # the symbol and its word boundary are deleted
 
 A digit run always counts as its own word, in both directions. That is what lets `Badge count 2` become `badgeCount2` and come back intact — and why `Badge count2` cannot, since it formats to the same key but is not the same name.
 
-### Names already in your output convention
+### Names already written as keys
 
-Figma files are rarely uniform. If yours is mostly sentence case but a few properties were named `isDisabled` for the engineers consuming them, those names fail the grammar — yet they are already exactly what you want on both sides.
+Figma files are rarely uniform. If yours is mostly sentence case but a few properties were named `isDisabled` or `is-disabled` for the engineers consuming them, those names fail the grammar — yet they are already exactly what you want on both sides.
 
-Such names are passed through unformatted and recorded, so rendering the spec back into Figma restores `isDisabled` rather than rewriting it to `Is disabled`:
+A name that is already a well-formed key **in the convention you emit** is kept exactly as authored, and recorded. With `keys: CAMEL`, a layer named `isDisabled` stays `isDisabled`, and rendering the spec back into Figma restores it rather than rewriting it to `Is disabled`:
 
 ```yaml
 props:
@@ -165,6 +165,8 @@ props:
       com.figma:
         name: isDisabled
 ```
+
+Only the convention you emit is retained. A name in some *other* key convention is formatted like any divergent name — with `keys: KEBAB`, a layer named `isDisabled` or `IsDisabled` becomes `isdisabled` and carries its Figma name in the extension. Formatting splits on spaces, hyphens, and underscores rather than case, so it flattens such names rather than converting them; the extension is what keeps them recoverable.
 
 ### What happens to unsafe names
 

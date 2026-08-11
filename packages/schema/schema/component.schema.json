@@ -1063,6 +1063,9 @@
             "type": "number"
           },
           "description": "Sample numeric values demonstrating typical content for this prop"
+        },
+        "$extensions": {
+          "$ref": "#/definitions/PropExtensions"
         }
       },
       "required": [

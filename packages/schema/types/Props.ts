@@ -122,6 +122,8 @@ export interface NumberProp {
   nullable?: boolean;
   /** Sample numeric values demonstrating typical content for this prop */
   examples?: number[];
+  /** DTCG §5.2.3 platform-specific extensions. @since 0.30.0 */
+  $extensions?: PropExtensions;
 }
 
 /**

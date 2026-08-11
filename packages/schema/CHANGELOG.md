@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Config.format.figmaKeys` — naming convention the Figma file uses (`NONE` | `SENTENCE` | `TITLE`, default `NONE`); the reversal target for `format.keys` (ADR-066). `NONE` declares no convention, so the safe key grammar, the `com.figma.name` divergence extension, and reversal are all opt-in
 - `FigmaPropExtension.name` — Figma property name, emitted when the prop key cannot reconstruct it (ADR-066)
 - `SafeKeySentence` and `SafeKeyTitle` schema definitions — the key grammar that survives every `format.keys` value (ADR-066)
+- `NumberProp.$extensions` — the only prop type that could not carry platform extensions, so a number prop had nowhere to record its Figma name under ADR-066. The JSON schema already permitted `$`-prefixed keys; the TypeScript type did not.
 
 ### Changed
 

@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `format.figmaKeys` in the generated `specs.config.yaml` template — commented out at its `NONE` default, documenting the opt-in that enables the safe key grammar and Figma name preservation (ADR-066)
+
 ### Changed
 
 ### Removed

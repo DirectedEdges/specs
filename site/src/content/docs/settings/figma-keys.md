@@ -48,7 +48,7 @@ Declaring the convention your file actually uses keeps specs quiet. A file autho
 
 Names that fall outside the declared convention, or outside the safe character set, are still fully supported. Their Figma name is recorded in `$extensions.com.figma.name` on the definition.
 
-Names already written in your output convention are handled too. If your file is mostly sentence case but a few properties are named `isDisabled` for the engineers reading them, those are passed through untouched rather than rewritten to `Is disabled` when the spec is rendered back.
+Names already written as keys are handled too. If your file is mostly sentence case but a few properties are named `isDisabled` for the engineers reading them, those are kept exactly as authored — provided they match the convention you emit — and never rewritten to `Is disabled` when the spec is rendered back.
 
 ## See Also
 

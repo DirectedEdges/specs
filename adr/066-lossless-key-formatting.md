@@ -209,9 +209,9 @@ A real Figma file is rarely uniform. A library that is largely `Sentence case` m
 
 The forward direction is not the problem — `CAMEL` is idempotent over an already-camel name. The problem is **reversal**: a renderer told to reconstruct the Figma name by formatting `isDisabled` into `SENTENCE` produces `Is disabled` and renames a property the author deliberately spelled `isDisabled`.
 
-#### Option A: Detect destination-format names, pass through, and record `name` *(Selected)*
+#### Option A: Detect names already authored as keys, retain them, and record `name` *(Selected)*
 
-A source name that fails the declared `figmaKeys` grammar but that `format.keys` leaves unchanged — formatting it is a no-op — is **already in the destination format**. It is passed through unformatted, and `com.figma.name` is emitted so reversal restores it verbatim rather than re-deriving it. The Decision states the predicate exactly.
+A source name that fails the declared `figmaKeys` grammar but is itself a well-formed key in the declared `format.keys` convention is **already in the destination format**. It is retained verbatim, and `com.figma.name` is emitted so reversal restores it rather than re-deriving it. Names in some *other* key convention are not retained — they are formatted and recorded like any divergent name. The Decision states the tests exactly.
 
 ```yaml
 # figmaKeys: SENTENCE, keys: CAMEL
@@ -231,7 +231,7 @@ props:
 - The detection is a pure predicate over two declared grammars, not inference about the file.
 
 **Cons / Trade-offs**:
-- **Detection alone cannot make it quiet.** `iconLeading` (formatted from `Icon leading`) and `isDisabled` (authored as-is) are both valid `CAMEL` and both invalid `SENTENCE`. Nothing in the emitted key distinguishes them, so the pass-through case *must* record `name`. Under a lossy `format.keys`, a catalog with many destination-format names will not be extension-free.
+- **Detection alone cannot make it quiet.** `iconLeading` (formatted from `Icon leading`) and `isDisabled` (authored as-is) are both valid `CAMEL` and both invalid `SENTENCE`. Nothing in the emitted key distinguishes them, so the retained case *must* record `name`. Under a lossy `format.keys`, a catalog with many authored-key names will not be extension-free.
 - Only meaningful when a convention is declared. Under `figmaKeys: NONE` there is no grammar to fail, so there is nothing to detect and no reversal to protect.
 
 ---
@@ -268,7 +268,7 @@ This is not the same ambiguity as `figmaKeys: NONE`. Under `NONE` no convention 
 
 - The safe key grammar is not evaluated.
 - `com.figma.name` is not emitted for format divergence. The ADR-058 wrapper-collapse trigger is independent of `figmaKeys` and continues to emit it.
-- Destination-format pass-through (below) does not apply — there is no grammar for a name to fail.
+- Authored-key retention (below) does not apply — there is no grammar for a name to fail.
 - Reversal is undefined. A renderer reading a spec produced under `NONE` has no declared target and MUST fall back to `com.figma.name` where present and the formatted key otherwise — today's behavior.
 
 Declaring `SENTENCE` or `TITLE` opts the catalog into all of it.
@@ -305,30 +305,36 @@ The letter↔digit clause is what makes `Badge count 2` safe: it formats to `bad
 
 Names satisfying the grammar reconstruct identically from the output of any `format.keys` value. Names that do not satisfy it require `com.figma.name` to be recoverable.
 
-### Destination-format pass-through
+### Names already authored as keys
 
 *Applies only when `format.figmaKeys` is `SENTENCE` or `TITLE`.*
 
-A source name is **already in the destination format** when it satisfies all three:
+Every Figma name is decided by two tests, in order:
 
-1. `format.keys` is not `SAFE`.
-2. The name fails the safe key grammar for the declared `figmaKeys`.
-3. Formatting is a no-op — `formatKey(name, format.keys) === name`.
+1. **Does it match the origin convention** — the safe key grammar for the declared `figmaKeys`? If so, format it and emit nothing. The key reverses back to the name unaided.
+2. **Does it match the destination convention** — a well-formed key in the declared `format.keys`? If so, **retain it verbatim** and record `com.figma.name`.
+3. **Otherwise** — it matches neither. Format it, and record `com.figma.name`.
 
-Such a name is **passed through unformatted** and records `com.figma.name` with its verbatim value. Reversal for it is identity, not re-derivation.
+Only the *destination* format retains. A `PascalCase` name with a `KEBAB` destination is not a match: it is reformatted and recorded, exactly like any other divergent name. Retention exists because formatting cannot *convert* between key conventions — it splits on spaces, hyphens, and underscores, not case transitions — so a name already in the destination convention can only be damaged by re-running it through the formatter, never improved.
 
-Clause 3 is deliberately an idempotence test rather than a per-format grammar. Defining "a well-formed `CAMEL` key" would mean writing and maintaining six grammars the schema does not otherwise need, and the producer already owns the one function that decides it. The test is mechanically checkable by any consumer holding the same formatter, which is what the driver requires.
+Test 1 runs first so that a name satisfying both tests stays quiet. `Label` is `SENTENCE`-safe *and* a well-formed `PASCAL` key; formatting and retention produce the same key, so the origin test wins and no extension is emitted for a name that reverses correctly on its own.
 
-Clause 1 exists because `SAFE` is the identity format: `formatKey(name, SAFE) === name` for every name, so clause 3 alone would classify every grammar-failing name as pass-through and emit `name` on all of them. Under `SAFE` the key *is* the Figma name, reversal is already identity, and no extension is warranted.
+`SAFE` has no destination pattern — it emits names as authored, so no consumer reverses a `SAFE` key and test 2 does not apply. `SAFE` is still lossy for the characters it strips (`.`, `[`, `]`, `\`, quotes), so a name it changes is recorded on that basis alone.
 
 ```yaml
+# figmaKeys: SENTENCE, keys: KEBAB
+Icon leading   → icon-leading   # matches origin: formatted, no extension
+is-disabled    → is-disabled    # matches destination KEBAB: retained, name: is-disabled
+isDisabled     → isdisabled     # matches neither: formatted, name: isDisabled
+IsDisabled     → isdisabled     # PASCAL is not the destination: formatted, name: IsDisabled
+URL field      → url-field      # matches neither: formatted, name: URL field
+
 # figmaKeys: SENTENCE, keys: CAMEL
-Icon leading   → iconLeading   # grammar-safe: formatted, no extension, reverses to "Icon leading"
-isDisabled     → isDisabled    # formatting is a no-op: passed through, name: isDisabled, reverses to itself
-URL field      → urlField      # fails the grammar, formatting changes it: formatted, name: URL field
+isDisabled     → isDisabled     # now matches the destination: retained, name: isDisabled
+is-disabled    → isDisabled     # KEBAB is not the destination: formatted, name: is-disabled
 ```
 
-The pass-through case always emits `name`. `iconLeading` and `isDisabled` are both valid `CAMEL` and both invalid `SENTENCE`, so the emitted key carries no signal a consumer could use to tell a formatted key from a natively-formatted one — the extension is the only thing that distinguishes them.
+The retained case always emits `name`. `iconLeading` and `isDisabled` are both valid `CAMEL` and both invalid `SENTENCE`, so the emitted key carries no signal a consumer could use to tell a formatted key from a natively-authored one — the extension is the only thing that distinguishes them.
 
 ```yaml
 # figmaKeys: SENTENCE
@@ -586,7 +592,7 @@ So titles already do what `com.figma.name` does for keys — they record the ori
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | When `format.figmaKeys` is not `NONE`, must evaluate each anatomy element name and prop name against the safe key grammar, apply the pass-through test, and emit `name` on divergence or pass-through; existing `originalName` write site breaks under every value including `NONE` | Rename the emitted extension key unconditionally; add the grammar and pass-through evaluation gated on `format.figmaKeys`; align the word splitter with the stated letter↔digit rule; recompile |
+| `specs-from-figma` | When `format.figmaKeys` is not `NONE`, must evaluate each anatomy element name and prop name against the safe key grammar, apply the authored-key retention test, and emit `name` on divergence or retention; existing `originalName` write site breaks under every value including `NONE` | Rename the emitted extension key unconditionally; add the grammar and retention evaluation gated on `format.figmaKeys`; align the word splitter with the stated letter↔digit rule; recompile |
 | `specs-cli` | Emits and validates specs carrying the new optional field; the new config key is accepted in workspace config | Recompile against the new schema version; surface `format.figmaKeys` in config resolution and documentation |
 | `specs-plugin-2` | Same emission path as the CLI in the plugin runtime; the render direction reconstructs Figma names by formatting into `format.figmaKeys`, preferring `name` where present | Recompile; use `name` in preference to the formatted key when matching Figma nodes |
 
@@ -610,7 +616,7 @@ So titles already do what `com.figma.name` does for keys — they record the ori
 - The set of names that survive every `format.keys` value is defined by two mechanically checkable patterns rather than by the behavior of one producer.
 - **When `figmaKeys` is declared**, specs produced with a lossy `format.keys` value carry enough information to reconstruct Figma names, making the spec → Figma direction lossless for anatomy and prop identity. Under the `NONE` default they do not, and reversal stays undefined.
 - Well-formed catalogs stay quiet — no format-divergence `$extensions` appear unless a name falls outside the safe grammar, so the field doubles as a signal that a Figma name needs attention. Wrapper collapse emits `name` on its own trigger, so a grammar-conforming catalog is not necessarily extension-free.
-- Two distinct Figma names can still format to the same key — `Cut & paste` and `Cut paste` both reach `cutPaste`, and a pass-through name can collide with a formatted one. This is pre-existing behavior and is not changed here: a keyed record holds one entry per key, so one name wins and the other's `name` is not recorded. The loss belongs to the author who named two things the same in key space, not to the system. The safe grammar is collision-free among safe names, and `analyze keys` is the place to surface the rest.
+- Two distinct Figma names can still format to the same key — `Cut & paste` and `Cut paste` both reach `cutPaste`, and a retained name can collide with a formatted one. This is pre-existing behavior and is not changed here: a keyed record holds one entry per key, so one name wins and the other's `name` is not recorded. The loss belongs to the author who named two things the same in key space, not to the system. The safe grammar is collision-free among safe names, and `analyze keys` is the place to surface the rest.
 - Consumers that match Figma nodes by name MUST prefer `com.figma.name` over the formatted key when it is present; ignoring it reintroduces the divergence this ADR removes.
 - Names outside the safe grammar remain fully supported — they are recorded, not rejected. Narrowing them is an authoring recommendation, not a validation gate.
 - `&`, `+`, and `/` will always trigger the extension. Catalogs wanting extension-free output must avoid them in layer and property names.
@@ -619,7 +625,7 @@ So titles already do what `com.figma.name` does for keys — they record the ori
   - **Design-system teams** get a list of layer and property names to fix in Figma, ranked by how many components each affects.
   - **Adopters of `figmaKeys`** get the evidence for which value to declare — a catalog that is 94% `SENTENCE`-safe and 3% `TITLE`-safe has an obvious answer, and the residue is the exact list of names that will emit `com.figma.name`.
   The report is also the honest way to run under `figmaKeys: NONE`: no extension is emitted, but the divergence is still measurable and can be shown.
-- Deriving the pass-through and divergence signals is producer behavior (Constitution II). The schema declares the grammar; `analyze keys` is CLI work, out of scope for this ADR.
+- Deriving the retention and divergence signals is producer behavior (Constitution II). The schema declares the grammar; `analyze keys` is CLI work, out of scope for this ADR.
 - Two fields cover every Figma-derived name in a spec, at every nesting depth, because reference sites resolve through definitions — see the Coverage inventory for the full enumeration and the recursion requirement it places on producers.
 - The contract covers anatomy and prop *identity* only, and three surfaces stay as they are:
   - **Variant option values** pass through `format.keys` with no preservation field and remain lossy. Closing this needs a per-option surface on the prop extension — a separate decision.
