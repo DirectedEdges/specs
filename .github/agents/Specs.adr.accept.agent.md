@@ -45,11 +45,18 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 5. **Mark ADR ACCEPTED**: In `$REPO_ROOT/adr/$ADR_NAME.md` header, change `Status: DRAFT` to `Status: ACCEPTED`. Skip if step 3 determined the ADR is already `ACCEPTED`.
 
-6. **Update INDEX**: Read `adr/INDEX.md` and update the entry for this ADR:
-   - Move the row from the **Draft** table to the **Accepted** table (descending by number).
-   - Update the **Title** to match the final ADR heading (it may have changed during implementation).
-   - Add a **Highlights** summary (max 144 characters) describing the key change as accepted.
-   - If no entry exists in the Draft table (older ADR created before INDEX tracking), add the row directly to the Accepted table.
+6. **Update INDEX**: Read `adr/INDEX.md` and move this ADR's row from **Draft** to **Accepted**. Treat this as two discrete edits, not one "move" — every stale row in this file got there because the accepted row was added and the draft row was left behind.
+
+   1. **Delete** the ADR's row from the **Draft** table. Skip only if it genuinely has no draft row (older ADRs created before INDEX tracking).
+   2. **Insert** its row into the **Accepted** table, in descending number order, with:
+      - the **Title** matching the final ADR heading (it may have changed during implementation)
+      - a **Highlights** summary (max 144 characters) describing the key change as accepted
+   3. **Verify**: the ADR number must now appear exactly once in the file. Run
+      `grep -c "^| <NNN> |" adr/INDEX.md` and confirm it returns `1`. If it returns `2`, step 1 did not happen — delete the draft row before continuing.
+
+   A draft row left in place is not cosmetic: the draft table is how a reader finds unfinished work, and a stale row carries the pre-acceptance title, so the same ADR appears twice under two different names.
+
+   Re-check this after any merge or rebase. A draft row claimed on the release branch while the ADR branch was in flight will reappear when the branches reconcile, leaving a duplicate that neither side authored.
 
 7. **Determine release branch** *(skip entirely if `EXISTING_PR` is set — use that PR's base)*: Release branches follow the `release/<pkg>-<version>` convention and may jointly cover multiple published packages (e.g., `release/schema-0.21.0-cli-0.16.0`). Do **not** invent a bare version-number branch (e.g., `0.21.0`).
    1. Find active in-flight release branches with `git branch -r --list 'origin/release/*'`.
@@ -73,4 +80,5 @@ You **MUST** consider the user input before proceeding (if not empty).
 - Status MUST only move to `ACCEPTED` after all three validation gates pass in step 4.
 - **Never open a second PR for a branch that already has one.** Step 2 runs before everything else for this reason. This command is re-runnable: an ADR branch may already be in review from an earlier session, and re-running must update that PR, not duplicate it.
 - Verify repo and PR state by querying it — never infer from the conversation or assume a branch is fresh.
+- **An ADR appears in exactly one INDEX table.** Accepting means deleting the draft row as well as adding the accepted one; verify with the grep in step 6 rather than assuming the edit landed.
 - Use absolute paths for all file operations.

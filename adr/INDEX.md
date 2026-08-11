@@ -5,18 +5,12 @@
 | # | Title | Highlights |
 |---|-------|------------|
 | 065 | Document the `nullable` Default and Add `NumberProp.nullable` | Absent `nullable` means true for `StringProp`/`NumberProp`/`SlotProp`/`ImageProp`, false for `EnumProp`; adds `NumberProp.nullable` |
-| 064 | Tighten `textAlignHorizontal` to a Logical-Direction String Enum | |
 | 062 | Text Overflow & Max Lines — `textOverflow` and `maxLines` on `Styles` | |
 | 061 | Schema Entry Points for Concern-Split Output | |
-| 059 | Border Style and Dash Pattern — `borderStyle` and `borderDashPattern` on `Styles` | |
-| 058 | Wrapper Collapse Config Flag — `processing.wrapperCollapse` | |
-| 057 | Fix `Metadata.generator.version` type: `number` → `string` | |
 | 056 | Rename `SlotProp.minItems`/`maxItems` → `minChildren`/`maxChildren` | Align with Figma-native `slotSettings` field names; `anyOf` populated from `preferredValues` when `allowPreferredValuesOnly` is true |
-| 055 | Variant State Classification via `processing.states` | |
 | 054 | Workspace Schema File | |
 | 053 | Transform Command and Configuration | |
 | 052 | Deeply-Nested Slot Content — Path-Anchored Overrides Across Non-Slot Instance Boundaries | |
-| 051 | Platform Code-Syntax Token Profiles | |
 | 050 | Examples Config | Add `include.defaultSlotContent` (default false); add `processing.instanceExamples` with scope, match, exclude, parentNames — instance-example output is presence-driven (no `include.instanceExamples` flag), mirroring `subcomponents` |
 | 049 | Nested Slot Compositions | Recursion follow-on to ADR-047: fill nested instances' slots from a parent context (reserved, draft on `042-composition-type` branch) |
 | 048 | PropConfigurations PropBinding | Widen `PropConfigurations` value union to add `PropBinding` (reserved, draft on `042-composition-type` branch) |
@@ -24,10 +18,7 @@
 | 046 | Component Instance Examples — InstanceExample and Component.instanceExamples | Add `InstanceExample` and `InstanceExamples`; add `Component.instanceExamples?` named record (reserved, draft on `042-composition-type` branch) |
 | 045 | Processing Provenance Signals | (reserved, draft in PR #60) |
 | 044 | Duplicate Layer Name Disambiguation | (reserved, draft in PR #60) |
-| 043 | Custom Color Format Configuration | |
 | 042 | Composition as a First-Class Type | |
-| 041 | Layout Positioning — Constraint-Based Naming | |
-| 035 | Make Config Properties with Defaults Optional | |
 | 034 | Remove variantNames, add emptyVariants, make Config.include fields optional | Remove unused `variantNames` (breaking); add `emptyVariants` for filtering; make remaining fields optional |
 | 025 | Flowing Content into a Nested Instance's Slot | Model parent components that flow defined content into a nested child instance's slot _(branch)_ |
 | 024 | Component Extends Relationship | Add `extends` field to express base/derived component relationships and prop/variant inheritance _(branch)_ |
