@@ -35,7 +35,13 @@ const isAdrRecord = /^\/adr\/[^/]+\/?$/.test(pathname);
 
 <style>
   .adr-context {
-    margin-bottom: 0.15rem;
+    margin-bottom: 0;
+  }
+
+  /* Starlight gives the h1 its own margin-top, which wins the margin
+     collapse against .adr-context — zero it so the eyebrow hugs the title. */
+  .adr-context + :global(h1) {
+    margin-top: 0.1rem;
   }
 
   .adr-crumb {
@@ -52,7 +58,7 @@ const isAdrRecord = /^\/adr\/[^/]+\/?$/.test(pathname);
   }
 
   .adr-eyebrow {
-    margin: 0.75rem 0 0;
+    margin: 1.1rem 0 0;
     font-size: var(--sl-text-xs);
     font-weight: 600;
     letter-spacing: 0.08em;
