@@ -162,9 +162,9 @@ description: "Accepted architecture decisions shaping the Specs schema, CLI, and
 tableOfContents: false
 ---
 
-Specs is defined by its schema — the shape of the component data that the Figma plugin and the CLI both produce. Every field in that schema exists because of a decision: what a design system needs to express, how Figma exposes it, and which of several possible designs best survives contact with real component libraries. An **Architecture Decision Record** captures one such decision in full. It states the problem, lays out the options considered, records which one was chosen, and explains the reasoning — including the designs that were rejected and why.
+Every field in the Specs schema exists because of a decision about what a design system needs to express and how Figma exposes it. An **Architecture Decision Record** captures one such decision: the problem, the options weighed, the choice made, and the designs rejected along the way.
 
-These records are the reasoning behind the reference documentation. Where the [Schema](/schema/) and [Settings](/settings/) sections tell you what a field is and how to use it, an ADR tells you why it looks the way it does. Read them when you want the history behind a design, when a field's shape seems surprising, or when you are weighing a change and want to know what ground has already been covered. Only accepted decisions appear here, newest first; each one remains as written when it was accepted, so later records may supersede earlier ones.
+Where [Schema](/schema/) and [Settings](/settings/) tell you what a field is, an ADR tells you why it looks that way — read one when a field's shape surprises you, or when you're weighing a change. Only accepted decisions appear here, newest first, each left as written, so later records may supersede earlier ones.
 
 <table class="adr-index">
 <tbody>
