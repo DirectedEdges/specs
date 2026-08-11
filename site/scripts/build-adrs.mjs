@@ -50,9 +50,20 @@ function escapeHtml(text) {
 function renderInline(text) {
   return escapeHtml(text)
     .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, label, href) => {
+      // Cross-references are bare ADR slugs. Link only to records that are
+      // actually published — drafts would 404.
+      const slug = href.replace(/^\.?\/?/, '').replace(/\.md$/, '');
+      if (/^\d{3}-/.test(slug)) {
+        return published.has(slug) ? `<a href="/adr/${slug}/">${label}</a>` : label;
+      }
+      return `<a href="${href}">${label}</a>`;
+    })
     .replace(/\*([^*]+)\*/g, '<em>$1</em>');
 }
+
+/** Slugs of the records this build publishes, for cross-reference linking. */
+const published = new Set();
 
 /**
  * The `**Summary**:` line from the metadata block, authored at implementation
@@ -75,41 +86,69 @@ function stripTitle(md) {
  * The `**Key**: value` lines opening every ADR are consecutive, so markdown
  * joins them into one run-on paragraph. Render them as a label/value grid
  * instead, and drop the horizontal rule that followed the block.
+ *
+ * `Branch` is dropped — it names a merged branch that no longer exists.
+ * `Created` folds into the Status row, and `Supersedes` appears only when it
+ * actually points at a prior record.
  */
 function formatMetadata(md) {
-  return md.replace(
-    /^((?:\*\*[A-Za-z]+\*\*:.*\n)+)(\n---\n)?/,
-    (match, block) => {
-      const rows = [...block.matchAll(/^\*\*([A-Za-z]+)\*\*:\s*(.*)$/gm)].map(
-        ([, key, value]) =>
-          `<div class="adr-meta-row"><dt>${key}</dt><dd>${renderInline(value.trim())}</dd></div>`,
+  return md.replace(/^((?:\*\*[A-Za-z]+\*\*:.*\n)+)(\n---\n)?/, (match, block) => {
+    const fields = Object.fromEntries(
+      [...block.matchAll(/^\*\*([A-Za-z]+)\*\*:\s*(.*)$/gm)].map(([, key, value]) => [
+        key,
+        value.trim(),
+      ]),
+    );
+
+    const status = [fields.Status, fields.Created].filter(Boolean).join(' · ');
+    // Many records use Supersedes for an "(none — extends ADR-0xx)" aside;
+    // only a value that actually names a superseded record earns a row.
+    const raw = fields.Supersedes ?? '';
+    const supersedes = /^\*?\(?\s*none\b/i.test(raw.trim()) || !raw.trim() ? null : raw;
+
+    const rows = [
+      ['Summary', fields.Summary],
+      ['Status', status],
+      ['Deciders', fields.Deciders],
+      ['Supersedes', supersedes],
+    ]
+      .filter(([, value]) => value)
+      .map(
+        ([label, value]) =>
+          `<div class="adr-meta-row"><dt>${label}</dt><dd>${renderInline(value)}</dd></div>`,
       );
-      return rows.length ? `<dl class="adr-meta">\n${rows.join('\n')}\n</dl>\n` : match;
-    },
-  );
+
+    return rows.length ? `<dl class="adr-meta">\n${rows.join('\n')}\n</dl>\n` : match;
+  });
 }
 
 const files = readdirSync(srcDir)
   .filter(f => /^\d{3}-.+\.md$/.test(f))
   .sort();
 
-const adrs = [];
+const accepted = [];
 
 for (const file of files) {
   const md = readFileSync(resolve(srcDir, file), 'utf-8');
   if (extractStatus(md) !== 'ACCEPTED') continue;
 
-  const number = file.slice(0, 3);
-  const slug = file.replace(/\.md$/, '');
   const title = extractTitle(md);
   if (!title) {
     console.warn(`⚠ ${file}: no H1 title, skipped`);
     continue;
   }
+  const slug = file.replace(/\.md$/, '');
+  published.add(slug);
+  accepted.push({ file, md, slug, title, number: file.slice(0, 3) });
+}
+
+// Bodies are rendered in a second pass so cross-references can be resolved
+// against the full set of published records.
+const adrs = accepted.map(({ file, md, slug, title, number }) => {
   const summary = extractSummary(md);
   if (!summary) console.warn(`⚠ ${file}: no **Summary** in the metadata block`);
-  adrs.push({ number, slug, title, summary, body: formatMetadata(stripTitle(md)) });
-}
+  return { number, slug, title, summary, body: formatMetadata(stripTitle(md)) };
+});
 
 rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
