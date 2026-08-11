@@ -125,6 +125,7 @@ export default defineConfig({
                 { label: 'props', slug: 'cli/analyze/props' },
                 { label: 'styling', slug: 'cli/analyze/styling' },
                 { label: 'dependencies', slug: 'cli/analyze/dependencies' },
+                { label: 'keys', slug: 'cli/analyze/keys' },
               ],
             },
           ],
