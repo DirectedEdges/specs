@@ -41,12 +41,22 @@ describe('KeysAnalyzer', () => {
     await fs.remove(outputDir);
   });
 
-  async function runAnalyzer(components: Record<string, Record<string, unknown>>) {
+  /**
+   * @param figmaKeys The convention the specs declare in `metadata.config`. Defaults to
+   *   SENTENCE; pass undefined to model a catalog generated under the NONE default.
+   */
+  async function runAnalyzer(
+    components: Record<string, Record<string, unknown>>,
+    figmaKeys: 'SENTENCE' | 'TITLE' | undefined = 'SENTENCE',
+  ) {
     const a = new KeysAnalyzer();
     for (const [componentKey, apiYaml] of Object.entries(components)) {
       const compDir = path.join(outputDir, componentKey);
       await fs.ensureDir(compDir);
-      await a.run(apiYaml, { outputDir: compDir, componentKey, outputFormat: 'YAML', tokensFormat: 'TOKEN' });
+      const spec = figmaKeys
+        ? { ...apiYaml, metadata: { config: { format: { keys: 'CAMEL', figmaKeys } } } }
+        : apiYaml;
+      await a.run(spec, { outputDir: compDir, componentKey, outputFormat: 'YAML', tokensFormat: 'TOKEN' });
     }
     await a.finalize!(outputDir, analysisDir);
     const file = path.join(analysisDir, 'keys.yaml');
@@ -54,7 +64,31 @@ describe('KeysAnalyzer', () => {
     return yaml.parse(await fs.readFile(file, 'utf-8')) as KeysYaml;
   }
 
-  it('reports nothing when no name was recorded — the NONE default', async () => {
+  it('reports nothing for a catalog generated under the NONE default', async () => {
+    const result = await runAnalyzer({
+      dsBody: { anatomy: { root: withName('text', 'Text') } },
+    }, undefined);
+    expect(result!.summary.divergentNames).toBe(0);
+    expect(result!.byComponent).toEqual({});
+  });
+
+  it('ignores a recorded name that satisfies the grammar — wrapper-collapse provenance', async () => {
+    // $extensions['com.figma'].name has two triggers. ADR-058 wrapper collapse records
+    // the pre-collapse layer name on `root` whether or not it diverges, so a safe name
+    // like 'Text' or 'Icon glyph' must not be reported as a naming problem.
+    const result = await runAnalyzer({
+      dsBody: { anatomy: { root: withName('text', 'Text') } },
+      dsIcon: { anatomy: { root: withName('glyph', 'Icon glyph') } },
+      dsText: { anatomy: { root: withName('text', 'Text'), urlField: withName('text', 'URL field') } },
+    });
+    expect(result!.summary.divergentNames).toBe(1);
+    expect(Object.keys(result!.byComponent)).toEqual(['dsText']);
+    expect(result!.byComponent.dsText.anatomy).toEqual([
+      { key: 'urlField', figmaName: 'URL field', cause: 'casing' },
+    ]);
+  });
+
+  it('reports nothing when no name was recorded', async () => {
     const result = await runAnalyzer({
       dsButton: { anatomy: { label: { type: 'text' } }, props: { size: { type: 'string' } } },
     });

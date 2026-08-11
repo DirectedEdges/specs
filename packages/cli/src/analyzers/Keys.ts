@@ -9,11 +9,32 @@ import type { Transformer, TransformerContext } from '../Types/Transformer.js';
  *
  * Reads generated specs, and therefore sees a name only where the producer recorded it
  * in `$extensions['com.figma'].name`. That happens when `format.figmaKeys` declares a
- * source convention — under the `NONE` default nothing is recorded and this report is
- * empty, which is correct: no convention was declared, so no name diverged from one.
+ * source convention — under the `NONE` default nothing diverges and this report is
+ * empty, which is correct: no convention was declared, so no name departed from one.
+ *
+ * A recorded name is NOT by itself a naming problem. The field has two independent
+ * triggers: format divergence (ADR-066) and wrapper-collapse provenance (ADR-058), and
+ * the latter fires on the `root` key regardless of `figmaKeys` or of how well-formed
+ * the name is. `Text` on a collapsed root is perfectly safe under SENTENCE and
+ * round-trips unaided. So each recorded name is re-tested against the safe key grammar
+ * here, and only genuine failures are reported.
  */
 
 type Surface = 'anatomy' | 'prop';
+
+type DeclaredConvention = 'SENTENCE' | 'TITLE';
+
+/**
+ * The safe key grammar. These mirror the `SafeKeySentence` and `SafeKeyTitle`
+ * definitions in `component.schema.json`, which remain the contract — kept as literals
+ * here because the CLI bundles to a single file and reading the schema JSON at runtime
+ * would make the report depend on a resolvable package path. If the schema patterns
+ * change, change these.
+ */
+const SAFE_KEY_PATTERNS: Record<DeclaredConvention, RegExp> = {
+  SENTENCE: /^[A-Z][a-z]*( ([a-z]+|[0-9]+))*$/,
+  TITLE: /^[A-Z][a-z]*( ([A-Z][a-z]*|[0-9]+))*$/,
+};
 
 /** Why a Figma name falls outside the safe key grammar. First match wins. */
 type Cause =
@@ -76,11 +97,14 @@ export class KeysAnalyzer implements Transformer {
   private readonly _components = new Set<string>();
   private _totalNames = 0;
   private _outputFormat: 'JSON' | 'YAML' = 'JSON';
+  /** Read from each spec's own `metadata.config`; undefined means no convention declared. */
+  private _convention: DeclaredConvention | undefined;
 
   async run(apiYaml: Record<string, unknown>, context: TransformerContext): Promise<void> {
     const { componentKey, outputFormat } = context;
     this._outputFormat = outputFormat;
     this._components.add(componentKey);
+    this._convention = declaredConvention(apiYaml) ?? this._convention;
 
     this.collect(componentKey, apiYaml);
 
@@ -112,17 +136,26 @@ export class KeysAnalyzer implements Transformer {
   private collectAnatomy(component: string, anatomy: unknown): void {
     for (const [key, raw] of Object.entries((anatomy ?? {}) as Record<string, unknown>)) {
       this._totalNames++;
-      const figmaName = figmaNameOf(raw);
-      if (figmaName) this._divergent.push({ component, key, figmaName, surface: 'anatomy', cause: causeOf(figmaName) });
+      this.record(component, key, 'anatomy', figmaNameOf(raw));
     }
   }
 
   private collectProps(component: string, props: unknown): void {
     for (const [key, raw] of Object.entries((props ?? {}) as Record<string, unknown>)) {
       this._totalNames++;
-      const figmaName = figmaNameOf(raw);
-      if (figmaName) this._divergent.push({ component, key, figmaName, surface: 'prop', cause: causeOf(figmaName) });
+      this.record(component, key, 'prop', figmaNameOf(raw));
     }
+  }
+
+  /**
+   * Records a name only if it actually fails the declared grammar. A recorded name that
+   * passes was written for the other reason the field exists — wrapper-collapse
+   * provenance — and is not a naming problem: it reconstructs from its key unaided.
+   */
+  private record(component: string, key: string, surface: Surface, figmaName: string | undefined): void {
+    if (!figmaName || !this._convention) return;
+    if (SAFE_KEY_PATTERNS[this._convention].test(figmaName)) return;
+    this._divergent.push({ component, key, figmaName, surface, cause: causeOf(figmaName) });
   }
 
   async finalize(outputDir: string, analysisDir?: string): Promise<void> {
@@ -222,5 +255,17 @@ function causeOf(name: string): Cause {
   if (/\s\s|^\s|\s$|[\t\n]/.test(name)) return 'separator';
   if (/[A-Za-z][0-9]|[0-9][A-Za-z]/.test(name)) return 'mixed-letter-digit';
   if (/^[0-9]/.test(name)) return 'digit-initial';
+  // Characters and word shape are all fine, so the only rule left to fail is casing.
+  // Reached only for names that already failed the grammar, so this is a verdict rather
+  // than a catch-all — a well-formed name never gets here.
   return 'casing';
+}
+
+/** The convention the spec was generated under, from its own `metadata.config`. */
+function declaredConvention(apiYaml: Record<string, unknown>): DeclaredConvention | undefined {
+  const metadata = apiYaml.metadata as Record<string, unknown> | undefined;
+  const config = metadata?.config as Record<string, unknown> | undefined;
+  const format = config?.format as Record<string, unknown> | undefined;
+  const value = format?.figmaKeys;
+  return value === 'SENTENCE' || value === 'TITLE' ? value : undefined;
 }
