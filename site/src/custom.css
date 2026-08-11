@@ -377,3 +377,42 @@ html[data-has-hero] .hero .tagline {
 	max-width: 700px;
 	line-height: 1.2;
 }
+
+/* ── ADR index ───────────────────────────────────────────────── */
+
+.adr-index {
+	width: 100%;
+	border-collapse: collapse;
+	margin-top: 1.5rem;
+}
+
+.adr-index td {
+	padding: 0.75rem 0;
+	border-bottom: 1px solid var(--sl-color-gray-5);
+	vertical-align: baseline;
+}
+
+.adr-index .adr-number {
+	width: 3.5rem;
+	padding-right: 1rem;
+	font-family: var(--__sl-font-mono);
+	font-size: var(--sl-text-sm);
+	color: var(--sl-color-gray-3);
+	white-space: nowrap;
+}
+
+.adr-index .adr-entry a {
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.adr-index .adr-entry a:hover {
+	text-decoration: underline;
+}
+
+.adr-index .adr-summary {
+	margin: 0.25rem 0 0;
+	font-size: var(--sl-text-sm);
+	line-height: 1.5;
+	color: var(--sl-color-gray-3);
+}

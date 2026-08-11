@@ -34,8 +34,29 @@ function extractStatus(md) {
   return m ? m[1].replace(/[^A-Z]/gi, '').toUpperCase() : null;
 }
 
-function truncate(text) {
-  return text.length > 300 ? `${text.slice(0, 297)}…` : text;
+/** Clip to a word boundary so summaries stay scannable in the index. */
+function truncate(text, limit = 160) {
+  if (text.length <= limit) return text;
+  const clipped = text.slice(0, limit);
+  const lastSpace = clipped.lastIndexOf(' ');
+  return `${clipped.slice(0, lastSpace > 0 ? lastSpace : limit).replace(/[.,;:—-]$/, '')}…`;
+}
+
+/** Escape text destined for raw HTML in the generated index. */
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * Markdown inside a raw HTML block is passed through untouched, so titles
+ * carrying `code spans` need them rendered here.
+ */
+function escapeTitle(title) {
+  return escapeHtml(title).replace(/`([^`]+)`/g, '<code>$1</code>');
 }
 
 /**
@@ -114,9 +135,6 @@ for (const adr of adrs) {
     '---',
     `title: ${yaml(adr.title)}`,
     adr.summary ? `description: ${yaml(adr.summary)}` : null,
-    'sidebar:',
-    `  label: ${yaml(`${adr.number} — ${adr.title}`)}`,
-    `  order: ${Number(adr.number)}`,
     '---',
   ]
     .filter(Boolean)
@@ -127,23 +145,32 @@ for (const adr of adrs) {
 
 const rows = [...adrs]
   .reverse()
-  .map(a => `| [${a.number}](/adr/${a.slug}/) | [${a.title}](/adr/${a.slug}/) | ${(a.summary ?? '').replace(/\|/g, '\\|')} |`)
+  .map(a => {
+    const summary = a.summary
+      ? `\n<p class="adr-summary">${escapeHtml(a.summary)}</p>`
+      : '';
+    return `<tr>
+<td class="adr-number">${a.number}</td>
+<td class="adr-entry"><a href="/adr/${a.slug}/">${escapeTitle(a.title)}</a>${summary}</td>
+</tr>`;
+  })
   .join('\n');
 
 const index = `---
-title: "Architecture Decision Records"
-description: "Accepted decisions shaping the Specs schema, CLI, and plugin."
+title: "Decision Records (ADRs)"
+description: "Accepted architecture decisions shaping the Specs schema, CLI, and plugin."
 tableOfContents: false
-sidebar:
-  label: "Overview"
-  order: 0
 ---
 
-Each record captures one decision about the Specs schema and tooling — the context that forced it, the options weighed, and what was chosen. Only accepted decisions are published here; the newest appear first.
+Specs is defined by its schema — the shape of the component data that the Figma plugin and the CLI both produce. Every field in that schema exists because of a decision: what a design system needs to express, how Figma exposes it, and which of several possible designs best survives contact with real component libraries. An **Architecture Decision Record** captures one such decision in full. It states the problem, lays out the options considered, records which one was chosen, and explains the reasoning — including the designs that were rejected and why.
 
-| # | Title | Summary |
-|---|-------|---------|
+These records are the reasoning behind the reference documentation. Where the [Schema](/schema/) and [Settings](/settings/) sections tell you what a field is and how to use it, an ADR tells you why it looks the way it does. Read them when you want the history behind a design, when a field's shape seems surprising, or when you are weighing a change and want to know what ground has already been covered. Only accepted decisions appear here, newest first; each one remains as written when it was accepted, so later records may supersede earlier ones.
+
+<table class="adr-index">
+<tbody>
 ${rows}
+</tbody>
+</table>
 `;
 
 writeFileSync(resolve(outDir, 'index.md'), index);

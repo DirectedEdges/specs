@@ -63,6 +63,7 @@ export default defineConfig({
         { label: 'About Specs', slug: 'overview/aboutspecs' },
         { label: 'Getting Started', slug: 'cli/getting-started' },
         { label: 'Releases', slug: 'overview/releases' },
+        { label: 'Decision Records (ADRs)', slug: 'adr' },
         { label: 'Licensing', slug: 'overview/licensing', badge: pro },
         {
           label: 'Specs 2 Figma Plugin',
@@ -238,11 +239,6 @@ export default defineConfig({
             { label: 'Variant Depth', slug: 'guides/variant-depth' },
             { label: 'Variant Layering', slug: 'guides/variant-layering' },
           ],
-        },
-        {
-          label: 'Decision Records',
-          collapsed: true,
-          autogenerate: { directory: 'adr' },
         },
         { label: 'License (Legal)', slug: 'overview/license' },
         { label: 'Terms of Service', slug: 'overview/terms-of-service' },
