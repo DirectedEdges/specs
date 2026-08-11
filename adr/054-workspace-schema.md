@@ -2,7 +2,7 @@
 
 **Branch**: `053-transform-emit-config`
 **Created**: 2026-06-05
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 **Follows**: [ADR 053](053-transform-emit-config.md)

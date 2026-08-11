@@ -56,6 +56,8 @@ You **MUST** consider the user input before proceeding (if not empty).
 
    A draft row left in place is not cosmetic: the draft table is how a reader finds unfinished work, and a stale row carries the pre-acceptance title, so the same ADR appears twice under two different names.
 
+   The file also has a **Superseded** table, for an ADR closed in favour of a later decision rather than accepted. Move the row there instead, and name what replaced it in the "Superseded by" column — an ADR abandoned without that pointer reads as merely unfinished.
+
    Re-check this after any merge or rebase. A draft row claimed on the release branch while the ADR branch was in flight will reappear when the branches reconcile, leaving a duplicate that neither side authored.
 
 7. **Determine release branch** *(skip entirely if `EXISTING_PR` is set — use that PR's base)*: Release branches follow the `release/<pkg>-<version>` convention and may jointly cover multiple published packages (e.g., `release/schema-0.21.0-cli-0.16.0`). Do **not** invent a bare version-number branch (e.g., `0.21.0`).

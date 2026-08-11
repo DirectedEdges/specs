@@ -2,7 +2,7 @@
 
 **Branch**: `048-component-instance-examples`
 **Created**: 2026-04-29
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Deciders**: Nathan Curtis (author)
 **Depends on**: [ADR-042 — Composition Structural Type](042-composition-type), [ADR-046 — Slots and Slot References](046-slots-and-slot-references), [ADR-047 — Component Slot Examples](047-component-slot-examples)
 **Extended by**: ADR-049 (Prop Configurations and Bindings)

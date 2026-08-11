@@ -2,7 +2,7 @@
 
 **Branch**: `062-text-truncation`
 **Created**: 2026-07-09
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

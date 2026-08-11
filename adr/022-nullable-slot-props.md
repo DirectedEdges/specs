@@ -2,7 +2,7 @@
 
 **Branch**: `022-nullable-slot-props`
 **Created**: 2026-03-12
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none — extends ADR 019 to cover `SlotProp`)*
 
