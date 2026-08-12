@@ -11,7 +11,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { createInterface } from 'readline';
 import { ConfigLoader } from '../Config/ConfigLoader.js';
-import { postRender } from '../bridge/client.js';
+import { postRender, type RenderResponse } from '../bridge/client.js';
 import { resolveFileKey } from '../bridge/pickConnection.js';
 import { findComponentFolders, isComponentFolder, loadSpec } from '../Render/SpecLoader.js';
 
@@ -30,7 +30,8 @@ export const Render = new Command('render')
   .option('--overwrite', 'Delete any existing page component with the same title before rendering (without this, a title collision is an error)')
   .option('--watch', 'Watch the spec path and re-render on every change (implies --overwrite)')
   .option('--strict', 'Fail the render when an instance element cannot be resolved, instead of rendering a component with missing content')
-  .action(async (specPath: string | undefined, options: { config?: string; file?: string; page?: string; overwrite?: boolean; watch?: boolean; strict?: boolean; verbose?: boolean }) => {
+  .option('--timing', 'Print a phase-by-phase timing report for the render (bridge manifests, then plugin write phases)')
+  .action(async (specPath: string | undefined, options: { config?: string; file?: string; page?: string; overwrite?: boolean; watch?: boolean; strict?: boolean; timing?: boolean; verbose?: boolean }) => {
     if (options.watch) {
       if (!specPath) {
         console.error('Error: --watch requires a spec path.');
@@ -86,12 +87,14 @@ export const Render = new Command('render')
 // logged and retried on the next change (watch).
 async function renderSpecPath(
   specPath: string,
-  options: { file?: string; page?: string; overwrite?: boolean; strict?: boolean }
+  options: { file?: string; page?: string; overwrite?: boolean; strict?: boolean; timing?: boolean }
 ): Promise<number> {
   const { spec, resolvePath } = loadSpec(specPath);
   console.log(`Posting spec: ${resolvePath}`);
   const fileKey = await resolveFileKey(options.file);
+  const startedAt = Date.now();
   const result = await postRender({ specPath: resolvePath, spec, fileKey, pageId: options.page, overwrite: options.overwrite });
+  const elapsed = Date.now() - startedAt;
 
   if (!result.success) {
     const msg = typeof result.error === 'string' ? result.error : JSON.stringify(result.error);
@@ -119,7 +122,8 @@ async function renderSpecPath(
     }
   }
 
-  console.log(`✓ Rendered in Figma. nodeId: ${result.nodeId}`);
+  console.log(`✓ Rendered in Figma in ${(elapsed / 1000).toFixed(1)}s. nodeId: ${result.nodeId}`);
+  if (options.timing) printTimingReport(result, elapsed);
   return dropped;
 }
 
@@ -128,6 +132,36 @@ async function renderSpecPath(
  * cosmetic degradations (font fallbacks, skipped style keys) which leave it complete.
  * Matched on the writer's own message text — see `Elements.createChild`.
  */
+/**
+ * Attribute a render's wall-clock time to bridge phases (manifest builds, which
+ * parse the fetched file data) and plugin write phases. Plugin phases that run
+ * concurrently — one row per variant, say — sum above the render's own total;
+ * the count column is what makes that readable.
+ */
+function printTimingReport(result: RenderResponse, elapsed: number): void {
+  const row = (label: string, ms: number, count?: number): void => {
+    const share = elapsed > 0 ? `${Math.round((ms / elapsed) * 100)}%`.padStart(4) : '   -';
+    const times = count !== undefined && count > 1 ? `  ×${count}` : '';
+    console.log(`    ${label.padEnd(24)} ${String(ms).padStart(6)}ms ${share}${times}`);
+  };
+
+  console.log('\n  Timing');
+  const bridge = [...(result.bridgeTimings ?? [])].sort((a, b) => b.ms - a.ms);
+  if (bridge.length > 0) {
+    console.log('  Bridge:');
+    for (const t of bridge) row(t.label, t.ms);
+  }
+  if (result.payloadKB !== undefined) {
+    console.log(`    ${'payload'.padEnd(24)} ${String(result.payloadKB).padStart(6)}KB`);
+  }
+  const phases = [...(result.timings?.phases ?? [])].sort((a, b) => b.ms - a.ms);
+  if (phases.length > 0) {
+    console.log(`  Plugin (${result.timings?.total}ms total):`);
+    for (const p of phases) row(p.label, p.ms, p.count);
+  }
+  console.log(`    ${'TOTAL'.padEnd(24)} ${String(elapsed).padStart(6)}ms`);
+}
+
 function countDroppedInstances(warnings?: string[]): number {
   return (warnings ?? []).filter((w) => w.includes('no manifest entry for')).length;
 }
@@ -148,7 +182,7 @@ function confirm(question: string): Promise<boolean> {
  */
 async function renderBatchDirectory(
   absDir: string,
-  options: { file?: string; page?: string; overwrite?: boolean; strict?: boolean },
+  options: { file?: string; page?: string; overwrite?: boolean; strict?: boolean; timing?: boolean },
   // In watch mode a batch is re-run on every change: don't re-confirm, and
   // don't exit the process on a failure the next save might fix.
   { watch = false }: { watch?: boolean } = {}

@@ -64,6 +64,12 @@ interface RenderResult {
   success: boolean;
   nodeId?: string;
   error?: string;
+  /** Phase durations reported by the plugin writer (see figma-from-specs Timings.ts). */
+  timings?: { total: number; phases: Array<{ label: string; ms: number; count: number }> };
+  /** Phase durations measured here, before and around the plugin round-trip. */
+  bridgeTimings?: Array<{ label: string; ms: number }>;
+  /** Size of the render payload sent over the socket, in KB. */
+  payloadKB?: number;
 }
 
 interface GenerateResult {
@@ -174,7 +180,8 @@ wss.on('connection', (ws: WebSocket) => {
         const warnings = Array.isArray(msg.warnings) && msg.warnings.length > 0 ? (msg.warnings as string[]) : undefined;
         console.log(`✓ Rendered in Figma. nodeId: ${nodeId}`);
         for (const w of warnings ?? []) console.warn(`  ⚠ ${w}`);
-        requests.resolve(requestId, warnings ? { success: true, nodeId, warnings } : { success: true, nodeId });
+        const timings = msg.timings as RenderResult['timings'];
+        requests.resolve(requestId, { success: true, nodeId, ...(warnings ? { warnings } : {}), ...(timings ? { timings } : {}) });
       } else {
         console.error(`✗ Render failed: ${msg.error}`);
         requests.resolve(requestId, { success: false, error: msg.error as string });
@@ -558,11 +565,17 @@ async function sendRender(specPath: string, rawPageId: string | null, fileKey?: 
   const dirs = resolveDirs(specPath);
   const { specsDir, dataDir, workspaceName } = dirs;
 
-  const manifest = buildManifest(spec, specsDir, pathResolve(dataDir, workspaceName + '.file.json'));
+  const bridgeTimings: Array<{ label: string; ms: number }> = [];
+  const timed = <T>(label: string, fn: () => T): T => {
+    const start = Date.now();
+    try { return fn(); } finally { bridgeTimings.push({ label, ms: Date.now() - start }); }
+  };
 
-  const glyphIdManifest = buildGlyphManifest(spec, pathResolve(dataDir, workspaceName + '.manifest.md'), pathResolve(dataDir, workspaceName + '.file.json'));
-  const stylesManifest = buildStylesManifest(pathResolve(dataDir, workspaceName + '.file.json'));
-  const variablesManifest = buildVariablesManifest(pathResolve(dataDir, workspaceName + '.variables.json'));
+  const fileDataPath = pathResolve(dataDir, workspaceName + '.file.json');
+  const manifest = timed('instance manifest', () => buildManifest(spec, specsDir, fileDataPath));
+  const glyphIdManifest = timed('glyph manifest', () => buildGlyphManifest(spec, pathResolve(dataDir, workspaceName + '.manifest.md'), fileDataPath));
+  const stylesManifest = timed('styles manifest', () => buildStylesManifest(fileDataPath));
+  const variablesManifest = timed('variables manifest', () => buildVariablesManifest(pathResolve(dataDir, workspaceName + '.variables.json')));
 
   // Resolve page ID: use provided value, or ask this connection's plugin for its current page.
   let pageId: string;
@@ -580,9 +593,16 @@ async function sendRender(specPath: string, rawPageId: string | null, fileKey?: 
 
   console.log(`Rendering: ${componentName} → page ${pageId} (${conn.fileKey})`);
 
-  const { requestId, promise } = requests.create(60000, 'Timed out waiting for renderComponent-result.');
-  conn.ws.send(JSON.stringify({ type: 'renderComponent', requestId, spec, pageId, instanceIdManifest: manifest, glyphIdManifest, stylesManifest, variablesManifest, overwrite }));
-  return promise as Promise<RenderResult>;
+  // A large component set against a big library can take minutes today; a timeout
+  // shorter than the render discards a result the plugin actually produced.
+  const { requestId, promise } = requests.create(300000, 'Timed out waiting for renderComponent-result.');
+  const payload = JSON.stringify({ type: 'renderComponent', requestId, spec, pageId, instanceIdManifest: manifest, glyphIdManifest, stylesManifest, variablesManifest, overwrite });
+
+  const sentAt = Date.now();
+  conn.ws.send(payload);
+  const result = await (promise as Promise<RenderResult>);
+  bridgeTimings.push({ label: 'plugin round-trip', ms: Date.now() - sentAt });
+  return { ...result, bridgeTimings, payloadKB: Math.round(payload.length / 1024) };
 }
 
 // ── CLI: --render flag ────────────────────────────────────────────────────────

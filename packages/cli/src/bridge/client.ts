@@ -43,6 +43,11 @@ export interface RenderResponse {
   /** Non-fatal render degradations reported by the plugin (font fallbacks, skipped keys). */
   warnings?: string[];
   error?: unknown;
+  /** Phase durations inside the plugin writer. */
+  timings?: { total: number; phases: Array<{ label: string; ms: number; count: number }> };
+  /** Phase durations on the bridge — manifest builds and the plugin round-trip. */
+  bridgeTimings?: Array<{ label: string; ms: number }>;
+  payloadKB?: number;
 }
 
 export async function postRender(body: RenderRequestBody): Promise<RenderResponse> {
