@@ -50,7 +50,11 @@ import { parse } from 'yaml';
 import { WS_PORT, HTTP_PORT, DEFAULT_PAGE_ID, resolveWorkspaceDir } from './config.js';
 import { ConnectionRegistry, type Connection } from './connections.js';
 import { RequestTracker } from './requestTracker.js';
-import { buildVariablesIndex, countUnpublished, type VariablesIndex } from '../utilities/variablesIndex.js';
+import { countUnpublished, type VariablesIndex } from '../utilities/variablesIndex.js';
+import {
+  readCacheFile, validateCache, describeProblems,
+  type ComponentsEntry, type StylesEntry, type VariablesEntry, type IconsEntry,
+} from '../Cache/Cache.js';
 
 /** id = same-file node id (fast path); key = published cross-file key (fallback import). */
 type ComponentEntry = { id: string; key?: string };
@@ -102,7 +106,7 @@ const envDataDir = process.env.DATA_DIR ?? null;
  * Resolve the specs and data directories for a given spec or manifest path.
  * Precedence: explicit env overrides → startup workspace → per-request derivation.
  */
-function resolveDirs(fromPath: string): { specsDir: string; dataDir: string; workspaceName: string } {
+function resolveDirs(fromPath: string): { specsDir: string; dataDir: string; aliases: string[]; glyphNamePattern?: string } {
   const workspaceDir = startupWorkspaceDir ?? resolveWorkspaceDir(fromPath);
   if (!workspaceDir && (!envSpecsDir || !envDataDir)) {
     throw new Error(
@@ -114,8 +118,8 @@ function resolveDirs(fromPath: string): { specsDir: string; dataDir: string; wor
   const dataDir = envDataDir ?? pathResolve(workspaceDir as string, 'data');
   // Data files are named {sourceAlias}.manifest.md, {sourceAlias}.file.json, etc.
   // The source alias comes from the first key under `sources` in specs.config.yaml.
-  const sourceAlias = resolveSourceAlias(workspaceDir as string);
-  return { specsDir, dataDir, workspaceName: sourceAlias };
+  const { aliases, glyphNamePattern } = resolveSources(workspaceDir as string);
+  return { specsDir, dataDir, aliases, glyphNamePattern };
 }
 
 console.log(`\nSpecs 2 — CLI bridge`);
@@ -297,98 +301,102 @@ http.on('error', (e: NodeJS.ErrnoException) => {
 
 // ── Shared utilities ──────────────────────────────────────────────────────────
 
-function readJson(filePath: string, label: string): Record<string, unknown> | null {
-  try {
-    return JSON.parse(readFileSync(filePath, 'utf8'));
-  } catch {
-    console.warn(`  ${label}: could not read "${filePath}" — skipping`);
-    return null;
-  }
-}
-
 // ── Manifest builders ─────────────────────────────────────────────────────────
+//
+// Every library-side lookup a render needs is read from the caches under
+// {dataDir}/cache/ (see src/Cache/Cache.ts). They are built by `specs fetch` and
+// `specs cache` from the fetched payloads, so no payload is parsed here — a file
+// payload can be hundreds of megabytes and used to be parsed three times per render.
+// Only the spec-side half of the instance manifest is derived at render time, since
+// it reflects the workspace's specs rather than the library.
 
 /**
- * Build a glyph manifest from a scan manifest.md file. Each entry's `id` is a
- * same-file node id (fast path); `key` is the published component's stable
- * cross-file key, cross-referenced from the fetched file's top-level `components`
- * map (fileDataPath) — used as a fallback when rendering into a different file
- * than the glyph's source (figma.importComponentByKeyAsync on the plugin side).
+ * Build a flat manifest of spec key → component entry by scanning specsDir.
+ * Also layers in subcomponent ref aliases from the current spec. Published
+ * cross-file keys come from the components cache, which records them per node id
+ * across every fetched library.
  */
-function buildGlyphManifest(spec: Record<string, unknown>, manifestPath: string, fileDataPath: string): GlyphManifest {
-  const pattern = (spec as { metadata?: { config?: { processing?: { glyphNamePattern?: unknown } } } })
-    ?.metadata?.config?.processing?.glyphNamePattern;
-  if (!pattern || typeof pattern !== 'string') return {};
+function buildManifest(spec: Record<string, unknown>, specsDir: string, dataDir: string): Manifest {
+  const manifest: Manifest = {};
 
-  let content: string;
-  try {
-    content = readFileSync(manifestPath, 'utf8');
-  } catch {
-    console.warn(`  Glyph manifest: file not found at "${manifestPath}" — glyph placement disabled`);
-    return {};
-  }
+  const cache = readCacheFile<ComponentsEntry>(dataDir, 'components');
+  const entryFor = (id: string): ComponentEntry => {
+    const key = cache?.entries[id]?.key;
+    return key ? { id, key } : { id };
+  };
 
-  const fileComponents = readJson(fileDataPath, 'Glyph manifest')?.components as
-    Record<string, { key?: string }> | undefined;
-
-  const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace('\\{i\\}', '(.+)');
-  const regex = new RegExp(`^${escaped}$`);
-
-  const result: GlyphManifest = {};
-  for (const line of content.split('\n')) {
-    const match = line.match(/^\|\s*(?:\[.?\]\s*\|\s*)?(.+?)\s*\|\s*(\S+)\s*\|\s*COMPONENT\s*\|/);
-    if (!match) continue;
-    const [, name, id] = match;
-    const normalized = name.trim().replace(/\s+/g, ' ');
-    const glyphMatch = normalized.match(regex);
-    if (!glyphMatch) continue;
-    const glyphName = glyphMatch[1].trim();
-    if (!glyphName) continue;
-    if (!result[glyphName]) {
-      const key = fileComponents?.[id]?.key;
-      result[glyphName] = key ? { id, key } : { id };
+  const specFiles = collectSpecFiles(specsDir);
+  // Deduplicate by key: first nodeId found wins (variants.yaml before api.yaml, etc.)
+  for (const { key, path } of specFiles) {
+    if (manifest[key]) continue; // already have a nodeId for this key
+    try {
+      const s = parse(readFileSync(path, 'utf8')) as { metadata?: { source?: { nodeId?: string } } };
+      const nodeId = s.metadata?.source?.nodeId;
+      if (nodeId) manifest[key] = entryFor(nodeId);
+    } catch {
+      // Skip unreadable or non-spec files silently
     }
   }
 
+  // Layer 2: alias subcomponent ref keys from the current spec.
+  const specTyped = spec as {
+    subcomponents?: Record<string, { source?: { nodeId?: string }; title?: string }>;
+    components?: Record<string, { subcomponents?: Record<string, { source?: { nodeId?: string }; title?: string }> }>;
+  };
+  const subcomponents = specTyped.subcomponents ?? Object.values(specTyped.components ?? {})[0]?.subcomponents;
+  if (subcomponents) {
+    for (const [refKey, sub] of Object.entries(subcomponents)) {
+      if (sub.source?.nodeId) {
+        manifest[refKey] = entryFor(sub.source.nodeId);
+      } else if (sub.title) {
+        const titleKey = toCamelCase(sub.title);
+        if (manifest[titleKey]) manifest[refKey] = manifest[titleKey];
+      }
+    }
+  }
+
+  console.log(`  Manifest: ${Object.keys(manifest).length} entries`);
+  return manifest;
+}
+
+/**
+ * Glyph name → component entry, straight from the icons cache. The cache is built by
+ * matching the configured glyphNamePattern against the fetched file, so render depends
+ * on no scan output: a scan manifest is generated and then authored, which makes it a
+ * poor thing to resolve against.
+ */
+function buildGlyphManifest(dataDir: string): GlyphManifest {
+  const cache = readCacheFile<IconsEntry>(dataDir, 'icons');
+  const result: GlyphManifest = {};
+  for (const [name, entry] of Object.entries(cache?.entries ?? {})) {
+    result[name] = entry.key ? { id: entry.id, key: entry.key } : { id: entry.id };
+  }
   console.log(`  Glyph manifest: ${Object.keys(result).length} glyphs`);
   return result;
 }
 
-/**
- * Build a styles manifest from the file data JSON.
- */
-function buildStylesManifest(fileDataPath: string): Manifest {
-  const data = readJson(fileDataPath, 'Styles manifest');
-  if (!data) return {};
-
-  const styles = data?.styles as Record<string, { styleType?: string; name?: string; key?: string }> | undefined;
-  if (!styles || typeof styles !== 'object') {
-    console.warn(`  Styles manifest: no styles in file data — style token binding disabled`);
-    return {};
+/** Style name → published key, for the style types a spec can reference. */
+function buildStylesManifest(dataDir: string): Record<string, string> {
+  const cache = readCacheFile<StylesEntry>(dataDir, 'styles');
+  const result: Record<string, string> = {};
+  for (const [name, entry] of Object.entries(cache?.entries ?? {})) {
+    result[name] = entry.key;
   }
-
-  const result: Manifest = {};
-  for (const meta of Object.values(styles)) {
-    if ((meta.styleType === 'EFFECT' || meta.styleType === 'TEXT' || meta.styleType === 'FILL') && meta.name && meta.key) {
-      result[meta.name] = meta.key;
-    }
-  }
-
   console.log(`  Styles manifest: ${Object.keys(result).length} entries`);
   return result;
 }
 
-/**
- * Build a variables manifest from the variables JSON file.
- */
-function buildVariablesManifest(variablesJsonPath: string): VariablesManifest {
-  const data = readJson(variablesJsonPath, 'Variables manifest');
-  if (!data) return {};
+/** Token name → the handles it resolves to. */
+function buildVariablesManifest(dataDir: string): VariablesManifest {
+  const cache = readCacheFile<VariablesEntry>(dataDir, 'variables');
+  const index: VariablesManifest = {};
+  for (const [name, entry] of Object.entries(cache?.entries ?? {})) {
+    index[name] = { key: entry.key, id: entry.id, published: entry.published };
+  }
 
-  const index = buildVariablesIndex((data.meta ? data : { meta: data }) as Parameters<typeof buildVariablesIndex>[0]);
   const names = Object.keys(index).length;
   if (names === 0) {
-    console.warn(`  Variables manifest: no named variables in file — variable binding disabled`);
+    console.warn(`  Variables manifest: no named variables cached — variable binding disabled`);
     return index;
   }
 
@@ -437,59 +445,6 @@ function collectSpecFiles(specsDir: string): Array<{ key: string; path: string }
   return files;
 }
 
-/**
- * Build a flat manifest of spec key → component entry by scanning specsDir.
- * Also layers in subcomponent ref aliases from the current spec. Published
- * cross-file keys are cross-referenced from the fetched file's top-level
- * `components`/`componentSets` maps (fileDataPath) — instances usually target
- * component sets, so both maps are consulted.
- */
-function buildManifest(spec: Record<string, unknown>, specsDir: string, fileDataPath: string): Manifest {
-  const manifest: Manifest = {};
-
-  const fileData = readJson(fileDataPath, 'Instance manifest');
-  const fileRefs = {
-    ...(fileData?.components as Record<string, { key?: string }> | undefined ?? {}),
-    ...(fileData?.componentSets as Record<string, { key?: string }> | undefined ?? {}),
-  };
-  const entryFor = (id: string): ComponentEntry => {
-    const key = fileRefs[id]?.key;
-    return key ? { id, key } : { id };
-  };
-
-  const specFiles = collectSpecFiles(specsDir);
-  // Deduplicate by key: first nodeId found wins (variants.yaml before api.yaml, etc.)
-  for (const { key, path } of specFiles) {
-    if (manifest[key]) continue; // already have a nodeId for this key
-    try {
-      const s = parse(readFileSync(path, 'utf8')) as { metadata?: { source?: { nodeId?: string } } };
-      const nodeId = s.metadata?.source?.nodeId;
-      if (nodeId) manifest[key] = entryFor(nodeId);
-    } catch {
-      // Skip unreadable or non-spec files silently
-    }
-  }
-
-  // Layer 2: alias subcomponent ref keys from the current spec.
-  const specTyped = spec as {
-    subcomponents?: Record<string, { source?: { nodeId?: string }; title?: string }>;
-    components?: Record<string, { subcomponents?: Record<string, { source?: { nodeId?: string }; title?: string }> }>;
-  };
-  const subcomponents = specTyped.subcomponents ?? Object.values(specTyped.components ?? {})[0]?.subcomponents;
-  if (subcomponents) {
-    for (const [refKey, sub] of Object.entries(subcomponents)) {
-      if (sub.source?.nodeId) {
-        manifest[refKey] = entryFor(sub.source.nodeId);
-      } else if (sub.title) {
-        const titleKey = toCamelCase(sub.title);
-        if (manifest[titleKey]) manifest[refKey] = manifest[titleKey];
-      }
-    }
-  }
-
-  console.log(`  Manifest: ${Object.keys(manifest).length} entries`);
-  return manifest;
-}
 
 function toCamelCase(str: string): string {
   return str
@@ -508,19 +463,25 @@ function toCamelCase(str: string): string {
  * `specs scan` produces (line: baseName = path.basename(alias + '.file.json', '.file.json')).
  * Falls back to the workspace directory name if the config is absent or has no sources.
  */
-function resolveSourceAlias(workspaceDir: string): string {
+/**
+ * Every source alias declared in the workspace config, in declaration order, plus the
+ * glyph naming pattern. Render resolves against all of them: a component can instance a
+ * component, bind a token, or place a glyph from any library the workspace declares.
+ */
+function resolveSources(workspaceDir: string): { aliases: string[]; glyphNamePattern?: string } {
   const configPath = pathResolve(workspaceDir, 'specs.config.yaml');
   try {
-    const config = parse(readFileSync(configPath, 'utf8')) as { sources?: Record<string, unknown> };
+    const config = parse(readFileSync(configPath, 'utf8')) as {
+      sources?: Record<string, unknown>;
+      config?: { processing?: { glyphNamePattern?: string } };
+    };
     const sources = config?.sources;
-    if (sources && typeof sources === 'object') {
-      const firstAlias = Object.keys(sources)[0];
-      if (firstAlias) return firstAlias;
-    }
+    const aliases = sources && typeof sources === 'object' ? Object.keys(sources) : [];
+    return { aliases, glyphNamePattern: config?.config?.processing?.glyphNamePattern };
   } catch {
-    // No config or unreadable — fall back to workspace dir name
+    // No config or unreadable — no aliases, which render reports as an unusable cache
+    return { aliases: [] };
   }
-  return basename(workspaceDir);
 }
 
 // ── Shared render logic ───────────────────────────────────────────────────────
@@ -563,7 +524,14 @@ async function sendRender(specPath: string, rawPageId: string | null, fileKey?: 
   }
 
   const dirs = resolveDirs(specPath);
-  const { specsDir, dataDir, workspaceName } = dirs;
+  const { specsDir, dataDir, aliases, glyphNamePattern } = dirs;
+
+  // Render resolves against the caches only. A missing or stale cache is fatal rather
+  // than rebuilt here: rebuilding parses every fetched payload, which is exactly the
+  // per-render cost the caches exist to remove — and silently rendering against data
+  // that no longer matches what was fetched binds specs to the wrong variables.
+  const problems = validateCache({ dataDir, aliases, glyphNamePattern });
+  if (problems.length > 0) throw new Error(describeProblems(problems));
 
   const bridgeTimings: Array<{ label: string; ms: number }> = [];
   const timed = <T>(label: string, fn: () => T): T => {
@@ -571,11 +539,10 @@ async function sendRender(specPath: string, rawPageId: string | null, fileKey?: 
     try { return fn(); } finally { bridgeTimings.push({ label, ms: Date.now() - start }); }
   };
 
-  const fileDataPath = pathResolve(dataDir, workspaceName + '.file.json');
-  const manifest = timed('instance manifest', () => buildManifest(spec, specsDir, fileDataPath));
-  const glyphIdManifest = timed('glyph manifest', () => buildGlyphManifest(spec, pathResolve(dataDir, workspaceName + '.manifest.md'), fileDataPath));
-  const stylesManifest = timed('styles manifest', () => buildStylesManifest(fileDataPath));
-  const variablesManifest = timed('variables manifest', () => buildVariablesManifest(pathResolve(dataDir, workspaceName + '.variables.json')));
+  const manifest = timed('instance manifest', () => buildManifest(spec, specsDir, dataDir));
+  const glyphIdManifest = timed('glyph manifest', () => buildGlyphManifest(dataDir));
+  const stylesManifest = timed('styles manifest', () => buildStylesManifest(dataDir));
+  const variablesManifest = timed('variables manifest', () => buildVariablesManifest(dataDir));
 
   // Resolve page ID: use provided value, or ask this connection's plugin for its current page.
   let pageId: string;

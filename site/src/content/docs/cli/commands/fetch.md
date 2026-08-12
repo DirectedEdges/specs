@@ -48,6 +48,18 @@ specs fetch --no-geometry --verbose
 ### `--verbose`
 Show request URLs and write locations.
 
+## The Render Cache
+
+After downloading, `fetch` builds the lookup tables [`render`](/cli/commands/render/) resolves specs against, under `{dataDirectory}/cache/`. This is why a normal workflow never needs to run [`specs cache`](/cli/commands/cache/) by hand.
+
+It covers every source in your config that has been fetched — the ones downloaded this run, plus any downloaded previously — and rebuilds only the ones whose payloads actually changed, so refreshing one library doesn't re-read the rest. A source you haven't fetched yet is skipped and reported:
+
+```
+  Cache rebuilt: library
+  Not fetched, skipped: brand
+  Entries: 3567 components, 97 styles, 1458 variables, 469 icons
+```
+
 ## Examples
 
 ```bash

@@ -24,6 +24,7 @@ import { Command } from 'commander';
 import { Generate } from './commands/GenerateCommand.js';
 import { Scan } from './commands/ScanCommand.js';
 import { Fetch } from './commands/FetchCommand.js';
+import { Cache } from './commands/CacheCommand.js';
 import { Init } from './commands/InitCommand.js';
 import { Analyze } from './commands/AnalyzeCommand.js';
 import { ApplyCustomTokens } from './commands/ApplyCustomTokensCommand.js';
@@ -62,6 +63,7 @@ export function createProgram(): Command {
   program.addCommand(Generate);
   program.addCommand(Scan);
   program.addCommand(Fetch);
+  program.addCommand(Cache);
   program.addCommand(ApplyCustomTokens);
   program.addCommand(Transform);
   program.addCommand(Analyze);

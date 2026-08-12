@@ -8,6 +8,8 @@ Sends a spec (or a batch of specs) to a running CLI bridge, which renders the ma
 
 This is the reverse of the rest of the CLI: instead of reading Figma and producing a spec, `render` reads a spec and renders it in Figma. It requires the bridge to be running (`specs bridge start`) with a connected Figma plugin — see the [Render to Figma guide](/guides/render-to-figma/) for full setup before running this command for the first time.
 
+It also requires a current [cache](/cli/commands/cache/) — the lookup tables that give a spec's component, token, style, and icon names meaning. `fetch` builds it, so a normal workflow already has one. When it's missing or no longer matches your fetched data, `render` stops and names what to rebuild rather than rendering against data that has moved on.
+
 ## Usage
 
 ```bash
@@ -89,6 +91,26 @@ In watch mode a failed render is logged and the watch continues, rather than exi
 specs render specs/deButton/ --watch
 ```
 
+### `--refresh-cache`
+
+Rebuild the [cache](/cli/commands/cache/) from your fetched data before rendering. Off by default, since `fetch` already builds it and rebuilding on every render would reintroduce the cost the cache exists to remove.
+
+Use it when a render has just failed on a stale cache and you'd rather not run a separate command.
+
+```bash
+specs render specs/deButton/ --refresh-cache
+```
+
+### `--timing`
+
+Print a phase-by-phase timing report after the render: the bridge's lookup work and payload size, then each phase of the write inside Figma, with each phase's share of total time and how many times it ran.
+
+Phases that run concurrently — one row per variant, for instance — can sum to more than the total; the count column is what makes that readable.
+
+```bash
+specs render specs/deButton/ --timing
+```
+
 ### `--strict`
 
 Fail the render when an instance element can't be resolved, instead of rendering a component with missing content.
@@ -119,6 +141,12 @@ specs render specs/deButton/ --watch
 # Replace an existing component instead of erroring on the title collision
 specs render specs/deButton.yaml --overwrite
 
+# Rebuild the lookup cache first, then render
+specs render specs/deButton/ --refresh-cache
+
+# See where a slow render spends its time
+specs render specs/deButton/ --timing
+
 # Scripted run: pin the file and page, fail on incomplete renders
 specs render specs/ --file abc123XYZ --page 12:345 --strict
 ```
@@ -137,5 +165,6 @@ specs render specs/ --file abc123XYZ --page 12:345 --strict
 
 - [`bridge`](/cli/commands/bridge/) — start/stop/check the bridge `render` talks to
 - [Render to Figma](/guides/render-to-figma/) — bridge architecture, setup, and prerequisites
-- [`scan`](/cli/commands/scan/) — refreshes the manifest data `render` uses to bind styles, variables, and glyphs
+- [`cache`](/cli/commands/cache/) — the lookup tables `render` resolves component, style, token, and glyph names against
+- [`fetch`](/cli/commands/fetch/) — downloads the library data and builds that cache
 - [`generate`](/cli/commands/generate/) — produces the specs that `render` consumes

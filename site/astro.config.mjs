@@ -103,6 +103,7 @@ export default defineConfig({
             { label: 'init', slug: 'cli/commands/init' },
             { label: 'fetch', slug: 'cli/commands/fetch' },
             { label: 'scan', slug: 'cli/commands/scan' },
+            { label: 'cache', slug: 'cli/commands/cache' },
             { label: 'applyCustomTokens', slug: 'cli/commands/apply-custom-tokens' },
             { label: 'generate', slug: 'cli/commands/generate' },
             { label: 'transform', slug: 'cli/commands/transform' },

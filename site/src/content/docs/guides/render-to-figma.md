@@ -48,12 +48,20 @@ my-workspace/
   specs/
     deButton.yaml
   data/
-    library.manifest.md       # from `specs scan`
-    library.file.json         # from `specs scan`
-    library.variables.json    # from `specs scan`
+    library.file.json         # from `specs fetch`
+    library.variables.json    # from `specs fetch`
+    cache/                    # from `specs fetch`, read by `render`
+      components.yaml
+      styles.yaml
+      variables.yaml
+      icons.yaml
 ```
 
-A spec rendered by `render` binds glyphs, styles, and variables using the data files your last `specs scan` produced. If you've added or renamed components in Figma, or updated styles or variables, **run `specs scan` again before rendering** so those bindings are current. Everything else — resolving the spec's structure into Figma nodes, styles, and variants — is handled automatically; there's no manual prep beyond having an up-to-date scan and a spec generated the normal way with [`generate`](/cli/commands/generate/).
+A spec rendered by `render` binds components, glyphs, styles, and variables through the [cache](/cli/commands/cache/) built from your fetched data. If you've added or renamed components in Figma, or updated styles or variables, **run `specs fetch` again before rendering** so those bindings are current — `fetch` rebuilds the cache itself.
+
+`render` checks the cache against your data files before every render and stops if it no longer matches, naming what to rebuild. Everything else — resolving the spec's structure into Figma nodes, styles, and variants — is handled automatically; there's no manual prep beyond current data and a spec generated the normal way with [`generate`](/cli/commands/generate/).
+
+Note that `render` does not read anything produced by [`scan`](/cli/commands/scan/). A scan manifest is generated and then authored, which makes it a poor thing to resolve against; `scan` serves `generate`, not `render`.
 
 ## Running a Render
 
@@ -98,12 +106,14 @@ Done: 6 rendered in Figma, 0 failed.
 | `Error: bridge is not running.` | Run `specs bridge start`, then retry |
 | `No plugin connected` | Enable the CLI Bridge in the Specs 2 plugin; if it was already open, toggle it off and on |
 | Nothing happens / times out | Run `specs bridge status` to confirm the plugin shows connected, and check you're on the intended page in Figma |
-| Missing glyphs, styles, or variable bindings | Run `specs scan` to refresh the workspace's data files, then render again |
+| Missing glyphs, styles, or variable bindings | Run `specs fetch` to refresh the data and rebuild the cache, then render again |
+| `Render cache is not usable` | Run `specs cache` (or render with `--refresh-cache`) |
 
 ## Further Reading
 
 - [`bridge` command reference](/cli/commands/bridge/) — start/stop/status, logs, pid file
 - [`render` command reference](/cli/commands/render/) — flags and exit codes
-- [`scan`](/cli/commands/scan/) — keeps glyph, style, and variable data current for rendering
+- [`fetch`](/cli/commands/fetch/) — downloads the library data and builds the cache `render` resolves against
+- [`cache`](/cli/commands/cache/) — what the cache holds, and when it goes stale
 - [`generate`](/cli/commands/generate/) — produces the specs that `render` consumes
 - [sources config](/settings/data-sources/) — how workspace aliases and data files are resolved

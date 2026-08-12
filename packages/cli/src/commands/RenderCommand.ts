@@ -14,6 +14,8 @@ import { ConfigLoader } from '../Config/ConfigLoader.js';
 import { postRender, type RenderResponse } from '../bridge/client.js';
 import { resolveFileKey } from '../bridge/pickConnection.js';
 import { findComponentFolders, isComponentFolder, loadSpec } from '../Render/SpecLoader.js';
+import { refreshCache } from '../Cache/Cache.js';
+import { reportCache } from './CacheCommand.js';
 
 const ERROR_CODES = {
   SUCCESS: 0,
@@ -31,7 +33,22 @@ export const Render = new Command('render')
   .option('--watch', 'Watch the spec path and re-render on every change (implies --overwrite)')
   .option('--strict', 'Fail the render when an instance element cannot be resolved, instead of rendering a component with missing content')
   .option('--timing', 'Print a phase-by-phase timing report for the render (bridge manifests, then plugin write phases)')
-  .action(async (specPath: string | undefined, options: { config?: string; file?: string; page?: string; overwrite?: boolean; watch?: boolean; strict?: boolean; timing?: boolean; verbose?: boolean }) => {
+  .option('--refresh-cache', 'Rebuild the render lookup caches from fetched data before rendering (see `specs cache`)')
+  .action(async (specPath: string | undefined, options: { config?: string; file?: string; page?: string; overwrite?: boolean; watch?: boolean; strict?: boolean; timing?: boolean; refreshCache?: boolean; verbose?: boolean }) => {
+    // Ahead of everything else: a stale cache is a hard failure on the bridge, and this
+    // is the flag that fixes it without a separate command.
+    if (options.refreshCache) {
+      const config = new ConfigLoader().load(options.config);
+      if (!config.dataDirectory) {
+        console.error('Error: --refresh-cache needs dataDirectory set in specs.config.yaml.');
+        process.exit(ERROR_CODES.INVALID_ARGS);
+      }
+      reportCache(refreshCache({
+        dataDir: config.dataDirectory,
+        aliases: Object.keys(config.sources ?? {}),
+        glyphNamePattern: config.config?.processing?.glyphNamePattern,
+      }));
+    }
     if (options.watch) {
       if (!specPath) {
         console.error('Error: --watch requires a spec path.');

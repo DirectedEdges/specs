@@ -12,6 +12,9 @@ import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
 import readline from 'readline';
+import { collectGlyphComponents } from '../utilities/glyphComponents.js';
+import { refreshCache } from '../Cache/Cache.js';
+import { reportCache } from './CacheCommand.js';
 
 const ERROR_CODES = {
   SUCCESS: 0,
@@ -33,41 +36,7 @@ type MinimalConfig = {
   config?: { processing?: { glyphNamePattern?: string } };
 };
 
-/**
- * Walk the file document for COMPONENT nodes whose name matches the
- * glyphNamePattern ("DS Icon asset / {i}" — {i} captures the icon name).
- * Duplicate slugs keep the first occurrence and suffix later ones with the
- * node id so nothing is silently dropped.
- */
-export function collectGlyphComponents(document: unknown, pattern: string): Array<{ id: string; name: string; slug: string }> {
-  const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\{i\\\}/g, '(.+)');
-  const regex = new RegExp(`^${escaped}$`);
-  const found: Array<{ id: string; name: string; slug: string }> = [];
-  const walk = (node: unknown): void => {
-    if (!node || typeof node !== 'object') return;
-    const n = node as { id?: string; name?: string; type?: string; children?: unknown[] };
-    if (n.type === 'COMPONENT' && typeof n.name === 'string' && typeof n.id === 'string') {
-      const match = n.name.match(regex);
-      if (match) found.push({ id: n.id, name: match[1] ?? n.name, slug: '' });
-    }
-    for (const child of n.children ?? []) walk(child);
-  };
-  walk(document);
-
-  const seen = new Set<string>();
-  for (const glyph of found) {
-    // Kebabize camelCase too, matching the scaffold's glyphUrl slugging.
-    const base = glyph.name
-      .trim()
-      .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-      .replace(/[\s_]+/g, '-')
-      .replace(/-+/g, '-')
-      .toLowerCase();
-    glyph.slug = seen.has(base) ? `${base}-${glyph.id.replace(':', '-')}` : base;
-    seen.add(base);
-  }
-  return found;
-}
+export { collectGlyphComponents };
 
 async function streamToString(stream: ReadableStream<Uint8Array> | null): Promise<string> {
   if (!stream) return '';
@@ -496,6 +465,20 @@ export const Fetch = new Command('fetch')
       }
 
       clearInlineStatus();
+
+      // Refresh the render caches from everything now on disk — the sources fetched this
+      // run, plus any fetched previously. A source with no payload yet is skipped: not
+      // having fetched it is a normal state, and only render treats it as an error.
+      if (config.dataDirectory) {
+        const dataDir = path.resolve(configDir, config.dataDirectory);
+        const report = refreshCache({
+          dataDir,
+          aliases: Object.keys(config.sources ?? {}),
+          glyphNamePattern: config.config?.processing?.glyphNamePattern,
+        });
+        reportCache(report);
+      }
+
       console.log('✓ Fetch complete');
       process.exit(ERROR_CODES.SUCCESS);
     } catch (error) {
