@@ -27,19 +27,19 @@ interface Typography {
 
 | Name | Category | Description |
 |------|----------|-------------|
-| `fontFamily` | font | Font family name |
-| `fontSize` | font | Font size in pixels |
-| `fontStyle` | font | Font style (e.g. `"Regular"`, `"Bold Italic"`) |
-| `hangingList` | formatting | Enable hanging list markers |
-| `hangingPunctuation` | formatting | Enable hanging punctuation |
-| `leadingTrim` | spacing | Leading trim mode |
-| `letterSpacing` | spacing | Letter spacing in pixels |
-| `lineHeight` | spacing | Line height (number for pixels, string for percentages like `"150%"`) |
-| `listSpacing` | spacing | Spacing between list items |
-| `paragraphIndent` | spacing | First-line indent in pixels |
-| `paragraphSpacing` | spacing | Spacing between paragraphs in pixels |
-| `textCase` | formatting | Text transform (e.g. `"UPPER"`, `"LOWER"`, `"TITLE"`) |
-| `textDecoration` | formatting | Text decoration (e.g. `"UNDERLINE"`, `"STRIKETHROUGH"`) |
+| [`fontFamily`](/schema/typography/font-family/) | font | Font family name |
+| [`fontSize`](/schema/typography/font-size/) | font | Font size in pixels |
+| [`fontStyle`](/schema/typography/font-style/) | font | Font style (e.g. `"Regular"`, `"Bold Italic"`) |
+| [`hangingList`](/schema/typography/hanging-list/) | formatting | Enable hanging list markers |
+| [`hangingPunctuation`](/schema/typography/hanging-punctuation/) | formatting | Enable hanging punctuation |
+| [`leadingTrim`](/schema/typography/leading-trim/) | spacing | Leading trim mode |
+| [`letterSpacing`](/schema/typography/letter-spacing/) | spacing | Letter spacing in pixels |
+| [`lineHeight`](/schema/typography/line-height/) | spacing | Line height (number for pixels, string for percentages like `"150%"`) |
+| [`listSpacing`](/schema/typography/list-spacing/) | spacing | Spacing between list items |
+| [`paragraphIndent`](/schema/typography/paragraph-indent/) | spacing | First-line indent in pixels |
+| [`paragraphSpacing`](/schema/typography/paragraph-spacing/) | spacing | Spacing between paragraphs in pixels |
+| [`textCase`](/schema/typography/text-case/) | formatting | Text transform (e.g. `"UPPER"`, `"LOWER"`, `"TITLE"`) |
+| [`textDecoration`](/schema/typography/text-decoration/) | formatting | Text decoration (e.g. `"UNDERLINE"`, `"STRIKETHROUGH"`) |
 
 ## Values
 

@@ -3,6 +3,7 @@
 **Branch**: `013-icon-fillColor`
 **Created**: 2026-03-09
 **Status**: ACCEPTED
+**Summary**: A `fillColor` property colors icon elements alongside `backgroundColor`, `textColor` and `strokes`.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

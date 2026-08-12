@@ -97,6 +97,21 @@ const slotWithExt: SlotProp = { type: 'slot', $extensions: { 'com.figma': { type
 // $extensions with empty com.figma
 const boolEmptyFigma: BooleanProp = { type: 'boolean', default: true, $extensions: { 'com.figma': {} } };
 
+// com.figma.name preserves a Figma property name the key could not represent (ADR-066)
+const boolDivergentKey: BooleanProp = {
+  type: 'boolean',
+  default: false,
+  $extensions: { 'com.figma': { type: 'BOOLEAN', name: 'Cut & paste' } },
+};
+
+// name is optional — safe keys emit no name at all
+const enumSafeKey: EnumProp = {
+  type: 'string',
+  default: 'sm',
+  enum: ['sm', 'md'],
+  $extensions: { 'com.figma': { type: 'VARIANT' } },
+};
+
 // $extensions with empty object
 const boolEmptyExt: BooleanProp = { type: 'boolean', default: true, $extensions: {} };
 
@@ -189,6 +204,25 @@ const _numberStringDefault: NumberProp = { type: 'number', default: '24' };
 
 // @ts-expect-error: examples must be number[], not string[]
 const _numberStringExamples: NumberProp = { type: 'number', examples: ['1', '2'] };
+
+// ─── nullable (ADR 065) ───────────────────────────────────────────────────────
+
+// nullable is optional on NumberProp — absent means true
+const numberNullableAbsent: NumberProp = { type: 'number', default: 2 };
+
+// nullable: false explicitly asserts the prop always has a value
+const numberNotNullable: NumberProp = { type: 'number', default: 2, nullable: false };
+const numberNullable: NumberProp = { type: 'number', nullable: true };
+
+// @ts-expect-error: nullable must be boolean, not string
+const _numberNullableString: NumberProp = { type: 'number', nullable: 'false' };
+
+// nullable: false is expressible on every open-valued prop type
+const stringNotNullable: StringProp = { type: 'string', default: 'Label', nullable: false };
+const slotNotNullable: SlotProp = { type: 'slot', default: 'Content', nullable: false };
+
+// EnumProp defaults to non-nullable; nullable: true admits null explicitly
+const enumNullable: EnumProp = { type: 'string', default: 'sm', enum: ['sm', 'lg'], nullable: true };
 
 // NumberProp is assignable to AnyProp
 const anyFromNumber: AnyProp = { type: 'number' } satisfies NumberProp;

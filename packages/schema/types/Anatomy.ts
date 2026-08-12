@@ -30,8 +30,21 @@ export type SubcomponentRef = {
  * @since 0.28.0
  */
 export interface FigmaAnatomyElementExtension {
-  /** Original Figma layer name before primitive-wrapper collapse promoted this element to root (ADR-058). */
-  originalName?: string;
+  /**
+   * The element's name in Figma. Recorded on any of three triggers:
+   * - primitive-wrapper collapse promoted this element to root (ADR-058) — always,
+   *   independent of `format.figmaKeys`;
+   * - the name fell outside the safe key grammar, so `format.keys` could not
+   *   represent it losslessly (ADR-066);
+   * - the name was already written in the destination format and passed through
+   *   unformatted, making reversal identity rather than re-derivation (ADR-066).
+   *
+   * The latter two apply only when `format.figmaKeys` is not NONE. Under NONE no
+   * source convention is declared, so format divergence is not evaluated and this
+   * field is absent however the key was derived.
+   * @since 0.30.0 — renamed from `originalName`
+   */
+  name?: string;
 }
 
 /**

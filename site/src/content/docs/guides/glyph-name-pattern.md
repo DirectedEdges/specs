@@ -127,6 +127,19 @@ glyphNamePattern: 'Icons (v2) / {i}'
 
 The right pattern depends on how your Figma library names its icon glyph components. Open your icon library in Figma and look at the component names — the prefix before the individual icon name is what goes before `{i}`.
 
+## Fetching the Assets
+
+The same pattern powers asset download: `specs fetch` with `icons` in a source's `data` array walks the fetched file payload for components matching `glyphNamePattern` and downloads each one as an SVG to `<outputDirectory>/_icons/`, beside the `_images/` assets:
+
+```yaml
+sources:
+  library:
+    key: YOUR_FILE_KEY
+    data: ['file', 'icons']
+```
+
+Filenames are kebab-case slugs of the extracted name (`Arrow Left` → `arrow-left.svg`, `expandMore` → `expand-more.svg`) — the same slugs generated component output references, so serving the directory as static assets makes glyphs render directly. See [fetch](/cli/commands/fetch/#fetching-icon-assets) for details.
+
 ## Prop Binding
 
 When a glyph element's Figma instance node has a `mainComponent` **component property reference** (an instance swap prop), the `content` field is automatically bound to that prop. This means the glyph name tracks the prop value across variants:

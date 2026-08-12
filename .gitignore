@@ -9,3 +9,4 @@ tests/tmp/
 
 # Generated at build time from package CHANGELOGs
 site/src/content/docs/overview/releases.mdx
+site/src/content/docs/adr/

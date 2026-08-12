@@ -5,14 +5,13 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.26.0] - Unreleased
+## Unreleased
 
 ### Added
 
-- **`specs analyze dependencies` — component dependency graph** — A new analyzer that builds a directed graph of how components compose one another from `instanceOf` references, answering "what is the blast radius of changing this component?" and "which of its props do consumers actually use?". Edges carry a kind — `instance` (placed instances), `slot` (`anyOf` constraints), `example` (`slotContentExamples` compositions) — and the blast-radius closure runs over `instance` edges only, with slot/example coupling reported separately as contract relations. Unmatched references become nodes flagged `external`; subcomponents collapse into their parent; split-concerns layouts (`variants.yaml`, `examples.yaml`) and `$nested` deep configurations are supported. Two aggregates land in `_analysis/` (extension follows `format.output`):
-  - `dependencies.graph.{json|yaml}` — nodes with degrees, typed edges with element/slot/example labels, plus roots, leaves, cycles, and external counts.
-  - `dependencies.byComponent.{json|yaml}` — per component: direct and transitive dependents/dependencies with min depth, contract relations, and `propUsage` — per prop: total configuration sites, per-consumer breakdown by section (`default`/`variants`/`examples`) with per-value site counts, and a value → consumers roll-up. Props no consumer configures appear with `configuredBy: 0`.
-- **`specs analyze styling` now reports unused tokens** — A third aggregate report, `_analysis/styling.unused.{json|yaml}`, lists every token in the fetched foundations data (variables, color styles, text styles, effect styles) that no analyzed spec references, with a per-category `summary` of total/used/unused counts. Variables are matched by their collection-prefixed name (`Collection name/Variable name`), styles by name; grid styles are excluded. The report requires `{alias}.variables.json` / `{alias}.styles.json` in the data directory and is skipped when absent.
+- `format.figmaKeys` in the generated `specs.config.yaml` template — commented out at its `NONE` default, documenting the opt-in that enables the safe key grammar and Figma name preservation (ADR-066)
+- `specs analyze keys` — reports Figma layer and property names a formatted key cannot reconstruct, written to `_analysis/keys.yaml`. Organized `byComponent` as a designer's checklist — each component splitting into `props` and `anatomy`, with an empty surface omitted — then `byCause` for systemic problems and `byName` for a name repeated across the library. Requires `format.figmaKeys` to declare a convention; empty under the `NONE` default (ADR-066)
+- **`specs fetch` icons** — a fourth data kind alongside `file`, `variables`, and `styles`: fetch derives the library's icon glyphs from the downloaded file payload (no `scan` required) and downloads their SVG assets with stable kebab-case slugs.
 - **`specs generate --from-bridge`** — A third source mode for `generate`, alongside REST-file and manifest: generates a spec directly from whatever's selected in a connected Figma file via the CLI bridge, no REST fetch needed. Errors clearly when 2+ plugins are connected and no `--file <fileKey>` target is given, when nothing is selected, or when the selection isn't a component/component set/frame. Output location and structure follow the same config-driven resolution (`--output`, `--split-components`, `--split-concerns`, etc.) that file and manifest mode already use.
 - **`render`/`generate --from-bridge` prompt to pick a file when multiple are connected** — In an interactive terminal, omitting `--file` with 2+ connected plugins now shows a numbered list (by file name) to choose from instead of failing immediately. Non-interactive runs (scripts, CI) are unaffected — they still fail loud with the existing ambiguity error rather than hang waiting on input.
 - **The bridge's glyph manifest now carries each icon's published component key** — Cross-referenced from the fetched file's `components` map alongside the existing same-file node id, so `render` can place icons that live in a separate Figma library file (see the matching specs-from-figma and specs-plugin-2 changes).
@@ -25,6 +24,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - **`render` no longer returns the produced component's spec** — the `--no-return-spec` flag is gone and render reports success/failure plus the node id only. The round trip is now an explicit second call: `specs generate --from-bridge` reads the just-rendered selection through the same bridge. The plugin no longer runs a spec-generation pass (page navigation, selection swap) as a render side effect.
+
+
+## [0.26.0] - 2026-08-07
+
+Two new `specs analyze` reports help you understand a design system at scale. `specs analyze dependencies` maps how components compose one another — instances, slot constraints, and example compositions — so you can answer "what's the blast radius of changing this component?" and "which props does anyone actually use?" `specs analyze styling` now also flags tokens nobody references, surfacing dead variables and styles you can safely retire.
+
+### Added
+
+- **`specs analyze dependencies` — component dependency graph** — A new analyzer that builds a directed graph of how components compose one another from `instanceOf` references, answering "what is the blast radius of changing this component?" and "which of its props do consumers actually use?". Edges carry a kind — `instance` (placed instances), `slot` (`anyOf` constraints), `example` (`slotContentExamples` compositions) — and the blast-radius closure runs over `instance` edges only, with slot/example coupling reported separately as contract relations. Unmatched references become nodes flagged `external`; subcomponents collapse into their parent; split-concerns layouts (`variants.yaml`, `examples.yaml`) and `$nested` deep configurations are supported. Two aggregates land in `_analysis/` (extension follows `format.output`):
+  - `dependencies.graph.{json|yaml}` — nodes with degrees, typed edges with element/slot/example labels, plus roots, leaves, cycles, and external counts.
+  - `dependencies.byComponent.{json|yaml}` — per component: direct and transitive dependents/dependencies with min depth, contract relations, and `propUsage` — per prop: total configuration sites, per-consumer breakdown by section (`default`/`variants`/`examples`) with per-value site counts, and a value → consumers roll-up. Props no consumer configures appear with `configuredBy: 0`.
+- **`specs analyze styling` now reports unused tokens** — A third aggregate report, `_analysis/styling.unused.{json|yaml}`, lists every token in the fetched foundations data (variables, color styles, text styles, effect styles) that no analyzed spec references, with a per-category `summary` of total/used/unused counts. Variables are matched by their collection-prefixed name (`Collection name/Variable name`), styles by name; grid styles are excluded. The report requires `{alias}.variables.json` / `{alias}.styles.json` in the data directory and is skipped when absent.
+
+### Dependency updates
+
+- **`@directededges/specs-schema` ^0.29.0** — Numeric properties can now be marked nullable (`NumberProp.nullable`), matching strings, slots, and images. Horizontal text alignment now uses logical inline-axis direction (`START`/`END`/`CENTER`/`JUSTIFY`) instead of physical `LEFT`/`RIGHT`/`JUSTIFIED`, so generated specs read correctly regardless of writing direction.
+- **`@directededges/specs-from-figma` ^0.28.0** — Horizontal text alignment extraction now emits the new logical directions. Code-only text props whose default is only whitespace are recognized as empty placeholders instead of literal example content. Several extraction bugs are fixed: slot resolution for unpublished local components, gradient center coordinates, number-named layers, and anatomy/element ordering.
 
 ## [0.25.0] - 2026-07-16
 

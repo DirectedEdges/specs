@@ -4,33 +4,9 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 064 | Tighten `textAlignHorizontal` to a Logical-Direction String Enum | |
-| 062 | Text Overflow & Max Lines — `textOverflow` and `maxLines` on `Styles` | |
-| 061 | Schema Entry Points for Concern-Split Output | |
-| 059 | Border Style and Dash Pattern — `borderStyle` and `borderDashPattern` on `Styles` | |
-| 058 | Wrapper Collapse Config Flag — `processing.wrapperCollapse` | |
-| 057 | Fix `Metadata.generator.version` type: `number` → `string` | |
-| 056 | Rename `SlotProp.minItems`/`maxItems` → `minChildren`/`maxChildren` | Align with Figma-native `slotSettings` field names; `anyOf` populated from `preferredValues` when `allowPreferredValuesOnly` is true |
-| 055 | Variant State Classification via `processing.states` | |
-| 054 | Workspace Schema File | |
-| 053 | Transform Command and Configuration | |
-| 052 | Deeply-Nested Slot Content — Path-Anchored Overrides Across Non-Slot Instance Boundaries | |
-| 051 | Platform Code-Syntax Token Profiles | |
-| 050 | Examples Config | Add `include.defaultSlotContent` (default false); add `processing.instanceExamples` with scope, match, exclude, parentNames — instance-example output is presence-driven (no `include.instanceExamples` flag), mirroring `subcomponents` |
-| 049 | Nested Slot Compositions | Recursion follow-on to ADR-047: fill nested instances' slots from a parent context (reserved, draft on `042-composition-type` branch) |
-| 048 | PropConfigurations PropBinding | Widen `PropConfigurations` value union to add `PropBinding` (reserved, draft on `042-composition-type` branch) |
-| 047 | Slot Content — Component.slotContentExamples and SlotBinding | Add `Component.slotContentExamples: Record<string, SlotContent>` + `SlotBinding` extending `PropBinding` with optional `examples?: SlotContentRef[]` (Figma authoring default at index 0); widens `Children` to `string[] \| SlotBinding` (reserved, draft on `042-composition-type` branch) |
-| 046 | Component Instance Examples — InstanceExample and Component.instanceExamples | Add `InstanceExample` and `InstanceExamples`; add `Component.instanceExamples?` named record (reserved, draft on `042-composition-type` branch) |
 | 045 | Processing Provenance Signals | (reserved, draft in PR #60) |
 | 044 | Duplicate Layer Name Disambiguation | (reserved, draft in PR #60) |
-| 043 | Custom Color Format Configuration | |
-| 042 | Composition as a First-Class Type | |
-| 041 | Layout Positioning — Constraint-Based Naming | |
-| 035 | Make Config Properties with Defaults Optional | |
-| 034 | Remove variantNames, add emptyVariants, make Config.include fields optional | Remove unused `variantNames` (breaking); add `emptyVariants` for filtering; make remaining fields optional |
-| 025 | Flowing Content into a Nested Instance's Slot | Model parent components that flow defined content into a nested child instance's slot _(branch)_ |
 | 024 | Component Extends Relationship | Add `extends` field to express base/derived component relationships and prop/variant inheritance _(branch)_ |
-| 022 | Add Nullable Support to SlotProp | Fix type-schema drift: add `nullable?: boolean` and widen `default` to `string \| null` on SlotProp |
 | 021 | Rename `invalidVariantCombinations` to `invalidPropConfigurations` | Shorten verbose field name and fix misleading "Variant" terminology — it describes prop configs, not variants _(branch)_ |
 | 020 | Classify Props by External vs Internal Ownership | Add ownership metadata to props distinguishing public API, dual-purpose, and interaction-driven properties _(branch)_ |
 
@@ -38,15 +14,29 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 066 | Lossless Key Formatting — Safe Key Grammar and Figma Name Preservation | Adds opt-in `format.figmaKeys` (`NONE` default), a safe key grammar, and `com.figma.name` on anatomy and props; renames `originalName` |
+| 065 | Document the `nullable` Default and Add `NumberProp.nullable` | Absent `nullable` means true for `StringProp`/`NumberProp`/`SlotProp`/`ImageProp`, false for `EnumProp`; adds `NumberProp.nullable` |
 | 064 | Tighten `textAlignHorizontal` to a Logical-Direction String Enum | Narrow from `Style` to `TextAlignHorizontal \| null` (`'START' \| 'CENTER' \| 'END' \| 'JUSTIFY'`); Figma `LEFT`/`RIGHT`/`JUSTIFIED` remapped |
 | 063 | Image Content — `backgroundImage` fill, an `images` registry, `ImageProp`, and `ImageBinding` | Add `backgroundImage` fills, a `Component.images` registry (Figma identity + optional `src`), `ImageProp`/`ImageBinding`, and presence-switched `processing.images` |
+| 062 | Text Overflow & Max Lines — `textOverflow` and `maxLines` on `Styles` | Add `textOverflow` (`TextOverflow \| null`) and `maxLines` to `Styles`; not token-bindable |
+| 061 | Schema Entry Points for Concern-Split Output | Split output across `root`, `components`, `component`, and `styles` schema entry points |
 | 060 | Subcomponent Figma Source Identity — `Subcomponent.source` | Add optional `SubcomponentSource` (`pageId`, `nodeId`, `nodeType`) to `Subcomponent`; enables reverse-direction tools to resolve `SubcomponentRef` to Figma nodes |
 | 059 | Stroke Dash Pattern — `strokeDashPattern` on `Styles` | Add `StrokeDashPattern { dash, gap }` structural type; presence = dashed stroke, null/absent = solid; not token-bindable |
 | 058 | Collapsing Wrapped Primitives — `processing.collapsePrimitiveWrapper` | Add optional boolean to `Config.processing` (default false); strips plain container wrappers around a single text/glyph child and promotes the leaf to spec root |
 | 057 | Fix `Metadata.generator.version` type: `number` → `string` | Corrects type mismatch — field holds semver strings (e.g. `"1.10.0"`) in all producers; was incorrectly typed as `number` |
+| 056 | Rename `SlotProp.minItems`/`maxItems` → `minChildren`/`maxChildren` | Align with Figma-native `slotSettings` field names; `anyOf` populated from `preferredValues` when `allowPreferredValuesOnly` is true |
 | 055 | Variant State Classification via `processing.states` | Add `VariantStateEntry` type; add `Config.processing.states` — classifies Figma variant props as browser-driven or consumer-controlled for CSS selector and contract output |
+| 054 | Workspace Schema File | Add `workspace.schema.json` describing `specs.config.yaml` — sources, output, and the `config` block |
+| 053 | Transform Command and Configuration | Add `config.transformers` and the `specs transform` command for generating code artifacts from specs |
+| 052 | Deeply-Nested Slot Content — Path-Anchored Overrides Across Non-Slot Instance Boundaries | Add the reserved `$nested` key on `PropConfigurations` for path-addressed overrides across instance boundaries |
 | 051 | Platform Code-Syntax Token Profiles | Add `FIGMA_SYNTAX_WEB`/`_IOS`/`_ANDROID` to `Config.format.tokens`, emitting per-platform Figma code syntax with fallback to `TOKEN` |
+| 050 | Examples Config | Add `include.defaultSlotContent` (default false); add `processing.instanceExamples` with scope, match, exclude, parentNames |
+| 049 | Nested Slot Compositions | Fill nested instances’ slots from a parent context; `PropConfigurationValue` accepts `SlotContentRef` under slot-prop keys |
+| 048 | PropConfigurations PropBinding | Widen `PropConfigurationValue` to accept `PropBinding`, so a nested prop can pass through to a parent prop |
+| 047 | Slot Content — Component.slotContentExamples and SlotBinding | Add `Component.slotContentExamples` and `SlotBinding` with `examples?: SlotContentRef[]`; widen `Children` |
+| 046 | Component Instance Examples — InstanceExample and Component.instanceExamples | Add `InstanceExample`/`InstanceExamples` and `Component.instanceExamples` for documented whole-component usages |
 | 043 | Custom Color Format Configuration | Add `Config.format.color` with 9-format enum (HEX default); rename `ColorValue` → `ColorObject`; widen color types with `string` arm |
+| 042 | Composition as a First-Class Type | Add `Composition` and `SlotContent` as first-class types carrying their own anatomy, elements, and layout |
 | 041 | Layout Positioning — Constraint-Based Naming | Replace `x`/`y`/`layoutPositioning` with constraint-based `position`, `start`, `end`, `top`, `bottom`, center offsets |
 | 040 | Replace `primaryAxisAlignItems` and `counterAxisAlignItems` with `mainAxisAlignment` and `crossAxisAlignment` | Rename to platform-neutral names; add `MainAxisAlignment` and `CrossAxisAlignment` enums; not token-bindable |
 | 039 | Replace `layoutWrap` and `counterAxisAlignContent` with `wrap` and `wrapAlignment` | Rename to platform-neutral names; add `WrapAlignment` enum (`START \| SPACE_BETWEEN`); not token-bindable |
@@ -54,6 +44,7 @@
 | 037 | Consolidate Item Spacing into a Bi-Axial Model | Replace `itemSpacing` + `counterAxisSpacing` with single `itemSpacing: Style \| ItemSpacing` using `{ horizontal, vertical }` |
 | 036 | Remove `name` and `baseline` from `Variant` | Remove unused `name` and `baseline` optional fields from `Variant` type and schema (breaking) |
 | 035 | Make Config Properties with Defaults Optional | Make 5 required Config properties optional with defaults; add `ResolvedConfig` type for fully-resolved shape |
+| 034 | Remove variantNames, add emptyVariants, make Config.include fields optional | Remove unused `variantNames` (breaking); add `emptyVariants` for filtering; make remaining fields optional |
 | 033 | Typography fontFamily/fontStyle — Remove Number, Add TokenReference | Fix font fields: remove impossible `number` branch, add `TokenReference` for variable-bound font properties |
 | 032 | Typography leadingTrim — Correct to String Enum | Fix `leadingTrim` from incorrect `number \| "mixed"` to correct `"NONE" \| "CAP_HEIGHT" \| "mixed"` string enum |
 | 031 | Subcomponent Search Scope Config | Replace `subcomponentNamePattern` with structured `processing.subcomponents` object (`scope`, `match[]`, `exclude[]`) |
@@ -63,6 +54,7 @@
 | 027 | Code-Only Props | Surface Figma code-only props (a11y, semantics) in `props` with `$extensions` source kind `codeOnlyProp` |
 | 026 | Unify Platform-Specific Properties Under `$extensions` | Standardize on DTCG `$extensions` with reverse-domain keys for all platform metadata; remove `x-platform` |
 | 023 | Fix Schema Compliance Gaps | Fix 58 schema violations: optional SlotProp.default, `$`-prefix patternProperties, hex in ColorStyleValue, schema URL |
+| 022 | Add Nullable Support to SlotProp | Fix type-schema drift: add `nullable?: boolean` and widen `default` to `string \| null` on SlotProp |
 | 019 | Allow null in StringProp.default | Widen `StringProp.default` from `string` to `string \| null` so nullable props can express `null` as their default |
 | 018 | Conditional Visible Binding | Add `Conditional` type with `if`/`condition`/`then`/`else` for declarative visibility derived from nullable props |
 | 017 | Rename `icon` Element Type to `glyph` | Rename `icon` to `glyph` in ElementType, `IconProp` to `GlyphProp`, `iconNamePattern` to `glyphNamePattern` |
@@ -82,3 +74,9 @@
 | 003 | Gradient Support for Color Style Properties | Add `GradientValue` (LINEAR/RADIAL/ANGULAR) discriminated union and `ColorStyle` type for gradient fills |
 | 002 | Replace `effectStyleId` with `effects` | Remove `effectStyleId`; add grouped `effects` key with `Shadow`, `Blur`, `Effects` types |
 | 001 | Surface License State in Component Output | Add optional `generator.license` (`status`, `level`) to Metadata for downstream entitlement gating |
+
+## Superseded
+
+| # | Title | Superseded by |
+|---|-------|---------------|
+| 025 | Flowing Content into a Nested Instance's Slot | ADR-042 composition and ADR-047 slot content, which model nested fills as first-class content rather than per-element flow |

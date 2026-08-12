@@ -21,6 +21,7 @@ Analyzer names are passed as positional arguments. There is no config key — an
 specs analyze props
 specs analyze styling
 specs analyze dependencies
+specs analyze keys
 specs analyze props styling dependencies
 specs analyze props --analysis ./reports
 ```
@@ -41,6 +42,7 @@ specs analyze props --analysis ./reports
 | [`props`](/cli/analyze/props/) | `_analysis/props.yaml` | Cross-library prop inventory — frequency, enum discordance, API surface, slots |
 | [`styling`](/cli/analyze/styling/) | `_analysis/styling.byComponent.json`, `_analysis/styling.byToken.json`, `_analysis/styling.unused.json` | Token usage indexed by component and by token name, plus tokens no spec references |
 | [`dependencies`](/cli/analyze/dependencies/) | `_analysis/dependencies.graph.json`, `_analysis/dependencies.byComponent.json` | Component dependency graph — blast radius of a change, and which props consumers configure |
+| [`keys`](/cli/analyze/keys/) | `_analysis/keys.yaml` | Figma names a formatted key cannot reconstruct, as a per-component checklist. Requires `format.figmaKeys` |
 
 ## Output Directory
 
@@ -53,6 +55,7 @@ specs/
     styling.unused.json           # from specs analyze styling
     dependencies.graph.json       # from specs analyze dependencies
     dependencies.byComponent.json # from specs analyze dependencies
+    keys.yaml                     # from specs analyze keys
   ds-button/
     api.yaml
     contract.ts

@@ -89,12 +89,113 @@ model:
 
 **Choose one format and use it consistently.** Mixing formats across different spec runs creates the same inconsistency problem you're trying to solve. Set the format once in your config file and leave it.
 
-**`SAFE` is lossless; everything else is lossy.** The `SAFE` format preserves the original name exactly. All other formats discard information (casing, separators, spaces). If you need the original Figma name alongside a transformed key, `SAFE` is the only format that preserves it.
+**`SAFE` is lossless; everything else is lossy.** The `SAFE` format preserves the original name exactly. All other formats discard information (casing, separators, spaces). Names that would lose information are preserved separately — see [Round-Trip Safety](#round-trip-safety) below.
 
 **Match your consuming platform.** If your specs feed a React component library, use `CAMEL`. If they feed a Python SDK, use `SNAKE`. The format should eliminate transformation work for the most common consumer, not add it.
 
 **Special characters are handled gracefully.** Keys containing special characters (slashes, dots, brackets) are cleaned during transformation. The `SAFE` format preserves them as-is; other formats normalize them into the target convention.
 
+## Round-Trip Safety
+
+Formatting a key is one-way: `Icon leading`, `Icon-leading`, and `Icon_leading` all become `icon-leading` under `KEBAB`, and the formatted key alone cannot say which one it came from. That matters when a spec is rendered back into Figma, where layer and property names are the identity used to match existing nodes.
+
+Two settings make the round trip reliable.
+
+### The source convention
+
+`figmaKeys` declares the convention your Figma file already uses, so a formatted key has a defined name to reverse into:
+
+```yaml
+model:
+  format:
+    figmaKeys: SENTENCE   # what your Figma file uses
+    keys: KEBAB           # what the spec emits
+```
+
+| Value | Shape | Example |
+|-------|-------|---------|
+| `NONE` (default) | No convention declared | — |
+| `SENTENCE` | First word capitalized, rest lowercase | `Icon leading` |
+| `TITLE` | Every word capitalized | `Icon Leading` |
+
+Everything in the rest of this guide is **opt-in**. Under the `NONE` default, names are formatted per `keys` and nothing else happens: no grammar check, no preserved names, no defined reversal. Declaring `SENTENCE` or `TITLE` turns all of it on, and your specs grow an extension block for each name that needs one. Declare a convention when you intend to render specs back into Figma, or when you want divergent names surfaced.
+
+### The safe key grammar
+
+*Applies when `figmaKeys` is `SENTENCE` or `TITLE`.*
+
+A Figma name survives every `keys` format when it satisfies all of the following:
+
+- ASCII letters and digits only — no `&`, `+`, `/`, `.`, parentheses, punctuation, or accented characters
+- Exactly one space between words, with no leading, trailing, or repeated spaces
+- Each word is either all letters or all digits — `Badge count 2` is fine, `Badge count2` is not
+- The name does not begin with a digit
+- Casing matches your declared `figmaKeys`
+
+```yaml
+# figmaKeys: SENTENCE
+
+# Safe — reconstructs under every keys format
+Icon leading
+Label
+Badge count 2       # the digit is its own word, so the boundary survives
+Icon 2 leading
+
+# Unsafe — the Figma name is preserved separately
+Icon-leading        # separator is not a space
+URL field           # inner capitals are lost
+Badge count2        # letters and digits share a word
+2 icons             # begins with a digit
+Cut & paste         # the symbol and its word boundary are deleted
+```
+
+A digit run always counts as its own word, in both directions. That is what lets `Badge count 2` become `badgeCount2` and come back intact — and why `Badge count2` cannot, since it formats to the same key but is not the same name.
+
+### Names already written as keys
+
+Figma files are rarely uniform. If yours is mostly sentence case but a few properties were named `isDisabled` or `is-disabled` for the engineers consuming them, those names fail the grammar — yet they are already exactly what you want on both sides.
+
+A name that is already a well-formed key **in the convention you emit** is kept exactly as authored, and recorded. With `keys: CAMEL`, a layer named `isDisabled` stays `isDisabled`, and rendering the spec back into Figma restores it rather than rewriting it to `Is disabled`:
+
+```yaml
+props:
+  isDisabled:
+    type: boolean
+    $extensions:
+      com.figma:
+        name: isDisabled
+```
+
+Only the convention you emit is retained. A name in some *other* key convention is formatted like any divergent name — with `keys: KEBAB`, a layer named `isDisabled` or `IsDisabled` becomes `isdisabled` and carries its Figma name in the extension. Formatting splits on spaces, hyphens, and underscores rather than case, so it flattens such names rather than converting them; the extension is what keeps them recoverable.
+
+### What happens to unsafe names
+
+Unsafe names are fully supported — nothing is rejected. When a key cannot reconstruct its Figma name, that name is recorded on the definition:
+
+```yaml
+anatomy:
+  icon-leading:          # safe — nothing extra emitted
+    type: glyph
+  url-field:
+    type: text
+    $extensions:
+      com.figma:
+        name: URL field
+```
+
+References elsewhere in the spec (`elements`, `propConfigurations`) keep pointing at the formatted key; the Figma name is resolved through the definition.
+
+Because well-formed names emit nothing, the presence of `com.figma.name` doubles as a signal that a Figma layer or property name is worth tidying.
+
+### What is not covered
+
+The Figma names of anatomy elements and props are preserved, including those nested inside compositions and slot content. Two things are not:
+
+- **Variant option values.** The values inside a variant prop's `options` are formatted like keys, but no Figma name is recorded for them.
+- **Titles.** Component and subcomponent titles are never formatted — they carry the Figma name verbatim already, so there is nothing to preserve.
+
 ## See Also
 
+- [Keys](/settings/keys/) — the output convention setting
+- [Figma Keys](/settings/figma-keys/) — the source convention setting
 - [CLI Configuration](/settings/) — full config reference

@@ -17,7 +17,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Outline
 
-1. **Setup**: Run `.specify/scripts/bash/check-prerequisites.sh --json --paths-only` from repo root. Parse `REPO_ROOT`, `BRANCH`. All paths must be absolute.
+1. **Setup**: Run `scripts/check-prerequisites.sh --json --paths-only` from repo root. Parse `REPO_ROOT`, `BRANCH`. All paths must be absolute.
    - Derive `ADR_NAME` from `BRANCH`:
      - The branch name must match an ADR name pattern (e.g., `009-color-values` — starts with a number sequence followed by a hyphen). If it does not, halt: "You must be on an ADR branch (format: `###-short-description`) to implement an ADR."
    - Derive `RELEASE_BRANCH`:
@@ -25,7 +25,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 2. **Load context**:
    - **REQUIRED**: Read `$REPO_ROOT/adr/$ADR_NAME.md` — source of truth for what changes and why
-   - **REQUIRED**: Read `.specify/memory/constitution.md` — all six gates must pass
+   - **REQUIRED**: Read `packages/schema/CONSTITUTION.md` — all six gates must pass
    - Read every `types/*.ts` file named in the ADR Decision section
    - Read every `schema/*.json` file named in the ADR Decision section
    - Read `package.json` for the current version
@@ -53,7 +53,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - If exit code ≠ 0: display errors, revert the files changed in steps 5–6, and halt. Report the specific errors for the author to resolve in the ADR before re-running.
 
 8. **Gate — JSON Schema validation**:
-   - Run: `.specify/scripts/bash/validate-schema.sh`
+   - Run: `scripts/validate-schema.sh`
    - If any schema fails: revert steps 5–6 changes and halt. Report which file failed and why.
 
 9. **Write or update tests**:
@@ -62,9 +62,20 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Create or update `tests/[type-name].test-d.ts` for each changed type using `tsd`-style assertions or `@ts-expect-error` patterns
    - Run: `tsc --noEmit --strict tests/*.test-d.ts` to confirm test files compile
    - If tests fail: halt and report
-   - **All gates have now passed. Steps 10–12 are REQUIRED before reporting completion. Do not skip to step 13.**
+   - **All gates have now passed. Steps 10–13 are REQUIRED before reporting completion. Do not skip to step 14.**
 
-10. **Update docs**:
+10. **Write the ADR summary**: Add or update the `**Summary**:` line in the ADR's metadata block, directly beneath `**Status**`. Write it now rather than at draft time — it must describe what was actually implemented, which often differs from the original draft.
+    - **One sentence, present tense, roughly 15–18 words.** The new property, type, or config option is the grammatical subject.
+    - Anchor the addition to the neighbouring fields it joins, not to the gap it filled.
+    - Never open with "The schema", and never include a past-tense problem clause ("could not", "was dropped", "had nowhere to land").
+    - Keep identifiers in backticks.
+    - Examples of the target voice:
+      - A `strokeDashPattern` property adds dashes to strokes already supported with color, weight and alignment.
+      - A `glyph` element type, `IconProp` and `glyphNamePattern` emit icons as first-class by applying Figma conventions.
+      - Images are supported by `backgroundImage` style, `ImageProp` and binding in components and examples.
+    - **Gate**: read the ADR back and confirm the `**Summary**:` line is present and no longer a placeholder. The docs site publishes this line verbatim with no fallback — a missing summary leaves a blank row in the published index.
+
+11. **Update docs**:
     - Docs live in `site/src/content/docs/`. Schema type pages are under `site/src/content/docs/schema/` (e.g., `schema/styles.md` for `Styles`, `schema/config.md` for `Config`). Individual config option pages are under `site/src/content/docs/config/` (e.g., `config/tokens.md`, `config/keys.md`).
     - For each property added, removed, or renamed in the ADR: update the relevant doc page's Properties table, Values table, and "Relating properties to values" section to reflect the new state.
     - For new dedicated types (e.g., `LayoutMode`, `WrapAlignment`, `ItemSpacing`): add a row to the Values table describing the type and its valid values.
@@ -72,7 +83,7 @@ You **MUST** consider the user input before proceeding (if not empty).
     - Do not create new doc pages for types that are only used as field values on an existing documented type — document them inline in the parent type's page.
     - If no doc file exists for the changed type, skip this step.
 
-11. **Update CHANGELOG.md**:
+12. **Update CHANGELOG.md**:
     - The release branch scaffolds an `## [X.Y.Z] - Unreleased` heading with empty sections. Add entries into the existing scaffold — do **not** replace `Unreleased` with a date (the date is set at release time). If no scaffold heading exists, prepend one using `Unreleased` as the date.
     - **Format**: one top-level bullet per user-visible change; no sub-bullets; no bold; no code blocks; no wrapping prose paragraphs
     - **Entry line**: `` `Parent.field` `` — one-phrase description; aim for ≤ 12 words; omit implementation detail (class names, file paths, method names)
@@ -80,12 +91,12 @@ You **MUST** consider the user input before proceeding (if not empty).
     - **Consolidation**: When a new type exists only to serve a property, merge into one property-first bullet — e.g. `` `Styles.mainAxisAlignment` — typed as `MainAxisAlignment` (`'START' | 'END' | 'CENTER' | 'SPACE_BETWEEN'`) or `null`; description ``. Do not list the type as a separate bullet.
     - **Sections**: use `### Added`, `### Changed`, `### Removed` as needed; add `### Migration` (MAJOR or rename only)
     - **Migration line**: `` `Parent.old` → `Parent.new` ``: one sentence; imperative; describe what to read instead and how to handle the new type
-    - **Gate**: After writing, verify the new entry is present in the file. If CHANGELOG.md does not contain the new version heading, halt and report — do not proceed to step 12.
+    - **Gate**: After writing, verify the new entry is present in the file. If CHANGELOG.md does not contain the new version heading, halt and report — do not proceed to step 13.
 
-12. **Bump version in `package.json`**: Apply the `NEW` version from the ADR's Semver Decision.
-    - **Gate**: After writing, read `package.json` back and confirm the `"version"` field matches the ADR's `NEW` version. If it does not match, halt and report — do not proceed to step 13.
+13. **Bump version in `package.json`**: Apply the `NEW` version from the ADR's Semver Decision.
+    - **Gate**: After writing, read `package.json` back and confirm the `"version"` field matches the ADR's `NEW` version. If it does not match, halt and report — do not proceed to step 14.
 
-13. **Report**: List every file modified (with one-line description each). The list **must** include `CHANGELOG.md` and `package.json` — if either is absent from the list, halt: steps 11–12 were not completed. State that the author should review the diff and accept the ADR once satisfied. Remind the author that this ADR branch (`$BRANCH`) targets the release branch (`$RELEASE_BRANCH`), not `main`.
+14. **Report**: List every file modified (with one-line description each). The list **must** include the ADR file, `CHANGELOG.md`, and `package.json` — if any is absent from the list, halt: steps 10, 12, or 13 were not completed. State that the author should review the diff and accept the ADR once satisfied. Remind the author that this ADR branch (`$BRANCH`) targets the release branch (`$RELEASE_BRANCH`), not `main`.
 
 ## Key rules
 

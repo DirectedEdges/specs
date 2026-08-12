@@ -3,6 +3,7 @@
 **Branch**: `011-icon-glyph-as-content`
 **Created**: 2026-03-05
 **Status**: ACCEPTED
+**Summary**: An `ElementType` union and `iconNamePattern` option constrain element types and detect icons by Figma naming.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

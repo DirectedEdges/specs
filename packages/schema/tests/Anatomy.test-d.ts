@@ -90,14 +90,29 @@ if (typeof element.type === 'string') {
   const _ref: string = element.type.$ref;
 }
 
-// AnatomyElement.$extensions carries collapse provenance (ADR-058)
+// AnatomyElement.$extensions carries the Figma name (ADR-058 collapse, ADR-066 key divergence)
 const collapsedRoot: AnatomyElement = {
   type: 'text',
-  $extensions: { 'com.figma': { originalName: 'Text' } },
+  $extensions: { 'com.figma': { name: 'Text' } },
 };
+
+// ADR-066 — a key that could not represent its Figma name losslessly
+const divergentKey: AnatomyElement = {
+  type: 'glyph',
+  $extensions: { 'com.figma': { name: 'Cut & paste' } },
+};
+
+// name is optional — safe keys emit no extension at all
+const safeKey: AnatomyElement = { type: 'text' };
 
 const badExtension: AnatomyElement = {
   type: 'text',
   // @ts-expect-error — unknown extension members are rejected
   $extensions: { 'com.figma': { layerName: 'Text' } },
+};
+
+const renamedExtension: AnatomyElement = {
+  type: 'text',
+  // @ts-expect-error — originalName was renamed to name in 0.30.0 (ADR-066)
+  $extensions: { 'com.figma': { originalName: 'Text' } },
 };

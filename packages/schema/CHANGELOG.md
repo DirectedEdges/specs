@@ -5,15 +5,38 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.29.0] - Unreleased
+## Unreleased
 
 ### Added
 
+- `Config.format.figmaKeys` — naming convention the Figma file uses (`NONE` | `SENTENCE` | `TITLE`, default `NONE`); the reversal target for `format.keys` (ADR-066). `NONE` declares no convention, so the safe key grammar, the `com.figma.name` divergence extension, and reversal are all opt-in
+- `FigmaPropExtension.name` — Figma property name, emitted when the prop key cannot reconstruct it (ADR-066)
+- `SafeKeySentence` and `SafeKeyTitle` schema definitions — the key grammar that survives every `format.keys` value (ADR-066)
+- `NumberProp.$extensions` — the only prop type that could not carry platform extensions, so a number prop had nowhere to record its Figma name under ADR-066. The JSON schema already permitted `$`-prefixed keys; the TypeScript type did not.
+
 ### Changed
 
-- `Styles.textAlignHorizontal` — narrowed from `Style` to `TextAlignHorizontal` (`'START' | 'CENTER' | 'END' | 'JUSTIFY'`) or `null`; logical inline-axis directions, not token-bindable (ADR-064)
+- `FigmaAnatomyElementExtension.name` — renamed from `originalName`; now records the Figma layer name for key divergence as well as wrapper collapse (ADR-066)
 
 ### Removed
+
+### Migration
+
+`FigmaAnatomyElementExtension.originalName` → `FigmaAnatomyElementExtension.name`: read `$extensions['com.figma'].name` instead; the value and its collapse-provenance meaning are unchanged. Consumers that read the extension through an inline structural type will not see a compile error — update those call sites explicitly.
+
+
+## [0.29.0] - 2026-08-07
+
+Numeric properties can now be marked nullable, matching the flexibility already available on strings, slots, and images. Horizontal text alignment now uses logical inline-axis direction (`START`/`END`) instead of physical `LEFT`/`RIGHT`, so specs read correctly regardless of writing direction.
+
+### Added
+
+- **Numeric properties can now be optional** — `NumberProp.nullable`, previously unexpressible, lets a numeric prop be absent (ADR-065)
+
+### Changed
+
+- **Nullable behavior is now documented for every prop type** — absence defaults to `true` for `StringProp`, `NumberProp`, `SlotProp`, `ImageProp`; `false` for `EnumProp` (ADR-065)
+- **Horizontal text alignment now reads as logical direction, not physical side** — `Styles.textAlignHorizontal` narrows from `Style` to `TextAlignHorizontal` (`'START' | 'CENTER' | 'END' | 'JUSTIFY'`) or `null` (ADR-064)
 
 ### Migration
 
