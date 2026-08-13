@@ -12,7 +12,7 @@
  *
  * | file              | maps                              | built from             |
  * |-------------------|-----------------------------------|------------------------|
- * | `components.yaml` | node id → published key           | `<alias>.file.json`    |
+ * | `components.yaml` | node id → published key + name    | `<alias>.file.json`    |
  * | `styles.yaml`     | style name → key + type           | `<alias>.file.json`    |
  * | `variables.yaml`  | token name → key, id, published   | `<alias>.variables.json` |
  * | `icons.yaml`      | glyph name → node id + key        | `<alias>.file.json`    |
@@ -57,9 +57,18 @@ export interface CacheFile<E> {
   entries: Record<string, E>;
 }
 
-/** Component/component-set node id → its published key. Keyless nodes are omitted: without
- *  a key there is nothing to record beyond the id the caller already holds. */
-export interface ComponentsEntry { key: string; file: string }
+/**
+ * Component/component-set node id → its published key and raw Figma name. Keyless nodes are
+ * omitted: without a key there is nothing to record beyond the id the caller already holds.
+ *
+ * The name is what lets the bridge resolve an `instanceOf` value naming a component the
+ * workspace has no spec for. A spec records `instanceOf` as a formatted key, and that
+ * transform is lossy — "DS Link/On overlay/M" and "DS Link On Overlay M" format
+ * identically — so the match is made by formatting these names the same way rather than
+ * by inverting the key. Stored raw, and formatted at manifest-build time, so a change to
+ * `format.keys` in config needs no cache rebuild.
+ */
+export interface ComponentsEntry { key: string; name: string; file: string }
 export interface StylesEntry { key: string; type: 'FILL' | 'TEXT' | 'EFFECT'; file: string }
 export interface VariablesEntry { key: string; id: string; published: boolean; file: string }
 export interface IconsEntry { id: string; key?: string; file: string }
@@ -178,11 +187,11 @@ function buildAliasSlice(alias: string, dataDir: string, glyphNamePattern?: stri
     const data = readJson(join(dataDir, fileName));
     if (data) {
       const refs = {
-        ...((data.components as Record<string, { key?: string }> | undefined) ?? {}),
-        ...((data.componentSets as Record<string, { key?: string }> | undefined) ?? {}),
+        ...((data.components as Record<string, { key?: string; name?: string }> | undefined) ?? {}),
+        ...((data.componentSets as Record<string, { key?: string; name?: string }> | undefined) ?? {}),
       };
       for (const [id, meta] of Object.entries(refs)) {
-        if (meta?.key) empty.components.entries[id] = { key: meta.key, file: alias };
+        if (meta?.key) empty.components.entries[id] = { key: meta.key, name: meta.name ?? '', file: alias };
       }
       empty.components.source = fileSource;
 

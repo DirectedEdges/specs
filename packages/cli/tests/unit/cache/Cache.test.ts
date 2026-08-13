@@ -13,12 +13,12 @@ const PATTERN = 'Icon / {i}';
 function filePayload(overrides: Record<string, unknown> = {}): string {
   return JSON.stringify({
     components: {
-      '1:1': { key: 'componentkey1' },
-      '1:2': {}, // no published key — omitted from the cache
-      '9:9': { key: 'glyphkey' },
+      '1:1': { key: 'componentkey1', name: 'Library Button/Primary/M' },
+      '1:2': { name: 'Unpublished' }, // no published key — omitted from the cache
+      '9:9': { key: 'glyphkey', name: 'Icon / star' },
     },
     componentSets: {
-      '2:1': { key: 'setkey1' },
+      '2:1': { key: 'setkey1', name: 'Library Card' },
     },
     styles: {
       s1: { styleType: 'FILL', name: 'Color/Primary', key: 'fillkey' },
@@ -74,7 +74,7 @@ describe('Cache', () => {
       build();
       const cache = readCacheFile<ComponentsEntry>(dataDir, 'components')!;
       expect(Object.keys(cache.entries).sort()).toEqual(['1:1', '2:1', '9:9']);
-      expect(cache.entries['1:1']).toEqual({ key: 'componentkey1', file: 'library' });
+      expect(cache.entries['1:1']).toEqual({ key: 'componentkey1', name: 'Library Button/Primary/M', file: 'library' });
     });
 
     it('keeps only the style types a spec can reference', () => {
@@ -104,9 +104,17 @@ describe('Cache', () => {
       expect(cache.sources.library).toBeDefined();
     });
 
+    it('records the raw Figma name, which is what an instanceOf lookup matches against', () => {
+      build();
+      const cache = readCacheFile<ComponentsEntry>(dataDir, 'components')!;
+      // Stored raw and formatted at lookup time, so changing format.keys needs no rebuild.
+      expect(cache.entries['2:1'].name).toBe('Library Card');
+      expect(cache.entries['9:9'].name).toBe('Icon / star');
+    });
+
     it('tags every entry with the alias it came from', () => {
       writeFileSync(join(dataDir, 'brand.file.json'), JSON.stringify({
-        components: { '5:5': { key: 'brandkey' } },
+        components: { '5:5': { key: 'brandkey', name: 'Brand Thing' } },
         styles: {},
         document: {},
       }));
@@ -140,12 +148,12 @@ describe('Cache', () => {
 
     it('rebuilds only the alias whose payload changed, keeping the other alias intact', () => {
       writeFileSync(join(dataDir, 'brand.file.json'), JSON.stringify({
-        components: { '5:5': { key: 'brandkey' } }, styles: {}, document: {},
+        components: { '5:5': { key: 'brandkey', name: 'Brand Thing' } }, styles: {}, document: {},
       }));
       build(['library', 'brand']);
 
       writeFileSync(join(dataDir, 'brand.file.json'), JSON.stringify({
-        components: { '5:5': { key: 'brandkey2' }, '6:6': { key: 'newkey' } }, styles: {}, document: {},
+        components: { '5:5': { key: 'brandkey2', name: 'Brand Thing' }, '6:6': { key: 'newkey', name: 'New Thing' } }, styles: {}, document: {},
       }));
       const report = build(['library', 'brand']);
 
@@ -161,7 +169,7 @@ describe('Cache', () => {
     it('drops entries an alias no longer has', () => {
       build();
       writeFileSync(join(dataDir, 'library.file.json'), JSON.stringify({
-        components: { '1:1': { key: 'componentkey1' } }, styles: {}, document: {},
+        components: { '1:1': { key: 'componentkey1', name: 'Library Button/Primary/M' } }, styles: {}, document: {},
       }));
       build();
       const cache = readCacheFile<ComponentsEntry>(dataDir, 'components')!;

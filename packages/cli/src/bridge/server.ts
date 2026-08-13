@@ -51,6 +51,7 @@ import { WS_PORT, HTTP_PORT, DEFAULT_PAGE_ID, resolveWorkspaceDir } from './conf
 import { ConnectionRegistry, type Connection } from './connections.js';
 import { RequestTracker } from './requestTracker.js';
 import { countUnpublished, type VariablesIndex } from '../utilities/variablesIndex.js';
+import { formatKey } from '../utilities/formatKey.js';
 import {
   readCacheFile, validateCache, describeProblems,
   type ComponentsEntry, type StylesEntry, type VariablesEntry, type IconsEntry,
@@ -316,7 +317,7 @@ http.on('error', (e: NodeJS.ErrnoException) => {
  * cross-file keys come from the components cache, which records them per node id
  * across every fetched library.
  */
-function buildManifest(spec: Record<string, unknown>, specsDir: string, dataDir: string): Manifest {
+function buildManifest(spec: Record<string, unknown>, specsDir: string, dataDir: string, keyFormat?: string): Manifest {
   const manifest: Manifest = {};
 
   const cache = readCacheFile<ComponentsEntry>(dataDir, 'components');
@@ -355,8 +356,53 @@ function buildManifest(spec: Record<string, unknown>, specsDir: string, dataDir:
     }
   }
 
+  // Layer 3: the components the workspace has no spec for.
+  //
+  // A spec names an instance's component with a formatted key, and that transform is lossy
+  // — "DS Link/On overlay/M/False/Rest/Start" formats to "dsLinkOnOverlayMFalseRestStart"
+  // with the separators gone — so the name cannot be reconstructed from the key. It can be
+  // recognised, though: format the library's own component names the same way and compare.
+  // These resolve by published key on the render side, which is what makes a component from
+  // another file placeable at all.
+  //
+  // Only names this spec actually references are added, so the payload does not grow by the
+  // library's entire component list. Spec-derived entries always win — a workspace component
+  // is the more specific answer, and its node id is local to the file being rendered into.
+  const referenced = collectInstanceOfNames(spec);
+  if (referenced.size > 0 && cache) {
+    const byFormattedName = new Map<string, ComponentEntry>();
+    for (const [id, entry] of Object.entries(cache.entries)) {
+      if (!entry.name) continue;
+      const formatted = formatKey(entry.name, keyFormat);
+      // First occurrence wins. Distinct components can format to the same key (the transform
+      // is lossy), and nothing in the payload says which one a spec meant.
+      if (!byFormattedName.has(formatted)) byFormattedName.set(formatted, { id, key: entry.key });
+    }
+    let added = 0;
+    for (const name of referenced) {
+      if (manifest[name]) continue;
+      const found = byFormattedName.get(name);
+      if (found) { manifest[name] = found; added++; }
+    }
+    if (added > 0) console.log(`  Manifest: +${added} from library components with no spec`);
+  }
+
   console.log(`  Manifest: ${Object.keys(manifest).length} entries`);
   return manifest;
+}
+
+/**
+ * Every `instanceOf` name a spec references, at any depth — variants, examples, slot
+ * content, subcomponents. `$ref` forms are skipped: those already resolve within the spec.
+ */
+function collectInstanceOfNames(node: unknown, acc = new Set<string>()): Set<string> {
+  if (!node || typeof node !== 'object') return acc;
+  if (Array.isArray(node)) { for (const item of node) collectInstanceOfNames(item, acc); return acc; }
+  for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+    if (key === 'instanceOf' && typeof value === 'string') acc.add(value);
+    else collectInstanceOfNames(value, acc);
+  }
+  return acc;
 }
 
 /**
@@ -539,7 +585,11 @@ async function sendRender(specPath: string, rawPageId: string | null, fileKey?: 
     try { return fn(); } finally { bridgeTimings.push({ label, ms: Date.now() - start }); }
   };
 
-  const manifest = timed('instance manifest', () => buildManifest(spec, specsDir, dataDir));
+  const keyFormat = (spec as { metadata?: { config?: { format?: { keys?: string } } } })?.metadata?.config?.format?.keys
+    ?? (spec as { components?: Record<string, { metadata?: { config?: { format?: { keys?: string } } } }> })
+      ?.components?.[Object.keys((spec as { components?: Record<string, unknown> }).components ?? {})[0]]
+      ?.metadata?.config?.format?.keys;
+  const manifest = timed('instance manifest', () => buildManifest(spec, specsDir, dataDir, keyFormat));
   const glyphIdManifest = timed('glyph manifest', () => buildGlyphManifest(dataDir));
   const stylesManifest = timed('styles manifest', () => buildStylesManifest(dataDir));
   const variablesManifest = timed('variables manifest', () => buildVariablesManifest(dataDir));

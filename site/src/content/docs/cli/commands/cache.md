@@ -26,7 +26,7 @@ Four files under `{dataDirectory}/cache/`, each covering every source you've fet
 
 | File | Maps | Built from |
 |------|------|------------|
-| `components.yaml` | component node id → published key | `{alias}.file.json` |
+| `components.yaml` | component node id → published key and name | `{alias}.file.json` |
 | `styles.yaml` | style name → key and type | `{alias}.file.json` |
 | `variables.yaml` | token name → key, id, published flag | `{alias}.variables.json` |
 | `icons.yaml` | glyph name → node id and key | `{alias}.file.json` |
@@ -34,6 +34,8 @@ Four files under `{dataDirectory}/cache/`, each covering every source you've fet
 They're generated files. Deleting them is safe — the next `specs cache` rebuilds them — and they should not be edited by hand.
 
 Each entry records which source it came from, because node ids are file-scoped: knowing an entry's origin is what lets `render` tell whether an id is usable in the file it's rendering into, and it lets one library be rebuilt without re-reading the others.
+
+`components.yaml` also records each component's raw Figma name. A spec refers to a component by a formatted key, and that transform is lossy — `DS Link/On overlay/M` and `DS Link On Overlay M` produce the same key — so the name cannot be recovered from the key. Recording it lets `render` place an instance of a component the workspace has no spec for: the library's names are formatted the same way and matched against the spec's key, then the component is imported by its published key. Names are stored raw and formatted at render time, so changing `format.keys` needs no rebuild.
 
 Every file also records what it was built from — the payload's name, size, and modification time, plus the glyph naming pattern for `icons.yaml`. That's how staleness is detected.
 
