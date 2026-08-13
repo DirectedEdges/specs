@@ -14,6 +14,7 @@ import { ConfigLoader } from '../Config/ConfigLoader.js';
 import { postRender, type RenderResponse } from '../bridge/client.js';
 import { resolveFileKey } from '../bridge/pickConnection.js';
 import { findComponentFolders, isComponentFolder, loadSpec } from '../Render/SpecLoader.js';
+import { startSpinner } from '../utilities/spinner.js';
 import { refreshCache } from '../Cache/Cache.js';
 import { reportCache } from './CacheCommand.js';
 
@@ -107,10 +108,23 @@ async function renderSpecPath(
   options: { file?: string; page?: string; overwrite?: boolean; strict?: boolean; timing?: boolean }
 ): Promise<number> {
   const { spec, resolvePath } = loadSpec(specPath);
-  console.log(`Posting spec: ${resolvePath}`);
+  // The component, not the path it came from: the full path is noise on every line of a
+  // batch, and the name is what identifies the render in progress. `resolvePath` is a
+  // component folder or a spec file, so the extension comes off either way.
+  const name = path.basename(resolvePath, path.extname(resolvePath));
   const fileKey = await resolveFileKey(options.file);
+
+  // The spinner holds one line while Figma works, and is erased when it stops — the
+  // outcome prints over it rather than under it, so a batch reads as one line per
+  // component instead of two.
+  const stopSpinner = startSpinner(`Rendering: ${name}`);
   const startedAt = Date.now();
-  const result = await postRender({ specPath: resolvePath, spec, fileKey, pageId: options.page, overwrite: options.overwrite });
+  let result: RenderResponse;
+  try {
+    result = await postRender({ specPath: resolvePath, spec, fileKey, pageId: options.page, overwrite: options.overwrite });
+  } finally {
+    stopSpinner();
+  }
   const elapsed = Date.now() - startedAt;
 
   if (!result.success) {
@@ -120,7 +134,12 @@ async function renderSpecPath(
 
   // Success is the whole contract — reading the produced component's spec is
   // an explicit second call (`specs generate --from-bridge`), not a side effect.
-  for (const w of result.warnings ?? []) console.warn(`  ⚠ ${w}`);
+  // Writer warnings are withheld for now. They are dominated by known, tracked defects
+  // (see the sub-issues of #281) and by degradations a user cannot act on, so printing a
+  // wall of them per render buries the outcome rather than informing it. The INCOMPLETE
+  // count below still reports the one case that means content is actually missing.
+  const SHOW_WRITER_WARNINGS = false;
+  if (SHOW_WRITER_WARNINGS) for (const w of result.warnings ?? []) console.warn(`  ⚠ ${w}`);
 
   // A render that could not place an instance produced a component missing
   // content, so "✓ Rendered" on its own overstates what happened. Say it plainly
@@ -139,7 +158,8 @@ async function renderSpecPath(
     }
   }
 
-  console.log(`✓ Rendered in Figma in ${(elapsed / 1000).toFixed(1)}s. nodeId: ${result.nodeId}`);
+  // Matches the shape fetch sets for per-item work: `✓ Verb: subject (detail)`.
+  console.log(`✓ Rendered: ${name} (${(elapsed / 1000).toFixed(1)}s, nodeId: ${result.nodeId})`);
   if (options.timing) printTimingReport(result, elapsed);
   return dropped;
 }

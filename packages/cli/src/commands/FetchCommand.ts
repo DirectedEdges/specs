@@ -13,6 +13,7 @@ import path from 'path';
 import yaml from 'yaml';
 import readline from 'readline';
 import { collectGlyphComponents } from '../utilities/glyphComponents.js';
+import { startSpinner, clearInlineStatus, renderInlineStatus, isInteractive, formatElapsed } from '../utilities/spinner.js';
 import { refreshCache } from '../Cache/Cache.js';
 import { reportCache } from './CacheCommand.js';
 
@@ -212,53 +213,6 @@ export function formatAuthError(status: number, alias: string, kind: string, con
   ].join('\n');
 }
 
-function isInteractive(): boolean {
-  return Boolean(process.stdout.isTTY);
-}
-
-function renderInlineStatus(text: string): void {
-  if (!isInteractive()) {
-    console.log(text);
-    return;
-  }
-
-  readline.clearLine(process.stdout, 0);
-  readline.cursorTo(process.stdout, 0);
-  process.stdout.write(text);
-}
-
-function clearInlineStatus(): void {
-  if (!isInteractive()) return;
-  readline.clearLine(process.stdout, 0);
-  readline.cursorTo(process.stdout, 0);
-}
-
-function formatElapsed(ms: number): string {
-  const seconds = Math.floor(ms / 1000);
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.floor(seconds / 60);
-  const remaining = seconds % 60;
-  return `${minutes}m ${remaining}s`;
-}
-
-function startSpinner(text: string): () => string {
-  const start = Date.now();
-  if (!isInteractive()) {
-    console.log(text);
-    return () => formatElapsed(Date.now() - start);
-  }
-  const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-  let i = 0;
-  const id = setInterval(() => {
-    const elapsed = formatElapsed(Date.now() - start);
-    renderInlineStatus(`${frames[i++ % frames.length]} ${text} (${elapsed})`);
-  }, 80);
-  return () => {
-    clearInterval(id);
-    clearInlineStatus();
-    return formatElapsed(Date.now() - start);
-  };
-}
 
 export interface FetchOptions {
   config?: string;
