@@ -368,7 +368,7 @@ function buildManifest(spec: Record<string, unknown>, specsDir: string, dataDir:
   // Only names this spec actually references are added, so the payload does not grow by the
   // library's entire component list. Spec-derived entries always win — a workspace component
   // is the more specific answer, and its node id is local to the file being rendered into.
-  const referenced = collectInstanceOfNames(spec);
+  const referenced = collectComponentNames(spec);
   if (referenced.size > 0 && cache) {
     const byFormattedName = new Map<string, ComponentEntry>();
     for (const [id, entry] of Object.entries(cache.entries)) {
@@ -392,15 +392,28 @@ function buildManifest(spec: Record<string, unknown>, specsDir: string, dataDir:
 }
 
 /**
- * Every `instanceOf` name a spec references, at any depth — variants, examples, slot
- * content, subcomponents. `$ref` forms are skipped: those already resolve within the spec.
+ * Every component name a spec references, at any depth — variants, examples, slot content,
+ * subcomponents. `$ref` forms are skipped: those already resolve within the spec.
+ *
+ * Two surfaces name components. `instanceOf` names the component an element instantiates.
+ * A `propConfigurations` value names one too when the property behind it is an instance
+ * swap — an icon on an avatar, say — and the spec gives no clue which of its values those
+ * are, since it records the property's value, not its Figma type. So every string value is
+ * offered up: a name that matches no library component simply finds nothing, and one that
+ * does is only ever used by a swap that asked for it.
  */
-function collectInstanceOfNames(node: unknown, acc = new Set<string>()): Set<string> {
+function collectComponentNames(node: unknown, acc = new Set<string>()): Set<string> {
   if (!node || typeof node !== 'object') return acc;
-  if (Array.isArray(node)) { for (const item of node) collectInstanceOfNames(item, acc); return acc; }
+  if (Array.isArray(node)) { for (const item of node) collectComponentNames(item, acc); return acc; }
   for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
     if (key === 'instanceOf' && typeof value === 'string') acc.add(value);
-    else collectInstanceOfNames(value, acc);
+    else if (key === 'propConfigurations' && value && typeof value === 'object') {
+      for (const configured of Object.values(value as Record<string, unknown>)) {
+        if (typeof configured === 'string') acc.add(configured);
+      }
+      collectComponentNames(value, acc); // $nested configs carry their own values
+    }
+    else collectComponentNames(value, acc);
   }
   return acc;
 }
