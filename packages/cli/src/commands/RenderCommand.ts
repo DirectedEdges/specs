@@ -213,7 +213,10 @@ function printTimingReport(result: RenderResponse, elapsed: number): void {
 }
 
 function countDroppedInstances(warnings?: string[]): number {
-  return (warnings ?? []).filter((w) => w.includes('no manifest entry for')).length;
+  // Matched on the message an unresolved *instance element* produces. `VariableResolver`
+  // says "no manifest entry for" too, about a token — counting those reports missing
+  // content where only a binding was lost, which reads as a far more broken render.
+  return (warnings ?? []).filter((w) => w.includes('instance element') && w.includes('no manifest entry for')).length;
 }
 
 function confirm(question: string): Promise<boolean> {

@@ -31,6 +31,7 @@ import type { FileWriter, WriteResult } from '../Writers/FileWriter.js';
 import type { OutputFormat } from '../Types/OutputConfig.js';
 import { ImageFillsResolver, IMAGES_DIR_NAME } from '../utilities/ImageFillsResolver.js';
 import { postGenerateFromSelection } from '../bridge/client.js';
+import { formatKey } from '../utilities/formatKey.js';
 import { resolveFileKey } from '../bridge/pickConnection.js';
 
 declare const __SPECS_CLI_VERSION__: string;
@@ -439,8 +440,34 @@ export const Generate = new Command('generate')
         }
 
         libraryJson = await fs.readJSON(sourceFile);
-        componentIds = selectedComponents.map(c => c.id);
-        componentNames = new Map(selectedComponents.map(c => [c.id, c.name]));
+
+        // `--component` used to apply only in file mode, so asking for one component here
+        // silently generated the whole catalogue — a slow surprise, and one that looks like
+        // the flag worked. Match on the Figma name, the id, or the formatted key the output
+        // is written under, since that is the name a caller has in front of them.
+        let chosen = selectedComponents;
+        if (options.component) {
+          const wanted = options.component;
+          chosen = selectedComponents.filter(c =>
+            c.id === wanted || c.name === wanted || formatKey(c.name, modelConfig.format.keys) === wanted);
+          if (chosen.length === 0) {
+            console.error(`Error: no component named "${wanted}" in the manifest.`);
+            const near = selectedComponents
+              .map(c => formatKey(c.name, modelConfig.format.keys))
+              .filter(k => k.toLowerCase().includes(wanted.toLowerCase()))
+              .slice(0, 5);
+            if (near.length > 0) {
+              console.error('Did you mean:');
+              for (const k of near) console.error(`  ${k}`);
+            } else {
+              console.error(`Tip: ${selectedComponents.length} components are available — omit --component to generate all of them.`);
+            }
+            process.exit(ERROR_CODES.INVALID_ARGS);
+          }
+        }
+
+        componentIds = chosen.map(c => c.id);
+        componentNames = new Map(chosen.map(c => [c.id, c.name]));
 
         if (options.verbose) {
           console.log(`[CLI] File loaded: ${libraryJson.name || path.basename(sourceFile)}`);
