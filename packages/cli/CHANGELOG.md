@@ -7,27 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+Specs can now go back into Figma. `specs render` takes a spec you already have and builds
+the component it describes in a connected Figma file — the reverse of `specs generate`, and
+the other half of a round trip you can run and re-run as a spec changes.
+
 ### Added
 
+- **`specs render` — build a component in Figma from a spec.** Point it at a spec file, a
+  component folder, or a directory of them; with no argument it renders everything in your
+  configured `outputDirectory`. Variants, styles, props, slots, subcomponents, and icons are
+  all reconstructed, with tokens bound to the file's own variables and styles.
+  - `--watch` re-renders on every save, so you can edit a spec and watch the component change.
+  - `--overwrite` replaces a component of the same name. Without it, a name collision is an
+    error rather than a silent deletion.
+  - `--page <id>` renders onto a specific page instead of whichever one is open — worth using
+    in any script, since the open page can move underneath you.
+  - `--strict` fails the run when an element cannot be resolved, instead of producing a
+    component with content missing.
+  - `--timing` reports where the time went, phase by phase.
+- **`specs bridge` — the connection render works over.** `start`, `stop`, and `status` for a
+  local server the Figma plugin connects to. Figma cannot be reached from outside, so the
+  plugin opens the connection and the CLI talks through it. Enable the CLI Bridge in the
+  plugin, and `specs bridge status` will name the file it is connected to. Several Figma
+  files can be connected at once; `--file <fileKey>` picks one, and in an interactive
+  terminal you are offered a numbered list instead of an error.
+- **`specs cache` — the lookup tables render needs.** Every component, icon, style, and
+  variable name in your fetched data, resolved to what Figma needs to place it. Built from
+  `specs fetch` output, refreshed with `--force`, or rebuilt in place with
+  `specs render --refresh-cache`. A stale cache fails the render rather than rendering
+  something subtly wrong.
+- **`specs generate --from-bridge` — read a spec from what's selected in Figma.** A third
+  source for `generate` alongside a fetched file and a manifest, with no REST fetch and no
+  Figma token: select a component in a connected file and generate its spec directly. Your
+  config governs the result, exactly as it does for a fetched generate, and the run leaves
+  the Figma file untouched. Output follows the same `--output` / `--split-components` /
+  `--split-concerns` resolution as every other source.
 - `format.figmaKeys` in the generated `specs.config.yaml` template — commented out at its `NONE` default, documenting the opt-in that enables the safe key grammar and Figma name preservation (ADR-066)
 - `specs analyze keys` — reports Figma layer and property names a formatted key cannot reconstruct, written to `_analysis/keys.yaml`. Organized `byComponent` as a designer's checklist — each component splitting into `props` and `anatomy`, with an empty surface omitted — then `byCause` for systemic problems and `byName` for a name repeated across the library. Requires `format.figmaKeys` to declare a convention; empty under the `NONE` default (ADR-066)
 - **`specs fetch` icons** — a fourth data kind alongside `file`, `variables`, and `styles`: fetch derives the library's icon glyphs from the downloaded file payload (no `scan` required) and downloads their SVG assets with stable kebab-case slugs.
-- **`specs generate --from-bridge`** — A third source mode for `generate`, alongside REST-file and manifest: generates a spec directly from whatever's selected in a connected Figma file via the CLI bridge, no REST fetch needed. Errors clearly when 2+ plugins are connected and no `--file <fileKey>` target is given, when nothing is selected, or when the selection isn't a component/component set/frame. Output location and structure follow the same config-driven resolution (`--output`, `--split-components`, `--split-concerns`, etc.) that file and manifest mode already use.
-- **`render`/`generate --from-bridge` prompt to pick a file when multiple are connected** — In an interactive terminal, omitting `--file` with 2+ connected plugins now shows a numbered list (by file name) to choose from instead of failing immediately. Non-interactive runs (scripts, CI) are unaffected — they still fail loud with the existing ambiguity error rather than hang waiting on input.
-- **The bridge's glyph manifest now carries each icon's published component key** — Cross-referenced from the fetched file's `components` map alongside the existing same-file node id, so `render` can place icons that live in a separate Figma library file (see the matching specs-from-figma and specs-plugin-2 changes).
-- **`render --overwrite`** — A title collision on the target page (an existing node with the same name as the spec being rendered) is now a hard error by default instead of silently deleting the existing node. Pass `--overwrite` to restore the old delete-and-recreate behavior explicitly.
 
 ### Changed
 
-- **The bridge protocol now speaks "render" everywhere, not "write"** — The WebSocket message the plugin receives (`writeComponent`→`renderComponent`), its result event, the `POST /write`→`POST /render` HTTP control endpoint, and the `--write`→`--render` debug flag are all renamed. Finishes the write→render terminology cleanup for the bridge that was deferred while the bridge server migration from specs-from-figma was still in flight.
 - CSS `overflow` output — keyed on the renamed `Styles.clipsContent`, so `overflow: hidden` / `overflow: visible` is emitted for the first time (ADR-069)
-- **`generate --from-bridge` now processes under your config, not the plugin's settings** — The CLI resolved a config and then never sent it, so the plugin built the spec under whatever its own panel was last set to: the same node in the same file produced different specs for different people, and a render round trip compared a baseline made under one config against a read made under another. The resolved config now travels with the request and governs that one request only — it is never stored as the plugin's settings, so an automated round trip cannot silently reconfigure someone's plugin.
-- **`render` sends the workspace config as a fallback** — A spec records the conventions it was produced under and render reverses that record, so the spec's own `metadata.config` still wins. The workspace config answers for a spec that carries none, such as a hand-authored one.
-- **A bridge read leaves the file untouched** — `generate --from-bridge` was running the plugin's full generate path: spec frames painted onto the canvas, an entry added to the document's spec list, the node's cache rewritten, and a progress animation in a panel nobody opened. It now returns the spec and writes nothing.
-
-### Removed
-
-- **`render` no longer returns the produced component's spec** — the `--no-return-spec` flag is gone and render reports success/failure plus the node id only. The round trip is now an explicit second call: `specs generate --from-bridge` reads the just-rendered selection through the same bridge. The plugin no longer runs a spec-generation pass (page navigation, selection swap) as a render side effect.
 
 
 ## [0.26.0] - 2026-08-07
