@@ -15,7 +15,8 @@ export type Styles = Partial<{
   /** Glyph fill color. Present on GLYPH element type only. Represented in Figma as fills. @since 0.13.0 */
   fillColor: ColorStyle;
   effects: TokenReference | Effects;
-  clipContent: Style;
+  /** Whether the element clips content that overflows its box. @since 0.30.0 */
+  clipsContent: Style;
   /** Corner radius. Scalar when uniform; `Corners` object when per-corner values differ. @since 1.0.0 */
   cornerRadius: Style | Corners;
   width: Style;
@@ -343,7 +344,7 @@ export type StyleKey =
   | 'backgroundImage'
   | 'fillColor'
   | 'effects'
-  | 'clipContent'
+  | 'clipsContent'
   | 'cornerRadius'
   | 'width'
   | 'height'

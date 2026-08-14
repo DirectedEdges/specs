@@ -17,10 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `FigmaAnatomyElementExtension.name` — renamed from `originalName`; now records the Figma layer name for key divergence as well as wrapper collapse (ADR-066)
+- `Styles.clipsContent` — renamed from `clipContent`; boolean clip flag, type and token-bindability unchanged (ADR-069)
 
 ### Removed
 
 ### Migration
+
+`Styles.clipContent` → `Styles.clipsContent`: read `clipsContent` instead; the value shape is unchanged. No stored spec carries the old key — it never matched emitted output.
 
 `FigmaAnatomyElementExtension.originalName` → `FigmaAnatomyElementExtension.name`: read `$extensions['com.figma'].name` instead; the value and its collapse-provenance meaning are unchanged. Consumers that read the extension through an inline structural type will not see a compile error — update those call sites explicitly.
 

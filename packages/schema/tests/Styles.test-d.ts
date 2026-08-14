@@ -585,6 +585,24 @@ const withWrapToken: Styles = {
   wrap: { $token: 'Layout.Wrap', $type: 'boolean' } satisfies TokenReference,
 };
 
+// ─── Styles.clipsContent (boolean Style) ────────────────────────────────────
+
+// Boolean values
+const withClipsContentTrue: Styles = { clipsContent: true };
+const withClipsContentFalse: Styles = { clipsContent: false };
+
+// null is valid (Style includes null)
+const withClipsContentNull: Styles = { clipsContent: null };
+
+// TokenReference is valid (Style includes TokenReference)
+const withClipsContentToken: Styles = {
+  clipsContent: { $token: 'Layout.ClipsContent', $type: 'boolean' } satisfies TokenReference,
+};
+
+// The pre-ADR-069 name is no longer a Styles key
+// @ts-expect-error: clipContent was renamed to clipsContent
+const withOldClipName: Styles = { clipContent: true };
+
 // ─── Styles.wrapAlignment (WrapAlignment | null) ────────────────────────────
 
 // Valid enum values on Styles

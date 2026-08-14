@@ -15,6 +15,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 069 | Rename `clipContent` to `clipsContent` | Renames the clip flag to the key the data carries, so container clipping and CSS `overflow` resolve for the first time |
 | 066 | Lossless Key Formatting — Safe Key Grammar and Figma Name Preservation | Adds opt-in `format.figmaKeys` (`NONE` default), a safe key grammar, and `com.figma.name` on anatomy and props; renames `originalName` |
 | 065 | Document the `nullable` Default and Add `NumberProp.nullable` | Absent `nullable` means true for `StringProp`/`NumberProp`/`SlotProp`/`ImageProp`, false for `EnumProp`; adds `NumberProp.nullable` |
 | 064 | Tighten `textAlignHorizontal` to a Logical-Direction String Enum | Narrow from `Style` to `TextAlignHorizontal \| null` (`'START' \| 'CENTER' \| 'END' \| 'JUSTIFY'`); Figma `LEFT`/`RIGHT`/`JUSTIFIED` remapped |
