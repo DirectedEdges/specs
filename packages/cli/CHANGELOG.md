@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **The bridge protocol now speaks "render" everywhere, not "write"** — The WebSocket message the plugin receives (`writeComponent`→`renderComponent`), its result event, the `POST /write`→`POST /render` HTTP control endpoint, and the `--write`→`--render` debug flag are all renamed. Finishes the write→render terminology cleanup for the bridge that was deferred while the bridge server migration from specs-from-figma was still in flight.
+- CSS `overflow` output — keyed on the renamed `Styles.clipsContent`, so `overflow: hidden` / `overflow: visible` is emitted for the first time (ADR-069)
 
 ### Removed
 

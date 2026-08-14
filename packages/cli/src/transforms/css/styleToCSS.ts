@@ -265,9 +265,9 @@ export function styleToCSS(styles: Record<string, unknown>, tokensFormat = 'TOKE
 
   // ── Overflow ─────────────────────────────────────────────────────────────────
 
-  if ('clipContent' in styles && styles.clipContent !== undefined) {
-    if (styles.clipContent === true) decls.push('overflow: hidden');
-    else if (styles.clipContent === false) decls.push('overflow: visible');
+  if ('clipsContent' in styles && styles.clipsContent !== undefined) {
+    if (styles.clipsContent === true) decls.push('overflow: hidden');
+    else if (styles.clipsContent === false) decls.push('overflow: visible');
   }
 
   // ── Transform ────────────────────────────────────────────────────────────────
