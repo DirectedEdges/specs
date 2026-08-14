@@ -294,7 +294,8 @@ export const Generate = new Command('generate')
         let result;
         try {
           const fileKey = await resolveFileKey(options.file);
-          result = await postGenerateFromSelection({ fileKey, nodeId: options.node });
+          // The config shapes the spec the plugin builds, not merely where it is written.
+          result = await postGenerateFromSelection({ fileKey, nodeId: options.node, config: modelConfig });
         } catch (e) {
           const err = e as NodeJS.ErrnoException;
           if (err.cause && (err.cause as NodeJS.ErrnoException).code === 'ECONNREFUSED') {

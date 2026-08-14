@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **The bridge protocol now speaks "render" everywhere, not "write"** — The WebSocket message the plugin receives (`writeComponent`→`renderComponent`), its result event, the `POST /write`→`POST /render` HTTP control endpoint, and the `--write`→`--render` debug flag are all renamed. Finishes the write→render terminology cleanup for the bridge that was deferred while the bridge server migration from specs-from-figma was still in flight.
 - CSS `overflow` output — keyed on the renamed `Styles.clipsContent`, so `overflow: hidden` / `overflow: visible` is emitted for the first time (ADR-069)
+- **`generate --from-bridge` now processes under your config, not the plugin's settings** — The CLI resolved a config and then never sent it, so the plugin built the spec under whatever its own panel was last set to: the same node in the same file produced different specs for different people, and a render round trip compared a baseline made under one config against a read made under another. The resolved config now travels with the request and governs that one request only — it is never stored as the plugin's settings, so an automated round trip cannot silently reconfigure someone's plugin.
+- **`render` sends the workspace config as a fallback** — A spec records the conventions it was produced under and render reverses that record, so the spec's own `metadata.config` still wins. The workspace config answers for a spec that carries none, such as a hand-authored one.
+- **A bridge read leaves the file untouched** — `generate --from-bridge` was running the plugin's full generate path: spec frames painted onto the canvas, an entry added to the document's spec list, the node's cache rewritten, and a progress animation in a panel nobody opened. It now returns the spec and writes nothing.
 
 ### Removed
 

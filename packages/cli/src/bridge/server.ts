@@ -42,6 +42,7 @@
 //   back on the matching result message, so responses route to the right
 //   caller even with multiple connections and requests in flight.
 
+import type { ResolvedConfig } from '@directededges/specs-schema';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { createServer } from 'http';
 import { readFileSync, readdirSync, statSync } from 'fs';
@@ -230,14 +231,14 @@ const http = createServer((req, res) => {
     let genBody = '';
     req.on('data', (chunk) => { genBody += chunk; });
     req.on('end', () => {
-      let params: { fileKey?: string; nodeId?: string };
+      let params: { fileKey?: string; nodeId?: string; config?: ResolvedConfig };
       try { params = genBody ? JSON.parse(genBody) : {}; } catch {
         res.writeHead(400);
         res.end(JSON.stringify({ error: 'Invalid JSON body.' }));
         return;
       }
 
-      sendGenerateFromSelection(params.fileKey, params.nodeId)
+      sendGenerateFromSelection(params.fileKey, params.nodeId, params.config)
         .then((result) => {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify(result));
@@ -259,14 +260,14 @@ const http = createServer((req, res) => {
   let body = '';
   req.on('data', (chunk) => { body += chunk; });
   req.on('end', () => {
-    let params: { specPath?: string; spec?: Record<string, unknown>; pageId?: string | null; fileKey?: string; overwrite?: boolean };
+    let params: { specPath?: string; spec?: Record<string, unknown>; pageId?: string | null; fileKey?: string; overwrite?: boolean; config?: ResolvedConfig };
     try { params = JSON.parse(body); } catch {
       res.writeHead(400);
       res.end(JSON.stringify({ error: 'Invalid JSON body.' }));
       return;
     }
 
-    const { specPath: specArg, spec: preParsedSpec, pageId = null, fileKey, overwrite } = params;
+    const { specPath: specArg, spec: preParsedSpec, pageId = null, fileKey, overwrite, config } = params;
 
     if (!specArg) {
       res.writeHead(400);
@@ -281,7 +282,7 @@ const http = createServer((req, res) => {
       return;
     }
 
-    sendRender(specArg, pageId, fileKey, preParsedSpec, overwrite)
+    sendRender(specArg, pageId, fileKey, preParsedSpec, overwrite, config)
       .then((result) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(result));
@@ -558,17 +559,19 @@ function getCurrentPageId(conn: Connection<WebSocket>): Promise<string> {
  * Ask a specific connection's plugin to generate a spec from its current Figma
  * selection, or from an explicit nodeId (the plugin selects that node first).
  */
-async function sendGenerateFromSelection(fileKey?: string, nodeId?: string): Promise<GenerateResult> {
+async function sendGenerateFromSelection(fileKey?: string, nodeId?: string, config?: ResolvedConfig): Promise<GenerateResult> {
   const conn = registry.resolve(fileKey);
   const { requestId, promise } = requests.create(60000, 'Timed out waiting for generateFromSelection-result.');
-  conn.ws.send(JSON.stringify({ type: 'generateFromSelection', requestId, nodeId }));
+  // `config` travels with the request and governs how the plugin builds this one spec.
+  // The plugin must not adopt it as its own settings.
+  conn.ws.send(JSON.stringify({ type: 'generateFromSelection', requestId, nodeId, config }));
   return promise as Promise<GenerateResult>;
 }
 
 /**
  * Send a single renderComponent message over the WebSocket and wait for the result.
  */
-async function sendRender(specPath: string, rawPageId: string | null, fileKey?: string, preParsedSpec?: Record<string, unknown>, overwrite?: boolean): Promise<RenderResult> {
+async function sendRender(specPath: string, rawPageId: string | null, fileKey?: string, preParsedSpec?: Record<string, unknown>, overwrite?: boolean, config?: ResolvedConfig): Promise<RenderResult> {
   const conn = registry.resolve(fileKey);
 
   let spec: Record<string, unknown>;
@@ -626,7 +629,7 @@ async function sendRender(specPath: string, rawPageId: string | null, fileKey?: 
   // A large component set against a big library can take minutes today; a timeout
   // shorter than the render discards a result the plugin actually produced.
   const { requestId, promise } = requests.create(300000, 'Timed out waiting for renderComponent-result.');
-  const payload = JSON.stringify({ type: 'renderComponent', requestId, spec, pageId, instanceIdManifest: manifest, glyphIdManifest, stylesManifest, variablesManifest, overwrite });
+  const payload = JSON.stringify({ type: 'renderComponent', requestId, spec, pageId, instanceIdManifest: manifest, glyphIdManifest, stylesManifest, variablesManifest, overwrite, config });
 
   const sentAt = Date.now();
   conn.ws.send(payload);

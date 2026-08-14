@@ -6,6 +6,7 @@
  * Figma. See `specs bridge` to start/stop the bridge.
  */
 
+import type { ResolvedConfig } from '@directededges/specs-schema';
 import { Command } from 'commander';
 import fs from 'fs-extra';
 import path from 'path';
@@ -82,11 +83,23 @@ export const Render = new Command('render')
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
 
+      // A spec records the config it was produced under, and render reverses that
+      // record — so the spec's own `metadata.config` governs. This is the fallback for
+      // a spec carrying none, such as a hand-authored one. A workspace without a config
+      // file is fine: the spec is then the only source there is.
+      let workspaceConfig: ResolvedConfig | undefined;
+      try {
+        workspaceConfig = new ConfigLoader().load(options.config).config;
+      } catch {
+        workspaceConfig = undefined;
+      }
+      const withConfig = { ...options, workspaceConfig };
+
       const isBatchDir = fs.statSync(absSpecPath).isDirectory() && !isComponentFolder(absSpecPath);
       if (isBatchDir) {
-        await renderBatchDirectory(absSpecPath, options);
+        await renderBatchDirectory(absSpecPath, withConfig);
       } else {
-        await renderSpecPath(absSpecPath, options);
+        await renderSpecPath(absSpecPath, withConfig);
       }
     } catch (e) {
       const err = e as NodeJS.ErrnoException;
@@ -105,7 +118,7 @@ export const Render = new Command('render')
 // logged and retried on the next change (watch).
 async function renderSpecPath(
   specPath: string,
-  options: { file?: string; page?: string; overwrite?: boolean; strict?: boolean; timing?: boolean }
+  options: { file?: string; page?: string; overwrite?: boolean; strict?: boolean; timing?: boolean; workspaceConfig?: ResolvedConfig }
 ): Promise<number> {
   const { spec, resolvePath } = loadSpec(specPath);
   // The component, not the path it came from: the full path is noise on every line of a
@@ -121,7 +134,7 @@ async function renderSpecPath(
   const startedAt = Date.now();
   let result: RenderResponse;
   try {
-    result = await postRender({ specPath: resolvePath, spec, fileKey, pageId: options.page, overwrite: options.overwrite });
+    result = await postRender({ specPath: resolvePath, spec, fileKey, pageId: options.page, overwrite: options.overwrite, config: options.workspaceConfig });
   } finally {
     stopSpinner();
   }
@@ -219,7 +232,7 @@ function confirm(question: string): Promise<boolean> {
  */
 async function renderBatchDirectory(
   absDir: string,
-  options: { file?: string; page?: string; overwrite?: boolean; strict?: boolean; timing?: boolean },
+  options: { file?: string; page?: string; overwrite?: boolean; strict?: boolean; timing?: boolean; workspaceConfig?: ResolvedConfig },
   // In watch mode a batch is re-run on every change: don't re-confirm, and
   // don't exit the process on a failure the next save might fix.
   { watch = false }: { watch?: boolean } = {}
@@ -278,7 +291,7 @@ const WATCH_DEBOUNCE_MS = 300;
 
 async function watchAndRender(
   specPath: string,
-  options: { file?: string }
+  options: { file?: string; workspaceConfig?: ResolvedConfig }
 ): Promise<void> {
   const absSpecPath = path.resolve(specPath);
   if (!fs.existsSync(absSpecPath)) {
