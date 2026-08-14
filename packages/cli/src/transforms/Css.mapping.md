@@ -144,8 +144,8 @@ if present, else `currentColor`. Gradients deferred to phase 2.
 | Spec key | CSS property | Notes |
 |----------|-------------|-------|
 | `visible: false` | `display: none` | Only emitted when explicitly false. |
-| `clipContent: true` | `overflow: hidden` | |
-| `clipContent: false` | `overflow: visible` | |
+| `clipsContent: true` | `overflow: hidden` | |
+| `clipsContent: false` | `overflow: visible` | |
 
 ### Transform
 

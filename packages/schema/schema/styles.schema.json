@@ -18,7 +18,7 @@
         "fillColor": { "$ref": "#/definitions/ColorStyleValue", "description": "Glyph fill color. Present on GLYPH element type only. Represented in Figma as fills." },
         "textColor": { "$ref": "#/definitions/ColorStyleValue", "description": "Text fill color. Present on TEXT element type only. Represented in Figma as fills." },
         "effects": { "$ref": "#/definitions/EffectsStyleValue", "description": "Effect output. TokenReference when the node references a named effects style; Effects when effects are defined inline. Replaces effectStyleId." },
-        "clipContent": { "$ref": "#/definitions/BooleanStyleValue", "description": "Clip content" },
+        "clipsContent": { "$ref": "#/definitions/BooleanStyleValue", "description": "Whether the element clips content that overflows its box" },
         "cornerRadius": { "$ref": "#/definitions/CornersStyleValue", "description": "Corner radius. Scalar when uniform; Corners object when per-corner values differ." },
         "width": { "$ref": "#/definitions/NumberStyleValue", "description": "Width in pixels" },
         "height": { "$ref": "#/definitions/NumberStyleValue", "description": "Height in pixels" },

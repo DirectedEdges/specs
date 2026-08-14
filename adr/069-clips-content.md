@@ -2,8 +2,8 @@
 
 **Branch**: `069-clips-content`
 **Created**: 2026-08-14
-**Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Status**: ACCEPTED
+**Summary**: A `clipsContent` boolean style replaces `clipContent`, joining `visible` and `locked` as element state consumers map to `overflow`.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 
@@ -219,9 +219,9 @@ clipsContent:
 
 ## Semver Decision
 
-**Version bump**: `0.30.0 → 0.31.0` (`MAJOR`-class change)
+**Target version**: `0.30.0` — the version of the active release branch (`release/schema-0.30.0+cli-0.27.0`). This ADR ships within that release and proposes no bump of its own.
 
-**Justification**: Renaming a named field within an exported type and renaming a schema property are both breaking changes under Constitution III and the Versioning rule ("`MAJOR` for any breaking change to a type signature, field name, field presence, or schema structure"). The package is pre-1.0, so the breaking change is carried by a MINOR-position bump per 0.x convention, and MUST be called out as breaking in `CHANGELOG.md`.
+**Change class**: `MAJOR`-class (breaking). Renaming a named field within an exported type and renaming a schema property are both breaking changes under Constitution III and the Versioning rule ("`MAJOR` for any breaking change to a type signature, field name, field presence, or schema structure"). It MUST be called out as breaking in `CHANGELOG.md` under the release's entry.
 
 **Naming governance citation**: Constitution VI **rule 1** — 2+ code platforms agree. For the construct, UIKit, Android View, SwiftUI, and Compose agree on on/off. For the object-vs-boundary naming axis the code platforms tie, and the tiebreak is drawn from the schema's own vocabulary rather than from Figma. Rule 3 (defer to Figma) is **not** invoked anywhere in this ADR.
 

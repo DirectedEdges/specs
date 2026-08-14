@@ -1,9 +1,9 @@
 ---
-title: "clipContent"
-description: "Whether a container clips overflowing children"
+title: "clipsContent"
+description: "Whether a container clips overflowing content"
 ---
 
-Whether the container clips content that overflows its bounds.
+Whether the container clips content that overflows its box.
 
 #### Type(s)
 
