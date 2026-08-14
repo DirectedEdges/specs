@@ -147,3 +147,6 @@ Example attribution:
 ---
 
 **Disclaimer**: This is an independent project and is not officially affiliated with Figma Inc.
+
+
+<!-- Issue #221 Fix: Update Figma Community disclosures for CLI bridge network access -->
