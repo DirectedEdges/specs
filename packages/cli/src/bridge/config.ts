@@ -6,7 +6,7 @@ import { resolve, dirname } from 'path';
 export const WS_PORT = 9001;
 export const HTTP_PORT = 9002;
 
-// Default render target page — the "Specs 2 Testing" writer page.
+// Default render target page — the "Specs 2 Testing" render page.
 // Override per-request via body.pageId or CLI --pageId.
 export const DEFAULT_PAGE_ID = '1462-365';
 

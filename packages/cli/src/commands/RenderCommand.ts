@@ -34,7 +34,7 @@ export const Render = new Command('render')
   .option('--overwrite', 'Delete any existing page component with the same title before rendering (without this, a title collision is an error)')
   .option('--watch', 'Watch the spec path and re-render on every change (implies --overwrite)')
   .option('--strict', 'Fail the render when an instance element cannot be resolved, instead of rendering a component with missing content')
-  .option('--timing', 'Print a phase-by-phase timing report for the render (bridge manifests, then plugin write phases)')
+  .option('--timing', 'Print a phase-by-phase timing report for the render (bridge manifests, then plugin render phases)')
   .option('--refresh-cache', 'Rebuild the render lookup caches from fetched data before rendering (see `specs cache`)')
   .action(async (specPath: string | undefined, options: { config?: string; file?: string; page?: string; overwrite?: boolean; watch?: boolean; strict?: boolean; timing?: boolean; refreshCache?: boolean; verbose?: boolean }) => {
     // Ahead of everything else: a stale cache is a hard failure on the bridge, and this
@@ -147,12 +147,12 @@ async function renderSpecPath(
 
   // Success is the whole contract — reading the produced component's spec is
   // an explicit second call (`specs generate --from-bridge`), not a side effect.
-  // Writer warnings are withheld for now. They are dominated by known, tracked defects
+  // Render warnings are withheld for now. They are dominated by known, tracked defects
   // (see the sub-issues of #281) and by degradations a user cannot act on, so printing a
   // wall of them per render buries the outcome rather than informing it. The INCOMPLETE
   // count below still reports the one case that means content is actually missing.
-  const SHOW_WRITER_WARNINGS = false;
-  if (SHOW_WRITER_WARNINGS) for (const w of result.warnings ?? []) console.warn(`  ⚠ ${w}`);
+  const SHOW_RENDER_WARNINGS = false;
+  if (SHOW_RENDER_WARNINGS) for (const w of result.warnings ?? []) console.warn(`  ⚠ ${w}`);
 
   // A render that could not place an instance produced a component missing
   // content, so "✓ Rendered" on its own overstates what happened. Say it plainly
@@ -180,11 +180,11 @@ async function renderSpecPath(
 /**
  * Warnings that mean content is missing from the rendered component, as opposed to
  * cosmetic degradations (font fallbacks, skipped style keys) which leave it complete.
- * Matched on the writer's own message text — see `Elements.createChild`.
+ * Matched on render's own message text — see `Elements.createChild`.
  */
 /**
  * Attribute a render's wall-clock time to bridge phases (manifest builds, which
- * parse the fetched file data) and plugin write phases. Plugin phases that run
+ * parse the fetched file data) and plugin render phases. Plugin phases that run
  * concurrently — one row per variant, say — sum above the render's own total;
  * the count column is what makes that readable.
  */

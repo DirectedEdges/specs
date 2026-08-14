@@ -70,7 +70,7 @@ interface RenderResult {
   success: boolean;
   nodeId?: string;
   error?: string;
-  /** Phase durations reported by the plugin writer (see figma-from-specs Timings.ts). */
+  /** Phase durations reported by the plugin render (see figma-from-specs Timings.ts). */
   timings?: { total: number; phases: Array<{ label: string; ms: number; count: number }> };
   /** Phase durations measured here, before and around the plugin round-trip. */
   bridgeTimings?: Array<{ label: string; ms: number }>;

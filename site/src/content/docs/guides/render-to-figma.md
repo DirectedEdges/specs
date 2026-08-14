@@ -207,7 +207,7 @@ specs generate --from-bridge -o specs/roundtrip/deButton.yaml
 diff specs/deButton.yaml specs/roundtrip/deButton.yaml
 ```
 
-That round trip is the real check. Because the writer is under active development, treat every render as something to look at in Figma too, rather than a guaranteed match to the source spec.
+That round trip is the real check. Because render is under active development, treat every render as something to look at in Figma too, rather than a guaranteed match to the source spec.
 
 ## Stage 8 — Iterate
 
