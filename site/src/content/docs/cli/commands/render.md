@@ -222,6 +222,8 @@ value or a binding; each is about how something is expressed.
   otherwise a fixed fallback ([#341](https://github.com/DirectedEdges/specs/issues/341)).
 - **Boolean variant values render lowercase.** `True` becomes `true`; identical behaviour,
   different casing.
+- **Instances placed elsewhere in the file are not recreated.** A render reproduces the
+  component asset, so the examples drawn from its instances have no source to come from.
 - **Bindings from slot content to the component that holds it are ignored.** Figma withdrew
   that capability; older files keep theirs, and each affected component reports it once.
 
@@ -230,14 +232,10 @@ value or a binding; each is about how something is expressed.
 Real differences between a component and a render of its own spec. Expect these in a
 comparison until they are fixed.
 
-- Per-variant slot content is layered as if it inherits, so content lands on the wrong
-  variants — [#345](https://github.com/DirectedEdges/specs/issues/345)
+- Props, prop provenance and bindings the spec states are lost —
+  [#349](https://github.com/DirectedEdges/specs/issues/349)
 - A code-only prop whose name collides with a native property is dropped —
   [#344](https://github.com/DirectedEdges/specs/issues/344)
-- Elements sized FILL drift in measured width, so a comparison reports variants the source
-  does not state — [#346](https://github.com/DirectedEdges/specs/issues/346)
-- A boolean variant's value inverts, so the variant that differs is not the same variant —
-  [#348](https://github.com/DirectedEdges/specs/issues/348)
 - A slot constraint naming a component absent from the fetched data is dropped —
   [#325](https://github.com/DirectedEdges/specs/issues/325)
 
