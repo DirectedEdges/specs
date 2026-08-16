@@ -231,8 +231,15 @@ value or a binding; each is about how something is expressed.
 
 ### Open defects
 
-None known. Every difference found in round-trip testing is either explained by a limitation
-above or traced to authoring in the source component — see below.
+Real differences between a component and a render of its own spec, whatever a given release
+schedules. Expect these in a comparison until they are fixed.
+
+- A slot constraint naming a component absent from the fetched data is dropped —
+  [#325](https://github.com/DirectedEdges/specs/issues/325)
+- A code-only prop whose name collides with a native property is dropped —
+  [#344](https://github.com/DirectedEdges/specs/issues/344)
+- A code-only prop backed by a variant picker loses its provenance and its Figma type —
+  [#350](https://github.com/DirectedEdges/specs/issues/350)
 
 ### Differences the source file causes
 
