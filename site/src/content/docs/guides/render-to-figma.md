@@ -270,105 +270,41 @@ Graceful first, forced if it doesn't exit within a few seconds. Safe to run when
 
 ## Fidelity
 
-What a round trip is expected to preserve, what it cannot, and what is currently wrong with
-it. Everything below is either permanent — a consequence of what Figma itself allows — or a
-tracked defect with an issue behind it.
-
-**The bar this feature is held to:** a component rendered from its spec and read back is
-byte-identical to the spec that produced it, except where a limitation below explains the
-difference or an open defect accounts for it. A difference that neither explains is a bug
-that has not been written down yet.
+A component rendered from its spec and read back should be byte-identical to the spec that
+produced it, except where a limitation below explains the difference or an open defect
+accounts for it — anything else is a bug nobody has written down yet.
 
 ### Limitations
 
-Permanent, and not defects. A spec is a projection of a Figma file rather than a recording
-of one, and where the projection is lossy, render has to choose. None of these lose a
-property, a value, or a binding — every one of them is about how something is expressed.
+Permanent, and imposed by Figma rather than by this tool. None of them lose a property, a
+value or a binding; each is about how something is expressed.
 
-### Property order in the panel
-
-A rendered component's properties panel may list its properties in a different order than
-the component it was rendered from — slots tend to lead, code-only properties to trail, and
-a slot's `minChildren`/`maxChildren` can swap.
-
-This is not chased, because outside variants there is nothing definite to match. Figma
-records property order as creation order: the sequence a designer happened to add them in,
-adjustable by dragging, and exposed only as the key order of
-`componentPropertyDefinitions`. Nothing in the file says a property *belongs* at a position.
-Render, in turn, cannot choose its own order — a slot property can only be created together
-with its node, while each variant is still a standalone component, so slots necessarily
-precede the properties created afterwards on the assembled set, and Figma offers no way to
-reorder them later.
-
-**Variant property order is preserved**, and that is the ordering that carries meaning: it
-determines how variants layer and the sequence they are enumerated in. It is also the one
-Figma states twice — in the property definitions and in each variant's name (`Appearance=…,
-Size=…`) — and the two agree in every component set of the library this was measured
-against. A rendered component's variants, and their enumeration, match the source.
-### A locked aspect ratio holds one bound dimension, not two
-
-An element that locks its aspect ratio and binds both `width` and `height` to tokens keeps
-only one of those bindings. Figma derives the second dimension from the first and drops its
-variable reference as it does so; the rendered element carries the right size, and reads
-back with one dimension as a plain number.
-
-Such an element is over-specified — a ratio plus two dimensions is three constraints for two
-degrees of freedom — so something has to give. Declaring the ratio and one dimension avoids
-the ambiguity entirely.
-### A filling root has no width to reproduce
-
-A component root sized `FILL` takes its width from a parent. A top-level component has no
-parent, so the width it had in the source file is not recoverable from its spec.
-
-Where the root also locks an aspect ratio, render derives the width from the ratio and the
-height, and the component comes back the size it started. Where it does not, render falls
-back to a fixed width (375). Elements stretched to that root's edges may then sit a fraction
-of a pixel off.
-### Boolean variant values render lowercase
-
-A library that writes its boolean variant options as `True` and `False` gets `true` and
-`false` in the rendered component. The values mean the same thing and the variants behave
-identically; only the casing shown in Figma differs.
-### Bindings from slot content to the component that holds it
-
-Figma used to allow a layer inside a slot to bind to the **host** component's properties —
-slot content wired to the component's own instance-swap or boolean. That capability was
-withdrawn: the interface no longer offers it, and a plugin cannot create one or keep one,
-since Figma clears the reference the moment a layer enters a slot.
-
-Files authored before the change keep their wiring, so you will meet it in older
-components. Generating a spec from one reports it:
-
-```
-[SlotContent] "<component>": ignored 2 legacy bindings from slot content to this
-component's properties — Figma no longer allows this, and a render cannot reproduce it.
-The value each one resolves to is recorded instead.
-```
-
-This is not a render limitation. The spec records what the layer actually shows, which is
-what a consumer can build and what a render reproduces faithfully. The warning is there
-because the component itself is carrying something no longer supported, and the fix belongs
-in the Figma file: bind the layer outside the slot, or accept the resolved value.
-
-One consequence worth knowing when comparing a spec against its source: a component whose
-slot content entries differed *only* by such a binding will describe fewer variants than it
-used to. Those variants existed only by virtue of the withdrawn capability — nothing that
-could be rendered, and nothing a consumer could act on.
-
+- **Property order in the panel.** Figma orders properties by creation, with no way to
+  reorder afterwards, so slots lead and code-only props trail. Variant order *is* preserved.
+- **A locked aspect ratio holds one bound dimension, not two.** Declaring a ratio plus both
+  dimensions is over-specified, and Figma derives the second from the first.
+- **A filling root has no width to reproduce.** Derived from the ratio where one exists,
+  otherwise a fixed fallback ([#341](https://github.com/DirectedEdges/specs/issues/341)).
+- **Boolean variant values render lowercase.** `True` becomes `true`; identical behaviour,
+  different casing.
+- **Bindings from slot content to the component that holds it are ignored.** Figma withdrew
+  that capability; older files keep theirs, and each affected component reports it once.
 
 ### Open defects
 
-Tracked, unresolved, and expected to show up in a comparison until they are fixed. Each is a
-real difference between a component and a render of its own spec.
+Real differences between a component and a render of its own spec. Expect these in a
+comparison until they are fixed.
 
-| Behaviour | Issue |
-|---|---|
-| Per-variant slot content is layered as if it inherits, so content lands on the wrong variants | [#345](https://github.com/DirectedEdges/specs/issues/345) |
-| A created vector carries a stroke its spec never declared | [#338](https://github.com/DirectedEdges/specs/issues/338) |
-| A code-only prop whose name collides with a native property is dropped | [#344](https://github.com/DirectedEdges/specs/issues/344) |
-| Elements sized FILL drift in measured width, so a comparison reports variants the source does not state | [#346](https://github.com/DirectedEdges/specs/issues/346) |
-| A boolean variant's value inverts, so the variant that differs is not the same variant | [#348](https://github.com/DirectedEdges/specs/issues/348) |
-| A slot constraint naming a component absent from the fetched data is dropped | [#325](https://github.com/DirectedEdges/specs/issues/325) |
+- Per-variant slot content is layered as if it inherits, so content lands on the wrong
+  variants — [#345](https://github.com/DirectedEdges/specs/issues/345)
+- A code-only prop whose name collides with a native property is dropped —
+  [#344](https://github.com/DirectedEdges/specs/issues/344)
+- Elements sized FILL drift in measured width, so a comparison reports variants the source
+  does not state — [#346](https://github.com/DirectedEdges/specs/issues/346)
+- A boolean variant's value inverts, so the variant that differs is not the same variant —
+  [#348](https://github.com/DirectedEdges/specs/issues/348)
+- A slot constraint naming a component absent from the fetched data is dropped —
+  [#325](https://github.com/DirectedEdges/specs/issues/325)
 
 ## Further Reading
 
