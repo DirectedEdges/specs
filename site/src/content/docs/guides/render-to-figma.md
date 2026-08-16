@@ -279,20 +279,24 @@ from, and they are worth knowing before you read too much into such a comparison
 
 ### Property order in the panel
 
-The properties panel of a rendered component is ordered differently from its source:
+A rendered component's properties panel may list its properties in a different order than
+the component it was rendered from — slots tend to lead, code-only properties to trail, and
+a slot's `minChildren`/`maxChildren` can swap.
 
-- **Slot properties come first**, ahead of any text or boolean property the spec lists
-  before them.
-- **Code-only properties come last**, wherever the source has them.
-- **`minChildren` and `maxChildren`** on a slot may swap.
+This is not chased, because outside variants there is nothing definite to match. Figma
+records property order as creation order: the sequence a designer happened to add them in,
+adjustable by dragging, and exposed only as the key order of
+`componentPropertyDefinitions`. Nothing in the file says a property *belongs* at a position.
+Render, in turn, cannot choose its own order — a slot property can only be created together
+with its node, while each variant is still a standalone component, so slots necessarily
+precede the properties created afterwards on the assembled set, and Figma offers no way to
+reorder them later.
 
-Figma decides property order by creation order and offers no way to change it afterwards. A
-slot property can only be created together with its node, while each variant is still a
-standalone component; every other property is created later, once the variants are combined.
-So slots necessarily lead.
-
-Variant property order *is* preserved — the read side records the panel's own order, so a
-rendered component's variants and their enumeration match the source.
+**Variant property order is preserved**, and that is the ordering that carries meaning: it
+determines how variants layer and the sequence they are enumerated in. It is also the one
+Figma states twice — in the property definitions and in each variant's name (`Appearance=…,
+Size=…`) — and the two agree in every component set of the library this was measured
+against. A rendered component's variants, and their enumeration, match the source.
 
 ### A locked aspect ratio holds one bound dimension, not two
 
