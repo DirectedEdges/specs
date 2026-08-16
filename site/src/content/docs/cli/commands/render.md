@@ -224,6 +224,8 @@ value or a binding; each is about how something is expressed.
   different casing.
 - **Instances placed elsewhere in the file are not recreated.** A render reproduces the
   component asset, so the examples drawn from its instances have no source to come from.
+- **A mask is neither read nor rendered.** Shapes masked by another layer — corner shaping,
+  for instance — are read as the shapes they are, and a render reproduces them unmasked.
 - **Bindings from slot content to the component that holds it are ignored.** Figma withdrew
   that capability; older files keep theirs, and each affected component reports it once.
 
@@ -232,8 +234,6 @@ value or a binding; each is about how something is expressed.
 Real differences between a component and a render of its own spec. Expect these in a
 comparison until they are fixed.
 
-- Props, prop provenance and bindings the spec states are lost —
-  [#349](https://github.com/DirectedEdges/specs/issues/349)
 - A slot constraint naming a component absent from the fetched data is dropped —
   [#325](https://github.com/DirectedEdges/specs/issues/325)
 
