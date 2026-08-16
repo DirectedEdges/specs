@@ -231,11 +231,22 @@ value or a binding; each is about how something is expressed.
 
 ### Open defects
 
-Real differences between a component and a render of its own spec. Expect these in a
-comparison until they are fixed.
+None known. Every difference found in round-trip testing is either explained by a limitation
+above or traced to authoring in the source component — see below.
 
-- A slot constraint naming a component absent from the fetched data is dropped —
-  [#325](https://github.com/DirectedEdges/specs/issues/325)
+### Differences the source file causes
+
+A component only round-trips faithfully if it follows the authoring conventions. These are
+not tool defects and no release fixes them; the component is edited instead.
+
+- A `Code only props` container placed anywhere but as a direct child of the component root
+  (ADR-027) is read as ordinary anatomy.
+- A layer carrying two property references at once, or a code-only layer whose own
+  visibility is bound, loses the prop that is not read.
+- A property bound only into slot content cannot be reproduced — Figma withdrew that
+  capability, so those bindings are relics.
+- A property with no layer bound to it exists in the panel but has no binding site to
+  rebuild from, so it does not survive.
 
 ## Exit Codes
 
