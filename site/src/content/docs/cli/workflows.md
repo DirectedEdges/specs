@@ -9,6 +9,8 @@ Three ways to generate specs, depending on how many components you need:
 - [**Many Components**](#many-components) — curate a manifest and generate in batch
 - [**CI/CD Integration**](#cicd-integration) — automate generation in a pipeline
 
+There's also a reverse direction — turning a spec back into a live Figma component with [`render`](#render-to-figma). Unlike the workflows above, it's inherently interactive (it needs an open Figma session) and isn't a fit for CI/CD.
+
 ## Single Component
 
 Generate a spec for one component:
@@ -172,6 +174,59 @@ echo "Sync complete!"
 
 ---
 
+## Render to Figma
+
+Turn a spec back into a live Figma component. This needs a running CLI bridge and an open Figma session — see the [Render to Figma guide](/guides/render-to-figma/) for full setup.
+
+```bash
+# One-time per session: start the bridge, then in Figma enable
+# the CLI Bridge in the Specs 2 plugin and navigate to the target page.
+specs bridge start
+```
+
+```bash
+# Render one component
+specs render specs/deButton.yaml
+
+# Or render every component in a directory
+specs render specs/
+```
+
+---
+
+## Generate from the Current Selection
+
+When the component you want is already open in Figma, skip the fetch entirely and generate from the live selection over the same bridge. See [Bridge Mode](/cli/commands/generate/#bridge-mode) for the full behavior.
+
+```bash
+# Bridge running, Specs 2 plugin open with CLI Bridge enabled,
+# and the component selected in Figma.
+specs generate --from-bridge -o specs/dsButton.yaml
+```
+
+The spec reflects the document as it stands right now, including unsaved edits — useful while iterating on a component rather than after a fetch.
+
+```bash
+# Pin the node instead of relying on a manual selection
+specs generate --from-bridge --node 5507:123 -o specs/dsButton.yaml
+
+# Pick a file when several are connected to one bridge
+specs bridge status
+specs generate --from-bridge --file abc123XYZ -o specs/dsButton.yaml
+```
+
+With 2+ files connected and no `--file`, an interactive terminal prompts you to choose; scripts and CI fail with the ambiguity error instead of hanging.
+
+Pair it with `render` to round-trip a spec and diff the result:
+
+```bash
+specs render specs/dsButton.yaml
+specs generate --from-bridge -o specs/roundtrip/dsButton.yaml
+diff specs/dsButton.yaml specs/roundtrip/dsButton.yaml
+```
+
+---
+
 ## Tips
 
 ### Pipe to Other Tools
@@ -247,3 +302,4 @@ git commit -m "manifest: keep DS Tooltip NEW unchecked — pending API redesign"
 
 - [CLI Overview](/cli/) - Commands, Free vs Pro, output format
 - [Settings](/settings/) - Config file reference
+- [Render to Figma](/guides/render-to-figma/) - CLI bridge setup and usage

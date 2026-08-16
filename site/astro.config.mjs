@@ -106,6 +106,9 @@ export default defineConfig({
             { label: 'applyCustomTokens', slug: 'cli/commands/apply-custom-tokens' },
             { label: 'generate', slug: 'cli/commands/generate' },
             { label: 'transform', slug: 'cli/commands/transform' },
+            { label: 'bridge', slug: 'cli/commands/bridge', badge: experimental },
+            { label: 'cache', slug: 'cli/commands/cache', badge: experimental },
+            { label: 'render', slug: 'cli/commands/render', badge: experimental },
             {
               label: 'Transforms',
               collapsed: true,
@@ -235,6 +238,7 @@ export default defineConfig({
             { label: 'Key Formatting', slug: 'guides/key-formatting' },
             { label: 'Layout Positioning', slug: 'guides/layout-positioning' },
             { label: 'Number Inference', slug: 'guides/number-inference' },
+            { label: 'Render to Figma', slug: 'guides/render-to-figma', badge: experimental },
             { label: 'Slot Constraints', slug: 'guides/slot-constraints', badge: pro },
             { label: 'Subcomponents', slug: 'guides/subcomponent-scoping', badge: pro },
             { label: 'Variant Depth', slug: 'guides/variant-depth' },

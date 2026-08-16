@@ -185,6 +185,12 @@ specs applyCustomTokens data/token-mappings.json \
   -s data/library.styles.json
 ```
 
+## The Render Cache
+
+Because this command rewrites your fetched variables data in place, the lookup tables [`render`](/cli/commands/render/) uses would otherwise describe your data as it was before the custom tokens were applied. To prevent that, `applyCustomTokens` rebuilds the [cache](/cli/commands/cache/) as its final step, and reports what it rebuilt.
+
+If the command is interrupted before that step, the cache is left stale — `render` detects this and stops, telling you to run `specs cache`.
+
 ## Behavior Details
 
 - **Idempotent**: Running the command multiple times with the same mapping produces identical output. Existing `$custom` values are overwritten.

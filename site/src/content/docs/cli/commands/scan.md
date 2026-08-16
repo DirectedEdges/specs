@@ -240,5 +240,6 @@ Manifests produced by older versions of `scan` (checkbox-list format like `- [x]
 
 **See Also:**
 - [Generate Command](/cli/commands/generate/) - Generate specs from manifest or single component
+- [Render Command](/cli/commands/render/) - Uses scan data to bind glyphs, styles, and variables when rendering in Figma
 - [glyphNamePattern](/settings/glyph-name-pattern/) - Pattern syntax that drives Glyphs-section partitioning
 - [Configuration Reference](/settings/) - Format and config options

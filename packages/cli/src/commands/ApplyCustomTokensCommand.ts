@@ -12,6 +12,8 @@ import { Command } from 'commander';
 import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
+import { refreshCache } from '../Cache/Cache.js';
+import { reportCache } from './CacheCommand.js';
 
 const ERROR_CODES = {
   SUCCESS: 0,
@@ -24,6 +26,7 @@ type MinimalConfig = {
   dataDirectory?: string;
   sourceDirectory?: string; // deprecated alias
   sources?: Record<string, { key: string; data: string[] }>;
+  config?: { processing?: { glyphNamePattern?: string } };
 };
 
 function findConfigFile(cwd: string): string | null {
@@ -283,6 +286,17 @@ export const ApplyCustomTokens = new Command('applyCustomTokens')
 
       if (unmatchedIds.size > 0) {
         console.log(`  ${unmatchedIds.size} mapping entry ID(s) did not match any variable or style`);
+      }
+
+      // The variables payload was just rewritten in place, so the render cache built from
+      // it now describes pre-custom-token data. Rebuild before anyone renders against it.
+      if (config.dataDirectory) {
+        const report = refreshCache({
+          dataDir: path.resolve(configDir, config.dataDirectory),
+          aliases: Object.keys(config.sources ?? {}),
+          glyphNamePattern: config.config?.processing?.glyphNamePattern,
+        });
+        reportCache(report);
       }
 
       process.exit(ERROR_CODES.SUCCESS);
