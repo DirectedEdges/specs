@@ -268,14 +268,22 @@ Graceful first, forced if it doesn't exit within a few seconds. Safe to run when
 - **Render order isn't configurable.** Batches go in path order.
 - **This is a young feature.** Expect rough edges on more elaborate components.
 
-## Known limitations
+## Fidelity
 
-A rendered component is a faithful copy of what its spec describes, but a spec is a
-projection of a Figma file, not a recording of one. Where the projection is lossy, render
-has to choose — and these are the places where its choice is visibly not what the source
-file held. None of them change what a component *is*: every property, value, and binding
-survives. They show up when you compare a rendered component against the one its spec came
-from, and they are worth knowing before you read too much into such a comparison.
+What a round trip is expected to preserve, what it cannot, and what is currently wrong with
+it. Everything below is either permanent — a consequence of what Figma itself allows — or a
+tracked defect with an issue behind it.
+
+**The bar this feature is held to:** a component rendered from its spec and read back is
+byte-identical to the spec that produced it, except where a limitation below explains the
+difference or an open defect accounts for it. A difference that neither explains is a bug
+that has not been written down yet.
+
+### Limitations
+
+Permanent, and not defects. A spec is a projection of a Figma file rather than a recording
+of one, and where the projection is lossy, render has to choose. None of these lose a
+property, a value, or a binding — every one of them is about how something is expressed.
 
 ### Property order in the panel
 
@@ -297,7 +305,6 @@ determines how variants layer and the sequence they are enumerated in. It is als
 Figma states twice — in the property definitions and in each variant's name (`Appearance=…,
 Size=…`) — and the two agree in every component set of the library this was measured
 against. A rendered component's variants, and their enumeration, match the source.
-
 ### A locked aspect ratio holds one bound dimension, not two
 
 An element that locks its aspect ratio and binds both `width` and `height` to tokens keeps
@@ -308,7 +315,6 @@ back with one dimension as a plain number.
 Such an element is over-specified — a ratio plus two dimensions is three constraints for two
 degrees of freedom — so something has to give. Declaring the ratio and one dimension avoids
 the ambiguity entirely.
-
 ### A filling root has no width to reproduce
 
 A component root sized `FILL` takes its width from a parent. A top-level component has no
@@ -318,14 +324,12 @@ Where the root also locks an aspect ratio, render derives the width from the rat
 height, and the component comes back the size it started. Where it does not, render falls
 back to a fixed width (375). Elements stretched to that root's edges may then sit a fraction
 of a pixel off.
-
 ### Boolean variant values render lowercase
 
 A library that writes its boolean variant options as `True` and `False` gets `true` and
 `false` in the rendered component. The values mean the same thing and the variants behave
 identically; only the casing shown in Figma differs.
-
-## A note on legacy slot content bindings
+### Bindings from slot content to the component that holds it
 
 Figma used to allow a layer inside a slot to bind to the **host** component's properties —
 slot content wired to the component's own instance-swap or boolean. That capability was
@@ -336,7 +340,7 @@ Files authored before the change keep their wiring, so you will meet it in older
 components. Generating a spec from one reports it:
 
 ```
-[SlotContent] "EGDS Text Input": ignored 2 legacy bindings from slot content to this
+[SlotContent] "<component>": ignored 2 legacy bindings from slot content to this
 component's properties — Figma no longer allows this, and a render cannot reproduce it.
 The value each one resolves to is recorded instead.
 ```
@@ -350,6 +354,21 @@ One consequence worth knowing when comparing a spec against its source: a compon
 slot content entries differed *only* by such a binding will describe fewer variants than it
 used to. Those variants existed only by virtue of the withdrawn capability — nothing that
 could be rendered, and nothing a consumer could act on.
+
+
+### Open defects
+
+Tracked, unresolved, and expected to show up in a comparison until they are fixed. Each is a
+real difference between a component and a render of its own spec.
+
+| Behaviour | Issue |
+|---|---|
+| Per-variant slot content is layered as if it inherits, so content lands on the wrong variants | [#345](https://github.com/DirectedEdges/specs/issues/345) |
+| A created vector carries a stroke its spec never declared | [#338](https://github.com/DirectedEdges/specs/issues/338) |
+| A code-only prop whose name collides with a native property is dropped | [#344](https://github.com/DirectedEdges/specs/issues/344) |
+| Elements sized FILL drift in measured width, so a comparison reports variants the source does not state | [#346](https://github.com/DirectedEdges/specs/issues/346) |
+| A boolean variant's value inverts, so the variant that differs is not the same variant | [#348](https://github.com/DirectedEdges/specs/issues/348) |
+| A slot constraint naming a component absent from the fetched data is dropped | [#325](https://github.com/DirectedEdges/specs/issues/325) |
 
 ## Further Reading
 
