@@ -76,6 +76,7 @@ interface GenerateOptions {
   fromBridge?: boolean;
   file?: string;
   node?: string;
+  remove?: boolean;
 }
 
 /**
@@ -269,6 +270,7 @@ export const Generate = new Command('generate')
   .option('--from-bridge', 'Generate from the current selection in a connected Figma file via the CLI bridge (no REST fetch)')
   .option('--file <fileKey>', 'Target a specific connected Figma file with --from-bridge (prompts to choose if more than one is connected in an interactive terminal; required otherwise)')
   .option('--node <id>', 'With --from-bridge: generate from this node id instead of the current selection')
+  .option('--remove', 'With --from-bridge: delete the node once its spec has been read (round-trip testing — leaves the Figma page as it was found)')
   .option('--verbose', 'Enable detailed logging', false)
   .action(async (source: string | undefined, options: GenerateOptions) => {
     try {
@@ -296,7 +298,7 @@ export const Generate = new Command('generate')
         try {
           const fileKey = await resolveFileKey(options.file);
           // The config shapes the spec the plugin builds, not merely where it is written.
-          result = await postGenerateFromSelection({ fileKey, nodeId: options.node, config: modelConfig });
+          result = await postGenerateFromSelection({ fileKey, nodeId: options.node, config: modelConfig, remove: options.remove });
         } catch (e) {
           const err = e as NodeJS.ErrnoException;
           if (err.cause && (err.cause as NodeJS.ErrnoException).code === 'ECONNREFUSED') {

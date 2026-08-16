@@ -158,7 +158,7 @@ wss.on('connection', (ws: WebSocket) => {
       return;
     }
 
-    if (msg.type === 'pageId-result' || msg.type === 'renderComponent-result' || msg.type === 'generateFromSelection-result') {
+    if (msg.type === 'pageId-result' || msg.type === 'renderComponent-result' || msg.type === 'generateFromSelection-result' || msg.type === 'removeNode-result') {
       const requestId = msg.requestId as string | undefined;
       if (!requestId) return; // no way to route this response
 
@@ -231,7 +231,7 @@ const http = createServer((req, res) => {
     let genBody = '';
     req.on('data', (chunk) => { genBody += chunk; });
     req.on('end', () => {
-      let params: { fileKey?: string; nodeId?: string; config?: ResolvedConfig };
+      let params: { fileKey?: string; nodeId?: string; config?: ResolvedConfig; remove?: boolean };
       try { params = genBody ? JSON.parse(genBody) : {}; } catch {
         res.writeHead(400);
         res.end(JSON.stringify({ error: 'Invalid JSON body.' }));
@@ -239,6 +239,13 @@ const http = createServer((req, res) => {
       }
 
       sendGenerateFromSelection(params.fileKey, params.nodeId, params.config)
+        // The spec is in hand before the node goes, so a failed removal cannot cost the read.
+        .then(async (result) => {
+          if (params.remove && result.success && result.nodeId) {
+            try { await sendRemoveNode(result.nodeId, params.fileKey); } catch { /* reported by the caller's next read */ }
+          }
+          return result;
+        })
         .then((result) => {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify(result));
@@ -559,6 +566,14 @@ function getCurrentPageId(conn: Connection<WebSocket>): Promise<string> {
  * Ask a specific connection's plugin to generate a spec from its current Figma
  * selection, or from an explicit nodeId (the plugin selects that node first).
  */
+/** Testing utility: delete a rendered node so a catalogue sweep leaves the page as it found it. */
+async function sendRemoveNode(nodeId: string, fileKey?: string): Promise<{ success: boolean; error?: string }> {
+  const conn = registry.resolve(fileKey);
+  const { requestId, promise } = requests.create(30000, 'Timed out waiting for removeNode-result.');
+  conn.ws.send(JSON.stringify({ type: 'removeNode', requestId, nodeId }));
+  return promise as Promise<{ success: boolean; error?: string }>;
+}
+
 async function sendGenerateFromSelection(fileKey?: string, nodeId?: string, config?: ResolvedConfig): Promise<GenerateResult> {
   const conn = registry.resolve(fileKey);
   const { requestId, promise } = requests.create(60000, 'Timed out waiting for generateFromSelection-result.');

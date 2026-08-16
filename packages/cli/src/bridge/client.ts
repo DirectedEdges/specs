@@ -78,6 +78,11 @@ export interface GenerateFromSelectionRequestBody {
    * be stored as the plugin's settings.
    */
   config?: ResolvedConfig;
+  /**
+   * Testing utility: delete the node once its spec has been read. A catalogue sweep that
+   * renders and reads every component otherwise leaves all of them on the page.
+   */
+  remove?: boolean;
 }
 
 export interface GenerateFromSelectionResponse {
