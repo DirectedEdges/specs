@@ -234,8 +234,6 @@ comparison until they are fixed.
 
 - Props, prop provenance and bindings the spec states are lost —
   [#349](https://github.com/DirectedEdges/specs/issues/349)
-- A code-only prop whose name collides with a native property is dropped —
-  [#344](https://github.com/DirectedEdges/specs/issues/344)
 - A slot constraint naming a component absent from the fetched data is dropped —
   [#325](https://github.com/DirectedEdges/specs/issues/325)
 
