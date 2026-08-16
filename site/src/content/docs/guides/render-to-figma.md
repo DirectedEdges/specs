@@ -268,6 +268,59 @@ Graceful first, forced if it doesn't exit within a few seconds. Safe to run when
 - **Render order isn't configurable.** Batches go in path order.
 - **This is a young feature.** Expect rough edges on more elaborate components.
 
+## Known limitations
+
+A rendered component is a faithful copy of what its spec describes, but a spec is a
+projection of a Figma file, not a recording of one. Where the projection is lossy, render
+has to choose — and these are the places where its choice is visibly not what the source
+file held. None of them change what a component *is*: every property, value, and binding
+survives. They show up when you compare a rendered component against the one its spec came
+from, and they are worth knowing before you read too much into such a comparison.
+
+### Property order in the panel
+
+The properties panel of a rendered component is ordered differently from its source:
+
+- **Slot properties come first**, ahead of any text or boolean property the spec lists
+  before them.
+- **Code-only properties come last**, wherever the source has them.
+- **`minChildren` and `maxChildren`** on a slot may swap.
+
+Figma decides property order by creation order and offers no way to change it afterwards. A
+slot property can only be created together with its node, while each variant is still a
+standalone component; every other property is created later, once the variants are combined.
+So slots necessarily lead.
+
+Variant property order *is* preserved — the read side records the panel's own order, so a
+rendered component's variants and their enumeration match the source.
+
+### A locked aspect ratio holds one bound dimension, not two
+
+An element that locks its aspect ratio and binds both `width` and `height` to tokens keeps
+only one of those bindings. Figma derives the second dimension from the first and drops its
+variable reference as it does so; the rendered element carries the right size, and reads
+back with one dimension as a plain number.
+
+Such an element is over-specified — a ratio plus two dimensions is three constraints for two
+degrees of freedom — so something has to give. Declaring the ratio and one dimension avoids
+the ambiguity entirely.
+
+### A filling root has no width to reproduce
+
+A component root sized `FILL` takes its width from a parent. A top-level component has no
+parent, so the width it had in the source file is not recoverable from its spec.
+
+Where the root also locks an aspect ratio, render derives the width from the ratio and the
+height, and the component comes back the size it started. Where it does not, render falls
+back to a fixed width (375). Elements stretched to that root's edges may then sit a fraction
+of a pixel off.
+
+### Boolean variant values render lowercase
+
+A library that writes its boolean variant options as `True` and `False` gets `true` and
+`false` in the rendered component. The values mean the same thing and the variants behave
+identically; only the casing shown in Figma differs.
+
 ## Further Reading
 
 - [`render` command reference](/cli/commands/render/) — every flag, argument shape, and exit code
