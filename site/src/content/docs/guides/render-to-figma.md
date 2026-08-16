@@ -325,6 +325,32 @@ A library that writes its boolean variant options as `True` and `False` gets `tr
 `false` in the rendered component. The values mean the same thing and the variants behave
 identically; only the casing shown in Figma differs.
 
+## A note on legacy slot content bindings
+
+Figma used to allow a layer inside a slot to bind to the **host** component's properties —
+slot content wired to the component's own instance-swap or boolean. That capability was
+withdrawn: the interface no longer offers it, and a plugin cannot create one or keep one,
+since Figma clears the reference the moment a layer enters a slot.
+
+Files authored before the change keep their wiring, so you will meet it in older
+components. Generating a spec from one reports it:
+
+```
+[SlotContent] "EGDS Text Input": ignored 2 legacy bindings from slot content to this
+component's properties — Figma no longer allows this, and a render cannot reproduce it.
+The value each one resolves to is recorded instead.
+```
+
+This is not a render limitation. The spec records what the layer actually shows, which is
+what a consumer can build and what a render reproduces faithfully. The warning is there
+because the component itself is carrying something no longer supported, and the fix belongs
+in the Figma file: bind the layer outside the slot, or accept the resolved value.
+
+One consequence worth knowing when comparing a spec against its source: a component whose
+slot content entries differed *only* by such a binding will describe fewer variants than it
+used to. Those variants existed only by virtue of the withdrawn capability — nothing that
+could be rendered, and nothing a consumer could act on.
+
 ## Further Reading
 
 - [`render` command reference](/cli/commands/render/) — every flag, argument shape, and exit code
