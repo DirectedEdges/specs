@@ -85,6 +85,12 @@ function loadConfig(configPath?: string): { configPath: string | null; config: M
   };
 }
 
+const FETCH_KINDS: readonly FetchKind[] = ['file', 'variables', 'styles', 'icons'];
+
+function isFetchKind(value: string): value is FetchKind {
+  return (FETCH_KINDS as readonly string[]).includes(value);
+}
+
 function splitOnly(value?: string): string[] {
   if (!value) return [];
   return value
@@ -228,7 +234,7 @@ export const Fetch = new Command('fetch')
   .option('--config <path>', 'Path to config file (specs.config.yaml)')
   .option('--data-dir <dir>', 'Override data directory (default: config dataDirectory or ./data)')
   .option('--outDir <dir>', 'Deprecated: use --data-dir')
-  .option('--only <alias[,alias...]>', 'Fetch only the given file alias(es) from sources.files')
+  .option('--only <name[,name...]>', 'Fetch only these — a file alias from sources, a data kind (file, variables, styles, icons), or both')
   .option('--no-geometry', 'Omit geometry data (fillGeometry, strokeGeometry, size, relativeTransform) from file payloads')
   .option('--verbose', 'Enable detailed logging', false)
   .action(async (options: FetchOptions) => {
@@ -261,13 +267,47 @@ export const Fetch = new Command('fetch')
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
 
-      const onlyAliases = splitOnly(options.only);
-      const selected = onlyAliases.length > 0 ? fileEntries.filter(f => onlyAliases.includes(f.alias)) : fileEntries;
+      // `--only` narrows two independent axes: which source files to fetch, and which kinds
+      // of data to fetch for them. A value naming a data kind narrows the kind; anything
+      // else is read as a file alias. Both can be given together (`--only library,icons`).
+      const onlyValues = splitOnly(options.only);
+      const onlyKinds = onlyValues.filter(isFetchKind);
+      const onlyAliases = onlyValues.filter(v => !isFetchKind(v));
 
-      if (onlyAliases.length > 0 && selected.length === 0) {
-        console.error(`Error: --only did not match any configured aliases: ${onlyAliases.join(', ')}`);
+      // An alias sharing a data kind's name would be silently unreachable, so say so
+      // rather than guess which the caller meant.
+      const shadowed = fileEntries.map(f => f.alias).filter(isFetchKind);
+      if (shadowed.length > 0 && onlyKinds.some(k => shadowed.includes(k))) {
+        console.error(`Error: --only "${onlyKinds.filter(k => shadowed.includes(k)).join(', ')}" is both a data kind and a source alias.`);
+        console.error('Rename the source alias, or drop --only and let config decide.');
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
+
+      // Every name has to mean something. A typo alongside a valid alias would otherwise
+      // fetch more than was asked for and say nothing — the opposite of what --only is for.
+      const unmatched = onlyAliases.filter(a => !fileEntries.some(f => f.alias === a));
+      if (unmatched.length > 0) {
+        console.error(`Error: --only ${unmatched.join(', ')} — not a source alias or a data kind.`);
+        console.error(`Aliases: ${fileEntries.map(f => f.alias).join(', ') || '(none)'}`);
+        console.error(`Kinds:   ${FETCH_KINDS.join(', ')}`);
+        process.exit(ERROR_CODES.INVALID_ARGS);
+      }
+
+      const selected = onlyAliases.length > 0 ? fileEntries.filter(f => onlyAliases.includes(f.alias)) : fileEntries;
+
+      // A kind the caller asked for that no selected source is configured to fetch would
+      // otherwise do nothing at all and say nothing about why.
+      if (onlyKinds.length > 0) {
+        const available = new Set(selected.flatMap(f => f.fetch));
+        const unavailable = onlyKinds.filter(k => !available.has(k));
+        if (unavailable.length === onlyKinds.length) {
+          console.error(`Error: --only ${onlyKinds.join(', ')} — no selected source is configured to fetch ${unavailable.length === 1 ? 'it' : 'them'}.`);
+          console.error(`Configured data for ${selected.map(f => `${f.alias}: [${f.fetch.join(', ')}]`).join('; ')}`);
+          process.exit(ERROR_CODES.INVALID_ARGS);
+        }
+      }
+
+      const wants = (kind: FetchKind): boolean => onlyKinds.length === 0 || onlyKinds.includes(kind);
 
       await fs.ensureDir(outDir);
 
@@ -278,7 +318,7 @@ export const Fetch = new Command('fetch')
       }
 
       for (const entry of selected) {
-        for (const kind of entry.fetch.filter(k => k !== 'icons')) {
+        for (const kind of entry.fetch.filter(k => k !== 'icons' && wants(k))) {
           const url =
             kind === 'file'
               ? `https://api.figma.com/v1/files/${entry.key}${options.geometry ? '?geometry=paths' : ''}`
@@ -353,7 +393,7 @@ export const Fetch = new Command('fetch')
         // Icons run after the other kinds: glyph components are derived from
         // the saved file payload, so `file` must be present (fetched this run
         // or a previous one) before icons can resolve.
-        if (entry.fetch.includes('icons')) {
+        if (entry.fetch.includes('icons') && wants('icons')) {
           const pattern = config.config?.processing?.glyphNamePattern;
           if (!pattern) {
             console.error(`Error: sources.${entry.alias}.data includes "icons" but config.processing.glyphNamePattern is not set`);
