@@ -4,6 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 070 | Explicit `position: ABSOLUTE` for Children of Non-Auto-Layout Parents | |
 | 069 | Rename `clipContent` to `clipsContent` | |
 | 066 | Lossless Key Formatting — Safe Key Grammar and Original-Name Preservation | |
 | 065 | Document the `nullable` Default and Add `NumberProp.nullable` | Absent `nullable` means true for `StringProp`/`NumberProp`/`SlotProp`/`ImageProp`, false for `EnumProp`; adds `NumberProp.nullable` |
