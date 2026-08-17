@@ -5,7 +5,6 @@
 | # | Title | Highlights |
 |---|-------|------------|
 | 070 | Explicit `position: ABSOLUTE` for Children of Non-Auto-Layout Parents | |
-| 069 | Rename `clipContent` to `clipsContent` | |
 | 045 | Processing Provenance Signals | (reserved, draft in PR #60) |
 | 044 | Duplicate Layer Name Disambiguation | (reserved, draft in PR #60) |
 | 024 | Component Extends Relationship | Add `extends` field to express base/derived component relationships and prop/variant inheritance _(branch)_ |
