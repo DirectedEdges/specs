@@ -5,21 +5,21 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.30.0] - 2026-08-17
+
+A spec can now declare the naming convention its Figma file follows, so a formatted property key can be turned back into the name a designer sees on the canvas. When a key can't reconstruct that name on its own — because the original contained characters formatting doesn't survive — the spec records the Figma name alongside it, on every property type. Together these make round-tripping between a formatted spec and its source file possible without a side-channel lookup of the file's own naming.
 
 ### Added
 
-- `Config.format.figmaKeys` — naming convention the Figma file uses (`NONE` | `SENTENCE` | `TITLE`, default `NONE`); the reversal target for `format.keys` (ADR-066). `NONE` declares no convention, so the safe key grammar, the `com.figma.name` divergence extension, and reversal are all opt-in
-- `FigmaPropExtension.name` — Figma property name, emitted when the prop key cannot reconstruct it (ADR-066)
-- `SafeKeySentence` and `SafeKeyTitle` schema definitions — the key grammar that survives every `format.keys` value (ADR-066)
-- `NumberProp.$extensions` — the only prop type that could not carry platform extensions, so a number prop had nowhere to record its Figma name under ADR-066. The JSON schema already permitted `$`-prefixed keys; the TypeScript type did not.
+- **A spec can state the naming convention its Figma file uses** — `Config.format.figmaKeys` (`NONE` | `SENTENCE` | `TITLE`, default `NONE`) names the convention to reverse `format.keys` back into. `NONE` declares no convention, so the safe key grammar, the divergence extension, and reversal are all opt-in (ADR-066)
+- **Properties whose key can't reconstruct their Figma name now carry that name** — `FigmaPropExtension.name` is emitted only when the key alone is insufficient (ADR-066)
+- **The key grammar that survives every formatting mode is now defined** — `SafeKeySentence` and `SafeKeyTitle` describe keys that round-trip under any `format.keys` value (ADR-066)
+- **Number properties can now carry platform extensions** — `NumberProp.$extensions` was the one prop type with nowhere to record its Figma name; the JSON schema already permitted `$`-prefixed keys, the TypeScript type did not
 
 ### Changed
 
-- `FigmaAnatomyElementExtension.name` — renamed from `originalName`; now records the Figma layer name for key divergence as well as wrapper collapse (ADR-066)
-- `Styles.clipsContent` — renamed from `clipContent`; boolean clip flag, type and token-bindability unchanged (ADR-069)
-
-### Removed
+- **The Figma layer-name extension now covers key divergence, not just wrapper collapse** — `FigmaAnatomyElementExtension.name`, renamed from `originalName` (ADR-066)
+- **The clip flag now reads as a verb, matching the rest of the style vocabulary** — `Styles.clipsContent`, renamed from `clipContent`; type and token-bindability unchanged (ADR-069)
 
 ### Migration
 
