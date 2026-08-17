@@ -26,12 +26,9 @@ jobs:
       - name: Install site dependencies
         working-directory: site
         run: npm ci
-      - name: Generate releases page
-        working-directory: site
-        run: node scripts/build-releases.mjs
       - name: Build site
         working-directory: site
-        run: npx astro build
+        run: npm run build
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
