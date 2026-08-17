@@ -241,20 +241,6 @@ schedules. Expect these in a comparison until they are fixed.
 - A code-only prop backed by a variant picker loses its provenance and its Figma type —
   [#350](https://github.com/DirectedEdges/specs/issues/350)
 
-### Differences the source file causes
-
-A component only round-trips faithfully if it follows the authoring conventions. These are
-not tool defects and no release fixes them; the component is edited instead.
-
-- A `Code only props` container placed anywhere but as a direct child of the component root
-  (ADR-027) is read as ordinary anatomy.
-- A layer carrying two property references at once, or a code-only layer whose own
-  visibility is bound, loses the prop that is not read.
-- A property bound only into slot content cannot be reproduced — Figma withdrew that
-  capability, so those bindings are relics.
-- A property with no layer bound to it exists in the panel but has no binding site to
-  rebuild from, so it does not survive.
-
 ## Exit Codes
 
 | Code | Meaning |
