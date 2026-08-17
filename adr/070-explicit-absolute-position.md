@@ -36,6 +36,8 @@ elements:
 
 The `icon` element carries offsets but no `position`. Nothing local to the element states that it is absolutely positioned; the consumer must locate the parent, observe that `layoutMode` is absent, and know that absence means `NONE`, which in turn means every child is absolutely positioned. The consumer expected `position: ABSOLUTE` to accompany `top`/`start`.
 
+Half of the expected pairing already holds in emitted output. Offsets are emitted only for absolutely positioned elements: an auto-layout participant never emits them, even when a stale `x`/`y` remains set on the Figma node (Figma ignores those coordinates, and so does the emitted spec). The current emission rule for children of non-auto-layout containers, however, is deliberate: offsets are emitted with `position` suppressed. So today's output satisfies "offsets ⇒ absolutely positioned" but leaves the declaration implicit in exactly the case the consumer hit.
+
 The question this ADR decides: **must a child of a non-auto-layout container declare `position: ABSOLUTE` explicitly, or is it implied by the parent's `layoutMode`?**
 
 ---
@@ -71,6 +73,7 @@ elements:
 - Matches the web's child-declared `position: absolute` + offsets pairing (constitution VI, rule 1).
 - No type or schema shape changes — only presence-contract documentation.
 - One rule covers both parent contexts (auto-layout opt-out and plain container), eliminating the special case.
+- No spurious `ABSOLUTE` is possible: since offsets are only ever emitted for absolutely positioned elements, keying `position` presence to offsets cannot mark an auto-layout participant — stale Figma coordinates included — as absolute.
 
 **Cons / Trade-offs**:
 - Children of plain containers gain one style entry each; regenerated specs will diff.
@@ -141,7 +144,7 @@ offsets (top / bottom / start / end / center*Offset):
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | Emission rule change | Emit `position: ABSOLUTE` on any element given positioning offsets whose parent has no auto-layout; never emit offsets without `position` |
+| `specs-from-figma` | Emission rule change | Replace the current "offsets with `position` suppressed" rule for children of non-auto-layout containers with `position: ABSOLUTE`; never emit offsets without `position`. Offset suppression for auto-layout participants is already correct and unchanged |
 | `specs-cli` | None (validation unchanged) | Regenerated specs include the new entries; no code change |
 | `specs-plugin-2` | Output content change | Regenerated canvas output lists `position: ABSOLUTE` for affected elements; no UI change |
 
@@ -159,5 +162,7 @@ offsets (top / bottom / start / end / center*Offset):
 
 - An element carrying positioning offsets always declares `position: ABSOLUTE`; consumers interpret it without parent context.
 - Offsets never appear without `position` — the pairing the consumer expected becomes a guaranteed invariant of the contract.
+- The converse guarantee also holds: `position: ABSOLUTE` never appears spuriously. An auto-layout participant emits no offsets — including when a stale, Figma-ignored `x`/`y` remains set on the node — so the pairing rule can never fire for it.
 - Regenerated specs gain a `position: ABSOLUTE` entry on each absolutely positioned child of a plain container; existing specs remain schema-valid, since no shape changed.
+- Variant output changes shape where positioning context differs across variants: a child that is absolutely positioned in one variant and an auto-layout participant in another now shows `position: ABSOLUTE` appearing and disappearing in variant style differences, where previously it was uniformly suppressed. Parity and fidelity baselines will diff accordingly on regeneration.
 - `layoutMode: NONE` remains a suppressed default; the parent's emission is unchanged.
