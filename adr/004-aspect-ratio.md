@@ -3,6 +3,7 @@
 **Branch**: `004-aspect-ratio`
 **Created**: 2026-02-25
 **Status**: ACCEPTED
+**Summary**: An `aspectRatio` property carries an `x`/`y` ratio object on styles alongside width and height.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

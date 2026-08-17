@@ -4,8 +4,10 @@
  * Auto-detects source type:
  * - JSON file → file mode (single component with -c)
  * - Markdown manifest → manifest mode (multiple components from checkboxes)
+ * - --from-bridge → bridge mode (current Figma selection via CLI bridge)
  *
- * Both modes use Components.fromRestApi() batch API.
+ * File/manifest modes use Components.fromRestApi() batch API. Bridge mode
+ * gets an already-generated spec from the plugin over the bridge — no REST fetch.
  */
 
 import { Command } from 'commander';
@@ -15,6 +17,7 @@ import yaml from 'yaml';
 import { Components } from '@directededges/specs-from-figma';
 import type { ProgressEvent, RestLicenseInput } from '@directededges/specs-from-figma';
 import { ConfigLoader } from '../Config/ConfigLoader.js';
+import type { CLIConfig } from '../Types/CLIConfig.js';
 import { loadFoundations } from '../utilities/loadFoundations.js';
 import { ManifestParser } from '../utilities/ManifestParser.js';
 import { ManifestParserV2 } from '../utilities/ManifestParserV2.js';
@@ -27,6 +30,9 @@ import { CombinedFileWriter } from '../Writers/CombinedFileWriter.js';
 import type { FileWriter, WriteResult } from '../Writers/FileWriter.js';
 import type { OutputFormat } from '../Types/OutputConfig.js';
 import { ImageFillsResolver, IMAGES_DIR_NAME } from '../utilities/ImageFillsResolver.js';
+import { postGenerateFromSelection } from '../bridge/client.js';
+import { formatKey } from '../utilities/formatKey.js';
+import { resolveFileKey } from '../bridge/pickConnection.js';
 
 declare const __SPECS_CLI_VERSION__: string;
 
@@ -67,6 +73,10 @@ interface GenerateOptions {
   splitConcerns?: boolean;
   useSubfolders?: boolean;
   getImages?: boolean;
+  fromBridge?: boolean;
+  file?: string;
+  node?: string;
+  remove?: boolean;
 }
 
 /**
@@ -80,6 +90,166 @@ function resolveFileSourceAlias(sources: NonNullable<ReturnType<ConfigLoader['lo
   if (entries.library && Array.isArray(entries.library.data) && entries.library.data.includes('file')) return 'library';
   const candidate = Object.entries(entries).find(([, s]) => Array.isArray(s.data) && s.data.includes('file'));
   return candidate ? candidate[0] : null;
+}
+
+/**
+ * Write processed components to stdout or via the config-driven output writers.
+ * Shared by file/manifest mode (REST-sourced) and selection mode (bridge-sourced) —
+ * once a spec exists as a plain object, output resolution/writing is identical.
+ */
+async function writeGeneratedOutput(
+  processedComponents: Array<{ name: string; spec: Record<string, unknown> }>,
+  errors: Array<{ component: string; error: string }>,
+  isManifest: boolean,
+  options: GenerateOptions,
+  config: CLIConfig,
+  modelConfig: CLIConfig['config']
+): Promise<void> {
+  // -------------------------------------------------------------------
+  // File mode stdout (no -o)
+  // -------------------------------------------------------------------
+  if (!isManifest && !options.output && !config.outputDirectory) {
+    if (options.getImages) {
+      console.error('Error: --get-images requires an output directory (set outputDirectory in config or pass -o) so image files have somewhere to be written');
+      process.exit(ERROR_CODES.INVALID_ARGS);
+    }
+    const componentData = processedComponents[0].spec;
+    const outputFormat = options.format
+      ? options.format.toLowerCase()
+      : modelConfig.format.output.toLowerCase();
+
+    const formattedOutput = outputFormat === 'yaml'
+      ? yaml.stringify(componentData)
+      : JSON.stringify(componentData, null, 2);
+
+    console.log(formattedOutput);
+    process.exit(ERROR_CODES.SUCCESS);
+    return;
+  }
+
+  // -------------------------------------------------------------------
+  // File output via manifest + writer
+  // -------------------------------------------------------------------
+  const resolvedFormat: OutputFormat = options.format
+    ? options.format.toLowerCase() as OutputFormat
+    : modelConfig.format.output.toLowerCase() as OutputFormat;
+
+  const outputConfig = {
+    ...config.output,
+    splitComponents: options.splitComponents ?? config.output?.splitComponents ?? false,
+    splitConcerns: options.splitConcerns ?? config.output?.splitConcerns ?? false,
+    useSubfolders: options.useSubfolders ?? config.output?.useSubfolders ?? false,
+    defaultFormat: resolvedFormat
+  };
+
+  let outputPath: string;
+  if (options.output) {
+    outputPath = path.resolve(options.output);
+  } else if (config.outputDirectory) {
+    outputPath = path.resolve(config.outputDirectory);
+  } else {
+    // Should not reach here — handled above for file mode stdout
+    process.exit(ERROR_CODES.INVALID_ARGS);
+    return;
+  }
+
+  // When in single-file mode and outputPath is an existing directory,
+  // append a default filename so we don't try to open a directory as a file
+  const isSingleFileMode = !outputConfig.splitComponents && !outputConfig.splitConcerns;
+  if (isSingleFileMode && fs.existsSync(outputPath) && fs.statSync(outputPath).isDirectory()) {
+    outputPath = path.join(outputPath, `library.${resolvedFormat}`);
+  }
+
+  const baseDir = outputConfig.splitComponents || outputConfig.splitConcerns
+    ? outputPath
+    : path.dirname(outputPath);
+
+  const outputFileName = (!outputConfig.splitComponents && !outputConfig.splitConcerns)
+    ? path.basename(outputPath)
+    : undefined;
+
+  // -------------------------------------------------------------------
+  // Image resolution (ADR-063, --get-images): add src to unresolved
+  // registry entries — files written under {baseDir}/_images/, referenced
+  // relative to the spec file that points at them. Runs before the
+  // manifest so writers serialize the resolved registry values.
+  // -------------------------------------------------------------------
+  if (options.getImages) {
+    const hashes = ImageFillsResolver.collectUnresolvedHashes(processedComponents);
+    if (hashes.size === 0) {
+      console.log(modelConfig.processing.images
+        ? 'Note: --get-images found no unresolved image placeholders'
+        : 'Note: --get-images has no effect — processing.images is not configured');
+    } else {
+      // Reuse hash-named files already present in _images/ — only the
+      // remainder needs the token, the API call, and downloads.
+      const files = await ImageFillsResolver.findExisting(hashes, baseDir);
+      const missing = new Set([...hashes].filter(hash => !files.has(hash)));
+
+      if (missing.size > 0) {
+        const token = process.env.FIGMA_TOKEN;
+        if (!token) {
+          console.error('Error: --get-images requires the FIGMA_TOKEN environment variable (same token as `specs fetch`)');
+          process.exit(ERROR_CODES.INVALID_ARGS);
+        }
+        const fileSourceAlias = resolveFileSourceAlias(config.sources);
+        const fileKey = fileSourceAlias ? config.sources?.[fileSourceAlias]?.key : undefined;
+        if (!fileKey) {
+          console.error('Error: --get-images requires a configured source file key (sources.<alias>.key in specs.config.yaml)');
+          process.exit(ERROR_CODES.INVALID_ARGS);
+        }
+
+        console.log(`Requesting image download URLs from Figma (${missing.size} image(s))...`);
+        const urls = await ImageFillsResolver.fetchImageUrls(fileKey, token);
+        process.stdout.write(`Images downloading (0/${missing.size})`);
+        const downloaded = await ImageFillsResolver.downloadAndWrite(missing, urls, baseDir, (completed, total) => {
+          process.stdout.write(`\rImages downloading (${completed}/${total})`);
+          if (completed === total) process.stdout.write('\n');
+        });
+        for (const [hash, filename] of downloaded) files.set(hash, filename);
+      }
+
+      // Spec files sit one level below baseDir when components get their own
+      // folders (subfolders, or the component+concern combined layout).
+      const inComponentFolders = !!outputConfig.splitComponents && (!!outputConfig.useSubfolders || !!outputConfig.splitConcerns);
+      const relativePrefix = inComponentFolders ? `../${IMAGES_DIR_NAME}/` : `${IMAGES_DIR_NAME}/`;
+      const resolvedCount = ImageFillsResolver.applyResolvedSources(processedComponents, files, relativePrefix);
+      const reused = hashes.size - missing.size;
+      console.log(`✓ Resolved ${resolvedCount} image reference(s) into ${files.size} file(s) under ${IMAGES_DIR_NAME}/ (${reused} reused, ${missing.size} downloaded)`);
+    }
+  }
+
+  const manifest = new FileManifest(processedComponents, outputConfig, baseDir, outputFileName);
+
+  // Select appropriate writer
+  let writer: FileWriter;
+  if (outputConfig.splitConcerns && !outputConfig.splitComponents) {
+    writer = new ConcernFileWriter();
+  } else if (outputConfig.splitComponents && !outputConfig.splitConcerns) {
+    writer = new ComponentFileWriter(outputConfig.useSubfolders);
+  } else if (!outputConfig.splitComponents && !outputConfig.splitConcerns) {
+    writer = new SingleFileWriter();
+  } else {
+    writer = new CombinedFileWriter();
+  }
+
+  const writeResult: WriteResult = await writer.write(manifest);
+
+  if (writeResult.warnings.length > 0) {
+    const isOverwriteWarning = (warning: string) => warning.includes('Overwriting existing file');
+    const overwriteCount = writeResult.warnings.filter(isOverwriteWarning).length;
+    if (overwriteCount > 0) {
+      console.log('Warning: Overwrote existing file(s)');
+    }
+    writeResult.warnings.filter(warning => !isOverwriteWarning(warning)).forEach(warning => console.log(warning));
+  }
+
+  if (writeResult.errors.length > 0) {
+    writeResult.errors.forEach(error => console.error(`Error: ${error}`));
+    process.exit(ERROR_CODES.FILE_ERROR);
+  }
+
+  process.exit(errors.length > 0 ? ERROR_CODES.GENERAL_ERROR : ERROR_CODES.SUCCESS);
 }
 
 export const Generate = new Command('generate')
@@ -97,6 +267,10 @@ export const Generate = new Command('generate')
   .option('--split-concerns', 'Separate API, variants, and examples into different files')
   .option('--use-subfolders', 'Organize component files in subdirectories (requires --split-components)')
   .option('--get-images', 'Resolve unresolved registry images into files under _images/ (requires processing.images in config and FIGMA_TOKEN)')
+  .option('--from-bridge', 'Generate from the current selection in a connected Figma file via the CLI bridge (no REST fetch)')
+  .option('--file <fileKey>', 'Target a specific connected Figma file with --from-bridge (prompts to choose if more than one is connected in an interactive terminal; required otherwise)')
+  .option('--node <id>', 'With --from-bridge: generate from this node id instead of the current selection')
+  .option('--remove', 'With --from-bridge: delete the node once its spec has been read (round-trip testing — leaves the Figma page as it was found)')
   .option('--verbose', 'Enable detailed logging', false)
   .action(async (source: string | undefined, options: GenerateOptions) => {
     try {
@@ -107,6 +281,51 @@ export const Generate = new Command('generate')
 
       if (options.verbose && options.config) {
         console.log(`[CLI] Using config from: ${options.config}`);
+      }
+
+      // ---------------------------------------------------------------
+      // BRIDGE MODE (--from-bridge): bypass REST fetch entirely —
+      // the plugin has already generated the spec from the current
+      // selection; just relay it through the same output writers.
+      // ---------------------------------------------------------------
+      if (options.fromBridge) {
+        if (source) {
+          console.error('Error: --from-bridge does not take a source argument (it reads the current Figma selection).');
+          process.exit(ERROR_CODES.INVALID_ARGS);
+        }
+
+        let result;
+        try {
+          const fileKey = await resolveFileKey(options.file);
+          // The config shapes the spec the plugin builds, not merely where it is written.
+          result = await postGenerateFromSelection({ fileKey, nodeId: options.node, config: modelConfig, remove: options.remove });
+        } catch (e) {
+          const err = e as NodeJS.ErrnoException;
+          if (err.cause && (err.cause as NodeJS.ErrnoException).code === 'ECONNREFUSED') {
+            console.error('Error: bridge is not running.');
+            console.error('  Start it with: specs bridge start');
+          } else {
+            console.error(`Error: ${err.message}`);
+          }
+          process.exit(ERROR_CODES.GENERAL_ERROR);
+        }
+
+        if (!result.success) {
+          const msg = typeof result.error === 'string' ? result.error : JSON.stringify(result.error);
+          console.error(`Error: ${msg}`);
+          process.exit(ERROR_CODES.GENERAL_ERROR);
+        }
+
+        if (!result.specData) {
+          console.error('Error: Bridge returned success but no spec data.');
+          process.exit(ERROR_CODES.GENERAL_ERROR);
+        }
+
+        console.log(`✓ Generated from selection: ${result.name ?? result.nodeId}`);
+
+        const processedComponents = [{ name: result.name ?? String(result.nodeId), spec: result.specData as Record<string, unknown> }];
+        await writeGeneratedOutput(processedComponents, [], false, options, config, modelConfig);
+        return;
       }
 
       // Use dataDirectory for loading data files (flag > config > default)
@@ -223,8 +442,34 @@ export const Generate = new Command('generate')
         }
 
         libraryJson = await fs.readJSON(sourceFile);
-        componentIds = selectedComponents.map(c => c.id);
-        componentNames = new Map(selectedComponents.map(c => [c.id, c.name]));
+
+        // `--component` used to apply only in file mode, so asking for one component here
+        // silently generated the whole catalogue — a slow surprise, and one that looks like
+        // the flag worked. Match on the Figma name, the id, or the formatted key the output
+        // is written under, since that is the name a caller has in front of them.
+        let chosen = selectedComponents;
+        if (options.component) {
+          const wanted = options.component;
+          chosen = selectedComponents.filter(c =>
+            c.id === wanted || c.name === wanted || formatKey(c.name, modelConfig.format.keys) === wanted);
+          if (chosen.length === 0) {
+            console.error(`Error: no component named "${wanted}" in the manifest.`);
+            const near = selectedComponents
+              .map(c => formatKey(c.name, modelConfig.format.keys))
+              .filter(k => k.toLowerCase().includes(wanted.toLowerCase()))
+              .slice(0, 5);
+            if (near.length > 0) {
+              console.error('Did you mean:');
+              for (const k of near) console.error(`  ${k}`);
+            } else {
+              console.error(`Tip: ${selectedComponents.length} components are available — omit --component to generate all of them.`);
+            }
+            process.exit(ERROR_CODES.INVALID_ARGS);
+          }
+        }
+
+        componentIds = chosen.map(c => c.id);
+        componentNames = new Map(chosen.map(c => [c.id, c.name]));
 
         if (options.verbose) {
           console.log(`[CLI] File loaded: ${libraryJson.name || path.basename(sourceFile)}`);
@@ -417,152 +662,7 @@ export const Generate = new Command('generate')
         process.exit(ERROR_CODES.GENERAL_ERROR);
       }
 
-      // ---------------------------------------------------------------
-      // File mode stdout (no -o)
-      // ---------------------------------------------------------------
-      if (!isManifest && !options.output && !config.outputDirectory) {
-        if (options.getImages) {
-          console.error('Error: --get-images requires an output directory (set outputDirectory in config or pass -o) so image files have somewhere to be written');
-          process.exit(ERROR_CODES.INVALID_ARGS);
-        }
-        const componentData = processedComponents[0].spec;
-        const outputFormat = options.format
-          ? options.format.toLowerCase()
-          : modelConfig.format.output.toLowerCase();
-
-        const formattedOutput = outputFormat === 'yaml'
-          ? yaml.stringify(componentData)
-          : JSON.stringify(componentData, null, 2);
-
-        console.log(formattedOutput);
-        process.exit(ERROR_CODES.SUCCESS);
-        return;
-      }
-
-      // ---------------------------------------------------------------
-      // File output via manifest + writer
-      // ---------------------------------------------------------------
-      const resolvedFormat: OutputFormat = options.format
-        ? options.format.toLowerCase() as OutputFormat
-        : modelConfig.format.output.toLowerCase() as OutputFormat;
-
-      const outputConfig = {
-        ...config.output,
-        splitComponents: options.splitComponents ?? config.output?.splitComponents ?? false,
-        splitConcerns: options.splitConcerns ?? config.output?.splitConcerns ?? false,
-        useSubfolders: options.useSubfolders ?? config.output?.useSubfolders ?? false,
-        defaultFormat: resolvedFormat
-      };
-
-      let outputPath: string;
-      if (options.output) {
-        outputPath = path.resolve(options.output);
-      } else if (config.outputDirectory) {
-        outputPath = path.resolve(config.outputDirectory);
-      } else {
-        // Should not reach here — handled above for file mode stdout
-        process.exit(ERROR_CODES.INVALID_ARGS);
-        return;
-      }
-
-      // When in single-file mode and outputPath is an existing directory,
-      // append a default filename so we don't try to open a directory as a file
-      const isSingleFileMode = !outputConfig.splitComponents && !outputConfig.splitConcerns;
-      if (isSingleFileMode && fs.existsSync(outputPath) && fs.statSync(outputPath).isDirectory()) {
-        outputPath = path.join(outputPath, `library.${resolvedFormat}`);
-      }
-
-      const baseDir = outputConfig.splitComponents || outputConfig.splitConcerns
-        ? outputPath
-        : path.dirname(outputPath);
-
-      const outputFileName = (!outputConfig.splitComponents && !outputConfig.splitConcerns)
-        ? path.basename(outputPath)
-        : undefined;
-
-      // ---------------------------------------------------------------
-      // Image resolution (ADR-063, --get-images): add src to unresolved
-      // registry entries — files written under {baseDir}/_images/, referenced
-      // relative to the spec file that points at them. Runs before the
-      // manifest so writers serialize the resolved registry values.
-      // ---------------------------------------------------------------
-      if (options.getImages) {
-        const hashes = ImageFillsResolver.collectUnresolvedHashes(processedComponents);
-        if (hashes.size === 0) {
-          console.log(modelConfig.processing.images
-            ? 'Note: --get-images found no unresolved image placeholders'
-            : 'Note: --get-images has no effect — processing.images is not configured');
-        } else {
-          // Reuse hash-named files already present in _images/ — only the
-          // remainder needs the token, the API call, and downloads.
-          const files = await ImageFillsResolver.findExisting(hashes, baseDir);
-          const missing = new Set([...hashes].filter(hash => !files.has(hash)));
-
-          if (missing.size > 0) {
-            const token = process.env.FIGMA_TOKEN;
-            if (!token) {
-              console.error('Error: --get-images requires the FIGMA_TOKEN environment variable (same token as `specs fetch`)');
-              process.exit(ERROR_CODES.INVALID_ARGS);
-            }
-            const fileSourceAlias = resolveFileSourceAlias(config.sources);
-            const fileKey = fileSourceAlias ? config.sources?.[fileSourceAlias]?.key : undefined;
-            if (!fileKey) {
-              console.error('Error: --get-images requires a configured source file key (sources.<alias>.key in specs.config.yaml)');
-              process.exit(ERROR_CODES.INVALID_ARGS);
-            }
-
-            console.log(`Requesting image download URLs from Figma (${missing.size} image(s))...`);
-            const urls = await ImageFillsResolver.fetchImageUrls(fileKey, token);
-            process.stdout.write(`Images downloading (0/${missing.size})`);
-            const downloaded = await ImageFillsResolver.downloadAndWrite(missing, urls, baseDir, (completed, total) => {
-              process.stdout.write(`\rImages downloading (${completed}/${total})`);
-              if (completed === total) process.stdout.write('\n');
-            });
-            for (const [hash, filename] of downloaded) files.set(hash, filename);
-          }
-
-          // Spec files sit one level below baseDir when components get their own
-          // folders (subfolders, or the component+concern combined layout).
-          const inComponentFolders = !!outputConfig.splitComponents && (!!outputConfig.useSubfolders || !!outputConfig.splitConcerns);
-          const relativePrefix = inComponentFolders ? `../${IMAGES_DIR_NAME}/` : `${IMAGES_DIR_NAME}/`;
-          const resolvedCount = ImageFillsResolver.applyResolvedSources(processedComponents, files, relativePrefix);
-          const reused = hashes.size - missing.size;
-          console.log(`✓ Resolved ${resolvedCount} image reference(s) into ${files.size} file(s) under ${IMAGES_DIR_NAME}/ (${reused} reused, ${missing.size} downloaded)`);
-        }
-      }
-
-      const manifest = new FileManifest(processedComponents, outputConfig, baseDir, outputFileName);
-
-      // Select appropriate writer
-      let writer: FileWriter;
-      if (outputConfig.splitConcerns && !outputConfig.splitComponents) {
-        writer = new ConcernFileWriter();
-      } else if (outputConfig.splitComponents && !outputConfig.splitConcerns) {
-        writer = new ComponentFileWriter(outputConfig.useSubfolders);
-      } else if (!outputConfig.splitComponents && !outputConfig.splitConcerns) {
-        writer = new SingleFileWriter();
-      } else {
-        writer = new CombinedFileWriter();
-      }
-
-      const writeResult: WriteResult = await writer.write(manifest);
-
-      if (writeResult.warnings.length > 0) {
-        const isOverwriteWarning = (warning: string) => warning.includes('Overwriting existing file');
-        const overwriteCount = writeResult.warnings.filter(isOverwriteWarning).length;
-        if (overwriteCount > 0) {
-          console.log('Warning: Overwrote existing file(s)');
-        }
-        writeResult.warnings.filter(warning => !isOverwriteWarning(warning)).forEach(warning => console.log(warning));
-      }
-
-      if (writeResult.errors.length > 0) {
-        writeResult.errors.forEach(error => console.error(`Error: ${error}`));
-        process.exit(ERROR_CODES.FILE_ERROR);
-      }
-
-
-      process.exit(errors.length > 0 ? ERROR_CODES.GENERAL_ERROR : ERROR_CODES.SUCCESS);
+      await writeGeneratedOutput(processedComponents, errors, isManifest, options, config, modelConfig);
 
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

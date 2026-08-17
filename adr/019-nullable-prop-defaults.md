@@ -3,6 +3,7 @@
 **Branch**: `019-nullable-prop-defaults`
 **Created**: 2026-03-11
 **Status**: ACCEPTED
+**Summary**: `StringProp.default` accepts `null`, expressing props whose absent value is meaningful.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

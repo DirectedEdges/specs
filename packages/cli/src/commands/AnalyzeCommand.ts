@@ -19,7 +19,7 @@ interface AnalyzeOptions {
 
 export const Analyze = new Command('analyze')
   .description('Run analysis passes over component specs and write aggregate reports to _analysis/')
-  .argument('[analyzers...]', 'Analyzer names to run (props, styling, dependencies)')
+  .argument('[analyzers...]', 'Analyzer names to run (props, styling, dependencies, keys)')
   .option('-o, --output <path>', 'Path to the specs directory (input)')
   .option('--analysis <path>', 'Path to write analysis output (default: <specs-dir>/_analysis)')
   .option('--config <path>', 'Path to config file (specs.config.yaml)')

@@ -45,7 +45,18 @@ describe('GenerateCommand', () => {
       expect(options).toContain('--split-components');
       expect(options).toContain('--split-concerns');
       expect(options).toContain('--use-subfolders');
+      expect(options).toContain('--from-bridge');
+      expect(options).toContain('--file');
       expect(options).toContain('--verbose');
+    });
+
+    it('--from-bridge and --file are not mandatory (opt-in source mode)', () => {
+      const fromBridge = Generate.options.find(o => o.long === '--from-bridge');
+      const file = Generate.options.find(o => o.long === '--file');
+      expect(fromBridge).toBeDefined();
+      expect(fromBridge!.mandatory).toBeFalsy();
+      expect(file).toBeDefined();
+      expect(file!.mandatory).toBeFalsy();
     });
 
     it('has short aliases for key options', () => {

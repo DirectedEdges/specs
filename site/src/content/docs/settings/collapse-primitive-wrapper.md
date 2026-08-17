@@ -33,10 +33,10 @@ anatomy:
   root:
     type: text
     $extensions:
-      com.figma.originalName: Label
+      com.figma.name: Label
 ```
 
-The `$extensions.com.figma.originalName` field on the anatomy root carries the original Figma layer name so the source layer remains traceable.
+The `$extensions.com.figma.name` field on the anatomy root carries the Figma layer name so the source layer remains traceable.
 
 ## Eligibility
 
@@ -47,7 +47,7 @@ A component qualifies for collapse when **all** of the following are true:
 - That child's type is `text` or `glyph`.
 - The child has no children of its own.
 - The root carries no slot binding on its children.
-- The root carries none of the following styles after default/zero values are stripped: `clipContent`, `cornerRadius`, `strokes`, `strokeAlign`, `strokeWeight`, `itemSpacing`, `padding`, `effects`, `backgroundColor`, `cornerSmoothing`.
+- The root carries none of the following styles after default/zero values are stripped: `clipsContent`, `cornerRadius`, `strokes`, `strokeAlign`, `strokeWeight`, `itemSpacing`, `padding`, `effects`, `backgroundColor`, `cornerSmoothing`.
 
 Collapse is **all-or-nothing**: if any variant in the component set fails the eligibility check, no collapse occurs for any variant.
 

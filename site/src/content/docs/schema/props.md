@@ -115,6 +115,7 @@ The `$extensions` object holds vendor-specific metadata. Currently only the `com
 |----------|------|-------------|
 | `type` | `string` | Figma property type (e.g. `BOOLEAN`, `TEXT`, `INSTANCE_SWAP`, `VARIANT`) |
 | `source` | `FigmaCodeOnlySource` | Present when the prop originates from a code-only prop layer |
+| `name` | `string` | The Figma property name, present only when the prop key cannot reconstruct it — see [Key Formatting](/guides/key-formatting/) |
 
 ### FigmaCodeOnlySource
 
@@ -131,3 +132,4 @@ The `$extensions` object holds vendor-specific metadata. Currently only the `com
 - [ADR 056 — Rename SlotProp.minItems/maxItems → minChildren/maxChildren](https://github.com/DirectedEdges/specs/blob/main/adr/056-slot-children-constraints.md) — aligns field names with Figma native `slotSettings`; adds native `preferredValues` resolution
 - [ADR 029 — NumberProp](https://github.com/DirectedEdges/specs/blob/main/adr/029-number-prop.md) — adds the `NumberProp` type with opt-in inference
 - [ADR 063 — Image Content](https://github.com/DirectedEdges/specs/blob/main/adr/063-image-content.md) — adds the `ImageProp` type and image fills/registry
+- [ADR 066 — Lossless Key Formatting](https://github.com/DirectedEdges/specs/blob/main/adr/066-lossless-key-formatting.md) — adds `name` to `FigmaPropExtension` so lossy key formats stay reversible

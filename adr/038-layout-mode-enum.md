@@ -3,6 +3,7 @@
 **Branch**: `038-layout-mode-enum`
 **Created**: 2026-04-20
 **Status**: ACCEPTED
+**Summary**: A `LayoutMode` enum types `layoutMode` as `NONE`, `HORIZONTAL` or `VERTICAL` rather than an open string.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

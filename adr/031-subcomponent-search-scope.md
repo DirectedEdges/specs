@@ -3,6 +3,7 @@
 **Branch**: `031-subcomponent-search-scope`
 **Created**: 2026-03-24
 **Status**: ACCEPTED
+**Summary**: A `processing.subcomponents` object with `scope`, `match` and `exclude` replaces `subcomponentNamePattern` for finding subcomponents.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

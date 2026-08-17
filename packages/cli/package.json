@@ -1,6 +1,6 @@
 {
   "name": "@directededges/specs-cli",
-  "version": "0.26.0",
+  "version": "0.27.0",
   "description": "Command-line interface for Specs design system operations",
   "type": "module",
   "main": "./dist/index.js",
@@ -15,21 +15,24 @@
     "docs"
   ],
   "scripts": {
-    "build": "esbuild src/bin/specs.ts --bundle --platform=node --target=node18 --format=esm --packages=external --define:__SPECS_CLI_VERSION__=\\\"$npm_package_version\\\" --outfile=dist/specs.js --banner:js='#!/usr/bin/env node' && chmod +x dist/specs.js",
+    "build": "esbuild src/bin/specs.ts --bundle --platform=node --target=node18 --format=esm --packages=external --define:__SPECS_CLI_VERSION__=\\\"$npm_package_version\\\" --outfile=dist/specs.js --banner:js='#!/usr/bin/env node' && chmod +x dist/specs.js && npm run build:bridge-server",
+    "build:bridge-server": "esbuild src/bridge/server.ts --bundle --platform=node --target=node18 --format=esm --packages=external --outfile=dist/bridge-server.js && chmod +x dist/bridge-server.js",
     "watch": "esbuild src/bin/specs.ts --bundle --platform=node --target=node18 --format=esm --packages=external --define:__SPECS_CLI_VERSION__=\\\"$npm_package_version\\\" --outfile=dist/specs.js --watch",
     "test": "cd ../.. && vitest -c vitest.config.ts packages/cli/tests"
   },
   "dependencies": {
-    "@directededges/specs-schema": "^0.29.0",
-    "@directededges/specs-from-figma": "^0.28.0",
+    "@directededges/specs-schema": "^0.30.0",
+    "@directededges/specs-from-figma": "^0.29.0",
     "commander": "^11.1.0",
     "fs-extra": "^11.2.0",
-    "yaml": "^2.3.4",
-    "tslib": "^2.6.2"
+    "tslib": "^2.6.2",
+    "ws": "^8.21.1",
+    "yaml": "^2.3.4"
   },
   "devDependencies": {
-    "@types/node": "^20.10.5",
     "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.10.5",
+    "@types/ws": "^8.18.1",
     "esbuild": "^0.20.0",
     "typescript": "^5.3.3",
     "vitest": "^3.0.0"
