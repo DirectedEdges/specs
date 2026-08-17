@@ -5,7 +5,7 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.27.0] - 2026-08-17
 
 Specs can now go back into Figma. `specs render` takes a spec you already have and builds
 the component it describes in a connected Figma file — the reverse of `specs generate`, and
@@ -50,6 +50,11 @@ the other half of a round trip you can run and re-run as a spec changes.
 ### Changed
 
 - CSS `overflow` output — keyed on the renamed `Styles.clipsContent`, so `overflow: hidden` / `overflow: visible` is emitted for the first time (ADR-069)
+
+### Dependency updates
+
+- **`@directededges/specs-schema` ^0.30.0** — specs can now record the name a designer sees in Figma alongside a formatted key, so a key that cannot reconstruct its original name no longer loses it. Number properties gained the same platform-extension capability every other property type already had, and the style that records whether an element clips its content is now spelled `clipsContent`.
+- **`@directededges/specs-from-figma` ^0.29.0** — generated specs carry Figma names wherever a key diverges, and a name already well-formed in your key convention is kept as authored instead of being reformatted. Several sources of phantom variants are gone: slot content no longer records measured sizes or withdrawn host bindings as design intent, an invalid variant combination now names the combination that is actually missing, and elements that clip their content report it for the first time — expect regenerated specs to gain `clipsContent: true` on containers that clip, which is common rather than rare.
 
 
 ## [0.26.0] - 2026-08-07
