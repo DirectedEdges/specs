@@ -5,6 +5,15 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.31.0] - Unreleased
+
+### Added
+
+### Changed
+
+### Removed
+
+
 ## [0.30.0] - 2026-08-17
 
 A spec can now declare the naming convention its Figma file follows, so a formatted property key can be turned back into the name a designer sees on the canvas. When a key can't reconstruct that name on its own — because the original contained characters formatting doesn't survive — the spec records the Figma name alongside it, on every property type. Together these make round-tripping between a formatted spec and its source file possible without a side-channel lookup of the file's own naming.
