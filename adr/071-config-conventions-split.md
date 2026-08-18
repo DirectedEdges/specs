@@ -502,6 +502,8 @@ config/
 .env                   # unchanged, at the workspace root
 ```
 
+**On the folder name.** Frontend tooling names config either for the tool (`.storybook/`, `.github/`) or as a root file (`vite.config.ts`), and a generic `config/` is more Rails idiom than JS. `.specs/` was considered and rejected: `conventions.yaml` is the one artifact meant to be authored, published, and handed to other teams, and hiding the least engineering-facing file behind a dotfolder is the wrong trade. A Specs workspace is a directory dedicated to Specs, so `config/` carries no ambiguity within it.
+
 **Settings groups by concern, not by kind.** Three blocks — `data`, `spec`, and `assets` — each hold their own members *and* their own `directory`. The former `processing` / `format` / `include` grouping is retired: it sorted members by what kind of knob they were, which is not a question anyone asks. `sources` folds into `data`, since declaring what to fetch and declaring where it lands are one concern.
 
 **`assets` is grouped by consumer, not producer.** Icons, images, generated CSS, and fonts arrive from fetch, from generate, from transform, and sometimes from a process outside this tool entirely. What unites them is that every code output points at them, whatever the platform.
