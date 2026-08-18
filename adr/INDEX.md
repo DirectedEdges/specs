@@ -4,6 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 071 | Separate Library Conventions from Tooling Settings | |
 | 070 | Explicit `position: ABSOLUTE` for Children of Non-Auto-Layout Parents | |
 | 045 | Processing Provenance Signals | (reserved, draft in PR #60) |
 | 044 | Duplicate Layer Name Disambiguation | (reserved, draft in PR #60) |
