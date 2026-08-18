@@ -219,10 +219,8 @@ spec:
   splitComponents: true
   splitConcerns: true
   useSubfolders: true
-analysis:
-  directory: ./specs/_analysis
-foundations:
-  directory: ./specs
+assets:
+  directory: ./assets
 ```
 
 ```yaml
@@ -502,7 +500,11 @@ config/
 .env                   # unchanged, at the workspace root
 ```
 
-**Settings groups by concern, not by kind.** `data`, `spec`, `analysis`, and `foundations` each hold their own members *and* their own `directory`. The former `processing` / `format` / `include` grouping is retired: it sorted members by what kind of knob they were, which is not a question anyone asks. `sources` folds into `data`, since declaring what to fetch and declaring where it lands are one concern.
+**Settings groups by concern, not by kind.** Three blocks — `data`, `spec`, and `assets` — each hold their own members *and* their own `directory`. The former `processing` / `format` / `include` grouping is retired: it sorted members by what kind of knob they were, which is not a question anyone asks. `sources` folds into `data`, since declaring what to fetch and declaring where it lands are one concern.
+
+**`assets` is grouped by consumer, not producer.** Icons, images, generated CSS, and fonts arrive from fetch, from generate, from transform, and sometimes from a process outside this tool entirely. What unites them is that every code output points at them, whatever the platform.
+
+**Analysis output has no block.** It is analysis *of* spec data and is inseparable from it, so it stays derived beneath the spec directory as it is today.
 
 **Pipeline declares work; settings declares place.** Transformers and analyses name what runs and nothing else. They do not carry output paths, because they do not own locations — every transformer writes *into* the spec structure the CLI owns (`<component>/generated/`, with `contract`, `css`, and `react` output side by side), and every analysis writes to one analysis location. A per-transformer directory would either fracture that structure or have several transformers name the same path and comingle.
 
@@ -515,10 +517,10 @@ config/
 
 **Cons / Trade-offs**:
 
-- `analysis` and `foundations` begin as blocks holding only a `directory`, and both currently default to living inside the spec directory
-- A transformer that legitimately writes outside the spec structure has no way to say so, and would need an option on its pipeline entry — an exception this ADR does not define
+- **Per-target output locations are unresolved and deliberately out of scope.** Some transformers imply a destination (`react` produces a library, and a storybook alongside it); others do not (`contract` emits beside the spec). Modeling targets here would force every transformer to answer a question only some of them have, so where an assembled library and its storybook live is left to the transformer package that owns them
+- `assets` begins as a block holding only a `directory`
 - Three files where there was one, and existing workspaces need a read path for the old arrangement
-- Naming `foundations` and `analysis` locations makes configurable what is derived today — new capability, deliberately taken
+- Naming the assets location makes configurable what is derived today — new capability, deliberately taken
 
 ---
 
@@ -552,7 +554,7 @@ Retire `Config`. Publish two independent root types — `Conventions` (namespace
 |------|--------|------|
 | `Config.ts` | Removed; `Config` and `ResolvedConfig` retired | MAJOR |
 | `Conventions.ts` | Added — `Conventions` / `ResolvedConventions`, with a `figma` namespace | MAJOR |
-| `Settings.ts` | Added — `Settings` / `ResolvedSettings`, grouped by concern: `data` (absorbing `sources`), `spec`, `analysis`, `foundations` | MAJOR |
+| `Settings.ts` | Added — `Settings` / `ResolvedSettings`, grouped by concern: `data` (absorbing `sources`), `spec`, `assets` | MAJOR |
 | `Conventions.ts` | Holds `naming` (from `format.figmaKeys`), `states`, `slotConstraints`, `inferNumberProps`, and the five name-based features whole, including `scope` and `backgroundImage` per Decision 6 | MAJOR |
 | `Conventions.ts` | Rekeyed name-based conventions to `<thing>.match`: `glyphNamePattern` → `glyphs.match`, `codeOnlyPropsPattern` → `codeOnlyProps.match`, `imageComponent` → `images.match`. Value types unchanged | MAJOR |
 | `Settings.ts` | `processing` / `format` / `include` retired; their members fold into `spec`, and `format.output` becomes `spec.format` | MAJOR |
@@ -714,4 +716,6 @@ Neither is changed by this ADR. Both become easier to reconcile once the halves 
 - Every consumer updates imports and configuration access in the same release, and pre-split workspaces need a read path provided outside this package
 - The `Config` abbreviation exception can be removed from the constitution's exceptions list, since no type carries the name
 - `metadata.conventions` is comparable across specs and consumers on its own, which is what makes convention drift detectable rather than merely diffable
-- Conventions and `sources` land on opposite sides, which names a new error class worth linting: a conventions file paired with a source it was not written for
+- Conventions and `data.sources` land on opposite sides, which names a new error class worth linting: a conventions file paired with a source it was not written for
+- Shared assets have one declared home that every code output can point at, whatever the platform
+- Where an assembled library and its storybook live remains open, scoped to the package that produces them rather than to the shared contract
