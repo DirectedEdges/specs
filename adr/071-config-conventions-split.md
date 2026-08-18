@@ -192,16 +192,16 @@ figma:
 
 ```yaml
 # settings.yaml
-sources:
-  library:
-    key: GF3SDV9GeeGpWfNs3Pxq6h
-    data:
-      - file
-      - variables
-      - styles
-      - icons
 data:
   directory: ./data
+  sources:
+    library:
+      key: GF3SDV9GeeGpWfNs3Pxq6h
+      fetch:
+        - file
+        - variables
+        - styles
+        - icons
 spec:
   directory: ./specs
   format: YAML
@@ -220,17 +220,17 @@ spec:
   splitConcerns: true
   useSubfolders: true
 analysis:
-  directory: ./analysis
+  directory: ./specs/_analysis
 foundations:
-  directory: ./foundations
+  directory: ./specs
 ```
 
 ```yaml
 # pipeline.yaml
 transformers:
   - name: react
-    directory: ./src/react
   - name: css
+  - name: contract
 analyses:
   - name: dependencies
 ```
@@ -492,7 +492,7 @@ metadata:
 
 `workspace.schema.json` (ADR 054) describes `specs.config.yaml`, so the artifact's shape is governed by this package and is in scope here. Today that one file carries three unrelated things: `dataDirectory` and `outputDirectory` at the root, a `sources` block, an `output` block, and a `config` block holding everything else.
 
-### Option 10A: One artifact per question, with each path beside its concern *(Selected)*
+### Option 10A: One artifact per question; work and place are separate *(Selected)*
 
 ```
 config/
@@ -502,22 +502,23 @@ config/
 .env                   # unchanged, at the workspace root
 ```
 
-**Settings groups by concern, not by kind.** `sources`, `data`, `spec`, `analysis`, and `foundations` each hold their own members *and their own* `directory`. The former `processing` / `format` / `include` grouping is retired: it sorted members by what kind of knob they were, which is not a question anyone asks.
+**Settings groups by concern, not by kind.** `data`, `spec`, `analysis`, and `foundations` each hold their own members *and* their own `directory`. The former `processing` / `format` / `include` grouping is retired: it sorted members by what kind of knob they were, which is not a question anyone asks. `sources` folds into `data`, since declaring what to fetch and declaring where it lands are one concern.
 
-**Paths are co-located, not aggregated.** Each concern owns its `directory`; there is no central map. A transformer's output path lives on its `pipeline.yaml` entry, beside the transformer that writes to it.
+**Pipeline declares work; settings declares place.** Transformers and analyses name what runs and nothing else. They do not carry output paths, because they do not own locations — every transformer writes *into* the spec structure the CLI owns (`<component>/generated/`, with `contract`, `css`, and `react` output side by side), and every analysis writes to one analysis location. A per-transformer directory would either fracture that structure or have several transformers name the same path and comingle.
 
 **Pros**:
 
-- **Adding a concern touches one place.** A future `storybook` or `swift` output declares its own `directory` without editing a shared map that must then be kept in step
-- **No transformer names enter the schema.** `react` and `storybook` paths live on pipeline entries, so the contract never learns any transformer's name (Constitution III)
-- Each artifact answers one question, and `conventions.yaml` can be published by a library for every consuming workspace to adopt verbatim — the sharing problem from Context, solved where it bites
+- **Each output kind is a concern with a home.** `spec`, `analysis`, and `foundations` are separately relocatable, and each block is where that kind's future settings land
+- **No transformer name enters the schema** (Constitution III), because no transformer declares a path
+- Each artifact answers one question, and `conventions.yaml` can be published by a library for every consuming workspace to adopt verbatim
 - `.env` stays at the root, where dotenv-style discovery expects it
 
 **Cons / Trade-offs**:
 
-- `analysis` and `foundations` begin as blocks holding only a `directory`
+- `analysis` and `foundations` begin as blocks holding only a `directory`, and both currently default to living inside the spec directory
+- A transformer that legitimately writes outside the spec structure has no way to say so, and would need an option on its pipeline entry — an exception this ADR does not define
 - Three files where there was one, and existing workspaces need a read path for the old arrangement
-- Naming `foundations`, `analysis`, and per-transformer directories makes locations configurable that are derived today — new capability, deliberately taken
+- Naming `foundations` and `analysis` locations makes configurable what is derived today — new capability, deliberately taken
 
 ---
 
@@ -531,7 +532,7 @@ output:
     react: ./src/react
 ```
 
-**Rejected because**: it collects paths by virtue of being paths, which is the same "group by kind" mistake as `processing` / `format` / `include`. Every new output edits a central map, and transformer names — `react`, `storybook` — would enter the shared contract, which Constitution III forbids.
+**Rejected because**: it collects paths by virtue of being paths, which is the same "group by kind" mistake as `processing` / `format` / `include`. Every new output kind edits a central map rather than declaring itself, and listing transformer names — `react`, `storybook` — would put one consumer's vocabulary in the shared contract, which Constitution III forbids.
 
 ---
 
@@ -551,12 +552,12 @@ Retire `Config`. Publish two independent root types — `Conventions` (namespace
 |------|--------|------|
 | `Config.ts` | Removed; `Config` and `ResolvedConfig` retired | MAJOR |
 | `Conventions.ts` | Added — `Conventions` / `ResolvedConventions`, with a `figma` namespace | MAJOR |
-| `Settings.ts` | Added — `Settings` / `ResolvedSettings`, grouped by concern: `sources`, `data`, `spec`, `analysis`, `foundations` | MAJOR |
+| `Settings.ts` | Added — `Settings` / `ResolvedSettings`, grouped by concern: `data` (absorbing `sources`), `spec`, `analysis`, `foundations` | MAJOR |
 | `Conventions.ts` | Holds `naming` (from `format.figmaKeys`), `states`, `slotConstraints`, `inferNumberProps`, and the five name-based features whole, including `scope` and `backgroundImage` per Decision 6 | MAJOR |
 | `Conventions.ts` | Rekeyed name-based conventions to `<thing>.match`: `glyphNamePattern` → `glyphs.match`, `codeOnlyPropsPattern` → `codeOnlyProps.match`, `imageComponent` → `images.match`. Value types unchanged | MAJOR |
 | `Settings.ts` | `processing` / `format` / `include` retired; their members fold into `spec`, and `format.output` becomes `spec.format` | MAJOR |
 
-| `Settings.ts` | Workspace members absorbed: `sources`, `outputDirectory` → `spec.directory`, `splitComponents` / `splitConcerns` / `useSubfolders` → `spec`, `dataDirectory` → `data.directory` | MAJOR |
+| `Settings.ts` | Workspace members absorbed: `sources` → `data.sources` (its `data` list renamed `fetch`), `outputDirectory` → `spec.directory`, `splitComponents` / `splitConcerns` / `useSubfolders` → `spec`, `dataDirectory` → `data.directory` | MAJOR |
 | `Settings.ts` | `transformers` removed — work to run moves to its own artifact per Decision 10 | MAJOR |
 | `Settings.ts` | `DEFAULT_CONFIG` → `DEFAULT_SETTINGS`, typed `ResolvedSettings` | MAJOR |
 | `Metadata.ts` | `config: Config` → `conventions: ResolvedConventions` and `settings: ResolvedSettings` | MAJOR |
@@ -638,6 +639,7 @@ Conventions:
 
 - **Both halves need a resolved form, for different reasons.** `ResolvedSettings` guarantees every defaulted member is present. `ResolvedConventions` guarantees the members *inside* a present convention block are present — `subcomponents.scope`, `instanceExamples.scope`, `images.backgroundImage` and `sourceProps` all default within a declared block, exactly as `ResolvedConfig` does today. What conventions lack is a default for the *block itself*: absence means the library declares no such convention, and nothing can supply that. `DEFAULT_SETTINGS` therefore covers only the settings half
 - **`data.directory` holds artifacts of four different lifecycles**, and the block is named `data` rather than `cache` for that reason. It carries fetched downloads (`library.<kind>.json`, one per entry in `sources.<name>.data`), computed caches (`cache/*.yaml`), extracted assets (`icons/*.svg`), an authored input that injects into a fetched artifact (`token-mappings.json`), and a manifest that is fetched and then authored in place. Naming it `cache` would invite a deletion that destroys authored work. Separating the authored inputs from the regenerable artifacts is a real follow-up and is **not** taken here
+- **`sources` folds into `data`, and its `data` list is renamed `fetch`.** Nested under the block it now belongs to, `data.sources.<name>.data` would stutter; `fetch` names what the list actually is — the artifacts to download for that source
 - **Work to run is not a setting.** `transformers` names *work* rather than how work behaves, and it is joined by `analyses`, which no artifact declares today. Both move to `pipeline.yaml` (Decision 10), which removes the odd member from `Settings` and gives analyses a declared home for the first time
 - **Application preferences are deliberately absent from the contract.** Values that never reach a spec — canvas column count, which sections a consumer renders, whether prior output is replaced — belong to the consumer that holds them. Naming the category is the contribution; owning it is not
 - **`VariantStateEntry` and `TransformEntry` are unchanged**, referenced from their new locations
