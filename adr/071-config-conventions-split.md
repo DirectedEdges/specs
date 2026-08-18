@@ -74,7 +74,7 @@ The two are indistinguishable in the type, and three consequences follow:
 
 ## Options Considered
 
-Nine decisions, taken separately: the classification rule, the name of each side (independently), whether the library side is scoped to Figma, the structural shape, the blocks that straddle the line, the shape of name-based conventions, what replaces block presence as the detection switch, the container's name, and the workspace artifact layout.
+Nine decisions, taken separately: the classification rule, the name of each side (independently), whether the library side is scoped to Figma, the structural shape, whether any block straddles the line, the shape of name-based conventions, what replaces block presence as the detection switch, the container's name, and the workspace artifact layout.
 
 ---
 
@@ -200,15 +200,18 @@ conventions:
     glyphs:
       match: "DS Icon Glyph / {i}"
     images:
+      backgroundImage: true
       match: "DS Image"
       sourceProps:
         - Image
     subcomponents:
+      scope: PAGE
       match:
         - "{C} / {S}"
       exclude:
         - "{C} / Examples / {S}"
     instanceExamples:
+      scope: PAGE
       match:
         - "{C}*"
       parentNames:
@@ -241,19 +244,6 @@ conventions:
 ```yaml
 settings:
   processing:
-    subcomponents:
-      detect: true
-      scope: PAGE
-    instanceExamples:
-      detect: true
-      scope: PAGE
-    glyphs:
-      detect: true
-    codeOnlyProps:
-      detect: true
-    images:
-      detect: true
-      backgroundImage: true
     variantDepth: 9999
     details: LAYERED
     slotConstraints: true
@@ -299,40 +289,63 @@ settings:
 
 ---
 
-## Decision 6 — Blocks that straddle the line
+## Decision 6 — Blocks that appear to straddle the line
 
-### Option 6A: Split the block; conventions take the naming half *(Selected)*
+Three blocks look mixed: alongside their patterns they carry `scope` (where to search) and `backgroundImage` (whether to read container fills). Both read as run choices at first glance.
 
-| Block | To `conventions.figma` | Stays in `settings.processing` |
+### Option 6A: They do not straddle — all three are wholly conventions *(Selected)*
+
+Applying Decision 1's substitution test to each supposed setting:
+
+| Member | If a different team set it differently | Verdict |
 |---|---|---|
-| `subcomponents` | `match`, `exclude` | `scope`, `detect` |
-| `instanceExamples` | `match`, `exclude`, `parentNames` | `scope`, `detect` |
-| `images` | `match` *(from `imageComponent`)*, `sourceProps` | `backgroundImage`, `detect` |
+| `subcomponents.scope` | A library keeping subcomponents on the page yields none under `NESTED` | Convention |
+| `instanceExamples.scope` | A library keeping examples on other pages yields none under `PAGE`; a `FILE` search of a single-page library can match foreign frames | Convention |
+| `images.backgroundImage` | A library expressing images as container fills loses them when false | Convention |
 
-`scope` states where to look, not what things are called — a different team could search `PAGE` or `FILE` against the same library and both be correct. `backgroundImage` toggles whether fills are detected at all.
+None of the three can be chosen freely. Each states how the library is organized — **where** its assets live and **how** it expresses images — which is the same kind of fact as **what** they are called.
+
+```yaml
+conventions:
+  figma:
+    subcomponents:
+      scope: PAGE
+      match:
+        - "{C} / {S}"
+    instanceExamples:
+      scope: PAGE
+      match:
+        - "{C}*"
+    images:
+      backgroundImage: true
+      match: "DS Image"
+      sourceProps:
+        - Image
+```
 
 **Pros**:
 
-- Applies Decision 1's test per member, which is the level at which it is meaningful
-- Preserves on-switch semantics: presence of `conventions.figma.subcomponents` means "this library has subcomponents"
-- `imageComponent` → `images.match` adopts the uniform key of Decision 7; it still names one component
+- **No feature is split.** All five name-based features live wholly in `conventions.figma`, and each is read in one place
+- Consistent with Decision 8: a declared convention declares the capability, and `scope` is part of the declaration rather than a dial on top of it
+- `settings.processing` is left holding only output-shaping members — `variantDepth`, `details`, `slotConstraints`, `collapsePrimitiveWrapper`, `inferNumberProps` — none of which can be wrong
+- Removes the awkward case where `scope` and `match`, authored together and meaningless apart, would sit in different artifacts
 
 **Cons / Trade-offs**:
 
-- Two features are assembled from both sides
-- `scope` and `match` are authored together today and would no longer be adjacent
+- `backgroundImage` reads as a toggle and is classified as a declaration; the name would be clearer as a statement about the library (a rename deliberately not taken here)
+- A team wanting a narrower search for speed cannot express it in configuration — and would get different output if they could, which is the point
 
 ---
 
-### Option 6B: Move whole blocks by majority *(Rejected)*
+### Option 6B: Split each block — patterns to conventions, `scope` and `backgroundImage` to settings *(Rejected)*
 
-**Rejected because**: it puts `scope` and `backgroundImage` on the convention side, where absence would falsely claim the library has no such convention.
+**Rejected because**: it fails the substitution test on all three members. `scope` is not a free choice — it is determined by where the library puts its assets, and the wrong value produces missing or foreign matches rather than merely different output. Splitting also separates `scope` from `match`, which are authored together and meaningless apart, and leaves three features to be assembled from two artifacts.
 
 ---
 
-### Option 6C: Leave mixed blocks in `settings` *(Rejected)*
+### Option 6C: Move whole blocks by majority, without testing each member *(Rejected)*
 
-**Rejected because**: it exempts exactly the members that motivate the ADR — `images.imageComponent` and `subcomponents.match` are naming conventions by any reading of Decision 1.
+**Rejected because**: it reaches the selected answer by accident rather than by rule. The test in Decision 1 applies per member, and a classification that skips it cannot be defended for the next member that arrives.
 
 ---
 
@@ -362,15 +375,18 @@ conventions:
     codeOnlyProps:
       match: "Code only props"
     images:
+      backgroundImage: true
       match: "DS Image"
       sourceProps:
         - Image
     subcomponents:
+      scope: PAGE
       match:
         - "{C} / {S}"
       exclude:
         - "{C} / Examples / {S}"
     instanceExamples:
+      scope: PAGE
       match:
         - "{C}*"
       parentNames:
@@ -424,9 +440,11 @@ processing:
       - "{C} / {S}"
 ```
 
-Splitting the block splits the switch away from the pattern, and the implicit "detect this" is lost. It cannot simply move to the conventions side: whether a library *has* a subcomponent naming convention is a fact about the library, while whether **this run** should go looking is a choice about the run. Making convention presence the switch would re-conflate exactly what Decision 1 separates, and would leave no way to skip detection without deleting a true statement about the library.
+Splitting the block separates the switch from the pattern, and the implicit "detect this" needs somewhere to go — or needs to be shown unnecessary.
 
-### Option 8A: An explicit `detect` setting per feature *(Selected)*
+### Option 8A: Convention presence declares the capability; no switch exists *(Selected)*
+
+A declared convention means the library follows it, and a library that follows a convention wants it processed. There is no switch, in either half.
 
 ```yaml
 conventions:
@@ -438,60 +456,35 @@ conventions:
 settings:
   processing:
     subcomponents:
-      detect: true            # default; set false to skip without deleting the convention
-      scope: PAGE
+      scope: PAGE             # only genuine run choices remain
 ```
-
-`detect` defaults to `true`, so declaring a convention produces today's behavior with no new lines. Resolution is one rule:
-
-| Convention | `detect` | Outcome |
-|---|---|---|
-| declared | `true` (default) | detection runs — identical to today |
-| declared | `false` | skipped; the library fact survives the decision to ignore it |
-| absent | `true` (default) | nothing to match, nothing happens — identical to today |
-| absent | `false` | nothing |
 
 **Pros**:
 
-- **Makes explicit what was implicit.** "Presence means on" is a convention of the file format, not a statement anyone wrote; `detect` is
-- **Restores a capability the split would otherwise remove**, and adds one that never existed: skipping a feature for a run without editing the library's facts
-- **`detect` is the word the contract already uses** — the current documentation reads "absence means no subcomponent detection," "no glyph detection," "no instance example detection"
-- **Matches what one consumer already does.** The plugin has always carried explicit booleans (`SUBCOMPONENTS`, `GLYPHS`, `IMAGES`, `CODE_ONLY_PROPS`, `INSTANCE_EXAMPLES`) beside its patterns. The contract was the artifact missing the concept, not the plugin
-- **Two lint findings fall out** of the four-row table: a convention declared with detection off, and detection requested where no convention exists
+- **Nothing is invented.** No member is added, and no consumer writes a line it does not write today
+- **Behavior is unchanged.** Declaring a convention detects; declaring none does not — the same two states the presence rule produces now
+- **Decision 1 holds.** Convention presence does not *drive* the run, it *enables* it. What a run does with a declared capability is the run's business, and belongs to the invocation
+- **Two of five features stay whole.** `glyphs` and `codeOnlyProps` have no genuine run choices, so they appear on the conventions side only — no settings block exists solely to hold a toggle
+- **No half-states.** A switch would introduce "declared but off" and "on but undeclared"; neither is representable
 
 **Cons / Trade-offs**:
 
-- Five new members, one per feature
-- `detect: true` where no convention is declared is a harmless no-op rather than an error, so the diagnostic belongs to a linter rather than to resolution
-- A default of `true` means the setting reads as permission rather than instruction
+- Skipping a feature for one run is not expressible in configuration. It belongs to the invocation — a CLI flag — and is out of scope here
+- The plugin's five booleans gain no contract counterpart and remain application preferences, which is the correct home for a panel checkbox that skips work
 
 ---
 
-### Option 8B: Presence of the convention is the switch *(Rejected)*
+### Option 8B: An explicit `detect` setting per feature *(Rejected)*
 
-**Rejected because**: it makes a library fact double as a run choice — the precise conflation this ADR exists to end. A workspace that wants a fast run without subcomponent discovery would have to delete a true statement about its library, and a library publishing its conventions would be dictating every consumer's processing.
+Add `detect?: boolean` to each feature's settings block, defaulting to `true`.
+
+**Rejected because**: it invents a capability to fill a hole the split created. Nobody following a convention wants it ignored, so `detect: false` answers a question no library asks — the same reasoning that rejects Option 7B, and it applies with equal force here. It also costs two settings blocks (`glyphs`, `codeOnlyProps`) that would exist only to hold a toggle, doubles the locations to consult per feature, and introduces two half-states that must then be diagnosed.
 
 ---
 
 ### Option 8C: Presence of the settings block is the switch *(Rejected)*
 
-Keep presence semantics, but on the settings side: `settings.processing.subcomponents` present means detect.
-
-**Rejected because**: it preserves the ambiguity in a worse place. Every member of those settings blocks is defaulted, so the on-state is an empty block whose only meaning is that someone typed its name. It also makes `scope` — which has a default — load-bearing by proximity.
-
----
-
-### Option 8D: A single `detect` list of feature names *(Rejected)*
-
-```yaml
-settings:
-  processing:
-    detect:
-      - subcomponents
-      - glyphs
-```
-
-**Rejected because**: it introduces a second vocabulary of feature names that must stay in step with the block names, and separates the switch from the per-feature settings (`scope`, `backgroundImage`) it governs. Compactness at the cost of locality.
+**Rejected because**: it preserves the ambiguity in a worse place. Every member of those settings blocks is defaulted, so the on-state is an empty block whose only meaning is that someone typed its name, and `scope` — which has a default — becomes load-bearing by proximity.
 
 ---
 
@@ -576,8 +569,7 @@ Replace `Config` with `Configuration`, comprising two named, exported types — 
 | `Configuration.ts` | Added exported `Settings` / `ResolvedSettings` holding `processing`, `format`, `include`, `transformers` | MAJOR |
 | `Configuration.ts` | Moved `states` → `conventions.figma.states`; `format.figmaKeys` → `conventions.figma.keys` | MAJOR |
 | `Configuration.ts` | Rekeyed name-based conventions to `<thing>.match`: `glyphNamePattern` → `glyphs.match`, `codeOnlyPropsPattern` → `codeOnlyProps.match`, `imageComponent` → `images.match`. Value types unchanged | MAJOR |
-| `Configuration.ts` | Split `subcomponents`, `instanceExamples`, `images` per Decision 6 | MAJOR |
-| `Configuration.ts` | Added `detect?: boolean` (default `true`) to `settings.processing` for `subcomponents`, `instanceExamples`, `glyphs`, `codeOnlyProps`, `images`, replacing block presence as the on-switch | MAJOR |
+| `Configuration.ts` | Moved `subcomponents`, `instanceExamples`, `images` wholly to `conventions.figma`, including `scope` and `backgroundImage` per Decision 6 | MAJOR |
 | `Configuration.ts` | Renamed `DEFAULT_CONFIG` → `DEFAULT_SETTINGS`, typed `ResolvedSettings` | MAJOR |
 | `Component.ts` | `metadata.config` → `metadata.configuration`, typed `ResolvedConfiguration` | MAJOR |
 | `index.ts` | Exports `Configuration`, `Conventions`, `Settings` and their resolved forms | MAJOR |
@@ -692,7 +684,7 @@ These are **application preferences** (Decision 4). They are the plugin's to kee
 
 Two further representational differences are worth naming because they are the plugin's, not the contract's:
 
-- **Feature on-switches are booleans** (`SUBCOMPONENTS`, `GLYPHS`, `IMAGES`, `CODE_ONLY_PROPS`, `INSTANCE_EXAMPLES`) where the contract used block presence. Decision 8 adopts the plugin's arrangement rather than the contract's: these become `detect`, and the plugin's map stops being a workaround for a missing concept
+- **Feature on-switches are booleans** (`SUBCOMPONENTS`, `GLYPHS`, `IMAGES`, `CODE_ONLY_PROPS`, `INSTANCE_EXAMPLES`) where the contract has no counterpart at all. Per Decision 8 they stay application preferences — a panel checkbox that skips work is a UI affordance, not a statement about the library. The plugin keeps them; the contract does not gain them
 - **Pattern members are single strings** (`SUBCOMPONENT_MATCH`) where the contract uses arrays
 
 Neither is changed by this ADR. Both become easier to reconcile once the halves are addressable, because the plugin can map its map onto two named types rather than onto one undifferentiated one.
@@ -712,13 +704,15 @@ Neither is changed by this ADR. Both become easier to reconcile once the halves 
 - The contract states which configuration values describe the library and which describe the run, and a consumer can tell them apart without knowing the ecosystem's history
 - Conventions can be published once per library and adopted verbatim by every workspace and consumer that reads it
 - Absence means one thing per side: a missing setting is defaulted; a missing convention is declared absent
+- Every name-based feature is read in one place — no feature is assembled from both halves — and `settings.processing` is left holding only members that cannot be wrong
 - A convention mismatch between two consumers of one library becomes a diffable difference in `metadata.configuration` rather than an unexplained difference in output
 - The plugin's isolated configuration and a workspace's become comparable on the half where agreement actually matters
 - `conventions.figma` leaves room for conventions of other sources without a further breaking change
 - Every name-based convention is keyed the same way, so `match` means one thing across the block — without any member gaining a capability it does not have today
 - Widening a single-pattern member to a list remains available as its own decision, with its own justification
 - A third category — application preferences — is named and deliberately excluded, so the next consumer-local value has an obvious home outside the contract
-- Detection becomes explicit: a feature can be skipped for a run without deleting a true statement about the library, which block-presence semantics made impossible
+- Declaring a convention is what enables its processing, so no consumer writes a switch and no configuration gains a member to preserve today's behavior
+- Skipping a feature for a single run is an invocation concern rather than a configuration one, and is deliberately left to the CLI surface
 - New configuration members must be classified on arrival: a small ongoing tax, and the mechanism that keeps the split honest
 - Every consumer updates imports and configuration access in the same release, and pre-split workspaces need a read path provided outside this package
 - The `Config` abbreviation exception can be removed from the constitution's exceptions list
