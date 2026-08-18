@@ -22,8 +22,19 @@ processing:
     match:
       - "{C} / {S}"                          # subcomponents go undiscovered if wrong
   states:
-    disabled:                                # the disabled concept lands on the wrong prop
-      prop: disabled
+    hover:
+      prop: state                            # unclassified, this prop emits as a data-* attribute
+      value: hover
+    active:
+      prop: state                            # two concepts share one prop
+      value: pressed                         # the concept name is not the Figma value
+    disabled:
+      prop: disabled                         # boolean prop — no value to match
+    readonly:
+      prop: readOnly                         # concept casing is not prop casing
+    invalid:
+      prop: validation                       # neither name resembles the other
+      value: invalid
 format:
   figmaKeys: SENTENCE                        # name reversal is undefined if wrong
 ```
@@ -134,6 +145,8 @@ Two identical specs can be produced with every one of these set differently. The
 
 **Selected: `conventions`.** It is the only candidate that covers both halves of the contents — the naming patterns and the semantic classifications — without colliding with an existing term in the schema.
 
+`states` is the clearest member of the category. In a real catalog's declaration, five of ten entries could not be recovered by any rule: two concepts share one prop (`hover` and `active` both read `state`), a concept name differs from the Figma value that activates it (`active` ← `pressed`), a concept's casing differs from its prop's (`readonly` ← `readOnly`), and one pair resembles nothing (`invalid` ← `validation`). Every one of them is an agreement, and a different team reading the same file would have to keep all five.
+
 ---
 
 ## Decision 3 — Whether the library side is scoped to Figma
@@ -219,8 +232,26 @@ conventions:
       parentNames:
         - Examples
     states:
+      hover:
+        prop: state
+        value: hover
+      active:
+        prop: state
+        value: pressed
+      focus-within:
+        prop: focused
       disabled:
         prop: disabled
+      readonly:
+        prop: readOnly
+      invalid:
+        prop: validation
+        value: invalid
+      selected:
+        prop: selected
+      indeterminate:
+        prop: selected
+        value: indeterminate
 ```
 
 ```yaml
