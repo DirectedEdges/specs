@@ -61,7 +61,7 @@ The two are indistinguishable in the type, and three consequences follow:
 
 ## Options Considered
 
-Seven decisions, taken separately: the classification rule, the name of each side (independently), whether the library side is scoped to Figma, the structural shape, the blocks that straddle the line, the container's name, and the workspace artifact layout.
+Eight decisions, taken separately: the classification rule, the name of each side (independently), whether the library side is scoped to Figma, the structural shape, the blocks that straddle the line, the shape of name-based conventions, the container's name, and the workspace artifact layout.
 
 ---
 
@@ -143,8 +143,9 @@ Every member classified as a convention today describes **Figma authoring**: lay
 ```yaml
 conventions:
   figma:
-    glyphNamePattern: "DS Icon Glyph / {i}"
-    figmaKeys: SENTENCE
+    keys: SENTENCE
+    glyphs:
+      match: ["DS Icon Glyph / {i}"]
 ```
 
 **Pros**:
@@ -196,18 +197,20 @@ conventions:
 ```yaml
 conventions:
   figma:
+    keys: SENTENCE
+    glyphs:
+      match: ["DS Icon Glyph / {i}"]
+    codeOnlyProps:
+      match: ["Code only props"]
     subcomponents:
       match: ["{C} / {S}"]
     instanceExamples:
       match: ["{C}*"]
-    glyphNamePattern: "DS Icon Glyph / {i}"
-    codeOnlyPropsPattern: "Code only props"
-    keys: SENTENCE
+    images:
+      match: ["DS Image"]
+      sourceProps: ["Image"]
     states:
       disabled: { prop: disabled }
-    images:
-      component: dsImage
-      sourceProps: [Image]
 ```
 
 ```yaml
@@ -269,7 +272,7 @@ settings:
 |---|---|---|
 | `subcomponents` | `match`, `exclude` | `scope` |
 | `instanceExamples` | `match`, `exclude`, `parentNames` | `scope` |
-| `images` | `component` *(renamed from `imageComponent`)*, `sourceProps` | `backgroundImage` |
+| `images` | `match` *(from `imageComponent`)*, `sourceProps` | `backgroundImage` |
 
 `scope` states where to look, not what things are called — a different team could search `PAGE` or `FILE` against the same library and both be correct. `backgroundImage` toggles whether fills are detected at all.
 
@@ -277,7 +280,7 @@ settings:
 
 - Applies Decision 1's test per member, which is the level at which it is meaningful
 - Preserves on-switch semantics: presence of `conventions.figma.subcomponents` means "this library has subcomponents"
-- `imageComponent` → `component` loses a redundant prefix once nested under `images` inside `conventions`
+- `imageComponent` → `images.match` adopts the uniform shape of Decision 7
 
 **Cons / Trade-offs**:
 
@@ -298,9 +301,83 @@ settings:
 
 ---
 
-## Decision 7 — The container's name
+## Decision 7 — The shape of name-based conventions
 
-### Option 7A: `Configuration` *(Selected)*
+Five conventions answer the same question — *which assets in the file are these?* — in three different shapes:
+
+| Member | Shape today | Placeholders |
+|---|---|---|
+| `glyphNamePattern` | a bare `string` | `{i}` |
+| `codeOnlyPropsPattern` | a bare `string` | none — a literal layer name |
+| `subcomponents` | `{ match: string[], exclude?: string[] }` | `{C}`, `{S}` |
+| `instanceExamples` | `{ match?: string[], exclude?: string[], parentNames?: string[] }` | `{C}` |
+| `imageComponent` | a bare `string` | none — a literal component name |
+
+Two carry include/exclude lists; three are single strings that cannot express a second pattern or an exception. And the `NamePattern` suffix restates what the whole block already says.
+
+### Option 7A: One member per named thing, uniformly `{ match, exclude? }` *(Selected)*
+
+```yaml
+conventions:
+  figma:
+    keys: SENTENCE
+    glyphs:
+      match: ["DS Icon Glyph / {i}"]
+    codeOnlyProps:
+      match: ["Code only props"]
+    subcomponents:
+      match: ["{C} / {S}", "{C} / _ / {S}"]
+      exclude: ["{C} / Examples / {S}"]
+    instanceExamples:
+      match: ["{C}*"]
+      parentNames: ["Examples"]
+    images:
+      match: ["DS Image"]
+      sourceProps: ["Image"]
+    states:
+      disabled: { prop: disabled }
+```
+
+Each member is keyed by the plural noun of the thing it finds, and every one of them accepts `match` and `exclude`.
+
+**Pros**:
+
+- **The suffix disappears.** Inside `conventions.figma`, everything is a name pattern — `glyphNamePattern` becomes `glyphs.match`, which is shorter and says more
+- **One shape to learn.** A reader who understands `subcomponents` understands `glyphs` without reading its documentation
+- **Capability arrives for free**, and it is capability the library shape already wants: a catalog with two icon sets, or one whose code-only-props frame is named differently in older components, can express it. Today it cannot
+- **`exclude` becomes available everywhere**, rather than on the two members that happened to need it first
+- Extends predictably: a future named convention arrives with a known shape rather than a new one
+
+**Cons / Trade-offs**:
+
+- Every one of the five members changes path or shape, on top of the regrouping
+- `match` on a single-valued concept reads oddly at first — `images.match` names the designated image component, and a one-element array where a string used to be feels heavier
+- Placeholder grammars still differ per member (`{i}`, `{C}`, `{S}`), and uniform shape may imply uniform placeholders. Documentation carries that distinction
+
+---
+
+### Option 7B: Keep the scalar patterns, regularize nothing *(Rejected)*
+
+**Rejected because**: it preserves three shapes for one question, keeps a redundant suffix inside a block whose name already supplies it, and permanently denies `exclude` and multiple patterns to three members for no reason other than the order in which they were added. If the shapes are not regularized during a `MAJOR` that already moves every one of these members, they will not be regularized.
+
+---
+
+### Option 7C: Group the name-based members under a `names` sub-block *(Rejected)*
+
+```yaml
+conventions:
+  figma:
+    names:
+      glyphs: { match: [...] }
+```
+
+**Rejected because**: it separates name-based conventions from semantic ones (`states`) at the cost of a fifth level of nesting, and the uniform `{ match, exclude? }` shape already signals which kind a member is. The grouping adds depth without adding information.
+
+---
+
+## Decision 8 — The container's name
+
+### Option 8A: `Configuration` *(Selected)*
 
 **Pros**:
 
@@ -315,23 +392,23 @@ settings:
 
 ---
 
-### Option 7B: Keep `Config` *(Rejected)*
+### Option 8B: Keep `Config` *(Rejected)*
 
 **Rejected because**: the grandfathering exists to avoid churn, and the churn is happening regardless. It also keeps the vague word that let two kinds of value share one structure.
 
 ---
 
-### Option 7C: Dissolve the container *(Rejected)*
+### Option 8C: Dissolve the container *(Rejected)*
 
 **Rejected because**: `metadata` would carry two independent keys with no statement that they were resolved together, and no type would name the pair.
 
 ---
 
-## Decision 8 — Workspace artifact layout
+## Decision 9 — Workspace artifact layout
 
 `workspace.schema.json` (ADR 054) describes `specs.config.yaml`, so the artifact's shape is governed by this package and is in scope here.
 
-### Option 8A: A `config/` directory with one artifact per category *(Selected)*
+### Option 9A: A `config/` directory with one artifact per category *(Selected)*
 
 ```
 config/
@@ -354,13 +431,13 @@ config/
 
 ---
 
-### Option 8B: One artifact with two top-level blocks *(Rejected)*
+### Option 9B: One artifact with two top-level blocks *(Rejected)*
 
 **Rejected because**: it leaves the conventions half un-shareable without extracting a fragment from a file that also carries settings and workspace paths. The type would say the halves are separable while the artifact denies it.
 
 ---
 
-### Option 8C: Two artifacts at the workspace root *(Rejected)*
+### Option 9C: Two artifacts at the workspace root *(Rejected)*
 
 **Rejected because**: it spends two root-level filenames on one concern, and the root is already the busiest namespace in a workspace.
 
@@ -377,8 +454,10 @@ Replace `Config` with `Configuration`, comprising two named, exported types — 
 | `Config.ts` → `Configuration.ts` | Renamed `Config` → `Configuration`; `ResolvedConfig` → `ResolvedConfiguration` | MAJOR |
 | `Configuration.ts` | Added exported `Conventions` / `ResolvedConventions`, with a `figma` namespace | MAJOR |
 | `Configuration.ts` | Added exported `Settings` / `ResolvedSettings` holding `processing`, `format`, `include`, `transformers` | MAJOR |
-| `Configuration.ts` | Moved `glyphNamePattern`, `codeOnlyPropsPattern`, `states` → `conventions.figma`; `format.figmaKeys` → `conventions.figma.keys` | MAJOR |
-| `Configuration.ts` | Split `subcomponents`, `instanceExamples`, `images` per Decision 6; `imageComponent` → `images.component` | MAJOR |
+| `Configuration.ts` | Moved `states` → `conventions.figma.states`; `format.figmaKeys` → `conventions.figma.keys` | MAJOR |
+| `Configuration.ts` | Reshaped name-based conventions to a uniform `{ match, exclude? }`: `glyphNamePattern` → `glyphs.match`, `codeOnlyPropsPattern` → `codeOnlyProps.match`, `imageComponent` → `images.match` | MAJOR |
+| `Configuration.ts` | Added exported `NameConvention` type — `{ match: string[]; exclude?: string[] }` — referenced by every name-based member | MAJOR |
+| `Configuration.ts` | Split `subcomponents`, `instanceExamples`, `images` per Decision 6 | MAJOR |
 | `Configuration.ts` | Renamed `DEFAULT_CONFIG` → `DEFAULT_SETTINGS`, typed `ResolvedSettings` | MAJOR |
 | `Component.ts` | `metadata.config` → `metadata.configuration`, typed `ResolvedConfiguration` | MAJOR |
 | `index.ts` | Exports `Configuration`, `Conventions`, `Settings` and their resolved forms | MAJOR |
@@ -399,8 +478,8 @@ Config:
 Configuration:
   conventions:
     figma:
-      glyphNamePattern?: string
       keys?: 'NONE' | 'SENTENCE' | 'TITLE'
+      glyphs?: NameConvention        # { match: string[]; exclude?: string[] }
   settings:
     processing:
       variantDepth?: 1 | 2 | 3 | 9999
@@ -413,7 +492,7 @@ Configuration:
 | File | Change | Bump |
 |------|--------|------|
 | `component.schema.json` | Renamed `#/definitions/Config` → `#/definitions/Configuration` | MAJOR |
-| `component.schema.json` | Added `#/definitions/Conventions` and `#/definitions/Settings` | MAJOR |
+| `component.schema.json` | Added `#/definitions/Conventions`, `#/definitions/Settings`, and `#/definitions/NameConvention` | MAJOR |
 | `component.schema.json` | `metadata.config` → `metadata.configuration` | MAJOR |
 | `workspace.schema.json` | Split into the two artifacts of Decision 8, each validating one definition | MAJOR |
 
@@ -428,12 +507,12 @@ Conventions:
       type: object
       properties:
         keys: { enum: [NONE, SENTENCE, TITLE] }
-        glyphNamePattern: { type: string }
-        codeOnlyPropsPattern: { type: string }
+        glyphs: { $ref: "#/definitions/NameConvention" }
+        codeOnlyProps: { $ref: "#/definitions/NameConvention" }
+        subcomponents: { $ref: "#/definitions/NameConvention" }
+        instanceExamples: { allOf: [{ $ref: "#/definitions/NameConvention" }, { properties: { parentNames: { type: array } } }] }
+        images: { allOf: [{ $ref: "#/definitions/NameConvention" }, { properties: { sourceProps: { type: array } } }] }
         states: { type: object }
-        subcomponents: { type: object }
-        instanceExamples: { type: object }
-        images: { type: object }
   # not in required[] at any level — a library may declare no conventions
 ```
 
@@ -449,7 +528,7 @@ Conventions:
 ## Type ↔ Schema Impact
 
 - **Symmetric**: Yes
-- **Parity check**: `Configuration` ↔ `#/definitions/Configuration`; `Conventions` ↔ `#/definitions/Conventions`; `Settings` ↔ `#/definitions/Settings`; each moved member's schema property moves with its type field; `ResolvedConfiguration` mirrors `Configuration` with settings required-with-defaults and conventions optional; `metadata.configuration` ↔ `#/definitions/Metadata/properties/configuration`; `workspace.schema.json`'s two artifacts reference the same two definitions
+- **Parity check**: `Configuration` ↔ `#/definitions/Configuration`; `Conventions` ↔ `#/definitions/Conventions`; `Settings` ↔ `#/definitions/Settings`; `NameConvention` ↔ `#/definitions/NameConvention`; each moved member's schema property moves with its type field; `ResolvedConfiguration` mirrors `Configuration` with settings required-with-defaults and conventions optional; `metadata.configuration` ↔ `#/definitions/Metadata/properties/configuration`; `workspace.schema.json`'s two artifacts reference the same two definitions
 
 ---
 
@@ -486,6 +565,8 @@ Neither is changed by this ADR. Both become easier to reconcile once the halves 
 - A convention mismatch between two consumers of one library becomes a diffable difference in `metadata.configuration` rather than an unexplained difference in output
 - The plugin's isolated configuration and a workspace's become comparable on the half where agreement actually matters
 - `conventions.figma` leaves room for conventions of other sources without a further breaking change
+- Every name-based convention accepts multiple patterns and exclusions, so a catalog with two icon sets or an inconsistently named code-only-props frame becomes expressible for the first time
+- A new name-based convention arrives with a shape already defined, rather than inventing a third one
 - A third category — application preferences — is named and deliberately excluded, so the next consumer-local value has an obvious home outside the contract
 - New configuration members must be classified on arrival: a small ongoing tax, and the mechanism that keeps the split honest
 - Every consumer updates imports and configuration access in the same release, and pre-split workspaces need a read path provided outside this package
