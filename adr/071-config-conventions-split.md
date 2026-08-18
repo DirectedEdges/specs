@@ -56,7 +56,7 @@ The two are indistinguishable in the type, and three consequences follow:
 
 - **The first kind cannot be shared.** Every consumer reading the same library — the CLI, the plugin, a second workspace, a CI job — re-declares the same facts. Drift between copies produces silently different specs from one Figma file
 - **`ResolvedConfig` conflates two kinds of absence.** A missing member of the second kind means "use the default." A missing member of the first kind means "this library has no such convention" — a different claim with different consequences
-- **A third kind exists in one consumer and has nowhere to live.** The plugin persists preferences that never reach a spec at all (see Decision 1)
+- **A third kind exists in one consumer and has nowhere to live.** The plugin persists values that never reach a spec at all, mixed into the same map as the two above
 
 ---
 
@@ -84,38 +84,22 @@ Eight decisions, taken separately: the classification rule, the name of each sid
 
 **If a different team pointed this tool at the same Figma file, which values would they have to keep?**
 
-- Values they **must keep** describe the library. Changing one produces *incorrect* output
-- Values they **may freely change** describe the run. Changing one produces *different* output
-- Values that **do not reach the spec at all** are neither, and belong to the consumer that holds them
+- Values they **must keep** are **conventions**. They describe the library, and changing one produces *incorrect* output
+- Values they **may freely change** are **settings**. They describe the run, and changing one produces *different* output
 
-That third category is not hypothetical. The plugin persists these alongside the shared members:
-
-```ts
-// specs-plugin-2 — persisted settings that never affect a spec
-OUTPUT_COLUMNS: 1 | 2 | 3 | 4          // canvas layout of rendered output
-OUTPUT_DATA: boolean                    // which sections to draw on canvas
-OUTPUT_STYLING: boolean
-OUTPUT_ANATOMY: boolean
-OUTPUT_LAYOUT: boolean
-OUTPUT_PROPS: boolean
-OUTPUT_MODES: boolean
-OUTPUT_REPLACE: boolean                 // overwrite prior canvas output
-ANATOMY_CONTENT: 'CANVAS' | 'DEV_MODE'  // which surface anatomy is read from
-```
-
-Two identical specs can be produced with every one of these set differently. They are **application preferences** and stay out of the shared contract entirely.
+A residue falls outside both: values that never reach a spec at all, so two identical specs can be produced with each set differently. They belong to whichever consumer holds them and stay out of the shared contract (see Downstream Impact).
 
 **Pros**:
 
 - Mechanical and reproducible — every current member classifies without argument
-- Explains the sharing consequence directly: library values are the ones worth declaring once
-- Gives absence one meaning per side
-- Separates the consumer-local third category cleanly, rather than leaving the plugin to mix three kinds in one map
+- Explains the sharing consequence directly: conventions are the values worth declaring once per library
+- Gives absence one meaning per side: a missing setting is defaulted, a missing convention is declared absent
+- Distinguishes a violable side from an inviolable one — a setting cannot be wrong, a convention can
 
 **Cons / Trade-offs**:
 
-- Three blocks contain members from both shared sides (Decision 5)
-- A member could in principle be a library fact for one team and a preference for another; no current member is
+- Three blocks contain members from both sides (Decision 6)
+- A member could in principle be a convention for one library and a preference for another; no current member is
 
 ---
 
@@ -215,8 +199,6 @@ conventions:
     keys: SENTENCE
     glyphs:
       match: "DS Icon Glyph / {i}"
-    codeOnlyProps:
-      match: "Code only props"
     images:
       match: "DS Image"
       sourceProps:
@@ -231,6 +213,8 @@ conventions:
         - "{C}*"
       parentNames:
         - Examples
+    codeOnlyProps:
+      match: "Code only props"
     states:
       hover:
         prop: state
@@ -598,7 +582,24 @@ Conventions:
 | `specs-cli` | Workspace artifact splits into `config/conventions.yaml` and `config/settings.yaml`; `metadata.configuration` output changes | Update configuration access and imports; provide a read path for the pre-split artifact; surface which half a validation error came from |
 | `specs-plugin-2` | Holds configuration independently of any workspace, in one flat persisted map that mixes all three categories | Update configuration access and imports; separate persisted preferences from the shared halves; the convention set becomes comparable against a workspace's, making parity checkable rather than assumed |
 
-**On the plugin's flat map.** Its persisted settings currently interleave the three categories, and two representational differences are worth naming because they are the plugin's, not the contract's:
+**On the plugin's flat map.** Its persisted settings interleave conventions, settings, and a third group that never reaches a spec:
+
+```ts
+// specs-plugin-2 — persisted values with no effect on any spec
+OUTPUT_COLUMNS: 1 | 2 | 3 | 4           // canvas layout of rendered output
+OUTPUT_DATA: boolean                     // which sections to draw on canvas
+OUTPUT_STYLING: boolean
+OUTPUT_ANATOMY: boolean
+OUTPUT_LAYOUT: boolean
+OUTPUT_PROPS: boolean
+OUTPUT_MODES: boolean
+OUTPUT_REPLACE: boolean                  // overwrite prior canvas output
+ANATOMY_CONTENT: 'CANVAS' | 'DEV_MODE'   // which surface anatomy is read from
+```
+
+These are **application preferences** (Decision 4). They are the plugin's to keep, and this ADR neither types them nor moves them — it names the category so they have somewhere to belong that is not the shared contract.
+
+Two further representational differences are worth naming because they are the plugin's, not the contract's:
 
 - **Feature on-switches are booleans** (`SUBCOMPONENTS`, `GLYPHS`, `IMAGES`, `CODE_ONLY_PROPS`, `INSTANCE_EXAMPLES`) where the contract uses block presence. That is a flattening artifact of a UI with toggles, not a fourth category
 - **Pattern members are single strings** (`SUBCOMPONENT_MATCH`) where the contract uses arrays
