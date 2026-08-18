@@ -15,7 +15,7 @@ Each key in `default.elements` becomes a CSS class:
 | any other | `.{component}__{element-in-kebab}` |
 
 Component and element keys are converted from camelCase to kebab-case:
-`egdsButton` → `.egds-button`, `startVisualAndLabel` → `.egds-button__start-visual-and-label`.
+`dsButton` → `.ds-button`, `startVisualAndLabel` → `.ds-button__start-visual-and-label`.
 
 ---
 
@@ -26,7 +26,7 @@ on the root class:
 
 ```
 configuration: { appearance: outline, state: hover }
-  → .egds-button[data-appearance="outline"][data-state="hover"]
+  → .ds-button[data-appearance="outline"][data-state="hover"]
 ```
 
 Variants are emitted in **schema order** — this is intentional. `variants.yaml` orders
@@ -36,7 +36,7 @@ CSS cascade matching the variant-layering algorithm. Do not reorder.
 Child element overrides under a variant use a descendant selector:
 
 ```css
-.egds-button[data-appearance="outline"] .egds-button__label { ... }
+.ds-button[data-appearance="outline"] .ds-button__label { ... }
 ```
 
 ---

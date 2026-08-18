@@ -9,7 +9,7 @@ import {
 describe('splitComponentByConcern', () => {
   it('defaults missing props to {} (regression #84)', () => {
     const { api } = splitComponentByConcern({
-      title: 'egdsDivider',
+      title: 'dsDivider',
       anatomy: {},
       metadata: {},
     });
@@ -82,15 +82,15 @@ describe('splitComponentByConcern — examples concern', () => {
 });
 
 describe('splitComponentByConcern — images registry (ADR-063)', () => {
-  it('routes images into examples and counts as example data — the egdsAvatar case', () => {
+  it('routes images into examples and counts as example data — the dsAvatar case', () => {
     const { api, variants, examples } = splitComponentByConcern({
-      title: 'egdsAvatar',
+      title: 'dsAvatar',
       anatomy: {},
       default: {},
-      images: { egdsAvatar__image: { src: '_images/d54334d2.png' } },
+      images: { dsAvatar__image: { src: '_images/d54334d2.png' } },
       metadata: {},
     });
-    expect(examples.images).toEqual({ egdsAvatar__image: { src: '_images/d54334d2.png' } });
+    expect(examples.images).toEqual({ dsAvatar__image: { src: '_images/d54334d2.png' } });
     expect((api as Record<string, unknown>).images).toBeUndefined();
     expect((variants as Record<string, unknown>).images).toBeUndefined();
     // Images alone must be enough for examples.yaml to be written.

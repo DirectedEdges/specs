@@ -104,7 +104,7 @@ byCause:
     names:
       - Alternate Half
       - Children minItems
-      - EGDS Bottom Sheet
+      - DS Bottom Sheet
 ```
 
 ### byName
