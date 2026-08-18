@@ -74,7 +74,7 @@ The two are indistinguishable in the type, and three consequences follow:
 
 ## Options Considered
 
-Nine decisions, taken separately: the classification rule, the name of each side (independently), whether the library side is scoped to Figma, the structural shape, whether any block straddles the line, the shape of name-based conventions, what replaces block presence as the detection switch, the container's name, and the workspace artifact layout.
+Nine decisions, taken separately: the classification rule, the name of each side (independently), whether the library side is scoped to Figma, the structural shape, whether any block straddles the line, the shape of name-based conventions, what replaces block presence as the detection switch, what becomes of `Config`, and the workspace artifact layout.
 
 ---
 
@@ -189,9 +189,9 @@ conventions:
 
 ## Decision 5 — Structural shape
 
-### Option 5A: Two named, exported types under one container *(Selected)*
+### Option 5A: Two independent root types *(Selected)*
 
-`Conventions` and `Settings` are each a named, exported type with its own schema definition. The existing four groups move under `settings` unchanged.
+`Conventions` and `Settings` are each a root type in its own file, with its own schema definition and no shared parent. The existing four groups become the body of `Settings`, unchanged.
 
 ```yaml
 conventions:
@@ -267,13 +267,14 @@ settings:
 **Pros**:
 
 - **Symmetric.** Both sides are nameable, referenceable, and independently validatable. A classification where only one side has a handle is half a classification
-- Either side can be held, shared, published, or stored on its own
-- The existing group names keep their meaning; only their parent changes
+- Either side can be held, shared, published, validated, or diffed on its own, with nothing to unwrap first
+- **No parent to imply they are one thing.** The ADR's whole claim is that these have different owners, lifecycles, sharing models, and resolution rules; a container immediately argues the opposite
+- The existing group names keep their meaning
 
 **Cons / Trade-offs**:
 
-- Every member's path gains a segment; every consumer breaks at compile time
-- One more level of nesting for settings members
+- Every member's path changes; every consumer breaks at compile time
+- A consumer wanting both halves passes or holds two values instead of one
 
 ---
 
@@ -488,32 +489,47 @@ Add `detect?: boolean` to each feature's settings block, defaulting to `true`.
 
 ---
 
-## Decision 9 — The container's name
+## Decision 9 — What becomes of `Config` and `Config.ts`
 
-### Option 9A: `Configuration` *(Selected)*
+### Option 9A: Retire both; `Conventions.ts` and `Settings.ts` replace them *(Selected)*
+
+No container type is introduced. `Config.ts` splits into two files, and `Metadata` carries both halves as siblings:
+
+```yaml
+metadata:
+  conventions:
+    figma:
+      keys: SENTENCE
+  settings:
+    format:
+      color: HEXA
+```
 
 **Pros**:
 
-- The constitution lists `Config` as a **grandfathered** abbreviation and directs new work to prefer `Configuration`. A `MAJOR` is already being taken, so the exception costs nothing to retire
-- The container earns its name: `metadata` needs one handle for "how this spec was produced," and two unrelated sibling keys lose the statement that they were resolved together for one run
-- Reads correctly with both halves: a configuration *comprises* conventions and settings
+- **Avoids a collision the container would create.** `types/` is flat and already holds `PropConfigurations.ts`; a `Configuration.ts` beside it invites a misread on every import
+- **One concept per file**, matching the directory's existing pattern — `Anatomy.ts`, `Props.ts`, `Variant.ts`
+- **Type files mirror artifacts.** `Conventions.ts` ↔ `conventions.yaml`, `Settings.ts` ↔ `settings.yaml` (Decision 10)
+- **Retires the vague word entirely.** "Config" is the term whose ambiguity let two kinds of value share one structure; naming nothing that removes the temptation to put a third kind there
+- Each half is separately diffable in `metadata` — the drift check the linter wants compares `metadata.conventions` directly, with nothing to unwrap
 
 **Cons / Trade-offs**:
 
-- Renames a type every consumer imports, atop the regrouping
-- `metadata.config` becomes `metadata.configuration`, changing generated output
+- `metadata` gains two keys where it had one, and nothing states that the two were resolved together for one run — beyond their appearing in the same `metadata` block for the same output
+- A consumer that genuinely wants "the whole configuration" declares a local pair type
+- `DEFAULT_CONFIG` becomes `DEFAULT_SETTINGS` and lives in `Settings.ts`, so nothing supplies defaults for conventions — which is correct, and now structurally obvious
 
 ---
 
-### Option 9B: Keep `Config` *(Rejected)*
+### Option 9B: A `Configuration` container replacing `Config` *(Rejected)*
 
-**Rejected because**: the grandfathering exists to avoid churn, and the churn is happening regardless. It also keeps the vague word that let two kinds of value share one structure.
+**Rejected because**: it collides in a flat `types/` directory with `PropConfigurations.ts`, and it re-implies the two halves are one thing at the exact moment the ADR separates them. It also preserves a container whose only remaining job — giving `metadata` a single key — is served just as well by two keys that can be compared independently.
 
 ---
 
-### Option 9C: Dissolve the container *(Rejected)*
+### Option 9C: Keep `Config` as the container *(Rejected)*
 
-**Rejected because**: `metadata` would carry two independent keys with no statement that they were resolved together, and no type would name the pair.
+**Rejected because**: it keeps both the collision risk and the vague word, and the constitution already lists `Config` as a grandfathered abbreviation that new work should avoid.
 
 ---
 
@@ -558,26 +574,25 @@ config/
 
 ## Decision
 
-Replace `Config` with `Configuration`, comprising two named, exported types — `Conventions` (namespaced by source) and `Settings` — and split the workspace artifact accordingly.
+Retire `Config`. Publish two independent root types — `Conventions` (namespaced by source) and `Settings` — in their own files, and split the workspace artifact to match.
 
 ### Type changes (`types/`)
 
 | File | Change | Bump |
 |------|--------|------|
-| `Config.ts` → `Configuration.ts` | Renamed `Config` → `Configuration`; `ResolvedConfig` → `ResolvedConfiguration` | MAJOR |
-| `Configuration.ts` | Added exported `Conventions` / `ResolvedConventions`, with a `figma` namespace | MAJOR |
-| `Configuration.ts` | Added exported `Settings` / `ResolvedSettings` holding `processing`, `format`, `include`, `transformers` | MAJOR |
-| `Configuration.ts` | Moved `states` → `conventions.figma.states`; `format.figmaKeys` → `conventions.figma.keys` | MAJOR |
-| `Configuration.ts` | Rekeyed name-based conventions to `<thing>.match`: `glyphNamePattern` → `glyphs.match`, `codeOnlyPropsPattern` → `codeOnlyProps.match`, `imageComponent` → `images.match`. Value types unchanged | MAJOR |
-| `Configuration.ts` | Moved `subcomponents`, `instanceExamples`, `images` wholly to `conventions.figma`, including `scope` and `backgroundImage` per Decision 6 | MAJOR |
-| `Configuration.ts` | Renamed `DEFAULT_CONFIG` → `DEFAULT_SETTINGS`, typed `ResolvedSettings` | MAJOR |
-| `Component.ts` | `metadata.config` → `metadata.configuration`, typed `ResolvedConfiguration` | MAJOR |
-| `index.ts` | Exports `Configuration`, `Conventions`, `Settings` and their resolved forms | MAJOR |
+| `Config.ts` | Removed; `Config` and `ResolvedConfig` retired | MAJOR |
+| `Conventions.ts` | Added — `Conventions` / `ResolvedConventions`, with a `figma` namespace | MAJOR |
+| `Settings.ts` | Added — `Settings` / `ResolvedSettings`, holding `processing`, `format`, `include`, `transformers` | MAJOR |
+| `Conventions.ts` | Holds `states`, `keys` (from `format.figmaKeys`), and the five name-based features whole, including `scope` and `backgroundImage` per Decision 6 | MAJOR |
+| `Conventions.ts` | Rekeyed name-based conventions to `<thing>.match`: `glyphNamePattern` → `glyphs.match`, `codeOnlyPropsPattern` → `codeOnlyProps.match`, `imageComponent` → `images.match`. Value types unchanged | MAJOR |
+| `Settings.ts` | `DEFAULT_CONFIG` → `DEFAULT_SETTINGS`, typed `ResolvedSettings` | MAJOR |
+| `Metadata.ts` | `config: Config` → `conventions: ResolvedConventions` and `settings: ResolvedSettings` | MAJOR |
+| `index.ts` | Exports both types and their resolved forms; `Config` exports removed | MAJOR |
 
-**Example — new shape** (`types/Configuration.ts`):
+**Example — new shape**:
 
 ```yaml
-# Before
+# Before — types/Config.ts
 Config:
   processing:
     glyphNamePattern?: string
@@ -586,27 +601,28 @@ Config:
     figmaKeys?: 'NONE' | 'SENTENCE' | 'TITLE'
     color?: ColorFormat
 
-# After
-Configuration:
-  conventions:
-    figma:
-      keys?: 'NONE' | 'SENTENCE' | 'TITLE'
-      glyphs?:
-        match: string                # one pattern, exactly as today
-  settings:
-    processing:
-      variantDepth?: 1 | 2 | 3 | 9999
-    format:
-      color?: ColorFormat
+# After — types/Conventions.ts
+Conventions:
+  figma:
+    keys?: 'NONE' | 'SENTENCE' | 'TITLE'
+    glyphs?:
+      match: string                # one pattern, exactly as today
+
+# After — types/Settings.ts
+Settings:
+  processing:
+    variantDepth?: 1 | 2 | 3 | 9999
+  format:
+    color?: ColorFormat
 ```
 
 ### Schema changes (`schema/`)
 
 | File | Change | Bump |
 |------|--------|------|
-| `component.schema.json` | Renamed `#/definitions/Config` → `#/definitions/Configuration` | MAJOR |
+| `component.schema.json` | Removed `#/definitions/Config` | MAJOR |
 | `component.schema.json` | Added `#/definitions/Conventions` and `#/definitions/Settings` | MAJOR |
-| `component.schema.json` | `metadata.config` → `metadata.configuration` | MAJOR |
+| `component.schema.json` | `metadata.config` → `metadata.conventions` + `metadata.settings` | MAJOR |
 | `workspace.schema.json` | Split into the two artifacts of Decision 8, each validating one definition | MAJOR |
 
 **Example — new shape** (`schema/component.schema.json`):
@@ -653,7 +669,7 @@ Conventions:
 ## Type ↔ Schema Impact
 
 - **Symmetric**: Yes
-- **Parity check**: `Configuration` ↔ `#/definitions/Configuration`; `Conventions` ↔ `#/definitions/Conventions`; `Settings` ↔ `#/definitions/Settings`; each moved member's schema property moves with its type field; `ResolvedConfiguration` mirrors `Configuration` with settings required-with-defaults and conventions optional; `metadata.configuration` ↔ `#/definitions/Metadata/properties/configuration`; `workspace.schema.json`'s two artifacts reference the same two definitions
+- **Parity check**: `Conventions` ↔ `#/definitions/Conventions`; `Settings` ↔ `#/definitions/Settings`; each moved member's schema property moves with its type field; `ResolvedSettings` is required-with-defaults while `ResolvedConventions` stays optional throughout; `metadata.conventions` and `metadata.settings` ↔ the matching `#/definitions/Metadata/properties` entries; `workspace.schema.json`'s two artifacts reference the same two definitions
 
 ---
 
@@ -662,7 +678,7 @@ Conventions:
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
 | `specs-from-figma` | Reads convention and setting members from new paths under renamed types | Update configuration access and type imports; no behavior change |
-| `specs-cli` | Workspace artifact splits into `config/conventions.yaml` and `config/settings.yaml`; `metadata.configuration` output changes | Update configuration access and imports; provide a read path for the pre-split artifact; surface which half a validation error came from |
+| `specs-cli` | Workspace artifact splits into `config/conventions.yaml` and `config/settings.yaml`; `metadata` carries two keys where it carried one | Update configuration access and imports; provide a read path for the pre-split artifact; surface which half a validation error came from |
 | `specs-plugin-2` | Holds configuration independently of any workspace, in one flat persisted map that mixes all three categories | Update configuration access and imports; separate persisted preferences from the shared halves; the convention set becomes comparable against a workspace's, making parity checkable rather than assumed |
 
 **On the plugin's flat map.** Its persisted settings interleave conventions, settings, and a third group that never reaches a spec:
@@ -695,7 +711,7 @@ Neither is changed by this ADR. Both become easier to reconcile once the halves 
 
 **Version bump**: MAJOR
 
-**Justification**: Types are renamed, fields move between paths, a generated `metadata` key is renamed, and the workspace artifact splits. Per the constitution, any change to a type signature, field name, field presence, or schema structure is `MAJOR`. Every consumer reading the old paths breaks at compile time, which is the desired failure mode.
+**Justification**: A published type is removed and replaced by two, fields move between paths, a generated `metadata` key is replaced by two, and the workspace artifact splits. Per the constitution, any change to a type signature, field name, field presence, or schema structure is `MAJOR`. Every consumer reading the old paths breaks at compile time, which is the desired failure mode.
 
 ---
 
@@ -715,4 +731,5 @@ Neither is changed by this ADR. Both become easier to reconcile once the halves 
 - Skipping a feature for a single run is an invocation concern rather than a configuration one, and is deliberately left to the CLI surface
 - New configuration members must be classified on arrival: a small ongoing tax, and the mechanism that keeps the split honest
 - Every consumer updates imports and configuration access in the same release, and pre-split workspaces need a read path provided outside this package
-- The `Config` abbreviation exception can be removed from the constitution's exceptions list
+- The `Config` abbreviation exception can be removed from the constitution's exceptions list, since no type carries the name
+- `metadata.conventions` is comparable across specs and consumers on its own, which is what makes convention drift detectable rather than merely diffable
