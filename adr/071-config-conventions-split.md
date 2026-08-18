@@ -192,6 +192,7 @@ figma:
 
 ```yaml
 # settings.yaml
+author: Nathan Curtis
 data:
   directory: ./data
   sources:
@@ -561,6 +562,11 @@ Retire `Config`. Publish two independent root types — `Conventions` (namespace
 
 | `Settings.ts` | Workspace members absorbed: `sources` → `data.sources` (its `data` list renamed `fetch`), `outputDirectory` → `spec.directory`, `splitComponents` / `splitConcerns` / `useSubfolders` → `spec`, `dataDirectory` → `data.directory` | MAJOR |
 | `Settings.ts` | `transformers` removed — work to run moves to its own artifact per Decision 10 | MAJOR |
+| `Settings.ts` | `author` absorbed from the workspace root | MAJOR |
+| `Pipeline.ts` | Added — `Pipeline` / `ResolvedPipeline`, holding `transformers` and `analyses` | MAJOR |
+| `Conventions.ts` | `VariantStateEntry` relocated here, beside `states` | MAJOR |
+| `Settings.ts` | `ColorFormat` relocated here, beside `spec.color` | MAJOR |
+| `Pipeline.ts` | `TransformEntry` relocated here, beside `transformers`; an `AnalysisEntry` of the same shape is added for `analyses` | MAJOR |
 | `Settings.ts` | `DEFAULT_CONFIG` → `DEFAULT_SETTINGS`, typed `ResolvedSettings` | MAJOR |
 | `Metadata.ts` | `config: Config` → `conventions: ResolvedConventions` and `settings: ResolvedSettings` | MAJOR |
 | `index.ts` | Exports both types and their resolved forms; `Config` exports removed | MAJOR |
@@ -602,6 +608,7 @@ Settings:
 |------|--------|------|
 | `component.schema.json` | Removed `#/definitions/Config` | MAJOR |
 | `component.schema.json` | Added `#/definitions/Conventions` and `#/definitions/Settings` | MAJOR |
+| `pipeline.schema.json` | Added — validates the third artifact | MAJOR |
 | `component.schema.json` | `metadata.config` → `metadata.conventions` + `metadata.settings` | MAJOR |
 | `workspace.schema.json` | Split into the two artifacts of Decision 8, each validating one definition | MAJOR |
 
@@ -645,6 +652,7 @@ Conventions:
 - **Work to run is not a setting.** `transformers` names *work* rather than how work behaves, and it is joined by `analyses`, which no artifact declares today. Both move to `pipeline.yaml` (Decision 10), which removes the odd member from `Settings` and gives analyses a declared home for the first time
 - **Application preferences are deliberately absent from the contract.** Values that never reach a spec — canvas column count, which sections a consumer renders, whether prior output is replaced — belong to the consumer that holds them. Naming the category is the contribution; owning it is not
 - **`VariantStateEntry` and `TransformEntry` are unchanged**, referenced from their new locations
+- **One canonical definition per shape, referenced rather than copied.** `workspace.schema.json` currently carries its own copy of `VariantStateEntry` alongside `component.schema.json`'s. The split multiplies that risk — `metadata` embeds conventions and settings, while the workspace artifacts validate the same shapes — so each shape is defined once and referenced by `$ref` from the other schema files. Constitution IV requires the schemas to remain internally consistent, and duplication is the mechanism by which they drift
 - **No migration logic is added to this package** (Constitution II). Reading a pre-split artifact is a consumer concern
 
 ---
@@ -662,7 +670,7 @@ Conventions:
 |----------|--------|-----------------|
 | `specs-from-figma` | Reads convention and setting members from new paths under renamed types | Update configuration access and type imports; no behavior change |
 | `specs-cli` | Workspace artifact splits into `config/conventions.yaml` and `config/settings.yaml`; `metadata` carries two keys where it carried one | Update configuration access and imports; provide a read path for the pre-split artifact; surface which half a validation error came from |
-| `specs-plugin-2` | Holds configuration independently of any workspace, in one flat persisted map that mixes all three categories | Update configuration access and imports; separate persisted preferences from the shared halves; the convention set becomes comparable against a workspace's, making parity checkable rather than assumed |
+| `specs-plugin-2` | Holds configuration independently of any workspace, in one flat persisted map that mixes all three categories. Its own exported `Settings` type collides with the schema's and is renamed `PanelSettings` | Update configuration access and imports; separate persisted preferences from the shared halves; the convention set becomes comparable against a workspace's, making parity checkable rather than assumed |
 
 **On the plugin's flat map.** Its persisted settings interleave conventions, settings, and a third group that never reaches a spec:
 
