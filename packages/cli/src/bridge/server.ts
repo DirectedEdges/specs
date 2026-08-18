@@ -42,7 +42,7 @@
 //   back on the matching result message, so responses route to the right
 //   caller even with multiple connections and requests in flight.
 
-import type { ResolvedConfig } from '@directededges/specs-schema';
+import type { ResolvedConventions, ResolvedSettings } from '@directededges/specs-schema';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { createServer } from 'http';
 import { readFileSync, readdirSync, statSync } from 'fs';
@@ -119,7 +119,7 @@ function resolveDirs(fromPath: string): { specsDir: string; dataDir: string; ali
   const specsDir = envSpecsDir ?? pathResolve(workspaceDir as string, 'specs');
   const dataDir = envDataDir ?? pathResolve(workspaceDir as string, 'data');
   // Data files are named {sourceAlias}.manifest.md, {sourceAlias}.file.json, etc.
-  // The source alias comes from the first key under `sources` in specs.config.yaml.
+  // The source alias comes from the first key under `data.sources` in the workspace settings.
   const { aliases, glyphNamePattern } = resolveSources(workspaceDir as string);
   return { specsDir, dataDir, aliases, glyphNamePattern };
 }
@@ -231,14 +231,14 @@ const http = createServer((req, res) => {
     let genBody = '';
     req.on('data', (chunk) => { genBody += chunk; });
     req.on('end', () => {
-      let params: { fileKey?: string; nodeId?: string; config?: ResolvedConfig; remove?: boolean };
+      let params: { fileKey?: string; nodeId?: string; conventions?: ResolvedConventions; settings?: ResolvedSettings; remove?: boolean };
       try { params = genBody ? JSON.parse(genBody) : {}; } catch {
         res.writeHead(400);
         res.end(JSON.stringify({ error: 'Invalid JSON body.' }));
         return;
       }
 
-      sendGenerateFromSelection(params.fileKey, params.nodeId, params.config)
+      sendGenerateFromSelection(params.fileKey, params.nodeId, params.conventions, params.settings)
         // The spec is in hand before the node goes, so a failed removal cannot cost the read.
         .then(async (result) => {
           if (params.remove && result.success && result.nodeId) {
@@ -267,14 +267,14 @@ const http = createServer((req, res) => {
   let body = '';
   req.on('data', (chunk) => { body += chunk; });
   req.on('end', () => {
-    let params: { specPath?: string; spec?: Record<string, unknown>; pageId?: string | null; fileKey?: string; overwrite?: boolean; config?: ResolvedConfig };
+    let params: { specPath?: string; spec?: Record<string, unknown>; pageId?: string | null; fileKey?: string; overwrite?: boolean; conventions?: ResolvedConventions; settings?: ResolvedSettings };
     try { params = JSON.parse(body); } catch {
       res.writeHead(400);
       res.end(JSON.stringify({ error: 'Invalid JSON body.' }));
       return;
     }
 
-    const { specPath: specArg, spec: preParsedSpec, pageId = null, fileKey, overwrite, config } = params;
+    const { specPath: specArg, spec: preParsedSpec, pageId = null, fileKey, overwrite, conventions, settings } = params;
 
     if (!specArg) {
       res.writeHead(400);
@@ -289,7 +289,7 @@ const http = createServer((req, res) => {
       return;
     }
 
-    sendRender(specArg, pageId, fileKey, preParsedSpec, overwrite, config)
+    sendRender(specArg, pageId, fileKey, preParsedSpec, overwrite, conventions, settings)
       .then((result) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(result));
@@ -525,17 +525,34 @@ function toCamelCase(str: string): string {
 // ── Workspace config resolution ───────────────────────────────────────────────
 
 /**
- * Read specs.config.yaml from the workspace root and return the first source alias.
- * Data files are named {alias}.manifest.md, {alias}.file.json, etc. — matching what
- * `specs scan` produces (line: baseName = path.basename(alias + '.file.json', '.file.json')).
- * Falls back to the workspace directory name if the config is absent or has no sources.
- */
-/**
  * Every source alias declared in the workspace config, in declaration order, plus the
  * glyph naming pattern. Render resolves against all of them: a component can instance a
  * component, bind a token, or place a glyph from any library the workspace declares.
+ *
+ * The workspace authors config/settings.yaml and config/conventions.yaml (ADR-071);
+ * a pre-split workspace still carries a single specs.config.yaml, so that shape is
+ * read as a fallback to keep older workspaces rendering.
  */
 function resolveSources(workspaceDir: string): { aliases: string[]; glyphNamePattern?: string } {
+  try {
+    const settings = parse(readFileSync(pathResolve(workspaceDir, 'config', 'settings.yaml'), 'utf8')) as {
+      data?: { sources?: Record<string, unknown> };
+    };
+    const sources = settings?.data?.sources;
+    const aliases = sources && typeof sources === 'object' ? Object.keys(sources) : [];
+    let glyphNamePattern: string | undefined;
+    try {
+      const conventions = parse(readFileSync(pathResolve(workspaceDir, 'config', 'conventions.yaml'), 'utf8')) as {
+        figma?: { glyphs?: { match?: string } };
+      };
+      glyphNamePattern = conventions?.figma?.glyphs?.match;
+    } catch {
+      // No conventions file — no glyph pattern.
+    }
+    return { aliases, glyphNamePattern };
+  } catch {
+    // No split config — fall through to the legacy single-file shape.
+  }
   const configPath = pathResolve(workspaceDir, 'specs.config.yaml');
   try {
     const config = parse(readFileSync(configPath, 'utf8')) as {
@@ -574,19 +591,19 @@ async function sendRemoveNode(nodeId: string, fileKey?: string): Promise<{ succe
   return promise as Promise<{ success: boolean; error?: string }>;
 }
 
-async function sendGenerateFromSelection(fileKey?: string, nodeId?: string, config?: ResolvedConfig): Promise<GenerateResult> {
+async function sendGenerateFromSelection(fileKey?: string, nodeId?: string, conventions?: ResolvedConventions, settings?: ResolvedSettings): Promise<GenerateResult> {
   const conn = registry.resolve(fileKey);
   const { requestId, promise } = requests.create(60000, 'Timed out waiting for generateFromSelection-result.');
-  // `config` travels with the request and governs how the plugin builds this one spec.
-  // The plugin must not adopt it as its own settings.
-  conn.ws.send(JSON.stringify({ type: 'generateFromSelection', requestId, nodeId, config }));
+  // `conventions`/`settings` travel with the request and govern how the plugin builds
+  // this one spec. The plugin must not adopt them as its own settings.
+  conn.ws.send(JSON.stringify({ type: 'generateFromSelection', requestId, nodeId, conventions, settings }));
   return promise as Promise<GenerateResult>;
 }
 
 /**
  * Send a single renderComponent message over the WebSocket and wait for the result.
  */
-async function sendRender(specPath: string, rawPageId: string | null, fileKey?: string, preParsedSpec?: Record<string, unknown>, overwrite?: boolean, config?: ResolvedConfig): Promise<RenderResult> {
+async function sendRender(specPath: string, rawPageId: string | null, fileKey?: string, preParsedSpec?: Record<string, unknown>, overwrite?: boolean, conventions?: ResolvedConventions, settings?: ResolvedSettings): Promise<RenderResult> {
   const conn = registry.resolve(fileKey);
 
   let spec: Record<string, unknown>;
@@ -616,10 +633,14 @@ async function sendRender(specPath: string, rawPageId: string | null, fileKey?: 
     try { return fn(); } finally { bridgeTimings.push({ label, ms: Date.now() - start }); }
   };
 
-  const keyFormat = (spec as { metadata?: { config?: { format?: { keys?: string } } } })?.metadata?.config?.format?.keys
-    ?? (spec as { components?: Record<string, { metadata?: { config?: { format?: { keys?: string } } } }> })
-      ?.components?.[Object.keys((spec as { components?: Record<string, unknown> }).components ?? {})[0]]
-      ?.metadata?.config?.format?.keys;
+  // A spec generated since the conventions/settings split (ADR-071) records its key
+  // format at `metadata.settings.spec.keys`; older specs carry `metadata.config.format.keys`.
+  // Read the new key first and fall back so pre-split specs still render.
+  type SpecMeta = { settings?: { spec?: { keys?: string } }; config?: { format?: { keys?: string } } };
+  const keysOf = (m?: SpecMeta): string | undefined => m?.settings?.spec?.keys ?? m?.config?.format?.keys;
+  const componentsOf = (spec as { components?: Record<string, { metadata?: SpecMeta }> })?.components;
+  const keyFormat = keysOf((spec as { metadata?: SpecMeta })?.metadata)
+    ?? keysOf(componentsOf?.[Object.keys(componentsOf ?? {})[0]]?.metadata);
   const manifest = timed('instance manifest', () => buildManifest(spec, specsDir, dataDir, keyFormat));
   const glyphIdManifest = timed('glyph manifest', () => buildGlyphManifest(dataDir));
   const stylesManifest = timed('styles manifest', () => buildStylesManifest(dataDir));
@@ -644,7 +665,7 @@ async function sendRender(specPath: string, rawPageId: string | null, fileKey?: 
   // A large component set against a big library can take minutes today; a timeout
   // shorter than the render discards a result the plugin actually produced.
   const { requestId, promise } = requests.create(300000, 'Timed out waiting for renderComponent-result.');
-  const payload = JSON.stringify({ type: 'renderComponent', requestId, spec, pageId, instanceIdManifest: manifest, glyphIdManifest, stylesManifest, variablesManifest, overwrite, config });
+  const payload = JSON.stringify({ type: 'renderComponent', requestId, spec, pageId, instanceIdManifest: manifest, glyphIdManifest, stylesManifest, variablesManifest, overwrite, conventions, settings });
 
   const sentAt = Date.now();
   conn.ws.send(payload);

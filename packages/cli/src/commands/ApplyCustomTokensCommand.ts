@@ -4,16 +4,17 @@
  * Purpose:
  * - Read a mapping JSON file containing { figmaId: { $custom: {...}, ...otherProps } }
  * - Inject the $custom objects into variables and styles JSON files
- * - Config-aware: auto-discovers data files from specs.config.yaml
+ * - Config-aware: auto-discovers data files from the workspace settings
  * - Supports -v/-s flags to override file paths
  */
 
 import { Command } from 'commander';
 import fs from 'fs-extra';
 import path from 'path';
-import yaml from 'yaml';
 import { refreshCache } from '../Cache/Cache.js';
 import { reportCache } from './CacheCommand.js';
+import { ConfigLoader } from '../Config/ConfigLoader.js';
+import type { CLIConfig } from '../Types/CLIConfig.js';
 
 const ERROR_CODES = {
   SUCCESS: 0,
@@ -21,48 +22,6 @@ const ERROR_CODES = {
   INVALID_ARGS: 2,
   FILE_ERROR: 3,
 };
-
-type MinimalConfig = {
-  dataDirectory?: string;
-  sourceDirectory?: string; // deprecated alias
-  sources?: Record<string, { key: string; data: string[] }>;
-  config?: { processing?: { glyphNamePattern?: string } };
-};
-
-function findConfigFile(cwd: string): string | null {
-  const locations = [
-    path.join(cwd, 'specs.config.yaml'),
-    path.join(cwd, 'specs.config.json'),
-    path.join(process.env.HOME || '~', '.specs', 'config.yaml'),
-  ];
-
-  for (const location of locations) {
-    if (fs.existsSync(location)) return location;
-  }
-
-  return null;
-}
-
-function loadConfig(configPath?: string): { configPath: string | null; config: MinimalConfig; configDir: string } {
-  const resolvedPath = configPath ? path.resolve(configPath) : findConfigFile(process.cwd());
-
-  if (!resolvedPath) {
-    return { configPath: null, config: {}, configDir: process.cwd() };
-  }
-
-  if (!fs.existsSync(resolvedPath)) {
-    throw new Error(`Config file not found: ${resolvedPath}`);
-  }
-
-  const raw = fs.readFileSync(resolvedPath, 'utf-8');
-  const parsed = resolvedPath.endsWith('.json') ? JSON.parse(raw) : (yaml.parse(raw) as unknown);
-
-  return {
-    configPath: resolvedPath,
-    config: (parsed as MinimalConfig) || {},
-    configDir: path.dirname(resolvedPath),
-  };
-}
 
 type MappingEntry = Record<string, unknown>;
 type MappingFile = Record<string, MappingEntry>;
@@ -97,7 +56,7 @@ function loadAndValidateMapping(mappingPath: string): MappingFile {
 
 function discoverDataFiles(
   configDir: string,
-  config: MinimalConfig,
+  config: CLIConfig,
   variablesFlag?: string,
   stylesFlag?: string,
 ): { variablesPaths: string[]; stylesPaths: string[] } {
@@ -108,17 +67,18 @@ function discoverDataFiles(
     };
   }
 
-  const sourceDir = path.resolve(configDir, config.dataDirectory || config.sourceDirectory || 'data');
+  const sourceDir = path.resolve(configDir, config.settings.data?.directory || 'data');
   const variablesPaths: string[] = [];
   const stylesPaths: string[] = [];
 
-  if (config.sources) {
-    for (const [alias, source] of Object.entries(config.sources)) {
-      if (source.data.includes('variables')) {
+  const sources = config.settings.data?.sources;
+  if (sources) {
+    for (const [alias, source] of Object.entries(sources)) {
+      if ((source.fetch ?? []).includes('variables')) {
         const vp = path.join(sourceDir, `${alias}.variables.json`);
         if (fs.existsSync(vp)) variablesPaths.push(vp);
       }
-      if (source.data.includes('styles')) {
+      if ((source.fetch ?? []).includes('styles')) {
         const sp = path.join(sourceDir, `${alias}.styles.json`);
         if (fs.existsSync(sp)) stylesPaths.push(sp);
       }
@@ -202,7 +162,7 @@ export interface ApplyCustomTokensOptions {
 export const ApplyCustomTokens = new Command('applyCustomTokens')
   .description('Inject $custom token objects from a mapping file into fetched variables/styles JSON')
   .argument('<mapping>', 'Path to the JSON mapping file')
-  .option('--config <path>', 'Path to config file (specs.config.yaml)')
+  .option('--config <path>', 'Path to a config/ directory or legacy specs.config.yaml')
   .option('-v, --variables <path>', 'Path to variables JSON file (overrides config discovery)')
   .option('-s, --styles <path>', 'Path to styles JSON file (overrides config discovery)')
   .action(async (mappingArg: string, options: ApplyCustomTokensOptions) => {
@@ -221,11 +181,12 @@ export const ApplyCustomTokens = new Command('applyCustomTokens')
       }
 
       // Load config and discover files
-      const { config, configDir } = loadConfig(options.config);
+      const config = new ConfigLoader().load(options.config);
+      const configDir = config.configDir ?? process.cwd();
       const { variablesPaths, stylesPaths } = discoverDataFiles(configDir, config, options.variables, options.styles);
 
       if (variablesPaths.length === 0 && stylesPaths.length === 0) {
-        console.error('Error: No variables or styles files found. Use -v/-s flags or configure sources in specs.config.yaml');
+        console.error('Error: No variables or styles files found. Use -v/-s flags or configure sources in the workspace settings');
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
 
@@ -290,11 +251,12 @@ export const ApplyCustomTokens = new Command('applyCustomTokens')
 
       // The variables payload was just rewritten in place, so the render cache built from
       // it now describes pre-custom-token data. Rebuild before anyone renders against it.
-      if (config.dataDirectory) {
+      const dataDirectory = config.settings.data?.directory;
+      if (dataDirectory) {
         const report = refreshCache({
-          dataDir: path.resolve(configDir, config.dataDirectory),
-          aliases: Object.keys(config.sources ?? {}),
-          glyphNamePattern: config.config?.processing?.glyphNamePattern,
+          dataDir: path.resolve(configDir, dataDirectory),
+          aliases: Object.keys(config.settings.data?.sources ?? {}),
+          glyphNamePattern: config.conventions.figma.glyphs?.match,
         });
         reportCache(report);
       }

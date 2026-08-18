@@ -10,7 +10,7 @@ The spec file contains token references in whatever format the consumer chose at
 
 ### Token reference shapes in the spec (by format)
 
-| `format.tokens` config | Shape in spec | Example |
+| `spec.tokens` setting | Shape in spec | Example |
 |---|---|---|
 | `TOKEN` *(default)* | `{ $token, $type }` object | `{ $token: "DS Color/Alert/Info/Background", $type: "color" }` |
 | `TOKEN_FIGMA_EXTENSIONS` | `{ $token, $type, $extensions }` object | same + `$extensions.com.figma.id` |
@@ -25,7 +25,7 @@ The spec file contains token references in whatever format the consumer chose at
 
 ## Resolution Logic
 
-Resolution is determined by `config.format.tokens`. Three branches:
+Resolution is determined by `settings.spec.tokens`. Three branches:
 
 ---
 
@@ -125,7 +125,7 @@ Transform steps, in order:
 
 ## Resolution Table
 
-| `format.tokens` | Step 1 | Step 2 | Step 3 |
+| `spec.tokens` | Step 1 | Step 2 | Step 3 |
 |---|---|---|---|
 | `FIGMA_SYNTAX_WEB` | string starts with `--` → use directly | `{ $token }` fallback → path derivation | — |
 | `CUSTOM` | `$custom.$cssVar` → use directly | variables file reverse lookup → `codeSyntax.WEB` | path derivation |
@@ -142,9 +142,9 @@ Transform steps, in order:
 For Branch 2 step 2, the transformer needs the fetched variables file. This is supplied via:
 
 - `--variables <path>` flag on `specs transform`
-- `config.dataDirectory` / `config.sources` (same resolution as `generate`)
+- `settings.data.directory` / `settings.data.sources` (same resolution as `generate`)
 
-The file is only loaded when `format.tokens: CUSTOM` and `$cssVar` is absent from the spec value. It is never required for other branches.
+The file is only loaded when `spec.tokens: CUSTOM` and `$cssVar` is absent from the spec value. It is never required for other branches.
 
 ---
 

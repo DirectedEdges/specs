@@ -1,6 +1,6 @@
 // Thin HTTP client for talking to a running bridge server (see bridge/server.ts).
 
-import type { ResolvedConfig } from '@directededges/specs-schema';
+import type { ResolvedConventions, ResolvedSettings } from '@directededges/specs-schema';
 import { HTTP_PORT } from './config.js';
 
 export interface BridgeConnection {
@@ -35,11 +35,13 @@ export interface RenderRequestBody {
   /** Delete a same-titled page node before rendering, instead of erroring on the collision. */
   overwrite?: boolean;
   /**
-   * The workspace config, as a fallback for a spec that carries no `metadata.config` —
-   * a hand-authored one, say. The spec's own config still wins: it records how the spec
-   * was produced, which is what render has to reverse.
+   * The workspace conventions and settings, as a fallback for a spec that carries no
+   * `metadata.conventions`/`metadata.settings` — a hand-authored one, say. The spec's
+   * own record still wins: it captures how the spec was produced, which is what render
+   * has to reverse.
    */
-  config?: ResolvedConfig;
+  conventions?: ResolvedConventions;
+  settings?: ResolvedSettings;
 }
 
 // Render reports success/failure only — the round-trip spec read is a second,
@@ -71,13 +73,14 @@ export interface GenerateFromSelectionRequestBody {
   /** Generate from this node instead of the current selection (the plugin selects it first). */
   nodeId?: string;
   /**
-   * The config to process the node under. Without it the plugin builds the spec under its
-   * own UI settings, so the same node in the same file yields different specs depending on
-   * how someone last left the panel — and a round trip compares a baseline made under one
-   * config against a read made under another. Applies to this request only; it must never
-   * be stored as the plugin's settings.
+   * The conventions and settings to process the node under. Without them the plugin builds
+   * the spec under its own UI settings, so the same node in the same file yields different
+   * specs depending on how someone last left the panel — and a round trip compares a
+   * baseline made under one configuration against a read made under another. Applies to
+   * this request only; it must never be stored as the plugin's settings.
    */
-  config?: ResolvedConfig;
+  conventions?: ResolvedConventions;
+  settings?: ResolvedSettings;
   /**
    * Testing utility: delete the node once its spec has been read. A catalogue sweep that
    * renders and reads every component otherwise leaves all of them on the page.

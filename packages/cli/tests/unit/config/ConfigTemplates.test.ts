@@ -1,20 +1,42 @@
 import { describe, it, expect } from 'vitest';
 import yaml from 'yaml';
-import { generateConfigTemplate } from '../../../src/Config/ConfigTemplates.js';
+import {
+  generateConventionsTemplate,
+  generateSettingsTemplate,
+  generatePipelineTemplate,
+  generateConfigTemplates,
+} from '../../../src/Config/ConfigTemplates.js';
 
 describe('ConfigTemplates', () => {
-  describe('generateConfigTemplate', () => {
-    it('should generate a valid YAML template', () => {
-      const template = generateConfigTemplate();
-      expect(template).toBeTruthy();
-      expect(typeof template).toBe('string');
-      // Must parse as YAML — commented example blocks included.
-      expect(() => yaml.parse(template)).not.toThrow();
+  describe('generateConfigTemplates', () => {
+    it('returns the three split-config files keyed by path under config/', () => {
+      const templates = generateConfigTemplates();
+      expect(Object.keys(templates).sort()).toEqual([
+        'config/conventions.yaml',
+        'config/pipeline.yaml',
+        'config/settings.yaml',
+      ]);
     });
 
+    it('every template parses as valid YAML — commented example blocks included', () => {
+      for (const template of Object.values(generateConfigTemplates())) {
+        expect(template).toBeTruthy();
+        expect(typeof template).toBe('string');
+        expect(() => yaml.parse(template)).not.toThrow();
+      }
+    });
+
+    it('templates have consistent line endings', () => {
+      for (const template of Object.values(generateConfigTemplates())) {
+        expect(template.includes('\r\n')).toBe(false);
+      }
+    });
+  });
+
+  describe('generateConventionsTemplate', () => {
     it('documents every feature-toggle block (commented) with a doc link', () => {
-      const template = generateConfigTemplate();
-      for (const block of ['instanceExamples:', 'states:', 'images:', 'imageComponent:', 'sourceProps:', 'defaultSlotContent:']) {
+      const template = generateConventionsTemplate();
+      for (const block of ['instanceExamples:', 'states:', 'images:', 'sourceProps:']) {
         expect(template).toContain(block);
       }
       expect(template).toContain('www.specsplugin.com/guides/images/');
@@ -22,113 +44,100 @@ describe('ConfigTemplates', () => {
       expect(template).toContain('www.specsplugin.com/settings/states/');
     });
 
-    it('should include dataDirectory with default value', () => {
-      const template = generateConfigTemplate();
-      expect(template).toContain('dataDirectory: ./data');
+    it('should include commented glyphs block for icon glyph naming', () => {
+      const template = generateConventionsTemplate();
+      expect(template).toContain('glyphs:');
+      expect(template).toContain('glyph');
+    });
+
+    it('should include figma conventions structure', () => {
+      const template = generateConventionsTemplate();
+      expect(template).toContain('figma:');
+      expect(template).toContain('naming:');
+      expect(template).toContain('subcomponents:');
+      expect(template).toContain('match:');
+      expect(template).toContain('slotConstraints:');
+      expect(template).toContain('codeOnlyProps:');
+    });
+
+    it('figma is the only top-level key', () => {
+      const parsed = yaml.parse(generateConventionsTemplate());
+      expect(Object.keys(parsed)).toEqual(['figma']);
+    });
+  });
+
+  describe('generateSettingsTemplate', () => {
+    it('should include data.directory with default value', () => {
+      const template = generateSettingsTemplate();
+      expect(template).toContain('directory: ./data');
       expect(template).toContain('Where fetch writes payloads');
     });
 
-    it('should include outputDirectory with default value', () => {
-      const template = generateConfigTemplate();
-      expect(template).toContain('outputDirectory: ./specs');
+    it('should include spec.directory with default value', () => {
+      const template = generateSettingsTemplate();
+      expect(template).toContain('directory: ./specs');
       expect(template).toContain('Default location for generated spec files');
     });
 
     it('should include inline documentation comments', () => {
-      const template = generateConfigTemplate();
+      const template = generateSettingsTemplate();
       expect(template).toContain('#');
-      expect(template).toContain('Specs CLI Configuration');
       expect(template).toContain('www.specsplugin.com/settings/');
-    });
-
-    it('should include doc URL references', () => {
-      const template = generateConfigTemplate();
-      expect(template).toContain('www.specsplugin.com/settings/');
-      expect(template).toContain('www.specsplugin.com/');
     });
 
     it('should include Figma sources section', () => {
-      const template = generateConfigTemplate();
+      const template = generateSettingsTemplate();
       expect(template).toContain('sources:');
       expect(template).toContain('Figma file sources');
       expect(template).toContain('FIGMA_FILE_KEY');
     });
 
-    it('should include commented glyphNamePattern option', () => {
-      const template = generateConfigTemplate();
-      expect(template).toContain('glyphNamePattern');
-      expect(template).toContain('icon glyph');
-    });
-
-    it('should include config processing configuration', () => {
-      const template = generateConfigTemplate();
-      expect(template).toContain('config:');
-      expect(template).toContain('processing:');
-      expect(template).toContain('subcomponents:');
-      expect(template).toContain('match:');
+    it('should include spec serialization settings', () => {
+      const template = generateSettingsTemplate();
+      expect(template).toContain('spec:');
+      expect(template).toContain('keys:');
+      expect(template).toContain('format:');
+      expect(template).toContain('tokens:');
+      expect(template).toContain('layout:');
+      expect(template).toContain('color:');
       expect(template).toContain('variantDepth');
       expect(template).toContain('details');
       expect(template).toContain('collapsePrimitiveWrapper');
+      expect(template).toContain('defaultSlotContent');
     });
 
-    it('should include format configuration section', () => {
-      const template = generateConfigTemplate();
-      expect(template).toContain('format:');
-      expect(template).toContain('keys:');
-      expect(template).toContain('output:');
-      expect(template).toContain('tokens:');
-      expect(template).toContain('layout:');
-    });
-
-    it('should have consistent line endings', () => {
-      const template = generateConfigTemplate();
-      // Should use consistent line endings (not mixed \n and \r\n)
-      const hasWindows = template.includes('\r\n');
-      const hasUnix = template.includes('\n');
-      if (hasWindows && hasUnix) {
-        expect(false).toBe(true); // Fail if mixed line endings
-      }
-    });
-
-    it('should be valid YAML structure', () => {
-      const template = generateConfigTemplate();
-      // Check basic YAML structure: top-level keys, nested indentation
-      const lines = template.split('\n');
-      const nonCommentLines = lines.filter(line => !line.trim().startsWith('#') && line.trim());
-
-      // Should have top-level keys
-      const topLevelKeys = nonCommentLines.filter(line => !line.startsWith(' '));
-      expect(topLevelKeys.length).toBeGreaterThan(0);
-      expect(topLevelKeys.some(line => line.includes('dataDirectory'))).toBe(true);
-      expect(topLevelKeys.some(line => line.includes('outputDirectory'))).toBe(true);
-      expect(topLevelKeys.some(line => line.includes('sources'))).toBe(true);
-      expect(topLevelKeys.some(line => line.includes('config'))).toBe(true);
+    it('should have valid structure with top-level keys', () => {
+      const parsed = yaml.parse(generateSettingsTemplate());
+      expect(Object.keys(parsed)).toContain('author');
+      expect(Object.keys(parsed)).toContain('data');
+      expect(Object.keys(parsed)).toContain('spec');
+      expect(parsed.data.sources).toEqual({});
     });
 
     it('should mention defaults in comments', () => {
-      const template = generateConfigTemplate();
+      const template = generateSettingsTemplate();
       expect(template).toContain('Default');
       expect(template).toContain('default');
     });
+  });
 
-    it('includes a commented-out transformers: block under config:', () => {
-      const template = generateConfigTemplate();
+  describe('generatePipelineTemplate', () => {
+    it('includes a commented-out transformers: block', () => {
+      const template = generatePipelineTemplate();
       expect(template).toContain('# transformers:');
     });
 
-    it('includes commented-out transformer entries for contract, css, styling', () => {
-      const template = generateConfigTemplate();
+    it('includes commented-out transformer entries for contract, css, react', () => {
+      const template = generatePipelineTemplate();
       expect(template).toContain('#   - name: contract');
       expect(template).toContain('#   - name: css');
-      expect(template).toContain('#   - name: styling');
+      expect(template).toContain('#   - name: react');
     });
 
-    it('transformers block appears after the include: section', () => {
-      const template = generateConfigTemplate();
-      const includeIdx = template.indexOf('include:');
-      const transformIdx = template.indexOf('# transformers:');
-      expect(includeIdx).toBeGreaterThanOrEqual(0);
-      expect(transformIdx).toBeGreaterThan(includeIdx);
+    it('includes a commented-out analyses: block', () => {
+      const template = generatePipelineTemplate();
+      expect(template).toContain('# analyses:');
+      expect(template).toContain('#   - name: dependencies');
     });
   });
 });

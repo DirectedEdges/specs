@@ -1,356 +1,525 @@
 /**
  * Configuration File Loader
- * 
- * Loads and validates specs.config.yaml or specs.config.json files
- * with sensible defaults and priority order: CLI flags > file > defaults
+ *
+ * Loads and validates the workspace's split configuration (ADR-071):
+ * a `config/` directory holding `conventions.yaml`, `settings.yaml`, and
+ * `pipeline.yaml` (each optional, `.json` also accepted). A pre-split
+ * `specs.config.yaml` / `specs.config.json` still loads via an in-memory
+ * migration with a one-time deprecation warning.
+ *
+ * Priority order: CLI flags > file > defaults.
  */
 
 import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
-import { DEFAULT_CONFIG, type Config, type ResolvedConfig } from '@directededges/specs-schema';
+import {
+  DEFAULT_SETTINGS,
+  DEFAULT_PIPELINE,
+  type ResolvedConventions,
+  type ResolvedSettings,
+  type ResolvedPipeline,
+  type Settings,
+  type SourceEntry,
+} from '@directededges/specs-schema';
 import { CONFIG_DEFAULTS } from './ConfigDefaults.js';
 import type { CLIConfig } from '../Types/CLIConfig.js';
-import type { OutputConfig, OutputFormat } from '../Types/OutputConfig.js';
+
+/** Base names of the three split-configuration files inside `config/`. */
+const CONFIG_DIR_FILES = ['conventions', 'settings', 'pipeline'] as const;
+
+/** Extensions accepted for each split-configuration file, in priority order. */
+const CONFIG_FILE_EXTENSIONS = ['yaml', 'json'] as const;
+
+type ConfigSource =
+  | { kind: 'directory'; dir: string }
+  | { kind: 'legacy'; file: string };
 
 export class ConfigLoader {
   constructor() {
     // Config loader with runtime type checking instead of schema validation
   }
-  
+
   /**
-   * Load configuration from file or use defaults
-   * 
-   * @param configPath - Optional explicit config file path
+   * Load configuration from the split `config/` directory, a legacy file,
+   * or defaults.
+   *
+   * @param configPath - Optional explicit path: either a `config/` directory
+   *   holding split files or a legacy `specs.config.yaml`/`.json` file
    * @returns Complete CLI configuration
    */
   public load(configPath?: string): CLIConfig {
-    const filePath = configPath || this.findConfigFile();
-    
-    if (!filePath || !fs.existsSync(filePath)) {
-      // No config file, use defaults
+    const source = configPath
+      ? this.classifyExplicitPath(configPath)
+      : this.findConfigSource();
+
+    if (!source) {
       return this.getDefaultConfig();
     }
-    
-    try {
-      const raw = fs.readFileSync(filePath, 'utf-8');
-      const parsed = filePath.endsWith('.json') 
-        ? JSON.parse(raw) 
-        : yaml.parse(raw);
-      
-      // Validate and merge with defaults
-      const config = this.validateAndMerge(parsed);
 
-      // Resolve dataDirectory and outputDirectory relative to config file location
-      const configDir = path.dirname(filePath);
-      if (config.dataDirectory && !path.isAbsolute(config.dataDirectory)) {
-        config.dataDirectory = path.resolve(configDir, config.dataDirectory);
-      }
-      if (config.outputDirectory && !path.isAbsolute(config.outputDirectory)) {
-        config.outputDirectory = path.resolve(configDir, config.outputDirectory);
-      }
-      
-      return config;
+    try {
+      return source.kind === 'directory'
+        ? this.loadFromDirectory(source.dir)
+        : this.loadFromLegacyFile(source.file);
     } catch (error) {
-      console.error(`Error loading config from ${filePath}:`, error);
+      const location = source.kind === 'directory' ? source.dir : source.file;
+      console.error(`Error loading config from ${location}:`, error);
       console.error('Falling back to default configuration');
       return this.getDefaultConfig();
     }
   }
-  
+
   /**
-   * Find config file in standard locations
+   * Classify an explicit `configPath` argument as either a split-config
+   * directory or a legacy file.
+   */
+  private classifyExplicitPath(configPath: string): ConfigSource | null {
+    if (!fs.existsSync(configPath)) {
+      return null;
+    }
+    if (fs.statSync(configPath).isDirectory()) {
+      return { kind: 'directory', dir: path.resolve(configPath) };
+    }
+    return { kind: 'legacy', file: path.resolve(configPath) };
+  }
+
+  /**
+   * Find configuration in standard locations.
    *
    * Checks in order:
-   * 1. ./specs.config.yaml
-   * 2. ./specs.config.json
-   * 3. ~/.specs/config.yaml
-   *
-   * @returns Path to config file or null if not found
+   * 1. ./config/ containing any of conventions|settings|pipeline .yaml/.json
+   * 2. ./specs.config.yaml
+   * 3. ./specs.config.json
+   * 4. ~/.specs/config.yaml
    */
-  private findConfigFile(): string | null {
-    const locations = [
+  private findConfigSource(): ConfigSource | null {
+    const configDir = path.join(process.cwd(), 'config');
+    if (fs.existsSync(configDir) && fs.statSync(configDir).isDirectory()) {
+      const hasSplitFile = CONFIG_DIR_FILES.some(base =>
+        CONFIG_FILE_EXTENSIONS.some(ext => fs.existsSync(path.join(configDir, `${base}.${ext}`)))
+      );
+      if (hasSplitFile) {
+        return { kind: 'directory', dir: configDir };
+      }
+    }
+
+    const legacyLocations = [
       path.join(process.cwd(), 'specs.config.yaml'),
       path.join(process.cwd(), 'specs.config.json'),
       path.join(process.env.HOME || '~', '.specs', 'config.yaml'),
     ];
-    
-    for (const location of locations) {
+    for (const location of legacyLocations) {
       if (fs.existsSync(location)) {
-        return location;
+        return { kind: 'legacy', file: location };
       }
     }
-    
+
     return null;
   }
-  
+
   /**
-   * Validate and merge config file with defaults
+   * Load the split configuration from a `config/` directory. Missing files
+   * are fine — each half defaults independently.
+   *
+   * Relative directories resolve against the directory that *contains*
+   * `config/` (the workspace root), matching where a legacy root-level
+   * `specs.config.yaml` resolved them.
    */
-  private validateAndMerge(parsed: unknown): CLIConfig {
-    // Support deprecated 'sourceDirectory' with warning
-    const raw = parsed as any; // eslint-disable-line @typescript-eslint/no-explicit-any
-    let dataDirectory = raw?.dataDirectory;
-    if (!dataDirectory && raw?.sourceDirectory) {
+  private loadFromDirectory(dir: string): CLIConfig {
+    const conventions = this.resolveConventions(this.readPart(dir, 'conventions'));
+    const settings = this.resolveSettings(this.readPart(dir, 'settings'));
+    const pipeline = this.resolvePipeline(this.readPart(dir, 'pipeline'));
+
+    const configDir = path.dirname(dir);
+    this.resolveSettingsDirectories(settings, configDir);
+
+    return { conventions, settings, pipeline, configDir };
+  }
+
+  /**
+   * Load a pre-split `specs.config.yaml`-style file, migrating it into the
+   * split shape in memory. The user's file is not rewritten.
+   */
+  private loadFromLegacyFile(file: string): CLIConfig {
+    const parsed = this.parseFile(file);
+    const migrated = this.migrateLegacy(parsed);
+
+    console.warn(
+      "Warning: the single-file specs.config format is deprecated — split it into 'config/conventions.yaml' and 'config/settings.yaml'. Loaded via in-memory migration this run."
+    );
+
+    const conventions = this.resolveConventions(migrated.conventions);
+    const settings = this.resolveSettings(migrated.settings);
+    const pipeline = this.resolvePipeline(migrated.pipeline);
+
+    const configDir = path.dirname(file);
+    this.resolveSettingsDirectories(settings, configDir);
+
+    return { conventions, settings, pipeline, configDir };
+  }
+
+  /**
+   * Read one split-configuration file (`<base>.yaml` or `<base>.json`) from
+   * the config directory. Returns undefined when the file is absent.
+   */
+  private readPart(dir: string, base: string): unknown {
+    for (const ext of CONFIG_FILE_EXTENSIONS) {
+      const file = path.join(dir, `${base}.${ext}`);
+      if (fs.existsSync(file)) {
+        return this.parseFile(file);
+      }
+    }
+    return undefined;
+  }
+
+  private parseFile(file: string): unknown {
+    const raw = fs.readFileSync(file, 'utf-8');
+    return file.endsWith('.json') ? JSON.parse(raw) : yaml.parse(raw);
+  }
+
+  /**
+   * Map a pre-split config file into the three split shapes, in memory.
+   */
+  private migrateLegacy(parsed: unknown): { conventions: unknown; settings: unknown; pipeline: unknown } {
+    const raw = (parsed ?? {}) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    const figma: Record<string, any> = {};
+    const spec: Record<string, any> = {};
+    const data: Record<string, any> = {};
+    const settings: Record<string, any> = {};
+    const pipeline: Record<string, any> = {};
+    /* eslint-enable @typescript-eslint/no-explicit-any */
+
+    // Support deprecated 'sourceDirectory' with warning (predates the split)
+    let dataDirectory = raw.dataDirectory;
+    if (!dataDirectory && raw.sourceDirectory) {
       console.warn("Warning: 'sourceDirectory' is deprecated, use 'dataDirectory' instead");
       dataDirectory = raw.sourceDirectory;
     }
+    if (dataDirectory !== undefined) {
+      data.directory = dataDirectory;
+    }
+    if (raw.outputDirectory !== undefined) {
+      spec.directory = raw.outputDirectory;
+    }
+    if (raw.author !== undefined) {
+      settings.author = raw.author;
+    }
 
-    const config: CLIConfig = {
-      dataDirectory,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      outputDirectory: (parsed as any)?.outputDirectory,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      author: (parsed as any)?.author,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      config: this.mergeConfig((parsed as any)?.config),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      output: this.mergeOutputConfig((parsed as any)?.output),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      sources: (parsed as any)?.sources,
+    // sources -> settings.data.sources, renaming each source's `data` to `fetch`
+    if (raw.sources && typeof raw.sources === 'object') {
+      const sources: Record<string, SourceEntry> = {};
+      for (const [name, entry] of Object.entries(raw.sources as Record<string, unknown>)) {
+        if (!entry || typeof entry !== 'object') continue;
+        const src = entry as Record<string, unknown>;
+        const fetch = Array.isArray(src.data) ? src.data : (Array.isArray(src.fetch) ? src.fetch : undefined);
+        sources[name] = {
+          key: src.key as string,
+          ...(fetch && { fetch: fetch as string[] }),
+        };
+      }
+      data.sources = sources;
+    }
+
+    // output.{splitComponents,splitConcerns,useSubfolders} -> settings.spec
+    if (raw.output && typeof raw.output === 'object') {
+      for (const flag of ['splitComponents', 'splitConcerns', 'useSubfolders'] as const) {
+        if (raw.output[flag] !== undefined) {
+          spec[flag] = raw.output[flag];
+        }
+      }
+    }
+
+    const cfg = (raw.config && typeof raw.config === 'object' ? raw.config : {}) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+    // config.format -> settings.spec (output->format) + conventions.figma.naming
+    if (cfg.format && typeof cfg.format === 'object') {
+      if (cfg.format.output !== undefined) spec.format = cfg.format.output;
+      for (const key of ['keys', 'layout', 'tokens', 'color'] as const) {
+        if (cfg.format[key] !== undefined) spec[key] = cfg.format[key];
+      }
+      if (cfg.format.figmaKeys !== undefined) figma.naming = cfg.format.figmaKeys;
+    }
+
+    // config.processing -> settings.spec + conventions.figma
+    if (cfg.processing && typeof cfg.processing === 'object') {
+      const proc = cfg.processing;
+      for (const key of ['variantDepth', 'details', 'collapsePrimitiveWrapper'] as const) {
+        if (proc[key] !== undefined) spec[key] = proc[key];
+      }
+      for (const key of ['subcomponents', 'instanceExamples', 'states', 'slotConstraints', 'inferNumberProps'] as const) {
+        if (proc[key] !== undefined) figma[key] = proc[key];
+      }
+      if (proc.glyphNamePattern !== undefined) {
+        figma.glyphs = { match: proc.glyphNamePattern };
+      }
+      if (proc.codeOnlyPropsPattern !== undefined) {
+        figma.codeOnlyProps = { match: proc.codeOnlyPropsPattern };
+      }
+      if (proc.images && typeof proc.images === 'object') {
+        figma.images = {
+          ...(proc.images.imageComponent !== undefined && { match: proc.images.imageComponent }),
+          ...(proc.images.backgroundImage !== undefined && { backgroundImage: proc.images.backgroundImage }),
+          ...(proc.images.sourceProps !== undefined && { sourceProps: proc.images.sourceProps }),
+        };
+      }
+    }
+
+    // config.include -> settings.spec
+    if (cfg.include && typeof cfg.include === 'object') {
+      for (const key of ['invalidVariants', 'invalidCombinations', 'emptyVariants', 'defaultSlotContent'] as const) {
+        if (cfg.include[key] !== undefined) spec[key] = cfg.include[key];
+      }
+    }
+
+    // config.transformers -> pipeline.transformers
+    if (cfg.transformers !== undefined) {
+      pipeline.transformers = cfg.transformers;
+    }
+
+    if (Object.keys(data).length > 0) settings.data = data;
+    if (Object.keys(spec).length > 0) settings.spec = spec;
+
+    return {
+      conventions: Object.keys(figma).length > 0 ? { figma } : undefined,
+      settings: Object.keys(settings).length > 0 ? settings : undefined,
+      pipeline: Object.keys(pipeline).length > 0 ? pipeline : undefined,
     };
-    
-    return config;
-  }
-  
-  /**
-   * Merge model config from file with defaults
-   */
-  private mergeConfig(fileModel: unknown): ResolvedConfig {
-    if (!fileModel) {
-      return DEFAULT_CONFIG;
-    }
-    
-    // Deep merge user config over defaults
-    const merged = this.deepMerge(DEFAULT_CONFIG, fileModel as Partial<Config>);
-    
-    // Validate and correct merged config, replacing invalid values with defaults
-    return this.validateAndCorrectConfig(merged);
   }
 
   /**
-   * Validate and correct model config, replacing invalid values with defaults
+   * Resolve conventions: apply the three top-level defaults, and the inner
+   * defaults of any declared block, validating members as the pre-split
+   * loader did. Absence of a block means the library declares no such
+   * convention — no default can supply it.
    */
-  private validateAndCorrectConfig(config: Config): ResolvedConfig {
-    const corrected = JSON.parse(JSON.stringify(config)) as ResolvedConfig;
+  private resolveConventions(parsed: unknown): ResolvedConventions {
+    const rawRoot = (parsed && typeof parsed === 'object' ? parsed : {}) as Record<string, unknown>;
+    const raw = (rawRoot.figma && typeof rawRoot.figma === 'object' ? rawRoot.figma : {}) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
-    // Guard against null/undefined nested config objects from YAML parsing
-    // (YAML parsing of keys with only comments produces null instead of empty object)
-    if (!corrected.processing || typeof corrected.processing !== 'object') {
-      corrected.processing = DEFAULT_CONFIG.processing;
-    }
-    if (!corrected.format || typeof corrected.format !== 'object') {
-      corrected.format = DEFAULT_CONFIG.format;
-    }
-    if (!corrected.include || typeof corrected.include !== 'object') {
-      corrected.include = DEFAULT_CONFIG.include;
-    }
+    const figma: ResolvedConventions['figma'] = {
+      naming: 'NONE',
+      slotConstraints: raw.slotConstraints === true,
+      inferNumberProps: raw.inferNumberProps === true,
+    };
 
-    // Valid processing options
-    const validVariantDepths = [1, 2, 3, 9999];
-    const validDetails = ['FULL', 'LAYERED'];
-
-    // Validate processing
-    if (!validVariantDepths.includes(corrected.processing.variantDepth)) {
-      corrected.processing.variantDepth = DEFAULT_CONFIG.processing.variantDepth;
-    }
-    if (!validDetails.includes(corrected.processing.details)) {
-      corrected.processing.details = DEFAULT_CONFIG.processing.details;
-    }
-    if (corrected.processing.glyphNamePattern !== undefined
-        && (typeof corrected.processing.glyphNamePattern !== 'string'
-            || corrected.processing.glyphNamePattern.trim() === '')) {
-      delete corrected.processing.glyphNamePattern;
-    }
-    if (corrected.processing.codeOnlyPropsPattern !== undefined
-        && (typeof corrected.processing.codeOnlyPropsPattern !== 'string'
-            || corrected.processing.codeOnlyPropsPattern.trim() === '')) {
-      delete corrected.processing.codeOnlyPropsPattern;
-    }
-    if (typeof corrected.processing.slotConstraints !== 'boolean') {
-      corrected.processing.slotConstraints = false;
-    }
-    if (typeof corrected.processing.inferNumberProps !== 'boolean') {
-      corrected.processing.inferNumberProps = false;
-    }
-    if (typeof corrected.processing.collapsePrimitiveWrapper !== 'boolean') {
-      corrected.processing.collapsePrimitiveWrapper = false;
+    // naming
+    const validNaming = ['NONE', 'SENTENCE', 'TITLE'];
+    const naming = typeof raw.naming === 'string' ? raw.naming.toUpperCase() : undefined;
+    if (naming && validNaming.includes(naming)) {
+      figma.naming = naming as ResolvedConventions['figma']['naming'];
     }
 
-    // Validate processing.subcomponents
-    if (corrected.processing.subcomponents !== undefined) {
-      const subs = corrected.processing.subcomponents;
+    // glyphs — a non-empty match string, else the block is dropped
+    if (raw.glyphs !== undefined && raw.glyphs !== null) {
+      const match = typeof raw.glyphs === 'object' ? raw.glyphs.match : undefined;
+      if (typeof match === 'string' && match.trim() !== '') {
+        figma.glyphs = { match };
+      }
+    }
+
+    // codeOnlyProps — a non-empty match string, else the block is dropped
+    if (raw.codeOnlyProps !== undefined && raw.codeOnlyProps !== null) {
+      const match = typeof raw.codeOnlyProps === 'object' ? raw.codeOnlyProps.match : undefined;
+      if (typeof match === 'string' && match.trim() !== '') {
+        figma.codeOnlyProps = { match };
+      }
+    }
+
+    // subcomponents
+    if (raw.subcomponents !== undefined && raw.subcomponents !== null && typeof raw.subcomponents === 'object') {
+      const subs = raw.subcomponents;
       const validScopes = ['NESTED', 'PAGE'];
-      if (subs.scope !== undefined && !validScopes.includes(subs.scope)) {
-        subs.scope = 'NESTED';
-      }
       if (!Array.isArray(subs.match) || subs.match.length === 0) {
-        console.warn('Invalid processing.subcomponents.match: must be a non-empty array of strings. Removing subcomponents config.');
-        delete corrected.processing.subcomponents;
-      } else if (subs.exclude !== undefined && !Array.isArray(subs.exclude)) {
-        delete subs.exclude;
+        console.warn('Invalid conventions.figma.subcomponents.match: must be a non-empty array of strings. Removing subcomponents convention.');
+      } else {
+        figma.subcomponents = {
+          scope: validScopes.includes(subs.scope) ? subs.scope : 'NESTED',
+          match: subs.match,
+          ...(Array.isArray(subs.exclude) && { exclude: subs.exclude }),
+        };
       }
     }
 
-    // Validate processing.images (ADR-063). Presence of the block is the
-    // on-switch; each member is an independent representation trigger.
-    if (corrected.processing.images !== undefined) {
-      const img = corrected.processing.images as unknown as Record<string, unknown>;
+    // instanceExamples (ADR-050). The on-switch is the presence of the block;
+    // match is an OPTIONAL name filter — when invalid, drop just the filter.
+    if (raw.instanceExamples !== undefined && raw.instanceExamples !== null && typeof raw.instanceExamples === 'object') {
+      const ie = raw.instanceExamples;
+      const validIeScopes = ['PAGE', 'FILE'];
+      let match = ie.match;
+      if (match !== undefined && (!Array.isArray(match) || match.length === 0)) {
+        console.warn('Invalid conventions.figma.instanceExamples.match: when provided, must be a non-empty array of strings. Ignoring match filter.');
+        match = undefined;
+      }
+      figma.instanceExamples = {
+        scope: validIeScopes.includes(ie.scope) ? ie.scope : 'PAGE',
+        ...(match !== undefined && { match }),
+        ...(Array.isArray(ie.exclude) && { exclude: ie.exclude }),
+        ...(Array.isArray(ie.parentNames) && { parentNames: ie.parentNames }),
+      };
+    }
+
+    // images (ADR-063). Presence of the block is the on-switch; each member
+    // is an independent representation trigger.
+    if (raw.images !== undefined) {
+      const img = raw.images as Record<string, unknown>;
       if (img === null || typeof img !== 'object') {
-        console.warn('Invalid processing.images: expected an object. Removing images config.');
-        delete corrected.processing.images;
+        console.warn('Invalid conventions.figma.images: expected an object. Removing images convention.');
       } else {
         if (img.backgroundImage !== undefined && typeof img.backgroundImage !== 'boolean') {
-          console.warn(`Invalid processing.images.backgroundImage: expected boolean, got ${typeof img.backgroundImage}. Using default: false`);
+          console.warn(`Invalid conventions.figma.images.backgroundImage: expected boolean, got ${typeof img.backgroundImage}. Using default: false`);
         }
         const sourceProps = Array.isArray(img.sourceProps)
           ? (img.sourceProps as unknown[]).filter((p): p is string => typeof p === 'string' && p.trim() !== '').map(p => p.trim())
           : [];
         if (img.sourceProps !== undefined && (!Array.isArray(img.sourceProps) || sourceProps.length === 0)) {
-          console.warn('Invalid processing.images.sourceProps: expected a non-empty array of strings. Ignoring sourceProps.');
+          console.warn('Invalid conventions.figma.images.sourceProps: expected a non-empty array of strings. Ignoring sourceProps.');
         }
-        let imageComponent = typeof img.imageComponent === 'string' && (img.imageComponent as string).trim() !== ''
-          ? (img.imageComponent as string).trim()
+        let match = typeof img.match === 'string' && (img.match as string).trim() !== ''
+          ? (img.match as string).trim()
           : undefined;
-        if (img.imageComponent !== undefined && !imageComponent) {
-          console.warn('Invalid processing.images.imageComponent: expected a non-empty string. Ignoring imageComponent.');
+        if (img.match !== undefined && !match) {
+          console.warn('Invalid conventions.figma.images.match: expected a non-empty string. Ignoring match.');
         }
         // The designated component needs a forwarding target: sourceProps[0].
-        if (imageComponent && sourceProps.length === 0) {
-          console.warn('processing.images.imageComponent requires a non-empty sourceProps (sourceProps[0] is its source prop). Ignoring imageComponent.');
-          imageComponent = undefined;
+        if (match && sourceProps.length === 0) {
+          console.warn('conventions.figma.images.match requires a non-empty sourceProps (sourceProps[0] is its source prop). Ignoring match.');
+          match = undefined;
         }
-        corrected.processing.images = {
+        figma.images = {
           backgroundImage: img.backgroundImage === true,
-          ...(imageComponent && { imageComponent }),
+          ...(match && { match }),
           sourceProps,
         };
       }
     }
 
-    // Validate processing.instanceExamples (ADR-050)
-    if (corrected.processing.instanceExamples !== undefined) {
-      const ie = corrected.processing.instanceExamples;
-      const validIeScopes = ['PAGE', 'FILE'];
-      if (ie.scope !== undefined && !validIeScopes.includes(ie.scope)) {
-        ie.scope = 'PAGE';
-      }
-      // match is an OPTIONAL name filter (ADR-050). The on-switch is the presence
-      // of the instanceExamples block; the primary relevance test is structural
-      // identity. When match is omitted, every in-scope instance qualifies
-      // (subject to exclude/parentNames). When provided, it must be a non-empty
-      // array of strings — otherwise drop just the match filter, not the block.
-      if (ie.match !== undefined && (!Array.isArray(ie.match) || ie.match.length === 0)) {
-        console.warn('Invalid processing.instanceExamples.match: when provided, must be a non-empty array of strings. Ignoring match filter.');
-        delete ie.match;
-      }
-      if (ie.exclude !== undefined && !Array.isArray(ie.exclude)) {
-        delete ie.exclude;
-      }
-      if (ie.parentNames !== undefined && !Array.isArray(ie.parentNames)) {
-        delete ie.parentNames;
-      }
+    // states — concept-keyed map, passed through when it is an object
+    if (raw.states !== undefined && raw.states !== null && typeof raw.states === 'object' && !Array.isArray(raw.states)) {
+      figma.states = raw.states;
     }
 
-    // Valid format options
+    return { figma };
+  }
+
+  /**
+   * Resolve settings: deep-merge over DEFAULT_SETTINGS, then validate and
+   * correct, replacing invalid enum values with defaults.
+   */
+  private resolveSettings(parsed: unknown): ResolvedSettings {
+    const merged = parsed
+      ? this.deepMerge(DEFAULT_SETTINGS, parsed as Partial<Settings>)
+      : DEFAULT_SETTINGS;
+    const corrected = JSON.parse(JSON.stringify(merged)) as ResolvedSettings;
+
+    // Guard against null/undefined nested objects from YAML parsing
+    // (YAML parsing of keys with only comments produces null instead of empty object)
+    if (!corrected.spec || typeof corrected.spec !== 'object') {
+      corrected.spec = JSON.parse(JSON.stringify(DEFAULT_SETTINGS.spec));
+    }
+    if (corrected.data !== undefined && (corrected.data === null || typeof corrected.data !== 'object')) {
+      delete corrected.data;
+    }
+    if (corrected.assets !== undefined && (corrected.assets === null || typeof corrected.assets !== 'object')) {
+      delete corrected.assets;
+    }
+
+    const spec = corrected.spec;
+
+    // Valid enum options (authoritative lists in schema Settings.ts)
     const validKeys = ['SAFE', 'CAMEL', 'SNAKE', 'KEBAB', 'PASCAL', 'TRAIN'];
-    const validOutputs = ['JSON', 'YAML'];
+    const validFormats = ['JSON', 'YAML'];
     const validLayouts = ['LAYOUT', 'PARENT_CHILDREN', 'BOTH'];
     const validTokens = ['TOKEN', 'TOKEN_NAME', 'TOKEN_FIGMA_EXTENSIONS', 'FIGMA_NAME', 'CUSTOM', 'FIGMA_SYNTAX_WEB', 'FIGMA_SYNTAX_IOS', 'FIGMA_SYNTAX_ANDROID'];
     const validColors = ['HEX', 'HEXA', 'RGB', 'RGBA', 'HSLA', 'HSB', 'OKLCH', 'OKLAB', 'OBJECT'];
+    const validVariantDepths = [1, 2, 3, 9999];
+    const validDetails = ['FULL', 'LAYERED'];
 
-    // Normalize format values to uppercase before validation
+    // Normalize serialization values to uppercase before validation
     // (YAML configs commonly use lowercase; schema constants are uppercase)
-    corrected.format.keys = corrected.format.keys?.toUpperCase() ?? '';
-    corrected.format.output = corrected.format.output?.toUpperCase() ?? '';
-    corrected.format.layout = corrected.format.layout?.toUpperCase() ?? '';
-    if (corrected.format.tokens) {
-      corrected.format.tokens = corrected.format.tokens.toUpperCase();
+    spec.keys = (spec.keys?.toUpperCase() ?? '') as typeof spec.keys;
+    spec.format = (spec.format?.toUpperCase() ?? '') as typeof spec.format;
+    spec.layout = (spec.layout?.toUpperCase() ?? '') as typeof spec.layout;
+    if (spec.tokens) {
+      spec.tokens = spec.tokens.toUpperCase() as typeof spec.tokens;
     }
-    if (corrected.format.color) {
-      corrected.format.color = corrected.format.color.toUpperCase();
-    }
-
-    // Validate format
-    if (!validKeys.includes(corrected.format.keys)) {
-      corrected.format.keys = DEFAULT_CONFIG.format.keys;
-    }
-    if (!validOutputs.includes(corrected.format.output)) {
-      corrected.format.output = DEFAULT_CONFIG.format.output;
-    }
-    if (!validLayouts.includes(corrected.format.layout)) {
-      corrected.format.layout = DEFAULT_CONFIG.format.layout;
-    }
-    if (corrected.format.tokens && !validTokens.includes(corrected.format.tokens)) {
-      corrected.format.tokens = DEFAULT_CONFIG.format.tokens;
-    }
-    if (!validColors.includes(corrected.format.color)) {
-      corrected.format.color = DEFAULT_CONFIG.format.color;
+    if (spec.color) {
+      spec.color = spec.color.toUpperCase() as typeof spec.color;
     }
 
-    // Strip EOLed include properties — subcomponent inclusion is controlled by
-    // the presence of processing.subcomponents, and instanceExamples likewise by
-    // the presence of processing.instanceExamples (so include.instanceExamples is
-    // not a valid key).
-    const validIncludeKeys = new Set(['invalidVariants', 'invalidCombinations', 'emptyVariants', 'defaultSlotContent']);
-    for (const key of Object.keys(corrected.include)) {
-      if (!validIncludeKeys.has(key)) {
-        delete (corrected.include as Record<string, unknown>)[key];
-      }
+    if (!validKeys.includes(spec.keys)) {
+      spec.keys = DEFAULT_SETTINGS.spec.keys;
+    }
+    if (!validFormats.includes(spec.format)) {
+      spec.format = DEFAULT_SETTINGS.spec.format;
+    }
+    if (!validLayouts.includes(spec.layout)) {
+      spec.layout = DEFAULT_SETTINGS.spec.layout;
+    }
+    if (spec.tokens && !validTokens.includes(spec.tokens)) {
+      spec.tokens = DEFAULT_SETTINGS.spec.tokens;
+    }
+    if (!validColors.includes(spec.color)) {
+      spec.color = DEFAULT_SETTINGS.spec.color;
+    }
+    if (!validVariantDepths.includes(spec.variantDepth)) {
+      spec.variantDepth = DEFAULT_SETTINGS.spec.variantDepth;
+    }
+    if (!validDetails.includes(spec.details)) {
+      spec.details = DEFAULT_SETTINGS.spec.details;
+    }
+    if (typeof spec.collapsePrimitiveWrapper !== 'boolean') {
+      spec.collapsePrimitiveWrapper = false;
     }
 
     // defaultSlotContent activates only on a literal boolean `true`. Any other
     // value (e.g. the string "yes", a number, or undefined) is treated as off.
-    const dsc = (corrected.include as Record<string, unknown>).defaultSlotContent;
+    const dsc = (spec as Record<string, unknown>).defaultSlotContent;
     if (dsc !== undefined && typeof dsc !== 'boolean') {
-      console.warn(`Invalid include.defaultSlotContent: expected boolean, got ${typeof dsc}. Using default: false`);
+      console.warn(`Invalid settings.spec.defaultSlotContent: expected boolean, got ${typeof dsc}. Using default: false`);
     }
     if (dsc !== true) {
-      corrected.include.defaultSlotContent = false;
+      spec.defaultSlotContent = false;
+    }
+
+    // Split flags: booleans only; invalid values warn and fall back to off
+    for (const flag of ['splitComponents', 'splitConcerns', 'useSubfolders'] as const) {
+      const value = (spec as Record<string, unknown>)[flag];
+      if (value !== undefined && typeof value !== 'boolean') {
+        console.warn(`Invalid settings.spec.${flag}: expected boolean, got ${typeof value}. Using default: false`);
+        delete (spec as Record<string, unknown>)[flag];
+      }
     }
 
     return corrected;
   }
 
   /**
-   * Merge output config from file with defaults
+   * Resolve pipeline: both lists guaranteed present; an empty list means
+   * no work of that kind runs.
    */
-  private mergeOutputConfig(fileOutput: unknown): OutputConfig {
-    if (!fileOutput) {
-      return CONFIG_DEFAULTS.output;
-    }
-    
-    // Validate types and provide warnings for invalid values
-    const output = fileOutput as Record<string, unknown>;
-    const result = { ...CONFIG_DEFAULTS.output };
-    
-    if (typeof output.splitComponents === 'boolean') {
-      result.splitComponents = output.splitComponents;
-    } else if (output.splitComponents !== undefined) {
-      console.warn(`Invalid output.splitComponents: expected boolean, got ${typeof output.splitComponents}. Using default: false`);
-    }
-    
-    if (typeof output.splitConcerns === 'boolean') {
-      result.splitConcerns = output.splitConcerns;
-    } else if (output.splitConcerns !== undefined) {
-      console.warn(`Invalid output.splitConcerns: expected boolean, got ${typeof output.splitConcerns}. Using default: false`);
-    }
-    
-    if (typeof output.useSubfolders === 'boolean') {
-      result.useSubfolders = output.useSubfolders;
-    } else if (output.useSubfolders !== undefined) {
-      console.warn(`Invalid output.useSubfolders: expected boolean, got ${typeof output.useSubfolders}. Using default: false`);
-    }
-    
-    if (output.defaultFormat === 'yaml' || output.defaultFormat === 'json') {
-      result.defaultFormat = output.defaultFormat as OutputFormat;
-    } else if (output.defaultFormat !== undefined) {
-      console.warn(`Invalid output.defaultFormat: expected 'yaml' or 'json', got ${output.defaultFormat}. Using default: 'yaml'`);
-    }
-    
-    return result;
+  private resolvePipeline(parsed: unknown): ResolvedPipeline {
+    const raw = (parsed && typeof parsed === 'object' ? parsed : {}) as Record<string, unknown>;
+    return {
+      transformers: Array.isArray(raw.transformers) ? raw.transformers : [...DEFAULT_PIPELINE.transformers],
+      analyses: Array.isArray(raw.analyses) ? raw.analyses : [...DEFAULT_PIPELINE.analyses],
+    };
   }
-  
+
+  /**
+   * Resolve relative data/spec directories against the directory the
+   * configuration was loaded from.
+   */
+  private resolveSettingsDirectories(settings: ResolvedSettings, configDir: string): void {
+    if (settings.data?.directory && !path.isAbsolute(settings.data.directory)) {
+      settings.data.directory = path.resolve(configDir, settings.data.directory);
+    }
+    if (settings.spec.directory && !path.isAbsolute(settings.spec.directory)) {
+      settings.spec.directory = path.resolve(configDir, settings.spec.directory);
+    }
+  }
+
   /**
    * Deep merge two objects, with source overriding target
    * Null values from source are ignored to prevent YAML parsing issues
@@ -376,15 +545,22 @@ export class ConfigLoader {
 
     return result as T;
   }
-  
+
   /**
    * Get default configuration with convention-based defaults
    */
   private getDefaultConfig(): CLIConfig {
+    const settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS)) as ResolvedSettings;
+    settings.data = { directory: path.resolve(CONFIG_DEFAULTS.dataDirectory) };
+    settings.spec.directory = path.resolve(CONFIG_DEFAULTS.outputDirectory);
+
     return {
-      dataDirectory: path.resolve(CONFIG_DEFAULTS.dataDirectory),
-      outputDirectory: path.resolve(CONFIG_DEFAULTS.outputDirectory),
-      config: DEFAULT_CONFIG,
+      conventions: this.resolveConventions(undefined),
+      settings,
+      pipeline: {
+        transformers: [...DEFAULT_PIPELINE.transformers],
+        analyses: [...DEFAULT_PIPELINE.analyses],
+      },
     };
   }
 }

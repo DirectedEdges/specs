@@ -1,7 +1,7 @@
 /**
  * Cache Command
  *
- * Builds the render lookup caches under `{dataDirectory}/cache/` from the fetched
+ * Builds the render lookup caches under `{data.directory}/cache/` from the fetched
  * Figma payloads. `fetch` and `apply-custom-tokens` run this themselves, so it is
  * needed by hand only when the caches are missing or something outside those
  * commands changed the data. See src/Cache/Cache.ts for what the files contain.
@@ -32,28 +32,29 @@ export function reportCache(report: CacheReport): void {
 
 export const Cache = new Command('cache')
   .description('Build the render lookup caches from fetched Figma data')
-  .option('--config <path>', 'Path to config file (specs.config.yaml)')
+  .option('--config <path>', 'Path to a config/ directory or legacy specs.config.yaml')
   .option('--force', 'Rebuild every source, even those whose cached data still matches')
   .action((options: { config?: string; force?: boolean }) => {
     try {
       const config = new ConfigLoader().load(options.config);
 
-      if (!config.dataDirectory) {
-        console.error('Error: dataDirectory is not set in specs.config.yaml.');
+      const dataDirectory = config.settings.data?.directory;
+      if (!dataDirectory) {
+        console.error('Error: data.directory is not set in the workspace settings.');
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
 
-      const aliases = Object.keys(config.sources ?? {});
+      const aliases = Object.keys(config.settings.data?.sources ?? {});
       if (aliases.length === 0) {
-        console.error('Error: no sources are configured in specs.config.yaml.');
-        console.error('Tip: the cache is built per source — add one under `sources`, then run `specs fetch`.');
+        console.error('Error: no sources are configured in the workspace settings.');
+        console.error('Tip: the cache is built per source — add one under `data.sources`, then run `specs fetch`.');
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
 
       const report = refreshCache({
-        dataDir: config.dataDirectory,
+        dataDir: dataDirectory,
         aliases,
-        glyphNamePattern: config.config?.processing?.glyphNamePattern,
+        glyphNamePattern: config.conventions.figma.glyphs?.match,
         force: options.force,
       });
 

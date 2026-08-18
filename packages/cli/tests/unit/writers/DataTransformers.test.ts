@@ -91,8 +91,8 @@ describe('splitComponentByConcern — images registry (ADR-063)', () => {
       metadata: {},
     });
     expect(examples.images).toEqual({ dsAvatar__image: { src: '_images/d54334d2.png' } });
-    expect((api as Record<string, unknown>).images).toBeUndefined();
-    expect((variants as Record<string, unknown>).images).toBeUndefined();
+    expect(api).not.toHaveProperty('images');
+    expect(variants).not.toHaveProperty('images');
     // Images alone must be enough for examples.yaml to be written.
     expect(hasExampleData(examples)).toBe(true);
   });

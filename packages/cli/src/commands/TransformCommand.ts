@@ -20,7 +20,7 @@ export const Transform = new Command('transform')
   .description('Project component contracts into derived files (contract, css, tokens, …)')
   .argument('[transformers...]', 'Transformer names to run (default: contract)')
   .option('-o, --output <path>', 'Path to the specs directory (input and output)')
-  .option('--config <path>', 'Path to config file (specs.config.yaml)')
+  .option('--config <path>', 'Path to a config/ directory or legacy specs.config.yaml')
   .option('--components <keys...>', 'Only transform these component folders (default: all)')
   .option('--verbose', 'Enable detailed logging', false)
   .action(async (transformerNames: string[], options: TransformOptions) => {
@@ -31,8 +31,8 @@ export const Transform = new Command('transform')
       // Resolve output/input directory: flag → config → cwd
       const outputPath = options.output
         ? path.resolve(options.output)
-        : config.outputDirectory
-          ? path.resolve(config.outputDirectory)
+        : config.settings.spec.directory
+          ? path.resolve(config.settings.spec.directory)
           : path.resolve(process.cwd());
 
       if (!fs.existsSync(outputPath)) {
@@ -41,8 +41,8 @@ export const Transform = new Command('transform')
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
 
-      // Resolve transformer names: positionals → config.transformers → defaults
-      const configTransformerEntries = (config.config?.transformers ?? []) as Array<Record<string, unknown>>;
+      // Resolve transformer names: positionals → pipeline.transformers → defaults
+      const configTransformerEntries = config.pipeline.transformers as Array<Record<string, unknown>>;
       const transformerOptionsMap = new Map<string, Record<string, unknown>>(
         configTransformerEntries.map(e => {
           const { name, ...rest } = e;
@@ -107,8 +107,9 @@ export const Transform = new Command('transform')
             const context: TransformerContext = {
               outputDir: componentDir,
               componentKey,
-              tokensFormat: config.config.format.tokens,
-              processingStates: config.config.processing?.states as ProcessingStates | undefined,
+              tokensFormat: config.settings.spec.tokens,
+              outputFormat: config.settings.spec.format,
+              processingStates: config.conventions.figma.states as ProcessingStates | undefined,
               transformerOptions: transformerOptionsMap.get(transformer.name),
             };
             await transformer.run(apiYaml, context);

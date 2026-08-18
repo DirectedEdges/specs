@@ -1,12 +1,17 @@
 /**
  * ConfigLoader unit tests
+ *
+ * Covers both configuration sources (ADR-071):
+ * - the split `config/` directory (conventions.yaml, settings.yaml, pipeline.yaml)
+ * - the legacy single-file `specs.config.yaml`/`.json`, which still loads via
+ *   in-memory migration with a one-time deprecation warning
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs-extra';
 import path from 'path';
 import { ConfigLoader } from '../../../src/Config/ConfigLoader.js';
-import { DEFAULT_CONFIG as DEFAULT_CONFIG } from '@directededges/specs-schema';
+import { DEFAULT_SETTINGS } from '@directededges/specs-schema';
 
 describe('ConfigLoader', () => {
   let configLoader: ConfigLoader;
@@ -24,6 +29,9 @@ describe('ConfigLoader', () => {
 
     // Mock process.cwd() to return test directory
     vi.spyOn(process, 'cwd').mockReturnValue(testDir);
+    // Silence the legacy-file deprecation warning by default; individual tests
+    // spy on console.warn where the warning itself is under test.
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -37,13 +45,116 @@ describe('ConfigLoader', () => {
     }
   });
 
-  describe('Config file discovery (findConfigFile)', () => {
+  /** Write one file of a split `config/` directory in the test workspace. */
+  function writeSplitFile(name: string, content: string) {
+    const dir = path.join(testDir, 'config');
+    fs.ensureDirSync(dir);
+    fs.writeFileSync(path.join(dir, name), content);
+  }
+
+  describe('split config/ directory (ADR-071)', () => {
+    it('loads conventions, settings, and pipeline from config/', () => {
+      writeSplitFile('conventions.yaml', `
+figma:
+  naming: SENTENCE
+  glyphs:
+    match: 'DS Icon Glyph / {i}'
+  slotConstraints: true
+`);
+      writeSplitFile('settings.yaml', `
+author: Test Author
+spec:
+  format: YAML
+  variantDepth: 2
+`);
+      writeSplitFile('pipeline.yaml', `
+transformers:
+  - name: contract
+  - name: css
+analyses:
+  - name: dependencies
+`);
+
+      const config = configLoader.load();
+      expect(config.conventions.figma.naming).toBe('SENTENCE');
+      expect(config.conventions.figma.glyphs).toEqual({ match: 'DS Icon Glyph / {i}' });
+      expect(config.conventions.figma.slotConstraints).toBe(true);
+      expect(config.settings.author).toBe('Test Author');
+      expect(config.settings.spec.format).toBe('YAML');
+      expect(config.settings.spec.variantDepth).toBe(2);
+      expect(config.pipeline.transformers).toEqual([{ name: 'contract' }, { name: 'css' }]);
+      expect(config.pipeline.analyses).toEqual([{ name: 'dependencies' }]);
+    });
+
+    it('defaults each missing split file independently', () => {
+      writeSplitFile('settings.yaml', 'spec:\n  variantDepth: 3');
+
+      const config = configLoader.load();
+      // conventions.yaml absent — resolved conventions defaults
+      expect(config.conventions).toEqual({
+        figma: { naming: 'NONE', slotConstraints: false, inferNumberProps: false },
+      });
+      // pipeline.yaml absent — empty lists
+      expect(config.pipeline).toEqual({ transformers: [], analyses: [] });
+      // settings.yaml present — merged over DEFAULT_SETTINGS
+      expect(config.settings.spec.variantDepth).toBe(3);
+      expect(config.settings.spec.format).toBe(DEFAULT_SETTINGS.spec.format);
+    });
+
+    it('accepts .json split files', () => {
+      writeSplitFile('conventions.json', JSON.stringify({ figma: { naming: 'TITLE' } }));
+
+      const config = configLoader.load();
+      expect(config.conventions.figma.naming).toBe('TITLE');
+    });
+
+    it('prefers config/ over a legacy specs.config.yaml and does not warn', () => {
+      const warn = vi.mocked(console.warn);
+      writeSplitFile('settings.yaml', 'spec:\n  variantDepth: 2');
+      fs.writeFileSync(
+        path.join(testDir, 'specs.config.yaml'),
+        'config:\n  processing:\n    variantDepth: 1'
+      );
+
+      const config = configLoader.load();
+      expect(config.settings.spec.variantDepth).toBe(2); // config/ wins
+      expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('deprecated'));
+    });
+
+    it('loads an explicit directory path', () => {
+      const dir = path.join(testDir, 'elsewhere', 'config');
+      fs.ensureDirSync(dir);
+      fs.writeFileSync(path.join(dir, 'settings.yaml'), 'spec:\n  format: YAML');
+
+      const config = configLoader.load(dir);
+      expect(config.settings.spec.format).toBe('YAML');
+    });
+
+    it('resolves relative directories against the workspace root (parent of config/)', () => {
+      writeSplitFile('settings.yaml', 'data:\n  directory: ./my-data\nspec:\n  directory: ./my-specs');
+
+      const config = configLoader.load();
+      expect(config.settings.data?.directory).toBe(path.resolve(testDir, 'my-data'));
+      expect(config.settings.spec.directory).toBe(path.resolve(testDir, 'my-specs'));
+      expect(config.configDir).toBe(testDir);
+    });
+
+    it('validates settings from a split file the same as legacy (invalid enum falls back)', () => {
+      writeSplitFile('settings.yaml', 'spec:\n  keys: INVALID\n  variantDepth: 999');
+
+      const config = configLoader.load();
+      expect(config.settings.spec.keys).toBe('SAFE');
+      expect(config.settings.spec.variantDepth).toBe(9999);
+    });
+  });
+
+  describe('Config file discovery (findConfigSource)', () => {
     it('should find specs.config.yaml in current directory', () => {
       const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, 'config:\n  processing:\n    variantDepth: 2');
 
       const config = configLoader.load();
-      expect(config.config.processing.variantDepth).toBe(2);
+      expect(config.settings.spec.variantDepth).toBe(2);
     });
 
     it('should find specs.config.json in current directory', () => {
@@ -53,7 +164,7 @@ describe('ConfigLoader', () => {
       }));
 
       const config = configLoader.load();
-      expect(config.config.processing.variantDepth).toBe(3);
+      expect(config.settings.spec.variantDepth).toBe(3);
     });
 
     it('should prefer specs.config.yaml over .json', () => {
@@ -66,12 +177,18 @@ describe('ConfigLoader', () => {
       }));
 
       const config = configLoader.load();
-      expect(config.config.processing.variantDepth).toBe(1); // YAML wins
+      expect(config.settings.spec.variantDepth).toBe(1); // YAML wins
     });
 
     it('should return defaults when no config file exists', () => {
       const config = configLoader.load();
-      expect(config.config).toEqual(DEFAULT_CONFIG);
+      const { directory, ...spec } = config.settings.spec;
+      expect(spec).toEqual(DEFAULT_SETTINGS.spec);
+      expect(directory).toBeTruthy();
+      expect(config.conventions).toEqual({
+        figma: { naming: 'NONE', slotConstraints: false, inferNumberProps: false },
+      });
+      expect(config.pipeline).toEqual({ transformers: [], analyses: [] });
     });
 
     it('should use explicit config path when provided', () => {
@@ -79,13 +196,109 @@ describe('ConfigLoader', () => {
       fs.writeFileSync(customPath, 'config:\n  processing:\n    variantDepth: 2');
 
       const config = configLoader.load(customPath);
-      expect(config.config.processing.variantDepth).toBe(2);
+      expect(config.settings.spec.variantDepth).toBe(2);
     });
 
     it('should return defaults when explicit path does not exist', () => {
       const nonExistentPath = path.join(testDir, 'does-not-exist.yaml');
       const config = configLoader.load(nonExistentPath);
-      expect(config.config).toEqual(DEFAULT_CONFIG);
+      const { directory, ...spec } = config.settings.spec;
+      expect(spec).toEqual(DEFAULT_SETTINGS.spec);
+    });
+  });
+
+  describe('Legacy migration (deprecation)', () => {
+    it('warns once that the single-file format is deprecated', () => {
+      const warn = vi.mocked(console.warn);
+      fs.writeFileSync(
+        path.join(testDir, 'specs.config.yaml'),
+        'config:\n  processing:\n    variantDepth: 2'
+      );
+
+      configLoader.load();
+      const deprecations = warn.mock.calls.filter(
+        (args: unknown[]) => typeof args[0] === 'string' && (args[0] as string).includes('deprecated')
+      );
+      expect(deprecations).toHaveLength(1);
+    });
+
+    it('migrates top-level members: dataDirectory, outputDirectory, author', () => {
+      fs.writeFileSync(path.join(testDir, 'specs.config.yaml'), `
+dataDirectory: ./data-in
+outputDirectory: ./specs-out
+author: Test Author
+`);
+
+      const config = configLoader.load();
+      expect(config.settings.data?.directory).toBe(path.resolve(testDir, 'data-in'));
+      expect(config.settings.spec.directory).toBe(path.resolve(testDir, 'specs-out'));
+      expect(config.settings.author).toBe('Test Author');
+      expect(config.configDir).toBe(testDir);
+    });
+
+    it('migrates sources, renaming each source\'s data array to fetch', () => {
+      fs.writeFileSync(path.join(testDir, 'specs.config.yaml'), `
+sources:
+  library:
+    key: ABC123
+    data: [file, variables, styles]
+  icons:
+    key: DEF456
+`);
+
+      const config = configLoader.load();
+      expect(config.settings.data?.sources).toEqual({
+        library: { key: 'ABC123', fetch: ['file', 'variables', 'styles'] },
+        icons: { key: 'DEF456' },
+      });
+    });
+
+    it('migrates output split flags into settings.spec', () => {
+      fs.writeFileSync(path.join(testDir, 'specs.config.yaml'), `
+output:
+  splitComponents: true
+  splitConcerns: true
+  useSubfolders: true
+`);
+
+      const config = configLoader.load();
+      expect(config.settings.spec.splitComponents).toBe(true);
+      expect(config.settings.spec.splitConcerns).toBe(true);
+      expect(config.settings.spec.useSubfolders).toBe(true);
+    });
+
+    it('supports deprecated sourceDirectory as dataDirectory', () => {
+      fs.writeFileSync(path.join(testDir, 'specs.config.yaml'), 'sourceDirectory: ./old-data');
+
+      const config = configLoader.load();
+      expect(config.settings.data?.directory).toBe(path.resolve(testDir, 'old-data'));
+    });
+
+    it('migrates config.format.figmaKeys into conventions.figma.naming', () => {
+      fs.writeFileSync(
+        path.join(testDir, 'specs.config.yaml'),
+        'config:\n  format:\n    figmaKeys: SENTENCE'
+      );
+
+      const config = configLoader.load();
+      expect(config.conventions.figma.naming).toBe('SENTENCE');
+    });
+
+    it('migrates config.transformers into pipeline.transformers', () => {
+      fs.writeFileSync(path.join(testDir, 'specs.config.yaml'), `
+config:
+  transformers:
+    - name: contract
+    - name: css
+      rules: [layout]
+`);
+
+      const config = configLoader.load();
+      expect(config.pipeline.transformers).toEqual([
+        { name: 'contract' },
+        { name: 'css', rules: ['layout'] },
+      ]);
+      expect(config.pipeline.analyses).toEqual([]);
     });
   });
 
@@ -103,9 +316,9 @@ config:
       fs.writeFileSync(configPath, yamlContent);
 
       const config = configLoader.load();
-      expect(config.config.processing.variantDepth).toBe(2);
-      expect(config.config.processing.details).toBe('FULL');
-      expect(config.config.format.keys).toBe('CAMEL');
+      expect(config.settings.spec.variantDepth).toBe(2);
+      expect(config.settings.spec.details).toBe('FULL');
+      expect(config.settings.spec.keys).toBe('CAMEL');
     });
 
     it('should handle complex YAML config', () => {
@@ -127,19 +340,21 @@ config:
     invalidVariants: false
     invalidCombinations: false
 sources:
-  variables: ./variables.json
-  styles: ./styles.json
+  library:
+    key: ABC123
+    data: [variables, styles]
 `;
       fs.writeFileSync(configPath, yamlContent);
 
       const config = configLoader.load();
-      expect(config.config.processing.subcomponents).toEqual({ match: ['{C} / {S}'] });
-      expect(config.config.processing.variantDepth).toBe(3);
-      expect(config.config.format.output).toBe('YAML');
-      expect(config.config.format.keys).toBe('SNAKE');
-      expect(config.sources).toEqual({
-        variables: './variables.json',
-        styles: './styles.json'
+      expect(config.conventions.figma.subcomponents).toEqual({ scope: 'NESTED', match: ['{C} / {S}'] });
+      expect(config.settings.spec.variantDepth).toBe(3);
+      expect(config.settings.spec.format).toBe('YAML');
+      expect(config.settings.spec.keys).toBe('SNAKE');
+      expect(config.settings.spec.invalidVariants).toBe(false);
+      expect(config.settings.spec.invalidCombinations).toBe(false);
+      expect(config.settings.data?.sources).toEqual({
+        library: { key: 'ABC123', fetch: ['variables', 'styles'] },
       });
     });
   });
@@ -161,9 +376,9 @@ sources:
       fs.writeFileSync(configPath, JSON.stringify(jsonContent, null, 2));
 
       const config = configLoader.load();
-      expect(config.config.processing.variantDepth).toBe(1);
-      expect(config.config.processing.details).toBe('LAYERED');
-      expect(config.config.format.keys).toBe('KEBAB');
+      expect(config.settings.spec.variantDepth).toBe(1);
+      expect(config.settings.spec.details).toBe('LAYERED');
+      expect(config.settings.spec.keys).toBe('KEBAB');
     });
   });
 
@@ -173,7 +388,7 @@ sources:
       fs.writeFileSync(configPath, 'config:\n  processing:\n    variantDepth: 999'); // Invalid
 
       const config = configLoader.load();
-      expect(config.config.processing.variantDepth).toBe(9999); // Default
+      expect(config.settings.spec.variantDepth).toBe(9999); // Default
     });
 
     it('should validate details and use default for invalid values', () => {
@@ -181,42 +396,42 @@ sources:
       fs.writeFileSync(configPath, 'config:\n  processing:\n    details: INVALID');
 
       const config = configLoader.load();
-      expect(config.config.processing.details).toBe('LAYERED'); // Default
+      expect(config.settings.spec.details).toBe('LAYERED'); // Default
     });
 
-    it('should validate format.keys and use default for invalid values', () => {
+    it('should validate spec.keys and use default for invalid values', () => {
       const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, 'config:\n  format:\n    keys: INVALID');
 
       const config = configLoader.load();
-      expect(config.config.format.keys).toBe('SAFE'); // Default
+      expect(config.settings.spec.keys).toBe('SAFE'); // Default
     });
 
-    it('should validate format.output and use default for invalid values', () => {
+    it('should validate spec.format and use default for invalid values', () => {
       const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, 'config:\n  format:\n    output: XML');
 
       const config = configLoader.load();
-      expect(config.config.format.output).toBe('JSON'); // Default
+      expect(config.settings.spec.format).toBe('JSON'); // Default
     });
 
-    it('should validate format.layout and use default for invalid values', () => {
+    it('should validate spec.layout and use default for invalid values', () => {
       const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, 'config:\n  format:\n    layout: INVALID');
 
       const config = configLoader.load();
-      expect(config.config.format.layout).toBe('LAYOUT'); // Default
+      expect(config.settings.spec.layout).toBe('LAYOUT'); // Default
     });
 
-    it('should validate format.tokens and use default for invalid values', () => {
+    it('should validate spec.tokens and use default for invalid values', () => {
       const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, 'config:\n  format:\n    tokens: INVALID');
 
       const config = configLoader.load();
-      expect(config.config.format.tokens).toBe('TOKEN'); // Default
+      expect(config.settings.spec.tokens).toBe('TOKEN'); // Default
     });
 
-    it('should accept all valid format.tokens values', () => {
+    it('should accept all valid spec.tokens values', () => {
       const validValues = ['TOKEN', 'TOKEN_NAME', 'TOKEN_FIGMA_EXTENSIONS', 'FIGMA_NAME', 'CUSTOM', 'FIGMA_SYNTAX_WEB', 'FIGMA_SYNTAX_IOS', 'FIGMA_SYNTAX_ANDROID'];
 
       validValues.forEach(value => {
@@ -224,27 +439,27 @@ sources:
         fs.writeFileSync(configPath, `config:\n  format:\n    tokens: ${value}`);
 
         const config = configLoader.load();
-        expect(config.config.format.tokens).toBe(value);
+        expect(config.settings.spec.tokens).toBe(value);
       });
     });
 
-    it('should normalize lowercase format.tokens to uppercase', () => {
+    it('should normalize lowercase spec.tokens to uppercase', () => {
       const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, 'config:\n  format:\n    tokens: figma_syntax_ios');
 
       const config = configLoader.load();
-      expect(config.config.format.tokens).toBe('FIGMA_SYNTAX_IOS');
+      expect(config.settings.spec.tokens).toBe('FIGMA_SYNTAX_IOS');
     });
 
-    it('should validate format.color and use default for invalid values', () => {
+    it('should validate spec.color and use default for invalid values', () => {
       const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, 'config:\n  format:\n    color: INVALID');
 
       const config = configLoader.load();
-      expect(config.config.format.color).toBe('HEX'); // Default
+      expect(config.settings.spec.color).toBe('HEX'); // Default
     });
 
-    it('should accept all valid format.color values', () => {
+    it('should accept all valid spec.color values', () => {
       const validValues = ['HEX', 'HEXA', 'RGB', 'RGBA', 'HSLA', 'HSB', 'OKLCH', 'OKLAB', 'OBJECT'];
 
       validValues.forEach(value => {
@@ -252,24 +467,24 @@ sources:
         fs.writeFileSync(configPath, `config:\n  format:\n    color: ${value}`);
 
         const config = configLoader.load();
-        expect(config.config.format.color).toBe(value);
+        expect(config.settings.spec.color).toBe(value);
       });
     });
 
-    it('should normalize lowercase format.color to uppercase', () => {
+    it('should normalize lowercase spec.color to uppercase', () => {
       const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, 'config:\n  format:\n    color: oklch');
 
       const config = configLoader.load();
-      expect(config.config.format.color).toBe('OKLCH');
+      expect(config.settings.spec.color).toBe('OKLCH');
     });
 
-    it('should preserve valid glyphNamePattern string', () => {
+    it('should preserve valid glyphNamePattern as conventions.figma.glyphs.match', () => {
       const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, 'config:\n  processing:\n    glyphNamePattern: "DS Icon Glyph /"');
 
       const config = configLoader.load();
-      expect(config.config.processing.glyphNamePattern).toBe('DS Icon Glyph /');
+      expect(config.conventions.figma.glyphs).toEqual({ match: 'DS Icon Glyph /' });
     });
 
     it('should strip invalid glyphNamePattern (non-string)', () => {
@@ -277,7 +492,7 @@ sources:
       fs.writeFileSync(configPath, 'config:\n  processing:\n    glyphNamePattern: 123');
 
       const config = configLoader.load();
-      expect(config.config.processing.glyphNamePattern).toBeUndefined();
+      expect(config.conventions.figma.glyphs).toBeUndefined();
     });
 
     it('should strip empty glyphNamePattern', () => {
@@ -285,7 +500,7 @@ sources:
       fs.writeFileSync(configPath, "config:\n  processing:\n    glyphNamePattern: '  '");
 
       const config = configLoader.load();
-      expect(config.config.processing.glyphNamePattern).toBeUndefined();
+      expect(config.conventions.figma.glyphs).toBeUndefined();
     });
 
     it('should accept all valid variantDepth values', () => {
@@ -296,11 +511,11 @@ sources:
         fs.writeFileSync(configPath, `config:\n  processing:\n    variantDepth: ${value}`);
 
         const config = configLoader.load();
-        expect(config.config.processing.variantDepth).toBe(value);
+        expect(config.settings.spec.variantDepth).toBe(value);
       });
     });
 
-    it('should accept all valid format.keys values', () => {
+    it('should accept all valid spec.keys values', () => {
       const validValues = ['SAFE', 'CAMEL', 'SNAKE', 'KEBAB', 'PASCAL', 'TRAIN'];
 
       validValues.forEach(value => {
@@ -308,12 +523,12 @@ sources:
         fs.writeFileSync(configPath, `config:\n  format:\n    keys: ${value}`);
 
         const config = configLoader.load();
-        expect(config.config.format.keys).toBe(value);
+        expect(config.settings.spec.keys).toBe(value);
       });
     });
   });
 
-  describe('processing.instanceExamples validation (ADR-050)', () => {
+  describe('conventions.figma.instanceExamples validation (ADR-050)', () => {
     it('defaults an invalid scope to PAGE while keeping a valid match', () => {
       const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, `
@@ -326,7 +541,7 @@ config:
 `);
 
       const config = configLoader.load();
-      expect(config.config.processing.instanceExamples).toEqual({
+      expect(config.conventions.figma.instanceExamples).toEqual({
         scope: 'PAGE',
         match: ['{C} / Examples / {S}'],
       });
@@ -344,11 +559,11 @@ config:
 `);
 
       const config = configLoader.load();
-      expect(config.config.processing.instanceExamples?.scope).toBe('FILE');
+      expect(config.conventions.figma.instanceExamples?.scope).toBe('FILE');
     });
 
     it('keeps the block when match is omitted (match is optional — ADR-050)', () => {
-      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const warn = vi.mocked(console.warn);
       const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, `
 config:
@@ -362,26 +577,26 @@ config:
       const config = configLoader.load();
       // Presence of the block is the on-switch; no match means every in-scope
       // instance qualifies, narrowed here by parentNames.
-      expect(config.config.processing.instanceExamples).toEqual({
+      expect(config.conventions.figma.instanceExamples).toEqual({
         scope: 'PAGE',
         parentNames: ['Ready-made examples'],
       });
-      expect(warn).not.toHaveBeenCalled();
+      expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('Invalid'));
     });
 
     it('keeps the block but ignores match (and warns) when match is an empty array', () => {
-      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const warn = vi.mocked(console.warn);
       const configPath = path.join(testDir, 'specs.config.json');
       fs.writeFileSync(configPath, JSON.stringify({
         config: { processing: { instanceExamples: { scope: 'PAGE', match: [] } } },
       }));
 
       const config = configLoader.load();
-      const ie = config.config.processing.instanceExamples as Record<string, unknown>;
+      const ie = config.conventions.figma.instanceExamples as Record<string, unknown>;
       expect(ie).toEqual({ scope: 'PAGE' });
       expect(ie).not.toHaveProperty('match');
       expect(warn).toHaveBeenCalledWith(
-        expect.stringContaining('Invalid processing.instanceExamples.match')
+        expect.stringContaining('Invalid conventions.figma.instanceExamples.match')
       );
     });
 
@@ -396,7 +611,7 @@ config:
       }));
 
       const config = configLoader.load();
-      const ie = config.config.processing.instanceExamples as Record<string, unknown>;
+      const ie = config.conventions.figma.instanceExamples as Record<string, unknown>;
       expect(ie.match).toEqual(['{C} / Examples / {S}']);
       expect(ie.exclude).toBeUndefined();
     });
@@ -412,7 +627,7 @@ config:
       }));
 
       const config = configLoader.load();
-      const ie = config.config.processing.instanceExamples as Record<string, unknown>;
+      const ie = config.conventions.figma.instanceExamples as Record<string, unknown>;
       expect(ie.match).toEqual(['{C} / Examples / {S}']);
       expect(ie.parentNames).toBeUndefined();
     });
@@ -430,17 +645,17 @@ config:
       }));
 
       const config = configLoader.load();
-      expect(config.config.processing.instanceExamples).toEqual(block);
+      expect(config.conventions.figma.instanceExamples).toEqual(block);
     });
   });
 
-  describe('include.defaultSlotContent validation', () => {
+  describe('spec.defaultSlotContent validation', () => {
     it('preserves a valid boolean (true)', () => {
       const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, 'config:\n  include:\n    defaultSlotContent: true');
 
       const config = configLoader.load();
-      expect(config.config.include.defaultSlotContent).toBe(true);
+      expect(config.settings.spec.defaultSlotContent).toBe(true);
     });
 
     it('preserves a valid boolean (false)', () => {
@@ -448,15 +663,15 @@ config:
       fs.writeFileSync(configPath, 'config:\n  include:\n    defaultSlotContent: false');
 
       const config = configLoader.load();
-      expect(config.config.include.defaultSlotContent).toBe(false);
+      expect(config.settings.spec.defaultSlotContent).toBe(false);
     });
 
-    it('keeps defaultSlotContent in the include allowlist (does not strip the key)', () => {
+    it('keeps defaultSlotContent in the migrated include allowlist (does not strip the key)', () => {
       const configPath = path.join(testDir, 'specs.config.yaml');
       fs.writeFileSync(configPath, 'config:\n  include:\n    defaultSlotContent: true');
 
       const config = configLoader.load();
-      expect(Object.keys(config.config.include)).toContain('defaultSlotContent');
+      expect(Object.keys(config.settings.spec)).toContain('defaultSlotContent');
     });
 
     it('strips an unknown include key (EOLed allowlist) but keeps defaultSlotContent', () => {
@@ -466,14 +681,15 @@ config:
       }));
 
       const config = configLoader.load();
-      const include = config.config.include as Record<string, unknown>;
-      // instanceExamples is not a valid include key — must be stripped.
-      expect(include.instanceExamples).toBeUndefined();
-      expect(include.defaultSlotContent).toBe(true);
+      const spec = config.settings.spec as Record<string, unknown>;
+      // instanceExamples is not a valid include key — must not be migrated.
+      expect(spec.instanceExamples).toBeUndefined();
+      expect(config.conventions.figma.instanceExamples).toBeUndefined();
+      expect(spec.defaultSlotContent).toBe(true);
     });
 
     // defaultSlotContent activates only on a literal boolean `true`; any other
-    // value is coerced to false (ConfigLoader.ts validateAndCorrectConfig).
+    // value is coerced to false (ConfigLoader.ts resolveSettings).
     it('coerces a non-boolean defaultSlotContent value to false', () => {
       const configPath = path.join(testDir, 'specs.config.json');
       fs.writeFileSync(configPath, JSON.stringify({
@@ -481,7 +697,7 @@ config:
       }));
 
       const config = configLoader.load();
-      expect(config.config.include.defaultSlotContent).toBe(false);
+      expect(config.settings.spec.defaultSlotContent).toBe(false);
     });
 
     it('coerces a truthy-but-not-true value (e.g. 1) to false', () => {
@@ -491,21 +707,21 @@ config:
       }));
 
       const config = configLoader.load();
-      expect(config.config.include.defaultSlotContent).toBe(false);
+      expect(config.settings.spec.defaultSlotContent).toBe(false);
     });
   });
 
-  describe('processing.images validation (ADR-063)', () => {
-    it('resolves a full block: backgroundImage, trimmed imageComponent, trimmed sourceProps', () => {
+  describe('conventions.figma.images validation (ADR-063)', () => {
+    it('resolves a full block: backgroundImage, trimmed match, trimmed sourceProps', () => {
       const configPath = path.join(testDir, 'specs.config.json');
       fs.writeFileSync(configPath, JSON.stringify({
         config: { processing: { images: { backgroundImage: true, imageComponent: ' DS Image ', sourceProps: [' imageSource ', 'src'] } } },
       }));
 
       const config = configLoader.load();
-      expect(config.config.processing.images).toEqual({
+      expect(config.conventions.figma.images).toEqual({
         backgroundImage: true,
-        imageComponent: 'DS Image',
+        match: 'DS Image',
         sourceProps: ['imageSource', 'src'],
       });
     });
@@ -515,7 +731,7 @@ config:
       fs.writeFileSync(configPath, 'config:\n  processing:\n    images:\n      backgroundImage: true');
 
       const config = configLoader.load();
-      expect(config.config.processing.images).toEqual({ backgroundImage: true, sourceProps: [] });
+      expect(config.conventions.figma.images).toEqual({ backgroundImage: true, sourceProps: [] });
     });
 
     it('sourceProps-only: re-typing without fills or component', () => {
@@ -525,7 +741,7 @@ config:
       }));
 
       const config = configLoader.load();
-      expect(config.config.processing.images).toEqual({ backgroundImage: false, sourceProps: ['Image'] });
+      expect(config.conventions.figma.images).toEqual({ backgroundImage: false, sourceProps: ['Image'] });
     });
 
     it('imageComponent without sourceProps is dropped (needs a forwarding target)', () => {
@@ -535,8 +751,8 @@ config:
       }));
 
       const config = configLoader.load();
-      expect(config.config.processing.images).toEqual({ backgroundImage: true, sourceProps: [] });
-      expect(config.config.processing.images).not.toHaveProperty('imageComponent');
+      expect(config.conventions.figma.images).toEqual({ backgroundImage: true, sourceProps: [] });
+      expect(config.conventions.figma.images).not.toHaveProperty('match');
     });
 
     it('coerces a non-boolean backgroundImage to false', () => {
@@ -546,7 +762,7 @@ config:
       }));
 
       const config = configLoader.load();
-      expect(config.config.processing.images?.backgroundImage).toBe(false);
+      expect(config.conventions.figma.images?.backgroundImage).toBe(false);
     });
 
     it('is absent by default (presence is the on-switch)', () => {
@@ -554,7 +770,7 @@ config:
       fs.writeFileSync(configPath, 'config:\n  processing:\n    variantDepth: 2');
 
       const config = configLoader.load();
-      expect(config.config.processing.images).toBeUndefined();
+      expect(config.conventions.figma.images).toBeUndefined();
     });
 
     it('strips the retired include.imageData key', () => {
@@ -564,7 +780,7 @@ config:
       }));
 
       const config = configLoader.load();
-      expect((config.config.include as Record<string, unknown>).imageData).toBeUndefined();
+      expect((config.settings.spec as Record<string, unknown>).imageData).toBeUndefined();
     });
   });
 
@@ -576,12 +792,13 @@ config:
       const config = configLoader.load();
 
       // Overridden value
-      expect(config.config.processing.variantDepth).toBe(2);
+      expect(config.settings.spec.variantDepth).toBe(2);
 
       // Default values preserved
-      expect(config.config.processing.details).toBe(DEFAULT_CONFIG.processing.details);
-      expect(config.config.processing.subcomponents).toEqual(DEFAULT_CONFIG.processing.subcomponents);
-      expect(config.config.format.keys).toBe(DEFAULT_CONFIG.format.keys);
+      expect(config.settings.spec.details).toBe(DEFAULT_SETTINGS.spec.details);
+      expect(config.settings.spec.keys).toBe(DEFAULT_SETTINGS.spec.keys);
+      // No subcomponents convention declared — no default can supply one
+      expect(config.conventions.figma.subcomponents).toBeUndefined();
     });
   });
 });

@@ -32,7 +32,7 @@ import { Transform } from './commands/TransformCommand.js';
 import { Render } from './commands/RenderCommand.js';
 import { Bridge } from './commands/BridgeCommand.js';
 
-declare const __SPECS_CLI_VERSION__;
+declare const __SPECS_CLI_VERSION__: string;
 
 // Backward compatibility: export Scan also as Audit
 export const Audit = Scan;
