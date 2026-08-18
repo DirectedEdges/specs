@@ -140,128 +140,88 @@ Every member classified as a convention today describes **Figma authoring**: lay
 ### Option 3A: `conventions.figma` — namespaced by source *(Selected)*
 
 ```yaml
-conventions:
-  figma:
-    keys: SENTENCE
-    glyphs:
-      match: "DS Icon Glyph / {i}"
-```
-
-**Pros**:
-
-- Honest about what these describe today, without claiming the general case
-- Extends without a rename: a future `conventions.react` or `conventions.swift` is additive, and a `MINOR`
-- Keeps one handle — `conventions` — for "everything declared about how things are named and meant"
-
-**Cons / Trade-offs**:
-
-- One more level of nesting
-- `figmaKeys` becomes `conventions.figma.figmaKeys`, which stutters and should be renamed to `keys` in that position
-
----
-
-### Option 3B: `figmaConventions` — a flat, scoped name *(Rejected)*
-
-**Rejected because**: it forces a second top-level key for every future source (`codeConventions`, `swiftConventions`), each unrelated to the others in the type. The namespacing is the same idea expressed worse.
-
----
-
-### Option 3C: `conventions`, unscoped *(Rejected)*
-
-**Rejected because**: it claims generality the contents do not have, and the day a code-side convention arrives there is no non-breaking place to put it. Renaming later costs a `MAJOR` that this decision avoids for free.
-
----
-
-## Decision 4 — What to call the run side
-
-| Candidate | For | Against |
-|---|---|---|
-| **`settings`** *(Selected)* | Neutral, universally understood, carries no claim of correctness — exactly the distinction Decision 1 draws | Weak word; its members are heterogeneous by construction |
-| `options` | Signals that every member is optional and defaulted | Collides with `TransformEntry`'s inline transformer options |
-| `preferences` | Accurate for taste-driven members | Better reserved for the consumer-local third category, where taste is *all* it is. Using it here would leave that category unnamed |
-| `output` | Names the visible effect of most members | Misdescribes `variantDepth`, `slotConstraints`, and `collapsePrimitiveWrapper`, which shape processing |
-| `generation` | Describes the run that produces a spec | Overlaps `specs generate` as a command name; implies members that belong to one command |
-| `processing` | Already exists as a group name | Would have to swallow `format` and `include`, which it does not describe |
-
-**Selected: `settings`**, with **`preferences`** reserved as the term for consumer-local values that never reach a spec. Three words, three categories, no overlap: **conventions** describe the library, **settings** shape the run, **preferences** belong to the tool.
-
----
-
-## Decision 5 — Structural shape
-
-### Option 5A: Two independent root types *(Selected)*
-
-`Conventions` and `Settings` are each a root type in its own file, with its own schema definition and no shared parent. The existing four groups become the body of `Settings`, unchanged.
-
-```yaml
-conventions:
-  figma:
-    keys: SENTENCE
-    glyphs:
-      match: "DS Icon Glyph / {i}"
-    images:
-      backgroundImage: true
-      match: "DS Image"
-      sourceProps:
-        - Image
-    subcomponents:
-      scope: PAGE
-      match:
-        - "{C} / {S}"
-      exclude:
-        - "{C} / Examples / {S}"
-    instanceExamples:
-      scope: PAGE
-      match:
-        - "{C}*"
-      parentNames:
-        - Examples
-    codeOnlyProps:
-      match: "Code only props"
-    states:
-      hover:
-        prop: state
-        value: hover
-      active:
-        prop: state
-        value: pressed
-      focus-within:
-        prop: focused
-      disabled:
-        prop: disabled
-      readonly:
-        prop: readOnly
-      invalid:
-        prop: validation
-        value: invalid
-      selected:
-        prop: selected
-      indeterminate:
-        prop: selected
-        value: indeterminate
+# conventions.yaml
+figma:
+  naming: SENTENCE
+  glyphs:
+    match: "EGDS Icon glyph / {i}"
+  codeOnlyProps:
+    match: "Code only props"
+  images:
+    backgroundImage: true
+    match: "EGDS Image"
+    sourceProps:
+      - Image
+  subcomponents:
+    scope: PAGE
+    match:
+      - "{C} / {S}"
+      - "{C} / _ / {S}"
+    exclude:
+      - "{C} / Examples / {S}"
+  instanceExamples:
+    scope: PAGE
+    match:
+      - "{C}*"
+    parentNames:
+      - Examples
+  slotConstraints: true
+  inferNumberProps: true
+  states:
+    hover:
+      prop: state
+      value: hover
+    active:
+      prop: state
+      value: pressed
+    focus-within:
+      prop: focused
+    disabled:
+      prop: disabled
+    readonly:
+      prop: readOnly
+    invalid:
+      prop: validation
+      value: invalid
+    selected:
+      prop: selected
+    indeterminate:
+      prop: selected
+      value: indeterminate
 ```
 
 ```yaml
-settings:
-  processing:
-    variantDepth: 9999
-    details: LAYERED
-    slotConstraints: true
-    collapsePrimitiveWrapper: true
-    inferNumberProps: true
-  format:
-    output: YAML
-    keys: CAMEL
-    layout: LAYOUT
-    tokens: TOKEN
-    color: HEXA
-  include:
-    invalidVariants: false
-    invalidCombinations: true
-    emptyVariants: false
-    defaultSlotContent: true
-  transformers:
-    - name: react
+# settings.yaml
+sources:
+  library:
+    key: GF3SDV9GeeGpWfNs3Pxq6h
+    data:
+      - file
+      - variables
+      - styles
+      - icons
+data:
+  directory: ./data
+output:
+  directory: ./specs
+  splitComponents: true
+  splitConcerns: true
+  useSubfolders: true
+  format: YAML
+  keys: CAMEL
+  layout: LAYOUT
+  tokens: TOKEN
+  color: HEXA
+  variantDepth: 9999
+  details: LAYERED
+  collapsePrimitiveWrapper: true
+  invalidVariants: false
+  invalidCombinations: true
+  emptyVariants: false
+  defaultSlotContent: true
+transformers:
+  - name: css
+  - name: react
 ```
 
 **Pros**:
@@ -290,63 +250,47 @@ settings:
 
 ---
 
-## Decision 6 — Blocks that appear to straddle the line
+## Decision 6 — Members that look like settings but are not
 
-Three blocks look mixed: alongside their patterns they carry `scope` (where to search) and `backgroundImage` (whether to read container fills). Both read as run choices at first glance.
+Several members read as run choices at first glance: `scope` (where to search), `backgroundImage` (whether to read container fills), `slotConstraints` (whether to consolidate slot constraints), and `inferNumberProps` (whether numeric-looking text props become number props).
 
-### Option 6A: They do not straddle — all three are wholly conventions *(Selected)*
-
-Applying Decision 1's substitution test to each supposed setting:
+### Option 6A: Test each member; all four are conventions *(Selected)*
 
 | Member | If a different team set it differently | Verdict |
 |---|---|---|
 | `subcomponents.scope` | A library keeping subcomponents on the page yields none under `NESTED` | Convention |
 | `instanceExamples.scope` | A library keeping examples on other pages yields none under `PAGE`; a `FILE` search of a single-page library can match foreign frames | Convention |
 | `images.backgroundImage` | A library expressing images as container fills loses them when false | Convention |
+| `slotConstraints` | A library authoring slot constraints as code-only props loses declared constraint data when false | Convention |
+| `inferNumberProps` | A library authoring numeric props as Figma `TEXT` with numeric defaults gets `StringProp` for genuinely numeric props when false — worse typing, not different typing | Convention |
 
-None of the three can be chosen freely. Each states how the library is organized — **where** its assets live and **how** it expresses images — which is the same kind of fact as **what** they are called.
+Each states how the library is organized or authored — **where** its assets live, **how** it expresses images, **how** it declares constraints, **how** it types numbers. None can be chosen freely.
 
-```yaml
-conventions:
-  figma:
-    subcomponents:
-      scope: PAGE
-      match:
-        - "{C} / {S}"
-    instanceExamples:
-      scope: PAGE
-      match:
-        - "{C}*"
-    images:
-      backgroundImage: true
-      match: "DS Image"
-      sourceProps:
-        - Image
-```
+**`collapsePrimitiveWrapper` is the one that stays a setting**, and the distinction is worth stating: that a wrapper around a lone text or glyph is meaningless *is* a library fact, but keeping it is faithful to Figma rather than wrong. Stripping it is a normalization choice, so both outputs are correct and the substitution test passes it to settings.
 
 **Pros**:
 
-- **No feature is split.** All five name-based features live wholly in `conventions.figma`, and each is read in one place
+- **No feature is split.** All five name-based features live wholly in `conventions.figma` and are read in one place
 - Consistent with Decision 8: a declared convention declares the capability, and `scope` is part of the declaration rather than a dial on top of it
-- `settings.processing` is left holding only output-shaping members — `variantDepth`, `details`, `slotConstraints`, `collapsePrimitiveWrapper`, `inferNumberProps` — none of which can be wrong
+- Leaves `settings` holding only members that cannot be wrong
 - Removes the awkward case where `scope` and `match`, authored together and meaningless apart, would sit in different artifacts
 
 **Cons / Trade-offs**:
 
-- `backgroundImage` reads as a toggle and is classified as a declaration; the name would be clearer as a statement about the library (a rename deliberately not taken here)
-- A team wanting a narrower search for speed cannot express it in configuration — and would get different output if they could, which is the point
+- `backgroundImage`, `slotConstraints`, and `inferNumberProps` read as toggles and are classified as declarations; their names would be clearer as statements about the library (renames deliberately not taken here)
+- A team wanting a narrower search for speed cannot express it in configuration — and would get different output if they could, which is the point. Per-run narrowing belongs to the invocation, as in Decision 8
 
 ---
 
-### Option 6B: Split each block — patterns to conventions, `scope` and `backgroundImage` to settings *(Rejected)*
+### Option 6B: Split the blocks — patterns to conventions, toggles to settings *(Rejected)*
 
-**Rejected because**: it fails the substitution test on all three members. `scope` is not a free choice — it is determined by where the library puts its assets, and the wrong value produces missing or foreign matches rather than merely different output. Splitting also separates `scope` from `match`, which are authored together and meaningless apart, and leaves three features to be assembled from two artifacts.
+**Rejected because**: it fails the substitution test on every one of them. `scope` is determined by where the library puts its assets, and the wrong value produces missing or foreign matches rather than merely different output. Splitting also separates `scope` from `match`, which are authored together and meaningless apart.
 
 ---
 
 ### Option 6C: Move whole blocks by majority, without testing each member *(Rejected)*
 
-**Rejected because**: it reaches the selected answer by accident rather than by rule. The test in Decision 1 applies per member, and a classification that skips it cannot be defended for the next member that arrives.
+**Rejected because**: it reaches the selected answer by accident rather than by rule, and would have carried `collapsePrimitiveWrapper` across with the others.
 
 ---
 
@@ -542,9 +486,11 @@ metadata:
 ```
 config/
   conventions.yaml     # Conventions — shareable, publishable, comparable
-  settings.yaml        # Settings, plus workspace sources and output paths
+  settings.yaml        # Settings — sources, output, data, transformers
 .env                   # unchanged, at the workspace root
 ```
+
+The workspace file's non-`config` members are absorbed rather than stranded: `sources` becomes `settings.sources`, `outputDirectory` becomes `settings.output.directory`, the `output` block's `splitComponents` / `splitConcerns` / `useSubfolders` join it, and `dataDirectory` becomes `settings.data.directory`. Each passes the substitution test as a setting — another team could write elsewhere and be correct, and pointing at a different source key is a *different library* rather than incorrect processing of the same one.
 
 **Pros**:
 
@@ -582,9 +528,12 @@ Retire `Config`. Publish two independent root types — `Conventions` (namespace
 |------|--------|------|
 | `Config.ts` | Removed; `Config` and `ResolvedConfig` retired | MAJOR |
 | `Conventions.ts` | Added — `Conventions` / `ResolvedConventions`, with a `figma` namespace | MAJOR |
-| `Settings.ts` | Added — `Settings` / `ResolvedSettings`, holding `processing`, `format`, `include`, `transformers` | MAJOR |
-| `Conventions.ts` | Holds `states`, `keys` (from `format.figmaKeys`), and the five name-based features whole, including `scope` and `backgroundImage` per Decision 6 | MAJOR |
+| `Settings.ts` | Added — `Settings` / `ResolvedSettings`, with `sources`, `output`, `data`, `transformers` | MAJOR |
+| `Conventions.ts` | Holds `naming` (from `format.figmaKeys`), `states`, `slotConstraints`, `inferNumberProps`, and the five name-based features whole, including `scope` and `backgroundImage` per Decision 6 | MAJOR |
 | `Conventions.ts` | Rekeyed name-based conventions to `<thing>.match`: `glyphNamePattern` → `glyphs.match`, `codeOnlyPropsPattern` → `codeOnlyProps.match`, `imageComponent` → `images.match`. Value types unchanged | MAJOR |
+| `Settings.ts` | `format` group renamed `output`; its `output` member renamed `format`, so `format.output: YAML` becomes `output.format: YAML` | MAJOR |
+| `Settings.ts` | `include` members, `variantDepth`, `details`, and `collapsePrimitiveWrapper` folded into `output` | MAJOR |
+| `Settings.ts` | Workspace members absorbed: `sources` → `settings.sources`, `outputDirectory` → `output.directory`, `splitComponents` / `splitConcerns` / `useSubfolders` → `output`, `dataDirectory` → `data.directory` | MAJOR |
 | `Settings.ts` | `DEFAULT_CONFIG` → `DEFAULT_SETTINGS`, typed `ResolvedSettings` | MAJOR |
 | `Metadata.ts` | `config: Config` → `conventions: ResolvedConventions` and `settings: ResolvedSettings` | MAJOR |
 | `index.ts` | Exports both types and their resolved forms; `Config` exports removed | MAJOR |
@@ -597,23 +546,26 @@ Config:
   processing:
     glyphNamePattern?: string
     variantDepth?: 1 | 2 | 3 | 9999
+    inferNumberProps?: boolean
   format:
+    output?: 'JSON' | 'YAML'
     figmaKeys?: 'NONE' | 'SENTENCE' | 'TITLE'
-    color?: ColorFormat
+    keys?: 'SAFE' | 'CAMEL' | 'SNAKE' | 'KEBAB' | 'PASCAL' | 'TRAIN'
 
 # After — types/Conventions.ts
 Conventions:
   figma:
-    keys?: 'NONE' | 'SENTENCE' | 'TITLE'
+    naming?: 'NONE' | 'SENTENCE' | 'TITLE'
+    inferNumberProps?: boolean
     glyphs?:
-      match: string                # one pattern, exactly as today
+      match: string
 
 # After — types/Settings.ts
 Settings:
-  processing:
+  output:
+    format?: 'JSON' | 'YAML'
+    keys?: 'SAFE' | 'CAMEL' | 'SNAKE' | 'KEBAB' | 'PASCAL' | 'TRAIN'
     variantDepth?: 1 | 2 | 3 | 9999
-  format:
-    color?: ColorFormat
 ```
 
 ### Schema changes (`schema/`)
@@ -659,7 +611,8 @@ Conventions:
 
 ### Notes
 
-- **Resolution differs per side, and the split makes that statable.** Settings are required-with-defaults after resolution; conventions stay optional, because resolution has nothing to supply. `DEFAULT_SETTINGS` covers only the settings half, which is why it is renamed rather than moved
+- **Both halves need a resolved form, for different reasons.** `ResolvedSettings` guarantees every defaulted member is present. `ResolvedConventions` guarantees the members *inside* a present convention block are present — `subcomponents.scope`, `instanceExamples.scope`, `images.backgroundImage` and `sourceProps` all default within a declared block, exactly as `ResolvedConfig` does today. What conventions lack is a default for the *block itself*: absence means the library declares no such convention, and nothing can supply that. `DEFAULT_SETTINGS` therefore covers only the settings half
+- **`transformers` is the weakest member of `Settings`** — the only one naming *work to run* rather than how work behaves. It earns its place as a workspace's declared pipeline, which CI and team repeatability need, but it is the member most likely to be superseded by a task-runner concept. Flagged, not decided
 - **Application preferences are deliberately absent from the contract.** Values that never reach a spec — canvas column count, which sections a consumer renders, whether prior output is replaced — belong to the consumer that holds them. Naming the category is the contribution; owning it is not
 - **`VariantStateEntry` and `TransformEntry` are unchanged**, referenced from their new locations
 - **No migration logic is added to this package** (Constitution II). Reading a pre-split artifact is a consumer concern
@@ -733,3 +686,4 @@ Neither is changed by this ADR. Both become easier to reconcile once the halves 
 - Every consumer updates imports and configuration access in the same release, and pre-split workspaces need a read path provided outside this package
 - The `Config` abbreviation exception can be removed from the constitution's exceptions list, since no type carries the name
 - `metadata.conventions` is comparable across specs and consumers on its own, which is what makes convention drift detectable rather than merely diffable
+- Conventions and `sources` land on opposite sides, which names a new error class worth linting: a conventions file paired with a source it was not written for
