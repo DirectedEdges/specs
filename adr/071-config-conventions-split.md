@@ -145,12 +145,12 @@ Every member classified as a convention today describes **Figma authoring**: lay
 figma:
   naming: SENTENCE
   glyphs:
-    match: "EGDS Icon glyph / {i}"
+    match: "DS Icon Glyph / {i}"
   codeOnlyProps:
     match: "Code only props"
   images:
     backgroundImage: true
-    match: "EGDS Image"
+    match: "DS Image"
     sourceProps:
       - Image
   subcomponents:
@@ -198,7 +198,7 @@ data:
   directory: ./data
   sources:
     library:
-      key: GF3SDV9GeeGpWfNs3Pxq6h
+      key: <figma-file-key>
       fetch:
         - file
         - variables

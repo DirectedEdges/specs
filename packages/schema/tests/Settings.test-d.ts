@@ -26,7 +26,7 @@ const full: Settings = {
   data: {
     directory: './data',
     sources: {
-      library: { key: 'GF3SDV9GeeGpWfNs3Pxq6h', fetch: ['file', 'variables', 'styles', 'icons'] },
+      library: { key: 'FILE_KEY', fetch: ['file', 'variables', 'styles', 'icons'] },
     },
   },
   spec: {
