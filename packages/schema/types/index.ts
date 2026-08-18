@@ -24,8 +24,11 @@ export type { Composition, Compositions } from './Composition.js';
 
 // Configuration types
 export type { PropConfigurations, PropConfigurationValue, NestedPropConfiguration } from './PropConfigurations.js';
-export type { Config, ResolvedConfig, ColorFormat, VariantStateEntry, TransformEntry } from './Config.js';
-export { DEFAULT_CONFIG } from './Config.js';
+export type { Conventions, ResolvedConventions, VariantStateEntry } from './Conventions.js';
+export type { Settings, ResolvedSettings, ColorFormat, SourceEntry } from './Settings.js';
+export { DEFAULT_SETTINGS } from './Settings.js';
+export type { Pipeline, ResolvedPipeline, TransformEntry, AnalysisEntry } from './Pipeline.js';
+export { DEFAULT_PIPELINE } from './Pipeline.js';
 
 // Style types
 export type { Styles, Style, ColorStyle, ColorObject, StyleKey, TokenReference, AspectRatioValue, AspectRatioStyle, Typography, Sides, Corners, ItemSpacing, LayoutMode, WrapAlignment, MainAxisAlignment, CrossAxisAlignment, Position, PositionOffset, StrokeDashPattern, TextAlignHorizontal, TextOverflow } from './Styles.js';

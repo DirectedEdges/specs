@@ -42,7 +42,8 @@ components:
   ├─ <a href="/schema/subcomponents/">subcomponents</a>:
   │ └─ {name}: { …same shape as above }
   ├─ <a href="/schema/metadata/">metadata</a>:
-  │ └─ <a href="/schema/config/">config</a>:
+  │ ├─ <a href="/schema/conventions/">conventions</a>:
+  │ └─ <a href="/schema/settings/">settings</a>:
   ├─ <a href="/schema/instance-examples/">instanceExamples</a>:                   → <a href="/schema/instance-examples/">InstanceExample</a>  <span class="sl-badge pro-badge">Pro</span>
   │ └─ {name}: { title, propConfigurations }
   └─ <a href="/schema/slot-content/">slotContentExamples</a>:                → <a href="/schema/slot-content/">SlotContent</a>  <span class="sl-badge pro-badge">Pro</span>

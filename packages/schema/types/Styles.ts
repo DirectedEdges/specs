@@ -153,7 +153,7 @@ export interface ColorObject { /** Candidate */
  * whose values are always colour-semantics and may carry gradient data.
  *
  * The `string` arm covers formatted colour strings (e.g. `#FF6600`, `rgba(...)`)
- * emitted when `Config.format.color` is set to a non-`OBJECT` format.
+ * emitted when `Settings.spec.color` is set to a non-`OBJECT` format.
  */
 export type ColorStyle = string | ColorObject | TokenReference | GradientValue | null;
 

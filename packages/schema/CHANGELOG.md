@@ -7,11 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.31.0] - Unreleased
 
+Configuration now separates what is true about a Figma library from what a run chooses to do with it. A convention — a naming pattern, a state classification, where subcomponents live — is a fact every consumer of that library must share, and getting one wrong produces incorrect output. A setting is a free choice that produces different output. They were peers in one `Config`; they are now two published types, each addressable, each validated on its own, with the work a workspace runs declared separately again.
+
 ### Added
+
+- `Conventions` — facts about the Figma library, namespaced by source under `figma`; blocks are optional and their absence means the library declares no such convention
+- `Settings` — run choices grouped by concern (`data`, `spec`, `assets`), each carrying its own `directory`
+- `Pipeline` — `transformers` and `analyses` a workspace runs, with `AnalysisEntry` alongside `TransformEntry`
+- `SourceEntry` — a source's Figma file `key` and the artifacts to `fetch`
+- `DEFAULT_SETTINGS` and `DEFAULT_PIPELINE` — resolved defaults for the two halves that have them
+- `conventions.schema.json`, `settings.schema.json`, `pipeline.schema.json` — one schema per authored artifact
 
 ### Changed
 
+- `Metadata.config` → `Metadata.conventions` and `Metadata.settings` — each half comparable across specs on its own
+- `Config.format.figmaKeys` → `Conventions.figma.naming` — no longer shares the word `keys` with the emitted casing
+- `Config.processing.glyphNamePattern` → `Conventions.figma.glyphs.match`; `codeOnlyPropsPattern` → `codeOnlyProps.match`; `images.imageComponent` → `images.match`
+- `Config.processing.states`, `subcomponents`, `instanceExamples`, `images`, `slotConstraints`, `inferNumberProps` → `Conventions.figma`, whole, including `scope` and `backgroundImage`
+- `Config.format.output` → `Settings.spec.format`; the rest of `format` and all of `include` fold into `Settings.spec`
+- Workspace-level `sources`, `dataDirectory`, `outputDirectory`, and the `output` block absorbed into `Settings`
+
 ### Removed
+
+- `Config`, `ResolvedConfig`, and `DEFAULT_CONFIG` — replaced by the types above
+- `workspace.schema.json` — one schema per artifact replaces it
+- `Config.transformers` — work to run now lives in `Pipeline`
+
+### Migration
+
+- `Config` → `Conventions` + `Settings`: read library facts from `conventions`, run choices from `settings`. A member describes the library if a different team pointing at the same Figma file would have to keep your value.
+- `DEFAULT_CONFIG` → `DEFAULT_SETTINGS`: conventions have no defaults to supply, so nothing replaces the conventions half.
+- `Metadata.config` → `Metadata.conventions` / `Metadata.settings`: read whichever half you compared before, and prefer `conventions` when checking that two consumers agree about a library.
 
 
 ## [0.30.0] - 2026-08-17

@@ -1,0 +1,200 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://specs.directededges.com/settings.schema.json",
+  "title": "Specs Settings",
+  "description": "Choices about a run rather than facts about a library. Changing a setting produces different output, never incorrect output.",
+  "definitions": {
+    "SourceEntry": {
+      "type": "object",
+      "description": "A source the workspace reads from.",
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "Figma file key the source reads from."
+        },
+        "fetch": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Artifacts to download for this source (e.g. file, variables, styles, icons)."
+        }
+      },
+      "required": [
+        "key"
+      ],
+      "additionalProperties": false
+    },
+    "Settings": {
+      "type": "object",
+      "description": "Run settings, grouped by concern. Each concern carries its own directory.",
+      "properties": {
+        "author": {
+          "type": "string",
+          "description": "Author recorded in generated spec metadata."
+        },
+        "data": {
+          "type": "object",
+          "description": "Source acquisition: what to fetch, and where fetched artifacts, computed caches, and extracted assets are kept.",
+          "properties": {
+            "directory": {
+              "type": "string",
+              "description": "Directory holding fetched downloads, computed caches, extracted assets, and authored inputs."
+            },
+            "sources": {
+              "type": "object",
+              "description": "Sources the workspace reads from, keyed by source name.",
+              "additionalProperties": {
+                "$ref": "#/definitions/SourceEntry"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "spec": {
+          "type": "object",
+          "description": "The generated spec: where it lands, how it is split, what it contains, and how values are serialized.",
+          "properties": {
+            "directory": {
+              "type": "string",
+              "description": "Directory the generated spec is written to."
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "JSON",
+                "YAML"
+              ],
+              "default": "JSON",
+              "description": "Serialization format."
+            },
+            "keys": {
+              "type": "string",
+              "enum": [
+                "SAFE",
+                "CAMEL",
+                "SNAKE",
+                "KEBAB",
+                "PASCAL",
+                "TRAIN"
+              ],
+              "default": "SAFE",
+              "description": "Key naming convention applied to anatomy keys, prop keys, and references to them."
+            },
+            "layout": {
+              "type": "string",
+              "enum": [
+                "LAYOUT",
+                "PARENT_CHILDREN",
+                "BOTH"
+              ],
+              "default": "LAYOUT",
+              "description": "Layout representation format."
+            },
+            "tokens": {
+              "type": "string",
+              "enum": [
+                "TOKEN",
+                "TOKEN_NAME",
+                "TOKEN_FIGMA_EXTENSIONS",
+                "FIGMA_NAME",
+                "CUSTOM",
+                "FIGMA_SYNTAX_WEB",
+                "FIGMA_SYNTAX_IOS",
+                "FIGMA_SYNTAX_ANDROID"
+              ],
+              "default": "TOKEN",
+              "description": "Token reference serialization profile."
+            },
+            "color": {
+              "type": "string",
+              "enum": [
+                "HEX",
+                "HEXA",
+                "RGB",
+                "RGBA",
+                "HSLA",
+                "HSB",
+                "OKLCH",
+                "OKLAB",
+                "OBJECT"
+              ],
+              "default": "HEX",
+              "description": "Color value output format."
+            },
+            "variantDepth": {
+              "type": "integer",
+              "enum": [
+                1,
+                2,
+                3,
+                9999
+              ],
+              "default": 9999,
+              "description": "Depth of variant expansion; 9999 for unlimited."
+            },
+            "details": {
+              "type": "string",
+              "enum": [
+                "FULL",
+                "LAYERED"
+              ],
+              "default": "LAYERED",
+              "description": "Level of detail in output."
+            },
+            "collapsePrimitiveWrapper": {
+              "type": "boolean",
+              "default": false,
+              "description": "Strip a plain container wrapping a single text or glyph element and promote the leaf to spec root."
+            },
+            "invalidVariants": {
+              "type": "boolean",
+              "default": false,
+              "description": "Include invalid variants."
+            },
+            "invalidCombinations": {
+              "type": "boolean",
+              "default": true,
+              "description": "Include invalid combinations."
+            },
+            "emptyVariants": {
+              "type": "boolean",
+              "default": false,
+              "description": "Include layered variants that contain no elements."
+            },
+            "defaultSlotContent": {
+              "type": "boolean",
+              "default": false,
+              "description": "Include slot content examples in output (ADR-050)."
+            },
+            "splitComponents": {
+              "type": "boolean",
+              "description": "Write one file per component rather than a single combined file."
+            },
+            "splitConcerns": {
+              "type": "boolean",
+              "description": "Write one file per concern (api, styling, variants)."
+            },
+            "useSubfolders": {
+              "type": "boolean",
+              "description": "Nest each component's files in a subfolder named for the component."
+            }
+          },
+          "additionalProperties": false
+        },
+        "assets": {
+          "type": "object",
+          "description": "Shared resources every code output points at, whatever the platform: icons, images, generated CSS, fonts.",
+          "properties": {
+            "directory": {
+              "type": "string",
+              "description": "Directory holding shared assets."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

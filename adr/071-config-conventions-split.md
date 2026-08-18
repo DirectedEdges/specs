@@ -3,6 +3,7 @@
 **Branch**: `071-config-conventions-split`
 **Created**: 2026-08-18
 **Status**: DRAFT
+**Summary**: `Conventions`, `Settings` and `Pipeline` replace `Config`, separating library facts from run choices and declared work.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

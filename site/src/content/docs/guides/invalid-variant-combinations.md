@@ -136,4 +136,4 @@ When `true`, the component output includes the `invalidVariantCombinations` fiel
 - [Variant Depth](/guides/variant-depth/) — controlling variant expansion depth
 - [Variants](/schema/variants/) — variant schema reference
 - [Component](/schema/component/) — top-level component schema
-- [Config](/schema/config/) — full configuration options
+- [Settings](/schema/settings/) — full run settings

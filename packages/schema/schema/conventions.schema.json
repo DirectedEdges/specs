@@ -1,0 +1,200 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://specs.directededges.com/conventions.schema.json",
+  "title": "Specs Library Conventions",
+  "description": "Facts about the Figma library a spec was generated from. Every consumer reading the same library declares the same values; differing values produce incorrect output, not merely different output.",
+  "definitions": {
+    "VariantStateEntry": {
+      "type": "object",
+      "description": "Classifies a Figma variant prop as a semantic state concept. The map key (in figma.states) is the concept name (e.g. hover, disabled). (ADR-055)",
+      "properties": {
+        "prop": {
+          "type": "string",
+          "description": "Figma variant prop name (e.g. 'state', 'isDisabled', 'focused')."
+        },
+        "value": {
+          "type": "string",
+          "description": "Figma variant value that activates this concept (e.g. 'hover', 'pressed'). Omit for boolean props \u2014 defaults to 'true'."
+        },
+        "contract": {
+          "type": "string",
+          "enum": [
+            "omit",
+            "keep"
+          ],
+          "description": "Overrides the concept's canonical browser-driven / consumer-controlled default."
+        }
+      },
+      "required": [
+        "prop"
+      ],
+      "additionalProperties": false
+    },
+    "Conventions": {
+      "type": "object",
+      "description": "Facts about the library, namespaced by source.",
+      "properties": {
+        "figma": {
+          "type": "object",
+          "description": "Conventions describing how the Figma library is authored and organized.",
+          "properties": {
+            "naming": {
+              "type": "string",
+              "enum": [
+                "NONE",
+                "SENTENCE",
+                "TITLE"
+              ],
+              "default": "NONE",
+              "description": "Naming convention the Figma file uses for layer and component property names \u2014 the reversal target for settings.spec.keys."
+            },
+            "glyphs": {
+              "type": "object",
+              "description": "Glyph content assets. Absence means the library has no glyph naming convention.",
+              "properties": {
+                "match": {
+                  "type": "string",
+                  "description": "Naming pattern identifying glyph assets, using the {i} icon-name placeholder."
+                }
+              },
+              "required": [
+                "match"
+              ],
+              "additionalProperties": false
+            },
+            "codeOnlyProps": {
+              "type": "object",
+              "description": "The code-only props container layer. Absence means the library has no such convention.",
+              "properties": {
+                "match": {
+                  "type": "string",
+                  "description": "Literal layer name identifying the container."
+                }
+              },
+              "required": [
+                "match"
+              ],
+              "additionalProperties": false
+            },
+            "subcomponents": {
+              "type": "object",
+              "description": "Subcomponent organization and naming. Absence means the library has no subcomponent convention.",
+              "properties": {
+                "scope": {
+                  "type": "string",
+                  "enum": [
+                    "NESTED",
+                    "PAGE"
+                  ],
+                  "default": "NESTED",
+                  "description": "Where the library keeps subcomponents. NESTED = anatomy only; PAGE = also the Figma page."
+                },
+                "match": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1,
+                  "description": "Naming patterns identifying subcomponents, using {C} and {S} placeholders."
+                },
+                "exclude": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Naming patterns for matched assets the library excludes."
+                }
+              },
+              "required": [
+                "match"
+              ],
+              "additionalProperties": false
+            },
+            "instanceExamples": {
+              "type": "object",
+              "description": "Instance example organization and naming (ADR-050). Absence means the library has no such convention.",
+              "properties": {
+                "scope": {
+                  "type": "string",
+                  "enum": [
+                    "PAGE",
+                    "FILE"
+                  ],
+                  "default": "PAGE",
+                  "description": "Where the library keeps instance examples."
+                },
+                "match": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Naming patterns narrowing which instance frames qualify, using the {C} placeholder."
+                },
+                "exclude": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Naming patterns for frames the library excludes."
+                },
+                "parentNames": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Immediate-parent frame or section names a candidate must sit within."
+                }
+              },
+              "additionalProperties": false
+            },
+            "images": {
+              "type": "object",
+              "description": "How the library expresses images (ADR-063). Absence means the library has no image convention.",
+              "properties": {
+                "backgroundImage": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "The library expresses images as container fills, emitted as Styles.backgroundImage."
+                },
+                "match": {
+                  "type": "string",
+                  "description": "Name of the library's designated image component. Requires a non-empty sourceProps."
+                },
+                "sourceProps": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Code-only prop names carrying image sources. The first entry is the designated component's own source prop."
+                }
+              },
+              "additionalProperties": false
+            },
+            "slotConstraints": {
+              "type": "boolean",
+              "default": false,
+              "description": "The library authors slot constraints as code-only props, to be consolidated into the slot property."
+            },
+            "inferNumberProps": {
+              "type": "boolean",
+              "default": false,
+              "description": "The library authors numeric props as Figma TEXT props whose values parse as numbers, to be emitted as NumberProp."
+            },
+            "states": {
+              "type": "object",
+              "description": "Concept-keyed map classifying Figma variant props as semantic states.",
+              "additionalProperties": {
+                "$ref": "#/definitions/VariantStateEntry"
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "figma"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

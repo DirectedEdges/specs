@@ -76,7 +76,7 @@ Slot constraint properties (`minChildren`, `maxChildren`, `anyOf`) are emitted w
 | `nullable` | `boolean` | No | Whether `null` is a valid value — absent means `true` |
 | `$extensions` | `PropExtensions` | No | Vendor extensions |
 
-An image-valued property (e.g. a `dsImage` `source` prop). The authoring-default image rides on the [`ImageBinding`](/schema/prop-configurations/) at the binding site, not on the prop. Emitted for code-only props named in [`processing.images.sourceProps`](/schema/config/#processingimages) (since 0.28.0).
+An image-valued property (e.g. a `dsImage` `source` prop). The authoring-default image rides on the [`ImageBinding`](/schema/prop-configurations/) at the binding site, not on the prop. Emitted for code-only props named in [`figma.images.sourceProps`](/schema/conventions/#figmaimages) (since 0.28.0).
 
 ## Nullability
 

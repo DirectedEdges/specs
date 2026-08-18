@@ -18,7 +18,9 @@
       "default": "./dist/index.js"
     },
     "./schema/component": "./schema/component.schema.json",
-    "./schema/workspace": "./schema/workspace.schema.json"
+    "./schema/conventions": "./schema/conventions.schema.json",
+    "./schema/settings": "./schema/settings.schema.json",
+    "./schema/pipeline": "./schema/pipeline.schema.json"
   },
   "files": [
     "dist",
