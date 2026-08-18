@@ -256,4 +256,4 @@ License terms depend on your plan, but generally, no. Each Pro license is intend
 
 - [Getting Started](/overview/cli/getting-started/) — Installation and first spec
 - [Configuration Reference](/settings/) — All config options
-- [Config Schema](/overview/schema/config/) — Config type reference and defaults
+- [Settings Schema](/schema/settings/) — settings reference and defaults

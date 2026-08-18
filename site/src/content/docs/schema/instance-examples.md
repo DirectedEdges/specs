@@ -34,7 +34,7 @@ Slot fills encountered inside an example instance are contributed to the shared 
 
 ## Detection
 
-How example instances are harvested from a Figma file is controlled by [`processing.instanceExamples`](/settings/instance-examples/).
+How example instances are harvested from a Figma file is controlled by [`conventions.figma.instanceExamples`](/schema/conventions/#figmainstanceexamples).
 
 ## Further Reading
 

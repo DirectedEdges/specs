@@ -19,7 +19,7 @@ export interface Shadow {
   offsetY: number | TokenReference;
   blur: number | TokenReference;
   spread: number | TokenReference;
-  /** Shadow color — DTCG Color object, token reference, or formatted string when `Config.format.color` is non-`OBJECT`. */
+  /** Shadow color — DTCG Color object, token reference, or formatted string when `Settings.spec.color` is non-`OBJECT`. */
   color: string | ColorObject | TokenReference;
 }
 

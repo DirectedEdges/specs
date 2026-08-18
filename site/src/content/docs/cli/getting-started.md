@@ -79,7 +79,9 @@ A **license key** is optional — Specs CLI works at a free tier without one. To
 The defaults from `specs init` work well for most setups. When you're ready to customize, these options are available in `specs.config.yaml`:
 
 - **`dataDirectory` / `outputDirectory`** — where fetched data is stored and specs are written. Defaults: `./data` and `./specs`.
-- **`config`** — controls output format (JSON/YAML, key casing, token format), processing behavior (variant depth, detail level), and what to include. See [Configuration Reference](/schema/config/).
+- **`config/conventions.yaml`** — facts about the Figma library: naming patterns, state classification, how images are expressed. See [Conventions](/schema/conventions/).
+- **`config/settings.yaml`** — choices about the run: sources, output format, key casing, what to include. See [Settings](/schema/settings/).
+- **`config/pipeline.yaml`** — transformers and analyses to run. See [Pipeline](/schema/pipeline/).
 - **`output`** — controls file organization: split per component, split by concern, use subfolders. All default to `false`.
 
 ## Step 3: Fetch the Figma file
