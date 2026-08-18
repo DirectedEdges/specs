@@ -608,7 +608,7 @@ Settings:
 |------|--------|------|
 | `component.schema.json` | Removed `#/definitions/Config` | MAJOR |
 | `component.schema.json` | Added `#/definitions/Conventions` and `#/definitions/Settings` | MAJOR |
-| `pipeline.schema.json` | Added — validates the third artifact | MAJOR |
+| `pipeline.schema.json` | Added — validates `config/pipeline.yaml` | MAJOR |
 | `component.schema.json` | `metadata.config` → `metadata.conventions` + `metadata.settings` | MAJOR |
 | `workspace.schema.json` | Split into the two artifacts of Decision 8, each validating one definition | MAJOR |
 
@@ -652,7 +652,7 @@ Conventions:
 - **Work to run is not a setting.** `transformers` names *work* rather than how work behaves, and it is joined by `analyses`, which no artifact declares today. Both move to `pipeline.yaml` (Decision 10), which removes the odd member from `Settings` and gives analyses a declared home for the first time
 - **Application preferences are deliberately absent from the contract.** Values that never reach a spec — canvas column count, which sections a consumer renders, whether prior output is replaced — belong to the consumer that holds them. Naming the category is the contribution; owning it is not
 - **`VariantStateEntry` and `TransformEntry` are unchanged**, referenced from their new locations
-- **One canonical definition per shape, referenced rather than copied.** `workspace.schema.json` currently carries its own copy of `VariantStateEntry` alongside `component.schema.json`'s. The split multiplies that risk — `metadata` embeds conventions and settings, while the workspace artifacts validate the same shapes — so each shape is defined once and referenced by `$ref` from the other schema files. Constitution IV requires the schemas to remain internally consistent, and duplication is the mechanism by which they drift
+- **One canonical definition per shape, referenced rather than copied.** This package validates two different things: the configuration a person authors in a workspace, and the spec output the tool generates, whose `metadata` embeds the resolved configuration as provenance. The same shapes therefore appear on both sides — and today `workspace.schema.json` carries its own copy of `VariantStateEntry` alongside `component.schema.json`'s. The split multiplies that risk — `metadata` embeds conventions and settings, while the workspace artifacts validate the same shapes — so each shape is defined once and referenced by `$ref` from the other schema files. Constitution IV requires the schemas to remain internally consistent, and duplication is the mechanism by which they drift
 - **No migration logic is added to this package** (Constitution II). Reading a pre-split artifact is a consumer concern
 
 ---
