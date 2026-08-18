@@ -65,11 +65,13 @@ components:
 
 ## Package Exports
 
-The package exports TypeScript types for every node in the schema, plus one runtime value:
+The package exports TypeScript types for every node in the schema, plus two runtime values:
 
 ```ts
 import type { Component } from '@directededges/specs-schema';
-import { DEFAULT_CONFIG } from '@directededges/specs-schema';
+import { DEFAULT_SETTINGS, DEFAULT_PIPELINE } from '@directededges/specs-schema';
 ```
 
-`DEFAULT_CONFIG` is the only runtime export. All other exports are type-only.
+`DEFAULT_SETTINGS` and `DEFAULT_PIPELINE` are the only runtime exports. All other exports are type-only.
+
+There is no defaults export for [Conventions](/schema/conventions/): a convention's absence means the library declares no such convention, and nothing can supply that.

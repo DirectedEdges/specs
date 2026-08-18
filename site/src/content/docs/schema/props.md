@@ -51,7 +51,7 @@ A `StringProp` is distinguished from an `EnumProp` by the absence of `enum`.
 | `nullable` | `boolean` | No | Whether `null` is a valid value — absent means `true` (since 0.29.0) |
 | `examples` | `number[]` | No | Example values |
 
-Inferred from Figma variant values when [`inferNumberProps`](/schema/config.md/#processing) is enabled.
+Inferred from Figma variant values when [`conventions.figma.inferNumberProps`](/schema/conventions/#figma) is enabled.
 
 ### SlotProp
 
@@ -65,7 +65,7 @@ Inferred from Figma variant values when [`inferNumberProps`](/schema/config.md/#
 | `anyOf` | `string[]` | No | Permitted component type names (since 0.14.0) |
 | `$extensions` | `PropExtensions` | No | Vendor extensions |
 
-Slot constraint properties (`minChildren`, `maxChildren`, `anyOf`) are emitted when [`slotConstraints`](/schema/config.md/#processing) is enabled in config.
+Slot constraint properties (`minChildren`, `maxChildren`, `anyOf`) are emitted when [`conventions.figma.slotConstraints`](/schema/conventions/#figma) is declared.
 
 ### ImageProp
 

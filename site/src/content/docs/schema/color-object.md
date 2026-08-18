@@ -3,7 +3,7 @@ title: "ColorObject"
 description: "Structured color value preserving color space and components"
 ---
 
-An inline resolved color value per [DTCG Color Module §4.1](https://tr.designtokens.org/color/). Used as one arm of [`ColorStyle`](/schema/styles/background-color/#types) when `Config.format.color` is set to `OBJECT`.
+An inline resolved color value per [DTCG Color Module §4.1](https://tr.designtokens.org/color/). Used as one arm of [`ColorStyle`](/schema/styles/background-color/#types) when `settings.spec.color` is set to `OBJECT`.
 
 ```ts
 interface ColorObject {
