@@ -610,7 +610,9 @@ Settings:
 | `component.schema.json` | Added `#/definitions/Conventions` and `#/definitions/Settings` | MAJOR |
 | `pipeline.schema.json` | Added — validates `config/pipeline.yaml` | MAJOR |
 | `component.schema.json` | `metadata.config` → `metadata.conventions` + `metadata.settings` | MAJOR |
-| `workspace.schema.json` | Split into the two artifacts of Decision 8, each validating one definition | MAJOR |
+| `workspace.schema.json` | Removed — one schema per artifact replaces it | MAJOR |
+| `conventions.schema.json` | Added — validates `config/conventions.yaml` | MAJOR |
+| `settings.schema.json` | Added — validates `config/settings.yaml`, absorbing the former top-level workspace members | MAJOR |
 
 **Example — new shape** (`schema/component.schema.json`):
 
