@@ -3,14 +3,13 @@ title: "Output"
 description: "Control where and how generated specifications are written"
 ---
 
-Controls where and how to write generated specifications. Configured via the `output` field in `specs.config.yaml` or CLI flags.
+Controls where and how to write generated specifications. Run choices, configured via the `spec` block in `config/settings.yaml` or CLI flags — any split arrangement carries the same spec data.
 
 ```yaml
-output:
+spec:
   splitComponents: false    # Create separate file per component
   splitConcerns: false      # Separate API, variants, and examples
   useSubfolders: false      # Use component subdirectories
-  defaultFormat: yaml       # Output format (yaml|json)
 ```
 
 ## Output Modes
@@ -33,13 +32,13 @@ Create separate file per component.
 - **CLI Flag**: `--split-components`
 
 ```yaml
-output:
+spec:
   splitComponents: true
   useSubfolders: false  # button.yaml, alert.yaml (flat)
 ```
 
 ```yaml
-output:
+spec:
   splitComponents: true
   useSubfolders: true   # button/button.yaml, alert/alert.yaml
 ```
@@ -55,7 +54,7 @@ Separate API specification, variant configuration, and examples.
 - **CLI Flag**: `--split-concerns`
 
 ```yaml
-output:
+spec:
   splitConcerns: true
 ```
 
@@ -117,28 +116,12 @@ specs/
     └── card.yaml
 ```
 
-## `defaultFormat`
-
-Default output format for stdout only.
-
-- **Type**: string
-- **Default**: `yaml`
-- **Options**: `yaml`, `json`
-- **Override**: CLI `--format` flag takes precedence
-- **Note**: File output is always YAML. This setting controls stdout format only.
-- **Note**: Different from `config.format.output` (controls serialization, not file format)
-
-```yaml
-output:
-  defaultFormat: yaml  # stdout format (files use YAML)
-```
-
 ## Combined Mode
 
 Using both `splitComponents` and `splitConcerns` creates component directories with concern files:
 
 ```yaml
-output:
+spec:
   splitComponents: true
   splitConcerns: true
   useSubfolders: false  # Component dirs created automatically
@@ -163,8 +146,10 @@ specs/
 Output configuration follows the standard [priority system](/settings/#priority-system):
 
 1. **CLI flags** (highest): `--split-components`, `--split-concerns`, `--use-subfolders`
-2. **Config file**: `output` field in `specs.config.yaml`
+2. **Config file**: `spec` block in `config/settings.yaml`
 3. **Defaults** (lowest): Single-file mode, YAML format
+
+In the pre-split `specs.config.yaml`, these flags lived in a root-level `output` block; the legacy file still loads, migrating them to `spec` in memory.
 
 ```bash
 # Config has splitComponents: false

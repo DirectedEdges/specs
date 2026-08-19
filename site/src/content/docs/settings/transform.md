@@ -5,22 +5,22 @@ description: "Configure which transformers specs transform runs"
 
 <script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
 
-The `config.transform` block controls which transformers `specs transform` runs. It is optional — omitting it entirely means the CLI default applies.
+The `transformers` list in `config/pipeline.yaml` controls which transformers `specs transform` runs. Pipeline entries name *work to run* — neither a fact about the library nor a choice about output shape — so they live in their own artifact, apart from `conventions.yaml` and `settings.yaml`. The list is optional — omitting it entirely means the CLI default applies.
 
 ## Configuration
 
 ```yaml
-config:
-  transformers:
-    - name: contract
-    - name: css
-    - name: react
-    - name: stories
+# config/pipeline.yaml
+transformers:
+  - name: contract
+  - name: css
+  - name: react
+  - name: stories
 ```
 
 ## `transformers`
 
-An array of `{ name }` entries identifying which transformers to run. Names must match a registered transformer. The order of entries is the run order. When this block is absent, the CLI default (`contract`) runs.
+An array of `{ name }` entries identifying which transformers to run. Names must match a registered transformer. The order of entries is the run order. When this list is absent, the CLI default (`contract`) runs. `pipeline.yaml` also accepts an `analyses` list of the same shape, naming analyses for `specs analyze` — see the [Pipeline schema reference](/schema/pipeline/).
 
 ## Available Transformers
 
@@ -35,11 +35,13 @@ An array of `{ name }` entries identifying which transformers to run. Names must
 
 ## Default
 
-Omitting `config.transform` entirely is equivalent to running `specs transform contract`. No configuration is required to use the default transformer.
+Omitting `transformers` entirely is equivalent to running `specs transform contract`. No configuration is required to use the default transformer.
 
 ## Path
 
-`config.transform`
+`transformers` in `config/pipeline.yaml`
+
+**Legacy name**: in the pre-split `specs.config.yaml`, this list was `config.transformers`. The legacy file still loads, migrating it to `pipeline.yaml`'s `transformers` in memory.
 
 ## See Also
 

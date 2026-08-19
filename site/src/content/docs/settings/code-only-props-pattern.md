@@ -1,9 +1,9 @@
 ---
-title: "Code-Only Props Pattern"
+title: "codeOnlyProps"
 description: "Naming pattern used to detect the code-only props container layer"
 ---
 
-Naming pattern used to detect the code-only props container layer. When absent, no code-only prop extraction is performed. A `Code only props` layer is a tiny, clipped container parked at `(0,0)` that holds child layers bound to behavioral component properties with no visual representation — for example, a Text Area's `minRows`/`maxRows` sizing bounds and a `minLength` constraint.
+Naming pattern used to detect the code-only props container layer. A library fact, declared in `config/conventions.yaml`: every consumer reading the same library must declare the same layer name — a wrong one leaves code-only props unextracted. Absence means the library has no such convention, and no code-only prop extraction is performed. A `Code only props` layer is a tiny, clipped container parked at `(0,0)` that holds child layers bound to behavioral component properties with no visual representation — for example, a Text Area's `minRows`/`maxRows` sizing bounds and a `minLength` constraint.
 
 :::tip[Guide]
 See the [Code-Only Props](/guides/code-only-props/) guide as well as the [Code-Only Props in Figma](https://nathanacurtis.substack.com/p/code-only-props-in-figma) blog post for how detection and extraction works.
@@ -12,9 +12,9 @@ See the [Code-Only Props](/guides/code-only-props/) guide as well as the [Code-O
 ## Configuration
 
 ```yaml
-config:
-  processing:
-    codeOnlyPropsPattern: 'Code only props'
+figma:
+  codeOnlyProps:
+    match: 'Code only props'
 ```
 
 ## Result
@@ -42,14 +42,16 @@ When the pattern matches, the container **and all of its children are omitted fr
 
 Their numeric values (`"2"`, `"6"`, `"3"`) remain strings here. Pair this with [`inferNumberProps`](/settings/infer-number-props/) to emit them as `NumberProp` (`2`, `6`, `3`) instead.
 
-Without `codeOnlyPropsPattern`, the container and its children are treated as ordinary layout elements — they appear in `anatomy`/`elements` and no props are extracted.
+Without a `codeOnlyProps` block, the container and its children are treated as ordinary layout elements — they appear in `anatomy`/`elements` and no props are extracted.
 
 ## Options
 
-- **Type**: string
-- **Default**: absent (disabled)
-- **Effect**: When set, layers whose names match the pattern are treated as code-only prop containers and their children are extracted as props. The matched layer and its children are excluded from layout and element styling evaluation. When absent, code-only prop extraction is skipped entirely.
+- **Type**: block with a single `match` string — a literal layer name
+- **Default**: absent (no such convention)
+- **Effect**: When declared, layers whose names match are treated as code-only prop containers and their children are extracted as props. The matched layer and its children are excluded from layout and element styling evaluation. When absent, code-only prop extraction is skipped entirely.
 
 ## Path
 
-`config.processing.codeOnlyPropsPattern`
+`figma.codeOnlyProps.match` in `config/conventions.yaml`
+
+**Legacy name**: in the pre-split `specs.config.yaml`, this option was the scalar `config.processing.codeOnlyPropsPattern`. The legacy file still loads, migrating that member to `figma.codeOnlyProps.match` in memory.

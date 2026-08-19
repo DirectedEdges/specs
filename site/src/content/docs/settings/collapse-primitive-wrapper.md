@@ -3,14 +3,13 @@ title: "Collapse Primitive Wrapper"
 description: "Strip plain container wrappers around a single text or glyph element and promote the leaf to spec root"
 ---
 
-When enabled, a component whose root is a plain, style-free container holding a single `text` or `glyph` child is collapsed: the wrapper is stripped and the leaf becomes the spec root. This eliminates structural noise for purely typographic or icon primitives — such as Heading, Paragraph, Body, Label, or Icon components — where the container adds no design-system meaning.
+A run choice in `config/settings.yaml`. When enabled, a component whose root is a plain, style-free container holding a single `text` or `glyph` child is collapsed: the wrapper is stripped and the leaf becomes the spec root. This eliminates structural noise for purely typographic or icon primitives — such as Heading, Paragraph, Body, Label, or Icon components — where the container adds no design-system meaning.
 
 ## Configuration
 
 ```yaml
-config:
-  processing:
-    collapsePrimitiveWrapper: true
+spec:
+  collapsePrimitiveWrapper: true
 ```
 
 ## Result
@@ -59,4 +58,6 @@ Collapse is **all-or-nothing**: if any variant in the component set fails the el
 
 ## Path
 
-`config.processing.collapsePrimitiveWrapper`
+`spec.collapsePrimitiveWrapper` in `config/settings.yaml`
+
+Stripping the wrapper is a normalization choice, not a fact about the library — keeping it is faithful to Figma and equally correct. That is why this option lives in `settings.yaml` while its neighbors from the old `processing` block moved to `conventions.yaml`.

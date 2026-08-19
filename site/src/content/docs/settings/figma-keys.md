@@ -1,11 +1,11 @@
 ---
-title: "Figma Keys"
+title: "naming"
 description: "Declare the naming convention your Figma file uses, so formatted keys stay reversible"
 ---
 
 The naming convention your Figma file uses for layer names and component property names.
 
-Where [`keys`](/settings/keys/) controls what the spec *emits*, `figmaKeys` describes what the Figma file *contains*. Declaring it gives every formatted key a defined name to reverse back into when a spec is rendered into Figma.
+Where [`keys`](/settings/keys/) controls what the spec *emits*, `naming` describes what the Figma file *contains*. That is why the two live in different files: `keys` is a run choice in `config/settings.yaml`, while `naming` is a fact about the library, declared in `config/conventions.yaml` — a wrong declaration makes name reversal undefined, not merely different. Declaring it gives every formatted key a defined name to reverse back into when a spec is rendered into Figma.
 
 ## Options
 
@@ -17,17 +17,24 @@ Where [`keys`](/settings/keys/) controls what the spec *emits*, `figmaKeys` desc
 
 Only the two conventions observed in real Figma files are accepted as declarations. This is deliberately narrower than `keys`.
 
+**Legacy name**: in the pre-split `specs.config.yaml`, this option was `config.format.figmaKeys`. The legacy file still loads, migrating that member to `figma.naming` in memory.
+
 ## Path
 
-`config.format.figmaKeys`
+`figma.naming` in `config/conventions.yaml`
 
 ### Example
 
 ```yaml
-config:
-  format:
-    figmaKeys: TITLE   # Figma layer names are Title Case
-    keys: CAMEL        # spec emits camelCase
+# config/conventions.yaml
+figma:
+  naming: TITLE   # Figma layer names are Title Case
+```
+
+```yaml
+# config/settings.yaml
+spec:
+  keys: CAMEL     # spec emits camelCase
 ```
 
 ## Opting in

@@ -3,7 +3,9 @@ title: "Folders"
 description: "Configure input and output directories for fetched data and generated specs"
 ---
 
-## `dataDirectory`
+Each concern in `config/settings.yaml` — `data`, `spec`, and `assets` — carries its own `directory`. All are run choices: a different team could point them anywhere and still be correct.
+
+## `data.directory`
 
 Directory where `fetch` writes downloaded payloads, and where `generate` loads them from.
 
@@ -11,12 +13,11 @@ Directory where `fetch` writes downloaded payloads, and where `generate` loads t
 - **CLI override**: `--data-dir` flag on `fetch`, `scan`, and `generate` commands
 
 ```yaml
-dataDirectory: ./data
+data:
+  directory: ./data
 ```
 
-> **Backward compatibility**: The deprecated `sourceDirectory` field still works as an alias for `dataDirectory`. If both are present, `dataDirectory` takes precedence. Using `sourceDirectory` will emit a deprecation warning.
-
-## `outputDirectory`
+## `spec.directory`
 
 Default directory where `generate` commands write their output files.
 
@@ -25,5 +26,19 @@ Default directory where `generate` commands write their output files.
 - **Note**: The `generate` command's `--format` flag still controls output format (YAML vs JSON); this controls the directory only.
 
 ```yaml
-outputDirectory: ./specs
+spec:
+  directory: ./specs
 ```
+
+## `assets.directory`
+
+Directory holding shared resources every code output points at, whatever the platform — icons, images, generated CSS, fonts.
+
+```yaml
+assets:
+  directory: ./assets
+```
+
+## Legacy names
+
+In the pre-split `specs.config.yaml`, these were the root-level `dataDirectory` and `outputDirectory` members (and, before that, `sourceDirectory` as a deprecated alias for `dataDirectory`). The legacy file still loads, migrating both to `data.directory` and `spec.directory` in memory with a one-time deprecation warning.

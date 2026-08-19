@@ -1,9 +1,9 @@
 ---
-title: "Glyph Name Pattern"
+title: "glyphs"
 description: "Naming pattern used to detect glyph content assets"
 ---
 
-Naming pattern used to detect glyph content assets (e.g. icon glyphs). When absent, no glyph detection is performed.
+Naming pattern used to detect glyph content assets (e.g. icon glyphs). A library fact, declared in `config/conventions.yaml`: every consumer reading the same library must declare the same pattern — a wrong or missing one leaves icon assets undetected. Absence means the library has no glyph naming convention, and no glyph detection is performed.
 
 :::tip[Guide]
 See [Icon Glyphs](/guides/glyph-name-pattern/) for naming strategies and worked examples.
@@ -12,9 +12,9 @@ See [Icon Glyphs](/guides/glyph-name-pattern/) for naming strategies and worked 
 ## Configuration
 
 ```yaml
-config:
-  processing:
-    glyphNamePattern: 'DS Icon Glyph / {i}'
+figma:
+  glyphs:
+    match: 'DS Icon Glyph / {i}'
 ```
 
 ## Result
@@ -41,16 +41,18 @@ When the pattern matches, the layer is typed as a `glyph` in the anatomy and its
 }
 ```
 
-Without `glyphNamePattern`, the layer is treated as an ordinary element and no `content` glyph name is extracted.
+Without a `glyphs` block, the layer is treated as an ordinary element and no `content` glyph name is extracted.
 
 ## Options
 
-- **Type**: string
-- **Default**: absent (disabled)
-- **Effect**: When set, layers whose names match the pattern are detected as glyph assets. When absent, glyph detection is skipped entirely.
+- **Type**: block with a single `match` string
+- **Default**: absent (no glyph convention)
+- **Effect**: When declared, layers whose names match the pattern are detected as glyph assets. When absent, glyph detection is skipped entirely.
 
-The pattern must include the `{i}` placeholder, which marks where the glyph name appears in the component name. Internally `{i}` becomes a `(.+)` capture group and the matched text is used as the glyph's `content` value. See [Icon Glyphs](/guides/glyph-name-pattern/) for the full pattern syntax.
+The `match` pattern must include the `{i}` placeholder, which marks where the glyph name appears in the component name. Internally `{i}` becomes a `(.+)` capture group and the matched text is used as the glyph's `content` value. See [Icon Glyphs](/guides/glyph-name-pattern/) for the full pattern syntax.
 
 ## Path
 
-`config.processing.glyphNamePattern`
+`figma.glyphs.match` in `config/conventions.yaml`
+
+**Legacy name**: in the pre-split `specs.config.yaml`, this option was the scalar `config.processing.glyphNamePattern`. The legacy file still loads, migrating that member to `figma.glyphs.match` in memory.

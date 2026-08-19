@@ -3,9 +3,9 @@ title: "Color"
 description: "Control how color values are formatted in the spec output"
 ---
 
-Controls how color values are serialized wherever a `Color` appears in spec output — including solid fill and stroke styles, text color, shadow color, and gradient stops. By default, colors are emitted as compact hex strings, but you can switch to any CSS functional notation, Figma's native HSB model, or a fully structured object that preserves the original color space without lossy conversion.
+A run choice in `config/settings.yaml`. Controls how color values are serialized wherever a `Color` appears in spec output — including solid fill and stroke styles, text color, shadow color, and gradient stops. By default, colors are emitted as compact hex strings, but you can switch to any CSS functional notation, Figma's native HSB model, or a fully structured object that preserves the original color space without lossy conversion.
 
-This is a formatting concern only — it doesn't affect which colors are extracted or how they're resolved from Figma. Token-bound colors are unaffected; `format.color` applies to literal, unbound color values.
+This is a formatting concern only — it doesn't affect which colors are extracted or how they're resolved from Figma. Token-bound colors are unaffected; `spec.color` applies to literal, unbound color values.
 
 ## Default
 
@@ -27,14 +27,13 @@ This is a formatting concern only — it doesn't affect which colors are extract
 
 ## Path
 
-`config.format.color`
+`spec.color` in `config/settings.yaml`
 
 ### Example
 
 ```yaml
-config:
-  format:
-    color: HEX  # Default — 6-digit hex strings
+spec:
+  color: HEX  # Default — 6-digit hex strings
 ```
 
 ## See Also
