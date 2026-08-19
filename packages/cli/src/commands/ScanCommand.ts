@@ -155,7 +155,7 @@ function escapeCell(value: string): string {
 }
 
 /**
- * Partition components by glyphNamePattern. When pattern is falsy, all
+ * Partition components by the glyph naming convention. When the pattern is falsy, all
  * components stay in the components list and glyphs is empty.
  */
 export function partitionByGlyphPattern(
@@ -208,7 +208,7 @@ function generateManifestV2(
     lines.push('');
     lines.push('## Glyphs');
     lines.push('');
-    lines.push('_Detected via `glyphNamePattern`. Excluded from `specs generate`._');
+    lines.push('_Detected via `conventions.figma.glyphs.match`. Excluded from `specs generate`._');
     lines.push('');
     lines.push('| Name | ID | Type |');
     lines.push('|------|------|------|');

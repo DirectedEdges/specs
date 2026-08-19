@@ -50,7 +50,7 @@ async function initCommand(options: { force?: boolean; config?: string }): Promi
     console.log('   3. Run: specs scan');
     console.log('   4. Run: specs generate');
     console.log('');
-    console.log('📖 Documentation: docs/cli/configuration.md');
+    console.log('📖 Documentation: https://specs.directededges.com/settings/');
   } catch (error) {
     if (error instanceof Error) {
       console.error(`Error creating config file: ${error.message}`);
