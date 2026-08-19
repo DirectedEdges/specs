@@ -472,7 +472,7 @@ metadata:
 
 - `metadata` gains two keys where it had one, and nothing states that the two were resolved together for one run — beyond their appearing in the same `metadata` block for the same output
 - A consumer that genuinely wants "the whole configuration" declares a local pair type
-- `DEFAULT_CONFIG` becomes `DEFAULT_SETTINGS` and lives in `Settings.ts`, so nothing supplies defaults for conventions — which is correct, and now structurally obvious
+- `DEFAULT_CONFIG` becomes `DEFAULT_SETTINGS` in `Settings.ts`, joined by `DEFAULT_PIPELINE` and `DEFAULT_CONVENTIONS` — one defaults constant per artifact. `DEFAULT_CONVENTIONS` carries only the three members that have a default; no convention *block* is defaulted, because absence is the statement that a library declares none
 
 ---
 
@@ -651,7 +651,7 @@ Conventions:
 
 ### Notes
 
-- **Both halves need a resolved form, for different reasons.** `ResolvedSettings` guarantees every defaulted member is present. `ResolvedConventions` guarantees the members *inside* a present convention block are present — `subcomponents.scope`, `instanceExamples.scope`, `images.backgroundImage` and `sourceProps` all default within a declared block, exactly as `ResolvedConfig` does today. What conventions lack is a default for the *block itself*: absence means the library declares no such convention, and nothing can supply that. `DEFAULT_SETTINGS` therefore covers only the settings half
+- **Both halves need a resolved form, for different reasons.** `ResolvedSettings` guarantees every defaulted member is present. `ResolvedConventions` guarantees the members *inside* a present convention block are present — `subcomponents.scope`, `instanceExamples.scope`, `images.backgroundImage` and `sourceProps` all default within a declared block, exactly as `ResolvedConfig` does today. What conventions lack is a default for the *block itself*: absence means the library declares no such convention, and nothing can supply that. `DEFAULT_CONVENTIONS` therefore carries the three defaultable members and no blocks
 - **`data.directory` holds artifacts of four different lifecycles**, and the block is named `data` rather than `cache` for that reason. It carries fetched downloads (`library.<kind>.json`, one per entry in `sources.<name>.data`), computed caches (`cache/*.yaml`), extracted assets (`icons/*.svg`), an authored input that injects into a fetched artifact (`token-mappings.json`), and a manifest that is fetched and then authored in place. Naming it `cache` would invite a deletion that destroys authored work. Separating the authored inputs from the regenerable artifacts is a real follow-up and is **not** taken here
 - **`sources` folds into `data`, and its `data` list is renamed `fetch`.** Nested under the block it now belongs to, `data.sources.<name>.data` would stutter; `fetch` names what the list actually is — the artifacts to download for that source
 - **Work to run is not a setting.** `transformers` names *work* rather than how work behaves, and it is joined by `analyses`, which no artifact declares today. Both move to `pipeline.yaml` (Decision 10), which removes the odd member from `Settings` and gives analyses a declared home for the first time

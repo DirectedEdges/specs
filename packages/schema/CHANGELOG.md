@@ -15,7 +15,7 @@ Configuration now separates what is true about a Figma library from what a run c
 - `Settings` — run choices grouped by concern (`data`, `spec`, `assets`), each carrying its own `directory`
 - `Pipeline` — `transformers` and `analyses` a workspace runs, with `AnalysisEntry` alongside `TransformEntry`
 - `SourceEntry` — a source's Figma file `key` and the artifacts to `fetch`
-- `DEFAULT_SETTINGS` and `DEFAULT_PIPELINE` — resolved defaults for the two halves that have them
+- `DEFAULT_SETTINGS`, `DEFAULT_PIPELINE` and `DEFAULT_CONVENTIONS` — one defaults constant per configuration artifact. `DEFAULT_CONVENTIONS` carries only the three members that have a meaningful default; convention blocks are absent by design, because absence is the statement that a library declares none
 - `conventions.schema.json`, `settings.schema.json`, `pipeline.schema.json` — one schema per authored artifact
 
 ### Changed

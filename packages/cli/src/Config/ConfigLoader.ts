@@ -17,6 +17,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
 import {
+  DEFAULT_CONVENTIONS,
   DEFAULT_SETTINGS,
   DEFAULT_PIPELINE,
   type ResolvedConventions,
@@ -205,7 +206,7 @@ export class ConfigLoader {
     const raw = (rawRoot.figma && typeof rawRoot.figma === 'object' ? rawRoot.figma : {}) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const figma: ResolvedConventions['figma'] = {
-      naming: 'NONE',
+      ...DEFAULT_CONVENTIONS.figma,
       slotConstraints: raw.slotConstraints === true,
       inferNumberProps: raw.inferNumberProps === true,
     };

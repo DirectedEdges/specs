@@ -70,6 +70,7 @@ const settings: Settings = {
 - **`Pipeline`** - Transformers and analyses a workspace runs
 
 ### Configuration
+- **`DEFAULT_CONVENTIONS`** - The three convention members that have a default; no blocks
 - **`DEFAULT_SETTINGS`** - Resolved defaults for the settings half
 - **`DEFAULT_PIPELINE`** - An empty pipeline: no transformers, no analyses
 
@@ -89,7 +90,7 @@ const settings: Settings = {
 │ - TypeScript type definitions                    │
 │ - Default configuration constants                │
 │ Exports: Component, Conventions, Settings,       │
-│          Pipeline, DEFAULT_SETTINGS              │
+│          Pipeline, DEFAULT_* constants           │
 └──────────────────────────────────────────────────┘
                     ▲
                     │ imports types & config
