@@ -38,6 +38,9 @@ type ConfigSource =
   | { kind: 'directory'; dir: string }
   | { kind: 'legacy'; file: string };
 
+/** Pre-split workspace files that `specs migrate config` can convert. */
+const CONFIG_V1_BASENAMES = ['specs.config.yaml', 'specs.config.json'];
+
 export class ConfigLoader {
   constructor() {
     // Config loader with runtime type checking instead of schema validation
@@ -152,9 +155,22 @@ export class ConfigLoader {
    * everything the conventions declare, without ever failing.
    */
   private refuseLegacyFile(file: string): never {
+    // Name the full path: a workspace file and a home-directory one are refused
+    // for the same reason but have different remedies, and `config.yaml` alone
+    // does not tell the reader which file is being rejected.
+    const home = process.env.HOME || '~';
+    const isUserLevel = file.startsWith(path.join(home, '.specs'));
+    const isDiscovered = CONFIG_V1_BASENAMES.includes(path.basename(file));
+
+    const remedy = isUserLevel
+      ? "  A user-level configuration has no equivalent in the split layout. Move what it declares into this workspace's config/ directory, then delete it."
+      : isDiscovered
+        ? '  Run `specs migrate config` to write config/conventions.yaml, config/settings.yaml and config/pipeline.yaml from it.'
+        : `  Run \`specs migrate config --source ${path.basename(file)}\` to write config/conventions.yaml, config/settings.yaml and config/pipeline.yaml from it.`;
+
     throw new Error(
-      `${path.basename(file)} is no longer read (ADR-071).\n` +
-      `  Run \`specs migrate config\` to write config/conventions.yaml, config/settings.yaml and config/pipeline.yaml from it.\n` +
+      `${file} is no longer read (ADR-071).\n` +
+      `${remedy}\n` +
       `  Docs: https://specs.directededges.com/settings/`
     );
   }

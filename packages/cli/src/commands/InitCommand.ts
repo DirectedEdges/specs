@@ -25,6 +25,20 @@ export const Init = new Command('init')
  */
 async function initCommand(options: { force?: boolean; config?: string }): Promise<void> {
   const baseDir = options.config || '.';
+
+  // A pre-split workspace must not be scaffolded over. `init` writes defaults,
+  // so it would quietly replace whatever the workspace actually declared — and
+  // `specs migrate config` would then refuse, because config/ exists.
+  const legacy = ['specs.config.yaml', 'specs.config.json']
+    .find(name => fs.existsSync(path.join(baseDir, name)));
+  if (legacy) {
+    console.error(`Error: found ${legacy} — a pre-split configuration (ADR-071).`);
+    console.error('  Run `specs migrate config` to convert it, keeping what this workspace declares.');
+    console.error(`  To scaffold fresh defaults instead, remove ${legacy} first.`);
+    process.exitCode = 2;
+    return;
+  }
+
   const templates = generateConfigTemplates();
   const existing = Object.keys(templates).filter(rel => fs.existsSync(path.join(baseDir, rel)));
 
