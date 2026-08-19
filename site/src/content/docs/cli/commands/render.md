@@ -46,7 +46,7 @@ specs render specs/forms/            # every component in one group
 
 Batch scanning looks at most two levels deep, so both `specs/deButton/` and `specs/forms/deInput/` are found. It never descends into a component folder.
 
-Optional — when omitted, `render` uses the configured `outputDirectory` as a batch.
+Optional — when omitted, `render` uses the configured `spec.directory` as a batch.
 
 A directory batch renders in path order. Render order isn't configurable, so when one component's spec references another, render them individually in the order you need.
 
@@ -54,7 +54,7 @@ A directory batch renders in path order. Render order isn't configurable, so whe
 
 ### `--config <path>`
 
-Use a specific config file instead of the default `specs.config.yaml`.
+Use a specific `config/` directory (or a legacy `specs.config.yaml` file) instead of the default `config/` in the working directory.
 
 ### `--file <fileKey>`
 
@@ -184,7 +184,7 @@ specs render specs/deButton.yaml
 # Render every component in the output directory
 specs render specs/
 
-# Same, resolved from config (outputDirectory)
+# Same, resolved from config (spec.directory)
 specs render
 
 # Re-render on every save while iterating on a spec
@@ -247,7 +247,7 @@ schedules. Expect these in a comparison until they are fixed.
 |------|---------|
 | `0` | Success |
 | `1` | General error — bridge unreachable (run `specs bridge start`), render failed, or the plugin isn't connected |
-| `2` | Invalid arguments — spec path not found, `--watch` without a spec path, or no spec path given and no `outputDirectory` to fall back to |
+| `2` | Invalid arguments — spec path not found, `--watch` without a spec path, or no spec path given and no `spec.directory` to fall back to |
 
 ---
 

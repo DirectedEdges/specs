@@ -9,7 +9,7 @@ Variant layering is the schema model that describes how component properties acc
 
 The layering model is analogous to CSS cascading rules: each variant contributes only the properties that change at that configuration level, and the final rendered state is computed by merging all matching variant layers in sequence.
 
-This model is active when `processing.details` is set to `'LAYERED'` (the default). When set to `'FULL'`, every variant contains its complete resolved state with no layering.
+This model is active when `spec.details` is set to `'LAYERED'` (the default). When set to `'FULL'`, every variant contains its complete resolved state with no layering.
 
 ---
 
@@ -368,7 +368,7 @@ default:
 
 ### Reading Non-Default Variants
 
-When `processing.details` is `'LAYERED'` (the default), non-default variants list only changed properties:
+When `spec.details` is `'LAYERED'` (the default), non-default variants list only changed properties:
 
 ```yaml
 variants:
@@ -390,7 +390,7 @@ Element removal must be explicitly marked (typically via `visible: false` or pro
 
 ### Empty Variants
 
-Some variant configurations produce no element changes at all. By default these are excluded from output. Set `include.emptyVariants: true` to include them — useful for verifying that a configuration was processed even when it produces no visual difference.
+Some variant configurations produce no element changes at all. By default these are excluded from output. Set `spec.emptyVariants: true` to include them — useful for verifying that a configuration was processed even when it produces no visual difference.
 
 ---
 
@@ -444,11 +444,11 @@ configuration:
 
 ### `Variant.invalid`
 
-Boolean flag indicating this prop combination cannot be instantiated (e.g., `disabled: true, hover: true`). Invalid variants are excluded from layer resolution. Controlled by `include.invalidVariants` (default: `false`).
+Boolean flag indicating this prop combination cannot be instantiated (e.g., `disabled: true, hover: true`). Invalid variants are excluded from layer resolution. Controlled by `spec.invalidVariants` (default: `false`).
 
 ### `Component.invalidVariantCombinations`
 
-When `include.invalidCombinations` is `true` (the default), the component output includes an `invalidVariantCombinations` array listing prop combinations that have no corresponding valid variant.
+When `spec.invalidCombinations` is `true` (the default), the component output includes an `invalidVariantCombinations` array listing prop combinations that have no corresponding valid variant.
 
 ```yaml
 invalidVariantCombinations:
@@ -460,7 +460,7 @@ invalidVariantCombinations:
 
 **Use case**: Documenting constraints for code generation or validation.
 
-### `Config.processing.details`
+### `Settings.spec.details`
 
 Controls whether variant output uses layering:
 
@@ -471,7 +471,7 @@ Controls whether variant output uses layering:
 
 **Default**: `'LAYERED'`
 
-### `Config.processing.variantDepth`
+### `Settings.spec.variantDepth`
 
 Controls how many prop dimensions are expanded. See the [Variant Depth](/guides/variant-depth/) guide.
 
@@ -480,6 +480,6 @@ Controls how many prop dimensions are expanded. See the [Variant Depth](/guides/
 ## See Also
 
 - [Variant Depth](/guides/variant-depth/) — controlling variant expansion depth
-- [Variant type](/../packages/schema/types/Variant.ts/) — schema definition
-- [Config type](/../packages/schema/types/Config.ts/) — full configuration options
-- [component.schema.json](/../packages/schema/schema/component.schema.json/) — JSON Schema validation rules
+- [Variants](/schema/variants/) — schema definition
+- [Settings](/schema/settings/) — full run settings
+- [component.schema.json](https://github.com/DirectedEdges/specs/blob/main/packages/schema/schema/component.schema.json) — JSON Schema validation rules

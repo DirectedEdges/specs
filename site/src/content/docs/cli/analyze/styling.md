@@ -38,7 +38,7 @@ In addition to the aggregate reports below, each component folder receives its o
 
 ## Outputs
 
-Three aggregate files are written to `_analysis/` after all components are processed. The extension follows `format.output` in your config — `.json` shown here, `.yaml` when configured.
+Three aggregate files are written to `_analysis/` after all components are processed. The extension follows `spec.format` in `config/settings.yaml` — `.json` shown here, `.yaml` when configured.
 
 | File | Answers |
 |------|---------|
@@ -159,7 +159,7 @@ Tokens are grouped under the four category keys. Each token name maps to an arra
 
 The inverted audit: which published tokens does *no* spec reference? Where `byComponent` and `byToken` describe what specs use, `styling.unused` compares that usage against the full token universe of your design system and lists what's left over.
 
-The universe is built from the foundations data downloaded by `specs fetch` into your data directory — every source in `specs.config.yaml` that declares `variables` or `styles` data contributes its `{alias}.variables.json` and `{alias}.styles.json`. **If no foundations data files are found, this report is skipped** and the other two are still written.
+The universe is built from the foundations data downloaded by `specs fetch` into your data directory — every source in `config/settings.yaml` that declares `variables` or `styles` under `fetch` contributes its `{alias}.variables.json` and `{alias}.styles.json`. **If no foundations data files are found, this report is skipped** and the other two are still written.
 
 The comparison works on token names, constructed exactly as specs reference them:
 

@@ -16,7 +16,7 @@ specs transform [transformers...] [options]
 
 ### `[transformers...]`
 
-One or more transformer names to run. When omitted, uses `config.transform.transformers` from your config file, then falls back to the CLI default (`contract`).
+One or more transformer names to run. When omitted, uses `transformers` from `config/pipeline.yaml`, then falls back to the CLI default (`contract`).
 
 ```bash
 specs transform contract css react stories
@@ -28,7 +28,7 @@ specs transform contract css react stories
 Override the output directory for generated artifacts.
 
 ### `--config <path>`
-Use a specific config file.
+Use a specific `config/` directory (or a legacy `specs.config.yaml` file).
 
 ### `--components <keys...>`
 Only transform the named component folders instead of every component discovered in the output directory. Unknown component keys log a warning and are skipped.
@@ -51,5 +51,5 @@ Show detailed output during transformation.
 
 ## See Also
 
-- [transform config](/settings/transform/) — configure which transformers run by default
+- [Pipeline](/schema/pipeline/) — configure which transformers run by default in `config/pipeline.yaml`
 - [tokens config](/settings/tokens/) — control how token references are serialized in spec output

@@ -11,7 +11,7 @@ specs scan [file] [options]
 
 ## Format
 
-The manifest is a markdown file with a metadata header, a Components table, and (when `glyphNamePattern` is configured) a read-only Glyphs table:
+The manifest is a markdown file with a metadata header, a Components table, and (when a `glyphs` convention is declared) a read-only Glyphs table:
 
 ```markdown
 # Component Manifest
@@ -94,13 +94,13 @@ A summary line is printed after each merge, e.g. `Merge: 2 added, 1 removed, 5 u
 
 ### Glyph partitioning
 
-When `config.processing.glyphNamePattern` is set in `specs.config.yaml`, top-level components whose names match the pattern are routed to a separate `## Glyphs` section in the manifest instead of `## Components`. The pattern uses `{i}` as the glyph-name placeholder — for example, `'DS Icon Glyph / {i}'` matches `DS Icon Glyph / arrow-down` and extracts `arrow-down`. This is the same pattern syntax the processing engine uses for glyph detection inside component instances, so what `scan` partitions matches what `generate` treats as a glyph at processing time.
+When `figma.glyphs.match` is declared in `config/conventions.yaml`, top-level components whose names match the pattern are routed to a separate `## Glyphs` section in the manifest instead of `## Components`. The pattern uses `{i}` as the glyph-name placeholder — for example, `'DS Icon Glyph / {i}'` matches `DS Icon Glyph / arrow-down` and extracts `arrow-down`. This is the same pattern syntax the processing engine uses for glyph detection inside component instances, so what `scan` partitions matches what `generate` treats as a glyph at processing time.
 
 ```yaml
-# specs.config.yaml
-config:
-  processing:
-    glyphNamePattern: 'DS Icon Glyph / {i}'
+# config/conventions.yaml
+figma:
+  glyphs:
+    match: 'DS Icon Glyph / {i}'
 ```
 
 Glyphs in the partitioned section are:
@@ -109,7 +109,7 @@ Glyphs in the partitioned section are:
 - **Re-derived on every scan.** The Glyphs section is rebuilt from the current Figma payload — manual edits to that section won't survive a rescan.
 - **Omitted when empty.** If no components match the pattern, the section isn't written.
 
-If you remove `glyphNamePattern` from config and rescan, previously-partitioned glyphs return to `## Components` and become curatable again.
+If you remove the `glyphs` convention and rescan, previously-partitioned glyphs return to `## Components` and become curatable again.
 
 ## Examples
 
@@ -117,7 +117,7 @@ If you remove `glyphNamePattern` from config and rescan, previously-partitioned 
 
 ```bash
 # Zero-config: auto-resolves the only configured source
-# Default output: {dataDirectory}/library.manifest.md
+# Default output: {data.directory}/library.manifest.md
 specs scan
 
 # Or pass an explicit file path
@@ -127,7 +127,7 @@ specs scan data/library.file.json -o components.md
 ### Multiple sources
 
 ```bash
-# When specs.config.yaml has multiple sources, pick one:
+# When config/settings.yaml declares multiple data.sources, pick one:
 specs scan --source library
 specs scan --source foundations
 ```
@@ -156,7 +156,7 @@ specs scan --verbose
 ## Arguments
 
 ### `[file]` (optional)
-Path to Figma REST API JSON file. When omitted, `scan` resolves the file from your configured sources in `specs.config.yaml`:
+Path to Figma REST API JSON file. When omitted, `scan` resolves the file from the sources configured under `data.sources` in `config/settings.yaml`:
 
 - **1 source configured** → auto-selected
 - **2+ sources configured** → must specify one with `--source <alias>`
@@ -176,32 +176,32 @@ specs scan data/library.file.json
 ## Options
 
 ### `--source <alias>`
-Configured source alias to scan. Required when multiple sources exist in `specs.config.yaml`. Cannot be combined with an explicit `[file]` argument.
+Configured source alias to scan. Required when multiple sources exist under `data.sources` in `config/settings.yaml`. Cannot be combined with an explicit `[file]` argument.
 
 ```bash
 specs scan --source library
 ```
 
 ### `-o, --output <path>`
-Output manifest path. Optional — defaults to `{dataDirectory}/{alias}.manifest.md`, where `dataDirectory` comes from `specs.config.yaml` and `alias` is either the resolved source name or derived from the input filename (e.g., `library.file.json` → `library.manifest.md`).
+Output manifest path. Optional — defaults to `{data.directory}/{alias}.manifest.md`, where `data.directory` comes from `config/settings.yaml` and `alias` is either the resolved source name or derived from the input filename (e.g., `library.file.json` → `library.manifest.md`).
 
 ```bash
 # Explicit output path
 specs scan -o manifests/design-system.md
 
-# Default: writes to data/library.manifest.md (from config dataDirectory)
-specs scan --config specs.config.yaml
+# Default: writes to data/library.manifest.md (from settings data.directory)
+specs scan --config config/
 ```
 
 ### `--data-dir <dir>`
-Override the data directory used for resolving input files and default output path. Defaults to `dataDirectory` from config, or `./data` if not configured.
+Override the data directory used for resolving input files and default output path. Defaults to `data.directory` from `config/settings.yaml`, or `./data` if not configured.
 
 ```bash
 specs scan --data-dir ./custom-data
 ```
 
 ### `--config <path>`
-Path to config file. Used to resolve `dataDirectory` and `sources` for auto-selection and the default output path.
+Path to the `config/` directory (or a legacy `specs.config.yaml` file). Used to resolve `data.directory` and `data.sources` for auto-selection and the default output path.
 
 ### `--include-all`
 Include all components regardless of devStatus or heuristics. Overrides the default rule and bypasses the merge step entirely.
@@ -241,5 +241,5 @@ Manifests produced by older versions of `scan` (checkbox-list format like `- [x]
 **See Also:**
 - [Generate Command](/cli/commands/generate/) - Generate specs from manifest or single component
 - [Render Command](/cli/commands/render/) - Uses scan data to bind glyphs, styles, and variables when rendering in Figma
-- [glyphNamePattern](/settings/glyph-name-pattern/) - Pattern syntax that drives Glyphs-section partitioning
+- [figma.glyphs.match](/settings/glyph-name-pattern/) - Pattern syntax that drives Glyphs-section partitioning
 - [Configuration Reference](/settings/) - Format and config options

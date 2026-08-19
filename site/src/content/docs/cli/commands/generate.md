@@ -36,13 +36,13 @@ specs scan
 specs generate
 ```
 
-With no arguments, step 4 uses the default manifest (`{dataDirectory}/{alias}.manifest.md`) and writes to `config.outputDirectory`. Pass either explicitly to override:
+With no arguments, step 4 uses the default manifest (`{data.directory}/{alias}.manifest.md`) and writes to `spec.directory` from `config/settings.yaml`. Pass either explicitly to override:
 
 ```bash
 specs generate components.md -o specs/library.yaml
 ```
 
-Manifest mode requires an output destination — `-o` or `config.outputDirectory` — since it can produce many files. Control the file layout with [`--split-components`](#--split-components), [`--split-concerns`](#--split-concerns), and [`--use-subfolders`](#--use-subfolders):
+Manifest mode requires an output destination — `-o` or `spec.directory` — since it can produce many files. Control the file layout with [`--split-components`](#--split-components), [`--split-concerns`](#--split-concerns), and [`--use-subfolders`](#--use-subfolders):
 
 ```bash
 specs generate -o specs/ --split-components
@@ -78,7 +78,7 @@ The component is resolved against the JSON file's components and component sets.
 specs generate data/library.file.json -c "1234:5678" -o specs/button.yaml
 ```
 
-Without `-o` (and with no `config.outputDirectory`), the spec goes to stdout — handy for piping:
+Without `-o` (and with no configured `spec.directory`), the spec goes to stdout — handy for piping:
 
 ```bash
 specs generate data/library.file.json -c "DS Button" -f yaml | yq '.dsButton.anatomy'
@@ -102,8 +102,8 @@ specs generate --from-bridge -o specs/button.yaml
 
 Because the plugin does the generating, bridge mode behaves differently from the other two in ways worth knowing:
 
-- **The plugin's settings and license govern the spec.** The config that shaped the output — `Config` keys, formatting, tier-gated detail — is the plugin's, not your `specs.config.yaml`. `-l/--license` has no effect; the plugin uses the license stored in its own UI.
-- **Your CLI config still controls where and how the spec is written.** `outputDirectory`, `format.output`, and the output flags all apply as usual.
+- **The plugin's settings and license govern the spec.** The conventions and settings that shaped the output — key formatting, tier-gated detail — are the plugin's, not your `config/` files. `-l/--license` has no effect; the plugin uses the license stored in its own UI.
+- **Your CLI config still controls where and how the spec is written.** `spec.directory`, `spec.format`, and the output flags all apply as usual.
 - **The output is as current as the file.** Unsaved and just-edited work is included, so this reflects the document rather than the last fetch.
 - **`-c`, `-v`, `-s`, and `--data-dir` are ignored**, and passing a `source` argument is an error.
 
@@ -129,7 +129,7 @@ Common failures:
 ### `[source]`
 Path to a markdown manifest or a Figma REST API JSON file. The mode is detected from its content.
 
-- **Not provided**: defaults to `{dataDirectory}/{alias}.manifest.md`, where `dataDirectory` comes from `specs.config.yaml` and `alias` is `library` if configured with `data: [file]`, otherwise the first source alias with `data: [file]`. This matches the default output of `specs scan`.
+- **Not provided**: defaults to `{data.directory}/{alias}.manifest.md`, where `data.directory` comes from `config/settings.yaml` and `alias` is `library` if configured with `fetch: [file]`, otherwise the first source alias with `fetch: [file]`. This matches the default output of `specs scan`.
 - **Markdown manifest**: manifest mode.
 - **Figma JSON**: single component mode — requires `-c`.
 - **Bridge mode**: takes no source argument; passing one is an error.
@@ -144,10 +144,10 @@ Output file or directory path.
 
 - **File path**: writes all output to a single file (e.g. `-o specs/library.yaml`).
 - **Directory path**: writes output files into the directory (e.g. `-o specs/`).
-- **Not provided**: falls back to `config.outputDirectory` (default `./specs`). Required in manifest mode if that isn't configured; single component and bridge mode write to stdout instead.
+- **Not provided**: falls back to `spec.directory` from `config/settings.yaml` (default `./specs`). Required in manifest mode if that isn't configured; single component and bridge mode write to stdout instead.
 
 ### `-f, --format <format>`
-Output format: `yaml` or `json`. Defaults to `config.format.output` (or JSON with no config); the flag takes precedence.
+Output format: `yaml` or `json`. Defaults to `spec.format` from `config/settings.yaml` (or JSON with no config); the flag takes precedence.
 
 ### `-l, --license <key>`
 License key for premium features.
@@ -161,22 +161,22 @@ export SPECS_LICENSE_KEY="your-license-key"
 specs generate
 ```
 
-No effect in bridge mode, where the plugin's own license applies. See [Getting Started — License](/cli/getting-started.md/#step-3-set-your-license-key-optional) for setup.
+No effect in bridge mode, where the plugin's own license applies. See [Getting Started](/cli/getting-started/#step-2-set-up-your-environment) for setup.
 
 ### `--data-dir <dir>`
-Override the data directory used for resolving input files and auxiliary data (variables, styles). Defaults to `dataDirectory` from config, or `./data`.
+Override the data directory used for resolving input files and auxiliary data (variables, styles). Defaults to `data.directory` from `config/settings.yaml`, or `./data`.
 
 ### `-v, --variables <path>`
 External variables JSON file.
 
-- **Default** (no flag): loads all `${alias}.variables.json` for aliases in config whose `data` includes `variables`.
+- **Default** (no flag): loads all `${alias}.variables.json` for aliases in config whose `fetch` includes `variables`.
 - **Fallback** (no sources configured): tries `foundations/variables.json` next to the source JSON file.
 - **Override**: the flag replaces that list for this run.
 
 ### `-s, --styles <path>`
 External styles JSON file.
 
-- **Default** (no flag): loads all `${alias}.styles.json` for aliases in config whose `data` includes `styles`.
+- **Default** (no flag): loads all `${alias}.styles.json` for aliases in config whose `fetch` includes `styles`.
 - **Fallback** (no sources configured): tries `foundations/styles.json` next to the source JSON file.
 - **Override**: the flag replaces that list for this run.
 
@@ -248,7 +248,7 @@ specs/
 ```
 
 ### `--get-images`
-Resolve unresolved registry images into real image files. Requires a [`processing.images`](/settings/images/) block in config, a configured source file key, and the `FIGMA_TOKEN` environment variable (the same token `specs fetch` uses).
+Resolve unresolved registry images into real image files. Requires a [`figma.images`](/settings/images/) convention in `config/conventions.yaml`, a configured source file key, and the `FIGMA_TOKEN` environment variable (the same token `specs fetch` uses).
 
 ```bash
 specs generate -o specs/ --split-components --get-images
@@ -296,10 +296,10 @@ Target a specific connected Figma file (bridge mode only). More than one file ca
 Generate from a specific node ID instead of the current selection (bridge mode only). The plugin selects the node first, switching pages if the node lives on another one, then restores the page you were on.
 
 ### `--config <path>`
-Path to a configuration file, when it isn't the `specs.config.yaml` in the working directory.
+Path to a `config/` directory (or a legacy `specs.config.yaml` file), when it isn't the `config/` directory in the working directory.
 
 ```bash
-specs generate --config configs/mobile.yaml -o specs/mobile.yaml
+specs generate --config workspaces/mobile/config -o specs/mobile.yaml
 ```
 
 ### `--verbose`

@@ -12,20 +12,20 @@ specs fetch [options]
 ## Requirements
 
 - `FIGMA_TOKEN` must be set in your environment.
-- `specs.config.yaml` must include `dataDirectory` (or deprecated `sourceDirectory`) and `sources`.
+- `config/settings.yaml` must include `data.directory` and `data.sources`.
 - Fetching `variables` or `styles` requires your Figma organization to be on an **Enterprise** plan — Figma restricts those REST endpoints regardless of your Specs license. `file` and `icons` data work on any plan. See [CLI Requirements](/cli/#requirements).
 - Fetching `icons` additionally requires:
-  - `config.processing.glyphNamePattern` set in your config (see [Glyph Name Pattern](/guides/glyph-name-pattern/))
-  - `outputDirectory` set in your config — icon assets are written to the spec workspace, not the data directory
-  - the source's `file` payload — listed before `icons` in the same `data` array, or fetched in a previous run
+  - `figma.glyphs.match` set in `config/conventions.yaml` (see [Glyph Name Pattern](/guides/glyph-name-pattern/))
+  - `spec.directory` set in `config/settings.yaml` — icon assets are written to the spec workspace, not the data directory
+  - the source's `file` payload — listed before `icons` in the same `fetch` array, or fetched in a previous run
 
 ## Options
 
 ### `--config <path>`
-Use a specific config file.
+Use a specific `config/` directory (or a legacy `specs.config.yaml` file).
 
 ### `--data-dir <dir>`
-Override output directory for fetched payloads. Defaults to `dataDirectory` from config, or `./data` if not configured.
+Override output directory for fetched payloads. Defaults to `data.directory` from `config/settings.yaml`, or `./data` if not configured.
 
 ```bash
 specs fetch --data-dir ./custom-data
@@ -34,7 +34,7 @@ specs fetch --data-dir ./custom-data
 > **Deprecated alias**: `--outDir` still works but will emit a deprecation warning. Prefer `--data-dir`.
 
 ### `--only <alias[,alias...]>`
-Fetch only specific aliases from `sources`.
+Fetch only specific aliases from `data.sources`.
 
 ### `--no-geometry`
 Omit geometry data from file payloads. By default, `fetch` requests `?geometry=paths` from the Figma API, which includes `fillGeometry`, `strokeGeometry`, `size`, and `relativeTransform` on every node. This roughly doubles the payload size.
@@ -50,7 +50,7 @@ Show request URLs and write locations.
 
 ## The Render Cache
 
-After downloading, `fetch` builds the lookup tables [`render`](/cli/commands/render/) resolves specs against, under `{dataDirectory}/cache/`. This is why a normal workflow never needs to run [`specs cache`](/cli/commands/cache/) by hand.
+After downloading, `fetch` builds the lookup tables [`render`](/cli/commands/render/) resolves specs against, under `{data.directory}/cache/`. This is why a normal workflow never needs to run [`specs cache`](/cli/commands/cache/) by hand.
 
 It covers every source in your config that has been fetched — the ones downloaded this run, plus any downloaded previously — and rebuilds only the ones whose payloads actually changed, so refreshing one library doesn't re-read the rest. A source you haven't fetched yet is skipped and reported:
 
@@ -72,19 +72,21 @@ specs fetch --only foundations --verbose
 
 ## Fetching Icon Assets
 
-Add `icons` to a source's `data` array to download the library's icon glyphs as SVG files:
+Add `icons` to a source's `fetch` array to download the library's icon glyphs as SVG files:
 
 ```yaml
-sources:
-  library:
-    key: YOUR_FILE_KEY
-    data: ['file', 'variables', 'styles', 'icons']
+# config/settings.yaml
+data:
+  sources:
+    library:
+      key: YOUR_FILE_KEY
+      fetch: ['file', 'variables', 'styles', 'icons']
 ```
 
 How it works:
 
-- Glyph components are **derived from the file payload** — every `COMPONENT` node whose name matches `config.processing.glyphNamePattern` (with `{i}` capturing the icon name). No `scan` step is involved.
-- SVGs are exported through the Figma images API in batches and written to `<outputDirectory>/_icons/` — beside the `_images/` assets and the component specs that reference them, not into the regenerable data cache.
+- Glyph components are **derived from the file payload** — every `COMPONENT` node whose name matches the `figma.glyphs.match` convention (with `{i}` capturing the icon name). No `scan` step is involved.
+- SVGs are exported through the Figma images API in batches and written to `<spec.directory>/_icons/` — beside the `_images/` assets and the component specs that reference them, not into the regenerable data cache.
 - Filenames are stable kebab-case slugs of the captured icon name, including camelCase splitting: `expandMore` → `expand-more.svg`, `Arrow Left` → `arrow-left.svg`.
 - Two icons that slug identically keep the first as-is; later duplicates are suffixed with their node id so nothing is silently dropped.
 
@@ -103,17 +105,19 @@ Because glyphs come from the saved file payload, `icons` runs after the other ki
 specs fetch --only library --verbose
 ```
 
-The downloaded assets match the slugs referenced by generated component output (masked glyph spans resolve `/assets/icons/<slug>.svg`), so serving `<outputDirectory>/_icons/` as a static assets directory — for example in Storybook — makes icons render without further mapping. Keeping icons in the spec workspace means a cloned workspace renders completely without re-fetching.
+The downloaded assets match the slugs referenced by generated component output (masked glyph spans resolve `/assets/icons/<slug>.svg`), so serving `<spec.directory>/_icons/` as a static assets directory — for example in Storybook — makes icons render without further mapping. Keeping icons in the spec workspace means a cloned workspace renders completely without re-fetching.
 
 ## Fetching Figma Branches
 
-You can fetch data from a Figma branch instead of the main file by using the branch's file key in your `sources` config. Every Figma branch has its own unique key, which works anywhere a main file key does.
+You can fetch data from a Figma branch instead of the main file by using the branch's file key in your `data.sources` config. Every Figma branch has its own unique key, which works anywhere a main file key does.
 
 ```yaml
-sources:
-  library:
-    key: BRANCH_FILE_KEY   # branch key instead of main file key
-    data: ['file', 'variables', 'styles']
+# config/settings.yaml
+data:
+  sources:
+    library:
+      key: BRANCH_FILE_KEY   # branch key instead of main file key
+      fetch: ['file', 'variables', 'styles']
 ```
 
 ### How to find a branch key
@@ -135,5 +139,5 @@ If you use `applyCustomTokens` with branch-fetched data, be aware that Figma var
 ---
 
 **See Also:**
-- [Configuration Reference](/settings/) - dataDirectory and sources setup
+- [Configuration Reference](/settings/) - data.directory and data.sources setup
 - [Generate Command](/cli/commands/generate/) - Processing fetched data

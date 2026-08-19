@@ -3,7 +3,7 @@ title: "Images"
 description: "Capture image fills and image-source props — as a designated image component or a container background fill"
 ---
 
-Design systems use images two ways, and Specs captures both. Sometimes an image is a **layer fill** — a card with a photographic background, a hero banner painted directly on a container. Other times it flows through a dedicated **image component** — a `dsImage` or `dsAvatar` with a `source`-like prop that renders whatever image is passed in. Which one you get is a config choice, not a guess.
+Design systems use images two ways, and Specs captures both. Sometimes an image is a **layer fill** — a card with a photographic background, a hero banner painted directly on a container. Other times it flows through a dedicated **image component** — a `dsImage` or `dsAvatar` with a `source`-like prop that renders whatever image is passed in. Which one you get is a declared convention, not a guess.
 
 ## The Problem
 
@@ -11,7 +11,7 @@ Until now the schema had no representation for images at all. An `IMAGE`-type fi
 
 ## What It Does
 
-When [`processing.images`](/settings/images/) is configured, the engine captures image fills and image-source props and stores each distinct image once in a `Component.images` registry, referenced by an `$image` pointer:
+When the [`figma.images`](/settings/images/) convention is declared, the engine captures image fills and image-source props and stores each distinct image once in a `Component.images` registry, referenced by an `$image` pointer:
 
 ```yaml
 default:
@@ -66,23 +66,22 @@ Sourcing binds through `propConfigurations`, never through `backgroundImage` —
 
 ## Configuration
 
-Everything lives in one block: [`processing.images`](/settings/images/). Its presence is the on-switch, and each member is an independent representation trigger:
+Everything lives in one block: [`figma.images`](/settings/images/) in `config/conventions.yaml`. Its presence is the on-switch, and each member is an independent representation trigger:
 
 ```yaml
-# specs.config.yaml
-config:
-  processing:
-    images:
-      backgroundImage: true      # detect image fills → Styles.backgroundImage
-      imageComponent: dsImage    # designate an image component (requires sourceProps)
-      sourceProps: [source]      # code-only props typed as images; first = dsImage's source prop
+# config/conventions.yaml
+figma:
+  images:
+    backgroundImage: true      # detect image fills → Styles.backgroundImage
+    match: dsImage             # designate an image component (requires sourceProps)
+    sourceProps: [source]      # code-only props typed as images; first = dsImage's source prop
 ```
 
-| Goal | Config | Behavior |
+| Goal | Convention | Behavior |
 |------|--------|----------|
 | Background fills only | `backgroundImage: true` | Every image fill → `backgroundImage` on containers |
-| Component + fill fallback | `imageComponent` + `sourceProps` + `backgroundImage: true` | Image props route through the component; stray fills still emit as `backgroundImage` |
-| Component only | `imageComponent` + `sourceProps` | The component is the **only** image representation; stray fills are not detected |
+| Component + fill fallback | `match` + `sourceProps` + `backgroundImage: true` | Image props route through the component; stray fills still emit as `backgroundImage` |
+| Component only | `match` + `sourceProps` | The component is the **only** image representation; stray fills are not detected |
 | Typed image props only | `sourceProps` alone | Listed code-only props re-type to `ImageProp`; no fill detection, no component routing |
 
 ## Object Fit
@@ -101,7 +100,7 @@ The Figma plugin cannot embed raw image bytes on the component asset (Figma caps
 
 ## Further Reading
 
-- [`processing.images`](/settings/images/) — config reference
+- [`figma.images`](/settings/images/) — convention reference
 - [Schema: Styles](/schema/styles/) — the `backgroundImage` value shape
 - [Schema: Props](/schema/props/) — the `ImageProp` shape
 - [Schema: Prop Configurations](/schema/prop-configurations/) — the `ImageBinding` shape

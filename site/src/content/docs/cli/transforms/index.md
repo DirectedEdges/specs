@@ -61,12 +61,12 @@ If you only see a single `library.yaml`, or `{Component}.yaml` files with no `ap
 specs transform [transformers...] [options]
 ```
 
-Transformer names can be passed as positional arguments, configured in `specs.config.yaml`, or left absent to use the CLI default (`contract`).
+Transformer names can be passed as positional arguments, configured in `config/pipeline.yaml`, or left absent to use the CLI default (`contract`).
 
 #### Resolution Order
 
 1. Positional arguments — `specs transform css react`
-2. `config.transform.transformers` in `specs.config.yaml`
+2. `transformers` in `config/pipeline.yaml`
 3. CLI default: `contract`
 
 ## Types
@@ -94,15 +94,14 @@ specs transform react stories --components dsAlert dsBadge
 specs transform contract css react stories
 ```
 
-Or configure them in `specs.config.yaml` so `specs transform` alone is enough:
+Or configure them in `config/pipeline.yaml` so `specs transform` alone is enough:
 
 ```yaml
-config:
-  transformers:
-    - name: contract
-    - name: css
-    - name: react
-    - name: stories
+transformers:
+  - name: contract
+  - name: css
+  - name: react
+  - name: stories
 ```
 
 `react` and `stories` both assume `contract` and `css` have already produced `generated/{Component}.contract.ts` and `generated/{Component}.styles.css` for the component — list them in this order.
@@ -110,4 +109,4 @@ config:
 ## See Also
 
 - [`transform` command](/cli/commands/transform/) — full CLI reference
-- [transform config](/settings/transform/) — configure default transformers
+- [Pipeline](/schema/pipeline/) — configure default transformers in `config/pipeline.yaml`
