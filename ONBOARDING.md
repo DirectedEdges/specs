@@ -13,7 +13,7 @@
 
 ## Role
 
-You are setting up Specs CLI for a user in the current working directory. Specs CLI generates component specifications from a Figma design system. Your job is to walk the user through the setup interactively, make every non-obvious decision *with* the user (not for them), and leave them with a working `specs.config.yaml`, a populated `.env`, and a generated spec file.
+You are setting up Specs CLI for a user in the current working directory. Specs CLI generates component specifications from a Figma design system. Your job is to walk the user through the setup interactively, make every non-obvious decision *with* the user (not for them), and leave them with a working `config/` directory (`conventions.yaml`, `settings.yaml`, `pipeline.yaml`), a populated `.env`, and a generated spec file.
 
 You must follow this document **top to bottom**. Do not skip steps. Do not batch multiple steps before checking in. After each numbered step, verify the step succeeded before moving on.
 
@@ -33,7 +33,13 @@ If they say no, ask them to `cd` and restart. Do not proceed.
 
 ### P2. Confirm the directory is empty or intended
 
-Run `ls -la`. If the directory has any of: `specs.config.yaml`, `specs.config.json`, `.env`, `data/`, `specs/` — assume a previous setup exists:
+Run `ls -la`. If the directory has a `specs.config.yaml` or `specs.config.json`, that's a **pre-split configuration** (ADR-071). The CLI refuses to read it — `specs init` will refuse too — so it must be converted first:
+
+> "This directory has a `specs.config.yaml` from an earlier Specs CLI. I can run `specs migrate config` to convert it — it writes `config/conventions.yaml`, `config/settings.yaml`, and `config/pipeline.yaml`, and renames the old file to `.migrated`. Or should I stop so you can pick a different directory?"
+
+If they choose migration, continue to Step 1 to install the CLI, then run `specs migrate config` in place of Step 2 and show them the three generated files. Resume from Step 6 (secrets) — the migrated files already carry their sources and settings, so confirm rather than re-ask.
+
+If the directory has any of: `config/`, `.env`, `data/`, `specs/` — assume a previous setup exists:
 
 > "This directory already has `<files>`. Should I (a) overwrite, (b) merge/resume, or (c) stop so you can pick a different directory?"
 
@@ -70,13 +76,21 @@ Record which choice was made and use it consistently for the rest of the session
 
 ## Step 2. Scaffold the config
 
-Run `specs init` (or `npx @directededges/specs-cli init`). Verify `specs.config.yaml` appears in the current directory.
+Run `specs init` (or `npx @directededges/specs-cli init`). Verify a `config/` directory appears holding three files: `conventions.yaml`, `settings.yaml`, and `pipeline.yaml`.
+
+Each file answers one question:
+
+- `config/conventions.yaml` — **facts about the Figma library** (naming patterns, state classification). A wrong value here produces *incorrect* output.
+- `config/settings.yaml` — **choices about the run** (sources, format, file layout). A different value here produces merely *different* output. This is where most of the setup below goes.
+- `config/pipeline.yaml` — **work to run over the specs** (transformers, analyses). Scaffolded fully commented; leave it alone during onboarding.
 
 Tell the user:
 
-> "I've created `specs.config.yaml` with defaults. We'll fill in the sections together now."
+> "I've created a `config/` directory with three files: `conventions.yaml` (facts about your Figma library), `settings.yaml` (choices about this run — most of our setup goes here), and `pipeline.yaml` (optional downstream work — we'll skip it today). We'll fill in the sections together now."
 
-If the user is in VS Code, they can click to open it while you work. In terminal, they can `cat specs.config.yaml` at any time.
+If `specs init` refuses because it found a `specs.config.yaml`, you skipped P2 — go back and run `specs migrate config` first.
+
+If the user is in VS Code, they can click to open the files while you work. In terminal, they can `cat config/settings.yaml` at any time.
 
 ---
 
@@ -134,7 +148,7 @@ Ask (default to `library`, pre-filled if your UI supports it):
 > - `RDS UI Kit` → I'd save it as `rdsUiKit`
 > - `library` → stays `library`
 >
-> Source names become keys in `specs.config.yaml`, so I'll camelCase whatever you give me to keep it YAML-safe."
+> Source names become keys in `config/settings.yaml`, so I'll camelCase whatever you give me to keep it YAML-safe."
 
 Take whatever the user provides and convert to camelCase for the YAML key. Preserve spaces/original casing only in explanatory comments, not as the actual key.
 
@@ -144,72 +158,88 @@ Ask:
 
 > "Do you have a separate tokens/foundations file to pull from? Many teams keep foundations (colors, spacing, type) in a file distinct from components."
 
-Repeat 4a–4b for each additional source. Every source gets the full data array — we always fetch `file`, `variables`, and `styles`. It's marginally more bandwidth on files that don't need `file`, but it keeps the flow simple and nothing downstream complains.
+Repeat 4a–4b for each additional source. Every source gets the full `fetch` list — we always fetch `file`, `variables`, and `styles`. It's marginally more bandwidth on files that don't need `file`, but it keeps the flow simple and nothing downstream complains.
 
-Typical result:
+Typical result (in `config/settings.yaml`):
 
 ```yaml
-sources:
-  library:
-    key: <key>
-    data: [file, variables, styles]
-  foundations:
-    key: <key>
-    data: [file, variables, styles]
+data:
+  directory: ./data
+  sources:
+    library:
+      key: <key>
+      fetch: [file, variables, styles]
+    foundations:
+      key: <key>
+      fetch: [file, variables, styles]
 ```
 
-Write the full `sources:` block to `specs.config.yaml` now. Show the user what you wrote.
+Write the full `data.sources:` block to `config/settings.yaml` now, replacing the empty `sources: {}` stub `specs init` wrote. Show the user what you wrote.
 
 ---
 
 ## Checkpoint — full config reference
 
-At this point, `specs.config.yaml` should contain everything below. Every knob is either set by the user (**SOURCE**), silently defaulted by `specs init` (**DEFAULT**), asked in Step 5 (**ASKED-5x** — tagged as Essentials or Complete), or intentionally absent because the absence itself disables the feature (**OMITTED**).
+At this point, the `config/` directory should contain everything below. Every knob is either set by the user (**SOURCE**), silently defaulted by `specs init` (**DEFAULT**), asked in Step 5 (**ASKED-5x** — tagged as Essentials or Complete), or intentionally absent because the absence itself disables the feature (**OMITTED**).
 
 This is both a checklist (so the walkthrough's coverage can be audited) and an accurate snapshot of the file state before we tune anything.
 
+**`config/conventions.yaml`** — facts about the Figma library. The onboarding flow doesn't ask about these: the defaults suit a first setup, and getting them right means knowing how the library is authored, which the user can tune later.
+
 ```yaml
-dataDirectory: ./data                  # DEFAULT
-outputDirectory: ./specs               # DEFAULT
-
-sources:                               # SOURCE — set in Step 4
-  <yourSource>:
-    key: <fileKey>
-    data: [file, variables, styles]
-
-config:
-  processing:
-    subcomponents:                     # DEFAULT — subcomponent detection on with a common pattern
-      match:
-        - '{C} / _ / {S}'
-    # scope: NESTED                    # OMITTED — optional; defaults to NESTED when subcomponents block is present
+figma:
+  subcomponents:                       # DEFAULT — subcomponent detection on with a common pattern
+    match:
+      - '{C} / _ / {S}'
+    # scope: NESTED                    # OMITTED — optional; defaults to NESTED when the block is present
     # exclude: ['...']                 # OMITTED — optional
-    # glyphNamePattern: 'DS Icon /'    # OMITTED — opt-in; absence = glyph detection off
-    # codeOnlyPropsPattern: '...'      # OMITTED — opt-in; absence = code-only prop extraction off
-    # slotConstraints: false           # OMITTED — opt-in advanced feature
-    variantDepth: 9999                 # DEFAULT — unlimited
-    details: LAYERED                   # DEFAULT — compact diff-from-default output
-    # inferNumberProps: false          # OMITTED — opt-in advanced feature
-  format:
-    output: JSON                       # ASKED-5a (Essentials) → YAML | JSON
-    keys: SAFE                         # ASKED-5b (Essentials) → SAFE | CAMEL | KEBAB | SNAKE | PASCAL | TRAIN
-    tokens: TOKEN                      # ASKED-5d (Complete)   → TOKEN | TOKEN_NAME | FIGMA_NAME | TOKEN_FIGMA_EXTENSIONS | CUSTOM
-    layout: LAYOUT                     # ASKED-5e (Complete)   → LAYOUT | PARENT_CHILDREN | BOTH
-  include:
-    invalidVariants: false             # ASKED-5f (Complete)
-    invalidCombinations: true          # ASKED-5f (Complete)
-    # emptyVariants: false             # OMITTED — opt-in edge case
-
-output:                                # ASKED-5c (Essentials) — file layout on disk
-  splitComponents: false               # ASKED-5c
-  splitConcerns: false                 # ASKED-5c
-  useSubfolders: false                 # ASKED-5c
-  # defaultFormat: yaml                # OMITTED — stdout-only knob; the `--format` CLI flag overrides per command
+  # naming: NONE                       # OMITTED — opt-in; the file's naming convention (SENTENCE | TITLE)
+  # glyphs:                            # OMITTED — opt-in; absence = glyph detection off
+  #   match: 'DS Icon Glyph / {i}'
+  # codeOnlyProps:                     # OMITTED — opt-in; absence = code-only prop extraction off
+  #   match: 'Code only props'
+  # images: { ... }                    # OMITTED — opt-in; absence = image detection off
+  # instanceExamples: { ... }          # OMITTED — opt-in (Pro)
+  slotConstraints: false               # DEFAULT — opt-in advanced feature
+  # inferNumberProps: false            # OMITTED — opt-in advanced feature
+  # states: { ... }                    # OMITTED — opt-in; classifies variant props as semantic states
 ```
 
-If the user later wants to enable anything marked **OMITTED**, point them at the [Configuration Reference](https://www.specsplugin.com/config/) — those features are opt-in because either (a) absence means the feature is off (`subcomponents`, `glyphNamePattern`, `codeOnlyPropsPattern`), or (b) they're advanced tuning knobs rarely needed in a first setup (`slotConstraints`, `inferNumberProps`, `emptyVariants`, `defaultFormat`).
+**`config/settings.yaml`** — choices about the run:
 
-**Note on `output:`**: `specs init` today does not write this section. If it's missing after Step 2, Claude will create it in sub-step 5c with the defaults shown. If a future `specs init` adds it, the checkpoint still matches.
+```yaml
+author: <Your Name Here>               # SOURCE — replace the placeholder with the user's name
+
+data:
+  directory: ./data                    # DEFAULT
+  sources:                             # SOURCE — set in Step 4
+    <yourSource>:
+      key: <fileKey>
+      fetch: [file, variables, styles]
+
+spec:
+  directory: ./specs                   # DEFAULT
+  format: JSON                         # ASKED-5a (Essentials) → YAML | JSON
+  keys: SAFE                           # ASKED-5b (Essentials) → SAFE | CAMEL | KEBAB | SNAKE | PASCAL | TRAIN
+  tokens: TOKEN                        # ASKED-5d (Complete)   → TOKEN | TOKEN_NAME | FIGMA_NAME | TOKEN_FIGMA_EXTENSIONS | CUSTOM
+  layout: LAYOUT                       # ASKED-5e (Complete)   → LAYOUT | PARENT_CHILDREN | BOTH
+  color: HEX                           # DEFAULT
+  variantDepth: 9999                   # DEFAULT — unlimited
+  details: LAYERED                     # DEFAULT — compact diff-from-default output
+  # invalidVariants: false             # ASKED-5f (Complete)
+  # invalidCombinations: true          # ASKED-5f (Complete)
+  # emptyVariants: false               # OMITTED — opt-in edge case
+  splitComponents: false               # ASKED-5c (Essentials) — file layout on disk
+  splitConcerns: false                 # ASKED-5c
+  useSubfolders: false                 # ASKED-5c
+
+# assets:                              # OMITTED — opt-in shared-assets location
+#   directory: ./assets
+```
+
+**`config/pipeline.yaml`** — work to run over the specs. Scaffolded fully commented (**OMITTED** throughout); nothing in onboarding touches it.
+
+If the user later wants to enable anything marked **OMITTED**, point them at the [Settings Reference](https://www.specsplugin.com/settings/) — those features are opt-in because either (a) a convention that isn't declared isn't processed — absence *is* the off-switch (`glyphs`, `codeOnlyProps`, `images`, `instanceExamples`, `states`), or (b) they're advanced tuning knobs rarely needed in a first setup (`slotConstraints`, `inferNumberProps`, `emptyVariants`).
 
 ---
 
@@ -220,15 +250,15 @@ Based on the path chosen in Step 3:
 - **Essentials** → ask **5a, 5b, 5c**, then skip to Step 6.
 - **Complete** → ask **5a through 5f**.
 
-For every prompt below: ask, record the answer, write it to `specs.config.yaml`. Do **not** dump all of these at once. If the user says "just use defaults" on any individual question, accept that and move on. If an Essentials user asks about a Complete-only knob mid-flow, jump to it, apply it, and return.
+For every prompt below: ask, record the answer, write it to `config/settings.yaml`. Do **not** dump all of these at once. If the user says "just use defaults" on any individual question, accept that and move on. If an Essentials user asks about a Complete-only knob mid-flow, jump to it, apply it, and return.
 
-### 5a. `format.output` — JSON or YAML?
+### 5a. `spec.format` — JSON or YAML?
 
 > "Should generated specs be in **YAML** (easier for humans to read and diff in PRs) or **JSON** (smaller, strict, better for programmatic consumption)?"
 >
 > Default: **JSON**. Recommend **YAML** if specs will be reviewed in PRs or eyeballed for debugging; stick with **JSON** if they'll only be consumed by code.
 
-### 5b. `format.keys` — naming style for keys
+### 5b. `spec.keys` — naming style for keys
 
 > "Your Figma component names, element names, and prop names often contain spaces (e.g., component `Text Input`, element `Form Label`, prop `Show Icon`). How should the generated specs name them?
 >
@@ -243,9 +273,9 @@ For every prompt below: ask, record the answer, write it to `specs.config.yaml`.
 >
 > Default: **SAFE**. Recommended for most codegen pipelines: **CAMEL**."
 
-### 5c. `output` modes — how files are split on disk
+### 5c. `spec` split flags — how files are split on disk
 
-> "How should generated specs be organized on disk? Three switches in the top-level `output:` section of `specs.config.yaml`:
+> "How should generated specs be organized on disk? Three switches in the `spec:` section of `config/settings.yaml`:
 >
 > - **splitComponents** — one file per component (`button.yaml`, `card.yaml`) instead of one big `library.yaml`. Good for component-level PRs and review ownership.
 > - **splitConcerns** — separate the API (anatomy, props) from variants into distinct files (`api.yaml` + `variants.yaml`). Good for API-first development or backend/frontend team separation.
@@ -260,16 +290,14 @@ For every prompt below: ask, record the answer, write it to `specs.config.yaml`.
 >
 > Which preset (or custom combination)?"
 
-Write an `output:` section to `specs.config.yaml` reflecting the answer:
+Update the three flags in the `spec:` section of `config/settings.yaml` in place — `specs init` already wrote them as `false`:
 
 ```yaml
-output:
+spec:
   splitComponents: <true|false>
   splitConcerns: <true|false>
   useSubfolders: <true|false>
 ```
-
-If `specs init` didn't already write an `output:` section, add it. If it did, update the existing keys in place.
 
 ---
 
@@ -279,7 +307,7 @@ If `specs init` didn't already write an `output:` section, add it. If it did, up
 
 ---
 
-### 5d. `format.tokens` — how design tokens are referenced
+### 5d. `spec.tokens` — how design tokens are referenced
 
 > "When a component uses a design token (e.g., `color.brand.primary`), how should the spec reference it?
 >
@@ -291,7 +319,7 @@ If `specs init` didn't already write an `output:` section, add it. If it did, up
 >
 > Recommended: **TOKEN**."
 
-### 5e. `format.layout` — layout representation
+### 5e. `spec.layout` — layout representation
 
 > "Every spec has a flat `anatomy` map and a flat `elements` map. This setting controls **where the tree structure lives** — in a separate `layout` array, or attached to each element as `parent`/`children` fields. Here's a simple `Button` with two children (`icon`, `label`) shown three ways:
 >
@@ -331,7 +359,7 @@ If `specs init` didn't already write an `output:` section, add it. If it did, up
 >
 > Recommended: **LAYOUT** for codegen (concise tree, easy to walk); **PARENT_CHILDREN** if downstream tooling works element-by-element and doesn't want to parse a tree."
 
-### 5f. `include.invalidVariants` / `include.invalidCombinations`
+### 5f. `spec.invalidVariants` / `spec.invalidCombinations`
 
 > "Your component set may have 'invalid' combinations — variants that aren't wired up, or prop combos that shouldn't exist. Two switches:
 >
@@ -340,7 +368,9 @@ If `specs init` didn't already write an `output:` section, add it. If it did, up
 >
 > Use defaults unless you know you want otherwise."
 
-After this section, show the user the full `config:` block you wrote and ask them to confirm before moving on.
+Both are commented out in the scaffolded `config/settings.yaml`; uncomment and set them only when the answer differs from the default.
+
+After this section, show the user the full `config/settings.yaml` you wrote and ask them to confirm before moving on.
 
 ---
 
@@ -351,7 +381,7 @@ After this section, show the user the full `config:` block you wrote and ask the
 1. **Create `.gitignore` BEFORE creating `.env`.** Ensure `.gitignore` contains a line with `.env`. If `.gitignore` exists without that line, append it. If it doesn't exist, create it with `.env` as its first entry.
 2. **Never echo the token back to the conversation.** If the user pastes their PAT inline, acknowledge receipt ("got it, writing now") without repeating the value, and write it directly to `.env`.
 3. **Prefer letting the user paste the token into the file themselves.** Create `.env` with the key stubs (`FIGMA_TOKEN=` and optionally `SPECS_LICENSE_KEY=`), then instruct them to open `.env` and paste their values. This is the safer default.
-4. **Never commit or stage `.env`.** If the user asks you to commit setup files, stage `specs.config.yaml` and `.gitignore` only; skip `.env`.
+4. **Never commit or stage `.env`.** If the user asks you to commit setup files, stage the `config/` directory and `.gitignore` only; skip `.env`.
 5. **Never log, cat, or grep `.env` contents back to the chat.** If you need to verify the file is populated, check the file exists and is non-empty, not its contents.
 
 ### 6a. Figma Personal Access Token
@@ -389,7 +419,7 @@ Ask:
 Run `specs fetch`. Verify:
 
 1. Command exits 0.
-2. Files exist in `dataDirectory` (default `./data/`) matching `<source>.file.json`, `<source>.variables.json`, `<source>.styles.json` for each source (only the data types they configured).
+2. Files exist in `data.directory` (default `./data/`) matching `<source>.file.json`, `<source>.variables.json`, `<source>.styles.json` for each source (only the fetch kinds they configured).
 3. The files are non-empty.
 
 If `fetch` fails with an auth error, the token is wrong or missing scopes. Ask the user to regenerate it with all the scopes listed in 6a.
@@ -412,7 +442,7 @@ For each additional source, use `--source <alias>`:
 specs scan --source <alias>
 ```
 
-No `-o` flag needed. `scan` writes the manifest to `data/<alias>.manifest.md` by default (`dataDirectory` from config). Let the default do its work — downstream commands and the checkpoint below both assume it.
+No `-o` flag needed. `scan` writes the manifest to `data/<alias>.manifest.md` by default (`data.directory` from `config/settings.yaml`). Let the default do its work — downstream commands and the checkpoint below both assume it.
 
 Verify each manifest file exists at `data/<source>.manifest.md` and has at least one component listed. Show the user the manifest contents (first ~20 lines is fine).
 
@@ -442,12 +472,12 @@ Run:
 specs generate
 ```
 
-No arguments needed — `generate` reads the default manifest (`data/<alias>.manifest.md`, `library` alias preferred) and writes output to `outputDirectory` from config (default `./specs`). If the user has multiple sources with components, run it once per source by passing the explicit manifest path: `specs generate data/<otherSource>.manifest.md`.
+No arguments needed — `generate` reads the default manifest (`data/<alias>.manifest.md`, `library` alias preferred) and writes output to `spec.directory` from `config/settings.yaml` (default `./specs`). If the user has multiple sources with components, run it once per source by passing the explicit manifest path: `specs generate data/<otherSource>.manifest.md`.
 
 Verify:
 
 1. Command exits 0.
-2. The output files exist in `./specs/` (or the configured `outputDirectory`) and are non-empty.
+2. The output files exist in `./specs/` (or the configured `spec.directory`) and are non-empty.
 3. Peek at the first ~30 lines of one file to sanity-check: it should start with `components:` and show at least one component's structure.
 
 ---
@@ -456,7 +486,7 @@ Verify:
 
 Summarize what exists now:
 
-- `specs.config.yaml` — project config, **safe to commit**.
+- `config/` — `conventions.yaml`, `settings.yaml`, `pipeline.yaml` — project config, **safe to commit**.
 - `.gitignore` — contains `.env`.
 - `.env` — secrets, **never commit**.
 - `data/` — raw Figma payloads. Usually gitignored; ask the user if unsure.
@@ -491,7 +521,7 @@ During this flow, never:
 
 This flow is UI-agnostic — it works whether the user is in terminal Claude Code or the VS Code panel.
 
-- **VS Code panel users** can click file links you produce (e.g., `specs.config.yaml`) to open them in a tab. They can edit config or `.env` in place while you continue; just read the file again before your next tool call.
+- **VS Code panel users** can click file links you produce (e.g., `config/settings.yaml`) to open them in a tab. They can edit config or `.env` in place while you continue; just read the file again before your next tool call.
 - **Terminal users** won't see files appear visually. After writing any config file, proactively offer to `cat` it so they can review without opening an editor.
 
 Regardless of UI, for the `.env` step, prefer the "create stub file, user pastes secrets themselves" pattern. It's the one behavior difference worth emphasizing.
@@ -501,5 +531,5 @@ Regardless of UI, for the `.env` step, prefer the "create stub file, user pastes
 ## See also
 
 - [Getting Started](https://www.specsplugin.com/cli/getting-started/) — the manual walkthrough
-- [Configuration Reference](https://www.specsplugin.com/config/) — full option docs
+- [Settings Reference](https://www.specsplugin.com/settings/) — full convention and setting docs
 - [CLI Overview](https://www.specsplugin.com/cli/) — per-command flags and behavior

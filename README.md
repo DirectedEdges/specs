@@ -49,9 +49,9 @@ Command-line interface (CLI) for generating component specifications from Figma 
 ```sh
 # 1. Install cli globally to run with the command `specs`
 npm install -g @directededges/specs-cli
-# 2. Initialize a specs.config.yaml file
+# 2. Initialize the config/ directory (conventions.yaml, settings.yaml, pipeline.yaml)
 specs init
-# 3. Edit the config for your Figma file key and preferred settings 
+# 3. Edit config/settings.yaml for your Figma file key and preferred settings 
 # 4. Set up an .env file with a Figma PAT and – if subscribed - license key
 # 5. Fetch raw Figma data (file, variables, styles)
 specs fetch
@@ -65,7 +65,7 @@ specs generate
 Helpful documentation includes:
 - [Overview](https://www.specsplugin.com/cli/)
 - [Getting started](https://www.specsplugin.com/cli/getting-started/)
-- [Configuration file](https://www.specsplugin.com/cli/configuration/) details
+- [Configuration reference](https://www.specsplugin.com/settings/) for conventions and settings
 - Per [command](https://www.specsplugin.com/cli/commands/) instructions and flags
 
 
@@ -80,8 +80,8 @@ npm install @directededges/specs-schema
 Exports include:
 
 - [JSON Schema](packages/schema/schema/root.schema.json) — the canonical schema for component spec output
-- [TypeScript types](packages/schema/types/) — complete type definitions for all schema entities (`Component`, `Config`, `Styles`, `Element`, `AnyProp`, etc.)
-- `DEFAULT_CONFIG` — a runtime configuration object controlling output shape (format, token resolution, variant depth, etc.)
+- [TypeScript types](packages/schema/types/) — complete type definitions for all schema entities (`Component`, `Conventions`, `Settings`, `Pipeline`, `Styles`, `Element`, `AnyProp`, etc.)
+- `DEFAULT_CONVENTIONS`, `DEFAULT_SETTINGS`, `DEFAULT_PIPELINE` — runtime default objects: a library declaring no conventions, run settings controlling output shape (format, token resolution, variant depth, etc.), and an empty pipeline
 
 Learn more in the [Schema docs](https://www.specsplugin.com/schema/), including details on each property including component, variants, styles, props and more.
 
