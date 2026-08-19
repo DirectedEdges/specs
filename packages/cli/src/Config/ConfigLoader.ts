@@ -3,9 +3,12 @@
  *
  * Loads and validates the workspace's split configuration (ADR-071):
  * a `config/` directory holding `conventions.yaml`, `settings.yaml`, and
- * `pipeline.yaml` (each optional, `.json` also accepted). A pre-split
- * `specs.config.yaml` / `specs.config.json` still loads via an in-memory
- * migration with a one-time deprecation warning.
+ * `pipeline.yaml` (each optional, `.json` also accepted).
+ *
+ * A pre-split `specs.config.yaml` is refused, not read: `specs migrate config`
+ * converts it. Loading runs inside read-only commands and in CI, so it never
+ * writes to a workspace, and it never falls back to defaults when it finds a
+ * configuration it cannot use.
  *
  * Priority order: CLI flags > file > defaults.
  */
@@ -57,13 +60,17 @@ export class ConfigLoader {
       return this.getDefaultConfig();
     }
 
+    // A pre-split file is a hard stop, not a load failure: falling back to
+    // defaults would generate successfully and silently wrong, missing
+    // everything the workspace's conventions declare.
+    if (source.kind === 'legacy') {
+      this.refuseLegacyFile(source.file);
+    }
+
     try {
-      return source.kind === 'directory'
-        ? this.loadFromDirectory(source.dir)
-        : this.loadFromLegacyFile(source.file);
+      return this.loadFromDirectory(source.dir);
     } catch (error) {
-      const location = source.kind === 'directory' ? source.dir : source.file;
-      console.error(`Error loading config from ${location}:`, error);
+      console.error(`Error loading config from ${source.dir}:`, error);
       console.error('Falling back to default configuration');
       return this.getDefaultConfig();
     }
@@ -137,25 +144,19 @@ export class ConfigLoader {
   }
 
   /**
-   * Load a pre-split `specs.config.yaml`-style file, migrating it into the
-   * split shape in memory. The user's file is not rewritten.
+   * Refuse a pre-split configuration file.
+   *
+   * ADR-071 made this a breaking change deliberately. Reading the old shape
+   * would mean supporting two layouts indefinitely; ignoring it would be worse
+   * — the run would fall through to defaults and generate specs missing
+   * everything the conventions declare, without ever failing.
    */
-  private loadFromLegacyFile(file: string): CLIConfig {
-    const parsed = this.parseFile(file);
-    const migrated = this.migrateLegacy(parsed);
-
-    console.warn(
-      "Warning: the single-file specs.config format is deprecated — split it into 'config/conventions.yaml' and 'config/settings.yaml'. Loaded via in-memory migration this run."
+  private refuseLegacyFile(file: string): never {
+    throw new Error(
+      `${path.basename(file)} is no longer read (ADR-071).\n` +
+      `  Run \`specs migrate config\` to write config/conventions.yaml, config/settings.yaml and config/pipeline.yaml from it.\n` +
+      `  Docs: https://specs.directededges.com/settings/`
     );
-
-    const conventions = this.resolveConventions(migrated.conventions);
-    const settings = this.resolveSettings(migrated.settings);
-    const pipeline = this.resolvePipeline(migrated.pipeline);
-
-    const configDir = path.dirname(file);
-    this.resolveSettingsDirectories(settings, configDir);
-
-    return { conventions, settings, pipeline, configDir };
   }
 
   /**
@@ -175,117 +176,6 @@ export class ConfigLoader {
   private parseFile(file: string): unknown {
     const raw = fs.readFileSync(file, 'utf-8');
     return file.endsWith('.json') ? JSON.parse(raw) : yaml.parse(raw);
-  }
-
-  /**
-   * Map a pre-split config file into the three split shapes, in memory.
-   */
-  private migrateLegacy(parsed: unknown): { conventions: unknown; settings: unknown; pipeline: unknown } {
-    const raw = (parsed ?? {}) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
-
-    /* eslint-disable @typescript-eslint/no-explicit-any */
-    const figma: Record<string, any> = {};
-    const spec: Record<string, any> = {};
-    const data: Record<string, any> = {};
-    const settings: Record<string, any> = {};
-    const pipeline: Record<string, any> = {};
-    /* eslint-enable @typescript-eslint/no-explicit-any */
-
-    // Support deprecated 'sourceDirectory' with warning (predates the split)
-    let dataDirectory = raw.dataDirectory;
-    if (!dataDirectory && raw.sourceDirectory) {
-      console.warn("Warning: 'sourceDirectory' is deprecated, use 'dataDirectory' instead");
-      dataDirectory = raw.sourceDirectory;
-    }
-    if (dataDirectory !== undefined) {
-      data.directory = dataDirectory;
-    }
-    if (raw.outputDirectory !== undefined) {
-      spec.directory = raw.outputDirectory;
-    }
-    if (raw.author !== undefined) {
-      settings.author = raw.author;
-    }
-
-    // sources -> settings.data.sources, renaming each source's `data` to `fetch`
-    if (raw.sources && typeof raw.sources === 'object') {
-      const sources: Record<string, SourceEntry> = {};
-      for (const [name, entry] of Object.entries(raw.sources as Record<string, unknown>)) {
-        if (!entry || typeof entry !== 'object') continue;
-        const src = entry as Record<string, unknown>;
-        const fetch = Array.isArray(src.data) ? src.data : (Array.isArray(src.fetch) ? src.fetch : undefined);
-        sources[name] = {
-          key: src.key as string,
-          ...(fetch && { fetch: fetch as string[] }),
-        };
-      }
-      data.sources = sources;
-    }
-
-    // output.{splitComponents,splitConcerns,useSubfolders} -> settings.spec
-    if (raw.output && typeof raw.output === 'object') {
-      for (const flag of ['splitComponents', 'splitConcerns', 'useSubfolders'] as const) {
-        if (raw.output[flag] !== undefined) {
-          spec[flag] = raw.output[flag];
-        }
-      }
-    }
-
-    const cfg = (raw.config && typeof raw.config === 'object' ? raw.config : {}) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
-
-    // config.format -> settings.spec (output->format) + conventions.figma.naming
-    if (cfg.format && typeof cfg.format === 'object') {
-      if (cfg.format.output !== undefined) spec.format = cfg.format.output;
-      for (const key of ['keys', 'layout', 'tokens', 'color'] as const) {
-        if (cfg.format[key] !== undefined) spec[key] = cfg.format[key];
-      }
-      if (cfg.format.figmaKeys !== undefined) figma.naming = cfg.format.figmaKeys;
-    }
-
-    // config.processing -> settings.spec + conventions.figma
-    if (cfg.processing && typeof cfg.processing === 'object') {
-      const proc = cfg.processing;
-      for (const key of ['variantDepth', 'details', 'collapsePrimitiveWrapper'] as const) {
-        if (proc[key] !== undefined) spec[key] = proc[key];
-      }
-      for (const key of ['subcomponents', 'instanceExamples', 'states', 'slotConstraints', 'inferNumberProps'] as const) {
-        if (proc[key] !== undefined) figma[key] = proc[key];
-      }
-      if (proc.glyphNamePattern !== undefined) {
-        figma.glyphs = { match: proc.glyphNamePattern };
-      }
-      if (proc.codeOnlyPropsPattern !== undefined) {
-        figma.codeOnlyProps = { match: proc.codeOnlyPropsPattern };
-      }
-      if (proc.images && typeof proc.images === 'object') {
-        figma.images = {
-          ...(proc.images.imageComponent !== undefined && { match: proc.images.imageComponent }),
-          ...(proc.images.backgroundImage !== undefined && { backgroundImage: proc.images.backgroundImage }),
-          ...(proc.images.sourceProps !== undefined && { sourceProps: proc.images.sourceProps }),
-        };
-      }
-    }
-
-    // config.include -> settings.spec
-    if (cfg.include && typeof cfg.include === 'object') {
-      for (const key of ['invalidVariants', 'invalidCombinations', 'emptyVariants', 'defaultSlotContent'] as const) {
-        if (cfg.include[key] !== undefined) spec[key] = cfg.include[key];
-      }
-    }
-
-    // config.transformers -> pipeline.transformers
-    if (cfg.transformers !== undefined) {
-      pipeline.transformers = cfg.transformers;
-    }
-
-    if (Object.keys(data).length > 0) settings.data = data;
-    if (Object.keys(spec).length > 0) settings.spec = spec;
-
-    return {
-      conventions: Object.keys(figma).length > 0 ? { figma } : undefined,
-      settings: Object.keys(settings).length > 0 ? settings : undefined,
-      pipeline: Object.keys(pipeline).length > 0 ? pipeline : undefined,
-    };
   }
 
   /**

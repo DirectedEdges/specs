@@ -22,7 +22,7 @@ specs fetch [options]
 ## Options
 
 ### `--config <path>`
-Use a specific `config/` directory (or a legacy `specs.config.yaml` file).
+Use a specific `config/` directory.
 
 ### `--data-dir <dir>`
 Override output directory for fetched payloads. Defaults to `data.directory` from `config/settings.yaml`, or `./data` if not configured.

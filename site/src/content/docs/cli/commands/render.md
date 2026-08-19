@@ -54,7 +54,7 @@ A directory batch renders in path order. Render order isn't configurable, so whe
 
 ### `--config <path>`
 
-Use a specific `config/` directory (or a legacy `specs.config.yaml` file) instead of the default `config/` in the working directory.
+Use a specific `config/` directory instead of the default `config/` in the working directory.
 
 ### `--file <fileKey>`
 

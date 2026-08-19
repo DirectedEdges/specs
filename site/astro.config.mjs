@@ -101,6 +101,7 @@ export default defineConfig({
             { label: 'Overview', slug: 'cli' },
             { label: 'Workflows', slug: 'cli/workflows' },
             { label: 'init', slug: 'cli/commands/init' },
+            { label: 'migrate', slug: 'cli/commands/migrate' },
             { label: 'fetch', slug: 'cli/commands/fetch' },
             { label: 'scan', slug: 'cli/commands/scan' },
             { label: 'applyCustomTokens', slug: 'cli/commands/apply-custom-tokens' },

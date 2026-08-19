@@ -158,7 +158,15 @@ specs init --force
 
 ## Upgrading from a single config file
 
-A pre-split `specs.config.yaml` still loads: every command migrates it in memory and warns once per run. To move to the current layout, run `specs init` and carry your values into the three files — the [Settings](/schema/settings/) and [Conventions](/schema/conventions/) references show where each former member now lives.
+A pre-split `specs.config.yaml` (or `.json`) is no longer read (ADR-071), and `init` refuses to run while one is present — scaffolding defaults over it would quietly replace whatever the workspace actually declared:
+
+```
+Error: found specs.config.yaml — a pre-split configuration (ADR-071).
+  Run `specs migrate config` to convert it, keeping what this workspace declares.
+  To scaffold fresh defaults instead, remove specs.config.yaml first.
+```
+
+Run [`specs migrate config`](/cli/commands/migrate/) to convert the file into the three-file layout — the [Settings](/schema/settings/) and [Conventions](/schema/conventions/) references show where each former member now lives. Use `init` only for a workspace with no existing configuration.
 
 ---
 

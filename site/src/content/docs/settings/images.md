@@ -102,7 +102,7 @@ The REST runtime resolves entries via a second call (Get Image Fills, whose S3 U
 
 `figma.images` in `config/conventions.yaml`
 
-**Legacy name**: in the pre-split `specs.config.yaml`, this block was `config.processing.images` and the designated component was named by `imageComponent`. The legacy file still loads, migrating `imageComponent` to `match` in memory.
+**Legacy name**: in the pre-split `specs.config.yaml`, this block was `config.processing.images` and the designated component was named by `imageComponent`. That file is no longer read — [`specs migrate config`](/cli/commands/migrate/) converts it, moving `imageComponent` to `match`.
 
 ## See Also
 

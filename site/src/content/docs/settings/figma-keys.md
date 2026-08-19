@@ -17,7 +17,7 @@ Where [`keys`](/settings/keys/) controls what the spec *emits*, `naming` describ
 
 Only the two conventions observed in real Figma files are accepted as declarations. This is deliberately narrower than `keys`.
 
-**Legacy name**: in the pre-split `specs.config.yaml`, this option was `config.format.figmaKeys`. The legacy file still loads, migrating that member to `figma.naming` in memory.
+**Legacy name**: in the pre-split `specs.config.yaml`, this option was `config.format.figmaKeys`. That file is no longer read — [`specs migrate config`](/cli/commands/migrate/) converts it, moving that member to `figma.naming`.
 
 ## Path
 

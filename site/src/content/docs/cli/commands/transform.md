@@ -28,7 +28,7 @@ specs transform contract css react stories
 Override the output directory for generated artifacts.
 
 ### `--config <path>`
-Use a specific `config/` directory (or a legacy `specs.config.yaml` file).
+Use a specific `config/` directory.
 
 ### `--components <keys...>`
 Only transform the named component folders instead of every component discovered in the output directory. Unknown component keys log a warning and are skipped.

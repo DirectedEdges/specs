@@ -135,10 +135,10 @@ project/
 
 The CLI looks for configuration in these locations (in order):
 
-1. `./config/` (current directory) — any of `conventions.yaml`, `settings.yaml`, `pipeline.yaml` (`.json` also accepted; each file is optional and defaults independently)
-2. `./specs.config.yaml` / `./specs.config.json` (legacy single file)
-3. `~/.specs/config.yaml` (legacy, user home directory)
-4. Custom path via `--config <path>` flag — a `config/` directory, or a legacy file
+1. Custom path via `--config <path>` flag — a `config/` directory holding the split files
+2. `./config/` (current directory) — any of `conventions.yaml`, `settings.yaml`, `pipeline.yaml` (`.json` also accepted; each file is optional and defaults independently)
+
+Nothing else is read. A pre-split `specs.config.yaml` / `specs.config.json` (or `~/.specs/config.yaml`) is detected but never loaded — finding one is an error, not a fallback. See [Legacy single file](#legacy-single-file).
 
 `specs init` scaffolds all three files with inline documentation.
 
@@ -207,7 +207,15 @@ transformers:
 
 ### Legacy single file
 
-A pre-split `specs.config.yaml` (or `.json`) still loads: the CLI migrates it into the three shapes in memory and prints a one-time deprecation warning. Your file is not rewritten — split it into `config/` when convenient. Each option page notes its legacy path.
+A pre-split `specs.config.yaml` (or `.json`, or `~/.specs/config.yaml`) is no longer read (ADR-071). When the CLI finds one it stops with an error rather than falling back to defaults — a defaults-only run would generate specs missing everything your configuration declares:
+
+```
+specs.config.yaml is no longer read (ADR-071).
+  Run `specs migrate config` to write config/conventions.yaml, config/settings.yaml and config/pipeline.yaml from it.
+  Docs: https://specs.directededges.com/settings/
+```
+
+Run [`specs migrate config`](/cli/commands/migrate/) once to convert: it writes the three `config/` files from your legacy file, then renames the source to `specs.config.yaml.migrated` so discovery stops finding it. Review the generated files, then delete the renamed original. Each option page notes its legacy path.
 
 ## Validation
 

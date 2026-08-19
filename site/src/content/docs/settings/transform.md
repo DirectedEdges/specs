@@ -41,7 +41,7 @@ Omitting `transformers` entirely is equivalent to running `specs transform contr
 
 `transformers` in `config/pipeline.yaml`
 
-**Legacy name**: in the pre-split `specs.config.yaml`, this list was `config.transformers`. The legacy file still loads, migrating it to `pipeline.yaml`'s `transformers` in memory.
+**Legacy name**: in the pre-split `specs.config.yaml`, this list was `config.transformers`. That file is no longer read — [`specs migrate config`](/cli/commands/migrate/) converts it, moving the list to `pipeline.yaml`'s `transformers`.
 
 ## See Also
 

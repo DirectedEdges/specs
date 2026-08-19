@@ -296,7 +296,7 @@ Target a specific connected Figma file (bridge mode only). More than one file ca
 Generate from a specific node ID instead of the current selection (bridge mode only). The plugin selects the node first, switching pages if the node lives on another one, then restores the page you were on.
 
 ### `--config <path>`
-Path to a `config/` directory (or a legacy `specs.config.yaml` file), when it isn't the `config/` directory in the working directory.
+Path to a `config/` directory, when it isn't the `config/` directory in the working directory.
 
 ```bash
 specs generate --config workspaces/mobile/config -o specs/mobile.yaml

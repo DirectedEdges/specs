@@ -55,4 +55,4 @@ The `match` pattern must include the `{i}` placeholder, which marks where the gl
 
 `figma.glyphs.match` in `config/conventions.yaml`
 
-**Legacy name**: in the pre-split `specs.config.yaml`, this option was the scalar `config.processing.glyphNamePattern`. The legacy file still loads, migrating that member to `figma.glyphs.match` in memory.
+**Legacy name**: in the pre-split `specs.config.yaml`, this option was the scalar `config.processing.glyphNamePattern`. That file is no longer read — [`specs migrate config`](/cli/commands/migrate/) converts it, moving that member to `figma.glyphs.match`.

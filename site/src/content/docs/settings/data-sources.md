@@ -54,7 +54,7 @@ Which artifact kinds to fetch from this file.
 - **Required**: yes
 - **Options**: `file`, `variables`, `styles`, `icons`
 
-**Legacy name**: in the pre-split `specs.config.yaml`, sources lived at the root as `sources`, and this list was named `data`. The legacy file still loads, migrating each source to `data.sources.<name>` and renaming its list to `fetch` in memory.
+**Legacy name**: in the pre-split `specs.config.yaml`, sources lived at the root as `sources`, and this list was named `data`. That file is no longer read — [`specs migrate config`](/cli/commands/migrate/) converts it, moving each source to `data.sources.<name>` and renaming its list to `fetch`.
 
 ## Branch Keys
 

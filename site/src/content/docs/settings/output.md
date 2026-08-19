@@ -149,7 +149,7 @@ Output configuration follows the standard [priority system](/settings/#priority-
 2. **Config file**: `spec` block in `config/settings.yaml`
 3. **Defaults** (lowest): Single-file mode, YAML format
 
-In the pre-split `specs.config.yaml`, these flags lived in a root-level `output` block; the legacy file still loads, migrating them to `spec` in memory.
+In the pre-split `specs.config.yaml`, these flags lived in a root-level `output` block. That file is no longer read — [`specs migrate config`](/cli/commands/migrate/) converts it, moving them to `spec`.
 
 ```bash
 # Config has splitComponents: false

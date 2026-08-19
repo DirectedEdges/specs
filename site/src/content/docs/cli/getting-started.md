@@ -92,7 +92,13 @@ The defaults from `specs init` work well for most setups. When you're ready to c
 - **`config/pipeline.yaml`** — the transformers and analyses to run. See [Pipeline](/schema/pipeline/).
 
 :::note[Upgrading from a single config file?]
-A pre-split `specs.config.yaml` still loads — the CLI migrates it in memory and warns once per run. Run `specs init` to scaffold the three-file layout and move your values across.
+A pre-split `specs.config.yaml` is no longer read — every command stops with an error until it's converted, and `specs init` refuses to scaffold over it. Run one command to convert it:
+
+```bash
+specs migrate config
+```
+
+It writes `config/conventions.yaml`, `config/settings.yaml`, and `config/pipeline.yaml` from your file, then renames the original to `specs.config.yaml.migrated`. See [`migrate`](/cli/commands/migrate/).
 :::
 
 ## Step 3: Fetch the Figma file

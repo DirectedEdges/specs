@@ -32,7 +32,7 @@ specs analyze props --analysis ./reports
 |--------|-------------|
 | `-o, --output <path>` | Path to the specs directory (input). Defaults to `spec.directory` from `config/settings.yaml` or cwd. |
 | `--analysis <path>` | Where to write analysis output. Defaults to `<specs-dir>/_analysis/`. |
-| `--config <path>` | Path to the `config/` directory (or a legacy `specs.config.yaml` file). |
+| `--config <path>` | Path to the `config/` directory. |
 | `--verbose` | Log each component as it is processed. |
 
 ## Available Analyzers

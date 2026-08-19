@@ -41,4 +41,4 @@ assets:
 
 ## Legacy names
 
-In the pre-split `specs.config.yaml`, these were the root-level `dataDirectory` and `outputDirectory` members (and, before that, `sourceDirectory` as a deprecated alias for `dataDirectory`). The legacy file still loads, migrating both to `data.directory` and `spec.directory` in memory with a one-time deprecation warning.
+In the pre-split `specs.config.yaml`, these were the root-level `dataDirectory` and `outputDirectory` members (and, before that, `sourceDirectory` as a deprecated alias for `dataDirectory`). That file is no longer read — [`specs migrate config`](/cli/commands/migrate/) converts it, moving both to `data.directory` and `spec.directory`.

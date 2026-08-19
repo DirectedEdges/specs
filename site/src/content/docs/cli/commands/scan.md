@@ -201,7 +201,7 @@ specs scan --data-dir ./custom-data
 ```
 
 ### `--config <path>`
-Path to the `config/` directory (or a legacy `specs.config.yaml` file). Used to resolve `data.directory` and `data.sources` for auto-selection and the default output path.
+Path to the `config/` directory. Used to resolve `data.directory` and `data.sources` for auto-selection and the default output path.
 
 ### `--include-all`
 Include all components regardless of devStatus or heuristics. Overrides the default rule and bypasses the merge step entirely.

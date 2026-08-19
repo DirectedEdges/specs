@@ -54,4 +54,4 @@ Without a `codeOnlyProps` block, the container and its children are treated as o
 
 `figma.codeOnlyProps.match` in `config/conventions.yaml`
 
-**Legacy name**: in the pre-split `specs.config.yaml`, this option was the scalar `config.processing.codeOnlyPropsPattern`. The legacy file still loads, migrating that member to `figma.codeOnlyProps.match` in memory.
+**Legacy name**: in the pre-split `specs.config.yaml`, this option was the scalar `config.processing.codeOnlyPropsPattern`. That file is no longer read — [`specs migrate config`](/cli/commands/migrate/) converts it, moving that member to `figma.codeOnlyProps.match`.
