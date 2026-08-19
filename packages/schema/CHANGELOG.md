@@ -20,6 +20,8 @@ Configuration now separates what is true about a Figma library from what a run c
 
 ### Changed
 
+- **`Settings.spec.splitComponents`, `splitConcerns` and `useSubfolders` now default to `true`** and are required on `ResolvedSettings`. The split layout — one folder per component, one file per concern — is what `transform`, `analyze` and `render` read, so the shape of generated output is not a per-consumer choice. They previously carried no default, leaving each consumer to pick its own; both consumers picked `false`, which is the layout nothing downstream can use. Recorded spec `metadata.settings.spec` now carries all three on every spec.
+
 - `Metadata.config` → `Metadata.conventions` and `Metadata.settings` — each half comparable across specs on its own
 - `Config.format.figmaKeys` → `Conventions.figma.naming` — no longer shares the word `keys` with the emitted casing
 - `Config.processing.glyphNamePattern` → `Conventions.figma.glyphs.match`; `codeOnlyPropsPattern` → `codeOnlyProps.match`; `images.imageComponent` → `images.match`
