@@ -87,7 +87,7 @@ A **license key** is optional — Specs CLI works at a free tier without one. To
 The defaults from `specs init` work well for most setups. When you're ready to customize:
 
 - **`data.directory` / `spec.directory`** in `config/settings.yaml` — where fetched data is stored and specs are written. Defaults: `./data` and `./specs`.
-- **`spec.splitComponents` / `spec.splitConcerns` / `spec.useSubfolders`** in `config/settings.yaml` — controls file organization: split per component, split by concern, use subfolders. All default to `false`.
+- **`spec.splitComponents` / `spec.splitConcerns` / `spec.useSubfolders`** in `config/settings.yaml` — controls file organization: split per component, split by concern, use subfolders. All default to `true`, which is the layout `transform` and `analyze` read.
 - **`config/conventions.yaml`** — declare how your library names glyphs, subcomponents, and images, and classify variant props as [states](/settings/states/). See [Conventions](/schema/conventions/).
 - **`config/pipeline.yaml`** — the transformers and analyses to run. See [Pipeline](/schema/pipeline/).
 

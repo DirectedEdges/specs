@@ -185,14 +185,14 @@ spec:
   # See: https://www.specsplugin.com/guides/default-slot-content/
   # defaultSlotContent: false
 
-  # Write one file per component instead of a single library file (default: false)
-  splitComponents: false
+  # Write one file per component instead of a single library file (default: true)
+  # splitComponents: true
 
-  # Split output into separate api, variants, and examples files (default: false)
-  splitConcerns: false
+  # Split output into separate api, variants, and examples files (default: true)
+  # splitConcerns: true
 
-  # When splitComponents is true, nest each file in a subfolder (default: false)
-  useSubfolders: false
+  # When splitComponents is true, nest each file in a subfolder (default: true)
+  # useSubfolders: true
 
 # Shared resources every code output points at: icons, images, generated CSS, fonts.
 # assets:

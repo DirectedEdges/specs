@@ -74,9 +74,9 @@ spec:
   color: HEX
   variantDepth: 9999
   details: LAYERED
-  splitComponents: false
-  splitConcerns: false
-  useSubfolders: false
+  # splitComponents: true
+  # splitConcerns: true
+  # useSubfolders: true
 ```
 
 `config/pipeline.yaml` declares the work to run — everything commented out until you opt in:

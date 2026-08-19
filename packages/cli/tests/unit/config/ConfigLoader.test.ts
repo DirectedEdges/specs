@@ -330,12 +330,33 @@ analyses:
       });
     });
 
-    it('should validate split flags: a non-boolean warns and falls back to off', () => {
+    it('should default the split layout on when settings.yaml omits the flags', () => {
+      writeSplitFile('settings.yaml', 'spec:\n  format: YAML');
+
+      const config = configLoader.load();
+      expect(config.settings.spec.splitComponents).toBe(true);
+      expect(config.settings.spec.splitConcerns).toBe(true);
+      expect(config.settings.spec.useSubfolders).toBe(true);
+    });
+
+    it('should let settings.yaml turn the split layout off', () => {
+      writeSplitFile(
+        'settings.yaml',
+        'spec:\n  splitComponents: false\n  splitConcerns: false\n  useSubfolders: false'
+      );
+
+      const config = configLoader.load();
+      expect(config.settings.spec.splitComponents).toBe(false);
+      expect(config.settings.spec.splitConcerns).toBe(false);
+      expect(config.settings.spec.useSubfolders).toBe(false);
+    });
+
+    it('should validate split flags: a non-boolean warns and falls back to the default', () => {
       const warn = vi.mocked(console.warn);
       writeSplitFile('settings.yaml', 'spec:\n  splitComponents: "yes"');
 
       const config = configLoader.load();
-      expect((config.settings.spec as Record<string, unknown>).splitComponents).toBeUndefined();
+      expect(config.settings.spec.splitComponents).toBe(true);
       expect(warn).toHaveBeenCalledWith(
         expect.stringContaining('Invalid settings.spec.splitComponents')
       );

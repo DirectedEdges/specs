@@ -17,6 +17,14 @@ import { Migrate } from '../../../src/commands/MigrateCommand.js';
 import { migrateConfigV1 } from '../../../src/Config/migrations/configV1.js';
 import { ConfigLoader } from '../../../src/Config/ConfigLoader.js';
 
+/**
+ * v1 defaulted the three layout flags to false and v2 defaults them to true, so
+ * every migration writes them out explicitly to preserve what the workspace
+ * currently emits. They appear in every settings result, whatever else the
+ * source configured.
+ */
+const PRESERVED_LAYOUT = { splitComponents: false, splitConcerns: false, useSubfolders: false };
+
 describe('migrateConfigV1 (config v1 → v2 mapping)', () => {
   beforeEach(() => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -29,36 +37,37 @@ describe('migrateConfigV1 (config v1 → v2 mapping)', () => {
   it('returns nothing for an empty source (no section configured, no file written)', () => {
     const result = migrateConfigV1({});
     expect(result.conventions).toBeUndefined();
-    expect(result.settings).toBeUndefined();
+    // Not "nothing": the layout flags must be preserved even from an empty source.
+    expect(result.settings).toEqual({ spec: { ...PRESERVED_LAYOUT } });
     expect(result.pipeline).toBeUndefined();
   });
 
   it('maps dataDirectory to settings.data.directory', () => {
     const result = migrateConfigV1({ dataDirectory: './data-in' });
-    expect(result.settings).toEqual({ data: { directory: './data-in' } });
+    expect(result.settings).toEqual({ data: { directory: './data-in' }, spec: { ...PRESERVED_LAYOUT } });
   });
 
   it('maps outputDirectory to settings.spec.directory', () => {
     const result = migrateConfigV1({ outputDirectory: './specs-out' });
-    expect(result.settings).toEqual({ spec: { directory: './specs-out' } });
+    expect(result.settings).toEqual({ spec: { directory: './specs-out', ...PRESERVED_LAYOUT } });
   });
 
   it('maps author to settings.author', () => {
     const result = migrateConfigV1({ author: 'Test Author' });
-    expect(result.settings).toEqual({ author: 'Test Author' });
+    expect(result.settings).toEqual({ author: 'Test Author', spec: { ...PRESERVED_LAYOUT } });
   });
 
   it('supports deprecated sourceDirectory as dataDirectory (with warning)', () => {
     const warn = vi.mocked(console.warn);
     const result = migrateConfigV1({ sourceDirectory: './old-data' });
-    expect(result.settings).toEqual({ data: { directory: './old-data' } });
+    expect(result.settings).toEqual({ data: { directory: './old-data' }, spec: { ...PRESERVED_LAYOUT } });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("'sourceDirectory' is deprecated"));
   });
 
   it('prefers dataDirectory over sourceDirectory when both are present', () => {
     const warn = vi.mocked(console.warn);
     const result = migrateConfigV1({ dataDirectory: './new', sourceDirectory: './old' });
-    expect(result.settings).toEqual({ data: { directory: './new' } });
+    expect(result.settings).toEqual({ data: { directory: './new' }, spec: { ...PRESERVED_LAYOUT } });
     expect(warn).not.toHaveBeenCalled();
   });
 
@@ -76,6 +85,7 @@ describe('migrateConfigV1 (config v1 → v2 mapping)', () => {
           icons: { key: 'DEF456' },
         },
       },
+      spec: { ...PRESERVED_LAYOUT },
     });
   });
 
@@ -95,7 +105,7 @@ describe('migrateConfigV1 (config v1 → v2 mapping)', () => {
       },
     });
     expect(result.settings).toEqual({
-      spec: { format: 'YAML', keys: 'SNAKE', layout: 'BOTH', tokens: 'TOKEN_NAME', color: 'HEXA' },
+      spec: { format: 'YAML', keys: 'SNAKE', layout: 'BOTH', tokens: 'TOKEN_NAME', color: 'HEXA', ...PRESERVED_LAYOUT },
     });
   });
 
@@ -152,7 +162,7 @@ describe('migrateConfigV1 (config v1 → v2 mapping)', () => {
       config: { processing: { variantDepth: 2, details: 'FULL', collapsePrimitiveWrapper: true } },
     });
     expect(result.settings).toEqual({
-      spec: { variantDepth: 2, details: 'FULL', collapsePrimitiveWrapper: true },
+      spec: { variantDepth: 2, details: 'FULL', collapsePrimitiveWrapper: true, ...PRESERVED_LAYOUT },
     });
   });
 
@@ -173,6 +183,7 @@ describe('migrateConfigV1 (config v1 → v2 mapping)', () => {
         invalidCombinations: true,
         emptyVariants: false,
         defaultSlotContent: true,
+        ...PRESERVED_LAYOUT,
       },
     });
   });
@@ -181,7 +192,7 @@ describe('migrateConfigV1 (config v1 → v2 mapping)', () => {
     const result = migrateConfigV1({
       config: { include: { defaultSlotContent: true, imageData: true, instanceExamples: true } },
     });
-    expect(result.settings).toEqual({ spec: { defaultSlotContent: true } });
+    expect(result.settings).toEqual({ spec: { defaultSlotContent: true, ...PRESERVED_LAYOUT } });
     expect(result.conventions).toBeUndefined();
   });
 
@@ -265,7 +276,7 @@ config:
     expect(settings).toEqual({
       author: 'Test Author',
       data: { directory: './data-in' },
-      spec: { directory: './specs-out', variantDepth: 2 },
+      spec: { directory: './specs-out', variantDepth: 2, ...PRESERVED_LAYOUT },
     });
     expect(pipeline).toEqual({ transformers: [{ name: 'contract' }] });
 
@@ -286,7 +297,7 @@ config:
     expect(fs.existsSync(path.join(testDir, 'specs.config.json'))).toBe(false);
     expect(fs.existsSync(path.join(testDir, 'specs.config.json.migrated'))).toBe(true);
     const settings = yaml.parse(fs.readFileSync(path.join(testDir, 'config', 'settings.yaml'), 'utf-8'));
-    expect(settings).toEqual({ author: 'Test Author' });
+    expect(settings).toEqual({ author: 'Test Author', spec: { ...PRESERVED_LAYOUT } });
   });
 
   it('--dry-run writes nothing and renames nothing', async () => {

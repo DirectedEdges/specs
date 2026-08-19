@@ -90,11 +90,11 @@ export interface Settings {
     emptyVariants?: boolean;
     /** Include slot content examples in output (ADR-050). Optional; defaults to false. @since 0.21.0 */
     defaultSlotContent?: boolean;
-    /** Write one file per component rather than a single combined file. */
+    /** Write one file per component rather than a single combined library file. Optional; defaults to true. */
     splitComponents?: boolean;
-    /** Write one file per concern (api, styling, variants) rather than a single component file. */
+    /** Write one file per concern (api, styling, variants) rather than a single component file. Optional; defaults to true. */
     splitConcerns?: boolean;
-    /** Nest each component's files in a subfolder named for the component. */
+    /** Nest each component's files in a subfolder named for the component. Optional; defaults to true. */
     useSubfolders?: boolean;
   };
   /** Shared resources every code output points at, whatever the platform: icons, images, generated CSS, fonts. */
@@ -150,9 +150,12 @@ export interface ResolvedSettings {
     emptyVariants: boolean;
     /** Include slot content examples in output. */
     defaultSlotContent: boolean;
-    splitComponents?: boolean;
-    splitConcerns?: boolean;
-    useSubfolders?: boolean;
+    /** Write one file per component rather than a single combined library file. */
+    splitComponents: boolean;
+    /** Write one file per concern (api, styling, variants) rather than a single component file. */
+    splitConcerns: boolean;
+    /** Nest each component's files in a subfolder named for the component. */
+    useSubfolders: boolean;
   };
   /** Shared resources every code output points at. */
   assets?: {
@@ -196,5 +199,8 @@ export const DEFAULT_SETTINGS: ResolvedSettings = {
     invalidCombinations: true,
     emptyVariants: false,
     defaultSlotContent: false,
+    splitComponents: true,
+    splitConcerns: true,
+    useSubfolders: true,
   },
 };

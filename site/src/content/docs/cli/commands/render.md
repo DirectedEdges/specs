@@ -34,7 +34,7 @@ specs render [specPath] [options]
 What to render. Three shapes are accepted:
 
 - **A spec file** (`.yaml`, `.yml`, `.json`) — one component.
-- **A component folder** — a directory holding `api.*` and `variants.*` (plus optional `examples.*`), as produced by `generate --split-components --split-concerns`. Renders that one component.
+- **A component folder** — a directory holding `api.*` and `variants.*` (plus optional `examples.*`), as `generate` produces by default. Renders that one component.
 - **A directory of component folders** — renders every component beneath it, sequentially, in path order.
 
 ```bash

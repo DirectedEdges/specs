@@ -42,10 +42,10 @@ With no arguments, step 4 uses the default manifest (`{data.directory}/{alias}.m
 specs generate components.md -o specs/library.yaml
 ```
 
-Manifest mode requires an output destination — `-o` or `spec.directory` — since it can produce many files. Control the file layout with [`--split-components`](#--split-components), [`--split-concerns`](#--split-concerns), and [`--use-subfolders`](#--use-subfolders):
+Manifest mode requires an output destination — `-o` or `spec.directory` — since it can produce many files. By default it writes the full split layout: one folder per component, holding one file per concern. Turn parts of that off with [`--combine-as-library`](#--combine-as-library), [`--combine-concerns`](#--combine-concerns), and [`--no-subfolders`](#--no-subfolders):
 
 ```bash
-specs generate -o specs/ --split-components
+specs generate -o specs/
 ```
 
 ```
@@ -180,40 +180,11 @@ External styles JSON file.
 - **Fallback** (no sources configured): tries `foundations/styles.json` next to the source JSON file.
 - **Override**: the flag replaces that list for this run.
 
-### `--split-components`
-Create a separate file per component, instead of one file containing all of them.
+### Default layout
+With no layout flags, each component gets its own directory of concern files: `api.yaml` (anatomy, props), `variants.yaml` (default, variants), and `examples.yaml` (`slotContentExamples`, `instanceExamples`).
 
 ```bash
-specs generate -o specs/ --split-components
-```
-
-```
-specs/
-├── dsButton.yaml
-├── dsAlert.yaml
-└── dsCard.yaml
-```
-
-### `--split-concerns`
-Separate API specification, variant configuration, and examples into up to three files: `api.yaml` (anatomy, props), `variants.yaml` (default, variants), and `examples.yaml` (`slotContentExamples`, `instanceExamples`).
-
-```bash
-specs generate -o specs/ --split-concerns
-```
-
-```
-specs/
-├── api.yaml
-├── variants.yaml
-└── examples.yaml
-```
-
-`examples.yaml` is written only when at least one component has example data, and components without examples are omitted from it. Example output is a [Pro feature](/settings/default-slot-content/) — on the free tier it's omitted entirely, so no `examples.yaml` is produced.
-
-Combined with `--split-components`, each component gets its own directory of concern files:
-
-```bash
-specs generate -o specs/ --split-components --split-concerns
+specs generate -o specs/
 ```
 
 ```
@@ -230,11 +201,33 @@ specs/
     └── variants.yaml
 ```
 
-### `--use-subfolders`
-Organize component files in subdirectories (requires `--split-components`). Wraps each component file in its own folder.
+`examples.yaml` is written only when at least one component has example data, and components without examples are omitted from it. Example output is a [Pro feature](/settings/default-slot-content/) — on the free tier it's omitted entirely, so no `examples.yaml` is produced.
+
+### `--combine-as-library`
+Write every component into one library file, instead of a file per component. Concerns still split, so the three concern files now span the whole library:
 
 ```bash
-specs generate -o specs/ --split-components --use-subfolders
+specs generate -o specs/ --combine-as-library
+```
+
+```
+specs/
+├── api.yaml
+├── variants.yaml
+└── examples.yaml
+```
+
+Add `--combine-concerns` for a single file holding everything:
+
+```bash
+specs generate -o specs/library.yaml --combine-as-library --combine-concerns
+```
+
+### `--combine-concerns`
+Write API, variants, and examples into one file per component, instead of separate concern files.
+
+```bash
+specs generate -o specs/ --combine-concerns
 ```
 
 ```
@@ -247,11 +240,40 @@ specs/
     └── dsCard.yaml
 ```
 
+Combined with `--no-subfolders`, that flattens to one file per component:
+
+```bash
+specs generate -o specs/ --combine-concerns --no-subfolders
+```
+
+```
+specs/
+├── dsButton.yaml
+├── dsAlert.yaml
+└── dsCard.yaml
+```
+
+### `--no-subfolders`
+Write component files side by side instead of nesting each in its own folder. Only meaningful while components are split.
+
+```bash
+specs generate -o specs/ --combine-concerns --no-subfolders
+```
+
+```
+specs/
+├── dsButton.yaml
+├── dsAlert.yaml
+└── dsCard.yaml
+```
+
+With concerns still split, each component's concern files need a folder to live in, so this flag has no effect.
+
 ### `--get-images`
 Resolve unresolved registry images into real image files. Requires a [`figma.images`](/settings/images/) convention in `config/conventions.yaml`, a configured source file key, and the `FIGMA_TOKEN` environment variable (the same token `specs fetch` uses).
 
 ```bash
-specs generate -o specs/ --split-components --get-images
+specs generate -o specs/ --get-images
 ```
 
 Generation alone (the *detect* phase) records each image fill as an unresolved registry entry — the Figma identity in `$extensions['com.figma'].imageHash`, no `src` — structurally complete, but with no pixels. With `--get-images`, the CLI calls Figma's Get Image Fills endpoint, downloads each distinct image once, writes it as `_images/<imageHash>.<ext>` inside the output directory (format detected from the bytes — png, jpg, gif, or webp), and **adds** `src` to each entry — a path relative to the spec file that references it. The Figma identity survives for reverse-direction tooling:
@@ -280,7 +302,7 @@ specs/
 └── dsCard.yaml
 ```
 
-`$image` pointers (in `backgroundImage` fills and `ImageBinding` examples) are unaffected — resolution touches one registry entry per image, never the references. Files are named by Figma's content hash, so an image shared by many components is downloaded and stored once, and re-runs are idempotent. Figma's download URLs are temporary and are never persisted. With `--use-subfolders` (or the combined component + concern layout), `src` becomes `../_images/...` so it still resolves relative to each spec file.
+`$image` pointers (in `backgroundImage` fills and `ImageBinding` examples) are unaffected — resolution touches one registry entry per image, never the references. Files are named by Figma's content hash, so an image shared by many components is downloaded and stored once, and re-runs are idempotent. Figma's download URLs are temporary and are never persisted. In the default subfolder layout (or any component + concern layout), `src` becomes `../_images/...` so it still resolves relative to each spec file.
 
 ### `--from-bridge`
 Generate from the current selection in a connected Figma file via the [CLI bridge](/cli/commands/bridge/), instead of from a manifest or downloaded JSON. See [Bridge Mode](#bridge-mode).

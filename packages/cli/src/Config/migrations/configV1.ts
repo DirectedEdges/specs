@@ -65,12 +65,15 @@ export function migrateConfigV1(parsed: unknown): MigratedConfig {
   }
 
   // output.{splitComponents,splitConcerns,useSubfolders} -> settings.spec
-  if (raw.output && typeof raw.output === 'object') {
-    for (const flag of ['splitComponents', 'splitConcerns', 'useSubfolders'] as const) {
-      if (raw.output[flag] !== undefined) {
-        spec[flag] = raw.output[flag];
-      }
-    }
+  //
+  // These defaulted to false in v1 and default to true in v2, so an omitted
+  // flag meant "off" in the source and would mean "on" in the target. A
+  // migration changes where configuration lives, not what a workspace emits,
+  // so an omitted flag is written out explicitly as false. Deleting those
+  // three lines is how a migrated workspace opts in to the new default.
+  const v1Output = (raw.output && typeof raw.output === 'object' ? raw.output : {}) as Record<string, unknown>;
+  for (const flag of ['splitComponents', 'splitConcerns', 'useSubfolders'] as const) {
+    spec[flag] = v1Output[flag] !== undefined ? v1Output[flag] : false;
   }
 
   const cfg = (raw.config && typeof raw.config === 'object' ? raw.config : {}) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any

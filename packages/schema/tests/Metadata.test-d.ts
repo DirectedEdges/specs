@@ -28,6 +28,9 @@ const baseSettings: Metadata['settings'] = {
     invalidCombinations: true,
     emptyVariants: false,
     defaultSlotContent: false,
+    splitComponents: true,
+    splitConcerns: true,
+    useSubfolders: true,
   },
 };
 

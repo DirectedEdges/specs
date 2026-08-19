@@ -229,9 +229,9 @@ spec:
   # invalidVariants: false             # ASKED-5f (Complete)
   # invalidCombinations: true          # ASKED-5f (Complete)
   # emptyVariants: false               # OMITTED — opt-in edge case
-  splitComponents: false               # ASKED-5c (Essentials) — file layout on disk
-  splitConcerns: false                 # ASKED-5c
-  useSubfolders: false                 # ASKED-5c
+  splitComponents: true                # ASKED-5c (Essentials) — file layout on disk
+  splitConcerns: true                  # ASKED-5c
+  useSubfolders: true                  # ASKED-5c
 
 # assets:                              # OMITTED — opt-in shared-assets location
 #   directory: ./assets
@@ -284,6 +284,7 @@ For every prompt below: ask, record the answer, write it to `config/settings.yam
 > Common presets:
 >
 > - **One file, done** → all three **false** (default).
+> - **Everything downstream** (`transform`, `analyze`, `render`) → leave all three at their `true` default.
 > - **Component-level PRs** → `splitComponents: true`, others false.
 > - **Large library, namespaced** → `splitComponents: true` + `useSubfolders: true`.
 > - **API-first / backend-frontend split** → `splitComponents: true` + `splitConcerns: true`.
@@ -294,9 +295,9 @@ Update the three flags in the `spec:` section of `config/settings.yaml` in place
 
 ```yaml
 spec:
-  splitComponents: <true|false>
-  splitConcerns: <true|false>
-  useSubfolders: <true|false>
+  splitComponents: <true|false>        # default: true
+  splitConcerns: <true|false>          # default: true
+  useSubfolders: <true|false>          # default: true
 ```
 
 ---

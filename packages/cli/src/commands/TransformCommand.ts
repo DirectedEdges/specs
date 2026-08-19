@@ -37,7 +37,7 @@ export const Transform = new Command('transform')
 
       if (!fs.existsSync(outputPath)) {
         console.error(`Error: specs directory not found: ${outputPath}`);
-        console.error('Tip: run `specs generate --split-components --split-concerns` first');
+        console.error('Tip: run `specs generate` first — it writes this layout by default');
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
 
@@ -85,7 +85,7 @@ export const Transform = new Command('transform')
 
       if (componentDirs.length === 0) {
         console.error(`Error: no component directories with api.yaml found in ${outputPath}`);
-        console.error('Tip: run `specs generate --split-components --split-concerns` first');
+        console.error('Tip: run `specs generate` first — it writes this layout by default');
         process.exit(ERROR_CODES.FILE_ERROR);
       }
 

@@ -70,9 +70,10 @@ interface GenerateOptions {
   styles?: string;
   verbose: boolean;
   config?: string;
-  splitComponents?: boolean;
-  splitConcerns?: boolean;
-  useSubfolders?: boolean;
+  combineAsLibrary?: boolean;
+  combineConcerns?: boolean;
+  /** Commander sets this false only when --no-subfolders is passed. */
+  subfolders?: boolean;
   getImages?: boolean;
   fromBridge?: boolean;
   file?: string;
@@ -134,10 +135,13 @@ async function writeGeneratedOutput(
     ? options.format.toLowerCase() as OutputFormat
     : config.settings.spec.format.toLowerCase() as OutputFormat;
 
+  // The split layout is the default (ADR-071). Each flag only ever turns a
+  // split off, so an absent flag falls through to the configured value rather
+  // than overriding it.
   const outputConfig = {
-    splitComponents: options.splitComponents ?? config.settings.spec.splitComponents ?? false,
-    splitConcerns: options.splitConcerns ?? config.settings.spec.splitConcerns ?? false,
-    useSubfolders: options.useSubfolders ?? config.settings.spec.useSubfolders ?? false,
+    splitComponents: options.combineAsLibrary ? false : config.settings.spec.splitComponents,
+    splitConcerns: options.combineConcerns ? false : config.settings.spec.splitConcerns,
+    useSubfolders: options.subfolders === false ? false : config.settings.spec.useSubfolders,
     defaultFormat: resolvedFormat
   };
 
@@ -262,9 +266,9 @@ export const Generate = new Command('generate')
   .option('-s, --styles <path>', 'External styles JSON file')
   .option('--data-dir <dir>', 'Override data directory for loading source files')
   .option('--config <path>', 'Path to a config/ directory or legacy specs.config.yaml')
-  .option('--split-components', 'Create separate file per component')
-  .option('--split-concerns', 'Separate API, variants, and examples into different files')
-  .option('--use-subfolders', 'Organize component files in subdirectories (requires --split-components)')
+  .option('--combine-as-library', 'Write every component into one library file instead of a file per component')
+  .option('--combine-concerns', 'Write API, variants, and examples into one file per component instead of separate files')
+  .option('--no-subfolders', 'Write component files side by side instead of nesting each in its own subfolder')
   .option('--get-images', 'Resolve unresolved registry images into files under _images/ (requires processing.images in config and FIGMA_TOKEN)')
   .option('--from-bridge', 'Generate from the current selection in a connected Figma file via the CLI bridge (no REST fetch)')
   .option('--file <fileKey>', 'Target a specific connected Figma file with --from-bridge (prompts to choose if more than one is connected in an interactive terminal; required otherwise)')

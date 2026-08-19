@@ -45,11 +45,13 @@ The `react` transformer additionally seeds `src/react/{Component}.tsx` plus `.ex
 
 ### Prerequisites
 
-`specs transform` discovers components by scanning the output directory for subfolders that each contain an `api.yaml`. That exact shape — a per-component subfolder with `api.yaml` and `variants.yaml` inside it — only comes from running `generate` with **both** `--split-components` and `--split-concerns`:
+`specs transform` discovers components by scanning the output directory for subfolders that each contain an `api.yaml`. That exact shape — a per-component subfolder with `api.yaml` and `variants.yaml` inside it — is what `generate` writes by default:
 
 ```bash
-specs generate --split-components --split-concerns
+specs generate
 ```
+
+A workspace that has turned the split off (`--combine-as-library` or `--combine-concerns`, or the equivalent `spec` settings) will not produce it, and `transform` will find nothing to discover.
 
 If you only see a single `library.yaml`, or `{Component}.yaml` files with no `api.yaml` inside, re-run `generate` with both flags above before transforming.
 

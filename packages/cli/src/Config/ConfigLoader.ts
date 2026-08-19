@@ -390,12 +390,17 @@ export class ConfigLoader {
       spec.defaultSlotContent = false;
     }
 
-    // Split flags: booleans only; invalid values warn and fall back to off
+    // Split flags: booleans only. These are required on ResolvedSettings, so an
+    // invalid value is replaced with the schema default rather than removed.
     for (const flag of ['splitComponents', 'splitConcerns', 'useSubfolders'] as const) {
       const value = (spec as Record<string, unknown>)[flag];
-      if (value !== undefined && typeof value !== 'boolean') {
-        console.warn(`Invalid settings.spec.${flag}: expected boolean, got ${typeof value}. Using default: false`);
-        delete (spec as Record<string, unknown>)[flag];
+      if (typeof value !== 'boolean') {
+        if (value !== undefined) {
+          console.warn(
+            `Invalid settings.spec.${flag}: expected boolean, got ${typeof value}. Using default: ${DEFAULT_SETTINGS.spec[flag]}`
+          );
+        }
+        spec[flag] = DEFAULT_SETTINGS.spec[flag];
       }
     }
 
