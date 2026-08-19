@@ -88,7 +88,7 @@ const settings: Settings = {
 │ - JSON Schema definitions                        │
 │ - TypeScript type definitions                    │
 │ - Default configuration constants                │
-│ Exports: Component, Conventions, Settings,        │
+│ Exports: Component, Conventions, Settings,       │
 │          Pipeline, DEFAULT_SETTINGS              │
 └──────────────────────────────────────────────────┘
                     ▲
