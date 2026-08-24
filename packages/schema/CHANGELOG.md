@@ -11,6 +11,7 @@ Configuration now separates what is true about a Figma library from what a run c
 
 ### Added
 
+- `NumberProp.enum` — the closed set of values a numeric prop accepts, so a Figma VARIANT whose options are all numbers carries its numeric type and its authored option order at once (ADR-072)
 - `Conventions` — facts about the Figma library, namespaced by source under `figma`; blocks are optional and their absence means the library declares no such convention
 - `Settings` — run choices grouped by concern (`data`, `spec`, `assets`), each carrying its own `directory`
 - `Pipeline` — `transformers` and `analyses` a workspace runs, with `AnalysisEntry` alongside `TransformEntry`
