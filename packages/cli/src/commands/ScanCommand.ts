@@ -7,11 +7,11 @@
 import { Command } from 'commander';
 import fs from 'fs-extra';
 import path from 'path';
-import yaml from 'yaml';
 import { ComponentDiscovery, type ComponentInfo, type DevStatus } from '../utilities/ComponentDiscovery.js';
 import { ManifestParserV2, type ManifestRowV2 } from '../utilities/ManifestParserV2.js';
 import { isV1Manifest, migrateV1ToV2 } from '../utilities/ManifestMigrationV1ToV2.js';
 import { glyphPatternMatch } from '../utilities/glyphPatternMatch.js';
+import { ConfigLoader } from '../Config/ConfigLoader.js';
 
 const SCAN_FORMAT_VERSION = 2;
 
@@ -32,38 +32,6 @@ interface ScanOptions {
   resetChecks: boolean;
   variables?: string;
   verbose: boolean;
-}
-
-type MinimalConfig = {
-  dataDirectory?: string;
-  sourceDirectory?: string; // deprecated alias
-  sources?: Record<string, { key: string; data: string[] }>;
-  config?: { processing?: { glyphNamePattern?: string } };
-};
-
-function findConfigFile(cwd: string): string | null {
-  const locations = [
-    path.join(cwd, 'specs.config.yaml'),
-    path.join(cwd, 'specs.config.json'),
-    path.join(process.env.HOME || '~', '.specs', 'config.yaml')
-  ];
-  for (const location of locations) {
-    if (fs.existsSync(location)) return location;
-  }
-  return null;
-}
-
-function loadConfig(configPath?: string): { configDir: string; config: MinimalConfig } {
-  const resolvedPath = configPath ? path.resolve(configPath) : findConfigFile(process.cwd());
-  if (!resolvedPath || !fs.existsSync(resolvedPath)) {
-    return { configDir: process.cwd(), config: {} };
-  }
-  const raw = fs.readFileSync(resolvedPath, 'utf-8');
-  const parsed = resolvedPath.endsWith('.json') ? JSON.parse(raw) : (yaml.parse(raw) as unknown);
-  return {
-    configDir: path.dirname(resolvedPath),
-    config: (parsed as MinimalConfig) || {}
-  };
 }
 
 /**
@@ -187,7 +155,7 @@ function escapeCell(value: string): string {
 }
 
 /**
- * Partition components by glyphNamePattern. When pattern is falsy, all
+ * Partition components by the glyph naming convention. When the pattern is falsy, all
  * components stay in the components list and glyphs is empty.
  */
 export function partitionByGlyphPattern(
@@ -240,7 +208,7 @@ function generateManifestV2(
     lines.push('');
     lines.push('## Glyphs');
     lines.push('');
-    lines.push('_Detected via `glyphNamePattern`. Excluded from `specs generate`._');
+    lines.push('_Detected via `conventions.figma.glyphs.match`. Excluded from `specs generate`._');
     lines.push('');
     lines.push('| Name | ID | Type |');
     lines.push('|------|------|------|');
@@ -254,11 +222,11 @@ function generateManifestV2(
 
 export const Scan = new Command('scan')
   .description('Scan Figma file and generate component manifest for curation')
-  .argument('[file]', 'Path to Figma JSON file (default: resolved from configured source in specs.config.yaml)')
+  .argument('[file]', 'Path to Figma JSON file (default: resolved from a configured source in the workspace settings)')
   .option('--source <alias>', 'Configured source alias to scan (required when multiple sources exist)')
-  .option('-o, --output <path>', 'Output manifest file path (default: {dataDirectory}/{alias}.manifest.md)')
+  .option('-o, --output <path>', 'Output manifest file path (default: {data.directory}/{alias}.manifest.md)')
   .option('--data-dir <dir>', 'Override data directory for default manifest output path')
-  .option('--config <path>', 'Path to config file (specs.config.yaml)')
+  .option('--config <path>', 'Path to a config/ directory or legacy specs.config.yaml')
   .option('--include-all', 'Include all components (overrides devStatus and heuristics)', false)
   .option('--keep-checks', 'Preserve prior checkbox state for existing rows; ignore devStatus changes', false)
   .option('--reset-checks', 'Ignore prior manifest and re-derive checks from devStatus / heuristics', false)
@@ -271,8 +239,9 @@ export const Scan = new Command('scan')
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
 
-      const { configDir, config } = loadConfig(options.config);
-      const dataDir = options.dataDir || config.dataDirectory || config.sourceDirectory;
+      const config = new ConfigLoader().load(options.config);
+      const configDir = config.configDir ?? process.cwd();
+      const dataDir = options.dataDir || config.settings.data?.directory;
       const resolvedDir = path.resolve(configDir, dataDir || '.');
 
       let file: string;
@@ -283,12 +252,12 @@ export const Scan = new Command('scan')
         }
         file = fileArg;
       } else {
-        const fileSources = Object.entries(config.sources || {}).filter(
-          ([, entry]) => Array.isArray(entry.data) && entry.data.includes('file')
+        const fileSources = Object.entries(config.settings.data?.sources ?? {}).filter(
+          ([, entry]) => Array.isArray(entry.fetch) && entry.fetch.includes('file')
         );
 
         if (fileSources.length === 0) {
-          console.error('Error: No <file> argument provided and no sources configured in specs.config.yaml');
+          console.error('Error: No <file> argument provided and no sources configured in the workspace settings');
           console.error('Tip: run `specs fetch` first, or pass a file path explicitly (e.g., `specs scan data/library.file.json`)');
           process.exit(ERROR_CODES.INVALID_ARGS);
         }
@@ -356,7 +325,7 @@ export const Scan = new Command('scan')
       // Sort by name for stable diffs
       componentInfoList.sort((a, b) => a.name.localeCompare(b.name));
 
-      const glyphPattern = config.config?.processing?.glyphNamePattern;
+      const glyphPattern = config.conventions.figma.glyphs?.match;
       const { components: componentList, glyphs: glyphList } = partitionByGlyphPattern(
         componentInfoList,
         glyphPattern

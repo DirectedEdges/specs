@@ -1,33 +1,50 @@
 /**
  * Init Command
  *
- * Scaffolds a specs.config.yaml file with production-ready defaults
- * and inline documentation for getting started with Specs CLI.
+ * Scaffolds the config/ directory — conventions.yaml, settings.yaml, and
+ * pipeline.yaml — with production-ready defaults and inline documentation
+ * for getting started with Specs CLI.
  */
 
 import { Command } from 'commander';
 import fs from 'fs-extra';
+import path from 'path';
 import readline from 'readline';
-import { generateConfigTemplate } from '../Config/ConfigTemplates.js';
+import { generateConfigTemplates } from '../Config/ConfigTemplates.js';
 
 export const Init = new Command('init')
-  .description('Initialize a specs.config.yaml file with production defaults')
+  .description('Initialize config/conventions.yaml, config/settings.yaml, and config/pipeline.yaml with production defaults')
   .option('--force', 'Overwrite existing config without prompting')
-  .option('-c, --config <path>', 'Custom path for config file (default: specs.config.yaml)')
+  .option('-c, --config <path>', 'Custom directory to write the config files into (default: current directory)')
   .action(async (options) => {
     await initCommand(options as { force?: boolean; config?: string });
   });
 
 /**
- * Initialize config file
+ * Initialize config files
  */
 async function initCommand(options: { force?: boolean; config?: string }): Promise<void> {
-  const configPath = options.config || 'specs.config.yaml';
-  const configExists = fs.existsSync(configPath);
+  const baseDir = options.config || '.';
 
-  if (configExists && !options.force) {
+  // A pre-split workspace must not be scaffolded over. `init` writes defaults,
+  // so it would quietly replace whatever the workspace actually declared — and
+  // `specs migrate config` would then refuse, because config/ exists.
+  const legacy = ['specs.config.yaml', 'specs.config.json']
+    .find(name => fs.existsSync(path.join(baseDir, name)));
+  if (legacy) {
+    console.error(`Error: found ${legacy} — a pre-split configuration (ADR-071).`);
+    console.error('  Run `specs migrate config` to convert it, keeping what this workspace declares.');
+    console.error(`  To scaffold fresh defaults instead, remove ${legacy} first.`);
+    process.exitCode = 2;
+    return;
+  }
+
+  const templates = generateConfigTemplates();
+  const existing = Object.keys(templates).filter(rel => fs.existsSync(path.join(baseDir, rel)));
+
+  if (existing.length > 0 && !options.force) {
     // Prompt before overwriting
-    const shouldOverwrite = await promptBeforeOverwrite(configPath);
+    const shouldOverwrite = await promptBeforeOverwrite(existing.join(', '));
     if (!shouldOverwrite) {
       console.log('Config initialization cancelled.');
       return;
@@ -35,16 +52,19 @@ async function initCommand(options: { force?: boolean; config?: string }): Promi
   }
 
   try {
-    const template = generateConfigTemplate();
-    fs.writeFileSync(configPath, template, 'utf-8');
-    console.log(`✓ Created ${configPath}`);
+    for (const [rel, template] of Object.entries(templates)) {
+      const filePath = path.join(baseDir, rel);
+      fs.ensureDirSync(path.dirname(filePath));
+      fs.writeFileSync(filePath, template, 'utf-8');
+      console.log(`✓ Created ${filePath}`);
+    }
     console.log('📚 Next steps:');
     console.log('   1. Edit the config file to add your Figma file keys');
     console.log('   2. Run: specs fetch');
     console.log('   3. Run: specs scan');
     console.log('   4. Run: specs generate');
     console.log('');
-    console.log('📖 Documentation: docs/cli/configuration.md');
+    console.log('📖 Documentation: https://specs.directededges.com/settings/');
   } catch (error) {
     if (error instanceof Error) {
       console.error(`Error creating config file: ${error.message}`);
@@ -66,7 +86,7 @@ async function promptBeforeOverwrite(configPath: string): Promise<boolean> {
     });
 
     rl.question(
-      `Config file exists at ${configPath}. Overwrite? (y/N) `,
+      `Config file(s) exist: ${configPath}. Overwrite? (y/N) `,
       (answer) => {
         rl.close();
         resolve(answer.toLowerCase() === 'y');

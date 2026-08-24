@@ -3,14 +3,13 @@ title: "Layout"
 description: "Choose how element hierarchy is represented in the spec output"
 ---
 
-Layout representation format.
+Layout representation format. A run choice in `config/settings.yaml` — each representation carries the same hierarchy in a different shape.
 
 ## Configuration
 
 ```yaml
-config:
-  format:
-    layout: LAYOUT
+spec:
+  layout: LAYOUT
 ```
 
 ## Result
@@ -55,7 +54,7 @@ The same `DS Alert` hierarchy — a `root` containing `decorativeIcon` and `chil
 
 ## Path
 
-`config.format.layout`
+`spec.layout` in `config/settings.yaml`
 
 ## See Also
 

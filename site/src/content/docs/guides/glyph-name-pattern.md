@@ -3,7 +3,7 @@ title: "Glyph Name Pattern"
 description: "Detect icon glyph instances and classify them as content elements instead of generic instances"
 ---
 
-Design system components frequently contain icon instances — a `Button` with a leading icon, an `Alert` with a status icon, a `MenuItem` with an action icon. In Figma, these icons are component instances just like any other nested component. Without special handling, they appear as generic `instance` elements with an `instanceOf` reference to the full icon component. The `glyphNamePattern` setting tells the processing engine how to recognize these icon instances and reclassify them as lightweight `glyph` elements with a human-readable content name.
+Design system components frequently contain icon instances — a `Button` with a leading icon, an `Alert` with a status icon, a `MenuItem` with an action icon. In Figma, these icons are component instances just like any other nested component. Without special handling, they appear as generic `instance` elements with an `instanceOf` reference to the full icon component. The `glyphs` convention tells the processing engine how to recognize these icon instances and reclassify them as lightweight `glyph` elements with a human-readable content name.
 
 ## The Problem
 
@@ -24,7 +24,7 @@ This is technically accurate but unhelpful. The consumer doesn't need to know th
 
 ## What It Does
 
-When `glyphNamePattern` is configured, the processing engine tests every `INSTANCE` node against the pattern during element detection. If the instance's **main component name** matches, the element is created as a `glyph` instead of an `instance`:
+When the `glyphs` convention is declared, the processing engine tests every `INSTANCE` node against its `match` pattern during element detection. If the instance's **main component name** matches, the element is created as a `glyph` instead of an `instance`:
 
 ```yaml
 elements:
@@ -53,8 +53,9 @@ Glyph elements carry fewer style properties because icon assets are typically si
 The pattern is a plain string with a single placeholder: **`{i}`** marks where the glyph name appears in the component name.
 
 ```yaml
-processing:
-  glyphNamePattern: 'DS Icon Glyph / {i}'
+figma:
+  glyphs:
+    match: 'DS Icon Glyph / {i}'
 ```
 
 The engine converts the pattern into a regex internally: all special characters are escaped, and `{i}` becomes a `(.+)` capture group. The captured text becomes the glyph's `content` value.
@@ -79,10 +80,12 @@ Parentheses, dots, and other regex-special characters in the pattern are escaped
 
 ```yaml
 # Parentheses in prefix
-glyphNamePattern: 'Icons (v2) / {i}'
+glyphs:
+  match: 'Icons (v2) / {i}'
 
 # Dots in prefix
-glyphNamePattern: 'icon.glyph.{i}'
+glyphs:
+  match: 'icon.glyph.{i}'
 ```
 
 ### Whitespace
@@ -91,51 +94,58 @@ The component name is whitespace-normalized before matching — multiple spaces 
 
 ## Configuration
 
-Set `glyphNamePattern` under `processing` in your config file:
+Declare `glyphs` under `figma` in `config/conventions.yaml`:
 
 ```yaml
-# specs.config.yaml
-processing:
-  glyphNamePattern: 'DS Icon Glyph / {i}'
+# config/conventions.yaml
+figma:
+  glyphs:
+    match: 'DS Icon Glyph / {i}'
 ```
 
-**Default**: absent (no glyph detection). When omitted, all `INSTANCE` nodes are treated as regular instance elements.
+**Default**: absent (no glyph detection). When omitted, all `INSTANCE` nodes are treated as regular instance elements — the library declares no glyph convention.
 
-**Validation**: if the value is not a string or is empty/whitespace-only, it is silently ignored and glyph detection is disabled.
+**Validation**: if `match` is not a string or is empty/whitespace-only, the block is dropped and glyph detection is disabled.
 
 ### Common patterns
 
 **Slash-separated prefix** (most common):
 ```yaml
-glyphNamePattern: 'DS Icon Glyph / {i}'
+glyphs:
+  match: 'DS Icon Glyph / {i}'
 ```
 
 **Shorter prefix**:
 ```yaml
-glyphNamePattern: 'Icon / {i}'
+glyphs:
+  match: 'Icon / {i}'
 ```
 
 **Dot-separated**:
 ```yaml
-glyphNamePattern: 'icon.glyph.{i}'
+glyphs:
+  match: 'icon.glyph.{i}'
 ```
 
 **Versioned prefix**:
 ```yaml
-glyphNamePattern: 'Icons (v2) / {i}'
+glyphs:
+  match: 'Icons (v2) / {i}'
 ```
 
 The right pattern depends on how your Figma library names its icon glyph components. Open your icon library in Figma and look at the component names — the prefix before the individual icon name is what goes before `{i}`.
 
 ## Fetching the Assets
 
-The same pattern powers asset download: `specs fetch` with `icons` in a source's `data` array walks the fetched file payload for components matching `glyphNamePattern` and downloads each one as an SVG to `<outputDirectory>/_icons/`, beside the `_images/` assets:
+The same pattern powers asset download: `specs fetch` with `icons` in a source's `fetch` array walks the fetched file payload for components matching the `glyphs` pattern and downloads each one as an SVG to `<spec.directory>/_icons/`, beside the `_images/` assets:
 
 ```yaml
-sources:
-  library:
-    key: YOUR_FILE_KEY
-    data: ['file', 'icons']
+# config/settings.yaml
+data:
+  sources:
+    library:
+      key: YOUR_FILE_KEY
+      fetch: ['file', 'icons']
 ```
 
 Filenames are kebab-case slugs of the extracted name (`Arrow Left` → `arrow-left.svg`, `expandMore` → `expand-more.svg`) — the same slugs generated component output references, so serving the directory as static assets makes glyphs render directly. See [fetch](/cli/commands/fetch/#fetching-icon-assets) for details.
@@ -163,7 +173,7 @@ This binding is created automatically — no additional configuration needed. It
 
 **Glyphs are mutually exclusive with instances.** A matched node becomes a `glyph`; an unmatched node stays an `instance`. If the pattern is too broad, real subcomponent instances might be misclassified as glyphs. Keep the pattern specific to your icon asset naming convention.
 
-**Start without it.** Generate specs first without `glyphNamePattern` to see which elements are instances. Look for icon instances that would be more useful as content references, then add the pattern to capture them.
+**Start without it.** Generate specs first without a `glyphs` convention to see which elements are instances. Look for icon instances that would be more useful as content references, then declare the convention to capture them.
 
 ## Further Reading
 

@@ -6,7 +6,7 @@
  * Figma. See `specs bridge` to start/stop the bridge.
  */
 
-import type { ResolvedConfig } from '@directededges/specs-schema';
+import type { ResolvedConventions, ResolvedSettings } from '@directededges/specs-schema';
 import { Command } from 'commander';
 import fs from 'fs-extra';
 import path from 'path';
@@ -27,8 +27,8 @@ const ERROR_CODES = {
 
 export const Render = new Command('render')
   .description('Render a spec into Figma via the local CLI bridge')
-  .argument('[specPath]', 'Path to a spec YAML file, a component folder, or a directory of component folders (default: {outputDirectory} from config)')
-  .option('--config <path>', 'Path to config file (specs.config.yaml)')
+  .argument('[specPath]', 'Path to a spec YAML file, a component folder, or a directory of component folders (default: {spec.directory} from the workspace settings)')
+  .option('--config <path>', 'Path to a config/ directory or legacy specs.config.yaml')
   .option('--file <fileKey>', 'Target a specific connected Figma file (prompts to choose if more than one is connected in an interactive terminal; required otherwise)')
   .option('--page <id>', 'Render onto this page id instead of the plugin\'s current page (recommended for scripted runs — immune to page drift)')
   .option('--overwrite', 'Delete any existing page component with the same title before rendering (without this, a title collision is an error)')
@@ -41,14 +41,15 @@ export const Render = new Command('render')
     // is the flag that fixes it without a separate command.
     if (options.refreshCache) {
       const config = new ConfigLoader().load(options.config);
-      if (!config.dataDirectory) {
-        console.error('Error: --refresh-cache needs dataDirectory set in specs.config.yaml.');
+      const dataDirectory = config.settings.data?.directory;
+      if (!dataDirectory) {
+        console.error('Error: --refresh-cache needs data.directory set in the workspace settings.');
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
       reportCache(refreshCache({
-        dataDir: config.dataDirectory,
-        aliases: Object.keys(config.sources ?? {}),
-        glyphNamePattern: config.config?.processing?.glyphNamePattern,
+        dataDir: dataDirectory,
+        aliases: Object.keys(config.settings.data?.sources ?? {}),
+        glyphNamePattern: config.conventions.figma.glyphs?.match,
       }));
     }
     if (options.watch) {
@@ -60,18 +61,19 @@ export const Render = new Command('render')
       return;
     }
 
-    // Zero-arg resolution: the configured outputDirectory, as a batch of
+    // Zero-arg resolution: the configured spec directory, as a batch of
     // component folders.
     if (!specPath) {
       const configLoader = new ConfigLoader();
       const config = configLoader.load(options.config);
 
-      if (config.outputDirectory && fs.existsSync(path.resolve(config.outputDirectory))) {
-        specPath = path.resolve(config.outputDirectory);
+      const specDirectory = config.settings.spec.directory;
+      if (specDirectory && fs.existsSync(path.resolve(specDirectory))) {
+        specPath = path.resolve(specDirectory);
         console.log(`Using output directory: ${path.relative(process.cwd(), specPath) || '.'}`);
       } else {
         console.error('Error: provide a spec path.');
-        console.error('Tip: no outputDirectory to fall back to — set one in specs.config.yaml.');
+        console.error('Tip: no spec.directory to fall back to — set one in the workspace settings.');
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
     }
@@ -83,17 +85,21 @@ export const Render = new Command('render')
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
 
-      // A spec records the config it was produced under, and render reverses that
-      // record — so the spec's own `metadata.config` governs. This is the fallback for
-      // a spec carrying none, such as a hand-authored one. A workspace without a config
-      // file is fine: the spec is then the only source there is.
-      let workspaceConfig: ResolvedConfig | undefined;
+      // A spec records the conventions and settings it was produced under, and render
+      // reverses that record — so the spec's own `metadata.conventions`/`metadata.settings`
+      // govern. This is the fallback for a spec carrying none, such as a hand-authored one.
+      // A workspace without a config file is fine: the spec is then the only source there is.
+      let workspaceConventions: ResolvedConventions | undefined;
+      let workspaceSettings: ResolvedSettings | undefined;
       try {
-        workspaceConfig = new ConfigLoader().load(options.config).config;
+        const workspace = new ConfigLoader().load(options.config);
+        workspaceConventions = workspace.conventions;
+        workspaceSettings = workspace.settings;
       } catch {
-        workspaceConfig = undefined;
+        workspaceConventions = undefined;
+        workspaceSettings = undefined;
       }
-      const withConfig = { ...options, workspaceConfig };
+      const withConfig = { ...options, workspaceConventions, workspaceSettings };
 
       const isBatchDir = fs.statSync(absSpecPath).isDirectory() && !isComponentFolder(absSpecPath);
       if (isBatchDir) {
@@ -102,8 +108,8 @@ export const Render = new Command('render')
         await renderSpecPath(absSpecPath, withConfig);
       }
     } catch (e) {
-      const err = e as NodeJS.ErrnoException;
-      if (err.cause && (err.cause as NodeJS.ErrnoException).code === 'ECONNREFUSED') {
+      const err = e as NodeJS.ErrnoException & { cause?: NodeJS.ErrnoException };
+      if (err.cause && err.cause.code === 'ECONNREFUSED') {
         console.error('Error: bridge is not running.');
         console.error('  Start it with: specs bridge start');
       } else {
@@ -118,7 +124,7 @@ export const Render = new Command('render')
 // logged and retried on the next change (watch).
 async function renderSpecPath(
   specPath: string,
-  options: { file?: string; page?: string; overwrite?: boolean; strict?: boolean; timing?: boolean; workspaceConfig?: ResolvedConfig }
+  options: { file?: string; page?: string; overwrite?: boolean; strict?: boolean; timing?: boolean; workspaceConventions?: ResolvedConventions; workspaceSettings?: ResolvedSettings }
 ): Promise<number> {
   const { spec, resolvePath } = loadSpec(specPath);
   // The component, not the path it came from: the full path is noise on every line of a
@@ -134,7 +140,7 @@ async function renderSpecPath(
   const startedAt = Date.now();
   let result: RenderResponse;
   try {
-    result = await postRender({ specPath: resolvePath, spec, fileKey, pageId: options.page, overwrite: options.overwrite, config: options.workspaceConfig });
+    result = await postRender({ specPath: resolvePath, spec, fileKey, pageId: options.page, overwrite: options.overwrite, conventions: options.workspaceConventions, settings: options.workspaceSettings });
   } finally {
     stopSpinner();
   }
@@ -235,7 +241,7 @@ function confirm(question: string): Promise<boolean> {
  */
 async function renderBatchDirectory(
   absDir: string,
-  options: { file?: string; page?: string; overwrite?: boolean; strict?: boolean; timing?: boolean; workspaceConfig?: ResolvedConfig },
+  options: { file?: string; page?: string; overwrite?: boolean; strict?: boolean; timing?: boolean; workspaceConventions?: ResolvedConventions; workspaceSettings?: ResolvedSettings },
   // In watch mode a batch is re-run on every change: don't re-confirm, and
   // don't exit the process on a failure the next save might fix.
   { watch = false }: { watch?: boolean } = {}
@@ -294,7 +300,7 @@ const WATCH_DEBOUNCE_MS = 300;
 
 async function watchAndRender(
   specPath: string,
-  options: { file?: string; workspaceConfig?: ResolvedConfig }
+  options: { file?: string; workspaceConventions?: ResolvedConventions; workspaceSettings?: ResolvedSettings }
 ): Promise<void> {
   const absSpecPath = path.resolve(specPath);
   if (!fs.existsSync(absSpecPath)) {

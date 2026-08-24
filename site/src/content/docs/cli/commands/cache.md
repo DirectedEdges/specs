@@ -22,7 +22,7 @@ That data arrives as whole Figma API responses. A file payload for a large libra
 
 ## What it writes
 
-Four files under `{dataDirectory}/cache/`, each covering every source you've fetched:
+Four files under `{data.directory}/cache/`, each covering every source you've fetched:
 
 | File | Maps | Built from |
 |------|------|------------|
@@ -35,7 +35,7 @@ They're generated files. Deleting them is safe — the next `specs cache` rebuil
 
 Each entry records which source it came from, because node ids are file-scoped: knowing an entry's origin is what lets `render` tell whether an id is usable in the file it's rendering into, and it lets one library be rebuilt without re-reading the others.
 
-`components.yaml` also records each component's raw Figma name. A spec refers to a component by a formatted key, and that transform is lossy — `DS Link/On overlay/M` and `DS Link On Overlay M` produce the same key — so the name cannot be recovered from the key. Recording it lets `render` place an instance of a component the workspace has no spec for: the library's names are formatted the same way and matched against the spec's key, then the component is imported by its published key. Names are stored raw and formatted at render time, so changing `format.keys` needs no rebuild.
+`components.yaml` also records each component's raw Figma name. A spec refers to a component by a formatted key, and that transform is lossy — `DS Link/On overlay/M` and `DS Link On Overlay M` produce the same key — so the name cannot be recovered from the key. Recording it lets `render` place an instance of a component the workspace has no spec for: the library's names are formatted the same way and matched against the spec's key, then the component is imported by its published key. Names are stored raw and formatted at render time, so changing `spec.keys` needs no rebuild.
 
 Every file also records what it was built from — the payload's name, size, and modification time, plus the glyph naming pattern for `icons.yaml`. That's how staleness is detected.
 
@@ -52,13 +52,13 @@ Run `specs cache` to rebuild it.
 
 `render` refuses rather than rebuilding, for two reasons: rebuilding is exactly the per-render cost the cache removes, and rendering against data that no longer matches what was fetched binds a spec to the wrong variables or drops content — a failure that surfaces far from its cause.
 
-The cache goes stale when a payload is re-fetched, when `applyCustomTokens` rewrites your variables, or when `config.processing.glyphNamePattern` changes — a pattern edit changes what the icon entries mean without any file changing. All three are detected.
+The cache goes stale when a payload is re-fetched, when `applyCustomTokens` rewrites your variables, or when the `figma.glyphs.match` convention changes — a pattern edit changes what the icon entries mean without any file changing. All three are detected.
 
 ## Options
 
 ### `--config <path>`
 
-Use a specific config file instead of the default `specs.config.yaml`.
+Use a specific `config/` directory instead of the default `config/` in the working directory.
 
 ### `--force`
 
@@ -72,7 +72,7 @@ specs cache --force
 
 ## Sources that aren't fetched
 
-The cache is built for every source declared under `sources` in your config. A source you haven't fetched yet is skipped and reported, not treated as an error:
+The cache is built for every source declared under `data.sources` in `config/settings.yaml`. A source you haven't fetched yet is skipped and reported, not treated as an error:
 
 ```
   Cache rebuilt: library

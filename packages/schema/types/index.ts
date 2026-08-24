@@ -25,6 +25,7 @@ export type { Composition, Compositions } from './Composition.js';
 // Configuration types
 export type { PropConfigurations, PropConfigurationValue, NestedPropConfiguration } from './PropConfigurations.js';
 export type { Conventions, ResolvedConventions, VariantStateEntry } from './Conventions.js';
+export { DEFAULT_CONVENTIONS } from './Conventions.js';
 export type { Settings, ResolvedSettings, ColorFormat, SourceEntry } from './Settings.js';
 export { DEFAULT_SETTINGS } from './Settings.js';
 export type { Pipeline, ResolvedPipeline, TransformEntry, AnalysisEntry } from './Pipeline.js';

@@ -149,3 +149,24 @@ export interface ResolvedConventions {
     states?: Record<string, VariantStateEntry>;
   };
 }
+
+/**
+ * Default Conventions
+ *
+ * A library that declares nothing. Only the three members that *have* a
+ * meaningful default appear: the naming convention the file follows, and the
+ * two authoring facts about how props are written.
+ *
+ * The blocks — `glyphs`, `codeOnlyProps`, `subcomponents`, `instanceExamples`,
+ * `images`, `states` — are deliberately absent and have no defaults. Their
+ * absence means the library declares no such convention, which is a statement
+ * nothing else can supply. Defaults *inside* a declared block are applied by
+ * whoever resolves it, per the member documentation above.
+ */
+export const DEFAULT_CONVENTIONS: ResolvedConventions = {
+  figma: {
+    naming: 'NONE',
+    slotConstraints: false,
+    inferNumberProps: false,
+  },
+};

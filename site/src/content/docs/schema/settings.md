@@ -45,9 +45,9 @@ Authored in `config/settings.yaml`. Members are grouped by concern, and each con
 | [`invalidCombinations`](/guides/invalid-variant-combinations/) | `boolean` | `true` | Include `invalidVariantCombinations` list |
 | [`emptyVariants`](/settings/empty-variants/) | `boolean` | `false` | Include variants with no element overrides |
 | [`defaultSlotContent`](/guides/default-slot-content/) | `boolean` | `false` | **Pro.** Emit the component's default slot content into `Component.slotContentExamples`. Ignored on the free tier |
-| `splitComponents` | `boolean` | — | Write one file per component rather than a single combined file |
-| `splitConcerns` | `boolean` | — | Write one file per concern (api, styling, variants) |
-| `useSubfolders` | `boolean` | — | Nest each component's files in a subfolder named for the component |
+| `splitComponents` | `boolean` | `true` | Write one file per component rather than a single combined library file |
+| `splitConcerns` | `boolean` | `true` | Write one file per concern (api, styling, variants) |
+| `useSubfolders` | `boolean` | `true` | Nest each component's files in a subfolder named for the component |
 
 ## `assets`
 
@@ -80,4 +80,6 @@ const DEFAULT_SETTINGS: ResolvedSettings = {
 };
 ```
 
-Directories, `sources`, `author`, and the split flags carry no default: the consumer supplies them, and this package has no basis for choosing one. They stay optional on `ResolvedSettings` for exactly that reason.
+Directories, `sources`, and `author` carry no default: the consumer supplies them, and this package has no basis for choosing one. They stay optional on `ResolvedSettings` for exactly that reason.
+
+The three split flags are different. Every downstream command — `transform`, `analyze`, `render` — reads the split layout, so the shape of generated output is not a per-consumer choice; leaving each consumer to pick its own default is how the same workspace ends up emitting two layouts. `DEFAULT_SETTINGS` carries them as `true` and they are required on `ResolvedSettings`.

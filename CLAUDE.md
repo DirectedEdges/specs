@@ -8,7 +8,7 @@
 
 | Package | Path | Description |
 |---------|------|-------------|
-| `@directededges/specs-schema` | `packages/schema/` | TypeScript types and JSON schema definitions for component specifications. Exports are type-only except for `DEFAULT_CONFIG`. |
+| `@directededges/specs-schema` | `packages/schema/` | TypeScript types and JSON schema definitions for component specifications. Exports are type-only except for `DEFAULT_CONVENTIONS`, `DEFAULT_SETTINGS`, and `DEFAULT_PIPELINE`. |
 | `@directededges/specs-cli` | `packages/cli/` | CLI for design system operations: generate, scan, and fetch component specs from the Figma REST API. |
 
 ## Dependency Flow
@@ -32,7 +32,9 @@ packages/
 │   ├── types/                   # TypeScript type definitions (source of truth)
 │   │   ├── index.ts             # Barrel export
 │   │   ├── Component.ts         # Top-level component spec shape
-│   │   ├── Config.ts            # Config interface + DEFAULT_CONFIG
+│   │   ├── Conventions.ts       # Conventions interface + DEFAULT_CONVENTIONS
+│   │   ├── Settings.ts          # Settings interface + DEFAULT_SETTINGS
+│   │   ├── Pipeline.ts          # Pipeline interface + DEFAULT_PIPELINE
 │   │   └── ...                  # Anatomy, Props, Element, Styles, etc.
 │   ├── schema/                  # JSON Schema definitions (for validation)
 │   │   ├── component.schema.json
@@ -67,7 +69,7 @@ npm run build --workspace=packages/cli      # Build CLI only
 - **Test framework**: Vitest with globals enabled
 - **Path alias**: `@` → `./src` (used in CLI package)
 - **Deterministic output**: Same input produces identical output. No side effects in the processing pipeline.
-- **Config type** (from `@directededges/specs-schema`): Controls output shape — `DETAILS`, `FORMAT_KEYS`, `FORMAT_COLOR`, `DATA_LAYOUT`, `VARIANT_DEPTH`, etc.
+- **Conventions / Settings / Pipeline types** (from `@directededges/specs-schema`): `Conventions` declares facts about the Figma library (`figma.naming`, `figma.glyphs`, `figma.states`, etc. — a wrong value produces incorrect output); `Settings` controls output shape (`spec.details`, `spec.keys`, `spec.color`, `spec.layout`, `spec.variantDepth`, etc. — a different value produces different output); `Pipeline` declares `transformers` and `analyses`
 
 ## Schema Governance
 
@@ -88,7 +90,7 @@ Each step is a separate skill; run them in order. The ADR stays `DRAFT` until al
 The documentation site is built with Astro (port 4323) from `site/src/content/docs/`. Content sections:
 
 - `schema/` — one page per schema type (Component, Styles, Props, etc.)
-- `config/` — one page per config option (color, keys, layout, tokens, etc.)
+- `settings/` — one page per convention or setting (color, keys, layout, tokens, states, etc.)
 - `guides/` — how-to guides for specific features (slot constraints, variant depth, token format, etc.)
 - `cli/` — CLI overview, getting started, and per-command reference
 - `overview/` — product overview, licensing, releases

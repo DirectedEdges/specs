@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
+import { Command } from 'commander';
 import { Generate } from '../../../src/commands/GenerateCommand.js';
 import { ManifestParser } from '../../../src/utilities/ManifestParser.js';
 import { ManifestParserV2 } from '../../../src/utilities/ManifestParserV2.js';
@@ -42,9 +43,9 @@ describe('GenerateCommand', () => {
       expect(options).toContain('--styles');
       expect(options).toContain('--data-dir');
       expect(options).toContain('--config');
-      expect(options).toContain('--split-components');
-      expect(options).toContain('--split-concerns');
-      expect(options).toContain('--use-subfolders');
+      expect(options).toContain('--combine-as-library');
+      expect(options).toContain('--combine-concerns');
+      expect(options).toContain('--no-subfolders');
       expect(options).toContain('--from-bridge');
       expect(options).toContain('--file');
       expect(options).toContain('--verbose');
@@ -70,19 +71,37 @@ describe('GenerateCommand', () => {
       expect(shorts).toContain('-s');
     });
 
-    it('split-components has no Commander default (defers to config)', () => {
-      const opt = Generate.options.find(o => o.long === '--split-components');
+    // The split layout is the default, so each flag turns a split OFF. Absent
+    // means "defer to config", which is why neither combine flag carries a
+    // Commander default that would mask a configured value.
+    it('combine-as-library has no Commander default (defers to config)', () => {
+      const opt = Generate.options.find(o => o.long === '--combine-as-library');
       expect(opt!.defaultValue).toBeUndefined();
     });
 
-    it('split-concerns has no Commander default (defers to config)', () => {
-      const opt = Generate.options.find(o => o.long === '--split-concerns');
+    it('combine-concerns has no Commander default (defers to config)', () => {
+      const opt = Generate.options.find(o => o.long === '--combine-concerns');
       expect(opt!.defaultValue).toBeUndefined();
     });
 
-    it('use-subfolders has no Commander default (defers to config)', () => {
-      const opt = Generate.options.find(o => o.long === '--use-subfolders');
-      expect(opt!.defaultValue).toBeUndefined();
+    // Commander resolves a negatable flag at parse time rather than through
+    // Option.defaultValue: absent yields true, passed yields false. Generate's
+    // resolution keys off that explicit `false`, so absence still defers to
+    // the configured value.
+    it('no-subfolders parses to true when absent and false when passed', () => {
+      const parse = (argv: string[]) => {
+        const probe = new Command('probe')
+          .option('--combine-as-library', 'x')
+          .option('--combine-concerns', 'x')
+          .option('--no-subfolders', 'x');
+        probe.parse(argv, { from: 'user' });
+        return probe.opts();
+      };
+
+      expect(parse([]).subfolders).toBe(true);
+      expect(parse(['--no-subfolders']).subfolders).toBe(false);
+      expect(parse([]).combineAsLibrary).toBeUndefined();
+      expect(parse(['--combine-as-library']).combineAsLibrary).toBe(true);
     });
 
     it('verbose defaults to false', () => {

@@ -7,14 +7,13 @@ description: "Control how design token references are serialized in the spec out
 
 Style properties in a spec frequently reference design tokens — the colors, spacing, and typography defined as Figma variables or published styles. The `tokens` option controls **how those references are serialized**, ranging from a minimal name string to a rich object carrying full Figma provenance.
 
-Different consumers need different levels of detail: a documentation site just needs the token name, a code generator needs a structured reference with a type hint, a Figma-native tool needs raw variable IDs, and a team with a bespoke token system needs to inject its own mapping entirely. One format can't satisfy all of these — so `tokens` selects a single **profile** applied uniformly to every token reference in the output, both variables and published named styles.
+Different consumers need different levels of detail: a documentation site just needs the token name, a code generator needs a structured reference with a type hint, a Figma-native tool needs raw variable IDs, and a team with a bespoke token system needs to inject its own mapping entirely. One format can't satisfy all of these — so `tokens` selects a single **profile** applied uniformly to every token reference in the output, both variables and published named styles. A run choice in `config/settings.yaml`: every profile serializes the same references correctly, just at different levels of detail.
 
 ## Configuration
 
 ```yaml
-config:
-  format:
-    tokens: TOKEN  # Default — DTCG-aligned objects
+spec:
+  tokens: TOKEN  # Default — DTCG-aligned objects
 ```
 
 **Default:** `TOKEN`.
@@ -103,7 +102,7 @@ specs applyCustomTokens mapping.json     # 2. Inject $custom objects into the da
 specs generate                           # 3. Generate — uses $custom objects verbatim
 ```
 
-The `applyCustomTokens` command auto-discovers variables/styles files from `dataDirectory` and `sources` in this config, or accepts explicit `-v`/`-s` paths. See [`applyCustomTokens` command](/cli/commands/apply-custom-tokens/) for the full mapping file format and pipeline details.
+The `applyCustomTokens` command auto-discovers variables/styles files from `data.directory` and `data.sources` in `config/settings.yaml`, or accepts explicit `-v`/`-s` paths. See [`applyCustomTokens` command](/cli/commands/apply-custom-tokens/) for the full mapping file format and pipeline details.
 
 ### FIGMA_SYNTAX_WEB / FIGMA_SYNTAX_IOS / FIGMA_SYNTAX_ANDROID
 
@@ -128,7 +127,7 @@ When a token has no code syntax defined for the chosen platform, the profile **f
 
 ## Path
 
-`config.format.tokens`
+`spec.tokens` in `config/settings.yaml`
 
 ## See Also
 

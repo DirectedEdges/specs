@@ -1,17 +1,27 @@
 ---
-title: "Settings"
+title: "Configuration"
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 import Figure from '../../../components/Figure.astro';
 import pluginSettingsFormat from '../../../assets/plugin-settings-format.png';
 
-Settings give you technical control over how specs are created — the same settings surface drives both the Figma plugin and the CLI, so a component produces the same structured output no matter which one generates it.
+Configuration gives you technical control over how specs are created — the same options drive both the Figma plugin and the CLI, so a component produces the same structured output no matter which one generates it.
+
+A workspace authors three files in a `config/` directory, one per question:
+
+| File | Question it answers | Kind of value |
+|------|--------------------|---------------|
+| `config/conventions.yaml` | What is true about this Figma library? | **Facts.** Every consumer reading the same library declares the same values — a wrong value produces *incorrect* output (undetected glyphs, unclassified states) |
+| `config/settings.yaml` | What do I want out of this run? | **Choices.** A different team could set any of these differently and still be correct — a different value produces merely *different* output |
+| `config/pipeline.yaml` | What work should run over the specs? | **Work.** Transformers and analyses to run |
+
+The distinction decides where an option lives. Declaring a convention is also what enables its processing: a declared `glyphs` pattern turns glyph detection on, and an absent block means the library has no such convention — there is no separate on-switch. Because conventions describe the library rather than any one workspace, a library can publish its `conventions.yaml` once and every consuming workspace adopts it verbatim.
 
 <Tabs>
 <TabItem label="Figma Plugin">
 
-The plugin's **Settings** tab exposes the same options as the CLI's config file, right next to the canvas where you're generating specs.
+The plugin's **Settings** tab exposes the same options as the CLI's config files, right next to the canvas where you're generating specs.
 
 <Figure
   src={pluginSettingsFormat}
@@ -23,9 +33,9 @@ The plugin's **Settings** tab exposes the same options as the CLI's config file,
 
 The **Format** section controls how spec data is serialized once it's extracted:
 
-- [Output Format](/settings/output-format/) — Serializes specs as `YAML` or `JSON`
+- [Format](/settings/output-format/) — Serializes specs as `YAML` or `JSON`
 - [Keys](/settings/keys/) — Renames keys, such as `camelCase` or `snake_case`
-- [Figma Keys](/settings/figma-keys/) — Declares the convention your Figma file uses, keeping renamed keys reversible
+- [Naming](/settings/figma-keys/) — Declares the convention your Figma file uses, keeping renamed keys reversible
 - [Tokens](/settings/tokens/) — Serializes as forms such as a name string or `{ $token, $type }` object
 - [Color](/settings/color/) — Formats color, such as `#FF6600` or `{ colorSpace, components }`
 
@@ -42,7 +52,7 @@ The **Variants** section controls how variant property combinations are compared
 
 The **Elements** section controls which layers are detected as special-purpose content:
 
-- [Glyph Name Pattern](/settings/glyph-name-pattern/) — Matches names like `DS Icon Glyph / check`
+- [Glyphs](/settings/glyph-name-pattern/) — Matches names like `DS Icon Glyph / check`
 - [Subcomponents](/settings/subcomponents/) — Matches names like `Card / _ / Header` within `NESTED` or `PAGE`
 - [Collapse Primitive Wrapper](/settings/collapse-primitive-wrapper/) — Collapses a wrapper around a lone `text` or `glyph` child
 - [Default Slot Content](/settings/default-slot-content/) — Emits authored defaults as `slotContentExamples`
@@ -53,7 +63,7 @@ The **Elements** section controls which layers are detected as special-purpose c
 
 The **Props** section controls how code-only and inferred props are detected:
 
-- [Code-Only Props Pattern](/settings/code-only-props-pattern/) — Detects a layer like `Code only props`
+- [Code-Only Props](/settings/code-only-props-pattern/) — Detects a layer like `Code only props`
 - [Slot Constraints](/settings/slot-constraints/) — Merges `anyOf`, `minChildren`, `maxChildren` into the slot prop
 - [Infer Number Props](/settings/infer-number-props/) — Emits `minRows: 2` as `NumberProp` instead of `StringProp`
 
@@ -66,39 +76,39 @@ The **Layout** section controls how element hierarchy is represented:
 </TabItem>
 <TabItem label="Command Line (CLI)">
 
-The CLI reads settings from `specs.config.yaml`, layered with command-line flags and convention-based fallbacks, so a project's output stays consistent across every `specs` invocation.
+The CLI reads configuration from the workspace's `config/` directory, layered with command-line flags and convention-based fallbacks, so a project's output stays consistent across every `specs` invocation.
 
 ## Priority System
 
-The CLI applies settings using three priority levels:
+The CLI applies configuration using three priority levels:
 
 1. **CLI flags** (highest) - Explicit overrides for individual commands
-2. **Config file** - Project defaults via `specs.config.yaml`
+2. **Config files** - Project defaults via `config/conventions.yaml`, `config/settings.yaml`, and `config/pipeline.yaml`
 3. **Fallbacks** (lowest) - Convention-based defaults when no sources are configured
 
 ### CLI Flags
 
-CLI flags always override settings from the config file:
+CLI flags always override values from the config files:
 
 ```bash
-# Config has format.output: JSON
+# settings.yaml has spec.format: JSON
 # Flag overrides to YAML
 specs generate data/library.file.json -c Button --format yaml
 ```
 
 **Available flag overrides**:
-- `--format` → overrides `config.format.output`
+- `--format` → overrides `spec.format` in `settings.yaml`
 - `--variables` → overrides the variables file path for that run
 - `--styles` → overrides the styles file path for that run
 
-### Config File
+### Config Files
 
-Settings from `specs.config.yaml` apply when no CLI flag is provided. Use `--config` to point at a project-specific file instead of the default location:
+Values from the `config/` directory apply when no CLI flag is provided. Use `--config` to point at a different directory instead of the default location:
 
 ```bash
 specs generate data/library.file.json \
   -c "Button" \
-  --config ./configs/mobile.config.yaml \
+  --config ./configs/mobile \
   -o specs/mobile/button.yaml
 ```
 
@@ -108,7 +118,10 @@ Convention-based defaults when no sources are configured and no flags are provid
 
 ```
 project/
-├── specs.config.yaml  # Config (if exists)
+├── config/
+│   ├── conventions.yaml       # Library facts (if any declared)
+│   ├── settings.yaml          # Run choices (if exists)
+│   └── pipeline.yaml          # Work to run (if exists)
 ├── data/
 │   ├── library.file.json      # Main file (specified in command)
 │   └── foundations/           # Auto-discovery directory
@@ -116,67 +129,101 @@ project/
 │       └── styles.json        # Auto-discovered
 ```
 
-## Settings File
+## Configuration Files
 
 ### Location
 
-The CLI looks for a settings file in these locations (in order):
+The CLI looks for configuration in these locations (in order):
 
-1. `./specs.config.yaml` (current directory)
-2. `./specs.config.json` (current directory)
-3. `~/.specs/config.yaml` (user home directory)
-4. Custom path via `--config <path>` flag
+1. Custom path via `--config <path>` flag — a `config/` directory holding the split files
+2. `./config/` (current directory) — any of `conventions.yaml`, `settings.yaml`, `pipeline.yaml` (`.json` also accepted; each file is optional and defaults independently)
+
+Nothing else is read. A pre-split `specs.config.yaml` / `specs.config.json` (or `~/.specs/config.yaml`) is detected but never loaded — finding one is an error, not a fallback. See [Legacy single file](#legacy-single-file).
+
+`specs init` scaffolds all three files with inline documentation.
 
 ### Format
 
-The settings file can be written in YAML or JSON:
+Each file answers one question, written in YAML or JSON:
 
 ```yaml
-# specs.config.yaml
+# config/conventions.yaml — facts about the Figma library
+figma:
+  naming: SENTENCE            # the file's layer/property naming convention
 
-# Where `specs fetch` writes payloads, and where `generate` loads them from
-dataDirectory: ./data
+  glyphs:
+    match: 'DS Icon Glyph / {i}'
 
-# Default location for generated spec files (can override with -o flag)
-outputDirectory: ./specs
+  codeOnlyProps:
+    match: 'Code only props'
 
-# Figma file keys and which payloads to fetch/load
-sources:
-  library:
-    key: REPLACE_WITH_LIBRARY_FILE_KEY
-    data: ['file','variables','styles']
-  foundations:
-    key: REPLACE_WITH_FOUNDATIONS_FILE_KEY
-    data: ['variables','styles']
+  subcomponents:
+    match:
+      - '{C} / _ / {S}'
 
-# Processing and output settings (shared with the Figma plugin)
-config:
-  format:
-    output: YAML
-    keys: SAFE
-    figmaKeys: SENTENCE   # opts in to key preservation; defaults to NONE
-    layout: LAYOUT
-    tokens: TOKEN
-
-  processing:
-    subcomponents:
-      match:
-        - '{C} / _ / {S}'
-    variantDepth: 2
-    details: LAYERED
-
-  include:
-    invalidVariants: false
-    invalidCombinations: true
+  states:
+    hover:
+      prop: state
+      value: hover
+    disabled:
+      prop: disabled
 ```
+
+```yaml
+# config/settings.yaml — choices about this run
+author: Your Name
+
+data:
+  # Where `specs fetch` writes payloads, and where `generate` loads them from
+  directory: ./data
+  # Figma file keys and which payloads to fetch/load
+  sources:
+    library:
+      key: REPLACE_WITH_LIBRARY_FILE_KEY
+      fetch: ['file','variables','styles']
+    foundations:
+      key: REPLACE_WITH_FOUNDATIONS_FILE_KEY
+      fetch: ['variables','styles']
+
+spec:
+  # Default location for generated spec files (can override with -o flag)
+  directory: ./specs
+  format: YAML
+  keys: SAFE
+  layout: LAYOUT
+  tokens: TOKEN
+  variantDepth: 2
+  details: LAYERED
+  invalidVariants: false
+  invalidCombinations: true
+```
+
+```yaml
+# config/pipeline.yaml — work to run over the specs
+transformers:
+  - name: contract
+  - name: css
+```
+
+### Legacy single file
+
+A pre-split `specs.config.yaml` (or `.json`, or `~/.specs/config.yaml`) is no longer read (ADR-071). When the CLI finds one it stops with an error rather than falling back to defaults — a defaults-only run would generate specs missing everything your configuration declares:
+
+```
+specs.config.yaml is no longer read (ADR-071).
+  Run `specs migrate config` to write config/conventions.yaml, config/settings.yaml and config/pipeline.yaml from it.
+  Docs: https://specs.directededges.com/settings/
+```
+
+Run [`specs migrate config`](/cli/commands/migrate/) once to convert: it writes the three `config/` files from your legacy file, then renames the source to `specs.config.yaml.migrated` so discovery stops finding it. Review the generated files, then delete the renamed original. Each option page notes its legacy path.
 
 ## Validation
 
-The CLI validates every setting value and provides helpful error messages:
+The CLI validates every configuration value and provides helpful error messages:
 
 ```bash
 $ specs generate data/library.file.json -c Button
-Warning: Invalid format.keys: 'invalid'. Using default: SAFE.
+Warning: Invalid spec.keys: 'invalid'. Using default: SAFE.
 Valid values: SAFE, CAMEL, SNAKE, KEBAB, PASCAL, TRAIN
 ```
 
@@ -184,24 +231,26 @@ Invalid values fall back to defaults with warnings, so builds continue.
 
 ## Best Practices
 
-### 1. Version Control Your Settings File
+### 1. Version Control Your Config Directory
 
-Commit `specs.config.yaml` to share settings across the team:
+Commit `config/` to share configuration across the team:
 
 ```bash
-git add specs.config.yaml
-git commit -m "Add Specs CLI configuration"
+git add config/
+git commit -m "Add Specs configuration"
 ```
 
-### 2. Environment-Specific Settings Files
+`conventions.yaml` in particular is worth sharing beyond the team: it describes the library, not the workspace, so every workspace reading the same library should carry the same one.
 
-Use a different settings file for each environment:
+### 2. Environment-Specific Settings
+
+Use a different config directory for each environment:
 
 ```
 project/
-├── specs.config.yaml           # Default (development)
-├── .specs.production.yaml       # Production
-└── .specs.staging.yaml          # Staging
+├── config/                  # Default (development)
+├── configs/production/      # Production
+└── configs/staging/         # Staging
 ```
 
 ```bash
@@ -209,26 +258,32 @@ project/
 specs generate data/library.file.json -c Button
 
 # Production
-specs generate data/library.file.json -c Button --config .specs.production.yaml
+specs generate data/library.file.json -c Button --config configs/production
 ```
+
+The conventions file is typically identical across environments — it is the settings that differ.
 
 ### 3. Document Custom Patterns
 
-Add comments to explain project-specific settings:
+Add comments to explain library-specific conventions:
 
 ```yaml
-config:
-  processing:
+# config/conventions.yaml
+figma:
+  subcomponents:
     # Match direct children and underscore-nested subcomponents
-    subcomponents:
-      match:
-        - '{C} / {S}'
-        - '{C} / _ / {S}'
-      exclude:
-        - '{C} / Examples / {S}'
+    match:
+      - '{C} / {S}'
+      - '{C} / _ / {S}'
+    exclude:
+      - '{C} / Examples / {S}'
+```
 
-    # Only 2 levels: size + variant (not size + variant + state)
-    variantDepth: 2
+```yaml
+# config/settings.yaml
+spec:
+  # Only 2 levels: size + variant (not size + variant + state)
+  variantDepth: 2
 ```
 
 ### 4. Consistent Key Format
@@ -236,13 +291,16 @@ config:
 Choose one key format and stick with it:
 
 ```yaml
-config:
-  format:
-    keys: CAMEL  # All keys in camelCase for consistency
+# config/settings.yaml
+spec:
+  keys: CAMEL  # All keys in camelCase for consistency
 ```
 
 ## See Also
 
+- [Conventions schema reference](/schema/conventions/) - The full `conventions.yaml` shape
+- [Settings schema reference](/schema/settings/) - The full `settings.yaml` shape
+- [Pipeline schema reference](/schema/pipeline/) - The full `pipeline.yaml` shape
 - [CLI Overview](/cli/) - CLI command options
 - [Getting Started](/cli/getting-started/) - Installation and setup
 

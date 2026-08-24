@@ -43,10 +43,9 @@ Identical fills across variants and components de-duplicate to a single entry, k
 ## Configuration
 
 ```yaml
-# specs.config.yaml
-config:
-  include:
-    defaultSlotContent: true
+# config/settings.yaml
+spec:
+  defaultSlotContent: true
 ```
 
 **Default**: `false`. Existing output is unchanged until you opt in.
@@ -60,7 +59,7 @@ config:
 These are two different things, often confused:
 
 - **Default slot content** (this guide) — the content *inside a slot*, captured structurally. No detection config; `defaultSlotContent` is the only switch.
-- **[Instance (ready-made) examples](/guides/instance-examples/)** — whole pre-configured *instances* of a component, detected from named frames via `processing.instanceExamples`.
+- **[Instance (ready-made) examples](/guides/instance-examples/)** — whole pre-configured *instances* of a component, detected from named frames via the `figma.instanceExamples` convention.
 
 ## Further Reading
 

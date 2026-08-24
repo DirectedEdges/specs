@@ -15,10 +15,12 @@ Configuration now separates what is true about a Figma library from what a run c
 - `Settings` — run choices grouped by concern (`data`, `spec`, `assets`), each carrying its own `directory`
 - `Pipeline` — `transformers` and `analyses` a workspace runs, with `AnalysisEntry` alongside `TransformEntry`
 - `SourceEntry` — a source's Figma file `key` and the artifacts to `fetch`
-- `DEFAULT_SETTINGS` and `DEFAULT_PIPELINE` — resolved defaults for the two halves that have them
+- `DEFAULT_SETTINGS`, `DEFAULT_PIPELINE` and `DEFAULT_CONVENTIONS` — one defaults constant per configuration artifact. `DEFAULT_CONVENTIONS` carries only the three members that have a meaningful default; convention blocks are absent by design, because absence is the statement that a library declares none
 - `conventions.schema.json`, `settings.schema.json`, `pipeline.schema.json` — one schema per authored artifact
 
 ### Changed
+
+- **`Settings.spec.splitComponents`, `splitConcerns` and `useSubfolders` now default to `true`** and are required on `ResolvedSettings`. The split layout — one folder per component, one file per concern — is what `transform`, `analyze` and `render` read, so the shape of generated output is not a per-consumer choice. They previously carried no default, leaving each consumer to pick its own; both consumers picked `false`, which is the layout nothing downstream can use. Recorded spec `metadata.settings.spec` now carries all three on every spec.
 
 - `Metadata.config` → `Metadata.conventions` and `Metadata.settings` — each half comparable across specs on its own
 - `Config.format.figmaKeys` → `Conventions.figma.naming` — no longer shares the word `keys` with the emitted casing

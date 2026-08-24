@@ -89,7 +89,7 @@ Without a license key, every generated spec includes:
 
 - **Component structure** — anatomy (element tree), props (with raw values), and layout
 - **Default variant** — the component in its base state, with all style values as raw numbers, colors, and strings
-- **Metadata** — generator info, author, timestamps, and the config used to produce the spec
+- **Metadata** — generator info, author, timestamps, and the conventions and settings used to produce the spec
 
 Free-tier output gives you a complete structural picture of each component — enough to understand what a component is, how it's built, and what its default state looks like.
 
@@ -103,7 +103,7 @@ With a valid license key, specs additionally include:
 | **Design token references** | Variable bindings on style properties (spacing, color, corner radius, stroke, typography, shadows, gradients) — connecting raw values to your token system |
 | **Named style references** | Links to Figma text styles, color styles, and effect styles instead of inline values |
 | **Prop bindings** | `$binding` references connecting anatomy elements to component props (slot content, instance swaps, visibility toggles, text overrides) |
-| **Invalid combinations** | The `invalidVariantCombinations` array showing which property combinations are impossible (requires `config.include.invalidCombinations: true`) |
+| **Invalid combinations** | The `invalidVariantCombinations` array showing which property combinations are impossible (requires `spec.invalidCombinations: true` in `config/settings.yaml`) |
 
 ### Example: Free vs Pro Output
 
@@ -146,7 +146,7 @@ elements:
 
 Pro features are never stripped from output — they're simply not created at the free tier. If a style property has a bound Figma variable, free-tier output shows the raw resolved value; pro-tier output shows the token reference alongside the value.
 
-> **Note**: Token references require that your source config includes `variables` in the `data` array. Style references require `styles`. See [Configuration](/settings/) for details.
+> **Note**: Token references require that your source's `fetch` list in `config/settings.yaml` includes `variables`. Style references require `styles`. See [Configuration](/settings/) for details.
 
 :::caution[Fetching variables and styles requires a Figma Enterprise plan]
 A Specs Pro license controls whether **already-fetched** variable and style data gets turned into token references and style references — it does not control whether that data can be fetched from Figma in the first place.
@@ -156,13 +156,13 @@ Figma's REST API restricts the `variables` and `styles` endpoints to organizatio
 
 ### Config Settings and Licensing
 
-All config settings work at both tiers. Two settings interact with licensing:
+All configuration values work at both tiers. Two settings interact with licensing:
 
-#### `format.tokens`
+#### `spec.tokens`
 
 Controls **how** token references are serialized — not **whether** they appear. At free tier, no token references are created regardless of this setting. At pro tier, this controls the output shape.
 
-#### `include.invalidCombinations`
+#### `spec.invalidCombinations`
 
 Controls whether invalid variant combinations are computed. Even when set to `true` (the default), this feature requires a pro license. At free tier, the setting is accepted but the computation is skipped — the `invalidVariantCombinations` array is simply absent from output.
 
@@ -224,18 +224,18 @@ When no license key is provided, the `license` block is omitted from metadata. W
 **I have a Pro key but my output looks like free tier**
 1. Check that the CLI prints `License: PRO (active)` after generation. If it prints `FREE`, the key wasn't accepted.
 2. Verify the key is being picked up: CLI flag (`-l`) takes priority over `SPECS_LICENSE_KEY` env var, which takes priority over `.env` file. Make sure `.env` is in the directory you're running from.
-3. For token references specifically, confirm your source config includes `variables` in the `data` array — tokens require fetched variable data.
+3. For token references specifically, confirm your source's `fetch` list includes `variables` — tokens require fetched variable data.
 
 **I see "network-error" in the license output**
 License validation requires a brief network call to the license server. If your network blocks outbound HTTPS or you're offline, validation fails and output falls back to free tier. Generation still completes — it does not error out.
 
 **My `invalidVariantCombinations` are missing**
-This requires both `config.include.invalidCombinations: true` (the default) and an active Pro license. If either condition is missing, the array is silently omitted.
+This requires both `spec.invalidCombinations: true` (the default) and an active Pro license. If either condition is missing, the array is silently omitted.
 
 ## FAQ
 
 **Can I use all config settings at the free tier?**
-Yes. Every config setting is accepted at both tiers. Settings that affect pro-only features (like `format.tokens` or `include.invalidCombinations`) are stored in your config and take effect when you add a license key.
+Yes. Every config setting is accepted at both tiers. Settings that affect pro-only features (like `spec.tokens` or `spec.invalidCombinations`) are stored in your `config/settings.yaml` and take effect when you add a license key.
 
 **Will my specs break if my license expires?**
 No. Previously generated specs are static files — they don't change. Future generations will produce free-tier output (raw values, default variant only) until the license is renewed.
@@ -254,6 +254,6 @@ License terms depend on your plan, but generally, no. Each Pro license is intend
 
 ## See Also
 
-- [Getting Started](/overview/cli/getting-started/) — Installation and first spec
+- [Getting Started](/cli/getting-started/) — Installation and first spec
 - [Configuration Reference](/settings/) — All config options
 - [Settings Schema](/schema/settings/) — settings reference and defaults

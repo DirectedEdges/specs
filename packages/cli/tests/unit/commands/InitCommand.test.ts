@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { generateConfigTemplate } from '../../../src/Config/ConfigTemplates.js';
+import { generateConfigTemplates } from '../../../src/Config/ConfigTemplates.js';
 import { Init } from '../../../src/commands/InitCommand.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -23,41 +23,48 @@ describe('InitCommand', () => {
   });
 
   describe('template generation', () => {
-    it('should generate config template with dataDirectory', () => {
-      const template = generateConfigTemplate();
-      expect(template).toContain('dataDirectory: ./data');
+    it('generates the three split-config files under config/', () => {
+      const templates = generateConfigTemplates();
+      expect(Object.keys(templates).sort()).toEqual([
+        'config/conventions.yaml',
+        'config/pipeline.yaml',
+        'config/settings.yaml',
+      ]);
     });
 
-    it('should generate config template with outputDirectory', () => {
-      const template = generateConfigTemplate();
-      expect(template).toContain('outputDirectory: ./specs');
+    it('settings template carries data and spec directories with defaults', () => {
+      const settings = generateConfigTemplates()['config/settings.yaml'];
+      expect(settings).toContain('directory: ./data');
+      expect(settings).toContain('directory: ./specs');
+      expect(settings).toContain('sources: {}');
     });
 
-    it('should generate template with proper structure', () => {
-      const template = generateConfigTemplate();
-      expect(template).toContain('sources: {}');
-      expect(template).toContain('config:');
-      expect(template).toContain('processing:');
-      expect(template).toContain('format:');
+    it('conventions template carries the figma conventions structure', () => {
+      const conventions = generateConfigTemplates()['config/conventions.yaml'];
+      expect(conventions).toContain('figma:');
+      expect(conventions).toContain('subcomponents:');
+      expect(conventions).toContain('match:');
     });
 
     it('should include inline documentation', () => {
-      const template = generateConfigTemplate();
-      expect(template).toContain('# Specs CLI Configuration');
-      expect(template).toContain('www.specsplugin.com/settings/');
+      for (const template of Object.values(generateConfigTemplates())) {
+        expect(template).toContain('#');
+      }
+      const settings = generateConfigTemplates()['config/settings.yaml'];
+      expect(settings).toContain('www.specsplugin.com/settings/');
     });
 
     it('should mention defaults in comments', () => {
-      const template = generateConfigTemplate();
-      expect(template).toContain('Default');
+      const settings = generateConfigTemplates()['config/settings.yaml'];
+      expect(settings).toContain('Default');
     });
 
     it('should have consistent YAML indentation', () => {
-      const template = generateConfigTemplate();
-      const lines = template.split('\n');
+      const settings = generateConfigTemplates()['config/settings.yaml'];
+      const lines = settings.split('\n');
 
       const seenIndents = new Set<number>();
-      lines.forEach(line => {
+      lines.forEach((line: string) => {
         if (line.trim() && !line.trim().startsWith('#')) {
           const leadingSpaces = line.match(/^ */)?.[0].length || 0;
           seenIndents.add(leadingSpaces);
@@ -70,27 +77,32 @@ describe('InitCommand', () => {
   });
 
   describe('file operations', () => {
-    it('should create config file if it does not exist', async () => {
-      const configPath = path.join(testDir, 'specs.config.yaml');
-      const template = generateConfigTemplate();
-
-      fs.writeFileSync(configPath, template, 'utf-8');
-      expect(fs.existsSync(configPath)).toBe(true);
+    it('should create the three config files if they do not exist', async () => {
+      const templates = generateConfigTemplates();
+      for (const [rel, template] of Object.entries(templates)) {
+        const filePath = path.join(testDir, rel);
+        fs.ensureDirSync(path.dirname(filePath));
+        fs.writeFileSync(filePath, template, 'utf-8');
+      }
+      expect(fs.existsSync(path.join(testDir, 'config', 'conventions.yaml'))).toBe(true);
+      expect(fs.existsSync(path.join(testDir, 'config', 'settings.yaml'))).toBe(true);
+      expect(fs.existsSync(path.join(testDir, 'config', 'pipeline.yaml'))).toBe(true);
     });
 
     it('should write template content exactly', async () => {
-      const configPath = path.join(testDir, 'specs.config.yaml');
-      const template = generateConfigTemplate();
-
-      fs.writeFileSync(configPath, template, 'utf-8');
-      const content = fs.readFileSync(configPath, 'utf-8');
-
-      expect(content).toBe(template);
+      const templates = generateConfigTemplates();
+      for (const [rel, template] of Object.entries(templates)) {
+        const filePath = path.join(testDir, rel);
+        fs.ensureDirSync(path.dirname(filePath));
+        fs.writeFileSync(filePath, template, 'utf-8');
+        expect(fs.readFileSync(filePath, 'utf-8')).toBe(template);
+      }
     });
 
-    it('should preserve template across read/write cycles', async () => {
-      const configPath = path.join(testDir, 'specs.config.yaml');
-      const template = generateConfigTemplate();
+    it('should preserve templates across read/write cycles', async () => {
+      const template = generateConfigTemplates()['config/settings.yaml'];
+      const configPath = path.join(testDir, 'config', 'settings.yaml');
+      fs.ensureDirSync(path.dirname(configPath));
 
       // First write
       fs.writeFileSync(configPath, template, 'utf-8');
@@ -104,30 +116,24 @@ describe('InitCommand', () => {
       expect(secondRead).toBe(template);
     });
 
-    it('should support custom config paths', async () => {
-      const customPath = path.join(testDir, 'custom-config.yaml');
-      const template = generateConfigTemplate();
-
-      fs.writeFileSync(customPath, template, 'utf-8');
-      expect(fs.existsSync(customPath)).toBe(true);
-    });
-
-    it('should handle nested directory paths', async () => {
-      const nestedPath = path.join(testDir, 'nested', 'dirs', 'specs.config.yaml');
-      const template = generateConfigTemplate();
-
-      fs.ensureDirSync(path.dirname(nestedPath));
-      fs.writeFileSync(nestedPath, template, 'utf-8');
-
-      expect(fs.existsSync(nestedPath)).toBe(true);
+    it('should support a custom base directory', async () => {
+      const customBase = path.join(testDir, 'workspace');
+      const templates = generateConfigTemplates();
+      for (const [rel, template] of Object.entries(templates)) {
+        const filePath = path.join(customBase, rel);
+        fs.ensureDirSync(path.dirname(filePath));
+        fs.writeFileSync(filePath, template, 'utf-8');
+      }
+      expect(fs.existsSync(path.join(customBase, 'config', 'settings.yaml'))).toBe(true);
     });
 
     it('should allow overwriting existing config', async () => {
-      const configPath = path.join(testDir, 'specs.config.yaml');
+      const configPath = path.join(testDir, 'config', 'settings.yaml');
       const oldContent = '# Old config\nold: value';
-      const newTemplate = generateConfigTemplate();
+      const newTemplate = generateConfigTemplates()['config/settings.yaml'];
 
       // Write old content
+      fs.ensureDirSync(path.dirname(configPath));
       fs.writeFileSync(configPath, oldContent, 'utf-8');
       expect(fs.readFileSync(configPath, 'utf-8')).toBe(oldContent);
 
@@ -138,80 +144,78 @@ describe('InitCommand', () => {
   });
 
   describe('config content validation', () => {
-    it('should have valid structure with top-level keys', () => {
-      const template = generateConfigTemplate();
-      const yamlLines = template.split('\n');
+    it('settings template has the expected top-level keys', () => {
+      const settings = generateConfigTemplates()['config/settings.yaml'];
+      const yamlLines = settings.split('\n');
       const topLevelKeys = yamlLines
-        .filter(line => !line.startsWith(' ') && !line.startsWith('#') && line.trim())
-        .map(line => line.split(':')[0]);
+        .filter((line: string) => !line.startsWith(' ') && !line.startsWith('#') && line.trim())
+        .map((line: string) => line.split(':')[0]);
 
-      expect(topLevelKeys).toContain('dataDirectory');
-      expect(topLevelKeys).toContain('outputDirectory');
-      expect(topLevelKeys).toContain('sources');
-      expect(topLevelKeys).toContain('config');
+      expect(topLevelKeys).toContain('author');
+      expect(topLevelKeys).toContain('data');
+      expect(topLevelKeys).toContain('spec');
 
-      // format, processing, and include are nested under config, not top-level
-      expect(template).toContain('format:');
-      expect(template).toContain('processing:');
-      expect(template).toContain('include:');
+      // directories and sources are nested under data/spec, not top-level
+      expect(settings).toContain('directory:');
+      expect(settings).toContain('sources:');
     });
 
     it('should have all required documentation URLs', () => {
-      const template = generateConfigTemplate();
+      const settings = generateConfigTemplates()['config/settings.yaml'];
       const requiredUrls = [
         'www.specsplugin.com/settings/',
         'www.specsplugin.com/',
       ];
 
       requiredUrls.forEach(url => {
-        expect(template).toContain(url);
+        expect(settings).toContain(url);
       });
     });
 
-    it('should have model processing configuration', () => {
-      const template = generateConfigTemplate();
+    it('conventions template has processing conventions', () => {
+      const conventions = generateConfigTemplates()['config/conventions.yaml'];
 
-      expect(template).toContain('subcomponents:');
-      expect(template).toContain('variantDepth');
-      expect(template).toContain('details');
+      expect(conventions).toContain('subcomponents:');
+      expect(conventions).toContain('slotConstraints');
     });
 
-    it('should have format configuration', () => {
-      const template = generateConfigTemplate();
+    it('settings template has serialization settings', () => {
+      const settings = generateConfigTemplates()['config/settings.yaml'];
 
-      expect(template).toContain('keys:');
-      expect(template).toContain('output:');
-      expect(template).toContain('tokens:');
-      expect(template).toContain('layout:');
+      expect(settings).toContain('keys:');
+      expect(settings).toContain('format:');
+      expect(settings).toContain('tokens:');
+      expect(settings).toContain('layout:');
+      expect(settings).toContain('variantDepth');
+      expect(settings).toContain('details');
     });
 
     it('should not contain any credential placeholders', () => {
-      const template = generateConfigTemplate();
-
-      // Should not have explicit credential markers
-      expect(template).not.toContain('YOUR_API_KEY');
-      expect(template).not.toContain('YOUR_SECRET');
-      expect(template).not.toContain('ACTUAL_TOKEN');
+      for (const template of Object.values(generateConfigTemplates())) {
+        expect(template).not.toContain('YOUR_API_KEY');
+        expect(template).not.toContain('YOUR_SECRET');
+        expect(template).not.toContain('ACTUAL_TOKEN');
+      }
     });
 
     it('should use example keys for Figma sources', () => {
-      const template = generateConfigTemplate();
+      const settings = generateConfigTemplates()['config/settings.yaml'];
 
       // Should show the pattern with example key
-      expect(template).toMatch(/key:\s*YOUR_FIGMA_FILE_KEY|FIGMA_FILE_KEY/);
+      expect(settings).toMatch(/key:\s*YOUR_FIGMA_FILE_KEY|FIGMA_FILE_KEY/);
     });
 
     it('should have sensible default values', () => {
-      const template = generateConfigTemplate();
+      const settings = generateConfigTemplates()['config/settings.yaml'];
 
       // Default data directory
-      expect(template).toContain('dataDirectory: ./data');
+      expect(settings).toContain('directory: ./data');
 
-      // Default output directory
-      expect(template).toContain('outputDirectory: ./specs');
+      // Default spec directory
+      expect(settings).toContain('directory: ./specs');
 
       // Empty sources initially
-      expect(template).toContain('sources: {}');
+      expect(settings).toContain('sources: {}');
     });
   });
 });

@@ -8,14 +8,14 @@ The Specs command-line interface (CLI) generates design system specifications fr
 
 | Command | Purpose | Output |
 |---------|---------|--------|
-| [`init`](/cli/commands/init/) | Initialize config file with defaults | `specs.config.yaml` |
-| [`fetch`](/cli/commands/fetch/) | Download raw REST payloads from Figma | JSON files in `dataDirectory` |
+| [`init`](/cli/commands/init/) | Initialize config files with defaults | `config/conventions.yaml`, `config/settings.yaml`, `config/pipeline.yaml` |
+| [`fetch`](/cli/commands/fetch/) | Download raw REST payloads from Figma | JSON files in `data.directory` |
 | [`scan`](/cli/commands/scan/) | List all components in file | Markdown manifest |
 | [`applyCustomTokens`](/cli/commands/apply-custom-tokens/) | Inject `$custom` objects into fetched data | Modified variables/styles JSON |
 | [`generate`](/cli/commands/generate/) | Generate specs from a manifest or single component | YAML/JSON spec file(s) |
 | [`transform`](/cli/commands/transform/) *(experimental)* | Run transformers over generated specs | Code artifacts per transformer |
 | [`bridge`](/cli/commands/bridge/) *(experimental)* | Start/stop/check the local bridge `render` talks to | Background process |
-| [`cache`](/cli/commands/cache/) *(experimental)* | Build the lookup tables `render` resolves specs against | YAML files in `dataDirectory/cache` |
+| [`cache`](/cli/commands/cache/) *(experimental)* | Build the lookup tables `render` resolves specs against | YAML files in `{data.directory}/cache` |
 | [`render`](/cli/commands/render/) *(experimental)* | Send a spec to the CLI bridge to render it live in Figma | Live Figma component |
 
 ### Global Options
@@ -77,7 +77,7 @@ components:
 
 `specs fetch` writes deterministic filenames based on your config aliases.
 
-Example (with `dataDirectory: ./data`):
+Example (with `data.directory: ./data` in `config/settings.yaml`):
 
 ```
 data/
@@ -88,7 +88,7 @@ data/
 └── foundations.styles.json
 ```
 
-`generate` uses these files by default when your `specs.config.yaml` declares the corresponding aliases and data types.
+`generate` uses these files by default when `data.sources` in `config/settings.yaml` declares the corresponding aliases and fetch kinds.
 
 ## Requirements
 

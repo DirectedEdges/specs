@@ -3,7 +3,7 @@ title: "Keys"
 description: "Transform property and element key names to a consistent naming convention"
 ---
 
-Key name transformation strategy.
+Key name transformation strategy. A run choice in `config/settings.yaml` — any value produces a correct spec, just with differently formatted keys.
 
 ## Options
 
@@ -31,14 +31,13 @@ Input: `Background color` or `background-color`
 
 ## Path
 
-`config.format.keys`
+`spec.keys` in `config/settings.yaml`
 
 ### Example
 
 ```yaml
-config:
-  format:
-    keys: CAMEL  # Transform keys to camelCase
+spec:
+  keys: CAMEL  # Transform keys to camelCase
 ```
 
 Every value other than `SAFE` is a lossy projection of the Figma name. Names that cannot be reconstructed from the formatted key are preserved in `$extensions.com.figma.name` on the definition, so the spec stays reversible into Figma.

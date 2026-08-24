@@ -75,12 +75,10 @@ export class FileManifest {
     const sortedComponents = sortComponentsByName(components);
     
     // Determine output mode and build appropriate manifest
-    const splitComponents = config.splitComponents || false;
-    const splitConcerns = config.splitConcerns || false;
-    const useSubfolders = config.useSubfolders || false;
-    
+    const { splitComponents, splitConcerns, useSubfolders } = config;
+
     if (!splitComponents && !splitConcerns) {
-      // Mode 1: Single file (default)
+      // Mode 1: Single library file
       this.buildSingleFileManifest(sortedComponents);
     } else if (splitComponents && !splitConcerns) {
       // Mode 2 & 3: Per-component (flat or subfolders)
@@ -89,7 +87,8 @@ export class FileManifest {
       // Mode 4: Per-concern
       this.buildPerConcernManifest(sortedComponents);
     } else {
-      // Mode 5: Combined (per-component + per-concern)
+      // Mode 5: Combined (per-component + per-concern) — the default. Component
+      // folders are structural here, so useSubfolders does not apply.
       this.buildCombinedManifest(sortedComponents);
     }
   }

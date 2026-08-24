@@ -169,14 +169,17 @@
             },
             "splitComponents": {
               "type": "boolean",
-              "description": "Write one file per component rather than a single combined file."
+              "default": true,
+              "description": "Write one file per component rather than a single combined library file."
             },
             "splitConcerns": {
               "type": "boolean",
-              "description": "Write one file per concern (api, styling, variants)."
+              "default": true,
+              "description": "Write one file per concern (api, styling, variants) rather than a single component file."
             },
             "useSubfolders": {
               "type": "boolean",
+              "default": true,
               "description": "Nest each component's files in a subfolder named for the component."
             }
           },

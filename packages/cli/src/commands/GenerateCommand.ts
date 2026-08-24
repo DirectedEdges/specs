@@ -14,6 +14,7 @@ import { Command } from 'commander';
 import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
+import type { SourceEntry } from '@directededges/specs-schema';
 import { Components } from '@directededges/specs-from-figma';
 import type { ProgressEvent, RestLicenseInput } from '@directededges/specs-from-figma';
 import { ConfigLoader } from '../Config/ConfigLoader.js';
@@ -69,9 +70,10 @@ interface GenerateOptions {
   styles?: string;
   verbose: boolean;
   config?: string;
-  splitComponents?: boolean;
-  splitConcerns?: boolean;
-  useSubfolders?: boolean;
+  combineAsLibrary?: boolean;
+  combineConcerns?: boolean;
+  /** Commander sets this false only when --no-subfolders is passed. */
+  subfolders?: boolean;
   getImages?: boolean;
   fromBridge?: boolean;
   file?: string;
@@ -81,14 +83,14 @@ interface GenerateOptions {
 
 /**
  * Resolve the config source alias that carries the component file: `library`
- * when configured with `data: [file]`, else the first source that is.
+ * when configured with `fetch: [file]`, else the first source that is.
  * Single source of truth for the default-manifest path, the manifest-mode
  * component file, and the --get-images file key.
  */
-function resolveFileSourceAlias(sources: NonNullable<ReturnType<ConfigLoader['load']>['sources']> | undefined): string | null {
+function resolveFileSourceAlias(sources: Record<string, SourceEntry> | undefined): string | null {
   const entries = sources ?? {};
-  if (entries.library && Array.isArray(entries.library.data) && entries.library.data.includes('file')) return 'library';
-  const candidate = Object.entries(entries).find(([, s]) => Array.isArray(s.data) && s.data.includes('file'));
+  if (entries.library && Array.isArray(entries.library.fetch) && entries.library.fetch.includes('file')) return 'library';
+  const candidate = Object.entries(entries).find(([, s]) => Array.isArray(s.fetch) && s.fetch.includes('file'));
   return candidate ? candidate[0] : null;
 }
 
@@ -102,21 +104,20 @@ async function writeGeneratedOutput(
   errors: Array<{ component: string; error: string }>,
   isManifest: boolean,
   options: GenerateOptions,
-  config: CLIConfig,
-  modelConfig: CLIConfig['config']
+  config: CLIConfig
 ): Promise<void> {
   // -------------------------------------------------------------------
   // File mode stdout (no -o)
   // -------------------------------------------------------------------
-  if (!isManifest && !options.output && !config.outputDirectory) {
+  if (!isManifest && !options.output && !config.settings.spec.directory) {
     if (options.getImages) {
-      console.error('Error: --get-images requires an output directory (set outputDirectory in config or pass -o) so image files have somewhere to be written');
+      console.error('Error: --get-images requires an output directory (set spec.directory in the workspace settings or pass -o) so image files have somewhere to be written');
       process.exit(ERROR_CODES.INVALID_ARGS);
     }
     const componentData = processedComponents[0].spec;
     const outputFormat = options.format
       ? options.format.toLowerCase()
-      : modelConfig.format.output.toLowerCase();
+      : config.settings.spec.format.toLowerCase();
 
     const formattedOutput = outputFormat === 'yaml'
       ? yaml.stringify(componentData)
@@ -132,21 +133,23 @@ async function writeGeneratedOutput(
   // -------------------------------------------------------------------
   const resolvedFormat: OutputFormat = options.format
     ? options.format.toLowerCase() as OutputFormat
-    : modelConfig.format.output.toLowerCase() as OutputFormat;
+    : config.settings.spec.format.toLowerCase() as OutputFormat;
 
+  // The split layout is the default (ADR-071). Each flag only ever turns a
+  // split off, so an absent flag falls through to the configured value rather
+  // than overriding it.
   const outputConfig = {
-    ...config.output,
-    splitComponents: options.splitComponents ?? config.output?.splitComponents ?? false,
-    splitConcerns: options.splitConcerns ?? config.output?.splitConcerns ?? false,
-    useSubfolders: options.useSubfolders ?? config.output?.useSubfolders ?? false,
+    splitComponents: options.combineAsLibrary ? false : config.settings.spec.splitComponents,
+    splitConcerns: options.combineConcerns ? false : config.settings.spec.splitConcerns,
+    useSubfolders: options.subfolders === false ? false : config.settings.spec.useSubfolders,
     defaultFormat: resolvedFormat
   };
 
   let outputPath: string;
   if (options.output) {
     outputPath = path.resolve(options.output);
-  } else if (config.outputDirectory) {
-    outputPath = path.resolve(config.outputDirectory);
+  } else if (config.settings.spec.directory) {
+    outputPath = path.resolve(config.settings.spec.directory);
   } else {
     // Should not reach here — handled above for file mode stdout
     process.exit(ERROR_CODES.INVALID_ARGS);
@@ -177,9 +180,9 @@ async function writeGeneratedOutput(
   if (options.getImages) {
     const hashes = ImageFillsResolver.collectUnresolvedHashes(processedComponents);
     if (hashes.size === 0) {
-      console.log(modelConfig.processing.images
+      console.log(config.conventions.figma.images
         ? 'Note: --get-images found no unresolved image placeholders'
-        : 'Note: --get-images has no effect — processing.images is not configured');
+        : 'Note: --get-images has no effect — conventions.figma.images is not configured');
     } else {
       // Reuse hash-named files already present in _images/ — only the
       // remainder needs the token, the API call, and downloads.
@@ -192,10 +195,10 @@ async function writeGeneratedOutput(
           console.error('Error: --get-images requires the FIGMA_TOKEN environment variable (same token as `specs fetch`)');
           process.exit(ERROR_CODES.INVALID_ARGS);
         }
-        const fileSourceAlias = resolveFileSourceAlias(config.sources);
-        const fileKey = fileSourceAlias ? config.sources?.[fileSourceAlias]?.key : undefined;
+        const fileSourceAlias = resolveFileSourceAlias(config.settings.data?.sources);
+        const fileKey = fileSourceAlias ? config.settings.data?.sources?.[fileSourceAlias]?.key : undefined;
         if (!fileKey) {
-          console.error('Error: --get-images requires a configured source file key (sources.<alias>.key in specs.config.yaml)');
+          console.error('Error: --get-images requires a configured source file key (data.sources.<alias>.key in the workspace settings)');
           process.exit(ERROR_CODES.INVALID_ARGS);
         }
 
@@ -254,7 +257,7 @@ async function writeGeneratedOutput(
 
 export const Generate = new Command('generate')
   .description('Generate component specifications from Figma data or manifest')
-  .argument('[source]', 'Path to Figma JSON file or markdown manifest (default: {dataDirectory}/{alias}.manifest.md from config)')
+  .argument('[source]', 'Path to Figma JSON file or markdown manifest (default: {data.directory}/{alias}.manifest.md from config)')
   .option('-c, --component <name|id>', 'Component name or ID (required for file mode)')
   .option('-l, --license <key>', 'License key for premium features (or set SPECS_LICENSE_KEY)')
   .option('-f, --format <format>', 'Output format (yaml or json) - overrides config')
@@ -262,10 +265,10 @@ export const Generate = new Command('generate')
   .option('-v, --variables <path>', 'External variables JSON file')
   .option('-s, --styles <path>', 'External styles JSON file')
   .option('--data-dir <dir>', 'Override data directory for loading source files')
-  .option('--config <path>', 'Path to config file (specs.config.yaml)')
-  .option('--split-components', 'Create separate file per component')
-  .option('--split-concerns', 'Separate API, variants, and examples into different files')
-  .option('--use-subfolders', 'Organize component files in subdirectories (requires --split-components)')
+  .option('--config <path>', 'Path to a config/ directory or legacy specs.config.yaml')
+  .option('--combine-as-library', 'Write every component into one library file instead of a file per component')
+  .option('--combine-concerns', 'Write API, variants, and examples into one file per component instead of separate files')
+  .option('--no-subfolders', 'Write component files side by side instead of nesting each in its own subfolder')
   .option('--get-images', 'Resolve unresolved registry images into files under _images/ (requires processing.images in config and FIGMA_TOKEN)')
   .option('--from-bridge', 'Generate from the current selection in a connected Figma file via the CLI bridge (no REST fetch)')
   .option('--file <fileKey>', 'Target a specific connected Figma file with --from-bridge (prompts to choose if more than one is connected in an interactive terminal; required otherwise)')
@@ -277,7 +280,6 @@ export const Generate = new Command('generate')
       // Load configuration (needed to resolve default source path)
       const configLoader = new ConfigLoader();
       const config = configLoader.load(options.config);
-      const modelConfig = config.config;
 
       if (options.verbose && options.config) {
         console.log(`[CLI] Using config from: ${options.config}`);
@@ -297,11 +299,11 @@ export const Generate = new Command('generate')
         let result;
         try {
           const fileKey = await resolveFileKey(options.file);
-          // The config shapes the spec the plugin builds, not merely where it is written.
-          result = await postGenerateFromSelection({ fileKey, nodeId: options.node, config: modelConfig, remove: options.remove });
+          // The conventions and settings shape the spec the plugin builds, not merely where it is written.
+          result = await postGenerateFromSelection({ fileKey, nodeId: options.node, conventions: config.conventions, settings: config.settings, remove: options.remove });
         } catch (e) {
-          const err = e as NodeJS.ErrnoException;
-          if (err.cause && (err.cause as NodeJS.ErrnoException).code === 'ECONNREFUSED') {
+          const err = e as NodeJS.ErrnoException & { cause?: NodeJS.ErrnoException };
+          if (err.cause && err.cause.code === 'ECONNREFUSED') {
             console.error('Error: bridge is not running.');
             console.error('  Start it with: specs bridge start');
           } else {
@@ -324,25 +326,25 @@ export const Generate = new Command('generate')
         console.log(`✓ Generated from selection: ${result.name ?? result.nodeId}`);
 
         const processedComponents = [{ name: result.name ?? String(result.nodeId), spec: result.specData as Record<string, unknown> }];
-        await writeGeneratedOutput(processedComponents, [], false, options, config, modelConfig);
+        await writeGeneratedOutput(processedComponents, [], false, options, config);
         return;
       }
 
-      // Use dataDirectory for loading data files (flag > config > default)
+      // Use data.directory for loading data files (flag > config > default)
       const sourceDir = options.dataDir
         ? path.resolve(options.dataDir)
-        : config.dataDirectory
-          ? path.resolve(config.dataDirectory)
+        : config.settings.data?.directory
+          ? path.resolve(config.settings.data.directory)
           : path.join(process.cwd(), 'data');
 
-      // Resolve default source path: {dataDirectory}/{alias}.manifest.md
-      // Alias preference: `library` if configured with `data: [file]`, else first source with `data: [file]`.
+      // Resolve default source path: {data.directory}/{alias}.manifest.md
+      // Alias preference: `library` if configured with `fetch: [file]`, else first source with `fetch: [file]`.
       if (!source) {
-        const defaultAlias = resolveFileSourceAlias(config.sources);
+        const defaultAlias = resolveFileSourceAlias(config.settings.data?.sources);
 
         if (!defaultAlias) {
           console.error('Error: No source argument provided and no default manifest could be resolved');
-          console.error('Tip: run `specs scan` to generate a manifest, or configure a source with `data: [file]` in specs.config.yaml');
+          console.error('Tip: run `specs scan` to generate a manifest, or configure a source with `fetch: [file]` in the workspace settings');
           process.exit(ERROR_CODES.INVALID_ARGS);
         }
 
@@ -397,8 +399,8 @@ export const Generate = new Command('generate')
 
       if (isManifest) {
         // MANIFEST MODE
-        if (!options.output && !config.outputDirectory) {
-          console.error('Error: Specify --output or set outputDirectory in config');
+        if (!options.output && !config.settings.spec.directory) {
+          console.error('Error: Specify --output or set spec.directory in the workspace settings');
           process.exit(ERROR_CODES.INVALID_ARGS);
         }
 
@@ -421,13 +423,13 @@ export const Generate = new Command('generate')
         console.log(`✓ Loaded manifest: ${components.length} components (${selectedComponents.length} selected)`);
 
         // Determine source file
-        const componentSourceAlias = resolveFileSourceAlias(config.sources);
+        const componentSourceAlias = resolveFileSourceAlias(config.settings.data?.sources);
 
         const sourceFile = metadata.file || (componentSourceAlias ? path.join(sourceDir, `${componentSourceAlias}.file.json`) : undefined);
 
         if (!sourceFile) {
           console.error('Error: No component source file specified');
-          console.error('Include **File:** in the manifest header (from `specs audit`) or configure a source alias with `data: [file]` in specs.config.yaml');
+          console.error('Include **File:** in the manifest header (from `specs audit`) or configure a source alias with `fetch: [file]` in the workspace settings');
           process.exit(ERROR_CODES.INVALID_ARGS);
         }
 
@@ -451,11 +453,11 @@ export const Generate = new Command('generate')
         if (options.component) {
           const wanted = options.component;
           chosen = selectedComponents.filter(c =>
-            c.id === wanted || c.name === wanted || formatKey(c.name, modelConfig.format.keys) === wanted);
+            c.id === wanted || c.name === wanted || formatKey(c.name, config.settings.spec.keys) === wanted);
           if (chosen.length === 0) {
             console.error(`Error: no component named "${wanted}" in the manifest.`);
             const near = selectedComponents
-              .map(c => formatKey(c.name, modelConfig.format.keys))
+              .map(c => formatKey(c.name, config.settings.spec.keys))
               .filter(k => k.toLowerCase().includes(wanted.toLowerCase()))
               .slice(0, 5);
             if (near.length > 0) {
@@ -505,15 +507,15 @@ export const Generate = new Command('generate')
 
       const variablesPaths = options.variables
         ? [path.resolve(options.variables)]
-        : Object.entries(config.sources || {})
-            .filter(([, s]) => Array.isArray(s.data) && s.data.includes('variables'))
+        : Object.entries(config.settings.data?.sources ?? {})
+            .filter(([, s]) => Array.isArray(s.fetch) && s.fetch.includes('variables'))
             .map(([alias]) => path.join(sourceDir, `${alias}.variables.json`))
             .filter(p => p.length > 0);
 
       const stylesPaths = options.styles
         ? [path.resolve(options.styles)]
-        : Object.entries(config.sources || {})
-            .filter(([, s]) => Array.isArray(s.data) && s.data.includes('styles'))
+        : Object.entries(config.settings.data?.sources ?? {})
+            .filter(([, s]) => Array.isArray(s.fetch) && s.fetch.includes('styles'))
             .map(([alias]) => path.join(sourceDir, `${alias}.styles.json`))
             .filter(p => p.length > 0);
 
@@ -564,8 +566,9 @@ export const Generate = new Command('generate')
       const results = await Components.fromRestApi(
         componentIds,
         libraryJson,
-        modelConfig,
-        { styles, variables, collections, author: config.author, generator: CLI_GENERATOR },
+        config.conventions,
+        config.settings,
+        { styles, variables, collections, author: config.settings.author, generator: CLI_GENERATOR },
         (event: ProgressEvent) => {
           if (!isManifest) {
             // File mode: quiet progress (verbose only)
@@ -662,7 +665,7 @@ export const Generate = new Command('generate')
         process.exit(ERROR_CODES.GENERAL_ERROR);
       }
 
-      await writeGeneratedOutput(processedComponents, errors, isManifest, options, config, modelConfig);
+      await writeGeneratedOutput(processedComponents, errors, isManifest, options, config);
 
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

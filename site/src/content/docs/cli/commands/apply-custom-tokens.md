@@ -11,7 +11,7 @@ You can't make Specs guess your format. You need a way to say: _"For this Figma 
 
 ## The Solution
 
-`applyCustomTokens` lets you inject a `$custom` object onto each variable and style in your fetched data files. When you set `format.tokens: CUSTOM` in your config, Specs uses those objects **verbatim** as the token reference value in generated output — no transformation, no reformatting. Your object becomes the property value.
+`applyCustomTokens` lets you inject a `$custom` object onto each variable and style in your fetched data files. When you set `spec.tokens: CUSTOM` in `config/settings.yaml`, Specs uses those objects **verbatim** as the token reference value in generated output — no transformation, no reformatting. Your object becomes the property value.
 
 ### Where It Fits in the Pipeline
 
@@ -20,7 +20,7 @@ The command runs **between `fetch` and `generate`** — it modifies the raw data
 ```
 specs fetch                              ← Downloads raw Figma data
 specs applyCustomTokens mapping.json     ← Injects $custom onto matched entries
-specs generate                           ← Reads $custom when format.tokens: CUSTOM
+specs generate                           ← Reads $custom when spec.tokens: CUSTOM
 ```
 
 No changes to `fetch` or `generate` are needed. The augmented files are transparent to both commands.
@@ -43,9 +43,9 @@ Path to a JSON mapping file. Keys are Figma variable or style IDs; each entry mu
 |------|-------------|
 | `-v, --variables <path>` | Path to a variables JSON file. Overrides config-based discovery |
 | `-s, --styles <path>` | Path to a styles JSON file. Overrides config-based discovery |
-| `--config <path>` | Use a specific config file instead of auto-discovery |
+| `--config <path>` | Use a specific `config/` directory (or legacy config file) instead of auto-discovery |
 
-When `-v` and `-s` are omitted, the command auto-discovers data files from `specs.config.yaml` using `dataDirectory` and `sources` — the same resolution that `generate` uses.
+When `-v` and `-s` are omitted, the command auto-discovers data files from `config/settings.yaml` using `data.directory` and `data.sources` — the same resolution that `generate` uses.
 
 ## The Mapping File
 
@@ -128,14 +128,13 @@ Everything else is preserved — only `$custom` is added (or overwritten if it a
 
 ## Impact on Generated Output
 
-When `generate` runs with `format.tokens: CUSTOM`, every token reference that has a `$custom` object uses it verbatim. References without `$custom` fall back to the `TOKEN_FIGMA_EXTENSIONS` format.
+When `generate` runs with `spec.tokens: CUSTOM`, every token reference that has a `$custom` object uses it verbatim. References without `$custom` fall back to the `TOKEN_FIGMA_EXTENSIONS` format.
 
 **Config:**
 ```yaml
-# specs.config.yaml
-model:
-  format:
-    tokens: CUSTOM
+# config/settings.yaml
+spec:
+  tokens: CUSTOM
 ```
 
 **Generated output** (YAML shown):
@@ -162,7 +161,7 @@ elements:
 
 This applies uniformly to all reference sites — including gradient stop colors and any other property bound to a Figma variable or style.
 
-> **Without `format.tokens: CUSTOM`**, the `$custom` objects sit inert in the data files. Other token profiles (`TOKEN`, `TOKEN_NAME`, etc.) ignore `$custom` entirely.
+> **Without `spec.tokens: CUSTOM`**, the `$custom` objects sit inert in the data files. Other token profiles (`TOKEN`, `TOKEN_NAME`, etc.) ignore `$custom` entirely.
 
 ## Full Pipeline Example
 
@@ -216,7 +215,7 @@ After running, the command reports what it did:
 
 ## Branch-Fetched Data
 
-If your data files were fetched from a Figma branch (using a branch file key in `sources`), variable and style IDs may differ from the IDs on main. Your mapping file must use the IDs that appear in the branch data.
+If your data files were fetched from a Figma branch (using a branch file key in `data.sources`), variable and style IDs may differ from the IDs on main. Your mapping file must use the IDs that appear in the branch data.
 
 Inspect the fetched files directly to verify which IDs are present. If you maintain separate mapping files per branch, keep them alongside the branch data.
 
@@ -226,6 +225,6 @@ See [Fetching Figma Branches](/cli/commands/fetch/#fetching-figma-branches) for 
 
 **See Also:**
 - [Tokens configuration](/settings/tokens/) — all token profiles compared
-- [Configuration Reference](/settings/) — `dataDirectory` and `sources` setup
+- [Configuration Reference](/settings/) — `data.directory` and `data.sources` setup
 - [Generate Command](/cli/commands/generate/) — processing augmented data
 - [Fetch Command](/cli/commands/fetch/) — fetching raw data before augmentation

@@ -64,7 +64,7 @@ For every component directory containing an `api.yaml`, the analyzer reads `inst
 
 ## Outputs
 
-Two aggregate files are written to `_analysis/` after all components are processed. The extension follows `format.output` in your config — `.json` shown here, `.yaml` when configured.
+Two aggregate files are written to `_analysis/` after all components are processed. The extension follows `spec.format` in `config/settings.yaml` — `.json` shown here, `.yaml` when configured.
 
 | File | Answers |
 |------|---------|

@@ -88,7 +88,7 @@ Change `[x]` to `[ ]` (or vice versa) in the first column for components to excl
 ### Step 3: Generate
 
 ```bash
-# Zero-config: reads default manifest and writes to outputDirectory
+# Zero-config: reads default manifest and writes to spec.directory
 specs generate --verbose
 
 # Or with explicit paths:
@@ -116,7 +116,7 @@ on:
   push:
     paths:
       - 'manifests/**'
-      - 'specs.config.yaml'
+      - 'config/**'
 
 jobs:
   generate-specs:

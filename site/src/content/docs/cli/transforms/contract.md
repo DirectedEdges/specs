@@ -88,22 +88,26 @@ A slot is required (non-optional in `Slots`) only when its rule is `always`. The
 
 ## Config
 
-No transformer-specific options. Prop omission for browser-driven states comes from [`config.processing.states`](/settings/states/).
+No transformer-specific options. Prop omission for browser-driven states comes from the [`figma.states`](/settings/states/) convention in `config/conventions.yaml`.
 
 ```yaml
-config:
-  processing:
-    states:              # optional — omit to retain all props in contracts
-      hover:
-        prop: state
-        value: hover
-      disabled:
-        prop: isDisabled
-  transformers:
-    - name: contract
+# config/conventions.yaml
+figma:
+  states:                # optional — omit to retain all props in contracts
+    hover:
+      prop: state
+      value: hover
+    disabled:
+      prop: isDisabled
 ```
 
-When `processing.states` is absent, all props from `api.yaml` appear in the generated interface. When present, props mapped to browser-driven concepts (`hover`, `active`, `focus`, `focus-within`, etc.) are omitted — the browser fires these without the application setting them.
+```yaml
+# config/pipeline.yaml
+transformers:
+  - name: contract
+```
+
+When the `states` convention is absent, all props from `api.yaml` appear in the generated interface. When present, props mapped to browser-driven concepts (`hover`, `active`, `focus`, `focus-within`, etc.) are omitted — the browser fires these without the application setting them.
 
 ## Subcomponent Contracts
 
@@ -121,12 +125,12 @@ dsActionList/
       Item.contract.ts          ← subcomponent (DsActionListItemProps, DsActionListItemDefaults)
 ```
 
-The parent contract file only includes the parent component's own types — subcomponent types do not appear in it. Configure subcomponent discovery in [`config.processing.subcomponents`](/settings/subcomponents/).
+The parent contract file only includes the parent component's own types — subcomponent types do not appear in it. Configure subcomponent discovery in the [`figma.subcomponents`](/settings/subcomponents/) convention.
 
 ## See Also
 
 - [Transforms overview](/cli/transforms/)
-- [`processing.states` config](/settings/states/) — classify which props are browser-driven vs consumer-controlled
+- [`figma.states` convention](/settings/states/) — classify which props are browser-driven vs consumer-controlled
 - [`css` transformer](/cli/transforms/css/)
 - [`react` transformer](/cli/transforms/react/) — consumes `Slots`/`SlotRules` to gate element rendering
 - [`stories` transformer](/cli/transforms/stories/)

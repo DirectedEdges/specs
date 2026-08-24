@@ -4,6 +4,7 @@
  * to assert that the type shape is correct.
  */
 import type { Conventions, ResolvedConventions, VariantStateEntry } from '../types/index.js';
+import { DEFAULT_CONVENTIONS } from '../types/index.js';
 
 // ─── A library declaring no conventions ───────────────────────────────────────
 
@@ -76,5 +77,16 @@ const glyphsWithoutMatch: Conventions = { figma: { glyphs: {} } };
 
 // @ts-expect-error — figma namespace is required
 const noNamespace: Conventions = {};
+
+// ─── Defaults ─────────────────────────────────────────────────────────────────
+
+// A library that declares nothing: the three defaultable members, no blocks.
+const defaults: ResolvedConventions = DEFAULT_CONVENTIONS;
+const defaultNaming: 'NONE' | 'SENTENCE' | 'TITLE' = DEFAULT_CONVENTIONS.figma.naming;
+
+// @ts-expect-error — no block is defaulted; absence means the library declares none
+const defaultedBlock: object = DEFAULT_CONVENTIONS.figma.subcomponents.match;
+
+export { defaults, defaultNaming, defaultedBlock };
 
 export { none, full, booleanState, enumState, noProp, badContract, scope, naming, constraints, numbers, blockMayBeAbsent, underResolved, glyphsWithoutMatch, noNamespace };

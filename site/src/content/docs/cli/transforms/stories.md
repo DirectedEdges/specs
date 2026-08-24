@@ -76,12 +76,12 @@ export const Dismissible: Story = { args: { dismissible: true } };
 No transformer-specific options today.
 
 ```yaml
-config:
-  transformers:
-    - name: contract
-    - name: css
-    - name: react
-    - name: stories
+# config/pipeline.yaml
+transformers:
+  - name: contract
+  - name: css
+  - name: react
+  - name: stories
 ```
 
 Running `stories` without `react` first still works — the `react` transformer's `src/react/{Component}.tsx` seed step is idempotent and only needs to have run at least once for the imported module to exist. In practice, run `react` before `stories` so the authored component is in place.

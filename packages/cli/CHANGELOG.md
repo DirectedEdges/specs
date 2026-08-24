@@ -7,11 +7,83 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.28.0] - Unreleased
 
+### Breaking
+
+**`specs.config.yaml` → a `config/` directory for conventions, settings and pipeline**, and
+`specs migrate config` switches an existing workspace over.
+
+The single file mixed two kinds of statement: facts about your Figma library that every
+consumer of it must agree on, and choices this particular run makes. A wrong fact produces
+incorrect output, while a different choice just produces different output — so they are
+now three files that can be read, validated and reviewed apart. Every command that loads
+configuration is affected, and a workspace that has not migrated gets an error naming the
+file and the command that converts it rather than a silent fall back to defaults, because
+the shape of your output depends on this file and ignoring it quietly would change what
+you emit without saying so.
+
 ### Added
+
+- **`specs migrate <subject>` — versioned workspace migrations.** `specs migrate config`
+  reads `specs.config.yaml` (or `.json`) and writes `config/conventions.yaml`,
+  `config/settings.yaml` and `config/pipeline.yaml`, then renames the source to
+  `.migrated` so discovery stops finding it. `conventions.yaml` and `pipeline.yaml` are
+  written only if the source configured them; `settings.yaml` is always written, because
+  the layout flags have to be carried across explicitly (see below).
+  - `--dry-run` reports what would change without writing.
+  - `--source <path>` converts a file discovery would not find — a custom name, or one you
+    pass to other commands via `--config`.
+  - `--from <version>` pins the source version; `--list` shows what is registered.
+  - The command is a registry, not a synonym for this one conversion: later migrations
+    register alongside `config v1 → v2` rather than replacing it.
+  - It writes to your workspace, which is why it is a command you run rather than
+    something the loader does for you. Configuration is loaded by read-only commands and
+    in CI, and a read path must not mutate a checkout.
 
 ### Changed
 
+- **Configuration is discovered in `./config/`.** A directory is used when it holds at
+  least one of `conventions`, `settings` or `pipeline` (`.yaml` or `.json`). `--config`
+  now accepts that directory as well as a file path.
+- **`specs init` scaffolds the three files** and refuses to run in a workspace that still
+  has `specs.config.yaml`, pointing at `specs migrate config`. Scaffolding fresh defaults
+  over a configured workspace would replace what it declares, and `migrate` would then
+  refuse because `config/` exists.
+- **The vocabulary changed with the split** — `format.figmaKeys` is now
+  `conventions.figma.naming`, `processing.glyphNamePattern` is `conventions.figma.glyphs.match`,
+  `format.output` is `settings.spec.format`, and the root `sources`, `dataDirectory`,
+  `outputDirectory` and `output` blocks fold into `settings`. `specs migrate config`
+  applies all of it; the [schema changelog](../schema/CHANGELOG.md) lists the mapping in full.
+- **Spec metadata records conventions and settings separately**, so either half can be
+  compared across specs on its own. Regenerating rewrites the `metadata` block of every
+  spec file.
+- **The split layout is now the default.** `specs generate` writes one folder per component
+  holding `api`, `variants` and (when there are examples) `examples` files, without any
+  flags. Everything downstream — `transform`, `analyze`, `render` — reads that layout, so
+  it was the shape almost every workspace had to opt into by hand.
+- **Layout flags are named for what they do.** `--split-components`, `--split-concerns` and
+  `--use-subfolders` are replaced by `--combine-as-library`, `--combine-concerns` and
+  `--no-subfolders`. Each turns a split off; an absent flag defers to the configured value
+  rather than overriding it.
+- **`specs migrate config` preserves the layout a workspace emits today.** The three flags
+  defaulted to `false` in `specs.config.yaml` and default to `true` now, so migration
+  writes all three out explicitly — including from a source that configured no `output`
+  block. Deleting those three lines from `config/settings.yaml` is how a migrated
+  workspace adopts the new default.
+- **`specs init` no longer writes the three flags.** The generated `config/settings.yaml`
+  shows them commented out at their defaults.
+- **`transform`'s prerequisite tip** no longer names flags that no longer exist; running
+  `specs generate` is now sufficient.
+
 ### Removed
+
+- **`specs.config.yaml` and `specs.config.json` are no longer read.** They are still
+  detected, but only to refuse with the command that converts them.
+- **`~/.specs/config.yaml` — user-level configuration — has no equivalent.** Conventions
+  describe a specific Figma library and settings describe a specific workspace; neither is
+  a personal preference that should follow you between projects. Move what it declares
+  into the workspace's `config/` directory and delete it.
+- `--split-components`, `--split-concerns` and `--use-subfolders` on `specs generate`,
+  replaced by the negative flags above.
 
 
 ## [0.27.0] - 2026-08-17

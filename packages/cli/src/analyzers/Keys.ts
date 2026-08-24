@@ -97,7 +97,7 @@ export class KeysAnalyzer implements Transformer {
   private readonly _components = new Set<string>();
   private _totalNames = 0;
   private _outputFormat: 'JSON' | 'YAML' = 'JSON';
-  /** Read from each spec's own `metadata.config`; undefined means no convention declared. */
+  /** Read from each spec's own metadata; undefined means no convention declared. */
   private _convention: DeclaredConvention | undefined;
 
   async run(apiYaml: Record<string, unknown>, context: TransformerContext): Promise<void> {
@@ -261,11 +261,17 @@ function causeOf(name: string): Cause {
   return 'casing';
 }
 
-/** The convention the spec was generated under, from its own `metadata.config`. */
+/** The convention the spec was generated under, from its own metadata. */
 function declaredConvention(apiYaml: Record<string, unknown>): DeclaredConvention | undefined {
   const metadata = apiYaml.metadata as Record<string, unknown> | undefined;
-  const config = metadata?.config as Record<string, unknown> | undefined;
-  const format = config?.format as Record<string, unknown> | undefined;
-  const value = format?.figmaKeys;
+  // A spec generated since the conventions/settings split (ADR-071) records the Figma
+  // naming convention at `metadata.conventions.figma.naming`; older specs carry
+  // `metadata.config.format.figmaKeys`. Read the new key first and fall back so
+  // pre-split specs still analyze.
+  const conventions = metadata?.conventions as Record<string, unknown> | undefined;
+  const figma = conventions?.figma as Record<string, unknown> | undefined;
+  const legacyConfig = metadata?.config as Record<string, unknown> | undefined;
+  const legacyFormat = legacyConfig?.format as Record<string, unknown> | undefined;
+  const value = figma?.naming ?? legacyFormat?.figmaKeys;
   return value === 'SENTENCE' || value === 'TITLE' ? value : undefined;
 }

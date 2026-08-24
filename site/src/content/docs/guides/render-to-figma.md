@@ -10,7 +10,7 @@ Every other command in Specs reads Figma and produces a spec. [`render`](/cli/co
 ## The Chain
 
 ```
-specs init          config: sources, dataDirectory, outputDirectory
+specs init          config/: conventions, settings (sources, directories), pipeline
       ↓
 specs fetch         Figma payloads  →  data/{alias}.file.json, .variables.json
       ↓             (and builds the cache as its last step)
@@ -36,13 +36,13 @@ A render workspace is an ordinary Specs workspace. If you don't have one:
 specs init
 ```
 
-Then fill in `sources` with your Figma file keys. Three config values matter to the render path:
+Then fill in `data.sources` in `config/settings.yaml` with your Figma file keys. Three settings matter to the render path:
 
 | Setting | Why `render` cares |
 |---|---|
-| `sources` | Each declared source must be fetched and cached. `render` fails naming any that aren't. |
-| `dataDirectory` | Where fetched payloads and `cache/` live. `--refresh-cache` requires it. |
-| `outputDirectory` | What `specs render` with no path argument renders as a batch. |
+| `data.sources` | Each declared source must be fetched and cached. `render` fails naming any that aren't. |
+| `data.directory` | Where fetched payloads and `cache/` live. `--refresh-cache` requires it. |
+| `spec.directory` | What `specs render` with no path argument renders as a batch. |
 
 See [sources config](/settings/data-sources/) for the full shape.
 
@@ -68,7 +68,7 @@ See [`fetch`](/cli/commands/fetch/) for flags, and note that `variables` and `st
 
 ## Stage 3 — The Cache
 
-The [cache](/cli/commands/cache/) is the set of lookup tables that give a spec's names meaning. Four files under `{dataDirectory}/cache/`:
+The [cache](/cli/commands/cache/) is the set of lookup tables that give a spec's names meaning. Four files under `{data.directory}/cache/`:
 
 | File | Resolves | What breaks without it |
 |---|---|---|
@@ -165,7 +165,7 @@ The node id is the component that was created or updated — open it directly at
 
 ### A batch
 
-Point `render` at a directory of component folders, or omit the path entirely to use `outputDirectory`:
+Point `render` at a directory of component folders, or omit the path entirely to use `spec.directory`:
 
 ```bash
 specs render specs/       # every component beneath specs/
@@ -258,7 +258,7 @@ Graceful first, forced if it doesn't exit within a few seconds. Safe to run when
 | `⚠ INCOMPLETE: n instance element(s)` | 2–3 | The cache can't resolve a referenced component — `specs fetch` to refresh it |
 | Missing glyphs, styles, or variable bindings | 2–3 | `specs fetch`, then render again |
 | Rendered onto the wrong page | 5 | Pass `--page <id>`; without it the target is the plugin's current page |
-| `Error: provide a spec path.` | 6 | No path given and no `outputDirectory` in config to fall back to |
+| `Error: provide a spec path.` | 6 | No path given and no `spec.directory` in config to fall back to |
 | `no component folders found` | 6 | A component folder holds `api.(yaml\|json)` and `variants.(yaml\|json)`, at most two levels deep |
 
 ## Limits
