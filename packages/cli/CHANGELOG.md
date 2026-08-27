@@ -39,6 +39,18 @@ you emit without saying so.
     something the loader does for you. Configuration is loaded by read-only commands and
     in CI, and a read path must not mutate a checkout.
 
+- **`cssvars` transformer — library-level CSS custom properties.** Emits the token
+  definitions a component's CSS refers to, resolved from the fetched library JSON in the
+  workspace data directory, so generated stylesheets stand on their own rather than
+  assuming a hand-authored variable sheet. Add `cssvars` to `pipeline.transformers` to run
+  it.
+
+- **The `css` transformer expresses inline effects and gradients.** Shadows, blurs, and
+  gradient fills declared directly on an element — rather than through a token — now
+  become real `box-shadow`, `filter`, and `background-image` declarations. They were
+  previously dropped, so an element whose design carried an inline effect emitted CSS that
+  silently omitted it.
+
 ### Changed
 
 - **Configuration is discovered in `./config/`.** A directory is used when it holds at
@@ -73,6 +85,10 @@ you emit without saying so.
   shows them commented out at their defaults.
 - **`transform`'s prerequisite tip** no longer names flags that no longer exist; running
   `specs generate` is now sufficient.
+- **The `react` and `stories` transformers moved to `@directededges/react-from-specs`.**
+  They are consumed as an external runtime dependency, the way the processing engine
+  already is. Both transformer names, their options, and their output are unchanged — this
+  is where the code lives, not what it does.
 
 ### Removed
 

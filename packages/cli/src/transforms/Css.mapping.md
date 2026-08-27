@@ -55,6 +55,10 @@ Typography/font__300__medium → var(--typography-font--300--medium)
 These are valid CSS and immediately usable if the consumer defines the variables.
 Phase 2 will replace them with properly resolved names from `token-mappings.json`.
 
+Characters invalid in a CSS dashed-ident (parentheses, `%`, `&`, …) are dropped
+during derivation; each drop is counted and reported in a warning summary at the
+end of the transform run.
+
 ---
 
 ## Style key mappings
@@ -68,7 +72,21 @@ Phase 2 will replace them with properly resolved names from `token-mappings.json
 | `fillColor` | `fill` | SVG/glyph elements only. `null` → `transparent` |
 
 Color values: token refs → `var(--)`, hex strings → as-is, `ColorObject` → `hex` field
-if present, else `currentColor`. Gradients deferred to phase 2.
+if present, else `currentColor`.
+
+`GradientValue` colors map to CSS gradient functions (stop colors run through the
+color-value rules above, so token-ref stops become `var(--)`):
+
+| Gradient type | CSS output |
+|---------------|-----------|
+| `LINEAR` | `linear-gradient(Ndeg, …)` — the spec angle is already CSS convention |
+| `RADIAL` | `radial-gradient(at X% Y%, …)` |
+| `ANGULAR` | `conic-gradient(from 90deg at X% Y%, …)` — Figma's sweep starts at 3 o'clock; CSS conic 0deg is 12 o'clock. Accepted limitation: rotated angular gradients render unrotated — the schema's `AngularGradient` carries no rotation, so the sweep always starts at 90deg. |
+
+Per property: `backgroundColor` → `background`; `textColor` → gradient painted as a
+background clipped to the glyphs (`background-clip: text; color: transparent`);
+`fillColor` → `background` for typed elements (through the mask for glyphs/vectors),
+skipped for untyped legacy `fill`; `strokes` → see Border below.
 
 ### Opacity
 
@@ -81,6 +99,7 @@ if present, else `currentColor`. Gradients deferred to phase 2.
 | Spec key | CSS property | Notes |
 |----------|-------------|-------|
 | `strokes` | `border-color` | `null` → `transparent` |
+| `strokes` (gradient) | `border-image` | `border-image: <gradient> 1` + `border-style: solid` — the only gradient-capable border mechanism. Ignores `border-radius`; OUTSIDE/CENTER strokes fall back to the same mapping (outlines can't take gradients). Elements that mix gradient and solid strokes across variants get `border-image: none` alongside solid `border-color` so the override wins. |
 | `strokeWeight` | `border-width` | Scalar → px. `Sides` object → per-side shorthand. |
 | `strokeAlign` | *(skipped)* | No direct CSS equivalent. `INSIDE` requires a `box-shadow: inset` workaround; `OUTSIDE` requires `outline`. `CENTER` matches default CSS border behavior. Consumer must implement. |
 
@@ -94,7 +113,14 @@ if present, else `currentColor`. Gradients deferred to phase 2.
 
 | Spec key | CSS property | Notes |
 |----------|-------------|-------|
-| `effects` | `box-shadow` | Token refs only in phase 1 — emitted as `box-shadow: var(--)`. Inline `Effects` objects (shadows/blur) deferred to phase 2. `filter`/`backdrop-filter` distinction resolved in phase 2. |
+| `effects` (TokenReference) | `box-shadow` / `filter` / `backdrop-filter` | A style reference names up to three role vars mirroring the Effects schema keys — `<name>-shadows`, `<name>-layer-blur`, `<name>-background-blur` — each holding its property's complete value. All three properties are emitted with a `none` fallback, so only roles the consumer defines take effect. |
+| `effects.shadows` | `box-shadow` | Comma-joined `[inset] x y blur spread color` entries; `inset: true` → inner shadow; `visible: false` entries dropped. Token-ref dimensions/colors → `var(--)`. A present-but-fully-invisible list emits `box-shadow: none`. |
+| `effects.layerBlur` | `filter: blur()` | `visible: false` → `filter: none`. |
+| `effects.backgroundBlur` | `backdrop-filter: blur()` | `visible: false` → `backdrop-filter: none`. |
+| `effects: null` | resets | `box-shadow: none; filter: none; backdrop-filter: none` — variant removes the lower layer's effects. |
+
+When one `effects` value fans out into multiple CSS properties, each declaration
+carries an `/* effects */` trace comment tying it back to the single spec value.
 
 ### Dimensions
 
@@ -216,8 +242,7 @@ They are emitted regardless of whether the element is itself a flex container.
 | `strokeAlign` | No direct equivalent; see Border section above |
 | `textAlignVertical` | Handled by parent flex `align-items` in most cases |
 | `centerHorizontalOffset` / `centerVerticalOffset` | No CSS equivalent for CENTER-constrained Figma positioning |
-| Inline `Effects` objects | Deferred to phase 2 (shadow/blur property disambiguation) |
-| Gradient color values | Deferred to phase 2 |
+| `DIAMOND` gradients | Excluded at the schema level — no native CSS/SwiftUI/Compose equivalent |
 
 ---
 

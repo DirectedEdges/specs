@@ -1,13 +1,15 @@
 import fs from 'fs-extra';
+import { writeAtomic } from './writeAtomic.js';
 import path from 'path';
 import yaml from 'yaml';
 import type { Transformer, TransformerContext } from '../Types/Transformer.js';
-import { styleToCSS } from './css/styleToCSS.js';
+import { styleToCSS, impliesAbsolute } from './css/styleToCSS.js';
 import { layoutToCSS } from './css/layoutToCSS.js';
-import { toKebab } from './css/values.js';
+import { toKebab, isGradient, reportNameWarnings } from './css/values.js';
 import { CONCEPT_TABLE, buildStateLookup } from './states.js';
 import { resolveRules } from './css/rules/index.js';
 import { parseLayout, type LayoutNode } from './react/variantAnalysis.js';
+import { loadExamples, type ExamplesData } from './examples.js';
 
 export class CssTransformer implements Transformer {
   readonly name = 'css';
@@ -26,23 +28,108 @@ export class CssTransformer implements Transformer {
 
     const componentClass = toKebab(componentKey);
     const prefix = toPascalCase(componentKey);
-    const lines = buildCssLines(componentClass, variantsYaml, tokensFormat, context);
+    // Images registry (ADR-063): backgroundImage fills resolve against it;
+    // urls are emitted relative to each stylesheet's location.
+    const examples = loadExamples(outputDir);
+    const imagesDirAbs = path.join(outputDir, '..', '_images');
+    const lines = buildCssLines(componentClass, variantsYaml, tokensFormat, context, anatomyTypes(apiYaml), {
+      examples,
+      imagesDirAbs,
+      relPrefix: '../../_images',
+    });
     const generatedDir = path.join(outputDir, 'generated');
     await fs.ensureDir(generatedDir);
-    await fs.writeFile(path.join(generatedDir, `${prefix}.styles.css`), lines.join('\n'), 'utf-8');
+    await writeAtomic(path.join(generatedDir, `${prefix}.styles.css`), lines.join('\n'));
 
     // Subcomponents — each gets {Sub}.styles.css in its own subfolder
     const subcomponents = (variantsYaml.subcomponents ?? {}) as Record<string, unknown>;
+    const apiSubs = (apiYaml.subcomponents ?? {}) as Record<string, unknown>;
     for (const [subKey, subRaw] of Object.entries(subcomponents)) {
       const subVariantsYaml = subRaw as Record<string, unknown>;
       const subClass = toKebab(subKey);
       const subFilePrefix = toPascalCase(subKey);
-      const subLines = buildCssLines(subClass, subVariantsYaml, tokensFormat, context);
+      const subTypes = anatomyTypes((apiSubs[subKey] ?? {}) as Record<string, unknown>);
+      const subLines = buildCssLines(subClass, subVariantsYaml, tokensFormat, context, subTypes, {
+        examples,
+        imagesDirAbs,
+        relPrefix: '../../../_images',
+      });
       const subDir = path.join(outputDir, subKey, 'generated');
       await fs.ensureDir(subDir);
-      await fs.writeFile(path.join(subDir, `${subFilePrefix}.styles.css`), subLines.join('\n'), 'utf-8');
+      await writeAtomic(path.join(subDir, `${subFilePrefix}.styles.css`), subLines.join('\n'));
     }
   }
+
+  /** End-of-run summary of name warnings collected across all components. */
+  async finalize(): Promise<void> {
+    reportNameWarnings('css');
+  }
+}
+
+interface ImagesCssContext {
+  examples: ExamplesData | undefined;
+  imagesDirAbs: string;
+  relPrefix: string;
+}
+
+/** backgroundImage style ({ $image, objectFit? } | null) → CSS declarations. */
+function backgroundImageDecls(value: unknown, images: ImagesCssContext | undefined): string[] {
+  if (value === null) return ['background-image: none'];
+  if (!images?.examples || !value || typeof value !== 'object') return [];
+  const v = value as Record<string, unknown>;
+  if (typeof v.$image !== 'string') return [];
+  const id = v.$image.match(/#\/components\/[^/]+\/images\/(.+)$/)?.[1];
+  const entry = id ? images.examples.images[id] : undefined;
+  if (!entry) return [];
+  let file: string | undefined;
+  if (typeof entry.src === 'string' && /^(data:|https?:)/.test(entry.src)) {
+    return imageDecls(`url('${entry.src}')`, v.objectFit);
+  }
+  if (typeof entry.src === 'string') {
+    file = path.basename(entry.src);
+  } else {
+    const hash = entry.$extensions?.['com.figma']?.imageHash;
+    if (hash) {
+      try {
+        file = fs.readdirSync(images.imagesDirAbs).find(f => f.startsWith(hash));
+      } catch {
+        file = undefined;
+      }
+    }
+  }
+  if (!file) return [];
+  return imageDecls(`url('${images.relPrefix}/${file}')`, v.objectFit);
+}
+
+function imageDecls(url: string, objectFit: unknown): string[] {
+  const decls = [`background-image: ${url}`, 'background-position: center', 'background-repeat: no-repeat'];
+  decls.push(`background-size: ${objectFit === 'CONTAIN' ? 'contain' : 'cover'}`);
+  return decls;
+}
+
+/** Glyphs, raw vectors, and icon-wrapper instances (instance with a name propConfiguration). */
+function isGlyphLike(elemType: string | undefined, elem: Record<string, unknown> | undefined): boolean {
+  if (elemType === 'glyph' || elemType === 'vector') return true;
+  if (elemType !== 'instance') return false;
+  const pc = (elem?.propConfigurations ?? {}) as Record<string, unknown>;
+  return typeof pc.name === 'string';
+}
+
+/** Parse a "WxH" size propConfiguration ("16x16") into pixel dimensions. */
+function glyphConfigSize(elem: Record<string, unknown> | undefined): { w: number; h: number } | null {
+  const pc = (elem?.propConfigurations ?? {}) as Record<string, unknown>;
+  const m = typeof pc.size === 'string' ? pc.size.match(/^(\d+)x(\d+)$/) : null;
+  return m ? { w: Number(m[1]), h: Number(m[2]) } : null;
+}
+
+/** api.yaml anatomy → element key → type ("container" | "rectangle" | "ellipse" | "vector" | "text" | …). */
+function anatomyTypes(apiYaml: Record<string, unknown>): Record<string, string> {
+  const anatomy = (apiYaml.anatomy ?? {}) as Record<string, Record<string, unknown>>;
+  const types: Record<string, string> = {};
+  for (const [key, entry] of Object.entries(anatomy)) {
+    if (entry && typeof entry.type === 'string') types[key] = entry.type;
+  }
+  return types;
 }
 
 function buildCssLines(
@@ -50,6 +137,8 @@ function buildCssLines(
   variantsYaml: Record<string, unknown>,
   tokensFormat: string | undefined,
   context: TransformerContext,
+  elemTypes: Record<string, string> = {},
+  images?: ImagesCssContext,
 ): string[] {
   // Apply configured rules as pre-passes on the structured variants data
   const ruleNames = (context.transformerOptions?.rules as string[] | undefined) ?? [];
@@ -79,10 +168,13 @@ function buildCssLines(
   // (first = back-most, last on top), and only positioned siblings paint in
   // DOM order — an absolute element would otherwise jump above static ones.
   const needsRelative = new Set<string>();
+  // Element key → parent element key, from the default layout tree.
+  const parentOf = new Map<string, string>();
   {
     const layouts = [parseLayout(defaultBlock?.layout), ...variantList.map(v => parseLayout(v.layout))];
     for (const layout of layouts) {
       collectStackingFixes(layout, defaultElements, needsRelative);
+      collectParents(layout, parentOf);
       if (layout !== layouts[0]) {
         const keys = new Set<string>();
         collectLayoutKeys(layout, keys);
@@ -90,12 +182,82 @@ function buildCssLines(
       }
     }
   }
+  // Parent flex direction context for FILL sizing translation.
+  const parentLayoutMode = (elemKey: string): string | null => {
+    const parent = parentOf.get(elemKey);
+    if (!parent) return null;
+    const styles = (defaultElements[parent]?.styles ?? {}) as Record<string, unknown>;
+    return (styles.layoutMode as string | undefined) ?? null;
+  };
+  const parentIsAutoLayout = (elemKey: string): boolean => {
+    const mode = parentLayoutMode(elemKey);
+    return mode === 'HORIZONTAL' || mode === 'VERTICAL';
+  };
+  // Coordinates imply absolute placement per impliesAbsolute; roots never infer.
+  const inferAbsolute = (elemKey: string): boolean =>
+    parentOf.has(elemKey) &&
+    impliesAbsolute(
+      (defaultElements[elemKey]?.styles ?? {}) as Record<string, unknown>,
+      parentIsAutoLayout(elemKey)
+    );
+  // Elements whose strokes are a gradient in any layer paint via border-image;
+  // solid stroke overrides on those elements must reset it or the earlier
+  // variant's border-image outranks the later border-color (see styleToCSS).
+  const gradientStrokeKeys = new Set<string>();
+  for (const elements of [defaultElements, ...variantList.map(v => (v.elements ?? {}) as Record<string, Record<string, unknown>>)]) {
+    for (const [k, elem] of Object.entries(elements)) {
+      if (isGradient(((elem.styles ?? {}) as Record<string, unknown>).strokes)) gradientStrokeKeys.add(k);
+    }
+  }
+  const styleOptions = (elemKey: string) => ({
+    inferAbsolute: inferAbsolute(elemKey),
+    resetBorderImage: gradientStrokeKeys.has(elemKey),
+  });
 
   for (const [elemKey, elem] of Object.entries(defaultElements)) {
     const selector = elemSelector(componentClass, elemKey);
     const styles = (elem.styles ?? {}) as Record<string, unknown>;
-    const decls = [...layoutToCSS(styles, tokensFormat), ...styleToCSS(styles, tokensFormat)];
+    const decls = [
+      ...layoutToCSS(styles, tokensFormat, parentLayoutMode(elemKey)),
+      ...styleToCSS(styles, tokensFormat, elemTypes[elemKey], styleOptions(elemKey)),
+    ];
+    if ('backgroundImage' in styles) decls.push(...backgroundImageDecls(styles.backgroundImage, images));
 
+    // Ellipses are circular unless the spec sets an explicit radius.
+    if (elemTypes[elemKey] === 'ellipse' && !decls.some(d => d.startsWith('border-radius:'))) {
+      decls.push('border-radius: 50%');
+    }
+    // Glyphs/vectors paint their background-color through a mask image the
+    // scaffold provides via --glyph (an unresolvable mask renders nothing).
+    // Instance elements with a `name` propConfiguration are icon-wrapper
+    // instances and take the same fallback. Spans need block display; without
+    // a fill they tint with the inherited text color; instance glyphs take
+    // their dimensions from a "WxH" size propConfiguration when present.
+    if (isGlyphLike(elemTypes[elemKey], elem)) {
+      decls.push('mask: var(--glyph, none) no-repeat center / contain');
+      decls.push('-webkit-mask: var(--glyph, none) no-repeat center / contain');
+      if (!decls.some(d => d.startsWith('display:'))) decls.push('display: block');
+      if (!decls.some(d => d.startsWith('background'))) decls.push('background-color: currentColor');
+      // HUG on an empty masked span collapses to 0 — the configured instance
+      // size is the glyph's intrinsic size, so it wins over fit-content.
+      const size = glyphConfigSize(elem);
+      if (size) {
+        const fitless = decls.filter(d => d !== 'width: fit-content' && d !== 'height: fit-content');
+        decls.length = 0;
+        decls.push(...fitless);
+        if (!decls.some(d => d.startsWith('width:'))) decls.push(`width: ${size.w}px`);
+        if (!decls.some(d => d.startsWith('height:'))) decls.push(`height: ${size.h}px`);
+      }
+    }
+    // A full-bleed absolute child visually IS its rounded parent's surface —
+    // without inheriting the radius, its background paints square corners.
+    if (
+      !decls.some(d => d.startsWith('border-radius:')) &&
+      coversParent(styles, (defaultElements[parentOf.get(elemKey) ?? '']?.styles ?? {}) as Record<string, unknown>) &&
+      'cornerRadius' in ((defaultElements[parentOf.get(elemKey) ?? '']?.styles ?? {}) as Record<string, unknown>)
+    ) {
+      decls.push('border-radius: inherit');
+    }
     if (needsRelative.has(elemKey) && !decls.some(d => d.startsWith('position:'))) {
       decls.push('position: relative');
     }
@@ -194,7 +356,11 @@ function buildCssLines(
       const selector = rootSelectors.map(s => `${s}${elemSuffix}`).join(',\n');
 
       const styles = (variantElements[elemKey]?.styles ?? {}) as Record<string, unknown>;
-      const decls = [...layoutToCSS(styles, tokensFormat), ...styleToCSS(styles, tokensFormat)];
+      const decls = [
+        ...layoutToCSS(styles, tokensFormat, parentLayoutMode(elemKey)),
+        ...styleToCSS(styles, tokensFormat, elemTypes[elemKey], styleOptions(elemKey)),
+      ];
+      if ('backgroundImage' in styles) decls.push(...backgroundImageDecls(styles.backgroundImage, images));
       const display = displayDecls.get(elemKey);
       if (display && !decls.some(d => d.startsWith('display:'))) decls.push(display);
 
@@ -217,6 +383,32 @@ function collectLayoutKeys(nodes: LayoutNode[], into: Set<string>): void {
   }
 }
 
+function collectParents(nodes: LayoutNode[], into: Map<string, string>, parent?: string): void {
+  for (const node of nodes) {
+    if (parent && !into.has(node.key)) into.set(node.key, parent);
+    collectParents(node.children, into, node.key);
+  }
+}
+
+/**
+ * True when an absolutely-placed child exactly covers its parent's bounds:
+ * either zero insets on all sides, or zero offset with dimensions equal to
+ * the parent's.
+ */
+function coversParent(styles: Record<string, unknown>, parentStyles: Record<string, unknown>): boolean {
+  const n = (v: unknown) => (typeof v === 'number' ? v : undefined);
+  const allInsetsZero =
+    n(styles.top) === 0 && n(styles.bottom) === 0 && n(styles.start) === 0 && n(styles.end) === 0;
+  const sameSizeAtOrigin =
+    n(styles.top) === 0 &&
+    n(styles.start) === 0 &&
+    n(styles.width) !== undefined &&
+    n(styles.width) === n(parentStyles.width) &&
+    n(styles.height) !== undefined &&
+    n(styles.height) === n(parentStyles.height);
+  return allInsetsZero || sameSizeAtOrigin;
+}
+
 /**
  * Mark elements that need `position: relative` for correct stacking: the
  * layout parent of any absolutely-positioned element (containing block), and
@@ -229,8 +421,14 @@ function collectStackingFixes(
   into: Set<string>,
   parent?: string,
 ): void {
-  const isAbsolute = (key: string) =>
-    ((elements[key]?.styles ?? {}) as Record<string, unknown>).position === 'ABSOLUTE';
+  const parentStyles = (elements[parent ?? '']?.styles ?? {}) as Record<string, unknown>;
+  const parentAutoLayout =
+    parentStyles.layoutMode === 'HORIZONTAL' || parentStyles.layoutMode === 'VERTICAL';
+  const isAbsolute = (key: string) => {
+    if (parent === undefined) return false; // roots never infer
+    const styles = (elements[key]?.styles ?? {}) as Record<string, unknown>;
+    return impliesAbsolute(styles, parentAutoLayout);
+  };
 
   if (nodes.some(n => isAbsolute(n.key))) {
     if (parent) into.add(parent);

@@ -111,6 +111,9 @@ export const Transform = new Command('transform')
               outputFormat: config.settings.spec.format,
               processingStates: config.conventions.figma.states as ProcessingStates | undefined,
               transformerOptions: transformerOptionsMap.get(transformer.name),
+              dataDirectory: config.settings.data?.directory
+                ? path.resolve(config.settings.data.directory)
+                : undefined,
             };
             await transformer.run(apiYaml, context);
           }

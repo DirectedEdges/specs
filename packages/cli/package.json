@@ -21,6 +21,7 @@
     "test": "cd ../.. && vitest -c vitest.config.ts packages/cli/tests"
   },
   "dependencies": {
+    "@directededges/react-from-specs": "^0.0.1",
     "@directededges/specs-schema": "^0.30.0",
     "@directededges/specs-from-figma": "^0.29.0",
     "commander": "^11.1.0",

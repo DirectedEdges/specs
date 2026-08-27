@@ -13,6 +13,8 @@ export interface TransformerContext {
   processingStates?: ProcessingStates;
   /** Raw options from the matching config.transformers entry (everything except `name`). */
   transformerOptions?: Record<string, unknown>;
+  /** Absolute path to the workspace data directory (fetched library JSON), when configured. */
+  dataDirectory?: string;
 }
 
 /**
