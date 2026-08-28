@@ -26,6 +26,9 @@ output/
       react/
         DsAlert.scaffold.tsx  # from specs transform react — always current, do not edit
         DsAlert.stories.tsx   # from specs transform stories
+      webcomponents/
+        DsAlert.scaffold.ts   # from specs transform webcomponents — always current, do not edit
+        DsAlert.stories.ts    # from specs transform webcomponents-stories
     src/
       react/
         DsAlert.tsx             # seeded once by react transformer, then human-owned
@@ -33,13 +36,13 @@ output/
         DsAlert.proposed.css    # authored — styling proposed for promotion into the spec
 ```
 
-Every transform output file — generated and authored — is PascalCase-prefixed with the component name (`DsAlert.*`), even though the folder itself already scopes it to that component; this keeps filenames self-describing when opened outside the tree (an editor tab, a diff view, a search result). All generated output for a component lives under its `generated/` subfolder, keeping it clearly separated from the source `api.yaml`/`variants.yaml` and from anything you author. The `react` transformer is the one exception that writes outside `generated/`: it seeds a one-time authored copy under `src/react/`, described in [Authored vs. Generated](#authored-vs-generated) below.
+Every transform output file — generated and authored — is PascalCase-prefixed with the component name (`DsAlert.*`), even though the folder itself already scopes it to that component; this keeps filenames self-describing when opened outside the tree (an editor tab, a diff view, a search result). All generated output for a component lives under its `generated/` subfolder, keeping it clearly separated from the source `api.yaml`/`variants.yaml` and from anything you author. The `react` and `webcomponents` transformers are the exceptions that write outside `generated/`: each seeds a one-time authored copy under `src/react/` or `src/webcomponents/`, described in [Authored vs. Generated](#authored-vs-generated) below.
 
 #### Authored vs. Generated
 
-`contract`, `css`, `react`, and `stories` all regenerate their `generated/` output on every run — never edit those files directly, since the next `specs transform` overwrites them.
+`contract`, `css`, `cssvars`, `react`, `stories`, `webcomponents`, and `webcomponents-stories` all regenerate their `generated/` output on every run — never edit those files directly, since the next `specs transform` overwrites them.
 
-The `react` transformer additionally seeds `src/react/{Component}.tsx` plus `.extensions.css` and `.proposed.css` the first time it runs for a component. Those three files are created once and never touched again, even on subsequent runs — they're yours to implement against. The `stories` transformer imports this authored component, not the regenerated scaffold, so Storybook always reflects what you've built.
+The `react` and `webcomponents` transformers additionally seed `src/react/{Component}.tsx` or `src/webcomponents/{Component}.ts` plus `.extensions.css` and `.proposed.css` the first time they run for a component. Those files are created once and never touched again, even on subsequent runs — they're yours to implement against. The `stories` and `webcomponents-stories` transformers import these authored components, not the regenerated scaffolds, so Storybook always reflects what you've built.
 
 ## How It Works
 
@@ -77,10 +80,15 @@ Transformer names can be passed as positional arguments, configured in `config/p
 |-------------|-------------|-----------------|
 | [`contract`](/cli/transforms/contract/) | `generated/{Component}.contract.ts` | TypeScript Props interface and defaults constant, plus Slots/SlotRules when `variants.yaml` is present |
 | [`css`](/cli/transforms/css/) | `generated/{Component}.styles.css` | CSS rules per anatomy element, with token vars, variant selectors, and structural presence/stacking fixes |
+| [`cssvars`](/cli/transforms/cssvars/) | `cssvars/cssvars.css` + `cssvars/modes.json` (library-level) | CSS variable definitions for the library's variables, text/effect/fill styles, and collection modes — what the `css` transform's `var()` references resolve against |
 | [`react`](/cli/transforms/react/) | `generated/react/{Component}.scaffold.tsx` + seeded `src/react/{Component}.tsx` | A working React component wired to the contract and stylesheet, seeded once into an authored file you own |
 | [`stories`](/cli/transforms/stories/) | `generated/react/{Component}.stories.tsx` | A Storybook CSF page with a story per prop-expressible variant, importing the authored component |
+| [`webcomponents`](/cli/transforms/webcomponents/) **experimental** | `generated/webcomponents/{Component}.scaffold.ts` + seeded `src/webcomponents/{Component}.ts` | A working Lit element wired to the contract and stylesheet, seeded once into an authored file you own |
+| [`webcomponents-stories`](/cli/transforms/webcomponents-stories/) **experimental** | `generated/webcomponents/{Component}.stories.ts` | A web-components Storybook CSF page with a story per prop-expressible variant, importing the authored element |
 
-`react` and `stories` both require `variants.yaml` — components without it are skipped with a warning.
+`react`, `stories`, `webcomponents`, and `webcomponents-stories` all require `variants.yaml` — components without it are skipped with a warning.
+
+The `webcomponents` and `webcomponents-stories` transformers are **experimental**: their output shape may change without a breaking-change note.
 
 ### Filtering by Component
 
@@ -93,7 +101,7 @@ specs transform react stories --components dsAlert dsBadge
 ## Running All Transformers
 
 ```bash
-specs transform contract css react stories
+specs transform contract css cssvars react stories webcomponents webcomponents-stories
 ```
 
 Or configure them in `config/pipeline.yaml` so `specs transform` alone is enough:
@@ -102,11 +110,14 @@ Or configure them in `config/pipeline.yaml` so `specs transform` alone is enough
 transformers:
   - name: contract
   - name: css
+  - name: cssvars
   - name: react
   - name: stories
+  - name: webcomponents
+  - name: webcomponents-stories
 ```
 
-`react` and `stories` both assume `contract` and `css` have already produced `generated/{Component}.contract.ts` and `generated/{Component}.styles.css` for the component — list them in this order.
+The component transformers (`react`, `stories`, `webcomponents`, `webcomponents-stories`) all assume `contract` and `css` have already produced `generated/{Component}.contract.ts` and `generated/{Component}.styles.css` for the component — list them in this order.
 
 ## See Also
 

@@ -45,6 +45,12 @@ you emit without saying so.
   assuming a hand-authored variable sheet. Add `cssvars` to `pipeline.transformers` to run
   it.
 
+- **`webcomponents` and `webcomponents-stories` transformers — experimental.** Emit a Lit
+  element and a web-components Storybook page from a spec, the same shape the `react` and
+  `stories` transformers produce for React. Both come from
+  `@directededges/webcomponents-from-specs`. They are experimental: the output shape may
+  change without a breaking-change note, so do not build on it yet.
+
 - **The `css` transformer expresses inline effects and gradients.** Shadows, blurs, and
   gradient fills declared directly on an element — rather than through a token — now
   become real `box-shadow`, `filter`, and `background-image` declarations. They were
