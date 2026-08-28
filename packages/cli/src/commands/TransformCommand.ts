@@ -114,6 +114,7 @@ export const Transform = new Command('transform')
               dataDirectory: config.settings.data?.directory
                 ? path.resolve(config.settings.data.directory)
                 : undefined,
+              scoped: (options.components?.length ?? 0) > 0,
             };
             await transformer.run(apiYaml, context);
           }

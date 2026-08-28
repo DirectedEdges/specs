@@ -37,14 +37,20 @@ export class CssvarsTransformer implements Transformer {
   readonly name = 'cssvars';
 
   private dataDirectory?: string;
+  private scoped = false;
 
   async run(_apiYaml: Record<string, unknown>, context: TransformerContext): Promise<void> {
     // Library-level transform: the per-component pass only captures context;
     // all output is produced once, in finalize().
     this.dataDirectory = context.dataDirectory ?? this.dataDirectory;
+    this.scoped = context.scoped ?? false;
   }
 
   async finalize(outputDir: string): Promise<void> {
+    if (this.scoped) {
+      console.warn('  [cssvars] skipped — library-level output is unchanged by a --components run');
+      return;
+    }
     const dataDir = this.dataDirectory;
     if (!dataDir || !fs.existsSync(dataDir)) {
       console.warn('  [cssvars] no data directory found — skipping (run `specs fetch` first)');

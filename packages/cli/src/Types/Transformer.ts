@@ -15,6 +15,12 @@ export interface TransformerContext {
   transformerOptions?: Record<string, unknown>;
   /** Absolute path to the workspace data directory (fetched library JSON), when configured. */
   dataDirectory?: string;
+  /**
+   * True when the run was narrowed with `--components`. Library-level
+   * transforms use this to skip whole-library work that a scoped run cannot
+   * have invalidated.
+   */
+  scoped?: boolean;
 }
 
 /**
