@@ -323,10 +323,23 @@ function buildCssLines(
       const vStr = String(v);
       if (classifiedProps.has(k)) {
         const concept = stateLookup.get(`${k}::${vStr}`) ?? stateLookup.get(`${k}::${vStr.toLowerCase()}`);
-        if (!concept) { skip = true; break; } // unmatched value = base/rest state
-        const conceptEntry = CONCEPT_TABLE[concept];
-        const sel = conceptEntry?.selector ?? `[data-${toKebab(k)}="${vStr}"]`;
-        const parts = sel.split(',').map(s => s.trim());
+        // A classified boolean's FALSE value has no concept of its own — it is
+        // the NEGATION of the true concept. Without this the whole variant is
+        // dropped as base/rest state, so an unselected/unchecked variant (and
+        // every hover/pressed pairing with it) emits no rule at all.
+        let negated: string | undefined;
+        if (!concept && v === false) {
+          const trueConcept = stateLookup.get(`${k}::true`);
+          const trueSel = trueConcept ? CONCEPT_TABLE[trueConcept]?.selector : undefined;
+          // Negating a multi-part concept is an AND of nots, not a cartesian
+          // expansion: `:disabled, [aria-disabled="true"]` becomes
+          // `:not(:disabled):not([aria-disabled="true"])`.
+          if (trueSel) negated = trueSel.split(',').map(part => `:not(${part.trim()})`).join('');
+        }
+        if (!concept && !negated) { skip = true; break; } // unmatched value = base/rest state
+        const conceptEntry = concept ? CONCEPT_TABLE[concept] : undefined;
+        const sel = negated ?? conceptEntry?.selector ?? `[data-${toKebab(k)}="${vStr}"]`;
+        const parts = negated ? [negated] : sel.split(',').map(s => s.trim());
         const expanded: string[] = [];
         for (const existing of stateSelSuffixes) {
           for (const part of parts) expanded.push(existing + part);
@@ -377,7 +390,27 @@ function buildCssLines(
       }
     }
 
-    const elemKeys = new Set([...Object.keys(variantElements), ...displayDecls.keys()]);
+    // A variant layout that reverses a flex parent's children is a visual swap,
+    // not a structural one — emit the reversal here so the scaffold keeps one
+    // copy of each child and DOM order (reading and tab order) stays as
+    // authored. Partial reorders are not expressible this way and are handled
+    // by the emitters relocating the element instead.
+    const reverseDecls = new Map<string, string>();
+    if (variant.layout) {
+      const defOrder = childOrder(parseLayout(defaultBlock?.layout));
+      const varOrder = childOrder(parseLayout(variant.layout));
+      for (const [parent, vlist] of varOrder) {
+        if (parent === null) continue;
+        const dlist = defOrder.get(parent);
+        if (!dlist || dlist.length < 2 || dlist.length !== vlist.length) continue;
+        if (vlist.join('\u0000') !== [...dlist].reverse().join('\u0000')) continue;
+        const mode = ((defaultElements[parent]?.styles ?? {}) as Record<string, unknown>).layoutMode;
+        if (mode === 'HORIZONTAL') reverseDecls.set(parent, 'flex-direction: row-reverse');
+        else if (mode === 'VERTICAL') reverseDecls.set(parent, 'flex-direction: column-reverse');
+      }
+    }
+
+    const elemKeys = new Set([...Object.keys(variantElements), ...displayDecls.keys(), ...reverseDecls.keys()]);
     for (const elemKey of elemKeys) {
       const elemSuffix = elemKey === 'root' ? '' : ` ${elemSelector(componentClass, elemKey)}`;
       const selector = rootSelectors.map(s => `${s}${elemSuffix}`).join(',\n');
@@ -390,6 +423,8 @@ function buildCssLines(
       if ('backgroundImage' in styles) decls.push(...backgroundImageDecls(styles.backgroundImage, images));
       const display = displayDecls.get(elemKey);
       if (display && !decls.some(d => d.startsWith('display:'))) decls.push(display);
+      const reverse = reverseDecls.get(elemKey);
+      if (reverse && !decls.some(d => d.startsWith('flex-direction:'))) decls.push(reverse);
 
       if (decls.length > 0) {
         lines.push(`${selector} {`);
@@ -398,6 +433,26 @@ function buildCssLines(
         lines.push('');
       }
     }
+  }
+
+  // Cursor is an affordance CSS needs and Figma has no concept of, so it is
+  // inferred from what this stylesheet actually styles. A component that STYLES
+  // a pressed state is a press target; hover alone is not, since plenty of
+  // non-interactive surfaces carry hover styling. Keying off emitted rules
+  // rather than declared states matters — a spec can declare a state whose
+  // variant produces no styling at all, which is not evidence of interactivity.
+  const emitted = lines.join('\n');
+  if (/:active\b/.test(emitted) || /\[aria-pressed="true"\]/.test(emitted)) {
+    lines.push(`.${componentClass} {`, '  cursor: pointer;', '}', '');
+  }
+  if (/:disabled\b/.test(emitted) || /\[aria-disabled="true"\]/.test(emitted)) {
+    const disabledSel = CONCEPT_TABLE['disabled']?.selector ?? ':disabled';
+    lines.push(
+      disabledSel.split(',').map(part => `.${componentClass}${part.trim()}`).join(',\n') + ' {',
+      '  cursor: not-allowed;',
+      '}',
+      '',
+    );
   }
 
   return lines;
@@ -476,4 +531,16 @@ function elemSelector(componentClass: string, elemKey: string): string {
   return elemKey === 'root'
     ? `.${componentClass}`
     : `.${componentClass}__${toKebab(elemKey)}`;
+}
+
+/** Parent key → ordered child keys, for every parent in a layout tree. */
+function childOrder(nodes: LayoutNode[], parent: string | null = null, out?: Map<string | null, string[]>): Map<string | null, string[]> {
+  const map = out ?? new Map<string | null, string[]>();
+  for (const n of nodes) {
+    const list = map.get(parent) ?? [];
+    list.push(n.key);
+    map.set(parent, list);
+    childOrder(n.children, n.key, map);
+  }
+  return map;
 }

@@ -109,10 +109,15 @@ export function styleToCSS(
 
   // ── Opacity ─────────────────────────────────────────────────────────────────
 
+  // An unbound opacity arrives as the ratio Figma stores (0.36). An opacity
+  // VARIABLE is authored on a percentage scale (36), because that is what reads
+  // naturally across platforms — so a token reference is multiplied into a CSS
+  // percentage. Emitting the variable bare gives `opacity: 36`, which clamps to
+  // 1 and silently discards the state.
   if ('opacity' in styles && styles.opacity !== undefined) {
     const v = styles.opacity;
     const resolved = resolveTokenVar(v, tokensFormat);
-    if (resolved) decls.push(`opacity: ${resolved}`);
+    if (resolved) decls.push(`opacity: calc(${resolved} * 1%)`);
     else if (typeof v === 'number') decls.push(`opacity: ${v}`);
   }
 
