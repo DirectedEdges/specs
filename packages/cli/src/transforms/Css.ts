@@ -150,6 +150,14 @@ function buildCssLines(
   const lines: string[] = [
     '/* Generated. Do not edit — regenerate with `specs transform`. */',
     '',
+    // A Figma frame's width and height INCLUDE its padding; the CSS default,
+    // content-box, excludes it. Without this, every element carrying both a
+    // fixed dimension and padding renders larger than the spec by exactly its
+    // padding — a 24px frame with 4px padding measures 32px.
+    `.${componentClass}, .${componentClass} * {`,
+    '  box-sizing: border-box;',
+    '}',
+    '',
   ];
 
   // ── Default styles ─────────────────────────────────────────────────────────
@@ -271,6 +279,18 @@ function buildCssLines(
       lines.push('}');
       lines.push('');
     }
+
+    // An unfilled slot is still a flex item, so the parent's gap paints as
+    // spacing around nothing. `:empty` covers the react scaffold, which renders
+    // the slot's children directly; the webcomponents scaffold always holds a
+    // `<slot>` element and so is never `:empty`, and sets data-empty instead.
+    if (elemTypes[elemKey] === 'slot') {
+      lines.push(`${selector}:empty,`);
+      lines.push(`${selector}[data-empty] {`);
+      lines.push('  display: none;');
+      lines.push('}');
+      lines.push('');
+    }
   }
 
   // ── State lookup — built from config.processing.states ────────────────────
@@ -313,8 +333,15 @@ function buildCssLines(
         }
         stateSelSuffixes = expanded;
       } else {
-        // Boolean true → presence selector; string value → value selector
-        dataAttrs.push(v === true ? `[data-${toKebab(k)}]` : `[data-${toKebab(k)}="${vStr}"]`);
+        // Scaffolds emit booleans as presence: the attribute is set to "" when
+        // true and omitted when false — never written as "false". So a false
+        // variant is the ABSENCE of the attribute; `[data-x="false"]` would
+        // match nothing and the variant's styling would never apply.
+        dataAttrs.push(
+          v === true ? `[data-${toKebab(k)}]`
+            : v === false ? `:not([data-${toKebab(k)}])`
+              : `[data-${toKebab(k)}="${vStr}"]`
+        );
       }
     }
     if (skip) continue;
