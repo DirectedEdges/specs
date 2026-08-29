@@ -71,10 +71,12 @@ export function layoutToCSS(
   if ('itemSpacing' in styles && styles.itemSpacing !== undefined && styles.itemSpacing !== null) {
     const v = styles.itemSpacing;
     if (typeof v === 'number') {
-      // gap does not accept negative values — negative itemSpacing represents
-      // overlapping children and requires margin on child elements instead.
-      if (v < 0) return decls; // caller handles via child margins (deferred)
-      decls.push(`gap: ${v === 0 ? '0' : `${v}px`}`);
+      // gap does not accept negative values — negative itemSpacing means the
+      // children OVERLAP, which CSS expresses as a negative margin on each
+      // child after the first. Css.ts emits that rule; here we only skip the
+      // gap declaration. (Skipping must not return: the rest of this function
+      // still owns FILL translation and the other layout declarations.)
+      if (v >= 0) decls.push(`gap: ${v === 0 ? '0' : `${v}px`}`);
     } else if (isTokenRef(v) || (typeof v === 'object' && v !== null && '$cssVar' in (v as object))) {
       const r = resolveTokenVar(v, tokensFormat);
       if (r) decls.push(`gap: ${r}`);

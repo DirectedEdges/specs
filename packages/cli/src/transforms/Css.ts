@@ -279,6 +279,7 @@ function buildCssLines(
       lines.push('}');
       lines.push('');
     }
+    lines.push(...overlapRule(selector, styles));
 
     // An unfilled slot is still a flex item, so the parent's gap paints as
     // spacing around nothing. `:empty` covers the react scaffold, which renders
@@ -432,6 +433,7 @@ function buildCssLines(
         lines.push('}');
         lines.push('');
       }
+      lines.push(...overlapRule(selector, styles));
     }
   }
 
@@ -531,6 +533,22 @@ function elemSelector(componentClass: string, elemKey: string): string {
   return elemKey === 'root'
     ? `.${componentClass}`
     : `.${componentClass}__${toKebab(elemKey)}`;
+}
+
+/**
+ * Overlapping children: Figma expresses overlap as a NEGATIVE itemSpacing,
+ * which `gap` cannot represent. CSS does it with a negative margin on every
+ * child after the first, along the parent's main axis.
+ */
+function overlapRule(selector: string, styles: Record<string, unknown>): string[] {
+  const v = styles.itemSpacing;
+  if (typeof v !== 'number' || v >= 0) return [];
+  const prop = styles.layoutMode === 'VERTICAL' ? 'margin-block-start' : 'margin-inline-start';
+  // This reaches the react scaffold's children directly. The webcomponents
+  // scaffold projects slot content through a holder, and ::slotted() cannot
+  // style a slotted node's descendants — so composed example content carries
+  // the same margin inline instead (see composeSlotHtml).
+  return [`${selector} > * + * {`, `  ${prop}: ${v}px;`, '}', ''];
 }
 
 /** Parent key → ordered child keys, for every parent in a layout tree. */
