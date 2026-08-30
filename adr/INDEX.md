@@ -4,9 +4,9 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 077 | The Image Component's Code Name, and the Read-Side / Write-Side Boundary | Adds `images.component` so the designated image component gets a per-platform code name; a container's `backgroundImage` always stays styling; states the rule that a read-side convention decides what a node *is* and a write-side convention decides what a primitive *becomes* |
+| 077 | The Image Component's Code Name, and the Read-Side / Write-Side Boundary | Text, glyph and container are node kinds; an image is an attribute, so it gets `images.component` rather than a place in the primitive vocabulary. A container's `backgroundImage` always stays styling |
 | 076 | Direction-Keyed Container Bindings, and a Platform-Level `stylesProp` | A container binds to one component or to a `layoutMode`-keyed map (Row/Column/Box); only `stylesProp` hoists to the platform, since the per-primitive `props` sets are disjoint |
-| 075 | `props` — a Closed, Per-Primitive Map onto a Component's Props | Text maps only `textColor`/`typography`, glyph only `fillColor`/`content`, container only `layoutMode`; colour and glyph name default; everything else is passed styling routed to `stylesProp` |
+| 075 | `props` — a Closed, Concept-Keyed Map onto a Component's Props | Keys name concepts, not spec members: text maps `color`/`typography`, glyph `color`/`content`, container `direction`; `color` and `content` default to their own names; everything else is passed styling routed to `stylesProp` |
 | 074 | Primitives Resolve to Components at Emit Time, Not in the Spec | The spec keeps `type: text`; each platform generator emits its own bound component, so one spec serves every implementation and the transformer stays a pure function of the Figma file. `PrimitiveKind` is the bindable subset of `ElementType`: text, glyph, container |
 | 073 | `conventions.platforms`, with Figma as One Platform Among Them | Replaces `conventions.figma` with a platform-keyed map in which `figma` is one key; platform ids name implementations (`react`, `web-components`, `swiftui`) and stay flat |
 | 072 | Numeric Enum on `NumberProp` | Adds optional `enum?: number[]` so a VARIANT whose options are all numbers emits as a number with its closed option set preserved |

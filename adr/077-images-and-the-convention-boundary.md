@@ -23,9 +23,11 @@ images:
 - **Image as a nested component.** The library has a designated image component, the designer placed an instance of it, the transformer recognizes it, and the spec carries `type: instance, instanceOf: "DS Image"`
 - **Image as a layer fill.** The image is a paint on a container, and the spec carries `Styles.backgroundImage`
 
-An image component's name and props disperse across platforms exactly as a text component's do — `DsImage`, `<ds-image>`, SwiftUI `Image`, Compose `AsyncImage`. So images need a per-platform code name. The question this ADR settles is **which of the two halves that name attaches to**, and the answer is not the symmetric one.
+An image component's name and props disperse across platforms exactly as a text component's do — `DsImage`, `<ds-image>`, SwiftUI `Image`, Compose `AsyncImage`. So images need a per-platform code name, and they need it by a different route than text, glyph, and container do.
 
-**A `backgroundImage` on a container must stay a background image.** Such a container almost always has children — it is a card with a hero fill, a section with a photographic backdrop, a decorated box. Converting it to an image component would discard its layout role and its children, and would do so on exactly the elements where the fill is most clearly decoration rather than content. Layout components should support `backgroundImage` as applied styling on every platform, and never be swapped for the image primitive.
+**Text, glyph, and container are Figma primitives. An image is an attribute.** The first three are node kinds: a `TEXT` node, a vector marked as a glyph, a `FRAME`. Each *is* a thing a design system implements with a component, so each resolves as a primitive (ADR-074). An image is not a node kind at all — it is a paint applied to a node, an attribute of something that is already a container. Applying it changes nothing about what the node is. That asymmetry is why images cannot ride the primitive mechanism and need a convention of their own.
+
+It also settles what happens to the fill. **A `backgroundImage` on a container must stay a background image.** Such a container almost always has children — a card with a hero fill, a section with a photographic backdrop, a decorated box. Converting it to an image component would discard its layout role and its children, and would do so on exactly the elements where the fill is most clearly decoration rather than content. Layout components should support `backgroundImage` as applied styling on every platform.
 
 That removes the layer-fill half as a binding site. What remains is the instance half — where the component is real, is named, and needs translating from its Figma name into each platform's.
 
@@ -33,6 +35,7 @@ That removes the layer-fill half as a binding site. What remains is the instance
 
 ## Decision Drivers
 
+- **A primitive is a node kind; an image is an attribute.** Text, glyph, and container each name what an element *is*, and resolve as primitives. An image is a paint on an element that is already something else, so it needs its own convention rather than a place in the primitive vocabulary
 - **A container is a container.** A fill is styling. Nothing about a background image changes what the element is or what it contains
 - **Do not fabricate, and do not infer (ADR-074).** A binding must not invent a component, and must not guess from a style's presence what an element means
 - **`PrimitiveKind` is the bindable subset of `ElementType` (ADR-074).** A kind whose trigger is not an element's own type is not a primitive kind
@@ -84,7 +87,7 @@ A generator emitting an element whose `instanceOf` matches `platforms.figma.imag
 
 **Cons / Trade-offs**:
 
-- It is a **component-name translation**, and the general version of that problem — what every Figma component is called in each target — is unsolved and out of scope. This is a narrow instance of it, justified because the designated image component is a library primitive that is typically not itself specced, so no generator can derive its name
+- It is a **component-name translation**, and the general version of that problem — what every Figma component is called in each target — is unsolved. That is not a reason to withhold this one: because an image is an attribute rather than a primitive, the primitive mechanism can never serve it, so leaving the gap open would mean the one image half that *does* have a real component keeps emitting a Figma name into code. If a general answer arrives later, this is the shape it generalizes
 - Two members name an image component. The distinction is real — one Figma identifier, one code identifier — but must be carried in both doc comments or it reads as redundancy
 
 ---
@@ -217,5 +220,6 @@ The `images` block keeps one name on both sides deliberately. Splitting it into 
 - A container with a background image stays a container, with its fill as styling, on every platform. There is no rule that can convert it and no flag that enables one
 - The designated image component gets a per-platform code name, so ADR-063's instance half emits `DsImage` rather than the Figma name
 - `PrimitiveKind` stays `text | glyph | container` — a clean subset of `ElementType`, one trigger mechanism, no exceptions
+- The primitive vocabulary names node kinds, and images are excluded on principle rather than by omission: an image is an attribute of a node, not a kind of node. That is the rule to apply when the next attribute-shaped concept arrives
 - A narrow instance of component-name translation now exists in the contract. The general problem — what every Figma component is called per platform — remains open, and this is the shape a future answer would generalize
 - The boundary rule is about direction of travel, not about Figma. Any platform can hold both sides, which is what keeps ADR-073's single map honest

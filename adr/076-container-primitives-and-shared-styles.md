@@ -20,7 +20,7 @@ The second is at least as common as the first, and SwiftUI and Compose both ship
 
 The spec carries the discriminator already. `Styles.layoutMode` is `LayoutMode | null`, tracking Figma's auto-layout: horizontal, vertical, or none. The third case is real and distinct — a container with no auto-layout is a positioning box, not a degenerate row.
 
-The second question here is whether anything in a primitive binding wants hoisting to the platform level. ADR-075 answers most of it: `props` is closed per primitive and the three sets are **disjoint** — `textColor`/`typography`, `fillColor`/`content`, `layoutMode`. There is nothing shared to hoist. One member remains, and it is the same on every primitive a platform declares: the prop that receives passed styling.
+The second question here is whether anything in a primitive binding wants hoisting to the platform level. ADR-075 answers most of it: `props` is closed per primitive and concept-keyed — `color`/`typography`, `color`/`content`, `direction`. The only concept shared across kinds is `color`, whose prop name is already defaulted, so there is nothing worth hoisting. One member remains, and it is the same on every primitive a platform declares: the prop that receives passed styling.
 
 ---
 
@@ -57,7 +57,7 @@ container:
 container:
   component: DsLayout
   props:
-    layoutMode: direction
+    direction: direction
 
 # SwiftUI
 container:
@@ -74,8 +74,8 @@ The map's keys are exactly the `LayoutMode` values. A generator reads the elemen
 - Expresses both idioms in their own terms, neither deformed into the other. The single form stays one line
 - The discriminator is `Styles.layoutMode`, already in every spec. No inference, no new spec member
 - `NONE` gets an explicit slot, so a non-auto-layout container has a declared answer rather than falling through
-- The keyed form is the union, not a replacement: the single form composed with `props: {layoutMode: direction}` remains fully expressible
-- `layoutMode` is the container's only mappable source (ADR-075 Decision 3), and this is why — it is a prop in one idiom and a component selector in the other
+- The keyed form is the union, not a replacement: the single form composed with `props: {direction: direction}` remains fully expressible
+- `direction` is the container's only mappable concept (ADR-075 Decision 4), and this is why — it is a prop in one idiom and a component selector in the other
 
 **Cons / Trade-offs**:
 
@@ -126,7 +126,7 @@ platforms:
 **Pros**:
 
 - `stylesProp` is genuinely a platform fact. A React design system passes styling through `sx` on every component; SwiftUI through a modifier chain. Repeating it under each primitive is the most-repeated line in the file and the one most likely to drift
-- `props` has nothing to hoist. ADR-075's closed sets are **disjoint** — no source is mappable on two primitives — so a shared `props` map could only ever hold entries meaningful to one primitive, which is the primitive's own map with extra indirection
+- `props` has nothing worth hoisting. ADR-075's closed sets overlap only on `color`, whose prop name is already defaulted to `color` inside any declared binding — so a shared map would carry at most one entry that a default already supplies
 - Keeps the hoisting to a single scalar, so Decision 3 is one sentence rather than a merge algorithm
 
 **Cons / Trade-offs**:
@@ -139,7 +139,7 @@ platforms:
 
 The first draft's selection, motivated by sizing and layout keys (`maxWidth`, `padding`, `layoutSizingHorizontal`) appearing on every primitive.
 
-**Rejected because**: ADR-075 Decision 3 removed the motivation. Those keys are not mappable on *any* primitive — sizing, spacing, and layout are passed styling everywhere, not props — so the shared map would be empty. With the closed sets disjoint, a baseline `props` map is dead structure, and it would have cost a per-key merge rule and an override-with-`null` convention to hold nothing.
+**Rejected because**: ADR-075 Decision 4 removed the motivation. Those keys are not mappable on *any* primitive — sizing, spacing, and layout are passed styling everywhere, not props — so the shared map would hold nothing but `color`, which a default already supplies. A baseline `props` map is dead structure that would still cost a per-key merge rule and an override-with-`null` convention.
 
 ---
 
@@ -201,7 +201,7 @@ PlatformConventions:
         VERTICAL: DsColumn
         NONE: DsBox
       props?:
-        layoutMode?: string | null
+        direction?: string | null
       stylesProp?: string    # overrides the baseline
 ```
 
@@ -218,7 +218,7 @@ The keyed `component` map reuses `LayoutMode` rather than defining a parallel en
 
 `ResolvedConventions` carries the resolved `stylesProp` on each primitive, not the two levels. Resolution is the loader's job, consistent with ADR-071.
 
-The keyed `component` form is legal only on `ContainerBinding`. `TextBinding` and `GlyphBinding` take a plain string, because `layoutMode` is not among their mappable sources and nothing would select from the map.
+The keyed `component` form is legal only on `ContainerBinding`. `TextBinding` and `GlyphBinding` take a plain string, because `direction` is not among their mappable concepts and nothing would select from the map.
 
 ---
 
@@ -254,6 +254,6 @@ The keyed `component` form is legal only on `ContainerBinding`. `TextBinding` an
 
 - Both container idioms are expressible in their own terms, and `layoutMode: NONE` has a declared answer instead of falling through
 - `stylesProp` is declared once per platform, which is the scope at which it is actually a fact
-- Nothing else hoists, because ADR-075's closed sets are disjoint. The two-level structure stays a single scalar with a one-sentence rule
+- Nothing else hoists, because ADR-075's closed sets share only `color`, which is defaulted. The two-level structure stays a single scalar with a one-sentence rule
 - A partial `component` map is legal and quietly incomplete for the omitted mode. A resolution-time warning is the mitigation, and it is a consumer concern
 - `LayoutMode` is load-bearing in two schemas. Changing it touches conventions as well as styles
