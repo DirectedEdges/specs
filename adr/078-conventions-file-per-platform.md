@@ -299,15 +299,23 @@ A file whose basename matches no platform any generator reads is inert, exactly 
 
 ## Downstream Impact
 
+Measured against `specs` on `release/schema-0.31.0+cli-0.28.0`. These are the file-layout impacts; the namespace move (`conventions.figma` → `platforms.figma`) carries its own inventory in ADR-073.
+
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-cli` | Reads `config/conventions/`; errors on a stray `config/conventions.yaml`; `specs migrate config` emits the directory form | Implement |
-| `specs-plugin-2` | Persists conventions; unaffected by workspace file layout | None |
-| `specs-from-figma` | Receives a resolved `Conventions`; unaffected | None |
-| `react-from-specs` | Same | None |
-| `webcomponents-from-specs` | Same | None |
-| `figma-from-specs` | Same | None |
-| Existing workspaces | None outside this repository — `config/conventions.yaml` ships in the unreleased CLI `0.28.0` and has never reached one. In-repo test workspaces convert by moving each platform entry into its own file | Mechanical, one-time |
+| `specs-cli` — `Config/ConfigLoader.ts` | `CONFIG_DIR_FILES = ['conventions', 'settings', 'pipeline']` and `readPart(dir, 'conventions')` treat conventions as one of three peer files. Conventions stops being a `readPart` and becomes a directory read | Split the discovery path; keep `settings` and `pipeline` as they are |
+| `specs-cli` — `commands/MigrateCommand.ts` | Writes literal targets `config/conventions.yaml`, `config/settings.yaml`, `config/pipeline.yaml`, and its pre-flight guard refuses when `config/` already holds any of `conventions|settings|pipeline` × `yaml|json` | Write `config/conventions/<platform>.yaml`; extend the overwrite guard to the directory |
+| `specs-cli` — `Config/migrations/configV1.ts` | Returns a single `conventions` object for the migrator to serialize | Return per-platform entries, or have `MigrateCommand` split the one it returns |
+| `specs-cli` — `Config/ConfigTemplates.ts` | `generateConventionsTemplate()` emits one document with a `figma:` root, registered under the key `'config/conventions.yaml'`. It carries inline comments and a docs link, so it is authored content, not a stub | Emit one template per scaffolded platform, rooted at the entry body |
+| `specs-cli` — `commands/InitCommand.ts` | Scaffolds `config/` and names `config/conventions.yaml` in its `--help` description | Update scaffolding and description |
+| `specs-cli` — `bridge/server.ts` | **Reads `config/conventions.yaml` directly** — `parse(readFileSync(pathResolve(workspaceDir, 'config', 'conventions.yaml')))` — bypassing `ConfigLoader` entirely. A second, independent read path | Must move too. Left behind it does not error; it finds no file and serves the plugin no conventions, which degrades output silently |
+| `specs-plugin-2` | Never touches workspace files; receives conventions over the bridge | None |
+| `specs-from-figma` / `figma-from-specs` | Receive a resolved `Conventions`; unaffected by layout | None |
+| Docs site (`specs/site`) | Pages documenting the `config/` layout and `specs init` / `specs migrate config` output | Update layout examples |
+| `specs-testing` workspaces | Six in-repo workspaces hold `config/conventions.yaml` | Mechanical conversion, one file per platform |
+| Workspaces outside this repository | None — `config/conventions.yaml` ships in the unreleased CLI `0.28.0` | None |
+
+The finding worth acting on is `bridge/server.ts`. Every other consumer reads conventions through `ConfigLoader`, so a single change to discovery serves them; the bridge server opens the file itself, and its failure mode is silence rather than an error.
 
 ---
 
@@ -327,4 +335,7 @@ A file whose basename matches no platform any generator reads is inert, exactly 
 - The contract is unchanged. Every consumer receives one `Conventions` object and cannot tell which layout produced it
 - There is one layout. No discovery branch, no precedence rule, no both-present error — and a workspace with only Figma conventions accepts a directory holding one file as the price
 - **This must land alongside `0.28.0`.** Once the single-file form ships, replacing it is a breaking change to every workspace that adopted it
+- **The layout is read in two places, not one.** `ConfigLoader` is the intended door, but `bridge/server.ts` opens `config/conventions.yaml` by literal path. Any layout change has to move both, and only one of them fails loudly — the bridge path finds no file and serves the plugin nothing, so a missed edit shows up as degraded output rather than an error. Consolidating the bridge onto `ConfigLoader` is the durable fix and is worth doing as part of this change
+- **Config scaffolding is authored content, not a stub.** `ConfigTemplates.generateConventionsTemplate()` carries inline comments and a documentation link, so splitting it per platform is writing several templates, not slicing one
+- Together with ADR-073's inventory, the whole conventions move touches `specs-schema`, six CLI subsystems, 15 source files across `specs-from-figma` and `figma-from-specs`, roughly 44 of their test files, one line of `specs-plugin-2`, and about 45 docs pages. None of it is deep, and all of it is cheaper now than after `0.31.0` and `0.28.0` ship
 - **Out of scope, and now more visible**: `metadata.conventions` in an emitted spec records the resolved conventions, which in a five-platform workspace means four platforms' vocabulary riding along in every spec generated from Figma. Whether metadata should carry only the platforms a run used is a separate question this ADR deliberately does not answer

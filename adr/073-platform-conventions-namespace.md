@@ -316,15 +316,23 @@ The defaults that `DEFAULT_CONVENTIONS` carried — `naming: NONE`, `slotConstra
 
 ## Downstream Impact
 
+Counts below were measured against `specs` on `release/schema-0.31.0+cli-0.28.0`, `specs-from-figma` on `feat/react-from-specs`, and `specs-plugin-2` on `release/1.18.0`. They will drift as those branches move; they are given to size the work, not as a checklist.
+
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | Reads its conventions from `platforms.figma` instead of `figma` | Update the read path; no behavior change |
-| `specs-cli` | Same, plus carry the whole map through and select a platform id from `Settings`/`Pipeline` | Update the read path; wire platform selection |
-| `specs-plugin-2` | Persists conventions; same one-level path change | Update the read path |
-| `figma-from-specs` | None now; gains a place for Figma-side bindings (ADR-077) | Recompile |
-| `react-from-specs` | Gains the block it needs; behavior change is ADR-074 | Declare which platform id it reads |
-| `webcomponents-from-specs` | Same | Declare which platform id it reads |
-| Workspace `conventions.yaml` files | Every file gains a `platforms:` level with `figma:` beneath it | Mechanical edit; a one-time migration note in the CLI changelog |
+| `specs-schema` | `conventions.schema.json` lists `figma` in `required`. Replacing it with an optional `platforms` is a change *within* the file, not an addition beside it | Rewrite the `Conventions` definition; add `PlatformConventions` |
+| `specs-from-figma` | **13 source files, 42 call sites** read `conventions.figma.*` — `Component`, `Variant(s)`, `Props`, `CodeOnlyProps`, `Subcomponents`, `Images`, `Anatomy`, `SlotContent`/`SlotDetector`/`SlotItem`, `InstanceExamples`, `Elements`. Every one reads a `ResolvedConventions` handed to `Component`, so the change is mechanical, not structural | Repoint each access; no signature changes |
+| `specs-from-figma` (tests) | **~44 test files** construct conventions fixtures with a `figma` root | Mechanical fixture update |
+| `figma-from-specs` | **2 source files** (`Elements`, `KeyReversal`, `CodeOnlyProps`) read the same shape | Repoint |
+| `specs-cli` | **24 sites across 11 files.** `ConfigLoader` resolves the block and emits **7 validation warnings whose message text names `conventions.figma.…` paths**; eight commands read it (`Generate`, `Transform`, `Analyze`, `Render`, `Fetch`, `Cache`, `Scan`, `ApplyCustomTokens`); `bridge/server.ts` reads `glyphs.match` | Repoint accesses; rewrite the warning strings, which are user-facing |
+| `specs-cli` (`analyzers/Keys.ts`) | Reads **`metadata.conventions.figma.naming`** — a spec-reading path, not a config-reading one, and already carrying a branch for older specs | Add the new path; see ADR-079, which changes what metadata carries |
+| `specs-cli` (`Config/migrations/configV1.ts`) | Builds `{ figma }` when migrating a pre-split `specs.config.yaml` | Emit under `platforms` |
+| `specs-plugin-2` | **One site.** `settingsToSpecConfig` in `src/SpecsController.ts` is the plugin's single translation point from panel fields to `SpecConfig`, and it builds one `conventions: { figma: {…} }` literal. Plus one stale doc comment in `UI/Types/Settings.ts` | One-line change |
+| `specs-plugin-2` (bridge) | `MessageManager` passes `ResolvedConventions` through opaquely and never indexes it | None |
+| Docs site (`specs/site`) | **45 pages mention conventions; ~35 lines** write a `conventions.figma.…` path or a `figma:` root in a YAML example | Rewrite examples and paths |
+| `react-from-specs` / `webcomponents-from-specs` | Gain the block they need; behavior change is ADR-074 | Declare which platform id each reads |
+
+The distribution is the useful finding: the change is **wide but shallow in `specs-from-figma`** (many call sites, all the same edit, all reading one object passed down from `Component`), **narrow and deep in the CLI** (fewer sites, but they include user-facing warning text and a spec-reading path), and **a single line in the plugin**, because the plugin funnels every panel field through one translation function.
 
 ---
 
@@ -344,3 +352,4 @@ The defaults that `DEFAULT_CONVENTIONS` carried — `naming: NONE`, `slotConstra
 - `PlatformConventions` permits meaningless combinations (`swiftui.states`). Accepted as the price of removing the special case; a consumer-side warning is the mitigation
 - Every conventions file and every conventions read path gains one level. Free now, MAJOR after `0.31.0` ships — **this change must land in this release or not at all**
 - Adding a platform is adding a key; adding a direction is adding a member
+- **The one-time cost is concentrated where it is cheapest to pay.** `specs-from-figma` takes the most edits (42 call sites) but every one is the same mechanical repoint of an object already passed down from `Component`; the plugin takes a single line, because `settingsToSpecConfig` is its only translation point. The CLI is the awkward one: its 24 sites include seven user-facing validation messages that quote `conventions.figma.…` paths, and `analyzers/Keys.ts` reads the path out of a *spec's* metadata rather than out of configuration — a case ADR-079 changes again
