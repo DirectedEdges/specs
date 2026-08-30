@@ -1,4 +1,4 @@
-# ADR: Mapping a Primitive's Styles onto its Component's Props
+# ADR: `props` — a Closed, Per-Primitive Map onto a Component's Props
 
 **Branch**: `075-primitive-style-prop-mapping`
 **Created**: 2026-08-30
@@ -11,7 +11,7 @@
 
 ## Context
 
-ADR-074 establishes that a `text` element resolves to a bound component at emit time. Naming the component is the easy half. The hard half is what happens to the element's styles.
+ADR-074 establishes that a `text` element resolves to a bound component at emit time. Naming the component is the easy half. The hard half is what happens to everything the element carries.
 
 ```yaml
 label:
@@ -25,294 +25,308 @@ label:
   content: Label
 ```
 
-Six styles, and they do not all want the same fate:
+Two of these are what a text component's props exist for. The rest are styling applied to the box — sizing, truncation, layout — which a design system's text component takes as passed styling, not as configured props. A generator that maps nothing emits `<DsText style={{color: ..., font: ...}}>`, the component in name only. A generator that maps everything invents props that do not exist.
 
-- `textColor` is what the component's own color prop exists for. Emitting it as an inline style on a `DsText` would defeat the point of using `DsText`
-- `typography` is a token naming a text style. Whether a prop accepts it depends entirely on the design system
-- `maxLines` and `textOverflow` may or may not be props
-- `maxWidth` and `layoutSizingHorizontal` are layout facts about the box, not about the text
+The mapping is small, and it is small in a **specific, per-primitive way**:
 
-A generator that maps nothing emits `<DsText style={{color: ..., font: ...}}>` — the component in name only. A generator that maps everything invents props that do not exist. The mapping has to be declared, and the declaration has to say *which* styles become props, *what those props are called*, and *what happens to the rest*.
+- **Text** takes a colour and a type treatment. Nothing else
+- **Glyph** takes a colour and a name. Its size comes from sizing and layout styling, not from a prop
+- **Container** takes almost nothing. `backgroundColor`, `padding`, `cornerRadius`, `strokes` are applied styling, not configured props
 
 Two constraints from the naming survey shape the defaults:
 
 | Concept | CSS / React | SwiftUI | Compose |
 |---|---|---|---|
-| Text color | `color` | `.foregroundStyle` / `.foregroundColor` | `color` param on `Text` |
-| Icon color | `color` / `fill` | `.foregroundStyle` | `tint` / `color` param on `Icon` |
-| Text style | `font`, `font-family`, `font-size` | `.font(...)` | `style` param (`TextStyle`) |
-| Escape hatch | `style` / `sx` / `className` | modifier chain | `Modifier` |
+| Text colour | `color` | `.foregroundStyle` | `color` param on `Text` |
+| Icon colour | `color` / `fill` | `.foregroundStyle` | `tint` / `color` param on `Icon` |
+| Type treatment | `font`, `font-family` | `.font(...)` | `style` param (`TextStyle`) |
+| Passed styling | `style` / `sx` / `className` | modifier chain | `Modifier` |
 
-**Color has a shared term.** CSS and Compose both say `color` for both text and icon; SwiftUI's `foregroundStyle` is the outlier. Constitution VI rule 1 (2+ code platforms agree) selects `color` as the default prop name.
+**Colour has a shared term.** CSS and Compose both say `color`, for text and icon alike; SwiftUI's `foregroundStyle` is the outlier. Constitution VI rule 1 (2+ code platforms agree) selects `color`.
 
-**Text style has no shared term and, more importantly, no shared *shape*.** A design system's text component may take a single `typography` / `variant` / `style` prop naming a text style, or it may take no such prop at all and expect the caller to style directly. There is no defensible default. And a `typography` style in a spec arrives in two forms — `TokenReference` (a named text style) or a resolved `Typography` object (family, weight, size, line height) — which want different destinations.
+**Type treatment has no shared term and no shared *shape*.** A text component may take a single prop naming a text style, or none at all. And a `typography` style arrives in two forms — `TokenReference` (a named text style) or a resolved `Typography` object (family, weight, size) — which want different destinations.
 
 ---
 
 ## Decision Drivers
 
 - **Declared, not inferred.** A prop name is a fact about a code library. Guessing one produces code that does not compile
-- **Defaults only where a term is genuinely shared.** A default that is right half the time is worse than no default, because it fails silently
-- **No style is silently dropped.** A style with no mapping must still reach the output through whatever path the generator already uses. Fidelity loss must be impossible by construction, not by diligence
-- **No logic in configuration.** Conventions declare mappings; they do not carry expressions, transforms, or conditionals. The moment a convention needs evaluating, it has become code
-- **Absence means one thing (ADR-071).** A member absent inside a declared block takes the documented default; a *block* absent means no convention. Both meanings must stay clean here
-- **Do not duplicate the token pipeline.** Token naming and resolution already have an owner. A second table restating it will drift
-- **Minimal, stable public API (Constitution III)** and **no spec-shape change (ADR-074)**
+- **The mappable surface is small and known per primitive.** A design system's text component does not take `padding` as a prop. Permitting the mapping makes the contract describe libraries that do not exist
+- **Defaults only where a term is genuinely shared.** A default that is right half the time is worse than none, because it fails silently
+- **Everything unmapped falls back.** A style with no mapping reaches the output through the path the generator already uses, and a prop value the component does not accept falls back to the component's own default
+- **No logic in configuration.** Conventions declare mappings; they do not carry expressions or conditionals
+- **Absence means one thing (ADR-071).** A member absent inside a declared block takes the documented default; a block absent means no convention
+- **Do not duplicate the token pipeline.** Token naming already has an owner
+- **No spec-shape change (ADR-074)** and **Constitution III**
 
 ---
 
 ## Options Considered
 
-Five decisions: the mapping's shape, the defaults, the typography axis, whether values are mapped as well as names, and the fate of unmapped styles.
+Six decisions: the member's name, its shape, which sources are mappable per primitive, the defaults, the typography axis, and the fate of everything else.
 
 ---
 
-## Decision 1 — The shape of the mapping
+## Decision 1 — What to call the member
 
-### Option 1A: `styleProps` — a style-key-to-prop-name map on the binding *(Selected)*
+### Option 1A: `props` *(Selected)*
+
+**Pros**:
+
+- Says what it produces. The right-hand side of every entry is a prop name on the bound component
+- Avoids the ambiguity a style-flavoured name creates. `styleProps` invites the reader to ask "is this becoming a `propConfiguration` or a `styles` property?" — a live question in this schema, since elements carry both, and the answer is unambiguously the former
+- The sources are **not** all styles. Glyph maps `content` to a `name` prop (Decision 3), so a style-flavoured name would already be wrong
+
+**Cons / Trade-offs**:
+
+- `props` is a common word in a schema that already has `Props`, `PropBinding`, and `propConfigurations`. Its position under a primitive binding disambiguates it, and the alternatives all carry the ambiguity above
+
+---
+
+### Option 1B: `styleProps` *(Rejected)*
+
+**Rejected because**: it muddles which of the element's two channels — `styles` or `propConfigurations` — the mapping feeds, and it is inaccurate for the glyph's `content` source.
+
+---
+
+### Option 1C: `mappings` / `bindings` *(Rejected)*
+
+**Rejected because**: `binding` is load-bearing already (`PropBinding`, `$binding`, `SlotBinding`, `ImageBinding`) and means a prop reference inside a spec — a different concept entirely. `mappings` says nothing about what is produced.
+
+---
+
+## Decision 2 — The shape of the mapping
+
+### Option 2A: A source-to-prop-name map *(Selected)*
 
 ```yaml
-platforms:
-  react:
-    primitives:
-      text:
-        component: DsText
-        styleProps:
-          textColor: color        # style key → prop name
-          typography: variant
-          maxLines: maxLines
-          textOverflow: overflow
+primitives:
+  text:
+    component: DsText
+    props:
+      textColor: color        # source → prop name
+      typography: typography
 ```
 
 **Pros**:
 
-- Keys are the spec's own `Styles` members, so the left column is a closed, validatable vocabulary the schema already owns
-- Lookup runs in the direction a generator walks: it iterates the element's styles and asks each one "am I a prop?"
-- A style key maps to at most one prop, which keeps the mapping total and unambiguous
+- Lookup runs in the direction a generator walks: it iterates what the element carries and asks each thing "am I a prop?"
+- A source maps to at most one prop, which keeps the mapping total and unambiguous
 - Purely declarative — a two-column table, nothing to evaluate
 
 **Cons / Trade-offs**:
 
-- Cannot express one prop consuming several styles (a `spacing` prop fed by `padding` *and* `itemSpacing`). No current case needs it, and the inverse map would trade this for a worse ambiguity
+- Cannot express one prop consuming several sources. No case in the closed sets of Decision 3 needs it
 
 ---
 
-### Option 1B: `props` — a prop-name-to-style-key map, inverted *(Rejected)*
+### Option 2B: Inverted — prop name to source *(Rejected)*
 
-```yaml
-props:
-  color: textColor
-```
-
-**Rejected because**: it inverts the generator's traversal. Walking an element's styles and reverse-searching the map for each is O(n·m) and, worse, permits two props to claim one style with no rule for which wins. The forward direction cannot express that ambiguity at all.
+**Rejected because**: it inverts the generator's traversal and permits two props to claim one source with no rule for which wins.
 
 ---
 
-### Option 1C: A template or expression per prop *(Rejected)*
+### Option 2C: A template or expression per prop *(Rejected)*
 
-```yaml
-props:
-  color: "{{ styles.textColor.$token | tokenName }}"
-```
-
-**Rejected because**: it puts an evaluator in the configuration file. Every consumer — CLI, plugin, three generators — would need the same expression semantics, and divergence between them produces exactly the silent drift ADR-071 exists to prevent. It also violates the "declare, do not compute" driver outright.
+**Rejected because**: it puts an evaluator in the configuration file, which every consumer must then implement identically.
 
 ---
 
-## Decision 2 — Which mappings have defaults
+## Decision 3 — Which sources are mappable, per primitive
 
-### Option 2A: Color defaults per primitive kind; nothing else defaults *(Selected)*
+### Option 3A: A closed set per primitive kind *(Selected)*
 
-Inside a **declared** primitive binding, one member resolves:
-
-| Primitive | Default `styleProps` entry | Basis |
+| Primitive | Mappable sources | Everything else |
 |---|---|---|
-| `text` | `textColor: color` | Constitution VI rule 1 — CSS and Compose agree on `color` |
-| `glyph` | `fillColor: color` | Same term; `fillColor` is the spec's glyph fill key (ADR-013) |
-| `container` | *(none)* | `backgroundColor` has no shared prop name; layout containers vary too widely |
+| `text` | `textColor`, `typography` | Passed styling |
+| `glyph` | `fillColor`, `content` | Passed styling |
+| `container` | `layoutMode` (ADR-076) | Passed styling |
 
-An author overrides by declaring the key. An author *suppresses* it by mapping it to `null`.
+Each primitive kind gets its own binding type, so `text.props.padding` is a validation error rather than a mapping that silently never fires.
 
 ```yaml
-text:
-  component: DsText            # textColor → color, by default
-
-glyph:
-  component: DsIcon
-  styleProps:
-    fillColor: tint            # override — this library says tint
-    size: size
-
-container:
-  component: DsBox
-  styleProps:
-    backgroundColor: background   # no default; declared explicitly
+primitives:
+  text:
+    component: DsText
+    props:
+      textColor: color
+      typography: typography
+  glyph:
+    component: DsIcon
+    props:
+      fillColor: color
+      content: name
+  container:
+    component: {HORIZONTAL: DsRow, VERTICAL: DsColumn, NONE: DsBox}
 ```
 
 **Pros**:
 
-- Consistent with ADR-071's resolution rule: defaults apply *inside* a declared block, never to conjure the block itself. Declaring `text: {component: DsText}` is an assertion that this library has a text primitive, and a text primitive taking a `color` prop is a safe read
-- The default is justified by the naming survey rather than by convenience — it is the one term two code platforms share
-- Covers the overwhelmingly common case with zero configuration, which is what makes the feature adoptable
-- `null` gives an explicit, greppable way to say "this component has no color prop," distinct from "I forgot"
+- Matches what design system components actually take. Text takes a colour and a type treatment; an icon takes a colour and a name; a layout box takes a direction. Sizing, spacing, radius, and truncation are applied styling on all three
+- The glyph's size comes from `width`/`height`/`layoutSizing*` as passed styling, which is where it already is — so an icon needs no size prop, and one design system's `XS`/`S`/`M` enum does not become a modelling problem for every other
+- A container's `backgroundColor`, `padding`, `cornerRadius`, and `strokes` stay styling, which is what they are. Nothing tempts an author to invent props for them
+- Closed sets are validatable. An open map over all of `Styles` would accept `text.props.aspectRatio` and produce nothing
+- The sets are small enough to read at a glance, which is the real test of whether the contract describes reality
 
 **Cons / Trade-offs**:
 
-- SwiftUI's `foregroundStyle` means the iOS entry almost always overrides. Acceptable — rule 1 selects by code-platform majority, and the override is one line
-- Two spellings of "no mapping" (absent-and-defaulted-away vs. explicit `null`) is a subtlety readers must learn
+- Three binding types instead of one. The alternative is one permissive type that describes libraries that do not exist
+- Widening a set is a schema change rather than a configuration change. Correct — adding a mappable source is a claim about what design systems take as props, and it should be argued once rather than per workspace
+- A design system with a genuine `size` prop on its icon cannot map to it. Deliberate: sizing is expressed as sizing, and this keeps one concept in one channel
 
 ---
 
-### Option 2B: No defaults at all — every mapping declared *(Rejected)*
+### Option 3B: An open map over every `Styles` key *(Rejected)*
 
-**Rejected because**: it makes the minimal useful binding four lines instead of one, for the one mapping that is near-universal. ADR-071 explicitly provides for defaults inside a declared block, and this is the clearest case for one.
+The first draft's selection: `props` keys constrained only to the `Styles` key set.
 
----
-
-### Option 2C: A rich default table — `maxLines`, `textOverflow`, `padding`, and more *(Rejected)*
-
-**Rejected because**: none of these clear the shared-term bar. `maxLines` is CSS `-webkit-line-clamp`, SwiftUI `lineLimit`, Compose `maxLines`; `textOverflow` is CSS `text-overflow`, Compose `overflow`, SwiftUI `truncationMode`. Defaulting them would emit props that do not exist on two platforms out of three, and the failure is a compile error attributed to the tool.
+**Rejected because**: it lets an author map `padding`, `aspectRatio`, or `rotation` on a text primitive, none of which is a prop on any design system's text component. A contract that permits configurations no library implements is a contract that has to be explained rather than read. It also cannot express the glyph's `content` source, which is not a style at all.
 
 ---
 
-## Decision 3 — The typography axis
+### Option 3C: Closed sets, but shared across primitives *(Rejected)*
 
-A `typography` style arrives as either a `TokenReference` (`{$token: Typography/font__200__regular}`) or a resolved `Typography` object (`{fontFamily, fontSize, fontWeight, lineHeight, ...}`), depending on `Settings` and on whether the designer used a text style. These want different destinations, and neither has a defensible default prop.
+**Rejected because**: the three sets are disjoint. `textColor` is meaningless on a container, `layoutMode` on a glyph. A shared set would be the union, which is Option 3B with extra steps.
 
-### Option 3A: Two sinks — a declared prop for the token form, a declared escape hatch for the object form *(Selected)*
+---
 
-- **Token form** → the prop named by `styleProps.typography`, if declared. No default
-- **Object form** → the **style escape hatch**, a prop named by a new `stylePropName` member on the binding. No default
-- Either sink undeclared → the generator's existing style emission for that style, unchanged (Decision 5)
+## Decision 4 — Which mappings have defaults
+
+### Option 4A: Colour and glyph name default; nothing else *(Selected)*
+
+Inside a **declared** primitive binding:
+
+| Primitive | Default | Basis |
+|---|---|---|
+| `text` | `textColor: color` | Constitution VI rule 1 — CSS and Compose agree on `color` |
+| `glyph` | `fillColor: color` | Same term |
+| `glyph` | `content: name` | No code-platform consensus (SwiftUI `systemName`, Compose `imageVector`); rule 3 selects for consumer clarity, and `name` is what the spec calls a glyph's content |
+| `text` | `typography` — **no default** | No shared term, and many components have no such prop (Decision 5) |
+| `container` | *(none)* | `layoutMode` maps to a direction prop only in the single-component idiom (ADR-076) |
+
+An author overrides by declaring the key, and suppresses by mapping it to `null`.
+
+**Pros**:
+
+- Consistent with ADR-071: defaults apply *inside* a declared block, never to conjure the block itself. Declaring `text: {component: DsText}` asserts this library has a text primitive; that it takes a `color` prop is a safe read
+- The colour defaults are justified by the naming survey, not by convenience
+- Covers the common case with zero configuration — `glyph: {component: DsIcon}` alone emits `<DsIcon color="..." name="info" />`
+- `null` gives an explicit, greppable way to say "this component has no such prop," distinct from "I forgot"
+
+**Cons / Trade-offs**:
+
+- SwiftUI's `foregroundStyle` means the iOS entry usually overrides. Rule 1 selects by code-platform majority; the override is one line
+- `content: name` is the one default not backed by a cross-platform term
+
+---
+
+### Option 4B: No defaults at all *(Rejected)*
+
+**Rejected because**: it makes the minimal useful binding four lines instead of one, for the mappings that are near-universal.
+
+---
+
+## Decision 5 — The typography axis
+
+A `typography` style arrives as either a `TokenReference` (`{$token: Typography/font__200__regular}`) or a resolved `Typography` object, depending on `Settings` and on whether the designer used a text style.
+
+### Option 5A: Two sinks — a declared prop for the token form, the passed-styling prop for the object form *(Selected)*
+
+- **Token form** → the prop named by `props.typography`, if declared. No default
+- **Object form** → the **passed-styling prop**, named by `stylesProp`. No default
+- Either sink undeclared → the generator's existing style emission, unchanged (Decision 6)
 
 ```yaml
-platforms:
-  react:
-    primitives:
-      text:
-        component: DsText
-        styleProps:
-          typography: typography   # token form lands here
-        stylePropName: sx          # object form lands here
-  swiftui:
-    primitives:
-      text:
-        component: Text
-        stylePropName: modifier    # no typography prop on this component
+primitives:
+  text:
+    component: DsText
+    props:
+      typography: typography    # token form lands here
+    stylesProp: sx              # object form joins everything else here
 ```
 
 ```jsx
 // token form, prop declared
 <DsText typography="font__200__regular">Label</DsText>
 
-// object form, escape hatch declared
-<DsText sx={{fontFamily: 'Inter', fontSize: 14, fontWeight: 400}}>Label</DsText>
+// object form — the type treatment is one part of what sx carries,
+// alongside the sizing and layout styling that was never a prop
+<DsText
+  sx={{
+    maxWidth: 384,
+    fontFamily: 'Inter',
+    fontSize: 14,
+    fontWeight: 400,
+    WebkitLineClamp: 1,
+  }}
+>Label</DsText>
 ```
 
 **Pros**:
 
-- Matches how design systems actually work. A text component's variant prop accepts *named* styles; ad-hoc family/weight/size has no prop anywhere and must go somewhere raw
+- Matches how design systems work. A text component's type prop accepts *named* styles; ad-hoc family/weight/size has no prop anywhere and must go somewhere raw
 - The two forms are distinguishable structurally — `TokenReference` has `$token`, the object does not — so routing needs no configuration and no inference
-- `stylePropName` is useful well beyond typography: it is the destination for **every** unmapped style (Decision 5), which is what makes Decision 5's no-drop guarantee implementable
-- Honest about the absence of a default, which was the finding rather than a gap
+- `stylesProp` is the destination for **everything** unmapped (Decision 6), not a typography-specific hatch. The resolved type treatment is one contributor among several
 
 **Cons / Trade-offs**:
 
-- One style key with two destinations is the only such case in the mapping. It is a real asymmetry, forced by the style's own union type
-- The escape hatch's *value shape* differs per platform — a React `sx` object, a SwiftUI modifier chain. The convention names the prop; producing the value stays generator logic, as it must
+- One source with two destinations is the only such case, forced by the style's own union type
+- The prop's *value shape* differs per platform — a React `sx` object, a Compose `Modifier`. The convention names the prop; producing the value stays generator logic
 
 ---
 
-### Option 3B: One `typography` prop, always *(Rejected)*
+### Option 5B: One typography prop, always *(Rejected)*
 
-**Rejected because**: it cannot express the object form. A resolved `Typography` object passed to a `variant` prop that expects a named style is wrong on every platform, and the alternative — dropping it — loses the design's actual type treatment.
-
----
-
-### Option 3C: The escape hatch always; no typography prop *(Rejected)*
-
-**Rejected because**: it throws away the token, which is the single most valuable thing in a text element's styles. A design system's text component exists precisely to accept `typography="font__200__regular"`; emitting the resolved font stack instead bypasses the system.
+**Rejected because**: it cannot express the object form. A resolved `Typography` object passed to a prop expecting a named style is wrong on every platform.
 
 ---
 
-### Option 3D: Split the style key in the spec into `typographyToken` and `typography` *(Rejected)*
+### Option 5C: The passed-styling prop always; no typography prop *(Rejected)*
 
-**Rejected because**: it changes the spec to solve a conventions problem, violating ADR-074's no-spec-change outcome, and it is a MAJOR break of `Styles` — which ADR-005 deliberately consolidated into one composite.
-
----
-
-## Decision 4 — Are values mapped, or only names?
-
-`typography: {$token: Typography/font__200__regular}` maps to a `typography` prop. Is the emitted value `"font__200__regular"`, or does the design system's prop take `"body-200"`?
-
-### Option 4A: Names only — the value passes through the generator's existing token resolution *(Selected)*
-
-Conventions map style keys to prop names. The **value** is produced exactly as that generator already produces token values today, with the same token-naming and token-resolution behavior it applies everywhere else.
-
-**Pros**:
-
-- One owner for token naming. A second table restating `Typography/font__200__regular → body-200` for every token, per platform, would be large, hand-maintained, and drift from the token source the day a token is renamed
-- Keeps the convention a two-column table with no evaluation, satisfying the no-logic driver
-- If a design system's prop values *are* its token names — the common case when the tokens and the components ship together — this is already correct with zero configuration
-- Constitution III: the smallest surface that solves the stated problem
-
-**Cons / Trade-offs**:
-
-- **A design system whose prop enums genuinely differ from its token names is not served.** This is the real limitation of the selected option, and the most likely reason to revisit it
-- The workaround — align the token names, or handle the transform in the generator's token layer — pushes work outside conventions, where it may be less visible
+**Rejected because**: it throws away the token, which is the most valuable thing in a text element's styles. A design system's text component exists to accept `typography="font__200__regular"`.
 
 ---
 
-### Option 4B: A per-prop `values` map in conventions *(Rejected)*
+### Option 5D: Split the style key in the spec *(Rejected)*
 
-```yaml
-styleProps:
-  typography:
-    prop: variant
-    values:
-      Typography/font__200__regular: body-200
-```
-
-**Rejected because**: it is an unbounded, hand-maintained table duplicating the token pipeline, multiplied by the number of platforms. It drifts on the first token rename, and the drift is silent — an unmapped token falls through to its raw name and produces a prop value that does not compile. The problem it solves is a token-naming problem and should be solved where token names are owned.
-
-Worth reconsidering if a bounded case appears — a handful of enum-valued props, not a whole token namespace.
+**Rejected because**: it changes the spec to solve a conventions problem, violating ADR-074, and it is a MAJOR break of a composite ADR-005 deliberately consolidated.
 
 ---
 
-### Option 4C: A declarative name transform — `stripPrefix`, `case` *(Rejected)*
+## Decision 6 — Everything else falls back
 
-**Rejected because**: it is 1C in miniature. Every consumer must implement identical transform semantics, and the set of needed transforms grows without limit.
+### Option 6A: Unmapped sources fall back to styling; unmatched values fall back to the component's default *(Selected)*
 
----
+Two fallbacks, at two levels:
 
-## Decision 5 — What happens to unmapped styles
+- **Unmapped source** → emitted exactly as today: into `stylesProp` if one is declared, otherwise through whatever class, inline-style, or modifier mechanism the generator already uses. Nothing is dropped
+- **Unmatched value** → a prop value the component does not accept is omitted, and the component's own default applies. A design system's type prop has a reserved set of accepted names; a value outside it is simply not passed
 
-### Option 5A: Fall through to the generator's existing style path *(Selected)*
-
-A style with no `styleProps` entry is emitted exactly as it is today: into `stylePropName` if one is declared, otherwise through whatever class, inline-style, or modifier mechanism the generator already uses. **Nothing is dropped.**
+`stylesProp` names the prop that receives passed styling. It replaces the first draft's `stylePropName`, which described the *name of a prop* rather than the prop itself.
 
 **Pros**:
 
 - Fidelity loss is impossible by construction. The worst outcome of an incomplete mapping is verbose output, never missing design intent
-- Makes partial adoption safe: declare `component` alone, get a correctly-named component with everything else behaving as before, then add mappings incrementally
-- Layout and sizing styles — `width`, `maxWidth`, `padding`, `layoutSizingHorizontal`, `itemSpacing` — are handled by this rule with no special case, because they are simply unmapped by default (ADR-076 Decision 2 covers declaring them)
+- Partial adoption is safe: declare `component` alone, get a correctly-named component with everything else behaving as before
+- Sizing, spacing, and layout styling — `width`, `maxWidth`, `padding`, `itemSpacing`, `layoutSizing*` — are handled by this rule with no special case, because Decision 3 makes them unmappable everywhere
+- The value-level fallback keeps the ADR out of a judgement it should not make. Whether a token name matches a component's accepted set is the design system's business; the rule is "pass it when it works, default when it does not"
 
 **Cons / Trade-offs**:
 
-- Output can be noisy: a component with both props and a large escape-hatch object. Visible and fixable, which is the point
-- A style that a component *would* reject as an inline style still gets emitted. That is a real code error, but a loud one
+- Output can be verbose: a component with both props and a large passed-styling object. Visible and fixable
+- Detecting an unaccepted value requires the generator to know the component's accepted set, which it may not. Where it cannot tell, it passes the value through and the component's own runtime handling applies — the same outcome by a different route
 
 ---
 
-### Option 5B: Drop unmapped styles *(Rejected)*
+### Option 6B: Drop unmapped sources *(Rejected)*
 
-**Rejected because**: silent fidelity loss, and the loss is proportional to how incomplete the mapping is — worst exactly when a team is adopting the feature.
+**Rejected because**: silent fidelity loss, worst exactly when a team is adopting the feature.
 
 ---
 
-### Option 5C: Error on any unmapped style *(Rejected)*
+### Option 6C: Error on any unmapped source *(Rejected)*
 
-**Rejected because**: no design system component accepts every style as a prop. `rotation`, `opacity`, and `aspectRatio` will never be props on a text component, so this makes a complete mapping impossible and blocks generation on a condition that cannot be satisfied.
+**Rejected because**: Decision 3's closed sets guarantee most styles are unmapped by design. This would make generation impossible.
 
 ---
 
@@ -322,42 +336,55 @@ A style with no `styleProps` entry is emitted exactly as it is today: into `styl
 
 | File | Change | Bump |
 |------|--------|------|
-| `Conventions.ts` | Added `PrimitiveBinding.styleProps?: Partial<Record<keyof Styles, string \| null>>` | MINOR |
-| `Conventions.ts` | Added `PrimitiveBinding.stylePropName?: string` | MINOR |
-| `Conventions.ts` | `ResolvedConventions`: within a declared `text` binding, `styleProps.textColor` resolves to `'color'`; within a declared `glyph` binding, `styleProps.fillColor` resolves to `'color'` | MINOR |
+| `Conventions.ts` | Added `TextBinding`, `GlyphBinding`, `ContainerBinding` — one per `PrimitiveKind`, each with `component`, a closed `props?`, and `stylesProp?` | MINOR |
+| `Conventions.ts` | `PlatformConventions.primitives` typed per kind rather than by one shared binding type | MINOR |
+| `Conventions.ts` | `ResolvedConventions`: within a declared binding, `text.props.textColor` → `'color'`; `glyph.props.fillColor` → `'color'`; `glyph.props.content` → `'name'` | MINOR |
 
 **Example — new shape** (`types/Conventions.ts`):
 
 ```yaml
-PrimitiveBinding:
-  component: ...            # ADR-074, ADR-076
-  styleProps?:              # style key → prop name, or null to suppress
-    textColor: color
-    typography: typography
-  stylePropName?: sx        # destination for unmapped and object-form styles
+TextBinding:
+  component: string
+  props?:
+    textColor?: string | null    # default 'color'
+    typography?: string | null   # no default
+  stylesProp?: string
+
+GlyphBinding:
+  component: string
+  props?:
+    fillColor?: string | null    # default 'color'
+    content?: string | null      # default 'name'
+  stylesProp?: string
+
+ContainerBinding:
+  component: string | {HORIZONTAL?, VERTICAL?, NONE?}   # ADR-076
+  props?:
+    layoutMode?: string | null   # no default
+  stylesProp?: string
 ```
 
 ### Schema changes (`schema/`)
 
 | File | Change | Bump |
 |------|--------|------|
-| `conventions.schema.json` | Added `styleProps` to `#/definitions/PrimitiveBinding` — an object whose property names are constrained to the `Styles` key set, values `{type: [string, "null"]}` | MINOR |
-| `conventions.schema.json` | Added `stylePropName` (`type: string`) to `#/definitions/PrimitiveBinding` | MINOR |
+| `conventions.schema.json` | Added `#/definitions/TextBinding`, `GlyphBinding`, `ContainerBinding`; each `props` object closed with `additionalProperties: false` and its own named properties | MINOR |
+| `conventions.schema.json` | `primitives` properties `$ref` the matching per-kind definition | MINOR |
 
 ### Notes
 
-`styleProps` keys are constrained to `Styles` members so a typo — `textColour`, `fontColor` — is a validation error rather than a mapping that silently never fires. This is the same reason `PrimitiveKind` is closed (ADR-074).
+`props` is closed per kind with `additionalProperties: false`, so a source that is not mappable for that primitive is a validation error. This is the enforcement that makes Decision 3 real rather than advisory.
 
-Values are unconstrained strings: a prop name belongs to the target code library and the schema has no standing to police it. `null` means "no prop for this style" and suppresses a default.
+Prop *names* are unconstrained strings: a prop name belongs to the target library and the schema has no standing to police it. `null` means "no prop for this source" and suppresses a default.
 
-`stylePropName` is a **name only**. What is placed in it — an `sx` object, a `style` dictionary, a modifier chain — is generator logic (Constitution II).
+`stylesProp` is a **name only**. What is placed in it — an `sx` object, a `Modifier` chain — is generator logic (Constitution II).
 
 ---
 
 ## Type ↔ Schema Impact
 
 - **Symmetric**: Yes
-- **Parity check**: `PrimitiveBinding.styleProps` ↔ `#/definitions/PrimitiveBinding/properties/styleProps` with `propertyNames.enum` = the `Styles` key set; `stylePropName` ↔ the sibling string property. The `Styles` key enum must be generated from, or validated against, `styles.schema.json` so the two cannot drift
+- **Parity check**: each `*Binding` type ↔ its definition; each closed `props` ↔ a closed object schema with the same named properties
 
 ---
 
@@ -365,12 +392,12 @@ Values are unconstrained strings: a prop name belongs to the target code library
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | None | Recompile |
+| `specs-from-figma` | None beyond ADR-073's read-path change | Update the read path |
 | `figma-from-specs` | None | Recompile |
-| `react-from-specs` | Apply `styleProps` before falling back to its existing style path; route `typography` by form | Implement |
+| `react-from-specs` | Apply `props` before falling back to styling; route `typography` by form | Implement |
 | `webcomponents-from-specs` | Same, with attribute-name semantics | Implement |
-| `specs-cli` | Resolve the two color defaults inside a declared binding | Implement resolution |
-| `specs-plugin-2` | None | Recompile |
+| `specs-cli` | Resolve the three defaults inside a declared binding | Implement resolution |
+| `specs-plugin-2` | None beyond ADR-073 | Update the read path |
 
 ---
 
@@ -378,14 +405,15 @@ Values are unconstrained strings: a prop name belongs to the target code library
 
 **Version**: `0.31.0` (release branch `release/schema-0.31.0+cli-0.28.0`) — **MINOR**
 
-**Justification**: additive optional fields on a type introduced in the same release; no existing member changes meaning. Constitution III.
+**Justification**: additive optional fields and new definitions on types introduced in the same release. Constitution III.
 
 ---
 
 ## Consequences
 
-- The minimum useful binding is one line. `text: {component: DsText}` emits `<DsText color="...">` with every other style behaving exactly as before
-- Fidelity loss from an incomplete mapping is impossible; the cost of incompleteness is verbosity, which is visible
-- `stylePropName` is the single destination for everything a component cannot take as a prop, which is what makes the no-drop guarantee implementable rather than aspirational
-- Token *values* are not remappable in conventions (Decision 4). A design system whose prop enums diverge from its token names must align them or handle it in its generator's token layer. **This is the most likely member of this ADR set to need revisiting**
-- The `Styles` key set becomes part of the conventions schema's validation surface, so adding a style key must also extend that enum
+- The mappable surface is small, closed, and per-primitive: text takes a colour and a type treatment, a glyph a colour and a name, a container a direction. Everything else is styling, and the schema enforces it
+- Icon sizing stays sizing. A design system's icon size enum never becomes a prop-mapping problem
+- The minimum useful binding is one line. `glyph: {component: DsIcon}` emits `<DsIcon color="..." name="info" />`
+- Fidelity loss from an incomplete mapping is impossible; the cost is verbosity, which is visible
+- Unmatched prop values fall back to the component's default rather than being forced through, so the conventions file never has to enumerate a design system's accepted value sets
+- Widening a mappable set is a schema change. That is a feature: it makes "design systems take this as a prop" a claim argued once

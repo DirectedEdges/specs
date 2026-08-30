@@ -4,10 +4,10 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 077 | Images Are a Bindable Primitive, and the Read-Side / Write-Side Boundary | Adds `image` to the primitive vocabulary for the layer-fill half of ADR-063, keeps its Figma detection members read-side, and states the rule: a read-side convention decides what a node *is*, a write-side convention decides what a primitive *becomes* |
-| 076 | Direction-Keyed Container Bindings and a Shared Style Mapping | A container binds to one component or to a `layoutMode`-keyed map (Row/Column/Box); `styleProps` and `stylePropName` also sit at platform level, overlaid per primitive |
-| 075 | Mapping a Primitive's Styles onto its Component's Props | `styleProps` maps a style key to a prop name (`textColor`/`fillColor` → `color` by default); the typography token goes to a declared prop, a resolved object and every unmapped style go to `stylePropName` |
-| 074 | Primitives Resolve to Components at Emit Time, Not in the Spec | The spec keeps `type: text`; each platform generator emits its own bound component, so one spec serves every implementation and the transformer stays a pure function of the Figma file. `PrimitiveKind` is text/glyph/container/image |
+| 077 | The Image Component's Code Name, and the Read-Side / Write-Side Boundary | Adds `images.component` so the designated image component gets a per-platform code name; a container's `backgroundImage` always stays styling; states the rule that a read-side convention decides what a node *is* and a write-side convention decides what a primitive *becomes* |
+| 076 | Direction-Keyed Container Bindings, and a Platform-Level `stylesProp` | A container binds to one component or to a `layoutMode`-keyed map (Row/Column/Box); only `stylesProp` hoists to the platform, since the per-primitive `props` sets are disjoint |
+| 075 | `props` — a Closed, Per-Primitive Map onto a Component's Props | Text maps only `textColor`/`typography`, glyph only `fillColor`/`content`, container only `layoutMode`; colour and glyph name default; everything else is passed styling routed to `stylesProp` |
+| 074 | Primitives Resolve to Components at Emit Time, Not in the Spec | The spec keeps `type: text`; each platform generator emits its own bound component, so one spec serves every implementation and the transformer stays a pure function of the Figma file. `PrimitiveKind` is the bindable subset of `ElementType`: text, glyph, container |
 | 073 | `conventions.platforms`, with Figma as One Platform Among Them | Replaces `conventions.figma` with a platform-keyed map in which `figma` is one key; platform ids name implementations (`react`, `web-components`, `swiftui`) and stay flat |
 | 072 | Numeric Enum on `NumberProp` | Adds optional `enum?: number[]` so a VARIANT whose options are all numbers emits as a number with its closed option set preserved |
 | 070 | Explicit `position: ABSOLUTE` for Children of Non-Auto-Layout Parents | |

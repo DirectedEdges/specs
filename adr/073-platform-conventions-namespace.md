@@ -153,7 +153,7 @@ platforms:
 `PlatformConventions` is **one shape** with every member optional. Two groups of members exist within it:
 
 - **Read-side members** — `naming`, `glyphs`, `codeOnlyProps`, `subcomponents`, `instanceExamples`, `images`, `slotConstraints`, `inferNumberProps`, `states`. These classify and detect: what a node in that platform's artifacts *is*
-- **Write-side members** — `primitives`, `styleProps`, `stylePropName` (ADR-074 – ADR-076). These bind and emit: what a primitive *becomes* on that platform
+- **Write-side members** — `primitives`, `stylesProp`, and `images.component` (ADR-074 – ADR-077). These bind and emit: what a primitive *becomes* on that platform
 
 Today `figma` populates the read side and code platforms populate the write side. Nothing in the type enforces that partition, because the partition is about direction of travel, not about the platform — and Figma travels both ways.
 
@@ -169,7 +169,7 @@ Today `figma` populates the read side and code platforms populate the write side
 
 **Cons / Trade-offs**:
 
-- `PlatformConventions` is a permissive bag: nothing stops `swiftui.states` or `figma.stylePropName`, both of which are meaningless. Discriminating the two shapes by key would type `figma` differently from every other key, which is the special-casing this option exists to remove — and it would be wrong the moment Figma takes a write-side member. **Permissiveness is the deliberate price of the symmetry**
+- `PlatformConventions` is a permissive bag: nothing stops `swiftui.states` or `figma.stylesProp`, both of which are meaningless. Discriminating the two shapes by key would type `figma` differently from every other key, which is the special-casing this option exists to remove — and it would be wrong the moment Figma takes a write-side member. **Permissiveness is the deliberate price of the symmetry**
 - Every path in ADR-071's documentation, and every conventions file in every workspace, gains one level. Mechanical, but it touches every consumer that reads conventions
 - One more level of nesting to reach `naming` or `states`
 
@@ -231,7 +231,7 @@ The key names an **implementation**: `react`, `web-components`, `swiftui`, `comp
 
 Nest implementations under a platform family so shared web conventions are declared once.
 
-**Rejected because**: it buys deduplication with inheritance, and inheritance costs a merge rule, an override rule, and a depth question at every level — the same complexity ADR-076 Decision 3 confines to a single, shallow, well-bounded merge. Almost no team ships more than one implementation per platform; optimizing the structure for the 5% case while every reader pays the indirection is the wrong trade. If shared web conventions become a real burden, ADR-076's platform-level `styleProps` already absorbs most of it, and hierarchy remains available additively.
+**Rejected because**: it buys deduplication with inheritance, and inheritance costs a merge rule, an override rule, and a depth question at every level — the same complexity ADR-076 Decision 3 confines to a single, shallow, well-bounded merge. Almost no team ships more than one implementation per platform; optimizing the structure for the 5% case while every reader pays the indirection is the wrong trade. If shared web conventions become a real burden, ADR-076's platform-level `stylesProp` already absorbs the most-repeated part of it, and hierarchy remains available additively.
 
 ---
 
@@ -286,9 +286,8 @@ Conventions:
       inferNumberProps?: boolean
       states?: {...}
       # write-side — what a primitive BECOMES on this platform
-      primitives?: {...}     # ADR-074, ADR-076, ADR-077
-      styleProps?: {...}     # ADR-075, ADR-076
-      stylePropName?: string # ADR-075, ADR-076
+      primitives?: {...}     # ADR-074 – ADR-076
+      stylesProp?: string    # ADR-075, ADR-076
 ```
 
 ### Schema changes (`schema/`)
