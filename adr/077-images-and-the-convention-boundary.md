@@ -1,4 +1,4 @@
-# ADR: Images Stay Figma-Side — the Boundary Between Detection and Binding
+# ADR: Images Are a Bindable Primitive, and the Read-Side / Write-Side Boundary
 
 **Branch**: `077-images-and-the-convention-boundary`
 **Created**: 2026-08-30
@@ -14,117 +14,136 @@
 ADR-063 gave images the first primitive-to-component mapping this schema ever had:
 
 ```yaml
-figma:
-  images:
-    backgroundImage: true
-    match: "DS Image"          # the designated image component
-    sourceProps: [imageSource] # the forwarding prop
+images:
+  backgroundImage: true
+  match: "DS Image"          # the designated Figma image component
+  sourceProps: [imageSource] # the forwarding prop
 ```
 
-ADR-073 through ADR-076 build a general mechanism that looks like a superset of it: name a designated component for a primitive, map its styles onto props. The obvious move is to fold `images` into `platforms.<id>.primitives.image` and have one mechanism instead of two.
+It is a **dual** model, and the two halves have different fates under ADR-073 – ADR-076:
 
-That move is wrong, and understanding why produces the rule that makes the whole set coherent — so it is worth an ADR rather than a footnote.
+- **Image as a nested component.** The Figma library has a designated image component and the designer placed an instance of it. The transformer recognizes the instance, and the spec carries `type: instance`. This half is complete — an instance names its component, and every generator already handles instances
+- **Image as a layer fill.** There is no instance; the image is a paint on a container, and the spec carries `Styles.backgroundImage`. This half is **not** complete. No component is named anywhere, and each platform's answer differs: `DsImage` in React, `<ds-image>` in Web Components, `Image` in SwiftUI, `AsyncImage` in Compose
 
-Two facts resist the merge:
+The second half has exactly the dispersion that motivated this whole ADR set. An image component's name and props vary across platforms precisely as a text component's do, and a generator handed a `backgroundImage` today emits a CSS background or a modifier — never the design system's image component, even when one exists.
 
-**There is no `image` element type.** `ElementType` is `text | glyph | vector | container | slot | instance | line | ellipse | rectangle | polygon | star`. An image in a spec is one of two things: a `Styles.backgroundImage` on a container, or an `instance` of the designated image component that the transformer already routed. Neither is a primitive element awaiting resolution. ADR-074 fixed `PrimitiveKind` as a subset of `ElementType`, and `image` is not a member of that set.
+The first draft of this ADR argued the opposite: that images should stay entirely on the Figma side, on the grounds that `image` is not an `ElementType` and that `images`' members are Figma detection facts. The second half of that argument holds. The first half does not — it proves only that an image is not recorded as an *element*, which is a fact about storage, not about whether the primitive needs a binding.
 
-**`images`' members are Figma detection facts, not code bindings.** `backgroundImage: true` says *this library expresses images as container fills* — an authoring fact about the Figma file. `sourceProps` names *raw Figma code-only prop names*. `match` names *a Figma component*. Every one answers "what is in this file," and every one is identical no matter which platform the run targets.
+ADR-073 also changed the ground this sits on. Figma is now a platform key, not a sibling namespace, so "stays Figma-side" no longer names a different kind of place — it names a different platform's entry in the same map.
 
 ---
 
 ## Decision Drivers
 
-- **The classification rule (ADR-071) applies to every member individually.** A block does not move because it is thematically adjacent; each member moves only if it describes the code library
-- **`PrimitiveKind` stays a subset of `ElementType` (ADR-074).** A kind that no spec can contain is a kind no generator can act on
-- **Additive-only.** `conventions.figma.images` shipped in 0.31.0 and is consumed by both runtimes. Moving it is a MAJOR break
-- **One mechanism per problem, not one mechanism for adjacent problems.** Constitution III argues against surface, and equally against a unification that makes two different things look the same
-- **The boundary must be stateable in one sentence**, or authors will keep asking which block a new convention belongs in
+- **The classification rule (ADR-071) applies to every member individually.** A block does not move because it is thematically adjacent; each member is placed by what it describes
+- **Platform dispersion is the test for a binding.** If the answer differs per platform, it belongs in that platform's entry. If it is the same for every consumer of an artifact, it belongs to the platform that produced the artifact
+- **Do not fabricate, and do not infer (ADR-074).** A binding's trigger must be a fact the spec already carries
+- **Preserve ADR-063's dual model.** The fill-versus-component choice is a property of the Figma file and must survive
+- **One mechanism per problem.** Two ways to name an image component, with no rule for which wins, is worse than either alone
+- **The boundary must be stateable in one sentence**, or authors will keep asking which entry a new convention belongs in
 
 ---
 
 ## Options Considered
 
-Two decisions: whether `images` moves, and whether the primitive vocabulary widens.
+Two decisions: whether `image` becomes a bindable primitive, and where ADR-063's existing members land.
 
 ---
 
-## Decision 1 — Does `conventions.figma.images` move to `platforms`?
+## Decision 1 — Is `image` a bindable primitive kind?
 
-### Option 1A: It stays, unchanged, and nothing about it is duplicated *(Selected)*
+### Option 1A: Yes — `image` joins the vocabulary, triggered by `Styles.backgroundImage` *(Selected)*
 
-`conventions.figma.images` keeps all three members and all of ADR-063's behavior. The `platforms` namespace gains nothing image-related.
+`PrimitiveKind` becomes `text | glyph | container | image`. The `image` kind is matched not by an element type but by an element carrying a non-null `Styles.backgroundImage` (ADR-074 Decision 2).
+
+```yaml
+platforms:
+  react:
+    primitives:
+      image:
+        component: DsImage
+        styleProps:
+          objectFit: fit
+  swiftui:
+    primitives:
+      image:
+        component: Image
+        styleProps:
+          objectFit: contentMode
+```
+
+```jsx
+// container with a backgroundImage, react binding declared
+<DsImage src={...} fit="cover" />
+```
 
 **Pros**:
 
-- Every member passes the ADR-071 test on the Figma side. `backgroundImage`, `sourceProps`, and `match` are all facts about the Figma file, all invariant across platforms
-- Purely additive across the whole set. No consumer of 0.31.0 breaks, and ADR-063's dual model — nested component *or* layer fill — survives intact
-- The image path is already complete. The transformer routes an image through the designated component, so the spec carries an `instance`, and every generator already knows what to do with an instance. There is no unresolved primitive left for a binding to fix
-- Refusing a cosmetic unification keeps the boundary honest, which is the actual deliverable of this ADR
+- Answers the dispersion directly. An image component's name and props vary per platform exactly as a text component's do, and this is the mechanism built for that
+- Completes ADR-063 rather than contradicting it. The nested-component half was already component-routed; this gives the layer-fill half the same destination, arrived at on the write side instead of the read side
+- The trigger is a fact the spec already carries, satisfying ADR-074's no-inference rule. `backgroundImage` is present or it is not
+- `styleProps` earns its keep here immediately: `objectFit` is CSS `object-fit`, SwiftUI `contentMode`, Compose `contentScale` — three names for one concept, which is the case ADR-075 exists for
+- Composes cleanly with `container`. A container with a background image gets the container binding for its box and the image binding for its fill; neither displaces the other
 
 **Cons / Trade-offs**:
 
-- Two blocks name a designated component — `figma.images.match` and `platforms.<id>.primitives.*.component` — and a reader may reasonably ask why. Decision 1's boundary rule is the answer, and it must be in both doc comments
-- A design system whose image component is named differently in code than in Figma has no place to say so. Also true of every other component the transformer routes, and out of scope here
+- `PrimitiveKind` is no longer a subset of `ElementType`, and the vocabulary now has two trigger mechanisms. That rule was tidy but described where primitives are *recorded*, not what they are
+- Two paths can now produce a design system image component: the transformer routing an instance (ADR-063) and a generator resolving a fill. They cannot collide — a spec element is one or the other, never both — but a reader must know both exist
+- A library that declares `backgroundImage: true` *and* an image binding gets components where it may have wanted CSS backgrounds. Absence is the off switch: declare no `image` binding
 
 ---
 
-### Option 1B: Move `images` wholesale to `platforms.<id>.primitives.image` *(Rejected)*
+### Option 1B: No — images stay entirely read-side *(Rejected)*
 
-**Rejected because**: it puts Figma facts in a platform-keyed map, forcing `backgroundImage: true` and the raw Figma `sourceProps` names to be restated identically under `web`, `ios`, and `android` — reintroducing exactly the drift ADR-071 eliminated. It is also a MAJOR break of a contract published this release, and it destroys ADR-063's dual model, whose fill-versus-component choice is a property of the Figma file.
+The first draft's selection.
 
----
-
-### Option 1C: Split it — `match` moves, `backgroundImage` and `sourceProps` stay *(Rejected)*
-
-**Rejected because**: `match` is a **Figma component name**, used to recognize an instance in the file. Moving it to a platform block would make one name serve two incompatible jobs — recognizing a Figma node and naming a code component — with no way to express that they differ. It also splits one coherent block across two namespaces, so an author must know the classification rule to find either half.
+**Rejected because**: it leaves the layer-fill half of ADR-063 with no component on any platform, which is the gap this ADR set exists to close. The supporting argument — that `image` is not an `ElementType` — proves only that images are recorded as a style. Where a primitive is *stored* is not what makes it a primitive; a text layer and a background image both name a thing the design system implements with a component.
 
 ---
 
-### Option 1D: Dual-declare — leave it, and mirror it under `platforms` *(Rejected)*
+### Option 1C: Route the fill to a component in the transformer, as ADR-063 routes the instance *(Rejected)*
 
-**Rejected because**: two sources of truth for one fact, with no rule for which wins when they disagree. Every argument ADR-071 made against re-declaration applies inside a single file.
+**Rejected because**: it is ADR-074 Option 1B, applied to one primitive. The transformer would fabricate an instance the Figma file does not contain, commit the spec to one platform's component name, break determinism, and break the round trip — `figma-from-specs` cannot render `instanceOf: DsImage` back to a paint on a container.
 
 ---
 
-## Decision 2 — Does the primitive vocabulary widen beyond text, glyph, and container?
+## Decision 2 — Where ADR-063's existing members land
 
-### Option 2A: Exactly `text | glyph | container` — closed, and open to additive extension *(Selected)*
+### Option 2A: Split by what each member describes — detection stays read-side, binding is new *(Selected)*
 
-`PrimitiveKind` stays the three kinds ADR-074 defined. `image` is not added. `vector`, `line`, `ellipse`, `rectangle`, `polygon`, and `star` are not added. `slot` and `instance` are permanently excluded.
-
-| `ElementType` | Bindable | Why |
+| Member | Lands at | Because |
 |---|---|---|
-| `text` | Yes | Every DS has a designated text component |
-| `glyph` | Yes | Every DS has a designated icon component |
-| `container` | Yes | Every DS has a layout primitive (ADR-076) |
-| `vector`, `line`, `ellipse`, `rectangle`, `polygon`, `star` | Not yet | No DS ships a designated component for these; they are decorative geometry. Additive if that changes |
-| `slot` | Never | A hole in a component, not a thing to render |
-| `instance` | Never | Already names its component. A binding could silently replace a component a designer placed deliberately |
-| *(no `image` type exists)* | N/A | Images are a style or an already-routed instance, not a primitive element |
+| `backgroundImage` | `platforms.figma.images.backgroundImage` | Declares that *this Figma library* expresses images as container fills. An authoring fact about the file, identical for every consumer |
+| `sourceProps` | `platforms.figma.images.sourceProps` | Names **raw Figma code-only prop names**. Meaningless outside Figma |
+| `match` | `platforms.figma.images.match` | Names a **Figma component**, used to recognize an instance in the file. It is a Figma identifier, not a code one |
+| *(new)* `component` | `platforms.<id>.primitives.image.component` | Names the **code** component a fill becomes. Differs per platform |
+| *(new)* `styleProps` | `platforms.<id>.primitives.image.styleProps` | Names that platform's props. Differs per platform |
+
+Nothing moves out of `images`; the block relocates only by ADR-073's one-level change, and its three members keep their meanings exactly.
 
 **Pros**:
 
-- Every bindable kind corresponds to something a spec can actually contain, so no binding is unreachable
-- The three selected kinds are the ones every design system implements, which is why they are the ones compositions are made of
-- Excluding `instance` protects designer intent from configuration — the one place where a binding could do real damage
-- The vocabulary widens additively, so deferring the geometry kinds costs nothing
+- Each member is placed by what it describes, applying ADR-071's rule member by member rather than block by block
+- No duplication and no ambiguity. `images.match` and `primitives.image.component` name components in two different languages — one Figma, one code — and neither can substitute for the other
+- ADR-063's dual model survives untouched, including the deliberate case where both are enabled and the fill is the fallback
+- Purely additive to ADR-063. No member changes shape or meaning
 
 **Cons / Trade-offs**:
 
-- A design system with a designated divider or rule component gets no binding for a `line`. Additive later, and `line` is not clearly the right trigger anyway
+- Two members name an image component. The distinction is real (Figma name versus code name) but must be carried in both doc comments or it will read as redundancy
+- Image handling is described in two entries of the platform map. Correct — it *is* two things — but it is more to hold in mind than text, which is described in one
 
 ---
 
-### Option 2B: Add `image` for symmetry *(Rejected)*
+### Option 2B: Move `match` to the platform binding, keep the rest *(Rejected)*
 
-**Rejected because**: it would never fire. There is no `image` element for a generator to match, so the key would be inert configuration — worse than absent, because it implies a capability that does not exist.
+**Rejected because**: `match` is the Figma component's name, used to recognize a node. Moving it to a code platform's entry would make one field serve two incompatible jobs with no way to say they differ — and a library whose Figma component is "DS Image" while React's is `DsImage` could express only one.
 
 ---
 
-### Option 2C: Open the vocabulary to any `ElementType` *(Rejected)*
+### Option 2C: Move all of `images` to each code platform's entry *(Rejected)*
 
-**Rejected because**: `slot` and `instance` must be excluded on their merits, and a schema-level enum is the only place to enforce it. An open vocabulary also loses validation on typos, which ADR-074 and ADR-075 both chose to keep.
+**Rejected because**: `backgroundImage` and `sourceProps` are invariant across platforms, so this forces identical restatement under every platform key — the drift ADR-071 exists to end.
 
 ---
 
@@ -132,38 +151,42 @@ Two decisions: whether `images` moves, and whether the primitive vocabulary wide
 
 ### The boundary rule
 
-> **A Figma convention decides what a node *is*. A platform convention decides what a primitive *becomes*.**
+> **A read-side convention decides what a node *is*. A write-side convention decides what a primitive *becomes*.**
 
-`conventions.figma` classifies and detects: which layer names mean glyph, which variant prop means hover, which component is the image component, whether images are expressed as fills. Its answers are the same for every consumer of the file.
+Read-side members classify and detect within a platform's own artifacts: which layer names mean glyph, which variant prop means hover, which component is the image component, whether images are expressed as fills. Their answers are the same for every consumer of that platform's artifacts.
 
-`conventions.platforms` binds and emits: which component a text primitive becomes on this platform, what its props are called. Its answers differ per target by design.
+Write-side members bind and emit: which component a primitive becomes on that platform, what its props are called. Their answers differ per target by design.
 
-Images sit entirely on the first side. Text, glyph, and container detection sits on the first side too — `figma.glyphs.match` is what makes a node a `glyph` at all — and their *binding* sits on the second. The two halves of glyph handling in two namespaces is the rule working, not a seam.
+**Neither side is a platform.** A platform can have both, and Figma is the one that does today — read-side because `specs-from-figma` reads it, and eligible for write-side because `figma-from-specs` renders to it. That is why ADR-073 puts every platform in one map with one shape rather than fencing Figma off.
+
+Images sit on both sides, and so does the glyph primitive: `platforms.figma.glyphs.match` is what makes a node a `glyph` at all, and `platforms.react.primitives.glyph.component` is what it becomes. Two halves in two entries is the rule working, not a seam.
 
 ### Type changes (`types/`)
 
 | File | Change | Bump |
 |------|--------|------|
-| `Conventions.ts` | *(no change to `figma.images`)* | — |
-| `Conventions.ts` | `PrimitiveKind` documented as closed at `'text' \| 'glyph' \| 'container'`, with the exclusion rationale | PATCH |
-| `Conventions.ts` | Doc comments on `figma` and `platforms` state the boundary rule | PATCH |
+| `Conventions.ts` | `PrimitiveKind` includes `'image'` (declared in ADR-074) | — |
+| `Conventions.ts` | `PlatformConventions.images` unchanged in shape; relocated only by ADR-073 | — |
+| `Conventions.ts` | Doc comments distinguish `images.match` (a Figma component name) from `primitives.image.component` (a code component name), and state the read-side / write-side rule | PATCH |
 
 ### Schema changes (`schema/`)
 
 | File | Change | Bump |
 |------|--------|------|
-| `conventions.schema.json` | `description` on the `figma` and `platforms` properties states the boundary rule | PATCH |
+| `conventions.schema.json` | `description` on `images.match` and on `primitives` states the boundary rule and the two-languages distinction | PATCH |
 
 ### Notes
 
-This ADR changes no shape. Its output is a rule and a rejection, both of which need a durable record — the merge in Option 1B is the obvious next move for anyone reading ADR-073 through ADR-076 without it.
+This ADR declares no new field of its own. Its output is the `image` kind (carried by ADR-074's enum), the placement table, and the boundary rule — and the rule is what stops `conventions` re-accumulating code facts in a platform's read-side members, or vice versa.
+
+The two image paths cannot collide. An element is either an `instance` of the designated component, in which case ADR-063's transform-time routing already applied and no binding is consulted, or it is an element carrying `backgroundImage`, in which case only the binding applies.
 
 ---
 
 ## Type ↔ Schema Impact
 
-- **Symmetric**: Yes — documentation-only, applied to both artifacts
-- **Parity check**: `Conventions.figma` and `Conventions.platforms` doc comments ↔ the corresponding `description` fields
+- **Symmetric**: Yes — the `image` enum member is ADR-074's change; everything here is documentation, applied to both artifacts
+- **Parity check**: `PrimitiveKind`'s `image` member ↔ the `primitives` `propertyNames.enum`; doc comments ↔ the corresponding `description` fields
 
 ---
 
@@ -171,7 +194,12 @@ This ADR changes no shape. Its output is a rule and a rejection, both of which n
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| All | None — no shape change | None |
+| `specs-from-figma` | None beyond ADR-073's read-path change | Update the read path |
+| `figma-from-specs` | None now; the rule makes room for Figma-side bindings later | Recompile |
+| `react-from-specs` | Resolve `backgroundImage` through the `image` binding when one is declared | Implement |
+| `webcomponents-from-specs` | Same | Implement |
+| `specs-cli` | None beyond ADR-073 | — |
+| `specs-plugin-2` | None beyond ADR-073 | Update the read path |
 
 ---
 
@@ -179,14 +207,14 @@ This ADR changes no shape. Its output is a rule and a rejection, both of which n
 
 **Version**: `0.31.0` (release branch `release/schema-0.31.0+cli-0.28.0`) — **PATCH**
 
-**Justification**: documentation only. No type, property, or default changes. Constitution III.
+**Justification**: this ADR adds documentation only. The one type change it depends on — `image` in `PrimitiveKind` — is declared and bumped by ADR-074. Constitution III.
 
 ---
 
 ## Consequences
 
-- ADR-063's image model is untouched and stays correct. The one primitive already routed through a designated component keeps its transform-time path
-- The primitive vocabulary is three kinds, each corresponding to a real `ElementType`, each with a real designated component in every design system
-- `slot` and `instance` are permanently unbindable, so conventions can never override a component a designer placed
-- Authors have a one-sentence test for where a new convention belongs, which is what keeps `conventions.figma` from re-accumulating code-side facts
-- Two members name a designated component for two different reasons. The doc comments carry the distinction, and it is a genuine cost of the boundary rather than a flaw in it
+- Both halves of ADR-063's dual model now reach a design system component: the instance half at transform time, the fill half at emit time, per platform
+- `PrimitiveKind` is a vocabulary of four with two trigger mechanisms. The unifying property is not where a primitive is stored but that its trigger is already in the spec
+- Two members name an image component, in two different languages. The doc comments carry the distinction; it is a genuine cost of the split, not a flaw in it
+- The boundary rule is about direction of travel, not about Figma. Any platform can hold both sides, which is what keeps ADR-073's single map honest
+- `slot` and `instance` remain permanently unbindable, so conventions can never override a component a designer placed

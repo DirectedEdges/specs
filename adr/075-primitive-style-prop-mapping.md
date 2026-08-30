@@ -73,7 +73,7 @@ Five decisions: the mapping's shape, the defaults, the typography axis, whether 
 
 ```yaml
 platforms:
-  web:
+  react:
     primitives:
       text:
         component: DsText
@@ -187,14 +187,14 @@ A `typography` style arrives as either a `TokenReference` (`{$token: Typography/
 
 ```yaml
 platforms:
-  web:
+  react:
     primitives:
       text:
         component: DsText
         styleProps:
           typography: typography   # token form lands here
         stylePropName: sx          # object form lands here
-  ios:
+  swiftui:
     primitives:
       text:
         component: Text

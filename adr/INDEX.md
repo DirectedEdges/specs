@@ -4,11 +4,11 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 077 | Images Stay Figma-Side — the Boundary Between Detection and Binding | Keeps `conventions.figma.images` where it is, closes `PrimitiveKind` at text/glyph/container, and states the rule: Figma conventions decide what a node *is*, platform conventions decide what a primitive *becomes* |
+| 077 | Images Are a Bindable Primitive, and the Read-Side / Write-Side Boundary | Adds `image` to the primitive vocabulary for the layer-fill half of ADR-063, keeps its Figma detection members read-side, and states the rule: a read-side convention decides what a node *is*, a write-side convention decides what a primitive *becomes* |
 | 076 | Direction-Keyed Container Bindings and a Shared Style Mapping | A container binds to one component or to a `layoutMode`-keyed map (Row/Column/Box); `styleProps` and `stylePropName` also sit at platform level, overlaid per primitive |
 | 075 | Mapping a Primitive's Styles onto its Component's Props | `styleProps` maps a style key to a prop name (`textColor`/`fillColor` → `color` by default); the typography token goes to a declared prop, a resolved object and every unmapped style go to `stylePropName` |
-| 074 | Primitives Resolve to Components at Emit Time, Not in the Spec | The spec keeps `type: text`; each platform generator emits its own bound component, so one spec serves web, iOS and Android and the transformer stays a pure function of the Figma file |
-| 073 | A Platform-Scoped Sibling to `conventions.figma` | Adds `conventions.platforms.<id>` for spec→code conventions, leaving `conventions.figma` untouched as the Figma-facts namespace |
+| 074 | Primitives Resolve to Components at Emit Time, Not in the Spec | The spec keeps `type: text`; each platform generator emits its own bound component, so one spec serves every implementation and the transformer stays a pure function of the Figma file. `PrimitiveKind` is text/glyph/container/image |
+| 073 | `conventions.platforms`, with Figma as One Platform Among Them | Replaces `conventions.figma` with a platform-keyed map in which `figma` is one key; platform ids name implementations (`react`, `web-components`, `swiftui`) and stay flat |
 | 072 | Numeric Enum on `NumberProp` | Adds optional `enum?: number[]` so a VARIANT whose options are all numbers emits as a number with its closed option set preserved |
 | 070 | Explicit `position: ABSOLUTE` for Children of Non-Auto-Layout Parents | |
 | 045 | Processing Provenance Signals | (reserved, draft in PR #60) |

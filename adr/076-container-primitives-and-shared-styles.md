@@ -118,7 +118,7 @@ The map's keys are exactly the `LayoutMode` values. A generator reads the elemen
 
 ```yaml
 platforms:
-  web:
+  react:
     styleProps:                 # applies to every primitive
       maxWidth: maxWidth
       padding: padding

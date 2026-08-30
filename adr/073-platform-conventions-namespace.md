@@ -1,4 +1,4 @@
-# ADR: A Platform-Scoped Sibling to `conventions.figma`
+# ADR: `conventions.platforms`, with Figma as One Platform Among Them
 
 **Branch**: `073-platform-conventions-namespace`
 **Created**: 2026-08-30
@@ -42,31 +42,32 @@ slotContentExamples:
 <DsText color="on-surface" typography="font__200__regular" maxLines={1}>Label</DsText>
 ```
 
-Nothing in the spec, and nothing in `Conventions`, says that a text primitive is `DsText`. The same gap exists for glyph layers (a designated icon component) and container layers (a designated layout component, or a row/column pair). Compositions — slot default content, `slotContentExamples`, `instanceExamples`, and ordinary anatomy — are built almost entirely out of these three primitives, so the gap is not marginal: it is most of what a composition *is*.
+Nothing in the spec, and nothing in `Conventions`, says that a text primitive is `DsText`. The same gap exists for glyph layers (a designated icon component), container layers (a designated layout component, or a row/column pair), and images (a designated image component). Compositions — slot default content, `slotContentExamples`, `instanceExamples`, and ordinary anatomy — are built almost entirely out of these primitives, so the gap is not marginal: it is most of what a composition *is*.
 
-Images are the one primitive that does not have this gap, and the reason is instructive. ADR-063 gave `conventions.figma.images` a `match` naming the designated image component and `sourceProps` naming the forwarding prop, and the transformer routes an image through that component at generation time. It works because there is one image component. It does not generalize, because **the answer differs per target platform**: a text primitive is `DsText` on React, `<ds-text>` in Web Components, `Text` in SwiftUI, and `Text` in Compose — with different prop names and different styling escape hatches in each. One Figma library feeds many code libraries.
+**The answer differs per implementation.** A text primitive is `DsText` in React, `<ds-text>` in Web Components, `Text` in SwiftUI, and `Text` in Compose — with different prop names and different styling escape hatches in each. One Figma library feeds many implementations. That is why the mapping is not a Figma fact, and why it needs a namespace keyed by implementation.
 
-That is the shape of the decision. The mapping being asked for is not "what is true about this Figma file." It is **"what does this primitive become on this platform"** — a spec→code convention, not a Figma→spec one.
+**And Figma is one of those implementations.** This ecosystem does not only read Figma; `figma-from-specs` renders a spec back onto the canvas. Figma is a source *and* a target, and a rendering of a text primitive into Figma has the same open question every other target has — a bare `TEXT` node, or an instance of a designated Figma text component? Treating Figma as a peculiar exception outside the platform map would encode a one-directional view of a pipeline that already runs both ways.
 
-This ADR decides only *where such conventions live and how they are keyed*. What they contain is ADR-074 through ADR-077.
+This ADR decides *where these conventions live and how they are keyed*. What they contain is ADR-074 through ADR-077.
 
 ---
 
 ## Decision Drivers
 
-- **The substitution rule still governs (ADR-071).** A binding must be classified as a convention or a setting by the same test, and the test must give the same answer for every member of the new block
-- **Absence means one thing (ADR-071).** A missing block means the library declares no such convention; there is no separate on-switch
-- **One spec, many platforms.** The spec must not be committed to a platform. Whatever is added must let a single spec resolve differently per target — this is the whole reason the mapping is not a Figma fact
-- **`conventions.figma` must stay honest.** Its documented meaning is "facts about the Figma library." A code-library fact placed inside it makes the namespace a lie and destroys the classification ADR-071 established
+- **The substitution rule still governs (ADR-071).** A member must be classified as a convention or a setting by the same test, and the test must give the same answer for every member
+- **Absence means one thing (ADR-071).** A missing block means no such convention is declared; there is no separate on-switch
+- **One spec, many implementations.** The spec must not be committed to a platform. A single spec must resolve differently per target — the reason the mapping is not a Figma fact
+- **No privileged platform.** The pipeline runs in both directions. A structure that makes Figma a special case outside the platform axis will be wrong the moment a Figma-side binding is wanted, which ADR-077 shows is already true
+- **Symmetry between siblings.** Two namespaces that sit at the same level should be the same kind of thing
 - **Minimal, stable, intentional public API (Constitution III)**: one new namespace, not four
-- **Type ↔ schema symmetry (Constitution I)** and **no logic in the schema package (Constitution II)**: the package declares the shape; consumers resolve it
-- **Additive-only.** `conventions.figma` is untouched, so no consumer breaks
+- **Type ↔ schema symmetry (Constitution I)** and **no logic in the schema package (Constitution II)**
+- **`Conventions` is unreleased.** It is `@since 0.31.0`; npm's latest is `0.30.0`. Reshaping it now costs nothing, and this is the last moment that is true
 
 ---
 
 ## Options Considered
 
-Three decisions, taken separately: whether these values are conventions at all, the namespace shape, and what the keys of that namespace name.
+Three decisions, taken separately: whether these values are conventions at all, the namespace shape, and how the platform keys are named and structured.
 
 ---
 
@@ -76,99 +77,111 @@ ADR-071's test: *if a different team pointed this tool at the same Figma file, w
 
 ### Option 1A: They are conventions, and the substitution rule widens to "the same libraries" *(Selected)*
 
-The rule's subject becomes the pair of libraries a run sits between — the Figma library it reads and the code library it writes for. A different team generating React from the same Figma file, against the same component library, would have to keep `text → DsText`. Get it wrong and the output is **incorrect**: a `<span>` where the design system requires `DsText` is not a stylistic difference, it is an unimplemented component.
+The rule's subject becomes the pair of libraries a run sits between — the library it reads and the library it writes for. A different team generating React from the same Figma file, against the same component library, would have to keep `text → DsText`. Get it wrong and the output is **incorrect**: a `<span>` where the design system requires `DsText` is not a stylistic difference, it is an unimplemented component.
 
 **Pros**:
 
 - Preserves the incorrect-versus-different discriminant exactly. A wrong binding produces wrong code; a wrong `format.output` produces different code
-- Preserves the sharing consequence, which is the reason `Conventions` exists: every consumer targeting the same code library declares the same bindings, and drift between copies produces silently different output
-- Preserves the meaning of absence: no binding declared means the library has no designated primitive, and the generator's existing host-element behavior stands. Nothing else can supply that statement
+- Preserves the sharing consequence, which is the reason `Conventions` exists: every consumer targeting the same library declares the same bindings, and drift between copies produces silently different output
+- Preserves the meaning of absence: no binding declared means no designated primitive, and the generator's existing host-element behavior stands. Nothing else can supply that statement
 
 **Cons / Trade-offs**:
 
-- `Conventions` is no longer about one library. Its doc comment, which today reads "facts about the Figma library a spec was generated from," must widen to cover both ends of the pipeline
-- The two ends have different lifetimes: a Figma convention changes when the file is reorganized, a platform binding when the code library is versioned
+- `Conventions` is no longer about one library. Its doc comment, which today reads "facts about the Figma library a spec was generated from," must widen to cover every library the pipeline touches
+- Different platforms' conventions have different lifetimes: a Figma convention changes when the file is reorganized, a code binding when the library is versioned
 
 ---
 
 ### Option 1B: They are settings — a run chooses its target *(Rejected)*
 
-**Rejected because**: it fails the discriminant. A setting cannot be wrong, only different; `text → DsButton` is wrong. It also fails the sharing consequence — `Settings` is explicitly the per-run, per-consumer side, so every workspace, CI job, and plugin would re-declare the bindings, which is the exact drift ADR-071 was written to end.
+**Rejected because**: it fails the discriminant. A setting cannot be wrong, only different; `text → DsButton` is wrong. It also fails the sharing consequence — `Settings` is explicitly the per-run side, so every workspace, CI job, and plugin would re-declare the bindings, which is the exact drift ADR-071 was written to end.
 
-Which platform a *given run* targets is genuinely a setting. That is `Pipeline`/`Settings` selecting a key; it is not the binding table itself.
+Which platform a *given run* targets is genuinely a setting. That is `Settings`/`Pipeline` selecting a key; it is not the binding table itself.
 
 ---
 
 ### Option 1C: A third top-level artifact — `bindings.yaml`, outside `Conventions` *(Rejected)*
 
-**Rejected because**: it adds a fourth root concept to a contract ADR-071 just reduced to three, and it would need its own resolution, its own absence semantics, and its own workspace-layout rules — all of them identical to the ones `Conventions` already has. Constitution III: the split must express a genuine distinction, and "reads Figma" versus "writes code" is a *namespace* distinction, not a root-artifact one.
+**Rejected because**: it adds a fourth root concept to a contract ADR-071 just reduced to three, and it would need its own resolution, absence semantics, and workspace-layout rules — all identical to the ones `Conventions` already has.
 
 ---
 
 ## Decision 2 — The namespace shape
 
-### Option 2A: `conventions.platforms.<id>` — a platform-keyed sibling to `figma` *(Selected)*
+### Option 2A: `conventions.platforms.<id>`, with `figma` as one of the keys *(Selected)*
+
+There is one namespace under `Conventions`, keyed by platform. Figma is a key like any other. The existing `conventions.figma` block moves to `conventions.platforms.figma` unchanged in content.
 
 ```yaml
 # conventions.yaml
-figma:
-  naming: SENTENCE
-  glyphs:
-    match: "DS Icon Glyph / {i}"
-  # ... unchanged
-
 platforms:
-  web:
+  figma:
+    naming: SENTENCE
+    glyphs:
+      match: "DS Icon Glyph / {i}"
+    codeOnlyProps:
+      match: "Code only props"
+    subcomponents:
+      scope: PAGE
+      match: ["{C} / {S}"]
+    images:
+      backgroundImage: true
+      match: "DS Image"
+      sourceProps: [imageSource]
+    slotConstraints: true
+    inferNumberProps: true
+    states:
+      hover: {prop: state, value: hover}
+
+  react:
     primitives:
-      text:
-        component: DsText
-      glyph:
-        component: DsIcon
-      container:
-        component: DsBox
-  ios:
+      text:      {component: DsText}
+      glyph:     {component: DsIcon}
+      container: {component: DsBox}
+
+  web-components:
     primitives:
-      text:
-        component: Text
-      glyph:
-        component: Image
-  android:
+      text:      {component: ds-text}
+      glyph:     {component: ds-icon}
+
+  swiftui:
     primitives:
-      text:
-        component: Text
-      glyph:
-        component: Icon
+      text:  {component: Text}
+      glyph: {component: Image}
 ```
 
-Two sibling namespaces under one root, each answering one question. `figma` answers *what is this node*; `platforms` answers *what does it become*.
+`PlatformConventions` is **one shape** with every member optional. Two groups of members exist within it:
+
+- **Read-side members** — `naming`, `glyphs`, `codeOnlyProps`, `subcomponents`, `instanceExamples`, `images`, `slotConstraints`, `inferNumberProps`, `states`. These classify and detect: what a node in that platform's artifacts *is*
+- **Write-side members** — `primitives`, `styleProps`, `stylePropName` (ADR-074 – ADR-076). These bind and emit: what a primitive *becomes* on that platform
+
+Today `figma` populates the read side and code platforms populate the write side. Nothing in the type enforces that partition, because the partition is about direction of travel, not about the platform — and Figma travels both ways.
 
 **Pros**:
 
-- Reads as the pipeline reads: source on the left, targets on the right, one file
-- Keeps `conventions.figma` untouched and its documented meaning intact — a purely additive change
-- The platform key is the natural fan-out point. Adding iOS is adding a key, not restructuring
-- A generator's lookup is one indexed read: `conventions.platforms[myId]`. It never needs to see, or understand, another platform's entry
-- Absence composes at two levels with one meaning at each: no `platforms` block = no code-side conventions at all; no `platforms.ios` = this library declares nothing for iOS
+- The siblings are gone, and with them the asymmetry. There is one axis — platform — and every platform sits on it
+- Figma stops being a special case. `platforms.figma.primitives.text` is immediately meaningful and immediately useful: it is how `figma-from-specs` would learn to render a text primitive as an instance of a designated Figma text component rather than a bare `TEXT` node. Under a `figma`-versus-`platforms` split there is no place to put that
+- The read/write partition explains itself. A member is read-side or write-side by what it does, and a platform can have both — which is exactly Figma's situation and would be any round-trippable target's
+- Adding a platform is adding a key. Adding a direction to an existing platform is adding a member
+- A generator's lookup is one indexed read: `conventions.platforms[myId]`. It never needs to see another platform's entry
+- Absence composes at two levels with one meaning at each: no `platforms` block = no conventions at all; no `platforms.swiftui` = nothing declared for SwiftUI
+- Free. `Conventions` is unreleased, so the move breaks no published contract
 
 **Cons / Trade-offs**:
 
-- `figma` is a singular scope and `platforms` is a map — the two siblings have different shapes. Defensible (there is exactly one source and many targets) but not symmetric
-- Invites the question of whether Figma is itself a platform (see Option 2D)
+- `PlatformConventions` is a permissive bag: nothing stops `swiftui.states` or `figma.stylePropName`, both of which are meaningless. Discriminating the two shapes by key would type `figma` differently from every other key, which is the special-casing this option exists to remove — and it would be wrong the moment Figma takes a write-side member. **Permissiveness is the deliberate price of the symmetry**
+- Every path in ADR-071's documentation, and every conventions file in every workspace, gains one level. Mechanical, but it touches every consumer that reads conventions
+- One more level of nesting to reach `naming` or `states`
 
 ---
 
-### Option 2B: `conventions.code` — singular, one target per conventions file *(Rejected)*
+### Option 2B: `conventions.figma` and `conventions.platforms.<id>` as siblings *(Rejected)*
 
-```yaml
-code:
-  primitives:
-    text:
-      component: DsText
-```
+The original selection: leave the Figma block where it is, add a platform-keyed map beside it.
 
-A workspace targeting three platforms keeps three conventions files.
+**Rejected because**: it asserts that Figma is not a platform, and this ecosystem's own tooling contradicts that — `figma-from-specs` renders to Figma exactly as `react-from-specs` renders to React. The asymmetry also shows in the shapes: one sibling is a scope and the other a map, which reads as an accident rather than a decision. And it has nowhere to put a Figma-side primitive binding, which ADR-077 needs.
 
-**Rejected because**: the platform axis is the one thing this ADR exists to express, and this option deletes it from the contract and pushes it into file layout. Three files triplicate the entire `figma` block — the shared, must-not-drift half — to vary the small half. That inverts ADR-071's sharing argument.
+The argument that saved it in the first draft was that moving `conventions.figma` is a MAJOR break. That argument is void: `Conventions` is `@since 0.31.0` and unpublished.
 
 ---
 
@@ -177,50 +190,62 @@ A workspace targeting three platforms keeps three conventions files.
 ```yaml
 primitives:
   text:
-    web: {component: DsText}
-    ios: {component: Text}
+    react: {component: DsText}
+    swiftui: {component: Text}
 ```
 
-**Rejected because**: it optimizes for the wrong reader. The comparison a human wants — "how is text handled everywhere?" — is made once, when authoring. The comparison a generator makes, on every element of every component, is "what is my platform's whole vocabulary?" — and this shape scatters one platform's answers across every primitive key, so a generator cannot read its own configuration as a unit or validate it as one. It also has no place to hang platform-wide members that are not per-primitive (ADR-076 Decision 2 needs one).
+**Rejected because**: it is the wrong inversion. You define all the primitive types for a platform, not all the platforms for a type. The comparison a human wants — "how is text handled everywhere?" — is made once, when authoring; the comparison a generator makes on every element is "what is my platform's whole vocabulary?", and this shape scatters one platform's answers across every primitive key, so a generator can neither read nor validate its own configuration as a unit. It also has no place for platform-wide members that are not per-primitive (ADR-076 Decision 2 needs one), and no place at all for Figma's read-side members.
 
 ---
 
-### Option 2D: Make Figma a platform — `conventions.platforms.figma` alongside `web` *(Rejected)*
+### Option 2D: `conventions.code` — singular, one target per conventions file *(Rejected)*
 
-**Rejected because**: it flattens a real asymmetry into a false symmetry. The `figma` block classifies and detects — it says which layer names mean "glyph," which variant prop means "hover." A platform block binds and emits. They share no member and no shape, and the only thing unifying them would be the word "platform." It is also a MAJOR break of a contract published four weeks ago, bought with nothing.
+**Rejected because**: the platform axis is the one thing this ADR exists to express, and this deletes it from the contract in favour of file layout. Three files triplicate the read-side block — the shared, must-not-drift half — to vary the small half, inverting ADR-071's sharing argument.
 
 ---
 
-## Decision 3 — What the platform keys name
+## Decision 3 — How platform keys are named and structured
 
-Both web generators in this ecosystem — the React transformer and the Web Components transformer — target "web," and they need **different** component identifiers: `DsText` and `<ds-text>`. So the key cannot always be a platform in the Web/iOS/Android sense.
+Both web generators in this ecosystem — the React transformer and the Web Components transformer — target the web, and they need **different** identifiers: `DsText` and `<ds-text>`. They may also differ on prop names, on the styling escape hatch, and on which primitives are bound at all.
 
-### Option 3A: `platforms`, keyed by a free-form identifier a generator declares it reads *(Selected)*
+### Option 3A: Flat, free-form keys at one level — implementations, not platform families *(Selected)*
 
-The key is an opaque string. `web`, `ios`, `android` are the conventional coarse ids and the ones documentation uses; a workspace needing to distinguish two targets on one platform uses finer ids (`react`, `web-components`) and each generator declares which id it reads. The schema does not enumerate the set.
+The key names an **implementation**: `react`, `web-components`, `swiftui`, `compose`, `figma`. Not a platform family — `web` is not a key when React and Web Components are both in play. The schema does not enumerate the set; a generator declares which id it reads.
 
 **Pros**:
 
-- Does not force a taxonomy the schema cannot police. A closed enum would be wrong the first time someone adds React Native, Flutter, or a second in-house web library
-- Matches how this ecosystem already talks about targets (Web / iOS / Android) for the common case, while not blocking the finer one
-- Which id a run reads is a `Settings`/`Pipeline` question — correctly kept out of `Conventions`
+- React and Web Components are genuinely different implementations with genuinely different mappings, and this is the shape that lets them say so
+- Flat means one lookup and one place to read a platform's whole vocabulary. No inheritance, no merge, no specificity
+- Does not force a taxonomy the schema cannot police. A closed enum would be wrong the first time someone adds React Native, Flutter, or a second in-house library
+- Coarse ids stay legal. A team with one web implementation can key it `web` and nothing objects — the key is whatever the generator declares it reads
+- Makes `platforms` an honest name, since the keys now name implementations that are peers rather than a mix of families and members
 
 **Cons / Trade-offs**:
 
-- The block's name over-promises. If a key can be `react`, "platforms" describes the common case rather than the type. **This is the weakest selection in this ADR** and `targets` is a live alternative (Option 3B)
+- Two implementations on one platform repeat whatever they share. Real, and Option 3B is the fix — rejected below on cost/benefit rather than on principle
 - A typo'd key is silently a platform with no conventions. Mitigation is a consumer-side warning when a run's declared id matches no key — a consumer concern, not a schema one (Constitution II)
 
 ---
 
-### Option 3B: `targets`, keyed the same way *(Rejected, narrowly)*
+### Option 3B: Hierarchical — `web.react`, `web.svelte`, inheriting from `web` *(Rejected)*
 
-**Rejected because**: `platforms` is the term this ecosystem's documentation and conventions already use for exactly this axis, and the coarse case is the overwhelmingly common one. `targets` is more literally accurate for the fine-grained case and remains the better name if the fine-grained case turns out to be the norm rather than the exception — worth revisiting before this ADR is accepted rather than after.
+Nest implementations under a platform family so shared web conventions are declared once.
+
+**Rejected because**: it buys deduplication with inheritance, and inheritance costs a merge rule, an override rule, and a depth question at every level — the same complexity ADR-076 Decision 3 confines to a single, shallow, well-bounded merge. Almost no team ships more than one implementation per platform; optimizing the structure for the 5% case while every reader pays the indirection is the wrong trade. If shared web conventions become a real burden, ADR-076's platform-level `styleProps` already absorbs most of it, and hierarchy remains available additively.
 
 ---
 
 ### Option 3C: A closed enum — `WEB | IOS | ANDROID` *(Rejected)*
 
-**Rejected because**: it cannot express two web targets, which already exist here. A closed set of platform names is a taxonomy claim the schema has no standing to make, and every addition to it is a schema release.
+**Rejected because**: it cannot express two web implementations, which already exist here, and it cannot express `figma`. A closed set of platform names is a taxonomy claim the schema has no standing to make, and every addition to it is a schema release.
+
+---
+
+### Option 3D: `targets` rather than `platforms` *(Rejected)*
+
+Considered when the keys looked like a mix of platforms (`web`) and finer targets (`react`) — `targets` was the more literally accurate word for that mixture.
+
+**Rejected because**: Decision 3A removes the mixture. Once every key names a peer implementation, they are platforms in the sense this ecosystem already uses the word, and `targets` becomes actively wrong for `figma`, which is a source at least as often as a target.
 
 ---
 
@@ -230,43 +255,63 @@ The key is an opaque string. `web`, `ios`, `android` are the conventional coarse
 
 | File | Change | Bump |
 |------|--------|------|
-| `Conventions.ts` | Added optional `platforms?: Record<string, PlatformConventions>` to `Conventions` and `ResolvedConventions` | MINOR |
-| `Conventions.ts` | Added `PlatformConventions` interface (contents defined by ADR-074 – ADR-076) | MINOR |
-| `Conventions.ts` | Widened the `Conventions` doc comment from "facts about the Figma library" to facts about both the source library and the target code libraries | PATCH |
+| `Conventions.ts` | `Conventions.figma` replaced by `Conventions.platforms?: Record<string, PlatformConventions>` | MINOR (see Semver) |
+| `Conventions.ts` | Added `PlatformConventions` — the former `figma` block's members, all optional, plus the write-side members of ADR-074 – ADR-076 | MINOR |
+| `Conventions.ts` | Same change to `ResolvedConventions` | MINOR |
+| `Conventions.ts` | `DEFAULT_CONVENTIONS` no longer carries a `figma` key; defaults move inside a declared platform entry | MINOR |
+| `Conventions.ts` | Doc comment widened from "facts about the Figma library" to facts about every library the pipeline reads or writes | PATCH |
 
 **Example — new shape** (`types/Conventions.ts`):
 
 ```yaml
-# Before
+# Before (unreleased)
 Conventions:
-  figma: {...}
+  figma:
+    naming?: NONE | SENTENCE | TITLE
+    glyphs?: {...}
+    states?: {...}
 
 # After
 Conventions:
-  figma: {...}
-  platforms?:            # optional — MINOR
+  platforms?:
     <platformId>:
-      primitives?: {...} # ADR-074 – ADR-076
+      # read-side — what a node in this platform's artifacts IS
+      naming?: NONE | SENTENCE | TITLE
+      glyphs?: {...}
+      codeOnlyProps?: {...}
+      subcomponents?: {...}
+      instanceExamples?: {...}
+      images?: {...}
+      slotConstraints?: boolean
+      inferNumberProps?: boolean
+      states?: {...}
+      # write-side — what a primitive BECOMES on this platform
+      primitives?: {...}     # ADR-074, ADR-076, ADR-077
+      styleProps?: {...}     # ADR-075, ADR-076
+      stylePropName?: string # ADR-075, ADR-076
 ```
 
 ### Schema changes (`schema/`)
 
 | File | Change | Bump |
 |------|--------|------|
-| `conventions.schema.json` | Added optional `platforms` property — an object with `additionalProperties` referencing a new `PlatformConventions` definition | MINOR |
+| `conventions.schema.json` | `figma` property replaced by `platforms`, an object with `additionalProperties: {$ref: PlatformConventions}` | MINOR |
+| `conventions.schema.json` | Added `#/definitions/PlatformConventions`, carrying the former `figma` sub-schema's properties plus the write-side properties | MINOR |
 
 ### Notes
 
-`platforms` is optional and has **no default**, exactly as `glyphs`, `images`, and `states` have none. Absence means the library declares no code-side conventions, and every generator's existing host-element behavior stands unchanged. `DEFAULT_CONVENTIONS` gains no member.
+`platforms` is optional and has **no default**. Absence means no conventions are declared for any platform, and every consumer's existing behavior stands. `DEFAULT_CONVENTIONS` becomes `{}`.
 
-`ResolvedConventions.platforms` carries the same optionality; defaults apply only *inside* a declared platform entry, per the ADR-071 resolution rule. Which defaults, and inside which member, is ADR-075.
+The defaults that `DEFAULT_CONVENTIONS` carried — `naming: NONE`, `slotConstraints: false`, `inferNumberProps: false` — become defaults *inside* a declared platform entry, per ADR-071's resolution rule. A workspace with no `platforms.figma` entry gets no `naming` at all, which is the same statement `NONE` made.
+
+`PlatformConventions` deliberately does not discriminate read-side from write-side members. Doing so would require typing the `figma` key differently from every other key, reinstating the special case this ADR removes, and would be wrong as soon as Figma takes a write-side member — which ADR-077 proposes.
 
 ---
 
 ## Type ↔ Schema Impact
 
 - **Symmetric**: Yes
-- **Parity check**: `Conventions.platforms` ↔ `conventions.schema.json#/definitions/Conventions/properties/platforms`; `PlatformConventions` ↔ `#/definitions/PlatformConventions`. The free-form key is expressed as `additionalProperties`, matching how `Conventions.figma.states` already expresses its concept-keyed map
+- **Parity check**: `Conventions.platforms` ↔ `conventions.schema.json#/definitions/Conventions/properties/platforms`; `PlatformConventions` ↔ `#/definitions/PlatformConventions`. The free-form key is expressed as `additionalProperties`, matching how `states` already expresses its concept-keyed map
 
 ---
 
@@ -274,12 +319,13 @@ Conventions:
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-cli` | None to generate; conventions loading must carry the new block through | Recompile; pass `platforms` into transformers unchanged |
-| `specs-from-figma` | None — it reads `conventions.figma` only, and nothing there changed | Recompile |
+| `specs-from-figma` | Reads its conventions from `platforms.figma` instead of `figma` | Update the read path; no behavior change |
+| `specs-cli` | Same, plus carry the whole map through and select a platform id from `Settings`/`Pipeline` | Update the read path; wire platform selection |
+| `specs-plugin-2` | Persists conventions; same one-level path change | Update the read path |
+| `figma-from-specs` | None now; gains a place for Figma-side bindings (ADR-077) | Recompile |
 | `react-from-specs` | Gains the block it needs; behavior change is ADR-074 | Declare which platform id it reads |
 | `webcomponents-from-specs` | Same | Declare which platform id it reads |
-| `figma-from-specs` | None — renders from the spec, which is unchanged | Recompile |
-| `specs-plugin-2` | Persists conventions; new optional block passes through | Recompile |
+| Workspace `conventions.yaml` files | Every file gains a `platforms:` level with `figma:` beneath it | Mechanical edit; a one-time migration note in the CLI changelog |
 
 ---
 
@@ -287,14 +333,15 @@ Conventions:
 
 **Version**: `0.31.0` (release branch `release/schema-0.31.0+cli-0.28.0`) — **MINOR**
 
-**Justification**: every change is a new optional field or a new definition; no existing type, property, or default changes meaning. Constitution III.
+**Justification**: `Conventions`, `ResolvedConventions`, and `DEFAULT_CONVENTIONS` are all `@since 0.31.0` and have never been published — npm's latest is `0.30.0`. Reshaping a type within the release that introduces it is not a break of any published contract, so the release stays MINOR against `0.30.0`. This reasoning holds only until `0.31.0` ships; after that, the same change is MAJOR.
 
 ---
 
 ## Consequences
 
-- `Conventions` describes both ends of the pipeline. Its members are still classified by the substitution rule, but the subject of that rule is now the source library *and* the target code library
-- `conventions.figma` keeps a single, defensible meaning: what a Figma node **is**. Everything about what a primitive **becomes** has a home outside it, and the boundary rule is stated once (ADR-077)
-- Adding a platform is adding a key. Nothing in the spec, the transformer, or the Figma side changes
-- A generator reads exactly one platform entry and can validate it as a unit
-- The `platforms` name is provisional against `targets` (Decision 3). Changing it after acceptance is a MAJOR break, so it should be settled before implementation
+- There is one axis, platform, and no privileged member of it. Figma is a key, and the pipeline's bidirectionality is visible in the structure rather than contradicted by it
+- `Conventions` describes every library the pipeline touches. Members are still classified by the substitution rule; the subject of the rule is now each platform's library
+- Read-side and write-side is a property of a **member**, not of a platform. Figma is the one platform that has both, and any round-trippable target would be
+- `PlatformConventions` permits meaningless combinations (`swiftui.states`). Accepted as the price of removing the special case; a consumer-side warning is the mitigation
+- Every conventions file and every conventions read path gains one level. Free now, MAJOR after `0.31.0` ships — **this change must land in this release or not at all**
+- Adding a platform is adding a key; adding a direction is adding a member

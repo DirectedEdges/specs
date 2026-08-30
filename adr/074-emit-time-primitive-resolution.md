@@ -22,11 +22,11 @@ export type ElementType =
   | 'rectangle' | 'polygon' | 'star';
 ```
 
-Three of these — `text`, `glyph`, `container` — are what compositions are made of. A design system implements each with a designated component. The question is whether that substitution happens on the way *in* (the transformer writes `type: instance, instanceOf: dsText` into the spec) or on the way *out* (the spec keeps `type: text`, and each generator emits its own platform's component).
+Three of these — `text`, `glyph`, `container` — are what compositions are made of. A fourth primitive, the image, is not an element type at all: an unrouted image reaches a spec as `Styles.backgroundImage` on a container. A design system implements each of the four with a designated component. The question is whether that substitution happens on the way *in* (the transformer writes `type: instance, instanceOf: dsText` into the spec) or on the way *out* (the spec keeps `type: text`, and each generator emits its own platform's component).
 
-ADR-063 already made the in-bound choice, for images: when `conventions.figma.images.match` names a designated image component, the transformer routes the image through it, and the spec carries a nested instance. That was sound for images because the routing was driven by something **the Figma file actually contains** — an instance of the designated image component was already there, and the transformer was recognizing it, not inventing it.
+ADR-063 made a partial in-bound choice for images: when the Figma library has a designated image component and the designer placed an instance of it, the transformer recognizes it and the spec carries a nested instance. That is sound, because the routing is driven by something **the Figma file actually contains**. It leaves the other half of ADR-063's dual model open — a `backgroundImage` on a plain container has no component, and which component it should become is exactly as platform-dispersed as text: `DsImage`, `<ds-image>`, SwiftUI `Image`, Compose `AsyncImage`.
 
-Text and glyph layers are different. A Figma text layer inside a slot's default content is a `TEXT` node. There is no `DsText` instance to recognize. Substituting one would mean the transformer **fabricating structure the source does not have** — and fabricating it differently depending on which platform it was told to serve.
+Text, glyph, and unrouted images are the same case. A Figma text layer inside a slot's default content is a `TEXT` node; there is no `DsText` instance to recognize. Substituting one in the spec would mean the transformer **fabricating structure the source does not have** — and fabricating it differently depending on which platform it was told to serve.
 
 ---
 
@@ -68,10 +68,10 @@ elements:
 ```yaml
 # conventions.yaml — the platform-specific half
 platforms:
-  web:
+  react:
     primitives:
       text: {component: DsText}
-  ios:
+  swiftui:
     primitives:
       text: {component: Text}
 ```
@@ -142,7 +142,9 @@ Note this is *not* an argument against ADR-063. Image routing promotes an instan
 
 Resolution applies to an element when **all** of the following hold:
 
-- Its `ElementType` is `text`, `glyph`, or `container`
+- The element matches a bindable primitive kind, by one of two triggers:
+  - **Element-type triggered** — its `ElementType` is `text`, `glyph`, or `container`
+  - **Style triggered** — it carries a non-null `Styles.backgroundImage`, which matches the `image` kind. The two compose rather than compete: a container with a background image matches `container` for its box and `image` for its fill, and a generator applies each binding to the thing it names
 - It is not the anatomy root of the component being generated
 - A binding for that kind is declared under the run's platform id
 
@@ -156,6 +158,7 @@ It applies uniformly wherever elements appear: component anatomy, `slotContentEx
 
 **Cons / Trade-offs**:
 
+- Two trigger mechanisms rather than one, so `PrimitiveKind` is not a subset of `ElementType`. That was a tidier rule but an accidental one — it described where primitives happen to be *recorded* in the spec, not what a primitive *is*
 - `vector`, `line`, `ellipse`, `rectangle`, `polygon`, `star` get no binding. They are rarer and have no obvious designated component; the vocabulary is open to them additively if that changes
 - `slot` and `instance` are deliberately excluded — a slot is a hole, and an instance already names its component
 
@@ -181,7 +184,7 @@ It applies uniformly wherever elements appear: component anatomy, `slotContentEx
 |------|--------|------|
 | *(none)* | The spec contract is unchanged — no change to `Element`, `ElementType`, `Component`, `SlotContent`, or `Styles` | — |
 | `Conventions.ts` | Added `PlatformConventions.primitives?: Partial<Record<PrimitiveKind, PrimitiveBinding>>` | MINOR |
-| `Conventions.ts` | Added `PrimitiveKind = 'text' \| 'glyph' \| 'container'` — the bindable subset of `ElementType` | MINOR |
+| `Conventions.ts` | Added `PrimitiveKind = 'text' \| 'glyph' \| 'container' \| 'image'` — a closed vocabulary; the first three triggered by `ElementType`, `image` by a non-null `Styles.backgroundImage` | MINOR |
 | `Conventions.ts` | Added `PrimitiveBinding` with `component` (shape defined by ADR-075 and ADR-076) | MINOR |
 
 **Example — new shape** (`types/Conventions.ts`):
@@ -192,6 +195,7 @@ PlatformConventions:
     text?:      {component: ...}
     glyph?:     {component: ...}
     container?: {component: ...}
+    image?:     {component: ...}
 ```
 
 ### Schema changes (`schema/`)
@@ -202,7 +206,7 @@ PlatformConventions:
 
 ### Notes
 
-`PrimitiveKind` is a **closed** enum and a strict subset of `ElementType`. Keeping it closed makes an unbindable or misspelled kind a validation error rather than a silently-ignored key, and keeping it a subset means the vocabulary never invents a kind the spec cannot produce. Widening it later is additive.
+`PrimitiveKind` is a **closed** enum, so an unbindable or misspelled kind is a validation error rather than a silently-ignored key. It is *not* a subset of `ElementType`: `image` is triggered by a style, because a style is where an unrouted image is recorded. What every kind shares is that its trigger is a fact the spec already carries — no kind is inferred, and no kind can fail to correspond to something a spec can contain. Widening the vocabulary later is additive.
 
 That the spec contract does not change is the load-bearing outcome of this ADR, not an incidental one. If implementation finds it needs a new spec member, the resolution model is wrong.
 
@@ -219,7 +223,7 @@ That the spec contract does not change is the load-bearing outcome of this ADR, 
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | **None.** It never sees `platforms`, and it emits primitives exactly as it does today | Recompile |
+| `specs-from-figma` | Reads its own conventions from `platforms.figma` (ADR-073); it emits primitives exactly as it does today | Update the read path |
 | `figma-from-specs` | **None.** It renders `type: text` back to a `TEXT` node, unchanged | Recompile |
 | `react-from-specs` | Implements resolution: consult the binding before emitting a host element | Implement; behavior is opt-in via a declared binding |
 | `webcomponents-from-specs` | Same | Implement |
