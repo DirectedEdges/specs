@@ -51,13 +51,13 @@ ADR-071 Decision 1B already rejected splitting *the type* by author, on the grou
 - **Layout is convention, not configuration (ADR-071 Decision 10).** The existing files are discovered by name in `config/`, not declared. A composition mechanism that requires declaring file paths is a step backwards
 - **Do not name anything after a direction or a command.** This pipeline reads code to produce specs and writes specs to produce Figma; ADR-077 removed a read/write framing for exactly this reason, and the same error is available in a folder name
 - **Absence keeps its meaning (ADR-071).** A platform with no file declares no conventions — the same statement a missing key made
-- **Additive-only.** The single-file form must keep working
+- **One way to do it.** `config/conventions.yaml` ships in CLI `0.28.0`, which is unreleased — npm's latest is `0.27.0`, and that release's own breaking change is the move from `specs.config.yaml` to `config/`. No workspace outside this repo has ever seen the single-file form, so there is no compatibility to preserve and no reason to carry two layouts forward
 
 ---
 
 ## Options Considered
 
-Four decisions: whether composition happens at all, where the files live, how a file names its platform, and what becomes of the single-file form.
+Four decisions: whether composition happens at all, where the files live, how a file names its platform, and whether a single-file form exists at all.
 
 ---
 
@@ -200,34 +200,38 @@ No `platforms:` wrapper, no key repetition. `config/conventions/react.yaml` cont
 
 ---
 
-## Decision 4 — What becomes of the single-file form
+## Decision 4 — Is there a single-file form at all?
 
-### Option 4A: Both forms are valid; declaring both is an error *(Selected)*
+### Option 4A: No — `config/conventions/` is the only layout *(Selected)*
 
-A workspace has **either** `config/conventions.yaml` (a `platforms:` map, exactly as ADR-073 defines it) **or** `config/conventions/` (one file per platform). Both present is a load error, not a merge.
+`config/conventions.yaml` is not a valid workspace layout. A workspace declares its conventions as one file per platform inside `config/conventions/`, whatever the platform count.
 
 **Pros**:
 
-- Every existing workspace keeps working untouched, and a single-platform workspace never needs a directory holding one file
-- Refusing to merge the two forms keeps precedence from becoming a question. There is one place conventions come from, and which place it is, is obvious from the filesystem
-- The migration is mechanical and optional
+- **Nothing is being broken.** `config/conventions.yaml` is introduced by CLI `0.28.0`, which is unreleased; npm's latest is `0.27.0`, and 0.28.0's own headline change is the move from `specs.config.yaml` to `config/`. The single-file form has never reached a workspace outside this repository, so supporting it would be preserving compatibility with something that never existed
+- **One layout, one discovery path.** The CLI reads a directory. There is no branch, no both-present error to define, and no question about which form takes precedence — none of which buys anything once the alternative form has no users
+- The `specs migrate config` command that 0.28.0 already ships can emit the directory form directly, so no workspace ever lands on a layout it would later migrate off
+- Removes a permanent cost from the CLI in exchange for a one-time edit to a handful of in-repo test workspaces
+- Every workspace looks the same regardless of platform count, so documentation, examples, and tooling have one shape to describe
 
 **Cons / Trade-offs**:
 
-- Two supported layouts to document and to implement discovery for
-- A workspace could sit in the directory form with one file, which is harmless but slightly ceremonious
+- A workspace with only Figma conventions gets `config/conventions/figma.yaml` — a directory holding one file. Mildly ceremonious, and the honest price of a single layout. It also stops being ceremonious the moment a second platform arrives, which is the direction every workspace travels
+- `config/` holds one directory beside two files, an asymmetry with no escape hatch. Accepted: the asymmetry reflects that one artifact is composed and two are not
 
 ---
 
-### Option 4B: The directory form only; migrate every workspace *(Rejected)*
+### Option 4B: Both forms are valid; declaring both is an error *(Rejected)*
 
-**Rejected because**: it breaks every existing workspace to no benefit for the single-platform case, which is the majority.
+A workspace has either `config/conventions.yaml` or `config/conventions/`, never both.
+
+**Rejected because**: it buys backwards compatibility with a form that has never been released. The cost is permanent and lands on every consumer that loads conventions — two discovery paths, a both-present error to define and test, two layouts to document, and two shapes for any tooling that reads or writes the artifact. Weighed against a one-time edit to in-repo test workspaces, the trade is clearly wrong. The moment to have one layout is before the first release, and that moment is now.
 
 ---
 
 ### Option 4C: Merge both, directory overriding file *(Rejected)*
 
-**Rejected because**: it invents a precedence rule to support a layout nobody wants — half the conventions in a file and half in a directory beside it.
+**Rejected because**: it invents a precedence rule to support a layout nobody wants — half the conventions in a file and half in a directory beside it — and it compounds Option 4B's cost rather than avoiding it.
 
 ---
 
@@ -243,31 +247,36 @@ A workspace has **either** `config/conventions.yaml` (a `platforms:` map, exactl
 
 | File | Change | Bump |
 |------|--------|------|
-| `workspace.schema.json` | Documents `config/conventions/` as an alternative to `config/conventions.yaml`, with one file per platform id and the entry body as its root | MINOR |
+| `workspace.schema.json` | `config/conventions.yaml` replaced by `config/conventions/`, one file per platform id with the entry body as its root | MINOR |
 | `conventions.schema.json` | Added a definition validating a single platform entry standalone — the per-file root — alongside the existing whole-artifact definition | MINOR |
 
-**Example — the two valid layouts**:
+**Example — the layout**:
 
-```yaml
-# Form 1 — config/conventions.yaml (unchanged, ADR-073)
-platforms:
-  figma:
-    naming: SENTENCE
-  react:
-    primitives:
-      text: {component: DsText}
+```
+config/
+  conventions/
+    figma.yaml
+    react.yaml
+  settings.yaml
+  pipeline.yaml
 ```
 
 ```yaml
-# Form 2 — config/conventions/figma.yaml
+# config/conventions/figma.yaml
 naming: SENTENCE
-
-# config/conventions/react.yaml
-primitives:
-  text: {component: DsText}
+glyphs:
+  match: "DS Icon Glyph / {i}"
 ```
 
-Both produce the identical `Conventions` object.
+```yaml
+# config/conventions/react.yaml
+stylesProp: sx
+primitives:
+  text:
+    component: DsText
+```
+
+These compose into the `Conventions` object ADR-073 defines, unchanged.
 
 ### Notes
 
@@ -275,7 +284,9 @@ Both produce the identical `Conventions` object.
 
 Discovery is by convention: every `*.yaml` directly inside `config/conventions/`, with the basename as the platform id. No recursion, and no paths declared in `Settings` — consistent with ADR-071 Decision 10, where layout is convention rather than configuration.
 
-A file whose basename matches no platform any generator reads is inert, exactly as an unread key in the single-file form is. A consumer-side warning is the mitigation and a consumer concern (Constitution II).
+There is exactly one layout. `config/conventions.yaml` is not read, and a workspace holding one gets an error naming the directory it should become — the same posture CLI `0.28.0` already takes toward an unmigrated `specs.config.yaml`, rather than a silent fall back to defaults.
+
+A file whose basename matches no platform any generator reads is inert, exactly as an unread platform key would be. A consumer-side warning is the mitigation and a consumer concern (Constitution II).
 
 ---
 
@@ -290,13 +301,13 @@ A file whose basename matches no platform any generator reads is inert, exactly 
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-cli` | Implements discovery for both layouts and the both-present error | Implement |
+| `specs-cli` | Reads `config/conventions/`; errors on a stray `config/conventions.yaml`; `specs migrate config` emits the directory form | Implement |
 | `specs-plugin-2` | Persists conventions; unaffected by workspace file layout | None |
 | `specs-from-figma` | Receives a resolved `Conventions`; unaffected | None |
 | `react-from-specs` | Same | None |
 | `webcomponents-from-specs` | Same | None |
 | `figma-from-specs` | Same | None |
-| Existing workspaces | None — the single-file form stays valid | Optional migration |
+| Existing workspaces | None outside this repository — `config/conventions.yaml` ships in the unreleased CLI `0.28.0` and has never reached one. In-repo test workspaces convert by moving each platform entry into its own file | Mechanical, one-time |
 
 ---
 
@@ -304,7 +315,7 @@ A file whose basename matches no platform any generator reads is inert, exactly 
 
 **Version**: `0.31.0` (release branch `release/schema-0.31.0+cli-0.28.0`) — **MINOR**
 
-**Justification**: an additive alternative layout in `workspace.schema.json` and an additive definition in `conventions.schema.json`; no type changes and no existing layout invalidated. Constitution III.
+**Justification**: no type changes. `config/conventions.yaml` is introduced by the unreleased CLI `0.28.0` (npm's latest is `0.27.0`), so replacing it with `config/conventions/` invalidates no published layout — the same reasoning ADR-073 uses to reshape `Conventions` itself. The release stays MINOR against the published baseline. This holds only until `0.28.0` ships.
 
 ---
 
@@ -314,5 +325,6 @@ A file whose basename matches no platform any generator reads is inert, exactly 
 - `config/conventions/figma.yaml` holds only Figma facts, which is the file the design lead opens
 - There is no merge rule, because a platform is declared in exactly one file. The collision case cannot arise
 - The contract is unchanged. Every consumer receives one `Conventions` object and cannot tell which layout produced it
-- Two layouts are supported. That is a permanent cost in the CLI's discovery, accepted so that no existing workspace breaks and a single-platform workspace needs no directory
+- There is one layout. No discovery branch, no precedence rule, no both-present error — and a workspace with only Figma conventions accepts a directory holding one file as the price
+- **This must land alongside `0.28.0`.** Once the single-file form ships, replacing it is a breaking change to every workspace that adopted it
 - **Out of scope, and now more visible**: `metadata.conventions` in an emitted spec records the resolved conventions, which in a five-platform workspace means four platforms' vocabulary riding along in every spec generated from Figma. Whether metadata should carry only the platforms a run used is a separate question this ADR deliberately does not answer

@@ -5,7 +5,7 @@
 | # | Title | Highlights |
 |---|-------|------------|
 | 079 | `metadata.conventions` Carries Only the Producing Platform | A spec records the one platform entry that produced it, not every platform in the workspace — fixing a drift check that fires on unrelated changes, and stopping internal vocabulary leaking into published specs |
-| 078 | One Conventions File per Platform, in `config/conventions/` | `config/conventions/<platform>.yaml` composes into one `Conventions`; the filename is the platform id so no merge rule is needed, and the single-file form stays valid |
+| 078 | One Conventions File per Platform, in `config/conventions/` | `config/conventions/<platform>.yaml` composes into one `Conventions`; the filename is the platform id so no merge rule is needed, and it is the only layout — the single-file form is unreleased and does not survive |
 | 077 | The Image Component's Code Name, and the Encoding / Vocabulary Boundary | Text, glyph and container are node kinds; an image is an attribute, so it gets `images.component` rather than a place in the primitive vocabulary. A container's `backgroundImage` always stays styling |
 | 076 | Direction-Keyed Container Bindings, and a Platform-Level `stylesProp` | A container binds to one component or to a `layoutMode`-keyed map (Row/Column/Box); only `stylesProp` hoists to the platform, since the per-primitive `props` sets are disjoint |
 | 075 | `props` — a Closed, Concept-Keyed Map onto a Component's Props | Keys name concepts, not spec members: text maps `color`/`typography`, glyph `color`/`content`, container `direction`; `color` and `content` default to their own names; everything else is passed styling routed to `stylesProp` |
