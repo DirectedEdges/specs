@@ -4,7 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 077 | The Image Component's Code Name, and the Read-Side / Write-Side Boundary | Text, glyph and container are node kinds; an image is an attribute, so it gets `images.component` rather than a place in the primitive vocabulary. A container's `backgroundImage` always stays styling |
+| 077 | The Image Component's Code Name, and the Encoding / Vocabulary Boundary | Text, glyph and container are node kinds; an image is an attribute, so it gets `images.component` rather than a place in the primitive vocabulary. A container's `backgroundImage` always stays styling |
 | 076 | Direction-Keyed Container Bindings, and a Platform-Level `stylesProp` | A container binds to one component or to a `layoutMode`-keyed map (Row/Column/Box); only `stylesProp` hoists to the platform, since the per-primitive `props` sets are disjoint |
 | 075 | `props` — a Closed, Concept-Keyed Map onto a Component's Props | Keys name concepts, not spec members: text maps `color`/`typography`, glyph `color`/`content`, container `direction`; `color` and `content` default to their own names; everything else is passed styling routed to `stylesProp` |
 | 074 | Primitives Resolve to Components at Emit Time, Not in the Spec | The spec keeps `type: text`; each platform generator emits its own bound component, so one spec serves every implementation and the transformer stays a pure function of the Figma file. `PrimitiveKind` is the bindable subset of `ElementType`: text, glyph, container |

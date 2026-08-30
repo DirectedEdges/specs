@@ -1,4 +1,4 @@
-# ADR: The Image Component's Code Name, and the Read-Side / Write-Side Boundary
+# ADR: The Image Component's Code Name, and the Encoding / Vocabulary Boundary
 
 **Branch**: `077-images-and-the-convention-boundary`
 **Created**: 2026-08-30
@@ -39,7 +39,7 @@ That removes the layer-fill half as a binding site. What remains is the instance
 - **A container is a container.** A fill is styling. Nothing about a background image changes what the element is or what it contains
 - **Do not fabricate, and do not infer (ADR-074).** A binding must not invent a component, and must not guess from a style's presence what an element means
 - **`PrimitiveKind` is the bindable subset of `ElementType` (ADR-074).** A kind whose trigger is not an element's own type is not a primitive kind
-- **Platform dispersion is the test for a write-side member.** If the answer differs per platform, it belongs in that platform's entry
+- **Platform dispersion is the test for a vocabulary member.** If the answer differs per platform, it belongs in that platform's entry
 - **Preserve ADR-063's dual model.** The fill-versus-component choice is a property of the Figma file and must survive untouched
 - **The boundary must be stateable in one sentence**, or authors will keep asking which entry a new convention belongs in
 
@@ -141,22 +141,22 @@ The previous draft's selection.
 
 ### The boundary rule
 
-> **A read-side convention decides what a node *is*. A write-side convention decides what a primitive *becomes*.**
+> **An encoding convention says how a platform expresses something the spec models explicitly. A vocabulary convention says which of a platform's components implements a spec primitive.**
 
-Read-side members classify and detect within a platform's own artifacts: which layer names mean glyph, which variant prop means hover, which component is the image component, whether images are expressed as fills. Their answers are the same for every consumer of that platform's artifacts.
+**Encoding members** cover what a platform has no first-class way to say. A Figma library has no notion of a subcomponent, so it encodes one in a layer-name pattern; no notion of a state, so it encodes one in a variant prop; no notion of a code-only prop, so it encodes one in a named container. `glyphs.match`, `subcomponents.match`, `states`, `codeOnlyProps`, `naming`, `images.backgroundImage`, and `images.sourceProps` are all of this kind.
 
-Write-side members bind and emit: which component a primitive becomes on that platform, what its props are called. Their answers differ per target by design.
+**Vocabulary members** name components. `primitives.text.component`, `primitives.glyph.component`, `images.component`, and `images.match` all answer "which component in this library is the one that means X."
 
-**Neither side is a platform.** A platform can hold both, and Figma is the one that does today — read-side because `specs-from-figma` reads it, and eligible for write-side because `figma-from-specs` renders to it. That is why ADR-073 puts every platform in one map with one shape rather than fencing Figma off.
+**Neither group belongs to a direction, and neither belongs to a platform.** A name pattern is decoded when reading a platform's artifacts and applied when writing them — the same fact used twice. Knowing that `DsText` is the text primitive is required to read React into a spec as much as to write React out of one. This pipeline already runs both ways on both kinds of platform: code is read to produce specs, and specs are written to produce Figma.
 
-Images and glyphs both sit on both sides: `platforms.figma.glyphs.match` is what makes a node a `glyph` at all, and `platforms.react.primitives.glyph.component` is what it becomes. Two halves in two entries is the rule working, not a seam.
+Images and glyphs each have members in both groups: `platforms.figma.glyphs.match` is an encoding fact (which layer names mark a glyph asset), while `platforms.react.primitives.glyph.component` is a vocabulary fact. `images.match` and `images.component` are *both* vocabulary — the same question answered in two languages, which is why they share a block.
 
 ### Type changes (`types/`)
 
 | File | Change | Bump |
 |------|--------|------|
 | `Conventions.ts` | Added `PlatformConventions.images.component?: string` — the code name for the designated image component | MINOR |
-| `Conventions.ts` | Doc comments distinguish `images.match` (a Figma component name) from `images.component` (a code component name), and state the read-side / write-side rule | PATCH |
+| `Conventions.ts` | Doc comments distinguish `images.match` (a Figma component name) from `images.component` (a code component name), and state the encoding / vocabulary rule | PATCH |
 | `Conventions.ts` | `Styles.backgroundImage` documented as passed styling, never a primitive trigger | PATCH |
 
 **Example — new shape** (`types/Conventions.ts`):
@@ -164,12 +164,12 @@ Images and glyphs both sit on both sides: `platforms.figma.glyphs.match` is what
 ```yaml
 PlatformConventions:
   images?:
-    # read-side
+    # encoding — how this library expresses images
     backgroundImage?: boolean
-    match?: string        # the Figma component's name
     sourceProps?: string[]
-    # write-side
-    component?: string    # what that component is called on this platform
+    # vocabulary — the image component, in two languages
+    match?: string        # its Figma name
+    component?: string    # its name on this platform
 ```
 
 ### Schema changes (`schema/`)
@@ -181,9 +181,7 @@ PlatformConventions:
 
 ### Notes
 
-`images.component` is meaningful only alongside a `platforms.figma.images.match` somewhere in the same conventions — it is the translation target for that name. It is not validated against it, because cross-platform-entry validation is resolution logic, not schema (Constitution II); an unmatched `component` is inert.
-
-The `images` block keeps one name on both sides deliberately. Splitting it into `images` (read) and `imageComponent` (write) would hide that the two members are two ends of one fact.
+`images.match` and `images.component` are the same vocabulary fact in two languages, which is why the block holds both rather than splitting into `images` and `imageComponent`. `images.component` is meaningful only alongside a `match` declared for whichever platform the spec was generated from — it is the translation target for that name. It is not validated against it, because cross-platform-entry validation is resolution logic, not schema (Constitution II); an unmatched `component` is inert.
 
 ---
 
@@ -222,4 +220,4 @@ The `images` block keeps one name on both sides deliberately. Splitting it into 
 - `PrimitiveKind` stays `text | glyph | container` — a clean subset of `ElementType`, one trigger mechanism, no exceptions
 - The primitive vocabulary names node kinds, and images are excluded on principle rather than by omission: an image is an attribute of a node, not a kind of node. That is the rule to apply when the next attribute-shaped concept arrives
 - A narrow instance of component-name translation now exists in the contract. The general problem — what every Figma component is called per platform — remains open, and this is the shape a future answer would generalize
-- The boundary rule is about direction of travel, not about Figma. Any platform can hold both sides, which is what keeps ADR-073's single map honest
+- The boundary rule is about what a member *says*, not about a platform and not about a direction. Both groups are used reading and writing, on Figma and on code platforms alike — which is what keeps ADR-073's single map honest

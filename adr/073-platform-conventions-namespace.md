@@ -152,16 +152,16 @@ platforms:
 
 `PlatformConventions` is **one shape** with every member optional. Two groups of members exist within it:
 
-- **Read-side members** — `naming`, `glyphs`, `codeOnlyProps`, `subcomponents`, `instanceExamples`, `images`, `slotConstraints`, `inferNumberProps`, `states`. These classify and detect: what a node in that platform's artifacts *is*
-- **Write-side members** — `primitives`, `stylesProp`, and `images.component` (ADR-074 – ADR-077). These bind and emit: what a primitive *becomes* on that platform
+- **Encoding members** — `naming`, `glyphs`, `codeOnlyProps`, `subcomponents`, `instanceExamples`, `images.backgroundImage`, `images.match`, `images.sourceProps`, `slotConstraints`, `inferNumberProps`, `states`. These say **how this platform expresses something the spec models explicitly**. A Figma library has no first-class notion of a subcomponent, so it encodes one in a layer-name pattern; no first-class notion of a state, so it encodes one in a variant prop
+- **Vocabulary members** — `primitives`, `stylesProp`, `images.component` (ADR-074 – ADR-077). These say **which of this platform's components implements a spec primitive**
 
-Today `figma` populates the read side and code platforms populate the write side. Nothing in the type enforces that partition, because the partition is about direction of travel, not about the platform — and Figma travels both ways.
+Both groups apply to any platform, and both apply whichever way a run travels: decoding a name pattern and applying one are the same fact used twice, and knowing that `DsText` is the text primitive is required to read React into a spec as much as to write React out of one. Today `figma` happens to populate the encoding members and code platforms the vocabulary members, but nothing in the type enforces it — ADR-071 already anticipated code-side naming conventions, and a designated Figma text component would be a Figma vocabulary member.
 
 **Pros**:
 
 - The siblings are gone, and with them the asymmetry. There is one axis — platform — and every platform sits on it
 - Figma stops being a special case. `platforms.figma.primitives.text` is immediately meaningful and immediately useful: it is how `figma-from-specs` would learn to render a text primitive as an instance of a designated Figma text component rather than a bare `TEXT` node. Under a `figma`-versus-`platforms` split there is no place to put that
-- The read/write partition explains itself. A member is read-side or write-side by what it does, and a platform can have both — which is exactly Figma's situation and would be any round-trippable target's
+- The two groups explain themselves. A member is an encoding fact or a vocabulary fact by what it says, not by which platform holds it or which way a run is going
 - Adding a platform is adding a key. Adding a direction to an existing platform is adding a member
 - A generator's lookup is one indexed read: `conventions.platforms[myId]`. It never needs to see another platform's entry
 - Absence composes at two levels with one meaning at each: no `platforms` block = no conventions at all; no `platforms.swiftui` = nothing declared for SwiftUI
@@ -169,7 +169,7 @@ Today `figma` populates the read side and code platforms populate the write side
 
 **Cons / Trade-offs**:
 
-- `PlatformConventions` is a permissive bag: nothing stops `swiftui.states` or `figma.stylesProp`, both of which are meaningless. Discriminating the two shapes by key would type `figma` differently from every other key, which is the special-casing this option exists to remove — and it would be wrong the moment Figma takes a write-side member. **Permissiveness is the deliberate price of the symmetry**
+- `PlatformConventions` is a permissive bag: nothing stops `swiftui.states` or `figma.stylesProp`, both of which are meaningless. Discriminating the two shapes by key would type `figma` differently from every other key, which is the special-casing this option exists to remove — and it would be wrong the moment Figma takes a vocabulary member, or a code platform an encoding one. **Permissiveness is the deliberate price of the symmetry**
 - Every path in ADR-071's documentation, and every conventions file in every workspace, gains one level. Mechanical, but it touches every consumer that reads conventions
 - One more level of nesting to reach `naming` or `states`
 
@@ -194,13 +194,13 @@ primitives:
     swiftui: {component: Text}
 ```
 
-**Rejected because**: it is the wrong inversion. You define all the primitive types for a platform, not all the platforms for a type. The comparison a human wants — "how is text handled everywhere?" — is made once, when authoring; the comparison a generator makes on every element is "what is my platform's whole vocabulary?", and this shape scatters one platform's answers across every primitive key, so a generator can neither read nor validate its own configuration as a unit. It also has no place for platform-wide members that are not per-primitive (ADR-076 Decision 2 needs one), and no place at all for Figma's read-side members.
+**Rejected because**: it is the wrong inversion. You define all the primitive types for a platform, not all the platforms for a type. The comparison a human wants — "how is text handled everywhere?" — is made once, when authoring; the comparison a generator makes on every element is "what is my platform's whole vocabulary?", and this shape scatters one platform's answers across every primitive key, so a generator can neither read nor validate its own configuration as a unit. It also has no place for platform-wide members that are not per-primitive (ADR-076 Decision 2 needs one), and no place at all for Figma's encoding members.
 
 ---
 
 ### Option 2D: `conventions.code` — singular, one target per conventions file *(Rejected)*
 
-**Rejected because**: the platform axis is the one thing this ADR exists to express, and this deletes it from the contract in favour of file layout. Three files triplicate the read-side block — the shared, must-not-drift half — to vary the small half, inverting ADR-071's sharing argument.
+**Rejected because**: the platform axis is the one thing this ADR exists to express, and this deletes it from the contract in favour of file layout. Three files triplicate the Figma block — the shared, must-not-drift half — to vary the small half, inverting ADR-071's sharing argument.
 
 ---
 
@@ -256,7 +256,7 @@ Considered when the keys looked like a mix of platforms (`web`) and finer target
 | File | Change | Bump |
 |------|--------|------|
 | `Conventions.ts` | `Conventions.figma` replaced by `Conventions.platforms?: Record<string, PlatformConventions>` | MINOR (see Semver) |
-| `Conventions.ts` | Added `PlatformConventions` — the former `figma` block's members, all optional, plus the write-side members of ADR-074 – ADR-076 | MINOR |
+| `Conventions.ts` | Added `PlatformConventions` — the former `figma` block's members, all optional, plus the vocabulary members of ADR-074 – ADR-077 | MINOR |
 | `Conventions.ts` | Same change to `ResolvedConventions` | MINOR |
 | `Conventions.ts` | `DEFAULT_CONVENTIONS` no longer carries a `figma` key; defaults move inside a declared platform entry | MINOR |
 | `Conventions.ts` | Doc comment widened from "facts about the Figma library" to facts about every library the pipeline reads or writes | PATCH |
@@ -275,7 +275,7 @@ Conventions:
 Conventions:
   platforms?:
     <platformId>:
-      # read-side — what a node in this platform's artifacts IS
+      # encoding — how this platform expresses what the spec models
       naming?: NONE | SENTENCE | TITLE
       glyphs?: {...}
       codeOnlyProps?: {...}
@@ -285,7 +285,7 @@ Conventions:
       slotConstraints?: boolean
       inferNumberProps?: boolean
       states?: {...}
-      # write-side — what a primitive BECOMES on this platform
+      # vocabulary — which of this platform's components is a spec primitive
       primitives?: {...}     # ADR-074 – ADR-076
       stylesProp?: string    # ADR-075, ADR-076
 ```
@@ -295,7 +295,7 @@ Conventions:
 | File | Change | Bump |
 |------|--------|------|
 | `conventions.schema.json` | `figma` property replaced by `platforms`, an object with `additionalProperties: {$ref: PlatformConventions}` | MINOR |
-| `conventions.schema.json` | Added `#/definitions/PlatformConventions`, carrying the former `figma` sub-schema's properties plus the write-side properties | MINOR |
+| `conventions.schema.json` | Added `#/definitions/PlatformConventions`, carrying the former `figma` sub-schema's properties plus the vocabulary properties | MINOR |
 
 ### Notes
 
@@ -303,7 +303,7 @@ Conventions:
 
 The defaults that `DEFAULT_CONVENTIONS` carried — `naming: NONE`, `slotConstraints: false`, `inferNumberProps: false` — become defaults *inside* a declared platform entry, per ADR-071's resolution rule. A workspace with no `platforms.figma` entry gets no `naming` at all, which is the same statement `NONE` made.
 
-`PlatformConventions` deliberately does not discriminate read-side from write-side members. Doing so would require typing the `figma` key differently from every other key, reinstating the special case this ADR removes, and would be wrong as soon as Figma takes a write-side member — which ADR-077 proposes.
+`PlatformConventions` deliberately does not discriminate encoding members from vocabulary members. Doing so would require typing the `figma` key differently from every other key, reinstating the special case this ADR removes, and would be wrong as soon as Figma takes a vocabulary member or a code platform takes an encoding one — both of which are foreseeable.
 
 ---
 
@@ -340,7 +340,7 @@ The defaults that `DEFAULT_CONVENTIONS` carried — `naming: NONE`, `slotConstra
 
 - There is one axis, platform, and no privileged member of it. Figma is a key, and the pipeline's bidirectionality is visible in the structure rather than contradicted by it
 - `Conventions` describes every library the pipeline touches. Members are still classified by the substitution rule; the subject of the rule is now each platform's library
-- Read-side and write-side is a property of a **member**, not of a platform. Figma is the one platform that has both, and any round-trippable target would be
+- Encoding and vocabulary is a property of a **member**, not of a platform and not of a direction. Both groups are used in both directions: a name pattern is decoded when reading and applied when writing be
 - `PlatformConventions` permits meaningless combinations (`swiftui.states`). Accepted as the price of removing the special case; a consumer-side warning is the mitigation
 - Every conventions file and every conventions read path gains one level. Free now, MAJOR after `0.31.0` ships — **this change must land in this release or not at all**
 - Adding a platform is adding a key; adding a direction is adding a member
