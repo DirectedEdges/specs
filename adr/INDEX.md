@@ -4,6 +4,13 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 079 | `metadata.conventions` Carries Only the Producing Platform | (reserved, draft in PR #363) |
+| 078 | One Conventions File per Platform, in `config/conventions/` | (reserved, draft in PR #363) |
+| 077 | The Image Component's Code Name, and the Encoding / Vocabulary Boundary | (reserved, draft in PR #363) |
+| 076 | Direction-Keyed Container Bindings, and a Platform-Level `stylesProp` | (reserved, draft in PR #363) |
+| 075 | `props` — a Closed, Concept-Keyed Map onto a Component's Props | (reserved, draft in PR #363) |
+| 074 | Primitives Resolve to Components at Emit Time, Not in the Spec | (reserved, draft in PR #363) |
+| 073 | `conventions.platforms`, with Figma as One Platform Among Them | (reserved, draft in PR #363) |
 | 070 | Explicit `position: ABSOLUTE` for Children of Non-Auto-Layout Parents | |
 | 045 | Processing Provenance Signals | (reserved, draft in PR #60) |
 | 044 | Duplicate Layer Name Disambiguation | (reserved, draft in PR #60) |
