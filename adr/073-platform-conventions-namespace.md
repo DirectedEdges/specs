@@ -3,7 +3,7 @@
 **Branch**: `073-platform-conventions-namespace`
 **Created**: 2026-08-30
 **Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Summary**: A platform-keyed `conventions.platforms` map replaces `conventions.figma`, making Figma one implementation among `react`, `swiftui` and the rest.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

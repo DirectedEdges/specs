@@ -3,7 +3,7 @@
 **Branch**: `075-primitive-style-prop-mapping`
 **Created**: 2026-08-30
 **Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Summary**: A closed `props` map on each binding routes `color`, `typography`, `content` and `direction` onto a platform's own prop names.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

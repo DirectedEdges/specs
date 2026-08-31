@@ -15,7 +15,7 @@ specs fetch [options]
 - `config/settings.yaml` must include `data.directory` and `data.sources`.
 - Fetching `variables` or `styles` requires your Figma organization to be on an **Enterprise** plan — Figma restricts those REST endpoints regardless of your Specs license. `file` and `icons` data work on any plan. See [CLI Requirements](/cli/#requirements).
 - Fetching `icons` additionally requires:
-  - `figma.glyphs.match` set in `config/conventions.yaml` (see [Glyph Name Pattern](/guides/glyph-name-pattern/))
+  - `figma.glyphs.match` set in `config/conventions/figma.yaml` (see [Glyph Name Pattern](/guides/glyph-name-pattern/))
   - `spec.directory` set in `config/settings.yaml` — icon assets are written to the spec workspace, not the data directory
   - the source's `file` payload — listed before `icons` in the same `fetch` array, or fetched in a previous run
 

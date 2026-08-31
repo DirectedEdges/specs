@@ -24,7 +24,23 @@ export type { Composition, Compositions } from './Composition.js';
 
 // Configuration types
 export type { PropConfigurations, PropConfigurationValue, NestedPropConfiguration } from './PropConfigurations.js';
-export type { Conventions, ResolvedConventions, VariantStateEntry } from './Conventions.js';
+export type {
+  Conventions,
+  ResolvedConventions,
+  MetadataConventions,
+  PlatformConventions,
+  ResolvedPlatformConventions,
+  PrimitiveKind,
+  PrimitiveBindings,
+  ResolvedPrimitiveBindings,
+  TextBinding,
+  GlyphBinding,
+  ContainerBinding,
+  ResolvedTextBinding,
+  ResolvedGlyphBinding,
+  ResolvedContainerBinding,
+  VariantStateEntry,
+} from './Conventions.js';
 export { DEFAULT_CONVENTIONS } from './Conventions.js';
 export type { Settings, ResolvedSettings, ColorFormat, SourceEntry } from './Settings.js';
 export { DEFAULT_SETTINGS } from './Settings.js';

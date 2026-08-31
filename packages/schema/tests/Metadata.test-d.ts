@@ -5,12 +5,15 @@
  */
 import type { Metadata } from '../types/index.js';
 
+// Exactly one platform entry — the one that produced this spec (ADR-079)
 const baseConventions: Metadata['conventions'] = {
-  figma: {
-    naming: 'SENTENCE',
-    subcomponents: { scope: 'NESTED', match: ['{C} / _ / {S}'] },
-    slotConstraints: false,
-    inferNumberProps: false,
+  platforms: {
+    figma: {
+      naming: 'SENTENCE',
+      subcomponents: { scope: 'NESTED', match: ['{C} / _ / {S}'] },
+      slotConstraints: false,
+      inferNumberProps: false,
+    },
   },
 };
 

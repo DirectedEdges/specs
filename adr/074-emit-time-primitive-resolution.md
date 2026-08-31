@@ -3,7 +3,7 @@
 **Branch**: `074-emit-time-primitive-resolution`
 **Created**: 2026-08-30
 **Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Summary**: `PrimitiveKind` and a binding per kind resolve `text`, `glyph` and `container` to each platform's own component at emit time.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

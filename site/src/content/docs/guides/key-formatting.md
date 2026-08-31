@@ -102,12 +102,11 @@ Two settings make the round trip reliable.
 
 ### The source convention
 
-The `figma.naming` convention declares the convention your Figma file already uses, so a formatted key has a defined name to reverse into. It lives in `config/conventions.yaml` — it is a fact about the library, while `keys` is a choice about the run:
+The `figma.naming` convention declares the convention your Figma file already uses, so a formatted key has a defined name to reverse into. It lives in `config/conventions/figma.yaml` — it is a fact about the library, while `keys` is a choice about the run:
 
 ```yaml
-# config/conventions.yaml
-figma:
-  naming: SENTENCE   # what your Figma file uses
+# config/conventions/figma.yaml
+naming: SENTENCE   # what your Figma file uses
 ```
 
 ```yaml

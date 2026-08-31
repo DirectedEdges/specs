@@ -3,7 +3,7 @@
 **Branch**: `079-metadata-conventions-single-platform`
 **Created**: 2026-08-30
 **Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Summary**: `MetadataConventions` narrows a spec's recorded conventions to the one platform entry that produced it, not every configured platform.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

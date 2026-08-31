@@ -270,7 +270,7 @@ specs/
 With concerns still split, each component's concern files need a folder to live in, so this flag has no effect.
 
 ### `--get-images`
-Resolve unresolved registry images into real image files. Requires a [`figma.images`](/settings/images/) convention in `config/conventions.yaml`, a configured source file key, and the `FIGMA_TOKEN` environment variable (the same token `specs fetch` uses).
+Resolve unresolved registry images into real image files. Requires a [`figma.images`](/settings/images/) convention in `config/conventions/figma.yaml`, a configured source file key, and the `FIGMA_TOKEN` environment variable (the same token `specs fetch` uses).
 
 ```bash
 specs generate -o specs/ --get-images

@@ -81,13 +81,12 @@ Leave it undeclared if your library doesn't use the code-only props convention.
 
 ## Configuration
 
-Declare `codeOnlyProps` under `figma` in `config/conventions.yaml`. The `match` value is the exact name of the container layer:
+Declare `codeOnlyProps` under `figma` in `config/conventions/figma.yaml`. The `match` value is the exact name of the container layer:
 
 ```yaml
-# config/conventions.yaml
-figma:
-  codeOnlyProps:
-    match: "Code only props"
+# config/conventions/figma.yaml
+codeOnlyProps:
+  match: "Code only props"
 ```
 
 **Default**: absent. When omitted, no code-only prop extraction occurs and the container (if present) is treated as a normal anatomy element.

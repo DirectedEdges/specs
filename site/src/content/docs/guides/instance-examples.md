@@ -37,14 +37,13 @@ instanceExamples:
 Detection mirrors [`subcomponents`](/settings/subcomponents/): the **presence** of the `figma.instanceExamples` convention is the on-switch. There is no separate `include` flag — when the block is present (and the license is Pro), examples are detected *and* emitted.
 
 ```yaml
-# config/conventions.yaml
-figma:
-  instanceExamples:
-    scope: PAGE          # PAGE (default) or FILE
-    match:
-      - "{C} - *"        # {C} = component name
-    parentNames:
-      - Examples         # immediate parent must be an "Examples" frame/section
+# config/conventions/figma.yaml
+instanceExamples:
+  scope: PAGE          # PAGE (default) or FILE
+  match:
+    - "{C} - *"        # {C} = component name
+  parentNames:
+    - Examples         # immediate parent must be an "Examples" frame/section
 ```
 
 - `match` (optional) — name patterns identifying example frames; `{C}` expands to the component name, `*` is a wildcard. Omit to match every in-scope instance of the component.

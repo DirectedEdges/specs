@@ -6,10 +6,10 @@
  * @property generator - Information about the tool that generated this spec.
  * @property schema - Schema validation information.
  * @property source - Figma source information.
- * @property conventions - Facts about the Figma library this spec was generated from.
+ * @property conventions - Conventions of the one platform that produced this spec.
  * @property settings - Choices about the run that generated this spec.
  */
-import { ResolvedConventions } from './Conventions.js';
+import { MetadataConventions } from './Conventions.js';
 import { ResolvedSettings } from './Settings.js';
 
 /**
@@ -20,7 +20,7 @@ import { ResolvedSettings } from './Settings.js';
  * @property generator - Information about the tool that generated this spec.
  * @property schema - Schema validation information.
  * @property source - Figma source information.
- * @property conventions - Facts about the Figma library this spec was generated from.
+ * @property conventions - Conventions of the one platform that produced this spec.
  * @property settings - Choices about the run that generated this spec.
  */
 export type Metadata = {
@@ -53,6 +53,6 @@ export type Metadata = {
     nodeId: string;
     nodeType: 'COMPONENT' | 'COMPONENT_SET' | 'FRAME';
   };
-  conventions: ResolvedConventions;
+  conventions: MetadataConventions;
   settings: ResolvedSettings;
 };

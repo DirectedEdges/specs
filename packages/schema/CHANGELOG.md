@@ -12,17 +12,27 @@ Configuration now separates what is true about a Figma library from what a run c
 ### Added
 
 - `NumberProp.enum` — the closed set of values a numeric prop accepts, so a Figma VARIANT whose options are all numbers carries its numeric type and its authored option order at once (ADR-072)
-- `Conventions` — facts about the Figma library, namespaced by source under `figma`; blocks are optional and their absence means the library declares no such convention
+- `Conventions` — facts about the libraries the pipeline reads and writes, keyed by platform under `platforms`; `figma` is one implementation key among `react`, `web-components` and `swiftui`. Blocks are optional and their absence means that platform declares no such convention (ADR-073)
 - `Settings` — run choices grouped by concern (`data`, `spec`, `assets`), each carrying its own `directory`
 - `Pipeline` — `transformers` and `analyses` a workspace runs, with `AnalysisEntry` alongside `TransformEntry`
 - `SourceEntry` — a source's Figma file `key` and the artifacts to `fetch`
-- `DEFAULT_SETTINGS`, `DEFAULT_PIPELINE` and `DEFAULT_CONVENTIONS` — one defaults constant per configuration artifact. `DEFAULT_CONVENTIONS` carries only the three members that have a meaningful default; convention blocks are absent by design, because absence is the statement that a library declares none
+- `DEFAULT_SETTINGS`, `DEFAULT_PIPELINE` and `DEFAULT_CONVENTIONS` — one defaults constant per configuration artifact. `DEFAULT_CONVENTIONS` is `{}`: every default it once carried — `naming`, `slotConstraints`, `inferNumberProps` — belongs inside a declared platform entry, and no platform being declared is a statement no default can supply (ADR-073)
 - `conventions.schema.json`, `settings.schema.json`, `pipeline.schema.json` — one schema per authored artifact
+- `PlatformConventions` — one permissive shape per platform, carrying encoding members (`naming`, `glyphs`, `states`, …) and vocabulary members alike; also the root of a single `config/conventions/<id>.yaml`, so one file validates standalone (ADR-073, ADR-078)
+- `PrimitiveKind` — `'text' | 'glyph' | 'container'`, the bindable subset of `ElementType`; bindings resolve at emit time and are never written into a spec (ADR-074)
+- `PlatformConventions.primitives` — `TextBinding`, `GlyphBinding` and `ContainerBinding`, each with `component`, a closed concept-keyed `props`, and `stylesProp` (ADR-075)
+- `ContainerBinding.component` — a name, or a `LayoutMode`-keyed map for platforms expressing direction by component choice (ADR-076)
+- `PlatformConventions.stylesProp` — baseline prop for unmapped styling, overridden per primitive and folded into each on resolution (ADR-076)
+- `PlatformConventions.images.component` — the image component's name on a code platform, beside the `match` naming it in Figma (ADR-077)
+- `MetadataConventions` — a spec records the one platform entry that produced it, not every platform the workspace configures (ADR-079)
+- `PlatformConventions.defaultFillWidth` — container width for a root that resizes to fill its parent; fixed and hugging roots unaffected (ADR-081)
 
 ### Changed
 
 - **`Settings.spec.splitComponents`, `splitConcerns` and `useSubfolders` now default to `true`** and are required on `ResolvedSettings`. The split layout — one folder per component, one file per concern — is what `transform`, `analyze` and `render` read, so the shape of generated output is not a per-consumer choice. They previously carried no default, leaving each consumer to pick its own; both consumers picked `false`, which is the layout nothing downstream can use. Recorded spec `metadata.settings.spec` now carries all three on every spec.
 
+- `Metadata.conventions` — typed as `MetadataConventions`; carries exactly the platform that produced the spec (ADR-079)
+- Conventions are authored as one file per platform in `config/conventions/`, the filename carrying the platform id; there is no single-file form (ADR-078)
 - `Metadata.config` → `Metadata.conventions` and `Metadata.settings` — each half comparable across specs on its own
 - `Config.format.figmaKeys` → `Conventions.figma.naming` — no longer shares the word `keys` with the emitted casing
 - `Config.processing.glyphNamePattern` → `Conventions.figma.glyphs.match`; `codeOnlyPropsPattern` → `codeOnlyProps.match`; `images.imageComponent` → `images.match`

@@ -3,7 +3,7 @@
 **Branch**: `078-conventions-file-per-platform`
 **Created**: 2026-08-30
 **Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Summary**: One conventions file per platform in `config/conventions/` composes into `Conventions`, with each filename carrying its own platform id.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

@@ -979,8 +979,8 @@
           "additionalProperties": false
         },
         "conventions": {
-          "$ref": "conventions.schema.json#/definitions/Conventions",
-          "description": "Facts about the Figma library this spec was generated from."
+          "$ref": "conventions.schema.json#/definitions/MetadataConventions",
+          "description": "Conventions of the one platform that produced this spec. A missing platform did not produce it. (ADR-079)"
         },
         "settings": {
           "$ref": "settings.schema.json#/definitions/Settings",

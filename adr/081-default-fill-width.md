@@ -3,7 +3,7 @@
 **Branch**: `adr/primitive-composition`
 **Created**: 2026-08-31
 **Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Summary**: `defaultFillWidth` states the container width a platform gives a component whose root resizes to fill its parent.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

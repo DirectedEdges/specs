@@ -3,7 +3,7 @@
 **Branch**: `076-container-primitives-and-shared-styles`
 **Created**: 2026-08-30
 **Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Summary**: `ContainerBinding.component` accepts a `LayoutMode`-keyed map, and a platform-level `stylesProp` sets the baseline each primitive may override.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

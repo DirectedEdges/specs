@@ -3,7 +3,7 @@
 **Branch**: `077-images-and-the-convention-boundary`
 **Created**: 2026-08-30
 **Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Summary**: `images.component` names the image component on a code platform, beside the `match` naming that same component in Figma.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

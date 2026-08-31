@@ -51,7 +51,7 @@ A `StringProp` is distinguished from an `EnumProp` by the absence of `enum`.
 | `nullable` | `boolean` | No | Whether `null` is a valid value — absent means `true` (since 0.29.0) |
 | `examples` | `number[]` | No | Example values |
 
-Inferred from Figma variant values when [`conventions.figma.inferNumberProps`](/schema/conventions/#figma) is enabled.
+Inferred from Figma variant values when [`conventions.platforms.figma.inferNumberProps`](/schema/conventions/#platform-members) is enabled.
 
 ### SlotProp
 
@@ -65,7 +65,7 @@ Inferred from Figma variant values when [`conventions.figma.inferNumberProps`](/
 | `anyOf` | `string[]` | No | Permitted component type names (since 0.14.0) |
 | `$extensions` | `PropExtensions` | No | Vendor extensions |
 
-Slot constraint properties (`minChildren`, `maxChildren`, `anyOf`) are emitted when [`conventions.figma.slotConstraints`](/schema/conventions/#figma) is declared.
+Slot constraint properties (`minChildren`, `maxChildren`, `anyOf`) are emitted when [`conventions.platforms.figma.slotConstraints`](/schema/conventions/#platform-members) is declared.
 
 ### ImageProp
 
@@ -76,7 +76,7 @@ Slot constraint properties (`minChildren`, `maxChildren`, `anyOf`) are emitted w
 | `nullable` | `boolean` | No | Whether `null` is a valid value — absent means `true` |
 | `$extensions` | `PropExtensions` | No | Vendor extensions |
 
-An image-valued property (e.g. a `dsImage` `source` prop). The authoring-default image rides on the [`ImageBinding`](/schema/prop-configurations/) at the binding site, not on the prop. Emitted for code-only props named in [`figma.images.sourceProps`](/schema/conventions/#figmaimages) (since 0.28.0).
+An image-valued property (e.g. a `dsImage` `source` prop). The authoring-default image rides on the [`ImageBinding`](/schema/prop-configurations/) at the binding site, not on the prop. Emitted for code-only props named in [`figma.images.sourceProps`](/schema/conventions/#images) (since 0.28.0).
 
 ## Nullability
 
