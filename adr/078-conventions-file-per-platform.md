@@ -57,7 +57,7 @@ ADR-071 Decision 1B already rejected splitting *the type* by author, on the grou
 
 ## Options Considered
 
-Six decisions: whether composition happens at all, where the files live, how a file names its platform, whether a single-file form exists at all, how the bridge server reads conventions, and how the workspace is scaffolded.
+Four decisions: whether composition happens at all, where the files live, how a file names its platform, and whether a single-file form exists at all.
 
 ---
 
@@ -235,81 +235,6 @@ A workspace has either `config/conventions.yaml` or `config/conventions/`, never
 
 ---
 
-## Decision 5 — How `bridge/server.ts` reads conventions
-
-`resolveSources()` in `packages/cli/src/bridge/server.ts` opens `config/settings.yaml` and `config/conventions.yaml` itself, by literal path, and falls back to reading a pre-split `specs.config.yaml` when they are absent. It never calls `ConfigLoader`.
-
-Two read paths for one artifact is a maintenance cost in any layout. It is worse than that today, because **the two paths disagree**: `ConfigLoader` *refuses* a pre-split `specs.config.yaml` and errors with the migration command to run, deliberately, so that output shape never changes silently. The bridge reads that same file and proceeds. A workspace that has not migrated is told to migrate by one door and served by the other.
-
-### Option 5A: Consolidate onto `ConfigLoader` *(Selected)*
-
-`resolveSources()` obtains conventions and settings from `ConfigLoader` and derives the aliases and glyph pattern from the resolved objects. Its literal paths and its legacy fallback are deleted.
-
-**Pros**:
-
-- One discovery implementation, so this ADR's layout change lands in one place and cannot be half-applied
-- Removes the behavioural divergence on unmigrated workspaces. The bridge inherits `ConfigLoader`'s refusal, which is the intended posture
-- Removes a duplicate legacy fallback that ADR-071 already retired everywhere else
-- The bridge stops needing to know the layout at all, so the next layout change costs it nothing
-- Fixes a failure mode that is silent by construction: a missed literal path finds no file, returns no glyph pattern, and degrades render output without erroring
-
-**Cons / Trade-offs**:
-
-- `ConfigLoader` resolves the whole configuration where the bridge wants two values, so the bridge does marginally more work per call. Cacheable, and negligible against a bridge round trip
-- Behaviour changes for an unmigrated workspace: renders that previously worked now error with the migration instruction. Correct — that is what every other command already does — but it is a change, and it belongs in the CLI changelog
-
----
-
-### Option 5B: Update the literal path in place *(Rejected)*
-
-Point `resolveSources()` at `config/conventions/` and keep it reading files itself.
-
-**Rejected because**: it preserves both the duplication and the divergence, and it guarantees a third occurrence of this problem the next time the layout moves. The cost of fixing it properly is a few lines, now, in a file already being edited.
-
----
-
-### Option 5C: Delete the server-side read; require the caller to supply conventions *(Rejected)*
-
-The bridge protocol already carries optional `conventions` and `settings` on its render and generate requests.
-
-**Rejected because**: `resolveSources()` serves a different need — it answers "what libraries does this workspace declare, and what is its glyph pattern" for cache resolution, independent of any one request, and some callers legitimately send no conventions. Removing the read would push a workspace concern onto every caller. Worth revisiting on its own merits, but it is a protocol question and not this ADR's.
-
----
-
-## Decision 6 — What `specs init` scaffolds
-
-`ConfigTemplates.generateConfigTemplates()` returns a `Record<path, contents>` with three entries, one of which is `config/conventions.yaml` — a commented, documentation-linked template rooted at `figma:`. It is authored content, not a stub.
-
-### Option 6A: One template per platform file; `specs init` scaffolds `figma.yaml` only *(Selected)*
-
-`generateConventionsTemplate()` is split into a per-platform template. `specs init` writes `config/conventions/figma.yaml`, rooted at the entry body with its `figma:` line removed and its comments retained. No code-platform file is written.
-
-**Pros**:
-
-- Required by Decision 4 — a single file rooted at `figma:` is no longer a valid layout, so the template cannot survive as one document
-- Scaffolding only Figma is the honest limit of what `init` knows. Which implementations a workspace targets is not discoverable at init time, and guessing `react.yaml` would seed a platform id the workspace may never use
-- An unused platform file is the silent-typo failure mode Decision 3's notes describe — a basename no generator reads is inert. `init` should not manufacture one
-- The template's comments are the natural place to document how to add a platform file, so discoverability survives without a written file
-
-**Cons / Trade-offs**:
-
-- Adding a code platform is a hand-authored file with no scaffold behind it. A `specs init --platform <id>` flag, or a separate command, would fix that and is deliberately out of scope here
-- The per-platform template body loses its `figma:` root, so its comments need a light rewrite rather than a re-indent
-
----
-
-### Option 6B: One template holding every platform *(Rejected)*
-
-**Rejected because**: Decision 4 makes that document invalid. There is no file it could be written to.
-
----
-
-### Option 6C: Scaffold `figma.yaml` plus commented placeholder files for common platforms *(Rejected)*
-
-**Rejected because**: a wholly commented `react.yaml` is an inert file whose basename claims a platform id, and it invites a workspace to adopt an id its generators do not read. Documentation in the Figma template carries the same information without leaving a decoy in the directory.
-
----
-
 ## Decision
 
 ### Type changes (`types/`)
@@ -381,16 +306,16 @@ Measured against `specs` on `release/schema-0.31.0+cli-0.28.0`. These are the fi
 | `specs-cli` — `Config/ConfigLoader.ts` | `CONFIG_DIR_FILES = ['conventions', 'settings', 'pipeline']` and `readPart(dir, 'conventions')` treat conventions as one of three peer files. Conventions stops being a `readPart` and becomes a directory read | Split the discovery path; keep `settings` and `pipeline` as they are |
 | `specs-cli` — `commands/MigrateCommand.ts` | Writes literal targets `config/conventions.yaml`, `config/settings.yaml`, `config/pipeline.yaml`, and its pre-flight guard refuses when `config/` already holds any of `conventions|settings|pipeline` × `yaml|json` | Write `config/conventions/<platform>.yaml`; extend the overwrite guard to the directory |
 | `specs-cli` — `Config/migrations/configV1.ts` | Returns a single `conventions` object for the migrator to serialize | Return per-platform entries, or have `MigrateCommand` split the one it returns |
-| `specs-cli` — `Config/ConfigTemplates.ts` | `generateConventionsTemplate()` emits one document with a `figma:` root, registered under the key `'config/conventions.yaml'`. It carries inline comments and a docs link, so it is authored content, not a stub | Split per Decision 6: a per-platform template, written to `config/conventions/figma.yaml` |
-| `specs-cli` — `commands/InitCommand.ts` | Scaffolds `config/` and names `config/conventions.yaml` in its `--help` description | Write `config/conventions/figma.yaml` (Decision 6); update the description |
-| `specs-cli` — `bridge/server.ts` | `resolveSources()` reads `config/conventions.yaml` **and** `config/settings.yaml` by literal path, with its own pre-split `specs.config.yaml` fallback that `ConfigLoader` refuses. Two read paths that disagree | Consolidate onto `ConfigLoader` per Decision 5; delete the literal paths and the legacy fallback |
+| `specs-cli` — `Config/ConfigTemplates.ts` | `generateConventionsTemplate()` emits one document with a `figma:` root, registered under the key `'config/conventions.yaml'`. It carries inline comments and a docs link, so it is authored content, not a stub | Split into a per-platform template, written to `config/conventions/figma.yaml` |
+| `specs-cli` — `commands/InitCommand.ts` | Scaffolds `config/` and names `config/conventions.yaml` in its `--help` description | Write `config/conventions/figma.yaml`; update the description |
+| `specs-cli` — `bridge/server.ts` | `resolveSources()` reads `config/conventions.yaml` **and** `config/settings.yaml` by literal path, with its own pre-split `specs.config.yaml` fallback that `ConfigLoader` refuses. Two read paths that disagree | Consolidate onto `ConfigLoader`; delete the literal paths and the legacy fallback |
 | `specs-plugin-2` | Never touches workspace files; receives conventions over the bridge | None |
 | `specs-from-figma` / `figma-from-specs` | Receive a resolved `Conventions`; unaffected by layout | None |
 | Docs site (`specs/site`) | Pages documenting the `config/` layout and `specs init` / `specs migrate config` output | Update layout examples |
 | `specs-testing` workspaces | Six in-repo workspaces hold `config/conventions.yaml` | Mechanical conversion, one file per platform |
 | Workspaces outside this repository | None — `config/conventions.yaml` ships in the unreleased CLI `0.28.0` | None |
 
-The finding that drove Decision 5 is `bridge/server.ts`. Every other consumer reads conventions through `ConfigLoader`, so one change to discovery serves them all; the bridge opens the files itself, its failure mode is silence rather than an error, and it is measurably out of step already — it reads a pre-split `specs.config.yaml` that `ConfigLoader` refuses.
+The finding worth acting on is `bridge/server.ts`. Every other consumer reads conventions through `ConfigLoader`, so one change to discovery serves them all; the bridge opens the files itself, its failure mode is silence rather than an error, and it is out of step already — it reads a pre-split `specs.config.yaml` that `ConfigLoader` refuses.
 
 ---
 
@@ -410,8 +335,8 @@ The finding that drove Decision 5 is `bridge/server.ts`. Every other consumer re
 - The contract is unchanged. Every consumer receives one `Conventions` object and cannot tell which layout produced it
 - There is one layout. No discovery branch, no precedence rule, no both-present error — and a workspace with only Figma conventions accepts a directory holding one file as the price
 - **This must land alongside `0.28.0`.** Once the single-file form ships, replacing it is a breaking change to every workspace that adopted it
-- **The layout is read in one place.** `bridge/server.ts` is consolidated onto `ConfigLoader` (Decision 5), so this is the last layout change that has to be applied twice. It also removes a real divergence: the bridge served pre-split workspaces that every other command refused, and it now refuses them too — a behaviour change that belongs in the CLI changelog
-- **`specs init` scaffolds Figma and nothing else** (Decision 6). Which implementations a workspace targets is not knowable at init time, and a commented placeholder file would claim a platform id no generator reads. Adding a code platform is hand-authored; a `--platform` flag to scaffold one is deliberately out of scope
+- **The layout ends up read in one place.** `bridge/server.ts` is consolidated onto `ConfigLoader` rather than repointed, so this is the last layout change that has to be applied twice. That also removes a divergence the two paths already carry: the bridge serves pre-split workspaces that every other command refuses, and it will refuse them too — a behaviour change that belongs in the CLI changelog
+- **`specs init` scaffolds Figma and nothing else.** Which implementations a workspace targets is not knowable at init time, and a commented placeholder file would claim a platform id no generator reads — the inert-file case the notes above describe. Adding a code platform is hand-authored; a `--platform` flag to scaffold one is out of scope here
 - **Config scaffolding is authored content, not a stub.** `generateConventionsTemplate()` carries inline comments and a documentation link, so splitting it per platform is writing templates, not slicing one
 - Together with ADR-073's inventory, the whole conventions move touches `specs-schema`, six CLI subsystems, 15 source files across `specs-from-figma` and `figma-from-specs`, roughly 44 of their test files, one line of `specs-plugin-2`, and about 45 docs pages. None of it is deep, and all of it is cheaper now than after `0.31.0` and `0.28.0` ship
 - **Out of scope, and now more visible**: `metadata.conventions` in an emitted spec records the resolved conventions, which in a five-platform workspace means four platforms' vocabulary riding along in every spec generated from Figma. Whether metadata should carry only the platforms a run used is a separate question this ADR deliberately does not answer
