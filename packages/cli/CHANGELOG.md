@@ -85,6 +85,21 @@ you emit without saying so.
 - `--split-components`, `--split-concerns` and `--use-subfolders` on `specs generate`,
   replaced by the negative flags above.
 
+### Fixed
+
+- **`scan` records the dev status Figma actually set, including `COMPLETED`** — Every status
+  on a node is carried through to the manifest's Dev Status column verbatim instead of being
+  collapsed to `READY_FOR_DEV` or `NONE`, so a component marked complete is no longer
+  indistinguishable from one nobody has touched. Selection is unchanged: `scan` still checks
+  only `READY_FOR_DEV` rows by default, and `generate` still builds only what is checked.
+- **A manifest row with an unfamiliar dev status is kept and left unselected, not dropped** —
+  The parser previously accepted only two status values and silently discarded any row it
+  could not match, so the component vanished from the run while the summary line still read
+  as healthy. Such a row is now parsed, reported with a warning, and left unchecked.
+- **`scan` and `generate` warn about manifest rows they cannot read** — Any line that looks
+  like a component row but fails to parse now prints a warning naming the row instead of
+  disappearing.
+
 
 ## [0.27.0] - 2026-08-17
 
