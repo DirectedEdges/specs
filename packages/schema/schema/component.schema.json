@@ -91,7 +91,7 @@
         },
         "propConfigurations": {
           "type": "object",
-          "description": "Prop values for this example. Scalar types for scalar props; SlotContentRef for slot props. PropBinding is not permitted here.",
+          "description": "Prop values for this example. Scalar types for scalar props; SlotContentRef for slot props; null when the prop is unset in this example (ADR-080). PropBinding is not permitted here.",
           "additionalProperties": {
             "oneOf": [
               {
@@ -102,6 +102,9 @@
               },
               {
                 "type": "boolean"
+              },
+              {
+                "type": "null"
               },
               {
                 "$ref": "#/definitions/SlotContentRef"
@@ -528,7 +531,7 @@
       ]
     },
     "PropConfigurationValue": {
-      "description": "The value of a single prop configuration entry (ADR-049): a scalar, a PropBinding for pass-through to a parent prop, a SlotContentRef under a slot-prop key for a named slot-content fill, or an ImageBinding under an image-prop key forwarding an image into a nested image instance (ADR-063).",
+      "description": "The value of a single prop configuration entry (ADR-049): a scalar, a PropBinding for pass-through to a parent prop, a SlotContentRef under a slot-prop key for a named slot-content fill, or an ImageBinding under an image-prop key forwarding an image into a nested image instance (ADR-063), or null when the prop is unset in this configuration \u2014 a value, not an absence: an absent key inherits, a null key overrides an inherited value with no value (ADR-080).",
       "oneOf": [
         {
           "type": "string"
@@ -538,6 +541,9 @@
         },
         {
           "type": "boolean"
+        },
+        {
+          "type": "null"
         },
         {
           "$ref": "#/definitions/PropBinding"

@@ -3,7 +3,7 @@
 **Branch**: `080-null-prop-configuration`
 **Created**: 2026-08-31
 **Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Summary**: A `null` prop configuration value joins the scalars, `PropBinding`, `SlotContentRef` and `ImageBinding` a configuration already carries.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 
@@ -95,6 +95,7 @@ not an absence: an absent key inherits, a `null` key overrides an inherited valu
 | File | Change | Bump |
 |------|--------|------|
 | `PropConfigurations.ts` | Added `null` arm to `PropConfigurationValue` | MINOR |
+| `InstanceExample.ts` | Added `null` arm to the inline value union on `propConfigurations` | MINOR |
 
 **Example — new shape** (`types/PropConfigurations.ts`):
 
@@ -137,6 +138,7 @@ propConfigurations:
 | File | Change | Bump |
 |------|--------|------|
 | `component.schema.json` | Added `{ "type": "null" }` arm to `#/definitions/PropConfigurationValue` | MINOR |
+| `component.schema.json` | Added `{ "type": "null" }` arm to `#/definitions/InstanceExample/properties/propConfigurations/additionalProperties` | MINOR |
 
 **Example — new shape** (`schema/component.schema.json`):
 
@@ -155,12 +157,18 @@ oneOf:
 ### Notes
 
 **Where the value may appear.** `null` is admissible under any prop key whose prop is
-nullable, in every position `PropConfigurations` occupies:
+nullable, in every position a prop configuration occupies:
 
 - `Element.propConfigurations` — a nested instance
-- `InstanceExample.propConfigurations` — a whole-component example
 - `Variant.configuration` — a variant's own configuration
 - `NestedPropConfiguration` — a path-addressed descendant (`$nested`)
+- `InstanceExample.propConfigurations` — a whole-component example
+
+The first three reference `PropConfigurations`, and inherit the widened value type.
+`InstanceExample.propConfigurations` does **not**: it declares its own inline union so it
+can exclude `PropBinding` (ADR-048 — an example is a documented configuration, not a live
+binding). That union is widened separately and by hand. It gains `null` and keeps its
+exclusion of `PropBinding`.
 
 **Layering.** Configurations layer, and `null` layers as a value. A base that binds a
 slot and a layer that sets it `null` resolves to unset; the reverse resolves to bound. A
