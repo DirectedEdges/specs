@@ -2,7 +2,7 @@
 
 **Branch**: `080-null-prop-configuration`
 **Created**: 2026-08-31
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Summary**: A `null` prop configuration value joins the scalars, `PropBinding`, `SlotContentRef` and `ImageBinding` a configuration already carries.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
