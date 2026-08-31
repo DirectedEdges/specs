@@ -81,4 +81,69 @@ describe('ManifestParserV2', () => {
     expect(components[0].name).toBe('Toggle | On/Off');
     expect(components[0].id).toBe('1:23');
   });
+  it('parses COMPLETED rows without warning and preserves the checkbox', () => {
+    const fixture = [
+      '**Scan format version:** 2',
+      '',
+      '## Components',
+      '',
+      '| ✓ | Name | ID | Type | Dev Status |',
+      '|------|------|------|------|------------|',
+      '| [x] | Text Field | 9313:18494 | COMPONENT_SET | COMPLETED |',
+      ''
+    ].join('\n');
+
+    const { components, warnings } = ManifestParserV2.parse(fixture);
+    expect(components).toEqual([
+      {
+        id: '9313:18494',
+        name: 'Text Field',
+        type: 'COMPONENT_SET',
+        included: true,
+        devStatus: 'COMPLETED'
+      }
+    ]);
+    expect(warnings).toEqual([]);
+  });
+
+  it('keeps a row with an unrecognized status, unselected, and warns', () => {
+    const fixture = [
+      '**Scan format version:** 2',
+      '',
+      '## Components',
+      '',
+      '| ✓ | Name | ID | Type | Dev Status |',
+      '|------|------|------|------|------------|',
+      '| [x] | Text Field | 9313:18494 | COMPONENT_SET | IN_REVIEW |',
+      ''
+    ].join('\n');
+
+    const { components, warnings } = ManifestParserV2.parse(fixture);
+    expect(components).toHaveLength(1);
+    expect(components[0]).toMatchObject({ id: '9313:18494', devStatus: 'IN_REVIEW', included: false });
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('IN_REVIEW');
+  });
+
+  it('warns instead of silently dropping a malformed checkbox row', () => {
+    const fixture = [
+      '**Scan format version:** 2',
+      '',
+      '## Components',
+      '',
+      '| ✓ | Name | ID | Type | Dev Status |',
+      '|------|------|------|------|------------|',
+      '| [x] | Broken | not-an-id | COMPONENT_SET | NONE |',
+      ''
+    ].join('\n');
+
+    const { components, warnings } = ManifestParserV2.parse(fixture);
+    expect(components).toEqual([]);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('Broken');
+  });
+
+  it('reports no warnings for a clean manifest', () => {
+    expect(ManifestParserV2.parse(V2_FIXTURE).warnings).toEqual([]);
+  });
 });

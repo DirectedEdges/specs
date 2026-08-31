@@ -145,7 +145,9 @@ function readPriorManifest(outputPath: string): ManifestRowV2[] | null {
   }
 
   if (ManifestParserV2.isV2(content)) {
-    return ManifestParserV2.parse(content).components;
+    const { components, warnings } = ManifestParserV2.parse(content);
+    for (const warning of warnings) console.warn(`⚠ ${warning}`);
+    return components;
   }
   return null;
 }
