@@ -4,7 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 081 | `defaultExampleWidth` — a Presentation Convention, per Platform | Each platform states the width it shows components at, in its own `config/conventions/` file; names a third category of `PlatformConventions` member alongside encoding and vocabulary |
+| 081 | `defaultInstanceWidth` — Each Platform's Width for a Top-Level Render | Each platform states, in its own `config/conventions/` file, the width it gives the root of a render — a component, an example, a story; absent, the rendering tool falls back to 375 |
 | 079 | `metadata.conventions` Carries Only the Producing Platform | A spec records the one platform entry that produced it, not every platform in the workspace — fixing a drift check that fires on unrelated changes, and stopping internal vocabulary leaking into published specs |
 | 078 | One Conventions File per Platform, in `config/conventions/` | `config/conventions/<platform>.yaml` composes into one `Conventions`; the filename is the platform id so no merge rule is needed, and it is the only layout — the single-file form is unreleased and does not survive |
 | 077 | The Image Component's Code Name, and the Encoding / Vocabulary Boundary | Text, glyph and container are node kinds; an image is an attribute, so it gets `images.component` rather than a place in the primitive vocabulary. A container's `backgroundImage` always stays styling |

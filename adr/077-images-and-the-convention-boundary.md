@@ -151,8 +151,6 @@ The previous draft's selection.
 
 Images and glyphs each have members in both groups: `platforms.figma.glyphs.match` is an encoding fact (which layer names mark a glyph asset), while `platforms.react.primitives.glyph.component` is a vocabulary fact. `images.match` and `images.component` are *both* vocabulary — the same question answered in two languages, which is why they share a block.
 
-ADR-081 adds a third group — **presentation members**, which say what a platform shows a component *in* rather than how it says what the spec means or which component means it. The two groups above classify every member this ADR is concerned with; the third is stated there, where its first member arrives.
-
 ### Type changes (`types/`)
 
 | File | Change | Bump |
