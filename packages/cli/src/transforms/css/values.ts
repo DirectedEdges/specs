@@ -48,7 +48,25 @@ export function kebabizePath(path: string): string {
 
 const nameWarnings = new Map<string, Map<string, number>>();
 
+/**
+ * Name warnings describe the spec's own names, so a second emission of the same
+ * component — the shadow-tree form of the same rules — must not report them
+ * again. Suppressed for the duration of that pass.
+ */
+let suppressed = false;
+
+export function withNameWarningsSuppressed<T>(fn: () => T): T {
+  const previous = suppressed;
+  suppressed = true;
+  try {
+    return fn();
+  } finally {
+    suppressed = previous;
+  }
+}
+
 function recordNameWarning(type: string, name: string): void {
+  if (suppressed) return;
   const byName = nameWarnings.get(type) ?? new Map<string, number>();
   byName.set(name, (byName.get(name) ?? 0) + 1);
   nameWarnings.set(type, byName);

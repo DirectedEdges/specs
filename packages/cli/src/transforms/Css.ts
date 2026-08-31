@@ -5,11 +5,35 @@ import yaml from 'yaml';
 import type { Transformer, TransformerContext } from '../Types/Transformer.js';
 import { styleToCSS, impliesAbsolute } from './css/styleToCSS.js';
 import { layoutToCSS } from './css/layoutToCSS.js';
-import { toKebab, isGradient, reportNameWarnings } from './css/values.js';
+import { toKebab, isGradient, reportNameWarnings, withNameWarningsSuppressed } from './css/values.js';
 import { CONCEPT_TABLE, buildStateLookup } from './states.js';
 import { resolveRules } from './css/rules/index.js';
 import { parseLayout, type LayoutNode } from './react/variantAnalysis.js';
 import { loadExamples, type ExamplesData } from './examples.js';
+
+/**
+ * The light-DOM companion sheet for a custom element.
+ *
+ * Content composed into a component arrives as light-DOM children and is styled
+ * by the document, not by the shadow stylesheet — `:host *` cannot reach past
+ * the boundary, and `::slotted()` reaches only the top level. The class form
+ * gets this for free, because its composed content sits inside the block class
+ * in the same document. Without it, composed content computes as `content-box`
+ * and every padded element is larger than the spec says.
+ */
+function lightDomLines(tag: string): string[] {
+  return [
+    '/* Generated. Do not edit — regenerate with `specs transform`. */',
+    '',
+    `${tag}, ${tag} * {`,
+    '  box-sizing: border-box;',
+    '}',
+    '',
+  ];
+}
+
+/** Which element a stylesheet's root rules target: the block class, or the custom element. */
+type RootForm = 'class' | 'host';
 
 export class CssTransformer implements Transformer {
   readonly name = 'css';
@@ -41,6 +65,18 @@ export class CssTransformer implements Transformer {
     await fs.ensureDir(generatedDir);
     await writeAtomic(path.join(generatedDir, `${prefix}.styles.css`), lines.join('\n'));
 
+    // The same rules written for a shadow tree, where the custom element itself
+    // is the root: root rules target `:host`, so a caller can size and place the
+    // component by styling the element, exactly as it would any other. Element
+    // rules are identical — they match inside the shadow tree either way.
+    const hostLines = withNameWarningsSuppressed(() => buildCssLines(componentClass, variantsYaml, tokensFormat, context, anatomyTypes(apiYaml), {
+      examples,
+      imagesDirAbs,
+      relPrefix: '../../_images',
+    }, 'host'));
+    await writeAtomic(path.join(generatedDir, `${prefix}.host.css`), hostLines.join('\n'));
+    await writeAtomic(path.join(generatedDir, `${prefix}.light.css`), lightDomLines(componentClass).join('\n'));
+
     // Subcomponents — each gets {Sub}.styles.css in its own subfolder
     const subcomponents = (variantsYaml.subcomponents ?? {}) as Record<string, unknown>;
     const apiSubs = (apiYaml.subcomponents ?? {}) as Record<string, unknown>;
@@ -57,6 +93,13 @@ export class CssTransformer implements Transformer {
       const subDir = path.join(outputDir, subKey, 'generated');
       await fs.ensureDir(subDir);
       await writeAtomic(path.join(subDir, `${subFilePrefix}.styles.css`), subLines.join('\n'));
+      const subHostLines = withNameWarningsSuppressed(() => buildCssLines(subClass, subVariantsYaml, tokensFormat, context, subTypes, {
+        examples,
+        imagesDirAbs,
+        relPrefix: '../../../_images',
+      }, 'host'));
+      await writeAtomic(path.join(subDir, `${subFilePrefix}.host.css`), subHostLines.join('\n'));
+      await writeAtomic(path.join(subDir, `${subFilePrefix}.light.css`), lightDomLines(subClass).join('\n'));
     }
   }
 
@@ -139,7 +182,21 @@ function buildCssLines(
   context: TransformerContext,
   elemTypes: Record<string, string> = {},
   images?: ImagesCssContext,
+  rootAs: RootForm = 'class',
 ): string[] {
+  /**
+   * The root's selector, in the form this stylesheet is written for.
+   *
+   * `class` targets the root element by its block class, which is what a React
+   * scaffold renders. `host` targets `:host` — the custom element itself is the
+   * root, so its qualifiers go inside the functional form
+   * (`:host([data-size="L"]:hover)`) rather than being appended. Element rules
+   * match inside the shadow tree and are identical in both forms.
+   */
+  const rootSel = (qualifiers = ''): string =>
+    rootAs === 'host'
+      ? (qualifiers ? `:host(${qualifiers})` : ':host')
+      : `.${componentClass}${qualifiers}`;
   // Apply configured rules as pre-passes on the structured variants data
   const ruleNames = (context.transformerOptions?.rules as string[] | undefined) ?? [];
   const rules = resolveRules(ruleNames);
@@ -154,7 +211,7 @@ function buildCssLines(
     // content-box, excludes it. Without this, every element carrying both a
     // fixed dimension and padding renders larger than the spec by exactly its
     // padding — a 24px frame with 4px padding measures 32px.
-    `.${componentClass}, .${componentClass} * {`,
+    `${rootSel()}, ${rootSel()} * {`,
     '  box-sizing: border-box;',
     '}',
     '',
@@ -223,7 +280,7 @@ function buildCssLines(
   });
 
   for (const [elemKey, elem] of Object.entries(defaultElements)) {
-    const selector = elemSelector(componentClass, elemKey);
+    const selector = elemKey === 'root' ? rootSel() : elemSelector(componentClass, elemKey);
     const styles = (elem.styles ?? {}) as Record<string, unknown>;
     const decls = [
       ...layoutToCSS(styles, tokensFormat, parentLayoutMode(elemKey)),
@@ -370,8 +427,7 @@ function buildCssLines(
     }
 
     const dataAttrStr = dataAttrs.join('');
-    const rootBase = `.${componentClass}${dataAttrStr}`;
-    const rootSelectors = stateSelSuffixes.map(s => `${rootBase}${s}`);
+    const rootSelectors = stateSelSuffixes.map(s => rootSel(`${dataAttrStr}${s}`));
 
     const variantElements = (variant.elements ?? {}) as Record<string, Record<string, unknown>>;
 
@@ -445,12 +501,12 @@ function buildCssLines(
   // variant produces no styling at all, which is not evidence of interactivity.
   const emitted = lines.join('\n');
   if (/:active\b/.test(emitted) || /\[aria-pressed="true"\]/.test(emitted)) {
-    lines.push(`.${componentClass} {`, '  cursor: pointer;', '}', '');
+    lines.push(`${rootSel()} {`, '  cursor: pointer;', '}', '');
   }
   if (/:disabled\b/.test(emitted) || /\[aria-disabled="true"\]/.test(emitted)) {
     const disabledSel = CONCEPT_TABLE['disabled']?.selector ?? ':disabled';
     lines.push(
-      disabledSel.split(',').map(part => `.${componentClass}${part.trim()}`).join(',\n') + ' {',
+      disabledSel.split(',').map(part => rootSel(part.trim())).join(',\n') + ' {',
       '  cursor: not-allowed;',
       '}',
       '',
