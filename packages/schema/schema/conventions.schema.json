@@ -120,7 +120,7 @@
             },
             {
               "type": "object",
-              "description": "LayoutMode-keyed map selecting a component per direction (e.g. Row/Column/Box). Reuses LayoutMode so the two cannot drift. (ADR-076)",
+              "description": "LayoutMode-keyed map selecting a component per direction (e.g. Row/Column/Box). Reuses LayoutMode so the two cannot drift. A partial map is normal \u2014 an unbound direction falls back to the generic element, and an empty map binds nothing. (ADR-076)",
               "propertyNames": {
                 "enum": [
                   "NONE",
@@ -130,8 +130,7 @@
               },
               "additionalProperties": {
                 "type": "string"
-              },
-              "minProperties": 1
+              }
             }
           ],
           "description": "One component for every layout, or a LayoutMode-keyed map. The keyed form is legal only for a container. (ADR-076)"

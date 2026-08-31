@@ -9,6 +9,7 @@ import type {
   MetadataConventions,
   PlatformConventions,
   PrimitiveKind,
+  PrimitiveBindings,
   ContainerBinding,
   VariantStateEntry,
 } from '../types/index.js';
@@ -70,6 +71,10 @@ const oldShape: Conventions = { figma: { naming: 'NONE' } };
 
 const kinds: PrimitiveKind[] = ['text', 'glyph', 'container'];
 
+// Derived from PrimitiveBindings, so the vocabulary and the block enforcing it are one list
+const kindsAreKeys: PrimitiveKind extends keyof PrimitiveBindings ? true : false = true;
+const keysAreKinds: keyof PrimitiveBindings extends PrimitiveKind ? true : false = true;
+
 // @ts-expect-error — PrimitiveKind is closed; an image is not a node kind (ADR-077)
 const imageKind: PrimitiveKind = 'image';
 
@@ -97,6 +102,11 @@ const keyedContainer: ContainerBinding = { component: { HORIZONTAL: 'DsRow' } };
 
 // @ts-expect-error — the map is keyed by LayoutMode, not free-form
 const badLayoutKey: ContainerBinding = { component: { DIAGONAL: 'DsDiagonal' } };
+
+// A partial map is normal: an unbound direction falls back to the generic element,
+// and an empty map binds nothing rather than being invalid
+const partialContainer: ContainerBinding = { component: { HORIZONTAL: 'DsRow', VERTICAL: 'DsColumn' } };
+const emptyContainer: ContainerBinding = { component: {} };
 
 // The keyed form is legal only for a container — nothing would select from it elsewhere
 // @ts-expect-error — a text component is a plain string
@@ -177,7 +187,7 @@ export {
   none, noPlatforms, emptyPlatform, figmaEncoding, codePlatforms, permissive, figmaVocabulary,
   oldShape, kinds, imageKind, unknownPrimitive, bindingWithoutComponent, glyphTypography,
   textDirection, suppressed, plainContainer, keyedContainer, badLayoutKey, keyedText, imageBoth,
-  width, stringWidth, platformMayBeAbsent, naming, constraints, numbers, scope, sourceProps,
+  partialContainer, emptyContainer, kindsAreKeys, keysAreKinds, width, stringWidth, platformMayBeAbsent, naming, constraints, numbers, scope, sourceProps,
   textColor, glyphContent, primitiveStyles, platformStyles, underResolved, meta,
   metaWithoutPlatforms, defaults, defaultedPlatform, booleanState, enumState, noProp, badContract,
 };

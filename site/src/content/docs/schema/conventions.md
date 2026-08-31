@@ -192,7 +192,9 @@ It has no default at any level. Absence means this platform declares no width an
 
 `ResolvedConventions` applies defaults **inside** any declared platform entry: `naming`, `slotConstraints` and `inferNumberProps` are guaranteed once an entry exists, and within a declared block so are `scope`, `backgroundImage`, `sourceProps`, and each binding's concept prop names. A platform's `stylesProp` is folded into each declared primitive, so a consumer reads one level rather than two.
 
-`platforms` and each key within it stay optional after resolution. Absence means nothing is declared, and nothing can supply that — which is why `DEFAULT_CONVENTIONS` is an empty object rather than a populated one.
+A resolver produces a complete entry for any platform it is asked about, **declared or not** — so a consumer reading `figma` gets `naming: NONE` whether or not a `figma.yaml` exists.
+
+What no default can supply is a convention *block*: `glyphs`, `subcomponents`, `images`. Their absence is a statement about the library, and inventing one would fabricate a fact nobody declared. `DEFAULT_CONVENTIONS` is an empty object for the same reason a map has no fixed key to populate — not because the defaults went away.
 
 ## In a spec's metadata
 

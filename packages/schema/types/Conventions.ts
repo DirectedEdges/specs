@@ -30,23 +30,6 @@ export interface VariantStateEntry {
 }
 
 /**
- * The spec element types a platform may bind to one of its own components.
- *
- * A closed vocabulary, and a strict subset of `ElementType`: every kind's trigger is
- * the element's own declared `type`, so nothing is inferred and no kind can fail to
- * correspond to something a spec contains. A misspelled or unbindable kind is a
- * validation error rather than a silently-ignored key. Widening the set later is
- * additive.
- *
- * An image is deliberately absent — it is a paint on an element that is already
- * something else, not a kind of node, so it is bound through `images.component`
- * instead (ADR-077).
- *
- * @since 0.31.0
- */
-export type PrimitiveKind = 'text' | 'glyph' | 'container';
-
-/**
  * Which of a platform's components implements the `text` primitive, and how the
  * spec's text concepts reach its props.
  *
@@ -148,6 +131,26 @@ export interface PrimitiveBindings {
   /** The component that means "container" on this platform. Absent = emit the host element. */
   container?: ContainerBinding;
 }
+
+/**
+ * The spec element types a platform may bind to one of its own components.
+ *
+ * A closed vocabulary, and a strict subset of `ElementType`: every kind's trigger is
+ * the element's own declared `type`, so nothing is inferred and no kind can fail to
+ * correspond to something a spec contains. A misspelled or unbindable kind is a
+ * validation error rather than a silently-ignored key. Widening the set later is
+ * additive.
+ *
+ * An image is deliberately absent — it is a paint on an element that is already
+ * something else, not a kind of node, so it is bound through `images.component`
+ * instead (ADR-077).
+ *
+ * Derived from {@link PrimitiveBindings} rather than written out beside it, so the
+ * vocabulary and the block that enforces it cannot disagree.
+ *
+ * @since 0.31.0
+ */
+export type PrimitiveKind = keyof PrimitiveBindings;
 
 /**
  * Facts about one platform's library — how it is authored, and what it calls things.
@@ -356,6 +359,11 @@ export interface ResolvedPrimitiveBindings {
  * `stylesProp` does not appear here: the platform baseline is folded into each declared
  * primitive during resolution, so a consumer reads one level rather than two.
  *
+ * **A resolver produces one of these for any platform it is asked about, declared or
+ * not.** `naming`, `slotConstraints` and `inferNumberProps` are required here for that
+ * reason: a consumer reading `figma` gets `NONE` whether or not a `figma.yaml` exists,
+ * which is the guarantee ADR-071 gave when `figma` was a required key (ADR-073).
+ *
  * @since 0.31.0
  */
 export interface ResolvedPlatformConventions {
@@ -434,12 +442,15 @@ export interface MetadataConventions {
 /**
  * Default Conventions
  *
- * A workspace that declares nothing. There are no members to default, because every
- * default this type has belongs *inside* a declared platform entry — `naming`,
- * `slotConstraints`, and `inferNumberProps` are applied by whoever resolves a platform,
- * per the member documentation above.
+ * A workspace that declares nothing.
  *
- * An empty object is the honest statement: no platform has declared anything, and no
- * default can supply what a platform never said.
+ * This constant carries no members, because a platform-keyed map has no fixed key to
+ * populate. That does **not** mean the defaults are gone: `naming`, `slotConstraints`
+ * and `inferNumberProps` are still defaulted, by whoever resolves a platform, and
+ * {@link ResolvedPlatformConventions} requires them for exactly that reason.
+ *
+ * What no default can supply is a convention *block* — `glyphs`, `subcomponents`,
+ * `images`. Their absence is a statement about the library, and inventing one would
+ * fabricate a fact nobody declared.
  */
 export const DEFAULT_CONVENTIONS: ResolvedConventions = {};

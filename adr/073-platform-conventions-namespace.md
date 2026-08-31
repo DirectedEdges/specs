@@ -299,9 +299,13 @@ Conventions:
 
 ### Notes
 
-`platforms` is optional and has **no default**. Absence means no conventions are declared for any platform, and every consumer's existing behavior stands. `DEFAULT_CONVENTIONS` becomes `{}`.
+`platforms` is optional and has **no default**. Absence means no conventions are declared for any platform.
 
-The defaults that `DEFAULT_CONVENTIONS` carried — `naming: NONE`, `slotConstraints: false`, `inferNumberProps: false` — become defaults *inside* a declared platform entry, per ADR-071's resolution rule. A workspace with no `platforms.figma` entry gets no `naming` at all, which is the same statement `NONE` made.
+**The three defaultable members keep their defaults.** ADR-071 settled this: `naming: NONE`, `slotConstraints: false` and `inferNumberProps: false` are defaulted, and only convention *blocks* are not, because a block's absence is a statement nothing can supply. Nothing here reopens that.
+
+What this ADR changes is where the guarantee comes from. Under ADR-071 `figma` was a **required** key, so an entry always existed and every consumer always read `naming`. A platform-keyed map makes every key optional, which would leave a consumer asking for an undeclared platform with no `naming` at all — a silently different value, not the same statement.
+
+So the guarantee moves to resolution, where ADR-071 already put every other default: **whoever resolves a platform produces a complete entry, declared or not.** `ResolvedPlatformConventions` requires all three members, so a consumer asking for `figma` reads `NONE` whether or not a `figma.yaml` exists. `DEFAULT_CONVENTIONS` is `{}` because a map has no fixed key to populate — it is not the carrier of these defaults any more, and no new exported constant replaces it. Resolution is a consumer concern (Constitution II).
 
 `PlatformConventions` deliberately does not discriminate encoding members from vocabulary members. Doing so would require typing the `figma` key differently from every other key, reinstating the special case this ADR removes, and would be wrong as soon as Figma takes a vocabulary member or a code platform takes an encoding one — both of which are foreseeable.
 
