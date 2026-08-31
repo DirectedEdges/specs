@@ -31,11 +31,26 @@ You **MUST** consider the user input before proceeding (if not empty).
    - If multiple `origin/release/*` branches exist, pick the most recently created one (latest commit date) as the default and surface it in Question 2 for confirmation.
    - If no `origin/release/*` branch exists, fall back to `main` and note this in Question 2 so the user can confirm or provide a branch.
 
-   **Step 1b — Sync release branch and determine next ADR number (silent, no user prompt)**
-   Run `git fetch origin $RELEASE_BRANCH` and fast-forward the local branch if behind (`git pull origin $RELEASE_BRANCH`). Then determine `NEXT_ADR_NUMBER` by finding the highest existing ADR number across **both** sources (zero-padded to 3 digits):
-   1. List `adr/` on the synced branch to find numbered ADR files (e.g., `014-prop-examples.md` → 14).
-   2. List remote branches matching the `###-*` pattern (`git branch -r --list 'origin/[0-9][0-9][0-9]-*'`) to find in-flight ADR branches that may not have merged files yet (e.g., `origin/015-some-feature` → 15).
-   Take the maximum number from both sources and add 1.
+   **Step 1b — Sync and determine next ADR number (silent, no user prompt)**
+   Run `git fetch origin` so every remote ref is current, and fast-forward the local release branch if behind (`git pull origin $RELEASE_BRANCH`).
+
+   `adr/INDEX.md` on `main` is the register of claimed numbers — every ADR, drafted or accepted, has a row there, because step 7 cherry-picks the claim onto `main` the moment it is made. Read it and take the highest number, plus one:
+
+   ```bash
+   git show origin/main:adr/INDEX.md | grep -oE '^\| [0-9]{3} ' | grep -oE '[0-9]{3}' | sort -n | tail -1
+   ```
+
+   Do **not** infer claimed numbers from branch names. An ADR branch may be named anything (`adr/primitive-composition` holds ADRs 073–079), so a `###-*` pattern misses them and hands out a number already in use.
+
+   Then **verify the register is complete** before trusting it — a missed cherry-pick is the one failure mode that makes it lie. List the ADR files on every remote branch and compare against the index:
+
+   ```bash
+   for b in $(git branch -r --format='%(refname:short)' | grep -v '\->'); do
+     git ls-tree --name-only "$b" adr/ 2>/dev/null | grep -oE 'adr/[0-9]{3}'
+   done | grep -oE '[0-9]{3}' | sort -u
+   ```
+
+   If any number there is absent from the index, stop and tell the user which numbers are unregistered and which branch holds them. Offer to add the missing rows (marked `(reserved, draft in PR #N)`) and cherry-pick them onto `main` per step 7 before continuing. Never claim a number until the register accounts for every number in use.
 
    **Step 1c — Ask the user** using VS Code's interactive question UI. Present ALL questions in a single prompt:
 
@@ -90,7 +105,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - **Semver Decision**: MAJOR / MINOR / PATCH with justification citing the constitution
    - **Consequences**: What becomes true after acceptance
 
-7. **Claim ADR number in INDEX**: Update `adr/INDEX.md` to reserve the ADR number and prevent collisions.
+7. **Claim ADR number in INDEX** *(mandatory — the index is the register step 1b reads, and skipping this hands the next author a number already in use)*: Update `adr/INDEX.md` to reserve the ADR number and prevent collisions.
    - On the current ADR branch, add a row to the **Draft** table (descending by number) with the ADR number and title but **no highlight** (leave the Highlights cell empty).
    - Commit this INDEX update on the ADR branch.
    - Then cherry-pick the INDEX change onto `main` (and `$RELEASE_BRANCH` if it differs from `main`):
