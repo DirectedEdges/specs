@@ -411,9 +411,14 @@ export const Generate = new Command('generate')
           process.exit(ERROR_CODES.INVALID_ARGS);
         }
 
-        const { components, metadata } = isV2Manifest
+        const parsed = isV2Manifest
           ? ManifestParserV2.parse(sourceContent)
           : ManifestParser.parse(sourceContent);
+        const { components, metadata } = parsed;
+
+        for (const warning of ('warnings' in parsed ? parsed.warnings : [])) {
+          console.warn(`⚠ ${warning}`);
+        }
 
         if (components.length === 0) {
           console.error('Error: No components found in manifest');

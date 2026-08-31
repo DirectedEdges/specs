@@ -4,6 +4,13 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 079 | `metadata.conventions` Carries Only the Producing Platform | (reserved, draft in PR #363) |
+| 078 | One Conventions File per Platform, in `config/conventions/` | (reserved, draft in PR #363) |
+| 077 | The Image Component's Code Name, and the Encoding / Vocabulary Boundary | (reserved, draft in PR #363) |
+| 076 | Direction-Keyed Container Bindings, and a Platform-Level `stylesProp` | (reserved, draft in PR #363) |
+| 075 | `props` — a Closed, Concept-Keyed Map onto a Component's Props | (reserved, draft in PR #363) |
+| 074 | Primitives Resolve to Components at Emit Time, Not in the Spec | (reserved, draft in PR #363) |
+| 073 | `conventions.platforms`, with Figma as One Platform Among Them | (reserved, draft in PR #363) |
 | 072 | Numeric Enum on `NumberProp` | Adds optional `enum?: number[]` so a VARIANT whose options are all numbers emits as a number with its closed option set preserved |
 | 070 | Explicit `position: ABSOLUTE` for Children of Non-Auto-Layout Parents | |
 | 045 | Processing Provenance Signals | (reserved, draft in PR #60) |
@@ -16,6 +23,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 080 | `null` as a Prop Configuration Value | Adds a `null` arm to `PropConfigurationValue` and to `InstanceExample.propConfigurations`; absent inherits, `null` overrides with unset |
 | 071 | Separate Library Conventions from Tooling Settings | `Conventions`, `Settings` and `Pipeline` replace `Config`, separating library facts from run choices and declared work |
 | 069 | Rename `clipContent` to `clipsContent` | Renames the clip flag to the key the data carries, so container clipping and CSS `overflow` resolve for the first time |
 | 066 | Lossless Key Formatting — Safe Key Grammar and Figma Name Preservation | Adds opt-in `format.figmaKeys` (`NONE` default), a safe key grammar, and `com.figma.name` on anatomy and props; renames `originalName` |
