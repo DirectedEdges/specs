@@ -4,6 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 081 | A Default Example Width on `conventions.figma` | |
 | 079 | `metadata.conventions` Carries Only the Producing Platform | (reserved, draft in PR #363) |
 | 078 | One Conventions File per Platform, in `config/conventions/` | (reserved, draft in PR #363) |
 | 077 | The Image Component's Code Name, and the Encoding / Vocabulary Boundary | (reserved, draft in PR #363) |
