@@ -97,6 +97,18 @@ export interface Conventions {
     inferNumberProps?: boolean;
     /** Concept-keyed map classifying Figma variant props as semantic states. Key = concept name (e.g. `hover`, `disabled`). Optional; absence means all variant props emit as data-* attribute selectors. @since 0.24.0 */
     states?: Record<string, VariantStateEntry>;
+    /**
+     * Width in pixels the library's components and examples are authored at, and the
+     * width a consumer renders them at by default — a rendered Figma frame, a generated
+     * story canvas, a screenshot harness.
+     *
+     * A default, not a constraint: a consumer given an explicit width for a particular
+     * render uses that instead. Optional; absence means the library declares no width
+     * and the consumer falls back to its own.
+     *
+     * @since 0.31.0
+     */
+    defaultExampleWidth?: number;
   };
 }
 
@@ -147,6 +159,8 @@ export interface ResolvedConventions {
     inferNumberProps: boolean;
     /** Concept-keyed map classifying Figma variant props as semantic states. Optional; absence means no state convention. */
     states?: Record<string, VariantStateEntry>;
+    /** Width in pixels components and examples are authored and rendered at. Optional; absence means no declared width. */
+    defaultExampleWidth?: number;
   };
 }
 
@@ -158,7 +172,8 @@ export interface ResolvedConventions {
  * two authoring facts about how props are written.
  *
  * The blocks — `glyphs`, `codeOnlyProps`, `subcomponents`, `instanceExamples`,
- * `images`, `states` — are deliberately absent and have no defaults. Their
+ * `images`, `states` — and `defaultExampleWidth` are deliberately absent and have no
+ * defaults. Their
  * absence means the library declares no such convention, which is a statement
  * nothing else can supply. Defaults *inside* a declared block are applied by
  * whoever resolves it, per the member documentation above.

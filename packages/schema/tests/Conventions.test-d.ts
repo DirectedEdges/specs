@@ -89,4 +89,21 @@ const defaultedBlock: object = DEFAULT_CONVENTIONS.figma.subcomponents.match;
 
 export { defaults, defaultNaming, defaultedBlock };
 
+// ─── defaultExampleWidth (ADR-081) ────────────────────────────────────────────
+
+// Optional on the authored shape — absence means the library declares no width
+const noWidth: Conventions = { figma: {} };
+const withWidth: Conventions = { figma: { defaultExampleWidth: 375 } };
+
+// @ts-expect-error — a width is a number, not a CSS length string
+const stringWidth: Conventions = { figma: { defaultExampleWidth: '375px' } };
+
+// Stays optional after resolution — nothing can supply a width the library never declared
+const resolvedWidth: number | undefined = resolved.figma.defaultExampleWidth;
+
+// @ts-expect-error — not defaulted; there is no universal example width
+const defaultedWidth: number = DEFAULT_CONVENTIONS.figma.defaultExampleWidth;
+
+export { noWidth, withWidth, stringWidth, resolvedWidth, defaultedWidth };
+
 export { none, full, booleanState, enumState, noProp, badContract, scope, naming, constraints, numbers, blockMayBeAbsent, underResolved, glyphsWithoutMatch, noNamespace };

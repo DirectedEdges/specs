@@ -23,6 +23,8 @@ you emit without saying so.
 
 ### Added
 
+- `figma.defaultExampleWidth` in `config/conventions.yaml` — validated as a positive number, and included in the `init` template (ADR-081)
+
 - **`specs migrate <subject>` — versioned workspace migrations.** `specs migrate config`
   reads `specs.config.yaml` (or `.json`) and writes `config/conventions.yaml`,
   `config/settings.yaml` and `config/pipeline.yaml`, then renames the source to

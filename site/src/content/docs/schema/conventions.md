@@ -20,6 +20,7 @@ Authored in `config/conventions.yaml`. Absence of a member means the library dec
 | [`slotConstraints`](/guides/slot-constraints/) | `boolean` | `false` | The library authors slot constraints as code-only props |
 | [`inferNumberProps`](/guides/number-inference/) | `boolean` | `false` | The library authors numeric props as Figma `TEXT` props with numeric defaults |
 | [`states`](/settings/states/) | `object` | — | Concept-keyed map classifying Figma variant props as semantic states |
+| [`defaultExampleWidth`](/settings/default-example-width/) | `number` | — | Width in pixels components and examples are authored at, and render at by default. Absent = no declared width |
 
 ### `figma.glyphs`
 

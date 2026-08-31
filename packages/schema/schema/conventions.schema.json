@@ -186,6 +186,11 @@
               "additionalProperties": {
                 "$ref": "#/definitions/VariantStateEntry"
               }
+            },
+            "defaultExampleWidth": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Width in pixels the library's components and examples are authored at, and the width a consumer renders them at by default. A default, not a constraint. Absence means the library declares no width and the consumer uses its own. (ADR-081)"
             }
           },
           "additionalProperties": false

@@ -307,6 +307,11 @@ export class ConfigLoader {
       figma.states = raw.states;
     }
 
+    // defaultExampleWidth — a finite positive number, else the declaration is dropped
+    if (typeof raw.defaultExampleWidth === 'number' && Number.isFinite(raw.defaultExampleWidth) && raw.defaultExampleWidth > 0) {
+      figma.defaultExampleWidth = raw.defaultExampleWidth;
+    }
+
     return { figma };
   }
 

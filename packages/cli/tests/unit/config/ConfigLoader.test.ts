@@ -548,6 +548,43 @@ figma:
     });
   });
 
+  describe('conventions.figma.defaultExampleWidth validation (ADR-081)', () => {
+    it('preserves a positive number', () => {
+      writeSplitFile('conventions.yaml', 'figma:\n  defaultExampleWidth: 375');
+
+      const config = configLoader.load();
+      expect(config.conventions.figma.defaultExampleWidth).toBe(375);
+    });
+
+    it('is absent by default — a library declaring no width gets none', () => {
+      writeSplitFile('conventions.yaml', 'figma:\n  naming: NONE');
+
+      const config = configLoader.load();
+      expect(config.conventions.figma).not.toHaveProperty('defaultExampleWidth');
+    });
+
+    it('drops a non-numeric width', () => {
+      writeSplitFile('conventions.json', JSON.stringify({ figma: { defaultExampleWidth: '375px' } }));
+
+      const config = configLoader.load();
+      expect(config.conventions.figma).not.toHaveProperty('defaultExampleWidth');
+    });
+
+    it('drops a zero width', () => {
+      writeSplitFile('conventions.json', JSON.stringify({ figma: { defaultExampleWidth: 0 } }));
+
+      const config = configLoader.load();
+      expect(config.conventions.figma).not.toHaveProperty('defaultExampleWidth');
+    });
+
+    it('drops a negative width', () => {
+      writeSplitFile('conventions.json', JSON.stringify({ figma: { defaultExampleWidth: -375 } }));
+
+      const config = configLoader.load();
+      expect(config.conventions.figma).not.toHaveProperty('defaultExampleWidth');
+    });
+  });
+
   describe('conventions.figma.images validation (ADR-063)', () => {
     it('resolves a full block: backgroundImage, trimmed match, trimmed sourceProps', () => {
       writeSplitFile('conventions.json', JSON.stringify({

@@ -3,7 +3,7 @@
 **Branch**: `081-default-example-width`
 **Created**: 2026-08-31
 **Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Summary**: A `defaultExampleWidth` states the pixel width a library's components and examples are authored at and render at.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

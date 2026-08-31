@@ -187,6 +187,7 @@ export default defineConfig({
                 { label: 'slotConstraints', slug: 'settings/slot-constraints', badge: pro },
                 { label: 'inferNumberProps', slug: 'settings/infer-number-props' },
                 { label: 'states', slug: 'settings/states', badge: experimental },
+                { label: 'defaultExampleWidth', slug: 'settings/default-example-width' },
               ],
             },
             {

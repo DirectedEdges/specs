@@ -102,6 +102,12 @@ figma:
   #     value: hover
   #   disabled:
   #     prop: disabled   # boolean prop — value defaults to "true"
+
+  # Width in pixels the library's components and examples are authored at, and
+  # the width they render at by default — a Figma frame written from a spec, a
+  # generated story canvas. Absence means no declared width and each consumer
+  # falls back to its own.
+  # defaultExampleWidth: 375
 `;
 }
 

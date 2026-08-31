@@ -60,6 +60,13 @@ describe('ConfigTemplates', () => {
       expect(template).toContain('codeOnlyProps:');
     });
 
+    it('includes a commented defaultExampleWidth with a sample width (ADR-081)', () => {
+      const template = generateConventionsTemplate();
+      expect(template).toContain('# defaultExampleWidth: 375');
+      // Commented out — a width is a library's own declaration, not a default
+      expect(yaml.parse(template).figma?.defaultExampleWidth).toBeUndefined();
+    });
+
     it('figma is the only top-level key', () => {
       const parsed = yaml.parse(generateConventionsTemplate());
       expect(Object.keys(parsed)).toEqual(['figma']);
