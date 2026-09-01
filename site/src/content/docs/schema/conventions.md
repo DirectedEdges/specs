@@ -175,6 +175,12 @@ primitives:
 
 A container's `component` accepts either one name or a `LayoutMode`-keyed map, for platforms that express direction by component choice rather than by a prop. The keyed form is legal only for a container — `direction` is not among text's or a glyph's concepts, so nothing would select from the map.
 
+:::caution[A container's component must host its own children]
+Binding a container substitutes the named component for a box that holds children, so **that component's root must be the box the children land in**. A layout component that wraps its children in an inner element cannot stand in for one: the container's `gap`, `padding` and alignment land on the outer box while the children sit a level deeper, so spacing is lost — and a wrapper carrying `flex: 1 0 0` inside a `height: fit-content` parent collapses the subtree to zero height.
+
+Neither failure raises an error. Where the constraint does not hold, leave `container` unbound; `text` and `glyph` are unaffected.
+:::
+
 ### `stylesProp`
 
 Baseline prop receiving unmapped styling for every primitive on this platform (e.g. `sx`, `style`, `modifier`). A primitive's own `stylesProp` overrides it. A **name only** — what is placed in it is the generator's decision.

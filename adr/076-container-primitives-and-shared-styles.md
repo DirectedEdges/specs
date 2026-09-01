@@ -29,6 +29,7 @@ The second question here is whether anything in a primitive binding wants hoisti
 - **Both container idioms are real.** Neither may be forced into the other's shape — the argument ADR-063 made for the two image patterns
 - **The discriminator must already be in the spec.** Selecting a component from a fact the spec does not carry is inference, which ADR-074 rules out
 - **`layoutMode: NONE` is a case, not a gap.** A non-auto-layout container must resolve to something
+- **A bound component's root must be the box its children land in.** A container binding replaces an element that *is* a box holding children. A component whose root wraps an inner element cannot stand in for one, and the failure is silent (see Decision 1)
 - **Declare a repeated fact once.** Repetition across primitives is the drift risk ADR-071 exists to eliminate
 - **Do not build a merge machine for one member.** Any hoisting must stay small enough to state in a sentence
 - **Additive-only** and **no spec-shape change** (ADR-074)
@@ -81,6 +82,30 @@ The map's keys are exactly the `LayoutMode` values. A generator reads the elemen
 
 - `component` is a union of string and object, so consumers branch on its form. One `typeof` check; the alternative (two members with "exactly one must be present") is worse
 - A partial map — `HORIZONTAL` and `VERTICAL` declared, `NONE` omitted — is legal. Omission means no binding for that mode and the element falls back to the generator's host element. Consistent with ADR-071's absence rule, but a way to be quietly incomplete
+- **Nothing checks that the named component can actually host children** (see the constraint below), and a component that cannot produces broken layout rather than an error
+
+---
+
+### The root constraint
+
+A container binding is a **substitution**: the bound component stands where a box holding children stood. That only works when **the component's root is the box its children land in**.
+
+A design system layout component often is not. One observed shape:
+
+```html
+<div class="layout" data-direction="Vertical">
+  <div class="layout__children">…children…</div>
+</div>
+```
+
+Bound to a composed container, the substitution puts everything the element carried — `gap`, `padding`, alignment, and any sizing the generator emits — on the **outer** box, while the children sit one level deeper inside a wrapper with its own flex rules. Two things follow, and neither raises an error:
+
+- **Spacing is silently lost.** `gap` on the outer box applies between its children, and it has exactly one child: the wrapper
+- **Height can collapse.** A wrapper carrying `flex: 1 0 0` inside a `height: fit-content` parent resolves to zero, so the bound subtree renders empty
+
+The constraint is therefore: **bind a container only to a component whose root receives the children.** Where that does not hold, leaving the container unbound is correct — the element keeps its own box and its own layout, and text and glyph bindings are unaffected.
+
+This is **not** expressible in the schema. Whether a component's root hosts its children is a fact about that component's generated markup, not about the conventions declaring it, and a workspace may bind a component it does not generate. It belongs in the ADR and in the documentation for `primitives.container` as a rule an author must satisfy — with a consumer-side warning the honest mitigation, since the failure is otherwise invisible.
 
 ---
 
@@ -253,6 +278,7 @@ The keyed `component` form is legal only on `ContainerBinding`. `TextBinding` an
 ## Consequences
 
 - Both container idioms are expressible in their own terms, and `layoutMode: NONE` has a declared answer instead of falling through
+- **A container binding carries an unenforced precondition**: the named component's root must be the box its children land in. Violating it produces lost spacing or a collapsed subtree, never an error, and no schema constraint can catch it
 - `stylesProp` is declared once per platform, which is the scope at which it is actually a fact
 - Nothing else hoists, because ADR-075's closed sets share only `color`, which is defaulted. The two-level structure stays a single scalar with a one-sentence rule
 - A partial `component` map is legal and quietly incomplete for the omitted mode. A resolution-time warning is the mitigation, and it is a consumer concern
