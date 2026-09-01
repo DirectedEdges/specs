@@ -4,7 +4,6 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 083 | Collapsing a Slot-Only Wrapper |  |
 | 079 | `metadata.conventions` Carries Only the Producing Platform | (reserved, draft in PR #363) |
 | 078 | One Conventions File per Platform, in `config/conventions/` | (reserved, draft in PR #363) |
 | 077 | The Image Component's Code Name, and the Encoding / Vocabulary Boundary | (reserved, draft in PR #363) |
@@ -24,6 +23,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 083 | Collapsing a Slot-Only Wrapper | `collapsePrimitiveWrapper` also collapses a root wrapping one slot; both nodes are containers so no style is tested, and the slot's value wins |
 | 080 | `null` as a Prop Configuration Value | Adds a `null` arm to `PropConfigurationValue` and to `InstanceExample.propConfigurations`; absent inherits, `null` overrides with unset |
 | 071 | Separate Library Conventions from Tooling Settings | `Conventions`, `Settings` and `Pipeline` replace `Config`, separating library facts from run choices and declared work |
 | 069 | Rename `clipContent` to `clipsContent` | Renames the clip flag to the key the data carries, so container clipping and CSS `overflow` resolve for the first time |
