@@ -40,39 +40,25 @@ Across a 115-component catalogue, exactly **four** components are a root contain
 | list | disjoint; no shared key differs |
 | bottom bar | root `VERTICAL` vs slot `HORIZONTAL`; differing `height`, `cornerRadius` |
 
-The bottom bar is genuinely two boxes — a vertical bar containing a horizontal row — and must not collapse. Any rule has to exclude it.
+The bottom bar is the interesting case: a vertical wrapper around a horizontal row, with a surface and padding of its own. It still collapses — the slot's `HORIZONTAL` wins, and the wrapper's `VERTICAL` is exactly the meaningless axis a single-child box carries. Its surface and padding are preserved by the split rule.
 
-### "Style-free" is a disqualifying set, not a binary
+### Why no style test is needed
 
-ADR-058's wrapper is not literally free of styles. Its eligibility bars a specific list:
+ADR-058 needs an eligibility list because the two nodes it merges are **different kinds**: a container and a `text` or `glyph` leaf. A container's styles have nowhere to go on a leaf, so the ADR enumerates the ones whose loss would matter.
 
-```yaml
-# ADR-058 disqualifying styles on the wrapper
-- clipContent
-- cornerRadius
-- strokes
-- strokeAlign
-- strokeWeight
-- itemSpacing
-- padding
-- effects
-- backgroundColor
-- cornerSmoothing
-```
+The slot case is not that. **Both nodes are containers with the same style signature** — every key one can carry, the other can carry, and both mean the same thing on either. Nothing has to be discarded to merge them, so nothing has to be tested for.
 
-Everything outside that list — `layoutMode`, `layoutSizingHorizontal`, `layoutSizingVertical`, `primaryAxisSizingMode`, `width`, `height` — is already tolerated on a collapsing wrapper. The question was never "does the wrapper have styles" but "which styles mean something."
-
-Applied literally to the four candidates, that list blocks **all of them**, and three on `clipContent` alone — which on a pure wrapper is an overflow rule rather than design intent, and which the slot child carries identically in every one of those three.
+That also disposes of the wrapper's own `layoutMode`. A wrapper holds exactly one child — the slot box — and a lone child lays out the same in a row as in a column. The wrapper's layout axis is close to meaningless by construction, which is what makes the merge safe rather than a judgement call.
 
 ---
 
 ## Decision Drivers
 
-- **Consistency with ADR-058** — the same argument that justifies collapsing a text wrapper justifies collapsing a slot wrapper; the eligibility test should differ only where the two cases genuinely differ
-- **A real box must survive** — a root carrying its own surface (`backgroundColor`, `cornerRadius`, `strokes`, `effects`) is not a wrapper, and no rule may flatten it
-- **Round-trip stability** — `figma-from-specs` reverses ADR-058's collapse, and its expansion assumes a style-free wrapper. A slot wrapper carries styles, so the reversal needs a stated rule
+- **Consistency with ADR-058** — the same argument that justifies collapsing a text wrapper justifies collapsing a slot wrapper
+- **Same kind, same signature** — root and slot are both containers, so the merge discards nothing and needs no eligibility test
+- **Round-trip stability** — `figma-from-specs` reverses ADR-058's collapse; the slot case needs a stated rule for splitting merged styles back across two boxes
 - **Absence must reproduce current behaviour exactly** — a workspace that does not enable the setting sees no change
-- **No logic in this package (Constitution II)** — the schema declares the setting; the collapse and its inverse live in the consuming packages
+- **No logic in this package (Constitution II)** — the schema declares the setting; collapse and expansion live in the consuming packages
 - **Type ↔ schema symmetry (Constitution I)** — whatever changes in `types/` changes in `schema/`
 - **Minimal, stable, intentional public API (Constitution III)** — reuse the existing setting rather than adding a second one that would have to be explained against the first
 
@@ -80,9 +66,9 @@ Applied literally to the four candidates, that list blocks **all of them**, and 
 
 ## Options Considered
 
-*(Pre-decided — the eligibility rule and the governing setting were settled before drafting.)*
+*(Pre-decided — the merge rule, the split rule and the governing setting were settled before drafting.)*
 
-Two eligibility rules were weighed. **Any non-conflicting merge** was selected: collapse when the root and its sole slot child share no style key with differing values, paired with a fixed rule for splitting them back on expansion. The alternative — collapse only when the two are **identical or the root lacks the key** — would let expansion reproduce the original layer styling exactly, but excludes the list component and buys that exactness with a narrower rule. Spec → Figma → spec stability is the contract that matters; byte-identical Figma layer styling is not.
+An eligibility test gated on the root's styles was drafted and discarded. It assumed the two nodes might lose something in the merge, which is true when merging a container into a leaf (ADR-058) and false when merging a container into a container. Testing styles here would refuse components for carrying values that survive the merge intact.
 
 Adding a second setting was also considered and rejected: a reader would have to learn why two switches exist for one idea, and every workspace wanting either would set both.
 
@@ -98,15 +84,13 @@ A component collapses when **all** hold:
 
 - The root element's type is `container`
 - The root has exactly one anatomy-visible child, and that child's type is `slot`
-- No style key present on **both** the root and the slot child has differing values
-- The root carries none of `backgroundColor`, `cornerRadius`, `cornerSmoothing`, `strokes`, `strokeAlign`, `strokeWeight`, `effects` — a root with its own surface is a box, not a wrapper
 - Every valid variant is eligible — collapse stays all-or-nothing, as in ADR-058
 
-`clipContent`, `itemSpacing` and `padding` are **not** disqualifying here, unlike ADR-058. In the slot case they are either identical on both boxes, or present on only one and therefore mergeable without a choice.
+No style participates in eligibility. Both nodes are containers, so the merge discards nothing.
 
-### The collapsed form needs no new representation
+### Merging — the slot wins
 
-The slot binding moves onto the root, which the schema already expresses:
+Styles merge onto one element, and where both carry a key, **the slot's value is kept**. The slot is the box the children actually sit in, so its layout is the one the composed result must preserve; the wrapper's is an artifact of holding a single child.
 
 ```yaml
 # Before — two boxes
@@ -114,27 +98,37 @@ anatomy:
   root: { type: container }
   children: { type: slot }
 elements:
-  root: { styles: { layoutMode: HORIZONTAL } }
-  children: { styles: { itemSpacing: 8 } }
+  root:     { styles: { layoutMode: VERTICAL, padding: 8, backgroundColor: "#fff" } }
+  children: { styles: { layoutMode: HORIZONTAL, itemSpacing: 4 } }
 
-# After — one box, styles merged
+# After — one box; layoutMode taken from the slot
 anatomy:
   root: { type: container }
 elements:
   root:
-    styles: { layoutMode: HORIZONTAL, itemSpacing: 8 }
+    styles: { layoutMode: HORIZONTAL, padding: 8, backgroundColor: "#fff", itemSpacing: 4 }
     children: { $binding: "#/props/children" }
 ```
 
+The collapsed form needs no new representation — a slot binding on a container's `children` is already expressible.
+
 ### Expansion, for the reverse direction
 
-Rebuilding two layers from one requires a rule, since the merge does not record which box a style came from:
+Rebuilding two boxes from one requires a rule, since the merge does not record which box a style came from. Styles split by what they act on:
 
-- Sizing and clipping — `layoutSizingHorizontal`, `layoutSizingVertical`, `primaryAxisSizingMode`, `width`, `height`, `clipContent` — go to the **outer wrapper**
-- Spacing and alignment — `itemSpacing`, `padding`, `crossAxisAlignment`, `mainAxisAlignment` — go to the **slot box**, where they act on the children
-- `layoutMode` goes to **both**, as it did before the merge
+| Style group | Goes to | Keys |
+|---|---|---|
+| **Parent layout** — how a box arranges what it holds | **both** boxes | `layoutMode`, `itemSpacing`, `padding`, `mainAxisAlignment`, `crossAxisAlignment`, `wrap`, `wrapAlignment` |
+| **Child layout** — how a box sizes within its own parent | the **slot** box | `layoutSizingHorizontal`, `layoutSizingVertical`, `primaryAxisSizingMode` |
+| **Everything else** | the **root** | `backgroundColor`, `backgroundImage`, `cornerRadius`, `cornerSmoothing`, `strokes`, `strokeAlign`, `strokeWeight`, `effects`, `clipsContent`, `opacity`, `rotation`, … |
 
-Layer styling may therefore be distributed differently than a designer authored it, while the re-generated spec is identical.
+Parent-layout keys go to both because the chain has two boxes and the children must arrange as they did in the collapsed one. Most are no-ops on the wrapper by construction — it holds exactly one child, so `itemSpacing` has nothing to space and the alignments have nothing to distribute, and its `layoutMode` axis cannot show.
+
+`padding` is the exception, and it is worth stating plainly: applied to both boxes it insets twice, so a collapsed box expressing `padding: 8` re-expands as 16px of total inset. It is the one parent-layout key whose effect on a single-child wrapper is not a no-op.
+
+Visual styles stay on the root, where a surface belongs: the outer box is what a caller sees, and painting a background on the inner box would sit it inside any padding rather than behind it.
+
+Layer styling may therefore be distributed differently than a designer authored it, while the re-generated spec is identical. That is the trade: spec → Figma → spec is stable; Figma → Figma is not byte-identical.
 
 ### Type changes (`types/`)
 
@@ -186,7 +180,8 @@ Absence or `false` reproduces current behaviour exactly. A workspace that alread
 ## Consequences
 
 - Components authored as a root container around a single slot emit one box, and so satisfy ADR-076's precondition for a container primitive binding
-- ADR-058's eligibility list no longer reads as universal: `clipContent`, `itemSpacing` and `padding` disqualify a primitive wrapper but not a slot one, because the two cases lose different things
+- ADR-058's eligibility list is not universal, and this ADR explains why it does not carry over: that list exists because a container is merged into a **leaf**, where container styles have nowhere to go. Merging a container into a container discards nothing, so no list is needed
 - A root with its own surface never collapses, so a component that is genuinely two boxes stays two boxes
 - The reverse direction gains a stated rule for splitting merged styles. Figma layer styling may differ from what a designer authored while spec → Figma → spec stays stable — an explicit trade, not an accident
+- **`padding` doubles on expansion.** Every other parent-layout key is a no-op on a single-child wrapper; `padding` is not, so a round-tripped component insets twice unless the rule carves it out
 - **Enabling the setting now does more than it did.** A workspace already setting it to `true` sees specs change shape for this class of component with no configuration change of its own. This is the cost of one setting rather than two, accepted deliberately
