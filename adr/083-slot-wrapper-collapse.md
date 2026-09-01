@@ -3,7 +3,7 @@
 **Branch**: `083-slot-wrapper-collapse`
 **Created**: 2026-09-01
 **Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Summary**: `collapsePrimitiveWrapper` extends to a root wrapping one `slot`, merging both containers and keeping the slot's value on shared keys.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none — amends ADR-058)*
 
@@ -83,8 +83,21 @@ Widen `spec.collapsePrimitiveWrapper` to cover a slot-only wrapper. **No member 
 A component collapses when **all** hold:
 
 - The root element's type is `container`
-- The root has exactly one anatomy-visible child, and that child's type is `slot`
+- The root has exactly one anatomy-visible child
+- That child is a container whose `children` is bound to a slot property, and that property is the component's **only** slot
+- No variant overrides the binding — it holds in `default` and is never replaced
 - Every valid variant is eligible — collapse stays all-or-nothing, as in ADR-058
+
+The test is the **binding**, not the anatomy label. The eligible child is a container layer whose `children` maps to the sole slot prop:
+
+```yaml
+# default.elements.<layer>
+children:
+  children: { $binding: "#/props/children" }
+  styles:   { layoutMode: HORIZONTAL, layoutSizingHorizontal: FILL }
+```
+
+Requiring the slot to be the component's only one keeps the collapsed root unambiguous: a component with two slots has two places children can go, and promoting one onto the root would silently privilege it. Requiring the binding to hold across every variant keeps collapse all-or-nothing, matching ADR-058.
 
 No style participates in eligibility. Both nodes are containers, so the merge discards nothing.
 
@@ -111,6 +124,25 @@ elements:
 ```
 
 The collapsed form needs no new representation — a slot binding on a container's `children` is already expressible.
+
+### The Figma layer name survives
+
+Where a layer's Figma name diverges from its spec key, that name is recorded in `$extensions['com.figma'].name` (ADR-066). The merge must not drop it: the collapsed element carries the **slot layer's** extension, consistent with the slot winning every other shared key.
+
+```yaml
+# Before
+elements:
+  root:     { $extensions: { com.figma: { name: "Layout" } } }
+  children: { $extensions: { com.figma: { name: "Children" } } }
+
+# After — the slot layer's name is what expansion needs to rebuild
+elements:
+  root:
+    $extensions: { com.figma: { name: "Children" } }
+    children: { $binding: "#/props/children" }
+```
+
+On expansion the rebuilt inner box takes that name, and the wrapper is named for the component. The wrapper's own original name is not recoverable — it is the layer the collapse exists to remove, and no member carries a second name.
 
 ### Expansion, for the reverse direction
 
