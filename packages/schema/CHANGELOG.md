@@ -11,6 +11,8 @@ Configuration now separates what is true about a Figma library from what a run c
 
 ### Added
 
+- `PropConfigurationValue` — a `null` arm; a configuration states a nullable prop is unset, and an absent key inherits while `null` overrides (ADR-080)
+- `InstanceExample.propConfigurations` — accepts `null`, so an example can leave a prop unset; still refuses `PropBinding`
 - `NumberProp.enum` — the closed set of values a numeric prop accepts, so a Figma VARIANT whose options are all numbers carries its numeric type and its authored option order at once (ADR-072)
 - `Conventions` — facts about the libraries the pipeline reads and writes, keyed by platform under `platforms`; `figma` is one implementation key among `react`, `web-components` and `swiftui`. Blocks are optional and their absence means that platform declares no such convention (ADR-073)
 - `Settings` — run choices grouped by concern (`data`, `spec`, `assets`), each carrying its own `directory`

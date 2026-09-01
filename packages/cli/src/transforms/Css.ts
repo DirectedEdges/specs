@@ -1,13 +1,39 @@
 import fs from 'fs-extra';
+import { writeAtomic } from './writeAtomic.js';
 import path from 'path';
 import yaml from 'yaml';
 import type { Transformer, TransformerContext } from '../Types/Transformer.js';
-import { styleToCSS } from './css/styleToCSS.js';
+import { styleToCSS, impliesAbsolute } from './css/styleToCSS.js';
 import { layoutToCSS } from './css/layoutToCSS.js';
-import { toKebab } from './css/values.js';
+import { toKebab, isGradient, reportNameWarnings, withNameWarningsSuppressed } from './css/values.js';
 import { CONCEPT_TABLE, buildStateLookup } from './states.js';
 import { resolveRules } from './css/rules/index.js';
 import { parseLayout, type LayoutNode } from './react/variantAnalysis.js';
+import { loadExamples, type ExamplesData } from './examples.js';
+
+/**
+ * The light-DOM companion sheet for a custom element.
+ *
+ * Content composed into a component arrives as light-DOM children and is styled
+ * by the document, not by the shadow stylesheet — `:host *` cannot reach past
+ * the boundary, and `::slotted()` reaches only the top level. The class form
+ * gets this for free, because its composed content sits inside the block class
+ * in the same document. Without it, composed content computes as `content-box`
+ * and every padded element is larger than the spec says.
+ */
+function lightDomLines(tag: string): string[] {
+  return [
+    '/* Generated. Do not edit — regenerate with `specs transform`. */',
+    '',
+    `${tag}, ${tag} * {`,
+    '  box-sizing: border-box;',
+    '}',
+    '',
+  ];
+}
+
+/** Which element a stylesheet's root rules target: the block class, or the custom element. */
+type RootForm = 'class' | 'host';
 
 export class CssTransformer implements Transformer {
   readonly name = 'css';
@@ -26,23 +52,127 @@ export class CssTransformer implements Transformer {
 
     const componentClass = toKebab(componentKey);
     const prefix = toPascalCase(componentKey);
-    const lines = buildCssLines(componentClass, variantsYaml, tokensFormat, context);
+    // Images registry (ADR-063): backgroundImage fills resolve against it;
+    // urls are emitted relative to each stylesheet's location.
+    const examples = loadExamples(outputDir);
+    const imagesDirAbs = path.join(outputDir, '..', '_images');
+    const lines = buildCssLines(componentClass, variantsYaml, tokensFormat, context, anatomyTypes(apiYaml), {
+      examples,
+      imagesDirAbs,
+      relPrefix: '../../_images',
+    });
     const generatedDir = path.join(outputDir, 'generated');
     await fs.ensureDir(generatedDir);
-    await fs.writeFile(path.join(generatedDir, `${prefix}.styles.css`), lines.join('\n'), 'utf-8');
+    await writeAtomic(path.join(generatedDir, `${prefix}.styles.css`), lines.join('\n'));
+
+    // The same rules written for a shadow tree, where the custom element itself
+    // is the root: root rules target `:host`, so a caller can size and place the
+    // component by styling the element, exactly as it would any other. Element
+    // rules are identical — they match inside the shadow tree either way.
+    const hostLines = withNameWarningsSuppressed(() => buildCssLines(componentClass, variantsYaml, tokensFormat, context, anatomyTypes(apiYaml), {
+      examples,
+      imagesDirAbs,
+      relPrefix: '../../_images',
+    }, 'host'));
+    await writeAtomic(path.join(generatedDir, `${prefix}.host.css`), hostLines.join('\n'));
+    await writeAtomic(path.join(generatedDir, `${prefix}.light.css`), lightDomLines(componentClass).join('\n'));
 
     // Subcomponents — each gets {Sub}.styles.css in its own subfolder
     const subcomponents = (variantsYaml.subcomponents ?? {}) as Record<string, unknown>;
+    const apiSubs = (apiYaml.subcomponents ?? {}) as Record<string, unknown>;
     for (const [subKey, subRaw] of Object.entries(subcomponents)) {
       const subVariantsYaml = subRaw as Record<string, unknown>;
       const subClass = toKebab(subKey);
       const subFilePrefix = toPascalCase(subKey);
-      const subLines = buildCssLines(subClass, subVariantsYaml, tokensFormat, context);
+      const subTypes = anatomyTypes((apiSubs[subKey] ?? {}) as Record<string, unknown>);
+      const subLines = buildCssLines(subClass, subVariantsYaml, tokensFormat, context, subTypes, {
+        examples,
+        imagesDirAbs,
+        relPrefix: '../../../_images',
+      });
       const subDir = path.join(outputDir, subKey, 'generated');
       await fs.ensureDir(subDir);
-      await fs.writeFile(path.join(subDir, `${subFilePrefix}.styles.css`), subLines.join('\n'), 'utf-8');
+      await writeAtomic(path.join(subDir, `${subFilePrefix}.styles.css`), subLines.join('\n'));
+      const subHostLines = withNameWarningsSuppressed(() => buildCssLines(subClass, subVariantsYaml, tokensFormat, context, subTypes, {
+        examples,
+        imagesDirAbs,
+        relPrefix: '../../../_images',
+      }, 'host'));
+      await writeAtomic(path.join(subDir, `${subFilePrefix}.host.css`), subHostLines.join('\n'));
+      await writeAtomic(path.join(subDir, `${subFilePrefix}.light.css`), lightDomLines(subClass).join('\n'));
     }
   }
+
+  /** End-of-run summary of name warnings collected across all components. */
+  async finalize(): Promise<void> {
+    reportNameWarnings('css');
+  }
+}
+
+interface ImagesCssContext {
+  examples: ExamplesData | undefined;
+  imagesDirAbs: string;
+  relPrefix: string;
+}
+
+/** backgroundImage style ({ $image, objectFit? } | null) → CSS declarations. */
+function backgroundImageDecls(value: unknown, images: ImagesCssContext | undefined): string[] {
+  if (value === null) return ['background-image: none'];
+  if (!images?.examples || !value || typeof value !== 'object') return [];
+  const v = value as Record<string, unknown>;
+  if (typeof v.$image !== 'string') return [];
+  const id = v.$image.match(/#\/components\/[^/]+\/images\/(.+)$/)?.[1];
+  const entry = id ? images.examples.images[id] : undefined;
+  if (!entry) return [];
+  let file: string | undefined;
+  if (typeof entry.src === 'string' && /^(data:|https?:)/.test(entry.src)) {
+    return imageDecls(`url('${entry.src}')`, v.objectFit);
+  }
+  if (typeof entry.src === 'string') {
+    file = path.basename(entry.src);
+  } else {
+    const hash = entry.$extensions?.['com.figma']?.imageHash;
+    if (hash) {
+      try {
+        file = fs.readdirSync(images.imagesDirAbs).find(f => f.startsWith(hash));
+      } catch {
+        file = undefined;
+      }
+    }
+  }
+  if (!file) return [];
+  return imageDecls(`url('${images.relPrefix}/${file}')`, v.objectFit);
+}
+
+function imageDecls(url: string, objectFit: unknown): string[] {
+  const decls = [`background-image: ${url}`, 'background-position: center', 'background-repeat: no-repeat'];
+  decls.push(`background-size: ${objectFit === 'CONTAIN' ? 'contain' : 'cover'}`);
+  return decls;
+}
+
+/** Glyphs, raw vectors, and icon-wrapper instances (instance with a name propConfiguration). */
+function isGlyphLike(elemType: string | undefined, elem: Record<string, unknown> | undefined): boolean {
+  if (elemType === 'glyph' || elemType === 'vector') return true;
+  if (elemType !== 'instance') return false;
+  const pc = (elem?.propConfigurations ?? {}) as Record<string, unknown>;
+  return typeof pc.name === 'string';
+}
+
+/** Parse a "WxH" size propConfiguration ("16x16") into pixel dimensions. */
+function glyphConfigSize(elem: Record<string, unknown> | undefined): { w: number; h: number } | null {
+  const pc = (elem?.propConfigurations ?? {}) as Record<string, unknown>;
+  const m = typeof pc.size === 'string' ? pc.size.match(/^(\d+)x(\d+)$/) : null;
+  return m ? { w: Number(m[1]), h: Number(m[2]) } : null;
+}
+
+/** api.yaml anatomy → element key → type ("container" | "rectangle" | "ellipse" | "vector" | "text" | …). */
+function anatomyTypes(apiYaml: Record<string, unknown>): Record<string, string> {
+  const anatomy = (apiYaml.anatomy ?? {}) as Record<string, Record<string, unknown>>;
+  const types: Record<string, string> = {};
+  for (const [key, entry] of Object.entries(anatomy)) {
+    if (entry && typeof entry.type === 'string') types[key] = entry.type;
+  }
+  return types;
 }
 
 function buildCssLines(
@@ -50,7 +180,23 @@ function buildCssLines(
   variantsYaml: Record<string, unknown>,
   tokensFormat: string | undefined,
   context: TransformerContext,
+  elemTypes: Record<string, string> = {},
+  images?: ImagesCssContext,
+  rootAs: RootForm = 'class',
 ): string[] {
+  /**
+   * The root's selector, in the form this stylesheet is written for.
+   *
+   * `class` targets the root element by its block class, which is what a React
+   * scaffold renders. `host` targets `:host` — the custom element itself is the
+   * root, so its qualifiers go inside the functional form
+   * (`:host([data-size="L"]:hover)`) rather than being appended. Element rules
+   * match inside the shadow tree and are identical in both forms.
+   */
+  const rootSel = (qualifiers = ''): string =>
+    rootAs === 'host'
+      ? (qualifiers ? `:host(${qualifiers})` : ':host')
+      : `.${componentClass}${qualifiers}`;
   // Apply configured rules as pre-passes on the structured variants data
   const ruleNames = (context.transformerOptions?.rules as string[] | undefined) ?? [];
   const rules = resolveRules(ruleNames);
@@ -60,6 +206,14 @@ function buildCssLines(
 
   const lines: string[] = [
     '/* Generated. Do not edit — regenerate with `specs transform`. */',
+    '',
+    // A Figma frame's width and height INCLUDE its padding; the CSS default,
+    // content-box, excludes it. Without this, every element carrying both a
+    // fixed dimension and padding renders larger than the spec by exactly its
+    // padding — a 24px frame with 4px padding measures 32px.
+    `${rootSel()}, ${rootSel()} * {`,
+    '  box-sizing: border-box;',
+    '}',
     '',
   ];
 
@@ -79,10 +233,13 @@ function buildCssLines(
   // (first = back-most, last on top), and only positioned siblings paint in
   // DOM order — an absolute element would otherwise jump above static ones.
   const needsRelative = new Set<string>();
+  // Element key → parent element key, from the default layout tree.
+  const parentOf = new Map<string, string>();
   {
     const layouts = [parseLayout(defaultBlock?.layout), ...variantList.map(v => parseLayout(v.layout))];
     for (const layout of layouts) {
       collectStackingFixes(layout, defaultElements, needsRelative);
+      collectParents(layout, parentOf);
       if (layout !== layouts[0]) {
         const keys = new Set<string>();
         collectLayoutKeys(layout, keys);
@@ -90,12 +247,82 @@ function buildCssLines(
       }
     }
   }
+  // Parent flex direction context for FILL sizing translation.
+  const parentLayoutMode = (elemKey: string): string | null => {
+    const parent = parentOf.get(elemKey);
+    if (!parent) return null;
+    const styles = (defaultElements[parent]?.styles ?? {}) as Record<string, unknown>;
+    return (styles.layoutMode as string | undefined) ?? null;
+  };
+  const parentIsAutoLayout = (elemKey: string): boolean => {
+    const mode = parentLayoutMode(elemKey);
+    return mode === 'HORIZONTAL' || mode === 'VERTICAL';
+  };
+  // Coordinates imply absolute placement per impliesAbsolute; roots never infer.
+  const inferAbsolute = (elemKey: string): boolean =>
+    parentOf.has(elemKey) &&
+    impliesAbsolute(
+      (defaultElements[elemKey]?.styles ?? {}) as Record<string, unknown>,
+      parentIsAutoLayout(elemKey)
+    );
+  // Elements whose strokes are a gradient in any layer paint via border-image;
+  // solid stroke overrides on those elements must reset it or the earlier
+  // variant's border-image outranks the later border-color (see styleToCSS).
+  const gradientStrokeKeys = new Set<string>();
+  for (const elements of [defaultElements, ...variantList.map(v => (v.elements ?? {}) as Record<string, Record<string, unknown>>)]) {
+    for (const [k, elem] of Object.entries(elements)) {
+      if (isGradient(((elem.styles ?? {}) as Record<string, unknown>).strokes)) gradientStrokeKeys.add(k);
+    }
+  }
+  const styleOptions = (elemKey: string) => ({
+    inferAbsolute: inferAbsolute(elemKey),
+    resetBorderImage: gradientStrokeKeys.has(elemKey),
+  });
 
   for (const [elemKey, elem] of Object.entries(defaultElements)) {
-    const selector = elemSelector(componentClass, elemKey);
+    const selector = elemKey === 'root' ? rootSel() : elemSelector(componentClass, elemKey);
     const styles = (elem.styles ?? {}) as Record<string, unknown>;
-    const decls = [...layoutToCSS(styles, tokensFormat), ...styleToCSS(styles, tokensFormat)];
+    const decls = [
+      ...layoutToCSS(styles, tokensFormat, parentLayoutMode(elemKey)),
+      ...styleToCSS(styles, tokensFormat, elemTypes[elemKey], styleOptions(elemKey)),
+    ];
+    if ('backgroundImage' in styles) decls.push(...backgroundImageDecls(styles.backgroundImage, images));
 
+    // Ellipses are circular unless the spec sets an explicit radius.
+    if (elemTypes[elemKey] === 'ellipse' && !decls.some(d => d.startsWith('border-radius:'))) {
+      decls.push('border-radius: 50%');
+    }
+    // Glyphs/vectors paint their background-color through a mask image the
+    // scaffold provides via --glyph (an unresolvable mask renders nothing).
+    // Instance elements with a `name` propConfiguration are icon-wrapper
+    // instances and take the same fallback. Spans need block display; without
+    // a fill they tint with the inherited text color; instance glyphs take
+    // their dimensions from a "WxH" size propConfiguration when present.
+    if (isGlyphLike(elemTypes[elemKey], elem)) {
+      decls.push('mask: var(--glyph, none) no-repeat center / contain');
+      decls.push('-webkit-mask: var(--glyph, none) no-repeat center / contain');
+      if (!decls.some(d => d.startsWith('display:'))) decls.push('display: block');
+      if (!decls.some(d => d.startsWith('background'))) decls.push('background-color: currentColor');
+      // HUG on an empty masked span collapses to 0 — the configured instance
+      // size is the glyph's intrinsic size, so it wins over fit-content.
+      const size = glyphConfigSize(elem);
+      if (size) {
+        const fitless = decls.filter(d => d !== 'width: fit-content' && d !== 'height: fit-content');
+        decls.length = 0;
+        decls.push(...fitless);
+        if (!decls.some(d => d.startsWith('width:'))) decls.push(`width: ${size.w}px`);
+        if (!decls.some(d => d.startsWith('height:'))) decls.push(`height: ${size.h}px`);
+      }
+    }
+    // A full-bleed absolute child visually IS its rounded parent's surface —
+    // without inheriting the radius, its background paints square corners.
+    if (
+      !decls.some(d => d.startsWith('border-radius:')) &&
+      coversParent(styles, (defaultElements[parentOf.get(elemKey) ?? '']?.styles ?? {}) as Record<string, unknown>) &&
+      'cornerRadius' in ((defaultElements[parentOf.get(elemKey) ?? '']?.styles ?? {}) as Record<string, unknown>)
+    ) {
+      decls.push('border-radius: inherit');
+    }
     if (needsRelative.has(elemKey) && !decls.some(d => d.startsWith('position:'))) {
       decls.push('position: relative');
     }
@@ -106,6 +333,19 @@ function buildCssLines(
     if (decls.length > 0) {
       lines.push(`${selector} {`);
       for (const d of decls) lines.push(`  ${d};`);
+      lines.push('}');
+      lines.push('');
+    }
+    lines.push(...overlapRule(selector, styles));
+
+    // An unfilled slot is still a flex item, so the parent's gap paints as
+    // spacing around nothing. `:empty` covers the react scaffold, which renders
+    // the slot's children directly; the webcomponents scaffold always holds a
+    // `<slot>` element and so is never `:empty`, and sets data-empty instead.
+    if (elemTypes[elemKey] === 'slot') {
+      lines.push(`${selector}:empty,`);
+      lines.push(`${selector}[data-empty] {`);
+      lines.push('  display: none;');
       lines.push('}');
       lines.push('');
     }
@@ -141,18 +381,38 @@ function buildCssLines(
       const vStr = String(v);
       if (classifiedProps.has(k)) {
         const concept = stateLookup.get(`${k}::${vStr}`) ?? stateLookup.get(`${k}::${vStr.toLowerCase()}`);
-        if (!concept) { skip = true; break; } // unmatched value = base/rest state
-        const conceptEntry = CONCEPT_TABLE[concept];
-        const sel = conceptEntry?.selector ?? `[data-${toKebab(k)}="${vStr}"]`;
-        const parts = sel.split(',').map(s => s.trim());
+        // A classified boolean's FALSE value has no concept of its own — it is
+        // the NEGATION of the true concept. Without this the whole variant is
+        // dropped as base/rest state, so an unselected/unchecked variant (and
+        // every hover/pressed pairing with it) emits no rule at all.
+        let negated: string | undefined;
+        if (!concept && v === false) {
+          const trueConcept = stateLookup.get(`${k}::true`);
+          const trueSel = trueConcept ? CONCEPT_TABLE[trueConcept]?.selector : undefined;
+          // Negating a multi-part concept is an AND of nots, not a cartesian
+          // expansion: `:disabled, [aria-disabled="true"]` becomes
+          // `:not(:disabled):not([aria-disabled="true"])`.
+          if (trueSel) negated = trueSel.split(',').map(part => `:not(${part.trim()})`).join('');
+        }
+        if (!concept && !negated) { skip = true; break; } // unmatched value = base/rest state
+        const conceptEntry = concept ? CONCEPT_TABLE[concept] : undefined;
+        const sel = negated ?? conceptEntry?.selector ?? `[data-${toKebab(k)}="${vStr}"]`;
+        const parts = negated ? [negated] : sel.split(',').map(s => s.trim());
         const expanded: string[] = [];
         for (const existing of stateSelSuffixes) {
           for (const part of parts) expanded.push(existing + part);
         }
         stateSelSuffixes = expanded;
       } else {
-        // Boolean true → presence selector; string value → value selector
-        dataAttrs.push(v === true ? `[data-${toKebab(k)}]` : `[data-${toKebab(k)}="${vStr}"]`);
+        // Scaffolds emit booleans as presence: the attribute is set to "" when
+        // true and omitted when false — never written as "false". So a false
+        // variant is the ABSENCE of the attribute; `[data-x="false"]` would
+        // match nothing and the variant's styling would never apply.
+        dataAttrs.push(
+          v === true ? `[data-${toKebab(k)}]`
+            : v === false ? `:not([data-${toKebab(k)}])`
+              : `[data-${toKebab(k)}="${vStr}"]`
+        );
       }
     }
     if (skip) continue;
@@ -167,8 +427,7 @@ function buildCssLines(
     }
 
     const dataAttrStr = dataAttrs.join('');
-    const rootBase = `.${componentClass}${dataAttrStr}`;
-    const rootSelectors = stateSelSuffixes.map(s => `${rootBase}${s}`);
+    const rootSelectors = stateSelSuffixes.map(s => rootSel(`${dataAttrStr}${s}`));
 
     const variantElements = (variant.elements ?? {}) as Record<string, Record<string, unknown>>;
 
@@ -188,15 +447,41 @@ function buildCssLines(
       }
     }
 
-    const elemKeys = new Set([...Object.keys(variantElements), ...displayDecls.keys()]);
+    // A variant layout that reverses a flex parent's children is a visual swap,
+    // not a structural one — emit the reversal here so the scaffold keeps one
+    // copy of each child and DOM order (reading and tab order) stays as
+    // authored. Partial reorders are not expressible this way and are handled
+    // by the emitters relocating the element instead.
+    const reverseDecls = new Map<string, string>();
+    if (variant.layout) {
+      const defOrder = childOrder(parseLayout(defaultBlock?.layout));
+      const varOrder = childOrder(parseLayout(variant.layout));
+      for (const [parent, vlist] of varOrder) {
+        if (parent === null) continue;
+        const dlist = defOrder.get(parent);
+        if (!dlist || dlist.length < 2 || dlist.length !== vlist.length) continue;
+        if (vlist.join('\u0000') !== [...dlist].reverse().join('\u0000')) continue;
+        const mode = ((defaultElements[parent]?.styles ?? {}) as Record<string, unknown>).layoutMode;
+        if (mode === 'HORIZONTAL') reverseDecls.set(parent, 'flex-direction: row-reverse');
+        else if (mode === 'VERTICAL') reverseDecls.set(parent, 'flex-direction: column-reverse');
+      }
+    }
+
+    const elemKeys = new Set([...Object.keys(variantElements), ...displayDecls.keys(), ...reverseDecls.keys()]);
     for (const elemKey of elemKeys) {
       const elemSuffix = elemKey === 'root' ? '' : ` ${elemSelector(componentClass, elemKey)}`;
       const selector = rootSelectors.map(s => `${s}${elemSuffix}`).join(',\n');
 
       const styles = (variantElements[elemKey]?.styles ?? {}) as Record<string, unknown>;
-      const decls = [...layoutToCSS(styles, tokensFormat), ...styleToCSS(styles, tokensFormat)];
+      const decls = [
+        ...layoutToCSS(styles, tokensFormat, parentLayoutMode(elemKey)),
+        ...styleToCSS(styles, tokensFormat, elemTypes[elemKey], styleOptions(elemKey)),
+      ];
+      if ('backgroundImage' in styles) decls.push(...backgroundImageDecls(styles.backgroundImage, images));
       const display = displayDecls.get(elemKey);
       if (display && !decls.some(d => d.startsWith('display:'))) decls.push(display);
+      const reverse = reverseDecls.get(elemKey);
+      if (reverse && !decls.some(d => d.startsWith('flex-direction:'))) decls.push(reverse);
 
       if (decls.length > 0) {
         lines.push(`${selector} {`);
@@ -204,7 +489,28 @@ function buildCssLines(
         lines.push('}');
         lines.push('');
       }
+      lines.push(...overlapRule(selector, styles));
     }
+  }
+
+  // Cursor is an affordance CSS needs and Figma has no concept of, so it is
+  // inferred from what this stylesheet actually styles. A component that STYLES
+  // a pressed state is a press target; hover alone is not, since plenty of
+  // non-interactive surfaces carry hover styling. Keying off emitted rules
+  // rather than declared states matters — a spec can declare a state whose
+  // variant produces no styling at all, which is not evidence of interactivity.
+  const emitted = lines.join('\n');
+  if (/:active\b/.test(emitted) || /\[aria-pressed="true"\]/.test(emitted)) {
+    lines.push(`${rootSel()} {`, '  cursor: pointer;', '}', '');
+  }
+  if (/:disabled\b/.test(emitted) || /\[aria-disabled="true"\]/.test(emitted)) {
+    const disabledSel = CONCEPT_TABLE['disabled']?.selector ?? ':disabled';
+    lines.push(
+      disabledSel.split(',').map(part => rootSel(part.trim())).join(',\n') + ' {',
+      '  cursor: not-allowed;',
+      '}',
+      '',
+    );
   }
 
   return lines;
@@ -215,6 +521,32 @@ function collectLayoutKeys(nodes: LayoutNode[], into: Set<string>): void {
     into.add(node.key);
     collectLayoutKeys(node.children, into);
   }
+}
+
+function collectParents(nodes: LayoutNode[], into: Map<string, string>, parent?: string): void {
+  for (const node of nodes) {
+    if (parent && !into.has(node.key)) into.set(node.key, parent);
+    collectParents(node.children, into, node.key);
+  }
+}
+
+/**
+ * True when an absolutely-placed child exactly covers its parent's bounds:
+ * either zero insets on all sides, or zero offset with dimensions equal to
+ * the parent's.
+ */
+function coversParent(styles: Record<string, unknown>, parentStyles: Record<string, unknown>): boolean {
+  const n = (v: unknown) => (typeof v === 'number' ? v : undefined);
+  const allInsetsZero =
+    n(styles.top) === 0 && n(styles.bottom) === 0 && n(styles.start) === 0 && n(styles.end) === 0;
+  const sameSizeAtOrigin =
+    n(styles.top) === 0 &&
+    n(styles.start) === 0 &&
+    n(styles.width) !== undefined &&
+    n(styles.width) === n(parentStyles.width) &&
+    n(styles.height) !== undefined &&
+    n(styles.height) === n(parentStyles.height);
+  return allInsetsZero || sameSizeAtOrigin;
 }
 
 /**
@@ -229,8 +561,14 @@ function collectStackingFixes(
   into: Set<string>,
   parent?: string,
 ): void {
-  const isAbsolute = (key: string) =>
-    ((elements[key]?.styles ?? {}) as Record<string, unknown>).position === 'ABSOLUTE';
+  const parentStyles = (elements[parent ?? '']?.styles ?? {}) as Record<string, unknown>;
+  const parentAutoLayout =
+    parentStyles.layoutMode === 'HORIZONTAL' || parentStyles.layoutMode === 'VERTICAL';
+  const isAbsolute = (key: string) => {
+    if (parent === undefined) return false; // roots never infer
+    const styles = (elements[key]?.styles ?? {}) as Record<string, unknown>;
+    return impliesAbsolute(styles, parentAutoLayout);
+  };
 
   if (nodes.some(n => isAbsolute(n.key))) {
     if (parent) into.add(parent);
@@ -251,4 +589,32 @@ function elemSelector(componentClass: string, elemKey: string): string {
   return elemKey === 'root'
     ? `.${componentClass}`
     : `.${componentClass}__${toKebab(elemKey)}`;
+}
+
+/**
+ * Overlapping children: Figma expresses overlap as a NEGATIVE itemSpacing,
+ * which `gap` cannot represent. CSS does it with a negative margin on every
+ * child after the first, along the parent's main axis.
+ */
+function overlapRule(selector: string, styles: Record<string, unknown>): string[] {
+  const v = styles.itemSpacing;
+  if (typeof v !== 'number' || v >= 0) return [];
+  const prop = styles.layoutMode === 'VERTICAL' ? 'margin-block-start' : 'margin-inline-start';
+  // This reaches the react scaffold's children directly. The webcomponents
+  // scaffold projects slot content through a holder, and ::slotted() cannot
+  // style a slotted node's descendants — so composed example content carries
+  // the same margin inline instead (see composeSlotHtml).
+  return [`${selector} > * + * {`, `  ${prop}: ${v}px;`, '}', ''];
+}
+
+/** Parent key → ordered child keys, for every parent in a layout tree. */
+function childOrder(nodes: LayoutNode[], parent: string | null = null, out?: Map<string | null, string[]>): Map<string | null, string[]> {
+  const map = out ?? new Map<string | null, string[]>();
+  for (const n of nodes) {
+    const list = map.get(parent) ?? [];
+    list.push(n.key);
+    map.set(parent, list);
+    childOrder(n.children, n.key, map);
+  }
+  return map;
 }

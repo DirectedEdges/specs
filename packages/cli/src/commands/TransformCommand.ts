@@ -118,6 +118,10 @@ export const Transform = new Command('transform')
                 ? platformOf(config.conventions, transformer.platformId)
                 : undefined,
               transformerOptions: transformerOptionsMap.get(transformer.name),
+              dataDirectory: config.settings.data?.directory
+                ? path.resolve(config.settings.data.directory)
+                : undefined,
+              scoped: (options.components?.length ?? 0) > 0,
             };
             await transformer.run(apiYaml, context);
           }

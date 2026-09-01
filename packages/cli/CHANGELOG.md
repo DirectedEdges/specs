@@ -39,6 +39,24 @@ you emit without saying so.
     something the loader does for you. Configuration is loaded by read-only commands and
     in CI, and a read path must not mutate a checkout.
 
+- **`cssvars` transformer — library-level CSS custom properties.** Emits the token
+  definitions a component's CSS refers to, resolved from the fetched library JSON in the
+  workspace data directory, so generated stylesheets stand on their own rather than
+  assuming a hand-authored variable sheet. Add `cssvars` to `pipeline.transformers` to run
+  it.
+
+- **`webcomponents` and `webcomponents-stories` transformers — experimental.** Emit a Lit
+  element and a web-components Storybook page from a spec, the same shape the `react` and
+  `stories` transformers produce for React. Both come from
+  `@directededges/webcomponents-from-specs`. They are experimental: the output shape may
+  change without a breaking-change note, so do not build on it yet.
+
+- **The `css` transformer expresses inline effects and gradients.** Shadows, blurs, and
+  gradient fills declared directly on an element — rather than through a token — now
+  become real `box-shadow`, `filter`, and `background-image` declarations. They were
+  previously dropped, so an element whose design carried an inline effect emitted CSS that
+  silently omitted it.
+
 ### Changed
 
 - **Configuration is discovered in `./config/`.** A directory is used when it holds at
@@ -73,6 +91,10 @@ you emit without saying so.
   shows them commented out at their defaults.
 - **`transform`'s prerequisite tip** no longer names flags that no longer exist; running
   `specs generate` is now sufficient.
+- **The `react` and `stories` transformers moved to `@directededges/react-from-specs`.**
+  They are consumed as an external runtime dependency, the way the processing engine
+  already is. Both transformer names, their options, and their output are unchanged — this
+  is where the code lives, not what it does.
 
 ### Removed
 
@@ -84,6 +106,21 @@ you emit without saying so.
   into the workspace's `config/` directory and delete it.
 - `--split-components`, `--split-concerns` and `--use-subfolders` on `specs generate`,
   replaced by the negative flags above.
+
+### Fixed
+
+- **`scan` records the dev status Figma actually set, including `COMPLETED`** — Every status
+  on a node is carried through to the manifest's Dev Status column verbatim instead of being
+  collapsed to `READY_FOR_DEV` or `NONE`, so a component marked complete is no longer
+  indistinguishable from one nobody has touched. Selection is unchanged: `scan` still checks
+  only `READY_FOR_DEV` rows by default, and `generate` still builds only what is checked.
+- **A manifest row with an unfamiliar dev status is kept and left unselected, not dropped** —
+  The parser previously accepted only two status values and silently discarded any row it
+  could not match, so the component vanished from the run while the summary line still read
+  as healthy. Such a row is now parsed, reported with a warning, and left unchecked.
+- **`scan` and `generate` warn about manifest rows they cannot read** — Any line that looks
+  like a component row but fails to parse now prints a warning naming the row instead of
+  disappearing.
 
 
 ## [0.27.0] - 2026-08-17

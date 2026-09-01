@@ -24,6 +24,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 080 | `null` as a Prop Configuration Value | Adds a `null` arm to `PropConfigurationValue` and to `InstanceExample.propConfigurations`; absent inherits, `null` overrides with unset |
 | 071 | Separate Library Conventions from Tooling Settings | `Conventions`, `Settings` and `Pipeline` replace `Config`, separating library facts from run choices and declared work |
 | 069 | Rename `clipContent` to `clipsContent` | Renames the clip flag to the key the data carries, so container clipping and CSS `overflow` resolve for the first time |
 | 066 | Lossless Key Formatting — Safe Key Grammar and Figma Name Preservation | Adds opt-in `format.figmaKeys` (`NONE` default), a safe key grammar, and `com.figma.name` on anatomy and props; renames `originalName` |

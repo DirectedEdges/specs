@@ -105,7 +105,8 @@ async function writeGeneratedOutput(
   errors: Array<{ component: string; error: string }>,
   isManifest: boolean,
   options: GenerateOptions,
-  config: CLIConfig
+  config: CLIConfig,
+  sourceAlias?: string
 ): Promise<void> {
   // -------------------------------------------------------------------
   // File mode stdout (no -o)
@@ -196,7 +197,13 @@ async function writeGeneratedOutput(
           console.error('Error: --get-images requires the FIGMA_TOKEN environment variable (same token as `specs fetch`)');
           process.exit(ERROR_CODES.INVALID_ARGS);
         }
-        const fileSourceAlias = resolveFileSourceAlias(config.settings.data?.sources);
+        // Image URLs must come from the file being generated FROM. Falling back
+        // to a guess asks the wrong file: a hash that exists only in the source
+        // file comes back missing and is reported as Figma not returning it.
+        const sources = config.settings.data?.sources ?? {};
+        const fileSourceAlias = sourceAlias && sources[sourceAlias]
+          ? sourceAlias
+          : resolveFileSourceAlias(config.settings.data?.sources);
         const fileKey = fileSourceAlias ? config.settings.data?.sources?.[fileSourceAlias]?.key : undefined;
         if (!fileKey) {
           console.error('Error: --get-images requires a configured source file key (data.sources.<alias>.key in the workspace settings)');
@@ -405,9 +412,14 @@ export const Generate = new Command('generate')
           process.exit(ERROR_CODES.INVALID_ARGS);
         }
 
-        const { components, metadata } = isV2Manifest
+        const parsed = isV2Manifest
           ? ManifestParserV2.parse(sourceContent)
           : ManifestParser.parse(sourceContent);
+        const { components, metadata } = parsed;
+
+        for (const warning of ('warnings' in parsed ? parsed.warnings : [])) {
+          console.warn(`⚠ ${warning}`);
+        }
 
         if (components.length === 0) {
           console.error('Error: No components found in manifest');
@@ -666,7 +678,11 @@ export const Generate = new Command('generate')
         process.exit(ERROR_CODES.GENERAL_ERROR);
       }
 
-      await writeGeneratedOutput(processedComponents, errors, isManifest, options, config);
+      // `<alias>.manifest.md` names the source it was scanned from.
+      const manifestAlias = isManifest
+        ? path.basename(sourcePath).replace(/\.manifest\.md$/, '')
+        : undefined;
+      await writeGeneratedOutput(processedComponents, errors, isManifest, options, config, manifestAlias);
 
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
