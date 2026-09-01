@@ -145,7 +145,7 @@
             "collapsePrimitiveWrapper": {
               "type": "boolean",
               "default": false,
-              "description": "Strip a plain container wrapping a single text or glyph element and promote the leaf to spec root."
+              "description": "Strip a root container that only wraps one child and promote the child to spec root. A text or glyph leaf requires the wrapper to carry no meaningful container styles (ADR-058); a slot child needs no style test, because both nodes are containers, and the slot's value wins on any shared key (ADR-083)."
             },
             "invalidVariants": {
               "type": "boolean",

@@ -75,10 +75,22 @@ export interface Settings {
     /** Level of detail in output. Optional; defaults to LAYERED. */
     details?: 'FULL' | 'LAYERED';
     /**
-     * When true, a component whose root is a plain container wrapping a single `text` or
-     * `glyph` element (no meaningful container styles, no slot bindings) is collapsed:
-     * the wrapper is stripped and the leaf becomes the spec root. All-or-nothing across
-     * variants — if any variant fails eligibility, no collapse occurs. Defaults to false.
+     * When true, a root container that only wraps one child is collapsed away, and the
+     * child becomes the spec root. Two shapes qualify, and they are tested differently
+     * because they lose different things:
+     *
+     * - **A `text` or `glyph` leaf** (ADR-058). A container is merged into a leaf, where
+     *   container styles have nowhere to go, so the wrapper must carry none that matter:
+     *   `clipContent`, `cornerRadius`, `strokes`, `strokeAlign`, `strokeWeight`,
+     *   `itemSpacing`, `padding`, `effects`, `backgroundColor`, `cornerSmoothing`.
+     * - **A `slot`** (ADR-083). Both nodes are containers with the same style signature,
+     *   so the merge discards nothing and no style is tested. Where both carry a key, the
+     *   slot's value wins — it is the box the children sit in — and the slot binding moves
+     *   onto the root.
+     *
+     * All-or-nothing across variants: if any variant fails eligibility, no collapse
+     * occurs. Defaults to false.
+     *
      * @since 0.26.0
      */
     collapsePrimitiveWrapper?: boolean;
@@ -140,7 +152,7 @@ export interface ResolvedSettings {
     variantDepth: 1 | 2 | 3 | 9999;
     /** Level of detail in output. */
     details: 'FULL' | 'LAYERED';
-    /** Plain container wrappers around a single text/glyph child are stripped. */
+    /** Plain container wrappers around a single text, glyph or slot child are stripped. */
     collapsePrimitiveWrapper: boolean;
     /** Include invalid variants. */
     invalidVariants: boolean;
