@@ -143,12 +143,15 @@ Each binding takes:
 | Primitive | Concept | Fed by | Default prop name |
 |-----------|---------|--------|-------------------|
 | `text` | `color` | `Styles.textColor` | `color` |
+| `text` | `content` | `Element.content` | *(none)* — children |
 | `text` | `typography` | `Styles.typography` | *(none)* |
 | `glyph` | `color` | `Styles.fillColor` | `color` |
 | `glyph` | `content` | `Element.content` | `content` |
 | `container` | `direction` | `Styles.layoutMode` | *(none)* |
 
 A prop name is a string belonging to the target library and is not policed. `null` means this component has no prop for the concept, and suppresses the default.
+
+Text and glyph treat `content` differently, and the asymmetry is deliberate. A glyph's content defaults to a **prop**, because an icon's name cannot be children. A text primitive's has no default: absence means the component takes its content as **children** (`<DsText>Label</DsText>`), and naming a prop says it takes the string instead (`<EgdsText text="Label" />`).
 
 ```yaml
 # config/conventions/react.yaml
@@ -158,6 +161,7 @@ primitives:
     component: DsText
     props:
       typography: typography
+      # content omitted — DsText takes its text as children
   glyph:
     component: DsIcon
     props:

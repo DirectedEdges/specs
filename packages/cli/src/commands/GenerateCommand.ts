@@ -34,6 +34,7 @@ import { ImageFillsResolver, IMAGES_DIR_NAME } from '../utilities/ImageFillsReso
 import { postGenerateFromSelection } from '../bridge/client.js';
 import { formatKey } from '../utilities/formatKey.js';
 import { resolveFileKey } from '../bridge/pickConnection.js';
+import { figmaOf } from '../Config/PlatformConventions.js';
 
 declare const __SPECS_CLI_VERSION__: string;
 
@@ -180,7 +181,7 @@ async function writeGeneratedOutput(
   if (options.getImages) {
     const hashes = ImageFillsResolver.collectUnresolvedHashes(processedComponents);
     if (hashes.size === 0) {
-      console.log(config.conventions.figma.images
+      console.log(figmaOf(config.conventions).images
         ? 'Note: --get-images found no unresolved image placeholders'
         : 'Note: --get-images has no effect — conventions.figma.images is not configured');
     } else {

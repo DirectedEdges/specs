@@ -34,7 +34,8 @@ export interface VariantStateEntry {
  * spec's text concepts reach its props.
  *
  * `props` keys are **concepts**, not `Styles` members: `color` is fed by
- * `Styles.textColor` and `typography` by `Styles.typography`. Fixing the vocabulary
+ * `Styles.textColor`, `typography` by `Styles.typography`, and `content` by
+ * `Element.content`. Fixing the vocabulary
  * per primitive keeps the `Styles` key set out of this schema's validation surface,
  * so renaming a style member does not churn these keys.
  *
@@ -52,6 +53,19 @@ export interface TextBinding {
   props?: {
     /** Prop carrying `Styles.textColor`. Defaults to `'color'`; `null` = no such prop. */
     color?: string | null;
+    /**
+     * Prop carrying `Element.content` — the text string.
+     *
+     * **No default**, and absence does not mean "no channel": it means the component
+     * takes its content as **children** (`<DsText>Label</DsText>`), which is the
+     * common code-platform shape. Name a prop when the component takes the string as
+     * one instead (`<EgdsText text="Label" />`). `null` = the component has no way to
+     * receive content at all.
+     *
+     * This is where text and glyph differ. A glyph's `content` defaults to a prop
+     * because an icon's name cannot be children; a text primitive's can.
+     */
+    content?: string | null;
     /** Prop carrying `Styles.typography`. No default; `null` = no such prop. */
     typography?: string | null;
   };
@@ -311,6 +325,8 @@ export interface ResolvedTextBinding {
   props: {
     /** Defaulted to `'color'` when the binding did not state it. `null` = no such prop. */
     color: string | null;
+    /** No default; absent when the binding did not state it, which means content is children. */
+    content?: string | null;
     /** No default; absent when the binding did not state it. */
     typography?: string | null;
   };

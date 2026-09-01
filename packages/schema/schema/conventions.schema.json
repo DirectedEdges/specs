@@ -32,7 +32,7 @@
     },
     "TextBinding": {
       "type": "object",
-      "description": "Which of a platform's components implements the text primitive, and how the spec's text concepts reach its props. props keys are concepts, not Styles members; a prop name belongs to the target library and is not policed. null = no prop for the concept, and suppresses its default. (ADR-075)",
+      "description": "Which of a platform's components implements the text primitive, and how the spec's text concepts reach its props. props keys are concepts (color, content, typography), not Styles members; a prop name belongs to the target library and is not policed. null = no prop for the concept, and suppresses its default. (ADR-075)",
       "properties": {
         "component": {
           "type": "string",
@@ -48,6 +48,13 @@
                 "null"
               ],
               "description": "Prop carrying Styles.textColor. Defaults to 'color'; null = no such prop."
+            },
+            "content": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Prop carrying Element.content \u2014 the text string. No default: absence means the component takes content as children (<DsText>Label</DsText>); a name means it takes the string as that prop (<EgdsText text=\"Label\" />); null = no content channel at all. Differs from a glyph's content, which defaults to a prop because an icon's name cannot be children."
             },
             "typography": {
               "type": [

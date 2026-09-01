@@ -29,7 +29,7 @@ Two of these are what a text component's props exist for. The rest are styling a
 
 The mappable surface is small, and small in a **specific, per-primitive way**:
 
-- **Text** takes a colour and a type treatment. Nothing else
+- **Text** takes a colour, its content, and a type treatment. Nothing else
 - **Glyph** takes a colour and its content — the glyph name. Its size comes from sizing and layout styling, not from a prop
 - **Container** takes a direction, and only in the idiom where direction is a prop rather than a component choice (ADR-076). `backgroundColor`, `padding`, `cornerRadius`, `strokes` are applied styling
 
@@ -142,6 +142,7 @@ The key names the **concept being mapped**, not the spec member that happens to 
 | Primitive | Concept key | Fed by |
 |---|---|---|
 | `text` | `color` | `Styles.textColor` |
+| `text` | `content` | `Element.content` |
 | `text` | `typography` | `Styles.typography` |
 | `glyph` | `color` | `Styles.fillColor` |
 | `glyph` | `content` | `Element.content` |
@@ -191,7 +192,7 @@ The previous draft's selection.
 
 | Primitive | Mappable concepts | Everything else |
 |---|---|---|
-| `text` | `color`, `typography` | Passed styling |
+| `text` | `color`, `content`, `typography` | Passed styling |
 | `glyph` | `color`, `content` | Passed styling |
 | `container` | `direction` | Passed styling |
 
@@ -247,7 +248,8 @@ Inside a **declared** primitive binding:
 |---|---|---|---|
 | `text` | `color` | `color` | Constitution VI rule 1 — CSS and Compose agree |
 | `glyph` | `color` | `color` | Same term |
-| `glyph` | `content` | `content` | No code-platform consensus (SwiftUI `systemName`, Compose `imageVector`); rule 3 selects for consumer clarity, and the concept's own name is the neutral choice |
+| `text` | `content` | *(none)* | Absence is not "no channel": it means the component takes content as **children**, the common code shape (`<DsText>Label</DsText>`). Naming a prop says it takes the string instead (`<EgdsText text="Label" />`) |
+| `glyph` | `content` | `content` | No code-platform consensus (SwiftUI `systemName`, Compose `imageVector`); rule 3 selects for consumer clarity, and the concept's own name is the neutral choice. A glyph's content **defaults to a prop** where text's does not, because an icon's name cannot be children |
 | `text` | `typography` | *(none)* | No shared term, and many components have no such prop (Decision 6) |
 | `container` | `direction` | *(none)* | Meaningful only in the single-component idiom (ADR-076) |
 
@@ -389,6 +391,7 @@ primitives:
 | File | Change | Bump |
 |------|--------|------|
 | `Conventions.ts` | Added `TextBinding`, `GlyphBinding`, `ContainerBinding` — one per `PrimitiveKind`, each with `component`, a closed concept-keyed `props?`, and `stylesProp?` | MINOR |
+| `Conventions.ts` | `TextBinding.props.content` — the text string's destination. No default: absent = children, a name = that prop, `null` = no channel | MINOR |
 | `Conventions.ts` | `PlatformConventions.primitives` typed per kind rather than by one shared binding type | MINOR |
 | `Conventions.ts` | `ResolvedConventions`: within a declared binding, `text.props.color` → `'color'`; `glyph.props.color` → `'color'`; `glyph.props.content` → `'content'` | MINOR |
 
@@ -399,6 +402,7 @@ TextBinding:
   component: string
   props?:
     color?: string | null        # from Styles.textColor; default 'color'
+    content?: string | null      # from Element.content; no default = children
     typography?: string | null   # from Styles.typography; no default
   stylesProp?: string
 
@@ -465,7 +469,7 @@ Prop *names* are unconstrained strings: a prop name belongs to the target librar
 
 ## Consequences
 
-- The mappable surface is a small, closed, concept-keyed set per primitive: text takes a colour and a type treatment, a glyph a colour and its content, a container a direction. Everything else is styling, and the schema enforces it
+- The mappable surface is a small, closed, concept-keyed set per primitive: text takes a colour, its content and a type treatment; a glyph a colour and its content; a container a direction. Everything else is styling, and the schema enforces it
 - One concept, one key. `color` means colour on both text and glyph; which `Styles` member feeds it is the transformer's business
 - The conventions vocabulary is decoupled from `Styles`. Renaming a style member does not touch this contract
 - Icon sizing stays sizing. A design system's icon size enum never becomes a prop-mapping problem

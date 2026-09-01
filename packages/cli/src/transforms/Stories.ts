@@ -17,6 +17,7 @@ import { analyzeVariants } from './react/variantAnalysis.js';
  */
 export class StoriesTransformer implements Transformer {
   readonly name = 'stories';
+  readonly platformId = 'react';
 
   async run(apiYaml: Record<string, unknown>, context: TransformerContext): Promise<void> {
     const { outputDir, componentKey } = context;
