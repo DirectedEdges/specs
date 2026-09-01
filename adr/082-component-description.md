@@ -98,6 +98,8 @@ Declare `description?: string` on `Component`, sibling to `title`.
 
 **Cons / Trade-offs**:
 - Puts unbounded free text at the top of the most-read file. Mitigated by Decision 3, not by placement.
+- The api concern is where a root field falls by default, not where this value was argued to belong. A
+  documentation concern would be the better home; see *Concern placement* under the Decision.
 
 ---
 
@@ -291,7 +293,33 @@ description:
 - The field is opaque. No consumer may parse headings, bullets, links, or any other implicit structure out
   of it, and no future ADR should add such a grammar without superseding this one.
 - Under `splitConcerns`, `description` belongs to the api concern with `title`. No concern-routing change is
-  needed: it is a `Component` root field, and the api concern file carries the root fields.
+  needed: it is a `Component` root field, and the api concern file carries the root fields. That placement is
+  a consequence of the current concern set, not an argued position — see below.
+
+### Concern placement, and a documentation concern this ADR does not open
+
+`description` lands in the api concern because it is a root field and the api concern carries root fields.
+Nothing about the value argues for that file. It is unbounded, editorially churny, and addressed to a
+different reader than the rest of the api concern — which is the same observation that motivates the
+`spec.description` gate in Decision 3. The gate answers it crudely: emitted or not. A concern file would
+answer it precisely: emitted, and somewhere a code generator can ignore.
+
+The mechanism for that already exists. The concern split is not a physical partition of one object — the
+variants and examples concerns are separate files that refer back to the api concern's anatomy keys, which
+are the canonical names. A documentation concern would work the same way: a fourth file keyed to the same
+anatomy, carrying content addressed to documentation tooling. `title` is a fair thing to question in that
+light — it is identity rather than API surface — but it stays where it is regardless, because it is one
+required line every consumer needs, and moving it would force two file reads to learn what a file describes.
+
+This is also the reason the case cannot be built on `description` alone. Figma's node annotations are the
+natural second occupant, and being node-scoped is not an obstacle: they would key to anatomy paths exactly
+as the variants and examples concerns already do. But annotations are not modelled yet, and a concern file
+designed around a single field is a partition invented for one value.
+
+So the ADR records the question rather than answering it. If a documentation concern is introduced, this
+field moves into it — a routing change, not a contract change, needing no supersession of this ADR. The
+gate and the concern are complementary, not competing: one decides whether the value is produced, the other
+where it lands. Nothing here forecloses either.
 
 ---
 
@@ -342,3 +370,6 @@ additive to a type this package itself resolves and always populates from `DEFAU
   rather than parsed back out of this string.
 - The plain-text choice is a parity constraint, not a preference. If the REST API ever exposes the rich-text
   form, a successor ADR may revisit it.
+- The field's home in the api concern is provisional. Introducing a documentation concern later moves it
+  there as a routing change, without superseding this ADR — and this is the first field whose reader differs
+  from the rest of the api concern, so it is the first evidence for that file.
