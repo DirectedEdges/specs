@@ -4,6 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 083 | Collapsing a Slot-Only Wrapper |  |
 | 082 | `Component.description` — The Authored Figma Description, Plain Text and Opt-In |  |
 | 080 | `null` as a Prop Configuration Value | |
 | 079 | `metadata.conventions` Carries Only the Producing Platform | (reserved, draft in PR #363) |
