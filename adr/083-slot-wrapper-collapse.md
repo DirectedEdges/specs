@@ -124,7 +124,7 @@ Rebuilding two boxes from one requires a rule, since the merge does not record w
 
 Parent-layout keys go to both because the chain has two boxes and the children must arrange as they did in the collapsed one. Most are no-ops on the wrapper by construction — it holds exactly one child, so `itemSpacing` has nothing to space and the alignments have nothing to distribute, and its `layoutMode` axis cannot show.
 
-`padding` is the exception, and it is worth stating plainly: applied to both boxes it insets twice, so a collapsed box expressing `padding: 8` re-expands as 16px of total inset. It is the one parent-layout key whose effect on a single-child wrapper is not a no-op.
+Values are never summed. A root with `padding: 8` and a slot with `padding: 12` collapses to `12` — the slot's value — and re-expands as `12` on both boxes. A slot carrying padding at all is an authoring mistake rather than a case the split rule has to accommodate: padding belongs to the box with the surface, and the slot has none.
 
 Visual styles stay on the root, where a surface belongs: the outer box is what a caller sees, and painting a background on the inner box would sit it inside any padding rather than behind it.
 
@@ -183,5 +183,5 @@ Absence or `false` reproduces current behaviour exactly. A workspace that alread
 - ADR-058's eligibility list is not universal, and this ADR explains why it does not carry over: that list exists because a container is merged into a **leaf**, where container styles have nowhere to go. Merging a container into a container discards nothing, so no list is needed
 - A root with its own surface never collapses, so a component that is genuinely two boxes stays two boxes
 - The reverse direction gains a stated rule for splitting merged styles. Figma layer styling may differ from what a designer authored while spec → Figma → spec stays stable — an explicit trade, not an accident
-- **`padding` doubles on expansion.** Every other parent-layout key is a no-op on a single-child wrapper; `padding` is not, so a round-tripped component insets twice unless the rule carves it out
+- A slot that carries `padding` is an authoring mistake, not a case the split rule accommodates — padding belongs to the box with the surface
 - **Enabling the setting now does more than it did.** A workspace already setting it to `true` sees specs change shape for this class of component with no configuration change of its own. This is the cost of one setting rather than two, accepted deliberately
