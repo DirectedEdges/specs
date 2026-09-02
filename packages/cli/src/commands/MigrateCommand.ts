@@ -15,6 +15,10 @@ import { Command } from 'commander';
 import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
+import {
+  generateReactConventionsTemplate,
+  generateWebComponentsConventionsTemplate,
+} from '../Config/ConfigTemplates.js';
 import { migrateConfigV1 } from '../Config/migrations/configV1.js';
 const ERROR_CODES = {
   INVALID_ARGS: 2,
@@ -45,7 +49,7 @@ const configV1: Migration = {
   subject: 'config',
   from: 'v1',
   to: 'v2',
-  summary: 'single specs.config.yaml → config/{conventions,settings,pipeline}.yaml (ADR-071)',
+  summary: 'single specs.config.yaml → config/conventions/<platform>.yaml + settings and pipeline (ADR-071, ADR-078)',
 
   detect(dir, source) {
     // An explicit source lets a workspace convert a file that discovery would
@@ -67,6 +71,15 @@ const configV1: Migration = {
     const present = ['conventions', 'settings', 'pipeline']
       .flatMap(base => ['yaml', 'json'].map(ext => `${base}.${ext}`))
       .filter(file => fs.existsSync(path.join(configDir, file)));
+
+    // Conventions is a directory of per-platform files now (ADR-078), so a stray
+    // conventions.yaml is not the only thing that would be overwritten.
+    const conventionsDir = path.join(configDir, 'conventions');
+    if (fs.existsSync(conventionsDir) && fs.statSync(conventionsDir).isDirectory()) {
+      const inDir = fs.readdirSync(conventionsDir).filter(f => /\.(ya?ml|json)$/.test(f));
+      present.push(...inDir.map(f => `conventions/${f}`));
+    }
+
     if (present.length === 0) return null;
     return `config/ already contains ${present.join(', ')} — migrating would overwrite authored files. Move or delete them first.`;
   },
@@ -76,20 +89,28 @@ const configV1: Migration = {
     const parsed = source.endsWith('.json') ? JSON.parse(raw) : yaml.parse(raw);
     const migrated = migrateConfigV1(parsed);
 
-    const files: Record<string, unknown> = {
-      'config/conventions.yaml': migrated.conventions,
-      'config/settings.yaml': migrated.settings,
-      'config/pipeline.yaml': migrated.pipeline,
+    // Everything the old file declared was a Figma fact, so it becomes the figma
+    // platform entry. The code platforms get commented stubs: a workspace that
+    // generates React or Web Components will want them, and a file of pure comments
+    // parses to nothing, so an untouched stub declares nothing (ADR-078).
+    const files: Record<string, string | undefined> = {
+      'config/conventions/figma.yaml': migrated.conventions === undefined
+        ? undefined
+        : yaml.stringify(migrated.conventions),
+      'config/conventions/react.yaml': generateReactConventionsTemplate(),
+      'config/conventions/web-components.yaml': generateWebComponentsConventionsTemplate(),
+      'config/settings.yaml': migrated.settings === undefined ? undefined : yaml.stringify(migrated.settings),
+      'config/pipeline.yaml': migrated.pipeline === undefined ? undefined : yaml.stringify(migrated.pipeline),
     };
 
     const written: string[] = [];
-    for (const [rel, value] of Object.entries(files)) {
-      if (value === undefined) continue; // nothing of that kind was configured
+    for (const [rel, contents] of Object.entries(files)) {
+      if (contents === undefined) continue; // nothing of that kind was configured
       written.push(rel);
       if (dryRun) continue;
       const target = path.join(dir, rel);
       fs.ensureDirSync(path.dirname(target));
-      fs.writeFileSync(target, yaml.stringify(value), 'utf-8');
+      fs.writeFileSync(target, contents, 'utf-8');
     }
 
     // Rename rather than delete: the original is the only record of what the

@@ -111,17 +111,17 @@ describe('migrateConfigV1 (config v1 → v2 mapping)', () => {
 
   it('maps config.format.figmaKeys to conventions.figma.naming', () => {
     const result = migrateConfigV1({ config: { format: { figmaKeys: 'SENTENCE' } } });
-    expect(result.conventions).toEqual({ figma: { naming: 'SENTENCE' } });
+    expect(result.conventions).toEqual({ naming: 'SENTENCE' });
   });
 
   it('maps processing.glyphNamePattern to conventions.figma.glyphs.match', () => {
     const result = migrateConfigV1({ config: { processing: { glyphNamePattern: 'DS Icon Glyph /' } } });
-    expect(result.conventions).toEqual({ figma: { glyphs: { match: 'DS Icon Glyph /' } } });
+    expect(result.conventions).toEqual({ glyphs: { match: 'DS Icon Glyph /' } });
   });
 
   it('maps processing.codeOnlyPropsPattern to conventions.figma.codeOnlyProps.match', () => {
     const result = migrateConfigV1({ config: { processing: { codeOnlyPropsPattern: '^_' } } });
-    expect(result.conventions).toEqual({ figma: { codeOnlyProps: { match: '^_' } } });
+    expect(result.conventions).toEqual({ codeOnlyProps: { match: '^_' } });
   });
 
   it('maps processing.images.imageComponent to conventions.figma.images.match', () => {
@@ -133,7 +133,7 @@ describe('migrateConfigV1 (config v1 → v2 mapping)', () => {
       },
     });
     expect(result.conventions).toEqual({
-      figma: { images: { match: 'DS Image', backgroundImage: true, sourceProps: ['imageSource'] } },
+      images: { match: 'DS Image', backgroundImage: true, sourceProps: ['imageSource'] },
     });
   });
 
@@ -153,7 +153,7 @@ describe('migrateConfigV1 (config v1 → v2 mapping)', () => {
       },
     });
     expect(result.conventions).toEqual({
-      figma: { states, subcomponents, instanceExamples, slotConstraints: true, inferNumberProps: true },
+      states, subcomponents, instanceExamples, slotConstraints: true, inferNumberProps: true,
     });
   });
 
@@ -268,11 +268,12 @@ config:
 
     await runMigrate('config');
 
-    const conventions = yaml.parse(fs.readFileSync(path.join(testDir, 'config', 'conventions.yaml'), 'utf-8'));
+    const conventions = yaml.parse(fs.readFileSync(path.join(testDir, 'config', 'conventions', 'figma.yaml'), 'utf-8'));
     const settings = yaml.parse(fs.readFileSync(path.join(testDir, 'config', 'settings.yaml'), 'utf-8'));
     const pipeline = yaml.parse(fs.readFileSync(path.join(testDir, 'config', 'pipeline.yaml'), 'utf-8'));
 
-    expect(conventions).toEqual({ figma: { naming: 'SENTENCE' } });
+    // The file IS the platform, so its body sits at the root (ADR-078).
+    expect(conventions).toEqual({ naming: 'SENTENCE' });
     expect(settings).toEqual({
       author: 'Test Author',
       data: { directory: './data-in' },
@@ -308,7 +309,7 @@ config:
     expect(fs.existsSync(path.join(testDir, 'config'))).toBe(false);
     expect(fs.existsSync(path.join(testDir, 'specs.config.yaml'))).toBe(true);
     expect(fs.existsSync(path.join(testDir, 'specs.config.yaml.migrated'))).toBe(false);
-    expect(logged()).toContain('Would write: config/conventions.yaml');
+    expect(logged()).toContain('Would write: config/conventions/figma.yaml');
     expect(logged()).toContain('Would write: config/settings.yaml');
     expect(logged()).toContain('Would write: config/pipeline.yaml');
     expect(logged()).toContain('Would rename: specs.config.yaml → specs.config.yaml.migrated');
@@ -338,7 +339,7 @@ config:
     await runMigrate('config');
 
     expect(fs.existsSync(path.join(testDir, 'config', 'settings.yaml'))).toBe(true);
-    expect(fs.existsSync(path.join(testDir, 'config', 'conventions.yaml'))).toBe(false);
+    expect(fs.existsSync(path.join(testDir, 'config', 'conventions', 'figma.yaml'))).toBe(false);
     expect(fs.existsSync(path.join(testDir, 'config', 'pipeline.yaml'))).toBe(false);
   });
 
@@ -427,16 +428,16 @@ config:
     expect(config.configDir).toBe(testDir);
 
     // conventions
-    expect(config.conventions.figma.naming).toBe('SENTENCE');
-    expect(config.conventions.figma.glyphs).toEqual({ match: 'DS Icon Glyph /' });
-    expect(config.conventions.figma.codeOnlyProps).toEqual({ match: '^_' });
-    expect(config.conventions.figma.slotConstraints).toBe(true);
-    expect(config.conventions.figma.subcomponents).toEqual({ scope: 'NESTED', match: ['{C} / {S}'] });
-    expect(config.conventions.figma.instanceExamples).toEqual({
+    expect(config.conventions.platforms!.figma.naming).toBe('SENTENCE');
+    expect(config.conventions.platforms!.figma.glyphs).toEqual({ match: 'DS Icon Glyph /' });
+    expect(config.conventions.platforms!.figma.codeOnlyProps).toEqual({ match: '^_' });
+    expect(config.conventions.platforms!.figma.slotConstraints).toBe(true);
+    expect(config.conventions.platforms!.figma.subcomponents).toEqual({ scope: 'NESTED', match: ['{C} / {S}'] });
+    expect(config.conventions.platforms!.figma.instanceExamples).toEqual({
       scope: 'FILE',
       match: ['{C} / Examples / {S}'],
     });
-    expect(config.conventions.figma.images).toEqual({
+    expect(config.conventions.platforms!.figma.images).toEqual({
       backgroundImage: true,
       match: 'DS Image',
       sourceProps: ['imageSource'],
