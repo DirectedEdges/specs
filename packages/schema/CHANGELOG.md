@@ -23,6 +23,7 @@ Configuration now separates what is true about a Figma library from what a run c
 
 ### Changed
 
+- `Settings.spec.collapsePrimitiveWrapper` — also collapses a root wrapping one slot, keeping the slot's value on shared keys (ADR-083)
 - **`Settings.spec.splitComponents`, `splitConcerns` and `useSubfolders` now default to `true`** and are required on `ResolvedSettings`. The split layout — one folder per component, one file per concern — is what `transform`, `analyze` and `render` read, so the shape of generated output is not a per-consumer choice. They previously carried no default, leaving each consumer to pick its own; both consumers picked `false`, which is the layout nothing downstream can use. Recorded spec `metadata.settings.spec` now carries all three on every spec.
 
 - `Metadata.config` → `Metadata.conventions` and `Metadata.settings` — each half comparable across specs on its own
