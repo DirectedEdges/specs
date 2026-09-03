@@ -1,9 +1,9 @@
-# ADR: Direction-Keyed Container Bindings, and a Platform-Level `stylesProp`
+# ADR: Promoting a Container, and a Platform-Level `stylesProp`
 
-**Branch**: `076-container-primitives-and-shared-styles`
+**Branch**: `adr/spec-time-promotion`
 **Created**: 2026-08-30
 **Status**: DRAFT
-**Summary**: `ContainerBinding.component` accepts a `LayoutMode`-keyed map, and a platform-level `stylesProp` sets the baseline each primitive may override.
+**Summary**: *(written at implementation — see `/specs.adr.implement`)*
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 
@@ -11,196 +11,165 @@
 
 ## Context
 
-Text and glyph each resolve to one component. Containers do not, because design systems split the layout primitive two ways:
+A container differs from a text or glyph layer in two ways that matter to ADR-074's
+promotion.
 
-- **One component, a direction prop** — `<DsLayout direction="horizontal">`, `<Stack direction="row">`
-- **A pair (or trio) of components** — `<DsRow>` / `<DsColumn>`, `HStack` / `VStack`, `Row()` / `Column()`
+**It is selected by direction.** Design systems commonly ship a `Row`/`Column`/`Box` trio
+rather than one layout component with a direction prop. `Styles.layoutMode` is
+`'NONE' | 'HORIZONTAL' | 'VERTICAL'` — a closed, three-value, structural enum — and it decides
+which of the three a frame corresponds to.
 
-The second is at least as common as the first, and SwiftUI and Compose both ship it as the idiom. A binding that only accepts a single component name cannot serve them; one that only accepts a pair cannot serve `DsLayout`.
+**It is not a leaf.** A promoted text layer becomes an instance and is done. A promoted frame
+has children — the layers the designer put inside it — and those have to go somewhere. Every
+other promotion replaces an element; this one replaces an element that owns a subtree.
 
-The spec carries the discriminator already. `Styles.layoutMode` is `LayoutMode | null`, tracking Figma's auto-layout: horizontal, vertical, or none. The third case is real and distinct — a container with no auto-layout is a positioning box, not a degenerate row.
-
-The second question here is whether anything in a primitive binding wants hoisting to the platform level. ADR-075 answers most of it: `props` is closed per primitive and concept-keyed — `color`/`typography`, `color`/`content`, `direction`. The only concept shared across kinds is `color`, whose prop name is already defaulted, so there is nothing worth hoisting. One member remains, and it is the same on every primitive a platform declares: the prop that receives passed styling.
+Separately, and shared across all three kinds: everything a promotion does not map has to
+reach the output. A generator needs to know which prop carries passed styling — `sx` in one
+React library, `style` in another, an attribute in Web Components. That is a fact about a
+platform's authoring style rather than about the design system, and it is the same for every
+primitive on that platform.
 
 ---
 
 ## Decision Drivers
 
-- **Both container idioms are real.** Neither may be forced into the other's shape — the argument ADR-063 made for the two image patterns
-- **The discriminator must already be in the spec.** Selecting a component from a fact the spec does not carry is inference, which ADR-074 rules out
-- **`layoutMode: NONE` is a case, not a gap.** A non-auto-layout container must resolve to something
-- **A bound component's root must be the box its children land in.** A container binding replaces an element that *is* a box holding children. A component whose root wraps an inner element cannot stand in for one, and the failure is silent (see Decision 1)
-- **Declare a repeated fact once.** Repetition across primitives is the drift risk ADR-071 exists to eliminate
-- **Do not build a merge machine for one member.** Any hoisting must stay small enough to state in a sentence
-- **Additive-only** and **no spec-shape change** (ADR-074)
+- **One construct where one will do.** A container's direction is a lookup like any other
+  source; it should not need a bespoke shape
+- **A promotion must not orphan content.** A frame's children are design intent
+- **Layout styling that is not direction stays styling.** Spacing, padding and alignment are
+  continuous and have no enum to map onto
+- **Platform facts belong to the platform; design-system facts do not**
+- **Absence means one thing (ADR-071)**, and **no logic in this package** (Constitution II)
 
 ---
 
 ## Options Considered
 
-Three decisions: the shape of a container binding, what hoists to the platform level, and how the two levels resolve.
+Two decisions: how a container selects its component, and where its children go.
 
 ---
 
-## Decision 1 — Single component versus a pair
+## Decision 1 — selecting the component
 
-### Option 1A: `component` is either a name or a `layoutMode`-keyed map *(Selected)*
+### Option 1A: `layoutMode` is an ordinary source; the trio is three entries *(Selected)*
+
+Each component claims one `layoutMode` value in its own `values` table. A row with an empty
+props object promotes without writing anything — the component *is* the answer — and ADR-075's
+scoring picks between them exactly as it picks between several text components.
 
 ```yaml
-# pair form — the design system ships Row and Column
-container:
-  component:
-    HORIZONTAL: DsRow
-    VERTICAL: DsColumn
-    NONE: DsBox
-
-# single form — the design system ships one layout component
-container:
-  component: DsLayout
-  props:
-    direction: direction
-
-# SwiftUI
-container:
-  component:
-    HORIZONTAL: HStack
-    VERTICAL: VStack
-    NONE: ZStack
+conventions:
+  primitives:
+    dsRow:    { kind: container, map: [{ source: layoutMode, values: { HORIZONTAL: {} } }] }
+    dsColumn: { kind: container, map: [{ source: layoutMode, values: { VERTICAL:   {} } }] }
+    dsBox:    { kind: container, map: [{ source: layoutMode, values: { NONE:       {} } }] }
 ```
 
-The map's keys are exactly the `LayoutMode` values. A generator reads the element's `layoutMode` and indexes; the single form is a name and needs no index.
+A system taking direction as a prop instead writes the same source with a populated object:
+`values: { VERTICAL: { direction: vertical } }`.
 
 **Pros**:
 
-- Expresses both idioms in their own terms, neither deformed into the other. The single form stays one line
-- The discriminator is `Styles.layoutMode`, already in every spec. No inference, no new spec member
-- `NONE` gets an explicit slot, so a non-auto-layout container has a declared answer rather than falling through
-- The keyed form is the union, not a replacement: the single form composed with `props: {direction: direction}` remains fully expressible
-- `direction` is the container's only mappable concept (ADR-075 Decision 4), and this is why — it is a prop in one idiom and a component selector in the other
+- No container-specific construct. The trio and the single-component idiom are the same
+  mechanism, and a system with a fourth layout kind needs no schema change
+- Selection reuses ADR-075's scoring rather than a second rule for containers
+- `Styles.layoutMode` is `LayoutMode | null` and may be absent; absent or null matches the
+  `NONE` key, which is what a frame with no auto-layout is
 
 **Cons / Trade-offs**:
 
-- `component` is a union of string and object, so consumers branch on its form. One `typeof` check; the alternative (two members with "exactly one must be present") is worse
-- A partial map — `HORIZONTAL` and `VERTICAL` declared, `NONE` omitted — is legal. Omission means no binding for that mode and the element falls back to the generator's host element. Consistent with ADR-071's absence rule, but a way to be quietly incomplete
-- **Nothing checks that the named component can actually host children** (see the constraint below), and a component that cannot produces broken layout rather than an error
+- A trio is three entries rather than one, so the component names are not adjacent in the
+  file. They are adjacent in the design system's own documentation, which is where the
+  grouping is meaningful
 
 ---
 
-### The root constraint
+### Option 1B: A `LayoutMode`-keyed `component` map on a container binding *(Rejected)*
 
-A container binding is a **substitution**: the bound component stands where a box holding children stood. That only works when **the component's root is the box its children land in**.
+The prior draft: `component: string | Partial<Record<LayoutMode, string>>`.
 
-A design system layout component often is not. One observed shape:
-
-```html
-<div class="layout" data-direction="Vertical">
-  <div class="layout__children">…children…</div>
-</div>
-```
-
-Bound to a composed container, the substitution puts everything the element carried — `gap`, `padding`, alignment, and any sizing the generator emits — on the **outer** box, while the children sit one level deeper inside a wrapper with its own flex rules. Two things follow, and neither raises an error:
-
-- **Spacing is silently lost.** `gap` on the outer box applies between its children, and it has exactly one child: the wrapper
-- **Height can collapse.** A wrapper carrying `flex: 1 0 0` inside a `height: fit-content` parent resolves to zero, so the bound subtree renders empty
-
-The constraint is therefore: **bind a container only to a component whose root receives the children.** Where that does not hold, leaving the container unbound is correct — the element keeps its own box and its own layout, and text and glyph bindings are unaffected.
-
-This is **not** expressible in the schema. Whether a component's root hosts its children is a fact about that component's generated markup, not about the conventions declaring it, and a workspace may bind a component it does not generate. It belongs in the ADR and in the documentation for `primitives.container` as a rule an author must satisfy — with a consumer-side warning the honest mitigation, since the failure is otherwise invisible.
+**Rejected because**: it exists to let one binding name three components, which is only
+necessary when conventions name the component at emit time. Once a promotion picks among
+entries, three components are three entries, and the union is a second selection mechanism
+doing what scoring already does.
 
 ---
 
-### Option 1B: Single component only, with `layoutMode` mapped to a direction prop *(Rejected)*
+## Decision 2 — where a promoted container's children go
 
-**Rejected because**: it cannot express `DsRow`/`DsColumn`. There is no direction prop to map to and no single component to name — the choice of *component* is the choice of direction.
+### Option 2A: The children fill the target's slot, hoisted into `slotContentExamples` *(Selected)*
 
----
-
-### Option 1C: Separate primitive kinds — `row`, `column`, `box` *(Rejected)*
-
-**Rejected because**: the spec has no `row` element; it has a `container` with a `layoutMode`. Inventing conventions-only kinds means the vocabulary stops corresponding to anything a spec contains, and the single-component library would declare `DsLayout` three times.
-
----
-
-### Option 1D: A list of conditional rules — match on any style, select a component *(Rejected)*
-
-**Rejected because**: it is a rules engine in a configuration file. Ordering, specificity, and conflict resolution become semantics every consumer must implement identically.
-
----
-
-## Decision 2 — What hoists to the platform level
-
-### Option 2A: `stylesProp` only *(Selected)*
-
-`PlatformConventions` gains `stylesProp`. `props` does not hoist.
+A layout component takes its content through a slot. The layers inside the promoted frame are
+what fills it, expressed the way every other slot fill already is: a `SlotContentRef` in
+`propConfigurations`, pointing at a `slotContentExamples` entry holding the subtree.
 
 ```yaml
-platforms:
-  react:
-    stylesProp: sx            # one passed-styling prop for the platform
-    primitives:
-      text:
-        component: DsText
-        props:
-          typography: typography
-      glyph:
-        component: DsIcon
-      container:
-        component: {HORIZONTAL: DsRow, VERTICAL: DsColumn, NONE: DsBox}
+# Before
+anatomy:
+  wrapper: { type: container }
+  icon:    { type: glyph }
+  label:   { type: text }
+elements:
+  wrapper: { styles: { layoutMode: HORIZONTAL, itemSpacing: ... } }
+layout:
+  - wrapper: [icon, label]
+
+# After
+anatomy:
+  wrapper: { type: instance, instanceOf: dsRow }
+elements:
+  wrapper:
+    instanceOf: dsRow
+    propConfigurations:
+      children: { $slotContent: "#/components/dsCard/slotContentExamples/dsCard__wrapper__content" }
+    styles: { itemSpacing: ... }        # unmapped layout styling stays
+    $extensions:
+      com.figma: { promotedPrimitive: true, styles: { layoutMode: HORIZONTAL } }
 ```
 
-**Pros**:
-
-- `stylesProp` is genuinely a platform fact. A React design system passes styling through `sx` on every component; SwiftUI through a modifier chain. Repeating it under each primitive is the most-repeated line in the file and the one most likely to drift
-- `props` has nothing worth hoisting. ADR-075's closed sets overlap only on `color`, whose prop name is already defaulted to `color` inside any declared binding — so a shared map would carry at most one entry that a default already supplies
-- Keeps the hoisting to a single scalar, so Decision 3 is one sentence rather than a merge algorithm
-
-**Cons / Trade-offs**:
-
-- Two levels for one member. Justified by that member being the same across primitives and different across platforms — the exact profile for hoisting
-
----
-
-### Option 2B: Hoist `props` as well, as a shared baseline overlaid per primitive *(Rejected)*
-
-The first draft's selection, motivated by sizing and layout keys (`maxWidth`, `padding`, `layoutSizingHorizontal`) appearing on every primitive.
-
-**Rejected because**: ADR-075 Decision 4 removed the motivation. Those keys are not mappable on *any* primitive — sizing, spacing, and layout are passed styling everywhere, not props — so the shared map would hold nothing but `color`, which a default already supplies. A baseline `props` map is dead structure that would still cost a per-key merge rule and an override-with-`null` convention.
-
----
-
-### Option 2C: Hoist nothing *(Rejected)*
-
-**Rejected because**: `stylesProp` would then be restated on every declared primitive, identically, for no reason.
-
----
-
-### Option 2D: A named, referenceable mapping set, referenced by primitives *(Rejected)*
-
-**Rejected because**: indirection bought for a one-member problem.
-
----
-
-## Decision 3 — How the two levels resolve
-
-### Option 3A: The primitive's `stylesProp` if declared, otherwise the platform's *(Selected)*
-
-> `stylesProp` is a single value: the primitive's if declared, otherwise the platform's. `props` exists only on the primitive and is never merged.
+The hoisted entry carries the `anatomy + elements + layout` triplet the subtree already was —
+the same shape `slotContentExamples` entries have today.
 
 **Pros**:
 
-- One sentence, one member, no depth. The override semantics every configuration reader expects
-- Resolution produces a complete binding per primitive, so a generator reads one object and never merges at emit time
-- Nothing to specify about `props`, because nothing merges
+- A promoted container is a placed instance in every respect. Consumers that already fill
+  slots need learn nothing new
+- Uses `SlotContentRef` and `slotContentExamples` exactly as ADR-046 defines them
+- Keeps `Element.children` meaning what it means: this element's own child layers. A promoted
+  instance has none — its content belongs to the component it now is
+- The subtree stays addressable and reusable, since it becomes a named entry
 
 **Cons / Trade-offs**:
 
-- A primitive that should pass *no* styling cannot say so, since there is no `null` form for a scalar here. If that case appears, `stylesProp: null` is an additive widening
+- Requires generating a name for the hoisted entry. A deterministic name from the component
+  and element key keeps output stable
+- Adds a `slotContentExamples` entry per promoted container, so the file grows
 
 ---
 
-### Option 3B: Concatenate or merge both levels *(Rejected)*
+### Option 2B: Keep `children` in place on the promoted element *(Rejected)*
 
-**Rejected because**: two destinations for one element's passed styling is not a thing any platform can emit.
+`Children` is already `string[] | SlotBinding`, so the subtree could stay where it is.
+
+**Rejected because**: an element carrying both `instanceOf` and a list of child element names
+is a shape nothing in the contract defines. A placed instance's content comes through its
+props; child element names describe layers this element owns, which a promoted instance no
+longer does. The two readings would have to be reconciled by every consumer.
+
+---
+
+### Option 2C: Do not promote containers *(Rejected)*
+
+**Rejected because**: it leaves the most common composed element — an auto-layout frame — as a
+styled box, which is where most of the inline styling in generated composed content comes
+from. Text and glyph promotion improves the leaves while the structure stays untyped.
+
+---
+
+### Option 2D: Promote the container and drop its children *(Rejected)*
+
+**Rejected because**: silent loss of design intent, and the worst possible failure for the
+element that carries the composition.
 
 ---
 
@@ -210,47 +179,47 @@ The first draft's selection, motivated by sizing and layout keys (`maxWidth`, `p
 
 | File | Change | Bump |
 |------|--------|------|
-| `Conventions.ts` | `ContainerBinding.component` is `string \| Partial<Record<LayoutMode, string>>` | MINOR |
 | `Conventions.ts` | Added `PlatformConventions.stylesProp?: string` | MINOR |
-| `Conventions.ts` | `ResolvedConventions`: each declared primitive carries a resolved `stylesProp` | MINOR |
+| `Conventions.ts` | Added `ResolvedPlatformConventions.stylesProp` | MINOR |
+| *(none)* | Container selection needs no type — `layoutMode` is an ADR-075 `source`, and the slot fill uses `PropConfigurations` and `SlotContentRef` as they stand | — |
 
 **Example — new shape** (`types/Conventions.ts`):
 
 ```yaml
 PlatformConventions:
-  stylesProp?: string        # baseline for every primitive
-  primitives?:
-    container:
-      component:             # string, or LayoutMode-keyed map
-        HORIZONTAL: DsRow
-        VERTICAL: DsColumn
-        NONE: DsBox
-      props?:
-        direction?: string | null
-      stylesProp?: string    # overrides the baseline
+  stylesProp?: string        # the prop that receives unmapped styling on this platform
 ```
 
 ### Schema changes (`schema/`)
 
 | File | Change | Bump |
 |------|--------|------|
-| `conventions.schema.json` | `ContainerBinding.component` becomes `oneOf: [string, object]`, the object's `propertyNames` constrained to the `LayoutMode` enum | MINOR |
-| `conventions.schema.json` | Added `stylesProp` to `#/definitions/PlatformConventions` | MINOR |
+| `conventions.schema.json` | Added `stylesProp` to the platform definition | MINOR |
+| `conventions.schema.json` | Removed the `LayoutMode`-keyed `component` union from the container binding, with the binding definitions ADR-074 removes | MINOR |
 
 ### Notes
 
-The keyed `component` map reuses `LayoutMode` rather than defining a parallel enum, so the two cannot drift and a new layout mode extends the binding automatically.
+`stylesProp` is a name only. What is placed in it — an object, a class string, a modifier
+chain — is generator logic (Constitution II). It sits on the platform rather than per
+primitive because passed styling is a property of how a platform's components are authored,
+and it is the same for every primitive on that platform.
 
-`ResolvedConventions` carries the resolved `stylesProp` on each primitive, not the two levels. Resolution is the loader's job, consistent with ADR-071.
+A container's `backgroundColor`, `padding`, `cornerRadius` and `strokes` remain styling.
+`layoutMode` is the container's only mappable source: it is a closed enum, where the rest of a
+container's layout is continuous and has no set of accepted values to map onto.
 
-The keyed `component` form is legal only on `ContainerBinding`. `TextBinding` and `GlyphBinding` take a plain string, because `direction` is not among their mappable concepts and nothing would select from the map.
+The slot to fill is the target's own. A component with one slot is unambiguous; a target with
+several would need the entry to name the slot prop, which no design system in evidence
+requires and which is left for a later ADR rather than speculated on here.
 
 ---
 
 ## Type ↔ Schema Impact
 
 - **Symmetric**: Yes
-- **Parity check**: `ContainerBinding.component`'s union ↔ `oneOf`; the keyed form's `propertyNames.enum` ↔ `LayoutMode` in `styles.schema.json`; `PlatformConventions.stylesProp` ↔ the sibling string property
+- **Parity check**: `PlatformConventions.stylesProp` ↔ `stylesProp` on the platform
+  definition. Decision 1 and Decision 2 add no types, so there is nothing to mirror: both use
+  members that already exist
 
 ---
 
@@ -258,12 +227,10 @@ The keyed `component` form is legal only on `ContainerBinding`. `TextBinding` an
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | None beyond ADR-073's read-path change | Update the read path |
-| `figma-from-specs` | None | Recompile |
-| `react-from-specs` | Branch on `component`'s form; read the resolved `stylesProp` | Implement |
-| `webcomponents-from-specs` | Same | Implement |
-| `specs-cli` | Resolve `stylesProp` per primitive during conventions resolution | Implement resolution |
-| `specs-plugin-2` | None beyond ADR-073 | Update the read path |
+| `specs-cli` | Promotes containers and hoists their subtrees during capture | Implement hoisting and naming |
+| `specs-from-figma` | Same, in the shared processing path | Implement container promotion |
+| `specs-plugin-2` | Same capture path via the plugin runtime | Recompile |
+| `figma-from-specs` | A promoted container renders as a frame whose slot fill becomes its children | Expand the hoisted entry when restoring |
 
 ---
 
@@ -271,15 +238,20 @@ The keyed `component` form is legal only on `ContainerBinding`. `TextBinding` an
 
 **Version**: `0.31.0` (release branch `release/schema-0.31.0+cli-0.28.0`) — **MINOR**
 
-**Justification**: `component`'s union still accepts every value it accepted before, and the rest is additive optional fields on types introduced in this release. Constitution III.
+**Justification**: one additive optional member. The container binding union removed here was
+added in the same unreleased version and never published.
 
 ---
 
 ## Consequences
 
-- Both container idioms are expressible in their own terms, and `layoutMode: NONE` has a declared answer instead of falling through
-- **A container binding carries an unenforced precondition**: the named component's root must be the box its children land in. Violating it produces lost spacing or a collapsed subtree, never an error, and no schema constraint can catch it
-- `stylesProp` is declared once per platform, which is the scope at which it is actually a fact
-- Nothing else hoists, because ADR-075's closed sets share only `color`, which is defaulted. The two-level structure stays a single scalar with a one-sentence rule
-- A partial `component` map is legal and quietly incomplete for the omitted mode. A resolution-time warning is the mitigation, and it is a consumer concern
-- `LayoutMode` is load-bearing in two schemas. Changing it touches conventions as well as styles
+- A container promotes through the same table and the same scoring as every other kind
+- A `Row`/`Column`/`Box` trio is expressible without a container-specific construct, and so is
+  a single layout component with a direction prop
+- A promoted container is a placed instance in every respect, including how its content is
+  carried, so nothing has to read an instance with child element names
+- A promoted frame's subtree becomes a named, addressable `slotContentExamples` entry
+- Layout styling that is not direction stays styling, which is what it is
+- Every platform states once which prop carries unmapped styling
+- Composed example content grows an entry per promoted container, and hoisted entry names must
+  be deterministic for output to be stable
