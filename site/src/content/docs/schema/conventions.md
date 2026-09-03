@@ -139,7 +139,7 @@ It has no default at any level. Absence means this platform declares no width an
 
 ## `primitives`
 
-Sits at the **root** of `Conventions`, beside `platforms` rather than inside a platform. A component's props are the same whichever platform renders it, so the table is stated once.
+Authored at `config/conventions/primitives.yaml` — a reserved basename in the conventions directory, so no platform may take that id. Sits at the **root** of `Conventions`, beside `platforms` rather than inside a platform. A component's props are the same whichever platform renders it, so the table is stated once.
 
 Each key is one of the design system's own component names. When [`promotePrimitives`](/settings/promote-primitives/) is on, a primitive layer in composed example content is promoted to an instance of the component whose entry best matches it.
 

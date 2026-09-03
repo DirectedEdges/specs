@@ -271,6 +271,10 @@ entry serves both authoring styles — they can never both resolve.
 **`fontStyle`, not `fontWeight`.** `Typography` has no weight member; `fontStyle` is
 documented as a style name (`"Bold"`), which is what a `weight` enum maps from.
 
+**Authored at `config/conventions/primitives.yaml`**, a reserved basename in the
+per-platform conventions directory. The table is not a platform, so it does not take a
+platform id, and no platform may take `primitives` (ADR-078 Decision 5).
+
 **`values` reuses `PropConfigurations`** rather than a new map type. Its right-hand side is
 exactly a set of prop values for the promoted instance, which is what that type already is.
 

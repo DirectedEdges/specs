@@ -3,7 +3,7 @@
 **Branch**: `078-conventions-file-per-platform`
 **Created**: 2026-08-30
 **Status**: DRAFT
-**Summary**: One conventions file per platform in `config/conventions/` composes into `Conventions`, with each filename carrying its own platform id.
+**Summary**: One conventions file per platform in `config/conventions/` composes into `Conventions`, alongside a reserved `primitives.yaml` for the promotion table.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 
@@ -232,6 +232,66 @@ A workspace has either `config/conventions.yaml` or `config/conventions/`, never
 ### Option 4C: Merge both, directory overriding file *(Rejected)*
 
 **Rejected because**: it invents a precedence rule to support a layout nobody wants — half the conventions in a file and half in a directory beside it — and it compounds Option 4B's cost rather than avoiding it.
+
+---
+
+## Decision 5 — Where the platform-neutral promotion table lives
+
+ADR-075 adds `Conventions.primitives`, which is not a platform: a component's props are
+the same whichever platform renders it, so the table is stated once. Decision 3 makes a
+filename a platform id, which leaves this file with no obvious home.
+
+### Option 5A: `config/conventions/primitives.yaml`, a reserved basename *(Selected)*
+
+The table sits in the same directory, and `primitives` is reserved — the loader reads it
+as the neutral section rather than as a platform, and no platform may take that id.
+
+```
+config/
+  conventions/
+    figma.yaml         # platform
+    react.yaml         # platform
+    primitives.yaml    # the promotion table — not a platform
+  settings.yaml
+  pipeline.yaml
+```
+
+**Pros**:
+
+- Everything that composes into one `Conventions` lives in one directory, which is what
+  Decision 1 established. A reader looking for what conventions a workspace declares finds
+  all of it in one place
+- One reserved name is a small, checkable rule. A platform id of `primitives` is a
+  collision the loader can refuse, and nothing else changes
+- The file is the one most likely to be machine-generated from each component's own spec.
+  Keeping it a separate file means regenerating it never merges around a human's edits to
+  a platform's conventions
+- No new directory, and no change to how the other files are found
+
+**Cons / Trade-offs**:
+
+- The directory no longer holds only platforms, so Decision 3's "the filename is the
+  platform id" gains an exception. It is a single, named exception rather than a rule with
+  a shape to infer
+- A design system whose component is genuinely called `primitives` cannot be a platform id.
+  Platform ids name implementations — `react`, `swiftui` — so this costs nothing real
+
+---
+
+### Option 5B: `config/primitives.yaml`, beside `settings.yaml` *(Rejected)*
+
+**Rejected because**: it separates one artifact of `Conventions` from the rest of it, so a
+reader has to know that conventions come from two places in `config/`. Decision 1's whole
+point is that several files compose into one `Conventions`; the composition should be
+visible in one directory.
+
+---
+
+### Option 5C: A `primitives` key inside every platform file, merged *(Rejected)*
+
+**Rejected because**: it states a platform-neutral fact in a platform's file, and then needs
+a merge rule for what happens when two platforms declare the same component differently —
+which is exactly the question Decision 3 was designed to remove.
 
 ---
 
