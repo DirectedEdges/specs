@@ -593,7 +593,9 @@ export class ConfigLoader {
     settings.spec.directory = path.resolve(CONFIG_DEFAULTS.outputDirectory);
 
     return {
-      conventions: this.resolveConventions({ byPlatform: {} }),
+      // A workspace that declares nothing. Copied rather than shared, so a consumer
+      // mutating its config cannot reach the exported constant.
+      conventions: { ...DEFAULT_CONVENTIONS },
       settings,
       pipeline: {
         transformers: [...DEFAULT_PIPELINE.transformers],
