@@ -23,6 +23,8 @@ you emit without saying so.
 
 ### Added
 
+- `config/conventions/primitives.yaml` — reserved basename in the conventions directory, read as the platform-neutral promotion table rather than as a platform (ADR-075, ADR-078)
+- `settings.spec.promotePrimitives` resolved and passed through; `--from-bridge` sends it with the conventions, so the plugin promotes under the workspace's table
 - **`specs migrate <subject>` — versioned workspace migrations.** `specs migrate config`
   reads `specs.config.yaml` (or `.json`) and writes `config/conventions.yaml`,
   `config/settings.yaml` and `config/pipeline.yaml`, then renames the source to
@@ -98,6 +100,7 @@ you emit without saying so.
 
 ### Removed
 
+- Emit-time primitive binding resolution — `PlatformConventions.primitives` and the per-kind binding types it resolved. Which component a layer becomes is decided at capture (ADR-074)
 - **`specs.config.yaml` and `specs.config.json` are no longer read.** They are still
   detected, but only to refuse with the command that converts them.
 - **`~/.specs/config.yaml` — user-level configuration — has no equivalent.** Conventions
@@ -109,6 +112,7 @@ you emit without saying so.
 
 ### Fixed
 
+- Loading a workspace with no `config/` no longer throws while resolving conventions
 - **`scan` records the dev status Figma actually set, including `COMPLETED`** — Every status
   on a node is carried through to the manifest's Dev Status column verbatim instead of being
   collapsed to `READY_FOR_DEV` or `NONE`, so a component marked complete is no longer
