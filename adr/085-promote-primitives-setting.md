@@ -18,8 +18,8 @@ composed content is expressed in primitives, or it is expressed in instances.
 `Settings.spec` already governs choices of exactly this kind — what a run does to the material
 it captures, as distinct from facts about the library (`Conventions`) or the work to be done
 (`Pipeline`). `collapsePrimitiveWrapper` is the closest neighbour: it is also a normalization
-applied during capture, also changes anatomy, and is also something a consumer may want to
-turn off to see what the file actually contained.
+applied during capture, also changes anatomy, and is also opt-in for that reason — a workspace
+elects the restructuring rather than receiving it.
 
 Two consequences make a switch load-bearing rather than a convenience.
 
@@ -52,40 +52,44 @@ capture a comparison baseline without deleting its conventions.
 
 ## Options Considered
 
-### Option A: `settings.spec.promotePrimitives`, defaulting to `true` *(Selected)*
+### Option A: `settings.spec.promotePrimitives`, defaulting to `false` *(Selected)*
 
 ```yaml
 settings:
   spec:
     collapsePrimitiveWrapper: true
-    promotePrimitives: true
+    promotePrimitives: true      # opt in; absent means false
 ```
 
 **Pros**:
 
-- Sits with the setting it most resembles, and is governed by the same resolution rules, so
-  there is nothing new to learn about how it is read or recorded
-- Separates "the library is described" from "this run uses the description", so a baseline can
-  be captured without dismantling the conventions file
+- No existing workspace changes on upgrade. A spec produced before this release and one
+  produced after are identical unless someone asks for the new behaviour
+- Sits with the setting it most resembles, defaults the same way, and is governed by the same
+  resolution rules — there is nothing new to learn about how it is read or recorded
+- Separates "the library is described" from "this run uses the description", so a workspace can
+  author and review a conventions table before any spec changes shape
 - Recorded in `metadata.settings` like every other spec setting, so a spec says how it was
   produced and two specs can be compared knowingly
-- Defaulting on makes the behaviour ADR-074 argues for the behaviour a workspace gets. A
-  workspace with no `conventions.primitives` is unaffected either way, since nothing matches
+- Makes adoption a decision with a date attached, rather than something that arrives with a
+  version bump
 
 **Cons / Trade-offs**:
 
-- A default-on setting changes output for any workspace that has a conventions table and
-  upgrades. That is the intent of ADR-074, and the setting is how such a workspace opts back
-  out
+- The behaviour ADR-074 argues for is not what a workspace gets by default, so the contract
+  describes a shape most specs will not have until asked
+- A workspace that authors a conventions table and sees nothing change has to discover the
+  setting. The table is inert without it
 
 ---
 
-### Option B: The same member, defaulting to `false` *(Rejected)*
+### Option B: The same member, defaulting to `true` *(Rejected)*
 
-**Rejected because**: it ships the feature dormant. `collapsePrimitiveWrapper` defaults off as
-an opt-in refinement to a shape that is already correct without it; promotion is the shape
-ADR-074 concludes composed content should have. A default that contradicts the ADR that
-introduces it leaves the contract saying two things.
+**Rejected because**: it changes composed output for every workspace with a conventions table
+at the moment it upgrades, with no action on their part. Promotion restructures example
+content — anatomy types change, styles move — so an unrequested default-on would break stored
+baselines, parity comparisons, and downstream expectations in the same release that introduces
+the capability. A shape this consequential should be adopted deliberately.
 
 ---
 
@@ -112,9 +116,9 @@ composed content is expressed — the same category as collapsing a wrapper.
 
 | File | Change | Bump |
 |------|--------|------|
-| `Settings.ts` | Added `SpecSettings.promotePrimitives?: boolean` — optional, defaults to `true` | MINOR |
+| `Settings.ts` | Added `SpecSettings.promotePrimitives?: boolean` — optional, defaults to `false` | MINOR |
 | `Settings.ts` | Added `ResolvedSpecSettings.promotePrimitives: boolean` — required in resolved form | MINOR |
-| `Settings.ts` | `DEFAULT_SETTINGS.spec.promotePrimitives = true` | MINOR |
+| `Settings.ts` | `DEFAULT_SETTINGS.spec.promotePrimitives = false` | MINOR |
 
 **Example — new shape** (`types/Settings.ts`):
 
@@ -127,7 +131,7 @@ SpecSettings:
 # After
 SpecSettings:
   collapsePrimitiveWrapper?: boolean   # defaults to false
-  promotePrimitives?: boolean          # defaults to true — optional, MINOR
+  promotePrimitives?: boolean          # defaults to false — optional, MINOR
   invalidVariants?: boolean
 ```
 
@@ -140,18 +144,19 @@ SpecSettings:
 ```yaml
 promotePrimitives:
   type: boolean
-  default: true
+  default: false
   description: "Primitive layers in composed example content are promoted to design system component instances."
   # not in required[] — optional field
 ```
 
 ### Notes
 
-The default differs from `collapsePrimitiveWrapper`'s, deliberately. Collapse is an optional
-refinement; promotion is the shape ADR-074 concludes composed content should have, so the
-default states that conclusion.
+The default matches `collapsePrimitiveWrapper`'s. Both are capture-time normalizations that
+restructure anatomy, and both are opt-in for the same reason: a workspace should choose a
+change of that size rather than receive it. ADR-074 states the shape composed content should
+have; this setting is how a workspace elects to have it.
 
-Turning promotion off does not merely skip a step — it produces a materially different spec,
+Turning promotion on does not merely add a step — it produces a materially different spec,
 which is the point. The value is recorded in `metadata.settings` with every other spec
 setting, so a consumer comparing two specs can see whether they were produced the same way
 before attributing a difference to anything else.
@@ -166,7 +171,7 @@ have used it.
 
 - **Symmetric**: Yes
 - **Parity check**: `SpecSettings.promotePrimitives` ↔ the `promotePrimitives` property on the
-  spec settings object, with `default: true` matching `DEFAULT_SETTINGS`; the resolved form is
+  spec settings object, with `default: false` matching `DEFAULT_SETTINGS`; the resolved form is
   the same property with the member required
 
 ---
@@ -193,13 +198,13 @@ counterpart and a default. No existing member changes name, type, or presence.
 
 ## Consequences
 
-- Promotion can be turned off, so an unpromoted baseline can be captured without dismantling a
-  workspace's conventions
+- No existing workspace changes on upgrade. Promotion arrives when a workspace asks for it
 - A spec records whether it was promoted, so two specs can be compared knowingly rather than
   by assuming they were produced alike
 - Parity checking and baseline diffing stay usable across the transition, provided both sides
   declare the same value
 - Describing a design system and transforming a run's output are separate acts
-- A workspace with a conventions table sees its composed output change on upgrade. Setting
-  `promotePrimitives: false` restores the previous shape
+- A conventions table is inert until the setting is turned on, so a workspace can author and
+  review one without any spec changing shape — and equally, a workspace that authors a table
+  and expects output to change has to find the setting
 - The setting surface grows by one member, and the plugin gains a control
