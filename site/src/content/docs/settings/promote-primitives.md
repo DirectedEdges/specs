@@ -60,7 +60,7 @@ elements:
 
 The styles are **partitioned**, not copied. What the promotion consumed moves to `$extensions.com.figma.styles`; what nothing claimed stays in `styles` and reaches output as before. No value is stored twice.
 
-## What is recorded, and why
+## Provenance
 
 `promotedPrimitive` marks the element as a promoted layer rather than an instance the designer placed. It is stated rather than inferred, because a promotion may consume no styles at all — a glyph whose name maps to a prop while no style rule resolves.
 
@@ -70,13 +70,13 @@ The styles are **partitioned**, not copied. What the promotion consumed moves to
 
 `styles` holds what the promotion consumed, verbatim. A prop value cannot be turned back into the style that produced it, since two sources may map to one value: `size: XS` cannot say whether the layer carried a sizing token or a raw `16`. Recording the original is what lets a promoted layer be rendered back to Figma as a layer.
 
-## Nothing is lost
+## Unmatched sources
 
 A source with no matching row in the table does not resolve. Its value stays in `styles` and reaches output as passed styling, so an incomplete table produces more verbose output rather than missing design intent.
 
 If no entry matches at all, the element is left exactly as it is — the same output as `false`.
 
-## The table is written against a token profile
+## Tokens
 
 A `values` key is matched **literally** against what the style carries. What a style
 carries depends on [`spec.tokens`](/settings/tokens/) — so a `primitives.yaml` is written
@@ -109,14 +109,14 @@ Nothing declares which profile a table was written against, and nothing checks. 
 having no table at all. It fails safe (no wrong promotions) but quietly.
 :::
 
-### `FIGMA_SYNTAX_*` mixes two vocabularies
+### FIGMA_SYNTAX_WEB / FIGMA_SYNTAX_IOS / FIGMA_SYNTAX_ANDROID
 
 The code-syntax profiles fall back to the token path **per token**, whenever a token has no
 code syntax defined for that platform. So a correct table under `FIGMA_SYNTAX_WEB` is part
 code-syntax names and part token paths, decided token by token — and the conventions file
 gives no clue which is which. Check each token in Figma rather than assuming a rule.
 
-### `CUSTOM` works when the mapping keeps `$token`
+### CUSTOM
 
 `CUSTOM` replaces the reference with your `$custom` object verbatim. Promotion keys on
 `$token`, so a mapping that renames the token while keeping the shape works normally:
@@ -128,13 +128,17 @@ gives no clue which is which. Check each token in Figma rather than assuming a r
 A mapping that emits some other shape has no member promotion knows to key on, so nothing
 resolves and nothing promotes.
 
-## Comparing runs
+## Comparison
 
 A spec captured with promotion and one captured without differ throughout their composed content. Any comparison between them — a parity check between two producers, a diff against a stored baseline — reports the whole difference unless both sides ran with the same value.
 
 The value is recorded in `metadata.settings.spec`, so a spec states how it was produced.
 
-## Related
+## Path
+
+`spec.promotePrimitives` in `config/settings.yaml`
+
+## See Also
 
 - [`primitives`](/schema/conventions/#primitives) — the table promotion consults
 - [Collapse Primitive Wrapper](/settings/collapse-primitive-wrapper/) — the other capture-time restructuring, also opt-in
