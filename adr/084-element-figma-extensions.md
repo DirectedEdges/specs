@@ -3,7 +3,7 @@
 **Branch**: `adr/spec-time-promotion`
 **Created**: 2026-09-02
 **Status**: DRAFT
-**Summary**: An `Element.$extensions` member records that a layer was promoted, whether the match was ambiguous, and which styles it consumed.
+**Summary**: An `Element.$extensions` member records that a layer was promoted, whether the match was ambiguous, and what it consumed.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 
@@ -48,7 +48,9 @@ render the spec back to Figma:
   should be re-rendered as a raw layer.
 - **What the original values were.** A prop value cannot be inverted back to the style that
   produced it. Two different sources may map to one prop value, so `size: XS` cannot say
-  whether the layer carried a sizing token or a raw `16`.
+  whether the layer carried a sizing token or a raw `16`. The same applies to content: a
+  text layer's string and a glyph's name move into whichever prop the table named, and
+  which prop that is is knowable only from the table.
 
 The third is not needed to render, and is recorded anyway:
 
@@ -97,6 +99,7 @@ heading:
     com.figma:
       promotedPrimitive: true
       multipleMatches: true          # two entries resolved; the higher scorer won
+      content: Heading               # not a style, so recorded beside them
       styles:
         textColor:  { $token: Color/Inverse on surface, $type: color }
         typography: { $token: Typography/font__400__medium, $type: typography }
@@ -149,7 +152,7 @@ not. The signal must be declared, not inferred from a side effect.
 |------|--------|------|
 | `Element.ts` | Added optional `$extensions?: ElementExtensions` | MINOR |
 | `Element.ts` | Added `ElementExtensions` — `{ 'com.figma'?: FigmaElementExtension }` | MINOR |
-| `Element.ts` | Added `FigmaElementExtension` — `promotedPrimitive?: boolean`, `multipleMatches?: boolean`, `styles?: Styles` | MINOR |
+| `Element.ts` | Added `FigmaElementExtension` — `promotedPrimitive?: boolean`, `multipleMatches?: boolean`, `content?: string \| PropBinding`, `styles?: Styles` | MINOR |
 
 **Example — new shape** (`types/Element.ts`):
 
@@ -176,6 +179,7 @@ Element:
 FigmaElementExtension:
   promotedPrimitive?: boolean   # this element was a primitive layer, promoted to an instance
   multipleMatches?: boolean     # more than one entry resolved; the highest scorer won
+  content?: string | PropBinding  # the text string or glyph name promotion consumed
   styles?: Styles               # the styles promotion consumed, verbatim as captured
 ```
 
@@ -205,6 +209,9 @@ FigmaElementExtension:
     multipleMatches:
       type: boolean
       description: "True when more than one conventions.primitives entry resolved and the highest-scoring one was chosen."
+    content:
+      oneOf: [{ type: string }, { $ref: "#/definitions/PropBinding" }]
+      description: "The content the promotion consumed — a text layer's string or a glyph's name."
     styles:
       $ref: "#/definitions/Styles"
       description: "The styles promotion consumed, recorded verbatim as captured."
@@ -220,6 +227,11 @@ the unremarkable.
 `promotedPrimitive` is `boolean` rather than a presence-only marker so that `false` remains
 expressible. Absence and `false` mean the same thing today; a spec that states `false`
 explicitly is making the same claim, and no consumer needs to distinguish them.
+
+`content` sits beside `styles` rather than inside it, because content is not a style —
+the same reason ADR-075 lists it as its own `source` rather than a `Styles` member. It
+takes `Element.content`'s own type, so a bound content value is recorded as the binding
+it is rather than flattened to a string.
 
 `styles` reuses the existing `Styles` definition rather than a reduced one. The residue is a
 subset of what the element carried, recorded verbatim, and a narrower type would have to be
@@ -270,7 +282,8 @@ and optional fields are MINOR per the constitution's versioning rule.
 - Ambiguous mappings are inspectable after the fact. A conventions file where two entries
   claim one layer leaves a trail in the specs it produced, rather than a warning nobody kept
 - A spec is reversible on its own terms: restoring a promoted layer needs the spec, not the
-  Figma file it came from
+  Figma file it came from, and not the conventions table that produced it — which would
+  otherwise be required to know which prop carries content
 - `Element` and `AnatomyElement` now carry provenance the same way, so `com.figma` means one
   thing across the two
 - Promotion becomes safe to make lossy in the spec's primary channels, because the loss is

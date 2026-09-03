@@ -57,6 +57,15 @@ export interface FigmaElementExtension {
    */
   multipleMatches?: boolean;
   /**
+   * The content the promotion consumed — a text layer's string or a glyph's name.
+   *
+   * Recorded beside `styles` rather than among them, because content is not a style.
+   * Its value survives in `propConfigurations`, but only under whichever prop the
+   * conventions table named; recording it here is what lets a promoted layer be
+   * restored without consulting that table.
+   */
+  content?: string | PropBinding;
+  /**
    * The styles the promotion consumed, recorded verbatim as captured.
    *
    * A prop value cannot be inverted back to the style that produced it, because two

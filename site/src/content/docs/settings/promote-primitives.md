@@ -52,6 +52,7 @@ elements:
     $extensions:
       com.figma:
         promotedPrimitive: true
+        content: Heading
         styles:
           textColor:  { $token: Color/Inverse on surface, $type: color }
           typography: { $token: Typography/font__400__medium, $type: typography }
@@ -64,6 +65,8 @@ The styles are **partitioned**, not copied. What the promotion consumed moves to
 `promotedPrimitive` marks the element as a promoted layer rather than an instance the designer placed. It is stated rather than inferred, because a promotion may consume no styles at all — a glyph whose name maps to a prop while no style rule resolves.
 
 `multipleMatches` marks an element where more than one entry resolved and the highest scorer was chosen. Two components claiming one layer may be a true description of the design system, or a conventions file that has drifted — either way the ambiguity is recorded on the element rather than announced once in a run log.
+
+`content` holds the text string or glyph name the promotion consumed. Its value also sits in `propConfigurations`, but only under whichever prop the table named — recording it here is what lets a promoted layer be restored without consulting the table.
 
 `styles` holds what the promotion consumed, verbatim. A prop value cannot be turned back into the style that produced it, since two sources may map to one value: `size: XS` cannot say whether the layer carried a sizing token or a raw `16`. Recording the original is what lets a promoted layer be rendered back to Figma as a layer.
 

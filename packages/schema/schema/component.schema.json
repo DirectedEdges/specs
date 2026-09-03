@@ -1213,6 +1213,17 @@
           "type": "boolean",
           "description": "More than one conventions.primitives entry resolved against this element, and the highest-scoring one was chosen. A durable record of ambiguity; absent means exactly one entry resolved."
         },
+        "content": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/definitions/PropBinding"
+            }
+          ],
+          "description": "The content the promotion consumed — a text layer's string or a glyph's name. Recorded beside styles because content is not a style."
+        },
         "styles": {
           "$ref": "#/definitions/Styles",
           "description": "The styles the promotion consumed, recorded verbatim as captured. A prop value cannot be inverted back to the style that produced it, so the original is what lets a promoted layer be rendered back as a layer."
