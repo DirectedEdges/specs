@@ -49,9 +49,9 @@ describe('ConfigLoader', () => {
 
   /** Write one file of a split `config/` directory in the test workspace. */
   function writeSplitFile(name: string, content: string) {
-    const dir = path.join(testDir, 'config');
-    fs.ensureDirSync(dir);
-    fs.writeFileSync(path.join(dir, name), content);
+    const target = path.join(testDir, 'config', name);
+    fs.ensureDirSync(path.dirname(target));
+    fs.writeFileSync(target, content);
   }
 
   /** Write a pre-split (v1) config file in the test workspace root. */
@@ -61,12 +61,11 @@ describe('ConfigLoader', () => {
 
   describe('split config/ directory (ADR-071)', () => {
     it('loads conventions, settings, and pipeline from config/', () => {
-      writeSplitFile('conventions.yaml', `
-figma:
-  naming: SENTENCE
-  glyphs:
-    match: 'DS Icon Glyph / {i}'
-  slotConstraints: true
+      writeSplitFile('conventions/figma.yaml', `
+naming: SENTENCE
+glyphs:
+  match: 'DS Icon Glyph / {i}'
+slotConstraints: true
 `);
       writeSplitFile('settings.yaml', `
 author: Test Author
@@ -83,9 +82,9 @@ analyses:
 `);
 
       const config = configLoader.load();
-      expect(config.conventions.figma.naming).toBe('SENTENCE');
-      expect(config.conventions.figma.glyphs).toEqual({ match: 'DS Icon Glyph / {i}' });
-      expect(config.conventions.figma.slotConstraints).toBe(true);
+      expect(config.conventions.platforms!.figma.naming).toBe('SENTENCE');
+      expect(config.conventions.platforms!.figma.glyphs).toEqual({ match: 'DS Icon Glyph / {i}' });
+      expect(config.conventions.platforms!.figma.slotConstraints).toBe(true);
       expect(config.settings.author).toBe('Test Author');
       expect(config.settings.spec.format).toBe('YAML');
       expect(config.settings.spec.variantDepth).toBe(2);
@@ -97,10 +96,10 @@ analyses:
       writeSplitFile('settings.yaml', 'spec:\n  variantDepth: 3');
 
       const config = configLoader.load();
-      // conventions.yaml absent — resolved conventions defaults
-      expect(config.conventions).toEqual({
-        figma: { naming: 'NONE', slotConstraints: false, inferNumberProps: false },
-      });
+      // No conventions declared at all — DEFAULT_CONVENTIONS carries no members,
+      // because a platform-keyed map has no fixed key to populate (ADR-073). The
+      // three defaultable values are applied by whoever resolves a platform.
+      expect(config.conventions).toEqual({});
       // pipeline.yaml absent — empty lists
       expect(config.pipeline).toEqual({ transformers: [], analyses: [] });
       // settings.yaml present — merged over DEFAULT_SETTINGS
@@ -109,10 +108,10 @@ analyses:
     });
 
     it('accepts .json split files', () => {
-      writeSplitFile('conventions.json', JSON.stringify({ figma: { naming: 'TITLE' } }));
+      writeSplitFile('conventions/figma.json', JSON.stringify({ naming: 'TITLE' }));
 
       const config = configLoader.load();
-      expect(config.conventions.figma.naming).toBe('TITLE');
+      expect(config.conventions.platforms!.figma.naming).toBe('TITLE');
     });
 
     it('loads normally (no throw) when config/ is present alongside a legacy specs.config.yaml', () => {
@@ -208,9 +207,8 @@ analyses:
       const { directory, ...spec } = config.settings.spec;
       expect(spec).toEqual(DEFAULT_SETTINGS.spec);
       expect(directory).toBeTruthy();
-      expect(config.conventions).toEqual({
-        figma: { naming: 'NONE', slotConstraints: false, inferNumberProps: false },
-      });
+      // DEFAULT_CONVENTIONS carries no members (ADR-073) — see the note above.
+      expect(config.conventions).toEqual({});
       expect(config.pipeline).toEqual({ transformers: [], analyses: [] });
     });
 
@@ -395,96 +393,94 @@ analyses:
     });
   });
 
-  describe('conventions validation (config/conventions.yaml)', () => {
+  describe('conventions validation (config/conventions/<platform>.yaml)', () => {
     it('should preserve a valid glyphs.match', () => {
-      writeSplitFile('conventions.yaml', 'figma:\n  glyphs:\n    match: "DS Icon Glyph /"');
+      writeSplitFile('conventions/figma.yaml', 'glyphs:\n  match: "DS Icon Glyph /"');
 
       const config = configLoader.load();
-      expect(config.conventions.figma.glyphs).toEqual({ match: 'DS Icon Glyph /' });
+      expect(config.conventions.platforms!.figma.glyphs).toEqual({ match: 'DS Icon Glyph /' });
     });
 
     it('should strip an invalid glyphs.match (non-string)', () => {
-      writeSplitFile('conventions.yaml', 'figma:\n  glyphs:\n    match: 123');
+      writeSplitFile('conventions/figma.yaml', 'glyphs:\n  match: 123');
 
       const config = configLoader.load();
-      expect(config.conventions.figma.glyphs).toBeUndefined();
+      expect(config.conventions.platforms!.figma.glyphs).toBeUndefined();
     });
 
     it('should strip an empty glyphs.match', () => {
-      writeSplitFile('conventions.yaml', "figma:\n  glyphs:\n    match: '  '");
+      writeSplitFile('conventions/figma.yaml', "glyphs:\n  match: '  '");
 
       const config = configLoader.load();
-      expect(config.conventions.figma.glyphs).toBeUndefined();
+      expect(config.conventions.platforms!.figma.glyphs).toBeUndefined();
     });
 
     it('should default subcomponents.scope to NESTED when a valid match is given', () => {
-      writeSplitFile('conventions.yaml', `
-figma:
-  subcomponents:
-    match:
-      - "{C} / {S}"
+      writeSplitFile('conventions/figma.yaml', `
+subcomponents:
+  match:
+    - "{C} / {S}"
 `);
 
       const config = configLoader.load();
-      expect(config.conventions.figma.subcomponents).toEqual({ scope: 'NESTED', match: ['{C} / {S}'] });
+      expect(config.conventions.platforms!.figma.subcomponents).toEqual({ scope: 'NESTED', match: ['{C} / {S}'] });
     });
 
     it('should remove subcomponents (and warn) when match is empty', () => {
       const warn = vi.mocked(console.warn);
-      writeSplitFile('conventions.json', JSON.stringify({ figma: { subcomponents: { match: [] } } }));
+      writeSplitFile('conventions/figma.json', JSON.stringify({ subcomponents: { match: [] } }));
 
       const config = configLoader.load();
-      expect(config.conventions.figma.subcomponents).toBeUndefined();
+      // Nothing declared this platform at all, so there is no entry to read — which
+      // is a stronger statement than an entry with no subcomponents block.
+      expect(config.conventions.platforms?.figma?.subcomponents).toBeUndefined();
       expect(warn).toHaveBeenCalledWith(
-        expect.stringContaining('Invalid conventions.figma.subcomponents.match')
+        expect.stringContaining('Invalid conventions/figma.yaml subcomponents.match')
       );
     });
   });
 
-  describe('conventions.figma.instanceExamples validation (ADR-050)', () => {
+  describe('conventions/figma.yaml instanceExamples validation (ADR-050)', () => {
     it('defaults an invalid scope to PAGE while keeping a valid match', () => {
-      writeSplitFile('conventions.yaml', `
-figma:
-  instanceExamples:
-    scope: SIDEWAYS
-    match:
-      - "{C} / Examples / {S}"
+      writeSplitFile('conventions/figma.yaml', `
+instanceExamples:
+  scope: SIDEWAYS
+  match:
+    - "{C} / Examples / {S}"
 `);
 
       const config = configLoader.load();
-      expect(config.conventions.figma.instanceExamples).toEqual({
+      expect(config.conventions.platforms!.figma.instanceExamples).toEqual({
         scope: 'PAGE',
         match: ['{C} / Examples / {S}'],
       });
     });
 
     it('preserves a valid scope (FILE)', () => {
-      writeSplitFile('conventions.yaml', `
-figma:
-  instanceExamples:
-    scope: FILE
-    match:
-      - "{C} / Examples / {S}"
+      writeSplitFile('conventions/figma.yaml', `
+instanceExamples:
+  scope: FILE
+  match:
+    - "{C} / Examples / {S}"
 `);
 
       const config = configLoader.load();
-      expect(config.conventions.figma.instanceExamples?.scope).toBe('FILE');
+      expect(config.conventions.platforms!.figma.instanceExamples?.scope).toBe('FILE');
     });
 
     it('keeps the block when match is omitted (match is optional — ADR-050)', () => {
       const warn = vi.mocked(console.warn);
-      writeSplitFile('conventions.yaml', `
-figma:
-  instanceExamples:
-    scope: PAGE
-    parentNames:
-      - Ready-made examples
+      writeSplitFile('conventions/figma.yaml', `
+instanceExamples:
+  scope: PAGE
+  parentNames:
+    - Ready-made examples
 `);
 
       const config = configLoader.load();
       // Presence of the block is the on-switch; no match means every in-scope
       // instance qualifies, narrowed here by parentNames.
-      expect(config.conventions.figma.instanceExamples).toEqual({
+      expect(config.conventions.platforms!.figma.instanceExamples).toEqual({
         scope: 'PAGE',
         parentNames: ['Ready-made examples'],
       });
@@ -493,41 +489,35 @@ figma:
 
     it('keeps the block but ignores match (and warns) when match is an empty array', () => {
       const warn = vi.mocked(console.warn);
-      writeSplitFile('conventions.json', JSON.stringify({
-        figma: { instanceExamples: { scope: 'PAGE', match: [] } },
-      }));
+      writeSplitFile('conventions/figma.json', JSON.stringify({ instanceExamples: { scope: 'PAGE', match: [] } }));
 
       const config = configLoader.load();
-      const ie = config.conventions.figma.instanceExamples as Record<string, unknown>;
+      const ie = config.conventions.platforms!.figma.instanceExamples as Record<string, unknown>;
       expect(ie).toEqual({ scope: 'PAGE' });
       expect(ie).not.toHaveProperty('match');
       expect(warn).toHaveBeenCalledWith(
-        expect.stringContaining('Invalid conventions.figma.instanceExamples.match')
+        expect.stringContaining('Invalid conventions/figma.yaml instanceExamples.match')
       );
     });
 
     it('strips a non-array exclude while keeping the rest of the block', () => {
-      writeSplitFile('conventions.json', JSON.stringify({
-        figma: {
+      writeSplitFile('conventions/figma.json', JSON.stringify({
           instanceExamples: { match: ['{C} / Examples / {S}'], exclude: 'nope' },
-        },
-      }));
+        }));
 
       const config = configLoader.load();
-      const ie = config.conventions.figma.instanceExamples as Record<string, unknown>;
+      const ie = config.conventions.platforms!.figma.instanceExamples as Record<string, unknown>;
       expect(ie.match).toEqual(['{C} / Examples / {S}']);
       expect(ie.exclude).toBeUndefined();
     });
 
     it('strips a non-array parentNames while keeping the rest of the block', () => {
-      writeSplitFile('conventions.json', JSON.stringify({
-        figma: {
+      writeSplitFile('conventions/figma.json', JSON.stringify({
           instanceExamples: { match: ['{C} / Examples / {S}'], parentNames: 123 },
-        },
-      }));
+        }));
 
       const config = configLoader.load();
-      const ie = config.conventions.figma.instanceExamples as Record<string, unknown>;
+      const ie = config.conventions.platforms!.figma.instanceExamples as Record<string, unknown>;
       expect(ie.match).toEqual(['{C} / Examples / {S}']);
       expect(ie.parentNames).toBeUndefined();
     });
@@ -539,23 +529,19 @@ figma:
         exclude: ['{C} / Examples / Internal / {S}'],
         parentNames: ['Examples'],
       };
-      writeSplitFile('conventions.json', JSON.stringify({
-        figma: { instanceExamples: block },
-      }));
+      writeSplitFile('conventions/figma.json', JSON.stringify({ instanceExamples: block }));
 
       const config = configLoader.load();
-      expect(config.conventions.figma.instanceExamples).toEqual(block);
+      expect(config.conventions.platforms!.figma.instanceExamples).toEqual(block);
     });
   });
 
   describe('conventions.figma.images validation (ADR-063)', () => {
     it('resolves a full block: backgroundImage, trimmed match, trimmed sourceProps', () => {
-      writeSplitFile('conventions.json', JSON.stringify({
-        figma: { images: { backgroundImage: true, match: ' DS Image ', sourceProps: [' imageSource ', 'src'] } },
-      }));
+      writeSplitFile('conventions/figma.json', JSON.stringify({ images: { backgroundImage: true, match: ' DS Image ', sourceProps: [' imageSource ', 'src'] } }));
 
       const config = configLoader.load();
-      expect(config.conventions.figma.images).toEqual({
+      expect(config.conventions.platforms!.figma.images).toEqual({
         backgroundImage: true,
         match: 'DS Image',
         sourceProps: ['imageSource', 'src'],
@@ -563,45 +549,39 @@ figma:
     });
 
     it('fills-only: backgroundImage alone resolves with defaults', () => {
-      writeSplitFile('conventions.yaml', 'figma:\n  images:\n    backgroundImage: true');
+      writeSplitFile('conventions/figma.yaml', 'images:\n  backgroundImage: true');
 
       const config = configLoader.load();
-      expect(config.conventions.figma.images).toEqual({ backgroundImage: true, sourceProps: [] });
+      expect(config.conventions.platforms!.figma.images).toEqual({ backgroundImage: true, sourceProps: [] });
     });
 
     it('sourceProps-only: re-typing without fills or component', () => {
-      writeSplitFile('conventions.json', JSON.stringify({
-        figma: { images: { sourceProps: ['Image'] } },
-      }));
+      writeSplitFile('conventions/figma.json', JSON.stringify({ images: { sourceProps: ['Image'] } }));
 
       const config = configLoader.load();
-      expect(config.conventions.figma.images).toEqual({ backgroundImage: false, sourceProps: ['Image'] });
+      expect(config.conventions.platforms!.figma.images).toEqual({ backgroundImage: false, sourceProps: ['Image'] });
     });
 
     it('match without sourceProps is dropped (needs a forwarding target)', () => {
-      writeSplitFile('conventions.json', JSON.stringify({
-        figma: { images: { backgroundImage: true, match: 'DS Image' } },
-      }));
+      writeSplitFile('conventions/figma.json', JSON.stringify({ images: { backgroundImage: true, match: 'DS Image' } }));
 
       const config = configLoader.load();
-      expect(config.conventions.figma.images).toEqual({ backgroundImage: true, sourceProps: [] });
-      expect(config.conventions.figma.images).not.toHaveProperty('match');
+      expect(config.conventions.platforms!.figma.images).toEqual({ backgroundImage: true, sourceProps: [] });
+      expect(config.conventions.platforms!.figma.images).not.toHaveProperty('match');
     });
 
     it('coerces a non-boolean backgroundImage to false', () => {
-      writeSplitFile('conventions.json', JSON.stringify({
-        figma: { images: { backgroundImage: 'yes' } },
-      }));
+      writeSplitFile('conventions/figma.json', JSON.stringify({ images: { backgroundImage: 'yes' } }));
 
       const config = configLoader.load();
-      expect(config.conventions.figma.images?.backgroundImage).toBe(false);
+      expect(config.conventions.platforms!.figma.images?.backgroundImage).toBe(false);
     });
 
     it('is absent by default (presence is the on-switch)', () => {
-      writeSplitFile('conventions.yaml', 'figma:\n  naming: NONE');
+      writeSplitFile('conventions/figma.yaml', 'naming: NONE');
 
       const config = configLoader.load();
-      expect(config.conventions.figma.images).toBeUndefined();
+      expect(config.conventions.platforms!.figma.images).toBeUndefined();
     });
   });
 
@@ -618,7 +598,7 @@ figma:
       expect(config.settings.spec.details).toBe(DEFAULT_SETTINGS.spec.details);
       expect(config.settings.spec.keys).toBe(DEFAULT_SETTINGS.spec.keys);
       // No subcomponents convention declared — no default can supply one
-      expect(config.conventions.figma.subcomponents).toBeUndefined();
+      expect(config.conventions.platforms?.figma?.subcomponents).toBeUndefined();
     });
   });
 });

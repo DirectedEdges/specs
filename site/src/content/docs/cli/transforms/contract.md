@@ -88,17 +88,16 @@ A slot is required (non-optional in `Slots`) only when its rule is `always`. The
 
 ## Config
 
-No transformer-specific options. Prop omission for browser-driven states comes from the [`figma.states`](/settings/states/) convention in `config/conventions.yaml`.
+No transformer-specific options. Prop omission for browser-driven states comes from the [`figma.states`](/settings/states/) convention in `config/conventions/figma.yaml`.
 
 ```yaml
-# config/conventions.yaml
-figma:
-  states:                # optional — omit to retain all props in contracts
-    hover:
-      prop: state
-      value: hover
-    disabled:
-      prop: isDisabled
+# config/conventions/figma.yaml
+states:                # optional — omit to retain all props in contracts
+  hover:
+    prop: state
+    value: hover
+  disabled:
+    prop: isDisabled
 ```
 
 ```yaml

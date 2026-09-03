@@ -29,3 +29,32 @@ const _oldContent: Element = { content: { $ref: '#/props/label' } };
 
 // @ts-expect-error: text property no longer exists on Element
 const _removedText: Element = { text: 'Submit' };
+
+// ─── Capture provenance for a promoted element (ADR-084) ──────────────────────
+
+// A promoted layer records that it was promoted, and the styles the promotion consumed
+const promoted: Element = {
+  instanceOf: 'dsTypography',
+  propConfigurations: { color: 'On surface', size: 400 },
+  styles: { layoutSizingHorizontal: 'FILL' },
+  $extensions: {
+    'com.figma': {
+      promotedPrimitive: true,
+      multipleMatches: true,
+      styles: { textColor: { $token: 'Color/On surface', $type: 'color' } },
+    },
+  },
+};
+
+// Both members are independent: a promotion that consumed no styles records the flag alone
+const promotedNoResidue: Element = {
+  instanceOf: 'dsIcon',
+  propConfigurations: { name: 'add' },
+  $extensions: { 'com.figma': { promotedPrimitive: true } },
+};
+
+// @ts-expect-error — the extension namespace is closed
+const unknownNamespace: Element = { $extensions: { 'com.example': { promotedPrimitive: true } } };
+
+// @ts-expect-error — the figma extension is closed to its two members
+const unknownMember: Element = { $extensions: { 'com.figma': { promotedFrom: 'text' } } };

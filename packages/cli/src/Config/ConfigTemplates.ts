@@ -3,106 +3,193 @@
  *
  * Generates the split-configuration templates (ADR-071) with
  * production-ready defaults and inline documentation for the init command:
- * `config/conventions.yaml`, `config/settings.yaml`, `config/pipeline.yaml`.
+ * `config/conventions/<platform>.yaml`, `config/settings.yaml`, `config/pipeline.yaml`.
  */
 
 import { CONFIG_DEFAULTS } from './ConfigDefaults.js';
 
 /**
- * Generate the `config/conventions.yaml` template with inline comments.
+ * Generate the `config/conventions/figma.yaml` template with inline comments.
+ *
+ * The filename is the platform id (ADR-078), so the body sits at the root rather
+ * than under a `figma:` key.
  */
-export function generateConventionsTemplate(): string {
-  return `# Facts about the Figma library — every consumer of that library declares the same values.
-# A wrong value here produces incorrect output, not merely different output.
+export function generateFigmaConventionsTemplate(): string {
+  return `# Facts about the Figma library — every consumer of that library declares the same
+# values. A wrong value here produces incorrect output, not merely different output.
 # Absence of a block means the library has no such convention.
+#
+# One file per platform: this file's name IS the platform id, so its contents start
+# at the entry body with no wrapping key.
 # See: https://www.specsplugin.com/settings/
 
-figma:
-  # Naming convention your Figma file uses for layer and property names, and the
-  # target a spec reverses into when rendered back to Figma: NONE, SENTENCE, or TITLE.
-  # NONE declares no convention — names are not checked and none are preserved.
-  # Declaring one records the Figma name wherever a key cannot reconstruct it.
-  # See: https://www.specsplugin.com/settings/figma-keys/
-  # naming: NONE
+# Naming convention your Figma file uses for layer and property names, and the
+# target a spec reverses into when rendered back to Figma: NONE, SENTENCE, or TITLE.
+# NONE declares no convention — names are not checked and none are preserved.
+# Declaring one records the Figma name wherever a key cannot reconstruct it.
+# See: https://www.specsplugin.com/settings/figma-keys/
+# naming: NONE
 
-  # Naming pattern identifying icon glyph instances. Use {i} as the placeholder
-  # for the glyph name (e.g. 'DS Icon Glyph / {i}' matches
-  # 'DS Icon Glyph / arrow-down' and extracts 'arrow-down').
-  # glyphs:
-  #   match: 'DS Icon Glyph / {i}'
+# Naming pattern identifying icon glyph instances. Use {i} as the placeholder
+# for the glyph name (e.g. 'DS Icon Glyph / {i}' matches
+# 'DS Icon Glyph / arrow-down' and extracts 'arrow-down').
+# glyphs:
+#   match: 'DS Icon Glyph / {i}'
 
-  # Literal layer name of the code-only props container layer.
-  # Presence enables code-only prop extraction from matching layers.
-  # codeOnlyProps:
-  #   match: 'Code only props'
+# Literal layer name of the code-only props container layer.
+# Presence enables code-only prop extraction from matching layers.
+# codeOnlyProps:
+#   match: 'Code only props'
 
-  # Subcomponent organization and naming.
-  # Presence of this block enables subcomponent detection; remove to disable.
-  # See: https://www.specsplugin.com/guides/subcomponent-scoping/
-  subcomponents:
-    # Where the library keeps subcomponents: NESTED (component anatomy only)
-    # or PAGE (also search the Figma page)
-    # scope: NESTED
+# Subcomponent organization and naming.
+# Presence of this block enables subcomponent detection; remove to disable.
+# See: https://www.specsplugin.com/guides/subcomponent-scoping/
+subcomponents:
+  # Where the library keeps subcomponents: NESTED (component anatomy only)
+  # or PAGE (also search the Figma page)
+  # scope: NESTED
 
-    # Template patterns defining which assets are subcomponents.
-    # Uses {C} (component name) and {S} (subcomponent name) placeholders.
-    match:
-      - '{C} / _ / {S}'
+  # Template patterns defining which assets are subcomponents.
+  # Uses {C} (component name) and {S} (subcomponent name) placeholders.
+  match:
+    - '{C} / _ / {S}'
 
-    # Template patterns to exclude from matches (optional).
-    # exclude:
-    #   - '{C} / Examples / {S}'
+  # Template patterns to exclude from matches (optional).
+  # exclude:
+  #   - '{C} / Examples / {S}'
 
-  # Instance example organization and naming (Pro). Presence of this block is
-  # the on-switch.
-  # See: https://www.specsplugin.com/guides/instance-examples/
-  # instanceExamples:
-  #   # Where the library keeps instance examples: PAGE or FILE (default: PAGE)
-  #   scope: PAGE
-  #   # Optional name filter; {C} = component name. Omit to match every
-  #   # in-scope instance of the component.
-  #   match:
-  #     - '{C} Example'
-  #   # A candidate's immediate parent frame or section must match one of these.
-  #   parentNames:
-  #     - Examples
+# Instance example organization and naming (Pro). Presence of this block is
+# the on-switch.
+# See: https://www.specsplugin.com/guides/instance-examples/
+# instanceExamples:
+#   # Where the library keeps instance examples: PAGE or FILE (default: PAGE)
+#   scope: PAGE
+#   # Optional name filter; {C} = component name. Omit to match every
+#   # in-scope instance of the component.
+#   match:
+#     - '{C} Example'
+#   # A candidate's immediate parent frame or section must match one of these.
+#   parentNames:
+#     - Examples
 
-  # How the library expresses images: presence of this block is the on-switch;
-  # each member is an independent representation trigger.
-  # See: https://www.specsplugin.com/guides/images/
-  # images:
-  #   # The library expresses images as container fills, emitted as
-  #   # backgroundImage; also the fallback for fills outside the designated
-  #   # component.
-  #   backgroundImage: true
-  #   # The library's designated image component; instances route their image
-  #   # through the first source prop below. Requires sourceProps.
-  #   match: DS Image
-  #   # Code-only prop names (exact Figma names) typed as images; the first
-  #   # is the image component's own source prop.
-  #   sourceProps:
-  #     - imageSource
+# How the library expresses images: presence of this block is the on-switch;
+# each member is an independent representation trigger.
+# See: https://www.specsplugin.com/guides/images/
+# images:
+#   # The library expresses images as container fills, emitted as
+#   # backgroundImage; also the fallback for fills outside the designated
+#   # component.
+#   backgroundImage: true
+#   # The library's designated image component; instances route their image
+#   # through the first source prop below. Requires sourceProps.
+#   match: DS Image
+#   # Code-only prop names (exact Figma names) typed as images; the first
+#   # is the image component's own source prop.
+#   sourceProps:
+#     - imageSource
 
-  # The library authors slot constraints (anyOf, minItems, maxItems) as
-  # code-only props, consolidated into the slot property.
-  # Requires codeOnlyProps to be set. (default: false)
-  slotConstraints: false
+# The library authors slot constraints (anyOf, minItems, maxItems) as
+# code-only props, consolidated into the slot property.
+# Requires codeOnlyProps to be set. (default: false)
+slotConstraints: false
 
-  # The library authors numeric props as TEXT code-only props whose values
-  # parse as valid numbers, emitted as NumberProp instead of StringProp.
-  # (default: false)
-  # inferNumberProps: false
+# The library authors numeric props as TEXT code-only props whose values
+# parse as valid numbers, emitted as NumberProp instead of StringProp.
+# (default: false)
+# inferNumberProps: false
 
-  # Semantic states: classify Figma variant props as state concepts, keyed by
-  # concept name. Absence means all variant props emit as data-* selectors.
-  # See: https://www.specsplugin.com/settings/states/
-  # states:
-  #   hover:
-  #     prop: state
-  #     value: hover
-  #   disabled:
-  #     prop: disabled   # boolean prop — value defaults to "true"
+# Semantic states: classify Figma variant props as state concepts, keyed by
+# concept name. Absence means all variant props emit as data-* selectors.
+# See: https://www.specsplugin.com/settings/states/
+# states:
+#   hover:
+#     prop: state
+#     value: hover
+#   disabled:
+#     prop: disabled   # boolean prop — value defaults to "true"
 `;
+}
+
+/**
+ * Commented stub for a code platform's conventions.
+ *
+ * Written alongside `figma.yaml` so the shape is discoverable without reading the
+ * docs, and inert until someone uncomments it: a file of pure comments parses to
+ * nothing, which is the same as declaring no conventions for that platform.
+ *
+ * `tag` distinguishes the two flavours — a React component is a PascalCase symbol
+ * imported by name, a custom element is a kebab tag registered by a side-effect
+ * import. That difference is why they are separate platform keys rather than one
+ * shared `web`.
+ */
+function conventionsStub(opts: {
+  platform: string;
+  text: string;
+  glyph: string;
+  container: string;
+  stylesProp: string;
+  stylesNote: string;
+}): string {
+  return `# What ${opts.platform} calls each thing the spec models.
+#
+# Absence means this platform declares no conventions, and generators emit their
+# host elements as before. Uncomment to bind a primitive to one of your components.
+# See: https://www.specsplugin.com/schema/conventions/
+
+# Prop that receives styling no concept maps to.
+# ${opts.stylesNote}
+# stylesProp: ${opts.stylesProp}
+
+# Which of your components implements each spec primitive.
+# primitives:
+#   text:
+#     component: ${opts.text}
+#     props:
+#       # color defaults to 'color'; content has no default, and absent means the
+#       # component takes its text as children rather than as a prop.
+#       color: color
+#       content: text
+#       typography: typography
+#   glyph:
+#     component: ${opts.glyph}
+#     props:
+#       # color and content both default to their own names.
+#       color: color
+#       content: content
+#   container:
+#     component: ${opts.container}
+#     props:
+#       # Only set where the component takes a direction; a container with no auto
+#       # layout is a positioning box and is left unbound.
+#       direction: direction
+
+# Width of the container this platform places a fill-width root in.
+# defaultFillWidth: 375
+`;
+}
+
+/** Generate the `config/conventions/react.yaml` stub. */
+export function generateReactConventionsTemplate(): string {
+  return conventionsStub({
+    platform: 'React',
+    text: 'DsText',
+    glyph: 'DsIcon',
+    container: 'DsBox',
+    stylesProp: 'sx',
+    stylesNote: 'A React component usually takes an object prop such as sx or style.',
+  });
+}
+
+/** Generate the `config/conventions/web-components.yaml` stub. */
+export function generateWebComponentsConventionsTemplate(): string {
+  return conventionsStub({
+    platform: 'Web Components',
+    text: 'ds-text',
+    glyph: 'ds-icon',
+    container: 'ds-box',
+    stylesProp: 'style',
+    stylesNote: 'A custom element has no sx prop; the style attribute is the channel a caller has.',
+  });
 }
 
 /**
@@ -225,7 +312,9 @@ export function generatePipelineTemplate(): string {
  */
 export function generateConfigTemplates(): Record<string, string> {
   return {
-    'config/conventions.yaml': generateConventionsTemplate(),
+    'config/conventions/figma.yaml': generateFigmaConventionsTemplate(),
+    'config/conventions/react.yaml': generateReactConventionsTemplate(),
+    'config/conventions/web-components.yaml': generateWebComponentsConventionsTemplate(),
     'config/settings.yaml': generateSettingsTemplate(),
     'config/pipeline.yaml': generatePipelineTemplate(),
   };

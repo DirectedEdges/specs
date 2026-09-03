@@ -3,19 +3,18 @@ title: "Subcomponents"
 description: "Configure subcomponent discovery, matching patterns, and exclusions"
 ---
 
-Subcomponent organization and naming. A library fact, declared in `config/conventions.yaml`: where a library keeps its subcomponents and how it names them are properties of the library, and a wrong declaration leaves subcomponents undiscovered. When present, the block enables subcomponent detection. When absent, the library declares no subcomponent convention and none are detected.
+Subcomponent organization and naming. A library fact, declared in `config/conventions/figma.yaml`: where a library keeps its subcomponents and how it names them are properties of the library, and a wrong declaration leaves subcomponents undiscovered. When present, the block enables subcomponent detection. When absent, the library declares no subcomponent convention and none are detected.
 
 ## Configuration
 
 ```yaml
-figma:
-  subcomponents:
-    scope: PAGE
-    match:
-      - '{C} / {S}'
-      - '{C} / _ / {S}'
-    exclude:
-      - '{C} / Examples / {S}'
+subcomponents:
+  scope: PAGE
+  match:
+    - '{C} / {S}'
+    - '{C} / _ / {S}'
+  exclude:
+    - '{C} / Examples / {S}'
 ```
 
 ## Result
@@ -54,7 +53,7 @@ An asset must match at least one `match` pattern to be considered a subcomponent
 
 ## Path
 
-`figma.subcomponents` in `config/conventions.yaml`
+`subcomponents` in `config/conventions/figma.yaml`
 
 ## See Also
 

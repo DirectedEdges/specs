@@ -1,7 +1,7 @@
 /**
  * Init Command
  *
- * Scaffolds the config/ directory — conventions.yaml, settings.yaml, and
+ * Scaffolds the config/ directory — conventions/<platform>.yaml, settings.yaml, and
  * pipeline.yaml — with production-ready defaults and inline documentation
  * for getting started with Specs CLI.
  */
@@ -13,7 +13,7 @@ import readline from 'readline';
 import { generateConfigTemplates } from '../Config/ConfigTemplates.js';
 
 export const Init = new Command('init')
-  .description('Initialize config/conventions.yaml, config/settings.yaml, and config/pipeline.yaml with production defaults')
+  .description('Initialize config/conventions/<platform>.yaml, config/settings.yaml, and config/pipeline.yaml with production defaults')
   .option('--force', 'Overwrite existing config without prompting')
   .option('-c, --config <path>', 'Custom directory to write the config files into (default: current directory)')
   .action(async (options) => {

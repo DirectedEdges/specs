@@ -15,6 +15,7 @@ import { refreshCache } from '../Cache/Cache.js';
 import { reportCache } from './CacheCommand.js';
 import { ConfigLoader } from '../Config/ConfigLoader.js';
 import type { CLIConfig } from '../Types/CLIConfig.js';
+import { figmaOf } from '../Config/PlatformConventions.js';
 
 const ERROR_CODES = {
   SUCCESS: 0,
@@ -256,7 +257,7 @@ export const ApplyCustomTokens = new Command('applyCustomTokens')
         const report = refreshCache({
           dataDir: path.resolve(configDir, dataDirectory),
           aliases: Object.keys(config.settings.data?.sources ?? {}),
-          glyphNamePattern: config.conventions.figma.glyphs?.match,
+          glyphNamePattern: figmaOf(config.conventions).glyphs?.match,
         });
         reportCache(report);
       }

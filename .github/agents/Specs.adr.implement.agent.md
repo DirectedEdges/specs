@@ -1,5 +1,5 @@
 ---
-description: Applies the changes described in an ADR directly to types, schema, tests, docs, and changelog. Runs all validation gates. Author reviews the result as a normal code diff before merging.
+description: Applies the changes described in an ADR to the specs-schema package only — types, schema, tests, docs, and changelog. Runs all validation gates. Author reviews the result as a normal code diff before merging.
 handoffs:
   - label: Accept ADR
     agent: Specs.adr.accept
@@ -14,6 +14,26 @@ $ARGUMENTS
 ```
 
 You **MUST** consider the user input before proceeding (if not empty).
+
+## Scope — `packages/schema` only
+
+**This command changes `packages/schema` and the docs site. It does not touch `packages/cli`, and it does not touch another repo.**
+
+An ADR's Decision section names types and schema; its Downstream Impact table names consumers. This command implements the first and *records* the second. Implementing a consumer is separate work, in its own commit, against that consumer's own tests.
+
+Consumers are updated in dependency order, because each depends on the one before it:
+
+1. **`specs-schema`** — types and schema. This command.
+2. **`specs-from-figma`** — the processing engine, which compiles against the new types.
+3. **`specs-cli`** — depends on `specs-from-figma`, so it comes last.
+
+`specs-plugin-2` compiles `specs-from-figma` from source and follows step 2.
+
+Do not reorder these, and do not fold two steps into one pass. The CLI cannot be verified against types that `specs-from-figma` has not yet adopted.
+
+**When an ADR has no schema-package surface at all** — its Type changes table reads *(none)* and its changes are entirely a consumer's — implement whatever schema-side artifact it does name (a definition, a doc comment), then report the ADR as *not implemented here* and name the consumer that owns it. Do not follow it into that consumer.
+
+**If the schema change leaves a consumer uncompilable, that is expected and is not a reason to widen scope.** Say so in the report. Widening it silently is the failure mode this section exists to prevent.
 
 ## Outline
 
@@ -96,11 +116,12 @@ You **MUST** consider the user input before proceeding (if not empty).
 13. **Bump version in `package.json`**: Apply the `NEW` version from the ADR's Semver Decision.
     - **Gate**: After writing, read `package.json` back and confirm the `"version"` field matches the ADR's `NEW` version. If it does not match, halt and report — do not proceed to step 14.
 
-14. **Report**: List every file modified (with one-line description each). The list **must** include the ADR file, `CHANGELOG.md`, and `package.json` — if any is absent from the list, halt: steps 10, 12, or 13 were not completed. State that the author should review the diff and accept the ADR once satisfied. Remind the author that this ADR branch (`$BRANCH`) targets the release branch (`$RELEASE_BRANCH`), not `main`.
+14. **Report**: List every file modified (with one-line description each) — all of which must be under `packages/schema/`, `adr/`, or `site/`. Name any ADR that had no schema-package surface, and any consumer left uncompilable, as outstanding work rather than doing it. The list **must** include the ADR file, `CHANGELOG.md`, and `package.json` — if any is absent from the list, halt: steps 10, 12, or 13 were not completed. State that the author should review the diff and accept the ADR once satisfied. Remind the author that this ADR branch (`$BRANCH`) targets the release branch (`$RELEASE_BRANCH`), not `main`.
 
 ## Key rules
 
 - Apply changes directly — do not produce a description document.
+- **Never edit `packages/cli`, `specs-from-figma`, or `specs-plugin-2` from this command**, even when the ADR's Downstream Impact table names them and even when the schema change breaks their build. Those are separate passes, in the order given under Scope.
 - Halt and revert on any gate failure. Do not partially apply a change set.
 - Never modify type or schema files not listed in the ADR Decision section. Doc files (`docs/schema/`) corresponding to changed types are always in scope.
 - If the actual change required is a higher semver bump than the ADR states, halt and report before touching any file.

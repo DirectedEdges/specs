@@ -1,3 +1,4 @@
+import type { ResolvedPlatformConventions } from '@directededges/specs-schema';
 import type { ProcessingStates } from '../transforms/states.js';
 
 export interface TransformerContext {
@@ -21,6 +22,15 @@ export interface TransformerContext {
    * have invalidated.
    */
   scoped?: boolean;
+  /**
+   * The conventions of the platform this transformer emits for (ADR-073), from
+   * `config/conventions/<platform>.yaml`. Carries `primitives` — which component
+   * means text, glyph or container here.
+   *
+   * Absent, or absent of `primitives`, means this platform declares no bindings and
+   * elements emit as host elements exactly as before.
+   */
+  platform?: ResolvedPlatformConventions;
 }
 
 /**
@@ -36,6 +46,12 @@ export interface AnalyzerFoundations {
 
 export interface Transformer {
   readonly name: string;
+  /**
+   * The `conventions.platforms` key this transformer reads (ADR-073 Decision 3).
+   * Fixed by the transformer, not configured: React and Web Components are peer
+   * implementations with different vocabularies, so each names its own key.
+   */
+  readonly platformId?: string;
   run(apiYaml: Record<string, unknown>, context: TransformerContext): Promise<void>;
   /** Called once after all components have been processed. Use for cross-component aggregate output. */
   finalize?(outputDir: string, analysisDir?: string, foundations?: AnalyzerFoundations): Promise<void>;

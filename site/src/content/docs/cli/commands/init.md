@@ -13,7 +13,7 @@ specs init [options]
 
 The `init` command scaffolds three configuration files, each answering one question:
 
-- **`config/conventions.yaml`** — facts about the Figma library: naming patterns, state classification, how images are expressed. See [Conventions](/schema/conventions/).
+- **`config/conventions/figma.yaml`** — facts about the Figma library: naming patterns, state classification, how images are expressed. See [Conventions](/schema/conventions/).
 - **`config/settings.yaml`** — choices about this run: sources, spec output, assets. See [Settings](/schema/settings/).
 - **`config/pipeline.yaml`** — transformers and analyses to run. See [Pipeline](/schema/pipeline/).
 
@@ -30,29 +30,28 @@ config/
   pipeline.yaml        # what to run
 ```
 
-`config/conventions.yaml` declares how the library is authored — most conventions start commented out, since absence means the library declares no such convention:
+`config/conventions/figma.yaml` declares how the library is authored — most conventions start commented out, since absence means the library declares no such convention:
 
 ```yaml
 # Facts about the Figma library — every consumer of that library declares the same values.
-figma:
-  # naming: NONE
+# naming: NONE
 
-  # glyphs:
-  #   match: 'DS Icon Glyph / {i}'
+# glyphs:
+#   match: 'DS Icon Glyph / {i}'
 
-  subcomponents:
-    # scope: NESTED
-    match:
-      - '{C} / _ / {S}'
-    # exclude:
-    #   - '{C} / Examples / {S}'
+subcomponents:
+  # scope: NESTED
+  match:
+    - '{C} / _ / {S}'
+  # exclude:
+  #   - '{C} / Examples / {S}'
 
-  slotConstraints: false
+slotConstraints: false
 
-  # states:
-  #   hover:
-  #     prop: state
-  #     value: hover
+# states:
+#   hover:
+#     prop: state
+#     value: hover
 ```
 
 `config/settings.yaml` declares run choices, grouped by concern:
@@ -127,7 +126,7 @@ cd my-design-system
 specs init
 
 # Output:
-# ✓ Created config/conventions.yaml
+# ✓ Created config/conventions/figma.yaml
 # ✓ Created config/settings.yaml
 # ✓ Created config/pipeline.yaml
 # 📚 Next steps:

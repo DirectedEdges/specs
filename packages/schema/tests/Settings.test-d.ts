@@ -39,6 +39,7 @@ const full: Settings = {
     variantDepth: 9999,
     details: 'LAYERED',
     collapsePrimitiveWrapper: true,
+    promotePrimitives: true,
     invalidVariants: false,
     invalidCombinations: true,
     emptyVariants: false,

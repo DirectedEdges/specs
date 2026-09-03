@@ -45,7 +45,7 @@ specs init
 
 This creates three files, each answering one question:
 
-- **`config/conventions.yaml`** — facts about the Figma library: naming patterns, state classification, how images are expressed. See [Conventions](/schema/conventions/).
+- **`config/conventions/figma.yaml`** — facts about the Figma library: naming patterns, state classification, how images are expressed. See [Conventions](/schema/conventions/).
 - **`config/settings.yaml`** — choices about the run: sources, spec output, assets. See [Settings](/schema/settings/).
 - **`config/pipeline.yaml`** — transformers and analyses to run. See [Pipeline](/schema/pipeline/).
 
@@ -88,7 +88,7 @@ The defaults from `specs init` work well for most setups. When you're ready to c
 
 - **`data.directory` / `spec.directory`** in `config/settings.yaml` — where fetched data is stored and specs are written. Defaults: `./data` and `./specs`.
 - **`spec.splitComponents` / `spec.splitConcerns` / `spec.useSubfolders`** in `config/settings.yaml` — controls file organization: split per component, split by concern, use subfolders. All default to `true`, which is the layout `transform` and `analyze` read.
-- **`config/conventions.yaml`** — declare how your library names glyphs, subcomponents, and images, and classify variant props as [states](/settings/states/). See [Conventions](/schema/conventions/).
+- **`config/conventions/figma.yaml`** — declare how your library names glyphs, subcomponents, and images, and classify variant props as [states](/settings/states/). See [Conventions](/schema/conventions/).
 - **`config/pipeline.yaml`** — the transformers and analyses to run. See [Pipeline](/schema/pipeline/).
 
 :::note[Upgrading from a single config file?]
@@ -98,7 +98,7 @@ A pre-split `specs.config.yaml` is no longer read — every command stops with a
 specs migrate config
 ```
 
-It writes `config/conventions.yaml`, `config/settings.yaml`, and `config/pipeline.yaml` from your file, then renames the original to `specs.config.yaml.migrated`. See [`migrate`](/cli/commands/migrate/).
+It writes `config/conventions/figma.yaml`, `config/settings.yaml`, and `config/pipeline.yaml` from your file, then renames the original to `specs.config.yaml.migrated`. See [`migrate`](/cli/commands/migrate/).
 :::
 
 ## Step 3: Fetch the Figma file

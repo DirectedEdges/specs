@@ -5,7 +5,7 @@ description: "Declare the naming convention your Figma file uses, so formatted k
 
 The naming convention your Figma file uses for layer names and component property names.
 
-Where [`keys`](/settings/keys/) controls what the spec *emits*, `naming` describes what the Figma file *contains*. That is why the two live in different files: `keys` is a run choice in `config/settings.yaml`, while `naming` is a fact about the library, declared in `config/conventions.yaml` — a wrong declaration makes name reversal undefined, not merely different. Declaring it gives every formatted key a defined name to reverse back into when a spec is rendered into Figma.
+Where [`keys`](/settings/keys/) controls what the spec *emits*, `naming` describes what the Figma file *contains*. That is why the two live in different files: `keys` is a run choice in `config/settings.yaml`, while `naming` is a fact about the library, declared in `config/conventions/figma.yaml` — a wrong declaration makes name reversal undefined, not merely different. Declaring it gives every formatted key a defined name to reverse back into when a spec is rendered into Figma.
 
 ## Options
 
@@ -21,14 +21,13 @@ Only the two conventions observed in real Figma files are accepted as declaratio
 
 ## Path
 
-`figma.naming` in `config/conventions.yaml`
+`naming` in `config/conventions/figma.yaml`
 
 ### Example
 
 ```yaml
-# config/conventions.yaml
-figma:
-  naming: TITLE   # Figma layer names are Title Case
+# config/conventions/figma.yaml
+naming: TITLE   # Figma layer names are Title Case
 ```
 
 ```yaml

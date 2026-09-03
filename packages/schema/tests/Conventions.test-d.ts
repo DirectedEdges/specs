@@ -3,52 +3,183 @@
  * These files are intentionally never executed — they are compiled with tsc
  * to assert that the type shape is correct.
  */
-import type { Conventions, ResolvedConventions, VariantStateEntry } from '../types/index.js';
+import type {
+  Conventions,
+  ResolvedConventions,
+  MetadataConventions,
+  PlatformConventions,
+  PrimitiveKind,
+  PrimitiveEntry,
+  PrimitiveRule,
+  VariantStateEntry,
+} from '../types/index.js';
 import { DEFAULT_CONVENTIONS } from '../types/index.js';
 
-// ─── A library declaring no conventions ───────────────────────────────────────
+// ─── A workspace declaring no conventions (ADR-073) ───────────────────────────
 
-const none: Conventions = { figma: {} };
+const none: Conventions = {};
+const noPlatforms: Conventions = { platforms: {} };
+const emptyPlatform: Conventions = { platforms: { figma: {} } };
 
-// ─── A library declaring every convention ─────────────────────────────────────
+// ─── Figma is a key like any other ────────────────────────────────────────────
 
-const full: Conventions = {
-  figma: {
-    naming: 'SENTENCE',
-    glyphs: { match: 'DS Icon Glyph / {i}' },
-    codeOnlyProps: { match: 'Code only props' },
-    subcomponents: {
-      scope: 'PAGE',
-      match: ['{C} / {S}', '{C} / _ / {S}'],
-      exclude: ['{C} / Examples / {S}'],
-    },
-    instanceExamples: {
-      scope: 'PAGE',
-      match: ['{C}*'],
-      exclude: ['{C} / Draft'],
-      parentNames: ['Examples'],
-    },
-    images: {
-      backgroundImage: true,
-      match: 'DS Image',
-      sourceProps: ['Image'],
-    },
-    slotConstraints: true,
-    inferNumberProps: true,
-    states: {
-      hover: { prop: 'state', value: 'hover' },
-      active: { prop: 'state', value: 'pressed' },
-      disabled: { prop: 'disabled' },
-      readonly: { prop: 'readOnly' },
-      invalid: { prop: 'validation', value: 'invalid', contract: 'keep' },
+const figmaEncoding: Conventions = {
+  platforms: {
+    figma: {
+      naming: 'SENTENCE',
+      glyphs: { match: 'DS Icon Glyph / {i}' },
+      codeOnlyProps: { match: 'Code only props' },
+      subcomponents: { scope: 'PAGE', match: ['{C} / _ / {S}'], exclude: ['{C} / Examples / {S}'] },
+      instanceExamples: { scope: 'FILE', match: ['{C} Example'], parentNames: ['Examples'] },
+      images: { backgroundImage: true, match: 'DS Image', sourceProps: ['imageSource'] },
+      slotConstraints: true,
+      inferNumberProps: true,
+      states: { hover: { prop: 'state', value: 'hover' } },
+      defaultFillWidth: 375,
     },
   },
 };
 
-// ─── State entries ────────────────────────────────────────────────────────────
+// Platform ids are free-form implementation names, not a closed set (ADR-073 Decision 3A)
+const codePlatforms: Conventions = {
+  platforms: {
+    react: {
+      stylesProp: 'sx',
+      images: { component: 'DsImage' },
+      defaultFillWidth: 375,
+    },
+    'web-components': { stylesProp: 'style' },
+    swiftui: { stylesProp: 'modifier' },
+  },
+};
+
+// The shape is deliberately permissive — a code platform may declare an encoding member
+const permissive: PlatformConventions = { states: { hover: { prop: 'state' } }, stylesProp: 'sx' };
+
+// Figma may take a vocabulary member — the reason it is not special-cased
+const figmaVocabulary: PlatformConventions = { images: { match: 'DS Image' } };
+
+// @ts-expect-error — platforms is a map, not the old figma scope
+const oldShape: Conventions = { figma: { naming: 'NONE' } };
+
+// ─── Promotion entries (ADR-074 – ADR-076) ────────────────────────────────────
+
+const kinds: PrimitiveKind[] = ['text', 'glyph', 'container'];
+
+// @ts-expect-error — PrimitiveKind is closed; an image is not a node kind (ADR-077)
+const imageKind: PrimitiveKind = 'image';
+
+// primitives sits at the root of Conventions, not under a platform: a component's props
+// are the same whichever platform renders it (ADR-075)
+const promotion: Conventions = {
+  primitives: {
+    dsHeading: {
+      elementType: 'text',
+      map: [
+        { source: 'typography', values: { 'Typography theme/Headline/M': { appearance: 'Headline M' } } },
+        { source: 'content', prop: 'text' },
+      ],
+    },
+    // One source may write several props, and a source may reach a prop of another meaning
+    dsTypography: {
+      elementType: 'text',
+      map: [{ source: 'typography', values: { 'Typography/font__200__medium': { size: 200, weight: 'Medium' } } }],
+    },
+    dsIcon: {
+      elementType: 'glyph',
+      map: [
+        { source: 'fillColor', values: { 'Color/Critical': { appearance: 'error' } } },
+        { source: 'height', values: { 16: { size: 'XS' } } }, // raw scalars are keys too
+        { source: 'content', prop: 'name' },
+      ],
+    },
+    // A Row/Column/Box trio is three entries; an empty props object promotes without writing
+    dsRow: { elementType: 'container', map: [{ source: 'layoutMode', values: { HORIZONTAL: {} } }] },
+    dsColumn: { elementType: 'container', map: [{ source: 'layoutMode', values: { VERTICAL: {} } }] },
+  },
+};
+
+// @ts-expect-error — primitives is not a platform member (ADR-074)
+const platformPrimitives: PlatformConventions = { primitives: { dsText: { elementType: 'text', map: [] } } };
+
+// @ts-expect-error — elementType is required
+const entryWithoutKind: PrimitiveEntry = { map: [] };
+
+// @ts-expect-error — map is required
+const entryWithoutMap: PrimitiveEntry = { elementType: 'text' };
+
+// @ts-expect-error — elementType is closed
+const entryBadKind: PrimitiveEntry = { elementType: 'image', map: [] };
+
+// source is a plain string — the honoured set is documented and implemented, not validated
+// here, so renaming a Styles member never churns a conventions file (ADR-075)
+const dottedSource: PrimitiveRule = { source: 'typography.fontStyle', values: { Bold: { weight: 'Bold' } } };
+
+// @ts-expect-error — source is required
+const ruleWithoutSource: PrimitiveRule = { prop: 'text' };
+
+// ─── Images: encoding and vocabulary in one block (ADR-077) ───────────────────
+
+const imageBoth: PlatformConventions = {
+  images: { backgroundImage: true, match: 'DS Image', component: 'DsImage', sourceProps: ['imageSource'] },
+};
+
+// ─── defaultFillWidth (ADR-081) ───────────────────────────────────────────────
+
+const width: PlatformConventions = { defaultFillWidth: 375 };
+
+// @ts-expect-error — a width is a number, not a CSS length string
+const stringWidth: PlatformConventions = { defaultFillWidth: '375px' };
+
+// ─── Resolution guarantees members inside a declared block ────────────────────
+
+declare const resolved: ResolvedConventions;
+
+// platforms and each key stay optional — absence is a statement nothing can supply
+const platformMayBeAbsent: number | undefined = resolved.platforms?.figma?.defaultFillWidth;
+
+declare const platform: NonNullable<ResolvedConventions['platforms']>[string];
+
+// Defaults inside a declared platform entry are guaranteed — no null check needed
+const naming: 'NONE' | 'SENTENCE' | 'TITLE' = platform.naming;
+const constraints: boolean = platform.slotConstraints;
+const numbers: boolean = platform.inferNumberProps;
+const scope: 'NESTED' | 'PAGE' | undefined = platform.subcomponents?.scope;
+const sourceProps: string[] | undefined = platform.images?.sourceProps;
+
+// stylesProp survives resolution as a platform member — promotion targets are named by the
+// spec, so there is no per-primitive block to fold it into (ADR-076)
+const platformStyles: string | undefined = platform.stylesProp;
+
+// Promotion entries resolve at the root, beside platforms rather than within one
+declare const resolvedRoot: ResolvedConventions;
+const resolvedEntry: PrimitiveEntry | undefined = resolvedRoot.primitives?.dsHeading;
+
+// @ts-expect-error — a resolved platform entry must carry its defaulted members
+const underResolved: ResolvedConventions = { platforms: { figma: { naming: 'NONE' } } };
+
+// ─── MetadataConventions — exactly one platform (ADR-079) ─────────────────────
+
+declare const producing: NonNullable<ResolvedConventions['platforms']>[string];
+
+const meta: MetadataConventions = { platforms: { figma: producing } };
+
+// @ts-expect-error — platforms is required in metadata; absence is not expressible
+const metaWithoutPlatforms: MetadataConventions = {};
+
+// ─── Defaults ─────────────────────────────────────────────────────────────────
+
+// A workspace that declares nothing. Every default belongs inside a platform entry,
+// so there is nothing left to default at the root (ADR-073).
+const defaults: ResolvedConventions = DEFAULT_CONVENTIONS;
+
+// @ts-expect-error — no platform is defaulted; absence means none is declared
+const defaultedPlatform: object = DEFAULT_CONVENTIONS.platforms.figma;
+
+// ─── VariantStateEntry (unchanged) ────────────────────────────────────────────
 
 const booleanState: VariantStateEntry = { prop: 'disabled' };
-const enumState: VariantStateEntry = { prop: 'state', value: 'pressed' };
+const enumState: VariantStateEntry = { prop: 'state', value: 'hover', contract: 'keep' };
 
 // @ts-expect-error — prop is required
 const noProp: VariantStateEntry = { value: 'pressed' };
@@ -56,37 +187,11 @@ const noProp: VariantStateEntry = { value: 'pressed' };
 // @ts-expect-error — contract is a closed set
 const badContract: VariantStateEntry = { prop: 'focused', contract: 'inherit' };
 
-// ─── Resolution guarantees members inside a declared block ────────────────────
-
-declare const resolved: ResolvedConventions;
-
-// Defaults inside a present block are guaranteed — no null check needed
-const scope: 'NESTED' | 'PAGE' | undefined = resolved.figma.subcomponents?.scope;
-const naming: 'NONE' | 'SENTENCE' | 'TITLE' = resolved.figma.naming;
-const constraints: boolean = resolved.figma.slotConstraints;
-const numbers: boolean = resolved.figma.inferNumberProps;
-
-// The block itself stays optional — absence means the library declares nothing
-const blockMayBeAbsent: ResolvedConventions = { figma: { naming: 'NONE', slotConstraints: false, inferNumberProps: false } };
-
-// @ts-expect-error — a resolved block must carry its defaulted members
-const underResolved: ResolvedConventions = { figma: { naming: 'NONE' } };
-
-// @ts-expect-error — match is required once a glyph convention is declared
-const glyphsWithoutMatch: Conventions = { figma: { glyphs: {} } };
-
-// @ts-expect-error — figma namespace is required
-const noNamespace: Conventions = {};
-
-// ─── Defaults ─────────────────────────────────────────────────────────────────
-
-// A library that declares nothing: the three defaultable members, no blocks.
-const defaults: ResolvedConventions = DEFAULT_CONVENTIONS;
-const defaultNaming: 'NONE' | 'SENTENCE' | 'TITLE' = DEFAULT_CONVENTIONS.figma.naming;
-
-// @ts-expect-error — no block is defaulted; absence means the library declares none
-const defaultedBlock: object = DEFAULT_CONVENTIONS.figma.subcomponents.match;
-
-export { defaults, defaultNaming, defaultedBlock };
-
-export { none, full, booleanState, enumState, noProp, badContract, scope, naming, constraints, numbers, blockMayBeAbsent, underResolved, glyphsWithoutMatch, noNamespace };
+export {
+  none, noPlatforms, emptyPlatform, figmaEncoding, codePlatforms, permissive, figmaVocabulary,
+  oldShape, kinds, imageKind, promotion, platformPrimitives, entryWithoutKind, entryWithoutMap,
+  entryBadKind, dottedSource, ruleWithoutSource, imageBoth,
+  width, stringWidth, platformMayBeAbsent, naming, constraints, numbers, scope, sourceProps,
+  platformStyles, resolvedEntry, underResolved, meta,
+  metaWithoutPlatforms, defaults, defaultedPlatform, booleanState, enumState, noProp, badContract,
+};

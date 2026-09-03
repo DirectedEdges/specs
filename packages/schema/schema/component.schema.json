@@ -58,7 +58,7 @@
         },
         "slotContentExamples": {
           "type": "object",
-          "description": "Named slot-content examples for this component (ADR-047). Each entry is a SlotContent \u2014 a flat anatomy+elements+layout triplet usable as a named slot fill. Referenced via SlotContentRef from SlotBinding.examples and from Element.propConfigurations slot-prop entries (ADR-049). specs-from-figma de-duplicates entries by structural equality.",
+          "description": "Named slot-content examples for this component (ADR-047). Each entry is a SlotContent — a flat anatomy+elements+layout triplet usable as a named slot fill. Referenced via SlotContentRef from SlotBinding.examples and from Element.propConfigurations slot-prop entries (ADR-049). specs-from-figma de-duplicates entries by structural equality.",
           "patternProperties": {
             "^[a-zA-Z0-9_-]+$": {
               "$ref": "#/definitions/SlotContent"
@@ -84,7 +84,7 @@
     },
     "InstanceExample": {
       "type": "object",
-      "description": "A pre-configured usage of the whole component (ADR-048). Scalar props are set directly; slot props are filled via SlotContentRef. PropBinding is not accepted \u2014 this is a documented configuration, not a live binding.",
+      "description": "A pre-configured usage of the whole component (ADR-048). Scalar props are set directly; slot props are filled via SlotContentRef. PropBinding is not accepted — this is a documented configuration, not a live binding.",
       "properties": {
         "title": {
           "type": "string"
@@ -141,7 +141,7 @@
     "SafeKeyTitle": {
       "type": "string",
       "pattern": "^[A-Z][a-z]*( ([A-Z][a-z]*|[0-9]+))*$",
-      "description": "As SafeKeySentence, but for format.figmaKeys TITLE \u2014 every letter word capitalized."
+      "description": "As SafeKeySentence, but for format.figmaKeys TITLE — every letter word capitalized."
     },
     "ElementType": {
       "type": "string",
@@ -228,7 +228,7 @@
               "properties": {
                 "name": {
                   "type": "string",
-                  "description": "The element's name in Figma. Recorded on any of three triggers: primitive-wrapper collapse promoted this element to root (ADR-058), always and independent of format.figmaKeys; the name fell outside the safe key grammar so format.keys could not represent it losslessly (ADR-066); or the name was already written in the destination format and passed through unformatted, making reversal identity rather than re-derivation (ADR-066). The latter two apply only when format.figmaKeys is not NONE \u2014 under NONE, format divergence is not evaluated and this field is absent however the key was derived."
+                  "description": "The element's name in Figma. Recorded on any of three triggers: primitive-wrapper collapse promoted this element to root (ADR-058), always and independent of format.figmaKeys; the name fell outside the safe key grammar so format.keys could not represent it losslessly (ADR-066); or the name was already written in the destination format and passed through unformatted, making reversal identity rather than re-derivation (ADR-066). The latter two apply only when format.figmaKeys is not NONE — under NONE, format divergence is not evaluated and this field is absent however the key was derived."
                 }
               },
               "additionalProperties": false
@@ -300,7 +300,7 @@
     },
     "FigmaPropExtension": {
       "type": "object",
-      "description": "DTCG \u00a75.2.3 Figma-specific metadata for a prop definition.",
+      "description": "DTCG §5.2.3 Figma-specific metadata for a prop definition.",
       "properties": {
         "type": {
           "type": "string",
@@ -314,18 +314,18 @@
         },
         "source": {
           "$ref": "#/definitions/FigmaCodeOnlySource",
-          "description": "Provenance metadata \u2014 present only for props extracted from a code-only container layer"
+          "description": "Provenance metadata — present only for props extracted from a code-only container layer"
         },
         "name": {
           "type": "string",
-          "description": "The Figma component-property name (ADR-066). Recorded when the name fell outside the safe key grammar, or when it was already written in the destination format and passed through unformatted \u2014 in which case reversal is identity, not re-derivation. Both triggers require format.figmaKeys to be other than NONE; under NONE this field is absent however the key was derived."
+          "description": "The Figma component-property name (ADR-066). Recorded when the name fell outside the safe key grammar, or when it was already written in the destination format and passed through unformatted — in which case reversal is identity, not re-derivation. Both triggers require format.figmaKeys to be other than NONE; under NONE this field is absent however the key was derived."
         }
       },
       "additionalProperties": true
     },
     "PropExtensions": {
       "type": "object",
-      "description": "DTCG \u00a75.2.3 platform-specific extensions for prop definitions. Each property is a reverse-domain key whose value is a platform extension type.",
+      "description": "DTCG §5.2.3 platform-specific extensions for prop definitions. Each property is a reverse-domain key whose value is a platform extension type.",
       "properties": {
         "com.figma": {
           "$ref": "#/definitions/FigmaPropExtension"
@@ -376,7 +376,7 @@
         "nullable": {
           "type": "boolean",
           "default": true,
-          "description": "Whether this prop accepts a null value. Absent means true \u2014 a string prop has an open value set, so null is accepted unless false explicitly asserts otherwise."
+          "description": "Whether this prop accepts a null value. Absent means true — a string prop has an open value set, so null is accepted unless false explicitly asserts otherwise."
         },
         "examples": {
           "type": "array",
@@ -418,7 +418,7 @@
         "nullable": {
           "type": "boolean",
           "default": false,
-          "description": "Whether this prop accepts a null value. Absent means false \u2014 enum enumerates every accepted value, and null is not among them unless true explicitly admits it."
+          "description": "Whether this prop accepts a null value. Absent means false — enum enumerates every accepted value, and null is not among them unless true explicitly admits it."
         },
         "$extensions": {
           "$ref": "#/definitions/PropExtensions"
@@ -444,7 +444,7 @@
         "nullable": {
           "type": "boolean",
           "default": true,
-          "description": "Whether this slot prop accepts a null value. Absent means true \u2014 a slot has an open content set and may be empty, unless false explicitly asserts otherwise."
+          "description": "Whether this slot prop accepts a null value. Absent means true — a slot has an open content set and may be empty, unless false explicitly asserts otherwise."
         },
         "minChildren": {
           "type": "integer",
@@ -531,7 +531,7 @@
       ]
     },
     "PropConfigurationValue": {
-      "description": "The value of a single prop configuration entry (ADR-049): a scalar, a PropBinding for pass-through to a parent prop, a SlotContentRef under a slot-prop key for a named slot-content fill, or an ImageBinding under an image-prop key forwarding an image into a nested image instance (ADR-063), or null when the prop is unset in this configuration \u2014 a value, not an absence: an absent key inherits, a null key overrides an inherited value with no value (ADR-080).",
+      "description": "The value of a single prop configuration entry (ADR-049): a scalar, a PropBinding for pass-through to a parent prop, a SlotContentRef under a slot-prop key for a named slot-content fill, or an ImageBinding under an image-prop key forwarding an image into a nested image instance (ADR-063), or null when the prop is unset in this configuration — a value, not an absence: an absent key inherits, a null key overrides an inherited value with no value (ADR-080).",
       "oneOf": [
         {
           "type": "string"
@@ -603,7 +603,7 @@
     },
     "SlotContent": {
       "type": "object",
-      "description": "The anonymous structural triplet \u2014 anatomy, elements, layout \u2014 used as a named slot fill (ADR-046). Carries no metadata of its own; identity lives at the key under which it is stored (Component.slotContentExamples or Composition.slotContent).",
+      "description": "The anonymous structural triplet — anatomy, elements, layout — used as a named slot fill (ADR-046). Carries no metadata of its own; identity lives at the key under which it is stored (Component.slotContentExamples or Composition.slotContent).",
       "required": [
         "anatomy",
         "elements",
@@ -627,7 +627,7 @@
     },
     "Composition": {
       "type": "object",
-      "description": "A named, authored unit of composed content (ADR-042, ADR-046). The top-level anatomy+elements+layout triplet is the primary content \u2014 no wrapper, no reserved `main` key. Optional slotContent bundles named SlotContent fills alongside the primary content. A SlotContentRef pointing at a Composition entry resolves to the top-level triplet; a pointer into slotContent/<key> resolves to that SlotContent directly.",
+      "description": "A named, authored unit of composed content (ADR-042, ADR-046). The top-level anatomy+elements+layout triplet is the primary content — no wrapper, no reserved `main` key. Optional slotContent bundles named SlotContent fills alongside the primary content. A SlotContentRef pointing at a Composition entry resolves to the top-level triplet; a pointer into slotContent/<key> resolves to that SlotContent directly.",
       "required": [
         "anatomy",
         "elements",
@@ -656,7 +656,7 @@
         },
         "slotContent": {
           "type": "object",
-          "description": "Named slot fills bundled alongside this composition's primary content. Authoring convenience only \u2014 not a scope boundary. Entries are reachable via a deeper SlotContentRef pointer.",
+          "description": "Named slot fills bundled alongside this composition's primary content. Authoring convenience only — not a scope boundary. Entries are reachable via a deeper SlotContentRef pointer.",
           "patternProperties": {
             "^[a-zA-Z0-9_-]+$": {
               "$ref": "#/definitions/SlotContent"
@@ -684,7 +684,7 @@
               "$ref": "#/definitions/SlotBinding"
             }
           ],
-          "description": "Child element names, or a SlotBinding when bound to a slot prop. SlotBinding is a PropBinding optionally carrying `examples` \u2014 an array of SlotContentRef entries for authored sample fills (e.g. Figma's authoring default at index 0). The bare `{ $binding }` form still validates."
+          "description": "Child element names, or a SlotBinding when bound to a slot prop. SlotBinding is a PropBinding optionally carrying `examples` — an array of SlotContentRef entries for authored sample fills (e.g. Figma's authoring default at index 0). The bare `{ $binding }` form still validates."
         },
         "parent": {
           "oneOf": [
@@ -726,6 +726,10 @@
         },
         "propConfigurations": {
           "$ref": "#/definitions/PropConfigurations"
+        },
+        "$extensions": {
+          "$ref": "#/definitions/ElementExtensions",
+          "description": "Platform extensions; com.figma carries capture provenance."
         }
       },
       "additionalProperties": false
@@ -746,7 +750,7 @@
     },
     "SlotBinding": {
       "type": "object",
-      "description": "Slot binding: a PropBinding to a slot prop, optionally carrying authored sample fills in `examples`. Each `examples[i]` is a SlotContentRef (ADR-046) pointing into Component.slotContentExamples or a Composition. Emitters currently write at most one entry \u2014 `examples[0]` is Figma's authoring default. Non-contractual reference material; code consumers handle missing slots through component logic and need not honor it.",
+      "description": "Slot binding: a PropBinding to a slot prop, optionally carrying authored sample fills in `examples`. Each `examples[i]` is a SlotContentRef (ADR-046) pointing into Component.slotContentExamples or a Composition. Emitters currently write at most one entry — `examples[0]` is Figma's authoring default. Non-contractual reference material; code consumers handle missing slots through component logic and need not honor it.",
       "required": [
         "$binding"
       ],
@@ -757,7 +761,7 @@
         },
         "examples": {
           "type": "array",
-          "description": "Authored example fills for this slot. Emitters currently write at most one entry \u2014 Figma's authoring default at index 0.",
+          "description": "Authored example fills for this slot. Emitters currently write at most one entry — Figma's authoring default at index 0.",
           "items": {
             "$ref": "#/definitions/SlotContentRef"
           }
@@ -767,7 +771,7 @@
     },
     "SlotContentRef": {
       "type": "object",
-      "description": "Reference to a SlotContent or Composition entry by JSON Pointer (ADR-046). Resolves to a Composition entry (top-level triplet), a Composition.slotContent entry, or a Component.slotContentExamples entry \u2014 all yield anatomy+elements+layout. Discriminated by the $slotContent key.",
+      "description": "Reference to a SlotContent or Composition entry by JSON Pointer (ADR-046). Resolves to a Composition entry (top-level triplet), a Composition.slotContent entry, or a Component.slotContentExamples entry — all yield anatomy+elements+layout. Discriminated by the $slotContent key.",
       "properties": {
         "$slotContent": {
           "type": "string",
@@ -985,8 +989,8 @@
           "additionalProperties": false
         },
         "conventions": {
-          "$ref": "conventions.schema.json#/definitions/Conventions",
-          "description": "Facts about the Figma library this spec was generated from."
+          "$ref": "conventions.schema.json#/definitions/MetadataConventions",
+          "description": "Conventions of the one platform that produced this spec. A missing platform did not produce it. (ADR-079)"
         },
         "settings": {
           "$ref": "settings.schema.json#/definitions/Settings",
@@ -1082,7 +1086,7 @@
         "nullable": {
           "type": "boolean",
           "default": true,
-          "description": "Whether this prop accepts a null value. Absent means true \u2014 a number prop has an open value set, so null is accepted unless false explicitly asserts otherwise."
+          "description": "Whether this prop accepts a null value. Absent means true — a number prop has an open value set, so null is accepted unless false explicitly asserts otherwise."
         },
         "examples": {
           "type": "array",
@@ -1116,12 +1120,12 @@
             "string",
             "null"
           ],
-          "description": "Default image \u2014 an images registry reference, or null."
+          "description": "Default image — an images registry reference, or null."
         },
         "nullable": {
           "type": "boolean",
           "default": true,
-          "description": "Whether this prop accepts a null value. Absent means true \u2014 an image prop has an open value set, so null is accepted unless false explicitly asserts otherwise."
+          "description": "Whether this prop accepts a null value. Absent means true — an image prop has an open value set, so null is accepted unless false explicitly asserts otherwise."
         },
         "$extensions": {
           "$ref": "#/definitions/PropExtensions"
@@ -1172,7 +1176,7 @@
       "properties": {
         "src": {
           "type": "string",
-          "description": "Resolved image source \u2014 an emitted asset path (the standard resolved form, relative to the referencing spec file), a data: URI, or an external URL. Absent = unresolved."
+          "description": "Resolved image source — an emitted asset path (the standard resolved form, relative to the referencing spec file), a data: URI, or an external URL. Absent = unresolved."
         },
         "$extensions": {
           "type": "object",
@@ -1183,7 +1187,7 @@
               "properties": {
                 "imageHash": {
                   "type": "string",
-                  "description": "The Figma image content hash (Plugin ImagePaint.imageHash / REST fills[].imageRef) \u2014 reverse-direction tooling reconstructs an ImagePaint from it."
+                  "description": "The Figma image content hash (Plugin ImagePaint.imageHash / REST fills[].imageRef) — reverse-direction tooling reconstructs an ImagePaint from it."
                 }
               },
               "required": [
@@ -1193,6 +1197,46 @@
             }
           },
           "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "FigmaElementExtension": {
+      "type": "object",
+      "description": "Figma capture provenance for an element. Written when a primitive layer in composed example content is promoted to a component instance. (ADR-084)",
+      "properties": {
+        "promotedPrimitive": {
+          "type": "boolean",
+          "description": "This element was a primitive layer promoted to a component instance, rather than an instance the designer placed. Declared rather than inferred from the presence of styles, because a promotion may consume no styles at all."
+        },
+        "multipleMatches": {
+          "type": "boolean",
+          "description": "More than one conventions.primitives entry resolved against this element, and the highest-scoring one was chosen. A durable record of ambiguity; absent means exactly one entry resolved."
+        },
+        "content": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/definitions/PropBinding"
+            }
+          ],
+          "description": "The content the promotion consumed — a text layer's string or a glyph's name. Recorded beside styles because content is not a style."
+        },
+        "styles": {
+          "$ref": "#/definitions/Styles",
+          "description": "The styles the promotion consumed, recorded verbatim as captured. A prop value cannot be inverted back to the style that produced it, so the original is what lets a promoted layer be rendered back as a layer."
+        }
+      },
+      "additionalProperties": false
+    },
+    "ElementExtensions": {
+      "type": "object",
+      "description": "DTCG-style platform extensions for an element.",
+      "properties": {
+        "com.figma": {
+          "$ref": "#/definitions/FigmaElementExtension"
         }
       },
       "additionalProperties": false

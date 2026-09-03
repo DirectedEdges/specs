@@ -12,7 +12,7 @@ A workspace authors three files in a `config/` directory, one per question:
 
 | File | Question it answers | Kind of value |
 |------|--------------------|---------------|
-| `config/conventions.yaml` | What is true about this Figma library? | **Facts.** Every consumer reading the same library declares the same values — a wrong value produces *incorrect* output (undetected glyphs, unclassified states) |
+| `config/conventions/figma.yaml` | What is true about this Figma library? | **Facts.** Every consumer reading the same library declares the same values — a wrong value produces *incorrect* output (undetected glyphs, unclassified states) |
 | `config/settings.yaml` | What do I want out of this run? | **Choices.** A different team could set any of these differently and still be correct — a different value produces merely *different* output |
 | `config/pipeline.yaml` | What work should run over the specs? | **Work.** Transformers and analyses to run |
 
@@ -83,7 +83,7 @@ The CLI reads configuration from the workspace's `config/` directory, layered wi
 The CLI applies configuration using three priority levels:
 
 1. **CLI flags** (highest) - Explicit overrides for individual commands
-2. **Config files** - Project defaults via `config/conventions.yaml`, `config/settings.yaml`, and `config/pipeline.yaml`
+2. **Config files** - Project defaults via `config/conventions/figma.yaml`, `config/settings.yaml`, and `config/pipeline.yaml`
 3. **Fallbacks** (lowest) - Convention-based defaults when no sources are configured
 
 ### CLI Flags
@@ -147,26 +147,25 @@ Nothing else is read. A pre-split `specs.config.yaml` / `specs.config.json` (or 
 Each file answers one question, written in YAML or JSON:
 
 ```yaml
-# config/conventions.yaml — facts about the Figma library
-figma:
-  naming: SENTENCE            # the file's layer/property naming convention
+# config/conventions/figma.yaml — facts about the Figma library
+naming: SENTENCE            # the file's layer/property naming convention
 
-  glyphs:
-    match: 'DS Icon Glyph / {i}'
+glyphs:
+  match: 'DS Icon Glyph / {i}'
 
-  codeOnlyProps:
-    match: 'Code only props'
+codeOnlyProps:
+  match: 'Code only props'
 
-  subcomponents:
-    match:
-      - '{C} / _ / {S}'
+subcomponents:
+  match:
+    - '{C} / _ / {S}'
 
-  states:
-    hover:
-      prop: state
-      value: hover
-    disabled:
-      prop: disabled
+states:
+  hover:
+    prop: state
+    value: hover
+  disabled:
+    prop: disabled
 ```
 
 ```yaml
@@ -211,7 +210,7 @@ A pre-split `specs.config.yaml` (or `.json`, or `~/.specs/config.yaml`) is no lo
 
 ```
 specs.config.yaml is no longer read (ADR-071).
-  Run `specs migrate config` to write config/conventions.yaml, config/settings.yaml and config/pipeline.yaml from it.
+  Run `specs migrate config` to write config/conventions/figma.yaml, config/settings.yaml and config/pipeline.yaml from it.
   Docs: https://specs.directededges.com/settings/
 ```
 
@@ -268,15 +267,14 @@ The conventions file is typically identical across environments — it is the se
 Add comments to explain library-specific conventions:
 
 ```yaml
-# config/conventions.yaml
-figma:
-  subcomponents:
-    # Match direct children and underscore-nested subcomponents
-    match:
-      - '{C} / {S}'
-      - '{C} / _ / {S}'
-    exclude:
-      - '{C} / Examples / {S}'
+# config/conventions/figma.yaml
+subcomponents:
+  # Match direct children and underscore-nested subcomponents
+  match:
+    - '{C} / {S}'
+    - '{C} / _ / {S}'
+  exclude:
+    - '{C} / Examples / {S}'
 ```
 
 ```yaml

@@ -127,7 +127,9 @@ export function migrateConfigV1(parsed: unknown): MigratedConfig {
   if (Object.keys(spec).length > 0) settings.spec = spec;
 
   return {
-    conventions: Object.keys(figma).length > 0 ? { figma } : undefined,
+    // The Figma platform's entry BODY, not a `{ figma }` wrapper: it is written to
+    // config/conventions/figma.yaml, where the filename is the platform id (ADR-078).
+    conventions: Object.keys(figma).length > 0 ? figma : undefined,
     settings: Object.keys(settings).length > 0 ? settings : undefined,
     pipeline: Object.keys(pipeline).length > 0 ? pipeline : undefined,
   };

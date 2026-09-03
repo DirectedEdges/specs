@@ -28,6 +28,7 @@ const ERROR_CODES = {
 };
 
 import type { SourceEntry } from '@directededges/specs-schema';
+import { figmaOf } from '../Config/PlatformConventions.js';
 
 type FetchKind = 'file' | 'variables' | 'styles' | 'icons';
 
@@ -356,7 +357,7 @@ export const Fetch = new Command('fetch')
         // the saved file payload, so `file` must be present (fetched this run
         // or a previous one) before icons can resolve.
         if (entry.fetch.includes('icons') && wants('icons')) {
-          const pattern = config.conventions.figma.glyphs?.match;
+          const pattern = figmaOf(config.conventions).glyphs?.match;
           if (!pattern) {
             console.error(`Error: data.sources.${entry.alias}.fetch includes "icons" but conventions.figma.glyphs.match is not set`);
             process.exit(ERROR_CODES.INVALID_ARGS);
@@ -432,7 +433,7 @@ export const Fetch = new Command('fetch')
         const report = refreshCache({
           dataDir,
           aliases: Object.keys(config.settings.data?.sources ?? {}),
-          glyphNamePattern: config.conventions.figma.glyphs?.match,
+          glyphNamePattern: figmaOf(config.conventions).glyphs?.match,
         });
         reportCache(report);
       }

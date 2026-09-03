@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://specs.directededges.com/conventions.schema.json",
   "title": "Specs Library Conventions",
-  "description": "Facts about the Figma library a spec was generated from. Every consumer reading the same library declares the same values; differing values produce incorrect output, not merely different output.",
+  "description": "Facts about the libraries a spec was generated from and is generated for, keyed by platform. Every consumer reading the same libraries declares the same values; differing values produce incorrect output, not merely different output.",
   "definitions": {
     "VariantStateEntry": {
       "type": "object",
@@ -14,7 +14,7 @@
         },
         "value": {
           "type": "string",
-          "description": "Figma variant value that activates this concept (e.g. 'hover', 'pressed'). Omit for boolean props \u2014 defaults to 'true'."
+          "description": "Figma variant value that activates this concept (e.g. 'hover', 'pressed'). Omit for boolean props — defaults to 'true'."
         },
         "contract": {
           "type": "string",
@@ -30,171 +30,282 @@
       ],
       "additionalProperties": false
     },
-    "Conventions": {
+    "PlatformConventions": {
       "type": "object",
-      "description": "Facts about the library, namespaced by source.",
+      "description": "Facts about one platform's library — how it is authored (encoding members) and what it calls things (vocabulary members). One permissive shape for every platform, including figma. Also the root of a single config/conventions/<platform>.yaml file, so one file validates standalone. (ADR-073, ADR-078)",
       "properties": {
-        "figma": {
+        "naming": {
+          "type": "string",
+          "enum": [
+            "NONE",
+            "SENTENCE",
+            "TITLE"
+          ],
+          "default": "NONE",
+          "description": "Naming convention this platform uses for layer and component property names — the reversal target for settings.spec.keys."
+        },
+        "glyphs": {
           "type": "object",
-          "description": "Conventions describing how the Figma library is authored and organized.",
+          "description": "Glyph content assets. Absence means the library has no glyph naming convention.",
           "properties": {
-            "naming": {
+            "match": {
+              "type": "string",
+              "description": "Naming pattern identifying glyph assets, using the {i} icon-name placeholder."
+            }
+          },
+          "required": [
+            "match"
+          ],
+          "additionalProperties": false
+        },
+        "codeOnlyProps": {
+          "type": "object",
+          "description": "The code-only props container layer. Absence means the library has no such convention.",
+          "properties": {
+            "match": {
+              "type": "string",
+              "description": "Literal layer name identifying the container."
+            }
+          },
+          "required": [
+            "match"
+          ],
+          "additionalProperties": false
+        },
+        "subcomponents": {
+          "type": "object",
+          "description": "Subcomponent organization and naming. Absence means the library has no subcomponent convention.",
+          "properties": {
+            "scope": {
               "type": "string",
               "enum": [
-                "NONE",
-                "SENTENCE",
-                "TITLE"
+                "NESTED",
+                "PAGE"
               ],
-              "default": "NONE",
-              "description": "Naming convention the Figma file uses for layer and component property names \u2014 the reversal target for settings.spec.keys."
+              "default": "NESTED",
+              "description": "Where the library keeps subcomponents. NESTED = anatomy only; PAGE = also the Figma page."
             },
-            "glyphs": {
-              "type": "object",
-              "description": "Glyph content assets. Absence means the library has no glyph naming convention.",
-              "properties": {
-                "match": {
-                  "type": "string",
-                  "description": "Naming pattern identifying glyph assets, using the {i} icon-name placeholder."
-                }
+            "match": {
+              "type": "array",
+              "items": {
+                "type": "string"
               },
-              "required": [
-                "match"
+              "minItems": 1,
+              "description": "Naming patterns identifying subcomponents, using {C} and {S} placeholders."
+            },
+            "exclude": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Naming patterns for matched assets the library excludes."
+            }
+          },
+          "required": [
+            "match"
+          ],
+          "additionalProperties": false
+        },
+        "instanceExamples": {
+          "type": "object",
+          "description": "Instance example organization and naming (ADR-050). Absence means the library has no such convention.",
+          "properties": {
+            "scope": {
+              "type": "string",
+              "enum": [
+                "PAGE",
+                "FILE"
               ],
-              "additionalProperties": false
+              "default": "PAGE",
+              "description": "Where the library keeps instance examples."
             },
-            "codeOnlyProps": {
-              "type": "object",
-              "description": "The code-only props container layer. Absence means the library has no such convention.",
-              "properties": {
-                "match": {
-                  "type": "string",
-                  "description": "Literal layer name identifying the container."
-                }
+            "match": {
+              "type": "array",
+              "items": {
+                "type": "string"
               },
-              "required": [
-                "match"
-              ],
-              "additionalProperties": false
+              "description": "Naming patterns narrowing which instance frames qualify, using the {C} placeholder."
             },
-            "subcomponents": {
-              "type": "object",
-              "description": "Subcomponent organization and naming. Absence means the library has no subcomponent convention.",
-              "properties": {
-                "scope": {
-                  "type": "string",
-                  "enum": [
-                    "NESTED",
-                    "PAGE"
-                  ],
-                  "default": "NESTED",
-                  "description": "Where the library keeps subcomponents. NESTED = anatomy only; PAGE = also the Figma page."
-                },
-                "match": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  },
-                  "minItems": 1,
-                  "description": "Naming patterns identifying subcomponents, using {C} and {S} placeholders."
-                },
-                "exclude": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  },
-                  "description": "Naming patterns for matched assets the library excludes."
-                }
+            "exclude": {
+              "type": "array",
+              "items": {
+                "type": "string"
               },
-              "required": [
-                "match"
-              ],
-              "additionalProperties": false
+              "description": "Naming patterns for frames the library excludes."
             },
-            "instanceExamples": {
-              "type": "object",
-              "description": "Instance example organization and naming (ADR-050). Absence means the library has no such convention.",
-              "properties": {
-                "scope": {
-                  "type": "string",
-                  "enum": [
-                    "PAGE",
-                    "FILE"
-                  ],
-                  "default": "PAGE",
-                  "description": "Where the library keeps instance examples."
-                },
-                "match": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  },
-                  "description": "Naming patterns narrowing which instance frames qualify, using the {C} placeholder."
-                },
-                "exclude": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  },
-                  "description": "Naming patterns for frames the library excludes."
-                },
-                "parentNames": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  },
-                  "description": "Immediate-parent frame or section names a candidate must sit within."
-                }
+            "parentNames": {
+              "type": "array",
+              "items": {
+                "type": "string"
               },
-              "additionalProperties": false
-            },
-            "images": {
-              "type": "object",
-              "description": "How the library expresses images (ADR-063). Absence means the library has no image convention.",
-              "properties": {
-                "backgroundImage": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "The library expresses images as container fills, emitted as Styles.backgroundImage."
-                },
-                "match": {
-                  "type": "string",
-                  "description": "Name of the library's designated image component. Requires a non-empty sourceProps."
-                },
-                "sourceProps": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  },
-                  "description": "Code-only prop names carrying image sources. The first entry is the designated component's own source prop."
-                }
-              },
-              "additionalProperties": false
-            },
-            "slotConstraints": {
-              "type": "boolean",
-              "default": false,
-              "description": "The library authors slot constraints as code-only props, to be consolidated into the slot property."
-            },
-            "inferNumberProps": {
-              "type": "boolean",
-              "default": false,
-              "description": "The library authors numeric props as Figma TEXT props whose values parse as numbers, to be emitted as NumberProp."
-            },
-            "states": {
-              "type": "object",
-              "description": "Concept-keyed map classifying Figma variant props as semantic states.",
-              "additionalProperties": {
-                "$ref": "#/definitions/VariantStateEntry"
-              }
+              "description": "Immediate-parent frame or section names a candidate must sit within."
             }
           },
           "additionalProperties": false
+        },
+        "images": {
+          "type": "object",
+          "description": "How this platform expresses images. Encoding: backgroundImage, sourceProps. Vocabulary: match (the Figma name of the designated image component) and component (the same component's name on this platform). Absence means no image convention. (ADR-063, ADR-077)",
+          "properties": {
+            "backgroundImage": {
+              "type": "boolean",
+              "default": false,
+              "description": "Encoding. This platform expresses images as container fills, emitted as Styles.backgroundImage — always passed styling, never a primitive trigger. (ADR-077)"
+            },
+            "match": {
+              "type": "string",
+              "description": "Vocabulary. Figma name of the designated image component (e.g. 'DS Image'). Requires a non-empty sourceProps."
+            },
+            "sourceProps": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Code-only prop names carrying image sources. The first entry is the designated component's own source prop."
+            },
+            "component": {
+              "type": "string",
+              "description": "Vocabulary. The same component's name on this platform (e.g. 'DsImage') — the translation target for a match declared by whichever platform produced the spec. Not validated against it; an unmatched component is inert. (ADR-077)"
+            }
+          },
+          "additionalProperties": false
+        },
+        "slotConstraints": {
+          "type": "boolean",
+          "default": false,
+          "description": "The library authors slot constraints as code-only props, to be consolidated into the slot property."
+        },
+        "inferNumberProps": {
+          "type": "boolean",
+          "default": false,
+          "description": "The library authors numeric props as Figma TEXT props whose values parse as numbers, to be emitted as NumberProp."
+        },
+        "states": {
+          "type": "object",
+          "description": "Concept-keyed map classifying Figma variant props as semantic states.",
+          "additionalProperties": {
+            "$ref": "#/definitions/VariantStateEntry"
+          }
+        },
+        "stylesProp": {
+          "type": "string",
+          "description": "Prop that receives styling no promotion mapped, for every promoted component on this platform (e.g. sx, style, modifier). A name only — what is placed in it is the generator's decision. Absence means unmapped styling is dropped. (ADR-076)"
+        },
+        "defaultFillWidth": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Width in pixels of the container this platform places a component in when the component's root resizes to fill its parent. Applies only when the root's layoutSizingHorizontal is FILL; fixed and hugging roots are unaffected. Absence means the platform declares no width and the rendering tool uses its own fallback. (ADR-081)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Conventions": {
+      "type": "object",
+      "description": "Facts about the libraries a spec was generated from and is generated for, keyed by platform. Figma is one key among react, web-components, swiftui — keys name implementations, not platform families. Absence of platforms means nothing is declared. (ADR-073)",
+      "properties": {
+        "platforms": {
+          "type": "object",
+          "description": "Platform-keyed conventions. The key is a free-form implementation id (figma, react, swiftui).",
+          "additionalProperties": {
+            "$ref": "#/definitions/PlatformConventions"
+          }
+        },
+        "primitives": {
+          "type": "object",
+          "description": "Component-keyed promotion entries, keyed by the design system's own component name. Platform-neutral and deliberately not under platforms: a component's props are the same whichever platform renders it. Absence means nothing is promoted. (ADR-075)",
+          "additionalProperties": {
+            "$ref": "#/definitions/PrimitiveEntry"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "MetadataConventions": {
+      "type": "object",
+      "description": "The conventions a spec records in its metadata: the one platform entry that produced it. Same shape as Conventions and the same PlatformConventions definition, so a platform entry validates identically wherever it appears — but absence means something different. Here a missing platform did not produce this spec. (ADR-079)",
+      "properties": {
+        "platforms": {
+          "type": "object",
+          "description": "Exactly one entry: the platform this spec was produced from.",
+          "minProperties": 1,
+          "maxProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/definitions/PlatformConventions"
+          }
         }
       },
       "required": [
-        "figma"
+        "platforms"
       ],
       "additionalProperties": false
+    },
+    "PrimitiveRule": {
+      "type": "object",
+      "description": "One rule turning something a captured layer carries into props on the component it promotes to. `source` names what is read — a Styles member, a dotted path into typography, or content. The honoured set is closed per PrimitiveKind and documented rather than enumerated here, so the validation surface does not track the Styles key set. Exactly one of prop and values is given. (ADR-075)",
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "What is read from the captured layer — a Styles member, a dotted path into typography (e.g. typography.fontStyle), or content."
+        },
+        "prop": {
+          "type": "string",
+          "description": "The prop this source's value is written to, as-is."
+        },
+        "values": {
+          "type": "object",
+          "description": "Literal lookup from what the source carries to the props it writes. A key is a full token path or a raw scalar, never a fragment and never matched partially. One key may write several props, and may write a prop whose meaning differs from the source's.",
+          "additionalProperties": {
+            "$ref": "component.schema.json#/definitions/PropConfigurations"
+          }
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "prop"
+          ]
+        },
+        {
+          "required": [
+            "values"
+          ]
+        }
+      ],
+      "additionalProperties": false
+    },
+    "PrimitiveEntry": {
+      "type": "object",
+      "description": "One component a captured primitive layer can be promoted to, and how its styles become that component's props. Promotion runs during capture, over composed example content only. Several entries may share a kind; selection between them is by how many rules resolve, and at least one must. (ADR-074, ADR-075)",
+      "properties": {
+        "elementType": {
+          "$ref": "#/definitions/PrimitiveKind",
+          "description": "The anatomy element type this component can be promoted from. Named for ElementType, the superset it draws from."
+        },
+        "map": {
+          "type": "array",
+          "description": "Rules turning the layer's styles into this component's props, in precedence order. When two rules write the same prop, the first that resolves wins.",
+          "items": {
+            "$ref": "#/definitions/PrimitiveRule"
+          }
+        }
+      },
+      "required": [
+        "elementType",
+        "map"
+      ],
+      "additionalProperties": false
+    },
+    "PrimitiveKind": {
+      "type": "string",
+      "enum": [
+        "text",
+        "glyph",
+        "container"
+      ],
+      "description": "The spec element types that can be promoted to a design system component — a strict subset of ElementType. An image is deliberately absent: it is a paint on an element that is already something else, so it is bound through images.component. (ADR-074)"
     }
   }
 }

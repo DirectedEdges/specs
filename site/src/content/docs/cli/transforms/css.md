@@ -99,7 +99,7 @@ Token references are resolved to CSS `var(--)` based on `spec.tokens`:
 
 ## Config
 
-No transformer-specific options. Token format comes from `spec.tokens` in `config/settings.yaml`. Selector strategy for variant props comes from the [`figma.states`](/settings/states/) convention in `config/conventions.yaml`.
+No transformer-specific options. Token format comes from `spec.tokens` in `config/settings.yaml`. Selector strategy for variant props comes from the [`figma.states`](/settings/states/) convention in `config/conventions/figma.yaml`.
 
 ```yaml
 # config/settings.yaml
@@ -108,14 +108,13 @@ spec:
 ```
 
 ```yaml
-# config/conventions.yaml
-figma:
-  states:                # optional — omit to keep data-* attribute selectors
-    hover:
-      prop: state
-      value: hover
-    disabled:
-      prop: isDisabled
+# config/conventions/figma.yaml
+states:                # optional — omit to keep data-* attribute selectors
+  hover:
+    prop: state
+    value: hover
+  disabled:
+    prop: isDisabled
 ```
 
 ```yaml

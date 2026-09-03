@@ -3,7 +3,7 @@ title: "Images"
 description: "Process image fills and image-source props — the figma.images block and its representation triggers"
 ---
 
-Image processing is controlled by one block: `figma.images`. A library fact, declared in `config/conventions.yaml` — how a library expresses images is a property of the library, and a wrong declaration loses images rather than merely reshaping them. The block's **presence** is the on-switch (like `subcomponents`), and each member is an **independent representation trigger**. Absent by default, so components are unchanged unless the library declares the convention.
+Image processing is controlled by one block: `figma.images`. A library fact, declared in `config/conventions/figma.yaml` — how a library expresses images is a property of the library, and a wrong declaration loses images rather than merely reshaping them. The block's **presence** is the on-switch (like `subcomponents`), and each member is an **independent representation trigger**. Absent by default, so components are unchanged unless the library declares the convention.
 
 ## `figma.images`
 
@@ -16,36 +16,32 @@ Three triggers, combinable freely:
 Background fills only:
 
 ```yaml
-figma:
-  images:
-    backgroundImage: true
+images:
+  backgroundImage: true
 ```
 
 Component with background-fill fallback — image props route through `DS Image`; any image fill outside it still emits as `backgroundImage`:
 
 ```yaml
-figma:
-  images:
-    backgroundImage: true
-    match: DS Image
-    sourceProps: [source, image]
+images:
+  backgroundImage: true
+  match: DS Image
+  sourceProps: [source, image]
 ```
 
 Component only — the designated component is the sole image representation; stray fills are not detected:
 
 ```yaml
-figma:
-  images:
-    match: DS Image
-    sourceProps: [source]
+images:
+  match: DS Image
+  sourceProps: [source]
 ```
 
 Typed image props only — re-type `image`-named code-only props without detecting fills or designating a component:
 
 ```yaml
-figma:
-  images:
-    sourceProps: [image]
+images:
+  sourceProps: [image]
 ```
 
 ## Result
@@ -100,7 +96,7 @@ The REST runtime resolves entries via a second call (Get Image Fills, whose S3 U
 
 ## Path
 
-`figma.images` in `config/conventions.yaml`
+`images` in `config/conventions/figma.yaml`
 
 **Legacy name**: in the pre-split `specs.config.yaml`, this block was `config.processing.images` and the designated component was named by `imageComponent`. That file is no longer read — [`specs migrate config`](/cli/commands/migrate/) converts it, moving `imageComponent` to `match`.
 
