@@ -76,6 +76,58 @@ A source with no matching row in the table does not resolve. Its value stays in 
 
 If no entry matches at all, the element is left exactly as it is — the same output as `false`.
 
+## The table is written against a token profile
+
+A `values` key is matched **literally** against what the style carries. What a style
+carries depends on [`spec.tokens`](/settings/tokens/) — so a `primitives.yaml` is written
+against one profile, and goes inert under another.
+
+Under `TOKEN`, a colour arrives as `{ $token: "Color/On surface", $type: "color" }` and the
+key is that path:
+
+```yaml
+- source: textColor
+  values:
+    "Color/On surface": { color: On surface }
+```
+
+Under `FIGMA_SYNTAX_WEB` the same colour arrives as the web code-syntax name a designer
+set in Figma — `--ds-color-on-surface` — and the row above matches nothing.
+
+| Profile | What a key must be |
+|---------|--------------------|
+| `TOKEN` | The token path |
+| `TOKEN_FIGMA_EXTENSIONS` | The token path — the extensions block is ignored |
+| `TOKEN_NAME` | The token path |
+| `FIGMA_NAME` | The Figma-native name |
+| `CUSTOM` | Whatever your mapping puts in `$token` |
+| `FIGMA_SYNTAX_WEB` / `_IOS` / `_ANDROID` | The platform's code-syntax name — **or** the token path, per token |
+
+:::caution[Switching profiles silently stops promotion]
+Nothing declares which profile a table was written against, and nothing checks. Change
+`spec.tokens` and every key stops matching, so nothing promotes — the same output as
+having no table at all. It fails safe (no wrong promotions) but quietly.
+:::
+
+### `FIGMA_SYNTAX_*` mixes two vocabularies
+
+The code-syntax profiles fall back to the token path **per token**, whenever a token has no
+code syntax defined for that platform. So a correct table under `FIGMA_SYNTAX_WEB` is part
+code-syntax names and part token paths, decided token by token — and the conventions file
+gives no clue which is which. Check each token in Figma rather than assuming a rule.
+
+### `CUSTOM` works when the mapping keeps `$token`
+
+`CUSTOM` replaces the reference with your `$custom` object verbatim. Promotion keys on
+`$token`, so a mapping that renames the token while keeping the shape works normally:
+
+```json
+{ "$token": "color-on-surface", "$type": "color" }
+```
+
+A mapping that emits some other shape has no member promotion knows to key on, so nothing
+resolves and nothing promotes.
+
 ## Comparing runs
 
 A spec captured with promotion and one captured without differ throughout their composed content. Any comparison between them — a parity check between two producers, a diff against a stored baseline — reports the whole difference unless both sides ran with the same value.
