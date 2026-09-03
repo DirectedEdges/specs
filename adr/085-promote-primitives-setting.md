@@ -3,7 +3,7 @@
 **Branch**: `adr/spec-time-promotion`
 **Created**: 2026-09-02
 **Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Summary**: A `promotePrimitives` spec setting joins `collapsePrimitiveWrapper` as an opt-in capture-time restructuring of composed content.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

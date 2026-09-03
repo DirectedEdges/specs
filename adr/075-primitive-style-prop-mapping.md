@@ -3,7 +3,7 @@
 **Branch**: `adr/spec-time-promotion`
 **Created**: 2026-08-30
 **Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Summary**: A `conventions.primitives` table maps a captured layer's styles onto the props of the component it promotes to.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

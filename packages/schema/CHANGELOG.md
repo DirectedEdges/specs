@@ -21,13 +21,15 @@ Configuration now separates what is true about a Figma library from what a run c
 - `DEFAULT_SETTINGS`, `DEFAULT_PIPELINE` and `DEFAULT_CONVENTIONS` — one defaults constant per configuration artifact. `DEFAULT_CONVENTIONS` is `{}`: every default it once carried — `naming`, `slotConstraints`, `inferNumberProps` — belongs inside a declared platform entry, and no platform being declared is a statement no default can supply (ADR-073)
 - `conventions.schema.json`, `settings.schema.json`, `pipeline.schema.json` — one schema per authored artifact
 - `PlatformConventions` — one permissive shape per platform, carrying encoding members (`naming`, `glyphs`, `states`, …) and vocabulary members alike; also the root of a single `config/conventions/<id>.yaml`, so one file validates standalone (ADR-073, ADR-078)
-- `PrimitiveKind` — `'text' | 'glyph' | 'container'`, the bindable subset of `ElementType`; bindings resolve at emit time and are never written into a spec (ADR-074)
-- `PlatformConventions.primitives` — `TextBinding`, `GlyphBinding` and `ContainerBinding`, each with `component`, a closed concept-keyed `props`, and `stylesProp` (ADR-075)
-- `ContainerBinding.component` — a name, or a `LayoutMode`-keyed map for platforms expressing direction by component choice (ADR-076)
-- `PlatformConventions.stylesProp` — baseline prop for unmapped styling, overridden per primitive and folded into each on resolution (ADR-076)
+- `PrimitiveKind` — `'text' | 'glyph' | 'container'`, the subset of `ElementType` that can be promoted to a design system component (ADR-074)
+- `Conventions.primitives` — component-keyed `PrimitiveEntry` values, each a `kind` and a `map` of `PrimitiveRule`; platform-neutral, since a component's props are the same on every platform (ADR-075)
+- `PrimitiveRule` — a `source` read from a captured layer, sent to a `prop` as-is or through a literal `values` lookup writing one or more props (ADR-075)
+- `PlatformConventions.stylesProp` — prop receiving styling no promotion mapped, one per platform (ADR-076)
 - `PlatformConventions.images.component` — the image component's name on a code platform, beside the `match` naming it in Figma (ADR-077)
 - `MetadataConventions` — a spec records the one platform entry that produced it, not every platform the workspace configures (ADR-079)
 - `PlatformConventions.defaultFillWidth` — container width for a root that resizes to fill its parent; fixed and hugging roots unaffected (ADR-081)
+- `Element.$extensions` — `com.figma.promotedPrimitive` and `com.figma.styles`, recording that a layer was promoted and which styles the promotion consumed (ADR-084)
+- `Settings.spec.promotePrimitives` — primitive layers in composed example content promote to design system component instances; opt-in, defaults to `false` (ADR-085)
 
 ### Changed
 

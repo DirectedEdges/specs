@@ -3,7 +3,7 @@
 **Branch**: `adr/spec-time-promotion`
 **Created**: 2026-08-30
 **Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Summary**: Primitive layers in composed example content promote to design system component instances during capture, not at emit.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

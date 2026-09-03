@@ -17,9 +17,12 @@ platforms:
       match: 'DS Icon Glyph / {i}'
   react:
     stylesProp: sx
-    primitives:
-      text:
-        component: DsText
+primitives:
+  dsText:
+    kind: text
+    map:
+      - source: content
+        prop: text
 ```
 
 Absence of `platforms` means nothing is declared at all; absence of one key means that platform declares nothing.
@@ -66,8 +69,7 @@ The shape is deliberately permissive: nothing stops a code platform declaring `s
 | [`slotConstraints`](/guides/slot-constraints/) | `boolean` | `false` | The library authors slot constraints as code-only props |
 | [`inferNumberProps`](/guides/number-inference/) | `boolean` | `false` | The library authors numeric props as Figma `TEXT` props with numeric defaults |
 | [`states`](/settings/states/) | `object` | — | Concept-keyed map classifying Figma variant props as semantic states |
-| [`primitives`](#primitives) | `object` | — | *Vocabulary.* Which component implements each spec primitive. Absent = the generator's host-element behavior stands |
-| [`stylesProp`](#stylesprop) | `string` | — | *Vocabulary.* Baseline prop receiving unmapped styling. Absent = unmapped styling is dropped |
+| [`stylesProp`](#stylesprop) | `string` | — | *Vocabulary.* Prop receiving styling no promotion mapped. Absent = unmapped styling is dropped |
 | [`defaultFillWidth`](#defaultfillwidth) | `number` | — | Container width for a fill-width root. Absent = the rendering tool uses its own fallback |
 
 ### `glyphs`
@@ -118,72 +120,9 @@ A map keyed by [state concept](/settings/states/) name (e.g. `hover`, `disabled`
 | `value` | `string` | `"true"` | Variant value that activates this concept (e.g. `"hover"`). Omit for boolean props |
 | `contract` | `'omit' \| 'keep'` | *(per concept)* | Contract generation override — exclude (`omit`, browser-driven) or retain (`keep`, consumer-controlled) the prop in generated Props interfaces |
 
-### `primitives`
-
-Which of this platform's components implements each spec primitive. Bindings are consulted at **emit time** — the spec keeps `type: text`, and each generator resolves it to its own component, so one spec serves every implementation and no binding is ever written into a spec.
-
-Keys are constrained to the three bindable element types. An image is deliberately absent: it is a paint on an element that is already something else, not a kind of node, so it binds through `images.component` instead.
-
-| Key | Type | Description |
-|-----|------|-------------|
-| `text` | `object` | The component that means "text" (e.g. `DsText`, `ds-text`, `Text`) |
-| `glyph` | `object` | The component that means "glyph" (e.g. `DsIcon`, `ds-icon`) |
-| `container` | `object` | The component that means "container" (e.g. `DsBox`, or a Row/Column/Box trio) |
-
-Each binding takes:
-
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `component` | `string` | *(required)* | The component's name on this platform. A container may instead take a `LayoutMode`-keyed map |
-| `props` | `object` | — | Concept-to-prop-name map, closed per kind |
-| `stylesProp` | `string` | *(platform `stylesProp`)* | Prop receiving everything not mapped by `props`, as passed styling |
-
-`props` keys are **concepts**, not `Styles` members, and the set is closed per primitive — a concept that is not mappable for that kind is a validation error:
-
-| Primitive | Concept | Fed by | Default prop name |
-|-----------|---------|--------|-------------------|
-| `text` | `color` | `Styles.textColor` | `color` |
-| `text` | `content` | `Element.content` | *(none)* — children |
-| `text` | `typography` | `Styles.typography` | *(none)* |
-| `glyph` | `color` | `Styles.fillColor` | `color` |
-| `glyph` | `content` | `Element.content` | `content` |
-| `container` | `direction` | `Styles.layoutMode` | *(none)* |
-
-A prop name is a string belonging to the target library and is not policed. `null` means this component has no prop for the concept, and suppresses the default.
-
-Text and glyph treat `content` differently, and the asymmetry is deliberate. A glyph's content defaults to a **prop**, because an icon's name cannot be children. A text primitive's has no default: absence means the component takes its content as **children** (`<DsText>Label</DsText>`), and naming a prop says it takes the string instead (`<EgdsText text="Label" />`).
-
-```yaml
-# config/conventions/react.yaml
-stylesProp: sx
-primitives:
-  text:
-    component: DsText
-    props:
-      typography: typography
-      # content omitted — DsText takes its text as children
-  glyph:
-    component: DsIcon
-    props:
-      content: name
-  container:
-    component:
-      HORIZONTAL: DsRow
-      VERTICAL: DsColumn
-      NONE: DsBox
-```
-
-A container's `component` accepts either one name or a `LayoutMode`-keyed map, for platforms that express direction by component choice rather than by a prop. The keyed form is legal only for a container — `direction` is not among text's or a glyph's concepts, so nothing would select from the map.
-
-:::caution[A container's component must host its own children]
-Binding a container substitutes the named component for a box that holds children, so **that component's root must be the box the children land in**. A layout component that wraps its children in an inner element cannot stand in for one: the container's `gap`, `padding` and alignment land on the outer box while the children sit a level deeper, so spacing is lost — and a wrapper carrying `flex: 1 0 0` inside a `height: fit-content` parent collapses the subtree to zero height.
-
-Neither failure raises an error. Where the constraint does not hold, leave `container` unbound; `text` and `glyph` are unaffected.
-:::
-
 ### `stylesProp`
 
-Baseline prop receiving unmapped styling for every primitive on this platform (e.g. `sx`, `style`, `modifier`). A primitive's own `stylesProp` overrides it. A **name only** — what is placed in it is the generator's decision.
+Prop receiving styling no promotion mapped, for every promoted component on this platform (e.g. `sx`, `style`, `modifier`). A **name only** — what is placed in it is the generator's decision.
 
 ### `defaultFillWidth`
 
@@ -197,6 +136,86 @@ defaultFillWidth: 375
 ```
 
 It has no default at any level. Absence means this platform declares no width and the rendering tool falls back to its own value.
+
+## `primitives`
+
+Sits at the **root** of `Conventions`, beside `platforms` rather than inside a platform. A component's props are the same whichever platform renders it, so the table is stated once.
+
+Each key is one of the design system's own component names. When [`promotePrimitives`](/settings/promote-primitives/) is on, a primitive layer in composed example content is promoted to an instance of the component whose entry best matches it.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `kind` | `'text' \| 'glyph' \| 'container'` | *(required)* | The primitive kind this component can be promoted from |
+| `map` | `array` | *(required)* | Rules turning the layer's styles into this component's props, in precedence order |
+
+Several entries may share a `kind` — a design system with a text, a heading and a body component is three entries. `kind` describes the layer shape a promotion starts *from*, not the component it lands on: a component with its own internal anatomy is a legitimate target for a single drawn layer.
+
+### Rules
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `source` | `string` | What is read from the captured layer |
+| `prop` | `string` | The prop this source's value is written to, as-is |
+| `values` | `object` | Literal lookup from what the source carries to the props it writes |
+
+Exactly one of `prop` and `values` is given.
+
+`source` is closed per kind, and honoured by implementations rather than enforced by the schema — so renaming a `Styles` member never invalidates a conventions file:
+
+| Kind | Sources |
+|------|---------|
+| `text` | `typography`, `typography.fontSize`, `typography.fontFamily`, `typography.fontStyle`, `textColor`, `content` |
+| `glyph` | `width`, `height`, `fillColor`, `content` |
+| `container` | `layoutMode` |
+
+The dotted sources address inside the `Typography` composite. `typography` is either a token reference or that composite, never both, so `typography` and the `typography.*` sources can never both resolve — declaring both is how one entry serves a layer wearing a text style and one styled ad hoc.
+
+### `values`
+
+A key is a **full token path or a raw scalar**, matched literally. Nothing is derived from part of a token's name, because a prop value need bear no relation to the token that produces it.
+
+```yaml
+# config/conventions/primitives.yaml
+dsHeading:
+  kind: text
+  map:
+    - source: typography
+      values:
+        Typography theme/Headline/M:  { appearance: Headline M }
+        Typography theme/Headline/XL: { appearance: Headline XL }
+    - source: content
+      prop: text
+
+dsIcon:
+  kind: glyph
+  map:
+    - source: fillColor
+      values:                    # colour in, intent out
+        Color/Critical: { appearance: error }
+        Color/Warning:  { appearance: warning }
+    - source: width
+      values:
+        Constants/Sizing/4x: { size: XS }
+    - source: height             # the same axis, reached by a raw value
+      values:
+        16: { size: XS }
+    - source: content
+      prop: name
+```
+
+A value writes **one or more props**, so one typography token can set `size` and `weight` together where another design system sets a single `appearance`.
+
+### Selection
+
+When several entries share a `kind`, the one whose rules resolve most often wins; ties break by declaration order. At least one rule must resolve, so `kind` alone never promotes — a layer is only this component if something about it says so.
+
+A source with no matching row does not resolve. It stays in `styles` and reaches output as passed styling, so a component's narrower prop enum constrains without a separate mechanism.
+
+:::caution[A promoted container must host its own children]
+A promoted container's children become the target's slot content, so **that component's root must be the box the children land in**. A layout component that wraps its children in an inner element cannot stand in for one: the container's `gap`, `padding` and alignment land on the outer box while the children sit a level deeper, so spacing is lost — and a wrapper carrying `flex: 1 0 0` inside a `height: fit-content` parent collapses the subtree to zero height.
+
+Neither failure raises an error. Where the constraint does not hold, declare no `container` entry; `text` and `glyph` are unaffected.
+:::
 
 ## Resolution
 

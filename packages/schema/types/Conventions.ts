@@ -1,4 +1,4 @@
-import type { LayoutMode } from './Styles.js';
+import type { PropConfigurations } from './PropConfigurations.js';
 
 /**
  * Classifies a Figma variant prop as a semantic state concept for deterministic
@@ -30,141 +30,90 @@ export interface VariantStateEntry {
 }
 
 /**
- * Which of a platform's components implements the `text` primitive, and how the
- * spec's text concepts reach its props.
- *
- * `props` keys are **concepts**, not `Styles` members: `color` is fed by
- * `Styles.textColor`, `typography` by `Styles.typography`, and `content` by
- * `Element.content`. Fixing the vocabulary
- * per primitive keeps the `Styles` key set out of this schema's validation surface,
- * so renaming a style member does not churn these keys.
- *
- * A prop name is a string belonging to the target library; the schema does not police
- * it. `null` means this platform's component has no prop for the concept, and
- * suppresses the concept's default prop name. Anything not mapped here is passed
- * styling and is routed to `stylesProp`.
- *
- * @since 0.31.0
- */
-export interface TextBinding {
-  /** The component that means "text" on this platform (e.g. `DsText`, `ds-text`, `Text`). */
-  component: string;
-  /** Concept-to-prop-name map. Closed: only the concepts below are mappable for text. */
-  props?: {
-    /** Prop carrying `Styles.textColor`. Defaults to `'color'`; `null` = no such prop. */
-    color?: string | null;
-    /**
-     * Prop carrying `Element.content` — the text string.
-     *
-     * **No default**, and absence does not mean "no channel": it means the component
-     * takes its content as **children** (`<DsText>Label</DsText>`), which is the
-     * common code-platform shape. Name a prop when the component takes the string as
-     * one instead (`<EgdsText text="Label" />`). `null` = the component has no way to
-     * receive content at all.
-     *
-     * This is where text and glyph differ. A glyph's `content` defaults to a prop
-     * because an icon's name cannot be children; a text primitive's can.
-     */
-    content?: string | null;
-    /** Prop carrying `Styles.typography`. No default; `null` = no such prop. */
-    typography?: string | null;
-  };
-  /**
-   * Prop that receives everything not mapped above, as passed styling. Overrides the
-   * platform-level `stylesProp`. A **name only** — what is placed in it (an `sx` object,
-   * a `Modifier` chain) is the generator's decision.
-   */
-  stylesProp?: string;
-}
-
-/**
- * Which of a platform's components implements the `glyph` primitive, and how the
- * spec's glyph concepts reach its props.
- *
- * See {@link TextBinding} for how `props` and `stylesProp` behave — the rules are
- * identical; only the mappable concepts differ.
- *
- * @since 0.31.0
- */
-export interface GlyphBinding {
-  /** The component that means "glyph" on this platform (e.g. `DsIcon`, `ds-icon`, `Image`). */
-  component: string;
-  /** Concept-to-prop-name map. Closed: only the concepts below are mappable for a glyph. */
-  props?: {
-    /** Prop carrying `Styles.fillColor`. Defaults to `'color'`; `null` = no such prop. */
-    color?: string | null;
-    /** Prop carrying `Element.content` — the glyph name. Defaults to `'content'`; `null` = no such prop. */
-    content?: string | null;
-  };
-  /** Prop that receives unmapped styling. Overrides the platform-level `stylesProp`. */
-  stylesProp?: string;
-}
-
-/**
- * Which of a platform's components implements the `container` primitive, and how the
- * spec's container concepts reach its props.
- *
- * `component` takes either one component for every layout, or a `LayoutMode`-keyed map
- * when the platform expresses direction by component choice rather than by a prop — a
- * `Row`/`Column`/`Box` trio. The map reuses `LayoutMode` so the two cannot drift and a
- * new layout mode extends the binding automatically. The keyed form is legal only here:
- * `direction` is not among text's or a glyph's mappable concepts, so nothing would
- * select from the map.
- *
- * @since 0.31.0
- */
-export interface ContainerBinding {
-  /**
-   * One component for every layout, or a `LayoutMode`-keyed map selecting per direction
-   * (e.g. `{ HORIZONTAL: 'DsRow', VERTICAL: 'DsColumn', NONE: 'DsBox' }`).
-   */
-  component: string | Partial<Record<LayoutMode, string>>;
-  /** Concept-to-prop-name map. Closed: only the concepts below are mappable for a container. */
-  props?: {
-    /** Prop carrying `Styles.layoutMode`. No default; `null` = no such prop. */
-    direction?: string | null;
-  };
-  /** Prop that receives unmapped styling. Overrides the platform-level `stylesProp`. */
-  stylesProp?: string;
-}
-
-/**
- * A platform's primitive vocabulary — one optional entry per {@link PrimitiveKind}.
- *
- * Bindings are consulted at emit time. The spec keeps `type: text`; a generator
- * resolves it to this platform's component, so one spec serves every implementation
- * and no binding is ever written into a spec.
- *
- * @since 0.31.0
- */
-export interface PrimitiveBindings {
-  /** The component that means "text" on this platform. Absent = emit the host text element. */
-  text?: TextBinding;
-  /** The component that means "glyph" on this platform. Absent = emit the host element. */
-  glyph?: GlyphBinding;
-  /** The component that means "container" on this platform. Absent = emit the host element. */
-  container?: ContainerBinding;
-}
-
-/**
- * The spec element types a platform may bind to one of its own components.
+ * The spec element types that can be promoted to a design system component.
  *
  * A closed vocabulary, and a strict subset of `ElementType`: every kind's trigger is
  * the element's own declared `type`, so nothing is inferred and no kind can fail to
- * correspond to something a spec contains. A misspelled or unbindable kind is a
- * validation error rather than a silently-ignored key. Widening the set later is
- * additive.
+ * correspond to something a spec contains. A misspelled kind is a validation error
+ * rather than a silently-ignored key. Widening the set later is additive.
  *
  * An image is deliberately absent — it is a paint on an element that is already
  * something else, not a kind of node, so it is bound through `images.component`
  * instead (ADR-077).
  *
- * Derived from {@link PrimitiveBindings} rather than written out beside it, so the
- * vocabulary and the block that enforces it cannot disagree.
+ * @since 0.31.0
+ */
+export type PrimitiveKind = 'text' | 'glyph' | 'container';
+
+/**
+ * One rule turning something a captured layer carries into props on the component it
+ * promotes to.
+ *
+ * `source` names what is read. The honoured set is closed per {@link PrimitiveKind} and
+ * is documented rather than enumerated in the schema, so that the validation surface does
+ * not track the `Styles` key set and renaming a style member does not churn a conventions
+ * file:
+ *
+ * - `text` — `typography`, `typography.fontSize`, `typography.fontFamily`,
+ *   `typography.fontStyle`, `textColor`, `content`
+ * - `glyph` — `width`, `height`, `fillColor`, `content`
+ * - `container` — `layoutMode`
+ *
+ * The dotted typography sources address inside the `Typography` composite.
+ * `Styles.typography` is `TokenReference | Typography`, so a layer wearing a text style
+ * carries the token and a layer styled ad hoc carries the composite: `typography` and the
+ * `typography.*` sources can never both resolve, and declaring both is how one entry
+ * serves either authoring style.
+ *
+ * Exactly one of `prop` and `values` is given. A source outside the honoured set, or one
+ * the element does not carry, simply does not resolve — its value stays in `styles` and
+ * reaches output as passed styling.
  *
  * @since 0.31.0
  */
-export type PrimitiveKind = keyof PrimitiveBindings;
+export interface PrimitiveRule {
+  /** What is read from the captured layer — a `Styles` member, a dotted path into `typography`, or `content`. */
+  source: string;
+  /** The prop this source's value is written to, as-is. Mutually exclusive with `values`. */
+  prop?: string;
+  /**
+   * Literal lookup from what the source carries to the props it writes.
+   *
+   * A key is a full token path (`"Color/Critical"`) or a raw scalar (`16`) — never a
+   * fragment, and never matched partially. The value is the props that key produces, so
+   * one source may write several props at once, and a source may reach a prop whose
+   * meaning differs from its own (a fill colour producing an intent enum).
+   *
+   * Mutually exclusive with `prop`.
+   */
+  values?: Record<string, PropConfigurations>;
+}
+
+/**
+ * One component a captured primitive layer can be promoted to, and how its styles become
+ * that component's props.
+ *
+ * Promotion runs during capture, over composed example content only (ADR-074). Several
+ * entries may share a `kind`: a design system with a text, a heading and a body component
+ * is three entries, and selection between them is by score — how many of an entry's rules
+ * resolve against the element. At least one rule must resolve, so `kind` alone never
+ * promotes.
+ *
+ * The target need not itself be a primitive. `kind` describes the layer shape a promotion
+ * starts *from*, not the component it lands on: a component with its own internal anatomy
+ * is a legitimate target for a single drawn layer.
+ *
+ * @since 0.31.0
+ */
+export interface PrimitiveEntry {
+  /** The primitive kind this component can be promoted from. */
+  kind: PrimitiveKind;
+  /**
+   * The rules turning the layer's styles into this component's props, in precedence
+   * order. When two rules write the same prop, the first that resolves wins.
+   */
+  map: PrimitiveRule[];
+}
 
 /**
  * Facts about one platform's library — how it is authored, and what it calls things.
@@ -177,13 +126,13 @@ export type PrimitiveKind = keyof PrimitiveBindings;
  *   `slotConstraints`, `inferNumberProps`, `states`. These say how this platform
  *   expresses something the spec models explicitly. A Figma library has no first-class
  *   notion of a subcomponent, so it encodes one in a layer-name pattern.
- * - **Vocabulary** — `primitives`, `stylesProp`, `images.match`, `images.component`.
- *   These say which of this platform's components implements a spec concept.
+ * - **Vocabulary** — `stylesProp`, `images.match`, `images.component`. These say which of
+ *   this platform's components implements a spec concept, and how it is authored.
  *
  * Neither group belongs to a direction or to a platform: a name pattern is decoded when
- * reading a platform's artifacts and applied when writing them, and knowing that
- * `DsText` is the text primitive is required to read React into a spec as much as to
- * write React out of one. The shape is deliberately permissive — nothing stops a code
+ * reading a platform's artifacts and applied when writing them, and knowing which prop
+ * carries passed styling is required to read a platform into a spec as much as to write
+ * it out. The shape is deliberately permissive — nothing stops a code
  * platform declaring `states` — because discriminating by key would type `figma`
  * differently from every other key, which is the special case the platform map removes.
  *
@@ -264,12 +213,10 @@ export interface PlatformConventions {
   inferNumberProps?: boolean;
   /** Concept-keyed map classifying Figma variant props as semantic states. Key = concept name (e.g. `hover`, `disabled`). Optional; absence means all variant props emit as data-* attribute selectors. @since 0.24.0 */
   states?: Record<string, VariantStateEntry>;
-  /** Which of this platform's components implements each spec primitive. Optional; absence means the generator's host-element behavior stands. @since 0.31.0 */
-  primitives?: PrimitiveBindings;
   /**
-   * Baseline prop that receives unmapped styling for every primitive on this platform
-   * (e.g. `sx`, `style`, `modifier`). A primitive's own `stylesProp` overrides it.
-   * A **name only** — what is placed in it is the generator's decision (Constitution II).
+   * Prop that receives styling no promotion mapped, for every promoted component on this
+   * platform (e.g. `sx`, `style`, `modifier`). A **name only** — what is placed in it is
+   * the generator's decision (Constitution II).
    * Optional; absence means unmapped styling has nowhere to go and is dropped.
    *
    * @since 0.31.0
@@ -317,50 +264,16 @@ export interface PlatformConventions {
 export interface Conventions {
   /** Platform-keyed conventions. The key is a free-form implementation id (`figma`, `react`, `swiftui`). */
   platforms?: Record<string, PlatformConventions>;
-}
-
-/** {@link TextBinding} with its concept defaults applied. @since 0.31.0 */
-export interface ResolvedTextBinding {
-  component: string;
-  props: {
-    /** Defaulted to `'color'` when the binding did not state it. `null` = no such prop. */
-    color: string | null;
-    /** No default; absent when the binding did not state it, which means content is children. */
-    content?: string | null;
-    /** No default; absent when the binding did not state it. */
-    typography?: string | null;
-  };
-  /** The primitive's own `stylesProp`, or the platform baseline it inherits. */
-  stylesProp?: string;
-}
-
-/** {@link GlyphBinding} with its concept defaults applied. @since 0.31.0 */
-export interface ResolvedGlyphBinding {
-  component: string;
-  props: {
-    /** Defaulted to `'color'`. `null` = no such prop. */
-    color: string | null;
-    /** Defaulted to `'content'`. `null` = no such prop. */
-    content: string | null;
-  };
-  stylesProp?: string;
-}
-
-/** {@link ContainerBinding} with its concept defaults applied. @since 0.31.0 */
-export interface ResolvedContainerBinding {
-  component: string | Partial<Record<LayoutMode, string>>;
-  props: {
-    /** No default; absent when the binding did not state it. */
-    direction?: string | null;
-  };
-  stylesProp?: string;
-}
-
-/** {@link PrimitiveBindings} with each declared binding resolved. @since 0.31.0 */
-export interface ResolvedPrimitiveBindings {
-  text?: ResolvedTextBinding;
-  glyph?: ResolvedGlyphBinding;
-  container?: ResolvedContainerBinding;
+  /**
+   * Component-keyed promotion entries, keyed by the design system's own component name.
+   *
+   * Platform-neutral, and deliberately not under `platforms`: a component's props are the
+   * same whichever platform renders it, so the table is stated once. Optional; absence
+   * means no component is described and nothing is promoted.
+   *
+   * @since 0.31.0
+   */
+  primitives?: Record<string, PrimitiveEntry>;
 }
 
 /**
@@ -371,9 +284,6 @@ export interface ResolvedPrimitiveBindings {
  * once present, has every defaultable member — `scope`, `backgroundImage`,
  * `sourceProps`, a binding's concept prop names — so consumers need no null checks
  * within it.
- *
- * `stylesProp` does not appear here: the platform baseline is folded into each declared
- * primitive during resolution, so a consumer reads one level rather than two.
  *
  * **A resolver produces one of these for any platform it is asked about, declared or
  * not.** `naming`, `slotConstraints` and `inferNumberProps` are required here for that
@@ -419,8 +329,8 @@ export interface ResolvedPlatformConventions {
   inferNumberProps: boolean;
   /** Concept-keyed map classifying Figma variant props as semantic states. Optional; absence means no state convention. */
   states?: Record<string, VariantStateEntry>;
-  /** Primitive bindings, each carrying its resolved concept prop names and `stylesProp`. Optional; absence means no primitive vocabulary. */
-  primitives?: ResolvedPrimitiveBindings;
+  /** Prop that receives styling no promotion mapped. Optional; absence means unmapped styling is dropped. */
+  stylesProp?: string;
   /** Width of the container a fill-width root is placed in. Optional; no default — absence means the tool falls back to its own value. */
   defaultFillWidth?: number;
 }
@@ -435,6 +345,8 @@ export interface ResolvedPlatformConventions {
  */
 export interface ResolvedConventions {
   platforms?: Record<string, ResolvedPlatformConventions>;
+  /** Component-keyed promotion entries. Optional; absence means nothing is promoted. @since 0.31.0 */
+  primitives?: Record<string, PrimitiveEntry>;
 }
 
 /**

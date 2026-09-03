@@ -3,7 +3,7 @@
 **Branch**: `adr/spec-time-promotion`
 **Created**: 2026-09-02
 **Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Summary**: An `Element.$extensions` member records that a layer was promoted and which styles the promotion consumed.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

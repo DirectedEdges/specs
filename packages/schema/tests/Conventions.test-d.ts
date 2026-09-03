@@ -9,8 +9,8 @@ import type {
   MetadataConventions,
   PlatformConventions,
   PrimitiveKind,
-  PrimitiveBindings,
-  ContainerBinding,
+  PrimitiveEntry,
+  PrimitiveRule,
   VariantStateEntry,
 } from '../types/index.js';
 import { DEFAULT_CONVENTIONS } from '../types/index.js';
@@ -45,16 +45,11 @@ const codePlatforms: Conventions = {
   platforms: {
     react: {
       stylesProp: 'sx',
-      primitives: {
-        text: { component: 'DsText', props: { color: 'color', typography: 'typography' } },
-        glyph: { component: 'DsIcon', props: { content: 'name' } },
-        container: { component: { HORIZONTAL: 'DsRow', VERTICAL: 'DsColumn', NONE: 'DsBox' } },
-      },
       images: { component: 'DsImage' },
       defaultFillWidth: 375,
     },
-    'web-components': { primitives: { text: { component: 'ds-text' } } },
-    swiftui: { primitives: { text: { component: 'Text' } }, stylesProp: 'modifier' },
+    'web-components': { stylesProp: 'style' },
+    swiftui: { stylesProp: 'modifier' },
   },
 };
 
@@ -62,55 +57,66 @@ const codePlatforms: Conventions = {
 const permissive: PlatformConventions = { states: { hover: { prop: 'state' } }, stylesProp: 'sx' };
 
 // Figma may take a vocabulary member — the reason it is not special-cased
-const figmaVocabulary: PlatformConventions = { primitives: { text: { component: 'DS Text' } } };
+const figmaVocabulary: PlatformConventions = { images: { match: 'DS Image' } };
 
 // @ts-expect-error — platforms is a map, not the old figma scope
 const oldShape: Conventions = { figma: { naming: 'NONE' } };
 
-// ─── Primitive bindings (ADR-074 – ADR-076) ───────────────────────────────────
+// ─── Promotion entries (ADR-074 – ADR-076) ────────────────────────────────────
 
 const kinds: PrimitiveKind[] = ['text', 'glyph', 'container'];
-
-// Derived from PrimitiveBindings, so the vocabulary and the block enforcing it are one list
-const kindsAreKeys: PrimitiveKind extends keyof PrimitiveBindings ? true : false = true;
-const keysAreKinds: keyof PrimitiveBindings extends PrimitiveKind ? true : false = true;
 
 // @ts-expect-error — PrimitiveKind is closed; an image is not a node kind (ADR-077)
 const imageKind: PrimitiveKind = 'image';
 
-// @ts-expect-error — primitives keys are constrained to PrimitiveKind
-const unknownPrimitive: PlatformConventions = { primitives: { icon: { component: 'DsIcon' } } };
-
-// @ts-expect-error — component is required on a declared binding
-const bindingWithoutComponent: PlatformConventions = { primitives: { text: { props: { color: 'c' } } } };
-
-// props is closed per kind — typography is a text concept, not a glyph one
-// @ts-expect-error — typography is not mappable for a glyph
-const glyphTypography: PlatformConventions = { primitives: { glyph: { component: 'DsIcon', props: { typography: 'type' } } } };
-
-// @ts-expect-error — direction is a container concept, not a text one
-const textDirection: PlatformConventions = { primitives: { text: { component: 'DsText', props: { direction: 'dir' } } } };
-
-// null means "no prop for this concept", and suppresses the default
-const suppressed: PlatformConventions = {
-  primitives: { text: { component: 'DsText', props: { color: null } } },
+// primitives sits at the root of Conventions, not under a platform: a component's props
+// are the same whichever platform renders it (ADR-075)
+const promotion: Conventions = {
+  primitives: {
+    dsHeading: {
+      kind: 'text',
+      map: [
+        { source: 'typography', values: { 'Typography theme/Headline/M': { appearance: 'Headline M' } } },
+        { source: 'content', prop: 'text' },
+      ],
+    },
+    // One source may write several props, and a source may reach a prop of another meaning
+    dsTypography: {
+      kind: 'text',
+      map: [{ source: 'typography', values: { 'Typography/font__200__medium': { size: 200, weight: 'Medium' } } }],
+    },
+    dsIcon: {
+      kind: 'glyph',
+      map: [
+        { source: 'fillColor', values: { 'Color/Critical': { appearance: 'error' } } },
+        { source: 'height', values: { 16: { size: 'XS' } } }, // raw scalars are keys too
+        { source: 'content', prop: 'name' },
+      ],
+    },
+    // A Row/Column/Box trio is three entries; an empty props object promotes without writing
+    dsRow: { kind: 'container', map: [{ source: 'layoutMode', values: { HORIZONTAL: {} } }] },
+    dsColumn: { kind: 'container', map: [{ source: 'layoutMode', values: { VERTICAL: {} } }] },
+  },
 };
 
-// A container takes a plain component or a LayoutMode-keyed map (ADR-076)
-const plainContainer: ContainerBinding = { component: 'DsBox' };
-const keyedContainer: ContainerBinding = { component: { HORIZONTAL: 'DsRow' } };
+// @ts-expect-error — primitives is not a platform member (ADR-074)
+const platformPrimitives: PlatformConventions = { primitives: { dsText: { kind: 'text', map: [] } } };
 
-// @ts-expect-error — the map is keyed by LayoutMode, not free-form
-const badLayoutKey: ContainerBinding = { component: { DIAGONAL: 'DsDiagonal' } };
+// @ts-expect-error — kind is required
+const entryWithoutKind: PrimitiveEntry = { map: [] };
 
-// A partial map is normal: an unbound direction falls back to the generic element,
-// and an empty map binds nothing rather than being invalid
-const partialContainer: ContainerBinding = { component: { HORIZONTAL: 'DsRow', VERTICAL: 'DsColumn' } };
-const emptyContainer: ContainerBinding = { component: {} };
+// @ts-expect-error — map is required
+const entryWithoutMap: PrimitiveEntry = { kind: 'text' };
 
-// The keyed form is legal only for a container — nothing would select from it elsewhere
-// @ts-expect-error — a text component is a plain string
-const keyedText: PlatformConventions = { primitives: { text: { component: { HORIZONTAL: 'DsText' } } } };
+// @ts-expect-error — kind is closed
+const entryBadKind: PrimitiveEntry = { kind: 'image', map: [] };
+
+// source is a plain string — the honoured set is documented and implemented, not validated
+// here, so renaming a Styles member never churns a conventions file (ADR-075)
+const dottedSource: PrimitiveRule = { source: 'typography.fontStyle', values: { Bold: { weight: 'Bold' } } };
+
+// @ts-expect-error — source is required
+const ruleWithoutSource: PrimitiveRule = { prop: 'text' };
 
 // ─── Images: encoding and vocabulary in one block (ADR-077) ───────────────────
 
@@ -141,15 +147,13 @@ const numbers: boolean = platform.inferNumberProps;
 const scope: 'NESTED' | 'PAGE' | undefined = platform.subcomponents?.scope;
 const sourceProps: string[] | undefined = platform.images?.sourceProps;
 
-// A declared binding carries its resolved concept prop names
-const textColor: string | null | undefined = platform.primitives?.text?.props.color;
-const glyphContent: string | null | undefined = platform.primitives?.glyph?.props.content;
-
-// stylesProp is folded into each primitive during resolution — one level, not two (ADR-076)
-const primitiveStyles: string | undefined = platform.primitives?.text?.stylesProp;
-
-// @ts-expect-error — the platform baseline does not survive resolution
+// stylesProp survives resolution as a platform member — promotion targets are named by the
+// spec, so there is no per-primitive block to fold it into (ADR-076)
 const platformStyles: string | undefined = platform.stylesProp;
+
+// Promotion entries resolve at the root, beside platforms rather than within one
+declare const resolvedRoot: ResolvedConventions;
+const resolvedEntry: PrimitiveEntry | undefined = resolvedRoot.primitives?.dsHeading;
 
 // @ts-expect-error — a resolved platform entry must carry its defaulted members
 const underResolved: ResolvedConventions = { platforms: { figma: { naming: 'NONE' } } };
@@ -185,9 +189,9 @@ const badContract: VariantStateEntry = { prop: 'focused', contract: 'inherit' };
 
 export {
   none, noPlatforms, emptyPlatform, figmaEncoding, codePlatforms, permissive, figmaVocabulary,
-  oldShape, kinds, imageKind, unknownPrimitive, bindingWithoutComponent, glyphTypography,
-  textDirection, suppressed, plainContainer, keyedContainer, badLayoutKey, keyedText, imageBoth,
-  partialContainer, emptyContainer, kindsAreKeys, keysAreKinds, width, stringWidth, platformMayBeAbsent, naming, constraints, numbers, scope, sourceProps,
-  textColor, glyphContent, primitiveStyles, platformStyles, underResolved, meta,
+  oldShape, kinds, imageKind, promotion, platformPrimitives, entryWithoutKind, entryWithoutMap,
+  entryBadKind, dottedSource, ruleWithoutSource, imageBoth,
+  width, stringWidth, platformMayBeAbsent, naming, constraints, numbers, scope, sourceProps,
+  platformStyles, resolvedEntry, underResolved, meta,
   metaWithoutPlatforms, defaults, defaultedPlatform, booleanState, enumState, noProp, badContract,
 };

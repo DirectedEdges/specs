@@ -21,7 +21,47 @@ export type Element = {
   instanceOf?: string | PropBinding | SubcomponentRef;
   /** The content for content-bearing elements: text string for text elements, glyph name for glyph elements, or a PropBinding reference. */
   content?: string | PropBinding;
+  /** Platform extensions; `com.figma` carries capture provenance. @since 0.31.0 */
+  $extensions?: ElementExtensions;
 };
+
+/**
+ * Figma capture provenance for an element.
+ *
+ * Written when a primitive layer in composed example content is promoted to an instance
+ * of a design system component (ADR-074). Both members are optional and independent: a
+ * promotion that consumed no styles records the flag alone.
+ *
+ * @since 0.31.0
+ */
+export interface FigmaElementExtension {
+  /**
+   * This element was a primitive layer promoted to a component instance, rather than an
+   * instance the designer placed.
+   *
+   * Declared rather than inferred from the presence of `styles`: a promotion may consume
+   * nothing — a glyph whose name maps to a prop while no style rule resolves — and an
+   * absent residue would then read as a placed instance.
+   */
+  promotedPrimitive?: boolean;
+  /**
+   * The styles the promotion consumed, recorded verbatim as captured.
+   *
+   * A prop value cannot be inverted back to the style that produced it, because two
+   * sources may map to one value. Recording the original is what lets a promoted layer be
+   * rendered back as a layer rather than as an instance.
+   */
+  styles?: Styles;
+}
+
+/**
+ * DTCG-style platform extensions for an element.
+ *
+ * @since 0.31.0
+ */
+export interface ElementExtensions {
+  'com.figma'?: FigmaElementExtension;
+}
 
 /**
  * Element types derived from Figma node analysis
