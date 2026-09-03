@@ -7,22 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.31.0] - Unreleased
 
-Configuration now separates what is true about a Figma library from what a run chooses to do with it. A convention — a naming pattern, a state classification, where subcomponents live — is a fact every consumer of that library must share, and getting one wrong produces incorrect output. A setting is a free choice that produces different output. They were peers in one `Config`; they are now two published types, each addressable, each validated on its own, with the work a workspace runs declared separately again.
+Configuration separates library facts from run choices. A convention is something every consumer of a Figma library must agree on, and getting one wrong produces incorrect output; a setting is a free choice that produces different output. `Config` becomes `Conventions`, `Settings` and `Pipeline` — three types, each validated on its own.
 
-Composed example content can also now say which component it uses. A designer builds an example out of raw layers because composing with real instances in a design file is laborious, so a text layer stands in for the design system's text component and the spec records the stand-in. With `Settings.spec.promotePrimitives` enabled, that layer becomes an instance of the component it stood for — the same shape the spec already uses for a component the designer placed — with a `Conventions.primitives` table saying which component and what its props become. What the promotion consumed is kept under `Element.$extensions`, so nothing is lost and a promoted layer can be rendered back to Figma as a layer. A component's own anatomy is never promoted: someone who put a text layer there chose a text layer. The setting is opt-in and off by default, so no existing workspace changes shape on upgrade.
+Composed example content can also say which component it uses. Designers build examples from raw layers, so a text layer stands in for the design system's text component. With `Settings.spec.promotePrimitives` on, that layer becomes an instance of what it stood for, using a `Conventions.primitives` table. What the promotion consumed is kept under `Element.$extensions`, so nothing is lost. A component's own anatomy is never promoted. Opt-in and off by default.
 
 ### Added
 
-- `PropConfigurationValue` — a `null` arm; a configuration states a nullable prop is unset, and an absent key inherits while `null` overrides (ADR-080)
+- `PropConfigurationValue` — a `null` arm: absent inherits, `null` overrides with unset (ADR-080)
 - `InstanceExample.propConfigurations` — accepts `null`, so an example can leave a prop unset; still refuses `PropBinding`
-- `NumberProp.enum` — the closed set of values a numeric prop accepts, so a Figma VARIANT whose options are all numbers carries its numeric type and its authored option order at once (ADR-072)
-- `Conventions` — facts about the libraries the pipeline reads and writes, keyed by platform under `platforms`; `figma` is one implementation key among `react`, `web-components` and `swiftui`. Blocks are optional and their absence means that platform declares no such convention (ADR-073)
+- `NumberProp.enum` — the closed set a numeric prop accepts, so an all-numeric VARIANT keeps both its type and its authored order (ADR-072)
+- `Conventions` — library facts keyed by platform under `platforms`; `figma` is one key among `react`, `web-components`, `swiftui`. An absent block means that platform declares no such convention (ADR-073)
 - `Settings` — run choices grouped by concern (`data`, `spec`, `assets`), each carrying its own `directory`
 - `Pipeline` — `transformers` and `analyses` a workspace runs, with `AnalysisEntry` alongside `TransformEntry`
 - `SourceEntry` — a source's Figma file `key` and the artifacts to `fetch`
-- `DEFAULT_SETTINGS`, `DEFAULT_PIPELINE` and `DEFAULT_CONVENTIONS` — one defaults constant per configuration artifact. `DEFAULT_CONVENTIONS` is `{}`: every default it once carried — `naming`, `slotConstraints`, `inferNumberProps` — belongs inside a declared platform entry, and no platform being declared is a statement no default can supply (ADR-073)
+- `DEFAULT_SETTINGS`, `DEFAULT_PIPELINE` and `DEFAULT_CONVENTIONS` — one per artifact. `DEFAULT_CONVENTIONS` is `{}`; every default it carried belongs inside a declared platform entry (ADR-073)
 - `conventions.schema.json`, `settings.schema.json`, `pipeline.schema.json` — one schema per authored artifact
-- `PlatformConventions` — one permissive shape per platform, carrying encoding members (`naming`, `glyphs`, `states`, …) and vocabulary members alike; also the root of a single `config/conventions/<id>.yaml`, so one file validates standalone (ADR-073, ADR-078)
+- `PlatformConventions` — one shape per platform, carrying encoding and vocabulary members alike, and the root of a single `config/conventions/<id>.yaml` (ADR-073, ADR-078)
 - `PrimitiveKind` — `'text' | 'glyph' | 'container'`, the subset of `ElementType` that can be promoted to a design system component (ADR-074)
 - `Conventions.primitives` — component-keyed `PrimitiveEntry` values, each an `elementType` and a `map` of `PrimitiveRule`; platform-neutral, since a component's props are the same on every platform (ADR-075)
 - `PrimitiveRule` — a `source` read from a captured layer, sent to a `prop` as-is or through a literal `values` lookup writing one or more props (ADR-075)
@@ -37,8 +37,7 @@ Composed example content can also now say which component it uses. A designer bu
 
 - `Settings.spec.collapsePrimitiveWrapper` — also collapses a root wrapping one slot, keeping the slot's value on shared keys (ADR-083)
 - `PlatformConventions.stylesProp` — now the only styling-prop level; there is no per-primitive override, because a promotion target is named by the spec rather than by a platform binding (ADR-076)
-- **`Settings.spec.splitComponents`, `splitConcerns` and `useSubfolders` now default to `true`** and are required on `ResolvedSettings`. The split layout — one folder per component, one file per concern — is what `transform`, `analyze` and `render` read, so the shape of generated output is not a per-consumer choice. They previously carried no default, leaving each consumer to pick its own; both consumers picked `false`, which is the layout nothing downstream can use. Recorded spec `metadata.settings.spec` now carries all three on every spec.
-
+- `Settings.spec.splitComponents`, `splitConcerns` and `useSubfolders` default to `true` and are required on `ResolvedSettings`. The split layout is what `transform`, `analyze` and `render` read, so it is not a per-consumer choice. `metadata.settings.spec` now carries all three
 - `Metadata.conventions` — typed as `MetadataConventions`; carries exactly the platform that produced the spec (ADR-079)
 - Conventions are authored as one file per platform in `config/conventions/`, the filename carrying the platform id; there is no single-file form (ADR-078)
 - `Metadata.config` → `Metadata.conventions` and `Metadata.settings` — each half comparable across specs on its own
