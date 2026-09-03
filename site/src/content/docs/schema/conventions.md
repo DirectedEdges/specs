@@ -19,7 +19,7 @@ platforms:
     stylesProp: sx
 primitives:
   dsText:
-    kind: text
+    elementType: text
     map:
       - source: content
         prop: text
@@ -145,10 +145,10 @@ Each key is one of the design system's own component names. When [`promotePrimit
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `kind` | `'text' \| 'glyph' \| 'container'` | *(required)* | The primitive kind this component can be promoted from |
+| `elementType` | `'text' \| 'glyph' \| 'container'` | *(required)* | The anatomy element type this component can be promoted from |
 | `map` | `array` | *(required)* | Rules turning the layer's styles into this component's props, in precedence order |
 
-Several entries may share a `kind` — a design system with a text, a heading and a body component is three entries. `kind` describes the layer shape a promotion starts *from*, not the component it lands on: a component with its own internal anatomy is a legitimate target for a single drawn layer.
+Several entries may share an `elementType` — a design system with a text, a heading and a body component is three entries. `elementType` names the same vocabulary `anatomy` uses, and describes the layer shape a promotion starts *from*, not the component it lands on: a component with its own internal anatomy is a legitimate target for a single drawn layer.
 
 ### Rules
 
@@ -160,9 +160,9 @@ Several entries may share a `kind` — a design system with a text, a heading an
 
 Exactly one of `prop` and `values` is given.
 
-`source` is closed per kind, and honoured by implementations rather than enforced by the schema — so renaming a `Styles` member never invalidates a conventions file:
+`source` is closed per element type, and honoured by implementations rather than enforced by the schema — so renaming a `Styles` member never invalidates a conventions file:
 
-| Kind | Sources |
+| Element type | Sources |
 |------|---------|
 | `text` | `typography`, `typography.fontSize`, `typography.fontFamily`, `typography.fontStyle`, `textColor`, `content` |
 | `glyph` | `width`, `height`, `fillColor`, `content` |
@@ -177,7 +177,7 @@ A key is a **full token path or a raw scalar**, matched literally. Nothing is de
 ```yaml
 # config/conventions/primitives.yaml
 dsHeading:
-  kind: text
+  elementType: text
   map:
     - source: typography
       values:
@@ -187,7 +187,7 @@ dsHeading:
       prop: text
 
 dsIcon:
-  kind: glyph
+  elementType: glyph
   map:
     - source: fillColor
       values:                    # colour in, intent out
@@ -207,7 +207,9 @@ A value writes **one or more props**, so one typography token can set `size` and
 
 ### Selection
 
-When several entries share a `kind`, the one whose rules resolve most often wins; ties break by declaration order. At least one rule must resolve, so `kind` alone never promotes — a layer is only this component if something about it says so.
+When several entries share an `elementType`, the one whose rules resolve most often wins; ties break by declaration order. At least one rule must resolve, so `elementType` alone never promotes — a layer is only this component if something about it says so.
+
+When more than one entry resolved, the promoted element records `multipleMatches: true` in its [capture provenance](/settings/promote-primitives/#what-is-recorded-and-why) — a durable note that the mapping was contested, rather than a warning that scrolls past.
 
 A source with no matching row does not resolve. It stays in `styles` and reaches output as passed styling, so a component's narrower prop enum constrains without a separate mechanism.
 

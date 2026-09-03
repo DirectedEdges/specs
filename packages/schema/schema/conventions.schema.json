@@ -280,9 +280,9 @@
       "type": "object",
       "description": "One component a captured primitive layer can be promoted to, and how its styles become that component's props. Promotion runs during capture, over composed example content only. Several entries may share a kind; selection between them is by how many rules resolve, and at least one must. (ADR-074, ADR-075)",
       "properties": {
-        "kind": {
+        "elementType": {
           "$ref": "#/definitions/PrimitiveKind",
-          "description": "The primitive kind this component can be promoted from."
+          "description": "The anatomy element type this component can be promoted from. Named for ElementType, the superset it draws from."
         },
         "map": {
           "type": "array",
@@ -293,7 +293,7 @@
         }
       },
       "required": [
-        "kind",
+        "elementType",
         "map"
       ],
       "additionalProperties": false

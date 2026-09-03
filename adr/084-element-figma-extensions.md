@@ -3,7 +3,7 @@
 **Branch**: `adr/spec-time-promotion`
 **Created**: 2026-09-02
 **Status**: DRAFT
-**Summary**: An `Element.$extensions` member records that a layer was promoted and which styles the promotion consumed.
+**Summary**: An `Element.$extensions` member records that a layer was promoted, whether the match was ambiguous, and which styles it consumed.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 
@@ -40,8 +40,8 @@ instance of the design system's own component, and the styles that promotion con
 replaced by `propConfigurations`. A text layer carrying a typography token and a text colour
 becomes an instance carrying `size`, `weight` and `color`.
 
-Two facts about that transformation cannot be recovered from its result, and both are needed
-to render the spec back to Figma:
+Three facts about that transformation cannot be recovered from its result. Two are needed to
+render the spec back to Figma:
 
 - **That it happened.** An instance the designer placed and a layer the pipeline promoted are
   indistinguishable afterwards — both are `type: instance` with `propConfigurations`. Only one
@@ -49,6 +49,14 @@ to render the spec back to Figma:
 - **What the original values were.** A prop value cannot be inverted back to the style that
   produced it. Two different sources may map to one prop value, so `size: XS` cannot say
   whether the layer carried a sizing token or a raw `16`.
+
+The third is not needed to render, and is recorded anyway:
+
+- **Whether the match was contested.** ADR-075 selects among several entries by score. That
+  more than one entry resolved is a fact about the conventions file, and it disappears the
+  moment the winner is written. A warning would announce it once, to whoever happened to be
+  watching the run; the ambiguity itself belongs on the element, where a reader or a later
+  lint pass can find it.
 
 `styles` is the wrong home for either. It is the element's *current* styling, consumed by
 every generator; anything left in it is emitted. Provenance must sit outside the contract
@@ -88,6 +96,7 @@ heading:
   $extensions:
     com.figma:
       promotedPrimitive: true
+      multipleMatches: true          # two entries resolved; the higher scorer won
       styles:
         textColor:  { $token: Color/Inverse on surface, $type: color }
         typography: { $token: Typography/font__400__medium, $type: typography }
@@ -140,7 +149,7 @@ not. The signal must be declared, not inferred from a side effect.
 |------|--------|------|
 | `Element.ts` | Added optional `$extensions?: ElementExtensions` | MINOR |
 | `Element.ts` | Added `ElementExtensions` — `{ 'com.figma'?: FigmaElementExtension }` | MINOR |
-| `Element.ts` | Added `FigmaElementExtension` — `promotedPrimitive?: boolean`, `styles?: Styles` | MINOR |
+| `Element.ts` | Added `FigmaElementExtension` — `promotedPrimitive?: boolean`, `multipleMatches?: boolean`, `styles?: Styles` | MINOR |
 
 **Example — new shape** (`types/Element.ts`):
 
@@ -166,6 +175,7 @@ Element:
 
 FigmaElementExtension:
   promotedPrimitive?: boolean   # this element was a primitive layer, promoted to an instance
+  multipleMatches?: boolean     # more than one entry resolved; the highest scorer won
   styles?: Styles               # the styles promotion consumed, verbatim as captured
 ```
 
@@ -192,6 +202,9 @@ FigmaElementExtension:
     promotedPrimitive:
       type: boolean
       description: "True when this element was a primitive layer promoted to a component instance."
+    multipleMatches:
+      type: boolean
+      description: "True when more than one conventions.primitives entry resolved and the highest-scoring one was chosen."
     styles:
       $ref: "#/definitions/Styles"
       description: "The styles promotion consumed, recorded verbatim as captured."
@@ -199,6 +212,10 @@ FigmaElementExtension:
 ```
 
 ### Notes
+
+`multipleMatches` is absent when exactly one entry resolved, rather than `false`. Absence is
+the ordinary case, and writing it on every promoted element would triple the noise to state
+the unremarkable.
 
 `promotedPrimitive` is `boolean` rather than a presence-only marker so that `false` remains
 expressible. Absence and `false` mean the same thing today; a spec that states `false`
@@ -248,8 +265,10 @@ and optional fields are MINOR per the constitution's versioning rule.
 
 ## Consequences
 
-- An element can record that it was promoted, and what it was promoted from, without either
-  fact reaching a generator that does not ask for it
+- An element can record that it was promoted, what it was promoted from, and whether the
+  match was contested — without any of it reaching a consumer that does not ask
+- Ambiguous mappings are inspectable after the fact. A conventions file where two entries
+  claim one layer leaves a trail in the specs it produced, rather than a warning nobody kept
 - A spec is reversible on its own terms: restoring a promoted layer needs the spec, not the
   Figma file it came from
 - `Element` and `AnatomyElement` now carry provenance the same way, so `com.figma` means one

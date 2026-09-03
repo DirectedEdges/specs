@@ -45,6 +45,18 @@ export interface FigmaElementExtension {
    */
   promotedPrimitive?: boolean;
   /**
+   * More than one `conventions.primitives` entry resolved against this element, and the
+   * highest-scoring one was chosen.
+   *
+   * A durable record rather than a warning that scrolls past. Two components claiming
+   * one layer may be a legitimate description of a design system, or it may be a
+   * conventions file that has drifted — either way the ambiguity is a property of this
+   * element, and something a reader or a lint pass can act on later.
+   *
+   * Absent means exactly one entry resolved.
+   */
+  multipleMatches?: boolean;
+  /**
    * The styles the promotion consumed, recorded verbatim as captured.
    *
    * A prop value cannot be inverted back to the style that produced it, because two

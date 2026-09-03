@@ -74,7 +74,7 @@ const imageKind: PrimitiveKind = 'image';
 const promotion: Conventions = {
   primitives: {
     dsHeading: {
-      kind: 'text',
+      elementType: 'text',
       map: [
         { source: 'typography', values: { 'Typography theme/Headline/M': { appearance: 'Headline M' } } },
         { source: 'content', prop: 'text' },
@@ -82,11 +82,11 @@ const promotion: Conventions = {
     },
     // One source may write several props, and a source may reach a prop of another meaning
     dsTypography: {
-      kind: 'text',
+      elementType: 'text',
       map: [{ source: 'typography', values: { 'Typography/font__200__medium': { size: 200, weight: 'Medium' } } }],
     },
     dsIcon: {
-      kind: 'glyph',
+      elementType: 'glyph',
       map: [
         { source: 'fillColor', values: { 'Color/Critical': { appearance: 'error' } } },
         { source: 'height', values: { 16: { size: 'XS' } } }, // raw scalars are keys too
@@ -94,22 +94,22 @@ const promotion: Conventions = {
       ],
     },
     // A Row/Column/Box trio is three entries; an empty props object promotes without writing
-    dsRow: { kind: 'container', map: [{ source: 'layoutMode', values: { HORIZONTAL: {} } }] },
-    dsColumn: { kind: 'container', map: [{ source: 'layoutMode', values: { VERTICAL: {} } }] },
+    dsRow: { elementType: 'container', map: [{ source: 'layoutMode', values: { HORIZONTAL: {} } }] },
+    dsColumn: { elementType: 'container', map: [{ source: 'layoutMode', values: { VERTICAL: {} } }] },
   },
 };
 
 // @ts-expect-error — primitives is not a platform member (ADR-074)
-const platformPrimitives: PlatformConventions = { primitives: { dsText: { kind: 'text', map: [] } } };
+const platformPrimitives: PlatformConventions = { primitives: { dsText: { elementType: 'text', map: [] } } };
 
-// @ts-expect-error — kind is required
+// @ts-expect-error — elementType is required
 const entryWithoutKind: PrimitiveEntry = { map: [] };
 
 // @ts-expect-error — map is required
-const entryWithoutMap: PrimitiveEntry = { kind: 'text' };
+const entryWithoutMap: PrimitiveEntry = { elementType: 'text' };
 
-// @ts-expect-error — kind is closed
-const entryBadKind: PrimitiveEntry = { kind: 'image', map: [] };
+// @ts-expect-error — elementType is closed
+const entryBadKind: PrimitiveEntry = { elementType: 'image', map: [] };
 
 // source is a plain string — the honoured set is documented and implemented, not validated
 // here, so renaming a Styles member never churns a conventions file (ADR-075)

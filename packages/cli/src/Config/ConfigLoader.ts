@@ -284,20 +284,20 @@ export class ConfigLoader {
    * Resolve `config/conventions/primitives.yaml` — the promotion table, keyed by the
    * design system's own component names (ADR-075).
    *
-   * An entry needs a `kind` and a `map`; one missing either is dropped with a warning
-   * rather than failing the run, so a half-written table promotes what it describes and
-   * leaves the rest as it is.
+   * An entry needs an `elementType` and a `map`; one missing either is dropped with a
+   * warning rather than failing the run, so a half-written table promotes what it
+   * describes and leaves the rest as it is.
    */
   private resolvePrimitives(parsed: unknown): Record<string, PrimitiveEntry> | undefined {
     if (!parsed || typeof parsed !== 'object') return undefined;
     const entries: Record<string, PrimitiveEntry> = {};
     for (const [name, body] of Object.entries(parsed as Record<string, unknown>)) {
       const entry = body as Partial<PrimitiveEntry> | null;
-      if (!entry || typeof entry !== 'object' || !entry.kind || !Array.isArray(entry.map)) {
-        console.warn(`conventions/${PRIMITIVES_FILE}.yaml: '${name}' needs a kind and a map — entry ignored.`);
+      if (!entry || typeof entry !== 'object' || !entry.elementType || !Array.isArray(entry.map)) {
+        console.warn(`conventions/${PRIMITIVES_FILE}.yaml: '${name}' needs an elementType and a map — entry ignored.`);
         continue;
       }
-      entries[name] = { kind: entry.kind, map: entry.map };
+      entries[name] = { elementType: entry.elementType, map: entry.map };
     }
     return Object.keys(entries).length ? entries : undefined;
   }
@@ -593,7 +593,7 @@ export class ConfigLoader {
     settings.spec.directory = path.resolve(CONFIG_DEFAULTS.outputDirectory);
 
     return {
-      conventions: this.resolveConventions({}),
+      conventions: this.resolveConventions({ byPlatform: {} }),
       settings,
       pipeline: {
         transformers: [...DEFAULT_PIPELINE.transformers],

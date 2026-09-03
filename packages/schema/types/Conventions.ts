@@ -94,20 +94,25 @@ export interface PrimitiveRule {
  * that component's props.
  *
  * Promotion runs during capture, over composed example content only (ADR-074). Several
- * entries may share a `kind`: a design system with a text, a heading and a body component
- * is three entries, and selection between them is by score — how many of an entry's rules
- * resolve against the element. At least one rule must resolve, so `kind` alone never
- * promotes.
+ * entries may share an `elementType`: a design system with a text, a heading and a body
+ * component is three entries, and selection between them is by score — how many of an
+ * entry's rules resolve against the element. At least one rule must resolve, so
+ * `elementType` alone never promotes.
  *
- * The target need not itself be a primitive. `kind` describes the layer shape a promotion
- * starts *from*, not the component it lands on: a component with its own internal anatomy
- * is a legitimate target for a single drawn layer.
+ * The target need not itself be a primitive. `elementType` describes the layer shape a
+ * promotion starts *from*, not the component it lands on: a component with its own
+ * internal anatomy is a legitimate target for a single drawn layer.
  *
  * @since 0.31.0
  */
 export interface PrimitiveEntry {
-  /** The primitive kind this component can be promoted from. */
-  kind: PrimitiveKind;
+  /**
+   * The anatomy element type this component can be promoted from.
+   *
+   * Named for `ElementType`, the superset it draws from, so a reader recognises the
+   * vocabulary rather than learning a second word for it.
+   */
+  elementType: PrimitiveKind;
   /**
    * The rules turning the layer's styles into this component's props, in precedence
    * order. When two rules write the same prop, the first that resolves wins.

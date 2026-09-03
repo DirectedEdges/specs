@@ -40,6 +40,7 @@ const promoted: Element = {
   $extensions: {
     'com.figma': {
       promotedPrimitive: true,
+      multipleMatches: true,
       styles: { textColor: { $token: 'Color/On surface', $type: 'color' } },
     },
   },

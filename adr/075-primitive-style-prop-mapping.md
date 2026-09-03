@@ -78,8 +78,8 @@ text components.
 
 ### Option A: A table of rules per component, keyed on source, producing props *(Selected)*
 
-`conventions.primitives` holds one entry per component. Each declares the `kind` it can be
-promoted from, and a `map` of rules. A rule names a `source` and either sends its value to a
+`conventions.primitives` holds one entry per component. Each declares the `elementType` it
+can be promoted from, and a `map` of rules. A rule names a `source` and either sends its value to a
 `prop` as-is, or looks it up in a `values` table whose right-hand side is a partial props
 object.
 
@@ -87,7 +87,7 @@ object.
 conventions:
   primitives:
     dsHeading:                          # System A — named style
-      kind: text
+      elementType: text
       map:
         - source: typography
           values:
@@ -100,7 +100,7 @@ conventions:
           prop: text
 
     dsIcon:                             # System B — colour in, intent out
-      kind: glyph
+      elementType: glyph
       map:
         - source: fillColor
           values:
@@ -188,14 +188,16 @@ are the same whichever platform renders them, so this does not sit under
 
 ### Decision 2 — selection
 
-A promotion may have several candidates: two components sharing a `kind`. Selection is by
+A promotion may have several candidates: two components sharing an `elementType`. Selection is by
 **score** — how many of an entry's rules resolve against this element.
 
 - **No candidate resolves any rule** → no promotion. The element stays as it is
-- **Otherwise** → promote to the highest scorer; ties break by declaration order
+- **Otherwise** → promote to the highest scorer; ties break by declaration order. When more
+  than one entry resolved, the promoted element records `multipleMatches` (ADR-084) so the
+  ambiguity is durable rather than a warning that scrolls past
 
-At least one rule must resolve. `kind` alone never promotes, so a layer is only this
-component if something about it says so. Scoring rather than first-match lets tables overlap
+At least one rule must resolve. `elementType` alone never promotes, so a layer is only
+this component if something about it says so. Scoring rather than first-match lets tables overlap
 honestly: two components may legitimately accept one typography token, and the one that also
 matches the element's colour or content is the better answer without the author ordering the
 file to compensate.
@@ -209,7 +211,7 @@ author's control.
 | File | Change | Bump |
 |------|--------|------|
 | `Conventions.ts` | Added `Conventions.primitives?: Record<string, PrimitiveEntry>` | MINOR |
-| `Conventions.ts` | Added `PrimitiveEntry` — `kind: PrimitiveKind`, `map: PrimitiveRule[]` | MINOR |
+| `Conventions.ts` | Added `PrimitiveEntry` — `elementType: PrimitiveKind`, `map: PrimitiveRule[]` | MINOR |
 | `Conventions.ts` | Added `PrimitiveRule` — `source: string`, and either `prop?: string` or `values?: Record<string, PropConfigurations>` | MINOR |
 | `Conventions.ts` | Added `ResolvedConventions.primitives` mirroring the above | MINOR |
 
@@ -221,7 +223,7 @@ Conventions:
   primitives?: Record<string, PrimitiveEntry>    # component name → entry
 
 PrimitiveEntry:
-  kind: PrimitiveKind          # which primitive kind promotes to this component
+  elementType: PrimitiveKind   # the anatomy element type that promotes to this component
   map: PrimitiveRule[]
 
 PrimitiveRule:
@@ -256,6 +258,13 @@ PrimitiveRule:
 
 ### Notes
 
+**`elementType`, not `kind`.** The member holds a value from `PrimitiveKind`, which is
+itself a strict subset of `ElementType` — the vocabulary a reader already knows from
+`anatomy`. Naming it for that superset means an entry reads as "this component is promoted
+from a text element", using the word the spec uses, rather than introducing a second term
+for the same idea. It reaches across two levels — an anatomy item's element type — and that
+is the point: it names where the value comes from.
+
 **`source` is a plain string, not an enum.** The set an implementation honours is closed and
 documented — for `text`: `typography`, `typography.fontSize`, `typography.fontFamily`,
 `typography.fontStyle`, `textColor`, `content`; for `glyph`: `width`, `height`, `fillColor`,
@@ -289,8 +298,8 @@ typography rule and keeps its colour as styling.
 
 - **Symmetric**: Yes
 - **Parity check**: `Conventions.primitives` ↔ `#/definitions/Conventions/properties/primitives`;
-  `PrimitiveEntry` ↔ `#/definitions/PrimitiveEntry`, whose `kind` `$ref`s the `PrimitiveKind`
-  enum ADR-074 retains; `PrimitiveRule.values` ↔ an object whose additional properties `$ref`
+  `PrimitiveEntry` ↔ `#/definitions/PrimitiveEntry`, whose `elementType` `$ref`s the
+  `PrimitiveKind` enum ADR-074 retains; `PrimitiveRule.values` ↔ an object whose additional properties `$ref`
   `PropConfigurations`
 
 ---
