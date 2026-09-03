@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Configuration now separates what is true about a Figma library from what a run chooses to do with it. A convention — a naming pattern, a state classification, where subcomponents live — is a fact every consumer of that library must share, and getting one wrong produces incorrect output. A setting is a free choice that produces different output. They were peers in one `Config`; they are now two published types, each addressable, each validated on its own, with the work a workspace runs declared separately again.
 
+Composed example content can also now say which component it uses. A designer builds an example out of raw layers because composing with real instances in a design file is laborious, so a text layer stands in for the design system's text component and the spec records the stand-in. With `Settings.spec.promotePrimitives` enabled, that layer becomes an instance of the component it stood for — the same shape the spec already uses for a component the designer placed — with a `Conventions.primitives` table saying which component and what its props become. What the promotion consumed is kept under `Element.$extensions`, so nothing is lost and a promoted layer can be rendered back to Figma as a layer. A component's own anatomy is never promoted: someone who put a text layer there chose a text layer. The setting is opt-in and off by default, so no existing workspace changes shape on upgrade.
+
 ### Added
 
 - `PropConfigurationValue` — a `null` arm; a configuration states a nullable prop is unset, and an absent key inherits while `null` overrides (ADR-080)
@@ -34,6 +36,7 @@ Configuration now separates what is true about a Figma library from what a run c
 ### Changed
 
 - `Settings.spec.collapsePrimitiveWrapper` — also collapses a root wrapping one slot, keeping the slot's value on shared keys (ADR-083)
+- `PlatformConventions.stylesProp` — now the only styling-prop level; there is no per-primitive override, because a promotion target is named by the spec rather than by a platform binding (ADR-076)
 - **`Settings.spec.splitComponents`, `splitConcerns` and `useSubfolders` now default to `true`** and are required on `ResolvedSettings`. The split layout — one folder per component, one file per concern — is what `transform`, `analyze` and `render` read, so the shape of generated output is not a per-consumer choice. They previously carried no default, leaving each consumer to pick its own; both consumers picked `false`, which is the layout nothing downstream can use. Recorded spec `metadata.settings.spec` now carries all three on every spec.
 
 - `Metadata.conventions` — typed as `MetadataConventions`; carries exactly the platform that produced the spec (ADR-079)
