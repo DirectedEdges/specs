@@ -4,13 +4,15 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 085 | `promotePrimitives` — the Switch for Capture-Time Promotion | |
+| 084 | `Element.$extensions` — Figma Provenance for a Promoted Element | |
 | 081 | `defaultFillWidth` — the Width a Fill-Width Root Fills | Each platform states, in its own `config/conventions/` file, the width of the container it places a fill-width root in; fixed and hugging roots are untouched, and absent a declaration the rendering tool falls back to 375 |
 | 079 | `metadata.conventions` Carries Only the Producing Platform | A spec records the one platform entry that produced it, not every platform in the workspace — fixing a drift check that fires on unrelated changes, and stopping internal vocabulary leaking into published specs |
 | 078 | One Conventions File per Platform, in `config/conventions/` | `config/conventions/<platform>.yaml` composes into one `Conventions`; the filename is the platform id so no merge rule is needed, and it is the only layout — the single-file form is unreleased and does not survive |
 | 077 | The Image Component's Code Name, and the Encoding / Vocabulary Boundary | Text, glyph and container are node kinds; an image is an attribute, so it gets `images.component` rather than a place in the primitive vocabulary. A container's `backgroundImage` always stays styling |
-| 076 | Direction-Keyed Container Bindings, and a Platform-Level `stylesProp` | A container binds to one component or to a `layoutMode`-keyed map (Row/Column/Box); only `stylesProp` hoists to the platform, since the per-primitive `props` sets are disjoint |
-| 075 | `props` — a Closed, Concept-Keyed Map onto a Component's Props | Keys name concepts, not spec members: text maps `color`/`typography`, glyph `color`/`content`, container `direction`; `color` and `content` default to their own names; everything else is passed styling routed to `stylesProp` |
-| 074 | Primitives Resolve to Components at Emit Time, Not in the Spec | The spec keeps `type: text`; each platform generator emits its own bound component, so one spec serves every implementation and the transformer stays a pure function of the Figma file. `PrimitiveKind` is the bindable subset of `ElementType`: text, glyph, container |
+| 076 | Promoting a Container, and a Platform-Level `stylesProp` | |
+| 075 | `conventions.primitives` — a Declared Table from Styles to a Component's Props | |
+| 074 | Primitives Promote to Component Instances During Capture, in Composed Content | |
 | 073 | `conventions.platforms`, with Figma as One Platform Among Them | Replaces `conventions.figma` with a platform-keyed map in which `figma` is one key; platform ids name implementations (`react`, `web-components`, `swiftui`) and stay flat |
 | 072 | Numeric Enum on `NumberProp` | Adds optional `enum?: number[]` so a VARIANT whose options are all numbers emits as a number with its closed option set preserved |
 | 070 | Explicit `position: ABSOLUTE` for Children of Non-Auto-Layout Parents | |

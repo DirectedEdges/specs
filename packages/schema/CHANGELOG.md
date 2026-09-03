@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Configuration now separates what is true about a Figma library from what a run chooses to do with it. A convention — a naming pattern, a state classification, where subcomponents live — is a fact every consumer of that library must share, and getting one wrong produces incorrect output. A setting is a free choice that produces different output. They were peers in one `Config`; they are now two published types, each addressable, each validated on its own, with the work a workspace runs declared separately again.
 
+Composed example content can also now say which component it uses. A designer builds an example out of raw layers because composing with real instances in a design file is laborious, so a text layer stands in for the design system's text component and the spec records the stand-in. With `Settings.spec.promotePrimitives` enabled, that layer becomes an instance of the component it stood for — the same shape the spec already uses for a component the designer placed — with a `Conventions.primitives` table saying which component and what its props become. What the promotion consumed is kept under `Element.$extensions`, so nothing is lost and a promoted layer can be rendered back to Figma as a layer. A component's own anatomy is never promoted: someone who put a text layer there chose a text layer. The setting is opt-in and off by default, so no existing workspace changes shape on upgrade.
+
 ### Added
 
 - `PropConfigurationValue` — a `null` arm; a configuration states a nullable prop is unset, and an absent key inherits while `null` overrides (ADR-080)
@@ -21,17 +23,20 @@ Configuration now separates what is true about a Figma library from what a run c
 - `DEFAULT_SETTINGS`, `DEFAULT_PIPELINE` and `DEFAULT_CONVENTIONS` — one defaults constant per configuration artifact. `DEFAULT_CONVENTIONS` is `{}`: every default it once carried — `naming`, `slotConstraints`, `inferNumberProps` — belongs inside a declared platform entry, and no platform being declared is a statement no default can supply (ADR-073)
 - `conventions.schema.json`, `settings.schema.json`, `pipeline.schema.json` — one schema per authored artifact
 - `PlatformConventions` — one permissive shape per platform, carrying encoding members (`naming`, `glyphs`, `states`, …) and vocabulary members alike; also the root of a single `config/conventions/<id>.yaml`, so one file validates standalone (ADR-073, ADR-078)
-- `PrimitiveKind` — `'text' | 'glyph' | 'container'`, the bindable subset of `ElementType`; bindings resolve at emit time and are never written into a spec (ADR-074)
-- `PlatformConventions.primitives` — `TextBinding`, `GlyphBinding` and `ContainerBinding`, each with `component`, a closed concept-keyed `props`, and `stylesProp` (ADR-075)
-- `ContainerBinding.component` — a name, or a `LayoutMode`-keyed map for platforms expressing direction by component choice (ADR-076)
-- `PlatformConventions.stylesProp` — baseline prop for unmapped styling, overridden per primitive and folded into each on resolution (ADR-076)
+- `PrimitiveKind` — `'text' | 'glyph' | 'container'`, the subset of `ElementType` that can be promoted to a design system component (ADR-074)
+- `Conventions.primitives` — component-keyed `PrimitiveEntry` values, each a `kind` and a `map` of `PrimitiveRule`; platform-neutral, since a component's props are the same on every platform (ADR-075)
+- `PrimitiveRule` — a `source` read from a captured layer, sent to a `prop` as-is or through a literal `values` lookup writing one or more props (ADR-075)
+- `PlatformConventions.stylesProp` — prop receiving styling no promotion mapped, one per platform (ADR-076)
 - `PlatformConventions.images.component` — the image component's name on a code platform, beside the `match` naming it in Figma (ADR-077)
 - `MetadataConventions` — a spec records the one platform entry that produced it, not every platform the workspace configures (ADR-079)
 - `PlatformConventions.defaultFillWidth` — container width for a root that resizes to fill its parent; fixed and hugging roots unaffected (ADR-081)
+- `Element.$extensions` — `com.figma.promotedPrimitive` and `com.figma.styles`, recording that a layer was promoted and which styles the promotion consumed (ADR-084)
+- `Settings.spec.promotePrimitives` — primitive layers in composed example content promote to design system component instances; opt-in, defaults to `false` (ADR-085)
 
 ### Changed
 
 - `Settings.spec.collapsePrimitiveWrapper` — also collapses a root wrapping one slot, keeping the slot's value on shared keys (ADR-083)
+- `PlatformConventions.stylesProp` — now the only styling-prop level; there is no per-primitive override, because a promotion target is named by the spec rather than by a platform binding (ADR-076)
 - **`Settings.spec.splitComponents`, `splitConcerns` and `useSubfolders` now default to `true`** and are required on `ResolvedSettings`. The split layout — one folder per component, one file per concern — is what `transform`, `analyze` and `render` read, so the shape of generated output is not a per-consumer choice. They previously carried no default, leaving each consumer to pick its own; both consumers picked `false`, which is the layout nothing downstream can use. Recorded spec `metadata.settings.spec` now carries all three on every spec.
 
 - `Metadata.conventions` — typed as `MetadataConventions`; carries exactly the platform that produced the spec (ADR-079)

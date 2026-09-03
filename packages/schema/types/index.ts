@@ -16,7 +16,7 @@ export type { Subcomponent, Subcomponents, SubcomponentSource } from './Subcompo
 export type { InstanceExample, InstanceExamples } from './InstanceExample.js';
 
 // Element and structure types
-export type { Element, Elements, ElementType } from './Element.js';
+export type { Element, Elements, ElementType, ElementExtensions, FigmaElementExtension } from './Element.js';
 export type { Layout, LayoutNode } from './Layout.js';
 export type { Children, SlotBinding } from './Children.js';
 export type { SlotContent } from './SlotContent.js';
@@ -31,14 +31,8 @@ export type {
   PlatformConventions,
   ResolvedPlatformConventions,
   PrimitiveKind,
-  PrimitiveBindings,
-  ResolvedPrimitiveBindings,
-  TextBinding,
-  GlyphBinding,
-  ContainerBinding,
-  ResolvedTextBinding,
-  ResolvedGlyphBinding,
-  ResolvedContainerBinding,
+  PrimitiveEntry,
+  PrimitiveRule,
   VariantStateEntry,
 } from './Conventions.js';
 export { DEFAULT_CONVENTIONS } from './Conventions.js';

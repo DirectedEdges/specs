@@ -27,6 +27,7 @@ const baseSettings: Metadata['settings'] = {
     variantDepth: 9999,
     details: 'LAYERED',
     collapsePrimitiveWrapper: false,
+    promotePrimitives: false,
     invalidVariants: false,
     invalidCombinations: true,
     emptyVariants: false,

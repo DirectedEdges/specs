@@ -1,9 +1,9 @@
-# ADR: Primitives Resolve to Components at Emit Time, Not in the Spec
+# ADR: Primitives Promote to Component Instances During Capture, in Composed Content
 
-**Branch**: `074-emit-time-primitive-resolution`
+**Branch**: `adr/spec-time-promotion`
 **Created**: 2026-08-30
 **Status**: DRAFT
-**Summary**: `PrimitiveKind` and a binding per kind resolve `text`, `glyph` and `container` to each platform's own component at emit time.
+**Summary**: Primitive layers in composed example content promote to design system component instances during capture, not at emit.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 
@@ -11,166 +11,147 @@
 
 ## Context
 
-ADR-073 establishes `conventions.platforms.<id>` as the home for spec→code conventions. This ADR decides the single most consequential thing about them: **when** a primitive becomes a component, and therefore what the spec contains.
+A component's `examples.yaml` records what a designer assembled. Two kinds of thing appear
+there side by side, and today they are recorded very differently:
 
-An element captured from Figma is one of a closed set of kinds (`types/Element.ts`):
-
-```ts
-export type ElementType =
-  | 'text' | 'glyph' | 'vector' | 'container'
-  | 'slot' | 'instance' | 'line' | 'ellipse'
-  | 'rectangle' | 'polygon' | 'star';
+```yaml
+anatomy:
+  heading: { type: text }                          # a layer the designer drew
+  link1:   { type: instance, instanceOf: dsLink }  # a component the designer placed
 ```
 
-Three of these — `text`, `glyph`, `container` — are what compositions are made of, and a design system implements each with a designated component. The question is whether that substitution happens on the way *in* (the transformer writes `type: instance, instanceOf: dsText` into the spec) or on the way *out* (the spec keeps `type: text`, and each generator emits its own platform's component).
+`link1` is an instance: it names the component it is, and carries `propConfigurations`.
+`heading` is a text layer with a bag of styles — even though the design system ships a text
+component, and the product code that this example stands for would use it.
 
-ADR-063 already made the in-bound choice, for images: when the Figma library has a designated image component and the designer placed an instance of it, the transformer recognizes it and the spec carries a nested instance. That was sound because the routing is driven by something **the Figma file actually contains** — the instance was already there, and the transformer recognized it rather than inventing it.
+The difference is not a difference in intent. Composing with real instances in a design file
+is laborious, so designers build examples out of raw layers as an approximation of what the
+product would compose. The spec faithfully records the approximation.
 
-Text, glyph, and container layers are different. A Figma text layer inside a slot's default content is a `TEXT` node; there is no `DsText` instance to recognize. Substituting one in the spec would mean the transformer **fabricating structure the source does not have** — and fabricating it differently depending on which platform it was told to serve.
+That leaves the spec describing the design file's limitations rather than the design system's
+intent, and it pushes the interpretation downstream. Every consumer that wants to emit
+something better than a `div` has to decide, on its own, that a text layer wearing this
+design system's typography token means that design system's text component. That decision is
+identical for React, Web Components, and any other implementation — it is a fact about the
+design system, not about a platform — but nothing in the contract lets it be stated once.
+
+A prior draft of this ADR placed that decision at emit time, in per-platform bindings under
+`PlatformConventions.primitives`:
+
+> Bindings are consulted at emit time. The spec keeps `type: text`; a generator resolves it
+> to this platform's component, so one spec serves every implementation and no binding is
+> ever written into a spec.
+
+The neutrality argument in that sentence does not hold up. `dsText` is not a platform's
+component — it is a design system's component, and a spec is authored against exactly one
+design system. Naming it in the spec costs nothing in portability across React and Web
+Components, which is the portability that exists. What the emit-time placement does cost is
+that the same interpretation is re-derived per platform, and that the spec cannot be read as
+a statement of what the composition *is*.
 
 ---
 
 ## Decision Drivers
 
-- **One spec serves every platform.** A spec is the durable, platform-neutral artifact. The moment it names `DsText`, it is a React spec, and iOS and Web Components need their own copies of the same design
-- **Do not fabricate what the source does not carry.** The transformer's contract is fidelity to Figma. An instance that exists nowhere in the file is an invention, and inventions are unverifiable against the source
-- **Deterministic output.** Same input → identical output. If the transformer's output depends on which platform the run was configured for, the spec is no longer a function of the Figma file alone
-- **Round-trip fidelity.** `figma-from-specs` renders a spec back onto the canvas. It must be able to reconstruct a text layer; it cannot reconstruct one from an instance of a component that does not exist in the Figma library
-- **No spec-shape change.** A resolution mechanism that requires new element types, new `Component` members, or changes to `Styles` is a mechanism that has leaked into the wrong artifact
-- **No logic in the schema package (Constitution II).** The package declares the binding; consumers apply it
-- **Absence means one thing (ADR-071).** No binding declared = the generator's existing behavior, unchanged
+- **A spec should state design intent, not the source file's limitations.** Where the two
+  differ, the spec is the better place for the intent
+- **One decision, stated once.** An interpretation identical for every implementation belongs
+  in the artifact all implementations share, not repeated per platform
+- **Composed content and component definitions are different material.** A component's own
+  anatomy is authored; example content is an approximation
+- **Reversibility.** Any interpretation applied during capture must be recoverable from the
+  spec alone, without the source file
+- **Nothing is silently lost.** An incomplete or absent convention degrades to today's output
+- **Absence means one thing (ADR-071)**, and **no logic in this package** (Constitution II)
 
 ---
 
 ## Options Considered
 
-Two decisions: when resolution happens, and what it applies to.
+### Option A: Promote during capture, in composed content only *(Selected)*
 
----
-
-## Decision 1 — When a primitive becomes a component
-
-### Option 1A: Emit-time resolution — the spec stays primitive *(Selected)*
-
-The spec is unchanged by this entire ADR set. `label` stays `type: text` with its styles and content. At generation, a platform generator reads `conventions.platforms[itsId].primitives.text` and, if a binding is declared, emits the bound component instead of its host element.
+A primitive layer in `examples.yaml` becomes an instance of the design system's component.
+Its anatomy `type` becomes `instance`, it gains `instanceOf`, and the styles the promotion
+interpreted become `propConfigurations` — with provenance recorded per ADR-084 so the
+transformation reverses.
 
 ```yaml
-# spec — one artifact, unchanged, platform-neutral
+# Before
+anatomy:
+  heading: { type: text }
 elements:
-  label:
+  heading:
     styles:
-      textColor: {$token: Color/On surface, $type: color}
-      typography: {$token: Typography/font__200__regular, $type: typography}
-      maxLines: 1
-    content: Label
-```
+      textColor:  { $token: Color/Inverse on surface, $type: color }
+      typography: { $token: Typography/font__400__medium, $type: typography }
+    content: Heading
 
-```yaml
-# conventions.yaml — the platform-specific half
-platforms:
-  react:
-    primitives:
-      text: {component: DsText}
-  swiftui:
-    primitives:
-      text: {component: Text}
-```
-
-```jsx
-// React emission
-<DsText color="on-surface" typography="font__200__regular" maxLines={1}>Label</DsText>
-```
-
-```swift
-// SwiftUI emission — same spec, different binding
-Text("Label").foregroundStyle(.onSurface).font(.font200Regular).lineLimit(1)
-```
-
-**Pros**:
-
-- The spec stays one artifact for every platform, which is the entire premise of ADR-073. Adding Android adds a conventions key and changes no spec byte
-- The transformer stays a pure function of the Figma file. Determinism holds, and nothing in the transformer needs to know a platform exists
-- `figma-from-specs` round-trips unharmed: a `type: text` element renders back to a `TEXT` node
-- Nothing is fabricated. Every element in the spec corresponds to a node that was in the file
-- The generators are where the platform knowledge already is. Each one already decides what host element a primitive becomes; the binding redirects an existing decision rather than adding a stage
-- Retroactive: a spec generated before this ADR resolves under it with no regeneration
-
-**Cons / Trade-offs**:
-
-- Every generator implements resolution. Three transformers repeat the lookup — mitigable with a shared helper, but the logic is not free
-- A spec read on its own does not reveal which component the design system uses. The answer is one file away, in conventions, rather than inline
-- Two artifacts must be shipped together to reproduce an emission. A spec alone is no longer sufficient input to a generator — though it already was not, since `Settings` also shapes output
-
----
-
-### Option 1B: Transform-time promotion — the transformer writes the instance *(Rejected)*
-
-The transformer rewrites the text layer into `type: instance, instanceOf: dsText` with `propConfigurations`, and every generator gets composed components for free.
-
-```yaml
+# After
+anatomy:
+  heading: { type: instance, instanceOf: dsTypography }
 elements:
-  label:
-    instanceOf: dsText
-    propConfigurations:
-      color: on-surface
-      typography: font__200__regular
+  heading:
+    instanceOf: dsTypography
+    propConfigurations: { color: Inverse on surface, size: 400, weight: Medium, text: Heading }
+    $extensions:
+      com.figma:
+        promotedPrimitive: true
+        styles:
+          textColor:  { $token: Color/Inverse on surface, $type: color }
+          typography: { $token: Typography/font__400__medium, $type: typography }
 ```
 
-**Rejected because**: it commits the spec to one platform. `instanceOf: dsText` is React's answer; SwiftUI's is `Text` and Web Components' is `ds-text`, and one spec cannot hold all three in one field. Producing per-platform specs multiplies the artifact that is supposed to be the single source of truth, and makes the transformer's output depend on run configuration rather than on the Figma file — breaking determinism.
-
-It also breaks the round trip. `figma-from-specs` reading `instanceOf: dsText` would look for a `dsText` component in the Figma library and not find one, because the source was a plain text layer.
-
-Note this is *not* an argument against ADR-063. Image routing promotes an instance the Figma file already contains. Promoting text fabricates one it does not.
-
----
-
-### Option 1C: Hybrid — promote, but retain the raw layer under `$extensions` *(Rejected)*
-
-**Rejected because**: it keeps every cost of 1B and adds one. The spec is still platform-committed in its primary shape, still non-deterministic, still larger — and now carries two representations of one element, which means two things can disagree and consumers must decide which is authoritative. It answers the fidelity objection to 1B without answering the platform objection, which is the one that matters.
-
----
-
-### Option 1D: Resolve in the schema package — a helper that maps element + conventions → component *(Rejected)*
-
-**Rejected because**: Constitution II. `@directededges/specs-schema` declares types and JSON Schema and contains no runtime logic. A resolver is runtime logic, and it would drag platform-emission concerns into the package every consumer depends on.
-
----
-
-## Decision 2 — What resolution applies to
-
-### Option 2A: Descendant elements of the three primitive kinds *(Selected)*
-
-Resolution applies to an element when **all** of the following hold:
-
-- Its `ElementType` is `text`, `glyph`, or `container`
-- It is not the anatomy root of the component being generated
-- A binding for that kind is declared under the run's platform id
-
-It applies uniformly wherever elements appear: component anatomy, `slotContentExamples`, `Composition.slotContent`, and `instanceExamples`. There is no separate composition-only rule — a text layer is a text layer.
+`variants.yaml` is untouched. A component's own anatomy is authored: someone who put a text
+layer in `dsBadge` chose a text layer, and saying it is an instance of `dsTypography` would
+describe `dsBadge` as something other than what it is.
 
 **Pros**:
 
-- The trigger is the element's own declared type. No inference, no heuristics, no new spec member to consult
-- Uniform across every place elements appear, which is what makes it useful for compositions without being special-cased to them
-- Excluding the anatomy root is necessary: the root **is** the component being generated. Resolving a container root to `DsBox` would emit `DsBox` where `DsCard` is being defined
+- Composed content ends up in the shape it already uses for placed instances, so one reading
+  covers both — the `heading` above now looks like the `link1` beside it
+- The interpretation is stated once, in the artifact every implementation reads
+- The spec becomes readable as intent: "this composition uses the text component"
+- No contract change to how instances are expressed — `instanceOf` and `propConfigurations`
+  already exist and already mean this
+- Reversible, because ADR-084 records what was interpreted and what it replaced
 
 **Cons / Trade-offs**:
 
-- A container carrying a `backgroundImage` resolves as a **container**, and its background image stays a style. It is not rerouted to an image component: such a container almost always has children, and it is a decorated box rather than an image. The designated image component is reached by ADR-063's instance path, and its per-platform name is handled outside the primitive vocabulary (ADR-077)
-- `vector`, `line`, `ellipse`, `rectangle`, `polygon`, `star` get no binding. They are rarer and have no obvious designated component; the vocabulary is open to them additively if that changes
-- `slot` and `instance` are deliberately excluded — a slot is a hole, and an instance already names its component
+- The spec is no longer a verbatim transcript of the design file for composed content. This
+  is the intended change, and the residue is what keeps it honest
+- Interpretation happens once, at capture, so a spec reflects the conventions in force when
+  it was produced. Re-capture is how a spec adopts a changed table
 
 ---
 
-### Option 2B: Every element type, with bindings optional per kind *(Rejected)*
+### Option B: Resolve at emit time, per platform *(Rejected)*
 
-**Rejected because**: `instance` and `slot` have no coherent binding. An `instance` already carries `instanceOf`; overriding it would let conventions silently replace a component the designer explicitly placed. A `slot` is an absence.
+The prior draft: the spec keeps `type: text`, and each platform's generator consults its own
+binding.
+
+**Rejected because**: it states one design-system fact once per platform, and it justifies
+itself with a neutrality that is not at stake — a spec is already specific to one design
+system, so naming that system's component does not narrow it. It also leaves the spec unable
+to distinguish "a text layer" from "the text component, drawn as a layer", which is exactly
+what a reader of composed content needs to know.
 
 ---
 
-### Option 2C: Composition contexts only — `slotContentExamples` and `slotContent` *(Rejected)*
+### Option C: Promote everywhere, including a component's own `variants.yaml` *(Rejected)*
 
-**Rejected because**: it makes the same text layer resolve differently depending on where it sits, for no reason a reader could predict. The gap is real in plain anatomy too — a card's title is a text layer wherever it is described.
+**Rejected because**: it misdescribes components. A design system's badge contains a text
+layer; that is what its anatomy is. Replacing it with an instance of the text component makes
+the badge's own definition depend on a conventions table, and makes a component's anatomy
+unable to express "a text layer" at all.
+
+---
+
+### Option D: Record both — keep `type: text` and add the resolved component alongside *(Rejected)*
+
+**Rejected because**: it states the same element two ways and leaves every consumer to decide
+which wins, with no rule in the contract to settle it. It also doubles the element's size for
+no gain: the residue in ADR-084 already preserves the original, in a namespace that cannot be
+mistaken for the live value.
 
 ---
 
@@ -180,39 +161,58 @@ It applies uniformly wherever elements appear: component anatomy, `slotContentEx
 
 | File | Change | Bump |
 |------|--------|------|
-| *(none)* | The spec contract is unchanged — no change to `Element`, `ElementType`, `Component`, `SlotContent`, or `Styles` | — |
-| `Conventions.ts` | Added `PlatformConventions.primitives?` — an optional entry per `PrimitiveKind` | MINOR |
-| `Conventions.ts` | Added `PrimitiveKind = 'text' \| 'glyph' \| 'container'` — a closed vocabulary and the bindable subset of `ElementType` | MINOR |
-| `Conventions.ts` | Added a binding type per kind — `TextBinding`, `GlyphBinding`, `ContainerBinding`, each with `component` (shapes defined by ADR-075 and ADR-076) | MINOR |
+| `Conventions.ts` | Removed `PlatformConventions.primitives` and `PrimitiveBindings` — the emit-time binding block | MINOR |
+| `Conventions.ts` | Removed `TextBinding`, `GlyphBinding`, `ContainerBinding` and their `Resolved*` forms | MINOR |
+| `Conventions.ts` | `PrimitiveKind` is declared directly as `'text' \| 'glyph' \| 'container'` rather than derived from `PrimitiveBindings` | MINOR |
+| *(none)* | `Element`, `ElementType`, `Anatomy` and `Styles` are unchanged — promotion writes members that already exist | — |
+
+Every removal is of a member added in this same unreleased version, so nothing published
+changes shape.
 
 **Example — new shape** (`types/Conventions.ts`):
 
 ```yaml
+# Before
 PlatformConventions:
   primitives?:
-    text?:      {component: ...}
-    glyph?:     {component: ...}
-    container?: {component: ...}
+    text?:      { component: ... }
+    glyph?:     { component: ... }
+    container?: { component: ... }
+
+# After — the block is gone; the vocabulary it defined survives on its own
+PrimitiveKind: 'text' | 'glyph' | 'container'
 ```
 
 ### Schema changes (`schema/`)
 
 | File | Change | Bump |
 |------|--------|------|
-| `conventions.schema.json` | Added `primitives` to `#/definitions/PlatformConventions`, its properties constrained to the `PrimitiveKind` enum and each `$ref`-ing the matching per-kind binding definition | MINOR |
+| `conventions.schema.json` | Removed `primitives` from the platform definition, and the three binding definitions | MINOR |
+| `conventions.schema.json` | `PrimitiveKind` retained as a standalone string enum | MINOR |
 
 ### Notes
 
-`PrimitiveKind` is a **closed** enum and a strict subset of `ElementType`. Closed makes an unbindable or misspelled kind a validation error rather than a silently-ignored key; a subset means every kind's trigger is the element's own declared type, so nothing is inferred and no kind can fail to correspond to something a spec contains. Widening the vocabulary later is additive.
+`PrimitiveKind` keeps its meaning exactly — the subset of `ElementType` whose members can be
+promoted, triggered by an element's own declared `type` so that nothing is inferred. Only its
+derivation changes: it was `keyof PrimitiveBindings`, and that interface no longer exists.
+ADR-075 consumes it as the `kind` of a promotion entry.
 
-That the spec contract does not change is the load-bearing outcome of this ADR, not an incidental one. If implementation finds it needs a new spec member, the resolution model is wrong.
+This ADR establishes *when and where* promotion happens. What a promotion consults, and what
+it writes into `propConfigurations`, is ADR-075. The provenance it records is ADR-084. Whether
+it runs at all is ADR-085.
+
+Promotion applies to `slotContentExamples` and `instanceExamples` — the composed material in
+`examples.yaml`. An element already carrying `instanceOf` is left alone; it is already what
+promotion would make it.
 
 ---
 
 ## Type ↔ Schema Impact
 
 - **Symmetric**: Yes
-- **Parity check**: `PrimitiveKind` ↔ an `enum` on the `primitives` property names; each per-kind binding type ↔ its own definition (ADR-075). No spec-side definition is touched, so parity for `component.schema.json` is trivially preserved
+- **Parity check**: each removed type has its definition removed from
+  `conventions.schema.json`; `PrimitiveKind` ↔ the standalone enum, with the same three
+  members before and after
 
 ---
 
@@ -220,13 +220,13 @@ That the spec contract does not change is the load-bearing outcome of this ADR, 
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | Reads its own conventions from `platforms.figma` (ADR-073); it emits primitives exactly as it does today | Update the read path |
-| `figma-from-specs` | **None.** It renders `type: text` back to a `TEXT` node, unchanged | Recompile |
-| `react-from-specs` | Implements resolution: consult the binding before emitting a host element | Implement; behavior is opt-in via a declared binding |
-| `webcomponents-from-specs` | Same | Implement |
-| `specs-cli` | Pass the resolved platform entry to transformers; select the platform id from `Settings`/`Pipeline` | Wire through |
-| `specs-plugin-2` | None | Recompile |
-| Existing specs | **None.** Every spec already on disk resolves under this ADR with no regeneration | None |
+| `specs-cli` | Promotion runs during capture and writes composed content in instance shape | Apply promotion when producing examples |
+| `specs-from-figma` | Same, in the shared processing path | Implement promotion; stop emitting per-platform bindings |
+| `specs-plugin-2` | Same capture path via the plugin runtime | Recompile |
+| `figma-from-specs` | Composed elements arrive as instances rather than primitives | Branch on the ADR-084 provenance when rendering back |
+
+Generators that resolved primitives at emit time no longer need to: a promoted element is an
+instance, and instances already resolve to a component name and import.
 
 ---
 
@@ -234,14 +234,23 @@ That the spec contract does not change is the load-bearing outcome of this ADR, 
 
 **Version**: `0.31.0` (release branch `release/schema-0.31.0+cli-0.28.0`) — **MINOR**
 
-**Justification**: additive optional fields and new definitions only; the spec contract is untouched. Constitution III.
+**Justification**: the removed members were added in this same unreleased version and have
+never been published, so no consumer contract is broken. `PrimitiveKind` is retained with an
+identical value set. Per the constitution's versioning rule this is MINOR, not MAJOR.
 
 ---
 
 ## Consequences
 
-- The spec remains platform-neutral and remains a pure function of the Figma file. Determinism and round-trip fidelity are preserved by construction, not by care
-- Resolution is a generator responsibility. Each platform transformer gains a lookup before emitting a primitive; a shared helper is an implementation convenience, not a contract
-- Specs generated before this change gain designated-component output with no regeneration — the binding is applied at read time
-- A spec is no longer sufficient on its own to reproduce an emission; the conventions file must travel with it. This was already true of `Settings`
-- Reading a spec does not tell you which component the design system uses. That is now deliberately one indirection away, and documentation must say so
+- Composed content states which component it uses, in the shape the spec already has for
+  instances
+- A design-system interpretation is recorded once rather than re-derived per platform
+- A component's own definition still describes itself in primitive terms; only composed
+  material is interpreted
+- A spec carries the result of the conventions in force at capture. Changing the table and
+  re-capturing changes composed content — which is what makes the table meaningful, and what
+  makes ADR-085's setting necessary for comparing runs
+- Consumers can read composed content without a conventions file, because the answer is in the
+  spec
+- The spec is no longer a verbatim transcript of the design file for composed content, and
+  reversing it depends on the ADR-084 residue being present
