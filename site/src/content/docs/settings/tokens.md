@@ -129,15 +129,8 @@ When a token has no code syntax defined for the chosen platform, the profile **f
 
 `spec.tokens` in `config/settings.yaml`
 
-:::note[If you promote primitives]
-A [`primitives.yaml`](/settings/promote-primitives/#the-table-is-written-against-a-token-profile)
-matches its `values` keys literally against whatever a style carries — so its keys are
-written against **one** profile. Changing `spec.tokens` makes every key stop matching, and
-promotion silently stops. Nothing declares the coupling or checks it.
-:::
-
 ## See Also
 
-- [Promote Primitives](/settings/promote-primitives/) — a promotion table's keys depend on the profile set here
+- [Promote Primitives](/settings/promote-primitives/#tokens) — a promotion table's `values` keys are matched against whatever this profile emits, so changing it stops them matching
 - [`applyCustomTokens` command](/cli/commands/apply-custom-tokens/) — mapping file format and pipeline for the `CUSTOM` profile
 - [ADR 007 — Token Reference Config](https://github.com/DirectedEdges/specs/blob/main/adr/007-token-reference-config.md) — the decision consolidating token formatting into a single enum
