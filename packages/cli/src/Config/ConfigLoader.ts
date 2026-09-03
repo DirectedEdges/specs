@@ -22,7 +22,7 @@ import {
   DEFAULT_PIPELINE,
   type ResolvedConventions,
   type ResolvedPlatformConventions,
-  type ResolvedPrimitiveBindings,
+  type PrimitiveEntry,
   type ResolvedSettings,
   type ResolvedPipeline,
   type Settings,
@@ -41,6 +41,14 @@ const CONFIG_DIR_FILES = ['settings', 'pipeline'] as const;
 
 /** Directory inside `config/` holding one conventions file per platform (ADR-078). */
 const CONVENTIONS_DIR = 'conventions';
+
+/**
+ * Reserved basename in `config/conventions/` for the platform-neutral promotion table
+ * (ADR-075). A component's props are the same whichever platform renders it, so the
+ * table is stated once rather than per platform — it shares the directory but is not
+ * a platform, and no platform may take this id.
+ */
+const PRIMITIVES_FILE = 'primitives';
 
 /** Extensions accepted for each split-configuration file, in priority order. */
 const CONFIG_FILE_EXTENSIONS = ['yaml', 'json'] as const;
@@ -217,7 +225,7 @@ export class ConfigLoader {
    * layouts would mean two discovery paths forever, and silently ignoring the file
    * would generate specs missing everything it declares.
    */
-  private readConventionsDir(dir: string): Record<string, unknown> {
+  private readConventionsDir(dir: string): { byPlatform: Record<string, unknown>; primitives?: unknown } {
     for (const ext of CONFIG_FILE_EXTENSIONS) {
       const stray = path.join(dir, `${CONVENTIONS_DIR}.${ext}`);
       if (fs.existsSync(stray)) {
@@ -233,20 +241,26 @@ export class ConfigLoader {
 
     const conventionsDir = path.join(dir, CONVENTIONS_DIR);
     if (!fs.existsSync(conventionsDir) || !fs.statSync(conventionsDir).isDirectory()) {
-      return {};
+      return { byPlatform: {} };
     }
 
     const byPlatform: Record<string, unknown> = {};
+    let primitives: unknown;
     for (const entry of fs.readdirSync(conventionsDir).sort()) {
       const ext = path.extname(entry).slice(1);
       if (!(CONFIG_FILE_EXTENSIONS as readonly string[]).includes(ext)) continue;
       const file = path.join(conventionsDir, entry);
       if (!fs.statSync(file).isFile()) continue;
+      const id = path.basename(entry, path.extname(entry));
+      if (id === PRIMITIVES_FILE) {
+        primitives = this.parseFile(file);
+        continue;
+      }
       // The filename is the platform id, so a platform is declared in exactly one
       // file and there is no merge rule to define.
-      byPlatform[path.basename(entry, path.extname(entry))] = this.parseFile(file);
+      byPlatform[id] = this.parseFile(file);
     }
-    return byPlatform;
+    return { byPlatform, primitives };
   }
 
   /**
@@ -256,12 +270,36 @@ export class ConfigLoader {
    * Absence of a block means that platform declares no such convention — no default
    * can supply it.
    */
-  private resolveConventions(byPlatform: Record<string, unknown>): ResolvedConventions {
+  private resolveConventions(read: { byPlatform: Record<string, unknown>; primitives?: unknown }): ResolvedConventions {
     const platforms: Record<string, ResolvedPlatformConventions> = {};
-    for (const [id, parsed] of Object.entries(byPlatform)) {
+    for (const [id, parsed] of Object.entries(read.byPlatform)) {
       platforms[id] = this.resolvePlatform(id, parsed);
     }
-    return Object.keys(platforms).length > 0 ? { platforms } : { ...DEFAULT_CONVENTIONS };
+    const primitives = this.resolvePrimitives(read.primitives);
+    if (!Object.keys(platforms).length && !primitives) return { ...DEFAULT_CONVENTIONS };
+    return { ...(Object.keys(platforms).length ? { platforms } : {}), ...(primitives ? { primitives } : {}) };
+  }
+
+  /**
+   * Resolve `config/conventions/primitives.yaml` — the promotion table, keyed by the
+   * design system's own component names (ADR-075).
+   *
+   * An entry needs a `kind` and a `map`; one missing either is dropped with a warning
+   * rather than failing the run, so a half-written table promotes what it describes and
+   * leaves the rest as it is.
+   */
+  private resolvePrimitives(parsed: unknown): Record<string, PrimitiveEntry> | undefined {
+    if (!parsed || typeof parsed !== 'object') return undefined;
+    const entries: Record<string, PrimitiveEntry> = {};
+    for (const [name, body] of Object.entries(parsed as Record<string, unknown>)) {
+      const entry = body as Partial<PrimitiveEntry> | null;
+      if (!entry || typeof entry !== 'object' || !entry.kind || !Array.isArray(entry.map)) {
+        console.warn(`conventions/${PRIMITIVES_FILE}.yaml: '${name}' needs a kind and a map — entry ignored.`);
+        continue;
+      }
+      entries[name] = { kind: entry.kind, map: entry.map };
+    }
+    return Object.keys(entries).length ? entries : undefined;
   }
 
   /**
@@ -388,134 +426,14 @@ export class ConfigLoader {
       }
     }
 
-    // primitives (ADR-074 – ADR-076). The platform `stylesProp` is folded into each
-    // declared binding here, so a consumer reads one level rather than two.
-    const baselineStylesProp = typeof raw.stylesProp === 'string' && raw.stylesProp.trim() !== ''
-      ? raw.stylesProp.trim()
-      : undefined;
-    const primitives = this.resolvePrimitives(where, raw.primitives, baselineStylesProp);
-    if (primitives) {
-      platform.primitives = primitives;
+    // stylesProp — the prop receiving styling no promotion mapped, one per platform
+    // (ADR-076). Promotion targets are named by the spec, so there is no per-primitive
+    // block to fold it into.
+    if (typeof raw.stylesProp === 'string' && raw.stylesProp.trim() !== '') {
+      platform.stylesProp = raw.stylesProp.trim();
     }
 
     return platform;
-  }
-
-  /**
-   * Resolve a platform's primitive bindings, applying each concept's default prop
-   * name inside a declared binding and folding in the platform's `stylesProp`.
-   *
-   * A concept mapped to `null` keeps `null` — that is the explicit "this component has
-   * no such prop", distinct from an absent key.
-   */
-  private resolvePrimitives(
-    where: string,
-    raw: unknown,
-    baselineStylesProp?: string
-  ): ResolvedPrimitiveBindings | undefined {
-    if (raw === undefined || raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
-      if (raw !== undefined && raw !== null) {
-        console.warn(`Invalid ${where} primitives: expected an object. Ignoring.`);
-      }
-      return undefined;
-    }
-
-    const src = raw as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
-    const resolved: ResolvedPrimitiveBindings = {};
-
-    /** A concept's declared prop name, its default, or undefined when neither applies. */
-    const propName = (props: Record<string, unknown> | undefined, concept: string, fallback?: string) => {
-      if (props && concept in props) {
-        const v = props[concept];
-        if (v === null) return null;
-        if (typeof v === 'string' && v.trim() !== '') return v.trim();
-        console.warn(`Invalid ${where} primitives.*.props.${concept}: expected a prop name or null. Using the default.`);
-      }
-      return fallback;
-    };
-
-    const stylesPropFor = (binding: Record<string, any>) => // eslint-disable-line @typescript-eslint/no-explicit-any
-      typeof binding.stylesProp === 'string' && binding.stylesProp.trim() !== ''
-        ? binding.stylesProp.trim()
-        : baselineStylesProp;
-
-    // text — `content` has no default: absence means the component takes children.
-    if (src.text && typeof src.text === 'object') {
-      const b = src.text as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
-      if (typeof b.component !== 'string' || b.component.trim() === '') {
-        console.warn(`Invalid ${where} primitives.text.component: expected a non-empty string. Ignoring the text binding.`);
-      } else {
-        const props = (b.props && typeof b.props === 'object' ? b.props : undefined) as Record<string, unknown> | undefined;
-        const content = propName(props, 'content');
-        const typography = propName(props, 'typography');
-        resolved.text = {
-          component: b.component.trim(),
-          props: {
-            color: propName(props, 'color', 'color') ?? null,
-            ...(content !== undefined && { content }),
-            ...(typography !== undefined && { typography }),
-          },
-          ...(stylesPropFor(b) && { stylesProp: stylesPropFor(b) }),
-        };
-      }
-    }
-
-    // glyph — `content` defaults to a prop, because an icon's name cannot be children.
-    if (src.glyph && typeof src.glyph === 'object') {
-      const b = src.glyph as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
-      if (typeof b.component !== 'string' || b.component.trim() === '') {
-        console.warn(`Invalid ${where} primitives.glyph.component: expected a non-empty string. Ignoring the glyph binding.`);
-      } else {
-        const props = (b.props && typeof b.props === 'object' ? b.props : undefined) as Record<string, unknown> | undefined;
-        resolved.glyph = {
-          component: b.component.trim(),
-          props: {
-            color: propName(props, 'color', 'color') ?? null,
-            content: propName(props, 'content', 'content') ?? null,
-          },
-          ...(stylesPropFor(b) && { stylesProp: stylesPropFor(b) }),
-        };
-      }
-    }
-
-    // container — `component` is one name, or a LayoutMode-keyed map.
-    if (src.container && typeof src.container === 'object') {
-      const b = src.container as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
-      const component = this.resolveContainerComponent(where, b.component);
-      if (component === undefined) {
-        console.warn(`Invalid ${where} primitives.container.component: expected a component name or a LayoutMode-keyed map. Ignoring the container binding.`);
-      } else {
-        const props = (b.props && typeof b.props === 'object' ? b.props : undefined) as Record<string, unknown> | undefined;
-        const direction = propName(props, 'direction');
-        resolved.container = {
-          component,
-          props: {
-            ...(direction !== undefined && { direction }),
-          },
-          ...(stylesPropFor(b) && { stylesProp: stylesPropFor(b) }),
-        };
-      }
-    }
-
-    return Object.keys(resolved).length > 0 ? resolved : undefined;
-  }
-
-  /** One component name, or a `LayoutMode`-keyed map of them. */
-  private resolveContainerComponent(where: string, raw: unknown): string | Partial<Record<'HORIZONTAL' | 'VERTICAL' | 'NONE', string>> | undefined {
-    if (typeof raw === 'string' && raw.trim() !== '') return raw.trim();
-    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
-
-    const modes = ['HORIZONTAL', 'VERTICAL', 'NONE'] as const;
-    const map: Partial<Record<'HORIZONTAL' | 'VERTICAL' | 'NONE', string>> = {};
-    for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
-      const mode = key.toUpperCase() as (typeof modes)[number];
-      if (!(modes as readonly string[]).includes(mode)) {
-        console.warn(`Invalid ${where} primitives.container.component.${key}: not a LayoutMode. Ignoring.`);
-        continue;
-      }
-      if (typeof value === 'string' && value.trim() !== '') map[mode] = value.trim();
-    }
-    return Object.keys(map).length > 0 ? map : undefined;
   }
 
   /**
