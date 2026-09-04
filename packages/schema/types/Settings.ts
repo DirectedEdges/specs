@@ -62,6 +62,14 @@ export interface Settings {
     /** Layout representation format. Optional; defaults to LAYOUT. */
     layout?: 'LAYOUT' | 'PARENT_CHILDREN' | 'BOTH';
     /**
+     * Read Figma Dev Mode annotations and emit `anatomy.<element>.role` (ADR-067).
+     * The on-switch for the role feature: when false, annotations are not read and
+     * no role is emitted, so generation behaves exactly as it does today.
+     * Optional; defaults to false.
+     * @since 0.32.0
+     */
+    roles?: boolean;
+    /**
      * Token reference serialization profile. Optional; defaults to TOKEN.
      * `FIGMA_SYNTAX_WEB`, `FIGMA_SYNTAX_IOS`, and `FIGMA_SYNTAX_ANDROID` emit the
      * token's Figma `codeSyntax` for that platform, falling back to the `TOKEN`
@@ -169,6 +177,8 @@ export interface ResolvedSettings {
     collapsePrimitiveWrapper: boolean;
     /** Primitive layers in composed example content are promoted to design system component instances. */
     promotePrimitives: boolean;
+    /** Dev Mode annotations are read and emitted as `anatomy.<element>.role`. */
+    roles: boolean;
     /** Include invalid variants. */
     invalidVariants: boolean;
     /** Include invalid combinations. */
@@ -224,6 +234,7 @@ export const DEFAULT_SETTINGS: ResolvedSettings = {
     details: 'LAYERED',
     collapsePrimitiveWrapper: false,
     promotePrimitives: false,
+    roles: false,
     invalidVariants: false,
     invalidCombinations: true,
     emptyVariants: false,

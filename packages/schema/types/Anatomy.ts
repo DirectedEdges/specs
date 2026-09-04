@@ -30,21 +30,8 @@ export type SubcomponentRef = {
  * @since 0.28.0
  */
 export interface FigmaAnatomyElementExtension {
-  /**
-   * The element's name in Figma. Recorded on any of three triggers:
-   * - primitive-wrapper collapse promoted this element to root (ADR-058) — always,
-   *   independent of `format.figmaKeys`;
-   * - the name fell outside the safe key grammar, so `format.keys` could not
-   *   represent it losslessly (ADR-066);
-   * - the name was already written in the destination format and passed through
-   *   unformatted, making reversal identity rather than re-derivation (ADR-066).
-   *
-   * The latter two apply only when `format.figmaKeys` is not NONE. Under NONE no
-   * source convention is declared, so format divergence is not evaluated and this
-   * field is absent however the key was derived.
-   * @since 0.30.0 — renamed from `originalName`
-   */
-  name?: string;
+  /** Original Figma layer name before primitive-wrapper collapse promoted this element to root (ADR-058). */
+  originalName?: string;
 }
 
 /**
@@ -54,6 +41,43 @@ export interface FigmaAnatomyElementExtension {
 export interface AnatomyElementExtensions {
   'com.figma'?: FigmaAnatomyElementExtension;
 }
+
+/**
+ * Semantic behavior role for an anatomy element (ADR-067).
+ *
+ * An open string. The recognized vocabulary is documented here and grown by
+ * vocabulary ADRs without a schema bump; transforms ignore unrecognized values,
+ * so an unknown role is inert and emission falls through to current behavior.
+ *
+ * Roles are populated by `specs generate` from a Figma Dev Mode annotation on the
+ * component node or one of its layers, of the form `role:<concept>` in the
+ * annotation's label. `api.yaml` itself is never hand-edited, and there is no
+ * authored surface to merge.
+ *
+ * Two kinds of concept, distinguished by how they resolve rather than how they
+ * are spelled:
+ *
+ * **Control roles** name a control, landmark, or announcement region and resolve
+ * on their own:
+ * - Form controls (ADR-068): `textbox`, `password`, `searchbox`, `spinbutton`,
+ *   `slider`, `checkbox`, `radio`, `textarea`, `switch`, `group`
+ * - Interactive roots (ADR-086): `button`, `togglebutton`, `link`, `disclosure`
+ * - Announcements (ADR-086): `alert`, `status`, `progressbar`
+ *
+ * **Part roles** name a constituent of some control and resolve against that
+ * control: `value`, `placeholder`, `label`, `description`, `errormessage`,
+ * `legend`, `panel`, `indicator`, `increment`, `decrement`. Each control concept
+ * declares which parts it accepts.
+ *
+ * Naming scheme: single flat lowercase alphanumeric tokens — no hyphens,
+ * underscores, dots, or internal casing. Part names are bare and scoped by their
+ * control (`placeholder`, never `inputPlaceholder`). Tokens name interaction
+ * semantics, not web markup, so each platform transform binds a concept to its
+ * own idiom.
+ *
+ * @since 0.30.0
+ */
+export type RoleConceptName = string;
 
 /**
  * Represents an element within the anatomy of a component.
@@ -67,6 +91,14 @@ export type AnatomyElement = {
   detectedIn?: string;
   /** The component or component set name that this instance element references, or a subcomponent reference. */
   instanceOf?: string | SubcomponentRef;
+  /**
+   * Semantic behavior role for this element (ADR-067), e.g. `button`, `checkbox`,
+   * `label`. Generated from a Figma Dev Mode annotation of the form
+   * `role:<concept>` on the component node or one of its layers.
+   * Absence means no role — transforms behave exactly as they do today.
+   * @since 0.30.0
+   */
+  role?: RoleConceptName;
   /** Platform extensions; com.figma carries extraction provenance. */
   $extensions?: AnatomyElementExtensions;
 };

@@ -28,6 +28,7 @@ const baseSettings: Metadata['settings'] = {
     details: 'LAYERED',
     collapsePrimitiveWrapper: false,
     promotePrimitives: false,
+    roles: false,
     invalidVariants: false,
     invalidCombinations: true,
     emptyVariants: false,

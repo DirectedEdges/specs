@@ -186,6 +186,10 @@
               "type": "boolean",
               "default": true,
               "description": "Nest each component's files in a subfolder named for the component."
+            },
+            "roles": {
+              "type": "boolean",
+              "description": "Read Figma Dev Mode annotations and emit anatomy.<element>.role (ADR-067). The on-switch for the role feature: when false, annotations are not read and no role is emitted. Defaults to false."
             }
           },
           "additionalProperties": false

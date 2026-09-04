@@ -4,6 +4,9 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 086 | Interactive Root and Announcement Role Concepts | Vocabulary for `button`, `togglebutton`, `link`, `disclosure`, `alert`, `status`, `progressbar`; all non-structural — sequence first. Same docs-governed rule as 068 |
+| 068 | Form Control and Field Plumbing Role Concepts | Vocabulary for `textbox`…`switch` plus the `label`/`description`/`errormessage`/`value`/`placeholder` parts and `group`; establishes that the vocabulary is docs-governed and changes without an ADR |
+| 067 | Element Behavior Roles via `anatomy.role` | Add `AnatomyElement.role` (open `RoleConceptName` string), the Dev Mode annotation that generates it, control-vs-part role resolution, role obligations, `Conventions.propRoles`, and `Conventions.roleValidation` |
 | 085 | `promotePrimitives` — the Switch for Capture-Time Promotion | |
 | 084 | `Element.$extensions` — Figma Provenance for a Promoted Element | |
 | 081 | `defaultFillWidth` — the Width a Fill-Width Root Fills | Each platform states, in its own `config/conventions/` file, the width of the container it places a fill-width root in; fixed and hugging roots are untouched, and absent a declaration the rendering tool falls back to 375 |

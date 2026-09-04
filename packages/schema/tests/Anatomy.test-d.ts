@@ -3,7 +3,7 @@
  * These files are intentionally never executed — they are compiled with tsc
  * to assert that the type shape is correct.
  */
-import type { Anatomy, AnatomyElement, ElementTypeRef, SubcomponentRef } from '../types/index.js';
+import type { Anatomy, AnatomyElement, ElementTypeRef, SubcomponentRef, RoleConceptName } from '../types/index.js';
 
 // AnatomyElement.type accepts ElementType values
 const textElement: AnatomyElement = { type: 'text' };
@@ -90,20 +90,11 @@ if (typeof element.type === 'string') {
   const _ref: string = element.type.$ref;
 }
 
-// AnatomyElement.$extensions carries the Figma name (ADR-058 collapse, ADR-066 key divergence)
+// AnatomyElement.$extensions carries collapse provenance (ADR-058)
 const collapsedRoot: AnatomyElement = {
   type: 'text',
-  $extensions: { 'com.figma': { name: 'Text' } },
+  $extensions: { 'com.figma': { originalName: 'Text' } },
 };
-
-// ADR-066 — a key that could not represent its Figma name losslessly
-const divergentKey: AnatomyElement = {
-  type: 'glyph',
-  $extensions: { 'com.figma': { name: 'Cut & paste' } },
-};
-
-// name is optional — safe keys emit no extension at all
-const safeKey: AnatomyElement = { type: 'text' };
 
 const badExtension: AnatomyElement = {
   type: 'text',
@@ -111,8 +102,34 @@ const badExtension: AnatomyElement = {
   $extensions: { 'com.figma': { layerName: 'Text' } },
 };
 
-const renamedExtension: AnatomyElement = {
-  type: 'text',
-  // @ts-expect-error — originalName was renamed to name in 0.30.0 (ADR-066)
-  $extensions: { 'com.figma': { originalName: 'Text' } },
+// AnatomyElement.role is optional — absence is the safe default (ADR-066)
+const noRole: AnatomyElement = { type: 'container' };
+
+// Control roles land on the element carrying the behavior
+const checkboxControl: AnatomyElement = { type: 'container', role: 'checkbox' };
+const buttonRoot: AnatomyElement = { type: 'container', role: 'button' };
+const announcementRegion: AnatomyElement = { type: 'container', role: 'status' };
+
+// Part roles are bare names on control constituents
+const valuePart: AnatomyElement = { type: 'text', role: 'value' };
+const placeholderPart: AnatomyElement = { type: 'text', role: 'placeholder' };
+const panelPart: AnatomyElement = { type: 'container', role: 'panel' };
+
+// A role composes with instanceOf and detectedIn
+const labelInstance: AnatomyElement = {
+  type: 'instance',
+  role: 'label',
+  instanceOf: { $ref: '#/subcomponents/formLabel' },
 };
+const conditionalErrorMessage: AnatomyElement = {
+  type: 'text',
+  role: 'errormessage',
+  detectedIn: 'Validation=Invalid',
+};
+
+// RoleConceptName is an open string — unrecognized values are inert, not errors
+const unrecognizedRole: AnatomyElement = { type: 'container', role: 'notaconcept' };
+const _roleAlias: RoleConceptName = 'togglebutton';
+
+// @ts-expect-error — role is a string concept name, not a structured object
+const _roleAsObject: AnatomyElement = { type: 'container', role: { name: 'checkbox' } };

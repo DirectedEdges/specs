@@ -195,6 +195,21 @@
           "type": "number",
           "exclusiveMinimum": 0,
           "description": "Width in pixels of the container this platform places a component in when the component's root resizes to fill its parent. Applies only when the root's layoutSizingHorizontal is FILL; fixed and hugging roots are unaffected. Absence means the platform declares no width and the rendering tool uses its own fallback. (ADR-081)"
+        },
+        "propRoles": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Library-wide prop-name conventions consumed by role emission: maps a prop-role concept (accessibleName, indeterminate, value) to the prop name carrying it. Covers facts carried by props alone — element-level facts use part roles on anatomy elements, and a matching part role always wins. Per-component deviations are annotated on the component node."
+        },
+        "roleValidation": {
+          "type": "string",
+          "enum": [
+            "warn",
+            "error"
+          ],
+          "description": "Severity for unmet required role obligations, such as a control with no accessible-name source (ADR-066). 'warn' emits a diagnostic and continues; 'error' fails the transform. Defaults to 'warn'. Conflicts are errors regardless of this setting."
         }
       },
       "additionalProperties": false

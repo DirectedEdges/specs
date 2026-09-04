@@ -8,6 +8,7 @@ import type {
   ResolvedConventions,
   MetadataConventions,
   PlatformConventions,
+  PropRoleName,
   PrimitiveKind,
   PrimitiveEntry,
   PrimitiveRule,
@@ -187,6 +188,33 @@ const noProp: VariantStateEntry = { value: 'pressed' };
 // @ts-expect-error — contract is a closed set
 const badContract: VariantStateEntry = { prop: 'focused', contract: 'inherit' };
 
+// ─── Role signal conventions (ADR-066) ────────────────────────────────────────
+
+// propRoles maps prop-role concepts to library prop names
+const rolePropConventions: PlatformConventions = {
+  propRoles: { accessibleName: 'a11yLabel', indeterminate: 'indeterminate', value: 'progress' },
+};
+
+// roleValidation escalates unmet required obligations
+const roleValidationError: PlatformConventions = { roleValidation: 'error' };
+
+// Both compose with states — the pair ADR-066 is designed around
+const rolesWithStates: PlatformConventions = {
+  states: { disabled: { prop: 'disabled' } },
+  propRoles: { accessibleName: 'a11yLabel' },
+  roleValidation: 'warn',
+};
+
+// PropRoleName is an open string — the vocabulary grows without a schema bump
+const propRoleAlias: PropRoleName = 'accessibleName';
+
+// @ts-expect-error — roleValidation is a closed two-value union
+const badRoleValidation: PlatformConventions = { roleValidation: 'silent' };
+
+// @ts-expect-error — propRoles values name a prop; they are not entry objects
+const propRolesAsObject: PlatformConventions = { propRoles: { accessibleName: { prop: 'a11yLabel' } } };
+
+
 export {
   none, noPlatforms, emptyPlatform, figmaEncoding, codePlatforms, permissive, figmaVocabulary,
   oldShape, kinds, imageKind, promotion, platformPrimitives, entryWithoutKind, entryWithoutMap,
@@ -194,4 +222,6 @@ export {
   width, stringWidth, platformMayBeAbsent, naming, constraints, numbers, scope, sourceProps,
   platformStyles, resolvedEntry, underResolved, meta,
   metaWithoutPlatforms, defaults, defaultedPlatform, booleanState, enumState, noProp, badContract,
+  rolePropConventions, roleValidationError, rolesWithStates, propRoleAlias, badRoleValidation,
+  propRolesAsObject,
 };
