@@ -60,7 +60,7 @@ export class CssTransformer implements Transformer {
       examples,
       imagesDirAbs,
       relPrefix: '../../_images',
-    }, 'class', anatomyRoles(apiYaml));
+    }, 'class', anatomyRoles(apiYaml), apiPropsOf(apiYaml));
     const generatedDir = path.join(outputDir, 'generated');
     await fs.ensureDir(generatedDir);
     await writeAtomic(path.join(generatedDir, `${prefix}.styles.css`), lines.join('\n'));
@@ -73,7 +73,7 @@ export class CssTransformer implements Transformer {
       examples,
       imagesDirAbs,
       relPrefix: '../../_images',
-    }, 'host', anatomyRoles(apiYaml)));
+    }, 'host', anatomyRoles(apiYaml), apiPropsOf(apiYaml)));
     await writeAtomic(path.join(generatedDir, `${prefix}.host.css`), hostLines.join('\n'));
     await writeAtomic(path.join(generatedDir, `${prefix}.light.css`), lightDomLines(componentClass).join('\n'));
 
@@ -151,19 +151,10 @@ function imageDecls(url: string, objectFit: unknown): string[] {
 }
 
 /** Glyphs, raw vectors, and icon-wrapper instances (instance with a name propConfiguration). */
-function isGlyphLike(elemType: string | undefined, elem: Record<string, unknown> | undefined): boolean {
-  if (elemType === 'glyph' || elemType === 'vector') return true;
-  if (elemType !== 'instance') return false;
-  const pc = (elem?.propConfigurations ?? {}) as Record<string, unknown>;
-  return typeof pc.name === 'string';
+function isGlyphLike(elemType: string | undefined): boolean {
+  return elemType === 'glyph' || elemType === 'vector';
 }
 
-/** Parse a "WxH" size propConfiguration ("16x16") into pixel dimensions. */
-function glyphConfigSize(elem: Record<string, unknown> | undefined): { w: number; h: number } | null {
-  const pc = (elem?.propConfigurations ?? {}) as Record<string, unknown>;
-  const m = typeof pc.size === 'string' ? pc.size.match(/^(\d+)x(\d+)$/) : null;
-  return m ? { w: Number(m[1]), h: Number(m[2]) } : null;
-}
 
 /** api.yaml anatomy → element key → type ("container" | "rectangle" | "ellipse" | "vector" | "text" | …). */
 function anatomyTypes(apiYaml: Record<string, unknown>): Record<string, string> {
@@ -173,6 +164,27 @@ function anatomyTypes(apiYaml: Record<string, unknown>): Record<string, string> 
     if (entry && typeof entry.type === 'string') types[key] = entry.type;
   }
   return types;
+}
+
+/**
+ * The disabled selector that can actually match, for this target and this root.
+ *
+ * `CONCEPT_TABLE` pairs `:disabled` with `[aria-disabled="true"]` because either
+ * may carry the state. Emitting both everywhere produces selectors that can never
+ * match: a role emitting a native control sets the real `disabled` property and
+ * never the ARIA string, and a custom element host can never match `:disabled` at
+ * all — that requires form association.
+ */
+function disabledSelectorFor(rootAs: RootForm, rootRole: string | undefined): string {
+  const native = rootRole ? UA_STYLED_ROLES.has(rootRole) : false;
+  // A shadow host is not a form control, so `:disabled` cannot match it.
+  if (rootAs === 'host') return '[aria-disabled="true"]';
+  return native ? ':disabled' : ':disabled, [aria-disabled="true"]';
+}
+
+/** api.yaml props, keyed by prop name. */
+function apiPropsOf(apiYaml: Record<string, unknown>): Record<string, Record<string, unknown>> {
+  return (apiYaml.props ?? {}) as Record<string, Record<string, unknown>>;
 }
 
 /** api.yaml anatomy → element key → behavior role (ADR-067), where one is annotated. */
@@ -214,6 +226,31 @@ function uaResetDecls(role: string): string[] {
   return decls;
 }
 
+/**
+ * Whether this component declares the prop a state concept is classified to.
+ *
+ * Deterministic in two steps, both over declared data: the workspace's `states`
+ * config names the prop (and optionally the enum value) that carries the concept,
+ * and the component's own props either declare that prop or do not. Where the
+ * classification names a value, the prop's enum must actually offer it — a
+ * mapping pointing at a value no variant produces is dead and must not count.
+ * Value comparison is case-insensitive, matching how the state lookup resolves.
+ */
+function declaresState(
+  context: TransformerContext,
+  apiProps: Record<string, Record<string, unknown>>,
+  concept: string,
+): boolean {
+  const entry = (context.processingStates ?? {})[concept];
+  if (!entry?.prop) return false;
+  const prop = apiProps[entry.prop];
+  if (!prop) return false;
+  if (entry.value == null) return true;
+  const values = Array.isArray(prop.enum) ? (prop.enum as unknown[]) : null;
+  if (!values) return true; // a boolean prop carries no enum to check
+  return values.some(v => String(v).toLowerCase() === String(entry.value).toLowerCase());
+}
+
 function buildCssLines(
   componentClass: string,
   variantsYaml: Record<string, unknown>,
@@ -223,6 +260,7 @@ function buildCssLines(
   images?: ImagesCssContext,
   rootAs: RootForm = 'class',
   elemRoles: Record<string, string> = {},
+  apiProps: Record<string, Record<string, unknown>> = {},
 ): string[] {
   /**
    * The root's selector, in the form this stylesheet is written for.
@@ -263,13 +301,28 @@ function buildCssLines(
   // reasons the design never expressed.
   const rootRole = elemRoles.root;
   if (rootRole && UA_STYLED_ROLES.has(rootRole)) {
-    lines.push(
-      `/* ${rootRole} role: neutralize user-agent styling for the emitted element. */`,
-      `${rootSel()} {`,
-      ...uaResetDecls(rootRole).map(d => `  ${d};`),
-      '}',
-      '',
-    );
+    if (rootAs === 'host') {
+      // The shadow root renders a real interactive element wrapping the root's
+      // content, so the platform supplies keyboard activation and `disabled`.
+      // It is styled to nothing and takes no box: the host keeps the root's
+      // layout and appearance exactly as the rules below describe them.
+      lines.push(
+        `/* ${rootRole} role: the inner semantic element carries behavior, not appearance. */`,
+        '[part="button"] {',
+        ...uaResetDecls(rootRole).map(d => `  ${d};`),
+        '  display: contents;',
+        '}',
+        '',
+      );
+    } else {
+      lines.push(
+        `/* ${rootRole} role: neutralize user-agent styling for the emitted element. */`,
+        `${rootSel()} {`,
+        ...uaResetDecls(rootRole).map(d => `  ${d};`),
+        '}',
+        '',
+      );
+    }
   }
 
   // ── Default styles ─────────────────────────────────────────────────────────
@@ -349,25 +402,21 @@ function buildCssLines(
     }
     // Glyphs/vectors paint their background-color through a mask image the
     // scaffold provides via --glyph (an unresolvable mask renders nothing).
-    // Instance elements with a `name` propConfiguration are icon-wrapper
-    // instances and take the same fallback. Spans need block display; without
-    // a fill they tint with the inherited text color; instance glyphs take
-    // their dimensions from a "WxH" size propConfiguration when present.
-    if (isGlyphLike(elemTypes[elemKey], elem)) {
+    // Spans need block display; without a fill they tint with the inherited
+    // text color.
+    //
+    // Element type decides this, and nothing else. An `instance` delegates its
+    // appearance to the component it instantiates — that component masks its own
+    // glyph in its own stylesheet — so a wrapper holding an instance draws
+    // nothing and must not be given a mask. An earlier version also treated an
+    // instance carrying a `name` propConfiguration as glyph-like, which inferred
+    // meaning from a prop name and painted a solid `currentColor` box wherever
+    // composition resolved the instance instead.
+    if (isGlyphLike(elemTypes[elemKey])) {
       decls.push('mask: var(--glyph, none) no-repeat center / contain');
       decls.push('-webkit-mask: var(--glyph, none) no-repeat center / contain');
       if (!decls.some(d => d.startsWith('display:'))) decls.push('display: block');
       if (!decls.some(d => d.startsWith('background'))) decls.push('background-color: currentColor');
-      // HUG on an empty masked span collapses to 0 — the configured instance
-      // size is the glyph's intrinsic size, so it wins over fit-content.
-      const size = glyphConfigSize(elem);
-      if (size) {
-        const fitless = decls.filter(d => d !== 'width: fit-content' && d !== 'height: fit-content');
-        decls.length = 0;
-        decls.push(...fitless);
-        if (!decls.some(d => d.startsWith('width:'))) decls.push(`width: ${size.w}px`);
-        if (!decls.some(d => d.startsWith('height:'))) decls.push(`height: ${size.h}px`);
-      }
     }
     // A full-bleed absolute child visually IS its rounded parent's surface —
     // without inheriting the radius, its background paints square corners.
@@ -414,6 +463,13 @@ function buildCssLines(
   const { lookup: stateLookup, classifiedProps } =
     buildStateLookup(context.processingStates ?? {});
 
+  // A concept's selector, narrowed to what can actually match this target and
+  // this root. Only `disabled` differs; every other concept is target-neutral.
+  const selectorFor = (concept: string): string | undefined =>
+    concept === 'disabled'
+      ? disabledSelectorFor(rootAs, elemRoles.root)
+      : CONCEPT_TABLE[concept]?.selector;
+
   // ── Variants — in schema order ─────────────────────────────────────────────
   // variants.yaml variant order is intentional: single-prop variants before
   // multi-prop compound variants, matching the layering cascade.
@@ -443,15 +499,14 @@ function buildCssLines(
         let negated: string | undefined;
         if (!concept && v === false) {
           const trueConcept = stateLookup.get(`${k}::true`);
-          const trueSel = trueConcept ? CONCEPT_TABLE[trueConcept]?.selector : undefined;
+          const trueSel = trueConcept ? selectorFor(trueConcept) : undefined;
           // Negating a multi-part concept is an AND of nots, not a cartesian
           // expansion: `:disabled, [aria-disabled="true"]` becomes
           // `:not(:disabled):not([aria-disabled="true"])`.
           if (trueSel) negated = trueSel.split(',').map(part => `:not(${part.trim()})`).join('');
         }
         if (!concept && !negated) { skip = true; break; } // unmatched value = base/rest state
-        const conceptEntry = concept ? CONCEPT_TABLE[concept] : undefined;
-        const sel = negated ?? conceptEntry?.selector ?? `[data-${toKebab(k)}="${vStr}"]`;
+        const sel = negated ?? (concept ? selectorFor(concept) : undefined) ?? `[data-${toKebab(k)}="${vStr}"]`;
         const parts = negated ? [negated] : sel.split(',').map(s => s.trim());
         const expanded: string[] = [];
         for (const existing of stateSelSuffixes) {
@@ -474,7 +529,7 @@ function buildCssLines(
 
     // Guard :hover and :active against firing when disabled, if disabled is configured
     if (context.processingStates?.['disabled']) {
-      const disabledSel = CONCEPT_TABLE['disabled']?.selector ?? ':disabled';
+      const disabledSel = selectorFor('disabled') ?? ':disabled';
       const notGuard = disabledSel.split(',').map(s => `:not(${s.trim()})`).join('');
       stateSelSuffixes = stateSelSuffixes.map(s =>
         (s.includes(':hover') || s.includes(':active')) ? s + notGuard : s
@@ -548,18 +603,21 @@ function buildCssLines(
     }
   }
 
-  // Cursor is an affordance CSS needs and Figma has no concept of, so it is
-  // inferred from what this stylesheet actually styles. A component that STYLES
-  // a pressed state is a press target; hover alone is not, since plenty of
-  // non-interactive surfaces carry hover styling. Keying off emitted rules
-  // rather than declared states matters — a spec can declare a state whose
-  // variant produces no styling at all, which is not evidence of interactivity.
-  const emitted = lines.join('\n');
-  if (/:active\b/.test(emitted) || /\[aria-pressed="true"\]/.test(emitted)) {
+  // Cursor is an affordance CSS needs and Figma has no concept of. It is read
+  // from the declared state classification: a component whose `states` config
+  // names a press concept, and which declares the prop that concept is keyed to,
+  // is a press target.
+  //
+  // An earlier version regexed this stylesheet's own emitted text for `:active`
+  // and `[aria-pressed]`. That made the cursor depend on whether a pressed state
+  // happened to produce any *styling* — a button that looks identical pressed and
+  // unpressed silently lost its pointer — and it inferred behavior from output
+  // rather than reading what the library declared.
+  if (declaresState(context, apiProps, 'active') || declaresState(context, apiProps, 'pressed')) {
     lines.push(`${rootSel()} {`, '  cursor: pointer;', '}', '');
   }
-  if (/:disabled\b/.test(emitted) || /\[aria-disabled="true"\]/.test(emitted)) {
-    const disabledSel = CONCEPT_TABLE['disabled']?.selector ?? ':disabled';
+  if (declaresState(context, apiProps, 'disabled')) {
+    const disabledSel = disabledSelectorFor(rootAs, elemRoles.root);
     lines.push(
       disabledSel.split(',').map(part => rootSel(part.trim())).join(',\n') + ' {',
       '  cursor: not-allowed;',
