@@ -76,7 +76,9 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 5. **Evaluate options** *(skip if the decision is already made)*:
    - If the user's description or context indicates the decision is pre-decided (e.g., "record and implement this decision"), omit this step and mark the Options Considered section as *(Pre-decided — no alternatives evaluated)*.
-   - Otherwise, identify at least two alternative approaches, assess each against the constitution's Decision Drivers, and state which is selected with rationale.
+   - **First, list the independent decisions in scope.** Schema shape, authoring surface and semantics, and vocabulary are separate decisions. Each gets its own Options section, titled by the decision it resolves, with its own selected and rejected alternatives. Never bundle two decisions into one option — a "Selected" option carrying both forces an all-or-nothing verdict and hides one of them from evaluation entirely.
+   - If a decision is out of scope for this ADR, say so explicitly in Context and point to where it is taken. Do not resolve it in passing.
+   - Within each Options section, identify at least two alternative approaches, assess each against the constitution's Decision Drivers, and state which is selected with rationale.
 
 6. **Draft the ADR**: Fill `adr-template.md` and write to `$SPEC_FILE`:
    - **Branch**: `ADR_NAME`
@@ -87,7 +89,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - **Decision**: Precise list of type and schema changes (file, field, modification type)
    - **Type ↔ Schema Impact**: Confirm symmetry or document justified asymmetry
    - **Downstream Impact**: All affected consumers (`specs-cli`, `specs-from-figma`, `specs-plugin-2`) — see Key rules below
-   - **Semver Decision**: MAJOR / MINOR / PATCH with justification citing the constitution
+   - **Semver Decision**: the **target version** read verbatim from the active release branch name (e.g. `release/schema-0.31.0+cli-0.28.0` → `0.31.0`), plus the **change class** (MAJOR / MINOR / PATCH) with justification citing the constitution. Never propose a version bump — an ADR ships *inside* a release that already has a version, so `0.30.0 → 0.31.0` invents a version the release process never asked for and conflicts with the branch it merges into.
    - **Consequences**: What becomes true after acceptance
 
 7. **Claim ADR number in INDEX**: Update `adr/INDEX.md` to reserve the ADR number and prevent collisions.
@@ -111,6 +113,8 @@ You **MUST** consider the user input before proceeding (if not empty).
 ## Key rules
 
 - Status MUST be `DRAFT` — never set to `ACCEPTED` in this command.
+- The Semver section states the release branch's version and the change class. It MUST NOT contain a bump arrow.
+- One decision per Options section. The **Decision** section only records what the option sets above already resolved — if a choice appears there for the first time, it needs its own Options section.
 - The ADR describes *what* will change and *why*. It does not contain type or schema file content — those changes are applied directly by `/specs.adr.implement`.
 - **Downstream Impact table**: Include rows for all consumers affected by the change: `specs-cli`, `specs-from-figma`, and `specs-plugin-2`. Describe impact and required action in general terms (e.g., "Update value mapping", "Recompile") — do not reference internal classes, methods, or implementation details of those packages.
 - If the change clearly violates a constitution gate (e.g., adds runtime logic), state the violation explicitly in the ADR and halt rather than proceeding without justification.
