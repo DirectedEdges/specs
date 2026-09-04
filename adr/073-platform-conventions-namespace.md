@@ -3,7 +3,7 @@
 **Branch**: `073-platform-conventions-namespace`
 **Created**: 2026-08-30
 **Status**: DRAFT
-**Summary**: A platform-keyed `conventions.platforms` map replaces `conventions.figma`, making Figma one implementation among `react`, `swiftui` and the rest.
+**Summary**: A platform-keyed `conventions.platforms` map replaces `conventions.figma`, with a `conventions.specs` sibling for the conventions that describe the spec rather than any platform.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 
@@ -249,6 +249,84 @@ Considered when the keys looked like a mix of platforms (`web`) and finer target
 
 ---
 
+## Decision 4 — Where conventions that describe the spec itself live
+
+`platforms.<id>` holds conventions about one implementation. Two members filed under
+`figma` do not describe Figma:
+
+- `states` names a **spec** prop and a **spec** enum value — `state`, `Hover`. A transform
+  reading only `api.yaml` can apply the classification, and the CSS transform does exactly
+  that without ever touching a Figma file.
+- the prop conventions that name which prop carries an accessible name or a value are the
+  same shape of fact.
+
+Compare the members that genuinely are Figma facts: `glyphs.match` names a Figma layer
+pattern, `codeOnlyProps.match` a Figma frame, `subcomponents.scope` a Figma page. Those are
+about the design tool. `states` is not, and filing it under `figma` said it was.
+
+### Option 4A: A `specs` sibling of `platforms` and `primitives` *(Selected)*
+
+```yaml
+# conventions/specs.yaml
+props:
+  states:
+    disabled:
+      prop: isDisabled
+  accessibility:
+    label:
+      prop: a11yLabel
+```
+
+- **`primitives` is the precedent.** It already sits outside `platforms` for exactly this
+  reason — a component's props are the same whichever platform renders it, so the table is
+  stated once. Spec conventions are the same kind of exception, and reuse a shape the file
+  set already has
+- The spec is the hub, not a platform. Every convention edge has the spec on one side, so
+  making `specs` a `platforms` key would name the hub as though it were a spoke
+- It gives library-wide semantics a home. The per-component equivalent is an annotation and
+  lands in the spec itself (`anatomy.<element>.role`, `.actions`); the split is now by
+  **scope**, with a stated precedence — the annotation wins — rather than by accident
+- It leaves room for the obvious next inhabitant: an element-key convention, so a library can
+  declare "an element keyed `label` is the label part" once instead of annotating it on two
+  hundred components
+
+**Cons / Trade-offs**:
+
+- A third top-level key in `Conventions`, so a reader must learn that not everything is
+  platform-scoped. `primitives` already required that
+- A library-wide element convention is a blunt instrument: it applies with no per-component
+  opt-in, so a mistake has library-wide blast radius. That is a reason to design the escape
+  hatch when the convention is added, not a reason to withhold the file
+
+---
+
+### Option 4B: Leave them under `platforms.figma` *(Rejected)*
+
+**Rejected because**: it states something untrue. Nothing about `state: Hover` is a Figma
+fact once the spec carries it, and a reader looking for "how does this library express
+disabled" would not think to open a file named for the design tool. The misfiling is also
+what made the naming go wrong downstream — the prop conventions were called `propRoles`,
+borrowing a word that means something specific and unrelated on anatomy elements.
+
+---
+
+### Option 4C: A `specs` key inside `platforms` *(Rejected)*
+
+**Rejected because**: it would make the hub one of its own spokes. `platforms.<id>` is
+documented as an implementation id, and `specs` is what every implementation is converted to
+or from. The type would still typecheck and the meaning would be wrong.
+
+---
+
+### Option 4D: A fourth artifact beside `conventions/`, `settings/`, `pipeline/` *(Rejected)*
+
+**Rejected because**: these are conventions by the definition this ADR already settled —
+declarations a library makes once about how it expresses itself. Splitting them into a new
+artifact would separate `states` from the file set it belongs to, for a distinction the
+`specs` key already draws.
+
+---
+
 ## Decision
 
 ### Type changes (`types/`)
@@ -260,6 +338,9 @@ Considered when the keys looked like a mix of platforms (`web`) and finer target
 | `Conventions.ts` | Same change to `ResolvedConventions` | MINOR |
 | `Conventions.ts` | `DEFAULT_CONVENTIONS` no longer carries a `figma` key; defaults move inside a declared platform entry | MINOR |
 | `Conventions.ts` | Doc comment widened from "facts about the Figma library" to facts about every library the pipeline reads or writes | PATCH |
+| `Conventions.ts` | Added `SpecsConventions` and `Conventions.specs?`, a sibling of `platforms` and `primitives` — conventions describing the spec rather than a platform (Decision 4) | MINOR |
+| `Conventions.ts` | Added `PropReference` (`{ prop: string }`), so a prop convention can grow fields without a break | MINOR |
+| `Conventions.ts` | `states` moved from `PlatformConventions` to `Conventions.specs.props.states` — it names a spec prop and a spec enum value, not a Figma fact | MINOR |
 
 **Example — new shape** (`types/Conventions.ts`):
 
@@ -273,6 +354,13 @@ Conventions:
 
 # After
 Conventions:
+  # conventions about the spec itself — not about any platform (Decision 4)
+  specs?:
+    props?:
+      states?: {...}
+      accessibility?:
+        label?: { prop: string }
+      value?: { prop: string }
   platforms?:
     <platformId>:
       # encoding — how this platform expresses what the spec models

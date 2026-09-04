@@ -8,7 +8,7 @@ import type {
   ResolvedConventions,
   MetadataConventions,
   PlatformConventions,
-  PropRoleName,
+  SpecsConventions,
   PrimitiveKind,
   PrimitiveEntry,
   PrimitiveRule,
@@ -35,7 +35,6 @@ const figmaEncoding: Conventions = {
       images: { backgroundImage: true, match: 'DS Image', sourceProps: ['imageSource'] },
       slotConstraints: true,
       inferNumberProps: true,
-      states: { hover: { prop: 'state', value: 'hover' } },
       defaultFillWidth: 375,
     },
   },
@@ -55,7 +54,7 @@ const codePlatforms: Conventions = {
 };
 
 // The shape is deliberately permissive — a code platform may declare an encoding member
-const permissive: PlatformConventions = { states: { hover: { prop: 'state' } }, stylesProp: 'sx' };
+const permissive: PlatformConventions = { inferNumberProps: true, stylesProp: 'sx' };
 
 // Figma may take a vocabulary member — the reason it is not special-cased
 const figmaVocabulary: PlatformConventions = { images: { match: 'DS Image' } };
@@ -188,31 +187,36 @@ const noProp: VariantStateEntry = { value: 'pressed' };
 // @ts-expect-error — contract is a closed set
 const badContract: VariantStateEntry = { prop: 'focused', contract: 'inherit' };
 
-// ─── Role signal conventions (ADR-066) ────────────────────────────────────────
+// ─── Spec-side conventions (ADR-073 amendment) ────────────────────────────────
 
-// propRoles maps prop-role concepts to library prop names
-const rolePropConventions: PlatformConventions = {
-  propRoles: { accessibleName: 'a11yLabel', indeterminate: 'indeterminate', value: 'progress' },
+// props.states classifies variant props as semantic states
+const specStates: SpecsConventions = {
+  props: { states: { disabled: { prop: 'disabled' }, hover: { prop: 'state', value: 'Hover' } } },
 };
 
-// roleValidation escalates unmet required obligations
-const roleValidationError: PlatformConventions = { roleValidation: 'error' };
-
-// Both compose with states — the pair ADR-066 is designed around
-const rolesWithStates: PlatformConventions = {
-  states: { disabled: { prop: 'disabled' } },
-  propRoles: { accessibleName: 'a11yLabel' },
-  roleValidation: 'warn',
+// props.accessibility.label names the prop carrying an accessible name
+const specAccessibility: SpecsConventions = {
+  props: { accessibility: { label: { prop: 'accessibilityLabel' } } },
 };
 
-// PropRoleName is an open string — the vocabulary grows without a schema bump
-const propRoleAlias: PropRoleName = 'accessibleName';
+// props.value names the prop carrying a value no element represents
+const specValue: SpecsConventions = { props: { value: { prop: 'progress' } } };
 
-// @ts-expect-error — roleValidation is a closed two-value union
-const badRoleValidation: PlatformConventions = { roleValidation: 'silent' };
+// All three compose, and every block is optional
+const specAll: SpecsConventions = {
+  props: {
+    states: { disabled: { prop: 'disabled' } },
+    accessibility: { label: { prop: 'accessibilityLabel' } },
+    value: { prop: 'progress' },
+  },
+};
+const specNone: SpecsConventions = {};
 
-// @ts-expect-error — propRoles values name a prop; they are not entry objects
-const propRolesAsObject: PlatformConventions = { propRoles: { accessibleName: { prop: 'a11yLabel' } } };
+// @ts-expect-error — a prop reference is an object, so it can grow fields later
+const specBareString: SpecsConventions = { props: { accessibility: { label: 'accessibilityLabel' } } };
+
+// @ts-expect-error — states no longer live on a platform
+const platformStates: PlatformConventions = { states: { disabled: { prop: 'disabled' } } };
 
 
 export {
@@ -222,6 +226,5 @@ export {
   width, stringWidth, platformMayBeAbsent, naming, constraints, numbers, scope, sourceProps,
   platformStyles, resolvedEntry, underResolved, meta,
   metaWithoutPlatforms, defaults, defaultedPlatform, booleanState, enumState, noProp, badContract,
-  rolePropConventions, roleValidationError, rolesWithStates, propRoleAlias, badRoleValidation,
-  propRolesAsObject,
+  specStates, specAccessibility, specValue, specAll, specNone, specBareString, platformStates,
 };
