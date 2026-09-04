@@ -17,9 +17,13 @@ export function isTokenRef(v: unknown): v is { $token: string; $type: string } {
  *   "-+" → "-"     (dedupe)
  *   lowercase
  *   strip leading "-"
+ *
+ * Characters that are invalid in a CSS dashed-ident (anything other than
+ * letters, digits, "-", "_", and non-ASCII — e.g. parentheses, "%", "&") are
+ * dropped afterwards; each drop is recorded for the end-of-run warning summary.
  */
 export function kebabizePath(path: string): string {
-  return path
+  const kebabized = path
     .replace(/,\s*/g, '-')
     .replace(/\//g, '-')
     .replace(/\s+/g, '-')
@@ -27,6 +31,71 @@ export function kebabizePath(path: string): string {
     .replace(/-+/g, '-')
     .toLowerCase()
     .replace(/^-/, '');
+  const sanitized = kebabized
+    .replace(/[^a-z0-9_\-\u0080-\uFFFF]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  if (sanitized !== kebabized) {
+    recordNameWarning('invalid characters dropped from CSS custom property name', path);
+  }
+  return sanitized;
+}
+
+// ---------------------------------------------------------------------------
+// Name warnings — collected during emission, drained by the CSS transformer's
+// finalize() for an end-of-run summary. type → (original name → occurrences).
+// ---------------------------------------------------------------------------
+
+const nameWarnings = new Map<string, Map<string, number>>();
+
+/**
+ * Name warnings describe the spec's own names, so a second emission of the same
+ * component — the shadow-tree form of the same rules — must not report them
+ * again. Suppressed for the duration of that pass.
+ */
+let suppressed = false;
+
+export function withNameWarningsSuppressed<T>(fn: () => T): T {
+  const previous = suppressed;
+  suppressed = true;
+  try {
+    return fn();
+  } finally {
+    suppressed = previous;
+  }
+}
+
+function recordNameWarning(type: string, name: string): void {
+  if (suppressed) return;
+  const byName = nameWarnings.get(type) ?? new Map<string, number>();
+  byName.set(name, (byName.get(name) ?? 0) + 1);
+  nameWarnings.set(type, byName);
+}
+
+/** Return all collected name warnings and reset the collector. */
+export function drainNameWarnings(): Map<string, Map<string, number>> {
+  const drained = new Map(nameWarnings);
+  nameWarnings.clear();
+  return drained;
+}
+
+/**
+ * Drain collected name warnings and print a per-type count summary.
+ * Called from a transformer's finalize(); the label names the transform.
+ * No-op when nothing was collected.
+ */
+export function reportNameWarnings(label: string): void {
+  const warnings = drainNameWarnings();
+  if (warnings.size === 0) return;
+  console.warn('');
+  console.warn(`⚠ [${label}] name warnings:`);
+  for (const [type, names] of warnings) {
+    const total = [...names.values()].reduce((a, b) => a + b, 0);
+    console.warn(`  ${type} — ${total} occurrence${total === 1 ? '' : 's'} across ${names.size} name${names.size === 1 ? '' : 's'}:`);
+    const shown = [...names.entries()].slice(0, 10);
+    for (const [name, count] of shown) console.warn(`    "${name}" ×${count}`);
+    if (names.size > shown.length) console.warn(`    …and ${names.size - shown.length} more`);
+  }
 }
 
 /** Wrap a CSS variable name in var(). */
@@ -128,8 +197,62 @@ export function colorValue(v: unknown, tokensFormat = 'TOKEN'): string | null {
     const co = v as { hex?: string };
     return co.hex ?? 'currentColor';
   }
-  // GradientValue — deferred to phase 2
+  // GradientValue is not a color — callers map gradients per property via gradientValue()
   return null;
+}
+
+// ---------------------------------------------------------------------------
+// Gradients
+// ---------------------------------------------------------------------------
+
+const GRADIENT_TYPES = new Set(['LINEAR', 'RADIAL', 'ANGULAR']);
+
+interface GradientLike {
+  type: string;
+  angle?: number;
+  center?: { x?: number; y?: number };
+  stops: Array<{ position?: number; color?: unknown }>;
+}
+
+export function isGradient(v: unknown): v is GradientLike {
+  if (typeof v !== 'object' || v === null) return false;
+  const g = v as Record<string, unknown>;
+  return typeof g.type === 'string' && GRADIENT_TYPES.has(g.type) && Array.isArray(g.stops);
+}
+
+/** Normalised 0–1 position → CSS percentage (trailing zeros trimmed). */
+function percent(n: unknown): string {
+  const v = typeof n === 'number' ? n : 0;
+  return `${+(v * 100).toFixed(2)}%`;
+}
+
+/**
+ * Render a GradientValue as a CSS gradient function.
+ *
+ *   LINEAR  → linear-gradient(Ndeg, …)   — spec angle is already CSS convention
+ *   RADIAL  → radial-gradient(at X% Y%, …)
+ *   ANGULAR → conic-gradient(from 90deg at X% Y%, …) — Figma's angular sweep
+ *             starts at 3 o'clock; CSS conic 0deg is 12 o'clock
+ *
+ * Stop colors run through colorValue, so token references become var(--…).
+ */
+export function gradientValue(v: unknown, tokensFormat = 'TOKEN'): string | null {
+  if (!isGradient(v)) return null;
+  const stops = v.stops
+    .map(s => {
+      const c = colorValue(s.color, tokensFormat);
+      return c ? `${c} ${percent(s.position)}` : null;
+    })
+    .filter((s): s is string => s !== null);
+  if (stops.length < 2) return null;
+  const stopList = stops.join(', ');
+  const at = `at ${percent(v.center?.x ?? 0.5)} ${percent(v.center?.y ?? 0.5)}`;
+  switch (v.type) {
+    case 'LINEAR': return `linear-gradient(${v.angle ?? 0}deg, ${stopList})`;
+    case 'RADIAL': return `radial-gradient(${at}, ${stopList})`;
+    case 'ANGULAR': return `conic-gradient(from 90deg ${at}, ${stopList})`;
+    default: return null;
+  }
 }
 
 /** Render a Sides object (top/end/bottom/start) as shorthand or per-side declarations. */

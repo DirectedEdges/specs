@@ -23,14 +23,14 @@ Converts the pre-split single file into the current three-file layout. The CLI n
 
 ```
 specs.config.yaml is no longer read (ADR-071).
-  Run `specs migrate config` to write config/conventions.yaml, config/settings.yaml and config/pipeline.yaml from it.
+  Run `specs migrate config` to write config/conventions/figma.yaml, config/settings.yaml and config/pipeline.yaml from it.
   Docs: https://specs.directededges.com/settings/
 ```
 
 Running the migration:
 
 1. Reads `specs.config.yaml` (or `specs.config.json`) from the current directory.
-2. Writes each shape the file declares to its home: `config/conventions.yaml`, `config/settings.yaml`, `config/pipeline.yaml`. A shape the file never configured is skipped rather than written empty.
+2. Writes each shape the file declares to its home: `config/conventions/figma.yaml`, `config/settings.yaml`, `config/pipeline.yaml`. A shape the file never configured is skipped rather than written empty.
 3. Renames the source to `specs.config.yaml.migrated` so config discovery stops finding it. The rename preserves the only record of what the workspace declared — the file is safe to delete once you have reviewed the generated files.
 
 ```bash
@@ -38,7 +38,7 @@ specs migrate config
 
 # Output:
 # config v1 → v2
-#   Wrote: config/conventions.yaml
+#   Wrote: config/conventions/figma.yaml
 #   Wrote: config/settings.yaml
 #   Wrote: config/pipeline.yaml
 #   Renamed: specs.config.yaml → specs.config.yaml.migrated  (safe to delete once you have reviewed the new files)
@@ -70,7 +70,7 @@ specs migrate config --dry-run
 
 # Output:
 # config v1 → v2
-#   Would write: config/conventions.yaml
+#   Would write: config/conventions/figma.yaml
 #   Would write: config/settings.yaml
 #   Would write: config/pipeline.yaml
 #   Would rename: specs.config.yaml → specs.config.yaml.migrated

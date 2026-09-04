@@ -21,6 +21,8 @@ import {
   DEFAULT_SETTINGS,
   DEFAULT_PIPELINE,
   type ResolvedConventions,
+  type ResolvedPlatformConventions,
+  type PrimitiveEntry,
   type ResolvedSettings,
   type ResolvedPipeline,
   type Settings,
@@ -29,8 +31,24 @@ import {
 import { CONFIG_DEFAULTS } from './ConfigDefaults.js';
 import type { CLIConfig } from '../Types/CLIConfig.js';
 
-/** Base names of the three split-configuration files inside `config/`. */
-const CONFIG_DIR_FILES = ['conventions', 'settings', 'pipeline'] as const;
+/**
+ * Base names of the split-configuration files inside `config/`.
+ *
+ * Conventions is deliberately absent: it is a *directory* of per-platform files
+ * (ADR-078), not one file, and is read by {@link ConfigLoader.readConventionsDir}.
+ */
+const CONFIG_DIR_FILES = ['settings', 'pipeline'] as const;
+
+/** Directory inside `config/` holding one conventions file per platform (ADR-078). */
+const CONVENTIONS_DIR = 'conventions';
+
+/**
+ * Reserved basename in `config/conventions/` for the platform-neutral promotion table
+ * (ADR-075). A component's props are the same whichever platform renders it, so the
+ * table is stated once rather than per platform — it shares the directory but is not
+ * a platform, and no platform may take this id.
+ */
+const PRIMITIVES_FILE = 'primitives';
 
 /** Extensions accepted for each split-configuration file, in priority order. */
 const CONFIG_FILE_EXTENSIONS = ['yaml', 'json'] as const;
@@ -109,7 +127,11 @@ export class ConfigLoader {
       const hasSplitFile = CONFIG_DIR_FILES.some(base =>
         CONFIG_FILE_EXTENSIONS.some(ext => fs.existsSync(path.join(configDir, `${base}.${ext}`)))
       );
-      if (hasSplitFile) {
+      // `config/conventions/` is a directory of per-platform files (ADR-078), and on
+      // its own it marks a split workspace just as `settings.yaml` does.
+      const conventionsDir = path.join(configDir, CONVENTIONS_DIR);
+      const hasConventionsDir = fs.existsSync(conventionsDir) && fs.statSync(conventionsDir).isDirectory();
+      if (hasSplitFile || hasConventionsDir) {
         return { kind: 'directory', dir: configDir };
       }
     }
@@ -137,7 +159,7 @@ export class ConfigLoader {
    * `specs.config.yaml` resolved them.
    */
   private loadFromDirectory(dir: string): CLIConfig {
-    const conventions = this.resolveConventions(this.readPart(dir, 'conventions'));
+    const conventions = this.resolveConventions(this.readConventionsDir(dir));
     const settings = this.resolveSettings(this.readPart(dir, 'settings'));
     const pipeline = this.resolvePipeline(this.readPart(dir, 'pipeline'));
 
@@ -196,17 +218,100 @@ export class ConfigLoader {
   }
 
   /**
-   * Resolve conventions: apply the three top-level defaults, and the inner
-   * defaults of any declared block, validating members as the pre-split
-   * loader did. Absence of a block means the library declares no such
-   * convention — no default can supply it.
+   * Read `config/conventions/` — one file per platform, the basename being the
+   * platform id (ADR-078). Returns an id-keyed map of raw entry bodies.
+   *
+   * A stray `config/conventions.yaml` is refused rather than read: supporting both
+   * layouts would mean two discovery paths forever, and silently ignoring the file
+   * would generate specs missing everything it declares.
    */
-  private resolveConventions(parsed: unknown): ResolvedConventions {
-    const rawRoot = (parsed && typeof parsed === 'object' ? parsed : {}) as Record<string, unknown>;
-    const raw = (rawRoot.figma && typeof rawRoot.figma === 'object' ? rawRoot.figma : {}) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  private readConventionsDir(dir: string): { byPlatform: Record<string, unknown>; primitives?: unknown } {
+    for (const ext of CONFIG_FILE_EXTENSIONS) {
+      const stray = path.join(dir, `${CONVENTIONS_DIR}.${ext}`);
+      if (fs.existsSync(stray)) {
+        throw new Error(
+          `${stray} is no longer read (ADR-078).\n` +
+          `  Conventions are one file per platform in config/${CONVENTIONS_DIR}/ — move each\n` +
+          `  platform's block into config/${CONVENTIONS_DIR}/<platform>.yaml, with the platform\n` +
+          `  key becoming the filename and its body de-indented to the root.\n` +
+          `  Docs: https://specs.directededges.com/schema/conventions/`
+        );
+      }
+    }
 
-    const figma: ResolvedConventions['figma'] = {
-      ...DEFAULT_CONVENTIONS.figma,
+    const conventionsDir = path.join(dir, CONVENTIONS_DIR);
+    if (!fs.existsSync(conventionsDir) || !fs.statSync(conventionsDir).isDirectory()) {
+      return { byPlatform: {} };
+    }
+
+    const byPlatform: Record<string, unknown> = {};
+    let primitives: unknown;
+    for (const entry of fs.readdirSync(conventionsDir).sort()) {
+      const ext = path.extname(entry).slice(1);
+      if (!(CONFIG_FILE_EXTENSIONS as readonly string[]).includes(ext)) continue;
+      const file = path.join(conventionsDir, entry);
+      if (!fs.statSync(file).isFile()) continue;
+      const id = path.basename(entry, path.extname(entry));
+      if (id === PRIMITIVES_FILE) {
+        primitives = this.parseFile(file);
+        continue;
+      }
+      // The filename is the platform id, so a platform is declared in exactly one
+      // file and there is no merge rule to define.
+      byPlatform[id] = this.parseFile(file);
+    }
+    return { byPlatform, primitives };
+  }
+
+  /**
+   * Resolve conventions: one {@link ResolvedPlatformConventions} per declared
+   * platform, with defaults applied inside each declared block.
+   *
+   * Absence of a block means that platform declares no such convention — no default
+   * can supply it.
+   */
+  private resolveConventions(read: { byPlatform: Record<string, unknown>; primitives?: unknown }): ResolvedConventions {
+    const platforms: Record<string, ResolvedPlatformConventions> = {};
+    for (const [id, parsed] of Object.entries(read.byPlatform)) {
+      platforms[id] = this.resolvePlatform(id, parsed);
+    }
+    const primitives = this.resolvePrimitives(read.primitives);
+    if (!Object.keys(platforms).length && !primitives) return { ...DEFAULT_CONVENTIONS };
+    return { ...(Object.keys(platforms).length ? { platforms } : {}), ...(primitives ? { primitives } : {}) };
+  }
+
+  /**
+   * Resolve `config/conventions/primitives.yaml` — the promotion table, keyed by the
+   * design system's own component names (ADR-075).
+   *
+   * An entry needs an `elementType` and a `map`; one missing either is dropped with a
+   * warning rather than failing the run, so a half-written table promotes what it
+   * describes and leaves the rest as it is.
+   */
+  private resolvePrimitives(parsed: unknown): Record<string, PrimitiveEntry> | undefined {
+    if (!parsed || typeof parsed !== 'object') return undefined;
+    const entries: Record<string, PrimitiveEntry> = {};
+    for (const [name, body] of Object.entries(parsed as Record<string, unknown>)) {
+      const entry = body as Partial<PrimitiveEntry> | null;
+      if (!entry || typeof entry !== 'object' || !entry.elementType || !Array.isArray(entry.map)) {
+        console.warn(`conventions/${PRIMITIVES_FILE}.yaml: '${name}' needs an elementType and a map — entry ignored.`);
+        continue;
+      }
+      entries[name] = { elementType: entry.elementType, map: entry.map };
+    }
+    return Object.keys(entries).length ? entries : undefined;
+  }
+
+  /**
+   * Resolve one platform's conventions. `where` names the file in any warning, so a
+   * reader knows which of several conventions files to fix.
+   */
+  private resolvePlatform(id: string, parsed: unknown): ResolvedPlatformConventions {
+    const where = `conventions/${id}.yaml`;
+    const raw = (parsed && typeof parsed === 'object' ? parsed : {}) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+    const platform: ResolvedPlatformConventions = {
+      naming: 'NONE',
       slotConstraints: raw.slotConstraints === true,
       inferNumberProps: raw.inferNumberProps === true,
     };
@@ -215,14 +320,14 @@ export class ConfigLoader {
     const validNaming = ['NONE', 'SENTENCE', 'TITLE'];
     const naming = typeof raw.naming === 'string' ? raw.naming.toUpperCase() : undefined;
     if (naming && validNaming.includes(naming)) {
-      figma.naming = naming as ResolvedConventions['figma']['naming'];
+      platform.naming = naming as ResolvedPlatformConventions['naming'];
     }
 
     // glyphs — a non-empty match string, else the block is dropped
     if (raw.glyphs !== undefined && raw.glyphs !== null) {
       const match = typeof raw.glyphs === 'object' ? raw.glyphs.match : undefined;
       if (typeof match === 'string' && match.trim() !== '') {
-        figma.glyphs = { match };
+        platform.glyphs = { match };
       }
     }
 
@@ -230,7 +335,7 @@ export class ConfigLoader {
     if (raw.codeOnlyProps !== undefined && raw.codeOnlyProps !== null) {
       const match = typeof raw.codeOnlyProps === 'object' ? raw.codeOnlyProps.match : undefined;
       if (typeof match === 'string' && match.trim() !== '') {
-        figma.codeOnlyProps = { match };
+        platform.codeOnlyProps = { match };
       }
     }
 
@@ -239,9 +344,9 @@ export class ConfigLoader {
       const subs = raw.subcomponents;
       const validScopes = ['NESTED', 'PAGE'];
       if (!Array.isArray(subs.match) || subs.match.length === 0) {
-        console.warn('Invalid conventions.figma.subcomponents.match: must be a non-empty array of strings. Removing subcomponents convention.');
+        console.warn(`Invalid ${where} subcomponents.match: must be a non-empty array of strings. Removing subcomponents convention.`);
       } else {
-        figma.subcomponents = {
+        platform.subcomponents = {
           scope: validScopes.includes(subs.scope) ? subs.scope : 'NESTED',
           match: subs.match,
           ...(Array.isArray(subs.exclude) && { exclude: subs.exclude }),
@@ -256,10 +361,10 @@ export class ConfigLoader {
       const validIeScopes = ['PAGE', 'FILE'];
       let match = ie.match;
       if (match !== undefined && (!Array.isArray(match) || match.length === 0)) {
-        console.warn('Invalid conventions.figma.instanceExamples.match: when provided, must be a non-empty array of strings. Ignoring match filter.');
+        console.warn(`Invalid ${where} instanceExamples.match: when provided, must be a non-empty array of strings. Ignoring match filter.`);
         match = undefined;
       }
-      figma.instanceExamples = {
+      platform.instanceExamples = {
         scope: validIeScopes.includes(ie.scope) ? ie.scope : 'PAGE',
         ...(match !== undefined && { match }),
         ...(Array.isArray(ie.exclude) && { exclude: ie.exclude }),
@@ -267,36 +372,41 @@ export class ConfigLoader {
       };
     }
 
-    // images (ADR-063). Presence of the block is the on-switch; each member
-    // is an independent representation trigger.
+    // images (ADR-063, ADR-077). Presence of the block is the on-switch; each member
+    // is an independent trigger. `component` is this platform's name for the same
+    // component `match` names in Figma.
     if (raw.images !== undefined) {
       const img = raw.images as Record<string, unknown>;
       if (img === null || typeof img !== 'object') {
-        console.warn('Invalid conventions.figma.images: expected an object. Removing images convention.');
+        console.warn(`Invalid ${where} images: expected an object. Removing images convention.`);
       } else {
         if (img.backgroundImage !== undefined && typeof img.backgroundImage !== 'boolean') {
-          console.warn(`Invalid conventions.figma.images.backgroundImage: expected boolean, got ${typeof img.backgroundImage}. Using default: false`);
+          console.warn(`Invalid ${where} images.backgroundImage: expected boolean, got ${typeof img.backgroundImage}. Using default: false`);
         }
         const sourceProps = Array.isArray(img.sourceProps)
-          ? (img.sourceProps as unknown[]).filter((p): p is string => typeof p === 'string' && p.trim() !== '').map(p => p.trim())
+          ? (img.sourceProps as unknown[]).filter((v): v is string => typeof v === 'string' && v.trim() !== '').map(v => v.trim())
           : [];
         if (img.sourceProps !== undefined && (!Array.isArray(img.sourceProps) || sourceProps.length === 0)) {
-          console.warn('Invalid conventions.figma.images.sourceProps: expected a non-empty array of strings. Ignoring sourceProps.');
+          console.warn(`Invalid ${where} images.sourceProps: expected a non-empty array of strings. Ignoring sourceProps.`);
         }
         let match = typeof img.match === 'string' && (img.match as string).trim() !== ''
           ? (img.match as string).trim()
           : undefined;
         if (img.match !== undefined && !match) {
-          console.warn('Invalid conventions.figma.images.match: expected a non-empty string. Ignoring match.');
+          console.warn(`Invalid ${where} images.match: expected a non-empty string. Ignoring match.`);
         }
         // The designated component needs a forwarding target: sourceProps[0].
         if (match && sourceProps.length === 0) {
-          console.warn('conventions.figma.images.match requires a non-empty sourceProps (sourceProps[0] is its source prop). Ignoring match.');
+          console.warn(`${where} images.match requires a non-empty sourceProps (sourceProps[0] is its source prop). Ignoring match.`);
           match = undefined;
         }
-        figma.images = {
+        const component = typeof img.component === 'string' && (img.component as string).trim() !== ''
+          ? (img.component as string).trim()
+          : undefined;
+        platform.images = {
           backgroundImage: img.backgroundImage === true,
           ...(match && { match }),
+          ...(component && { component }),
           sourceProps,
         };
       }
@@ -304,10 +414,48 @@ export class ConfigLoader {
 
     // states — concept-keyed map, passed through when it is an object
     if (raw.states !== undefined && raw.states !== null && typeof raw.states === 'object' && !Array.isArray(raw.states)) {
-      figma.states = raw.states;
+      platform.states = raw.states;
     }
 
-    return { figma };
+    // propRoles (ADR-067) — a concept -> prop-name map. Values must be prop names;
+    // anything else is a malformed entry rather than a convention, so it is dropped.
+    if (raw.propRoles !== undefined && raw.propRoles !== null && typeof raw.propRoles === 'object' && !Array.isArray(raw.propRoles)) {
+      const entries = Object.entries(raw.propRoles as Record<string, unknown>)
+        .filter(([, v]) => typeof v === 'string' && v.trim() !== '');
+      if (entries.length !== Object.keys(raw.propRoles).length) {
+        console.warn(`Invalid ${where} propRoles: each value must name a prop. Dropping non-string entries.`);
+      }
+      if (entries.length > 0) {
+        platform.propRoles = Object.fromEntries(entries) as Record<string, string>;
+      }
+    }
+
+    // roleValidation (ADR-067) — severity for unmet required role obligations
+    if (raw.roleValidation !== undefined) {
+      if (raw.roleValidation === 'warn' || raw.roleValidation === 'error') {
+        platform.roleValidation = raw.roleValidation;
+      } else {
+        console.warn(`Invalid ${where} roleValidation: expected 'warn' or 'error'. Ignoring.`);
+      }
+    }
+
+    // defaultFillWidth (ADR-081) — a positive number, else ignored
+    if (raw.defaultFillWidth !== undefined) {
+      if (typeof raw.defaultFillWidth === 'number' && Number.isFinite(raw.defaultFillWidth) && raw.defaultFillWidth > 0) {
+        platform.defaultFillWidth = raw.defaultFillWidth;
+      } else {
+        console.warn(`Invalid ${where} defaultFillWidth: expected a positive number. Ignoring.`);
+      }
+    }
+
+    // stylesProp — the prop receiving styling no promotion mapped, one per platform
+    // (ADR-076). Promotion targets are named by the spec, so there is no per-primitive
+    // block to fold it into.
+    if (typeof raw.stylesProp === 'string' && raw.stylesProp.trim() !== '') {
+      platform.stylesProp = raw.stylesProp.trim();
+    }
+
+    return platform;
   }
 
   /**
@@ -467,7 +615,9 @@ export class ConfigLoader {
     settings.spec.directory = path.resolve(CONFIG_DEFAULTS.outputDirectory);
 
     return {
-      conventions: this.resolveConventions(undefined),
+      // A workspace that declares nothing. Copied rather than shared, so a consumer
+      // mutating its config cannot reach the exported constant.
+      conventions: { ...DEFAULT_CONVENTIONS },
       settings,
       pipeline: {
         transformers: [...DEFAULT_PIPELINE.transformers],

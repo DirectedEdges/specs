@@ -94,13 +94,12 @@ A summary line is printed after each merge, e.g. `Merge: 2 added, 1 removed, 5 u
 
 ### Glyph partitioning
 
-When `figma.glyphs.match` is declared in `config/conventions.yaml`, top-level components whose names match the pattern are routed to a separate `## Glyphs` section in the manifest instead of `## Components`. The pattern uses `{i}` as the glyph-name placeholder — for example, `'DS Icon Glyph / {i}'` matches `DS Icon Glyph / arrow-down` and extracts `arrow-down`. This is the same pattern syntax the processing engine uses for glyph detection inside component instances, so what `scan` partitions matches what `generate` treats as a glyph at processing time.
+When `figma.glyphs.match` is declared in `config/conventions/figma.yaml`, top-level components whose names match the pattern are routed to a separate `## Glyphs` section in the manifest instead of `## Components`. The pattern uses `{i}` as the glyph-name placeholder — for example, `'DS Icon Glyph / {i}'` matches `DS Icon Glyph / arrow-down` and extracts `arrow-down`. This is the same pattern syntax the processing engine uses for glyph detection inside component instances, so what `scan` partitions matches what `generate` treats as a glyph at processing time.
 
 ```yaml
-# config/conventions.yaml
-figma:
-  glyphs:
-    match: 'DS Icon Glyph / {i}'
+# config/conventions/figma.yaml
+glyphs:
+  match: 'DS Icon Glyph / {i}'
 ```
 
 Glyphs in the partitioned section are:

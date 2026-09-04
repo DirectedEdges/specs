@@ -18,6 +18,7 @@ import { findComponentFolders, isComponentFolder, loadSpec } from '../Render/Spe
 import { startSpinner } from '../utilities/spinner.js';
 import { refreshCache } from '../Cache/Cache.js';
 import { reportCache } from './CacheCommand.js';
+import { figmaOf } from '../Config/PlatformConventions.js';
 
 const ERROR_CODES = {
   SUCCESS: 0,
@@ -49,7 +50,7 @@ export const Render = new Command('render')
       reportCache(refreshCache({
         dataDir: dataDirectory,
         aliases: Object.keys(config.settings.data?.sources ?? {}),
-        glyphNamePattern: config.conventions.figma.glyphs?.match,
+        glyphNamePattern: figmaOf(config.conventions).glyphs?.match,
       }));
     }
     if (options.watch) {

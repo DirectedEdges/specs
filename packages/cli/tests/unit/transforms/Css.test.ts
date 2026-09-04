@@ -4,6 +4,7 @@ import path from 'path';
 import os from 'os';
 import yaml from 'yaml';
 import { CssTransformer } from '../../../src/transforms/Css.js';
+import { drainNameWarnings } from '../../../src/transforms/css/values.js';
 
 const transformer = new CssTransformer();
 
@@ -742,6 +743,295 @@ describe('CssTransformer', () => {
       const out = await run(tmpDir, structuralVariants);
       const labelBlock = out.match(/\.ds-button__label \{[^}]*\}/)?.[0];
       expect(labelBlock ?? '').not.toContain('display: none');
+    });
+  });
+
+  describe('inline effects', () => {
+    it('maps a single drop shadow to box-shadow', async () => {
+      const out = await run(tmpDir, {
+        default: {
+          elements: {
+            root: {
+              styles: {
+                effects: {
+                  shadows: [{ visible: true, offsetX: 0, offsetY: 4, blur: 4, spread: 0, color: '#00000040' }],
+                },
+              },
+            },
+          },
+        },
+      });
+      expect(out).toContain('box-shadow: 0 4px 4px 0 #00000040');
+    });
+
+    it('joins multiple shadows, marks inset, and drops invisible entries', async () => {
+      const out = await run(tmpDir, {
+        default: {
+          elements: {
+            root: {
+              styles: {
+                effects: {
+                  shadows: [
+                    { visible: false, offsetX: 0, offsetY: 1, blur: 1, spread: 0, color: '#00000010' },
+                    { visible: true, offsetX: 0, offsetY: 4, blur: 4, spread: 0, color: '#00000040' },
+                    { visible: true, offsetX: 0, offsetY: 2, blur: 3, spread: 1, color: '#00000020', inset: true },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      });
+      expect(out).toContain('box-shadow: 0 4px 4px 0 #00000040, inset 0 2px 3px 1px #00000020');
+      expect(out).not.toContain('#00000010');
+    });
+
+    it('resolves token refs in shadow dimensions and color', async () => {
+      const out = await run(tmpDir, {
+        default: {
+          elements: {
+            root: {
+              styles: {
+                effects: {
+                  shadows: [{
+                    visible: true,
+                    offsetX: tokenRef('DS Color/Shadow/Elevated/x', 'dimension'),
+                    offsetY: tokenRef('DS Color/Shadow/Elevated/y', 'dimension'),
+                    blur: tokenRef('DS Color/Shadow/Elevated/blur', 'dimension'),
+                    spread: 0,
+                    color: tokenRef('DS Color/Shadow/Elevated/Color'),
+                  }],
+                },
+              },
+            },
+          },
+        },
+      });
+      expect(out).toContain(
+        'box-shadow: var(--ds-color-shadow-elevated-x) var(--ds-color-shadow-elevated-y) var(--ds-color-shadow-elevated-blur) 0 var(--ds-color-shadow-elevated-color)'
+      );
+    });
+
+    it('maps layerBlur to filter and backgroundBlur to backdrop-filter with /* effects */ trace comments on fan-out', async () => {
+      const out = await run(tmpDir, {
+        default: {
+          elements: {
+            root: {
+              styles: {
+                effects: {
+                  shadows: [{ visible: true, offsetX: 0, offsetY: 4, blur: 4, spread: 0, color: '#00000040' }],
+                  layerBlur: { visible: true, radius: 4 },
+                  backgroundBlur: { visible: true, radius: tokenRef('DS Color/Shadow/Elevated/blur', 'dimension') },
+                },
+              },
+            },
+          },
+        },
+      });
+      expect(out).toContain('box-shadow: 0 4px 4px 0 #00000040 /* effects */');
+      expect(out).toContain('filter: blur(4px) /* effects */');
+      expect(out).toContain('backdrop-filter: blur(var(--ds-color-shadow-elevated-blur)) /* effects */');
+    });
+
+    it('omits the trace comment when effects yields a single declaration', async () => {
+      const out = await run(tmpDir, {
+        default: {
+          elements: {
+            root: {
+              styles: {
+                effects: { layerBlur: { visible: true, radius: 2 } },
+              },
+            },
+          },
+        },
+      });
+      expect(out).toContain('filter: blur(2px);');
+      expect(out).not.toContain('/* effects */');
+    });
+
+    it('emits box-shadow: none when every shadow in the list is invisible', async () => {
+      const out = await run(tmpDir, {
+        default: {
+          elements: {
+            root: {
+              styles: {
+                effects: {
+                  shadows: [{ visible: false, offsetX: 0, offsetY: 4, blur: 4, spread: 0, color: '#00000040' }],
+                },
+              },
+            },
+          },
+        },
+      });
+      expect(out).toContain('box-shadow: none');
+    });
+
+    it('resets all effect properties when a variant sets effects: null', async () => {
+      const out = await run(tmpDir, {
+        default: {
+          elements: {
+            root: {
+              styles: {
+                effects: {
+                  shadows: [{ visible: true, offsetX: 0, offsetY: 4, blur: 4, spread: 0, color: '#00000040' }],
+                },
+              },
+            },
+          },
+        },
+        variants: [
+          { configuration: { flat: true }, elements: { root: { styles: { effects: null } } } },
+        ],
+      });
+      const flatBlock = out.match(/\.ds-button\[data-flat\] \{[^}]*\}/)?.[0] ?? '';
+      expect(flatBlock).toContain('box-shadow: none');
+      expect(flatBlock).toContain('filter: none');
+      expect(flatBlock).toContain('backdrop-filter: none');
+    });
+
+    it('expands effect-style token refs into role vars with none fallbacks, sanitizing invalid name characters', async () => {
+      const out = await run(tmpDir, {
+        default: {
+          elements: {
+            root: { styles: { effects: tokenRef('Effect Style 1 (Shadow)', 'effects') } },
+          },
+        },
+      });
+      expect(out).toContain('box-shadow: var(--effect-style-1-shadow-shadows, none) /* effects */');
+      expect(out).toContain('filter: var(--effect-style-1-shadow-layer-blur, none) /* effects */');
+      expect(out).toContain('backdrop-filter: var(--effect-style-1-shadow-background-blur, none) /* effects */');
+    });
+
+    it('records dropped-character name warnings for the end-of-run summary', async () => {
+      drainNameWarnings(); // reset anything collected by earlier tests
+      await run(tmpDir, {
+        default: {
+          elements: {
+            root: {
+              styles: {
+                effects: tokenRef('Effect Style 1 (Shadow)', 'effects'),
+                backgroundColor: tokenRef('Color/Brand 50%'),
+              },
+            },
+          },
+        },
+      });
+      const warnings = drainNameWarnings();
+      expect(warnings.size).toBe(1);
+      const names = [...warnings.values()][0];
+      expect(names.get('Effect Style 1 (Shadow)')).toBe(1);
+      expect(names.get('Color/Brand 50%')).toBe(1);
+      // Drained — a second drain is empty.
+      expect(drainNameWarnings().size).toBe(0);
+    });
+  });
+
+  describe('gradients', () => {
+    const linear = {
+      type: 'LINEAR',
+      angle: 45,
+      stops: [
+        { position: 0, color: '#FFFFFFFF' },
+        { position: 0.95, color: '#FF0000FF' },
+      ],
+    };
+
+    it('maps a linear gradient backgroundColor to background: linear-gradient()', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: { root: { styles: { backgroundColor: linear } } } },
+      });
+      expect(out).toContain('background: linear-gradient(45deg, #FFFFFFFF 0%, #FF0000FF 95%)');
+    });
+
+    it('resolves token-ref stop colors to var()', async () => {
+      const out = await run(tmpDir, {
+        default: {
+          elements: {
+            root: {
+              styles: {
+                backgroundColor: {
+                  type: 'LINEAR',
+                  angle: 0,
+                  stops: [
+                    { position: 0, color: tokenRef('DS Color/Surface/Primary') },
+                    { position: 1, color: tokenRef('DS Color/Line/Brand') },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      });
+      expect(out).toContain('background: linear-gradient(0deg, var(--ds-color-surface-primary) 0%, var(--ds-color-line-brand) 100%)');
+    });
+
+    it('maps RADIAL to radial-gradient(at …) and ANGULAR to conic-gradient(from 90deg …)', async () => {
+      const stops = [
+        { position: 0, color: '#FF0000FF' },
+        { position: 1, color: '#0000FFFF' },
+      ];
+      const out = await run(tmpDir, {
+        default: {
+          elements: {
+            root: { styles: { backgroundColor: { type: 'RADIAL', center: { x: 0.5, y: 0.25 }, stops } } },
+            halo: { styles: { backgroundColor: { type: 'ANGULAR', center: { x: 0.5, y: 0.5 }, stops } } },
+          },
+        },
+      });
+      expect(out).toContain('background: radial-gradient(at 50% 25%, #FF0000FF 0%, #0000FFFF 100%)');
+      expect(out).toContain('background: conic-gradient(from 90deg at 50% 50%, #FF0000FF 0%, #0000FFFF 100%)');
+    });
+
+    it('maps gradient strokes to border-image and resets it when a variant restores a solid stroke', async () => {
+      const out = await run(tmpDir, {
+        default: {
+          elements: { root: { styles: { strokes: '#000000FF', strokeWeight: 1 } } },
+        },
+        variants: [
+          {
+            configuration: { a: '2' },
+            elements: {
+              root: {
+                styles: {
+                  strokes: {
+                    type: 'ANGULAR',
+                    center: { x: 0.5, y: 0.5 },
+                    stops: [
+                      { position: 0, color: '#FF0000FF' },
+                      { position: 0.74, color: '#B1F836FF' },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+          {
+            configuration: { a: '2', b: '2' },
+            elements: { root: { styles: { strokes: '#000000FF' } } },
+          },
+        ],
+      });
+      const gradientBlock = out.match(/\.ds-button\[data-a="2"\] \{[^}]*\}/)?.[0] ?? '';
+      expect(gradientBlock).toContain('border-image: conic-gradient(from 90deg at 50% 50%, #FF0000FF 0%, #B1F836FF 74%) 1');
+      expect(gradientBlock).toContain('border-style: solid');
+      const solidBlock = out.match(/\.ds-button\[data-a="2"\]\[data-b="2"\] \{[^}]*\}/)?.[0] ?? '';
+      expect(solidBlock).toContain('border-color: #000000FF');
+      expect(solidBlock).toContain('border-image: none');
+      // The reset is per-element: every solid-stroke layer of this element
+      // carries it, including the default block (harmless — none is initial).
+      const baseBlock = out.match(/\.ds-button \{[^}]*\}/)?.[0] ?? '';
+      expect(baseBlock).toContain('border-color: #000000FF');
+      expect(baseBlock).toContain('border-image: none');
+    });
+
+    it('paints gradient textColor as background clipped to the glyphs', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: { label: { styles: { textColor: linear } } } },
+      });
+      const block = out.match(/\.ds-button__label \{[^}]*\}/)?.[0] ?? '';
+      expect(block).toContain('background: linear-gradient(45deg, #FFFFFFFF 0%, #FF0000FF 95%)');
+      expect(block).toContain('background-clip: text');
+      expect(block).toContain('color: transparent');
     });
   });
 });

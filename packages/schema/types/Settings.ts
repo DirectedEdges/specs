@@ -62,6 +62,14 @@ export interface Settings {
     /** Layout representation format. Optional; defaults to LAYOUT. */
     layout?: 'LAYOUT' | 'PARENT_CHILDREN' | 'BOTH';
     /**
+     * Read Figma Dev Mode annotations and emit `anatomy.<element>.role` (ADR-067).
+     * The on-switch for the role feature: when false, annotations are not read and
+     * no role is emitted, so generation behaves exactly as it does today.
+     * Optional; defaults to false.
+     * @since 0.32.0
+     */
+    roles?: boolean;
+    /**
      * Token reference serialization profile. Optional; defaults to TOKEN.
      * `FIGMA_SYNTAX_WEB`, `FIGMA_SYNTAX_IOS`, and `FIGMA_SYNTAX_ANDROID` emit the
      * token's Figma `codeSyntax` for that platform, falling back to the `TOKEN`
@@ -94,6 +102,19 @@ export interface Settings {
      * @since 0.26.0
      */
     collapsePrimitiveWrapper?: boolean;
+    /**
+     * Primitive layers in composed example content are promoted to instances of the
+     * design system's own components, using `Conventions.primitives` (ADR-074).
+     *
+     * A component's own anatomy is never promoted — someone who put a text layer there
+     * chose a text layer. Only `slotContentExamples` and `instanceExamples` are affected.
+     *
+     * Opt-in: promotion restructures composed content, so a workspace elects it rather
+     * than receiving it on upgrade. Optional; defaults to false.
+     *
+     * @since 0.31.0
+     */
+    promotePrimitives?: boolean;
     /** Include invalid variants. Optional; defaults to false. */
     invalidVariants?: boolean;
     /** Include invalid combinations. Optional; defaults to true. */
@@ -154,6 +175,10 @@ export interface ResolvedSettings {
     details: 'FULL' | 'LAYERED';
     /** Plain container wrappers around a single text, glyph or slot child are stripped. */
     collapsePrimitiveWrapper: boolean;
+    /** Primitive layers in composed example content are promoted to design system component instances. */
+    promotePrimitives: boolean;
+    /** Dev Mode annotations are read and emitted as `anatomy.<element>.role`. */
+    roles: boolean;
     /** Include invalid variants. */
     invalidVariants: boolean;
     /** Include invalid combinations. */
@@ -189,6 +214,7 @@ export interface ResolvedSettings {
  * - spec.variantDepth: 9999 (no limit) allows full variant combination exploration
  * - spec.details: LAYERED reduces output size by only showing differences from default
  * - spec.collapsePrimitiveWrapper: false — opt-in feature, off by default
+ * - spec.promotePrimitives: false — opt-in; promotion restructures composed content
  * - spec.invalidVariants: false excludes variants that can't be instantiated
  * - spec.invalidCombinations: true helps designers identify property conflicts
  * - spec.emptyVariants: false reduces output size by excluding semantically empty layered variants
@@ -207,6 +233,8 @@ export const DEFAULT_SETTINGS: ResolvedSettings = {
     variantDepth: 9999,
     details: 'LAYERED',
     collapsePrimitiveWrapper: false,
+    promotePrimitives: false,
+    roles: false,
     invalidVariants: false,
     invalidCombinations: true,
     emptyVariants: false,

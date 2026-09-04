@@ -147,6 +147,11 @@
               "default": false,
               "description": "Strip a root container that only wraps one child and promote the child to spec root. A text or glyph leaf requires the wrapper to carry no meaningful container styles (ADR-058); a slot child needs no style test, because both nodes are containers, and the slot's value wins on any shared key (ADR-083)."
             },
+            "promotePrimitives": {
+              "type": "boolean",
+              "default": false,
+              "description": "Primitive layers in composed example content are promoted to instances of the design system's own components, using conventions.primitives. A component's own anatomy is never promoted. Opt-in: promotion restructures composed content. (ADR-074, ADR-085)"
+            },
             "invalidVariants": {
               "type": "boolean",
               "default": false,
@@ -181,6 +186,10 @@
               "type": "boolean",
               "default": true,
               "description": "Nest each component's files in a subfolder named for the component."
+            },
+            "roles": {
+              "type": "boolean",
+              "description": "Read Figma Dev Mode annotations and emit anatomy.<element>.role (ADR-067). The on-switch for the role feature: when false, annotations are not read and no role is emitted. Defaults to false."
             }
           },
           "additionalProperties": false

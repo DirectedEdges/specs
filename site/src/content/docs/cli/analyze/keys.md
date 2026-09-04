@@ -12,9 +12,8 @@ Reads every component's `api.yaml` and produces `_analysis/keys.yaml`: every Fig
 This analyzer reports names the producer recorded in `$extensions['com.figma'].name`, which only happens when [`figma.naming`](/settings/figma-keys/) declares a source convention:
 
 ```yaml
-# config/conventions.yaml
-figma:
-  naming: SENTENCE
+# config/conventions/figma.yaml
+naming: SENTENCE
 ```
 
 Under the default `NONE`, no convention is declared, no names are recorded, and this report is empty. That is correct rather than a failure — nothing has diverged from a convention you never stated.

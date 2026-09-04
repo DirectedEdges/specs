@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import yaml from 'yaml';
 import {
-  generateConventionsTemplate,
+  generateFigmaConventionsTemplate,
   generateSettingsTemplate,
   generatePipelineTemplate,
   generateConfigTemplates,
@@ -9,10 +9,12 @@ import {
 
 describe('ConfigTemplates', () => {
   describe('generateConfigTemplates', () => {
-    it('returns the three split-config files keyed by path under config/', () => {
+    it('scaffolds one conventions file per platform, plus settings and pipeline', () => {
       const templates = generateConfigTemplates();
       expect(Object.keys(templates).sort()).toEqual([
-        'config/conventions.yaml',
+        'config/conventions/figma.yaml',
+        'config/conventions/react.yaml',
+        'config/conventions/web-components.yaml',
         'config/pipeline.yaml',
         'config/settings.yaml',
       ]);
@@ -33,9 +35,9 @@ describe('ConfigTemplates', () => {
     });
   });
 
-  describe('generateConventionsTemplate', () => {
+  describe('generateFigmaConventionsTemplate', () => {
     it('documents every feature-toggle block (commented) with a doc link', () => {
-      const template = generateConventionsTemplate();
+      const template = generateFigmaConventionsTemplate();
       for (const block of ['instanceExamples:', 'states:', 'images:', 'sourceProps:']) {
         expect(template).toContain(block);
       }
@@ -45,14 +47,16 @@ describe('ConfigTemplates', () => {
     });
 
     it('should include commented glyphs block for icon glyph naming', () => {
-      const template = generateConventionsTemplate();
+      const template = generateFigmaConventionsTemplate();
       expect(template).toContain('glyphs:');
       expect(template).toContain('glyph');
     });
 
     it('should include figma conventions structure', () => {
-      const template = generateConventionsTemplate();
-      expect(template).toContain('figma:');
+      const template = generateFigmaConventionsTemplate();
+      // The filename is the platform id, so the body has no wrapping key (ADR-078).
+      expect(template).not.toContain('\nfigma:');
+      expect(template).toContain('# naming: NONE');
       expect(template).toContain('naming:');
       expect(template).toContain('subcomponents:');
       expect(template).toContain('match:');
@@ -60,9 +64,21 @@ describe('ConfigTemplates', () => {
       expect(template).toContain('codeOnlyProps:');
     });
 
-    it('figma is the only top-level key', () => {
-      const parsed = yaml.parse(generateConventionsTemplate());
-      expect(Object.keys(parsed)).toEqual(['figma']);
+    it('the body sits at the root — the filename is the platform id', () => {
+      const parsed = yaml.parse(generateFigmaConventionsTemplate());
+      // No wrapping key: conventions/figma.yaml IS the figma entry (ADR-078).
+      expect(Object.keys(parsed)).not.toContain('figma');
+      expect(Object.keys(parsed)).toContain('subcomponents');
+    });
+
+    it('a code platform stub is inert until uncommented', () => {
+      const templates = generateConfigTemplates();
+      for (const key of ['config/conventions/react.yaml', 'config/conventions/web-components.yaml']) {
+        const stub = templates[key];
+        expect(stub).toContain('# primitives:');
+        // Pure comments parse to nothing, which is the same as declaring nothing.
+        expect(yaml.parse(stub)).toBeNull();
+      }
     });
   });
 

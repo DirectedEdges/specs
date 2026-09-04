@@ -3,7 +3,7 @@ title: "glyphs"
 description: "Naming pattern used to detect glyph content assets"
 ---
 
-Naming pattern used to detect glyph content assets (e.g. icon glyphs). A library fact, declared in `config/conventions.yaml`: every consumer reading the same library must declare the same pattern — a wrong or missing one leaves icon assets undetected. Absence means the library has no glyph naming convention, and no glyph detection is performed.
+Naming pattern used to detect glyph content assets (e.g. icon glyphs). A library fact, declared in `config/conventions/figma.yaml`: every consumer reading the same library must declare the same pattern — a wrong or missing one leaves icon assets undetected. Absence means the library has no glyph naming convention, and no glyph detection is performed.
 
 :::tip[Guide]
 See [Icon Glyphs](/guides/glyph-name-pattern/) for naming strategies and worked examples.
@@ -12,9 +12,8 @@ See [Icon Glyphs](/guides/glyph-name-pattern/) for naming strategies and worked 
 ## Configuration
 
 ```yaml
-figma:
-  glyphs:
-    match: 'DS Icon Glyph / {i}'
+glyphs:
+  match: 'DS Icon Glyph / {i}'
 ```
 
 ## Result
@@ -53,6 +52,6 @@ The `match` pattern must include the `{i}` placeholder, which marks where the gl
 
 ## Path
 
-`figma.glyphs.match` in `config/conventions.yaml`
+`glyphs.match` in `config/conventions/figma.yaml`
 
 **Legacy name**: in the pre-split `specs.config.yaml`, this option was the scalar `config.processing.glyphNamePattern`. That file is no longer read — [`specs migrate config`](/cli/commands/migrate/) converts it, moving that member to `figma.glyphs.match`.

@@ -8,7 +8,7 @@
 
 // Core component types
 export type { Component } from './Component.js';
-export type { Anatomy, AnatomyElement, ElementTypeRef, SubcomponentRef } from './Anatomy.js';
+export type { Anatomy, AnatomyElement, ElementTypeRef, SubcomponentRef, RoleConceptName, ActionConceptName, ActionEntry } from './Anatomy.js';
 export type { Props, AnyProp, BooleanProp, StringProp, EnumProp, SlotProp, NumberProp, FigmaCodeOnlySource, FigmaPropExtension, PropExtensions } from './Props.js';
 export type { Variant, Variants } from './Variant.js';
 export type { Metadata } from './Metadata.js';
@@ -16,7 +16,7 @@ export type { Subcomponent, Subcomponents, SubcomponentSource } from './Subcompo
 export type { InstanceExample, InstanceExamples } from './InstanceExample.js';
 
 // Element and structure types
-export type { Element, Elements, ElementType } from './Element.js';
+export type { Element, Elements, ElementType, ElementExtensions, FigmaElementExtension } from './Element.js';
 export type { Layout, LayoutNode } from './Layout.js';
 export type { Children, SlotBinding } from './Children.js';
 export type { SlotContent } from './SlotContent.js';
@@ -24,7 +24,18 @@ export type { Composition, Compositions } from './Composition.js';
 
 // Configuration types
 export type { PropConfigurations, PropConfigurationValue, NestedPropConfiguration } from './PropConfigurations.js';
-export type { Conventions, ResolvedConventions, VariantStateEntry } from './Conventions.js';
+export type {
+  Conventions,
+  ResolvedConventions,
+  MetadataConventions,
+  PlatformConventions,
+  ResolvedPlatformConventions,
+  PrimitiveKind,
+  PrimitiveEntry,
+  PrimitiveRule,
+  VariantStateEntry,
+  PropRoleName,
+} from './Conventions.js';
 export { DEFAULT_CONVENTIONS } from './Conventions.js';
 export type { Settings, ResolvedSettings, ColorFormat, SourceEntry } from './Settings.js';
 export { DEFAULT_SETTINGS } from './Settings.js';

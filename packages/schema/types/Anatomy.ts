@@ -51,6 +51,83 @@ export interface FigmaAnatomyElementExtension {
  * DTCG-style platform extensions for an anatomy element.
  * @since 0.28.0
  */
+/**
+ * Semantic behavior role for an anatomy element (ADR-066).
+ *
+ * An open string. The recognized vocabulary is documented here and grown by
+ * vocabulary ADRs without a schema bump; transforms ignore unrecognized values,
+ * so an unknown role is inert and emission falls through to current behavior.
+ *
+ * Roles are populated by `specs generate` from a Figma Dev Mode annotation on the
+ * component node or one of its layers, of the form `role:<concept>` in the
+ * annotation's label. `api.yaml` itself is never hand-edited, and there is no
+ * authored surface to merge.
+ *
+ * Two kinds of concept, distinguished by how they resolve rather than how they
+ * are spelled:
+ *
+ * **Control roles** name a control, landmark, or announcement region and resolve
+ * on their own:
+ * - Form controls (ADR-067): `textbox`, `password`, `searchbox`, `spinbutton`,
+ *   `slider`, `checkbox`, `radio`, `textarea`, `switch`, `group`
+ * - Interactive roots (ADR-068): `button`, `togglebutton`, `link`, `disclosure`
+ * - Announcements (ADR-068): `alert`, `status`, `progressbar`
+ *
+ * **Part roles** name a constituent of some control and resolve against that
+ * control: `value`, `placeholder`, `label`, `description`, `errormessage`,
+ * `legend`, `panel`, `indicator`, `increment`, `decrement`. Each control concept
+ * declares which parts it accepts.
+ *
+ * Naming scheme: single flat lowercase alphanumeric tokens — no hyphens,
+ * underscores, dots, or internal casing. Part names are bare and scoped by their
+ * control (`placeholder`, never `inputPlaceholder`). Tokens name interaction
+ * semantics, not web markup, so each platform transform binds a concept to its
+ * own idiom.
+ *
+ * @since 0.30.0
+ */
+export type RoleConceptName = string;
+
+/**
+ * Behavior invoked when an element is activated (ADR-087).
+ *
+ * An open string, like `RoleConceptName`. The recognized vocabulary is published
+ * on the docs site and grows without a schema release; transforms ignore values
+ * they do not know, so a spec and a transform may disagree without breaking.
+ *
+ * A **role** answers what an element *is* — a noun naming a control kind a
+ * platform has a counterpart for. An **action** answers what activating it
+ * *does*. The test between them: does it change how the control is announced?
+ * A `togglebutton` announces its pressed state, so it is a role. A dismiss
+ * affordance announces as an ordinary button, so it is an action.
+ *
+ * Recognized concepts:
+ * - `dismiss` — activating this element removes the component it belongs to
+ *
+ * On an element the component owns this is an emission signal. On an `instance`
+ * it is a **routing** signal only: the instanced component keeps its own role and
+ * renders its own control, and the composing component declares which of its
+ * children carries the behavior.
+ *
+ * @since 0.32.0
+ */
+export type ActionConceptName = string;
+
+/**
+ * One behavior an element performs when activated (ADR-087).
+ *
+ * An object rather than a bare string so an action can carry its own properties
+ * as the vocabulary grows — where focus moves after a dismissal, what a
+ * navigation targets — without a second breaking change. Today only `type` is
+ * defined.
+ *
+ * @since 0.32.0
+ */
+export interface ActionEntry {
+  /** The behavior's concept name. */
+  type: ActionConceptName;
+}
+
 export interface AnatomyElementExtensions {
   'com.figma'?: FigmaAnatomyElementExtension;
 }
@@ -67,6 +144,24 @@ export type AnatomyElement = {
   detectedIn?: string;
   /** The component or component set name that this instance element references, or a subcomponent reference. */
   instanceOf?: string | SubcomponentRef;
+  /**
+   * Semantic behavior role for this element (ADR-067), e.g. `button`, `checkbox`,
+   * `label`. Generated from a Figma Dev Mode annotation of the form
+   * `role:<concept>` on the component node or one of its layers.
+   * Absence means no role — transforms behave exactly as they do today.
+   * @since 0.32.0
+   */
+  role?: RoleConceptName;
+  /**
+   * Behaviors invoked when this element is activated (ADR-087), e.g. `dismiss`.
+   * Generated from Dev Mode annotations of the form `action:<concept>`.
+   *
+   * An array because an element may reasonably perform more than one thing, and
+   * because each entry can grow properties of its own. Absence means no behavior
+   * — transforms behave exactly as they do today.
+   * @since 0.32.0
+   */
+  actions?: ActionEntry[];
   /** Platform extensions; com.figma carries extraction provenance. */
   $extensions?: AnatomyElementExtensions;
 };

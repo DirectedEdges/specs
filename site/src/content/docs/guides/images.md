@@ -66,15 +66,14 @@ Sourcing binds through `propConfigurations`, never through `backgroundImage` —
 
 ## Configuration
 
-Everything lives in one block: [`figma.images`](/settings/images/) in `config/conventions.yaml`. Its presence is the on-switch, and each member is an independent representation trigger:
+Everything lives in one block: [`figma.images`](/settings/images/) in `config/conventions/figma.yaml`. Its presence is the on-switch, and each member is an independent representation trigger:
 
 ```yaml
-# config/conventions.yaml
-figma:
-  images:
-    backgroundImage: true      # detect image fills → Styles.backgroundImage
-    match: dsImage             # designate an image component (requires sourceProps)
-    sourceProps: [source]      # code-only props typed as images; first = dsImage's source prop
+# config/conventions/figma.yaml
+images:
+  backgroundImage: true      # detect image fills → Styles.backgroundImage
+  match: dsImage             # designate an image component (requires sourceProps)
+  sourceProps: [source]      # code-only props typed as images; first = dsImage's source prop
 ```
 
 | Goal | Convention | Behavior |

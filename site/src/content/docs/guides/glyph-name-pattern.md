@@ -53,9 +53,8 @@ Glyph elements carry fewer style properties because icon assets are typically si
 The pattern is a plain string with a single placeholder: **`{i}`** marks where the glyph name appears in the component name.
 
 ```yaml
-figma:
-  glyphs:
-    match: 'DS Icon Glyph / {i}'
+glyphs:
+  match: 'DS Icon Glyph / {i}'
 ```
 
 The engine converts the pattern into a regex internally: all special characters are escaped, and `{i}` becomes a `(.+)` capture group. The captured text becomes the glyph's `content` value.
@@ -94,13 +93,12 @@ The component name is whitespace-normalized before matching — multiple spaces 
 
 ## Configuration
 
-Declare `glyphs` under `figma` in `config/conventions.yaml`:
+Declare `glyphs` under `figma` in `config/conventions/figma.yaml`:
 
 ```yaml
-# config/conventions.yaml
-figma:
-  glyphs:
-    match: 'DS Icon Glyph / {i}'
+# config/conventions/figma.yaml
+glyphs:
+  match: 'DS Icon Glyph / {i}'
 ```
 
 **Default**: absent (no glyph detection). When omitted, all `INSTANCE` nodes are treated as regular instance elements — the library declares no glyph convention.

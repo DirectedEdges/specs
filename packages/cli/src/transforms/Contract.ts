@@ -1,4 +1,6 @@
+import { normalizeEnumValue } from './enumCase.js';
 import fs from 'fs-extra';
+import { writeAtomic } from './writeAtomic.js';
 import path from 'path';
 import yaml from 'yaml';
 import type { Transformer, TransformerContext } from '../Types/Transformer.js';
@@ -26,24 +28,31 @@ export class ContractTransformer implements Transformer {
     const mainLines = buildContractLines(prefix, (apiYaml.props ?? {}) as Record<string, unknown>, omittedProps, slots);
     const generatedDir = path.join(outputDir, 'generated');
     await fs.ensureDir(generatedDir);
-    await fs.writeFile(path.join(generatedDir, `${prefix}.contract.ts`), mainLines.join('\n'), 'utf-8');
+    await writeAtomic(path.join(generatedDir, `${prefix}.contract.ts`), mainLines.join('\n'));
+    if (slots.length > 0) {
+      await writeAtomic(
+        path.join(generatedDir, `${prefix}.metadata.ts`),
+        buildMetadataLines(prefix, slots).join('\n'),
+      );
+    }
 
     // Subcomponents — each gets its own subfolder/{Sub}.contract.ts
     const subcomponents = (apiYaml.subcomponents ?? {}) as Record<string, unknown>;
     const subVariants = (variantsYaml?.subcomponents ?? {}) as Record<string, unknown>;
     for (const [subKey, subRaw] of Object.entries(subcomponents)) {
       const sub = subRaw as Record<string, unknown>;
-      const subPrefix = `${prefix}${toPascalCase(subKey)}`;
+      // Export names must match the file prefix — scaffold/stories import
+      // `${SubPrefix}Defaults` from `./${SubPrefix}.contract`.
       const subFilePrefix = toPascalCase(subKey);
       const subProps = (sub.props ?? {}) as Record<string, unknown>;
       const subVariantsYaml = subVariants[subKey] as Record<string, unknown> | undefined;
       const subSlots = subVariantsYaml
         ? analyzeVariants(sub, subVariantsYaml, context.processingStates ?? {}).slots
         : [];
-      const subLines = buildContractLines(subPrefix, subProps, omittedProps, subSlots);
+      const subLines = buildContractLines(subFilePrefix, subProps, omittedProps, subSlots);
       const subDir = path.join(outputDir, subKey, 'generated');
       await fs.ensureDir(subDir);
-      await fs.writeFile(path.join(subDir, `${subFilePrefix}.contract.ts`), subLines.join('\n'), 'utf-8');
+      await writeAtomic(path.join(subDir, `${subFilePrefix}.contract.ts`), subLines.join('\n'));
     }
   }
 }
@@ -74,6 +83,8 @@ function buildContractLines(
     const defaultValue = prop.default;
 
     let tsType: string;
+    // An enum prop's default is one of its values, so it is normalized with them.
+    let emittedDefault = defaultValue;
 
     if (type === 'boolean') {
       tsType = 'boolean';
@@ -81,14 +92,15 @@ function buildContractLines(
       tsType = 'number';
     } else if (type === 'string' && Array.isArray(prop.enum)) {
       const typeName = `${prefix}${toPascalCase(key)}`;
-      const values = prop.enum as string[];
+      const values = (prop.enum as string[]).map(normalizeEnumValue);
       enumTypes.push({ typeName, values });
+      if (typeof defaultValue === 'string') emittedDefault = normalizeEnumValue(defaultValue);
       tsType = isNullable ? `${typeName} | null` : typeName;
     } else {
       tsType = isNullable ? 'string | null' : 'string';
     }
 
-    propEntries.push({ key, tsType, hasDefault, defaultValue });
+    propEntries.push({ key, tsType, hasDefault, defaultValue: emittedDefault });
   }
 
   for (const { typeName, values } of enumTypes) {
@@ -117,9 +129,9 @@ function buildContractLines(
     lines.push('');
   }
 
-  if (slots.length > 0) {
-    lines.push(...buildSlotLines(prefix, slots));
-  }
+  // Slot shapes and their visibility rules are tooling metadata, not the props a
+  // consumer writes. They go to a sibling file so the contract stays the public
+  // API surface — nothing in either target's scaffold imports them.
 
   return lines;
 }
@@ -129,6 +141,18 @@ function buildContractLines(
  * injection points: anatomy `slot` elements (unknown content) and bound `text`
  * elements (string content). A slot is required when its rule is `always`.
  */
+/** The slot metadata module: shapes and visibility rules, for tooling rather than consumers. */
+function buildMetadataLines(prefix: string, slots: SlotInfo[]): string[] {
+  return [
+    '// Generated. Do not edit — regenerate with `specs transform`.',
+    '//',
+    '// Slot shapes and visibility rules, for tooling that reasons about this',
+    '// component. Not part of the props API — a consumer writes `' + prefix + 'Props`.',
+    '',
+    ...buildSlotLines(prefix, slots),
+  ];
+}
+
 function buildSlotLines(prefix: string, slots: SlotInfo[]): string[] {
   const lines: string[] = [];
 
@@ -136,7 +160,7 @@ function buildSlotLines(prefix: string, slots: SlotInfo[]): string[] {
   for (const slot of slots) {
     const optional = slot.rule.kind === 'always' ? '' : '?';
     const tsType = slot.slotType === 'text' ? 'string' : 'unknown';
-    lines.push(`  ${slot.elementKey}${optional}: ${tsType};`);
+    lines.push(`  ${safeKey(slot.elementKey)}${optional}: ${tsType};`);
   }
   lines.push('}');
   lines.push('');
@@ -160,12 +184,17 @@ function buildSlotLines(prefix: string, slots: SlotInfo[]): string[] {
       value = `{ kind: '${rule.kind}', prop: '${rule.prop}' }`;
     }
     const comment = slot.warning ? ` // ${slot.warning}` : '';
-    lines.push(`  ${slot.elementKey}: ${value},${comment}`);
+    lines.push(`  ${safeKey(slot.elementKey)}: ${value},${comment}`);
   }
   lines.push(`} satisfies Record<keyof ${prefix}Slots, ${prefix}SlotVisibility>;`);
   lines.push('');
 
   return lines;
+}
+
+/** Emit object/interface keys safely: quote anything that isn't a valid identifier (e.g. an empty layer name). */
+function safeKey(key: string): string {
+  return /^[A-Za-z_$][\w$]*$/.test(key) ? key : JSON.stringify(key);
 }
 
 function toPascalCase(str: string): string {

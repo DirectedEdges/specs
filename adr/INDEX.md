@@ -4,14 +4,20 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 083 | Collapsing a Slot-Only Wrapper |  |
-| 079 | `metadata.conventions` Carries Only the Producing Platform | (reserved, draft in PR #363) |
-| 078 | One Conventions File per Platform, in `config/conventions/` | (reserved, draft in PR #363) |
-| 077 | The Image Component's Code Name, and the Encoding / Vocabulary Boundary | (reserved, draft in PR #363) |
-| 076 | Direction-Keyed Container Bindings, and a Platform-Level `stylesProp` | (reserved, draft in PR #363) |
-| 075 | `props` — a Closed, Concept-Keyed Map onto a Component's Props | (reserved, draft in PR #363) |
-| 074 | Primitives Resolve to Components at Emit Time, Not in the Spec | (reserved, draft in PR #363) |
-| 073 | `conventions.platforms`, with Figma as One Platform Among Them | (reserved, draft in PR #363) |
+| 087 | Behavior Actions via `anatomy.action` | Add `AnatomyElement.action` (open `ActionConceptName` string) — a second annotation key for what a control *does*, alongside `role` for what it *is* |
+| 086 | Interactive Root and Announcement Role Concepts | Vocabulary for `button`, `togglebutton`, `link`, `disclosure`, `alert`, `status`, `progressbar`; all non-structural — sequence first. Same docs-governed rule as 068 |
+| 068 | Form Control and Field Plumbing Role Concepts | Vocabulary for `textbox`…`switch` plus the `label`/`description`/`errormessage`/`value`/`placeholder` parts and `group`; establishes that the vocabulary is docs-governed and changes without an ADR |
+| 067 | Element Behavior Roles via `anatomy.role` | Add `AnatomyElement.role` (open `RoleConceptName` string), the Dev Mode annotation that generates it, control-vs-part role resolution, role obligations, `Conventions.propRoles`, and `Conventions.roleValidation` |
+| 085 | `promotePrimitives` — the Switch for Capture-Time Promotion | |
+| 084 | `Element.$extensions` — Figma Provenance for a Promoted Element | |
+| 081 | `defaultFillWidth` — the Width a Fill-Width Root Fills | Each platform states, in its own `config/conventions/` file, the width of the container it places a fill-width root in; fixed and hugging roots are untouched, and absent a declaration the rendering tool falls back to 375 |
+| 079 | `metadata.conventions` Carries Only the Producing Platform | A spec records the one platform entry that produced it, not every platform in the workspace — fixing a drift check that fires on unrelated changes, and stopping internal vocabulary leaking into published specs |
+| 078 | One Conventions File per Platform, in `config/conventions/` | `config/conventions/<platform>.yaml` composes into one `Conventions`; the filename is the platform id so no merge rule is needed, and it is the only layout — the single-file form is unreleased and does not survive |
+| 077 | The Image Component's Code Name, and the Encoding / Vocabulary Boundary | Text, glyph and container are node kinds; an image is an attribute, so it gets `images.component` rather than a place in the primitive vocabulary. A container's `backgroundImage` always stays styling |
+| 076 | Promoting a Container, and a Platform-Level `stylesProp` | |
+| 075 | `conventions.primitives` — a Declared Table from Styles to a Component's Props | |
+| 074 | Primitives Promote to Component Instances During Capture, in Composed Content | |
+| 073 | `conventions.platforms`, with Figma as One Platform Among Them | Replaces `conventions.figma` with a platform-keyed map in which `figma` is one key; platform ids name implementations (`react`, `web-components`, `swiftui`) and stay flat |
 | 072 | Numeric Enum on `NumberProp` | Adds optional `enum?: number[]` so a VARIANT whose options are all numbers emits as a number with its closed option set preserved |
 | 070 | Explicit `position: ABSOLUTE` for Children of Non-Auto-Layout Parents | |
 | 045 | Processing Provenance Signals | (reserved, draft in PR #60) |

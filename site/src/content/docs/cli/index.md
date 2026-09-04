@@ -8,7 +8,7 @@ The Specs command-line interface (CLI) generates design system specifications fr
 
 | Command | Purpose | Output |
 |---------|---------|--------|
-| [`init`](/cli/commands/init/) | Initialize config files with defaults | `config/conventions.yaml`, `config/settings.yaml`, `config/pipeline.yaml` |
+| [`init`](/cli/commands/init/) | Initialize config files with defaults | `config/conventions/figma.yaml`, `config/settings.yaml`, `config/pipeline.yaml` |
 | [`fetch`](/cli/commands/fetch/) | Download raw REST payloads from Figma | JSON files in `data.directory` |
 | [`scan`](/cli/commands/scan/) | List all components in file | Markdown manifest |
 | [`applyCustomTokens`](/cli/commands/apply-custom-tokens/) | Inject `$custom` objects into fetched data | Modified variables/styles JSON |

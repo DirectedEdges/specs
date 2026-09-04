@@ -12,6 +12,7 @@ import { ManifestParserV2, type ManifestRowV2 } from '../utilities/ManifestParse
 import { isV1Manifest, migrateV1ToV2 } from '../utilities/ManifestMigrationV1ToV2.js';
 import { glyphPatternMatch } from '../utilities/glyphPatternMatch.js';
 import { ConfigLoader } from '../Config/ConfigLoader.js';
+import { figmaOf } from '../Config/PlatformConventions.js';
 
 const SCAN_FORMAT_VERSION = 2;
 
@@ -327,7 +328,7 @@ export const Scan = new Command('scan')
       // Sort by name for stable diffs
       componentInfoList.sort((a, b) => a.name.localeCompare(b.name));
 
-      const glyphPattern = config.conventions.figma.glyphs?.match;
+      const glyphPattern = figmaOf(config.conventions).glyphs?.match;
       const { components: componentList, glyphs: glyphList } = partitionByGlyphPattern(
         componentInfoList,
         glyphPattern
