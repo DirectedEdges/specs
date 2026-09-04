@@ -96,10 +96,10 @@ export type RoleConceptName = string;
  * they do not know, so a spec and a transform may disagree without breaking.
  *
  * A **role** answers what an element *is* — a noun naming a control kind a
- * platform has a counterpart for. An **event** answers what activating it
+ * platform has a counterpart for. An **action** answers what activating it
  * *does*. The test between them: does it change how the control is announced?
  * A `togglebutton` announces its pressed state, so it is a role. A dismiss
- * affordance announces as an ordinary button, so it is an event.
+ * affordance announces as an ordinary button, so it is an action.
  *
  * Recognized concepts:
  * - `dismiss` — activating this element removes the component it belongs to
@@ -111,7 +111,22 @@ export type RoleConceptName = string;
  *
  * @since 0.32.0
  */
-export type EventConceptName = string;
+export type ActionConceptName = string;
+
+/**
+ * One behavior an element performs when activated (ADR-087).
+ *
+ * An object rather than a bare string so an action can carry its own properties
+ * as the vocabulary grows — where focus moves after a dismissal, what a
+ * navigation targets — without a second breaking change. Today only `type` is
+ * defined.
+ *
+ * @since 0.32.0
+ */
+export interface ActionEntry {
+  /** The behavior's concept name. */
+  type: ActionConceptName;
+}
 
 export interface AnatomyElementExtensions {
   'com.figma'?: FigmaAnatomyElementExtension;
@@ -138,12 +153,15 @@ export type AnatomyElement = {
    */
   role?: RoleConceptName;
   /**
-   * Behavior invoked when this element is activated (ADR-087), e.g. `dismiss`.
-   * Generated from a Dev Mode annotation of the form `event:<concept>`.
-   * Absence means no behavior — transforms behave exactly as they do today.
+   * Behaviors invoked when this element is activated (ADR-087), e.g. `dismiss`.
+   * Generated from Dev Mode annotations of the form `action:<concept>`.
+   *
+   * An array because an element may reasonably perform more than one thing, and
+   * because each entry can grow properties of its own. Absence means no behavior
+   * — transforms behave exactly as they do today.
    * @since 0.32.0
    */
-  event?: EventConceptName;
+  actions?: ActionEntry[];
   /** Platform extensions; com.figma carries extraction provenance. */
   $extensions?: AnatomyElementExtensions;
 };

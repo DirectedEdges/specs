@@ -240,9 +240,23 @@
           "type": "string",
           "description": "Semantic behavior role for this element (e.g. 'button', 'checkbox', 'label'), generated from a Figma Dev Mode annotation of the form role:<concept> on the component node or one of its layers. Recognized concept names are published on the docs site; unrecognized values are ignored by transforms."
         },
-        "event": {
-          "type": "string",
-          "description": "Behavior invoked when this element is activated (e.g. 'dismiss'), generated from a Figma Dev Mode annotation of the form event:<concept>. Recognized concept names are published on the docs site; unrecognized values are ignored by transforms."
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "The behavior's concept name (e.g. 'dismiss'). Recognized names are published on the docs site; unrecognized values are ignored by transforms."
+              }
+            },
+            "description": "One behavior this element performs when activated."
+          },
+          "description": "Behaviors invoked when this element is activated (ADR-087), generated from Dev Mode annotations of the form action:<concept>. An array so an element may perform more than one, and so each entry can grow properties of its own."
         }
       },
       "required": [

@@ -3,9 +3,9 @@ title: "dismiss"
 description: "Activating this element removes the component it belongs to"
 ---
 
-The `dismiss` event declares that activating an element makes its component go away — the close affordance on an alert, a toast, a banner.
+The `dismiss` action declares that activating an element makes its component go away — the close affordance on an alert, a toast, a banner.
 
-It is an **event**, not a role. A dismiss button is a button: it announces as one, takes the same native element, and its accessible semantics are identical. What distinguishes it is what activating it *does*. So it sits on its own annotation key, alongside the role rather than replacing it.
+It is an **action**, not a role. A dismiss button is a button: it announces as one, takes the same native element, and its accessible semantics are identical. What distinguishes it is what activating it *does*. So it sits on its own annotation key, alongside the role rather than replacing it.
 
 ## Why it matters
 
@@ -47,7 +47,8 @@ anatomy:
   dismiss:
     type: instance
     instanceOf: iconButton
-    event: dismiss        # routing — the icon button renders its own button
+    actions:
+      - type: dismiss     # routing — the icon button renders its own button
 ```
 
 The icon button's own spec says `role: button` and knows nothing about alerts. The alert says which of its children dismisses it. Neither file mentions the other's concern, and the same icon button is reused elsewhere with no dismiss behavior attached.
@@ -69,7 +70,7 @@ The icon button's own spec says `role: button` and knows nothing about alerts. T
 
 ## Before and after
 
-Without the event:
+Without the action:
 
 ```tsx
 <div className="alert" data-element="root" role="alert">
@@ -96,6 +97,14 @@ if (dismissed) return null;
 This is a scaffold limit, stated rather than hidden. If you ship this to real users, handle focus in your own wrapper.
 
 **It does not persist anything.** Re-mounting brings the component back. Whether a dismissed alert stays dismissed is application state, and the consumer owns it — that is what `onDismiss` is for.
+
+## Why `actions` is an array
+
+An element may reasonably do more than one thing, and each behavior will want properties of
+its own — where focus moves after a dismissal, what a navigation targets. `{ type: 'dismiss' }`
+has somewhere to put them; a bare string does not. Only `type` is defined today.
+
+Write one `action:` line per behavior. Duplicates collapse.
 
 ## See also
 

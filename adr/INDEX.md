@@ -4,7 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 087 | Behavior Annotations via `anatomy.event` | Add `AnatomyElement.event` (open `EventConceptName` string) — a second annotation key for what a control *does*, alongside `role` for what it *is* |
+| 087 | Behavior Actions via `anatomy.action` | Add `AnatomyElement.action` (open `ActionConceptName` string) — a second annotation key for what a control *does*, alongside `role` for what it *is* |
 | 086 | Interactive Root and Announcement Role Concepts | Vocabulary for `button`, `togglebutton`, `link`, `disclosure`, `alert`, `status`, `progressbar`; all non-structural — sequence first. Same docs-governed rule as 068 |
 | 068 | Form Control and Field Plumbing Role Concepts | Vocabulary for `textbox`…`switch` plus the `label`/`description`/`errormessage`/`value`/`placeholder` parts and `group`; establishes that the vocabulary is docs-governed and changes without an ADR |
 | 067 | Element Behavior Roles via `anatomy.role` | Add `AnatomyElement.role` (open `RoleConceptName` string), the Dev Mode annotation that generates it, control-vs-part role resolution, role obligations, `Conventions.propRoles`, and `Conventions.roleValidation` |

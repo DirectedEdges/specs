@@ -1,4 +1,4 @@
-# ADR 087: Behavior Annotations via `anatomy.event`
+# ADR 087: Behavior Actions via `anatomy.action`
 
 **Branch**: `feat/react-from-specs`
 **Created**: 2026-09-04
@@ -63,20 +63,20 @@ called.
 
 ## Decision 1 — Where a behavior signal lives
 
-### Option 1A: A second annotation key on a parallel field, `anatomy.<element>.event` *(Selected)*
+### Option 1A: A second annotation key on a parallel field, `anatomy.<element>.action` *(Selected)*
 
 An element may carry a role, a behavior, or both. They are separate keys in the annotation
 and separate optional fields on `AnatomyElement`.
 
 ```
 role:button
-event:dismiss
+action:dismiss
 ```
 
 **Pros**:
 
 - The one-role-per-element rule is untouched, because a noun and a verb are not two roles
-- The annotation grammar reads it with no change — `event` becomes a second recognized key
+- The annotation grammar reads it with no change — `action` becomes a second recognized key
 - Role vocabulary stays confined to control kinds that platforms have counterparts for
 - On an `instance` element it is a **routing** signal, exactly as a part role is: the alert
   declares which child dismisses it, while the child keeps its own `role:button` in its own
@@ -125,45 +125,46 @@ element can carry is annotated on that element.
 
 ## Decision 2 — What the key is called
 
-The chosen term is `event`, on the instruction to proceed with it. **It is not the most
-accurate candidate**, and the alternatives are recorded so the choice can be revisited before
-the vocabulary is published and annotations exist in customer files.
+The key is called `action`. Three other candidates were weighed, and one — `command` — has
+real web-platform precedent worth recording even though it is not taken.
 
-### Option 2A: `event` *(Selected)*
-
-```
-event:dismiss
-```
-
-**Pros**:
-
-- Immediately familiar to anyone who has written `onClick` — the association with
-  activation is instant
-- Reads naturally alongside the contract surface it produces, which is an event handler
-
-**Cons / Trade-offs**:
-
-- **It names the wrong half of the interaction.** The event is the click; `dismiss` is what
-  happens in response to it. Strictly, `event:dismiss` reads as "the dismiss event," which is
-  not what is being declared
-- Invites future values that genuinely are events (`event:hover`, `event:focus`), which this
-  key is not for
-
----
-
-### Option 2B: `action` *(Rejected — but the strongest alternative)*
+### Option 2A: `action` *(Selected)*
 
 ```
 action:dismiss
 ```
 
-- **Accurate**: an action is what a control does when activated, which is exactly the signal
-- Has counterparts on every target platform — `UIAction` on iOS, `Role`/`onClick` semantics
-  on Android, and the general accessibility notion of a control's action
-- Does not invite event-shaped values, because an action is unambiguously a verb
+**Pros**:
 
-**Rejected because**: `event` was chosen for this iteration. No technical objection was
-found. If this is revisited, `action` is the recommendation.
+- **Accurate.** An action is what a control does when activated, which is exactly the signal.
+  The alternative, `event`, names the wrong half: the *event* is the click, and `dismiss` is
+  the response to it
+- Has counterparts on every target platform — `UIAction` on iOS, click semantics on Android,
+  and the general accessibility notion of a control's action
+- Unambiguously a verb, so it does not invite event-shaped values such as `hover` or `focus`,
+  which this key is not for and which have their own home in `processing.states`
+
+**Cons / Trade-offs**:
+
+- Slightly less immediately familiar than `event` to someone arriving from `onClick`
+- "Action" is an overloaded word in application frameworks (Redux actions, server actions);
+  the annotation's meaning is narrower than any of them
+
+---
+
+### Option 2B: `event` *(Rejected)*
+
+```
+event:dismiss
+```
+
+- Immediately familiar to anyone who has written `onClick`, and reads naturally alongside the
+  contract surface it produces, which is an event handler
+
+**Rejected because**: it names the wrong half of the interaction. The event is the click;
+`dismiss` is what happens in response, so `event:dismiss` reads as "the dismiss event," which
+is not what is being declared. It also invites future values that genuinely are events —
+`event:hover`, `event:focus` — which belong to state classification, not here.
 
 ---
 
@@ -207,9 +208,10 @@ suggests the value is an event name and the annotation is wiring a listener. It 
 
 | File | Change | Bump |
 |------|--------|------|
-| `types/Anatomy.ts` | Add exported type alias `EventConceptName` (open string; documents the vocabulary) | MINOR |
-| `types/Anatomy.ts` | Add optional field `event?: EventConceptName` to `AnatomyElement` | MINOR |
-| `types/index.ts` | Export `EventConceptName` | MINOR |
+| `types/Anatomy.ts` | Add exported type alias `ActionConceptName` (open string; documents the vocabulary) | MINOR |
+| `types/Anatomy.ts` | Add exported interface `ActionEntry` (`{ type: ActionConceptName }`) | MINOR |
+| `types/Anatomy.ts` | Add optional field `actions?: ActionEntry[]` to `AnatomyElement` | MINOR |
+| `types/index.ts` | Export `ActionConceptName`, `ActionEntry` | MINOR |
 
 **Example — new shape** (`types/Anatomy.ts`):
 
@@ -227,10 +229,10 @@ AnatomyElement:
   detectedIn?: string
   instanceOf?: string | SubcomponentRef
   role?: RoleConceptName
-  event?: EventConceptName   # optional — MINOR
+  action?: ActionConceptName   # optional — MINOR
 ```
 
-`EventConceptName` is an open `string` alias, matching `RoleConceptName` and
+`ActionConceptName` is an open `string` alias, matching `RoleConceptName` and
 `StateConceptName`. The vocabulary is published on the docs site and grows without a schema
 release; unrecognized values are ignored by transforms, so a spec and a transform may
 disagree without breaking.
@@ -239,31 +241,51 @@ disagree without breaking.
 
 | File | Change | Bump |
 |------|--------|------|
-| `schema/component.schema.json` | Add `event` property to the anatomy element definition (string, optional) | MINOR |
+| `schema/component.schema.json` | Add `actions` array to the anatomy element definition (optional; items require `type`) | MINOR |
 
 ```yaml
-event:
-  type: string
-  description: "Behavior invoked when this element is activated (e.g. 'dismiss'), generated from a Dev Mode annotation of the form event:<concept>. Recognized concept names are published on the docs site; unrecognized values are ignored by transforms."
+actions:
+  type: array
+  items:
+    type: object
+    required: [type]
+    properties:
+      type:
+        type: string
+        description: "The behavior's concept name (e.g. 'dismiss')."
+  description: "Behaviors invoked when this element is activated, generated from Dev Mode annotations of the form action:<concept>."
 ```
+
+**An array of objects, not a string.** Two reasons, both about what comes next rather than
+what exists today:
+
+- An element may reasonably perform more than one behavior, and a scalar field would have to
+  become an array later — a breaking change once specs carry it.
+- A behavior will want properties of its own. Where focus moves after a dismissal, what a
+  navigation targets, whether a confirmation is required: all of these belong to the action,
+  not to the element. `{ type: 'dismiss' }` has somewhere to put them; `action: 'dismiss'`
+  does not.
+
+Only `type` is defined now. The annotation grammar produces one entry per `action:` line, in
+annotation order, with duplicates collapsed.
 
 ### Where the boundary sits
 
 A stated test, so the two keys do not become an argument:
 
 > **Does it change how the control is announced?** If yes, it is a `role`. If no, it is an
-> `event`.
+> `action`.
 
 - `togglebutton` announces as a toggle and carries `aria-pressed` — a **role**
 - `disclosure` announces its expanded state and controls a region — a **role**
-- `dismiss` announces as an ordinary button and always would — an **event**
+- `dismiss` announces as an ordinary button and always would — an **action**
 
 This keeps roles confined to concepts ARIA and native platforms have, and puts application
 behavior on its own axis.
 
 ### Resolution rules
 
-`event` follows the rules `role` already has, because they arrive through the same mechanism:
+`action` follows the rules `role` already has, because they arrive through the same mechanism:
 
 1. **Read from the same annotation**, as a `key:value` line in a Dev Mode annotation's label.
 2. **The same variant rules** — annotate the default variant, fall back to a variant where
@@ -275,11 +297,11 @@ behavior on its own axis.
    carries the behavior. This is what lets an alert say "this icon button dismisses me"
    without the icon button knowing anything about alerts.
 5. **An unrecognized value is ignored**, with no diagnostic — the vocabulary is open.
-6. **At most one event per element**, for the same reason as roles.
+6. **Several actions per element are permitted**, one per `action:` line, in annotation order. Duplicates collapse — declaring the same behavior twice means the same thing once. This is where actions differ from roles: a role answers a question that has one answer, and a behavior does not.
 
 ### Vocabulary snapshot
 
-**Not authoritative.** The live vocabulary is at `/events/` on the docs site.
+**Not authoritative.** The live vocabulary is at `/actions/` on the docs site.
 
 | Concept | Meaning | Contract addition | Notes |
 |---|---|---|---|
@@ -291,10 +313,12 @@ behavior on its own axis.
 
 - **Symmetric**: Yes
 - **Parity check**:
-  - `AnatomyElement.event` → `event` property on the anatomy element definition in
-    `component.schema.json` (string, optional)
-  - `EventConceptName` is documentation-only (open string), matching the `RoleConceptName`
+  - `AnatomyElement.actions` → `actions` array on the anatomy element definition in
+    `component.schema.json` (optional; items are objects requiring `type`)
+  - `ActionConceptName` is documentation-only (open string), matching the `RoleConceptName`
     and `StateConceptName` precedent — no schema enum
+  - `ActionEntry` is a real interface with a real schema counterpart, because it has
+    structure a consumer reads
 
 ---
 
@@ -302,8 +326,8 @@ behavior on its own axis.
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | Populates `anatomy.<element>.event` during generation | Recognize `event` as a second annotation key; apply the same variant resolution as `role` |
-| `specs-cli` | Transforms gain a behavior signal alongside the role signal | Read `anatomy.<element>.event`; emission per concept is defined by the docs vocabulary |
+| `specs-from-figma` | Populates `anatomy.<element>.action` during generation | Recognize `action` as a second annotation key; apply the same variant resolution as `role` |
+| `specs-cli` | Transforms gain a behavior signal alongside the role signal | Read `anatomy.<element>.action`; emission per concept is defined by the docs vocabulary |
 | `specs-plugin-2` | May surface recognized behaviors in UI | Recompile; optional |
 
 ---
@@ -312,7 +336,7 @@ behavior on its own axis.
 
 **Version bump**: MINOR
 
-**Justification**: All changes are additive optional fields (`event` on `AnatomyElement`)
+**Justification**: All changes are additive optional fields (`action` on `AnatomyElement`)
 plus one new exported alias. Absence behaves exactly as today. Per constitution III: "MINOR
 for additive types or new optional fields."
 
@@ -337,7 +361,8 @@ than leaving it to be discovered. This is a deliberate limit, not an oversight.
 `hidden` rather than removing itself, because a scaffold should not do anything irreversible.
 Each target's page says which.
 
-**The key name is the open question.** `event` is chosen for this iteration and `action` is
-the better term on the merits. Renaming is a documentation change under ADR 068's governance
-and costs nothing while no customer file carries the annotation — and becomes a re-annotation
-exercise once one does.
+**The key name was chosen deliberately, and `command` is the one to revisit.** `event` was
+the first candidate and was rejected for naming the response as though it were the trigger.
+`command` remains interesting only if the web transform ever emits the native Invoker Commands
+attribute — at which point aligning the vocabularies would buy something concrete. Until then
+the platform-neutral term is the right one.

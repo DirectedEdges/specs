@@ -173,6 +173,46 @@ export default defineConfig({
           ],
         },
         {
+          label: 'Roles',
+          collapsed: true,
+          items: [
+            { label: 'Overview', slug: 'roles', badge: experimental },
+            {
+              label: 'Interactive',
+              items: [
+                { label: 'button', slug: 'roles/button' },
+                { label: 'togglebutton', slug: 'roles/togglebutton' },
+                { label: 'disclosure', slug: 'roles/disclosure' },
+              ],
+            },
+            {
+              label: 'Form controls',
+              items: [
+                { label: 'textbox', slug: 'roles/textbox' },
+                { label: 'checkbox', slug: 'roles/checkbox' },
+              ],
+            },
+            {
+              label: 'Parts',
+              items: [
+                { label: 'label', slug: 'roles/label' },
+                { label: 'value', slug: 'roles/value' },
+                { label: 'errormessage', slug: 'roles/errormessage' },
+                { label: 'panel', slug: 'roles/panel' },
+                { label: 'indicator', slug: 'roles/indicator' },
+              ],
+            },
+            { label: 'status, alert, progressbar', slug: 'roles/status' },
+          ],
+        },
+        {
+          label: 'Actions',
+          collapsed: true,
+          items: [
+            { label: 'dismiss', slug: 'actions/dismiss', badge: experimental },
+          ],
+        },
+        {
           label: 'Configuration',
           collapsed: true,
           items: [
