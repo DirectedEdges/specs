@@ -5,7 +5,9 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.28.0] - Unreleased
+## [0.28.0] - 2026-09-04
+
+Configuration is now three files that say different kinds of things — facts about your Figma library, choices your runs make, and the work your workspace runs — and `specs migrate config` moves an existing workspace over in one command. The split folder-per-component layout is now what `specs generate` writes without flags, since it is the shape every downstream command reads. And `scan` now records the dev status Figma actually set, so a component marked complete no longer looks identical to one nobody has touched.
 
 ### Breaking
 
@@ -99,6 +101,19 @@ you emit without saying so.
 - **`scan` and `generate` warn about manifest rows they cannot read** — Any line that looks
   like a component row but fails to parse now prints a warning naming the row instead of
   disappearing.
+
+### Dependency updates
+
+- **specs-schema 0.31.0** — the single `Config` type splits into `Conventions`, `Settings`
+  and `Pipeline`, each authored and validated on its own; spec `metadata` records
+  conventions and settings separately. A prop configuration can state `null` to leave a
+  nullable prop unset, and a numeric variant prop now carries its closed set of values in
+  authored order.
+- **specs-from-figma 0.30.0** — a root that only wraps a slot now collapses when
+  `collapsePrimitiveWrapper` is on; an instance example that hides a slot records it as
+  unset rather than bound-and-hidden; and a code-only prop layer carrying both a content
+  and a visibility binding is named from the binding it was extracted from, so a phantom
+  prop no longer displaces the real one.
 
 
 ## [0.27.0] - 2026-08-17
