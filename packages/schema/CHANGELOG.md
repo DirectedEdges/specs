@@ -46,6 +46,19 @@ Configuration now separates what is true about a Figma library from what a run c
 - `Metadata.config` → `Metadata.conventions` / `Metadata.settings`: read whichever half you compared before, and prefer `conventions` when checking that two consumers agree about a library.
 
 
+
+### ADRs
+
+#### Accepted
+
+- [ADR-071](../../adr/071-config-conventions-split.md) — Separate Library Conventions from Tooling Settings
+- [ADR-080](../../adr/080-null-prop-configuration.md) — `null` as a Prop Configuration Value
+- [ADR-083](../../adr/083-slot-wrapper-collapse.md) — Collapsing a Slot-Only Wrapper
+
+#### New drafts
+
+- [ADR-072](../../adr/072-numeric-variant-enum.md) — Numeric Enum on `NumberProp`
+
 ## [0.30.0] - 2026-08-17
 
 A spec can now declare the naming convention its Figma file follows, so a formatted property key can be turned back into the name a designer sees on the canvas. When a key can't reconstruct that name on its own — because the original contained characters formatting doesn't survive — the spec records the Figma name alongside it, on every property type. Together these make round-tripping between a formatted spec and its source file possible without a side-channel lookup of the file's own naming.
