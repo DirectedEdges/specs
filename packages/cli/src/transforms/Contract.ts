@@ -29,6 +29,12 @@ export class ContractTransformer implements Transformer {
     const generatedDir = path.join(outputDir, 'generated');
     await fs.ensureDir(generatedDir);
     await writeAtomic(path.join(generatedDir, `${prefix}.contract.ts`), mainLines.join('\n'));
+    if (slots.length > 0) {
+      await writeAtomic(
+        path.join(generatedDir, `${prefix}.metadata.ts`),
+        buildMetadataLines(prefix, slots).join('\n'),
+      );
+    }
 
     // Subcomponents — each gets its own subfolder/{Sub}.contract.ts
     const subcomponents = (apiYaml.subcomponents ?? {}) as Record<string, unknown>;
@@ -123,9 +129,9 @@ function buildContractLines(
     lines.push('');
   }
 
-  if (slots.length > 0) {
-    lines.push(...buildSlotLines(prefix, slots));
-  }
+  // Slot shapes and their visibility rules are tooling metadata, not the props a
+  // consumer writes. They go to a sibling file so the contract stays the public
+  // API surface — nothing in either target's scaffold imports them.
 
   return lines;
 }
@@ -135,6 +141,18 @@ function buildContractLines(
  * injection points: anatomy `slot` elements (unknown content) and bound `text`
  * elements (string content). A slot is required when its rule is `always`.
  */
+/** The slot metadata module: shapes and visibility rules, for tooling rather than consumers. */
+function buildMetadataLines(prefix: string, slots: SlotInfo[]): string[] {
+  return [
+    '// Generated. Do not edit — regenerate with `specs transform`.',
+    '//',
+    '// Slot shapes and visibility rules, for tooling that reasons about this',
+    '// component. Not part of the props API — a consumer writes `' + prefix + 'Props`.',
+    '',
+    ...buildSlotLines(prefix, slots),
+  ];
+}
+
 function buildSlotLines(prefix: string, slots: SlotInfo[]): string[] {
   const lines: string[] = [];
 
