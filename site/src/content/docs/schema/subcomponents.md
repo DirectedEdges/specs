@@ -70,7 +70,7 @@ The `$ref` is a JSON Pointer into the same spec document.
 
 ## Detection
 
-Subcomponent detection is controlled by [`config.processing.subcomponents`](/schema/config.md/#processing):
+Subcomponent detection is controlled by [`conventions.figma.subcomponents`](/schema/conventions/#figmasubcomponents):
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|

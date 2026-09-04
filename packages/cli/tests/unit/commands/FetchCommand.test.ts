@@ -135,14 +135,14 @@ describe('formatNotFoundError', () => {
       '  This usually means the key in your config is stale or out of reach:',
       '    • The file was moved, deleted, or recreated (keys change on duplicate/recreate)',
       '    • Your FIGMA_TOKEN account cannot open this file',
-      '  Check: sources.library.key in /proj/specs.config.yaml'
+      '  Check: data.sources.library.key in /proj/specs.config.yaml'
     ].join('\n'));
   });
 
   it('falls back to a default config name when path is null', () => {
     const result = formatNotFoundError('kds', 'variables', null);
 
-    expect(result).toContain('Check: sources.kds.key in specs.config.yaml');
+    expect(result).toContain('Check: data.sources.kds.key in the workspace settings (config/settings.yaml)');
   });
 });
 
@@ -164,13 +164,13 @@ describe('formatAuthError', () => {
     expect(result).toBe([
       'Error: Access denied (403) while fetching library.styles',
       '  Your FIGMA_TOKEN is valid but cannot access this file.',
-      '    • Confirm your Figma account can open the file for sources.library.key',
+      '    • Confirm your Figma account can open the file for data.sources.library.key',
       '    • Personal access tokens only reach files your account can view',
       '    • If your org enforces SAML/SSO, personal access tokens are blocked',
       '      Use an OAuth token or ask your admin to allow PATs',
       '      See: https://www.figma.com/developers/api#oauth2',
       '    • The file may be in personal drafts or a restricted team (403 = exists but no access)',
-      '  Check: sources.library.key in /proj/specs.config.yaml'
+      '  Check: data.sources.library.key in /proj/specs.config.yaml'
     ].join('\n'));
   });
 });

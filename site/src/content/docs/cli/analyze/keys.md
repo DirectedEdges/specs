@@ -9,12 +9,12 @@ Reads every component's `api.yaml` and produces `_analysis/keys.yaml`: every Fig
 
 ## Requires a declared convention
 
-This analyzer reports names the producer recorded in `$extensions['com.figma'].name`, which only happens when [`format.figmaKeys`](/settings/figma-keys/) declares a source convention:
+This analyzer reports names the producer recorded in `$extensions['com.figma'].name`, which only happens when [`figma.naming`](/settings/figma-keys/) declares a source convention:
 
 ```yaml
-config:
-  format:
-    figmaKeys: SENTENCE
+# config/conventions.yaml
+figma:
+  naming: SENTENCE
 ```
 
 Under the default `NONE`, no convention is declared, no names are recorded, and this report is empty. That is correct rather than a failure — nothing has diverged from a convention you never stated.
@@ -104,7 +104,7 @@ byCause:
     names:
       - Alternate Half
       - Children minItems
-      - EGDS Bottom Sheet
+      - DS Bottom Sheet
 ```
 
 ### byName
@@ -143,7 +143,7 @@ Nothing here is a validation failure. Every name it lists is fully supported —
 Two things worth knowing before a cleanup:
 
 - Renaming a layer or property in Figma changes the spec key too, which is a breaking change for anything consuming that key.
-- The report cannot see names in a catalog that has never declared `figmaKeys`. Declare a convention first, generate, then analyze.
+- The report cannot see names in a catalog that has never declared `figma.naming`. Declare a convention first, generate, then analyze.
 
 ## See Also
 

@@ -22,7 +22,7 @@ export const Analyze = new Command('analyze')
   .argument('[analyzers...]', 'Analyzer names to run (props, styling, dependencies, keys)')
   .option('-o, --output <path>', 'Path to the specs directory (input)')
   .option('--analysis <path>', 'Path to write analysis output (default: <specs-dir>/_analysis)')
-  .option('--config <path>', 'Path to config file (specs.config.yaml)')
+  .option('--config <path>', 'Path to a config/ directory or legacy specs.config.yaml')
   .option('--verbose', 'Enable detailed logging', false)
   .action(async (analyzerNames: string[], options: AnalyzeOptions) => {
     try {
@@ -31,8 +31,8 @@ export const Analyze = new Command('analyze')
 
       const outputPath = options.output
         ? path.resolve(options.output)
-        : config.outputDirectory
-          ? path.resolve(config.outputDirectory)
+        : config.settings.spec.directory
+          ? path.resolve(config.settings.spec.directory)
           : path.resolve(process.cwd());
 
       if (!fs.existsSync(outputPath)) {
@@ -90,9 +90,9 @@ export const Analyze = new Command('analyze')
             const context: TransformerContext = {
               outputDir: componentDir,
               componentKey,
-              tokensFormat: config.config.format.tokens,
-              outputFormat: config.config.format.output,
-              processingStates: config.config.processing?.states as ProcessingStates | undefined,
+              tokensFormat: config.settings.spec.tokens,
+              outputFormat: config.settings.spec.format,
+              processingStates: config.conventions.figma.states as ProcessingStates | undefined,
             };
             await analyzer.run(apiYaml, context);
           }
@@ -110,10 +110,11 @@ export const Analyze = new Command('analyze')
 
       // Load the full token universe (variables, styles) from fetched data
       // files so analyzers can report tokens never referenced by any spec.
-      const dataDir = config.dataDirectory ? path.resolve(config.dataDirectory) : path.resolve(process.cwd());
+      const dataDirectory = config.settings.data?.directory;
+      const dataDir = dataDirectory ? path.resolve(dataDirectory) : path.resolve(process.cwd());
       const foundationsPathsFor = (kind: 'variables' | 'styles'): string[] =>
-        Object.entries(config.sources || {})
-          .filter(([, s]) => Array.isArray(s.data) && s.data.includes(kind))
+        Object.entries(config.settings.data?.sources ?? {})
+          .filter(([, s]) => Array.isArray(s.fetch) && s.fetch.includes(kind))
           .map(([alias]) => path.join(dataDir, `${alias}.${kind}.json`))
           .filter(p => fs.existsSync(p));
 

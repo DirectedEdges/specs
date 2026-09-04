@@ -74,13 +74,12 @@ The transformation applies to keys throughout the entire spec — not just props
 
 ## Configuration
 
-Set `keys` under `model.format` in your config file:
+Set `keys` under `spec` in `config/settings.yaml`:
 
 ```yaml
-# specs.config.yaml
-model:
-  format:
-    keys: CAMEL    # Transform all keys to camelCase
+# config/settings.yaml
+spec:
+  keys: CAMEL    # Transform all keys to camelCase
 ```
 
 **Default**: `SAFE` — preserves Figma names without modification.
@@ -103,13 +102,18 @@ Two settings make the round trip reliable.
 
 ### The source convention
 
-`figmaKeys` declares the convention your Figma file already uses, so a formatted key has a defined name to reverse into:
+The `figma.naming` convention declares the convention your Figma file already uses, so a formatted key has a defined name to reverse into. It lives in `config/conventions.yaml` — it is a fact about the library, while `keys` is a choice about the run:
 
 ```yaml
-model:
-  format:
-    figmaKeys: SENTENCE   # what your Figma file uses
-    keys: KEBAB           # what the spec emits
+# config/conventions.yaml
+figma:
+  naming: SENTENCE   # what your Figma file uses
+```
+
+```yaml
+# config/settings.yaml
+spec:
+  keys: KEBAB        # what the spec emits
 ```
 
 | Value | Shape | Example |
@@ -122,7 +126,7 @@ Everything in the rest of this guide is **opt-in**. Under the `NONE` default, na
 
 ### The safe key grammar
 
-*Applies when `figmaKeys` is `SENTENCE` or `TITLE`.*
+*Applies when `figma.naming` is `SENTENCE` or `TITLE`.*
 
 A Figma name survives every `keys` format when it satisfies all of the following:
 
@@ -130,10 +134,10 @@ A Figma name survives every `keys` format when it satisfies all of the following
 - Exactly one space between words, with no leading, trailing, or repeated spaces
 - Each word is either all letters or all digits — `Badge count 2` is fine, `Badge count2` is not
 - The name does not begin with a digit
-- Casing matches your declared `figmaKeys`
+- Casing matches your declared `figma.naming`
 
 ```yaml
-# figmaKeys: SENTENCE
+# naming: SENTENCE
 
 # Safe — reconstructs under every keys format
 Icon leading

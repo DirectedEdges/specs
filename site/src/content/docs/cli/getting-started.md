@@ -33,19 +33,25 @@ specs --version
 
 ## Step 2: Set up your environment
 
-Three things to configure: a config file, your Figma file key, and a Figma access token.
+Three things to configure: config files, your Figma file key, and a Figma access token.
 
 ### Initialize config
 
-Generate a `specs.config.yaml` with sensible defaults:
+Scaffold the `config/` directory with sensible defaults:
 
 ```bash
 specs init
 ```
 
+This creates three files, each answering one question:
+
+- **`config/conventions.yaml`** — facts about the Figma library: naming patterns, state classification, how images are expressed. See [Conventions](/schema/conventions/).
+- **`config/settings.yaml`** — choices about the run: sources, spec output, assets. See [Settings](/schema/settings/).
+- **`config/pipeline.yaml`** — transformers and analyses to run. See [Pipeline](/schema/pipeline/).
+
 ### Add your Figma file key
 
-Open `specs.config.yaml` and add your Figma file key. Find it by copying your Figma file's URL — the key is the string between `/design/` (or `/file/`) and the file name:
+Open `config/settings.yaml` and add your Figma file key. Find it by copying your Figma file's URL — the key is the string between `/design/` (or `/file/`) and the file name:
 
 ```
 https://www.figma.com/design/AbCdEfGhIjKlMnOpQr/My-Design-System
@@ -53,13 +59,15 @@ https://www.figma.com/design/AbCdEfGhIjKlMnOpQr/My-Design-System
                              This is your file key
 ```
 
-Add it under `sources`, which should be uncommented:
+Add it under `data.sources`, which should be uncommented:
 
 ```yaml
-sources:
-  library:
-    key: AbCdEfGhIjKlMnOpQr
-    data: [file, variables, styles]
+data:
+  directory: ./data
+  sources:
+    library:
+      key: AbCdEfGhIjKlMnOpQr
+      fetch: [file, variables, styles]
 ```
 
 ### Add your Figma access token
@@ -76,11 +84,22 @@ A **license key** is optional — Specs CLI works at a free tier without one. To
 
 ### Other configuration (optional)
 
-The defaults from `specs init` work well for most setups. When you're ready to customize, these options are available in `specs.config.yaml`:
+The defaults from `specs init` work well for most setups. When you're ready to customize:
 
-- **`dataDirectory` / `outputDirectory`** — where fetched data is stored and specs are written. Defaults: `./data` and `./specs`.
-- **`config`** — controls output format (JSON/YAML, key casing, token format), processing behavior (variant depth, detail level), and what to include. See [Configuration Reference](/schema/config/).
-- **`output`** — controls file organization: split per component, split by concern, use subfolders. All default to `false`.
+- **`data.directory` / `spec.directory`** in `config/settings.yaml` — where fetched data is stored and specs are written. Defaults: `./data` and `./specs`.
+- **`spec.splitComponents` / `spec.splitConcerns` / `spec.useSubfolders`** in `config/settings.yaml` — controls file organization: split per component, split by concern, use subfolders. All default to `true`, which is the layout `transform` and `analyze` read.
+- **`config/conventions.yaml`** — declare how your library names glyphs, subcomponents, and images, and classify variant props as [states](/settings/states/). See [Conventions](/schema/conventions/).
+- **`config/pipeline.yaml`** — the transformers and analyses to run. See [Pipeline](/schema/pipeline/).
+
+:::note[Upgrading from a single config file?]
+A pre-split `specs.config.yaml` is no longer read — every command stops with an error until it's converted, and `specs init` refuses to scaffold over it. Run one command to convert it:
+
+```bash
+specs migrate config
+```
+
+It writes `config/conventions.yaml`, `config/settings.yaml`, and `config/pipeline.yaml` from your file, then renames the original to `specs.config.yaml.migrated`. See [`migrate`](/cli/commands/migrate/).
+:::
 
 ## Step 3: Fetch the Figma file
 

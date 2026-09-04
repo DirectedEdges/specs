@@ -49,7 +49,7 @@ export interface FoundationsData {
  *   libraryJson
  * );
  * 
- * const component = Component.fromRestApi(libraryJson, componentId, config, {
+ * const component = Component.fromRestApi(libraryJson, componentId, conventions, settings, {
  *   coordinator,
  *   styles,
  *   variables,

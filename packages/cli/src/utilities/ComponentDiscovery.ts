@@ -26,7 +26,26 @@ interface RestApiNode {
   devStatus?: { type?: string; description?: string };
 }
 
-export type DevStatus = 'READY_FOR_DEV' | 'NONE';
+/** Dev statuses Figma itself sets, plus 'NONE' for a node with no status. */
+export type KnownDevStatus = 'READY_FOR_DEV' | 'COMPLETED' | 'NONE';
+
+export const KNOWN_DEV_STATUSES: readonly KnownDevStatus[] = ['READY_FOR_DEV', 'COMPLETED', 'NONE'];
+
+/**
+ * A dev status as carried from Figma. Values outside `KnownDevStatus` are passed
+ * through verbatim rather than collapsed, so a status this CLI predates stays visible.
+ */
+export type DevStatus = KnownDevStatus | (string & {});
+
+export function isKnownDevStatus(value: string): value is KnownDevStatus {
+  return (KNOWN_DEV_STATUSES as readonly string[]).includes(value);
+}
+
+/** Normalize a node's devStatus, carrying unknown values through untouched. */
+function readDevStatus(node: RestApiNode): DevStatus {
+  const type = node.devStatus?.type?.trim();
+  return type ? type.toUpperCase() : 'NONE';
+}
 
 /**
  * Minimal structure for REST API file data
@@ -49,7 +68,7 @@ export interface ComponentInfo {
   name: string;
   /** Node type (COMPONENT or COMPONENT_SET) */
   type: string;
-  /** Dev-ready status from Figma. 'NONE' when the property is absent on the node. */
+  /** Dev status from Figma, verbatim. 'NONE' when the property is absent on the node. */
   devStatus: DevStatus;
 }
 
@@ -125,7 +144,7 @@ export class ComponentDiscovery {
           id: node.id,
           name: node.name,
           type: node.type,
-          devStatus: node.devStatus?.type === 'READY_FOR_DEV' ? 'READY_FOR_DEV' : 'NONE'
+          devStatus: readDevStatus(node)
         });
         continue;
       }
@@ -145,7 +164,7 @@ export class ComponentDiscovery {
           id: node.id,
           name: node.name,
           type: node.type,
-          devStatus: node.devStatus?.type === 'READY_FOR_DEV' ? 'READY_FOR_DEV' : 'NONE'
+          devStatus: readDevStatus(node)
         });
       }
     }

@@ -6,9 +6,11 @@
  * @property generator - Information about the tool that generated this spec.
  * @property schema - Schema validation information.
  * @property source - Figma source information.
- * @property config - The model configuration used to generate this spec.
+ * @property conventions - Facts about the Figma library this spec was generated from.
+ * @property settings - Choices about the run that generated this spec.
  */
-import { Config } from './Config.js';
+import { ResolvedConventions } from './Conventions.js';
+import { ResolvedSettings } from './Settings.js';
 
 /**
  * Represents the metadata for a component.
@@ -18,7 +20,8 @@ import { Config } from './Config.js';
  * @property generator - Information about the tool that generated this spec.
  * @property schema - Schema validation information.
  * @property source - Figma source information.
- * @property config - The model configuration used to generate this spec.
+ * @property conventions - Facts about the Figma library this spec was generated from.
+ * @property settings - Choices about the run that generated this spec.
  */
 export type Metadata = {
   author: string;
@@ -50,5 +53,6 @@ export type Metadata = {
     nodeId: string;
     nodeType: 'COMPONENT' | 'COMPONENT_SET' | 'FRAME';
   };
-  config: Config;
+  conventions: ResolvedConventions;
+  settings: ResolvedSettings;
 };

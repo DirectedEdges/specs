@@ -11,7 +11,7 @@
  *   | [ ] | Card | 1:45 | COMPONENT | NONE |
  */
 
-import type { DevStatus } from './ComponentDiscovery.js';
+import { isKnownDevStatus, type DevStatus } from './ComponentDiscovery.js';
 
 export interface ManifestRowV2 {
   id: string;
@@ -31,6 +31,8 @@ export interface ManifestMetadataV2 {
 export interface ManifestResultV2 {
   components: ManifestRowV2[];
   metadata: ManifestMetadataV2;
+  /** One entry per row that could not be parsed or carried an unrecognized status. */
+  warnings: string[];
 }
 
 const SCAN_FORMAT_VERSION_REGEX = /\*\*Scan format version:\*\*\s+(\d+)/m;
@@ -39,8 +41,13 @@ const VARIABLES_HEADER_REGEX = /\*\*Variables:\*\*\s+(.+?)$/m;
 const FILE_LAST_MODIFIED_REGEX = /\*\*File last modified:\*\*\s+(.+?)$/m;
 
 // | [x] | Name | id | TYPE | DEV_STATUS |
+// The status column is open: any token is accepted so a status this CLI does not
+// know is still parsed into a row (unselected) rather than dropping the row.
 const ROW_REGEX =
-  /^\|\s*\[([x ])\]\s*\|\s*(.+?)\s*\|\s*(\d+:\d+)\s*\|\s*(COMPONENT_SET|COMPONENT)\s*\|\s*(READY_FOR_DEV|NONE)\s*\|/i;
+  /^\|\s*\[([x ])\]\s*\|\s*(.+?)\s*\|\s*(\d+:\d+)\s*\|\s*(COMPONENT_SET|COMPONENT)\s*\|\s*([A-Za-z0-9_]+)\s*\|/i;
+
+// Any line whose first cell is a checkbox is meant to be a component row.
+const CHECKBOX_ROW_REGEX = /^\|\s*\[[^\]]*\]\s*\|/;
 
 export class ManifestParserV2 {
   /** Returns true when the content declares scan format version 2 (or higher). */
@@ -66,6 +73,7 @@ export class ManifestParserV2 {
     if (lastModifiedMatch) metadata.fileLastModified = lastModifiedMatch[1].trim();
 
     const components: ManifestRowV2[] = [];
+    const warnings: string[] = [];
     let inComponentsSection = false;
     for (const line of content.split('\n')) {
       const heading = line.match(/^##\s+(.+?)\s*$/);
@@ -75,19 +83,31 @@ export class ManifestParserV2 {
       }
       if (!inComponentsSection) continue;
       const match = line.match(ROW_REGEX);
-      if (!match) continue;
-      const [, checkbox, name, id, type, devStatus] = match;
+      if (!match) {
+        if (CHECKBOX_ROW_REGEX.test(line)) {
+          warnings.push(`Skipped unparseable manifest row: ${line.trim()}`);
+        }
+        continue;
+      }
+      const [, checkbox, name, id, type, rawStatus] = match;
+      const devStatus: DevStatus = rawStatus.toUpperCase();
+      const known = isKnownDevStatus(devStatus);
+      if (!known) {
+        warnings.push(
+          `Unrecognized dev status "${devStatus}" on row ${id} — treating the component as unselected.`
+        );
+      }
       components.push({
         id,
         // `specs scan` escapes pipes in cell values (`escapeCell`: | → \|).
         // Undo that here so names round-trip back to their literal form.
         name: name.trim().replace(/\\\|/g, '|'),
         type: type.toUpperCase() as 'COMPONENT' | 'COMPONENT_SET',
-        included: checkbox.toLowerCase() === 'x',
-        devStatus: devStatus.toUpperCase() as DevStatus
+        included: known && checkbox.toLowerCase() === 'x',
+        devStatus
       });
     }
 
-    return { components, metadata };
+    return { components, metadata, warnings };
   }
 }

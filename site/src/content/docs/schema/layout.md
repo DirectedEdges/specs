@@ -20,7 +20,7 @@ A leaf is a plain string (element name). A branch is an object mapping a parent 
     - control
 ```
 
-The [`format.layout`](/schema/config.md/#format) config option controls which representation appears in the output: `LAYOUT` (tree only), `PARENT_CHILDREN` (flat parent/children on each element), or `BOTH`.
+The [`settings.spec.layout`](/schema/settings/#spec) config option controls which representation appears in the output: `LAYOUT` (tree only), `PARENT_CHILDREN` (flat parent/children on each element), or `BOTH`.
 
 ## Example
 

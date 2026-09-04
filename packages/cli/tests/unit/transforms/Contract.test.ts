@@ -8,7 +8,7 @@ import type { ProcessingStates } from '../../../src/transforms/states.js';
 const transformer = new ContractTransformer();
 
 function makeContext(dir: string, componentKey = 'dsButton', processingStates?: ProcessingStates) {
-  return { outputDir: dir, componentKey, tokensFormat: 'TOKEN', processingStates };
+  return { outputDir: dir, componentKey, tokensFormat: 'TOKEN', outputFormat: 'JSON' as const, processingStates };
 }
 
 function toPascalCase(str: string): string {

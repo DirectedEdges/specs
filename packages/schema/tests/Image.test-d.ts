@@ -1,7 +1,7 @@
 /**
  * Type-level tests for image content (ADR-063):
  * ObjectFit, ImageValue, ImageData, Images, ImageProp, ImageBinding,
- * Styles.backgroundImage, and Config image fields.
+ * Styles.backgroundImage, and the image conventions.
  *
  * These files are intentionally never executed — they are compiled with tsc
  * to assert that the type shape is correct.
@@ -17,7 +17,7 @@ import type {
   Styles,
   Component,
   PropConfigurationValue,
-  Config,
+  Conventions,
 } from '../types/index.js';
 
 // ─── ObjectFit ────────────────────────────────────────────────────────────────
@@ -126,31 +126,20 @@ const componentWithImages: Component = {
   images: { hero: { src: 'data:image/png;base64,AAAA' } },
 };
 
-// ─── Config image fields ──────────────────────────────────────────────────────
+// ─── Image conventions ────────────────────────────────────────────────────────
 
-// processing.images: presence-switched block; every member optional on Config
-const configImagesAbsent: Config = { processing: {}, format: {}, include: {} };
-const configImagesFillsOnly: Config = {
-  processing: { images: { backgroundImage: true } },
-  format: {},
-  include: {},
-};
-const configImagesComponent: Config = {
-  processing: { images: { imageComponent: 'dsImage', sourceProps: ['source'] } },
-  format: {},
-  include: {},
-};
-const configImagesAllTriggers: Config = {
-  processing: { images: { backgroundImage: true, imageComponent: 'dsImage', sourceProps: ['source', 'image'] } },
-  format: {},
-  include: {},
+// figma.images: presence declares the convention; every member optional
+const imagesAbsent: Conventions = { figma: {} };
+const imagesFillsOnly: Conventions = { figma: { images: { backgroundImage: true } } };
+const imagesAllTriggers: Conventions = {
+  figma: { images: { backgroundImage: true, match: 'dsImage', sourceProps: ['source', 'image'] } },
 };
 
-// @ts-expect-error: imageComponent is a plain name string, not the retired { name, sourceProperty } object
-const _configImagesV1Shape: Config = { processing: { images: { imageComponent: { name: 'dsImage' } } }, format: {}, include: {} };
+// @ts-expect-error: match is a plain name string, not the retired { name, sourceProperty } object
+const _imagesV1Shape: Conventions = { figma: { images: { match: { name: 'dsImage' } } } };
 
 // @ts-expect-error: sourceProps must be a string array
-const _configBadSourceProps: Config = { processing: { images: { sourceProps: 'source' } }, format: {}, include: {} };
+const _imagesBadSourceProps: Conventions = { figma: { images: { sourceProps: 'source' } } };
 
-// @ts-expect-error: include.imageData was retired — the processing.images block presence is the on-switch
-const _configRetiredImageData: Config = { processing: {}, format: {}, include: { imageData: true } };
+// @ts-expect-error: image conventions do not live in settings
+const _imagesInSettings: Conventions = { figma: {}, spec: { images: {} } };

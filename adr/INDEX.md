@@ -4,9 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 083 | Collapsing a Slot-Only Wrapper |  |
 | 082 | `Component.description` — The Authored Figma Description, Plain Text and Opt-In |  |
-| 080 | `null` as a Prop Configuration Value | |
 | 079 | `metadata.conventions` Carries Only the Producing Platform | (reserved, draft in PR #363) |
 | 078 | One Conventions File per Platform, in `config/conventions/` | (reserved, draft in PR #363) |
 | 077 | The Image Component's Code Name, and the Encoding / Vocabulary Boundary | (reserved, draft in PR #363) |
@@ -14,6 +12,7 @@
 | 075 | `props` — a Closed, Concept-Keyed Map onto a Component's Props | (reserved, draft in PR #363) |
 | 074 | Primitives Resolve to Components at Emit Time, Not in the Spec | (reserved, draft in PR #363) |
 | 073 | `conventions.platforms`, with Figma as One Platform Among Them | (reserved, draft in PR #363) |
+| 072 | Numeric Enum on `NumberProp` | Adds optional `enum?: number[]` so a VARIANT whose options are all numbers emits as a number with its closed option set preserved |
 | 070 | Explicit `position: ABSOLUTE` for Children of Non-Auto-Layout Parents | |
 | 045 | Processing Provenance Signals | (reserved, draft in PR #60) |
 | 044 | Duplicate Layer Name Disambiguation | (reserved, draft in PR #60) |
@@ -25,6 +24,9 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 083 | Collapsing a Slot-Only Wrapper | `collapsePrimitiveWrapper` also collapses a root wrapping one slot; both nodes are containers so no style is tested, and the slot's value wins |
+| 080 | `null` as a Prop Configuration Value | Adds a `null` arm to `PropConfigurationValue` and to `InstanceExample.propConfigurations`; absent inherits, `null` overrides with unset |
+| 071 | Separate Library Conventions from Tooling Settings | `Conventions`, `Settings` and `Pipeline` replace `Config`, separating library facts from run choices and declared work |
 | 069 | Rename `clipContent` to `clipsContent` | Renames the clip flag to the key the data carries, so container clipping and CSS `overflow` resolve for the first time |
 | 066 | Lossless Key Formatting — Safe Key Grammar and Figma Name Preservation | Adds opt-in `format.figmaKeys` (`NONE` default), a safe key grammar, and `com.figma.name` on anatomy and props; renames `originalName` |
 | 065 | Document the `nullable` Default and Add `NumberProp.nullable` | Absent `nullable` means true for `StringProp`/`NumberProp`/`SlotProp`/`ImageProp`, false for `EnumProp`; adds `NumberProp.nullable` |

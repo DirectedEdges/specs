@@ -42,7 +42,8 @@ components:
   ├─ <a href="/schema/subcomponents/">subcomponents</a>:
   │ └─ {name}: { …same shape as above }
   ├─ <a href="/schema/metadata/">metadata</a>:
-  │ └─ <a href="/schema/config/">config</a>:
+  │ ├─ <a href="/schema/conventions/">conventions</a>:
+  │ └─ <a href="/schema/settings/">settings</a>:
   ├─ <a href="/schema/instance-examples/">instanceExamples</a>:                   → <a href="/schema/instance-examples/">InstanceExample</a>  <span class="sl-badge pro-badge">Pro</span>
   │ └─ {name}: { title, propConfigurations }
   └─ <a href="/schema/slot-content/">slotContentExamples</a>:                → <a href="/schema/slot-content/">SlotContent</a>  <span class="sl-badge pro-badge">Pro</span>
@@ -64,11 +65,13 @@ components:
 
 ## Package Exports
 
-The package exports TypeScript types for every node in the schema, plus one runtime value:
+The package exports TypeScript types for every node in the schema, plus two runtime values:
 
 ```ts
 import type { Component } from '@directededges/specs-schema';
-import { DEFAULT_CONFIG } from '@directededges/specs-schema';
+import { DEFAULT_SETTINGS, DEFAULT_PIPELINE } from '@directededges/specs-schema';
 ```
 
-`DEFAULT_CONFIG` is the only runtime export. All other exports are type-only.
+`DEFAULT_SETTINGS` and `DEFAULT_PIPELINE` are the only runtime exports. All other exports are type-only.
+
+There is no defaults export for [Conventions](/schema/conventions/): a convention's absence means the library declares no such convention, and nothing can supply that.

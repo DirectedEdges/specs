@@ -91,7 +91,7 @@
         },
         "propConfigurations": {
           "type": "object",
-          "description": "Prop values for this example. Scalar types for scalar props; SlotContentRef for slot props. PropBinding is not permitted here.",
+          "description": "Prop values for this example. Scalar types for scalar props; SlotContentRef for slot props; null when the prop is unset in this example (ADR-080). PropBinding is not permitted here.",
           "additionalProperties": {
             "oneOf": [
               {
@@ -102,6 +102,9 @@
               },
               {
                 "type": "boolean"
+              },
+              {
+                "type": "null"
               },
               {
                 "$ref": "#/definitions/SlotContentRef"
@@ -138,7 +141,7 @@
     "SafeKeyTitle": {
       "type": "string",
       "pattern": "^[A-Z][a-z]*( ([A-Z][a-z]*|[0-9]+))*$",
-      "description": "As SafeKeySentence, but for format.figmaKeys TITLE — every letter word capitalized."
+      "description": "As SafeKeySentence, but for format.figmaKeys TITLE \u2014 every letter word capitalized."
     },
     "ElementType": {
       "type": "string",
@@ -225,7 +228,7 @@
               "properties": {
                 "name": {
                   "type": "string",
-                  "description": "The element's name in Figma. Recorded on any of three triggers: primitive-wrapper collapse promoted this element to root (ADR-058), always and independent of format.figmaKeys; the name fell outside the safe key grammar so format.keys could not represent it losslessly (ADR-066); or the name was already written in the destination format and passed through unformatted, making reversal identity rather than re-derivation (ADR-066). The latter two apply only when format.figmaKeys is not NONE — under NONE, format divergence is not evaluated and this field is absent however the key was derived."
+                  "description": "The element's name in Figma. Recorded on any of three triggers: primitive-wrapper collapse promoted this element to root (ADR-058), always and independent of format.figmaKeys; the name fell outside the safe key grammar so format.keys could not represent it losslessly (ADR-066); or the name was already written in the destination format and passed through unformatted, making reversal identity rather than re-derivation (ADR-066). The latter two apply only when format.figmaKeys is not NONE \u2014 under NONE, format divergence is not evaluated and this field is absent however the key was derived."
                 }
               },
               "additionalProperties": false
@@ -315,7 +318,7 @@
         },
         "name": {
           "type": "string",
-          "description": "The Figma component-property name (ADR-066). Recorded when the name fell outside the safe key grammar, or when it was already written in the destination format and passed through unformatted — in which case reversal is identity, not re-derivation. Both triggers require format.figmaKeys to be other than NONE; under NONE this field is absent however the key was derived."
+          "description": "The Figma component-property name (ADR-066). Recorded when the name fell outside the safe key grammar, or when it was already written in the destination format and passed through unformatted \u2014 in which case reversal is identity, not re-derivation. Both triggers require format.figmaKeys to be other than NONE; under NONE this field is absent however the key was derived."
         }
       },
       "additionalProperties": true
@@ -373,7 +376,7 @@
         "nullable": {
           "type": "boolean",
           "default": true,
-          "description": "Whether this prop accepts a null value. Absent means true — a string prop has an open value set, so null is accepted unless false explicitly asserts otherwise."
+          "description": "Whether this prop accepts a null value. Absent means true \u2014 a string prop has an open value set, so null is accepted unless false explicitly asserts otherwise."
         },
         "examples": {
           "type": "array",
@@ -415,7 +418,7 @@
         "nullable": {
           "type": "boolean",
           "default": false,
-          "description": "Whether this prop accepts a null value. Absent means false — enum enumerates every accepted value, and null is not among them unless true explicitly admits it."
+          "description": "Whether this prop accepts a null value. Absent means false \u2014 enum enumerates every accepted value, and null is not among them unless true explicitly admits it."
         },
         "$extensions": {
           "$ref": "#/definitions/PropExtensions"
@@ -441,7 +444,7 @@
         "nullable": {
           "type": "boolean",
           "default": true,
-          "description": "Whether this slot prop accepts a null value. Absent means true — a slot has an open content set and may be empty, unless false explicitly asserts otherwise."
+          "description": "Whether this slot prop accepts a null value. Absent means true \u2014 a slot has an open content set and may be empty, unless false explicitly asserts otherwise."
         },
         "minChildren": {
           "type": "integer",
@@ -528,7 +531,7 @@
       ]
     },
     "PropConfigurationValue": {
-      "description": "The value of a single prop configuration entry (ADR-049): a scalar, a PropBinding for pass-through to a parent prop, a SlotContentRef under a slot-prop key for a named slot-content fill, or an ImageBinding under an image-prop key forwarding an image into a nested image instance (ADR-063).",
+      "description": "The value of a single prop configuration entry (ADR-049): a scalar, a PropBinding for pass-through to a parent prop, a SlotContentRef under a slot-prop key for a named slot-content fill, or an ImageBinding under an image-prop key forwarding an image into a nested image instance (ADR-063), or null when the prop is unset in this configuration \u2014 a value, not an absence: an absent key inherits, a null key overrides an inherited value with no value (ADR-080).",
       "oneOf": [
         {
           "type": "string"
@@ -538,6 +541,9 @@
         },
         {
           "type": "boolean"
+        },
+        {
+          "type": "null"
         },
         {
           "$ref": "#/definitions/PropBinding"
@@ -978,8 +984,13 @@
           ],
           "additionalProperties": false
         },
-        "config": {
-          "$ref": "workspace.schema.json#/definitions/Config"
+        "conventions": {
+          "$ref": "conventions.schema.json#/definitions/Conventions",
+          "description": "Facts about the Figma library this spec was generated from."
+        },
+        "settings": {
+          "$ref": "settings.schema.json#/definitions/Settings",
+          "description": "Choices about the run that generated this spec."
         }
       },
       "required": [
@@ -988,7 +999,8 @@
         "generator",
         "schema",
         "source",
-        "config"
+        "conventions",
+        "settings"
       ],
       "additionalProperties": false
     },
@@ -1007,10 +1019,18 @@
         "nodeType": {
           "type": "string",
           "description": "The Figma node type.",
-          "enum": ["COMPONENT", "COMPONENT_SET", "FRAME"]
+          "enum": [
+            "COMPONENT",
+            "COMPONENT_SET",
+            "FRAME"
+          ]
         }
       },
-      "required": ["pageId", "nodeId", "nodeType"],
+      "required": [
+        "pageId",
+        "nodeId",
+        "nodeType"
+      ],
       "additionalProperties": false
     },
     "Subcomponent": {
@@ -1042,7 +1062,7 @@
     },
     "NumberProp": {
       "type": "object",
-      "description": "Number property definition for numeric-valued props inferred from TEXT code-only props.",
+      "description": "Number property definition for numeric-valued props, whether inferred from a TEXT code-only prop or from a VARIANT whose options are all numbers.",
       "examples": [],
       "properties": {
         "type": {
@@ -1052,10 +1072,17 @@
         "default": {
           "type": "number"
         },
+        "enum": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "description": "The closed set of accepted values, when the source enumerates them rather than leaving the range open. Absent means the prop accepts any number."
+        },
         "nullable": {
           "type": "boolean",
           "default": true,
-          "description": "Whether this prop accepts a null value. Absent means true — a number prop has an open value set, so null is accepted unless false explicitly asserts otherwise."
+          "description": "Whether this prop accepts a null value. Absent means true \u2014 a number prop has an open value set, so null is accepted unless false explicitly asserts otherwise."
         },
         "examples": {
           "type": "array",
@@ -1085,13 +1112,16 @@
           "const": "image"
         },
         "default": {
-          "type": ["string", "null"],
-          "description": "Default image — an images registry reference, or null."
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Default image \u2014 an images registry reference, or null."
         },
         "nullable": {
           "type": "boolean",
           "default": true,
-          "description": "Whether this prop accepts a null value. Absent means true — an image prop has an open value set, so null is accepted unless false explicitly asserts otherwise."
+          "description": "Whether this prop accepts a null value. Absent means true \u2014 an image prop has an open value set, so null is accepted unless false explicitly asserts otherwise."
         },
         "$extensions": {
           "$ref": "#/definitions/PropExtensions"
@@ -1142,7 +1172,7 @@
       "properties": {
         "src": {
           "type": "string",
-          "description": "Resolved image source — an emitted asset path (the standard resolved form, relative to the referencing spec file), a data: URI, or an external URL. Absent = unresolved."
+          "description": "Resolved image source \u2014 an emitted asset path (the standard resolved form, relative to the referencing spec file), a data: URI, or an external URL. Absent = unresolved."
         },
         "$extensions": {
           "type": "object",
@@ -1153,10 +1183,12 @@
               "properties": {
                 "imageHash": {
                   "type": "string",
-                  "description": "The Figma image content hash (Plugin ImagePaint.imageHash / REST fills[].imageRef) — reverse-direction tooling reconstructs an ImagePaint from it."
+                  "description": "The Figma image content hash (Plugin ImagePaint.imageHash / REST fills[].imageRef) \u2014 reverse-direction tooling reconstructs an ImagePaint from it."
                 }
               },
-              "required": ["imageHash"],
+              "required": [
+                "imageHash"
+              ],
               "additionalProperties": false
             }
           },

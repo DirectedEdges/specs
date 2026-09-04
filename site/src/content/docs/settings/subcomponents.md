@@ -3,20 +3,19 @@ title: "Subcomponents"
 description: "Configure subcomponent discovery, matching patterns, and exclusions"
 ---
 
-Subcomponent discovery configuration. When present, enables subcomponent detection. When absent, subcomponents are not detected.
+Subcomponent organization and naming. A library fact, declared in `config/conventions.yaml`: where a library keeps its subcomponents and how it names them are properties of the library, and a wrong declaration leaves subcomponents undiscovered. When present, the block enables subcomponent detection. When absent, the library declares no subcomponent convention and none are detected.
 
 ## Configuration
 
 ```yaml
-config:
-  processing:
-    subcomponents:
-      scope: PAGE
-      match:
-        - '{C} / {S}'
-        - '{C} / _ / {S}'
-      exclude:
-        - '{C} / Examples / {S}'
+figma:
+  subcomponents:
+    scope: PAGE
+    match:
+      - '{C} / {S}'
+      - '{C} / _ / {S}'
+    exclude:
+      - '{C} / Examples / {S}'
 ```
 
 ## Result
@@ -47,7 +46,7 @@ Without `subcomponents`, the registry is absent and these nested components are 
 
 | Property | Type | Required | Default | Description |
 |----------|------|----------|---------|-------------|
-| `scope` | `"NESTED"` \| `"PAGE"` | No | `NESTED` | Where to search. `NESTED` = component anatomy only; `PAGE` = also search the Figma page |
+| `scope` | `"NESTED"` \| `"PAGE"` | No | `NESTED` | Where the library keeps subcomponents. `NESTED` = component anatomy only; `PAGE` = also search the Figma page |
 | `match` | `string[]` | Yes | — | Template patterns using `{C}` (component name) and `{S}` (subcomponent name) placeholders |
 | `exclude` | `string[]` | No | — | Template patterns to exclude from matches. Same `{C}/{S}` syntax |
 
@@ -55,7 +54,7 @@ An asset must match at least one `match` pattern to be considered a subcomponent
 
 ## Path
 
-`config.processing.subcomponents`
+`figma.subcomponents` in `config/conventions.yaml`
 
 ## See Also
 

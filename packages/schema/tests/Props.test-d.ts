@@ -205,6 +205,25 @@ const _numberStringDefault: NumberProp = { type: 'number', default: '24' };
 // @ts-expect-error: examples must be number[], not string[]
 const _numberStringExamples: NumberProp = { type: 'number', examples: ['1', '2'] };
 
+// ─── NumberProp.enum (ADR 072) ────────────────────────────────────────────────
+
+// enum is optional — its absence means the prop accepts any number
+const numberNoEnum: NumberProp = { type: 'number', default: 1 };
+
+// a numeric VARIANT: numeric type, closed option set, absence excluded
+const numberWithEnum: NumberProp = {
+  type: 'number',
+  default: 1,
+  enum: [1, 2, 3, 4, 5, 6, 7, 8],
+  nullable: false,
+};
+
+// @ts-expect-error: enum must be number[], not string[]
+const _numberStringEnum: NumberProp = { type: 'number', enum: ['1', '2'] };
+
+// @ts-expect-error: EnumProp still carries string values only
+const _enumNumericValues: EnumProp = { type: 'string', default: '1', enum: [1, 2] };
+
 // ─── nullable (ADR 065) ───────────────────────────────────────────────────────
 
 // nullable is optional on NumberProp — absent means true

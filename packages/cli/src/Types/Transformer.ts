@@ -3,7 +3,7 @@ import type { ProcessingStates } from '../transforms/states.js';
 export interface TransformerContext {
   /** Absolute path to the component's output subfolder. */
   outputDir: string;
-  /** camelCase component folder name (e.g. `egdsButton`). */
+  /** camelCase component folder name (e.g. `dsButton`). */
   componentKey: string;
   /** Token format from config.format.tokens. Drives CSS variable resolution. */
   tokensFormat: string;

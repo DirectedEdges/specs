@@ -89,7 +89,7 @@ export function DsAlert(props: DsAlertScaffoldProps) {
 
 ## Rendering Rules
 
-- **Root element** gets the component's kebab-cased class, every variant prop as a `data-*` attribute (boolean props use presence attributes, string/enum props use value attributes), and ARIA attributes for any prop classified in [`config.processing.states`](/settings/states/) whose selector resolves to an `aria-*` attribute.
+- **Root element** gets the component's kebab-cased class, every variant prop as a `data-*` attribute (boolean props use presence attributes, string/enum props use value attributes), and ARIA attributes for any prop classified in the [`figma.states`](/settings/states/) convention whose selector resolves to an `aria-*` attribute.
 - **Child elements** get the `__element` BEM suffix, matching the `css` transformer's selectors.
 - **Slot-typed elements** with a `slot` type surface as an additional `React.ReactNode` prop on `{Component}ScaffoldProps` (not in the spec-derived `Props` interface itself), rendered as `{p.slotName}`.
 - **Text elements** bound to a prop render `{p.propName}`; text elements with static spec content render that content verbatim (escaped for JSX).
@@ -101,11 +101,11 @@ export function DsAlert(props: DsAlertScaffoldProps) {
 No transformer-specific options today.
 
 ```yaml
-config:
-  transformers:
-    - name: contract
-    - name: css
-    - name: react
+# config/pipeline.yaml
+transformers:
+  - name: contract
+  - name: css
+  - name: react
 ```
 
 ## Subcomponent Output

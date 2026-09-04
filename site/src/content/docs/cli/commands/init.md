@@ -1,7 +1,7 @@
 ---
 title: "init"
 ---
-Initialize a `specs.config.yaml` file with production-ready defaults.
+Initialize the `config/` directory — `conventions.yaml`, `settings.yaml`, and `pipeline.yaml` — with production-ready defaults.
 
 ## Usage
 
@@ -11,72 +11,95 @@ specs init [options]
 
 ## Purpose
 
-The `init` command scaffolds a fully-populated configuration file with:
-- Sensible defaults for dataDirectory (`./data`) and outputDirectory (`./specs`)
-- All processing, format, and include options with production-ready values
-- Inline documentation with links to the full configuration reference
-- Empty sources object ready for your Figma file keys
+The `init` command scaffolds three configuration files, each answering one question:
+
+- **`config/conventions.yaml`** — facts about the Figma library: naming patterns, state classification, how images are expressed. See [Conventions](/schema/conventions/).
+- **`config/settings.yaml`** — choices about this run: sources, spec output, assets. See [Settings](/schema/settings/).
+- **`config/pipeline.yaml`** — transformers and analyses to run. See [Pipeline](/schema/pipeline/).
+
+Each file ships with sensible defaults and inline documentation with links to the full configuration reference. `settings.yaml` includes an empty `data.sources` object ready for your Figma file keys.
 
 This is the recommended way to get started with Specs in a new project.
 
 ## What Gets Created
 
-The init command creates a `specs.config.yaml` file with the following structure:
+```
+config/
+  conventions.yaml     # what the library is
+  settings.yaml        # how output behaves, and where it goes
+  pipeline.yaml        # what to run
+```
+
+`config/conventions.yaml` declares how the library is authored — most conventions start commented out, since absence means the library declares no such convention:
 
 ```yaml
-# Specs CLI Configuration (production-ready defaults)
-#
-# This file configures how Specs fetches and processes Figma component data.
-# See: https://www.specsplugin.com/settings/ for complete documentation.
+# Facts about the Figma library — every consumer of that library declares the same values.
+figma:
+  # naming: NONE
 
-# Where fetch writes payloads, and where generate reads from.
-# See: https://docs.specs.dev/settings/data-sources
-dataDirectory: ./data
+  # glyphs:
+  #   match: 'DS Icon Glyph / {i}'
 
-# Default location for generated spec files (can override with -o flag).
-# See: https://docs.specs.dev/settings/data-sources
-outputDirectory: ./specs
+  subcomponents:
+    # scope: NESTED
+    match:
+      - '{C} / _ / {S}'
+    # exclude:
+    #   - '{C} / Examples / {S}'
 
-# Figma file sources to fetch and process.
-# See: https://docs.specs.dev/settings/data-sources
-sources: {}
+  slotConstraints: false
 
-# Processing and output configuration.
-# See: https://docs.specs.dev/settings/
-config:
-  processing:
-    subcomponents:
-      # scope: NESTED
-      match:
-        - '{C} / _ / {S}'
-      # exclude:
-      #   - '{C} / Examples / {S}'
-    # glyphNamePattern: 'DS Icon Glyph /'
-    variantDepth: 9999
-    details: LAYERED
-  format:
-    output: JSON
-    keys: SAFE
-    layout: LAYOUT
-    tokens: TOKEN
-  include:
-    invalidVariants: false
-    invalidCombinations: true
+  # states:
+  #   hover:
+  #     prop: state
+  #     value: hover
+```
 
-  # transformers:
-  #   - name: contract
-  #   - name: css
-  #   - name: styling
+`config/settings.yaml` declares run choices, grouped by concern:
+
+```yaml
+# Choices about this run — sources, spec output, assets.
+author: <Your Name Here>
+
+data:
+  directory: ./data
+  sources: {}
+
+spec:
+  directory: ./specs
+  format: JSON
+  keys: SAFE
+  layout: LAYOUT
+  tokens: TOKEN
+  color: HEX
+  variantDepth: 9999
+  details: LAYERED
+  # splitComponents: true
+  # splitConcerns: true
+  # useSubfolders: true
+```
+
+`config/pipeline.yaml` declares the work to run — everything commented out until you opt in:
+
+```yaml
+# Work this workspace runs: transformers and analyses.
+# transformers:
+#   - name: contract
+#   - name: css
+#   - name: react
+
+# analyses:
+#   - name: dependencies
 ```
 
 Each section includes inline comments with references to the full documentation.
 
 ## Options
 
-### `--force` / `-f`
-Overwrite existing config file without prompting.
+### `--force`
+Overwrite existing config files without prompting.
 
-By default, if `specs.config.yaml` exists, `init` prompts before overwriting. Use `--force` to skip the prompt.
+By default, if any of the three files exists, `init` prompts before overwriting. Use `--force` to skip the prompt.
 
 ```bash
 # Prompt before overwrite (default)
@@ -87,15 +110,12 @@ specs init --force
 ```
 
 ### `--config <path>` / `-c <path>`
-Custom path for the config file (default: `specs.config.yaml`).
+Custom directory to write the `config/` folder into (default: current directory).
 
 ```bash
-# Create config in a custom location
-specs init --config ./configs/dev.yaml
-
-# Create multiple configs for different environments
-specs init --config ./configs/dev.yaml --force
-specs init --config ./configs/prod.yaml --force
+# Scaffold config/ inside a workspace subdirectory
+specs init --config ./workspaces/library
+# Creates ./workspaces/library/config/{conventions,settings,pipeline}.yaml
 ```
 
 ## Examples
@@ -107,28 +127,26 @@ cd my-design-system
 specs init
 
 # Output:
-# ✓ Created specs.config.yaml
+# ✓ Created config/conventions.yaml
+# ✓ Created config/settings.yaml
+# ✓ Created config/pipeline.yaml
 # 📚 Next steps:
 #    1. Edit the config file to add your Figma file keys
 #    2. Run: specs fetch
 #    3. Run: specs scan
 #    4. Run: specs generate
-#
-# 📖 Documentation: https://www.specsplugin.com/settings/
 ```
 
-### Example 2: Environment-Specific Configs
+### Example 2: Multiple Workspaces
 
 ```bash
-# Development config
-specs init --config .specs.dev.yaml --force
-
-# Production config
-specs init --config .specs.prod.yaml --force
+# One config/ directory per workspace
+specs init --config ./workspaces/dev --force
+specs init --config ./workspaces/prod --force
 
 # Use with --config flag on other commands
-specs fetch --config .specs.dev.yaml
-specs generate data/library.file.json -c "Button" --config .specs.prod.yaml
+specs fetch --config ./workspaces/dev/config
+specs generate data/library.file.json -c "Button" --config ./workspaces/prod/config
 ```
 
 ### Example 3: Force Overwrite
@@ -137,6 +155,18 @@ specs generate data/library.file.json -c "Button" --config .specs.prod.yaml
 # If you accidentally delete your config, recreate it
 specs init --force
 ```
+
+## Upgrading from a single config file
+
+A pre-split `specs.config.yaml` (or `.json`) is no longer read (ADR-071), and `init` refuses to run while one is present — scaffolding defaults over it would quietly replace whatever the workspace actually declared:
+
+```
+Error: found specs.config.yaml — a pre-split configuration (ADR-071).
+  Run `specs migrate config` to convert it, keeping what this workspace declares.
+  To scaffold fresh defaults instead, remove specs.config.yaml first.
+```
+
+Run [`specs migrate config`](/cli/commands/migrate/) to convert the file into the three-file layout — the [Settings](/schema/settings/) and [Conventions](/schema/conventions/) references show where each former member now lives. Use `init` only for a workspace with no existing configuration.
 
 ---
 

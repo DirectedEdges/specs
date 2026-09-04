@@ -11,7 +11,7 @@
 
 ## Context
 
-When a component contains subcomponents, anatomy items and elements that are instances of those subcomponents currently record `instanceOf` as a plain formatted string (e.g., `"egdsRadioButtonFormLabel"`). This is opaque — a consumer cannot distinguish a subcomponent reference from an arbitrary component name, nor can tooling follow the relationship programmatically.
+When a component contains subcomponents, anatomy items and elements that are instances of those subcomponents currently record `instanceOf` as a plain formatted string (e.g., `"dsRadioButtonFormLabel"`). This is opaque — a consumer cannot distinguish a subcomponent reference from an arbitrary component name, nor can tooling follow the relationship programmatically.
 
 The `$ref` pattern already exists in this package: `ElementTypeRef` uses `{ $ref: string }` on `AnatomyElement.type` to express a machine-followable pointer to an external definition. The same pattern should apply to `instanceOf` when the target is a sibling subcomponent within the same spec.
 

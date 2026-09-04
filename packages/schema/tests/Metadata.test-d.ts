@@ -5,10 +5,33 @@
  */
 import type { Metadata } from '../types/index.js';
 
-const baseConfig: Metadata['config'] = {
-  processing: { subcomponents: { match: ['{C} / _ / {S}'] }, variantDepth: 9999, details: 'LAYERED' },
-  format: { output: 'JSON', keys: 'SAFE', layout: 'LAYOUT', tokens: 'TOKEN' },
-  include: { invalidVariants: false, invalidCombinations: true },
+const baseConventions: Metadata['conventions'] = {
+  figma: {
+    naming: 'SENTENCE',
+    subcomponents: { scope: 'NESTED', match: ['{C} / _ / {S}'] },
+    slotConstraints: false,
+    inferNumberProps: false,
+  },
+};
+
+const baseSettings: Metadata['settings'] = {
+  spec: {
+    format: 'JSON',
+    keys: 'SAFE',
+    layout: 'LAYOUT',
+    tokens: 'TOKEN',
+    color: 'HEX',
+    variantDepth: 9999,
+    details: 'LAYERED',
+    collapsePrimitiveWrapper: false,
+    invalidVariants: false,
+    invalidCombinations: true,
+    emptyVariants: false,
+    defaultSlotContent: false,
+    splitComponents: true,
+    splitConcerns: true,
+    useSubfolders: true,
+  },
 };
 
 // Minimal valid Metadata — license absent (optional field)
@@ -18,7 +41,8 @@ const withoutLicense: Metadata = {
   generator: { url: 'https://example.com', version: '1.10.0', name: 'test' },
   schema: { url: 'https://example.com/schema', version: '1.0.0' },
   source: { pageId: 'p1', nodeId: 'n1', nodeType: 'COMPONENT' },
-  config: baseConfig,
+  conventions: baseConventions,
+  settings: baseSettings,
 };
 
 // With generator.license present — both subfields required

@@ -32,7 +32,7 @@ describe('PropsAnalyzer', () => {
     for (const [componentKey, apiYaml] of Object.entries(components)) {
       const compDir = path.join(outputDir, componentKey);
       await fs.ensureDir(compDir);
-      await a.run(apiYaml, { outputDir: compDir, componentKey, outputFormat });
+      await a.run(apiYaml, { outputDir: compDir, componentKey, tokensFormat: 'TOKEN', outputFormat });
     }
     await a.finalize!(outputDir, analysisDir);
     if (outputFormat === 'JSON') {
@@ -61,7 +61,7 @@ describe('PropsAnalyzer', () => {
     const compDir = path.join(outputDir, 'compA');
     await fs.ensureDir(compDir);
     const a = new PropsAnalyzer();
-    await a.run({ props: { label: { type: 'string' } } }, { outputDir: compDir, componentKey: 'compA', outputFormat: 'YAML' });
+    await a.run({ props: { label: { type: 'string' } } }, { outputDir: compDir, componentKey: 'compA', tokensFormat: 'TOKEN', outputFormat: 'YAML' });
     expect(fs.existsSync(path.join(compDir, 'props.yaml'))).toBe(false);
   });
 
@@ -231,7 +231,7 @@ describe('PropsAnalyzer', () => {
       const a2 = new PropsAnalyzer();
       const compDir2 = path.join(outputDir2, 'compA');
       await fs.ensureDir(compDir2);
-      await a2.run({ props: { size: { type: 'string', enum: ['sm', 'md'] }, disabled: { type: 'boolean' } } }, { outputDir: compDir2, componentKey: 'compA' });
+      await a2.run({ props: { size: { type: 'string', enum: ['sm', 'md'] }, disabled: { type: 'boolean' } } }, { outputDir: compDir2, componentKey: 'compA', tokensFormat: 'TOKEN', outputFormat: 'YAML' as const });
       const analysisDir2 = path.join(outputDir2, '_analysis');
       await a2.finalize!(outputDir2, analysisDir2);
       const raw2 = await fs.readFile(path.join(analysisDir2, 'props.yaml'), 'utf-8');
@@ -247,7 +247,7 @@ describe('PropsAnalyzer', () => {
     const a = new PropsAnalyzer();
     const compDir = path.join(outputDir, 'compA');
     await fs.ensureDir(compDir);
-    await a.run({ props: { label: { type: 'string' } } }, { outputDir: compDir, componentKey: 'compA' });
+    await a.run({ props: { label: { type: 'string' } } }, { outputDir: compDir, componentKey: 'compA', tokensFormat: 'TOKEN', outputFormat: 'YAML' as const });
     await a.finalize!(outputDir, customDir);
     expect(fs.existsSync(path.join(customDir, 'props.yaml'))).toBe(true);
     expect(fs.existsSync(path.join(outputDir, '_analysis', 'props.yaml'))).toBe(false);

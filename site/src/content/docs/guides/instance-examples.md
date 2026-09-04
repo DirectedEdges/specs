@@ -34,27 +34,26 @@ instanceExamples:
 
 ## Configuration
 
-Detection mirrors [`subcomponents`](/settings/subcomponents/): the **presence** of `processing.instanceExamples` is the on-switch. There is no separate `include` flag — when the block is present (and the license is Pro), examples are detected *and* emitted.
+Detection mirrors [`subcomponents`](/settings/subcomponents/): the **presence** of the `figma.instanceExamples` convention is the on-switch. There is no separate `include` flag — when the block is present (and the license is Pro), examples are detected *and* emitted.
 
 ```yaml
-# specs.config.yaml
-config:
-  processing:
-    instanceExamples:
-      scope: PAGE          # PAGE (default) or FILE
-      match:
-        - "{C} - *"        # {C} = component name
-      parentNames:
-        - Examples         # immediate parent must be an "Examples" frame/section
+# config/conventions.yaml
+figma:
+  instanceExamples:
+    scope: PAGE          # PAGE (default) or FILE
+    match:
+      - "{C} - *"        # {C} = component name
+    parentNames:
+      - Examples         # immediate parent must be an "Examples" frame/section
 ```
 
-- `match` (required) — name patterns identifying example frames; `{C}` expands to the component name, `*` is a wildcard.
+- `match` (optional) — name patterns identifying example frames; `{C}` expands to the component name, `*` is a wildcard. Omit to match every in-scope instance of the component.
 - `exclude` — patterns that disqualify a frame (exclusion wins over match).
 - `parentNames` — restrict to frames whose **immediate** parent is one of these names.
 - `scope` — `PAGE` (component's page) or `FILE` (all pages, e.g. a dedicated Examples page).
 
 :::note[Pro feature]
-Instance examples require a [Pro license](/overview/licensing/). On the free tier `processing.instanceExamples` is ignored — no detection, no output. In the Figma plugin the control is hidden until a Pro license is active.
+Instance examples require a [Pro license](/overview/licensing/). On the free tier `figma.instanceExamples` is ignored — no detection, no output. In the Figma plugin the control is hidden until a Pro license is active.
 :::
 
 ## Naming Tips
@@ -68,7 +67,7 @@ Instance examples require a [Pro license](/overview/licensing/). On the free tie
 
 ## Further Reading
 
-- [`processing.instanceExamples`](/settings/instance-examples/) — config reference
+- [`figma.instanceExamples`](/settings/instance-examples/) — convention reference
 - [Default Slot Content](/guides/default-slot-content/) — the sibling feature
 - [`subcomponents`](/settings/subcomponents/) — the presence-driven detection model this mirrors
 - [Schema: Component](/schema/component/) — the `instanceExamples` registry shape

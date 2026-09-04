@@ -88,7 +88,7 @@ Root element selectors use the component's kebab-cased name. Child elements use 
 
 ## Token Resolution
 
-Token references are resolved to CSS `var(--)` based on `config.format.tokens`:
+Token references are resolved to CSS `var(--)` based on `spec.tokens`:
 
 | Format | Resolution |
 |--------|------------|
@@ -99,28 +99,36 @@ Token references are resolved to CSS `var(--)` based on `config.format.tokens`:
 
 ## Config
 
-No transformer-specific options. Token format comes from `config.format.tokens`. Selector strategy for variant props comes from [`config.processing.states`](/settings/states/).
+No transformer-specific options. Token format comes from `spec.tokens` in `config/settings.yaml`. Selector strategy for variant props comes from the [`figma.states`](/settings/states/) convention in `config/conventions.yaml`.
 
 ```yaml
-config:
-  format:
-    tokens: TOKEN        # controls how token vars are named
-  processing:
-    states:              # optional — omit to keep data-* attribute selectors
-      hover:
-        prop: state
-        value: hover
-      disabled:
-        prop: isDisabled
-  transformers:
-    - name: css
+# config/settings.yaml
+spec:
+  tokens: TOKEN          # controls how token vars are named
 ```
 
-When `processing.states` is absent, all variant props produce `[data-*]` selectors (the default shown in the example above). When present, classified props emit semantic CSS pseudo-classes and ARIA attribute selectors instead.
+```yaml
+# config/conventions.yaml
+figma:
+  states:                # optional — omit to keep data-* attribute selectors
+    hover:
+      prop: state
+      value: hover
+    disabled:
+      prop: isDisabled
+```
+
+```yaml
+# config/pipeline.yaml
+transformers:
+  - name: css
+```
+
+When the `states` convention is absent, all variant props produce `[data-*]` selectors (the default shown in the example above). When present, classified props emit semantic CSS pseudo-classes and ARIA attribute selectors instead.
 
 ### Disabled guard on hover and active
 
-When the `disabled` concept is configured in `processing.states`, the transformer automatically appends `:not(:disabled):not([aria-disabled="true"])` to every `:hover` and `:active` selector — including compound variants that mix a data attribute with `:hover` or `:active`. This prevents hover and active styles from firing on disabled elements without any extra CSS to write.
+When the `disabled` concept is configured in `figma.states`, the transformer automatically appends `:not(:disabled):not([aria-disabled="true"])` to every `:hover` and `:active` selector — including compound variants that mix a data attribute with `:hover` or `:active`. This prevents hover and active styles from firing on disabled elements without any extra CSS to write.
 
 ```css
 /* disabled concept configured → hover and active are guarded */
@@ -202,12 +210,12 @@ The subcomponent stylesheet follows the same structure as the parent — default
 }
 ```
 
-Subcomponent stylesheets are fully self-contained — elements and variants from the parent component never appear in them. Configure subcomponent discovery in [`config.processing.subcomponents`](/settings/subcomponents/).
+Subcomponent stylesheets are fully self-contained — elements and variants from the parent component never appear in them. Configure subcomponent discovery in the [`figma.subcomponents`](/settings/subcomponents/) convention.
 
 ## See Also
 
 - [Transforms overview](/cli/transforms/)
-- [`processing.states` config](/settings/states/) — classify variant props as semantic states
+- [`figma.states` convention](/settings/states/) — classify variant props as semantic states
 - [`contract` transformer](/cli/transforms/contract/)
 - [`react` transformer](/cli/transforms/react/) — imports this stylesheet into the generated and authored components
 - [tokens config](/settings/tokens/)

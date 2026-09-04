@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
@@ -10,7 +10,7 @@ const transformer = new CssTransformer();
 import type { ProcessingStates } from '../../../src/transforms/states.js';
 
 function makeContext(dir: string, componentKey = 'dsButton', tokensFormat = 'TOKEN', processingStates?: ProcessingStates) {
-  return { outputDir: dir, componentKey, tokensFormat, processingStates };
+  return { outputDir: dir, componentKey, tokensFormat, outputFormat: 'JSON' as const, processingStates };
 }
 
 async function writeVariants(dir: string, data: Record<string, unknown>) {

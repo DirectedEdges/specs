@@ -5,6 +5,60 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.31.0] - 2026-09-04
+
+Configuration now separates what is true about a Figma library from what a run chooses to do with it. A convention — a naming pattern, a state classification, where subcomponents live — is a fact every consumer of that library must share, and getting one wrong produces incorrect output. A setting is a free choice that produces different output. They were peers in one `Config`; they are now two published types, each addressable, each validated on its own, with the work a workspace runs declared separately again.
+
+### Added
+
+- `PropConfigurationValue` — a `null` arm; a configuration states a nullable prop is unset, and an absent key inherits while `null` overrides (ADR-080)
+- `InstanceExample.propConfigurations` — accepts `null`, so an example can leave a prop unset; still refuses `PropBinding`
+- `NumberProp.enum` — the closed set of values a numeric prop accepts, so a Figma VARIANT whose options are all numbers carries its numeric type and its authored option order at once (ADR-072)
+- `Conventions` — facts about the Figma library, namespaced by source under `figma`; blocks are optional and their absence means the library declares no such convention
+- `Settings` — run choices grouped by concern (`data`, `spec`, `assets`), each carrying its own `directory`
+- `Pipeline` — `transformers` and `analyses` a workspace runs, with `AnalysisEntry` alongside `TransformEntry`
+- `SourceEntry` — a source's Figma file `key` and the artifacts to `fetch`
+- `DEFAULT_SETTINGS`, `DEFAULT_PIPELINE` and `DEFAULT_CONVENTIONS` — one defaults constant per configuration artifact. `DEFAULT_CONVENTIONS` carries only the three members that have a meaningful default; convention blocks are absent by design, because absence is the statement that a library declares none
+- `conventions.schema.json`, `settings.schema.json`, `pipeline.schema.json` — one schema per authored artifact
+
+### Changed
+
+- `Settings.spec.collapsePrimitiveWrapper` — also collapses a root wrapping one slot, keeping the slot's value on shared keys (ADR-083)
+- **`Settings.spec.splitComponents`, `splitConcerns` and `useSubfolders` now default to `true`** and are required on `ResolvedSettings`. The split layout — one folder per component, one file per concern — is what `transform`, `analyze` and `render` read, so the shape of generated output is not a per-consumer choice. They previously carried no default, leaving each consumer to pick its own; both consumers picked `false`, which is the layout nothing downstream can use. Recorded spec `metadata.settings.spec` now carries all three on every spec.
+
+- `Metadata.config` → `Metadata.conventions` and `Metadata.settings` — each half comparable across specs on its own
+- `Config.format.figmaKeys` → `Conventions.figma.naming` — no longer shares the word `keys` with the emitted casing
+- `Config.processing.glyphNamePattern` → `Conventions.figma.glyphs.match`; `codeOnlyPropsPattern` → `codeOnlyProps.match`; `images.imageComponent` → `images.match`
+- `Config.processing.states`, `subcomponents`, `instanceExamples`, `images`, `slotConstraints`, `inferNumberProps` → `Conventions.figma`, whole, including `scope` and `backgroundImage`
+- `Config.format.output` → `Settings.spec.format`; the rest of `format` and all of `include` fold into `Settings.spec`
+- Workspace-level `sources`, `dataDirectory`, `outputDirectory`, and the `output` block absorbed into `Settings`
+
+### Removed
+
+- `Config`, `ResolvedConfig`, and `DEFAULT_CONFIG` — replaced by the types above
+- `workspace.schema.json` — one schema per artifact replaces it
+- `Config.transformers` — work to run now lives in `Pipeline`
+
+### Migration
+
+- `Config` → `Conventions` + `Settings`: read library facts from `conventions`, run choices from `settings`. A member describes the library if a different team pointing at the same Figma file would have to keep your value.
+- `DEFAULT_CONFIG` → `DEFAULT_SETTINGS`: conventions have no defaults to supply, so nothing replaces the conventions half.
+- `Metadata.config` → `Metadata.conventions` / `Metadata.settings`: read whichever half you compared before, and prefer `conventions` when checking that two consumers agree about a library.
+
+
+
+### ADRs
+
+#### Accepted
+
+- [ADR-071](../../adr/071-config-conventions-split.md) — Separate Library Conventions from Tooling Settings
+- [ADR-080](../../adr/080-null-prop-configuration.md) — `null` as a Prop Configuration Value
+- [ADR-083](../../adr/083-slot-wrapper-collapse.md) — Collapsing a Slot-Only Wrapper
+
+#### New drafts
+
+- [ADR-072](../../adr/072-numeric-variant-enum.md) — Numeric Enum on NumberProp
+
 ## [0.30.0] - 2026-08-17
 
 A spec can now declare the naming convention its Figma file follows, so a formatted property key can be turned back into the name a designer sees on the canvas. When a key can't reconstruct that name on its own — because the original contained characters formatting doesn't survive — the spec records the Figma name alongside it, on every property type. Together these make round-tripping between a formatted spec and its source file possible without a side-channel lookup of the file's own naming.

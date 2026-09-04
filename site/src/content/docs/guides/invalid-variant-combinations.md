@@ -70,7 +70,7 @@ A consumer reading this spec knows exactly which prop pairings to avoid — and 
 
 The processing engine computes invalid combinations by comparing the full set of theoretical prop combinations against the variants actually present in the Figma component set. Any theoretical combination that has no matching variant is recorded as invalid.
 
-This is controlled by the `include.invalidCombinations` config option:
+This is controlled by the `spec.invalidCombinations` setting:
 
 | Value | Behavior |
 |-------|----------|
@@ -78,8 +78,8 @@ This is controlled by the `include.invalidCombinations` config option:
 | `false` | Omit the field entirely |
 
 ```yaml
-# Config
-include:
+# config/settings.yaml
+spec:
   invalidCombinations: true   # default
 ```
 
@@ -97,7 +97,7 @@ Together they form a complete picture of the component's variant space. A prop c
 
 ### Relationship to `Variant.invalid`
 
-Individual variants can also carry an `invalid: true` flag. This flag marks a specific variant record as invalid and is controlled by the separate `include.invalidVariants` config option (default: `false`).
+Individual variants can also carry an `invalid: true` flag. This flag marks a specific variant record as invalid and is controlled by the separate `spec.invalidVariants` setting (default: `false`).
 
 The two mechanisms serve different purposes:
 
@@ -106,7 +106,7 @@ The two mechanisms serve different purposes:
 | `invalidVariantCombinations` | Summary list on `Component` | Included (`true`) |
 | `Variant.invalid` | Flag on individual `Variant` records | Excluded (`false`) |
 
-When `include.invalidVariants` is `true`, invalid variants appear in the `variants` array with `invalid: true` and empty `elements`. When `include.invalidCombinations` is `true`, the same combinations appear in the summary list. Both can be active simultaneously — the summary list provides a quick lookup table, while the variant-level flag preserves the combination within the variant array for tools that iterate all variants.
+When `spec.invalidVariants` is `true`, invalid variants appear in the `variants` array with `invalid: true` and empty `elements`. When `spec.invalidCombinations` is `true`, the same combinations appear in the summary list. Both can be active simultaneously — the summary list provides a quick lookup table, while the variant-level flag preserves the combination within the variant array for tools that iterate all variants.
 
 ## Schema Reference
 
@@ -118,7 +118,7 @@ invalidVariantCombinations?: PropConfigurations[];
 
 An array of `PropConfigurations` objects. Each object is a `Record<string, string | number | boolean>` mapping prop names to the values that form the invalid combination.
 
-### Config: `include.invalidCombinations`
+### Setting: `spec.invalidCombinations`
 
 ```typescript
 include: {
@@ -136,4 +136,4 @@ When `true`, the component output includes the `invalidVariantCombinations` fiel
 - [Variant Depth](/guides/variant-depth/) — controlling variant expansion depth
 - [Variants](/schema/variants/) — variant schema reference
 - [Component](/schema/component/) — top-level component schema
-- [Config](/schema/config/) — full configuration options
+- [Settings](/schema/settings/) — full run settings

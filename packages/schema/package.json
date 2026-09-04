@@ -1,6 +1,6 @@
 {
   "name": "@directededges/specs-schema",
-  "version": "0.30.0",
+  "version": "0.31.0",
   "description": "Specs UI Component Schema - TypeScript types and JSON schema definitions for component specifications",
   "license": "CC-BY-4.0",
   "author": "Nathan Curtis <nathan@directededges.com>",
@@ -18,7 +18,9 @@
       "default": "./dist/index.js"
     },
     "./schema/component": "./schema/component.schema.json",
-    "./schema/workspace": "./schema/workspace.schema.json"
+    "./schema/conventions": "./schema/conventions.schema.json",
+    "./schema/settings": "./schema/settings.schema.json",
+    "./schema/pipeline": "./schema/pipeline.schema.json"
   },
   "files": [
     "dist",

@@ -10,12 +10,12 @@
 import { Command } from 'commander';
 import fs from 'fs-extra';
 import path from 'path';
-import yaml from 'yaml';
 import readline from 'readline';
 import { collectGlyphComponents } from '../utilities/glyphComponents.js';
 import { startSpinner, clearInlineStatus, renderInlineStatus, isInteractive, formatElapsed } from '../utilities/spinner.js';
 import { refreshCache } from '../Cache/Cache.js';
 import { reportCache } from './CacheCommand.js';
+import { ConfigLoader } from '../Config/ConfigLoader.js';
 
 const ERROR_CODES = {
   SUCCESS: 0,
@@ -27,15 +27,9 @@ const ERROR_CODES = {
   RATE_LIMIT: 6
 };
 
-type FetchKind = 'file' | 'variables' | 'styles' | 'icons';
+import type { SourceEntry } from '@directededges/specs-schema';
 
-type MinimalConfig = {
-  dataDirectory?: string;
-  sourceDirectory?: string; // deprecated alias
-  outputDirectory?: string; // icons land beside the specs they serve
-  sources?: Record<string, { key: string; data: FetchKind[] }>;
-  config?: { processing?: { glyphNamePattern?: string } };
-};
+type FetchKind = 'file' | 'variables' | 'styles' | 'icons';
 
 export { collectGlyphComponents };
 
@@ -49,40 +43,6 @@ async function streamToString(stream: ReadableStream<Uint8Array> | null): Promis
     chunks.push(Buffer.from(value));
   }
   return Buffer.concat(chunks).toString('utf-8');
-}
-
-function findConfigFile(cwd: string): string | null {
-  const locations = [
-    path.join(cwd, 'specs.config.yaml'),
-    path.join(cwd, 'specs.config.json'),
-    path.join(process.env.HOME || '~', '.specs', 'config.yaml')
-  ];
-
-  for (const location of locations) {
-    if (fs.existsSync(location)) return location;
-  }
-
-  return null;
-}
-
-function loadConfig(configPath?: string): { configPath: string | null; config: MinimalConfig } {
-  const resolvedPath = configPath ? path.resolve(configPath) : findConfigFile(process.cwd());
-
-  if (!resolvedPath) {
-    return { configPath: null, config: {} };
-  }
-
-  if (!fs.existsSync(resolvedPath)) {
-    throw new Error(`Config file not found: ${resolvedPath}`);
-  }
-
-  const raw = fs.readFileSync(resolvedPath, 'utf-8');
-  const parsed = resolvedPath.endsWith('.json') ? JSON.parse(raw) : (yaml.parse(raw) as unknown);
-
-  return {
-    configPath: resolvedPath,
-    config: (parsed as MinimalConfig) || {}
-  };
 }
 
 const FETCH_KINDS: readonly FetchKind[] = ['file', 'variables', 'styles', 'icons'];
@@ -99,13 +59,13 @@ function splitOnly(value?: string): string[] {
     .filter(Boolean);
 }
 
-function normalizeSources(sources?: MinimalConfig['sources']): Array<{ alias: string; key: string; fetch: FetchKind[] }> {
+function normalizeSources(sources?: Record<string, SourceEntry>): Array<{ alias: string; key: string; fetch: FetchKind[] }> {
   if (!sources) return [];
 
   return Object.entries(sources).map(([alias, entry]) => ({
     alias,
     key: entry.key,
-    fetch: entry.data
+    fetch: (entry.fetch ?? []).filter(isFetchKind)
   }));
 }
 
@@ -180,7 +140,7 @@ function classifyHttpStatus(status: number): 'ok' | 'auth' | 'rate' | 'error' {
 }
 
 function configReference(configPath: string | null): string {
-  return configPath || 'specs.config.yaml';
+  return configPath || 'the workspace settings (config/settings.yaml)';
 }
 
 export function formatNotFoundError(alias: string, kind: string, configPath: string | null): string {
@@ -190,7 +150,7 @@ export function formatNotFoundError(alias: string, kind: string, configPath: str
     '  This usually means the key in your config is stale or out of reach:',
     '    • The file was moved, deleted, or recreated (keys change on duplicate/recreate)',
     '    • Your FIGMA_TOKEN account cannot open this file',
-    `  Check: sources.${alias}.key in ${configReference(configPath)}`
+    `  Check: data.sources.${alias}.key in ${configReference(configPath)}`
   ].join('\n');
 }
 
@@ -200,14 +160,14 @@ export function formatAuthError(status: number, alias: string, kind: string, con
     return [
       `Error: Access denied (403) while fetching ${alias}.${kind}`,
       '  Your FIGMA_TOKEN is valid but cannot access this file.',
-      `    • Confirm your Figma account can open the file for sources.${alias}.key`,
+      `    • Confirm your Figma account can open the file for data.sources.${alias}.key`,
       '    • Personal access tokens only reach files your account can view',
       '    • If your org enforces SAML/SSO, personal access tokens are blocked',
       '      Use an OAuth token or ask your admin to allow PATs',
       '      See: https://www.figma.com/developers/api#oauth2',
       '    • The file may be in personal drafts or a restricted team (403 = exists but no access)',
       ...(keyHint ? [keyHint] : []),
-      `  Check: sources.${alias}.key in ${configReference(configPath)}`
+      `  Check: data.sources.${alias}.key in ${configReference(configPath)}`
     ].join('\n');
   }
 
@@ -231,8 +191,8 @@ export interface FetchOptions {
 
 export const Fetch = new Command('fetch')
   .description('Fetch raw REST payloads (file, variables, styles) for configured Figma files')
-  .option('--config <path>', 'Path to config file (specs.config.yaml)')
-  .option('--data-dir <dir>', 'Override data directory (default: config dataDirectory or ./data)')
+  .option('--config <path>', 'Path to a config/ directory or legacy specs.config.yaml')
+  .option('--data-dir <dir>', 'Override data directory (default: data.directory from the workspace settings, or ./data)')
   .option('--outDir <dir>', 'Deprecated: use --data-dir')
   .option('--only <name[,name...]>', 'Fetch only these — a file alias from sources, a data kind (file, variables, styles, icons), or both')
   .option('--no-geometry', 'Omit geometry data (fillGeometry, strokeGeometry, size, relativeTransform) from file payloads')
@@ -246,24 +206,26 @@ export const Fetch = new Command('fetch')
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
 
-      const { configPath, config } = loadConfig(options.config);
-      const configDir = configPath ? path.dirname(configPath) : process.cwd();
+      const configPath = options.config ? path.resolve(options.config) : null;
+      const config = new ConfigLoader().load(options.config);
+      const configDir = config.configDir ?? process.cwd();
 
       if (options.outDir && !options.dataDir) {
         console.error('Warning: --outDir is deprecated, use --data-dir instead');
       }
-      const outDirValue = options.dataDir || options.outDir || config.dataDirectory || config.sourceDirectory || 'data';
+      const outDirValue = options.dataDir || options.outDir || config.settings.data?.directory || 'data';
       const outDir = path.resolve(configDir, outDirValue);
 
-      const fileEntries = normalizeSources(config.sources);
+      const fileEntries = normalizeSources(config.settings.data?.sources);
       if (fileEntries.length === 0) {
         console.error('Error: No sources configured');
-        console.error('Add to specs.config.yaml:');
-        console.error('  dataDirectory: data');
-        console.error('  sources:');
-        console.error('    library:');
-        console.error('      key: "<FILE_KEY>"');
-        console.error('      data: ["file","variables","styles"]');
+        console.error('Add to config/settings.yaml:');
+        console.error('  data:');
+        console.error('    directory: data');
+        console.error('    sources:');
+        console.error('      library:');
+        console.error('        key: "<FILE_KEY>"');
+        console.error('        fetch: ["file","variables","styles"]');
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
 
@@ -394,15 +356,16 @@ export const Fetch = new Command('fetch')
         // the saved file payload, so `file` must be present (fetched this run
         // or a previous one) before icons can resolve.
         if (entry.fetch.includes('icons') && wants('icons')) {
-          const pattern = config.config?.processing?.glyphNamePattern;
+          const pattern = config.conventions.figma.glyphs?.match;
           if (!pattern) {
-            console.error(`Error: sources.${entry.alias}.data includes "icons" but config.processing.glyphNamePattern is not set`);
+            console.error(`Error: data.sources.${entry.alias}.fetch includes "icons" but conventions.figma.glyphs.match is not set`);
             process.exit(ERROR_CODES.INVALID_ARGS);
           }
           // Icons are consumed by generated component output, so they live in
           // the durable spec workspace (beside _images/), not the data cache.
-          if (!config.outputDirectory) {
-            console.error(`Error: sources.${entry.alias}.data includes "icons" but outputDirectory is not set in config`);
+          const specDirectory = config.settings.spec.directory;
+          if (!specDirectory) {
+            console.error(`Error: data.sources.${entry.alias}.fetch includes "icons" but spec.directory is not set in the workspace settings`);
             process.exit(ERROR_CODES.INVALID_ARGS);
           }
           const filePath = path.join(outDir, `${entry.alias}.file.json`);
@@ -414,7 +377,7 @@ export const Fetch = new Command('fetch')
           const stopSpinner = startSpinner(`Downloading: ${entry.alias} icons`);
           const fileJson = JSON.parse(await fs.readFile(filePath, 'utf-8')) as { document?: unknown };
           const glyphs = collectGlyphComponents(fileJson.document, pattern);
-          const iconsDir = path.join(path.resolve(configDir, config.outputDirectory), '_icons');
+          const iconsDir = path.join(path.resolve(configDir, specDirectory), '_icons');
           await fs.ensureDir(iconsDir);
 
           let downloaded = 0;
@@ -463,12 +426,13 @@ export const Fetch = new Command('fetch')
       // Refresh the render caches from everything now on disk — the sources fetched this
       // run, plus any fetched previously. A source with no payload yet is skipped: not
       // having fetched it is a normal state, and only render treats it as an error.
-      if (config.dataDirectory) {
-        const dataDir = path.resolve(configDir, config.dataDirectory);
+      const dataDirectory = config.settings.data?.directory;
+      if (dataDirectory) {
+        const dataDir = path.resolve(configDir, dataDirectory);
         const report = refreshCache({
           dataDir,
-          aliases: Object.keys(config.sources ?? {}),
-          glyphNamePattern: config.config?.processing?.glyphNamePattern,
+          aliases: Object.keys(config.settings.data?.sources ?? {}),
+          glyphNamePattern: config.conventions.figma.glyphs?.match,
         });
         reportCache(report);
       }

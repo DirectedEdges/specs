@@ -9,8 +9,8 @@ Background fill color, read from Figma's `fills` ([ADR 009](https://github.com/D
 
 | Type | Example | Settings |
 |---|---|---|
-| `string` | `"#FF6600"` (`HEX`)<br>`"#FF6600FF"` (`HEXA`)<br>`"rgb(255, 102, 0)"` (`RGB`)<br>`"rgba(255, 102, 0, 1)"` (`RGBA`)<br>`"hsla(24, 100%, 50%, 1)"` (`HSLA`)<br>`"hsb(24, 100%, 100%)"` (`HSB`)<br>`"oklch(0.7 0.15 50 / 1)"` (`OKLCH`)<br>`"oklab(0.7 0.1 0.1 / 1)"` (`OKLAB`) | [`config.format.color`](/settings/color/) |
-| [`ColorObject`](/schema/color-object/) | `colorSpace: srgb`<br>`components: [1, 0.4, 0]` | [`config.format.color`](/settings/color/) |
+| `string` | `"#FF6600"` (`HEX`)<br>`"#FF6600FF"` (`HEXA`)<br>`"rgb(255, 102, 0)"` (`RGB`)<br>`"rgba(255, 102, 0, 1)"` (`RGBA`)<br>`"hsla(24, 100%, 50%, 1)"` (`HSLA`)<br>`"hsb(24, 100%, 100%)"` (`HSB`)<br>`"oklch(0.7 0.15 50 / 1)"` (`OKLCH`)<br>`"oklab(0.7 0.1 0.1 / 1)"` (`OKLAB`) | [`settings.spec.color`](/schema/settings/#spec) |
+| [`ColorObject`](/schema/color-object/) | `colorSpace: srgb`<br>`components: [1, 0.4, 0]` | [`settings.spec.color`](/schema/settings/#spec) |
 | [`TokenReference`](/schema/token-reference/) | `$token: DS.Color.Surface.Muted`<br>`$type: color` | [`config.format.token`](/settings/tokens/) |
 | [`GradientValue`](/schema/gradient-value/) | `type: LINEAR`<br>`angle: 180`<br>`stops: [...]` | — |
 | `null` | `null` | — |

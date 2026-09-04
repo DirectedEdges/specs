@@ -11,7 +11,7 @@ An `InstanceExample` is a pre-configured usage of a *whole* component — a docu
 ```ts
 type InstanceExample = {
   title?: string;
-  propConfigurations?: Record<string, string | number | boolean | SlotContentRef>;
+  propConfigurations?: Record<string, string | number | boolean | null | SlotContentRef>;
 };
 
 type InstanceExamples = Record<string, InstanceExample>;
@@ -22,9 +22,24 @@ type InstanceExamples = Record<string, InstanceExample>;
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
 | `title` | `string` | No | Human-readable label for this example |
-| `propConfigurations` | `Record<string, string \| number \| boolean \| `[`SlotContentRef`](/schema/slot-content-ref/)`>` | No | Prop values — scalars for scalar props, a `SlotContentRef` for slot props |
+| `propConfigurations` | `Record<string, string \| number \| boolean \| null \| `[`SlotContentRef`](/schema/slot-content-ref/)`>` | No | Prop values — scalars for scalar props, a `SlotContentRef` for slot props, `null` for a prop this example leaves unset |
 
 A [`PropBinding`](/schema/prop-binding/) is **not** permitted in `propConfigurations` — an instance example is a static configuration, not a binding.
+
+`null` under a prop key means the example leaves that prop unset (since 0.31.0). An example that shows no header says so with the header prop itself, rather than with a separate flag beside it:
+
+```yaml
+instanceExamples:
+  cardWithHeader:
+    title: Card with a header
+    propConfigurations:
+      header:
+        $slotContent: "#/components/card/slotContentExamples/cardHeader"
+  cardWithoutHeader:
+    title: Card without a header
+    propConfigurations:
+      header: null
+```
 
 Slot fills encountered inside an example instance are contributed to the shared [`slotContentExamples`](/schema/slot-content/) registry (de-duplicated against existing entries), so an `InstanceExample` holds no slot content of its own — only a `SlotContentRef` into that registry.
 
@@ -34,7 +49,7 @@ Slot fills encountered inside an example instance are contributed to the shared 
 
 ## Detection
 
-How example instances are harvested from a Figma file is controlled by [`processing.instanceExamples`](/settings/instance-examples/).
+How example instances are harvested from a Figma file is controlled by [`conventions.figma.instanceExamples`](/schema/conventions/#figmainstanceexamples).
 
 ## Further Reading
 
