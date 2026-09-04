@@ -177,11 +177,17 @@ function anatomyTypes(apiYaml: Record<string, unknown>): Record<string, string> 
  * all — that requires form association.
  */
 function disabledSelectorFor(rootAs: RootForm, rootRole: string | undefined): string {
-  const native = rootRole ? UA_STYLED_ROLES.has(rootRole) : false;
   // A shadow host is not a form control, so `:disabled` cannot match it.
   if (rootAs === 'host') return '[aria-disabled="true"]';
+  // An anchor has no `disabled` property either — a disabled link is expressed by
+  // dropping `href` and announcing `aria-disabled`, so `:disabled` never matches.
+  if (rootRole === 'link') return '[aria-disabled="true"]';
+  const native = rootRole ? NATIVE_DISABLED_ROLES.has(rootRole) : false;
   return native ? ':disabled' : ':disabled, [aria-disabled="true"]';
 }
+
+/** Roles whose emitted element carries a real `disabled` property. */
+const NATIVE_DISABLED_ROLES = new Set(['button', 'togglebutton', 'disclosure']);
 
 /** api.yaml props, keyed by prop name. */
 function apiPropsOf(apiYaml: Record<string, unknown>): Record<string, Record<string, unknown>> {
@@ -285,6 +291,14 @@ function buildCssLines(
 
   const lines: string[] = [
     '/* Generated. Do not edit — regenerate with `specs transform`. */',
+    '',
+    // Everything generated sits in one cascade layer, so an unlayered consumer
+    // rule beats it regardless of specificity. Without this a consumer retheming
+    // a state has to match selectors like
+    // `.x[data-appearance="outline"]:hover:not(:disabled) .x__label` exactly, for
+    // every state, in the right order — a specificity race the generator wins by
+    // accident of how many guards it emitted.
+    '@layer specs {',
     '',
     // A Figma frame's width and height INCLUDE its padding; the CSS default,
     // content-box, excludes it. Without this, every element carrying both a
@@ -627,6 +641,8 @@ function buildCssLines(
     );
   }
 
+  lines.push('}');
+  lines.push('');
   return lines;
 }
 
