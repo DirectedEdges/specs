@@ -57,7 +57,7 @@ Configuration now separates what is true about a Figma library from what a run c
 
 #### New drafts
 
-- [ADR-072](../../adr/072-numeric-variant-enum.md) — Numeric Enum on `NumberProp`
+- [ADR-072](../../adr/072-numeric-variant-enum.md) — Numeric Enum on NumberProp
 
 ## [0.30.0] - 2026-08-17
 
