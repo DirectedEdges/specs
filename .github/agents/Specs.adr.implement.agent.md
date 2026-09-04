@@ -31,7 +31,8 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Read `package.json` for the current version
    - Read `CHANGELOG.md` for the existing format
 
-3. **Verify ADR completeness**: The ADR must have a clear Decision section (type and schema changes listed) and a Semver Decision with `CURRENT → NEW`. If either is missing or marked NEEDS CLARIFICATION, halt and ask the author to complete the ADR first.
+3. **Verify ADR completeness**: The ADR must have a clear Decision section (type and schema changes listed) and a Semver Decision naming the **target version** and the **change class**. If either is missing or marked NEEDS CLARIFICATION, halt and ask the author to complete the ADR first.
+   - The target version is the active release branch's version — an ADR ships inside a release that already has one. If the Semver section instead proposes a bump (`0.30.0 → 0.31.0`), treat the right-hand version as the target only if it matches `$RELEASE_BRANCH`; otherwise halt and ask the author to correct it.
 
 4. **Constitution gate check**: Evaluate all six gates against the ADR's stated changes. If any gate fails without a documented exception in the ADR, halt and report the violation before touching any file.
 
@@ -93,8 +94,8 @@ You **MUST** consider the user input before proceeding (if not empty).
     - **Migration line**: `` `Parent.old` → `Parent.new` ``: one sentence; imperative; describe what to read instead and how to handle the new type
     - **Gate**: After writing, verify the new entry is present in the file. If CHANGELOG.md does not contain the new version heading, halt and report — do not proceed to step 13.
 
-13. **Bump version in `package.json`**: Apply the `NEW` version from the ADR's Semver Decision.
-    - **Gate**: After writing, read `package.json` back and confirm the `"version"` field matches the ADR's `NEW` version. If it does not match, halt and report — do not proceed to step 14.
+13. **Confirm the version in `package.json`**: It must equal the ADR's **target version** — the one the release branch already carries, normally set by `/start-next-release`. Write it only if it differs; do not invent a bump beyond the release branch's version.
+    - **Gate**: After writing, read `package.json` back and confirm the `"version"` field matches the ADR's target version. If it does not match, halt and report — do not proceed to step 14.
 
 14. **Report**: List every file modified (with one-line description each). The list **must** include the ADR file, `CHANGELOG.md`, and `package.json` — if any is absent from the list, halt: steps 10, 12, or 13 were not completed. State that the author should review the diff and accept the ADR once satisfied. Remind the author that this ADR branch (`$BRANCH`) targets the release branch (`$RELEASE_BRANCH`), not `main`.
 
