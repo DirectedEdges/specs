@@ -189,31 +189,36 @@ const badContract: VariantStateEntry = { prop: 'focused', contract: 'inherit' };
 
 // ─── Spec-side conventions (ADR-073 amendment) ────────────────────────────────
 
-// props.states classifies variant props as semantic states
+// states classifies variant props as semantic states — unchanged vocabulary
 const specStates: SpecsConventions = {
-  props: { states: { disabled: { prop: 'disabled' }, hover: { prop: 'state', value: 'Hover' } } },
+  states: { disabled: { prop: 'disabled' }, hover: { prop: 'state', value: 'Hover' } },
 };
 
-// props.accessibility.label names the prop carrying an accessible name
+// accessibility.label names the prop carrying an accessible name
 const specAccessibility: SpecsConventions = {
-  props: { accessibility: { label: { prop: 'accessibilityLabel' } } },
+  accessibility: { label: { prop: 'accessibilityLabel' } },
 };
 
-// props.value names the prop carrying a value no element represents
-const specValue: SpecsConventions = { props: { value: { prop: 'progress' } } };
+// value names the prop carrying a value no element represents, and the prop that
+// says that value is unknown — a property OF the value, not a state concept
+const specValue: SpecsConventions = { value: { prop: 'progress', indeterminate: 'isLooping' } };
 
-// All three compose, and every block is optional
+// indeterminate is optional; a value with a known number needs nothing else
+const specValueOnly: SpecsConventions = { value: { prop: 'progress' } };
+
+// Every block is optional and they compose
 const specAll: SpecsConventions = {
-  props: {
-    states: { disabled: { prop: 'disabled' } },
-    accessibility: { label: { prop: 'accessibilityLabel' } },
-    value: { prop: 'progress' },
-  },
+  states: { disabled: { prop: 'disabled' } },
+  accessibility: { label: { prop: 'accessibilityLabel' } },
+  value: { prop: 'progress' },
 };
 const specNone: SpecsConventions = {};
 
 // @ts-expect-error — a prop reference is an object, so it can grow fields later
-const specBareString: SpecsConventions = { props: { accessibility: { label: 'accessibilityLabel' } } };
+const specBareString: SpecsConventions = { accessibility: { label: 'accessibilityLabel' } };
+
+// @ts-expect-error — a value convention requires the prop it names
+const specValueNoProp: SpecsConventions = { value: { indeterminate: 'isLooping' } };
 
 // @ts-expect-error — states no longer live on a platform
 const platformStates: PlatformConventions = { states: { disabled: { prop: 'disabled' } } };
@@ -226,5 +231,6 @@ export {
   width, stringWidth, platformMayBeAbsent, naming, constraints, numbers, scope, sourceProps,
   platformStyles, resolvedEntry, underResolved, meta,
   metaWithoutPlatforms, defaults, defaultedPlatform, booleanState, enumState, noProp, badContract,
-  specStates, specAccessibility, specValue, specAll, specNone, specBareString, platformStates,
+  specStates, specAccessibility, specValue, specValueOnly, specAll, specNone, specBareString,
+  specValueNoProp, platformStates,
 };

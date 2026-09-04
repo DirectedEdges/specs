@@ -323,34 +323,45 @@
       "additionalProperties": false,
       "description": "Conventions about the spec itself rather than about any platform. A sibling of `platforms` for the same reason `primitives` is: `states` names a prop and an enum value that exist in api.yaml, and a transform reading only the spec can apply it. Library-wide; the per-component equivalent is an annotation, and the annotation wins.",
       "properties": {
-        "props": {
+        "states": {
+          "type": "object",
+          "description": "Concept-keyed map classifying Figma variant props as semantic states.",
+          "additionalProperties": {
+            "$ref": "#/definitions/VariantStateEntry"
+          }
+        },
+        "accessibility": {
           "type": "object",
           "additionalProperties": false,
-          "description": "What this library's props mean.",
+          "description": "Props carrying accessibility semantics no element expresses.",
           "properties": {
-            "states": {
-              "type": "object",
-              "description": "Concept-keyed map classifying Figma variant props as semantic states.",
-              "additionalProperties": {
-                "$ref": "#/definitions/VariantStateEntry"
-              }
-            },
-            "accessibility": {
-              "type": "object",
-              "additionalProperties": false,
-              "description": "Props carrying accessibility semantics no element expresses.",
-              "properties": {
-                "label": {
-                  "$ref": "#/definitions/PropReference",
-                  "description": "The prop supplying an accessible name for a control with no text of its own. A resolving `label` part role wins over it."
-                }
-              }
-            },
-            "value": {
+            "label": {
               "$ref": "#/definitions/PropReference",
-              "description": "The prop supplying a control's value where no element represents it. A resolving `value` part role wins over it."
+              "description": "The prop supplying an accessible name for a control with no text of its own. A resolving `label` part role wins over it."
             }
           }
+        },
+        "value": {
+          "$ref": "#/definitions/ValueConvention",
+          "description": "The prop supplying a control's value where no element represents it. A resolving `value` part role wins over it."
+        }
+      }
+    },
+    "ValueConvention": {
+      "type": "object",
+      "required": [
+        "prop"
+      ],
+      "additionalProperties": false,
+      "description": "The props describing a control's value. `indeterminate` sits here rather than among the state concepts: those are a governed vocabulary where `indeterminate` means a checkbox's mixed state, and a progress bar with no known value is a different fact wearing the same word.",
+      "properties": {
+        "prop": {
+          "type": "string",
+          "description": "The prop carrying the value."
+        },
+        "indeterminate": {
+          "type": "string",
+          "description": "A boolean prop that forces the indeterminate presentation regardless of the value."
         }
       }
     }

@@ -298,30 +298,59 @@ export interface PropReference {
  * @since 0.32.0
  */
 export interface SpecsConventions {
-  /** What this library's props mean. */
-  props?: {
+  /**
+   * Concept-keyed map classifying variant props as semantic states.
+   *
+   * Unchanged from where it previously sat, including its concept vocabulary: the
+   * concepts are governed, each resolving to a canonical selector, and that
+   * governance is why nothing else is folded in here. Absence means all variant
+   * props emit as `data-*` attribute selectors and all props are retained in
+   * contracts.
+   */
+  states?: Record<string, VariantStateEntry>;
+  /** Props carrying accessibility semantics no element expresses. */
+  accessibility?: {
     /**
-     * Concept-keyed map classifying variant props as semantic states. Key = concept
-     * name (e.g. `hover`, `disabled`). Absence means all variant props emit as
-     * `data-*` attribute selectors and all props are retained in contracts.
+     * The prop supplying an accessible name for a control with no text of its own —
+     * an icon-only button, typically. Where a `label` part role resolves, that wins:
+     * an element carrying the name is preferred to a prop.
      */
-    states?: Record<string, VariantStateEntry>;
-    /** Props carrying accessibility semantics no element expresses. */
-    accessibility?: {
-      /**
-       * The prop supplying an accessible name for a control with no text of its
-       * own — an icon-only button, typically. Where a `label` part role resolves,
-       * that wins: an element that carries the name is preferred to a prop.
-       */
-      label?: PropReference;
-    };
-    /**
-     * The prop supplying a control's value where no element represents it — a
-     * progress bar draws its progress rather than writing it. Where a `value` part
-     * role resolves, that wins.
-     */
-    value?: PropReference;
+    label?: PropReference;
   };
+  /**
+   * The prop supplying a control's value where no element represents it — a progress
+   * bar draws its progress rather than writing it. Where a `value` part role
+   * resolves, that wins.
+   */
+  value?: ValueConvention;
+}
+
+/**
+ * The props describing a control's value.
+ *
+ * `indeterminate` sits here rather than among the state concepts because those are a
+ * governed vocabulary: each resolves to a canonical selector, and `indeterminate`
+ * there means a checkbox's mixed state (`:indeterminate`, `aria-checked="mixed"`).
+ * A progress bar with no known value is a different fact wearing the same word — it
+ * suppresses `aria-valuenow` and has no selector at all. Folding them would widen a
+ * governed vocabulary to absorb a prop binding, which is what the governance exists
+ * to prevent.
+ *
+ * Modelling it as a property *of* the value is what it actually is: the prop that
+ * says this value is unknown.
+ *
+ * @since 0.32.0
+ */
+export interface ValueConvention {
+  /** The prop carrying the value. */
+  prop: string;
+  /**
+   * A boolean prop that forces the indeterminate presentation regardless of the
+   * value. Resolution order: this true suppresses the value; otherwise a resolved
+   * `prop` produces the determinate form; otherwise the indeterminate form is
+   * emitted with a warning.
+   */
+  indeterminate?: string;
 }
 
 export interface Conventions {

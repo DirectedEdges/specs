@@ -268,14 +268,21 @@ about the design tool. `states` is not, and filing it under `figma` said it was.
 
 ```yaml
 # conventions/specs.yaml
-props:
-  states:
-    disabled:
-      prop: isDisabled
-  accessibility:
-    label:
-      prop: a11yLabel
+states:
+  disabled:
+    prop: isDisabled
+accessibility:
+  label:
+    prop: a11yLabel
+value:
+  prop: progress
+  indeterminate: isLooping
 ```
+
+No `props` wrapper. Everything the file holds today describes props, so the group
+earns nothing and reads badly against the leaf it contains — `props.states.disabled.prop`
+says "prop" twice. A grouping level is worth adding when a second kind arrives, not
+before.
 
 - **`primitives` is the precedent.** It already sits outside `platforms` for exactly this
   reason — a component's props are the same whichever platform renders it, so the table is
@@ -327,6 +334,56 @@ artifact would separate `states` from the file set it belongs to, for a distinct
 
 ---
 
+## Decision 5 — Whether `primitives.yaml` should be `figma.primitives.yaml`
+
+Decision 2 put `primitives` outside `platforms` on the grounds that it is
+platform-neutral: a component's props are the same whichever platform renders it. That
+is true of the **result** and not of the **inputs**, which the table is mostly made of:
+
+```yaml
+deIcon:
+  map:
+    - source: fillColor                       # a Figma style property
+      values: { "DS Color/Icon/Primary": { color: Primary } }   # a Figma token name
+    - source: width                           # a Figma style property
+```
+
+`source` names Figma style properties; the keys under `values` are Figma token names. A
+SwiftUI capture would need a different table with different sources. So the file is
+Figma-scoped in a way `specs.yaml` is not, and this is exactly the test Decision 4
+applies — does it name facts about the design tool, or facts about the spec?
+
+### Option 5A: Rename to `figma.primitives.yaml` *(Selected)*
+
+- **It passes the Decision 4 test**, which is the test this ADR now applies to every
+  conventions file. Leaving it unqualified says it is scope-free, and it is not
+- Establishes `<scope>.<concern>.yaml` as the pattern for a scoped file that is not a
+  whole platform block, leaving room for `figma.<other>.yaml` without another debate
+- `specs.yaml` stays unqualified and correct — it *is* the whole of the spec's conventions
+
+**Cons / Trade-offs**:
+
+- Reverses the reading in Decision 2. That reasoning stands for the *output* of the
+  table and was over-applied to the file as a whole
+- A reserved basename changes, so `PRIMITIVES_FILE` and any workspace carrying the file
+  must move together. Cheap now, less cheap later
+
+### Option 5B: Leave it `primitives.yaml` *(Rejected)*
+
+**Rejected because**: it makes the conventions directory two things at once — files named
+for a platform, and one named for a concern — with nothing distinguishing which is which.
+A reader has to know that `figma.yaml` is scoped and `primitives.yaml` is also scoped but
+does not say so.
+
+### Option 5C: Move it under `platforms.figma.primitives` *(Rejected)*
+
+**Rejected because**: it would grow the platform block with a component-keyed table, and
+the promotion result genuinely is platform-neutral — a captured layer becomes the same
+component whichever target renders it later. The file is Figma-scoped; its contents are
+not wholly so. A qualified filename says that; nesting it inside the platform block
+overstates it.
+
+
 ## Decision
 
 ### Type changes (`types/`)
@@ -339,8 +396,10 @@ artifact would separate `states` from the file set it belongs to, for a distinct
 | `Conventions.ts` | `DEFAULT_CONVENTIONS` no longer carries a `figma` key; defaults move inside a declared platform entry | MINOR |
 | `Conventions.ts` | Doc comment widened from "facts about the Figma library" to facts about every library the pipeline reads or writes | PATCH |
 | `Conventions.ts` | Added `SpecsConventions` and `Conventions.specs?`, a sibling of `platforms` and `primitives` — conventions describing the spec rather than a platform (Decision 4) | MINOR |
+| *(no type change)* | `conventions/primitives.yaml` is renamed `conventions/figma.primitives.yaml` — a reserved-basename change, not a type change (Decision 5) | PATCH |
 | `Conventions.ts` | Added `PropReference` (`{ prop: string }`), so a prop convention can grow fields without a break | MINOR |
-| `Conventions.ts` | `states` moved from `PlatformConventions` to `Conventions.specs.props.states` — it names a spec prop and a spec enum value, not a Figma fact | MINOR |
+| `Conventions.ts` | Added `ValueConvention` (`{ prop, indeterminate? }`) — the indeterminate binding is a property of the value, not a state concept | MINOR |
+| `Conventions.ts` | `states` moved from `PlatformConventions` to `Conventions.specs.states` — it names a spec prop and a spec enum value, not a Figma fact. Its concept vocabulary is unchanged | MINOR |
 
 **Example — new shape** (`types/Conventions.ts`):
 
@@ -356,11 +415,10 @@ Conventions:
 Conventions:
   # conventions about the spec itself — not about any platform (Decision 4)
   specs?:
-    props?:
-      states?: {...}
-      accessibility?:
-        label?: { prop: string }
-      value?: { prop: string }
+    states?: {...}
+    accessibility?:
+      label?: { prop: string }
+    value?: { prop: string, indeterminate?: string }
   platforms?:
     <platformId>:
       # encoding — how this platform expresses what the spec models
