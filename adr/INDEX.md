@@ -4,7 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 083 | Collapsing a Slot-Only Wrapper |  |
+| 082 | `Component.description` — The Authored Figma Description, Plain Text and Opt-In |  |
 | 079 | `metadata.conventions` Carries Only the Producing Platform | (reserved, draft in PR #363) |
 | 078 | One Conventions File per Platform, in `config/conventions/` | (reserved, draft in PR #363) |
 | 077 | The Image Component's Code Name, and the Encoding / Vocabulary Boundary | (reserved, draft in PR #363) |
