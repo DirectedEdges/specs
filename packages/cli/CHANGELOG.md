@@ -7,18 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.28.0] - Unreleased
 
+**Configuration splits into three files** — facts about your Figma library, choices this
+workspace makes, and what it runs. `specs migrate config` converts an existing workspace.
+
 ### Breaking
 
-- `specs.config.yaml` → a `config/` directory holding `conventions`, `settings` and `pipeline`. Library facts and run choices validate apart. `specs migrate config` converts a workspace; an unmigrated one errors naming that command rather than falling back to defaults
+- **`specs.config.yaml` becomes a `config/` directory** holding `conventions`, `settings` and
+  `pipeline`, so library facts and workspace choices validate apart. Commands stop and name
+  `specs migrate config` rather than falling back to defaults.
 
 ### Added
 
-- `config/conventions/primitives.yaml` — reserved basename, read as the platform-neutral promotion table rather than a platform (ADR-075, ADR-078)
-- `settings.spec.promotePrimitives` — resolved, and sent with the conventions over `--from-bridge` so the plugin promotes under the workspace's table
-- `specs migrate <subject>` — versioned workspace migrations. `config` converts `specs.config.yaml` and renames it `.migrated`; `--dry-run`, `--source`, `--from`, `--list`. A registry, so later migrations register alongside rather than replace
-- `cssvars` transformer — library-level CSS custom properties, resolved from the fetched library JSON
-- `webcomponents` and `webcomponents-stories` transformers — a Lit element and its Storybook page. Experimental; output shape may change without a breaking-change note
-- `css` transformer emits inline effects and gradients — shadows, blurs and gradient fills declared on an element rather than through a token, previously dropped
+- **`specs migrate config`** converts a legacy workspace to the new file layout, with flags for
+  `--dry-run`, `--source`, `--from` and `--list`.
+- **`webcomponents` and `webcomponents-stories` transformers emit a Lit element and its
+  Storybook page.** Experimental; output shape may change without a breaking-change note.
+- **`cssvars` transformer resolves CSS custom properties** from fetched library JSON rather than
+  from any one component.
+- **`css` transformer emits effects and gradients set on an element** — shadows, blurs and
+  gradient fills declared directly rather than through a token, dropped until now.
+- **`settings.spec.promotePrimitives` swaps raw layers in example content** for the design system
+  components they stand in for. Off by default, and sent over `--from-bridge` so the plugin uses
+  your table.
+- **`config/conventions/primitives.yaml` names which component each layer becomes** (ADR-075,
+  ADR-078).
 
 ### Changed
 

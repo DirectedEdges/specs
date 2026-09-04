@@ -7,9 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.31.0] - Unreleased
 
-Configuration separates library facts from run choices. A convention is something every consumer of a Figma library must agree on, and getting one wrong produces incorrect output; a setting is a free choice that produces different output. `Config` becomes `Conventions`, `Settings` and `Pipeline` — three types, each validated on its own.
+**Configuration separates library facts from run choices.** A convention is something every consumer of a Figma library must agree on, while a setting is a free choice that produces different output. `Config` becomes `Conventions`, `Settings` and `Pipeline`, each validated on its own.
 
-Composed example content can also say which component it uses. Designers build examples from raw layers, so a text layer stands in for the design system's text component. With `Settings.spec.promotePrimitives` on, that layer becomes an instance of what it stood for, using a `Conventions.primitives` table. What the promotion consumed is kept under `Element.$extensions`, so nothing is lost. A component's own anatomy is never promoted. Opt-in and off by default.
+**Composed example content can map to preferred components** by matching a primitive's style values with designated component props. Since designers build examples with raw layers, that layer can now become an instance in specs for what component it stood for. Opt-in by default.
 
 ### Added
 
