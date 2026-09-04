@@ -71,7 +71,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### New drafts
 
-- [ADR-072](../../adr/072-numeric-variant-enum.md) — Numeric Enum on `NumberProp`
+- [ADR-067](../../adr/067-anatomy-element-roles.md) — Element Behavior Roles via `anatomy.role`
+- [ADR-068](../../adr/068-form-control-roles.md) — Form Control and Field Plumbing Role Concepts
+- [ADR-072](../../adr/072-numeric-variant-enum.md) — Numeric Enum on NumberProp
+- [ADR-073](../../adr/073-platform-conventions-namespace.md) — `conventions.platforms`, with Figma as One Platform Among Them
+- [ADR-074](../../adr/074-emit-time-primitive-resolution.md) — Primitives Promote to Component Instances During Capture, in Composed Content
+- [ADR-075](../../adr/075-primitive-style-prop-mapping.md) — `conventions.primitives` — a Declared Table from Styles to a Component's Props
+- [ADR-076](../../adr/076-container-primitives-and-shared-styles.md) — Promoting a Container, and a Platform-Level `stylesProp`
+- [ADR-077](../../adr/077-images-and-the-convention-boundary.md) — The Image Component's Code Name, and the Encoding / Vocabulary Boundary
+- [ADR-078](../../adr/078-conventions-file-per-platform.md) — One Conventions File per Platform, in `config/conventions/`
+- [ADR-079](../../adr/079-metadata-conventions-single-platform.md) — `metadata.conventions` Carries Only the Producing Platform
+- [ADR-081](../../adr/081-default-fill-width.md) — `defaultFillWidth` — the Width a Fill-Width Root Fills
+- [ADR-084](../../adr/084-element-figma-extensions.md) — `Element.$extensions` — Figma Provenance for a Promoted Element
+- [ADR-085](../../adr/085-promote-primitives-setting.md) — `promotePrimitives` — the Switch for Capture-Time Promotion
+- [ADR-086](../../adr/086-interactive-root-roles.md) — Interactive Root and Announcement Role Concepts
+- [ADR-087](../../adr/087-behavior-actions.md) — Behavior Actions via `anatomy.action`
 
 ## [0.30.0] - 2026-08-17
 
