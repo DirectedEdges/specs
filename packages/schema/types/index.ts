@@ -34,7 +34,9 @@ export type {
   PrimitiveEntry,
   PrimitiveRule,
   VariantStateEntry,
-  PropRoleName,
+  SpecsConventions,
+  PropReference,
+  ValueConvention,
 } from './Conventions.js';
 export { DEFAULT_CONVENTIONS } from './Conventions.js';
 export type { Settings, ResolvedSettings, ColorFormat, SourceEntry } from './Settings.js';

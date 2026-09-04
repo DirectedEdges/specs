@@ -10,7 +10,7 @@
 
 ## Context
 
-ADR 055 (`processing.states`) lets a library deterministically classify variant props as semantic state concepts (`disabled`, `checked`, `expanded`). Downstream transforms consume that classification — but only at the *prop* level. Nothing in the spec identifies *which element carries the platform behavior*, so the `react` transform has no basis for emitting a `<button>`, injecting a native `<input>`, or wiring a `<label htmlFor>`. Every interactive component scaffolds as `div` + ARIA veneer:
+ADR 055 (state classification, now `states` in `conventions/specs.yaml`) lets a library deterministically classify variant props as semantic state concepts (`disabled`, `checked`, `expanded`). Downstream transforms consume that classification — but only at the *prop* level. Nothing in the spec identifies *which element carries the platform behavior*, so the `react` transform has no basis for emitting a `<button>`, injecting a native `<input>`, or wiring a `<label htmlFor>`. Every interactive component scaffolds as `div` + ARIA veneer:
 
 - A button renders `<div aria-disabled>` — no `<button>`, no native `disabled`, no `onClick`, no focus or keyboard behavior
 - A checkbox renders no `<input>` at all, bridges its selected state to `aria-selected` (a listbox-option attribute, incorrect for a checkbox), and leaves its label and error-message subcomponents unassociated
@@ -64,9 +64,9 @@ Add `role?: string` alongside `type`, `detectedIn`, and `instanceOf`.
 
 ---
 
-### Option 1B: Workspace-config role map for elements, mirroring `processing.states` *(Rejected)*
+### Option 1B: Workspace-config role map for elements, mirroring the state classification *(Rejected)*
 
-A `processing.roles` block in `specs.config.yaml` mapping component/element paths to element roles.
+A `roles` block in workspace config mapping component/element paths to element roles.
 
 **Rejected because**: `states` works as workspace config because prop names (`disabled`, `state`) are library-wide conventions — one declaration covers every component. **Element** roles are per-component, per-element facts (a checkbox's `control` is a checkbox; an alert's `control` would not be). A workspace map would grow one entry per component element, duplicate the anatomy structure outside the spec, and strand the fact away from the artifact that transforms consume.
 
@@ -286,24 +286,28 @@ Without these, transforms fall back to matching prop names — the exact heurist
 
 - **Which prop supplies a value that no element represents?** A progress bar draws its progress as a filled bar, not as a text element — there is no element to annotate as the `value` part, and the number exists only as a prop
 
-**Scope discipline**: `propRoles` covers facts that live in props and nowhere else. Anything an element can carry is a part role. An earlier draft put `placeholder` here; part roles supersede it entirely, because a placeholder is always a text element in components that have one.
+**Scope discipline**: a prop convention covers facts that live in props and nowhere else. Anything an element can carry is a part role. An earlier draft put `placeholder` here; part roles supersede it entirely, because a placeholder is always a text element in components that have one.
 
-`value` is the one entry that lives in both worlds, and the precedence is explicit: **a `value` part wins where one exists; `propRoles.value` is the fallback for controls whose value has no element.** Text controls use the part; progress bars use the prop. Both are declarations, neither is a guess.
+`value` is the one entry that lives in both worlds, and the precedence is explicit: **a `value` part wins where one exists; `value.prop` is the fallback for controls whose value has no element.** Text controls use the part; progress bars use the prop. Both are declarations, neither is a guess.
 
-This also makes **code-only props a first-class semantic surface** without changing what the code-only-props frame means. The frame keeps its single meaning — literal props — while `propRoles` classifies which of those props carries the accessible name or the indeterminate signal. A library can therefore author real semantic payload with one hidden layer in a frame it already has, rather than restructuring its components.
+This also makes **code-only props a first-class semantic surface** without changing what the code-only-props frame means. The frame keeps its single meaning — literal props — while the spec conventions classify which of those props carries the accessible name or the value. A library can therefore author real semantic payload with one hidden layer in a frame it already has, rather than restructuring its components.
 
-### Option 4A: Workspace config for conventions, annotations for exceptions *(Selected)*
+### Option 4A: Spec conventions for the library, annotations for exceptions *(Selected)*
 
-A `processing.propRoles` block in `specs.config.yaml`, structurally parallel to
-`processing.states`, declares the library-wide prop conventions. A component that deviates
+A `props` block in `conventions/specs.yaml` declares the library-wide prop conventions,
+beside `states` which answers the same shape of question. A component that deviates
 overrides it with an annotation on its component node, using the same `key:value` grammar as
 roles.
 
+These are conventions about the **spec**, not about a platform: they name a prop that exists
+in `api.yaml`, and a transform reading only the spec can apply them. See ADR 073 for why they
+sit beside `platforms` rather than inside it.
+
 ```yaml
-config:
-  processing:
-    propRoles:
-      accessibleName: a11yLabel
+# conventions/specs.yaml
+accessibility:
+  label:
+    prop: a11yLabel
 ```
 
 ```
@@ -327,8 +331,8 @@ indeterminate:isLooping
 - Two surfaces for one concept, so an author reading only the config can be surprised by a
   component that overrides it. The diagnostic for an unmet obligation names the resolved
   binding to make this visible
-- A second config block for a related-but-distinct concern; `states` and `propRoles` will
-  invite eventual consolidation
+- The library-wide and per-component halves of one concept live in two files, split by
+  scope. The precedence rule (annotation wins) is what keeps that legible
 
 ---
 
@@ -392,8 +396,8 @@ different places:
 | Satisfier kind | Example |
 |---|---|
 | A part role resolved to this control | a `label` element |
-| A prop binding from `propRoles` | `propRoles.accessibleName` |
-| A state classification from `processing.states` | the `checked` entry |
+| A prop convention | `accessibility.label` in `conventions/specs.yaml` |
+| A state classification from `states` | the `checked` entry |
 | An existing variant prop | a `value` prop the library already declares |
 
 - **It matches how the requirements actually work.** The most important obligation — that a
@@ -416,7 +420,7 @@ Declare edges between concepts — `checkbox` requires `label`, `disclosure` req
 
 - Simple to state, simple to implement, and easy to visualize
 - **But it can only see annotations, and the requirements are not all annotations.** An
-  icon-only button names itself through `propRoles.accessibleName`, which is a config entry
+  icon-only button names itself through `accessibility.label`, which is a convention
   in a different file. A graph over annotations would report that correctly-named control
   as broken, and the false positive would land on exactly the components this feature exists
   to improve
@@ -451,7 +455,7 @@ Treat every unmet obligation as an error rather than deciding severity per oblig
 - Teams adopting roles incrementally would be unable to run the transform at all until every
   component was fully annotated
 
-**Severity is therefore configurable rather than fixed.** `processing.roleValidation`
+**Severity is therefore configurable rather than fixed.** `settings.spec.roleValidation`
 accepts `'warn'` (the default) or `'error'`, letting a team escalate once its library is
 fully annotated and its CI should hold the line. Conflicts remain errors regardless of the
 setting, because they are unambiguous: two elements claiming one part, or two value-bearing
@@ -465,9 +469,11 @@ controls in one component.
 |------|--------|------|
 | `types/Anatomy.ts` | Add exported type alias `RoleConceptName` (open string; documents the naming scheme) | MINOR |
 | `types/Anatomy.ts` | Add optional field `role?: RoleConceptName` to `AnatomyElement` | MINOR |
-| `types/Config.ts` | Add optional field `propRoles?: Record<PropRoleName, string>` to `Config.processing` and `ResolvedConfig.processing` | MINOR |
+| `types/Conventions.ts` | Add `SpecsConventions` with a `props` block (`states`, `accessibility.label`, `value`), and `Conventions.specs` beside `platforms` and `primitives` | MINOR |
+| `types/Conventions.ts` | Add `PropReference` (`{ prop: string }`), so a prop convention can grow fields | MINOR |
+| `types/Conventions.ts` | Move `states` off `PlatformConventions` — it names a spec prop, not a Figma fact | MINOR |
 | `types/Config.ts` | Add exported type alias `PropRoleName` (open string: `accessibleName`, `indeterminate`, `value`) | MINOR |
-| `types/Config.ts` | Add optional field `roleValidation?: 'warn' \| 'error'` to `Config.processing` and `ResolvedConfig.processing` (default `'warn'`) | MINOR |
+| `types/Settings.ts` | Add optional field `roleValidation?: 'warn' \| 'error'` to `Settings.spec` (default `'warn'`), beside `roles` | MINOR |
 | `types/index.ts` | Export `RoleConceptName`, `PropRoleName` | MINOR |
 
 **Example — new shape** (`types/Anatomy.ts`):
@@ -608,7 +614,7 @@ that plainly removes most of the ambiguity readers have reported about what a pa
 
 ### Roles and the states config
 
-`anatomy.role` and `processing.states` are **independent authoring inputs**. Either may
+`anatomy.role` and `states` are **independent authoring inputs**. Either may
 exist without the other, neither supersedes the other, and the role feature must not gate
 or disable existing states behavior.
 
@@ -616,7 +622,7 @@ They answer different questions, and neither answer is derivable from the other:
 
 | Input | Answers |
 |---|---|
-| `processing.states` | *Which Figma variant prop carries this concept?* |
+| `states` | *Which variant prop carries this concept?* |
 | `anatomy.role` | *What mechanism is available to express it?* |
 
 A states classification with no role behaves exactly as it does today. A role with no
@@ -633,7 +639,7 @@ the two mechanisms have.
 
 **The dependency runs role → states.** A role's *wired* event handlers cannot be generated
 without a resolved state binding. A `togglebutton` that flips its own pressed state must be
-told which prop holds that state, and only `processing.states` can tell it. Several
+told which prop holds that state, and only `states` can tell it. Several
 concepts are therefore **inert without a states classification**, degrading to a stub
 handler and a warning rather than to generated state management. Roles depend on the states
 config; they do not replace any part of it.
@@ -663,16 +669,16 @@ discharges it**.
 
 | Obligation | Declared by | Level | Satisfied by any of |
 |---|---|---|---|
-| `name` | every control concept | required | a `label` part resolved to this control; `propRoles.accessibleName`; for `group`, a `label` part emitted as `<legend>` |
-| `value` | value-bearing controls using `collapse` (`textbox`, `password`, `searchbox`, `textarea`, `spinbutton`, `slider`) | required | a `value` part; an existing variant prop bound as the value; `propRoles.value` |
-| `checkedstate` | `checkbox`, `radio`, `switch` | expected | a `checked` classification in `processing.states` |
-| `pressedstate` | `togglebutton` | expected | a `pressed` classification in `processing.states` |
-| `expandedstate` | `disclosure` | expected | an `expanded` classification in `processing.states` |
+| `name` | every control concept | required | a `label` part resolved to this control; `accessibility.label`; for `group`, a `label` part emitted as `<legend>` |
+| `value` | value-bearing controls using `collapse` (`textbox`, `password`, `searchbox`, `textarea`, `spinbutton`, `slider`) | required | a `value` part; an existing variant prop bound as the value; `value.prop` |
+| `checkedstate` | `checkbox`, `radio`, `switch` | expected | a `checked` classification in `states` |
+| `pressedstate` | `togglebutton` | expected | a `pressed` classification in `states` |
+| `expandedstate` | `disclosure` | expected | an `expanded` classification in `states` |
 | `panel` | `disclosure` | expected | a `panel` part resolved to this control |
 | `membership` | `group` | expected | a slot whose `anyOf` resolves to entries carrying control roles |
-| `progressvalue` | `progressbar` | expected | `propRoles.value`; `propRoles.indeterminate` |
+| `progressvalue` | `progressbar` | expected | `value.prop`; `value.indeterminate` |
 | `steppers` | `spinbutton` | optional | `increment` and `decrement` parts |
-| `statelabels` | `togglebutton`, `disclosure` | optional | a `propRoles` entry pairing a state concept to an alternate text prop |
+| `statelabels` | `togglebutton`, `disclosure` | optional | a prop convention pairing a state concept to an alternate text prop |
 
 Two properties of this table are load-bearing:
 
@@ -699,7 +705,7 @@ label" sends an author to the wrong fix when the right one is a config entry.
 warning  checkbox 'root' in components/checkbox has no name source
          satisfy with one of:
            - a `label` role on an element in this component
-           - a `processing.propRoles.accessibleName` entry
+           - an `accessibility.label` convention
          emitting without an accessible name
 ```
 
@@ -730,7 +736,8 @@ not listed here.
 | File | Change | Bump |
 |------|--------|------|
 | `schema/component.schema.json` | Add `role` property to the anatomy element definition | MINOR |
-| `schema/workspace.schema.json` | Add `propRoles` object to `#/definitions/Config/properties/processing/properties` | MINOR |
+| `schema/conventions.schema.json` | Add `SpecsConventions` and `PropReference`; add `specs` to `#/definitions/Conventions/properties`; remove `states` from `PlatformConventions` | MINOR |
+| `schema/settings.schema.json` | Add `roleValidation` to the `spec` block | MINOR |
 
 **Example — new property** (anatomy element definition):
 
@@ -741,23 +748,29 @@ role:
   # not in required[] — optional field
 ```
 
-**Example — new processing properties** (`workspace.schema.json`):
+**Example — the spec conventions block** (`conventions.schema.json`):
 
 ```yaml
-propRoles:
+states:
+  description: "Concept-keyed map classifying variant props as semantic states."
+accessibility:
   type: object
-  additionalProperties:
-    type: string
-  description: "Library-wide prop-name conventions consumed by role emission: maps a prop-role concept (accessibleName, indeterminate, value) to the prop name that carries it. Covers facts carried by props alone — element-level facts use part roles on anatomy elements, and a matching part role always wins over a propRoles entry. Per-component deviations are annotated on the component node."
+  properties:
+    label:
+      $ref: "#/definitions/PropReference"
+      description: "The prop supplying an accessible name for a control with no text of its own."
+value:
+  $ref: "#/definitions/ValueConvention"
+  description: "The prop carrying a control's value, and the prop that says that value is unknown."
 ```
 
 **Config example** (`specs.config.yaml`):
 
 ```yaml
-config:
-  processing:
-    propRoles:
-      accessibleName: a11yLabel
+# conventions/specs.yaml
+accessibility:
+  label:
+    prop: a11yLabel
 ```
 
 **Spec example** (`api.yaml` — all `role` values generated from Dev Mode annotations):
@@ -791,7 +804,7 @@ therefore additive and ignores everything it does not recognize.
 2. **Each `label` is split on newlines.** A single annotation may carry several signals.
 3. **A line of the form `key:value` is a candidate signal.** Surrounding whitespace is
    trimmed from both sides; the first colon separates them, so a value may contain colons.
-4. **Only recognized keys are consumed.** `role` is defined here; `propRoles` keys are
+4. **Only recognized keys are consumed.** `role` is defined here; prop-convention keys are
    defined by Decision 4; vocabulary ADRs may define more. An unrecognized key is ignored
    silently, which is what keeps the grammar forward-compatible.
 5. **Every other line is prose and is ignored.** This is the common case in an existing
@@ -849,7 +862,7 @@ A role's contract additions can collide with props the component already has. **
 
 The rules, which every vocabulary ADR inherits:
 
-1. **An existing prop becomes the reset signal, not a controlled value.** Where a role's concept (`checked`, `expanded`, `pressed`, `value`) is already carried by a prop the spec declares — directly or via a `processing.states` classification — that prop seeds the control's state and re-seeds it whenever the prop's value changes. **No `default*` companion prop is emitted.** The component is explicitly *not* controlled in the React sense, and the ADRs must not call it that.
+1. **An existing prop becomes the reset signal, not a controlled value.** Where a role's concept (`checked`, `expanded`, `pressed`, `value`) is already carried by a prop the spec declares — directly or via a `states` classification — that prop seeds the control's state and re-seeds it whenever the prop's value changes. **No `default*` companion prop is emitted.** The component is explicitly *not* controlled in the React sense, and the ADRs must not call it that.
 2. **The role still contributes the change signal.** The handler prop (`onChange`, `onExpandedChange`, `onPressedChange`) is always added, and is always optional.
 3. **Re-seeding happens during render, not in an effect.** The generated pattern is React's documented "adjust state when a prop changes" form — track the previous prop value in state and reset during render when it differs — **not** `useState` plus a `useEffect` sync. The effect form runs after paint, so it produces a visible frame of stale state and an extra committed render on every parent-driven change. The render-time form commits once, with no flicker.
 
@@ -879,7 +892,7 @@ Rules 1, 3, and 4 together are what separate a component that looks correct in a
 - **Emitted markup must satisfy the target platform's content model.** On the web this matters immediately: `<button>`, `<label>`, and `<legend>` accept phrasing content, while essentially every presentational descendant this pipeline generates is a `<div>`. A vocabulary concept that emits one of those elements must state how descendants are handled — the transform emits them as `<span>` with `display` preserved by the existing styling rather than nesting `<div>`s inside phrasing-content elements.
 - **Two roles may coexist in one rendered tree only when they are on different elements in different specs.** An announcement region containing an instance whose own spec carries a `button` role is legitimate. Two specs both claiming the same DOM position — a label component with its own `label` role, wrapped by a consumer that also emits `<label>` — is not, and vocabularies must define which side wins.
 - Absence of `role` everywhere is the safe default — transforms behave exactly as today.
-- `propRoles` has no default in `DEFAULT_CONFIG`; absence disables prop-role binding. `DEFAULT_CONFIG` requires no change. Annotation reading needs no config — there is no pattern to declare.
+- `Conventions.specs` has no default; absence means no prop conventions are declared. `settings.spec.roleValidation` defaults to `'warn'`, so absence preserves current behavior. Annotation reading needs no config — there is no pattern to declare.
 
 ---
 
@@ -888,8 +901,8 @@ Rules 1, 3, and 4 together are what separate a component that looks correct in a
 - **Symmetric**: Yes
 - **Parity check**:
   - `AnatomyElement.role` → `role` property on the anatomy element definition in `component.schema.json` (string, optional)
-  - `Config.processing.propRoles` → `#/definitions/Config/properties/processing/properties/propRoles` (object of string, optional)
-  - `Config.processing.roleValidation` → `#/definitions/Config/properties/processing/properties/roleValidation` (string enum `warn` | `error`, optional)
+  - `Conventions.specs` → `#/definitions/Conventions/properties/specs` (`SpecsConventions`, optional)
+  - `Settings.spec.roleValidation` → the `spec` block's `roleValidation` (string enum, optional)
   - `RoleConceptName` and `PropRoleName` are documentation-only (open strings), matching the `StateConceptName` precedent — no schema enums
 
 ---
@@ -940,7 +953,7 @@ Once `control` carries `role: checkbox`, the state concepts have a *destination*
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
 | `specs-from-figma` | Populates roles during generation | Read `node.annotations` on component nodes and their layers in both runtimes; parse the annotation grammar; apply the variant resolution and key-stability rules. Layer names are not read or modified |
-| `specs-cli` | Transforms gain a deterministic role signal and prop-role bindings | Read `anatomy.<element>.role`; resolve `processing.propRoles` with per-component annotation overrides; emission semantics per role are defined in the vocabulary ADRs. No merge step — roles arrive already generated |
+| `specs-cli` | Transforms gain a deterministic role signal and prop-role bindings | Read `anatomy.<element>.role`; resolve `Conventions.specs.props` with per-component annotation overrides; emission semantics per role are defined in the vocabulary ADRs. No merge step — roles arrive already generated |
 | `specs-plugin-2` | Plugin-driven generation applies the same layer-name detection; may surface roles in UI | Recompile; apply the same detection; optionally display role classification per element |
 
 ---
@@ -949,7 +962,7 @@ Once `control` carries `role: checkbox`, the state concepts have a *destination*
 
 **Version bump**: MINOR
 
-**Justification**: All changes are additive optional fields (`role` on `AnatomyElement`; `propRoles` and `roleValidation` on `Config.processing`) plus two new exported aliases. `roleValidation` defaults to `'warn'`, so absence preserves current behavior. Per constitution III: "MINOR for additive types or new optional fields."
+**Justification**: The additions are optional fields — `role` on `AnatomyElement`, `Conventions.specs`, and `roleValidation` on `Settings.spec` — plus new exported types. `states` moves from `PlatformConventions` to `Conventions.specs.props`, which is a relocation within an unshipped surface rather than a break to a published one. `roleValidation` defaults to `'warn'`, so absence preserves current behavior. Per constitution III: "MINOR for additive types or new optional fields."
 
 ---
 
@@ -970,7 +983,7 @@ The vocabulary ADRs describe emission; this section fixes the *shape* the implem
    **One qualification, since an earlier draft overstated this**: part resolution rule 2 consults the layout tree, which lives in `variants.yaml`. That is a *read* inside the role index, not a merge, and it applies only to the non-value-bearing case. The rest of role resolution is `api.yaml` only. The role index is therefore a pure function of anatomy **plus the layout tree it is handed**, not of anatomy alone, and the index's signature should say so rather than pretending otherwise.
 2. **Tag selection — one expression.** The React emitter's entire tag decision today is a single ternary: text elements become `span`, everything else becomes `div`. A role-to-tag lookup replaces exactly that expression, with the current ternary as the fallback when no role is present.
 3. **Element attribute assembly — one enabling refactor.** Attribute assembly exists only for the root element; non-root elements inline their class and `data-element` into string templates at three separate emission sites. Generalizing the root's attribute assembler into a per-element one — and routing those three sites through it — is contained in one file and is the prerequisite for any per-element role attribute. **This refactor should land before any vocabulary, as its own change.**
-4. **Contract augmentation — one merge site.** Role-implied props enter the contract as a pure function of anatomy, the role table, and `propRoles`, merged at the single site where prop entries are assembled — structurally identical to how states already inject omitted-prop knowledge there.
+4. **Contract augmentation — one merge site.** Role-implied props enter the contract as a pure function of anatomy, the role table, and the spec's prop conventions, merged at the single site where prop entries are assembled — structurally identical to how states already inject omitted-prop knowledge there.
 5. **A role index pre-pass — one pure function.** Both vocabularies need to know, before rendering begins, which element carries which role, what generated id each has, and which elements pair with which. One pre-pass over merged anatomy serves disclosure pairing, label/control wiring, and the one-control validation.
 
 **The places that will resist isolation** — named so implementation can plan against them:
@@ -993,7 +1006,7 @@ The vocabulary ADRs describe emission; this section fixes the *shape* the implem
 - The generated/authored boundary stays crisp: `api.yaml` is reproducible from Figma data alone, and authored facts live on their own surface with its own diff history
 - The code-only-props frame keeps a single meaning: literal props
 - Vocabulary ADRs can grow the recognized concept set without schema bumps — unrecognized roles are inert
-- `processing.states`, `processing.propRoles`, and `anatomy.role` compose: states classify the state props, `propRoles` classify the name and value props, roles locate the platform behavior. All three are required for emission-quality transforms
+- `states`, `accessibility` / `value`, and `anatomy.role` compose: the state conventions classify the state props, the prop conventions classify the name and value props, and roles locate the platform behavior. All three are required for emission-quality transforms — and all three describe the spec, which is why the first two moved out of the platform block
 - A future warning surface becomes possible: a `checked` state concept configured with no control role present, or a control role with no resolvable accessible name
 - The annotation delimiter becomes a reserved character in layer names for libraries that opt in — resolvable per-library via the pattern, but a real constraint to communicate
 - A per-component authored surface enters the workspace — the first of its kind for spec-level facts, and a forcing function for the authored-hub model's file conventions
