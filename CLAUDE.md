@@ -95,6 +95,11 @@ The documentation site is built with Astro (port 4323) from `site/src/content/do
 - `cli/` — CLI overview, getting started, and per-command reference
 - `overview/` — product overview, licensing, releases
 
+**Spec output examples use YAML, never JSON.** Any Result block or example showing
+component spec output — on a schema page, a settings page, or a guide — is a `yaml`
+fenced block. YAML is what the CLI writes and what an author reads in a workspace, so
+a JSON example shows a shape the reader will never see on disk.
+
 ## Rules
 
 - **Never merge or commit to main without asking first.** Use `AskUserQuestion` with Yes/No options before running `gh pr merge`, `git merge` into main, `git push` to main, or any direct commit on the main branch.
