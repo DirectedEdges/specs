@@ -6,6 +6,7 @@ import type { Transformer, TransformerContext } from '../Types/Transformer.js';
 import { styleToCSS, impliesAbsolute } from './css/styleToCSS.js';
 import { layoutToCSS } from './css/layoutToCSS.js';
 import { toKebab, isGradient, reportNameWarnings, withNameWarningsSuppressed } from './css/values.js';
+import { normalizeEnumValue } from './enumCase.js';
 import { CONCEPT_TABLE, buildStateLookup } from './states.js';
 import { resolveRules } from './css/rules/index.js';
 import { parseLayout, type LayoutNode } from './react/variantAnalysis.js';
@@ -506,7 +507,7 @@ function buildCssLines(
           if (trueSel) negated = trueSel.split(',').map(part => `:not(${part.trim()})`).join('');
         }
         if (!concept && !negated) { skip = true; break; } // unmatched value = base/rest state
-        const sel = negated ?? (concept ? selectorFor(concept) : undefined) ?? `[data-${toKebab(k)}="${vStr}"]`;
+        const sel = negated ?? (concept ? selectorFor(concept) : undefined) ?? `[data-${toKebab(k)}="${normalizeEnumValue(vStr)}"]`;
         const parts = negated ? [negated] : sel.split(',').map(s => s.trim());
         const expanded: string[] = [];
         for (const existing of stateSelSuffixes) {
@@ -521,7 +522,7 @@ function buildCssLines(
         dataAttrs.push(
           v === true ? `[data-${toKebab(k)}]`
             : v === false ? `:not([data-${toKebab(k)}])`
-              : `[data-${toKebab(k)}="${vStr}"]`
+              : `[data-${toKebab(k)}="${normalizeEnumValue(vStr)}"]`
         );
       }
     }

@@ -1,3 +1,4 @@
+import { normalizeEnumValue } from './enumCase.js';
 import fs from 'fs-extra';
 import { writeAtomic } from './writeAtomic.js';
 import path from 'path';
@@ -76,6 +77,8 @@ function buildContractLines(
     const defaultValue = prop.default;
 
     let tsType: string;
+    // An enum prop's default is one of its values, so it is normalized with them.
+    let emittedDefault = defaultValue;
 
     if (type === 'boolean') {
       tsType = 'boolean';
@@ -83,14 +86,15 @@ function buildContractLines(
       tsType = 'number';
     } else if (type === 'string' && Array.isArray(prop.enum)) {
       const typeName = `${prefix}${toPascalCase(key)}`;
-      const values = prop.enum as string[];
+      const values = (prop.enum as string[]).map(normalizeEnumValue);
       enumTypes.push({ typeName, values });
+      if (typeof defaultValue === 'string') emittedDefault = normalizeEnumValue(defaultValue);
       tsType = isNullable ? `${typeName} | null` : typeName;
     } else {
       tsType = isNullable ? 'string | null' : 'string';
     }
 
-    propEntries.push({ key, tsType, hasDefault, defaultValue });
+    propEntries.push({ key, tsType, hasDefault, defaultValue: emittedDefault });
   }
 
   for (const { typeName, values } of enumTypes) {
