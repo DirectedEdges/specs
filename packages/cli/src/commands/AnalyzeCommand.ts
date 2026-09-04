@@ -94,6 +94,7 @@ export const Analyze = new Command('analyze')
               tokensFormat: config.settings.spec.tokens,
               outputFormat: config.settings.spec.format,
               processingStates: figmaOf(config.conventions).states as ProcessingStates | undefined,
+              propRoles: figmaOf(config.conventions).propRoles as Record<string, string> | undefined,
             };
             await analyzer.run(apiYaml, context);
           }

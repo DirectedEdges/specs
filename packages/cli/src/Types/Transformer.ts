@@ -12,6 +12,14 @@ export interface TransformerContext {
   outputFormat: 'JSON' | 'YAML';
   /** Semantic state concept map from config.processing.states. */
   processingStates?: ProcessingStates;
+  /**
+   * Library-wide prop-name conventions consumed by role emission (ADR-067).
+   *
+   * A Figma-side convention like `states`: it names props the *spec* declares, so
+   * it is read from the figma platform and handed to every transform, rather than
+   * arriving on the target platform's own conventions.
+   */
+  propRoles?: Record<string, string>;
   /** Raw options from the matching config.transformers entry (everything except `name`). */
   transformerOptions?: Record<string, unknown>;
   /** Absolute path to the workspace data directory (fetched library JSON), when configured. */

@@ -111,6 +111,7 @@ export const Transform = new Command('transform')
               tokensFormat: config.settings.spec.tokens,
               outputFormat: config.settings.spec.format,
               processingStates: figmaOf(config.conventions).states as ProcessingStates | undefined,
+              propRoles: figmaOf(config.conventions).propRoles as Record<string, string> | undefined,
               // The conventions of the platform this transformer emits for (ADR-073).
               // Each transformer names its own key — react and web-components are peer
               // implementations, not one shared `web`.

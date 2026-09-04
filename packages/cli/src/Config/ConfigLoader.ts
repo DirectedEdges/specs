@@ -417,6 +417,28 @@ export class ConfigLoader {
       platform.states = raw.states;
     }
 
+    // propRoles (ADR-067) — a concept -> prop-name map. Values must be prop names;
+    // anything else is a malformed entry rather than a convention, so it is dropped.
+    if (raw.propRoles !== undefined && raw.propRoles !== null && typeof raw.propRoles === 'object' && !Array.isArray(raw.propRoles)) {
+      const entries = Object.entries(raw.propRoles as Record<string, unknown>)
+        .filter(([, v]) => typeof v === 'string' && v.trim() !== '');
+      if (entries.length !== Object.keys(raw.propRoles).length) {
+        console.warn(`Invalid ${where} propRoles: each value must name a prop. Dropping non-string entries.`);
+      }
+      if (entries.length > 0) {
+        platform.propRoles = Object.fromEntries(entries) as Record<string, string>;
+      }
+    }
+
+    // roleValidation (ADR-067) — severity for unmet required role obligations
+    if (raw.roleValidation !== undefined) {
+      if (raw.roleValidation === 'warn' || raw.roleValidation === 'error') {
+        platform.roleValidation = raw.roleValidation;
+      } else {
+        console.warn(`Invalid ${where} roleValidation: expected 'warn' or 'error'. Ignoring.`);
+      }
+    }
+
     // defaultFillWidth (ADR-081) — a positive number, else ignored
     if (raw.defaultFillWidth !== undefined) {
       if (typeof raw.defaultFillWidth === 'number' && Number.isFinite(raw.defaultFillWidth) && raw.defaultFillWidth > 0) {

@@ -91,7 +91,7 @@
         },
         "propConfigurations": {
           "type": "object",
-          "description": "Prop values for this example. Scalar types for scalar props; SlotContentRef for slot props. PropBinding is not permitted here.",
+          "description": "Prop values for this example. Scalar types for scalar props; SlotContentRef for slot props; null when the prop is unset in this example (ADR-080). PropBinding is not permitted here.",
           "additionalProperties": {
             "oneOf": [
               {
@@ -102,6 +102,9 @@
               },
               {
                 "type": "boolean"
+              },
+              {
+                "type": "null"
               },
               {
                 "$ref": "#/definitions/SlotContentRef"
@@ -124,11 +127,21 @@
     },
     "Anatomy": {
       "type": "object",
-      "description": "The structural elements that make up the component. Element names format depends on user settings.",
+      "description": "The structural elements that make up the component. Keys are formatted per format.keys. A key whose Figma name did not satisfy the safe key grammar (see SafeKeySentence / SafeKeyTitle) carries that name in $extensions['com.figma'].name.",
       "examples": [],
       "additionalProperties": {
         "$ref": "#/definitions/AnatomyElement"
       }
+    },
+    "SafeKeySentence": {
+      "type": "string",
+      "pattern": "^[A-Z][a-z]*( ([a-z]+|[0-9]+))*$",
+      "description": "A round-trip-safe Figma name under format.figmaKeys SENTENCE: ASCII letters and digits, single-space word separators, sentence case, each word either all letters or all digits, never beginning with a digit. Names matching this pattern reconstruct identically from the output of any format.keys value; names that do not require $extensions['com.figma'].name."
+    },
+    "SafeKeyTitle": {
+      "type": "string",
+      "pattern": "^[A-Z][a-z]*( ([A-Z][a-z]*|[0-9]+))*$",
+      "description": "As SafeKeySentence, but for format.figmaKeys TITLE — every letter word capitalized."
     },
     "ElementType": {
       "type": "string",
@@ -206,10 +219,6 @@
           ],
           "description": "The component or component set name that this instance element references, or a subcomponent reference"
         },
-        "role": {
-          "type": "string",
-          "description": "Semantic behavior role for this element (e.g. 'button', 'checkbox', 'label'), generated from a Figma Dev Mode annotation of the form role:<concept> on the component node or one of its layers. Recognized concept names are published on the docs site; unrecognized values are ignored by transforms."
-        },
         "$extensions": {
           "type": "object",
           "description": "Platform extensions. com.figma carries extraction provenance.",
@@ -217,15 +226,19 @@
             "com.figma": {
               "type": "object",
               "properties": {
-                "originalName": {
+                "name": {
                   "type": "string",
-                  "description": "Original Figma layer name before primitive-wrapper collapse promoted this element to root (ADR-058)."
+                  "description": "The element's name in Figma. Recorded on any of three triggers: primitive-wrapper collapse promoted this element to root (ADR-058), always and independent of format.figmaKeys; the name fell outside the safe key grammar so format.keys could not represent it losslessly (ADR-066); or the name was already written in the destination format and passed through unformatted, making reversal identity rather than re-derivation (ADR-066). The latter two apply only when format.figmaKeys is not NONE — under NONE, format divergence is not evaluated and this field is absent however the key was derived."
                 }
               },
               "additionalProperties": false
             }
           },
           "additionalProperties": false
+        },
+        "role": {
+          "type": "string",
+          "description": "Semantic behavior role for this element (e.g. 'button', 'checkbox', 'label'), generated from a Figma Dev Mode annotation of the form role:<concept> on the component node or one of its layers. Recognized concept names are published on the docs site; unrecognized values are ignored by transforms."
         }
       },
       "required": [
@@ -235,7 +248,7 @@
     },
     "Props": {
       "type": "object",
-      "description": "",
+      "description": "Component properties. Keys are formatted per format.keys. A key whose Figma property name did not satisfy the safe key grammar (see SafeKeySentence / SafeKeyTitle) carries that name in $extensions['com.figma'].name.",
       "examples": [],
       "additionalProperties": {
         "$ref": "#/definitions/AnyProp"
@@ -306,6 +319,10 @@
         "source": {
           "$ref": "#/definitions/FigmaCodeOnlySource",
           "description": "Provenance metadata — present only for props extracted from a code-only container layer"
+        },
+        "name": {
+          "type": "string",
+          "description": "The Figma component-property name (ADR-066). Recorded when the name fell outside the safe key grammar, or when it was already written in the destination format and passed through unformatted — in which case reversal is identity, not re-derivation. Both triggers require format.figmaKeys to be other than NONE; under NONE this field is absent however the key was derived."
         }
       },
       "additionalProperties": true
@@ -518,7 +535,7 @@
       ]
     },
     "PropConfigurationValue": {
-      "description": "The value of a single prop configuration entry (ADR-049): a scalar, a PropBinding for pass-through to a parent prop, a SlotContentRef under a slot-prop key for a named slot-content fill, or an ImageBinding under an image-prop key forwarding an image into a nested image instance (ADR-063).",
+      "description": "The value of a single prop configuration entry (ADR-049): a scalar, a PropBinding for pass-through to a parent prop, a SlotContentRef under a slot-prop key for a named slot-content fill, or an ImageBinding under an image-prop key forwarding an image into a nested image instance (ADR-063), or null when the prop is unset in this configuration — a value, not an absence: an absent key inherits, a null key overrides an inherited value with no value (ADR-080).",
       "oneOf": [
         {
           "type": "string"
@@ -528,6 +545,9 @@
         },
         {
           "type": "boolean"
+        },
+        {
+          "type": "null"
         },
         {
           "$ref": "#/definitions/PropBinding"
@@ -710,6 +730,10 @@
         },
         "propConfigurations": {
           "$ref": "#/definitions/PropConfigurations"
+        },
+        "$extensions": {
+          "$ref": "#/definitions/ElementExtensions",
+          "description": "Platform extensions; com.figma carries capture provenance."
         }
       },
       "additionalProperties": false
@@ -968,8 +992,13 @@
           ],
           "additionalProperties": false
         },
-        "config": {
-          "$ref": "workspace.schema.json#/definitions/Config"
+        "conventions": {
+          "$ref": "conventions.schema.json#/definitions/MetadataConventions",
+          "description": "Conventions of the one platform that produced this spec. A missing platform did not produce it. (ADR-079)"
+        },
+        "settings": {
+          "$ref": "settings.schema.json#/definitions/Settings",
+          "description": "Choices about the run that generated this spec."
         }
       },
       "required": [
@@ -978,7 +1007,8 @@
         "generator",
         "schema",
         "source",
-        "config"
+        "conventions",
+        "settings"
       ],
       "additionalProperties": false
     },
@@ -1040,7 +1070,7 @@
     },
     "NumberProp": {
       "type": "object",
-      "description": "Number property definition for numeric-valued props inferred from TEXT code-only props.",
+      "description": "Number property definition for numeric-valued props, whether inferred from a TEXT code-only prop or from a VARIANT whose options are all numbers.",
       "examples": [],
       "properties": {
         "type": {
@@ -1049,6 +1079,13 @@
         },
         "default": {
           "type": "number"
+        },
+        "enum": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "description": "The closed set of accepted values, when the source enumerates them rather than leaving the range open. Absent means the prop accepts any number."
         },
         "nullable": {
           "type": "boolean",
@@ -1061,6 +1098,9 @@
             "type": "number"
           },
           "description": "Sample numeric values demonstrating typical content for this prop"
+        },
+        "$extensions": {
+          "$ref": "#/definitions/PropExtensions"
         }
       },
       "required": [
@@ -1161,6 +1201,46 @@
             }
           },
           "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "FigmaElementExtension": {
+      "type": "object",
+      "description": "Figma capture provenance for an element. Written when a primitive layer in composed example content is promoted to a component instance. (ADR-084)",
+      "properties": {
+        "promotedPrimitive": {
+          "type": "boolean",
+          "description": "This element was a primitive layer promoted to a component instance, rather than an instance the designer placed. Declared rather than inferred from the presence of styles, because a promotion may consume no styles at all."
+        },
+        "multipleMatches": {
+          "type": "boolean",
+          "description": "More than one conventions.primitives entry resolved against this element, and the highest-scoring one was chosen. A durable record of ambiguity; absent means exactly one entry resolved."
+        },
+        "content": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/definitions/PropBinding"
+            }
+          ],
+          "description": "The content the promotion consumed — a text layer's string or a glyph's name. Recorded beside styles because content is not a style."
+        },
+        "styles": {
+          "$ref": "#/definitions/Styles",
+          "description": "The styles the promotion consumed, recorded verbatim as captured. A prop value cannot be inverted back to the style that produced it, so the original is what lets a promoted layer be rendered back as a layer."
+        }
+      },
+      "additionalProperties": false
+    },
+    "ElementExtensions": {
+      "type": "object",
+      "description": "DTCG-style platform extensions for an element.",
+      "properties": {
+        "com.figma": {
+          "$ref": "#/definitions/FigmaElementExtension"
         }
       },
       "additionalProperties": false

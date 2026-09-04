@@ -30,20 +30,29 @@ export type SubcomponentRef = {
  * @since 0.28.0
  */
 export interface FigmaAnatomyElementExtension {
-  /** Original Figma layer name before primitive-wrapper collapse promoted this element to root (ADR-058). */
-  originalName?: string;
+  /**
+   * The element's name in Figma. Recorded on any of three triggers:
+   * - primitive-wrapper collapse promoted this element to root (ADR-058) — always,
+   *   independent of `format.figmaKeys`;
+   * - the name fell outside the safe key grammar, so `format.keys` could not
+   *   represent it losslessly (ADR-066);
+   * - the name was already written in the destination format and passed through
+   *   unformatted, making reversal identity rather than re-derivation (ADR-066).
+   *
+   * The latter two apply only when `format.figmaKeys` is not NONE. Under NONE no
+   * source convention is declared, so format divergence is not evaluated and this
+   * field is absent however the key was derived.
+   * @since 0.30.0 — renamed from `originalName`
+   */
+  name?: string;
 }
 
 /**
  * DTCG-style platform extensions for an anatomy element.
  * @since 0.28.0
  */
-export interface AnatomyElementExtensions {
-  'com.figma'?: FigmaAnatomyElementExtension;
-}
-
 /**
- * Semantic behavior role for an anatomy element (ADR-067).
+ * Semantic behavior role for an anatomy element (ADR-066).
  *
  * An open string. The recognized vocabulary is documented here and grown by
  * vocabulary ADRs without a schema bump; transforms ignore unrecognized values,
@@ -59,10 +68,10 @@ export interface AnatomyElementExtensions {
  *
  * **Control roles** name a control, landmark, or announcement region and resolve
  * on their own:
- * - Form controls (ADR-068): `textbox`, `password`, `searchbox`, `spinbutton`,
+ * - Form controls (ADR-067): `textbox`, `password`, `searchbox`, `spinbutton`,
  *   `slider`, `checkbox`, `radio`, `textarea`, `switch`, `group`
- * - Interactive roots (ADR-086): `button`, `togglebutton`, `link`, `disclosure`
- * - Announcements (ADR-086): `alert`, `status`, `progressbar`
+ * - Interactive roots (ADR-068): `button`, `togglebutton`, `link`, `disclosure`
+ * - Announcements (ADR-068): `alert`, `status`, `progressbar`
  *
  * **Part roles** name a constituent of some control and resolve against that
  * control: `value`, `placeholder`, `label`, `description`, `errormessage`,
@@ -78,6 +87,10 @@ export interface AnatomyElementExtensions {
  * @since 0.30.0
  */
 export type RoleConceptName = string;
+
+export interface AnatomyElementExtensions {
+  'com.figma'?: FigmaAnatomyElementExtension;
+}
 
 /**
  * Represents an element within the anatomy of a component.
@@ -96,7 +109,7 @@ export type AnatomyElement = {
    * `label`. Generated from a Figma Dev Mode annotation of the form
    * `role:<concept>` on the component node or one of its layers.
    * Absence means no role — transforms behave exactly as they do today.
-   * @since 0.30.0
+   * @since 0.32.0
    */
   role?: RoleConceptName;
   /** Platform extensions; com.figma carries extraction provenance. */

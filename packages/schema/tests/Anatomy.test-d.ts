@@ -90,11 +90,20 @@ if (typeof element.type === 'string') {
   const _ref: string = element.type.$ref;
 }
 
-// AnatomyElement.$extensions carries collapse provenance (ADR-058)
+// AnatomyElement.$extensions carries the Figma name (ADR-058 collapse, ADR-066 key divergence)
 const collapsedRoot: AnatomyElement = {
   type: 'text',
-  $extensions: { 'com.figma': { originalName: 'Text' } },
+  $extensions: { 'com.figma': { name: 'Text' } },
 };
+
+// ADR-066 — a key that could not represent its Figma name losslessly
+const divergentKey: AnatomyElement = {
+  type: 'glyph',
+  $extensions: { 'com.figma': { name: 'Cut & paste' } },
+};
+
+// name is optional — safe keys emit no extension at all
+const safeKey: AnatomyElement = { type: 'text' };
 
 const badExtension: AnatomyElement = {
   type: 'text',
@@ -102,34 +111,24 @@ const badExtension: AnatomyElement = {
   $extensions: { 'com.figma': { layerName: 'Text' } },
 };
 
-// AnatomyElement.role is optional — absence is the safe default (ADR-066)
-const noRole: AnatomyElement = { type: 'container' };
-
-// Control roles land on the element carrying the behavior
-const checkboxControl: AnatomyElement = { type: 'container', role: 'checkbox' };
-const buttonRoot: AnatomyElement = { type: 'container', role: 'button' };
-const announcementRegion: AnatomyElement = { type: 'container', role: 'status' };
-
-// Part roles are bare names on control constituents
-const valuePart: AnatomyElement = { type: 'text', role: 'value' };
-const placeholderPart: AnatomyElement = { type: 'text', role: 'placeholder' };
-const panelPart: AnatomyElement = { type: 'container', role: 'panel' };
-
-// A role composes with instanceOf and detectedIn
-const labelInstance: AnatomyElement = {
-  type: 'instance',
-  role: 'label',
-  instanceOf: { $ref: '#/subcomponents/formLabel' },
-};
-const conditionalErrorMessage: AnatomyElement = {
+const renamedExtension: AnatomyElement = {
   type: 'text',
-  role: 'errormessage',
-  detectedIn: 'Validation=Invalid',
+  // @ts-expect-error — originalName was renamed to name in 0.30.0 (ADR-066)
+  $extensions: { 'com.figma': { originalName: 'Text' } },
 };
 
-// RoleConceptName is an open string — unrecognized values are inert, not errors
-const unrecognizedRole: AnatomyElement = { type: 'container', role: 'notaconcept' };
-const _roleAlias: RoleConceptName = 'togglebutton';
+// ─── Element behavior roles (ADR-067) ─────────────────────────────────────────
 
-// @ts-expect-error — role is a string concept name, not a structured object
-const _roleAsObject: AnatomyElement = { type: 'container', role: { name: 'checkbox' } };
+// role is optional and open — the vocabulary grows in the docs, not the schema
+const roledElement: AnatomyElement = { type: 'container', role: 'button' };
+const partRoled: AnatomyElement = { type: 'text', role: 'label' };
+
+// An unrecognized concept still type-checks: transforms ignore what they do not know
+const unknownRole: AnatomyElement = { type: 'container', role: 'carousel' };
+
+// Absence is the default — no role, today's behavior
+const unroled: AnatomyElement = { type: 'container' };
+
+const roleAlias: RoleConceptName = 'togglebutton';
+
+export { roledElement, partRoled, unknownRole, unroled, roleAlias };
