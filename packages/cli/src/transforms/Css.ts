@@ -60,7 +60,7 @@ export class CssTransformer implements Transformer {
       examples,
       imagesDirAbs,
       relPrefix: '../../_images',
-    });
+    }, 'class', anatomyRoles(apiYaml));
     const generatedDir = path.join(outputDir, 'generated');
     await fs.ensureDir(generatedDir);
     await writeAtomic(path.join(generatedDir, `${prefix}.styles.css`), lines.join('\n'));
@@ -73,7 +73,7 @@ export class CssTransformer implements Transformer {
       examples,
       imagesDirAbs,
       relPrefix: '../../_images',
-    }, 'host'));
+    }, 'host', anatomyRoles(apiYaml)));
     await writeAtomic(path.join(generatedDir, `${prefix}.host.css`), hostLines.join('\n'));
     await writeAtomic(path.join(generatedDir, `${prefix}.light.css`), lightDomLines(componentClass).join('\n'));
 
@@ -175,6 +175,45 @@ function anatomyTypes(apiYaml: Record<string, unknown>): Record<string, string> 
   return types;
 }
 
+/** api.yaml anatomy → element key → behavior role (ADR-067), where one is annotated. */
+function anatomyRoles(apiYaml: Record<string, unknown>): Record<string, string> {
+  const anatomy = (apiYaml.anatomy ?? {}) as Record<string, Record<string, unknown>>;
+  const roles: Record<string, string> = {};
+  for (const [key, entry] of Object.entries(anatomy)) {
+    if (entry && typeof entry.role === 'string') roles[key] = entry.role;
+  }
+  return roles;
+}
+
+/**
+ * Roles whose emitted element carries user-agent styling a `div` never had.
+ *
+ * Swapping the tag inherits the UA's own border, background, font and padding,
+ * which the spec's declarations were authored without. The most visible symptom
+ * is a size change between states: a state block that sets `border-width`
+ * suppresses the UA border, and the state that does not set one keeps it, so the
+ * control changes size when it changes state.
+ */
+const UA_STYLED_ROLES = new Set(['button', 'togglebutton', 'link']);
+
+/** Neutralize the emitted element's UA styling so the spec's declarations govern. */
+function uaResetDecls(role: string): string[] {
+  const decls = [
+    'appearance: none',
+    '-webkit-appearance: none',
+    'background: none',
+    'border: 0',
+    'margin: 0',
+    'padding: 0',
+    'font: inherit',
+    'color: inherit',
+    'text-align: inherit',
+  ];
+  // An anchor is not a button: it carries link decoration rather than a border.
+  if (role === 'link') decls.push('text-decoration: none');
+  return decls;
+}
+
 function buildCssLines(
   componentClass: string,
   variantsYaml: Record<string, unknown>,
@@ -183,6 +222,7 @@ function buildCssLines(
   elemTypes: Record<string, string> = {},
   images?: ImagesCssContext,
   rootAs: RootForm = 'class',
+  elemRoles: Record<string, string> = {},
 ): string[] {
   /**
    * The root's selector, in the form this stylesheet is written for.
@@ -216,6 +256,21 @@ function buildCssLines(
     '}',
     '',
   ];
+
+  // A role may have replaced the root's tag with an interactive element (ADR-067).
+  // Reset the UA styling that tag brings before any spec declaration lands, so the
+  // spec still fully describes the appearance and states cannot differ in size for
+  // reasons the design never expressed.
+  const rootRole = elemRoles.root;
+  if (rootRole && UA_STYLED_ROLES.has(rootRole)) {
+    lines.push(
+      `/* ${rootRole} role: neutralize user-agent styling for the emitted element. */`,
+      `${rootSel()} {`,
+      ...uaResetDecls(rootRole).map(d => `  ${d};`),
+      '}',
+      '',
+    );
+  }
 
   // ── Default styles ─────────────────────────────────────────────────────────
   const defaultBlock = variantsYaml.default as Record<string, unknown> | undefined;
