@@ -1,0 +1,104 @@
+---
+title: "dismiss"
+description: "Activating this element removes the component it belongs to"
+---
+
+The `dismiss` event declares that activating an element makes its component go away — the close affordance on an alert, a toast, a banner.
+
+It is an **event**, not a role. A dismiss button is a button: it announces as one, takes the same native element, and its accessible semantics are identical. What distinguishes it is what activating it *does*. So it sits on its own annotation key, alongside the role rather than replacing it.
+
+## Why it matters
+
+Without it, a close button scaffolds as a button that does nothing. The consumer wires the removal, which is fine, but nothing in the spec records *which* child of an alert is the one that closes it — so no other transform, platform, or reviewer can know.
+
+## Emission
+
+### Scaffold
+
+| | |
+|---|---|
+| Requires | An element that is, or contains, an activatable control |
+| React | The component returns `null` once dismissed |
+| Web Components | The host sets `hidden` — recoverable, unlike removing the element |
+
+The component stops rendering **itself**. Its parent's state is untouched, which is why the contract also carries a callback: a consumer that tracks whether the alert exists needs to hear about it.
+
+### Contract
+
+| Prop | Type | Tier | Generated body |
+|------|------|------|----------------|
+| `onDismiss?` | `() => void` | Always | **wired** — flips internal state, then calls the prop |
+| `dismissed?` | `boolean` | — | The declared prop, where one exists |
+
+Wired, like the other state-owning behaviors: the component holds the state, so dismissal works before a consumer attaches anything. Where a prop is bound, it re-syncs when that prop changes, so setting it back re-shows the component.
+
+## Where to annotate it
+
+On the element that activates, in the component that goes away.
+
+When that element is an **instance** of another component, the annotation is a **routing** signal: the instanced component keeps its own role and renders its own control, and the composing component declares which child carries the behavior.
+
+```yaml
+# alert/api.yaml — generated
+anatomy:
+  root:
+    type: container
+    role: alert
+  dismiss:
+    type: instance
+    instanceOf: iconButton
+    event: dismiss        # routing — the icon button renders its own button
+```
+
+The icon button's own spec says `role: button` and knows nothing about alerts. The alert says which of its children dismisses it. Neither file mentions the other's concern, and the same icon button is reused elsewhere with no dismiss behavior attached.
+
+**Do not annotate `role: button` on that instance.** It already renders a button; a second one would nest interactive content, which is invalid.
+
+## States
+
+`dismiss` bridges no state concepts. Where the component declares a prop for whether it is dismissed, that prop is the state the behavior owns — classify it if you want CSS to reach it.
+
+## Platforms
+
+| | Emits | Behavior a user gets |
+|---|---|---|
+| Web (React) | `onClick` returning the component to `null` | The alert disappears; the consumer is notified |
+| Web (Web Components) | `hidden` on the host | The alert disappears and can be shown again |
+| iOS | A dismiss action on the containing view | Conventional banner dismissal |
+| Android | A dismiss action on the container | Conventional banner dismissal |
+
+## Before and after
+
+Without the event:
+
+```tsx
+<div className="alert" data-element="root" role="alert">
+  {/* … */}
+  <div data-element="dismiss"><IconButton /></div>
+</div>
+```
+
+With it:
+
+```tsx
+const [dismissed, setDismissed] = React.useState(false);
+if (dismissed) return null;
+// …
+<div data-element="dismiss">
+  <IconButton onClick={() => { setDismissed(true); p.onDismiss?.(); }} />
+</div>
+```
+
+## What it deliberately does not do
+
+**It does not manage focus.** The user activated a control that no longer exists, so focus falls to the document. A production component moves focus somewhere sensible; where that is depends on what surrounded the component, which the spec does not describe.
+
+This is a scaffold limit, stated rather than hidden. If you ship this to real users, handle focus in your own wrapper.
+
+**It does not persist anything.** Re-mounting brings the component back. Whether a dismissed alert stays dismissed is application state, and the consumer owns it — that is what `onDismiss` is for.
+
+## See also
+
+- [Roles overview](/roles/) — what an element *is*, the other annotation key
+- [button](/roles/button/) — what the dismiss affordance usually is
+- [status, alert and progressbar](/roles/status/) — the components most often dismissed

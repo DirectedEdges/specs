@@ -239,6 +239,10 @@
         "role": {
           "type": "string",
           "description": "Semantic behavior role for this element (e.g. 'button', 'checkbox', 'label'), generated from a Figma Dev Mode annotation of the form role:<concept> on the component node or one of its layers. Recognized concept names are published on the docs site; unrecognized values are ignored by transforms."
+        },
+        "event": {
+          "type": "string",
+          "description": "Behavior invoked when this element is activated (e.g. 'dismiss'), generated from a Figma Dev Mode annotation of the form event:<concept>. Recognized concept names are published on the docs site; unrecognized values are ignored by transforms."
         }
       },
       "required": [

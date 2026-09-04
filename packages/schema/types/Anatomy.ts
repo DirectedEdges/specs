@@ -88,6 +88,31 @@ export interface FigmaAnatomyElementExtension {
  */
 export type RoleConceptName = string;
 
+/**
+ * Behavior invoked when an element is activated (ADR-087).
+ *
+ * An open string, like `RoleConceptName`. The recognized vocabulary is published
+ * on the docs site and grows without a schema release; transforms ignore values
+ * they do not know, so a spec and a transform may disagree without breaking.
+ *
+ * A **role** answers what an element *is* — a noun naming a control kind a
+ * platform has a counterpart for. An **event** answers what activating it
+ * *does*. The test between them: does it change how the control is announced?
+ * A `togglebutton` announces its pressed state, so it is a role. A dismiss
+ * affordance announces as an ordinary button, so it is an event.
+ *
+ * Recognized concepts:
+ * - `dismiss` — activating this element removes the component it belongs to
+ *
+ * On an element the component owns this is an emission signal. On an `instance`
+ * it is a **routing** signal only: the instanced component keeps its own role and
+ * renders its own control, and the composing component declares which of its
+ * children carries the behavior.
+ *
+ * @since 0.32.0
+ */
+export type EventConceptName = string;
+
 export interface AnatomyElementExtensions {
   'com.figma'?: FigmaAnatomyElementExtension;
 }
@@ -112,6 +137,13 @@ export type AnatomyElement = {
    * @since 0.32.0
    */
   role?: RoleConceptName;
+  /**
+   * Behavior invoked when this element is activated (ADR-087), e.g. `dismiss`.
+   * Generated from a Dev Mode annotation of the form `event:<concept>`.
+   * Absence means no behavior — transforms behave exactly as they do today.
+   * @since 0.32.0
+   */
+  event?: EventConceptName;
   /** Platform extensions; com.figma carries extraction provenance. */
   $extensions?: AnatomyElementExtensions;
 };
