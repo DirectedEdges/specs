@@ -1,0 +1,88 @@
+# Site Architecture
+
+Docs site for Specs — Astro 4 + Starlight, published at specsplugin.com, dev
+server at **localhost:4323**. Everything user-facing about how Specs is
+*intended* to work is documented here; the source remains authoritative for
+what the code *does*. Hand-authored except two generated areas (§ Generated
+content).
+
+## Invariants & gotchas
+
+- **Never hand-edit `src/content/docs/adr/`** — generated from repo-root
+  `adr/*.md` (ACCEPTED only) and gitignored. Edit the ADR, not the page.
+- `overview/releases.mdx` is also generated (from the schema + cli CHANGELOGs)
+  but is **not** gitignored — a committed copy drifts until the next build
+  regenerates it.
+- Generators run via `predev`/`prebuild`; a bare `astro dev` skips them.
+- **A new page is orphaned until its `slug` is added to the `sidebar` array**
+  in `astro.config.mjs`. (Exception: the ~61 deep pages under
+  `schema/styles|typography|effects/` are deliberately sidebar-absent,
+  reachable only through in-page links from `schema/styles.md`.)
+- Pages importing images or components must be `.mdx`; assets import
+  relatively from `src/assets/`.
+- `pro/thankyou.mdx` is intentionally unlisted (post-purchase landing).
+- Fragile couplings to Starlight internals: the inline exclusive-accordion
+  script in `astro.config.mjs` and the `!important` overrides in
+  `src/custom.css` — both break candidates on a Starlight upgrade.
+- CLI flag tables are maintained by hand against
+  `packages/cli/src/commands/*Command.ts` — no generator links them, making
+  them the most likely drift point on the site.
+
+## Key nodes
+
+| Node | Role |
+|---|---|
+| `astro.config.mjs` | Nav (`sidebar` array), port 4323, component overrides, `pro`/`experimental` badge constants, accordion script |
+| `src/content/docs/` | All pages; directory = URL prefix; `index.md(x)` = section root |
+| `src/content/docs/cli/commands/` | One page per CLI command (maps 1:1 to `packages/cli/src/commands/`) |
+| `src/content/docs/schema/` | Type pages + deep `styles/`/`typography/`/`effects/` property trees |
+| `src/content/docs/settings/` | One page per config key |
+| `src/components/Figure.astro` | The in-content authoring component (`src, alt, caption?, maxWidth?`) |
+| `src/custom.css` | The only stylesheet — Starlight overrides |
+| `scripts/build-adrs.mjs` | ADR → docs page generator |
+| `scripts/build-releases.mjs` | CHANGELOGs → `overview/releases.mdx` |
+| `src/assets/plugin/` | Plugin screenshots; `src/assets/demoCarousel/` for the home page |
+
+## Authoring conventions
+
+- Frontmatter: `title` (double-quoted) + `description`, nothing else. H1 comes
+  from `title`; body opens with unheaded prose, then `##` sections.
+- Page templates in the wild — follow the section's existing shape:
+  - **Settings**: intro → `## Default` → `## Values` (table) → `## Path`
+    (`spec.x` in `config/settings.yaml`) → `### Example` (yaml) → `## See Also`
+  - **Schema**: prose → `ts` type block → `##` per type → property table
+    (`Property | Type | Required | Description`)
+  - **CLI command**: intro → `bash` usage block → flag table with in-page
+    anchors → `##` per mode; terminal output in bare fences
+- Code fences: `yaml` and `bash` dominate; use `ts` (not `typescript`);
+  `tsx`/`css` appear in transform docs.
+- Cross-links are root-relative with trailing slash: `[scan](/cli/commands/scan/)`.
+  Plugin pages end with `## Related Settings`; settings pages with `## See Also`.
+- Admonitions are sparse (15 site-wide) — use rarely.
+- MDX only when a page needs images or Starlight components; `Figure` is the
+  standard image wrapper.
+
+## Generated content
+
+- `scripts/build-adrs.mjs`: reads repo-root `adr/*.md`, publishes ACCEPTED
+  ADRs only, rewrites titles, downgrades links to unpublished ADRs to plain
+  text, wipes and rebuilds `docs/adr/`.
+- `scripts/build-releases.mjs`: merges `packages/schema/CHANGELOG.md` +
+  `packages/cli/CHANGELOG.md` into the tabbed releases page.
+
+## Verification
+
+Dev server at localhost:4323 (`npm run dev` from `site/` — `predev` runs both
+generators). Check the affected pages render and the sidebar entry appears.
+
+## Known drift (as of 2026-09-05)
+
+- `settings/promote-primitives.md` orphaned — likely superseded by
+  `collapse-primitive-wrapper`; `schema/color-object.md` orphaned, possibly
+  intentional deep reference.
+- `@astrojs/sitemap` is a pinned dependency but not registered in
+  `integrations[]` — dead config or a regression.
+- `docs/plugin/` last touched 2026-07-13 — the section most behind the
+  product.
+- Asset layout not fully normalized (two loose `plugin-*.png` outside
+  `assets/plugin/`).
