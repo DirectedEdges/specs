@@ -2,6 +2,8 @@
 description: Confirms the implementation is clean, then marks the ADR as ACCEPTED. Run this after reviewing the diff from /specs.adr.implement.
 ---
 
+**Territory: schema.** Before proceeding, read `CLAUDE.md` and `ARCHITECTURE.md` at the repo root if not already loaded this session.
+
 ## User Input
 
 ```text

@@ -7,6 +7,8 @@ handoffs:
     send: true
 ---
 
+**Territory: schema.** Before proceeding, read `CLAUDE.md` and `ARCHITECTURE.md` at the repo root if not already loaded this session — the Constitution digest and sync set there govern the implementation gates.
+
 ## User Input
 
 ```text

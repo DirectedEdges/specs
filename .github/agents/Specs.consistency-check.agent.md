@@ -2,6 +2,8 @@
 description: Check consistency across adr/, packages/schema/, packages/cli/, and site/ for the current branch before merging.
 ---
 
+**Territory: schema/cli/docs (cross-territory exit check).** Before proceeding, read the repo-root `ARCHITECTURE.md` if not already loaded — its sync-set section is the checklist this agent verifies.
+
 ## User Input
 
 ```text
