@@ -7,7 +7,7 @@
 | 087 | Behavior Actions via `anatomy.action` | Add `AnatomyElement.action` (open `ActionConceptName` string) — a second annotation key for what a control *does*, alongside `role` for what it *is* |
 | 086 | Interactive Root and Announcement Role Concepts | Vocabulary for `button`, `togglebutton`, `link`, `disclosure`, `alert`, `status`, `progressbar`; all non-structural — sequence first. Same docs-governed rule as 068 |
 | 068 | Form Control and Field Plumbing Role Concepts | Vocabulary for `textbox`…`switch` plus the `label`/`description`/`errormessage`/`value`/`placeholder` parts and `group`; establishes that the vocabulary is docs-governed and changes without an ADR |
-| 067 | Element Behavior Roles via `anatomy.role` | Add `AnatomyElement.role` (open `RoleConceptName` string), the Dev Mode annotation that generates it, control-vs-part role resolution, role obligations, `Conventions.propRoles`, and `Conventions.roleValidation` |
+| 067 | Element Behavior Roles via `anatomy.role` | Add `AnatomyElement.role` (open `RoleConceptName` string), the Dev Mode annotation that generates it, control-vs-part role resolution, role obligations, `Conventions.specs` prop conventions, and `Settings.spec.roleValidation` |
 | 085 | `promotePrimitives` — the Switch for Capture-Time Promotion | |
 | 084 | `Element.$extensions` — Figma Provenance for a Promoted Element | |
 | 081 | `defaultFillWidth` — the Width a Fill-Width Root Fills | Each platform states, in its own `config/conventions/` file, the width of the container it places a fill-width root in; fixed and hugging roots are untouched, and absent a declaration the rendering tool falls back to 375 |
@@ -17,7 +17,6 @@
 | 076 | Promoting a Container, and a Platform-Level `stylesProp` | |
 | 075 | `conventions.primitives` — a Declared Table from Styles to a Component's Props | |
 | 074 | Primitives Promote to Component Instances During Capture, in Composed Content | |
-| 073 | `conventions.platforms`, with Figma as One Platform Among Them | Replaces `conventions.figma` with a platform-keyed map in which `figma` is one key; platform ids name implementations (`react`, `web-components`, `swiftui`) and stay flat |
 | 072 | Numeric Enum on `NumberProp` | Adds optional `enum?: number[]` so a VARIANT whose options are all numbers emits as a number with its closed option set preserved |
 | 070 | Explicit `position: ABSOLUTE` for Children of Non-Auto-Layout Parents | |
 | 045 | Processing Provenance Signals | (reserved, draft in PR #60) |
@@ -31,6 +30,7 @@
 | # | Title | Highlights |
 |---|-------|------------|
 | 083 | Collapsing a Slot-Only Wrapper | `collapsePrimitiveWrapper` also collapses a root wrapping one slot; both nodes are containers so no style is tested, and the slot's value wins |
+| 073 | `conventions.platforms`, with Figma as One Platform Among Them | Platform-keyed `conventions.platforms`; `figma` one key among implementations. `conventions.specs` holds spec-side facts like `states` |
 | 080 | `null` as a Prop Configuration Value | Adds a `null` arm to `PropConfigurationValue` and to `InstanceExample.propConfigurations`; absent inherits, `null` overrides with unset |
 | 071 | Separate Library Conventions from Tooling Settings | `Conventions`, `Settings` and `Pipeline` replace `Config`, separating library facts from run choices and declared work |
 | 069 | Rename `clipContent` to `clipsContent` | Renames the clip flag to the key the data carries, so container clipping and CSS `overflow` resolve for the first time |

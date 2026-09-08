@@ -531,10 +531,10 @@ roleValidation: error
 `);
 
       const config = configLoader.load();
-      const figma = config.conventions.platforms!.figma as Record<string, unknown>;
-      expect(figma.states).toBeUndefined();
-      expect(figma.propRoles).toBeUndefined();
-      expect(figma.roleValidation).toBeUndefined();
+      const figma = config.conventions.platforms!.figma;
+      expect(figma).not.toHaveProperty('states');
+      expect(figma).not.toHaveProperty('propRoles');
+      expect(figma).not.toHaveProperty('roleValidation');
       expect(warn).toHaveBeenCalledWith(
         expect.stringContaining('conventions/figma.yaml states: moved to conventions/specs.yaml')
       );

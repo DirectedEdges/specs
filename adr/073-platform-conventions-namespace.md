@@ -2,7 +2,7 @@
 
 **Branch**: `073-platform-conventions-namespace`
 **Created**: 2026-08-30
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Summary**: A platform-keyed `conventions.platforms` map replaces `conventions.figma`, with a `conventions.specs` sibling for the conventions that describe the spec rather than any platform.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
