@@ -77,4 +77,4 @@ With the role:
 - [label](/roles/label/) — the naming part; `errormessage` is the describing part
 - [textbox](/roles/textbox/) and [checkbox](/roles/checkbox/) — controls that accept `errormessage`
 - [States](/settings/states/) — the `invalid` concept that gates rendering
-- [Roles overview](/roles/) — how roles and `processing.states` fit together
+- [Roles overview](/roles/) — how roles and the `states` convention fit together

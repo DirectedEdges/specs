@@ -45,7 +45,7 @@ The sibling concepts behave identically with a different emitted element. They a
 
 `onChange` is **wired**: the transform generates real state logic — it holds internal state seeded from the value prop, sets it on input, and calls the consumer callback. The field is typeable before a consumer attaches anything.
 
-Wiring has a prerequisite: a resolved `value` binding, either an existing variant prop or a `propRoles` entry. The transform never guesses a prop by name; without the binding the handler degrades to a stub and warns.
+Wiring has a prerequisite: a resolved `value` binding, either an existing variant prop or the `value` convention in `conventions/specs.yaml`. The transform never guesses a prop by name; without the binding the handler degrades to a stub and warns.
 
 `onBlur` is a stub — the transform calls the prop and nothing else. It is emitted because blur is the conventional point at which a field validates, but validation logic is not something a spec can supply.
 
@@ -53,7 +53,7 @@ Where an existing variant prop already supplies the value, the role contributes 
 
 ## States
 
-| State | What the textbox does | Classify in `processing.states`? |
+| State | What the textbox does | Classify in `states`? |
 |-------|-----------------------|----------------------------------|
 | `disabled` | Native `disabled` — unfocusable and uneditable, enforced by the platform | Recommended |
 | `readonly` | Native `readonly` | Recommended |
@@ -113,4 +113,4 @@ The placeholder conditional vanishes because it was compensating for the missing
 
 - [checkbox](/roles/checkbox/) — the proxy + wrap alternative for selection controls
 - [button](/roles/button/) — affordance siblings inside a text field carry this role
-- [Roles overview](/roles/) — how roles and `processing.states` fit together
+- [Roles overview](/roles/) — how roles and the `states` convention fit together

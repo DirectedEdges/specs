@@ -117,7 +117,7 @@ if (!customElements.get(TAG)) customElements.define(TAG, DsAlert);
 ## Rendering Rules
 
 - **Shadow DOM with a layout-neutral host.** The element renders into a shadow root whose adopted stylesheets are the generated CSS (imported with vite's `?inline` suffix and wrapped in `unsafeCSS`). `:host { display: contents }` removes the host from layout, so the inner root element participates in the page exactly like the react scaffold's root `div`. CSS custom properties (the `cssvars` output) inherit into shadow roots, so token references resolve unchanged.
-- **Root element** gets the component's kebab-cased class, every variant prop as a `data-*` attribute (boolean props use presence attributes via `nothing`, string/enum props use value attributes), and ARIA attributes for any prop classified in the [`figma.states`](/settings/states/) convention whose selector resolves to an `aria-*` attribute.
+- **Root element** gets the component's kebab-cased class, every variant prop as a `data-*` attribute (boolean props use presence attributes via `nothing`, string/enum props use value attributes), and ARIA attributes for any prop classified in the [`states`](/settings/states/) convention whose selector resolves to an `aria-*` attribute.
 - **Child elements** get the `__element` BEM suffix, matching the `css` transformer's selectors.
 - **Slot-typed elements** surface as native `<slot>` projection points: the `children` prop maps to the default slot, other slot props to `<slot name="kebab-case-prop">`. Slot props are not reactive properties — content is projected from light-DOM children.
 - **Text elements** bound to a prop render `${p.propName}`; text elements with static spec content render that content verbatim (escaped for HTML and the template literal).

@@ -36,7 +36,7 @@ This is also where `togglebutton` and [button](/roles/button/) divide the word "
 
 `onPressedChange` is **wired**, not stubbed. The transform generates real state logic: it holds internal state seeded from the `pressed` prop, flips that state on activation, and then calls the consumer callback — the toggle works before a consumer attaches anything.
 
-Wiring has a prerequisite: the transform must know which prop holds the pressed state, and it never guesses one by name. That binding comes from the `pressed` classification in [`processing.states`](/settings/states/). Without it the handler degrades to a stub and the transform warns.
+Wiring has a prerequisite: the transform must know which prop holds the pressed state, and it never guesses one by name. That binding comes from the `pressed` classification in the [`states` convention](/settings/states/). Without it the handler degrades to a stub and the transform warns.
 
 `onClick` is a stub — the transform calls the prop and nothing else, because what a click means beyond the toggle is the consumer's decision and the design file cannot say what it is.
 
@@ -44,7 +44,7 @@ The existing `pressed` variant prop is the value source: no `defaultPressed` com
 
 ## States
 
-| State | What the togglebutton does | Classify in `processing.states`? |
+| State | What the togglebutton does | Classify in `states`? |
 |-------|----------------------------|----------------------------------|
 | `pressed` | `aria-pressed`, flipped by the wired handler | Recommended |
 | `disabled` | Native `disabled` — unfocusable and unclickable, enforced by the platform | Recommended |
@@ -96,4 +96,4 @@ With the role:
 
 - [button](/roles/button/) — the same emission without the retained state
 - [indicator](/roles/indicator/) — the decorative glyph a toggle usually contains
-- [Roles overview](/roles/) — how roles and `processing.states` fit together
+- [Roles overview](/roles/) — how roles and the `states` convention fit together

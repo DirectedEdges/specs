@@ -99,7 +99,7 @@ Token references are resolved to CSS `var(--)` based on `spec.tokens`:
 
 ## Config
 
-No transformer-specific options. Token format comes from `spec.tokens` in `config/settings.yaml`. Selector strategy for variant props comes from the [`figma.states`](/settings/states/) convention in `config/conventions/figma.yaml`.
+No transformer-specific options. Token format comes from `spec.tokens` in `config/settings.yaml`. Selector strategy for variant props comes from the [`states`](/settings/states/) convention in `config/conventions/specs.yaml`.
 
 ```yaml
 # config/settings.yaml
@@ -127,7 +127,7 @@ When the `states` convention is absent, all variant props produce `[data-*]` sel
 
 ### Disabled guard on hover and active
 
-When the `disabled` concept is configured in `figma.states`, the transformer automatically appends `:not(:disabled):not([aria-disabled="true"])` to every `:hover` and `:active` selector — including compound variants that mix a data attribute with `:hover` or `:active`. This prevents hover and active styles from firing on disabled elements without any extra CSS to write.
+When the `disabled` concept is configured in the `states` convention, the transformer automatically appends `:not(:disabled):not([aria-disabled="true"])` to every `:hover` and `:active` selector — including compound variants that mix a data attribute with `:hover` or `:active`. This prevents hover and active styles from firing on disabled elements without any extra CSS to write.
 
 ```css
 /* disabled concept configured → hover and active are guarded */
@@ -214,7 +214,7 @@ Subcomponent stylesheets are fully self-contained — elements and variants from
 ## See Also
 
 - [Transforms overview](/cli/transforms/)
-- [`figma.states` convention](/settings/states/) — classify variant props as semantic states
+- [`states` convention](/settings/states/) — classify variant props as semantic states
 - [`contract` transformer](/cli/transforms/contract/)
 - [`react` transformer](/cli/transforms/react/) — imports this stylesheet into the generated and authored components
 - [tokens config](/settings/tokens/)

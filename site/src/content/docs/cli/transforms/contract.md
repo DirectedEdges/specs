@@ -88,7 +88,7 @@ A slot is required (non-optional in `Slots`) only when its rule is `always`. The
 
 ## Config
 
-No transformer-specific options. Prop omission for browser-driven states comes from the [`figma.states`](/settings/states/) convention in `config/conventions/figma.yaml`.
+No transformer-specific options. Prop omission for browser-driven states comes from the [`states`](/settings/states/) convention in `config/conventions/specs.yaml`.
 
 ```yaml
 # config/conventions/figma.yaml
@@ -129,7 +129,7 @@ The parent contract file only includes the parent component's own types — subc
 ## See Also
 
 - [Transforms overview](/cli/transforms/)
-- [`figma.states` convention](/settings/states/) — classify which props are browser-driven vs consumer-controlled
+- [`states` convention](/settings/states/) — classify which props are browser-driven vs consumer-controlled
 - [`css` transformer](/cli/transforms/css/)
 - [`react` transformer](/cli/transforms/react/) — consumes `Slots`/`SlotRules` to gate element rendering
 - [`stories` transformer](/cli/transforms/stories/)

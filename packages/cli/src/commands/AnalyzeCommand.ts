@@ -7,7 +7,6 @@ import { resolveAnalyzers } from '../analyzers/index.js';
 import { loadFoundations } from '../utilities/loadFoundations.js';
 import type { TransformerContext } from '../Types/Transformer.js';
 import type { ProcessingStates } from '../transforms/states.js';
-import { figmaOf } from '../Config/PlatformConventions.js';
 
 const ERROR_CODES = { SUCCESS: 0, INVALID_ARGS: 2, FILE_ERROR: 3, GENERAL_ERROR: 1 };
 
@@ -93,8 +92,8 @@ export const Analyze = new Command('analyze')
               componentKey,
               tokensFormat: config.settings.spec.tokens,
               outputFormat: config.settings.spec.format,
-              processingStates: figmaOf(config.conventions).states as ProcessingStates | undefined,
-              propRoles: figmaOf(config.conventions).propRoles as Record<string, string> | undefined,
+              processingStates: config.conventions.specs?.states as ProcessingStates | undefined,
+              specs: config.conventions.specs,
             };
             await analyzer.run(apiYaml, context);
           }

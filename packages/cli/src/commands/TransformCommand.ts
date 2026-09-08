@@ -6,7 +6,7 @@ import { ConfigLoader } from '../Config/ConfigLoader.js';
 import { resolveTransformers, DEFAULT_TRANSFORMERS } from '../transforms/index.js';
 import type { TransformerContext } from '../Types/Transformer.js';
 import type { ProcessingStates } from '../transforms/states.js';
-import { figmaOf, platformOf } from '../Config/PlatformConventions.js';
+import { platformOf } from '../Config/PlatformConventions.js';
 
 const ERROR_CODES = { SUCCESS: 0, INVALID_ARGS: 2, FILE_ERROR: 3, GENERAL_ERROR: 1 };
 
@@ -110,8 +110,8 @@ export const Transform = new Command('transform')
               componentKey,
               tokensFormat: config.settings.spec.tokens,
               outputFormat: config.settings.spec.format,
-              processingStates: figmaOf(config.conventions).states as ProcessingStates | undefined,
-              propRoles: figmaOf(config.conventions).propRoles as Record<string, string> | undefined,
+              processingStates: config.conventions.specs?.states as ProcessingStates | undefined,
+              specs: config.conventions.specs,
               // The conventions of the platform this transformer emits for (ADR-073).
               // Each transformer names its own key — react and web-components are peer
               // implementations, not one shared `web`.

@@ -74,4 +74,4 @@ With the role (both text layers annotated):
 
 - [textbox](/roles/textbox/) — the flagship collapse consumer
 - [label](/roles/label/) — lifted out of the collapse rather than consumed
-- [Roles overview](/roles/) — how roles and `processing.states` fit together
+- [Roles overview](/roles/) — how roles and the `states` convention fit together

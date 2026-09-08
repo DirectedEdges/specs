@@ -97,8 +97,24 @@ slotConstraints: false
 # parse as valid numbers, emitted as NumberProp instead of StringProp.
 # (default: false)
 # inferNumberProps: false
+`;
+}
 
-# Semantic states: classify Figma variant props as state concepts, keyed by
+/**
+ * Generate the `config/conventions/specs.yaml` template with inline comments.
+ *
+ * Conventions about the spec itself rather than any platform (ADR-073 Decision 4):
+ * every member names props the spec declares, so a transform reading only the spec
+ * can apply them. A reserved basename beside the platform files, like
+ * `figma.primitives.yaml`.
+ */
+export function generateSpecsConventionsTemplate(): string {
+  return `# Conventions about the spec itself — not about Figma or any code platform.
+# Every member here names a prop (or an enum value) the spec declares, so a
+# transform reading only the spec can apply it.
+# See: https://www.specsplugin.com/settings/
+
+# Semantic states: classify variant props as state concepts, keyed by
 # concept name. Absence means all variant props emit as data-* selectors.
 # See: https://www.specsplugin.com/settings/states/
 # states:
@@ -107,6 +123,21 @@ slotConstraints: false
 #     value: hover
 #   disabled:
 #     prop: disabled   # boolean prop — value defaults to "true"
+
+# Props carrying accessibility semantics no element expresses.
+# label: the prop supplying an accessible name for a control with no text of
+# its own (an icon-only button, typically). An element carrying the name wins
+# over the prop.
+# accessibility:
+#   label:
+#     prop: a11yLabel
+
+# The props describing a control's value where no element represents it — a
+# progress bar draws its progress rather than writing it.
+# value:
+#   prop: progress
+#   # A boolean prop forcing the indeterminate presentation regardless of the value.
+#   indeterminate: isLoading
 `;
 }
 
@@ -307,12 +338,13 @@ export function generatePipelineTemplate(): string {
 }
 
 /**
- * The three split-configuration templates, keyed by their file path relative
+ * The split-configuration templates, keyed by their file path relative
  * to the workspace root.
  */
 export function generateConfigTemplates(): Record<string, string> {
   return {
     'config/conventions/figma.yaml': generateFigmaConventionsTemplate(),
+    'config/conventions/specs.yaml': generateSpecsConventionsTemplate(),
     'config/conventions/react.yaml': generateReactConventionsTemplate(),
     'config/conventions/web-components.yaml': generateWebComponentsConventionsTemplate(),
     'config/settings.yaml': generateSettingsTemplate(),

@@ -37,14 +37,14 @@ This is where `button` differs from [togglebutton](/roles/togglebutton/), which 
 
 ## States
 
-| State | What the button does | Classify in `processing.states`? |
+| State | What the button does | Classify in `states`? |
 |-------|----------------------|----------------------------------|
 | `disabled` | Native `disabled` — unfocusable and unclickable, enforced by the platform | Recommended |
 | `hover` | Native hover | Recommended, if the library styles it |
 | `active` | Native pressed-down | Recommended, if the library styles it |
 | `focus` / `focus-visible` | Native focus ring | **Optional — prefer the platform default** |
 
-A button transforms best when the Figma variant props for these states are classified in [`processing.states`](/settings/states/), which is what tells the transform that a given prop carries a given state. Unclassified props still work; they emit as `data-*` attributes for styling, as they do today.
+A button transforms best when the Figma variant props for these states are classified in the [`states` convention](/settings/states/), which is what tells the transform that a given prop carries a given state. Unclassified props still work; they emit as `data-*` attributes for styling, as they do today.
 
 **Focus is the exception worth calling out.** Browsers and mobile platforms ship a focus indicator that already meets contrast requirements and matches what users of that platform expect. Specifying one from Figma usually replaces a good default with a worse one, so leave `focus` unclassified unless the library deliberately overrides it.
 
@@ -94,4 +94,4 @@ With the role:
 
 - [togglebutton](/roles/togglebutton/) — a button that keeps a pressed state
 - [indicator](/roles/indicator/) — decorative glyphs inside a button
-- [Roles overview](/roles/) — how roles and `processing.states` fit together
+- [Roles overview](/roles/) — how roles and the `states` convention fit together

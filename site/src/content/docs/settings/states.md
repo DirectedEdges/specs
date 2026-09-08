@@ -3,7 +3,7 @@ title: "States"
 description: "Classify Figma variant props as browser-driven or consumer-controlled states for deterministic CSS and contract output"
 ---
 
-`figma.states` classifies your library's Figma variant props as semantic states. A library fact, declared in `config/conventions/figma.yaml`: which prop expresses which state concept is an agreement no rule can recover — a wrong entry lands a concept on the wrong prop, and an unclassified prop emits as a `data-*` attribute. Declaring it enables two downstream behaviors:
+The `states` convention classifies your library's variant props as semantic states. A fact about the spec's own props, declared in `config/conventions/specs.yaml` (it names props that exist in `api.yaml`, so a transform reading only the spec can apply it): which prop expresses which state concept is an agreement no rule can recover — a wrong entry lands a concept on the wrong prop, and an unclassified prop emits as a `data-*` attribute. Declaring it enables two downstream behaviors:
 
 - The [`css` transformer](/cli/transforms/css/) emits real CSS pseudo-classes and ARIA attribute selectors instead of `data-*` attributes for classified props.
 - The [`contract` transformer](/cli/transforms/contract/) omits browser-driven props from generated Props interfaces.
@@ -35,7 +35,7 @@ props:
     default: false
 ```
 
-`figma.states` acts on these props during `specs transform` — to determine CSS selector strategy and contract inclusion. The `api.yaml` itself is not modified.
+The `states` convention acts on these props during `specs transform` — to determine CSS selector strategy and contract inclusion. The `api.yaml` itself is not modified.
 
 ### State concepts
 
@@ -65,9 +65,9 @@ Each concept resolves to a canonical CSS selector and determines whether the pro
 
 ### Mapping Props to Concepts
 
-Declare mappings under `figma.states` in [`config/conventions/figma.yaml`](/settings/). Use `prop` to name the Figma variant prop and `value` for the specific enum value that activates the concept.
+Declare mappings under `states` in [`config/conventions/specs.yaml`](/settings/). Use `prop` to name the variant prop and `value` for the specific enum value that activates the concept.
 
-```yaml title="Partial config/conventions/figma.yaml"
+```yaml title="Partial config/conventions/specs.yaml"
 states:
   active:
     prop: state
@@ -81,7 +81,7 @@ states:
 Figma naming conventions don't need to match the concept name. Many design systems name their pointer-down state `pressed` rather than `active` because `pressed` is platform-neutral — it maps to `:active` on web, `UIControlState.highlighted` on iOS, and press `Indication` in Compose. Naming it `active` in Figma would embed a web-specific term into a shared design language. Similarly, a library using `isDisabled` as its boolean prop convention is still expressing the `disabled` concept.
 
 :::tip Setting up for the first time?
-Run the [**CSS States Setup** skill](https://github.com/DirectedEdges/specs/blob/main/packages/cli/src/transforms/Css.states-setup.md) in Claude Code — it scans your specs output directory, matches variant props against the concept table, and proposes a ready-to-paste `figma.states` block.
+Run the [**CSS States Setup** skill](https://github.com/DirectedEdges/specs/blob/main/packages/cli/src/transforms/Css.states-setup.md) in Claude Code — it scans your specs output directory, matches variant props against the concept table, and proposes a ready-to-paste `states` block for `conventions/specs.yaml`.
 :::
 
 ### CSS transform
@@ -155,11 +155,11 @@ states:
 | `contract` | `"omit"` \| `"keep"` | No | concept default | Override the concept's default contract behavior. Rarely needed. |
 
 
-Run [`specs transform css`](/cli/commands/transform/) to regenerate stylesheets after updating this declaration. Absence of `figma.states` is safe — all variant props continue to emit as `data-*` selectors.
+Run [`specs transform css`](/cli/commands/transform/) to regenerate stylesheets after updating this declaration. Absence of `states` is safe — all variant props continue to emit as `data-*` selectors.
 
 ## Path
 
-`states` in `config/conventions/figma.yaml`
+`states` in `config/conventions/specs.yaml`
 
 ## See Also
 

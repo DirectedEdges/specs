@@ -23,6 +23,7 @@ import {
   type ResolvedConventions,
   type ResolvedPlatformConventions,
   type PrimitiveEntry,
+  type SpecsConventions,
   type ResolvedSettings,
   type ResolvedPipeline,
   type Settings,
@@ -43,12 +44,26 @@ const CONFIG_DIR_FILES = ['settings', 'pipeline'] as const;
 const CONVENTIONS_DIR = 'conventions';
 
 /**
- * Reserved basename in `config/conventions/` for the platform-neutral promotion table
- * (ADR-075). A component's props are the same whichever platform renders it, so the
- * table is stated once rather than per platform — it shares the directory but is not
- * a platform, and no platform may take this id.
+ * Reserved basename in `config/conventions/` for the promotion table (ADR-075).
+ * A component's props are the same whichever platform renders it, so the table is
+ * stated once rather than per platform — but its `source` keys name Figma style
+ * properties and its `values` keys name Figma tokens, so the file carries the
+ * `figma.` qualifier (ADR-073 Decision 5). Not a platform; no platform may take
+ * this id.
  */
-const PRIMITIVES_FILE = 'primitives';
+const PRIMITIVES_FILE = 'figma.primitives';
+
+/** The promotion table's pre-Decision-5 basename, refused with a rename remedy. */
+const PRIMITIVES_FILE_RETIRED = 'primitives';
+
+/**
+ * Reserved basename in `config/conventions/` for conventions about the spec itself
+ * (ADR-073 Decision 4): the states classification and the prop conventions role
+ * emission consumes. Shares the directory because these are conventions a library
+ * states once, but the spec is the hub every platform converts to or from, so it
+ * is a sibling of the platform files and no platform may take this id.
+ */
+const SPECS_FILE = 'specs';
 
 /** Extensions accepted for each split-configuration file, in priority order. */
 const CONFIG_FILE_EXTENSIONS = ['yaml', 'json'] as const;
@@ -225,7 +240,7 @@ export class ConfigLoader {
    * layouts would mean two discovery paths forever, and silently ignoring the file
    * would generate specs missing everything it declares.
    */
-  private readConventionsDir(dir: string): { byPlatform: Record<string, unknown>; primitives?: unknown } {
+  private readConventionsDir(dir: string): { byPlatform: Record<string, unknown>; primitives?: unknown; specs?: unknown } {
     for (const ext of CONFIG_FILE_EXTENSIONS) {
       const stray = path.join(dir, `${CONVENTIONS_DIR}.${ext}`);
       if (fs.existsSync(stray)) {
@@ -246,6 +261,7 @@ export class ConfigLoader {
 
     const byPlatform: Record<string, unknown> = {};
     let primitives: unknown;
+    let specs: unknown;
     for (const entry of fs.readdirSync(conventionsDir).sort()) {
       const ext = path.extname(entry).slice(1);
       if (!(CONFIG_FILE_EXTENSIONS as readonly string[]).includes(ext)) continue;
@@ -256,11 +272,25 @@ export class ConfigLoader {
         primitives = this.parseFile(file);
         continue;
       }
+      // Refused rather than read as a platform named 'primitives', which is what
+      // falling through would silently do.
+      if (id === PRIMITIVES_FILE_RETIRED) {
+        throw new Error(
+          `${file} is no longer read (ADR-073 Decision 5).\n` +
+          `  The promotion table is Figma-scoped — its sources and token names describe the\n` +
+          `  design tool — so rename the file to config/${CONVENTIONS_DIR}/${PRIMITIVES_FILE}.${ext}.\n` +
+          `  Docs: https://specs.directededges.com/schema/conventions/`
+        );
+      }
+      if (id === SPECS_FILE) {
+        specs = this.parseFile(file);
+        continue;
+      }
       // The filename is the platform id, so a platform is declared in exactly one
       // file and there is no merge rule to define.
       byPlatform[id] = this.parseFile(file);
     }
-    return { byPlatform, primitives };
+    return { byPlatform, primitives, specs };
   }
 
   /**
@@ -270,14 +300,19 @@ export class ConfigLoader {
    * Absence of a block means that platform declares no such convention — no default
    * can supply it.
    */
-  private resolveConventions(read: { byPlatform: Record<string, unknown>; primitives?: unknown }): ResolvedConventions {
+  private resolveConventions(read: { byPlatform: Record<string, unknown>; primitives?: unknown; specs?: unknown }): ResolvedConventions {
     const platforms: Record<string, ResolvedPlatformConventions> = {};
     for (const [id, parsed] of Object.entries(read.byPlatform)) {
       platforms[id] = this.resolvePlatform(id, parsed);
     }
     const primitives = this.resolvePrimitives(read.primitives);
-    if (!Object.keys(platforms).length && !primitives) return { ...DEFAULT_CONVENTIONS };
-    return { ...(Object.keys(platforms).length ? { platforms } : {}), ...(primitives ? { primitives } : {}) };
+    const specs = this.resolveSpecs(read.specs);
+    if (!Object.keys(platforms).length && !primitives && !specs) return { ...DEFAULT_CONVENTIONS };
+    return {
+      ...(Object.keys(platforms).length ? { platforms } : {}),
+      ...(primitives ? { primitives } : {}),
+      ...(specs ? { specs } : {}),
+    };
   }
 
   /**
@@ -300,6 +335,55 @@ export class ConfigLoader {
       entries[name] = { elementType: entry.elementType, map: entry.map };
     }
     return Object.keys(entries).length ? entries : undefined;
+  }
+
+  /**
+   * Resolve `config/conventions/specs.yaml` — conventions about the spec itself
+   * (ADR-073 Decision 4): the states classification, the accessible-name prop
+   * convention, and the value prop convention. A malformed member is dropped with
+   * a warning rather than failing the run, so the rest of the file still applies.
+   */
+  private resolveSpecs(parsed: unknown): SpecsConventions | undefined {
+    if (!parsed || typeof parsed !== 'object') return undefined;
+    const where = `conventions/${SPECS_FILE}.yaml`;
+    const raw = parsed as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const specs: SpecsConventions = {};
+
+    // states — concept-keyed map, passed through when it is an object
+    if (raw.states !== undefined && raw.states !== null) {
+      if (typeof raw.states === 'object' && !Array.isArray(raw.states)) {
+        specs.states = raw.states;
+      } else {
+        console.warn(`Invalid ${where} states: expected a concept-keyed map. Ignoring.`);
+      }
+    }
+
+    // accessibility — today only `label`, a prop reference
+    if (raw.accessibility !== undefined && raw.accessibility !== null) {
+      const label = typeof raw.accessibility === 'object' ? raw.accessibility.label : undefined;
+      const prop = label && typeof label === 'object' ? label.prop : undefined;
+      if (typeof prop === 'string' && prop.trim() !== '') {
+        specs.accessibility = { label: { prop: prop.trim() } };
+      } else {
+        console.warn(`Invalid ${where} accessibility: expected label.prop to name a prop. Ignoring.`);
+      }
+    }
+
+    // value — { prop, indeterminate? }, prop required
+    if (raw.value !== undefined && raw.value !== null) {
+      const v = (typeof raw.value === 'object' ? raw.value : {}) as Record<string, unknown>;
+      const prop = typeof v.prop === 'string' && v.prop.trim() !== '' ? v.prop.trim() : undefined;
+      const indeterminate = typeof v.indeterminate === 'string' && v.indeterminate.trim() !== ''
+        ? v.indeterminate.trim()
+        : undefined;
+      if (prop) {
+        specs.value = { prop, ...(indeterminate && { indeterminate }) };
+      } else {
+        console.warn(`Invalid ${where} value: prop must name the prop carrying the value. Ignoring.`);
+      }
+    }
+
+    return Object.keys(specs).length ? specs : undefined;
   }
 
   /**
@@ -412,31 +496,18 @@ export class ConfigLoader {
       }
     }
 
-    // states — concept-keyed map, passed through when it is an object
-    if (raw.states !== undefined && raw.states !== null && typeof raw.states === 'object' && !Array.isArray(raw.states)) {
-      platform.states = raw.states;
+    // Relocated keys (ADR-073 Decision 4, ADR-067). This method builds from an
+    // allowlist, so an unrecognized key is otherwise dropped in silence — a
+    // workspace would lose its state classification and still transform. Name the
+    // new home instead.
+    if (raw.states !== undefined) {
+      console.warn(`${where} states: moved to conventions/${SPECS_FILE}.yaml (ADR-073 Decision 4). Ignoring it here.`);
     }
-
-    // propRoles (ADR-067) — a concept -> prop-name map. Values must be prop names;
-    // anything else is a malformed entry rather than a convention, so it is dropped.
-    if (raw.propRoles !== undefined && raw.propRoles !== null && typeof raw.propRoles === 'object' && !Array.isArray(raw.propRoles)) {
-      const entries = Object.entries(raw.propRoles as Record<string, unknown>)
-        .filter(([, v]) => typeof v === 'string' && v.trim() !== '');
-      if (entries.length !== Object.keys(raw.propRoles).length) {
-        console.warn(`Invalid ${where} propRoles: each value must name a prop. Dropping non-string entries.`);
-      }
-      if (entries.length > 0) {
-        platform.propRoles = Object.fromEntries(entries) as Record<string, string>;
-      }
+    if (raw.propRoles !== undefined) {
+      console.warn(`${where} propRoles: replaced by accessibility.label and value in conventions/${SPECS_FILE}.yaml (ADR-073 Decision 4). Ignoring it here.`);
     }
-
-    // roleValidation (ADR-067) — severity for unmet required role obligations
     if (raw.roleValidation !== undefined) {
-      if (raw.roleValidation === 'warn' || raw.roleValidation === 'error') {
-        platform.roleValidation = raw.roleValidation;
-      } else {
-        console.warn(`Invalid ${where} roleValidation: expected 'warn' or 'error'. Ignoring.`);
-      }
+      console.warn(`${where} roleValidation: moved to settings.yaml spec.roleValidation (ADR-067). Ignoring it here.`);
     }
 
     // defaultFillWidth (ADR-081) — a positive number, else ignored
@@ -526,6 +597,14 @@ export class ConfigLoader {
     }
     if (typeof spec.collapsePrimitiveWrapper !== 'boolean') {
       spec.collapsePrimitiveWrapper = false;
+    }
+
+    // roleValidation (ADR-067) — severity for unmet required role obligations
+    if (!['warn', 'error'].includes(spec.roleValidation)) {
+      if ((spec as Record<string, unknown>).roleValidation !== undefined) {
+        console.warn(`Invalid settings.spec.roleValidation: expected 'warn' or 'error'. Using default: ${DEFAULT_SETTINGS.spec.roleValidation}`);
+      }
+      spec.roleValidation = DEFAULT_SETTINGS.spec.roleValidation;
     }
 
     // defaultSlotContent activates only on a literal boolean `true`. Any other

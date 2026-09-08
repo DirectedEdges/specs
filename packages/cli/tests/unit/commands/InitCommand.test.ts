@@ -23,11 +23,12 @@ describe('InitCommand', () => {
   });
 
   describe('template generation', () => {
-    it('generates the three split-config files under config/', () => {
+    it('generates the split-config files under config/', () => {
       const templates = generateConfigTemplates();
       expect(Object.keys(templates).sort()).toEqual([
         'config/conventions/figma.yaml',
         'config/conventions/react.yaml',
+        'config/conventions/specs.yaml',
         'config/conventions/web-components.yaml',
         'config/pipeline.yaml',
         'config/settings.yaml',

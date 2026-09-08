@@ -8,11 +8,12 @@ import pluginSettingsFormat from '../../../assets/plugin-settings-format.png';
 
 Configuration gives you technical control over how specs are created — the same options drive both the Figma plugin and the CLI, so a component produces the same structured output no matter which one generates it.
 
-A workspace authors three files in a `config/` directory, one per question:
+A workspace authors these files in a `config/` directory, one per question:
 
 | File | Question it answers | Kind of value |
 |------|--------------------|---------------|
-| `config/conventions/figma.yaml` | What is true about this Figma library? | **Facts.** Every consumer reading the same library declares the same values — a wrong value produces *incorrect* output (undetected glyphs, unclassified states) |
+| `config/conventions/figma.yaml` | What is true about this Figma library? | **Facts.** Every consumer reading the same library declares the same values — a wrong value produces *incorrect* output (undetected glyphs, missed subcomponents) |
+| `config/conventions/specs.yaml` | What do the spec's own props mean? | **Facts.** Conventions about the spec itself — state classification and the props carrying an accessible name or a value. A wrong value lands a concept on the wrong prop |
 | `config/settings.yaml` | What do I want out of this run? | **Choices.** A different team could set any of these differently and still be correct — a different value produces merely *different* output |
 | `config/pipeline.yaml` | What work should run over the specs? | **Work.** Transformers and analyses to run |
 
@@ -140,7 +141,7 @@ The CLI looks for configuration in these locations (in order):
 
 Nothing else is read. A pre-split `specs.config.yaml` / `specs.config.json` (or `~/.specs/config.yaml`) is detected but never loaded — finding one is an error, not a fallback. See [Legacy single file](#legacy-single-file).
 
-`specs init` scaffolds all three files with inline documentation.
+`specs init` scaffolds all of these files with inline documentation.
 
 ### Format
 
@@ -159,7 +160,10 @@ codeOnlyProps:
 subcomponents:
   match:
     - '{C} / _ / {S}'
+```
 
+```yaml
+# config/conventions/specs.yaml — conventions about the spec itself
 states:
   hover:
     prop: state

@@ -35,7 +35,7 @@ The injection adds a sibling and a wrapper level, so positional CSS (`:nth-child
 
 `onChange` is **wired**: the transform generates real state logic — it holds internal state seeded from the checked prop, flips it on activation, and calls the consumer callback. The checkbox toggles before a consumer attaches anything.
 
-Wiring has a prerequisite: the transform must know which prop holds the checked state, and it never guesses one by name. That binding comes from the `checked` classification in [`processing.states`](/settings/states/). Without it the handler degrades to a stub and the transform warns.
+Wiring has a prerequisite: the transform must know which prop holds the checked state, and it never guesses one by name. That binding comes from the `checked` classification in the [`states` convention](/settings/states/). Without it the handler degrades to a stub and the transform warns.
 
 `onBlur` is a stub — the transform calls the prop and nothing else, because what happens on blur (typically validation) is the consumer's decision and the design file cannot say what it is.
 
@@ -43,7 +43,7 @@ Where an existing variant prop already supplies the value, the role contributes 
 
 ## States
 
-| State | What the checkbox does | Classify in `processing.states`? |
+| State | What the checkbox does | Classify in `states`? |
 |-------|------------------------|----------------------------------|
 | `checked` | Native `checked`, flipped by the wired handler | Recommended |
 | `indeterminate` | Native `.indeterminate` DOM property, set via a ref effect | Recommended |
@@ -101,4 +101,4 @@ The proxy's empty label is the single most important detail: without it the visu
 
 - [textbox](/roles/textbox/) — the collapse alternative for text-family controls
 - [togglebutton](/roles/togglebutton/) — pressed state on a button, not checked state on an input
-- [Roles overview](/roles/) — how roles and `processing.states` fit together
+- [Roles overview](/roles/) — how roles and the `states` convention fit together

@@ -29,7 +29,7 @@ Edge cases:
 
 - A disclosure with no `#panel` part emits `aria-expanded` only, plus a warning.
 - A panel absent in the current variant makes `aria-controls` conditional, matching the panel's own render condition — pointing it at an id that is not in the document is worse than omitting it.
-- A library that carries separate collapsed and expanded label props binds only one into the anatomy, so an expanded trigger would announce its collapsed label. The transform warns when it detects an unpairable sibling text prop; a `propRoles` entry pairing a state concept to the alternate text prop fixes it.
+- A library that carries separate collapsed and expanded label props binds only one into the anatomy, so an expanded trigger would announce its collapsed label. The transform warns when it detects an unpairable sibling text prop; a convention in `conventions/specs.yaml` pairing the alternate text prop with the state that selects it fixes it — the `accessibility` block is shaped as objects precisely so it can grow that field.
 
 ### Contract
 
@@ -41,13 +41,13 @@ Edge cases:
 
 `onExpandedChange` is **wired**: the transform generates real state logic — it holds internal state seeded from the `expanded` prop, flips it on activation, and calls the consumer callback. The accordion opens and closes before a consumer attaches anything.
 
-Wiring has a prerequisite: the transform must know which prop holds the expanded state, and it never guesses one by name. That binding comes from the `expanded` classification in [`processing.states`](/settings/states/). Without it the handler degrades to a stub and the transform warns.
+Wiring has a prerequisite: the transform must know which prop holds the expanded state, and it never guesses one by name. That binding comes from the `expanded` classification in the [`states` convention](/settings/states/). Without it the handler degrades to a stub and the transform warns.
 
 `onClick` is a stub — the transform calls the prop and nothing else, because what a click means beyond the toggle is the consumer's decision and the design file cannot say what it is.
 
 ## States
 
-| State | What the disclosure does | Classify in `processing.states`? |
+| State | What the disclosure does | Classify in `states`? |
 |-------|--------------------------|----------------------------------|
 | `expanded` | `aria-expanded="true"`, flipped by the wired handler | Recommended |
 | `collapsed` | `aria-expanded="false"` | Recommended |
@@ -99,4 +99,4 @@ Only two elements change, and neither changes depth.
 
 - [panel](/roles/panel/) — the controlled region
 - [button](/roles/button/) — the same base emission without expansion
-- [Roles overview](/roles/) — how roles and `processing.states` fit together
+- [Roles overview](/roles/) — how roles and the `states` convention fit together

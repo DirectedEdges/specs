@@ -71,4 +71,4 @@ With the role:
 
 - [errormessage](/roles/errormessage/) — the sibling part, wired through `aria-describedby`
 - [textbox](/roles/textbox/) and [checkbox](/roles/checkbox/) — controls that accept `label`
-- [Roles overview](/roles/) — how roles and `processing.states` fit together
+- [Roles overview](/roles/) — how roles and the `states` convention fit together

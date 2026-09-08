@@ -137,14 +137,12 @@ describe('migrateConfigV1 (config v1 → v2 mapping)', () => {
     });
   });
 
-  it('maps processing states/subcomponents/instanceExamples/slotConstraints/inferNumberProps to conventions.figma', () => {
-    const states = { interaction: ['hover', 'pressed'] };
+  it('maps processing subcomponents/instanceExamples/slotConstraints/inferNumberProps to conventions.figma', () => {
     const subcomponents = { match: ['{C} / {S}'] };
     const instanceExamples = { scope: 'FILE', match: ['{C} / Examples / {S}'] };
     const result = migrateConfigV1({
       config: {
         processing: {
-          states,
           subcomponents,
           instanceExamples,
           slotConstraints: true,
@@ -153,8 +151,15 @@ describe('migrateConfigV1 (config v1 → v2 mapping)', () => {
       },
     });
     expect(result.conventions).toEqual({
-      states, subcomponents, instanceExamples, slotConstraints: true, inferNumberProps: true,
+      subcomponents, instanceExamples, slotConstraints: true, inferNumberProps: true,
     });
+  });
+
+  it('maps processing.states to the specs conventions file, not the figma entry (ADR-073 Decision 4)', () => {
+    const states = { hover: { prop: 'state', value: 'hover' } };
+    const result = migrateConfigV1({ config: { processing: { states } } });
+    expect(result.specsConventions).toEqual({ states });
+    expect(result.conventions).toBeUndefined();
   });
 
   it('maps processing variantDepth/details/collapsePrimitiveWrapper to settings.spec', () => {

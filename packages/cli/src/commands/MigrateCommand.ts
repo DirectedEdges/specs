@@ -89,14 +89,19 @@ const configV1: Migration = {
     const parsed = source.endsWith('.json') ? JSON.parse(raw) : yaml.parse(raw);
     const migrated = migrateConfigV1(parsed);
 
-    // Everything the old file declared was a Figma fact, so it becomes the figma
-    // platform entry. The code platforms get commented stubs: a workspace that
-    // generates React or Web Components will want them, and a file of pure comments
-    // parses to nothing, so an untouched stub declares nothing (ADR-078).
+    // The old file's conventions split two ways: Figma facts become the figma
+    // platform entry, and `states` — a fact about the spec's own props — becomes
+    // conventions/specs.yaml (ADR-073 Decision 4). The code platforms get commented
+    // stubs: a workspace that generates React or Web Components will want them, and
+    // a file of pure comments parses to nothing, so an untouched stub declares
+    // nothing (ADR-078).
     const files: Record<string, string | undefined> = {
       'config/conventions/figma.yaml': migrated.conventions === undefined
         ? undefined
         : yaml.stringify(migrated.conventions),
+      'config/conventions/specs.yaml': migrated.specsConventions === undefined
+        ? undefined
+        : yaml.stringify(migrated.specsConventions),
       'config/conventions/react.yaml': generateReactConventionsTemplate(),
       'config/conventions/web-components.yaml': generateWebComponentsConventionsTemplate(),
       'config/settings.yaml': migrated.settings === undefined ? undefined : yaml.stringify(migrated.settings),

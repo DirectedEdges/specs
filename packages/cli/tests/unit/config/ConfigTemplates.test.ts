@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import yaml from 'yaml';
 import {
   generateFigmaConventionsTemplate,
+  generateSpecsConventionsTemplate,
   generateSettingsTemplate,
   generatePipelineTemplate,
   generateConfigTemplates,
@@ -9,11 +10,12 @@ import {
 
 describe('ConfigTemplates', () => {
   describe('generateConfigTemplates', () => {
-    it('scaffolds one conventions file per platform, plus settings and pipeline', () => {
+    it('scaffolds one conventions file per platform, the specs file, plus settings and pipeline', () => {
       const templates = generateConfigTemplates();
       expect(Object.keys(templates).sort()).toEqual([
         'config/conventions/figma.yaml',
         'config/conventions/react.yaml',
+        'config/conventions/specs.yaml',
         'config/conventions/web-components.yaml',
         'config/pipeline.yaml',
         'config/settings.yaml',
@@ -38,12 +40,13 @@ describe('ConfigTemplates', () => {
   describe('generateFigmaConventionsTemplate', () => {
     it('documents every feature-toggle block (commented) with a doc link', () => {
       const template = generateFigmaConventionsTemplate();
-      for (const block of ['instanceExamples:', 'states:', 'images:', 'sourceProps:']) {
+      for (const block of ['instanceExamples:', 'images:', 'sourceProps:']) {
         expect(template).toContain(block);
       }
       expect(template).toContain('www.specsplugin.com/guides/images/');
       expect(template).toContain('www.specsplugin.com/guides/instance-examples/');
-      expect(template).toContain('www.specsplugin.com/settings/states/');
+      // states describes the spec's own props, so it lives in specs.yaml (ADR-073 Decision 4)
+      expect(template).not.toContain('states:');
     });
 
     it('should include commented glyphs block for icon glyph naming', () => {
@@ -79,6 +82,21 @@ describe('ConfigTemplates', () => {
         // Pure comments parse to nothing, which is the same as declaring nothing.
         expect(yaml.parse(stub)).toBeNull();
       }
+    });
+  });
+
+  describe('generateSpecsConventionsTemplate', () => {
+    it('documents every member (commented) with a doc link', () => {
+      const template = generateSpecsConventionsTemplate();
+      for (const block of ['# states:', '# accessibility:', '# value:', 'indeterminate:']) {
+        expect(template).toContain(block);
+      }
+      expect(template).toContain('www.specsplugin.com/settings/states/');
+    });
+
+    it('is inert until uncommented', () => {
+      // Pure comments parse to nothing, which is the same as declaring nothing.
+      expect(yaml.parse(generateSpecsConventionsTemplate())).toBeNull();
     });
   });
 

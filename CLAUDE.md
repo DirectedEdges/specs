@@ -69,7 +69,7 @@ npm run build --workspace=packages/cli      # Build CLI only
 - **Test framework**: Vitest with globals enabled
 - **Path alias**: `@` → `./src` (used in CLI package)
 - **Deterministic output**: Same input produces identical output. No side effects in the processing pipeline.
-- **Conventions / Settings / Pipeline types** (from `@directededges/specs-schema`): `Conventions` declares facts about the Figma library (`figma.naming`, `figma.glyphs`, `figma.states`, etc. — a wrong value produces incorrect output); `Settings` controls output shape (`spec.details`, `spec.keys`, `spec.color`, `spec.layout`, `spec.variantDepth`, etc. — a different value produces different output); `Pipeline` declares `transformers` and `analyses`
+- **Conventions / Settings / Pipeline types** (from `@directededges/specs-schema`): `Conventions` declares facts about the libraries (`platforms.figma.naming`, `platforms.figma.glyphs`, etc.) and about the spec itself (`specs.states`, `specs.accessibility`, `specs.value`) — a wrong value produces incorrect output; `Settings` controls output shape (`spec.details`, `spec.keys`, `spec.color`, `spec.layout`, `spec.variantDepth`, etc. — a different value produces different output); `Pipeline` declares `transformers` and `analyses`
 
 ## Schema Governance
 

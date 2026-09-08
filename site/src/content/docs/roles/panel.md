@@ -71,4 +71,4 @@ The panel's own diff is a single attribute. The change that matters happens on t
 
 - [disclosure](/roles/disclosure/) — the trigger this part wires to
 - [errormessage](/roles/errormessage/) — the same id-plus-attribute shape, for controls
-- [Roles overview](/roles/) — how roles and `processing.states` fit together
+- [Roles overview](/roles/) — how roles and the `states` convention fit together

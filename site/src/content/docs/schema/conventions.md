@@ -17,6 +17,10 @@ platforms:
       match: 'DS Icon Glyph / {i}'
   react:
     stylesProp: sx
+specs:
+  states:
+    disabled:
+      prop: isDisabled
 primitives:
   dsText:
     elementType: text
@@ -36,6 +40,7 @@ config/
   conventions/
     figma.yaml
     react.yaml
+    specs.yaml
   settings.yaml
   pipeline.yaml
 ```
@@ -49,6 +54,8 @@ glyphs:
 
 Because the filename is the platform id, two files cannot declare the same key and there is no merge rule. Absence of a member means that platform declares no such convention, and the capability it enables does not apply — there is no separate on-switch.
 
+Two basenames in the directory are reserved and are not platforms: `specs.yaml` (conventions about [the spec itself](#specs)) and `figma.primitives.yaml` (the [promotion table](#primitives)).
+
 ## Platform members
 
 A single shape serves every platform, with every member optional. Members fall into two groups:
@@ -56,7 +63,7 @@ A single shape serves every platform, with every member optional. Members fall i
 - **Encoding** — how this platform expresses something the spec models explicitly. A Figma library has no first-class notion of a subcomponent, so it encodes one in a layer-name pattern.
 - **Vocabulary** — which of this platform's components implements a spec concept.
 
-The shape is deliberately permissive: nothing stops a code platform declaring `states`. Discriminating by key would type `figma` differently from every other key, which is the special case the platform map removes.
+The shape is deliberately permissive: nothing stops a code platform declaring `inferNumberProps`. Discriminating by key would type `figma` differently from every other key, which is the special case the platform map removes.
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
@@ -68,7 +75,6 @@ The shape is deliberately permissive: nothing stops a code platform declaring `s
 | [`images`](/guides/images/) | `object` | — | How the library expresses images. Absent = no image convention |
 | [`slotConstraints`](/guides/slot-constraints/) | `boolean` | `false` | The library authors slot constraints as code-only props |
 | [`inferNumberProps`](/guides/number-inference/) | `boolean` | `false` | The library authors numeric props as Figma `TEXT` props with numeric defaults |
-| [`states`](/settings/states/) | `object` | — | Concept-keyed map classifying Figma variant props as semantic states |
 | [`stylesProp`](#stylesprop) | `string` | — | *Vocabulary.* Prop receiving styling no promotion mapped. Absent = unmapped styling is dropped |
 | [`defaultFillWidth`](#defaultfillwidth) | `number` | — | Container width for a fill-width root. Absent = the rendering tool uses its own fallback |
 
@@ -110,16 +116,6 @@ The shape is deliberately permissive: nothing stops a code platform declaring `s
 | `component` | `string` | — | *Vocabulary.* The same component's name on this platform (e.g. `DsImage`) — the translation target for a `match` declared by whichever platform produced the spec |
 | `sourceProps` | `string[]` | — | Code-only prop names carrying image sources; the first is the designated component's own source prop |
 
-### `states`
-
-A map keyed by [state concept](/settings/states/) name (e.g. `hover`, `disabled`, `readonly`). Each entry classifies one Figma variant prop as that semantic state:
-
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `prop` | `string` | *(required)* | Figma variant prop name (e.g. `state`, `isDisabled`) |
-| `value` | `string` | `"true"` | Variant value that activates this concept (e.g. `"hover"`). Omit for boolean props |
-| `contract` | `'omit' \| 'keep'` | *(per concept)* | Contract generation override — exclude (`omit`, browser-driven) or retain (`keep`, consumer-controlled) the prop in generated Props interfaces |
-
 ### `stylesProp`
 
 Prop receiving styling no promotion mapped, for every promoted component on this platform (e.g. `sx`, `style`, `modifier`). A **name only** — what is placed in it is the generator's decision.
@@ -137,9 +133,62 @@ defaultFillWidth: 375
 
 It has no default at any level. Absence means this platform declares no width and the rendering tool falls back to its own value.
 
+## `specs`
+
+Conventions about the **spec itself** rather than about any platform. Authored at `config/conventions/specs.yaml` — a reserved basename beside the platform files. Every member names a prop (or an enum value) that exists in `api.yaml`, so a transform reading only the spec can apply it without touching the design tool: the CSS transform applies `states` and never opens a Figma file.
+
+A sibling of `platforms` rather than a member of it: the spec is the hub every platform converts to or from, so making `specs` a platform key would name the hub as one of its own spokes.
+
+These conventions are library-wide. The per-component equivalent is an annotation, which lands in the spec itself (`anatomy.<element>.role`); where both describe the same thing, the annotation wins.
+
+```yaml
+# config/conventions/specs.yaml
+states:
+  disabled:
+    prop: isDisabled
+  hover:
+    prop: state
+    value: hover
+accessibility:
+  label:
+    prop: a11yLabel
+value:
+  prop: progress
+  indeterminate: isLoading
+```
+
+### `states`
+
+A map keyed by [state concept](/settings/states/) name (e.g. `hover`, `disabled`, `readonly`). Each entry classifies one variant prop as that semantic state:
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `prop` | `string` | *(required)* | Variant prop name (e.g. `state`, `isDisabled`) |
+| `value` | `string` | `"true"` | Variant value that activates this concept (e.g. `"hover"`). Omit for boolean props |
+| `contract` | `'omit' \| 'keep'` | *(per concept)* | Contract generation override — exclude (`omit`, browser-driven) or retain (`keep`, consumer-controlled) the prop in generated Props interfaces |
+
+### `accessibility`
+
+Props carrying accessibility semantics no element expresses.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `label.prop` | `string` | — | The prop supplying an accessible name for a control with no text of its own — an icon-only button, typically. An element carrying a `label` [part role](/roles/label/) wins over the prop |
+
+### `value`
+
+The props describing a control's value where no element represents it — a progress bar draws its progress rather than writing it. An element carrying a `value` [part role](/roles/value/) wins.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `prop` | `string` | *(required)* | The prop carrying the value |
+| `indeterminate` | `string` | — | A boolean prop forcing the indeterminate presentation regardless of the value |
+
+`indeterminate` sits here rather than among the state concepts because those are a governed vocabulary: each resolves to a canonical selector, and `indeterminate` there would mean a checkbox's mixed state. A progress bar with no known value is a different fact wearing the same word — it suppresses `aria-valuenow` and has no selector at all.
+
 ## `primitives`
 
-Authored at `config/conventions/primitives.yaml` — a reserved basename in the conventions directory, so no platform may take that id. Sits at the **root** of `Conventions`, beside `platforms` rather than inside a platform. A component's props are the same whichever platform renders it, so the table is stated once.
+Authored at `config/conventions/figma.primitives.yaml` — a reserved basename in the conventions directory, so no platform may take that id. The `figma.` qualifier is deliberate: the table's `source` keys name Figma style properties and its `values` keys name Figma tokens, so the file describes the design tool even though the components it promotes to are not Figma-specific. Sits at the **root** of `Conventions`, beside `platforms` rather than inside a platform. A component's props are the same whichever platform renders it, so the table is stated once.
 
 Each key is one of the design system's own component names. When [`promotePrimitives`](/settings/promote-primitives/) is on, a primitive layer in composed example content is promoted to an instance of the component whose entry best matches it.
 
@@ -175,7 +224,7 @@ The dotted sources address inside the `Typography` composite. `typography` is ei
 A key is a **full token path or a raw scalar**, matched literally. Nothing is derived from part of a token's name, because a prop value need bear no relation to the token that produces it.
 
 ```yaml
-# config/conventions/primitives.yaml
+# config/conventions/figma.primitives.yaml
 dsHeading:
   elementType: text
   map:

@@ -120,15 +120,15 @@ Composite widgets — `dialog`, `tablist`/`tab`, `menu`, `combobox`/`listbox`/`o
 
 ## Roles and states
 
-Roles and [`processing.states`](/settings/states/) are **independent inputs**. Either can
+Roles and the [`states` convention](/settings/states/) are **independent inputs**. Either can
 exist without the other, and neither supersedes the other. They answer different questions:
 
 | Input | Answers |
 |-------|---------|
-| `processing.states` | Which Figma variant prop carries this concept? |
+| the `states` convention | Which variant prop carries this concept? |
 | `anatomy.role` | What mechanism is available to express it? |
 
-Neither answer is derivable from the other. The states config cannot know an element will
+Neither answer is derivable from the other. The states convention cannot know an element will
 become a native control; the role cannot know a library spells its disabled state
 `isDisabled`. A states classification with no role behaves exactly as it does today, and a
 role with no states classification still emits its element, its semantics, and its contract
@@ -147,12 +147,12 @@ a states entry unnecessary.
 
 The dependency runs **role → states**, not the reverse. Several roles generate real state
 management — a `togglebutton` flips its own pressed state — and to do that they must be told
-which prop holds the state. Only `processing.states` can tell them. Without that binding the
+which prop holds the state. Only the `states` convention can tell them. Without that binding the
 role degrades to an inert handler and warns.
 
 ## See also
 
-- [`processing.states`](/settings/states/) — state concept classification the roles bridge
+- The [`states` convention](/settings/states/) — state concept classification the roles bridge
 - [Anatomy schema](/schema/anatomy/) — where `role` lives in the spec
 - [ADR 067](https://github.com/DirectedEdges/specs/blob/main/adr/067-anatomy-element-roles.md) — the mechanism: role field, Dev Mode annotation, obligations, contract composition
 - [ADR 068](https://github.com/DirectedEdges/specs/blob/main/adr/068-form-control-roles.md) — form controls and field plumbing

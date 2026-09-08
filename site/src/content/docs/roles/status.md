@@ -32,11 +32,11 @@ All three are literal WAI-ARIA role tokens, so the emission is `role="<name>"` d
 
 ## States
 
-| State | What the region does | Classify in `processing.states`? |
+| State | What the region does | Classify in `states`? |
 |-------|----------------------|----------------------------------|
 | `busy` | Bridged to `aria-busy` on `status` and `progressbar` | Recommended |
 
-The role does not replace the classification: the Figma variant prop carrying `busy` still wants an entry in [`processing.states`](/settings/states/), which is what tells the transform that the prop carries that state.
+The role does not replace the classification: the Figma variant prop carrying `busy` still wants an entry in the [`states` convention](/settings/states/), which is what tells the transform that the prop carries that state.
 
 ## Choosing alert or status
 
@@ -51,12 +51,12 @@ Choosing `alert` for a routine confirmation makes an application hostile to scre
 
 ## Determinate and indeterminate progress
 
-The split comes from `propRoles` bindings, never from a prop-name guess, and it needs two bindings rather than one:
+The split comes from the `value` convention in `conventions/specs.yaml`, never from a prop-name guess, and it carries two members rather than one:
 
-- **`value`** names the prop carrying progress.
+- **`prop`** names the prop carrying progress.
 - **`indeterminate`** names a boolean prop that forces the indeterminate presentation regardless of value.
 
-Two bindings are necessary because many libraries model an indeterminate loading bar with a boolean and no value prop at all. A value-only mechanism would discard the one signal such a component actually carries.
+Two members are necessary because many libraries model an indeterminate loading bar with a boolean and no value prop on the component at all. A value-only mechanism would discard the one signal such a component actually carries.
 
 Resolution order:
 
@@ -111,4 +111,4 @@ And for a progress bar with an indeterminate boolean and no value prop:
 
 - [errormessage](/roles/errormessage/) — validation text wired to a specific control, a different job from a page-level `alert`
 - [States](/settings/states/) — the `busy` state concept
-- [Roles overview](/roles/) — how roles and `processing.states` fit together
+- [Roles overview](/roles/) — how roles and the `states` convention fit together

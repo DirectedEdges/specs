@@ -361,6 +361,34 @@ analyses:
     });
   });
 
+  describe('spec.roleValidation validation (ADR-067)', () => {
+    it('preserves a valid value', () => {
+      writeSplitFile('settings.yaml', 'spec:\n  roleValidation: error\n');
+      const config = configLoader.load();
+      expect(config.settings.spec.roleValidation).toBe('error');
+    });
+
+    it('replaces an invalid value with the default and warns', () => {
+      const warn = vi.mocked(console.warn);
+      writeSplitFile('settings.yaml', 'spec:\n  roleValidation: strict\n');
+      const config = configLoader.load();
+      expect(config.settings.spec.roleValidation).toBe(DEFAULT_SETTINGS.spec.roleValidation);
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid settings.spec.roleValidation')
+      );
+    });
+
+    it('defaults to warn when absent, without warning', () => {
+      const warn = vi.mocked(console.warn);
+      writeSplitFile('settings.yaml', 'spec:\n  format: YAML\n');
+      const config = configLoader.load();
+      expect(config.settings.spec.roleValidation).toBe('warn');
+      expect(warn).not.toHaveBeenCalledWith(
+        expect.stringContaining('roleValidation')
+      );
+    });
+  });
+
   describe('spec.defaultSlotContent validation', () => {
     it('preserves a valid boolean (true)', () => {
       writeSplitFile('settings.yaml', 'spec:\n  defaultSlotContent: true');
@@ -436,6 +464,117 @@ subcomponents:
       expect(config.conventions.platforms?.figma?.subcomponents).toBeUndefined();
       expect(warn).toHaveBeenCalledWith(
         expect.stringContaining('Invalid conventions/figma.yaml subcomponents.match')
+      );
+    });
+  });
+
+  describe('conventions/specs.yaml (ADR-073 Decision 4)', () => {
+    it('resolves states, accessibility.label and value into conventions.specs', () => {
+      writeSplitFile('conventions/specs.yaml', `
+states:
+  disabled:
+    prop: isDisabled
+accessibility:
+  label:
+    prop: a11yLabel
+value:
+  prop: progress
+  indeterminate: isLoading
+`);
+
+      const config = configLoader.load();
+      expect(config.conventions.specs).toEqual({
+        states: { disabled: { prop: 'isDisabled' } },
+        accessibility: { label: { prop: 'a11yLabel' } },
+        value: { prop: 'progress', indeterminate: 'isLoading' },
+      });
+    });
+
+    it('drops an accessibility block without label.prop (and warns), keeping the rest', () => {
+      const warn = vi.mocked(console.warn);
+      writeSplitFile('conventions/specs.yaml', 'accessibility: yes\nstates:\n  disabled:\n    prop: isDisabled\n');
+
+      const config = configLoader.load();
+      expect(config.conventions.specs).toEqual({ states: { disabled: { prop: 'isDisabled' } } });
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid conventions/specs.yaml accessibility')
+      );
+    });
+
+    it('drops a value block without prop (and warns) — prop is required', () => {
+      const warn = vi.mocked(console.warn);
+      writeSplitFile('conventions/specs.yaml', 'value:\n  indeterminate: isLoading\n');
+
+      const config = configLoader.load();
+      expect(config.conventions.specs).toBeUndefined();
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid conventions/specs.yaml value')
+      );
+    });
+
+    it('never reads specs.yaml as a platform', () => {
+      writeSplitFile('conventions/specs.yaml', 'states:\n  disabled:\n    prop: isDisabled\n');
+
+      const config = configLoader.load();
+      expect(config.conventions.platforms?.specs).toBeUndefined();
+    });
+
+    it('warns when a relocated key still sits in a platform file, naming the new home', () => {
+      const warn = vi.mocked(console.warn);
+      writeSplitFile('conventions/figma.yaml', `
+states:
+  disabled:
+    prop: isDisabled
+propRoles:
+  accessibleName: a11yLabel
+roleValidation: error
+`);
+
+      const config = configLoader.load();
+      const figma = config.conventions.platforms!.figma as Record<string, unknown>;
+      expect(figma.states).toBeUndefined();
+      expect(figma.propRoles).toBeUndefined();
+      expect(figma.roleValidation).toBeUndefined();
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('conventions/figma.yaml states: moved to conventions/specs.yaml')
+      );
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('conventions/figma.yaml propRoles: replaced by accessibility.label and value')
+      );
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('conventions/figma.yaml roleValidation: moved to settings.yaml spec.roleValidation')
+      );
+    });
+  });
+
+  describe('conventions/figma.primitives.yaml (ADR-073 Decision 5)', () => {
+    it('reads the promotion table from its Figma-qualified basename', () => {
+      writeSplitFile('conventions/figma.primitives.yaml', `
+dsIcon:
+  elementType: glyph
+  map:
+    - source: fillColor
+      prop: color
+`);
+
+      const config = configLoader.load();
+      expect(config.conventions.primitives).toEqual({
+        dsIcon: { elementType: 'glyph', map: [{ source: 'fillColor', prop: 'color' }] },
+      });
+      expect(config.conventions.platforms).toBeUndefined();
+    });
+
+    it('refuses the retired primitives.yaml basename rather than reading it as a platform', () => {
+      const error = vi.mocked(console.error);
+      writeSplitFile('conventions/primitives.yaml', 'dsIcon:\n  elementType: glyph\n  map: []\n');
+
+      const config = configLoader.load();
+      // The refusal surfaces as a load error; nothing is read as a platform.
+      expect(config.conventions.platforms?.primitives).toBeUndefined();
+      expect(config.conventions.primitives).toBeUndefined();
+      expect(error).toHaveBeenCalledWith(
+        expect.stringContaining('Error loading config'),
+        expect.objectContaining({ message: expect.stringContaining('ADR-073 Decision 5') })
       );
     });
   });

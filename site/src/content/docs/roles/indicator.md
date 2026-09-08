@@ -69,4 +69,4 @@ With the role:
 
 - [checkbox](/roles/checkbox/) — the control whose state the indicator draws
 - [togglebutton](/roles/togglebutton/) — another common host for an indicator
-- [Roles overview](/roles/) — how roles and `processing.states` fit together
+- [Roles overview](/roles/) — how roles and the `states` convention fit together

@@ -1,4 +1,4 @@
-import type { ResolvedPlatformConventions } from '@directededges/specs-schema';
+import type { ResolvedPlatformConventions, SpecsConventions } from '@directededges/specs-schema';
 import type { ProcessingStates } from '../transforms/states.js';
 
 export interface TransformerContext {
@@ -10,16 +10,17 @@ export interface TransformerContext {
   tokensFormat: string;
   /** Output format from config.format.output. Drives file extension and serialization for analyzers. */
   outputFormat: 'JSON' | 'YAML';
-  /** Semantic state concept map from config.processing.states. */
+  /** Semantic state concept map from `conventions.specs.states`. */
   processingStates?: ProcessingStates;
   /**
-   * Library-wide prop-name conventions consumed by role emission (ADR-067).
-   *
-   * A Figma-side convention like `states`: it names props the *spec* declares, so
-   * it is read from the figma platform and handed to every transform, rather than
-   * arriving on the target platform's own conventions.
+   * The prop conventions from `config/conventions/specs.yaml` that role emission
+   * consumes (ADR-067; located by ADR-073 Decision 4): which prop supplies an
+   * accessible name (`accessibility.label`) and which props describe a value
+   * (`value`). They name props the *spec* declares, so they are handed to every
+   * transform rather than arriving on the target platform's own conventions.
+   * The file's `states` member arrives as `processingStates`, not here.
    */
-  propRoles?: Record<string, string>;
+  specs?: Pick<SpecsConventions, 'accessibility' | 'value'>;
   /** Raw options from the matching config.transformers entry (everything except `name`). */
   transformerOptions?: Record<string, unknown>;
   /** Absolute path to the workspace data directory (fetched library JSON), when configured. */
