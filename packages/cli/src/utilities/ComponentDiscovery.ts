@@ -173,6 +173,54 @@ export class ComponentDiscovery {
   }
 
   /**
+   * The listable components instanced anywhere inside the given components —
+   * what those components compose, and what their composed pieces compose in
+   * turn, to a fixpoint. A generated scaffold imports the output of everything
+   * it instances, so a selection that omits these cannot generate cleanly.
+   *
+   * An instance resolves to the same row `findAllComponents` would list: a
+   * variant's COMPONENT_SET rather than the variant itself.
+   */
+  composedComponentIds(rootIds: Iterable<string>): Set<string> {
+    const found = new Set<string>();
+    const queue = [...rootIds];
+    const walked = new Set<string>();
+
+    const listableOwner = (componentId: string): string | undefined => {
+      const node = this._nodeMap.get(componentId);
+      if (!node) return undefined;
+      if (node.type === 'COMPONENT') {
+        const parent = this._nodeMap.get(this._parentMap.get(node.id) ?? '');
+        if (parent?.type === 'COMPONENT_SET') return parent.id;
+      }
+      return node.id;
+    };
+
+    while (queue.length > 0) {
+      const rootId = queue.shift()!;
+      if (walked.has(rootId)) continue;
+      walked.add(rootId);
+      const root = this._nodeMap.get(rootId);
+      if (!root) continue;
+
+      const visit = (node: RestApiNode): void => {
+        const componentId = (node as { componentId?: string }).componentId;
+        if (node.type === 'INSTANCE' && componentId) {
+          const owner = listableOwner(componentId);
+          // Self-instancing (a set's own variant) adds nothing to the selection.
+          if (owner && owner !== rootId && !found.has(owner)) {
+            found.add(owner);
+            queue.push(owner);
+          }
+        }
+        for (const child of node.children ?? []) visit(child);
+      };
+      visit(root);
+    }
+    return found;
+  }
+
+  /**
    * Get file name (if available)
    */
   getFileName(): string {

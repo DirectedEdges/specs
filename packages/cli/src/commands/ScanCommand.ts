@@ -65,6 +65,32 @@ export function deriveDefaultInclusion(
   return result;
 }
 
+/**
+ * Dev status is a property of a component, and the pieces a component composes
+ * carry none of their own — a subcomponent has no status to read, and a
+ * sibling it instances was curated on its own merits. So devStatus-derived
+ * curation deselects the dependencies of its own selection, and generating
+ * from it produces scaffolds importing output that was never generated.
+ *
+ * Every listed component a checked component composes, transitively, is
+ * retained.
+ */
+export function retainComposedDependencies(
+  rows: Array<{ id: string; included: boolean }>,
+  composedOf: (checkedIds: string[]) => Set<string>
+): number {
+  const checked = rows.filter(r => r.included).map(r => r.id);
+  if (checked.length === 0) return 0;
+  const needed = composedOf(checked);
+  let retained = 0;
+  for (const row of rows) {
+    if (row.included || !needed.has(row.id)) continue;
+    row.included = true;
+    retained += 1;
+  }
+  return retained;
+}
+
 export interface MergeStats {
   added: number;
   removed: number;
@@ -356,6 +382,13 @@ export const Scan = new Command('scan')
           included: defaults.get(c.id) ?? false,
           devStatus: c.devStatus as DevStatus
         }));
+      }
+
+      if (!options.includeAll) {
+        const retained = retainComposedDependencies(rows, ids => discovery.composedComponentIds(ids));
+        if (retained > 0) {
+          console.error(`Retained ${retained} component(s) composed by checked components`);
+        }
       }
 
       const manifest = generateManifestV2(
