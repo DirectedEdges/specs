@@ -469,12 +469,11 @@ controls in one component.
 |------|--------|------|
 | `types/Anatomy.ts` | Add exported type alias `RoleConceptName` (open string; documents the naming scheme) | MINOR |
 | `types/Anatomy.ts` | Add optional field `role?: RoleConceptName` to `AnatomyElement` | MINOR |
-| `types/Conventions.ts` | Add `SpecsConventions` with a `props` block (`states`, `accessibility.label`, `value`), and `Conventions.specs` beside `platforms` and `primitives` | MINOR |
-| `types/Conventions.ts` | Add `PropReference` (`{ prop: string }`), so a prop convention can grow fields | MINOR |
+| `types/Conventions.ts` | Add `SpecsConventions` (`states`, `accessibility.label`, `value` — no grouping wrapper; ADR 073 Option 4A), and `Conventions.specs` beside `platforms` and `primitives` | MINOR |
+| `types/Conventions.ts` | Add `PropReference` (`{ prop: string }`) and `ValueConvention` (`{ prop, indeterminate? }`), so a prop convention can grow fields | MINOR |
 | `types/Conventions.ts` | Move `states` off `PlatformConventions` — it names a spec prop, not a Figma fact | MINOR |
-| `types/Config.ts` | Add exported type alias `PropRoleName` (open string: `accessibleName`, `indeterminate`, `value`) | MINOR |
 | `types/Settings.ts` | Add optional field `roleValidation?: 'warn' \| 'error'` to `Settings.spec` (default `'warn'`), beside `roles` | MINOR |
-| `types/index.ts` | Export `RoleConceptName`, `PropRoleName` | MINOR |
+| `types/index.ts` | Export `RoleConceptName`, `SpecsConventions`, `PropReference`, `ValueConvention` | MINOR |
 
 **Example — new shape** (`types/Anatomy.ts`):
 
@@ -586,7 +585,7 @@ Rule 2 is the only rule that consults layout, and it consults it exactly where t
 
 Part roles are ordinary `RoleConceptName` values in the same open string field — no schema distinction, no second mechanism. The distinction lives entirely in the role table's rows.
 
-`PropRoleName` follows the same open-string approach but uses camelCase, because it is a **config key** (like `StateConceptName`'s `focus-within`), never a value emitted into a spec.
+The prop conventions take the opposite approach: **named fields** on `SpecsConventions` (`accessibility.label`, `value`) rather than an open concept string, because the set is small and each convention carries its own shape. They are config keys, never values emitted into a spec.
 
 ### What a part role actually contributes
 
@@ -903,7 +902,7 @@ Rules 1, 3, and 4 together are what separate a component that looks correct in a
   - `AnatomyElement.role` → `role` property on the anatomy element definition in `component.schema.json` (string, optional)
   - `Conventions.specs` → `#/definitions/Conventions/properties/specs` (`SpecsConventions`, optional)
   - `Settings.spec.roleValidation` → the `spec` block's `roleValidation` (string enum, optional)
-  - `RoleConceptName` and `PropRoleName` are documentation-only (open strings), matching the `StateConceptName` precedent — no schema enums
+  - `RoleConceptName` is documentation-only (an open string), matching the `StateConceptName` precedent — no schema enum. The prop conventions are named fields on `SpecsConventions`, so they need no name type at all
 
 ---
 
@@ -953,7 +952,7 @@ Once `control` carries `role: checkbox`, the state concepts have a *destination*
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
 | `specs-from-figma` | Populates roles during generation | Read `node.annotations` on component nodes and their layers in both runtimes; parse the annotation grammar; apply the variant resolution and key-stability rules. Layer names are not read or modified |
-| `specs-cli` | Transforms gain a deterministic role signal and prop-role bindings | Read `anatomy.<element>.role`; resolve `Conventions.specs.props` with per-component annotation overrides; emission semantics per role are defined in the vocabulary ADRs. No merge step — roles arrive already generated |
+| `specs-cli` | Transforms gain a deterministic role signal and prop convention bindings | Read `anatomy.<element>.role`; resolve `Conventions.specs` with per-component annotation overrides; emission semantics per role are defined in the vocabulary ADRs. No merge step — roles arrive already generated |
 | `specs-plugin-2` | Plugin-driven generation applies the same layer-name detection; may surface roles in UI | Recompile; apply the same detection; optionally display role classification per element |
 
 ---
@@ -962,7 +961,7 @@ Once `control` carries `role: checkbox`, the state concepts have a *destination*
 
 **Version bump**: MINOR
 
-**Justification**: The additions are optional fields — `role` on `AnatomyElement`, `Conventions.specs`, and `roleValidation` on `Settings.spec` — plus new exported types. `states` moves from `PlatformConventions` to `Conventions.specs.props`, which is a relocation within an unshipped surface rather than a break to a published one. `roleValidation` defaults to `'warn'`, so absence preserves current behavior. Per constitution III: "MINOR for additive types or new optional fields."
+**Justification**: The additions are optional fields — `role` on `AnatomyElement`, `Conventions.specs`, and `roleValidation` on `Settings.spec` — plus new exported types. `states` moves from `PlatformConventions` to `Conventions.specs.states`, which is a relocation within an unshipped surface rather than a break to a published one. `roleValidation` defaults to `'warn'`, so absence preserves current behavior. Per constitution III: "MINOR for additive types or new optional fields."
 
 ---
 
