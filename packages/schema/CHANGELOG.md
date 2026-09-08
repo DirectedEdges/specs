@@ -5,28 +5,22 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.31.0] - Unreleased
+## [0.32.0] - Unreleased
 
-**Configuration separates library facts from run choices.** A convention is something every consumer of a Figma library must agree on, while a setting is a free choice that produces different output. `Config` becomes `Conventions`, `Settings` and `Pipeline`, each validated on its own.
+**Conventions are keyed by platform, and the spec declares its own.** `conventions.figma` becomes one entry in a `platforms` map whose keys name implementations, and the conventions that describe the spec rather than any platform — the states classification and the prop conventions — move to a `specs` sibling.
 
 **Composed example content can map to preferred components** by matching a primitive's style values with designated component props. Since designers build examples with raw layers, that layer can now become an instance in specs for what component it stood for. Opt-in by default.
 
 ### Added
 
-- `PropConfigurationValue` — a `null` arm: absent inherits, `null` overrides with unset (ADR-080)
-- `InstanceExample.propConfigurations` — accepts `null`, so an example can leave a prop unset; still refuses `PropBinding`
-- `NumberProp.enum` — the closed set a numeric prop accepts, so an all-numeric VARIANT keeps both its type and its authored order (ADR-072)
-- `Conventions` — library facts keyed by platform under `platforms`; `figma` is one key among `react`, `web-components`, `swiftui`. An absent block means that platform declares no such convention (ADR-073)
-- `Settings` — run choices grouped by concern (`data`, `spec`, `assets`), each carrying its own `directory`
-- `Pipeline` — `transformers` and `analyses` a workspace runs, with `AnalysisEntry` alongside `TransformEntry`
-- `SourceEntry` — a source's Figma file `key` and the artifacts to `fetch`
-- `DEFAULT_SETTINGS`, `DEFAULT_PIPELINE` and `DEFAULT_CONVENTIONS` — one per artifact. `DEFAULT_CONVENTIONS` is `{}`; every default it carried belongs inside a declared platform entry (ADR-073)
-- `conventions.schema.json`, `settings.schema.json`, `pipeline.schema.json` — one schema per authored artifact
 - `PlatformConventions` — one shape per platform, carrying encoding and vocabulary members alike, and the root of a single `config/conventions/<id>.yaml` (ADR-073, ADR-078)
+- `Conventions.specs` — conventions about the spec itself, a sibling of `platforms` and `primitives`: the `states` classification, the prop supplying an accessible name (`accessibility.label`), and the props describing a control's value (`value.prop`, with an optional `indeterminate` prop). Authored as `config/conventions/specs.yaml` (ADR-073)
+- `PropReference` and `ValueConvention` — prop conventions are objects rather than bare names, so one can grow fields without a break (ADR-073)
+- `Settings.spec.roleValidation` — severity for unmet required role obligations, `'warn'` (default) or `'error'`; sits beside `roles` because it tunes the same feature (ADR-067)
 - `PrimitiveKind` — `'text' | 'glyph' | 'container'`, the subset of `ElementType` that can be promoted to a design system component (ADR-074)
-- `Conventions.primitives` — component-keyed `PrimitiveEntry` values, each an `elementType` and a `map` of `PrimitiveRule`; platform-neutral, since a component's props are the same on every platform (ADR-075)
+- `Conventions.primitives` — component-keyed `PrimitiveEntry` values, each an `elementType` and a `map` of `PrimitiveRule`; platform-neutral output, authored as `config/conventions/figma.primitives.yaml` because its sources and token names describe the design tool (ADR-075, ADR-073)
 - `PrimitiveRule` — a `source` read from a captured layer, sent to a `prop` as-is or through a literal `values` lookup writing one or more props (ADR-075)
-- `PlatformConventions.stylesProp` — prop receiving styling no promotion mapped, one per platform (ADR-076)
+- `PlatformConventions.stylesProp` — prop receiving styling no promotion mapped, one per platform and the only styling-prop level; there is no per-primitive override, because a promotion target is named by the spec rather than by a platform binding (ADR-076)
 - `PlatformConventions.images.component` — the image component's name on a code platform, beside the `match` naming it in Figma (ADR-077)
 - `MetadataConventions` — a spec records the one platform entry that produced it, not every platform the workspace configures (ADR-079)
 - `PlatformConventions.defaultFillWidth` — container width for a root that resizes to fill its parent; fixed and hugging roots unaffected (ADR-081)
@@ -35,11 +29,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `Settings.spec.collapsePrimitiveWrapper` — also collapses a root wrapping one slot, keeping the slot's value on shared keys (ADR-083)
-- `PlatformConventions.stylesProp` — now the only styling-prop level; there is no per-primitive override, because a promotion target is named by the spec rather than by a platform binding (ADR-076)
-- `Settings.spec.splitComponents`, `splitConcerns` and `useSubfolders` default to `true` and are required on `ResolvedSettings`. The split layout is what `transform`, `analyze` and `render` read, so it is not a per-consumer choice. `metadata.settings.spec` now carries all three
-- `Metadata.conventions` — typed as `MetadataConventions`; carries exactly the platform that produced the spec (ADR-079)
+- `Conventions` — the `figma` namespace becomes a platform-keyed `platforms` map; `figma` is one key among `react`, `web-components`, `swiftui`, and an absent key means that platform declares nothing (ADR-073)
+- `states` — moves from the `figma` conventions to `Conventions.specs.states`; it names a prop and an enum value the spec declares, so a transform reading only the spec can apply it (ADR-073)
+- `DEFAULT_CONVENTIONS` — now `{}`; every default it carried belongs inside a declared platform entry (ADR-073)
 - Conventions are authored as one file per platform in `config/conventions/`, the filename carrying the platform id; there is no single-file form (ADR-078)
+- `Metadata.conventions` — typed as `MetadataConventions`; carries exactly the platform that produced the spec (ADR-079)
+
+### ADRs
+
+#### Accepted
+
+- [ADR-073](../../adr/073-platform-conventions-namespace.md) — `conventions.platforms`, with Figma as One Platform Among Them
+
+#### New drafts
+
+- [ADR-067](../../adr/067-anatomy-element-roles.md) — Element Behavior Roles via `anatomy.role`
+- [ADR-068](../../adr/068-form-control-roles.md) — Form Control and Field Plumbing Role Concepts
+- [ADR-074](../../adr/074-emit-time-primitive-resolution.md) — Primitives Promote to Component Instances During Capture, in Composed Content
+- [ADR-075](../../adr/075-primitive-style-prop-mapping.md) — `conventions.primitives` — a Declared Table from Styles to a Component's Props
+- [ADR-076](../../adr/076-container-primitives-and-shared-styles.md) — Promoting a Container, and a Platform-Level `stylesProp`
+- [ADR-077](../../adr/077-images-and-the-convention-boundary.md) — The Image Component's Code Name, and the Encoding / Vocabulary Boundary
+- [ADR-078](../../adr/078-conventions-file-per-platform.md) — One Conventions File per Platform, in `config/conventions/`
+- [ADR-079](../../adr/079-metadata-conventions-single-platform.md) — `metadata.conventions` Carries Only the Producing Platform
+- [ADR-081](../../adr/081-default-fill-width.md) — `defaultFillWidth` — the Width a Fill-Width Root Fills
+- [ADR-084](../../adr/084-element-figma-extensions.md) — `Element.$extensions` — Figma Provenance for a Promoted Element
+- [ADR-085](../../adr/085-promote-primitives-setting.md) — `promotePrimitives` — the Switch for Capture-Time Promotion
+- [ADR-086](../../adr/086-interactive-root-roles.md) — Interactive Root and Announcement Role Concepts
+- [ADR-087](../../adr/087-behavior-actions.md) — Behavior Actions via `anatomy.action`
+
+## [0.31.0] - 2026-09-04
+
+Configuration now separates what is true about a Figma library from what a run chooses to do with it. A convention — a naming pattern, a state classification, where subcomponents live — is a fact every consumer of that library must share, and getting one wrong produces incorrect output. A setting is a free choice that produces different output. They were peers in one `Config`; they are now two published types, each addressable, each validated on its own, with the work a workspace runs declared separately again.
+
+### Added
+
+- `PropConfigurationValue` — a `null` arm; a configuration states a nullable prop is unset, and an absent key inherits while `null` overrides (ADR-080)
+- `InstanceExample.propConfigurations` — accepts `null`, so an example can leave a prop unset; still refuses `PropBinding`
+- `NumberProp.enum` — the closed set of values a numeric prop accepts, so a Figma VARIANT whose options are all numbers carries its numeric type and its authored option order at once (ADR-072)
+- `Conventions` — facts about the Figma library, namespaced by source under `figma`; blocks are optional and their absence means the library declares no such convention
+- `Settings` — run choices grouped by concern (`data`, `spec`, `assets`), each carrying its own `directory`
+- `Pipeline` — `transformers` and `analyses` a workspace runs, with `AnalysisEntry` alongside `TransformEntry`
+- `SourceEntry` — a source's Figma file `key` and the artifacts to `fetch`
+- `DEFAULT_SETTINGS`, `DEFAULT_PIPELINE` and `DEFAULT_CONVENTIONS` — one defaults constant per configuration artifact. `DEFAULT_CONVENTIONS` carries only the three members that have a meaningful default; convention blocks are absent by design, because absence is the statement that a library declares none
+- `conventions.schema.json`, `settings.schema.json`, `pipeline.schema.json` — one schema per authored artifact
+
+### Changed
+
+- `Settings.spec.collapsePrimitiveWrapper` — also collapses a root wrapping one slot, keeping the slot's value on shared keys (ADR-083)
+- **`Settings.spec.splitComponents`, `splitConcerns` and `useSubfolders` now default to `true`** and are required on `ResolvedSettings`. The split layout — one folder per component, one file per concern — is what `transform`, `analyze` and `render` read, so the shape of generated output is not a per-consumer choice. They previously carried no default, leaving each consumer to pick its own; both consumers picked `false`, which is the layout nothing downstream can use. Recorded spec `metadata.settings.spec` now carries all three on every spec.
+
 - `Metadata.config` → `Metadata.conventions` and `Metadata.settings` — each half comparable across specs on its own
 - `Config.format.figmaKeys` → `Conventions.figma.naming` — no longer shares the word `keys` with the emitted casing
 - `Config.processing.glyphNamePattern` → `Conventions.figma.glyphs.match`; `codeOnlyPropsPattern` → `codeOnlyProps.match`; `images.imageComponent` → `images.match`
@@ -71,21 +109,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### New drafts
 
-- [ADR-067](../../adr/067-anatomy-element-roles.md) — Element Behavior Roles via `anatomy.role`
-- [ADR-068](../../adr/068-form-control-roles.md) — Form Control and Field Plumbing Role Concepts
 - [ADR-072](../../adr/072-numeric-variant-enum.md) — Numeric Enum on NumberProp
-- [ADR-073](../../adr/073-platform-conventions-namespace.md) — `conventions.platforms`, with Figma as One Platform Among Them
-- [ADR-074](../../adr/074-emit-time-primitive-resolution.md) — Primitives Promote to Component Instances During Capture, in Composed Content
-- [ADR-075](../../adr/075-primitive-style-prop-mapping.md) — `conventions.primitives` — a Declared Table from Styles to a Component's Props
-- [ADR-076](../../adr/076-container-primitives-and-shared-styles.md) — Promoting a Container, and a Platform-Level `stylesProp`
-- [ADR-077](../../adr/077-images-and-the-convention-boundary.md) — The Image Component's Code Name, and the Encoding / Vocabulary Boundary
-- [ADR-078](../../adr/078-conventions-file-per-platform.md) — One Conventions File per Platform, in `config/conventions/`
-- [ADR-079](../../adr/079-metadata-conventions-single-platform.md) — `metadata.conventions` Carries Only the Producing Platform
-- [ADR-081](../../adr/081-default-fill-width.md) — `defaultFillWidth` — the Width a Fill-Width Root Fills
-- [ADR-084](../../adr/084-element-figma-extensions.md) — `Element.$extensions` — Figma Provenance for a Promoted Element
-- [ADR-085](../../adr/085-promote-primitives-setting.md) — `promotePrimitives` — the Switch for Capture-Time Promotion
-- [ADR-086](../../adr/086-interactive-root-roles.md) — Interactive Root and Announcement Role Concepts
-- [ADR-087](../../adr/087-behavior-actions.md) — Behavior Actions via `anatomy.action`
 
 ## [0.30.0] - 2026-08-17
 
