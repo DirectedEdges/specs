@@ -56,6 +56,7 @@ workspace makes, and what it runs. `specs migrate config` converts an existing w
 
 - Text components sized in the design now render at the height their type styles ask for, rather than a line short of it
 - `scan` keeps the components a selected component is built from, instead of leaving them unchecked because they carry no dev status of their own
+- `scan` leaves out the Examples sets and code-only-props sets a library keeps as authoring aids, including those filed in a hidden folder
 - Loading a workspace with no `config/` no longer throws while resolving conventions
 - `scan` records the dev status Figma set, including `COMPLETED`, instead of collapsing to `READY_FOR_DEV` or `NONE`. Selection is unchanged
 - A manifest row with an unfamiliar dev status is kept, warned about and left unselected, rather than silently dropped

@@ -91,6 +91,43 @@ export function retainComposedDependencies(
   return retained;
 }
 
+/**
+ * Authoring aids that live in the library as components but are not components
+ * of it: the Examples sets a designer keeps beside a component, and the sets
+ * that carry the code-only-props surface. Generating them writes spec folders
+ * for things nothing consumes.
+ *
+ * Hidden folders (`_`) are organisational, so they are dropped before matching
+ * — otherwise "Slider / _ / Examples / Steps" slips past the declared
+ * `{C} / Examples / {S}` exclusion that is meant to catch exactly it.
+ */
+export function isAuthoringAid(
+  name: string,
+  conventions: { exclude?: string[]; codeOnlyProps?: string } = {}
+): boolean {
+  const segments = name.split('/').map(s => s.trim()).filter(s => s.length > 0 && s !== '_');
+  const path = segments.join(' / ');
+  const norm = (s: string) => s.replace(/\s+/g, ' ').toLowerCase();
+
+  if (conventions.codeOnlyProps && segments.length > 0) {
+    if (norm(segments[0]) === norm(conventions.codeOnlyProps)) return true;
+  }
+
+  // A pattern is a name shape, not a regex: {C} and {S} stand for any parent
+  // and any child, since a listing has no one parent in hand to bind them to.
+  return (conventions.exclude ?? []).some(pattern => {
+    const source = pattern
+      .split(/(\{C\}|\{S\})/)
+      .map(part => (part === '{C}' || part === '{S}' ? '.+' : escapeRegExp(norm(part))))
+      .join('');
+    return new RegExp(`^${source}$`).test(norm(path));
+  });
+}
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export interface MergeStats {
   added: number;
   removed: number;
@@ -354,9 +391,19 @@ export const Scan = new Command('scan')
       // Sort by name for stable diffs
       componentInfoList.sort((a, b) => a.name.localeCompare(b.name));
 
-      const glyphPattern = figmaOf(config.conventions).glyphs?.match;
+      const figmaConventions = figmaOf(config.conventions);
+      const aidConventions = {
+        exclude: figmaConventions.subcomponents?.exclude,
+        codeOnlyProps: figmaConventions.codeOnlyProps?.match,
+      };
+      const listable = componentInfoList.filter(c => !isAuthoringAid(c.name, aidConventions));
+      if (options.verbose && listable.length < componentInfoList.length) {
+        console.error(`[CLI] Excluded ${componentInfoList.length - listable.length} authoring-aid component(s)`);
+      }
+
+      const glyphPattern = figmaConventions.glyphs?.match;
       const { components: componentList, glyphs: glyphList } = partitionByGlyphPattern(
-        componentInfoList,
+        listable,
         glyphPattern
       );
 
