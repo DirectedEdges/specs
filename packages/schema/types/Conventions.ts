@@ -12,26 +12,7 @@ import type { PropConfigurations } from './PropConfigurations.js';
  * @since 0.24.0
  */
 
-/**
- * Names a library-wide prop convention that role emission consumes (ADR-067).
- *
- * An open string, keyed camelCase because it is a config key and is never
- * emitted into a spec (matching the `states` concept-key precedent).
- *
- * Covers facts carried by props and nowhere else — anything an element can carry
- * is a part role on that element instead, and a matching part role always wins
- * over a `propRoles` entry.
- *
- * Recognized concepts:
- * - `accessibleName` — the prop supplying an accessible name for controls with no
- *   text descendant (typically a code-only accessibility-label prop)
- * - `indeterminate` — a boolean prop forcing an indeterminate presentation
- * - `value` — the prop supplying a control's value where no element represents it
- *   (a progress bar draws its value; a text input has a `value` element)
- *
- * @since 0.32.0
- */
-export type PropRoleName = string;
+
 
 export interface VariantStateEntry {
   /** Figma variant prop name (e.g. `state`, `isDisabled`, `focused`). */
@@ -238,12 +219,6 @@ export interface PlatformConventions {
   slotConstraints?: boolean;
   /** This platform authors numeric props as Figma `TEXT` props whose default and examples parse as valid numbers, to be emitted as NumberProp rather than StringProp. Optional; defaults to false. */
   inferNumberProps?: boolean;
-  /** Concept-keyed map classifying Figma variant props as semantic states. Key = concept name (e.g. `hover`, `disabled`). Optional; absence means all variant props emit as data-* attribute selectors. @since 0.24.0 */
-  states?: Record<string, VariantStateEntry>;
-  /** Library-wide prop-name conventions consumed by role emission: maps a prop-role concept (`accessibleName`, `indeterminate`, `value`) to the prop name carrying it. Covers facts carried by props alone — element-level facts use part roles on anatomy elements, and a matching part role always wins. Per-component deviations are annotated on the component node. Optional; absence disables prop-role binding (ADR-067). @since 0.32.0 */
-  propRoles?: Record<PropRoleName, string>;
-  /** Severity for unmet required role obligations, e.g. a control with no accessible-name source (ADR-067). `warn` emits a diagnostic and continues; `error` fails the transform. Optional; defaults to `warn`, so absence preserves current behavior. Conflicts — two elements claiming one part, two value-bearing controls — are errors regardless. @since 0.32.0 */
-  roleValidation?: 'warn' | 'error';
   /**
    * Prop that receives styling no promotion mapped, for every promoted component on this
    * platform (e.g. `sx`, `style`, `modifier`). A **name only** — what is placed in it is
@@ -292,6 +267,92 @@ export interface PlatformConventions {
  *
  * @since 0.31.0
  */
+/**
+ * A prop named by a convention.
+ *
+ * An object rather than a bare prop name so a convention can grow properties of
+ * its own — pairing a label with the state that selects it, for instance — without
+ * a breaking change. `VariantStateEntry` already has this shape; this is the same
+ * idea for conventions that name a prop and nothing else yet.
+ *
+ * @since 0.32.0
+ */
+export interface PropReference {
+  /** The prop carrying this concept. */
+  prop: string;
+}
+
+/**
+ * Conventions about the **spec itself** (ADR-073 amendment).
+ *
+ * A sibling of `platforms` rather than a member of it, for the same reason
+ * `primitives` is: these are not facts about a platform. `states` names a prop and
+ * an enum value that exist in `api.yaml`; a transform reading only the spec can
+ * apply it and never touches Figma. Filing them under `figma` said they described
+ * the design tool, which they do not.
+ *
+ * Scope is library-wide. The per-component equivalent is an annotation, which
+ * lands in the spec itself — `anatomy.<element>.role` and `.actions`. Where both
+ * describe the same thing, the annotation wins: the specific over the general.
+ *
+ * @since 0.32.0
+ */
+export interface SpecsConventions {
+  /**
+   * Concept-keyed map classifying variant props as semantic states.
+   *
+   * Unchanged from where it previously sat, including its concept vocabulary: the
+   * concepts are governed, each resolving to a canonical selector, and that
+   * governance is why nothing else is folded in here. Absence means all variant
+   * props emit as `data-*` attribute selectors and all props are retained in
+   * contracts.
+   */
+  states?: Record<string, VariantStateEntry>;
+  /** Props carrying accessibility semantics no element expresses. */
+  accessibility?: {
+    /**
+     * The prop supplying an accessible name for a control with no text of its own —
+     * an icon-only button, typically. Where a `label` part role resolves, that wins:
+     * an element carrying the name is preferred to a prop.
+     */
+    label?: PropReference;
+  };
+  /**
+   * The prop supplying a control's value where no element represents it — a progress
+   * bar draws its progress rather than writing it. Where a `value` part role
+   * resolves, that wins.
+   */
+  value?: ValueConvention;
+}
+
+/**
+ * The props describing a control's value.
+ *
+ * `indeterminate` sits here rather than among the state concepts because those are a
+ * governed vocabulary: each resolves to a canonical selector, and `indeterminate`
+ * there means a checkbox's mixed state (`:indeterminate`, `aria-checked="mixed"`).
+ * A progress bar with no known value is a different fact wearing the same word — it
+ * suppresses `aria-valuenow` and has no selector at all. Folding them would widen a
+ * governed vocabulary to absorb a prop binding, which is what the governance exists
+ * to prevent.
+ *
+ * Modelling it as a property *of* the value is what it actually is: the prop that
+ * says this value is unknown.
+ *
+ * @since 0.32.0
+ */
+export interface ValueConvention {
+  /** The prop carrying the value. */
+  prop: string;
+  /**
+   * A boolean prop that forces the indeterminate presentation regardless of the
+   * value. Resolution order: this true suppresses the value; otherwise a resolved
+   * `prop` produces the determinate form; otherwise the indeterminate form is
+   * emitted with a warning.
+   */
+  indeterminate?: string;
+}
+
 export interface Conventions {
   /** Platform-keyed conventions. The key is a free-form implementation id (`figma`, `react`, `swiftui`). */
   platforms?: Record<string, PlatformConventions>;
@@ -305,6 +366,11 @@ export interface Conventions {
    * @since 0.31.0
    */
   primitives?: Record<string, PrimitiveEntry>;
+  /**
+   * Conventions about the spec itself, rather than about any platform.
+   * Loaded from `conventions/specs.yaml`. @since 0.32.0
+   */
+  specs?: SpecsConventions;
 }
 
 /**
@@ -358,12 +424,6 @@ export interface ResolvedPlatformConventions {
   slotConstraints: boolean;
   /** Numeric props are authored as Figma `TEXT` props. */
   inferNumberProps: boolean;
-  /** Concept-keyed map classifying Figma variant props as semantic states. Optional; absence means no state convention. */
-  states?: Record<string, VariantStateEntry>;
-  /** Library-wide prop-name conventions consumed by role emission. Optional; absence disables prop-role binding. */
-  propRoles?: Record<PropRoleName, string>;
-  /** Severity for unmet required role obligations. Optional; absence means `warn`. */
-  roleValidation?: 'warn' | 'error';
   /** Prop that receives styling no promotion mapped. Optional; absence means unmapped styling is dropped. */
   stylesProp?: string;
   /** Width of the container a fill-width root is placed in. Optional; no default — absence means the tool falls back to its own value. */
@@ -380,6 +440,8 @@ export interface ResolvedPlatformConventions {
  */
 export interface ResolvedConventions {
   platforms?: Record<string, ResolvedPlatformConventions>;
+  /** Conventions about the spec itself. Optional; absence means none are declared. @since 0.32.0 */
+  specs?: SpecsConventions;
   /** Component-keyed promotion entries. Optional; absence means nothing is promoted. @since 0.31.0 */
   primitives?: Record<string, PrimitiveEntry>;
 }

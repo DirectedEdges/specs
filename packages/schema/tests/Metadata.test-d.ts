@@ -29,6 +29,7 @@ const baseSettings: Metadata['settings'] = {
     collapsePrimitiveWrapper: false,
     promotePrimitives: false,
     roles: false,
+    roleValidation: 'warn',
     invalidVariants: false,
     invalidCombinations: true,
     emptyVariants: false,

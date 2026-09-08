@@ -190,6 +190,14 @@
             "roles": {
               "type": "boolean",
               "description": "Read Figma Dev Mode annotations and emit anatomy.<element>.role (ADR-067). The on-switch for the role feature: when false, annotations are not read and no role is emitted. Defaults to false."
+            },
+            "roleValidation": {
+              "type": "string",
+              "enum": [
+                "warn",
+                "error"
+              ],
+              "description": "Severity for unmet required role obligations, such as a control with no accessible-name source (ADR-067). A setting rather than a convention: it describes how strict a run should be. 'warn' emits a diagnostic and continues; 'error' fails the transform. Defaults to 'warn'. Conflicts are errors regardless."
             }
           },
           "additionalProperties": false

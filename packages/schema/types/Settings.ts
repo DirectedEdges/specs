@@ -70,6 +70,19 @@ export interface Settings {
      */
     roles?: boolean;
     /**
+     * Severity for unmet required role obligations — most commonly a control with
+     * no source for its accessible name (ADR-067).
+     *
+     * A setting rather than a convention: it describes how strict a run should be,
+     * which is a fact about neither the design tool nor the target. It sits beside
+     * `roles` because it tunes the same feature — with `roles` off there is nothing
+     * to validate. `warn` emits a diagnostic and continues; `error` fails the
+     * transform. Optional; defaults to `warn`. Conflicts — two elements claiming one
+     * part, two value-bearing controls — are errors regardless.
+     * @since 0.32.0
+     */
+    roleValidation?: 'warn' | 'error';
+    /**
      * Token reference serialization profile. Optional; defaults to TOKEN.
      * `FIGMA_SYNTAX_WEB`, `FIGMA_SYNTAX_IOS`, and `FIGMA_SYNTAX_ANDROID` emit the
      * token's Figma `codeSyntax` for that platform, falling back to the `TOKEN`
@@ -179,6 +192,8 @@ export interface ResolvedSettings {
     promotePrimitives: boolean;
     /** Dev Mode annotations are read and emitted as `anatomy.<element>.role`. */
     roles: boolean;
+    /** Severity for unmet required role obligations. */
+    roleValidation: 'warn' | 'error';
     /** Include invalid variants. */
     invalidVariants: boolean;
     /** Include invalid combinations. */
@@ -235,6 +250,7 @@ export const DEFAULT_SETTINGS: ResolvedSettings = {
     collapsePrimitiveWrapper: false,
     promotePrimitives: false,
     roles: false,
+    roleValidation: 'warn',
     invalidVariants: false,
     invalidCombinations: true,
     emptyVariants: false,
