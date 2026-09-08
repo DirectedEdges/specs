@@ -156,6 +156,24 @@ function isGlyphLike(elemType: string | undefined): boolean {
   return elemType === 'glyph' || elemType === 'vector';
 }
 
+/** Declarations that only mean something on an element that generates a box. */
+const BOX_DECL = /^(width|height|min-width|min-height|max-width|max-height|flex|align-self|padding|margin):/;
+
+/**
+ * A text element renders as an inline span, and on a non-replaced inline box
+ * the sizing declarations the spec asked for do nothing — nor does the line box
+ * a declared line-height describes, which leaves the element measuring the
+ * font's content area instead of its leading. When the spec gives a text
+ * element box declarations, it means it as a box: `inline-block` makes them
+ * apply without forcing the line break `block` would.
+ */
+function inlineBlockIfBoxed(elemType: string | undefined, decls: string[]): void {
+  if (elemType !== 'text') return;
+  if (decls.some(d => d.startsWith('display:'))) return;
+  if (!decls.some(d => BOX_DECL.test(d))) return;
+  decls.push('display: inline-block');
+}
+
 
 /** api.yaml anatomy → element key → type ("container" | "rectangle" | "ellipse" | "vector" | "text" | …). */
 function anatomyTypes(apiYaml: Record<string, unknown>): Record<string, string> {
@@ -427,6 +445,7 @@ function buildCssLines(
     // instance carrying a `name` propConfiguration as glyph-like, which inferred
     // meaning from a prop name and painted a solid `currentColor` box wherever
     // composition resolved the instance instead.
+    inlineBlockIfBoxed(elemTypes[elemKey], decls);
     if (isGlyphLike(elemTypes[elemKey])) {
       decls.push('mask: var(--glyph, none) no-repeat center / contain');
       decls.push('-webkit-mask: var(--glyph, none) no-repeat center / contain');
@@ -603,6 +622,7 @@ function buildCssLines(
         ...styleToCSS(styles, tokensFormat, elemTypes[elemKey], styleOptions(elemKey)),
       ];
       if ('backgroundImage' in styles) decls.push(...backgroundImageDecls(styles.backgroundImage, images));
+      inlineBlockIfBoxed(elemTypes[elemKey], decls);
       const display = displayDecls.get(elemKey);
       if (display && !decls.some(d => d.startsWith('display:'))) decls.push(display);
       const reverse = reverseDecls.get(elemKey);
