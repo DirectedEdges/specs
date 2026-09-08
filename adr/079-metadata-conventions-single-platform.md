@@ -269,7 +269,7 @@ Absence has a different meaning here than in the artifact. In `conventions.yaml`
 
 ## Semver Decision
 
-**Version**: `0.31.0` (release branch `release/schema-0.31.0+cli-0.28.0`) — **MINOR**
+**Version**: `0.32.0` (release branch `release/schema-0.32.0+cli-0.29.0`) — **MINOR**
 
 **Justification**: `Metadata.conventions` is `@since 0.31.0` and unpublished — npm's latest is `0.30.0`. Narrowing a member within the release that introduces it breaks no published contract, so the release stays MINOR against `0.30.0`. As with ADR-073, this holds only until `0.31.0` ships.
 

@@ -317,7 +317,7 @@ typography rule and keeps its colour as styling.
 
 ## Semver Decision
 
-**Version**: `0.31.0` (release branch `release/schema-0.31.0+cli-0.28.0`) — **MINOR**
+**Version**: `0.32.0` (release branch `release/schema-0.32.0+cli-0.29.0`) — **MINOR**
 
 **Justification**: additive optional members and new definitions. The concept-keyed `props`
 map this replaces was added in the same unreleased version and has never been published, so

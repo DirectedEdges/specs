@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Composed example content can map to preferred components** by matching a primitive's style values with designated component props. Since designers build examples with raw layers, that layer can now become an instance in specs for what component it stood for. Opt-in by default.
 
+### Breaking
+
+These reshape types that `0.31.0` published: this branch was cut before `0.31.0` shipped without it, so what began as a free relocation inside an unreleased type now breaks the published shape.
+
+- `Conventions` — the `figma` namespace becomes a platform-keyed `platforms` map; `figma` is one key among `react`, `web-components`, `swiftui`, and an absent key means that platform declares nothing (ADR-073)
+- `states` — moves from the `figma` conventions to `Conventions.specs.states`; it names a prop and an enum value the spec declares, so a transform reading only the spec can apply it (ADR-073)
+- `DEFAULT_CONVENTIONS` — now `{}`; every default it carried belongs inside a declared platform entry (ADR-073)
+- Conventions are authored as one file per platform in `config/conventions/`, the filename carrying the platform id; there is no single-file form (ADR-078)
+- `Metadata.conventions` — typed as `MetadataConventions`; carries exactly the platform that produced the spec (ADR-079)
+
 ### Added
 
 - `PlatformConventions` — one shape per platform, carrying encoding and vocabulary members alike, and the root of a single `config/conventions/<id>.yaml` (ADR-073, ADR-078)
@@ -26,14 +36,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `PlatformConventions.defaultFillWidth` — container width for a root that resizes to fill its parent; fixed and hugging roots unaffected (ADR-081)
 - `Element.$extensions` — `com.figma.promotedPrimitive`, `com.figma.multipleMatches`, `com.figma.content` and `com.figma.styles`, recording that a layer was promoted, whether more than one entry resolved, and the content and styles it consumed (ADR-084)
 - `Settings.spec.promotePrimitives` — primitive layers in composed example content promote to design system component instances; opt-in, defaults to `false` (ADR-085)
-
-### Changed
-
-- `Conventions` — the `figma` namespace becomes a platform-keyed `platforms` map; `figma` is one key among `react`, `web-components`, `swiftui`, and an absent key means that platform declares nothing (ADR-073)
-- `states` — moves from the `figma` conventions to `Conventions.specs.states`; it names a prop and an enum value the spec declares, so a transform reading only the spec can apply it (ADR-073)
-- `DEFAULT_CONVENTIONS` — now `{}`; every default it carried belongs inside a declared platform entry (ADR-073)
-- Conventions are authored as one file per platform in `config/conventions/`, the filename carrying the platform id; there is no single-file form (ADR-078)
-- `Metadata.conventions` — typed as `MetadataConventions`; carries exactly the platform that produced the spec (ADR-079)
 
 ### ADRs
 

@@ -328,7 +328,7 @@ Consumers MUST read **their own** platform entry, MUST apply the width only when
 
 ## Semver Decision
 
-**Version**: `0.31.0` (release branch `release/schema-0.31.0+cli-0.28.0`) — **MINOR**.
+**Version**: `0.32.0` (release branch `release/schema-0.32.0+cli-0.29.0`) — **MINOR**.
 
 **Justification**: The change adds one optional member to `PlatformConventions`, a type introduced by ADR-073 in this same unreleased version, and one optional property to its schema object. No field is renamed, removed, or changed in presence — additive per the constitution's versioning rule ("`MINOR` for additive types or new optional fields").
 

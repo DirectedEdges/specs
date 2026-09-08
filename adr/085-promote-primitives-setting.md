@@ -189,7 +189,7 @@ have used it.
 
 ## Semver Decision
 
-**Version**: `0.31.0` (release branch `release/schema-0.31.0+cli-0.28.0`) — **MINOR**
+**Version**: `0.32.0` (release branch `release/schema-0.32.0+cli-0.29.0`) — **MINOR**
 
 **Justification**: one additive optional member on an existing type, plus its resolved
 counterpart and a default. No existing member changes name, type, or presence.

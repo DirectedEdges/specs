@@ -267,7 +267,7 @@ Both members are optional and independent. A promoted element that consumed no s
 
 ## Semver Decision
 
-**Version**: `0.31.0` (release branch `release/schema-0.31.0+cli-0.28.0`) — **MINOR**
+**Version**: `0.32.0` (release branch `release/schema-0.32.0+cli-0.29.0`) — **MINOR**
 
 **Justification**: three additions, all optional — a new optional member on an existing type
 and two new definitions. No existing member changes name, type, or presence. Additive types

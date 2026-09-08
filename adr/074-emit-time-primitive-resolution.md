@@ -232,7 +232,7 @@ instance, and instances already resolve to a component name and import.
 
 ## Semver Decision
 
-**Version**: `0.31.0` (release branch `release/schema-0.31.0+cli-0.28.0`) — **MINOR**
+**Version**: `0.32.0` (release branch `release/schema-0.32.0+cli-0.29.0`) — **MINOR**
 
 **Justification**: the removed members were added in this same unreleased version and have
 never been published, so no consumer contract is broken. `PrimitiveKind` is retained with an

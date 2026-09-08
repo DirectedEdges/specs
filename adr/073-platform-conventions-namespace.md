@@ -488,7 +488,7 @@ The distribution is the useful finding: the change is **wide but shallow in `spe
 
 ## Semver Decision
 
-**Version**: `0.31.0` (release branch `release/schema-0.31.0+cli-0.28.0`) — **MINOR**
+**Version**: `0.32.0` (release branch `release/schema-0.32.0+cli-0.29.0`) — **MINOR**
 
 **Justification**: `Conventions`, `ResolvedConventions`, and `DEFAULT_CONVENTIONS` are all `@since 0.31.0` and have never been published — npm's latest is `0.30.0`. Reshaping a type within the release that introduces it is not a break of any published contract, so the release stays MINOR against `0.30.0`. This reasoning holds only until `0.31.0` ships; after that, the same change is MAJOR.
 

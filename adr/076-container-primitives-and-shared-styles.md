@@ -236,7 +236,7 @@ requires and which is left for a later ADR rather than speculated on here.
 
 ## Semver Decision
 
-**Version**: `0.31.0` (release branch `release/schema-0.31.0+cli-0.28.0`) — **MINOR**
+**Version**: `0.32.0` (release branch `release/schema-0.32.0+cli-0.29.0`) — **MINOR**
 
 **Justification**: one additive optional member. The container binding union removed here was
 added in the same unreleased version and never published.

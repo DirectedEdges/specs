@@ -381,7 +381,7 @@ The finding worth acting on is `bridge/server.ts`. Every other consumer reads co
 
 ## Semver Decision
 
-**Version**: `0.31.0` (release branch `release/schema-0.31.0+cli-0.28.0`) — **MINOR**
+**Version**: `0.32.0` (release branch `release/schema-0.32.0+cli-0.29.0`) — **MINOR**
 
 **Justification**: no type changes. `config/conventions.yaml` is introduced by the unreleased CLI `0.28.0` (npm's latest is `0.27.0`), so replacing it with `config/conventions/` invalidates no published layout — the same reasoning ADR-073 uses to reshape `Conventions` itself. The release stays MINOR against the published baseline. This holds only until `0.28.0` ships.
 

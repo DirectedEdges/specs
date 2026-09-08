@@ -21,7 +21,7 @@ export type Element = {
   instanceOf?: string | PropBinding | SubcomponentRef;
   /** The content for content-bearing elements: text string for text elements, glyph name for glyph elements, or a PropBinding reference. */
   content?: string | PropBinding;
-  /** Platform extensions; `com.figma` carries capture provenance. @since 0.31.0 */
+  /** Platform extensions; `com.figma` carries capture provenance. @since 0.32.0 */
   $extensions?: ElementExtensions;
 };
 
@@ -32,7 +32,7 @@ export type Element = {
  * of a design system component (ADR-074). Both members are optional and independent: a
  * promotion that consumed no styles records the flag alone.
  *
- * @since 0.31.0
+ * @since 0.32.0
  */
 export interface FigmaElementExtension {
   /**
@@ -78,7 +78,7 @@ export interface FigmaElementExtension {
 /**
  * DTCG-style platform extensions for an element.
  *
- * @since 0.31.0
+ * @since 0.32.0
  */
 export interface ElementExtensions {
   'com.figma'?: FigmaElementExtension;

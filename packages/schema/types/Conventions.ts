@@ -44,7 +44,7 @@ export interface VariantStateEntry {
  * something else, not a kind of node, so it is bound through `images.component`
  * instead (ADR-077).
  *
- * @since 0.31.0
+ * @since 0.32.0
  */
 export type PrimitiveKind = 'text' | 'glyph' | 'container';
 
@@ -72,7 +72,7 @@ export type PrimitiveKind = 'text' | 'glyph' | 'container';
  * the element does not carry, simply does not resolve — its value stays in `styles` and
  * reaches output as passed styling.
  *
- * @since 0.31.0
+ * @since 0.32.0
  */
 export interface PrimitiveRule {
   /** What is read from the captured layer — a `Styles` member, a dotted path into `typography`, or `content`. */
@@ -106,7 +106,7 @@ export interface PrimitiveRule {
  * promotion starts *from*, not the component it lands on: a component with its own
  * internal anatomy is a legitimate target for a single drawn layer.
  *
- * @since 0.31.0
+ * @since 0.32.0
  */
 export interface PrimitiveEntry {
   /**
@@ -147,7 +147,7 @@ export interface PrimitiveEntry {
  * Absence of a member means this platform declares no such convention, and the
  * capability it enables does not apply. There is no separate on-switch.
  *
- * @since 0.31.0
+ * @since 0.32.0
  */
 export interface PlatformConventions {
   /**
@@ -225,7 +225,7 @@ export interface PlatformConventions {
    * the generator's decision (Constitution II).
    * Optional; absence means unmapped styling has nowhere to go and is dropped.
    *
-   * @since 0.31.0
+   * @since 0.32.0
    */
   stylesProp?: string;
   /**
@@ -241,32 +241,11 @@ export interface PlatformConventions {
    * Optional, and with no default at any level: absence means this platform declares no
    * width, and the rendering tool falls back to its own value.
    *
-   * @since 0.31.0
+   * @since 0.32.0
    */
   defaultFillWidth?: number;
 }
 
-/**
- * Facts about the libraries a spec was generated from and is generated for, keyed by
- * platform.
- *
- * Every consumer reading the same libraries declares the same values. Differing values
- * produce **incorrect** output rather than merely different output: a mismatched pattern
- * leaves a whole class of assets undetected, a mismatched state entry lands a concept on
- * the wrong prop, and a mismatched primitive binding emits a component the design system
- * does not have.
- *
- * Figma is one platform key among `react`, `web-components`, `swiftui`, and whatever
- * else a workspace targets — the pipeline reads Figma to produce specs and writes specs
- * to produce Figma, so it is a peer rather than a special case. Keys name
- * *implementations*, not platform families: React and Web Components need different
- * vocabularies and get different keys.
- *
- * Absence of `platforms` means no conventions are declared at all; absence of one key
- * means that platform declares none.
- *
- * @since 0.31.0
- */
 /**
  * A prop named by a convention.
  *
@@ -353,6 +332,27 @@ export interface ValueConvention {
   indeterminate?: string;
 }
 
+/**
+ * Facts about the libraries a spec was generated from and is generated for, keyed by
+ * platform.
+ *
+ * Every consumer reading the same libraries declares the same values. Differing values
+ * produce **incorrect** output rather than merely different output: a mismatched pattern
+ * leaves a whole class of assets undetected, a mismatched state entry lands a concept on
+ * the wrong prop, and a mismatched primitive binding emits a component the design system
+ * does not have.
+ *
+ * Figma is one platform key among `react`, `web-components`, `swiftui`, and whatever
+ * else a workspace targets — the pipeline reads Figma to produce specs and writes specs
+ * to produce Figma, so it is a peer rather than a special case. Keys name
+ * *implementations*, not platform families: React and Web Components need different
+ * vocabularies and get different keys.
+ *
+ * Absence of `platforms` means no conventions are declared at all; absence of one key
+ * means that platform declares none.
+ *
+ * @since 0.31.0
+ */
 export interface Conventions {
   /** Platform-keyed conventions. The key is a free-form implementation id (`figma`, `react`, `swiftui`). */
   platforms?: Record<string, PlatformConventions>;
@@ -363,7 +363,7 @@ export interface Conventions {
    * same whichever platform renders it, so the table is stated once. Optional; absence
    * means no component is described and nothing is promoted.
    *
-   * @since 0.31.0
+   * @since 0.32.0
    */
   primitives?: Record<string, PrimitiveEntry>;
   /**
@@ -387,7 +387,7 @@ export interface Conventions {
  * reason: a consumer reading `figma` gets `NONE` whether or not a `figma.yaml` exists,
  * which is the guarantee ADR-071 gave when `figma` was a required key (ADR-073).
  *
- * @since 0.31.0
+ * @since 0.32.0
  */
 export interface ResolvedPlatformConventions {
   /** Naming convention this platform uses. Defaulted to NONE inside a declared entry. */
@@ -442,7 +442,7 @@ export interface ResolvedConventions {
   platforms?: Record<string, ResolvedPlatformConventions>;
   /** Conventions about the spec itself. Optional; absence means none are declared. @since 0.32.0 */
   specs?: SpecsConventions;
-  /** Component-keyed promotion entries. Optional; absence means nothing is promoted. @since 0.31.0 */
+  /** Component-keyed promotion entries. Optional; absence means nothing is promoted. @since 0.32.0 */
   primitives?: Record<string, PrimitiveEntry>;
 }
 
@@ -457,7 +457,7 @@ export interface ResolvedConventions {
  * happens to configure would both leak vocabulary the spec has no bearing on and make a
  * drift check fire on unrelated changes.
  *
- * @since 0.31.0
+ * @since 0.32.0
  */
 export interface MetadataConventions {
   /** Exactly one entry: the platform this spec was produced from. */

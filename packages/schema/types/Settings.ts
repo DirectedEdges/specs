@@ -125,7 +125,7 @@ export interface Settings {
      * Opt-in: promotion restructures composed content, so a workspace elects it rather
      * than receiving it on upgrade. Optional; defaults to false.
      *
-     * @since 0.31.0
+     * @since 0.32.0
      */
     promotePrimitives?: boolean;
     /** Include invalid variants. Optional; defaults to false. */
