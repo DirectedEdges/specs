@@ -458,6 +458,7 @@ function buildCssLines(
       lines.push('}');
       lines.push('');
     }
+    lines.push(...instanceFitRule(selector, elemTypes[elemKey], styles));
     lines.push(...overlapRule(selector, styles));
 
     // An unfilled slot is still a flex item, so the parent's gap paints as
@@ -730,6 +731,37 @@ function elemSelector(componentClass: string, elemKey: string): string {
  * which `gap` cannot represent. CSS does it with a negative margin on every
  * child after the first, along the parent's main axis.
  */
+/**
+ * A composed instance fills the slot its parent gave it.
+ *
+ * The wrapper element carries the size of the instance *node* — what the design
+ * resized this particular instance to. The component it composes carries the
+ * size of its own master, which is a different number whenever the instance was
+ * resized. Without this the child paints at its master's size: a 73x73 image
+ * component dropped into a 13x13 slot covered the whole parent.
+ *
+ * Only dimensions the slot states definitely are passed on. A slot that HUGs is
+ * sized *by* its child, so forcing the child to fill it would be circular.
+ *
+ * The selector doubles the class to outrank the child's own root rule, which is
+ * a single class and would otherwise win or lose on stylesheet order alone. For
+ * the custom-element build the child's size lives in a `:host` rule, and an
+ * outer-tree declaration already beats that.
+ */
+function instanceFitRule(
+  selector: string,
+  elemType: string | undefined,
+  styles: Record<string, unknown>,
+): string[] {
+  if (elemType !== 'instance') return [];
+  const decls: string[] = [];
+  if ('width' in styles || styles.layoutSizingHorizontal === 'FILL') decls.push('width: 100%');
+  if ('height' in styles || styles.layoutSizingVertical === 'FILL') decls.push('height: 100%');
+  if (!decls.length) return [];
+  const own = selector.split(' ').pop() ?? selector;
+  return [`${selector}${own} > * {`, ...decls.map(d => `  ${d};`), '}', ''];
+}
+
 function overlapRule(selector: string, styles: Record<string, unknown>): string[] {
   const v = styles.itemSpacing;
   if (typeof v !== 'number' || v >= 0) return [];
