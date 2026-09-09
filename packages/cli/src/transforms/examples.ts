@@ -14,10 +14,9 @@ export interface SlotExample {
   layout: SlotLayoutEntry[];
 }
 
-/** ADR-063 images registry entry: src when resolved, Figma identity always. */
+/** ADR-063 images registry entry: the resolved source. */
 export interface ImageEntry {
   src?: string;
-  $extensions?: { 'com.figma'?: { imageHash?: string } };
 }
 
 export interface ExamplesData {

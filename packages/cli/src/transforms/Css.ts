@@ -56,10 +56,8 @@ export class CssTransformer implements Transformer {
     // Images registry (ADR-063): backgroundImage fills resolve against it;
     // urls are emitted relative to each stylesheet's location.
     const examples = loadExamples(outputDir);
-    const imagesDirAbs = path.join(outputDir, '..', '_images');
     const lines = buildCssLines(componentClass, variantsYaml, tokensFormat, context, anatomyTypes(apiYaml), {
       examples,
-      imagesDirAbs,
       relPrefix: '../../_images',
     }, 'class', anatomyRoles(apiYaml), apiPropsOf(apiYaml));
     const generatedDir = path.join(outputDir, 'generated');
@@ -72,7 +70,6 @@ export class CssTransformer implements Transformer {
     // rules are identical — they match inside the shadow tree either way.
     const hostLines = withNameWarningsSuppressed(() => buildCssLines(componentClass, variantsYaml, tokensFormat, context, anatomyTypes(apiYaml), {
       examples,
-      imagesDirAbs,
       relPrefix: '../../_images',
     }, 'host', anatomyRoles(apiYaml), apiPropsOf(apiYaml)));
     await writeAtomic(path.join(generatedDir, `${prefix}.host.css`), hostLines.join('\n'));
@@ -88,7 +85,6 @@ export class CssTransformer implements Transformer {
       const subTypes = anatomyTypes((apiSubs[subKey] ?? {}) as Record<string, unknown>);
       const subLines = buildCssLines(subClass, subVariantsYaml, tokensFormat, context, subTypes, {
         examples,
-        imagesDirAbs,
         relPrefix: '../../../_images',
       });
       const subDir = path.join(outputDir, subKey, 'generated');
@@ -96,7 +92,6 @@ export class CssTransformer implements Transformer {
       await writeAtomic(path.join(subDir, `${subFilePrefix}.styles.css`), subLines.join('\n'));
       const subHostLines = withNameWarningsSuppressed(() => buildCssLines(subClass, subVariantsYaml, tokensFormat, context, subTypes, {
         examples,
-        imagesDirAbs,
         relPrefix: '../../../_images',
       }, 'host'));
       await writeAtomic(path.join(subDir, `${subFilePrefix}.host.css`), subHostLines.join('\n'));
@@ -112,7 +107,6 @@ export class CssTransformer implements Transformer {
 
 interface ImagesCssContext {
   examples: ExamplesData | undefined;
-  imagesDirAbs: string;
   relPrefix: string;
 }
 
@@ -124,25 +118,15 @@ function backgroundImageDecls(value: unknown, images: ImagesCssContext | undefin
   if (typeof v.$image !== 'string') return [];
   const id = v.$image.match(/#\/components\/[^/]+\/images\/(.+)$/)?.[1];
   const entry = id ? images.examples.images[id] : undefined;
-  if (!entry) return [];
-  let file: string | undefined;
-  if (typeof entry.src === 'string' && /^(data:|https?:)/.test(entry.src)) {
+  // `src` is the registry's own portable data: an entry without one is
+  // unresolved, and there is nothing further to try. Reading a Figma image
+  // hash to guess a filename made output depend on where the spec came from
+  // (ADR-063).
+  if (typeof entry?.src !== 'string') return [];
+  if (/^(data:|https?:)/.test(entry.src)) {
     return imageDecls(`url('${entry.src}')`, v.objectFit);
   }
-  if (typeof entry.src === 'string') {
-    file = path.basename(entry.src);
-  } else {
-    const hash = entry.$extensions?.['com.figma']?.imageHash;
-    if (hash) {
-      try {
-        file = fs.readdirSync(images.imagesDirAbs).find(f => f.startsWith(hash));
-      } catch {
-        file = undefined;
-      }
-    }
-  }
-  if (!file) return [];
-  return imageDecls(`url('${images.relPrefix}/${file}')`, v.objectFit);
+  return imageDecls(`url('${images.relPrefix}/${path.basename(entry.src)}')`, v.objectFit);
 }
 
 function imageDecls(url: string, objectFit: unknown): string[] {
