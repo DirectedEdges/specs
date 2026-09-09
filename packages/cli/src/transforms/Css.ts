@@ -404,6 +404,10 @@ function buildCssLines(
     resetBorderImage: gradientStrokeKeys.has(elemKey),
   });
 
+  // Elements whose default rule already states a `display`. A variant rule must
+  // not restate it: see the note at the variant call site.
+  const displayedInDefault = new Set<string>();
+
   for (const [elemKey, elem] of Object.entries(defaultElements)) {
     const selector = elemKey === 'root' ? rootSel() : elemSelector(componentClass, elemKey);
     const styles = (elem.styles ?? {}) as Record<string, unknown>;
@@ -430,6 +434,7 @@ function buildCssLines(
     // meaning from a prop name and painted a solid `currentColor` box wherever
     // composition resolved the instance instead.
     inlineBlockIfBoxed(elemTypes[elemKey], decls);
+    if (decls.some(d => d.startsWith('display:'))) displayedInDefault.add(elemKey);
     if (isGlyphLike(elemTypes[elemKey])) {
       decls.push('mask: var(--glyph, none) no-repeat center / contain');
       decls.push('-webkit-mask: var(--glyph, none) no-repeat center / contain');
@@ -607,7 +612,12 @@ function buildCssLines(
         ...styleToCSS(styles, tokensFormat, elemTypes[elemKey], styleOptions(elemKey)),
       ];
       if ('backgroundImage' in styles) decls.push(...backgroundImageDecls(styles.backgroundImage, images));
-      inlineBlockIfBoxed(elemTypes[elemKey], decls);
+      // The inline-block floor belongs to the element's default rule. Re-asserting
+      // it here attaches a `display` to a rule whose only job is a size change,
+      // and that rule outranks the single-attribute rule that hid the element —
+      // so an avatar showing an image also showed its initials, which then took
+      // the flex space the image needed.
+      if (!displayedInDefault.has(elemKey)) inlineBlockIfBoxed(elemTypes[elemKey], decls);
       const display = displayDecls.get(elemKey);
       if (display && !decls.some(d => d.startsWith('display:'))) decls.push(display);
       const reverse = reverseDecls.get(elemKey);
