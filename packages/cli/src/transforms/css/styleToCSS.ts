@@ -308,6 +308,12 @@ export function styleToCSS(
     if (resolved) {
       // Typography token reference → CSS font shorthand placeholder. Phase 2 resolves.
       decls.push(`font: ${resolved}`);
+      // `font` cannot carry letter-spacing, so cssvars emits it as a companion
+      // variable. Nothing referenced it, and the shorthand resets it to normal —
+      // so every tracked type token lost its tracking, while the raw-typography
+      // path below applied it correctly. `normal` for tokens that declare none.
+      const companion = resolved.replace(/^var\((--[\w-]+)/, '$1').match(/^(--[\w-]+)/)?.[1];
+      if (companion) decls.push(`letter-spacing: var(${companion}-letter-spacing, normal)`);
     } else if (typeof v === 'object') {
       const t = v as Record<string, unknown>;
 
