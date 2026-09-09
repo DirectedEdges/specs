@@ -425,7 +425,7 @@ function buildCssLines(
     const styles = (elem.styles ?? {}) as Record<string, unknown>;
     const decls = [
       ...layoutToCSS(styles, tokensFormat, parentLayoutMode(elemKey)),
-      ...styleToCSS(styles, tokensFormat, elemTypes[elemKey], styleOptions(elemKey)),
+      ...styleToCSS(styles, tokensFormat, elemTypes[elemKey], { ...styleOptions(elemKey), isDefaultBlock: true }),
     ];
     if ('backgroundImage' in styles) decls.push(...backgroundImageDecls(styles.backgroundImage, images));
 

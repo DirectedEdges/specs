@@ -51,6 +51,15 @@ export interface StyleToCSSOptions {
    * the reset, an earlier variant's border-image outranks a later border-color.
    */
   resetBorderImage?: boolean;
+  /**
+   * Whether these declarations are the element's default block.
+   *
+   * Only there does "strokes with no weight" mean the element has no border.
+   * A variant block that restates `strokes` is changing the stroke's colour
+   * and inheriting its width from the default rule, so giving it a width of
+   * its own would erase a border the design keeps.
+   */
+  isDefaultBlock?: boolean;
 }
 
 export function styleToCSS(
@@ -201,8 +210,10 @@ export function styleToCSS(
   const emittedWidth = (kind: 'border' | 'outline'): boolean =>
     decls.some(d => /^border-(?:[a-z]+-)*width:/.test(d) || d.startsWith(`${kind}-width:`));
 
-  for (const kind of ['border', 'outline'] as const) {
-    if (emittedStyle(kind) && !emittedWidth(kind)) decls.push(`${kind}-width: 0`);
+  if (options.isDefaultBlock) {
+    for (const kind of ['border', 'outline'] as const) {
+      if (emittedStyle(kind) && !emittedWidth(kind)) decls.push(`${kind}-width: 0`);
+    }
   }
 
   // ── Corner radius ────────────────────────────────────────────────────────────
