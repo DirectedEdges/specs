@@ -111,13 +111,16 @@ export class CssvarsTransformer implements Transformer {
     // ── Variables (including subscribed/remote collections) ─────────────────
     const varLines: string[] = [];
     const seen = new Set<string>();
-    let skippedAliases = 0;
+    // Names, not just a count: a skipped variable is still referenced by name in
+    // the stylesheets, so knowing which ones were skipped is what turns an
+    // unexplained transparent surface into a traceable one.
+    const skipped: string[] = [];
     for (const v of foundations.variables.values()) {
       const name = varName(fullName(v, foundations));
       if (seen.has(name)) continue;
       const rendered = renderValue(v, defaultModeValue(v, foundations), foundations, varName);
       if (rendered === null) {
-        skippedAliases++;
+        skipped.push(name);
         continue;
       }
       seen.add(name);
@@ -275,6 +278,19 @@ ${modeBlocks.join('\n\n')}
     await fs.ensureDir(cssvarsDir);
     await writeAtomic(path.join(cssvarsDir, 'cssvars.css'), css);
     await writeAtomic(path.join(cssvarsDir, 'modes.json'), JSON.stringify(modesManifest, null, 2) + '\n');
+
+    const skippedAliases = skipped.length;
+    if (skippedAliases) {
+      const shown = [...new Set(skipped)].sort();
+      console.warn('');
+      console.warn(
+        `⚠ [cssvars] ${skippedAliases} variable${skippedAliases === 1 ? '' : 's'} alias a variable outside this ` +
+        `workspace's payload and have no definition. Stylesheets still reference them by name; each reference ` +
+        `falls back to the value the spec cached for it, where it has one.`
+      );
+      for (const n of shown.slice(0, 12)) console.warn(`    ${n}`);
+      if (shown.length > 12) console.warn(`    …and ${shown.length - 12} more`);
+    }
 
     const missing = missingText.length + missingEffects.length;
     console.log(
