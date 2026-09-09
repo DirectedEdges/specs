@@ -26,6 +26,35 @@ import { loadFoundations, type FoundationsData } from '../utilities/loadFoundati
 
 type Json = Record<string, any>;
 
+/**
+ * Figma scopes that settle a FLOAT as a length. A variable scoped to one of
+ * these is a dimension whatever it is called — `border weight/1x` is scoped
+ * `STROKE_FLOAT`, and reading "weight" out of its name emitted `8` where CSS
+ * needs `8px`, so every `border-width: var(…)` using it was dropped as invalid.
+ */
+const DIMENSION_SCOPES = new Set([
+  'STROKE_FLOAT',
+  'WIDTH_HEIGHT',
+  'GAP',
+  'CORNER_RADIUS',
+  'FONT_SIZE',
+  'LETTER_SPACING',
+  'PARAGRAPH_SPACING',
+  'PARAGRAPH_INDENT',
+  'EFFECT_FLOAT',
+]);
+
+/** Figma scopes that settle a FLOAT as a bare number. */
+const UNITLESS_SCOPES = new Set(['OPACITY', 'FONT_WEIGHT']);
+
+/**
+ * Last resort, for variables whose scopes settle nothing.
+ *
+ * It cannot be dropped: real font-weight variables in the validation libraries
+ * carry `FONT_STYLE` or no scope at all, never `FONT_WEIGHT`, so this pattern is
+ * the only thing keeping them unitless. It is consulted after the scopes, never
+ * before, so a declared dimension can no longer be overridden by its name.
+ */
 const UNITLESS = /opacity|weight|z-index|line-height-multiplier/i;
 
 const WEIGHTS: Record<string, number> = {
@@ -318,11 +347,13 @@ function renderValue(
   switch (v.resolvedType) {
     case 'COLOR':
       return colorToCss(value as Json);
-    case 'FLOAT':
-      if (UNITLESS.test(v.name) || (v.scopes ?? []).includes('OPACITY') || (v.scopes ?? []).includes('FONT_WEIGHT')) {
-        return String(value);
-      }
-      return `${value}px`;
+    case 'FLOAT': {
+      // Declared scope first, name only when the scopes settle nothing.
+      const scopes = v.scopes ?? [];
+      if (scopes.some((s: string) => DIMENSION_SCOPES.has(s))) return `${value}px`;
+      if (scopes.some((s: string) => UNITLESS_SCOPES.has(s))) return String(value);
+      return UNITLESS.test(v.name) ? String(value) : `${value}px`;
+    }
     default:
       return String(value);
   }

@@ -183,6 +183,28 @@ export function styleToCSS(
     }
   }
 
+  // A stroke paint with no weight is not a border. Emitting `border-style`
+  // without a width lets CSS fall back to the initial `medium` — about 3px of
+  // border the design does not have. Figma reports `strokeWeight: 0` for these,
+  // and the spec carries the paint without the zero, so the width has to be
+  // stated here.
+  //
+  // Keyed on this declaration set having no width of its own, so the layout
+  // reservation that emits a transparent border at a variant's width (see
+  // borderShiftInsetShadow) is untouched — it always emits one.
+  // A gradient stroke is deliberately excluded: it emits `border-image` and
+  // relies on the same missing width, but zeroing it removes the gradient
+  // border entirely rather than removing a border that should not be there.
+  // That case needs its own weight and is tracked separately.
+  const emittedStyle = (kind: 'border' | 'outline'): boolean =>
+    decls.some(d => d.startsWith(`${kind}-style:`)) && !decls.some(d => d.startsWith('border-image:'));
+  const emittedWidth = (kind: 'border' | 'outline'): boolean =>
+    decls.some(d => /^border-(?:[a-z]+-)*width:/.test(d) || d.startsWith(`${kind}-width:`));
+
+  for (const kind of ['border', 'outline'] as const) {
+    if (emittedStyle(kind) && !emittedWidth(kind)) decls.push(`${kind}-width: 0`);
+  }
+
   // ── Corner radius ────────────────────────────────────────────────────────────
 
   if ('cornerRadius' in styles && styles.cornerRadius !== undefined) {
