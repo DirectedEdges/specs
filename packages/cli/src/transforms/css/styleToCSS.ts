@@ -255,8 +255,21 @@ export function styleToCSS(
 
   // ── Dimensions ───────────────────────────────────────────────────────────────
 
+  // An element that declares an aspect ratio has its height determined by its
+  // width, and the authored height is that same value at the authored width —
+  // the two are redundant. Only the ratio survives composition: a fixed height
+  // beats `aspect-ratio` in the cascade, so once the component is placed in a
+  // narrower box the element keeps its full authored height and its background
+  // is scaled to cover a box the design never had.
+  //
+  // A style set that sets `aspectRatio: null` is stating it has no ratio, so
+  // its height is authored and is emitted.
+  const hasAspectRatio =
+    'aspectRatio' in styles && styles.aspectRatio !== null && styles.aspectRatio !== undefined;
+
   for (const [key, cssProp] of DIMENSION_KEYS) {
     if (key in styles) {
+      if (key === 'height' && hasAspectRatio) continue;
       const d = dimensionValue((styles as Record<string, unknown>)[key], tokensFormat);
       if (d && d !== '0') decls.push(`${cssProp}: ${d}`);
     }
