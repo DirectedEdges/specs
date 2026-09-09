@@ -98,9 +98,30 @@ export function reportNameWarnings(label: string): void {
   }
 }
 
-/** Wrap a CSS variable name in var(). */
-function cssVar(name: string): string {
-  return `var(--${name.replace(/^--/, '')})`;
+/** Wrap a CSS variable name in var(), with an optional fallback value. */
+function cssVar(name: string, fallback?: string): string {
+  const n = name.replace(/^--/, '');
+  return fallback ? `var(--${n}, ${fallback})` : `var(--${n})`;
+}
+
+/**
+ * The value a token reference falls back to when its variable has no definition.
+ *
+ * `cssvars` skips a variable whose value aliases one outside the fetched
+ * payload, but the stylesheets still reference it by name — so the declaration
+ * resolves to nothing and the surface renders transparent or inherited. The
+ * spec carries what Figma last read for that token, so the reference degrades
+ * to it rather than to nothing.
+ *
+ * Only colour-shaped raw values are used. A bare number cannot be rendered
+ * without knowing whether it is a length, an opacity or a font weight, and
+ * guessing would emit `opacity: var(--x, 0.5px)`. Colours are unambiguous.
+ */
+function rawValueFallback(v: unknown): string | undefined {
+  if (typeof v !== 'object' || v === null) return undefined;
+  const raw = ((v as Record<string, any>).$extensions?.['com.figma'])?.rawValue;
+  const hex = raw && typeof raw === 'object' ? (raw as Record<string, unknown>).hex : undefined;
+  return typeof hex === 'string' ? hex : undefined;
 }
 
 /**
@@ -154,7 +175,7 @@ export function resolveTokenVar(v: unknown, tokensFormat: string): string | null
   }
 
   // ── TOKEN / TOKEN_FIGMA_EXTENSIONS / TOKEN_NAME / FIGMA_NAME / others ───────
-  if (isTokenRef(v)) return cssVar(kebabizePath(v.$token));
+  if (isTokenRef(v)) return cssVar(kebabizePath(v.$token), rawValueFallback(v));
   if (typeof v === 'string') return cssVar(kebabizePath(v));
   return null;
 }
