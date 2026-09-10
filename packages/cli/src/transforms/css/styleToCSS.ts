@@ -3,7 +3,7 @@
 // wrapAlignment, itemSpacing, layoutSizingHorizontal, layoutSizingVertical)
 // are handled by layoutToCSS — they require cross-key context and are skipped here.
 
-import { isTokenRef, resolveTokenVar, dimensionValue, colorValue, sidesValue, isGradient, gradientValue } from './values.js';
+import { isTokenRef, resolveTokenVar, dimensionValue, dimensionValueOrUnset, colorValue, sidesValue, isGradient, gradientValue } from './values.js';
 
 // ADR-064 logical directions — the transform speaks only the current schema.
 const TEXT_ALIGN_MAP: Record<string, string> = {
@@ -225,8 +225,11 @@ export function styleToCSS(
       decls.push(`border-radius: ${resolved}`);
     } else if (isTokenRef(v)) {
       // A token reference resolveTokenVar declined is a withheld unresolved
-      // variable — falling through to the corners branch would substitute a
-      // zero for the value it just refused to name.
+      // variable. Falling through to the corners branch would substitute a
+      // zero for the value it just refused to name; `unset` says the variant
+      // overrode the radius with something unreadable, so a base rule's radius
+      // does not win here.
+      decls.push('border-radius: unset');
     } else if (typeof v === 'object' && v !== null) {
       // Corners object: topStart topEnd bottomEnd bottomStart
       const c = v as Record<string, unknown>;
@@ -285,7 +288,7 @@ export function styleToCSS(
   for (const [key, cssProp] of DIMENSION_KEYS) {
     if (key in styles) {
       if (key === 'height' && hasAspectRatio) continue;
-      const d = dimensionValue((styles as Record<string, unknown>)[key], tokensFormat);
+      const d = dimensionValueOrUnset((styles as Record<string, unknown>)[key], tokensFormat);
       if (d && d !== '0') decls.push(`${cssProp}: ${d}`);
     }
   }

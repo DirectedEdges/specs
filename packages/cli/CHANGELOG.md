@@ -54,7 +54,7 @@ workspace makes, and what it runs. `specs migrate config` converts an existing w
 
 ### Fixed
 
-- Stylesheets no longer reference a variable Figma could not resolve. The engine writes a sentinel name for an unreadable variable, and that name derived into an ordinary custom property that nothing defines — a dead declaration that collapsed the element wherever it landed on a size. The property is now omitted, and a warning at the end of the run names the sentinel and its occurrence count
+- Stylesheets no longer reference a variable Figma could not resolve. The engine writes a sentinel name for an unreadable variable, and that name derived into an ordinary custom property that nothing defines. A single property now writes `unset` instead — stating that the variant overrode it with something unreadable, so a base rule's value does not win — and a warning at the end of the run names the sentinel and its occurrence count
 - Text components sized in the design now render at the height their type styles ask for, rather than a line short of it
 - `scan` keeps the components a selected component is built from, instead of leaving them unchecked because they carry no dev status of their own
 - `scan` leaves out the Examples sets and code-only-props sets a library keeps as authoring aids, including those filed in a hidden folder

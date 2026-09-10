@@ -48,6 +48,9 @@ export function kebabizePath(path: string): string {
 
 const nameWarnings = new Map<string, Map<string, number>>();
 
+/** One warning type for every unresolved token, however it was written out. */
+const UNRESOLVED_WARNING = 'unresolved variable — no value emitted for this property';
+
 /**
  * Name warnings describe the spec's own names, so a second emission of the same
  * component — the shadow-tree form of the same rules — must not report them
@@ -184,7 +187,7 @@ export function resolveTokenVar(v: unknown, tokensFormat: string): string | null
     // { $token } fallback shape (FIGMA_SYNTAX_WEB falls back to TOKEN when unset)
     if (isTokenRef(v)) {
       if (isUnresolvedTokenPath(v.$token)) {
-        recordNameWarning('unresolved variable — no CSS emitted for this property', v.$token);
+        recordNameWarning(UNRESOLVED_WARNING, v.$token);
         return rawValueFallback(v) ?? null;
       }
       return cssVar(kebabizePath(v.$token));
@@ -206,7 +209,7 @@ export function resolveTokenVar(v: unknown, tokensFormat: string): string | null
       // Step 3: path derivation — try $token if present in the custom object
       if (typeof obj.$token === 'string') {
         if (isUnresolvedTokenPath(obj.$token)) {
-          recordNameWarning('unresolved variable — no CSS emitted for this property', obj.$token);
+          recordNameWarning(UNRESOLVED_WARNING, obj.$token);
           return rawValueFallback(v) ?? null;
         }
         return cssVar(kebabizePath(obj.$token));
@@ -219,7 +222,7 @@ export function resolveTokenVar(v: unknown, tokensFormat: string): string | null
   if (isTokenRef(v)) {
     const fallback = rawValueFallback(v);
     if (isUnresolvedTokenPath(v.$token)) {
-      recordNameWarning('unresolved variable — no CSS emitted for this property', v.$token);
+      recordNameWarning(UNRESOLVED_WARNING, v.$token);
       return fallback ?? null;
     }
     return cssVar(kebabizePath(v.$token), fallback);
@@ -251,6 +254,29 @@ export function dimensionValue(v: unknown, tokensFormat = 'TOKEN'): string | nul
   if (typeof v === 'number') return v === 0 ? '0' : `${v}px`;
   if (typeof v === 'string') return v;
   return null;
+}
+
+/**
+ * A single property whose token could not be resolved must still be written.
+ *
+ * Omitting it lets a base rule's value for the same property win, which is not
+ * what the design says: the variant overrode that property, with a value we
+ * cannot read. `unset` states exactly that, and matches what the browser did
+ * with the old dead `var()` reference — a var() that resolves to nothing is
+ * invalid at computed-value time, which makes the property take its inherited
+ * or initial value.
+ *
+ * Only for a declaration written from one value. A value composed into a
+ * shorthand (padding's four sides, a shadow's offsets) must keep returning
+ * null, so the composite falls back to its own zero rather than embedding a
+ * keyword where a length belongs.
+ */
+export function dimensionValueOrUnset(v: unknown, tokensFormat = 'TOKEN'): string | null {
+  if (isTokenRef(v) && isUnresolvedTokenPath(v.$token)) {
+    recordNameWarning(UNRESOLVED_WARNING, v.$token);
+    return 'unset';
+  }
+  return dimensionValue(v, tokensFormat);
 }
 
 /** Render a color-style value. null → transparent, token → var(), string → as-is. */

@@ -1057,7 +1057,10 @@ describe('unresolved variables (DirectedEdges/specs#428)', () => {
     variants: [],
   });
 
-  it('emits no declaration for a variable the engine could not resolve', async () => {
+  it('writes unset rather than referencing a variable the engine could not resolve', async () => {
+    // Not omitted: the variant overrode this property, and omitting it would
+    // let a base rule's value for the same property win. `unset` is also what
+    // the browser computed from the old dead var() reference.
     const css = await run(
       tmpDir,
       withStyles({
@@ -1066,7 +1069,7 @@ describe('unresolved variables (DirectedEdges/specs#428)', () => {
       }),
     );
     expect(css).not.toContain('unavailable-variable');
-    expect(css).not.toMatch(/width:/);
+    expect(css).toContain('width: unset');
     // A neighbouring real token in the same element still resolves.
     expect(css).toContain('var(--foundation-radius-full)');
   });
@@ -1084,7 +1087,7 @@ describe('unresolved variables (DirectedEdges/specs#428)', () => {
     // an unknown variable — there is no name a stylesheet could define.
     const css = await run(tmpDir, withStyles({ cornerRadius: tokenRef('[collection-name-unresolved]/Brand/Blue', 'dimension') }));
     expect(css).not.toContain('brand-blue');
-    expect(css).not.toMatch(/border-radius:/);
+    expect(css).toContain('border-radius: unset');
   });
 
   it('leaves a real token containing the word unresolved alone', async () => {
