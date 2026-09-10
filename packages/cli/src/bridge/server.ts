@@ -533,6 +533,38 @@ function toCamelCase(str: string): string {
  * a pre-split workspace still carries a single specs.config.yaml, so that shape is
  * read as a fallback to keep older workspaces rendering.
  */
+/**
+ * The glyph name pattern this workspace declares, from whichever conventions layout it uses.
+ *
+ * `config/conventions/figma.yaml` is the only layout ADR-078 leaves standing, and its
+ * contents are that platform's conventions directly — the filename is the platform id, so
+ * there is no `figma:` wrapper inside. The single-file `config/conventions.yaml` is read
+ * second, for a workspace that has not been migrated.
+ *
+ * This value is part of the icons cache signature, and `specs cache` derives it from the
+ * loaded config. Reading it from a different place than the cache writer does not fail
+ * loudly: the pattern comes back undefined, the two signatures disagree forever, and every
+ * render refuses on a permanently "stale" icons.yaml.
+ */
+function readGlyphNamePattern(workspaceDir: string): string | undefined {
+  try {
+    const figma = parse(readFileSync(pathResolve(workspaceDir, 'config', 'conventions', 'figma.yaml'), 'utf8')) as {
+      glyphs?: { match?: string };
+    };
+    if (figma?.glyphs?.match) return figma.glyphs.match;
+  } catch {
+    // No per-platform conventions file — try the single-file layout below.
+  }
+  try {
+    const conventions = parse(readFileSync(pathResolve(workspaceDir, 'config', 'conventions.yaml'), 'utf8')) as {
+      figma?: { glyphs?: { match?: string } };
+    };
+    return conventions?.figma?.glyphs?.match;
+  } catch {
+    return undefined; // No conventions file — no glyph pattern.
+  }
+}
+
 function resolveSources(workspaceDir: string): { aliases: string[]; glyphNamePattern?: string } {
   try {
     const settings = parse(readFileSync(pathResolve(workspaceDir, 'config', 'settings.yaml'), 'utf8')) as {
@@ -540,16 +572,7 @@ function resolveSources(workspaceDir: string): { aliases: string[]; glyphNamePat
     };
     const sources = settings?.data?.sources;
     const aliases = sources && typeof sources === 'object' ? Object.keys(sources) : [];
-    let glyphNamePattern: string | undefined;
-    try {
-      const conventions = parse(readFileSync(pathResolve(workspaceDir, 'config', 'conventions.yaml'), 'utf8')) as {
-        figma?: { glyphs?: { match?: string } };
-      };
-      glyphNamePattern = conventions?.figma?.glyphs?.match;
-    } catch {
-      // No conventions file — no glyph pattern.
-    }
-    return { aliases, glyphNamePattern };
+    return { aliases, glyphNamePattern: readGlyphNamePattern(workspaceDir) };
   } catch {
     // No split config — fall through to the legacy single-file shape.
   }
