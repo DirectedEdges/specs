@@ -118,6 +118,34 @@ role string to emit. They bind concepts to native types and read the reach table
 
 Composite widgets — `dialog`, `tablist`/`tab`, `menu`, `combobox`/`listbox`/`option`, `select`, `tooltip` — are deferred to a future vocabulary: their value is focus and keyboard *behavior*, which scaffolds deliberately do not implement. Until that lands, the `selected` state concept has no role that bridges it and keeps its `data-*` behavior.
 
+## Roles and actions
+
+A role answers what an element **is**. A second annotation key, [`action`](/actions/), answers
+what activating it **does** — a dismiss affordance in an alert is a button in every way that
+announcement can see, and what distinguishes it is that pressing it closes the alert. The two
+keys sit side by side on the same element:
+
+```
+role:button
+action:dismiss
+```
+
+The boundary between them is announcement:
+
+> **Does it change how the control is announced?** If yes, it is a role. If no, it is an
+> action.
+
+`togglebutton` and `disclosure` announce their own state, so both are roles. `dismiss` never
+changes how its button is announced, so it is an action. Keeping the two apart is what confines
+this vocabulary to concepts ARIA and the native platforms have counterparts for — the
+alternative was a role per behavior-and-control pair, such as `dismissbutton`, which no
+platform can bind to a native type.
+
+An element carries **at most one role**, because the question has one answer. It may carry
+**several actions**, because that question does not. Both keys are read from the same
+annotation, with the same variant rules, and both route rather than emit when they land on an
+`instance` element.
+
 ## Roles and states
 
 Roles and the [`states` convention](/settings/states/) are **independent inputs**. Either can
@@ -152,6 +180,7 @@ role degrades to an inert handler and warns.
 
 ## See also
 
+- [Actions overview](/actions/) — what activating an element *does*, the other annotation key
 - The [`states` convention](/settings/states/) — state concept classification the roles bridge
 - [Anatomy schema](/schema/anatomy/) — where `role` lives in the spec
 - [ADR 067](https://github.com/DirectedEdges/specs/blob/main/adr/067-anatomy-element-roles.md) — the mechanism: role field, Dev Mode annotation, obligations, contract composition

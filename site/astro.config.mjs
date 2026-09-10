@@ -209,6 +209,7 @@ export default defineConfig({
           label: 'Actions',
           collapsed: true,
           items: [
+            { label: 'Overview', slug: 'actions', badge: experimental },
             { label: 'dismiss', slug: 'actions/dismiss', badge: experimental },
           ],
         },
