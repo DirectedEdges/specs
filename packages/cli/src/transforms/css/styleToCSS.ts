@@ -223,6 +223,10 @@ export function styleToCSS(
     const resolved = resolveTokenVar(v, tokensFormat);
     if (resolved) {
       decls.push(`border-radius: ${resolved}`);
+    } else if (isTokenRef(v)) {
+      // A token reference resolveTokenVar declined is a withheld unresolved
+      // variable — falling through to the corners branch would substitute a
+      // zero for the value it just refused to name.
     } else if (typeof v === 'object' && v !== null) {
       // Corners object: topStart topEnd bottomEnd bottomStart
       const c = v as Record<string, unknown>;

@@ -98,6 +98,35 @@ export function reportNameWarnings(label: string): void {
   }
 }
 
+/**
+ * Names the engine writes when part of a variable or style could not be read:
+ * a bracketed `[…unresolved…]` segment where the collection name should be,
+ * and a sentinel variable name when the lookup itself came back empty.
+ *
+ * A missing collection is not survivable either. Custom-property names are
+ * derived from the whole path, collection included, so a path carrying the
+ * sentinel derives a name no stylesheet defines — the reference is dead
+ * whichever half of it failed to resolve.
+ */
+const UNRESOLVED_SEGMENT = /\[[^\]]*unresolved[^\]]*\]/i;
+const UNRESOLVED_NAMES = new Set(['Unavailable variable', 'Variable (no loader)']);
+
+/**
+ * A variable Figma could not resolve at capture time. Its sentinel name
+ * kebabizes into a perfectly ordinary custom-property name that is defined
+ * nowhere, so the reference is dead on arrival.
+ *
+ * Emitting it is worse than emitting nothing: where the declaration lands on a
+ * size or spacing property, the element collapses to zero. Only a colour
+ * carries a raw value in the spec to degrade to, so the remaining rungs of the
+ * ladder are that raw value, or no declaration at all.
+ */
+function isUnresolvedTokenPath(path: string): boolean {
+  const trimmed = path.trim();
+  if (UNRESOLVED_SEGMENT.test(trimmed)) return true;
+  return UNRESOLVED_NAMES.has(trimmed.slice(trimmed.lastIndexOf('/') + 1));
+}
+
 /** Wrap a CSS variable name in var(), with an optional fallback value. */
 function cssVar(name: string, fallback?: string): string {
   const n = name.replace(/^--/, '');
@@ -153,7 +182,13 @@ export function resolveTokenVar(v: unknown, tokensFormat: string): string | null
       // Non-"--" string: no web syntax was set; fall through to path derivation below
     }
     // { $token } fallback shape (FIGMA_SYNTAX_WEB falls back to TOKEN when unset)
-    if (isTokenRef(v)) return cssVar(kebabizePath(v.$token));
+    if (isTokenRef(v)) {
+      if (isUnresolvedTokenPath(v.$token)) {
+        recordNameWarning('unresolved variable — no CSS emitted for this property', v.$token);
+        return rawValueFallback(v) ?? null;
+      }
+      return cssVar(kebabizePath(v.$token));
+    }
     return null;
   }
 
@@ -169,13 +204,26 @@ export function resolveTokenVar(v: unknown, tokensFormat: string): string | null
       // When implemented: build reverse index JSON.stringify($custom) → codeSyntax.WEB
 
       // Step 3: path derivation — try $token if present in the custom object
-      if (typeof obj.$token === 'string') return cssVar(kebabizePath(obj.$token));
+      if (typeof obj.$token === 'string') {
+        if (isUnresolvedTokenPath(obj.$token)) {
+          recordNameWarning('unresolved variable — no CSS emitted for this property', obj.$token);
+          return rawValueFallback(v) ?? null;
+        }
+        return cssVar(kebabizePath(obj.$token));
+      }
     }
     return null;
   }
 
   // ── TOKEN / TOKEN_FIGMA_EXTENSIONS / TOKEN_NAME / FIGMA_NAME / others ───────
-  if (isTokenRef(v)) return cssVar(kebabizePath(v.$token), rawValueFallback(v));
+  if (isTokenRef(v)) {
+    const fallback = rawValueFallback(v);
+    if (isUnresolvedTokenPath(v.$token)) {
+      recordNameWarning('unresolved variable — no CSS emitted for this property', v.$token);
+      return fallback ?? null;
+    }
+    return cssVar(kebabizePath(v.$token), fallback);
+  }
   if (typeof v === 'string') return cssVar(kebabizePath(v));
   return null;
 }
@@ -196,7 +244,10 @@ export function dimensionValue(v: unknown, tokensFormat = 'TOKEN'): string | nul
     const resolved = resolveTokenVar(v, tokensFormat);
     if (resolved) return resolved;
   }
-  if (isTokenRef(v)) return tokenVar(v);
+  // resolveTokenVar returning null for a token ref means it withheld the
+  // reference deliberately (an unresolved variable) — the legacy path must not
+  // re-emit what it just refused.
+  if (isTokenRef(v)) return isUnresolvedTokenPath(v.$token) ? null : tokenVar(v);
   if (typeof v === 'number') return v === 0 ? '0' : `${v}px`;
   if (typeof v === 'string') return v;
   return null;

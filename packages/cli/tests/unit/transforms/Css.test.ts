@@ -1035,3 +1035,60 @@ describe('CssTransformer', () => {
     });
   });
 });
+
+describe('unresolved variables (DirectedEdges/specs#428)', () => {
+  // The engine writes a sentinel name when it cannot read the variable at all.
+  // Kebabized, that name looks like any other custom property, so a reference
+  // to it is dead — and on a size property the element collapses to zero. The
+  // spec carries no raw value for it, so nothing is emitted.
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'css-unresolved-'));
+    drainNameWarnings();
+  });
+  afterEach(async () => {
+    await fs.remove(tmpDir);
+    drainNameWarnings();
+  });
+
+  const withStyles = (styles: Record<string, unknown>) => ({
+    default: { layout: ['root'], elements: { root: { styles } } },
+    variants: [],
+  });
+
+  it('emits no declaration for a variable the engine could not resolve', async () => {
+    const css = await run(
+      tmpDir,
+      withStyles({
+        width: tokenRef('[collection-name-unresolved]/Unavailable variable', 'dimension'),
+        cornerRadius: tokenRef('Foundation/radius/full', 'dimension'),
+      }),
+    );
+    expect(css).not.toContain('unavailable-variable');
+    expect(css).not.toMatch(/width:/);
+    // A neighbouring real token in the same element still resolves.
+    expect(css).toContain('var(--foundation-radius-full)');
+  });
+
+  it('records a name warning naming the sentinel path', async () => {
+    await run(tmpDir, withStyles({ width: tokenRef('[collection-name-unresolved]/Unavailable variable', 'dimension') }));
+    const warnings = drainNameWarnings();
+    const paths = [...warnings.values()].flatMap(byName => [...byName.keys()]);
+    expect(paths).toContain('[collection-name-unresolved]/Unavailable variable');
+  });
+
+  it('withholds a variable whose collection name alone is missing', async () => {
+    // The sentinel is part of the path the custom-property name derives from,
+    // so a known variable name under an unknown collection is just as dead as
+    // an unknown variable — there is no name a stylesheet could define.
+    const css = await run(tmpDir, withStyles({ cornerRadius: tokenRef('[collection-name-unresolved]/Brand/Blue', 'dimension') }));
+    expect(css).not.toContain('brand-blue');
+    expect(css).not.toMatch(/border-radius:/);
+  });
+
+  it('leaves a real token containing the word unresolved alone', async () => {
+    const css = await run(tmpDir, withStyles({ cornerRadius: tokenRef('Brand/Unresolved Blue', 'dimension') }));
+    expect(css).toContain('var(--brand-unresolved-blue)');
+  });
+});
