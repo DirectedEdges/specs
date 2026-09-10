@@ -2,7 +2,7 @@
 
 **Branch**: `feat/react-from-specs`
 **Created**: 2026-09-04
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Summary**: *(written at implementation — see `/specs.adr.implement`)*
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none; extends ADR 067)*

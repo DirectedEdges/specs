@@ -2,7 +2,7 @@
 
 **Branch**: `adr/spec-time-promotion`
 **Created**: 2026-09-02
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Summary**: An `Element.$extensions` member records that a layer was promoted, whether the match was ambiguous, and what it consumed.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*

@@ -2,7 +2,7 @@
 
 **Branch**: `078-conventions-file-per-platform`
 **Created**: 2026-08-30
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Summary**: One conventions file per platform in `config/conventions/` composes into `Conventions`, alongside a reserved `primitives.yaml` for the promotion table.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*

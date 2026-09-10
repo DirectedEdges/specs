@@ -2,7 +2,7 @@
 
 **Branch**: `adr/spec-time-promotion`
 **Created**: 2026-08-30
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Summary**: A container promotes on `layoutMode` with its children as slot content, and `stylesProp` names each platform's styling prop.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*

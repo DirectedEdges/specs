@@ -2,7 +2,7 @@
 
 **Branch**: `feat/react-from-figma`
 **Created**: 2026-08-08
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none; extends ADR 067; companion to ADR 055)*
 
