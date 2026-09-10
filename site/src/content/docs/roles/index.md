@@ -142,7 +142,9 @@ alternative was a role per behavior-and-control pair, such as `dismissbutton`, w
 platform can bind to a native type.
 
 An element carries **at most one role**, because the question has one answer. It may carry
-**several actions**, because that question does not. Both keys are read from the same
+**several actions**, because that question does not. Where a role and an action want the
+same event, they compose into one handler rather than competing — see
+[precedence](/roles/precedence/). Both keys are read from the same
 annotation, with the same variant rules, and both route rather than emit when they land on an
 `instance` element.
 
@@ -163,7 +165,9 @@ role with no states classification still emits its element, its semantics, and i
 additions.
 
 Where both apply to the same concept on the same element, the concept is emitted **once**:
-the role decides the mechanism, the config decides which prop drives it. What a role changes
+the role decides the mechanism, the config decides which prop drives it. The full rule,
+including what happens when a role claims a concept nothing drives, is on
+[precedence](/roles/precedence/). What a role changes
 is emission quality — `disabled` becomes a real attribute rather than an `aria-disabled`
 string on an inert container.
 
@@ -180,6 +184,7 @@ role degrades to an inert handler and warns.
 
 ## See also
 
+- [Precedence](/roles/precedence/) — how role, states and action resolve when more than one applies
 - [Actions overview](/actions/) — what activating an element *does*, the other annotation key
 - The [`states` convention](/settings/states/) — state concept classification the roles bridge
 - [Anatomy schema](/schema/anatomy/) — where `role` lives in the spec

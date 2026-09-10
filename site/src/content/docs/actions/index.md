@@ -21,7 +21,8 @@ concept name is an open string; the documented vocabulary comes from ADR 087.
 ## Roles and actions
 
 The two keys sit side by side on the same element and never compete, because they answer
-different questions. The test is announcement:
+different questions. Where both want the same event they compose into a single handler,
+in a defined order — see [precedence](/roles/precedence/). The test is announcement:
 
 > **Does it change how the control is announced?** If yes, it is a role. If no, it is an
 > action.

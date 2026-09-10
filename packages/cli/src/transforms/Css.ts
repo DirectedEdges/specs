@@ -180,7 +180,16 @@ function anatomyTypes(apiYaml: Record<string, unknown>): Record<string, string> 
  */
 function disabledSelectorFor(rootAs: RootForm, rootRole: string | undefined): string {
   // A shadow host is not a form control, so `:disabled` cannot match it.
-  if (rootAs === 'host') return '[aria-disabled="true"]';
+  if (rootAs === 'host') {
+    // Where the root's role emits a native control, that control lives INSIDE the
+    // shadow root and the host announces nothing — so `[aria-disabled]` never
+    // matches either, and every disabled rule is dead while `:not()` guards on
+    // hover always pass. The scaffold puts a plain `disabled` attribute on the host
+    // for exactly this, and the two spellings must agree: `HOST_STATE_ATTRS` in
+    // webcomponents-from-specs' `Emit/rootAttrs.ts`, a different repo.
+    if (rootRole && NATIVE_DISABLED_ROLES.has(rootRole)) return '[disabled]';
+    return '[aria-disabled="true"]';
+  }
   // An anchor has no `disabled` property either — a disabled link is expressed by
   // dropping `href` and announcing `aria-disabled`, so `:disabled` never matches.
   if (rootRole === 'link') return '[aria-disabled="true"]';

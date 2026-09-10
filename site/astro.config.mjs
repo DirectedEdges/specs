@@ -177,6 +177,7 @@ export default defineConfig({
           collapsed: true,
           items: [
             { label: 'Overview', slug: 'roles', badge: experimental },
+            { label: 'Precedence', slug: 'roles/precedence', badge: experimental },
             {
               label: 'Interactive',
               items: [
