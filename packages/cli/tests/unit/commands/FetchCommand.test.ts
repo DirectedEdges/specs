@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Fetch, formatDuration, formatRateLimitError, formatNotFoundError, formatAuthError } from '../../../src/commands/FetchCommand.js';
+import { Fetch, formatDuration, formatRateLimitError, formatNotFoundError, formatAuthError, parseAdHocSource } from '../../../src/commands/FetchCommand.js';
 
 describe('FetchCommand', () => {
   it('registers name and description', () => {
@@ -172,5 +172,58 @@ describe('formatAuthError', () => {
       '    • The file may be in personal drafts or a restricted team (403 = exists but no access)',
       '  Check: data.sources.library.key in /proj/specs.config.yaml'
     ].join('\n'));
+  });
+});
+
+/**
+ * `--source` is what a diff run pastes a branch URL into, so the parse has to accept
+ * what Figma's URL bar produces and refuse anything that would name a file on disk.
+ */
+describe('parseAdHocSource', () => {
+  const KEY = 'abcDEF123456789xyz01';
+
+  it('takes a bare URL and leaves the alias to be derived from the branch', () => {
+    expect(parseAdHocSource(`https://www.figma.com/design/${KEY}/DS?node-id=1-2`)).toEqual({
+      alias: undefined,
+      key: KEY,
+      raw: `https://www.figma.com/design/${KEY}/DS?node-id=1-2`
+    });
+  });
+
+  it('takes an explicit alias before the first =', () => {
+    expect(parseAdHocSource(`library-branch=${KEY}`)).toMatchObject({ alias: 'library-branch', key: KEY });
+  });
+
+  it('does not read a URL\'s query string as an alias', () => {
+    expect(parseAdHocSource(`https://www.figma.com/design/${KEY}/DS?t=a=b`)).toMatchObject({ alias: undefined, key: KEY });
+  });
+
+  it('rejects an alias that would not survive as a filename', () => {
+    expect(() => parseAdHocSource(`my branch=${KEY}`)).toThrow(/usable source alias/);
+  });
+
+  it('rejects a target that is neither a key nor a Figma URL', () => {
+    expect(() => parseAdHocSource('branch=data/library.file.json')).toThrow(/Figma file key or URL/);
+  });
+});
+
+/**
+ * An ad-hoc source has no config entry, so the config-shaped remedies in these errors
+ * would send the reader somewhere that says nothing about the key that failed.
+ */
+describe('error messages for ad-hoc sources', () => {
+  it('404 points at the pasted URL, not data.sources', () => {
+    const result = formatNotFoundError('library-branch', 'file', '/proj/config', 'adhoc');
+
+    expect(result).toContain('the key passed as --source library-branch');
+    expect(result).not.toContain('data.sources');
+  });
+
+  it('403 drops the config check and keeps the token remedies', () => {
+    const result = formatAuthError(403, 'library-branch', 'file', '/proj/config', undefined, 'adhoc');
+
+    expect(result).toContain('cannot access the file passed as --source');
+    expect(result).not.toContain('data.sources');
+    expect(result).toContain('SAML/SSO');
   });
 });

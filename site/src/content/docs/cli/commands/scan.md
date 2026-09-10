@@ -162,12 +162,17 @@ Path to Figma REST API JSON file. When omitted, `scan` resolves the file from th
 - **2+ sources configured** → must specify one with `--source <alias>`
 - **No sources configured** → error; pass `[file]` explicitly
 
+`--source` also accepts an alias fetched by [`specs fetch --source`](/cli/commands/fetch/#fetching-figma-branches) — a branch, typically. Those aliases are not in config, so `scan` looks for `{data.directory}/<alias>.file.json` on disk.
+
 ```bash
 # Zero-config: auto-resolves when one source is configured
 specs scan
 
 # Select a specific source when multiple are configured
 specs scan --source library
+
+# A branch fetched with `specs fetch --source` works the same way
+specs scan --source library-new-nav-tokens
 
 # Or pass a file path explicitly
 specs scan data/library.file.json

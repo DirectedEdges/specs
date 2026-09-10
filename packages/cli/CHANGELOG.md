@@ -9,7 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+**`specs fetch --source <url>` fetches a Figma branch that is not in your config**, naming it
+after the branch and fetching the same data kinds as the file it branches from. Payloads land
+beside the library's as `<parent>-<branch>.file.json`, so a branch you compare a few times and
+throw away never needs a config edit.
+
 ### Changed
+
+**`specs scan --source <alias>` accepts a source fetched with `--source`**, resolving it from
+the payload on disk when config has no entry for it.
+
+**`specs generate --get-images` pulls images from the file the specs came from**, rather than
+always from the configured source — so specs generated from a branch get the branch's images.
 
 ### Removed
 
