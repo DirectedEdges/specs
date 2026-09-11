@@ -8,8 +8,8 @@ import fs from 'fs-extra';
  * index until the dev server restarts.
  *
  * Additionally skips the write entirely when content is unchanged, so
- * re-running `specs transform` doesn't trigger watcher churn for untouched
- * components.
+ * re-running `specs react` or `specs webcomponents` doesn't trigger watcher
+ * churn for untouched components.
  */
 export async function writeAtomic(filePath: string, content: string): Promise<void> {
   try {

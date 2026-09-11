@@ -1,8 +1,8 @@
 // Walking a workspace's components and running a set of transformers over each.
 //
-// Shared by `specs react`, `specs webcomponents` and the older `specs transform`,
-// so the three cannot drift on how components are discovered, how `--components`
-// narrows them, how a failure is reported, or when `finalize` runs.
+// Shared by `specs react` and `specs webcomponents`, so the two cannot drift
+// on how components are discovered, how `--components` narrows them, how a
+// failure is reported, or when `finalize` runs.
 //
 // What differs between the callers is only *which* transformers run and what the
 // run is called in its output — which is the whole of the difference between them.

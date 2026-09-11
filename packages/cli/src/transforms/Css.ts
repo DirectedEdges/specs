@@ -24,7 +24,7 @@ import { loadExamples, type ExamplesData } from './examples.js';
  */
 function lightDomLines(tag: string): string[] {
   return [
-    '/* Generated. Do not edit — regenerate with `specs transform`. */',
+    '/* Generated. Do not edit — regenerate with `specs webcomponents`. */',
     '',
     `${tag}, ${tag} * {`,
     '  box-sizing: border-box;',
@@ -353,7 +353,7 @@ function buildCssLines(
   }
 
   const lines: string[] = [
-    '/* Generated. Do not edit — regenerate with `specs transform`. */',
+    `/* Generated. Do not edit — regenerate with \`specs ${rootAs === 'host' ? 'webcomponents' : 'react'}\`. */`,
     '',
     // Everything generated sits in one cascade layer, so an unlayered consumer
     // rule beats it regardless of specificity. Without this a consumer retheming
