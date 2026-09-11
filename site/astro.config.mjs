@@ -106,6 +106,8 @@ export default defineConfig({
             { label: 'scan', slug: 'cli/commands/scan' },
             { label: 'applyCustomTokens', slug: 'cli/commands/apply-custom-tokens' },
             { label: 'generate', slug: 'cli/commands/generate' },
+            { label: 'react', slug: 'cli/commands/react', badge: experimental },
+            { label: 'webcomponents', slug: 'cli/commands/webcomponents', badge: experimental },
             { label: 'transform', slug: 'cli/commands/transform' },
             { label: 'bridge', slug: 'cli/commands/bridge', badge: experimental },
             { label: 'cache', slug: 'cli/commands/cache', badge: experimental },
