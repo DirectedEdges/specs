@@ -18,7 +18,7 @@ consumed. `role` is the only recognized key today.
 
 A role answers **what an element is**. It is a noun, and each concept names a control kind
 that a platform has a counterpart for — `button`, `link`, `checkbox`. ADR 067 also fixes
-**at most one role per element**, because composite semantics belong on distinct elements
+**at most one role per owned element**, because composite semantics belong on distinct elements
 and role resolution depends on that being true.
 
 Some signals a designer wants to record are not what an element *is*. A dismiss affordance
@@ -297,7 +297,7 @@ behavior on its own axis.
    carries the behavior. This is what lets an alert say "this icon button dismisses me"
    without the icon button knowing anything about alerts.
 5. **An unrecognized value is ignored**, with no diagnostic — the vocabulary is open.
-6. **Several actions per element are permitted**, one per `action:` line, in annotation order. Duplicates collapse — declaring the same behavior twice means the same thing once. This is where actions differ from roles: a role answers a question that has one answer, and a behavior does not.
+6. **Several actions per element are permitted**, one per `action:` line, in annotation order. Duplicates collapse — declaring the same behavior twice means the same thing once. This is where actions differ from roles on an element the component **owns**: what that element *is* has one answer, and what activating it *does* does not. On an `instance` element the asymmetry disappears, because neither key is claiming anything about the wrapper — both route into the composed component, and both accept several (ADR-067 rule 5).
 
 ### Vocabulary snapshot
 

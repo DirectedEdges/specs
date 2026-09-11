@@ -551,7 +551,7 @@ consistently regardless of which platform a transform targets.
 A role does not have to describe a whole control. The vocabulary has two kinds of concept, distinguished by how they resolve rather than by how they are spelled:
 
 - **Control roles** name a control, a landmark, or an announcement region (`checkbox`, `button`, `textbox`, `alert`). They resolve on their own.
-- **Part roles** name a constituent of some control (`placeholder`, `value`, `trigger`, `panel`, `indicator`). They resolve **against the nearest ancestor element carrying a control role**, and each vocabulary ADR declares which parts its control concepts accept.
+- **Part roles** name a constituent of some control (`placeholder`, `value`, `trigger`, `panel`, `indicator`). They resolve **by component**, under the numbered rules below — not by tree position — and each vocabulary ADR declares which parts its control concepts accept.
 
 This is what lets one control be described by several annotations rather than by one key that the transform must then reverse-engineer. A text control's value element says it is the value; its placeholder element says it is the placeholder. Nothing has to be inferred from prop names, bindings, or position.
 
@@ -572,12 +572,66 @@ The rule instead leans on a guarantee the vocabulary already provides — that a
    **A part role means two different things depending on the element type it lands on, and the difference is resolvable statically:**
 
    - On an element the component **owns** (`text`, `container`) it is an **emission** signal: this is where the part's semantic element is emitted
-   - On an element of type **`instance`** it is a **routing** signal only: wire this control's id into that instance. It never changes the wrapper's tag
+   - On an element of type **`instance`** it is a **routing** signal only: wire this control's id into that instance. It never changes the wrapper's tag. Several may be routed from one instance — see rule 5 — authored as one `role:` line per concept, the same way `action:` lines accumulate. Where a set is annotated across more than one variant, the **first variant wins for the whole set**; a later variant never adds to it, or annotate-once would stop meaning anything
 
    This dissolves the conflict rather than adjudicating it. **A consumer never emits a part's semantic element for content it does not own**, so two nested `<label>` elements are impossible by construction — there is no precedence rule to apply and no runtime question of who wins. The part element is emitted exactly once, by the component that owns the text.
 
    The consequence for degradation matters as much as the rule: a component authored before this feature simply ignores the routed id and renders as it does today. Every mixed-generation combination degrades to a *missing association*, never to invalid markup.
 4. **A part its resolved control's concept does not accept is ignored with a warning**, listing the parts that concept does accept.
+
+5. **A composed component can contribute at most one routed part to its consumer.** This
+   follows from two rules already stated — a part on an `instance` element is a routing
+   signal, and an element carries at most one role — but the consequence is easy to miss
+   and expensive to discover late.
+
+   The instance element is the only thing the consumer can address. Whatever role it
+   carries is the one part that gets wired. Any other part the composed component
+   contains is **unwireable from outside**: it emits its own semantics and its own id
+   within its own component, and no consumer can reference that id, because there is no
+   element on which to say so.
+
+   A label component providing both a `label` and a `description` is the case that
+   surfaces this. The consumer annotates the instance `role:label` and wires it; the
+   description's id never reaches the consumer's control, and no annotation can make it.
+
+   **`role` therefore accepts an array on an `instance` element.** The consumer names
+   every concept it is wiring, and each routes to whichever element of the composed
+   component ascribes that concept:
+
+   ```yaml
+   # switch/api.yaml — the consumer declares what it wires
+   formLabel:
+     type: instance
+     instanceOf: formLabel
+     role: [label, description]
+   ```
+
+   ```yaml
+   # formLabel/api.yaml — the provider declares what it is
+   label:
+     type: text
+     role: label
+   description:
+     type: text
+     role: description
+   requiredAsterisk:
+     type: text
+     role: indicator
+   ```
+
+   Two declarations that must agree, which is what distinguishes this from the consumer
+   reading its child's spec. The consumer asserts; the provider declares; a claim the
+   provider does not ascribe is an **error naming the concept and the composed
+   component**. Resolution needs no cross-spec read — the consumer has said everything —
+   and the agreement check is a validation step, not a resolution input.
+
+   The consumer never names the provider's element keys, only concepts, so renaming an
+   element inside the provider breaks nothing. Where a provider ascribes one concept to
+   two elements, rule 2's ambiguity error applies unchanged.
+
+   `indicator` and other self-contained parts are not listed. They emit their own
+   semantics inside the provider and need nothing routed; naming them would suggest the
+   consumer wires them.
 5. **At most one element per part role per control.** Two elements both claiming `value` for the same control is an error naming both.
 6. Part roles obey the same one-role-per-element rule as everything else. An element that is both a part of one control and a control in its own right is two elements.
 
@@ -884,7 +938,7 @@ Rules 1, 3, and 4 together are what separate a component that looks correct in a
 
 - **No read-time merge**: transforms consume `anatomy.<element>.role` from the generated spec directly. Roles arrive during generation, from Dev Mode annotations, so `api.yaml` stays purely generated and freely regenerable and there is no authored surface to merge.
 - **Root-level roles never come from layers.** Component-set variant layer names encode prop values and cannot carry annotations; annotating the component-set name itself would pollute the published asset name in the library.
-- **At most one role per element.** Composite semantics belong to distinct elements (a disclosure trigger and its region are two elements with two roles, and a control's parts are elements of their own).
+- **At most one role per element the component owns.** Composite semantics belong to distinct elements (a disclosure trigger and its region are two elements with two roles, and a control's parts are elements of their own). An element of type `instance` is the exception, and not really an exception: a role there is a *routing* signal, and a composed component may provide several parts, so `role` accepts an array. Routing several is not claiming several — the consumer emits none of them.
 - **Roles may generate contract surface, but never rendered elements — and the surface is gated on the element existing.** A role that implies content (a description, a helper message) adds its prop and its wiring **only when the component has an element carrying the matching part role**. Where the library designed no such element, the prop is not emitted at all. An earlier draft added the prop unconditionally and rendered nothing; that is a dead prop in a public contract — it type-checks, does nothing, and the only signal is a build warning the consumer never sees. Whether the element exists is knowable per component from the anatomy union, so gating is deterministic. The transform never invents DOM for content the library did not design: generated markup with no design intent has no styling, no place in the anatomy, and no reviewer.
 - **The role element is the control; its descendants become its children.** When a role lands on a container in a nested chain, that container is what becomes the emitted control, and everything beneath it renders inside. Validation surfaced a three-deep wrapper chain where the choice of link materially changes the output, so this rule is normative rather than incidental.
 - **A role may name an element that some variants omit.** Anatomy is the union across variants, so `detectedIn`-conditional elements can carry roles. Transforms already gate such elements on a render condition; role emission composes with that condition rather than replacing it.

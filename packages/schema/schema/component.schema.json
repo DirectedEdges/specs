@@ -237,8 +237,11 @@
           "additionalProperties": false
         },
         "role": {
-          "type": "string",
-          "description": "Semantic behavior role for this element (e.g. 'button', 'checkbox', 'label'), generated from a Figma Dev Mode annotation of the form role:<concept> on the component node or one of its layers. Recognized concept names are published on the docs site; unrecognized values are ignored by transforms."
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+          ],
+          "description": "Semantic behavior role for this element (e.g. 'button', 'checkbox', 'label'), generated from Figma Dev Mode annotations of the form role:<concept> on the component node or one of its layers. Recognized concept names are published on the docs site; unrecognized values are ignored by transforms. An array is meaningful only on an element of type 'instance', where each concept routes to whichever element of the composed component ascribes it; on an owned element more than one role is an error."
         },
         "actions": {
           "type": "array",

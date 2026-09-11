@@ -146,12 +146,23 @@ export type AnatomyElement = {
   instanceOf?: string | SubcomponentRef;
   /**
    * Semantic behavior role for this element (ADR-067), e.g. `button`, `checkbox`,
-   * `label`. Generated from a Figma Dev Mode annotation of the form
-   * `role:<concept>` on the component node or one of its layers.
+   * `label`. Generated from Figma Dev Mode annotations of the form `role:<concept>`
+   * on the component node or one of its layers.
    * Absence means no role — transforms behave exactly as they do today.
+   *
+   * An array is meaningful only on an element of type `instance`, where a role is a
+   * *routing* signal rather than an emission one: the composed component may provide
+   * several parts, and each named concept routes to whichever of its elements
+   * ascribes that concept. On an element the component owns a role is an emission
+   * signal, and more than one is an error — the question of what an element *is* has
+   * one answer.
+   *
+   * The array form is what lets a composed component contribute more than one
+   * wireable part. Without it an instance carries one role, so a component providing
+   * both a label and a description can only ever have one of them wired.
    * @since 0.32.0
    */
-  role?: RoleConceptName;
+  role?: RoleConceptName | RoleConceptName[];
   /**
    * Behaviors invoked when this element is activated (ADR-087), e.g. `dismiss`.
    * Generated from Dev Mode annotations of the form `action:<concept>`.

@@ -12,7 +12,7 @@ Roles are stored in `anatomy.<element>.role` in the spec. The value is an open s
 The vocabulary splits into two kinds:
 
 - **Control roles** name an interactive or announced thing — `button`, `checkbox`, `textbox`, `disclosure`, `alert`. A control role changes what element is emitted and adds event handlers to the contract.
-- **Part roles** name a piece of a control — `label`, `value`, `errormessage`, `panel`. Most parts add **no handlers**: their value is id generation plus an attribute on some other element (a `<label htmlFor>`, an `aria-describedby`, an `aria-controls`). A part resolves to its nearest ancestor control.
+- **Part roles** name a piece of a control — `label`, `value`, `errormessage`, `panel`. Most parts add **no handlers**: their value is id generation plus an attribute on some other element (a `<label htmlFor>`, an `aria-describedby`, an `aria-controls`). A part resolves **by component**, not by tree position: a part a value-bearing control accepts resolves to that component's single value-bearing control wherever either sits in the layout, and a part only the non-value-bearing concepts accept (`button`, `togglebutton`, `link`, `disclosure`) resolves to the nearest of those by proximity. Resolution never walks for an ancestor — a control's label and error message are usually siblings of it, not descendants.
 
 ## Where roles are authored
 
@@ -37,6 +37,71 @@ Three rules cover components with variants:
 - Where the same element is annotated on more than one variant, the **first variant wins**.
 
 A component *set* carries no layers of its own, so roles go on a component node or below.
+
+## Parts across a composed component
+
+A part is authored in the component that **wires** it, which is not always the component
+that renders it.
+
+Where the element carrying the part is one the component owns, the part role is an
+**emission** signal: this is where the `<label>`, the id, the `aria-describedby` target
+is emitted.
+
+Where the element is an `instance` of another component, it is a **routing** signal: the
+consumer's control id is routed into that instance, and the instance emits its own
+element. The wrapper's tag never changes, and two nested `<label>` elements are
+impossible by construction — a component never emits a part's semantic element for
+content it does not own.
+
+A component with a part and no control of its own is valid and self-describing: a label
+component carrying `label` declares that it *provides* that part. It emits the element
+and an id, and no wiring, because it has nothing to wire to. Wiring arrives when it is
+composed.
+
+### Routing more than one part
+
+A composed component may provide several parts — a label component that also holds a
+description. So on an `instance` element, `role` accepts a list. The consumer names every
+concept it is wiring:
+
+```yaml
+# switch — the consumer declares what it wires
+formLabel:
+  type: instance
+  instanceOf: formLabel
+  role: [label, description]
+```
+
+```yaml
+# formLabel — the provider declares what it is
+label:
+  type: text
+  role: label
+description:
+  type: text
+  role: description
+requiredAsterisk:
+  type: text
+  role: indicator
+```
+
+Each concept routes to whichever element of the provider ascribes it. **Two declarations
+that must agree** — the consumer asserts, the provider declares — and a concept the
+provider does not ascribe is an error naming it and the component. Nothing reads across
+the boundary to resolve: the consumer has already said everything, and the agreement is
+checked rather than discovered.
+
+The consumer names concepts, never the provider's element keys, so renaming an element
+inside the provider breaks nothing.
+
+`requiredAsterisk` is not in the consumer's list. `indicator` is self-contained — it hides
+itself wherever it renders and needs nothing routed — so naming it would wrongly suggest
+the consumer wires it. Only parts that wire by id need declaring: `label`, `description`,
+`errormessage`, `value`, `placeholder`.
+
+In Figma this is one `role:` line per concept on the instance layer, the same way `action:`
+lines accumulate. Where the set is annotated on more than one variant, the first variant
+wins for the whole set.
 
 ## Platform reach
 
@@ -141,8 +206,9 @@ this vocabulary to concepts ARIA and the native platforms have counterparts for 
 alternative was a role per behavior-and-control pair, such as `dismissbutton`, which no
 platform can bind to a native type.
 
-An element carries **at most one role**, because the question has one answer. It may carry
-**several actions**, because that question does not. Where a role and an action want the
+An element the component **owns** carries **at most one role**, because the question of what
+it *is* has one answer. It may carry **several actions**, because that question does not. An
+`instance` element is different — see below — because a role there routes rather than claims. Where a role and an action want the
 same event, they compose into one handler rather than competing — see
 [precedence](/roles/precedence/). Both keys are read from the same
 annotation, with the same variant rules, and both route rather than emit when they land on an

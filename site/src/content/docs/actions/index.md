@@ -38,7 +38,7 @@ platforms actually have. The alternative was a role per behavior-and-control pai
 concepts no platform has a counterpart for.
 
 The two also differ in how many an element may carry. A role answers a question that has one
-answer, so there is **at most one role per element**. A behavior does not, so an element may
+answer, so there is **at most one role per owned element**. A behavior does not, so an element may
 carry **several actions**, one per `action:` line, in annotation order, with duplicates
 collapsed.
 
