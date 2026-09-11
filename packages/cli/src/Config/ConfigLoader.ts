@@ -38,6 +38,14 @@ import type { CLIConfig } from '../Types/CLIConfig.js';
  */
 const CONFIG_DIR_FILES = ['settings'] as const;
 
+/**
+ * Basenames retired layouts wrote into `config/`. Neither is read, but their
+ * presence marks the directory as this workspace's config so the load path can
+ * refuse (`conventions`) or warn (`pipeline`) loudly instead of the run falling
+ * through to defaults.
+ */
+const RETIRED_CONFIG_DIR_FILES = ['conventions', 'pipeline'] as const;
+
 /** Directory inside `config/` holding one conventions file per platform (ADR-078). */
 const CONVENTIONS_DIR = 'conventions';
 
@@ -73,6 +81,15 @@ type ConfigSource =
 /** Pre-split workspace files that `specs migrate config` can convert. */
 const CONFIG_V1_BASENAMES = ['specs.config.yaml', 'specs.config.json'];
 
+/**
+ * A deliberate refusal to load a retired configuration shape. Distinct from a
+ * load *failure* so the loader's defaults fallback can tell them apart: a
+ * refusal must stop the run — falling back to defaults would generate
+ * successfully and silently wrong, which is the outcome the refusal exists to
+ * prevent.
+ */
+export class ConfigRefusal extends Error {}
+
 export class ConfigLoader {
   constructor() {
     // Config loader with runtime type checking instead of schema validation
@@ -105,6 +122,7 @@ export class ConfigLoader {
     try {
       return this.loadFromDirectory(source.dir);
     } catch (error) {
+      if (error instanceof ConfigRefusal) throw error;
       console.error(`Error loading config from ${source.dir}:`, error);
       console.error('Falling back to default configuration');
       return this.getDefaultConfig();
@@ -144,7 +162,15 @@ export class ConfigLoader {
       // its own it marks a split workspace just as `settings.yaml` does.
       const conventionsDir = path.join(configDir, CONVENTIONS_DIR);
       const hasConventionsDir = fs.existsSync(conventionsDir) && fs.statSync(conventionsDir).isDirectory();
-      if (hasSplitFile || hasConventionsDir) {
+      // Retired-layout files also mark the directory as this workspace's config.
+      // Without this, a workspace holding only `config/conventions.yaml` (or a
+      // leftover `config/pipeline.yaml`) is not recognized at all and the run
+      // generates with defaults, silently missing everything the file declares —
+      // recognizing it routes the load through the loud refusal instead.
+      const hasRetiredFile = RETIRED_CONFIG_DIR_FILES.some(base =>
+        CONFIG_FILE_EXTENSIONS.some(ext => fs.existsSync(path.join(configDir, `${base}.${ext}`)))
+      );
+      if (hasSplitFile || hasConventionsDir || hasRetiredFile) {
         return { kind: 'directory', dir: configDir };
       }
     }
@@ -172,6 +198,22 @@ export class ConfigLoader {
    * `specs.config.yaml` resolved them.
    */
   private loadFromDirectory(dir: string): CLIConfig {
+    // A leftover pipeline file is inert, not wrong — every workspace created
+    // before the retirement has one — so it warns rather than refuses, and the
+    // warning says what replaced it and what to do.
+    for (const ext of CONFIG_FILE_EXTENSIONS) {
+      const pipelineFile = path.join(dir, `pipeline.${ext}`);
+      if (fs.existsSync(pipelineFile)) {
+        console.warn(
+          `Warning: ${pipelineFile} is no longer read (ADR-071 amendment).\n` +
+          `  Transformers became commands — run \`specs react\` or \`specs webcomponents\` —\n` +
+          `  and \`specs analyze\` has always taken its analyzers as arguments.\n` +
+          `  Delete the file, or run \`specs migrate config\` to remove it.`
+        );
+        break;
+      }
+    }
+
     const conventions = this.resolveConventions(this.readConventionsDir(dir));
     const settings = this.resolveSettings(this.readPart(dir, 'settings'));
 
@@ -241,7 +283,7 @@ export class ConfigLoader {
     for (const ext of CONFIG_FILE_EXTENSIONS) {
       const stray = path.join(dir, `${CONVENTIONS_DIR}.${ext}`);
       if (fs.existsSync(stray)) {
-        throw new Error(
+        throw new ConfigRefusal(
           `${stray} is no longer read (ADR-078).\n` +
           `  Conventions are one file per platform in config/${CONVENTIONS_DIR}/ — move each\n` +
           `  platform's block into config/${CONVENTIONS_DIR}/<platform>.yaml, with the platform\n` +
@@ -272,7 +314,7 @@ export class ConfigLoader {
       // Refused rather than read as a platform named 'primitives', which is what
       // falling through would silently do.
       if (id === PRIMITIVES_FILE_RETIRED) {
-        throw new Error(
+        throw new ConfigRefusal(
           `${file} is no longer read (ADR-073 Decision 5).\n` +
           `  The promotion table is Figma-scoped — its sources and token names describe the\n` +
           `  design tool — so rename the file to config/${CONVENTIONS_DIR}/${PRIMITIVES_FILE}.${ext}.\n` +

@@ -127,7 +127,37 @@ const configV1: Migration = {
   },
 };
 
-const MIGRATIONS: Migration[] = [configV1];
+const configPipeline: Migration = {
+  subject: 'config',
+  from: 'pipeline',
+  to: 'retired',
+  summary: 'config/pipeline.yaml retired — transformers became `specs react` / `specs webcomponents`, and `specs analyze` takes its analyzers as arguments (ADR-071 amendment)',
+
+  detect(dir) {
+    for (const name of ['pipeline.yaml', 'pipeline.json']) {
+      const candidate = path.join(dir, 'config', name);
+      if (fs.existsSync(candidate)) return candidate;
+    }
+    return null;
+  },
+
+  blocked() {
+    return null;
+  },
+
+  run(dir, source, dryRun) {
+    // Rename rather than delete, matching the v1 migration: the file is the
+    // record of what the workspace declared, and discovery stops warning on it.
+    const renamedTo = `${path.basename(source)}.migrated`;
+    if (!dryRun) fs.renameSync(source, path.join(path.dirname(source), renamedTo));
+    return {
+      written: [],
+      renamed: { from: `config/${path.basename(source)}`, to: `config/${renamedTo}` },
+    };
+  },
+};
+
+const MIGRATIONS: Migration[] = [configV1, configPipeline];
 
 export const Migrate = new Command('migrate')
   .description('Run a versioned migration over this workspace')

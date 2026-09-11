@@ -190,6 +190,30 @@ spec:
     });
   });
 
+  describe('retired layout files mark the config directory (ADR-071 retirement)', () => {
+    it('refuses a conventions.yaml-only workspace instead of silently defaulting', () => {
+      writeSplitFile('conventions.yaml', 'figma:\n  naming: SENTENCE\n');
+      expect(() => configLoader.load()).toThrow(/no longer read \(ADR-078\)/);
+    });
+
+    it('warns on a leftover pipeline.yaml and still loads', () => {
+      writeSplitFile('pipeline.yaml', 'transformers:\n  - name: react\n');
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const config = configLoader.load();
+      expect(config.settings).toBeDefined();
+      expect(warn.mock.calls.flat().join('\n')).toMatch(/pipeline\.yaml is no longer read/);
+    });
+
+    it('warns on a leftover pipeline.yaml beside a split settings file', () => {
+      writeSplitFile('settings.yaml', 'spec:\n  format: YAML\n');
+      writeSplitFile('pipeline.yaml', 'transformers: []\n');
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const config = configLoader.load();
+      expect(config.settings.spec.format).toBe('YAML');
+      expect(warn.mock.calls.flat().join('\n')).toMatch(/specs migrate config/);
+    });
+  });
+
   describe('defaults (no configuration found)', () => {
     it('returns defaults when no config exists', () => {
       const config = configLoader.load();
@@ -553,17 +577,11 @@ dsIcon:
     });
 
     it('refuses the retired primitives.yaml basename rather than reading it as a platform', () => {
-      const error = vi.mocked(console.error);
       writeSplitFile('conventions/primitives.yaml', 'dsIcon:\n  elementType: glyph\n  map: []\n');
 
-      const config = configLoader.load();
-      // The refusal surfaces as a load error; nothing is read as a platform.
-      expect(config.conventions.platforms?.primitives).toBeUndefined();
-      expect(config.conventions.primitives).toBeUndefined();
-      expect(error).toHaveBeenCalledWith(
-        expect.stringContaining('Error loading config'),
-        expect.objectContaining({ message: expect.stringContaining('ADR-073 Decision 5') })
-      );
+      // The refusal stops the run — a defaults fallback here would generate
+      // successfully and silently wrong.
+      expect(() => configLoader.load()).toThrow(/ADR-073 Decision 5/);
     });
   });
 

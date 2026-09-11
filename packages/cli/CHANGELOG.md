@@ -11,7 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 `css`, `cssvars`, `contract`, `stories` and `webcomponents-stories` are no longer names you invoke: each is part of what a target emits, and `css` in particular had no output location of its own once output moved into the platform trees.
 
-`config/pipeline.yaml` is retired with them. `specs init` no longer seeds it and `specs migrate config` no longer writes one, dropping `config.transformers` rather than carrying it forward. A workspace that only declared transformers can delete the file.
+`config/pipeline.yaml` is retired with them. `specs init` no longer seeds it and `specs migrate config` no longer writes one, dropping `config.transformers` rather than carrying it forward. A leftover `pipeline.yaml` now produces a warning naming the commands that replaced it, and `specs migrate config` renames it out of discovery.
+
+**A retired configuration layout now stops the run instead of silently defaulting.** A workspace holding only `config/conventions.yaml` was not recognized as configured at all, so generation ran with defaults — missing everything the file declares, without ever failing. Retired files now mark the directory as the workspace's config, and the loader's refusals (`conventions.yaml`, the old `primitives.yaml` basename) stop the run with instructions rather than being logged and swallowed.
 
 **Breaking**: `specs transform` is removed, as is `config.pipeline` on the loaded config.
 

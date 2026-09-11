@@ -443,6 +443,31 @@ config:
 
     // pipeline
   });
+
+  describe('config pipeline → retired (ADR-071 amendment)', () => {
+    it('renames a leftover config/pipeline.yaml out of discovery', async () => {
+      const pipelineFile = path.join(testDir, 'config', 'pipeline.yaml');
+      fs.ensureDirSync(path.dirname(pipelineFile));
+      fs.writeFileSync(pipelineFile, 'transformers:\n  - name: react\n');
+
+      await runMigrate('config');
+
+      expect(fs.existsSync(pipelineFile)).toBe(false);
+      expect(fs.existsSync(`${pipelineFile}.migrated`)).toBe(true);
+      expect(logged()).toContain('pipeline.yaml');
+    });
+
+    it('--dry-run leaves the file in place and reports the rename', async () => {
+      const pipelineFile = path.join(testDir, 'config', 'pipeline.yaml');
+      fs.ensureDirSync(path.dirname(pipelineFile));
+      fs.writeFileSync(pipelineFile, 'transformers: []\n');
+
+      await runMigrate('config', '--dry-run');
+
+      expect(fs.existsSync(pipelineFile)).toBe(true);
+      expect(logged()).toContain('Would rename');
+    });
+  });
 });
 
 describe('MigrateCommand — --source (a file discovery would not find)', () => {
