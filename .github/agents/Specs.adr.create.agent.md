@@ -33,11 +33,26 @@ You **MUST** consider the user input before proceeding (if not empty).
    - If multiple `origin/release/*` branches exist, pick the most recently created one (latest commit date) as the default and surface it in Question 2 for confirmation.
    - If no `origin/release/*` branch exists, fall back to `main` and note this in Question 2 so the user can confirm or provide a branch.
 
-   **Step 1b — Sync release branch and determine next ADR number (silent, no user prompt)**
-   Run `git fetch origin $RELEASE_BRANCH` and fast-forward the local branch if behind (`git pull origin $RELEASE_BRANCH`). Then determine `NEXT_ADR_NUMBER` by finding the highest existing ADR number across **both** sources (zero-padded to 3 digits):
-   1. List `adr/` on the synced branch to find numbered ADR files (e.g., `014-prop-examples.md` → 14).
-   2. List remote branches matching the `###-*` pattern (`git branch -r --list 'origin/[0-9][0-9][0-9]-*'`) to find in-flight ADR branches that may not have merged files yet (e.g., `origin/015-some-feature` → 15).
-   Take the maximum number from both sources and add 1.
+   **Step 1b — Sync and determine next ADR number (silent, no user prompt)**
+   Run `git fetch origin` so every remote ref is current, and fast-forward the local release branch if behind (`git pull origin $RELEASE_BRANCH`).
+
+   `adr/INDEX.md` on `main` is the register of claimed numbers — every ADR, drafted or accepted, has a row there, because step 7 cherry-picks the claim onto `main` the moment it is made. Read it and take the highest number, plus one:
+
+   ```bash
+   git show origin/main:adr/INDEX.md | grep -oE '^\| [0-9]{3} ' | grep -oE '[0-9]{3}' | sort -n | tail -1
+   ```
+
+   Do **not** infer claimed numbers from branch names. An ADR branch may be named anything (`adr/primitive-composition` holds ADRs 073–079), so a `###-*` pattern misses them and hands out a number already in use.
+
+   Then **verify the register is complete** before trusting it — a missed cherry-pick is the one failure mode that makes it lie. List the ADR files on every remote branch and compare against the index:
+
+   ```bash
+   for b in $(git branch -r --format='%(refname:short)' | grep -v '\->'); do
+     git ls-tree --name-only "$b" adr/ 2>/dev/null | grep -oE 'adr/[0-9]{3}'
+   done | grep -oE '[0-9]{3}' | sort -u
+   ```
+
+   If any number there is absent from the index, stop and tell the user which numbers are unregistered and which branch holds them. Offer to add the missing rows (marked `(reserved, draft in PR #N)`) and cherry-pick them onto `main` per step 7 before continuing. Never claim a number until the register accounts for every number in use.
 
    **Step 1c — Ask the user** using VS Code's interactive question UI. Present ALL questions in a single prompt:
 
@@ -78,7 +93,9 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 5. **Evaluate options** *(skip if the decision is already made)*:
    - If the user's description or context indicates the decision is pre-decided (e.g., "record and implement this decision"), omit this step and mark the Options Considered section as *(Pre-decided — no alternatives evaluated)*.
-   - Otherwise, identify at least two alternative approaches, assess each against the constitution's Decision Drivers, and state which is selected with rationale.
+   - **First, list the independent decisions in scope.** Schema shape, authoring surface and semantics, and vocabulary are separate decisions. Each gets its own Options section, titled by the decision it resolves, with its own selected and rejected alternatives. Never bundle two decisions into one option — a "Selected" option carrying both forces an all-or-nothing verdict and hides one of them from evaluation entirely.
+   - If a decision is out of scope for this ADR, say so explicitly in Context and point to where it is taken. Do not resolve it in passing.
+   - Within each Options section, identify at least two alternative approaches, assess each against the constitution's Decision Drivers, and state which is selected with rationale.
 
 6. **Draft the ADR**: Fill `adr-template.md` and write to `$SPEC_FILE`:
    - **Branch**: `ADR_NAME`
@@ -89,10 +106,10 @@ You **MUST** consider the user input before proceeding (if not empty).
    - **Decision**: Precise list of type and schema changes (file, field, modification type)
    - **Type ↔ Schema Impact**: Confirm symmetry or document justified asymmetry
    - **Downstream Impact**: All affected consumers (`specs-cli`, `specs-from-figma`, `specs-plugin-2`) — see Key rules below
-   - **Semver Decision**: MAJOR / MINOR / PATCH with justification citing the constitution
+   - **Semver Decision**: the **target version** read verbatim from the active release branch name (e.g. `release/schema-0.31.0+cli-0.28.0` → `0.31.0`), plus the **change class** (MAJOR / MINOR / PATCH) with justification citing the constitution. Never propose a version bump — an ADR ships *inside* a release that already has a version, so `0.30.0 → 0.31.0` invents a version the release process never asked for and conflicts with the branch it merges into.
    - **Consequences**: What becomes true after acceptance
 
-7. **Claim ADR number in INDEX**: Update `adr/INDEX.md` to reserve the ADR number and prevent collisions.
+7. **Claim ADR number in INDEX** *(mandatory — the index is the register step 1b reads, and skipping this hands the next author a number already in use)*: Update `adr/INDEX.md` to reserve the ADR number and prevent collisions.
    - On the current ADR branch, add a row to the **Draft** table (descending by number) with the ADR number and title but **no highlight** (leave the Highlights cell empty).
    - Commit this INDEX update on the ADR branch.
    - Then cherry-pick the INDEX change onto `main` (and `$RELEASE_BRANCH` if it differs from `main`):
@@ -113,6 +130,8 @@ You **MUST** consider the user input before proceeding (if not empty).
 ## Key rules
 
 - Status MUST be `DRAFT` — never set to `ACCEPTED` in this command.
+- The Semver section states the release branch's version and the change class. It MUST NOT contain a bump arrow.
+- One decision per Options section. The **Decision** section only records what the option sets above already resolved — if a choice appears there for the first time, it needs its own Options section.
 - The ADR describes *what* will change and *why*. It does not contain type or schema file content — those changes are applied directly by `/specs.adr.implement`.
 - **Downstream Impact table**: Include rows for all consumers affected by the change: `specs-cli`, `specs-from-figma`, and `specs-plugin-2`. Describe impact and required action in general terms (e.g., "Update value mapping", "Recompile") — do not reference internal classes, methods, or implementation details of those packages.
 - If the change clearly violates a constitution gate (e.g., adds runtime logic), state the violation explicitly in the ADR and halt rather than proceeding without justification.

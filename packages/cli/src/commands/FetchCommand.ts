@@ -29,8 +29,27 @@ const ERROR_CODES = {
 
 import type { SourceEntry } from '@directededges/specs-schema';
 import { figmaOf } from '../Config/PlatformConventions.js';
+import { resolveFigmaFileKey, slugifyBranchName, FigmaKeyError } from '../utilities/figmaFileKey.js';
 
 type FetchKind = 'file' | 'variables' | 'styles' | 'icons';
+
+/**
+ * A source to fetch. `config` sources come from `data.sources`; `adhoc` sources are
+ * named on the command line by `--source`, live only for the run that names them,
+ * and exist so a Figma branch can be fetched and diffed without editing config.
+ */
+interface FetchSource {
+  alias: string;
+  key: string;
+  fetch: FetchKind[];
+  origin: 'config' | 'adhoc';
+  /** Ad-hoc only: the file this key branches from, per the API's `branch_data`. */
+  mainFileKey?: string;
+  /** Ad-hoc only: the configured alias whose key equals `mainFileKey`. */
+  parentAlias?: string;
+  /** Ad-hoc only: the branch's name as Figma reports it on the parent file. */
+  branchName?: string;
+}
 
 export { collectGlyphComponents };
 
@@ -60,14 +79,56 @@ function splitOnly(value?: string): string[] {
     .filter(Boolean);
 }
 
-function normalizeSources(sources?: Record<string, SourceEntry>): Array<{ alias: string; key: string; fetch: FetchKind[] }> {
+function normalizeSources(sources?: Record<string, SourceEntry>): FetchSource[] {
   if (!sources) return [];
 
   return Object.entries(sources).map(([alias, entry]) => ({
     alias,
     key: entry.key,
-    fetch: (entry.fetch ?? []).filter(isFetchKind)
+    fetch: (entry.fetch ?? []).filter(isFetchKind),
+    origin: 'config' as const
   }));
+}
+
+/** One `--source` value: `<url|key>`, or `<alias>=<url|key>` to name it yourself. */
+interface AdHocSpec { alias?: string; key: string; raw: string }
+
+export function parseAdHocSource(value: string): AdHocSpec {
+  const raw = value.trim();
+  // Split on the first `=` only: a key never contains one, and a URL's query string may.
+  const separator = raw.indexOf('=');
+  const looksAliased = separator > 0 && !raw.slice(0, separator).includes('/');
+
+  const alias = looksAliased ? raw.slice(0, separator).trim() : undefined;
+  const target = looksAliased ? raw.slice(separator + 1).trim() : raw;
+
+  if (alias !== undefined && !/^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(alias)) {
+    throw new FigmaKeyError(`Not a usable source alias: "${alias}"\n  Aliases become filenames — use letters, digits, "-" and "_"`);
+  }
+
+  return { alias, key: resolveFigmaFileKey(target), raw };
+}
+
+interface BranchProbe {
+  name?: string;
+  mainFileKey?: string;
+}
+
+/**
+ * Read a file's identity without downloading it: `depth=1` returns the document node and
+ * nothing below it, and `branch_data=true` adds `mainFileKey` when the key is a branch.
+ * The payload a diff reads is the full file; this is only about naming the source and
+ * knowing which configured source's data kinds to copy — and it means a bad key or token
+ * fails before the large request rather than after it.
+ */
+async function probeFile(key: string, token: string): Promise<{ status: number; headers: Headers; data: BranchProbe }> {
+  const url = `https://api.figma.com/v1/files/${key}?depth=1&branch_data=true`;
+  const response = await figmaFetch(url, token);
+  if (response.status !== 200) {
+    return { status: response.status, headers: response.headers, data: {} };
+  }
+  const body = await streamToString(response.stream);
+  return { status: response.status, headers: response.headers, data: JSON.parse(body) as BranchProbe };
 }
 
 async function figmaFetch(url: string, token: string): Promise<{ status: number; body: string; headers: Headers; stream: ReadableStream<Uint8Array> | null }> {
@@ -144,7 +205,16 @@ function configReference(configPath: string | null): string {
   return configPath || 'the workspace settings (config/settings.yaml)';
 }
 
-export function formatNotFoundError(alias: string, kind: string, configPath: string | null): string {
+export function formatNotFoundError(alias: string, kind: string, configPath: string | null, origin: 'config' | 'adhoc' = 'config'): string {
+  if (origin === 'adhoc') {
+    return [
+      `Error: File not found (404) while fetching ${alias}.${kind}`,
+      `  Figma returned 404 for the key passed as --source ${alias}.`,
+      '    • Check the URL you pasted still opens in Figma (a deleted branch keeps its URL)',
+      '    • Your FIGMA_TOKEN account must be able to open it'
+    ].join('\n');
+  }
+
   return [
     `Error: File not found (404) while fetching ${alias}.${kind}`,
     `  Figma returned 404 for the file key configured for "${alias}".`,
@@ -155,9 +225,19 @@ export function formatNotFoundError(alias: string, kind: string, configPath: str
   ].join('\n');
 }
 
-export function formatAuthError(status: number, alias: string, kind: string, configPath: string | null, key?: string): string {
+export function formatAuthError(status: number, alias: string, kind: string, configPath: string | null, key?: string, origin: 'config' | 'adhoc' = 'config'): string {
   if (status === 403) {
     const keyHint = key ? `  File key: ${key}` : '';
+    if (origin === 'adhoc') {
+      return [
+        `Error: Access denied (403) while fetching ${alias}.${kind}`,
+        '  Your FIGMA_TOKEN is valid but cannot access the file passed as --source.',
+        '    • Personal access tokens only reach files your account can view',
+        '    • If your org enforces SAML/SSO, personal access tokens are blocked',
+        '      Use an OAuth token or ask your admin to allow PATs',
+        ...(keyHint ? [keyHint] : [])
+      ].join('\n');
+    }
     return [
       `Error: Access denied (403) while fetching ${alias}.${kind}`,
       '  Your FIGMA_TOKEN is valid but cannot access this file.',
@@ -186,6 +266,7 @@ export interface FetchOptions {
   dataDir?: string;
   outDir?: string; // deprecated alias for --data-dir
   only?: string;
+  source?: string[];
   geometry: boolean;
   verbose: boolean;
 }
@@ -196,6 +277,11 @@ export const Fetch = new Command('fetch')
   .option('--data-dir <dir>', 'Override data directory (default: data.directory from the workspace settings, or ./data)')
   .option('--outDir <dir>', 'Deprecated: use --data-dir')
   .option('--only <name[,name...]>', 'Fetch only these — a file alias from sources, a data kind (file, variables, styles, icons), or both')
+  .option(
+    '--source <[alias=]url|key>',
+    'Fetch a file or branch that is not in config — pass its Figma URL or key. Repeatable. Names itself after the branch unless you pass alias=',
+    (value: string, previous: string[] = []) => previous.concat(value)
+  )
   .option('--no-geometry', 'Omit geometry data (fillGeometry, strokeGeometry, size, relativeTransform) from file payloads')
   .option('--verbose', 'Enable detailed logging', false)
   .action(async (options: FetchOptions) => {
@@ -218,7 +304,8 @@ export const Fetch = new Command('fetch')
       const outDir = path.resolve(configDir, outDirValue);
 
       const fileEntries = normalizeSources(config.settings.data?.sources);
-      if (fileEntries.length === 0) {
+      const adHocValues = options.source ?? [];
+      if (fileEntries.length === 0 && adHocValues.length === 0) {
         console.error('Error: No sources configured');
         console.error('Add to config/settings.yaml:');
         console.error('  data:');
@@ -256,7 +343,84 @@ export const Fetch = new Command('fetch')
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
 
-      const selected = onlyAliases.length > 0 ? fileEntries.filter(f => onlyAliases.includes(f.alias)) : fileEntries;
+      // -------------------------------------------------------------------
+      // Ad-hoc sources (--source): a file or branch fetched without being in config.
+      // Resolving one is a small `depth=1` request first — it names the source after the
+      // file, matches a branch to the configured source it came from, and fails on a bad
+      // key or token before any large download starts.
+      // -------------------------------------------------------------------
+      const adHoc: FetchSource[] = [];
+      for (const value of adHocValues) {
+        let spec: AdHocSpec;
+        try {
+          spec = parseAdHocSource(value);
+        } catch (err) {
+          console.error(`Error: --source ${value}`);
+          console.error(`  ${err instanceof Error ? err.message : String(err)}`);
+          process.exit(ERROR_CODES.INVALID_ARGS);
+          return;
+        }
+
+        const label = spec.alias ?? spec.key;
+        const probe = await probeFile(spec.key, token);
+        if (probe.status !== 200) {
+          const classification = classifyHttpStatus(probe.status);
+          if (classification === 'auth') {
+            console.error(formatAuthError(probe.status, label, 'file', configPath, options.verbose ? spec.key : undefined, 'adhoc'));
+            process.exit(ERROR_CODES.AUTH_ERROR);
+          }
+          if (classification === 'rate') {
+            console.error(formatRateLimitError(label, 'file', probe.headers));
+            process.exit(ERROR_CODES.RATE_LIMIT);
+          }
+          if (probe.status === 404) {
+            console.error(formatNotFoundError(label, 'file', configPath, 'adhoc'));
+          } else {
+            console.error(`Error: HTTP ${probe.status} while resolving --source ${value}`);
+          }
+          process.exit(ERROR_CODES.NETWORK_ERROR);
+        }
+
+        // `mainFileKey` names the file this key branches from. It is used for one thing:
+        // matching the branch to a configured source so it fetches the same data kinds,
+        // which is what makes the two payloads comparable. A branch of a file that is not
+        // configured is a normal thing to fetch, and says nothing.
+        const mainFileKey = probe.data.mainFileKey;
+        const parent = mainFileKey ? fileEntries.find(f => f.key === mainFileKey) : undefined;
+        const branchName = probe.data.name;
+
+        const alias = spec.alias
+          ?? (branchName ? `${parent ? `${parent.alias}-` : ''}${slugifyBranchName(branchName)}` : undefined)
+          ?? `source-${spec.key.slice(0, 8).toLowerCase()}`;
+
+        // Writing to a configured alias's filenames would overwrite the durable payload
+        // this branch is meant to be compared against.
+        if (fileEntries.some(f => f.alias === alias)) {
+          console.error(`Error: --source ${value} resolves to the alias "${alias}", which is already a configured source.`);
+          console.error(`  Name it yourself instead: --source ${alias}-branch=${spec.raw}`);
+          process.exit(ERROR_CODES.INVALID_ARGS);
+        }
+        if (adHoc.some(f => f.alias === alias)) {
+          console.error(`Error: two --source values resolve to the same alias "${alias}". Name at least one of them: --source <alias>=<url>`);
+          process.exit(ERROR_CODES.INVALID_ARGS);
+        }
+
+        // A branch is fetched the way its parent is, so the two payloads are comparable.
+        // With no parent to inherit from, `--only` decides, and a bare file payload is
+        // the floor — every downstream command needs it.
+        const kinds = parent ? parent.fetch : (onlyKinds.length > 0 ? [...onlyKinds] : ['file' as FetchKind]);
+
+        adHoc.push({ alias, key: spec.key, fetch: kinds, origin: 'adhoc', mainFileKey, parentAlias: parent?.alias, branchName });
+        console.log(`✓ Resolved: ${alias}${parent ? ` (branch of ${parent.alias})` : ''} → ${kinds.join(', ')}`);
+      }
+
+      // Naming ad-hoc sources means fetching those: re-downloading the configured
+      // library is a large request the caller did not ask for. `--only <alias>` still
+      // adds configured sources back alongside them.
+      const configSelected = onlyAliases.length > 0
+        ? fileEntries.filter(f => onlyAliases.includes(f.alias))
+        : (adHoc.length > 0 ? [] : fileEntries);
+      const selected = [...configSelected, ...adHoc];
 
       // A kind the caller asked for that no selected source is configured to fetch would
       // otherwise do nothing at all and say nothing about why.
@@ -302,7 +466,7 @@ export const Fetch = new Command('fetch')
           const classification = classifyHttpStatus(status);
 
           if (classification === 'auth') {
-            console.error(formatAuthError(status, entry.alias, kind, configPath, options.verbose ? entry.key : undefined));
+            console.error(formatAuthError(status, entry.alias, kind, configPath, options.verbose ? entry.key : undefined, entry.origin));
             process.exit(ERROR_CODES.AUTH_ERROR);
           }
 
@@ -313,7 +477,7 @@ export const Fetch = new Command('fetch')
 
           if (classification === 'error') {
             if (status === 404) {
-              console.error(formatNotFoundError(entry.alias, kind, configPath));
+              console.error(formatNotFoundError(entry.alias, kind, configPath, entry.origin));
             } else {
               console.error(`Error: HTTP ${status} while fetching ${entry.alias}.${kind}`);
             }
@@ -359,14 +523,14 @@ export const Fetch = new Command('fetch')
         if (entry.fetch.includes('icons') && wants('icons')) {
           const pattern = figmaOf(config.conventions).glyphs?.match;
           if (!pattern) {
-            console.error(`Error: data.sources.${entry.alias}.fetch includes "icons" but conventions.figma.glyphs.match is not set`);
+            console.error(`Error: ${entry.origin === 'adhoc' ? `source "${entry.alias}"` : `data.sources.${entry.alias}.fetch`} includes "icons" but glyphs.match is not set in config/conventions/figma.yaml`);
             process.exit(ERROR_CODES.INVALID_ARGS);
           }
           // Icons are consumed by generated component output, so they live in
           // the durable spec workspace (beside assets/images/), not the data cache.
           const specDirectory = config.settings.spec.directory;
           if (!specDirectory) {
-            console.error(`Error: data.sources.${entry.alias}.fetch includes "icons" but spec.directory is not set in the workspace settings`);
+            console.error(`Error: ${entry.origin === 'adhoc' ? `source "${entry.alias}"` : `data.sources.${entry.alias}.fetch`} includes "icons" but spec.directory is not set in the workspace settings`);
             process.exit(ERROR_CODES.INVALID_ARGS);
           }
           const filePath = path.join(outDir, `${entry.alias}.file.json`);
@@ -380,8 +544,14 @@ export const Fetch = new Command('fetch')
           const glyphs = collectGlyphComponents(fileJson.document, pattern);
           // Assets are a sibling of specs/, not a `_`-prefixed pseudo-component
           // inside it: an SVG is consumed by every target and produced by none
-          // (project 024).
-          const iconsDir = path.join(path.resolve(configDir, specDirectory), '..', 'assets', 'icons');
+          // (project 024). An ad-hoc source's glyphs are a second version of the
+          // same icons under the same slugs — writing them into assets/icons/
+          // would overwrite the durable library's assets, so they get their own
+          // sibling directory, isolated and deleted with the source's payloads.
+          const iconsDir = path.join(
+            path.resolve(configDir, specDirectory), '..', 'assets',
+            entry.origin === 'adhoc' ? `icons-${entry.alias}` : 'icons'
+          );
           await fs.ensureDir(iconsDir);
 
           let downloaded = 0;
@@ -425,6 +595,26 @@ export const Fetch = new Command('fetch')
         }
       }
 
+      // An ad-hoc source's key exists nowhere but the command line that named it, and
+      // later commands (`generate --get-images`, and anything diffing these payloads)
+      // need to know which file the alias came from. Recorded beside the payloads so it
+      // is deleted with them.
+      for (const entry of adHoc) {
+        await fs.writeFile(
+          path.join(outDir, `${entry.alias}.source.json`),
+          JSON.stringify({
+            alias: entry.alias,
+            key: entry.key,
+            fetch: entry.fetch,
+            mainFileKey: entry.mainFileKey ?? null,
+            parentAlias: entry.parentAlias ?? null,
+            branchName: entry.branchName ?? null,
+            fetchedAt: new Date().toISOString()
+          }, null, 2),
+          'utf-8'
+        );
+      }
+
       clearInlineStatus();
 
       // Refresh the render caches from everything now on disk — the sources fetched this
@@ -435,7 +625,10 @@ export const Fetch = new Command('fetch')
         const dataDir = path.resolve(configDir, dataDirectory);
         const report = refreshCache({
           dataDir,
-          aliases: Object.keys(config.settings.data?.sources ?? {}),
+          // Ad-hoc aliases first: entries collide by node id and name, and later aliases
+          // win, so a branch contributes only what the configured sources don't already
+          // define. A branch fetch must not change how the durable library resolves.
+          aliases: [...adHoc.map(s => s.alias), ...Object.keys(config.settings.data?.sources ?? {})],
           glyphNamePattern: figmaOf(config.conventions).glyphs?.match,
         });
         reportCache(report);

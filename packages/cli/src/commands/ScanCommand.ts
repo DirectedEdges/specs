@@ -274,7 +274,7 @@ function generateManifestV2(
     lines.push('');
     lines.push('## Glyphs');
     lines.push('');
-    lines.push('_Detected via `conventions.figma.glyphs.match`. Excluded from `specs generate`._');
+    lines.push('_Detected via `glyphs.match` in `config/conventions/figma.yaml`. Excluded from `specs generate`._');
     lines.push('');
     lines.push('| Name | ID | Type |');
     lines.push('|------|------|------|');
@@ -322,7 +322,11 @@ export const Scan = new Command('scan')
           ([, entry]) => Array.isArray(entry.fetch) && entry.fetch.includes('file')
         );
 
-        if (fileSources.length === 0) {
+        // An alias fetched with `specs fetch --source` is never in config, so an alias
+        // with a payload on disk is as real a source as a configured one.
+        const fetchedOnDisk = (alias: string) => fs.existsSync(path.join(resolvedDir, `${alias}.file.json`));
+
+        if (fileSources.length === 0 && !(options.source && fetchedOnDisk(options.source))) {
           console.error('Error: No <file> argument provided and no sources configured in the workspace settings');
           console.error('Tip: run `specs fetch` first, or pass a file path explicitly (e.g., `specs scan data/library.file.json`)');
           process.exit(ERROR_CODES.INVALID_ARGS);
@@ -331,13 +335,14 @@ export const Scan = new Command('scan')
         let alias: string;
         if (options.source) {
           const match = fileSources.find(([name]) => name === options.source);
-          if (!match) {
+          if (!match && !fetchedOnDisk(options.source)) {
             const available = fileSources.map(([name]) => name).join(', ');
             console.error(`Error: --source "${options.source}" did not match a configured source with file data`);
-            console.error(`Available: ${available}`);
+            console.error(`Available: ${available || '(none)'}`);
+            console.error(`Tip: an unconfigured source needs its payload fetched first — \`specs fetch --source ${options.source}=<url>\``);
             process.exit(ERROR_CODES.INVALID_ARGS);
           }
-          alias = match[0];
+          alias = match ? match[0] : options.source;
         } else if (fileSources.length === 1) {
           alias = fileSources[0][0];
         } else {

@@ -36,6 +36,9 @@ specs fetch --data-dir ./custom-data
 ### `--only <name[,name...]>`
 Narrow the fetch by source alias, by data kind, or both, comma-separated. Aliases come from `data.sources`; kinds are `file`, `variables`, `styles`, and `icons`. An alias fetches every kind for that source; a kind fetches it for every source; `--only library,icons` fetches only the icons of the `library` source. Names that shadow both an alias and a kind, or match nothing, fail with an error naming the valid values.
 
+### `--source <[alias=]url|key>`
+Fetch a file or branch that is not in `data.sources` — see [Fetching Figma Branches](#fetching-figma-branches). Repeatable.
+
 ### `--no-geometry`
 Omit geometry data from file payloads. By default, `fetch` requests `?geometry=paths` from the Figma API, which includes `fillGeometry`, `strokeGeometry`, `size`, and `relativeTransform` on every node. This roughly doubles the payload size.
 
@@ -109,15 +112,64 @@ The downloaded assets match the slugs referenced by generated component output (
 
 ## Fetching Figma Branches
 
-You can fetch data from a Figma branch instead of the main file by using the branch's file key in your `data.sources` config. Every Figma branch has its own unique key, which works anywhere a main file key does.
+A branch is a file with its own key, so nothing about fetching one is special — but a
+branch is usually short-lived and fetched to be compared against the library it came
+from, which is not worth an edit to `config/settings.yaml`. `--source` fetches a file
+that is not in config:
 
-```yaml
-# config/settings.yaml
-data:
-  sources:
-    library:
-      key: BRANCH_FILE_KEY   # branch key instead of main file key
-      fetch: ['file', 'variables', 'styles']
+```bash
+specs fetch --source "https://www.figma.com/design/BRANCH_KEY/Design-System?node-id=0-1"
+```
+
+Paste the branch's URL as it appears in Figma, or pass a bare file key. The flag is
+repeatable, and naming any `--source` means only those sources are fetched — the
+configured library is not re-downloaded unless `--only <alias>` asks for it.
+
+### What it resolves
+
+Before downloading anything, `fetch` reads the file's name and, for a branch, the file it
+branches from — one small request that also fails on a bad key or token before the large
+one starts. It reports what it found:
+
+```
+✓ Resolved: library-new-nav-tokens (branch of library) → file, variables, styles
+```
+
+- **The alias** — the file's name, prefixed with the configured source it branches from,
+  so payloads land beside the library's as `data/library-new-nav-tokens.file.json`.
+  Override it with `--source <alias>=<url>`. An alias that collides with a configured
+  source is refused rather than overwriting the payload you mean to compare against.
+- **The data kinds** — copied from the configured source the branch came from, so the two
+  payloads are comparable. Fetching a branch of a file that is not in `data.sources` is
+  fine; with nothing to copy from, `--only` decides and `file` alone is the default.
+
+A `<alias>.source.json` sidecar records the key and where it came from, since config has
+no record of them.
+
+### Using what you fetched
+
+The alias behaves like any other from here:
+
+```bash
+specs scan --source library-new-nav-tokens
+specs generate data/library-new-nav-tokens.manifest.md -o ./branch-specs
+```
+
+`generate` takes the manifest path, and `-o` matters — without it, branch specs are
+written into `spec.directory` over the specs generated from the library.
+
+Ad-hoc payloads contribute to the render cache only where the configured sources define
+nothing, so fetching a branch never changes how the library itself resolves. Icons, if
+inherited, are written to `assets/icons-<alias>/` rather than over `assets/icons/`.
+
+### Cleaning up
+
+Everything an ad-hoc source wrote is named after its alias, so a finished branch is
+removed with:
+
+```bash
+rm data/library-new-nav-tokens.*
+specs cache --force
 ```
 
 ### How to find a branch key
@@ -135,6 +187,20 @@ Open the branch in Figma — the URL contains the key: `figma.com/design/<KEY>/.
 ### Custom tokens on branches
 
 If you use `applyCustomTokens` with branch-fetched data, be aware that Figma variable and style IDs may differ between main and a branch. Your mapping file IDs must match the IDs in the branch's data files, not main's.
+
+### Keeping a branch in config
+
+A branch you fetch repeatedly over a long life is still worth a config entry — give it
+its own alias so the library keeps its own:
+
+```yaml
+# config/settings.yaml
+data:
+  sources:
+    library-redesign:
+      key: BRANCH_FILE_KEY
+      fetch: ['file', 'variables', 'styles']
+```
 
 ---
 

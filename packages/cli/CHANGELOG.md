@@ -5,7 +5,7 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.28.0] - Unreleased
+## [0.29.0] - Unreleased
 
 **`specs transform` is retired; `specs react` and `specs webcomponents` replace it.** Each emits one target whole — component, contract, stylesheet and stories — rather than asking for the pieces to be named in the right order. `--no-stories` omits the stories. The transformers behind them are unchanged.
 
@@ -17,19 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Breaking**: `specs transform` is removed, as is `config.pipeline` on the loaded config.
 
-**Configuration splits into three files** — facts about your Figma library, choices this
-workspace makes, and what it runs. `specs migrate config` converts an existing workspace.
-
-### Breaking
-
-- **`specs.config.yaml` becomes a `config/` directory** holding `conventions`, `settings` and
-  `pipeline`, so library facts and workspace choices validate apart. Commands stop and name
-  `specs migrate config` rather than falling back to defaults.
-
 ### Added
 
-- **`specs migrate config`** converts a legacy workspace to the new file layout, with flags for
-  `--dry-run`, `--source`, `--from` and `--list`.
+- **`specs fetch --source <url>` fetches a Figma branch that is not in your config**, naming it
+  after the branch and fetching the same data kinds as the file it branches from. Payloads land
+  beside the library's as `<parent>-<branch>.file.json`, so a branch you compare a few times and
+  throw away never needs a config edit.
 - **`webcomponents` and `webcomponents-stories` transformers emit a Lit element and its
   Storybook page.** Experimental; output shape may change without a breaking-change note.
 - **`cssvars` transformer resolves CSS custom properties** from fetched library JSON rather than
@@ -39,28 +32,21 @@ workspace makes, and what it runs. `specs migrate config` converts an existing w
 - **`settings.spec.promotePrimitives` swaps raw layers in example content** for the design system
   components they stand in for. Off by default, and sent over `--from-bridge` so the plugin uses
   your table.
-- **`config/conventions/primitives.yaml` names which component each layer becomes** (ADR-075,
-  ADR-078).
+- **`config/conventions/figma.primitives.yaml` names which component each layer becomes** (ADR-075,
+  ADR-073, ADR-078).
 
 ### Changed
 
-- Configuration is discovered in `./config/`; `--config` accepts the directory
-- `specs init` scaffolds the three files, and refuses where `specs.config.yaml` remains
-- Vocabulary moved with the split — `format.figmaKeys` → `conventions.figma.naming`, `processing.glyphNamePattern` → `conventions.figma.glyphs.match`, `format.output` → `settings.spec.format`; root `sources`, `dataDirectory`, `outputDirectory` and `output` fold into `settings`. [Full mapping](../schema/CHANGELOG.md)
-- Spec metadata records conventions and settings separately; regenerating rewrites every `metadata` block
-- The split layout is the default — one folder per component, holding `api`, `variants` and `examples`
-- Layout flags are negatives: `--combine-as-library`, `--combine-concerns`, `--no-subfolders`. An absent flag defers to the configured value
-- `specs migrate config` writes all three layout flags explicitly, preserving what a workspace emits today
-- `specs init` writes the layout flags commented out at their defaults
-- `transform`'s prerequisite tip no longer names removed flags
+- **`specs scan --source <alias>` accepts a source fetched with `--source`**, resolving it from
+  the payload on disk when config has no entry for it.
+- **`specs generate --get-images` pulls images from the file the specs came from**, rather than
+  always from the configured source — so specs generated from a branch get the branch's images.
 - `react` and `stories` transformers moved to `@directededges/react-from-specs` — names, options and output unchanged
+- Emitted stylesheets and cssvars name the command that regenerates them, per target
 
 ### Removed
 
 - Emit-time primitive binding resolution — `PlatformConventions.primitives` and its per-kind binding types. Which component a layer becomes is decided at capture (ADR-074)
-- `specs.config.yaml` and `.json` are no longer read, only detected to refuse with the converting command
-- `~/.specs/config.yaml` — no equivalent. Conventions describe a library and settings a workspace; neither follows you between projects
-- `--split-components`, `--split-concerns`, `--use-subfolders`
 
 ### Fixed
 - **A background image resolves from the stylesheet that references it.** Image assets moved to `assets/images/` at the workspace root when output split into platform trees, but the stylesheets kept emitting `url('../../_images/…')` — a path into the React or Web Components tree, where nothing has been written since. The depth is now derived from where each stylesheet lands, so a component and a subcomponent cannot drift apart
@@ -74,9 +60,118 @@ workspace makes, and what it runs. `specs migrate config` converts an existing w
 - `scan` keeps the components a selected component is built from, instead of leaving them unchecked because they carry no dev status of their own
 - `scan` leaves out the Examples sets and code-only-props sets a library keeps as authoring aids, including those filed in a hidden folder
 - Loading a workspace with no `config/` no longer throws while resolving conventions
-- `scan` records the dev status Figma set, including `COMPLETED`, instead of collapsing to `READY_FOR_DEV` or `NONE`. Selection is unchanged
-- A manifest row with an unfamiliar dev status is kept, warned about and left unselected, rather than silently dropped
-- `scan` and `generate` warn about manifest rows they cannot parse
+
+## [0.28.0] - 2026-09-04
+
+Configuration is now three files that say different kinds of things — facts about your Figma library, choices your runs make, and the work your workspace runs — and `specs migrate config` moves an existing workspace over in one command. The split folder-per-component layout is now what `specs generate` writes without flags, since it is the shape every downstream command reads. And `scan` now records the dev status Figma actually set, so a component marked complete no longer looks identical to one nobody has touched.
+
+### Breaking
+
+**`specs.config.yaml` → a `config/` directory for conventions, settings and pipeline**, and
+`specs migrate config` switches an existing workspace over.
+
+The single file mixed two kinds of statement: facts about your Figma library that every
+consumer of it must agree on, and choices this particular run makes. A wrong fact produces
+incorrect output, while a different choice just produces different output — so they are
+now three files that can be read, validated and reviewed apart. Every command that loads
+configuration is affected, and a workspace that has not migrated gets an error naming the
+file and the command that converts it rather than a silent fall back to defaults, because
+the shape of your output depends on this file and ignoring it quietly would change what
+you emit without saying so.
+
+### Added
+
+- **`specs migrate <subject>` — versioned workspace migrations.** `specs migrate config`
+  reads `specs.config.yaml` (or `.json`) and writes `config/conventions.yaml`,
+  `config/settings.yaml` and `config/pipeline.yaml`, then renames the source to
+  `.migrated` so discovery stops finding it. `conventions.yaml` and `pipeline.yaml` are
+  written only if the source configured them; `settings.yaml` is always written, because
+  the layout flags have to be carried across explicitly (see below).
+  - `--dry-run` reports what would change without writing.
+  - `--source <path>` converts a file discovery would not find — a custom name, or one you
+    pass to other commands via `--config`.
+  - `--from <version>` pins the source version; `--list` shows what is registered.
+  - The command is a registry, not a synonym for this one conversion: later migrations
+    register alongside `config v1 → v2` rather than replacing it.
+  - It writes to your workspace, which is why it is a command you run rather than
+    something the loader does for you. Configuration is loaded by read-only commands and
+    in CI, and a read path must not mutate a checkout.
+
+### Changed
+
+- **Configuration is discovered in `./config/`.** A directory is used when it holds at
+  least one of `conventions`, `settings` or `pipeline` (`.yaml` or `.json`). `--config`
+  now accepts that directory as well as a file path.
+- **`specs init` scaffolds the three files** and refuses to run in a workspace that still
+  has `specs.config.yaml`, pointing at `specs migrate config`. Scaffolding fresh defaults
+  over a configured workspace would replace what it declares, and `migrate` would then
+  refuse because `config/` exists.
+- **The vocabulary changed with the split** — `format.figmaKeys` is now
+  `conventions.figma.naming`, `processing.glyphNamePattern` is `conventions.figma.glyphs.match`,
+  `format.output` is `settings.spec.format`, and the root `sources`, `dataDirectory`,
+  `outputDirectory` and `output` blocks fold into `settings`. `specs migrate config`
+  applies all of it; the [schema changelog](../schema/CHANGELOG.md) lists the mapping in full.
+- **Spec metadata records conventions and settings separately**, so either half can be
+  compared across specs on its own. Regenerating rewrites the `metadata` block of every
+  spec file.
+- **The split layout is now the default.** `specs generate` writes one folder per component
+  holding `api`, `variants` and (when there are examples) `examples` files, without any
+  flags. Everything downstream — `transform`, `analyze`, `render` — reads that layout, so
+  it was the shape almost every workspace had to opt into by hand.
+- **Layout flags are named for what they do.** `--split-components`, `--split-concerns` and
+  `--use-subfolders` are replaced by `--combine-as-library`, `--combine-concerns` and
+  `--no-subfolders`. Each turns a split off; an absent flag defers to the configured value
+  rather than overriding it.
+- **`specs migrate config` preserves the layout a workspace emits today.** The three flags
+  defaulted to `false` in `specs.config.yaml` and default to `true` now, so migration
+  writes all three out explicitly — including from a source that configured no `output`
+  block. Deleting those three lines from `config/settings.yaml` is how a migrated
+  workspace adopts the new default.
+- **`specs init` no longer writes the three flags.** The generated `config/settings.yaml`
+  shows them commented out at their defaults.
+- **`transform`'s prerequisite tip** no longer names flags that no longer exist; running
+  `specs generate` is now sufficient.
+
+### Removed
+
+- **`specs.config.yaml` and `specs.config.json` are no longer read.** They are still
+  detected, but only to refuse with the command that converts them.
+- **`~/.specs/config.yaml` — user-level configuration — has no equivalent.** Conventions
+  describe a specific Figma library and settings describe a specific workspace; neither is
+  a personal preference that should follow you between projects. Move what it declares
+  into the workspace's `config/` directory and delete it.
+- `--split-components`, `--split-concerns` and `--use-subfolders` on `specs generate`,
+  replaced by the negative flags above.
+
+### Fixed
+
+- **`scan` records the dev status Figma actually set, including `COMPLETED`** — Every status
+  on a node is carried through to the manifest's Dev Status column verbatim instead of being
+  collapsed to `READY_FOR_DEV` or `NONE`, so a component marked complete is no longer
+  indistinguishable from one nobody has touched. Selection is unchanged: `scan` still checks
+  only `READY_FOR_DEV` rows by default, and `generate` still builds only what is checked.
+- **A manifest row with an unfamiliar dev status is kept and left unselected, not dropped** —
+  The parser previously accepted only two status values and silently discarded any row it
+  could not match, so the component vanished from the run while the summary line still read
+  as healthy. Such a row is now parsed, reported with a warning, and left unchecked.
+- **`scan` and `generate` warn about manifest rows they cannot read** — Any line that looks
+  like a component row but fails to parse now prints a warning naming the row instead of
+  disappearing.
+
+### Dependency updates
+
+- **specs-schema 0.31.0** — the single `Config` type splits into `Conventions`, `Settings`
+  and `Pipeline`, each authored and validated on its own; spec `metadata` records
+  conventions and settings separately. A prop configuration can state `null` to leave a
+  nullable prop unset, and a numeric variant prop now carries its closed set of values in
+  authored order.
+- **specs-from-figma 0.30.0** — a root that only wraps a slot now collapses when
+  `collapsePrimitiveWrapper` is on; an instance example that hides a slot records it as
+  unset rather than bound-and-hidden; and a code-only prop layer carrying both a content
+  and a visibility binding is named from the binding it was extracted from, so a phantom
+  prop no longer displaces the real one.
+
+
 
 ## [0.27.0] - 2026-08-17
 

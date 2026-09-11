@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://specs.directededges.com/pipeline.schema.json",
+  "title": "Specs Pipeline",
+  "description": "Work a workspace runs over its specs. Entries carry no output paths: transformers write into the spec structure, and analyses write beside the specs they analyze.",
+  "definitions": {
+    "TransformEntry": {
+      "type": "object",
+      "description": "A single transformer to run, identified by name. Transformer-specific options sit inline alongside name.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Transformer name (e.g. contract, css, react)."
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "AnalysisEntry": {
+      "type": "object",
+      "description": "A single analysis to run, identified by name. Analysis-specific options sit inline alongside name.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Analysis name (e.g. dependencies)."
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "Pipeline": {
+      "type": "object",
+      "description": "Transformers and analyses a workspace runs.",
+      "properties": {
+        "transformers": {
+          "type": "array",
+          "description": "Transformers to run via `specs transform`.",
+          "items": {
+            "$ref": "#/definitions/TransformEntry"
+          }
+        },
+        "analyses": {
+          "type": "array",
+          "description": "Analyses to run via `specs analyze`.",
+          "items": {
+            "$ref": "#/definitions/AnalysisEntry"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
