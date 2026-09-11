@@ -10,13 +10,13 @@
  * 2. Call Figma's Get Image Fills endpoint (`GET /v1/files/:key/images`),
  *    which returns temporary S3 download URLs (~14-day expiry).
  * 3. Download each image's bytes, detect the format from magic bytes, and
- *    write `{outputDir}/_images/{imageHash}.{ext}` — hash-named so the same
+ *    write `{workspace}/assets/images/{imageHash}.{ext}` — hash-named so the same
  *    image used by many components dedups to one file and re-runs are
- *    idempotent. `_images` avoids collision with any component named
- *    "images" and marks the folder as non-component content.
+ *    idempotent. A sibling of specs/ rather than a folder inside it: an image
+ *    is consumed by every target and produced by none (project 024).
  * 4. ADD `src` to each entry — a path relative to the referencing spec file
- *    (`_images/...`, or `../_images/...` when component subfolders are in
- *    use). The Figma identity survives for reverse-direction tooling.
+ *    (`../assets/images/...`, deeper when component subfolders are in use).
+ *    The Figma identity survives for reverse-direction tooling.
  *
  * The temporary S3 URLs are never persisted — only the downloaded bytes and
  * the relative file path survive (ADR-063 runtime notes).
@@ -86,7 +86,7 @@ export class ImageFillsResolver {
   }
 
   /**
-   * Find hashes whose files already exist in `{outputDir}/_images/` — those
+   * Find hashes whose files already exist in the images directory — those
    * are reused as-is (hash-named files are content-addressed, so an existing
    * file is by definition current). Returns hash → existing filename.
    * Callers only call Get Image Fills / download for the remainder, so a
@@ -128,7 +128,7 @@ export class ImageFillsResolver {
 
   /**
    * Download each requested hash's bytes and write hash-named files into
-   * `{outputDir}/_images/`. Downloads run concurrently (bounded pool) —
+   * the images directory. Downloads run concurrently (bounded pool) —
    * hash-named files make completion order irrelevant. Returns hash →
    * filename for the rewrite step. Hashes missing from the URL map (e.g. an
    * image deleted from the file since generation) are skipped with a warning
@@ -191,8 +191,8 @@ export class ImageFillsResolver {
    * ADD `src` to unresolved registry entries in place — resolution never
    * replaces the entry, so the Figma identity in `$extensions` survives.
    * `relativePrefix` is the path from the referencing spec file's directory
-   * to the `_images` directory (e.g. `_images/` at the output root,
-   * `../_images/` from a component subfolder).
+   * to the images directory (e.g. `../assets/images/` from the output root,
+   * one level deeper from a component subfolder).
    */
   public static applyResolvedSources(
     components: Array<{ spec: Record<string, unknown> }>,

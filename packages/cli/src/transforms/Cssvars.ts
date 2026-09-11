@@ -2,8 +2,8 @@
 // fetched library data, so the css transform's var() references resolve
 // without hand-maintained token files. Free capability (no license seam).
 //
-// Output: <outputDirectory>/cssvars/cssvars.css + modes.json (mirroring the
-// _images/ and icon folders that fetch/generate drop at library level).
+// Output: <workspace>/assets/cssvars/cssvars.css + modes.json, beside the
+// images/ and icons/ folders fetch and generate drop at library level.
 //
 // Sources, all discovered in the workspace data directory:
 //   *.variables.json  — variable definitions incl. subscribed (remote)

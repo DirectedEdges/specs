@@ -276,7 +276,7 @@ Resolve unresolved registry images into real image files. Requires a [`figma.ima
 specs generate -o specs/ --get-images
 ```
 
-Generation alone (the *detect* phase) records each image fill as an unresolved registry entry — the Figma identity in `$extensions['com.figma'].imageHash`, no `src` — structurally complete, but with no pixels. With `--get-images`, the CLI calls Figma's Get Image Fills endpoint, downloads each distinct image once, writes it as `_images/<imageHash>.<ext>` inside the output directory (format detected from the bytes — png, jpg, gif, or webp), and **adds** `src` to each entry — a path relative to the spec file that references it. The Figma identity survives for reverse-direction tooling:
+Generation alone (the *detect* phase) records each image fill as an unresolved registry entry — the Figma identity in `$extensions['com.figma'].imageHash`, no `src` — structurally complete, but with no pixels. With `--get-images`, the CLI calls Figma's Get Image Fills endpoint, downloads each distinct image once, writes it as `assets/images/<imageHash>.<ext>` at the workspace root — a sibling of `specs/`, beside `assets/icons/` (format detected from the bytes — png, jpg, gif, or webp), and **adds** `src` to each entry — a path relative to the spec file that references it. The Figma identity survives for reverse-direction tooling:
 
 ```yaml
 # without --get-images (detect phase)
@@ -289,20 +289,23 @@ images:
 # with --get-images — src is ADDED; the identity survives
 images:
   dsCard__hero:
-    src: _images/705867125834a686a51bdf161a0a39cdba0f9a58.png
+    src: ../../assets/images/705867125834a686a51bdf161a0a39cdba0f9a58.png
     $extensions:
       com.figma:
         imageHash: 705867125834a686a51bdf161a0a39cdba0f9a58
 ```
 
 ```
+assets/
+└── images/
+    └── 705867125834a686a51bdf161a0a39cdba0f9a58.png
 specs/
-├── _images/
-│   └── 705867125834a686a51bdf161a0a39cdba0f9a58.png
-└── dsCard.yaml
+└── dsCard/
+    ├── api.yaml
+    └── examples.yaml
 ```
 
-`$image` pointers (in `backgroundImage` fills and `ImageBinding` examples) are unaffected — resolution touches one registry entry per image, never the references. Files are named by Figma's content hash, so an image shared by many components is downloaded and stored once, and re-runs are idempotent. Figma's download URLs are temporary and are never persisted. In the default subfolder layout (or any component + concern layout), `src` becomes `../_images/...` so it still resolves relative to each spec file.
+`$image` pointers (in `backgroundImage` fills and `ImageBinding` examples) are unaffected — resolution touches one registry entry per image, never the references. Files are named by Figma's content hash, so an image shared by many components is downloaded and stored once, and re-runs are idempotent. Figma's download URLs are temporary and are never persisted. `src` is written relative to the spec file that carries it, so its depth follows the layout: `../../assets/images/...` from a component folder, `../assets/images/...` from a flat one.
 
 ### `--from-bridge`
 Generate from the current selection in a connected Figma file via the [CLI bridge](/cli/commands/bridge/), instead of from a manifest or downloaded JSON. See [Bridge Mode](#bridge-mode).

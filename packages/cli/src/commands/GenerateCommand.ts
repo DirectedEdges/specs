@@ -175,7 +175,7 @@ async function writeGeneratedOutput(
 
   // -------------------------------------------------------------------
   // Image resolution (ADR-063, --get-images): add src to unresolved
-  // registry entries — files written under {baseDir}/_images/, referenced
+  // registry entries — files written under the workspace's assets/images/, referenced
   // relative to the spec file that points at them. Runs before the
   // manifest so writers serialize the resolved registry values.
   // -------------------------------------------------------------------
@@ -186,7 +186,7 @@ async function writeGeneratedOutput(
         ? 'Note: --get-images found no unresolved image placeholders'
         : 'Note: --get-images has no effect — conventions.figma.images is not configured');
     } else {
-      // Reuse hash-named files already present in _images/ — only the
+      // Reuse hash-named files already present in assets/images/ — only the
       // remainder needs the token, the API call, and downloads.
       const files = await ImageFillsResolver.findExisting(hashes, baseDir);
       const missing = new Set([...hashes].filter(hash => !files.has(hash)));
@@ -277,7 +277,7 @@ export const Generate = new Command('generate')
   .option('--combine-as-library', 'Write every component into one library file instead of a file per component')
   .option('--combine-concerns', 'Write API, variants, and examples into one file per component instead of separate files')
   .option('--no-subfolders', 'Write component files side by side instead of nesting each in its own subfolder')
-  .option('--get-images', 'Resolve unresolved registry images into files under _images/ (requires processing.images in config and FIGMA_TOKEN)')
+  .option('--get-images', 'Resolve unresolved registry images into files under assets/images/ (requires processing.images in config and FIGMA_TOKEN)')
   .option('--from-bridge', 'Generate from the current selection in a connected Figma file via the CLI bridge (no REST fetch)')
   .option('--file <fileKey>', 'Target a specific connected Figma file with --from-bridge (prompts to choose if more than one is connected in an interactive terminal; required otherwise)')
   .option('--node <id>', 'With --from-bridge: generate from this node id instead of the current selection')

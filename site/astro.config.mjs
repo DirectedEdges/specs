@@ -3,7 +3,6 @@ import starlight from '@astrojs/starlight';
 
 const pro = { text: 'Pro', variant: 'tip' };
 const experimental = { text: 'Experimental', variant: 'default' };
-const implemented = { text: 'Implemented', variant: 'success' };
 
 export default defineConfig({
   site: 'https://www.specsplugin.com',
@@ -68,7 +67,7 @@ export default defineConfig({
         { label: 'Decision Records (ADRs)', slug: 'adr' },
         { label: 'Licensing', slug: 'overview/licensing', badge: pro },
         {
-          label: 'Specs 2 Figma Plugin',
+          label: 'Figma Plugin',
           collapsed: true,
           items: [
             { label: 'Overview', slug: 'plugin' },
@@ -96,7 +95,7 @@ export default defineConfig({
           ],
         },
         {
-          label: 'Specs CLI',
+          label: 'Command Line (CLI)',
           collapsed: true,
           items: [
             { label: 'Overview', slug: 'cli' },
@@ -109,6 +108,7 @@ export default defineConfig({
             { label: 'bridge', slug: 'cli/commands/bridge', badge: experimental },
             { label: 'cache', slug: 'cli/commands/cache', badge: experimental },
             { label: 'render', slug: 'cli/commands/render', badge: experimental },
+            { label: 'migrate', slug: 'cli/commands/migrate' },
             {
               label: 'Analyze',
               collapsed: true,
@@ -121,11 +121,10 @@ export default defineConfig({
                 { label: 'keys', slug: 'cli/analyze/keys' },
               ],
             },
-            { label: 'migrate', slug: 'cli/commands/migrate' },
           ],
         },
         {
-          label: 'Code (React, WC)',
+          label: 'Code (React, Web Components)',
           collapsed: true,
           items: [
             { label: 'react', slug: 'cli/commands/react', badge: experimental },
@@ -134,34 +133,9 @@ export default defineConfig({
               label: 'Roles',
               collapsed: true,
               items: [
-                { label: 'Overview', slug: 'roles', badge: experimental },
+                { label: 'Overview', slug: 'roles' },
+                { label: 'Inventory', slug: 'roles/inventory' },
                 { label: 'Precedence', slug: 'roles/precedence' },
-                {
-                  label: 'Interactive',
-                  items: [
-                    { label: 'button', slug: 'roles/button', badge: implemented },
-                    { label: 'togglebutton', slug: 'roles/togglebutton', badge: implemented },
-                    { label: 'disclosure', slug: 'roles/disclosure' },
-                  ],
-                },
-                {
-                  label: 'Form controls',
-                  items: [
-                    { label: 'textbox', slug: 'roles/textbox' },
-                    { label: 'checkbox', slug: 'roles/checkbox' },
-                  ],
-                },
-                {
-                  label: 'Parts',
-                  items: [
-                    { label: 'label', slug: 'roles/label' },
-                    { label: 'value', slug: 'roles/value' },
-                    { label: 'errormessage', slug: 'roles/errormessage' },
-                    { label: 'panel', slug: 'roles/panel' },
-                    { label: 'indicator', slug: 'roles/indicator' },
-                  ],
-                },
-                { label: 'status, alert, progressbar', slug: 'roles/status' },
               ],
             },
             {
@@ -212,21 +186,6 @@ export default defineConfig({
           items: [
             { label: 'Overview', slug: 'settings' },
             {
-              label: 'Conventions',
-              collapsed: true,
-              items: [
-                { label: 'naming', slug: 'settings/figma-keys' },
-                { label: 'glyphs', slug: 'settings/glyph-name-pattern' },
-                { label: 'codeOnlyProps', slug: 'settings/code-only-props-pattern' },
-                { label: 'subcomponents', slug: 'settings/subcomponents' },
-                { label: 'instanceExamples', slug: 'settings/instance-examples', badge: pro },
-                { label: 'images', slug: 'settings/images' },
-                { label: 'slotConstraints', slug: 'settings/slot-constraints', badge: pro },
-                { label: 'inferNumberProps', slug: 'settings/infer-number-props' },
-                { label: 'states', slug: 'settings/states', badge: experimental },
-              ],
-            },
-            {
               label: 'Settings',
               collapsed: true,
               items: [
@@ -241,12 +200,39 @@ export default defineConfig({
                 { label: 'invalidVariants', slug: 'settings/invalid-variants' },
                 { label: 'invalidCombinations', slug: 'settings/invalid-combinations', badge: pro },
                 { label: 'collapsePrimitiveWrapper', slug: 'settings/collapse-primitive-wrapper' },
+                { label: 'promotePrimitives', slug: 'settings/promote-primitives' },
                 { label: 'defaultSlotContent', slug: 'settings/default-slot-content', badge: pro },
                 { label: 'sources', slug: 'settings/data-sources' },
                 { label: 'Folders', slug: 'settings/folders' },
                 { label: 'Output', slug: 'settings/output' },
               ],
             },
+            {
+              label: 'Figma Conventions',
+              collapsed: true,
+              items: [
+                { label: 'naming', slug: 'settings/figma-keys' },
+                { label: 'glyphs', slug: 'settings/glyph-name-pattern' },
+                { label: 'codeOnlyProps', slug: 'settings/code-only-props-pattern' },
+                { label: 'subcomponents', slug: 'settings/subcomponents' },
+                { label: 'instanceExamples', slug: 'settings/instance-examples', badge: pro },
+                { label: 'images', slug: 'settings/images' },
+                { label: 'slotConstraints', slug: 'settings/slot-constraints', badge: pro },
+                { label: 'inferNumberProps', slug: 'settings/infer-number-props' },
+                { label: 'Promotion table', slug: 'settings/figma-primitives' },
+              ],
+            },
+            {
+              label: 'Specs Conventions',
+              collapsed: true,
+              items: [
+                { label: 'states', slug: 'settings/states' },
+                { label: 'accessibility', slug: 'settings/accessibility' },
+                { label: 'value', slug: 'settings/value' },
+              ],
+            },
+            { label: 'React', slug: 'settings/react' },
+            { label: 'Web Components', slug: 'settings/web-components' },
           ],
         },
         {

@@ -363,7 +363,7 @@ export const Fetch = new Command('fetch')
             process.exit(ERROR_CODES.INVALID_ARGS);
           }
           // Icons are consumed by generated component output, so they live in
-          // the durable spec workspace (beside _images/), not the data cache.
+          // the durable spec workspace (beside assets/images/), not the data cache.
           const specDirectory = config.settings.spec.directory;
           if (!specDirectory) {
             console.error(`Error: data.sources.${entry.alias}.fetch includes "icons" but spec.directory is not set in the workspace settings`);

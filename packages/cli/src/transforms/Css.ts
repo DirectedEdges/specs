@@ -43,6 +43,17 @@ type RootForm = 'class' | 'host';
  * cannot declare a single `outputTree` the way the platform transformers do — it
  * derives both. Its output is free, as it was when it lived beside the spec.
  */
+/**
+ * Where a stylesheet reaches the shared image assets from.
+ *
+ * `specs generate --get-images` writes them to `<workspace>/assets/images/`, while a
+ * stylesheet sits at `<workspace>/<tree>/src/components/<Component>/` — four levels
+ * down, and five for a subcomponent. Stated as a depth rather than a literal so the
+ * two cannot drift apart, and so a change to either tree moves both.
+ */
+const IMAGES_FROM_COMPONENT = '../'.repeat(4) + 'assets/images';
+const IMAGES_FROM_SUBCOMPONENT = '../'.repeat(5) + 'assets/images';
+
 function componentOutDir(context: TransformerContext, tree: string, prefix: string): string {
   return path.join(context.workspaceDir, tree, 'src', 'components', prefix);
 }
@@ -84,7 +95,7 @@ export class CssTransformer implements Transformer {
     const examples = loadExamples(specDir);
     const lines = buildCssLines(componentClass, variantsYaml, tokensFormat, context, anatomyTypes(apiYaml), {
       examples,
-      relPrefix: '../../_images',
+      relPrefix: IMAGES_FROM_COMPONENT,
     }, 'class', anatomyRoles(apiYaml), apiPropsOf(apiYaml));
     // Each platform's stylesheet lands in that platform's tree beside the scaffold
     // that imports it (project 024). `styles.css` is React's — it targets the
@@ -102,7 +113,7 @@ export class CssTransformer implements Transformer {
     // rules are identical — they match inside the shadow tree either way.
     const hostLines = withNameWarningsSuppressed(() => buildCssLines(componentClass, variantsYaml, tokensFormat, context, anatomyTypes(apiYaml), {
       examples,
-      relPrefix: '../../_images',
+      relPrefix: IMAGES_FROM_COMPONENT,
     }, 'host', anatomyRoles(apiYaml), apiPropsOf(apiYaml)));
     if (this.writes('webcomponents')) {
       await fs.ensureDir(wcDir);
@@ -120,7 +131,7 @@ export class CssTransformer implements Transformer {
       const subTypes = anatomyTypes((apiSubs[subKey] ?? {}) as Record<string, unknown>);
       const subLines = buildCssLines(subClass, subVariantsYaml, tokensFormat, context, subTypes, {
         examples,
-        relPrefix: '../../../_images',
+        relPrefix: IMAGES_FROM_SUBCOMPONENT,
       });
       const subReactDir = path.join(reactDir, subFilePrefix);
       const subWcDir = path.join(wcDir, subFilePrefix);
@@ -130,7 +141,7 @@ export class CssTransformer implements Transformer {
       }
       const subHostLines = withNameWarningsSuppressed(() => buildCssLines(subClass, subVariantsYaml, tokensFormat, context, subTypes, {
         examples,
-        relPrefix: '../../../_images',
+        relPrefix: IMAGES_FROM_SUBCOMPONENT,
       }, 'host'));
       if (this.writes('webcomponents')) {
         await fs.ensureDir(subWcDir);

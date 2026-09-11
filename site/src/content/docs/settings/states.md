@@ -5,8 +5,8 @@ description: "Classify Figma variant props as browser-driven or consumer-control
 
 The `states` convention classifies your library's variant props as semantic states. A fact about the spec's own props, declared in `config/conventions/specs.yaml` (it names props that exist in `api.yaml`, so a transform reading only the spec can apply it): which prop expresses which state concept is an agreement no rule can recover — a wrong entry lands a concept on the wrong prop, and an unclassified prop emits as a `data-*` attribute. Declaring it enables two downstream behaviors:
 
-- The [`css` transformer](/cli/transforms/css/) emits real CSS pseudo-classes and ARIA attribute selectors instead of `data-*` attributes for classified props.
-- The [`contract` transformer](/cli/transforms/contract/) omits browser-driven props from generated Props interfaces.
+- [`specs react`](/cli/commands/react/) and [`specs webcomponents`](/cli/commands/webcomponents/) emit real CSS pseudo-classes and ARIA attribute selectors instead of `data-*` attributes for classified props.
+- The generated contract omits browser-driven props from its Props interface.
 
 Declare the classification once and both transforms apply it consistently.
 
@@ -163,6 +163,6 @@ Run [`specs react`](/cli/commands/react/) to regenerate stylesheets after updati
 
 ## See Also
 
-- [`css` transformer](/cli/transforms/css/) — CSS output affected by this classification
-- [`contract` transformer](/cli/transforms/contract/) — Props interface affected by `contract: omit`
+- [`specs react`](/cli/commands/react/) and [`specs webcomponents`](/cli/commands/webcomponents/) — CSS output affected by this classification
+- generated contract — Props interface affected by `contract: omit`
 - [`subcomponents`](/settings/subcomponents/) — another presence-driven convention

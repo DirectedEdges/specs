@@ -16,17 +16,28 @@ import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
 const shouldRenderSearch =
   config.pagefind || config.components.Search !== '@astrojs/starlight/components/Search.astro';
 
+// A link may claim more than one path: Code owns the two target commands, which
+// live under /cli/ alongside the rest of the CLI. Longest matching prefix wins, so
+// /cli/commands/react/ highlights Code rather than Commands.
 const SECTION_LINKS = [
-  { label: 'Plugin', href: '/plugin/', prefix: '/plugin/' },
-  { label: 'Commands', href: '/cli/', prefix: '/cli/' },
-  { label: 'Schema', href: '/schema/', prefix: '/schema/' },
-  { label: 'ADRs', href: '/adr/', prefix: '/adr/' },
+  { label: 'Plugin', href: '/plugin/', prefixes: ['/plugin/'] },
+  { label: 'Commands', href: '/cli/', prefixes: ['/cli/'] },
+  { label: 'Schema', href: '/schema/', prefixes: ['/schema/'] },
+  {
+    label: 'Code',
+    href: '/cli/commands/react/',
+    prefixes: ['/cli/commands/react/', '/cli/commands/webcomponents/', '/roles/', '/actions/'],
+  },
   // Points at the Settings section home for now, per explicit instruction.
   // TODO: point to the future consolidated Docs section landing page once Settings+Guides are merged.
-  { label: 'Docs', href: '/settings/', prefix: '/settings/' },
+  { label: 'Docs', href: '/settings/', prefixes: ['/settings/'] },
 ];
 
 const pathname = Astro.url.pathname;
+
+const matchLength = (link: (typeof SECTION_LINKS)[number]) =>
+  Math.max(0, ...link.prefixes.map((prefix) => (pathname.startsWith(prefix) ? prefix.length : 0)));
+const best = Math.max(...SECTION_LINKS.map(matchLength));
 
 // Slack has no confirmed workspace URL for Specs 2 yet.
 // TODO: set real Slack workspace URL for Specs 2.
@@ -59,7 +70,7 @@ const SLACK_PATHS = [
         <a
           href={link.href}
           class="section-link"
-          aria-current={pathname.startsWith(link.prefix) ? 'page' : undefined}
+          aria-current={best > 0 && matchLength(link) === best ? 'page' : undefined}
         >
           {link.label}
         </a>

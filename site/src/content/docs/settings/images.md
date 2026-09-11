@@ -66,7 +66,7 @@ components:
                 - $image: "dsAvatar.examples#/images/userPhoto"
     images:
       userPhoto:
-        src: "_images/89b270d29dd5ea753b71af11bfcf1bf0ecc851cf.png"
+        src: "../../assets/images/89b270d29dd5ea753b71af11bfcf1bf0ecc851cf.png"
         $extensions:
           com.figma:
             imageHash: 89b270d29dd5ea753b71af11bfcf1bf0ecc851cf
@@ -90,7 +90,7 @@ Image fills carry an optional `objectFit` using CSS `object-fit` vocabulary — 
 
 ## Storage and Two-Phase Resolution
 
-Each `images` entry is an object holding the Figma identity in `$extensions['com.figma'].imageHash` and — once resolved — a `src` (an emitted asset path, the standard resolved form; a `data:` URI and external URL are also valid). Two-phase, structurally: `src` absent means **unresolved** (the detect phase); the resolution step — `specs generate --get-images` — writes each distinct image to `_images/<imageHash>.<ext>` inside the output directory and **adds** `src` (a spec-file-relative path), so the identity survives for reverse-direction tooling. `$image` pointers always resolve to a registry entry, so they never dangle.
+Each `images` entry is an object holding the Figma identity in `$extensions['com.figma'].imageHash` and — once resolved — a `src` (an emitted asset path, the standard resolved form; a `data:` URI and external URL are also valid). Two-phase, structurally: `src` absent means **unresolved** (the detect phase); the resolution step — `specs generate --get-images` — writes each distinct image to `assets/images/<imageHash>.<ext>` at the workspace root and **adds** `src` (a spec-file-relative path), so the identity survives for reverse-direction tooling. `$image` pointers always resolve to a registry entry, so they never dangle.
 
 The REST runtime resolves entries via a second call (Get Image Fills, whose S3 URLs expire ~14 days), downloading the bytes into emitted files — never persisting the URL or embedding base64. The Figma plugin cannot write files or embed raw bytes on the asset (saved-data limits), so it emits identity-only entries and duplicates detected images into the Foundations section's Images subsection for human reference.
 
