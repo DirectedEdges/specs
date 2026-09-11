@@ -312,6 +312,19 @@ interface GradientLike {
   stops: Array<{ position?: number; color?: unknown }>;
 }
 
+/**
+ * A token reference whose value is a gradient.
+ *
+ * The spec carries the reference, not the gradient — the value arrives through
+ * the custom property the tokens transform writes. `$type` is the only thing
+ * that says which kind it is, and while it said `color` a gradient token was
+ * indistinguishable from a colour one and fell through to `border-color`,
+ * which cannot hold a gradient.
+ */
+export function isGradientToken(v: unknown): boolean {
+  return isTokenRef(v) && (v as { $type?: string }).$type === 'gradient';
+}
+
 export function isGradient(v: unknown): v is GradientLike {
   if (typeof v !== 'object' || v === null) return false;
   const g = v as Record<string, unknown>;

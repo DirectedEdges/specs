@@ -3,7 +3,7 @@
 // wrapAlignment, itemSpacing, layoutSizingHorizontal, layoutSizingVertical)
 // are handled by layoutToCSS — they require cross-key context and are skipped here.
 
-import { isTokenRef, resolveTokenVar, dimensionValue, dimensionValueOrUnset, colorValue, sidesValue, isGradient, gradientValue } from './values.js';
+import { isTokenRef, resolveTokenVar, dimensionValue, dimensionValueOrUnset, colorValue, sidesValue, isGradient, isGradientToken, gradientValue } from './values.js';
 
 // ADR-064 logical directions — the transform speaks only the current schema.
 const TEXT_ALIGN_MAP: Record<string, string> = {
@@ -48,6 +48,7 @@ function negate(length: string): string {
   return `calc(-1 * ${length})`;
 }
 
+
 function asOutline(strokeWeight: unknown): boolean {
   return !(typeof strokeWeight === 'object' && strokeWeight !== null && !isTokenRef(strokeWeight));
 }
@@ -69,6 +70,13 @@ export interface StyleToCSSOptions {
    * layout metadata, not offsets.
    */
   inferAbsolute?: boolean;
+  /**
+   * Whether any layer of this element strokes with a gradient. A gradient ring
+   * is painted with a transparent border carrying its thickness, so a variant
+   * restating only the weight has to put it on the border rather than the
+   * outline a solid stroke uses.
+   */
+  gradientStroke?: boolean;
   /**
    * Emit `border-image: none` alongside solid stroke colors. Set when another
    * layer of the same element uses a gradient stroke (border-image) — without
@@ -181,6 +189,13 @@ export function styleToCSS(
   const hasStrokes = 'strokes' in styles;
   const hasStrokeWeight = 'strokeWeight' in styles;
   const strokeAlign = styles.strokeAlign as string | null | undefined;
+  // A gradient stroke paints a ring whose thickness is a transparent border, so
+  // its width belongs to the border even though a solid stroke's width goes to
+  // the outline. A variant restating only `strokeWeight` cannot tell from its
+  // own declarations, so the caller reports whether any layer of this element
+  // strokes with a gradient.
+  const gradientStroke =
+    isGradient(styles.strokes) || isGradientToken(styles.strokes) || options.gradientStroke === true;
 
   if (hasStrokes) {
     const strokesVal = styles.strokes;
@@ -192,14 +207,38 @@ export function styleToCSS(
       decls.push('border-color: transparent');
       decls.push('outline-style: none');
       if (options.resetBorderImage) decls.push('border-image: none');
-    } else if (isGradient(strokesVal)) {
-      // border-image is the only gradient-capable border mechanism. It ignores
-      // border-radius, and outlines can't take gradients at all, so OUTSIDE/
-      // CENTER strokes fall back to the same mapping.
-      const g = gradientValue(strokesVal, tokensFormat);
+    } else if (isGradient(strokesVal) || isGradientToken(strokesVal)) {
+      // A gradient stroke is painted, not bordered.
+      //
+      // `border-image` is the only gradient-capable border property and it
+      // ignores `border-radius`, so a circular spinner came out as a square
+      // gradient frame. An outline cannot take a gradient at all. What does
+      // work for any shape is painting the gradient as a background and
+      // masking out everything inside the stroke: the mask layers are clipped
+      // to the padding box and the border box, and excluding one from the
+      // other leaves exactly the ring, following whatever radius the element
+      // has.
+      //
+      // The transparent border supplies the ring's thickness and its inset.
+      // That costs layout the way any border does, unlike the outline a solid
+      // stroke emits — the asymmetry is real, and unavoidable while the ring
+      // has to be painted rather than drawn.
+      const g = isGradientToken(strokesVal)
+        ? resolveTokenVar(strokesVal, tokensFormat)
+        : gradientValue(strokesVal, tokensFormat);
       if (g) {
-        decls.push(`border-image: ${g} 1`);
+        decls.push(`background-image: ${g}`);
+        decls.push('background-origin: border-box');
+        decls.push('background-clip: border-box');
         decls.push('border-style: solid');
+        decls.push('border-color: transparent');
+        decls.push('mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0)');
+        decls.push('mask-composite: exclude');
+        decls.push('-webkit-mask-composite: xor');
+        // The outline a solid stroke would have emitted has to be cancelled:
+        // this element paints its ring instead, and a variant switching between
+        // the two must not show both.
+        decls.push('outline-style: none');
       }
     } else {
       const v = colorValue(strokesVal, tokensFormat);
@@ -230,7 +269,9 @@ export function styleToCSS(
     } else {
       const d = dimensionValue(v, tokensFormat);
       if (d) {
-        if (asOutline(v)) {
+        if (gradientStroke) {
+          decls.push(`border-width: ${d}`);
+        } else if (asOutline(v)) {
           decls.push(`outline-width: ${d}`);
           // Centre and outside sit where the outline naturally falls; only an
           // inside stroke is pulled back over the element's own edge.

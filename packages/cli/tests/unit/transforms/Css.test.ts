@@ -853,7 +853,7 @@ describe('CssTransformer', () => {
       expect(out).toContain('background: conic-gradient(from 90deg at 50% 50%, #FF0000FF 0%, #0000FFFF 100%)');
     });
 
-    it('maps gradient strokes to border-image and resets it when a variant restores a solid stroke', async () => {
+    it('maps gradient strokes to a masked ring and resets it when a variant restores a solid stroke', async () => {
       const out = await run(tmpDir, {
         default: {
           elements: { root: { styles: { strokes: '#000000FF', strokeWeight: 1 } } },
@@ -883,8 +883,11 @@ describe('CssTransformer', () => {
         ],
       });
       const gradientBlock = out.match(/\.ds-button\[data-a="2"\] \{[^}]*\}/)?.[0] ?? '';
-      expect(gradientBlock).toContain('border-image: conic-gradient(from 90deg at 50% 50%, #FF0000FF 0%, #B1F836FF 74%) 1');
-      expect(gradientBlock).toContain('border-style: solid');
+      // A gradient stroke is painted as a masked ring: border-image ignores
+      // border-radius, so a rounded element came out as a square frame.
+      expect(gradientBlock).toContain('background-image: conic-gradient(from 90deg at 50% 50%, #FF0000FF 0%, #B1F836FF 74%)');
+      expect(gradientBlock).toContain('mask-composite: exclude');
+      expect(gradientBlock).toContain('border-color: transparent');
       const solidBlock = out.match(/\.ds-button\[data-a="2"\]\[data-b="2"\] \{[^}]*\}/)?.[0] ?? '';
       // A solid stroke is an outline (layout-safe); the border-image reset is
       // still needed to cancel the gradient variant's border.
@@ -1070,5 +1073,57 @@ describe('strokes cost no layout space', () => {
     }));
     expect(css).toContain('border-color: #000000FF');
     expect(css).not.toContain('outline-color');
+  });
+});
+
+describe('gradient strokes arriving as token references', () => {
+  // The spec carries the reference, not the gradient — the value arrives
+  // through the custom property the tokens transform writes. `$type` is the
+  // only thing that says which kind it is (DirectedEdges/specs#452).
+  let tmpDir: string;
+  beforeEach(async () => { tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'css-gradtoken-')); });
+  afterEach(async () => { await fs.remove(tmpDir); });
+
+  const withRoot = (styles: Record<string, unknown>) => ({
+    default: { layout: [], elements: { root: { styles } } },
+    variants: [],
+  });
+
+  it('a gradient token paints a masked ring, not a border colour', async () => {
+    const css = await run(tmpDir, withRoot({
+      strokes: { $token: 'gradient/spinner', $type: 'gradient' },
+      strokeWeight: 2.5,
+      cornerRadius: 999,
+    }));
+    expect(css).toContain('background-image: var(--gradient-spinner)');
+    expect(css).toContain('mask-composite: exclude');
+    expect(css).toContain('border-color: transparent');
+    expect(css).not.toContain('outline-color: var(--gradient-spinner)');
+  });
+
+  it('the ring takes its thickness from the stroke weight', async () => {
+    const css = await run(tmpDir, withRoot({
+      strokes: { $token: 'gradient/spinner', $type: 'gradient' },
+      strokeWeight: 2.5,
+    }));
+    expect(css).toContain('border-width: 2.5px');
+    expect(css).toContain('border-style: solid');
+  });
+
+  it('a colour token is untouched and still emits an outline', async () => {
+    const css = await run(tmpDir, withRoot({
+      strokes: { $token: 'border/primary', $type: 'color' },
+      strokeWeight: 1,
+    }));
+    expect(css).toContain('outline-color: var(--border-primary)');
+    expect(css).not.toContain('mask-composite');
+  });
+
+  it('a gradient stroke cancels the outline a solid one would have drawn', async () => {
+    const css = await run(tmpDir, withRoot({
+      strokes: { $token: 'gradient/spinner', $type: 'gradient' },
+      strokeWeight: 2,
+    }));
+    expect(css).toContain('outline-style: none');
   });
 });

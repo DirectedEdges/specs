@@ -5,7 +5,7 @@ import yaml from 'yaml';
 import type { Transformer, TransformerContext } from '../Types/Transformer.js';
 import { styleToCSS, impliesAbsolute } from './css/styleToCSS.js';
 import { layoutToCSS } from './css/layoutToCSS.js';
-import { toKebab, isGradient, reportNameWarnings, withNameWarningsSuppressed } from './css/values.js';
+import { toKebab, isGradient, isGradientToken, reportNameWarnings, withNameWarningsSuppressed } from './css/values.js';
 import { normalizeEnumValue } from './enumCase.js';
 import { CONCEPT_TABLE, buildStateLookup } from './states.js';
 import { resolveRules } from './css/rules/index.js';
@@ -399,18 +399,26 @@ function buildCssLines(
       (defaultElements[elemKey]?.styles ?? {}) as Record<string, unknown>,
       parentIsAutoLayout(elemKey)
     );
-  // Elements whose strokes are a gradient in any layer paint via border-image;
-  // solid stroke overrides on those elements must reset it or the earlier
-  // variant's border-image outranks the later border-color (see styleToCSS).
+  // Elements whose strokes are a gradient in any layer. Two things depend on
+  // knowing this per element rather than per declaration set:
+  //
+  // - A solid stroke override has to reset what the gradient painted, or the
+  //   earlier layer outranks the later one (see styleToCSS).
+  // - A gradient ring takes its thickness from a transparent border, so a
+  //   variant restating only `strokeWeight` must put that width on the border
+  //   rather than on the outline a solid stroke would use. The variant does not
+  //   restate `strokes`, so it cannot tell on its own.
   const gradientStrokeKeys = new Set<string>();
   for (const elements of [defaultElements, ...variantList.map(v => (v.elements ?? {}) as Record<string, Record<string, unknown>>)]) {
     for (const [k, elem] of Object.entries(elements)) {
-      if (isGradient(((elem.styles ?? {}) as Record<string, unknown>).strokes)) gradientStrokeKeys.add(k);
+      const strokes = ((elem.styles ?? {}) as Record<string, unknown>).strokes;
+      if (isGradient(strokes) || isGradientToken(strokes)) gradientStrokeKeys.add(k);
     }
   }
   const styleOptions = (elemKey: string) => ({
     inferAbsolute: inferAbsolute(elemKey),
     resetBorderImage: gradientStrokeKeys.has(elemKey),
+    gradientStroke: gradientStrokeKeys.has(elemKey),
   });
 
   // Elements whose default rule already states a `display`. A variant rule must

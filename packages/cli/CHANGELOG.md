@@ -53,6 +53,7 @@ workspace makes, and what it runs. `specs migrate config` converts an existing w
 - `--split-components`, `--split-concerns`, `--use-subfolders`
 
 ### Fixed
+- **A gradient stroke paints the ring the design draws.** It was emitted as `border-color`, which cannot hold a gradient, so the surface painted flat — and `border-image`, the only gradient-capable border property, ignores `border-radius` and turns a circular spinner into a square frame. The gradient is now painted as a background and masked to the ring, which follows any radius; a gradient arriving as a token reference is recognised by its `$type`, which previously said `color` for every styled paint
 - A stroke no longer changes an element's size. Figma draws a stroke without costing the frame any space, at any alignment; a CSS border only stays inside when the element has an explicit size, so a component hugging its content came out as much as 2px larger than the design and its content sat a pixel in. Every stroke is an outline now, with an inside stroke pulled back over its own edge
 - A text layer that truncates in the design truncates in the CSS. `maxLines` and `textOverflow` were carried in the spec and emitted nowhere: one line becomes `text-overflow: ellipsis` held on a single line, more than one becomes the line-clamp box
 
