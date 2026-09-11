@@ -49,19 +49,19 @@ describe('TransformCommand registration', () => {
 
 describe('resolveTransformers', () => {
   it('returns a known transformer by name', () => {
-    const result = transformers.resolveTransformers(['contract']);
+    const result = transformers.resolveTransformers(['css']);
     expect(result).toHaveLength(1);
-    expect(result[0].name).toBe('contract');
+    expect(result[0].name).toBe('css');
   });
 
   it('returns multiple transformers in order', () => {
-    const result = transformers.resolveTransformers(['contract', 'css']);
-    expect(result.map(t => t.name)).toEqual(['contract', 'css']);
+    const result = transformers.resolveTransformers(['css', 'react']);
+    expect(result.map(t => t.name)).toEqual(['css', 'react']);
   });
 
   it('warns and skips unknown transformer names', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const result = transformers.resolveTransformers(['contract', 'unknown-thing']);
+    const result = transformers.resolveTransformers(['css', 'unknown-thing']);
     expect(result).toHaveLength(1);
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('unknown transformer "unknown-thing"'));
     warnSpy.mockRestore();
@@ -74,8 +74,8 @@ describe('resolveTransformers', () => {
     warnSpy.mockRestore();
   });
 
-  it('DEFAULT_TRANSFORMERS is ["contract"]', () => {
-    expect(transformers.DEFAULT_TRANSFORMERS).toEqual(['contract']);
+  it('DEFAULT_TRANSFORMERS is ["react"] — a contract is emitted by its platform now', () => {
+    expect(transformers.DEFAULT_TRANSFORMERS).toEqual(['react']);
   });
 });
 
@@ -100,11 +100,11 @@ describe('TransformCommand action', () => {
     const finalizeMock = vi.fn().mockResolvedValue(undefined);
 
     vi.spyOn(transformers, 'resolveTransformers').mockReturnValue([
-      { name: 'contract', run: runMock, finalize: finalizeMock } as unknown as Transformer,
+      { name: 'css', run: runMock, finalize: finalizeMock } as unknown as Transformer,
     ]);
 
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as never);
-    await runTransform(['--output', tmpDir, 'contract']);
+    await runTransform(['--output', tmpDir, 'css']);
 
     expect(runMock).toHaveBeenCalledTimes(2);
     expect(finalizeMock).toHaveBeenCalledTimes(1);
@@ -123,11 +123,11 @@ describe('TransformCommand action', () => {
     });
 
     vi.spyOn(transformers, 'resolveTransformers').mockReturnValue([
-      { name: 'contract', run: runMock } as unknown as Transformer,
+      { name: 'css', run: runMock } as unknown as Transformer,
     ]);
 
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as never);
-    await runTransform(['--output', tmpDir, 'contract']);
+    await runTransform(['--output', tmpDir, 'css']);
 
     expect(capturedContext).toBeDefined();
     expect(capturedContext!.tokensFormat).toBeDefined();
@@ -139,12 +139,12 @@ describe('TransformCommand action', () => {
 
     const runMock = vi.fn().mockResolvedValue(undefined);
     vi.spyOn(transformers, 'resolveTransformers').mockReturnValue([
-      { name: 'contract', run: runMock } as unknown as Transformer,
+      { name: 'css', run: runMock } as unknown as Transformer,
     ]);
 
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as never);
     // Should not throw even without finalize
-    await expect(runTransform(['--output', tmpDir, 'contract'])).resolves.not.toThrow();
+    await expect(runTransform(['--output', tmpDir, 'css'])).resolves.not.toThrow();
     exitSpy.mockRestore();
   });
 
@@ -152,7 +152,7 @@ describe('TransformCommand action', () => {
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as never);
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    await runTransform(['--output', path.join(tmpDir, 'nonexistent'), 'contract']);
+    await runTransform(['--output', path.join(tmpDir, 'nonexistent'), 'css']);
 
     expect(exitSpy).toHaveBeenCalledWith(expect.any(Number));
     exitSpy.mockRestore();
@@ -164,7 +164,7 @@ describe('TransformCommand action', () => {
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as never);
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    await runTransform(['--output', tmpDir, 'contract']);
+    await runTransform(['--output', tmpDir, 'css']);
 
     expect(exitSpy).toHaveBeenCalledWith(expect.any(Number));
     exitSpy.mockRestore();

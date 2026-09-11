@@ -137,7 +137,7 @@ describe('CssvarsTransformer', () => {
   async function runFinalize(t = transformer()) {
     await t.run({}, { specDir: path.join(outDir, 'comp'), outputDir: path.join(outDir, 'comp'), workspaceDir: outDir, componentKey: 'comp', tokensFormat: 'TOKEN', outputFormat: 'JSON' as const, dataDirectory: dataDir });
     await t.finalize!(outDir);
-    return fs.readFile(path.join(outDir, 'cssvars', 'cssvars.css'), 'utf-8');
+    return fs.readFile(path.join(outDir, '..', 'assets', 'cssvars', 'cssvars.css'), 'utf-8');
   }
 
   it('has name "cssvars"', () => {
@@ -164,7 +164,7 @@ describe('CssvarsTransformer', () => {
     const out = await runFinalize();
     expect(out).toContain(':root[data-theme="dark"] {');
     expect(out).toContain('--theme-surface-primary: #000000;');
-    const manifest = await fs.readJSON(path.join(outDir, 'cssvars', 'modes.json'));
+    const manifest = await fs.readJSON(path.join(outDir, '..', 'assets', 'cssvars', 'modes.json'));
     expect(manifest['Theme']).toMatchObject({ attr: 'data-theme', modes: ['Light', 'Dark'], default: 'Light' });
   });
 

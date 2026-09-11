@@ -45,8 +45,13 @@ function isUnresolved(entry: unknown): entry is ImageData {
     && imageHashOf(entry) !== undefined;
 }
 
-/** Directory (inside the output directory) that resolved image files are written to. */
-export const IMAGES_DIR_NAME = '_images';
+/**
+ * Where resolved image files are written, relative to the specs directory.
+ *
+ * A sibling of specs/ rather than a `_`-prefixed pseudo-component inside it: an
+ * image is consumed by every target and produced by none (project 024).
+ */
+export const IMAGES_DIR_NAME = path.join('..', 'assets', 'images');
 
 export class ImageFillsResolver {
   /**

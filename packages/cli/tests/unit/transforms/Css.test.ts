@@ -22,10 +22,22 @@ function toPascalCase(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+// CSS now lands in the platform trees: React's stylesheet under react/, the custom
+// element's under webcomponents/ (project 024). `workspaceDir` in these fixtures is
+// the temp dir, so both are siblings of it.
+function reactDir(dir: string, prefix: string, sub?: string): string {
+  const base = path.join(dir, 'react', 'src', 'components', prefix);
+  return sub ? path.join(base, sub) : base;
+}
+function wcDir(dir: string, prefix: string, sub?: string): string {
+  const base = path.join(dir, 'webcomponents', 'src', 'components', prefix);
+  return sub ? path.join(base, sub) : base;
+}
+
 async function run(dir: string, variantsData: Record<string, unknown>, componentKey = 'dsButton', tokensFormat = 'TOKEN', processingStates?: ProcessingStates, transformerOptions?: Record<string, unknown>) {
   await writeVariants(dir, variantsData);
   await transformer.run({}, { ...makeContext(dir, componentKey, tokensFormat, processingStates), transformerOptions });
-  return fs.readFile(path.join(dir, 'generated', `${toPascalCase(componentKey)}.styles.css`), 'utf-8');
+  return fs.readFile(path.join(reactDir(dir, toPascalCase(componentKey)), `${toPascalCase(componentKey)}.styles.css`), 'utf-8');
 }
 
 // Minimal helpers to build spec-format style objects
@@ -52,7 +64,7 @@ describe('CssTransformer', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     await transformer.run({}, makeContext(tmpDir));
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('no variants.yaml'));
-    expect(fs.existsSync(path.join(tmpDir, 'generated', 'DsButton.styles.css'))).toBe(false);
+    expect(fs.existsSync(path.join(reactDir(tmpDir, 'DsButton'), 'DsButton.styles.css'))).toBe(false);
     warnSpy.mockRestore();
   });
 
@@ -453,7 +465,7 @@ describe('CssTransformer', () => {
     async function runAndReadSub(dir: string, variantsData: Record<string, unknown>, subKey: string, componentKey = 'dsActionList') {
       await writeVariants(dir, variantsData);
       await transformer.run({}, makeContext(dir, componentKey));
-      return fs.readFile(path.join(dir, subKey, 'generated', `${toPascalCase(subKey)}.styles.css`), 'utf-8');
+      return fs.readFile(path.join(reactDir(dir, toPascalCase(componentKey), toPascalCase(subKey)), `${toPascalCase(subKey)}.styles.css`), 'utf-8');
     }
 
     it('emits {Sub}.styles.css in a subfolder for each subcomponent', async () => {
@@ -466,7 +478,7 @@ describe('CssTransformer', () => {
         },
       });
       await transformer.run({}, makeContext(tmpDir, 'dsActionList'));
-      expect(fs.existsSync(path.join(tmpDir, 'group', 'generated', 'Group.styles.css'))).toBe(true);
+      expect(fs.existsSync(path.join(reactDir(tmpDir, 'DsActionList', 'Group'), 'Group.styles.css'))).toBe(true);
     });
 
     it('scopes subcomponent BEM selectors to the subcomponent key, not the parent', async () => {
@@ -519,10 +531,10 @@ describe('CssTransformer', () => {
         },
       });
       await transformer.run({}, makeContext(tmpDir, 'dsActionList'));
-      expect(fs.existsSync(path.join(tmpDir, 'group', 'generated', 'Group.styles.css'))).toBe(true);
-      expect(fs.existsSync(path.join(tmpDir, 'header', 'generated', 'Header.styles.css'))).toBe(true);
-      const groupOut = await fs.readFile(path.join(tmpDir, 'group', 'generated', 'Group.styles.css'), 'utf-8');
-      const headerOut = await fs.readFile(path.join(tmpDir, 'header', 'generated', 'Header.styles.css'), 'utf-8');
+      expect(fs.existsSync(path.join(reactDir(tmpDir, 'DsActionList', 'Group'), 'Group.styles.css'))).toBe(true);
+      expect(fs.existsSync(path.join(reactDir(tmpDir, 'DsActionList', 'Header'), 'Header.styles.css'))).toBe(true);
+      const groupOut = await fs.readFile(path.join(reactDir(tmpDir, 'DsActionList', 'Group'), 'Group.styles.css'), 'utf-8');
+      const headerOut = await fs.readFile(path.join(reactDir(tmpDir, 'DsActionList', 'Header'), 'Header.styles.css'), 'utf-8');
       expect(groupOut).toContain('flex-direction: column');
       expect(headerOut).toContain('flex-direction: row');
     });

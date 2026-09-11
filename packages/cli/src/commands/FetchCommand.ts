@@ -378,7 +378,10 @@ export const Fetch = new Command('fetch')
           const stopSpinner = startSpinner(`Downloading: ${entry.alias} icons`);
           const fileJson = JSON.parse(await fs.readFile(filePath, 'utf-8')) as { document?: unknown };
           const glyphs = collectGlyphComponents(fileJson.document, pattern);
-          const iconsDir = path.join(path.resolve(configDir, specDirectory), '_icons');
+          // Assets are a sibling of specs/, not a `_`-prefixed pseudo-component
+          // inside it: an SVG is consumed by every target and produced by none
+          // (project 024).
+          const iconsDir = path.join(path.resolve(configDir, specDirectory), '..', 'assets', 'icons');
           await fs.ensureDir(iconsDir);
 
           let downloaded = 0;

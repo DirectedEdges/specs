@@ -36,6 +36,17 @@ function lightDomLines(tag: string): string[] {
 /** Which element a stylesheet's root rules target: the block class, or the custom element. */
 type RootForm = 'class' | 'host';
 
+/**
+ * A component's directory inside a platform tree.
+ *
+ * The CSS transformer is the one emitter that writes for both targets, so it
+ * cannot declare a single `outputTree` the way the platform transformers do — it
+ * derives both. Its output is free, as it was when it lived beside the spec.
+ */
+function componentOutDir(context: TransformerContext, tree: string, prefix: string): string {
+  return path.join(context.workspaceDir, tree, 'src', 'components', prefix);
+}
+
 export class CssTransformer implements Transformer {
   readonly name = 'css';
 
@@ -60,9 +71,14 @@ export class CssTransformer implements Transformer {
       examples,
       relPrefix: '../../_images',
     }, 'class', anatomyRoles(apiYaml), apiPropsOf(apiYaml));
-    const generatedDir = path.join(outputDir, 'generated');
-    await fs.ensureDir(generatedDir);
-    await writeAtomic(path.join(generatedDir, `${prefix}.styles.css`), lines.join('\n'));
+    // Each platform's stylesheet lands in that platform's tree beside the scaffold
+    // that imports it (project 024). `styles.css` is React's — it targets the
+    // component's own class — and `host.css`/`light.css` are the custom element's.
+    const reactDir = componentOutDir(context, 'react', prefix);
+    const wcDir = componentOutDir(context, 'webcomponents', prefix);
+    await fs.ensureDir(reactDir);
+    await fs.ensureDir(wcDir);
+    await writeAtomic(path.join(reactDir, `${prefix}.styles.css`), lines.join('\n'));
 
     // The same rules written for a shadow tree, where the custom element itself
     // is the root: root rules target `:host`, so a caller can size and place the
@@ -72,8 +88,8 @@ export class CssTransformer implements Transformer {
       examples,
       relPrefix: '../../_images',
     }, 'host', anatomyRoles(apiYaml), apiPropsOf(apiYaml)));
-    await writeAtomic(path.join(generatedDir, `${prefix}.host.css`), hostLines.join('\n'));
-    await writeAtomic(path.join(generatedDir, `${prefix}.light.css`), lightDomLines(componentClass).join('\n'));
+    await writeAtomic(path.join(wcDir, `${prefix}.host.css`), hostLines.join('\n'));
+    await writeAtomic(path.join(wcDir, `${prefix}.light.css`), lightDomLines(componentClass).join('\n'));
 
     // Subcomponents — each gets {Sub}.styles.css in its own subfolder
     const subcomponents = (variantsYaml.subcomponents ?? {}) as Record<string, unknown>;
@@ -87,15 +103,17 @@ export class CssTransformer implements Transformer {
         examples,
         relPrefix: '../../../_images',
       });
-      const subDir = path.join(outputDir, subKey, 'generated');
-      await fs.ensureDir(subDir);
-      await writeAtomic(path.join(subDir, `${subFilePrefix}.styles.css`), subLines.join('\n'));
+      const subReactDir = path.join(reactDir, subFilePrefix);
+      const subWcDir = path.join(wcDir, subFilePrefix);
+      await fs.ensureDir(subReactDir);
+      await fs.ensureDir(subWcDir);
+      await writeAtomic(path.join(subReactDir, `${subFilePrefix}.styles.css`), subLines.join('\n'));
       const subHostLines = withNameWarningsSuppressed(() => buildCssLines(subClass, subVariantsYaml, tokensFormat, context, subTypes, {
         examples,
         relPrefix: '../../../_images',
       }, 'host'));
-      await writeAtomic(path.join(subDir, `${subFilePrefix}.host.css`), subHostLines.join('\n'));
-      await writeAtomic(path.join(subDir, `${subFilePrefix}.light.css`), lightDomLines(subClass).join('\n'));
+      await writeAtomic(path.join(subWcDir, `${subFilePrefix}.host.css`), subHostLines.join('\n'));
+      await writeAtomic(path.join(subWcDir, `${subFilePrefix}.light.css`), lightDomLines(subClass).join('\n'));
     }
   }
 

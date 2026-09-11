@@ -274,7 +274,10 @@ ${fillLines.sort().join('\n')}
 ${modeBlocks.join('\n\n')}
 `;
 
-    const cssvarsDir = path.join(outputDir, 'cssvars');
+    // Library-level, platform-neutral CSS custom properties: an asset by the test
+    // that it would be byte-identical in a React-only and a Lit-only world
+    // (project 024). `outputDir` here is the specs root, so assets/ is its sibling.
+    const cssvarsDir = path.join(outputDir, '..', 'assets', 'cssvars');
     await fs.ensureDir(cssvarsDir);
     await writeAtomic(path.join(cssvarsDir, 'cssvars.css'), css);
     await writeAtomic(path.join(cssvarsDir, 'modes.json'), JSON.stringify(modesManifest, null, 2) + '\n');
