@@ -33,8 +33,8 @@ specs fetch --data-dir ./custom-data
 
 > **Deprecated alias**: `--outDir` still works but will emit a deprecation warning. Prefer `--data-dir`.
 
-### `--only <alias[,alias...]>`
-Fetch only specific aliases from `data.sources`.
+### `--only <name[,name...]>`
+Narrow the fetch by source alias, by data kind, or both, comma-separated. Aliases come from `data.sources`; kinds are `file`, `variables`, `styles`, and `icons`. An alias fetches every kind for that source; a kind fetches it for every source; `--only library,icons` fetches only the icons of the `library` source. Names that shadow both an alias and a kind, or match nothing, fail with an error naming the valid values.
 
 ### `--no-geometry`
 Omit geometry data from file payloads. By default, `fetch` requests `?geometry=paths` from the Figma API, which includes `fillGeometry`, `strokeGeometry`, `size`, and `relativeTransform` on every node. This roughly doubles the payload size.
@@ -102,7 +102,7 @@ Because glyphs come from the saved file payload, `icons` runs after the other ki
 
 ```bash
 # Refresh just the icon assets (file payload already on disk)
-specs fetch --only library --verbose
+specs fetch --only library,icons --verbose
 ```
 
 The downloaded assets match the slugs referenced by generated component output (masked glyph spans resolve `/assets/icons/<slug>.svg`), so serving `assets/icons/` as a static assets directory — for example in Storybook — makes icons render without further mapping. Keeping icons in the spec workspace means a cloned workspace renders completely without re-fetching.

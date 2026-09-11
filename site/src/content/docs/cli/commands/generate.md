@@ -137,7 +137,7 @@ Path to a markdown manifest or a Figma REST API JSON file. The mode is detected 
 ## Options
 
 ### `-c, --component <name|id>`
-Component name or Figma node ID. Required in single component mode; ignored in manifest and bridge mode.
+Component name or Figma node ID. Required in single component mode; ignored in bridge mode. In manifest mode it filters the manifest to the named component — matched by name, node ID, or formatted key — and fails with a did-you-mean suggestion when nothing matches.
 
 ### `-o, --output <path>`
 Output file or directory path.
@@ -319,6 +319,9 @@ Target a specific connected Figma file (bridge mode only). More than one file ca
 
 ### `--node <id>`
 Generate from a specific node ID instead of the current selection (bridge mode only). The plugin selects the node first, switching pages if the node lives on another one, then restores the page you were on.
+
+### `--remove`
+Delete the node once its spec has been read (bridge mode only) — for round-trip testing, so a rendered-then-generated component leaves the Figma page as it was found. **This mutates the connected file**; there is no undo from the CLI side.
 
 ### `--config <path>`
 Path to a `config/` directory, when it isn't the `config/` directory in the working directory.

@@ -103,4 +103,4 @@ Each subcomponent gets its own `generated/react/{Subcomponent}.stories.tsx`, imp
 
 - [Transforms overview](/cli/transforms/)
 - [`react` transformer](/cli/transforms/react/) — seeds the authored component these stories import
-- [`contract` transformer](/cli/transforms/contract/) — source of `Defaults` used in story args
+- the emitted contract — source of `Defaults` used in story args

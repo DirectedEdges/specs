@@ -193,7 +193,7 @@ specs scan --config config/
 ```
 
 ### `--data-dir <dir>`
-Override the data directory used for resolving input files and default output path. Defaults to `data.directory` from `config/settings.yaml`, or `./data` if not configured.
+Override the data directory used for resolving input files and default output path. Defaults to `data.directory` from `config/settings.yaml`; when a `config/` exists without one, files resolve against the config's parent directory.
 
 ```bash
 specs scan --data-dir ./custom-data

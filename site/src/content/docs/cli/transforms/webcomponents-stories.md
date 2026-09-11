@@ -125,4 +125,4 @@ Each subcomponent gets its own `generated/webcomponents/{Subcomponent}.stories.t
 - [Transforms overview](/cli/transforms/)
 - [`webcomponents` transformer](/cli/transforms/webcomponents/) — seeds the authored element these stories import
 - [`stories` transformer](/cli/transforms/stories/) — the same stories projected onto the React surface
-- [`contract` transformer](/cli/transforms/contract/) — source of `Defaults` used in story args
+- the emitted contract — source of `Defaults` used in story args

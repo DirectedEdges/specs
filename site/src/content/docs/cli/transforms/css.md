@@ -224,6 +224,6 @@ Subcomponent stylesheets are fully self-contained — elements and variants from
 
 - [Transforms overview](/cli/transforms/)
 - [`states` convention](/settings/states/) — classify variant props as semantic states
-- [`contract` transformer](/cli/transforms/contract/)
+- the emitted contract
 - [`react` transformer](/cli/transforms/react/) — imports this stylesheet into the generated and authored components
 - [tokens config](/settings/tokens/)

@@ -42,7 +42,6 @@ config/
     react.yaml
     specs.yaml
   settings.yaml
-  pipeline.yaml
 ```
 
 ```yaml

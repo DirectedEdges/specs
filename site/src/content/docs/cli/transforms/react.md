@@ -14,7 +14,7 @@ contains.
 :::
 
 
-Emits a functioning React component — BEM markup from the merged layout tree, `data-*` variant attributes, ARIA state attributes, and slot/element rendering gated on the visibility rules from the [`contract` transformer](/cli/transforms/contract/). Also seeds a one-time authored copy of that component into your source tree, which the [`stories` transformer](/cli/transforms/stories/) imports.
+Emits a functioning React component — BEM markup from the merged layout tree, `data-*` variant attributes, ARIA state attributes, and slot/element rendering gated on the visibility rules from the the emitted contract. Also seeds a one-time authored copy of that component into your source tree, which the [`stories` transformer](/cli/transforms/stories/) imports.
 
 ## Use When
 
@@ -124,6 +124,6 @@ Each subcomponent gets its own `generated/react/{Subcomponent}.scaffold.tsx` and
 ## See Also
 
 - [Transforms overview](/cli/transforms/)
-- [`contract` transformer](/cli/transforms/contract/) — Props, Slots, and SlotRules consumed here
+- the emitted contract — Props, Slots, and SlotRules consumed here
 - [`css` transformer](/cli/transforms/css/) — stylesheet imported by both the generated and authored component
 - [`stories` transformer](/cli/transforms/stories/) — imports the authored component, not the generated scaffold

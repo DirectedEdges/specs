@@ -153,7 +153,7 @@ Each subcomponent gets its own `generated/webcomponents/{Subcomponent}.scaffold.
 ## See Also
 
 - [Transforms overview](/cli/transforms/)
-- [`contract` transformer](/cli/transforms/contract/) — Props, Slots, and SlotRules consumed here
+- the emitted contract — Props, Slots, and SlotRules consumed here
 - [`css` transformer](/cli/transforms/css/) — stylesheet adopted by both the generated and authored element
 - [`react` transformer](/cli/transforms/react/) — the same spec projected onto the React surface
 - [`webcomponents-stories` transformer](/cli/transforms/webcomponents-stories/) — imports the authored element, not the generated scaffold
