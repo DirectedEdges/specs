@@ -45,6 +45,38 @@ This suppresses **emission only**. It does not unclassify anything:
 Each role page's **States** table says which concepts that role takes over. A concept
 absent from it is not claimed.
 
+#### Suppression follows the prop, not the concept name
+
+A role claims *concepts*, but what it actually takes over is the **prop** behind each
+one — and a library may classify one prop under more than one concept.
+
+A retained toggle spelled `selected` is the common case. A library classifies that prop
+as `selected`, because most of its components announce it that way. A `togglebutton`
+announces the same prop as `pressed`. Both entries name the same prop, the role claims
+one of them, and left alone the other still emits — so the control announces
+`aria-pressed` *and* `aria-selected`, where `aria-selected` is not even valid on a
+button.
+
+So **a concept sharing a prop with a claimed concept is suppressed too.** The role
+decided the mechanism for that prop, and one prop cannot announce two ways at once.
+
+This is narrower than it sounds, and it is worth being precise about what it does *not*
+reach, because two unrelated concepts can share a word:
+
+| Concept | Bound to | Claimed by `togglebutton`? |
+|---------|----------|----------------------------|
+| `pressed` | the retained toggle prop | Yes — becomes `aria-pressed` |
+| `active` | the momentary press prop, often a `state` enum whose value is literally `Pressed` | **No** — different prop, untouched |
+
+`active` is the condition while a pointer is held down; `pressed` is a condition the
+control keeps after the pointer leaves. They are different facts on different props, and
+the shared word is a coincidence of naming. A component declaring both keeps both: the
+role takes the retained one to ARIA, and the momentary one goes on styling exactly as it
+did before.
+
+The test is always the same: **is this concept bound to a prop the role took over?** If
+yes, the role speaks for it. If no, nothing changed.
+
 #### The state still has to be styleable
 
 "Emitted once" means one **semantic** mechanism. It does not mean the state stops being
