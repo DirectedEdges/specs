@@ -5,7 +5,7 @@ import yaml from 'yaml';
 import type { Transformer, TransformerContext } from '../Types/Transformer.js';
 import { styleToCSS, impliesAbsolute } from './css/styleToCSS.js';
 import { layoutToCSS } from './css/layoutToCSS.js';
-import { toKebab, isGradient, isGradientToken, reportNameWarnings, withNameWarningsSuppressed } from './css/values.js';
+import { toKebab, isGradient, isGradientToken, gradientValue, dimensionValue, resolveTokenVar, reportNameWarnings, withNameWarningsSuppressed } from './css/values.js';
 import { normalizeEnumValue } from './enumCase.js';
 import { CONCEPT_TABLE, buildStateLookup } from './states.js';
 import { resolveRules } from './css/rules/index.js';
@@ -415,6 +415,10 @@ function buildCssLines(
       if (isGradient(strokes) || isGradientToken(strokes)) gradientStrokeKeys.add(k);
     }
   }
+  // The ring is an absolutely positioned ::before, so its host has to be the
+  // containing block or it would size itself against some ancestor instead.
+  for (const k of gradientStrokeKeys) needsRelative.add(k);
+
   const styleOptions = (elemKey: string) => ({
     inferAbsolute: inferAbsolute(elemKey),
     resetBorderImage: gradientStrokeKeys.has(elemKey),
@@ -482,6 +486,7 @@ function buildCssLines(
     }
     lines.push(...instanceFitRule(selector, elemTypes[elemKey], styles));
     lines.push(...overlapRule(selector, styles));
+    lines.push(...gradientRingRule(selector, styles, tokensFormat));
 
     // An unfilled slot is still a flex item, so the parent's gap paints as
     // spacing around nothing. `:empty` covers the react scaffold, which renders
@@ -647,6 +652,12 @@ function buildCssLines(
         lines.push('');
       }
       lines.push(...overlapRule(selector, styles));
+      lines.push(...gradientRingRule(
+        selector,
+        styles,
+        tokensFormat,
+        ((defaultElements[elemKey]?.styles ?? {}) as Record<string, unknown>).strokeWeight,
+      ));
     }
   }
 
@@ -787,6 +798,62 @@ function instanceFitRule(
   if (!decls.length) return [];
   const own = selector.split(' ').pop() ?? selector;
   return [`${selector}${own} > * {`, ...decls.map(d => `  ${d};`), '}', ''];
+}
+
+/**
+ * The ring that paints a gradient stroke, as a `::before` on the element.
+ *
+ * A gradient cannot be an outline, and `border-image` — the one border
+ * property that takes a gradient — ignores `border-radius`, so a rounded
+ * element comes out as a square frame. Painting into the element's own
+ * `background` works only for an element that has no fill of its own; where
+ * one exists, the ring and the fill compete for the same property and the fill
+ * loses.
+ *
+ * A pseudo-element owns none of that. It covers the host exactly, inherits its
+ * radius, and masks out its own middle so only the ring paints. The host keeps
+ * its background, declares no border, and so costs no layout — the same as the
+ * outline a solid stroke emits, which is what a Figma stroke does.
+ *
+ * Thickness is the pseudo-element's padding: it has no content, so the padding
+ * box IS the ring, and excluding the content box from the border box leaves
+ * exactly it.
+ */
+function gradientRingRule(
+  selector: string,
+  styles: Record<string, unknown>,
+  tokensFormat: string | undefined,
+  fallbackWeight?: unknown,
+): string[] {
+  const strokes = styles.strokes;
+  if (!isGradient(strokes) && !isGradientToken(strokes)) return [];
+  const fmt = tokensFormat ?? 'TOKEN';
+  const paint = isGradientToken(strokes)
+    ? resolveTokenVar(strokes, fmt)
+    : gradientValue(strokes, fmt);
+  if (!paint) return [];
+  // Thickness may be stated on another layer: a variant that restates only the
+  // paint gets no `strokeWeight` of its own, and a ::before rule inherits
+  // nothing from the default block's ::before — which may not even exist, since
+  // the default's stroke can be solid. Without a width the mask excludes
+  // everything and the ring paints nothing at all.
+  const width =
+    dimensionValue(styles.strokeWeight, fmt) ?? dimensionValue(fallbackWeight, fmt);
+  return [
+    `${selector}::before {`,
+    "  content: '';",
+    '  position: absolute;',
+    '  inset: 0;',
+    '  border-radius: inherit;',
+    ...(width ? [`  padding: ${width};`] : []),
+    `  background: ${paint};`,
+    '  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);',
+    '  mask-composite: exclude;',
+    '  -webkit-mask-composite: xor;',
+    '  pointer-events: none;',
+    '}',
+    '',
+  ];
 }
 
 function overlapRule(selector: string, styles: Record<string, unknown>): string[] {

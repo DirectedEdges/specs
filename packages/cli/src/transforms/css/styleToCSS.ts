@@ -208,38 +208,18 @@ export function styleToCSS(
       decls.push('outline-style: none');
       if (options.resetBorderImage) decls.push('border-image: none');
     } else if (isGradient(strokesVal) || isGradientToken(strokesVal)) {
-      // A gradient stroke is painted, not bordered.
+      // A gradient stroke is painted on a ::before ring by the caller, not
+      // declared here — see gradientRingRule. Nothing on the element itself:
+      // an outline cannot take a gradient, `border-image` is the only border
+      // property that can and it ignores `border-radius`, and painting into
+      // the element's own `background` destroys whatever fill it declares.
       //
-      // `border-image` is the only gradient-capable border property and it
-      // ignores `border-radius`, so a circular spinner came out as a square
-      // gradient frame. An outline cannot take a gradient at all. What does
-      // work for any shape is painting the gradient as a background and
-      // masking out everything inside the stroke: the mask layers are clipped
-      // to the padding box and the border box, and excluding one from the
-      // other leaves exactly the ring, following whatever radius the element
-      // has.
-      //
-      // The transparent border supplies the ring's thickness and its inset.
-      // That costs layout the way any border does, unlike the outline a solid
-      // stroke emits — the asymmetry is real, and unavoidable while the ring
-      // has to be painted rather than drawn.
-      const g = isGradientToken(strokesVal)
-        ? resolveTokenVar(strokesVal, tokensFormat)
-        : gradientValue(strokesVal, tokensFormat);
-      if (g) {
-        decls.push(`background-image: ${g}`);
-        decls.push('background-origin: border-box');
-        decls.push('background-clip: border-box');
-        decls.push('border-style: solid');
-        decls.push('border-color: transparent');
-        decls.push('mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0)');
-        decls.push('mask-composite: exclude');
-        decls.push('-webkit-mask-composite: xor');
-        // The outline a solid stroke would have emitted has to be cancelled:
-        // this element paints its ring instead, and a variant switching between
-        // the two must not show both.
-        decls.push('outline-style: none');
-      }
+      // The element must still cancel the mechanisms a sibling layer may have
+      // drawn with, so a variant switching between a solid and a gradient
+      // stroke does not show both at once.
+      decls.push('outline-style: none');
+      decls.push('border-color: transparent');
+      if (options.resetBorderImage) decls.push('border-image: none');
     } else {
       const v = colorValue(strokesVal, tokensFormat);
       if (v) {
@@ -270,7 +250,9 @@ export function styleToCSS(
       const d = dimensionValue(v, tokensFormat);
       if (d) {
         if (gradientStroke) {
-          decls.push(`border-width: ${d}`);
+          // The ring's thickness lives on the ::before rule; the host draws
+          // no stroke of its own, and giving it a border would cost layout
+          // that a Figma stroke never costs.
         } else if (asOutline(v)) {
           decls.push(`outline-width: ${d}`);
           // Centre and outside sit where the outline naturally falls; only an

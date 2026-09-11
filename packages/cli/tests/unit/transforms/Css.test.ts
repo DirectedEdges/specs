@@ -883,11 +883,11 @@ describe('CssTransformer', () => {
         ],
       });
       const gradientBlock = out.match(/\.ds-button\[data-a="2"\] \{[^}]*\}/)?.[0] ?? '';
-      // A gradient stroke is painted as a masked ring: border-image ignores
-      // border-radius, so a rounded element came out as a square frame.
-      expect(gradientBlock).toContain('background-image: conic-gradient(from 90deg at 50% 50%, #FF0000FF 0%, #B1F836FF 74%)');
-      expect(gradientBlock).toContain('mask-composite: exclude');
-      expect(gradientBlock).toContain('border-color: transparent');
+      // A gradient stroke paints on a ::before ring, so the element's own
+      // block only cancels the mechanisms a sibling layer may have drawn with.
+      expect(gradientBlock).toContain('outline-style: none');
+      expect(out).toContain('background: conic-gradient(from 90deg at 50% 50%, #FF0000FF 0%, #B1F836FF 74%)');
+      expect(out).toContain('mask-composite: exclude');
       const solidBlock = out.match(/\.ds-button\[data-a="2"\]\[data-b="2"\] \{[^}]*\}/)?.[0] ?? '';
       // A solid stroke is an outline (layout-safe); the border-image reset is
       // still needed to cancel the gradient variant's border.
@@ -1089,25 +1089,49 @@ describe('gradient strokes arriving as token references', () => {
     variants: [],
   });
 
-  it('a gradient token paints a masked ring, not a border colour', async () => {
+  it('a gradient token paints a ::before ring, not a border colour', async () => {
     const css = await run(tmpDir, withRoot({
       strokes: { $token: 'gradient/spinner', $type: 'gradient' },
       strokeWeight: 2.5,
       cornerRadius: 999,
     }));
-    expect(css).toContain('background-image: var(--gradient-spinner)');
+    expect(css).toContain('::before');
+    expect(css).toContain('background: var(--gradient-spinner)');
     expect(css).toContain('mask-composite: exclude');
-    expect(css).toContain('border-color: transparent');
+    expect(css).toContain('border-radius: inherit');
     expect(css).not.toContain('outline-color: var(--gradient-spinner)');
   });
 
-  it('the ring takes its thickness from the stroke weight', async () => {
+  it('the ring takes its thickness from the stroke weight, as padding', async () => {
     const css = await run(tmpDir, withRoot({
       strokes: { $token: 'gradient/spinner', $type: 'gradient' },
       strokeWeight: 2.5,
     }));
-    expect(css).toContain('border-width: 2.5px');
-    expect(css).toContain('border-style: solid');
+    const ring = css.slice(css.indexOf('::before'));
+    expect(ring).toContain('padding: 2.5px');
+  });
+
+  it('the host declares no border, so the ring costs no layout', async () => {
+    const css = await run(tmpDir, withRoot({
+      strokes: { $token: 'gradient/spinner', $type: 'gradient' },
+      strokeWeight: 2.5,
+    }));
+    const host = css.slice(0, css.indexOf('::before'));
+    expect(host).not.toContain('border-width: 2.5px');
+    expect(host).not.toContain('border-style: solid');
+  });
+
+  it("leaves the element's own background alone", async () => {
+    // The mechanism this replaced painted into `background` and masked the
+    // middle out, which erased any fill the element declared.
+    const css = await run(tmpDir, withRoot({
+      strokes: { $token: 'gradient/spinner', $type: 'gradient' },
+      strokeWeight: 2,
+      backgroundColor: '#723FFFFF',
+    }));
+    const host = css.slice(0, css.indexOf('::before'));
+    expect(host).toContain('background: #723FFFFF');
+    expect(host).not.toContain('mask');
   });
 
   it('a colour token is untouched and still emits an outline', async () => {
