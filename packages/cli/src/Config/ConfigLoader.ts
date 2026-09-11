@@ -3,7 +3,7 @@
  *
  * Loads and validates the workspace's split configuration (ADR-071):
  * a `config/` directory holding `conventions.yaml`, `settings.yaml`, and
- * `pipeline.yaml` (each optional, `.json` also accepted).
+ * (each optional, `.json` also accepted).
  *
  * A pre-split `specs.config.yaml` is refused, not read: `specs migrate config`
  * converts it. Loading runs inside read-only commands and in CI, so it never
@@ -19,13 +19,11 @@ import yaml from 'yaml';
 import {
   DEFAULT_CONVENTIONS,
   DEFAULT_SETTINGS,
-  DEFAULT_PIPELINE,
   type ResolvedConventions,
   type ResolvedPlatformConventions,
   type PrimitiveEntry,
   type SpecsConventions,
   type ResolvedSettings,
-  type ResolvedPipeline,
   type Settings,
   type SourceEntry,
 } from '@directededges/specs-schema';
@@ -38,7 +36,7 @@ import type { CLIConfig } from '../Types/CLIConfig.js';
  * Conventions is deliberately absent: it is a *directory* of per-platform files
  * (ADR-078), not one file, and is read by {@link ConfigLoader.readConventionsDir}.
  */
-const CONFIG_DIR_FILES = ['settings', 'pipeline'] as const;
+const CONFIG_DIR_FILES = ['settings'] as const;
 
 /** Directory inside `config/` holding one conventions file per platform (ADR-078). */
 const CONVENTIONS_DIR = 'conventions';
@@ -131,7 +129,7 @@ export class ConfigLoader {
    * Find configuration in standard locations.
    *
    * Checks in order:
-   * 1. ./config/ containing any of conventions|settings|pipeline .yaml/.json
+   * 1. ./config/ containing any of conventions|settings .yaml/.json
    * 2. ./specs.config.yaml
    * 3. ./specs.config.json
    * 4. ~/.specs/config.yaml
@@ -176,12 +174,11 @@ export class ConfigLoader {
   private loadFromDirectory(dir: string): CLIConfig {
     const conventions = this.resolveConventions(this.readConventionsDir(dir));
     const settings = this.resolveSettings(this.readPart(dir, 'settings'));
-    const pipeline = this.resolvePipeline(this.readPart(dir, 'pipeline'));
 
     const configDir = path.dirname(dir);
     this.resolveSettingsDirectories(settings, configDir);
 
-    return { conventions, settings, pipeline, configDir };
+    return { conventions, settings, configDir };
   }
 
   /**
@@ -203,8 +200,8 @@ export class ConfigLoader {
     const remedy = isUserLevel
       ? "  A user-level configuration has no equivalent in the split layout. Move what it declares into this workspace's config/ directory, then delete it."
       : isDiscovered
-        ? '  Run `specs migrate config` to write config/conventions.yaml, config/settings.yaml and config/pipeline.yaml from it.'
-        : `  Run \`specs migrate config --source ${path.basename(file)}\` to write config/conventions.yaml, config/settings.yaml and config/pipeline.yaml from it.`;
+        ? '  Run `specs migrate config` to write config/conventions/ and config/settings.yaml from it.'
+        : `  Run \`specs migrate config --source ${path.basename(file)}\` to write config/conventions/ and config/settings.yaml from it.`;
 
     throw new Error(
       `${file} is no longer read (ADR-071).\n` +
@@ -635,18 +632,6 @@ export class ConfigLoader {
   }
 
   /**
-   * Resolve pipeline: both lists guaranteed present; an empty list means
-   * no work of that kind runs.
-   */
-  private resolvePipeline(parsed: unknown): ResolvedPipeline {
-    const raw = (parsed && typeof parsed === 'object' ? parsed : {}) as Record<string, unknown>;
-    return {
-      transformers: Array.isArray(raw.transformers) ? raw.transformers : [...DEFAULT_PIPELINE.transformers],
-      analyses: Array.isArray(raw.analyses) ? raw.analyses : [...DEFAULT_PIPELINE.analyses],
-    };
-  }
-
-  /**
    * Resolve relative data/spec directories against the directory the
    * configuration was loaded from.
    */
@@ -698,10 +683,6 @@ export class ConfigLoader {
       // mutating its config cannot reach the exported constant.
       conventions: { ...DEFAULT_CONVENTIONS },
       settings,
-      pipeline: {
-        transformers: [...DEFAULT_PIPELINE.transformers],
-        analyses: [...DEFAULT_PIPELINE.analyses],
-      },
     };
   }
 }

@@ -3,7 +3,7 @@
  *
  * Generates the split-configuration templates (ADR-071) with
  * production-ready defaults and inline documentation for the init command:
- * `config/conventions/<platform>.yaml`, `config/settings.yaml`, `config/pipeline.yaml`.
+ * `config/conventions/<platform>.yaml` and `config/settings.yaml`.
  */
 
 import { CONFIG_DEFAULTS } from './ConfigDefaults.js';
@@ -318,24 +318,6 @@ spec:
 `;
 }
 
-/**
- * Generate the `config/pipeline.yaml` template with inline comments.
- */
-export function generatePipelineTemplate(): string {
-  return `# Work this workspace runs: transformers and analyses.
-# Absence means CLI defaults apply.
-
-# Transformers to run with \`specs transform\` (default: contract).
-# transformers:
-#   - name: contract
-#   - name: css
-#   - name: react
-
-# Analyses to run with \`specs analyze\`.
-# analyses:
-#   - name: dependencies
-`;
-}
 
 /**
  * The split-configuration templates, keyed by their file path relative
@@ -348,6 +330,5 @@ export function generateConfigTemplates(): Record<string, string> {
     'config/conventions/react.yaml': generateReactConventionsTemplate(),
     'config/conventions/web-components.yaml': generateWebComponentsConventionsTemplate(),
     'config/settings.yaml': generateSettingsTemplate(),
-    'config/pipeline.yaml': generatePipelineTemplate(),
   };
 }

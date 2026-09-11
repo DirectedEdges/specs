@@ -41,8 +41,6 @@ export type {
 export { DEFAULT_CONVENTIONS } from './Conventions.js';
 export type { Settings, ResolvedSettings, ColorFormat, SourceEntry } from './Settings.js';
 export { DEFAULT_SETTINGS } from './Settings.js';
-export type { Pipeline, ResolvedPipeline, TransformEntry, AnalysisEntry } from './Pipeline.js';
-export { DEFAULT_PIPELINE } from './Pipeline.js';
 
 // Style types
 export type { Styles, Style, ColorStyle, ColorObject, StyleKey, TokenReference, AspectRatioValue, AspectRatioStyle, Typography, Sides, Corners, ItemSpacing, LayoutMode, WrapAlignment, MainAxisAlignment, CrossAxisAlignment, Position, PositionOffset, StrokeDashPattern, TextAlignHorizontal, TextOverflow } from './Styles.js';

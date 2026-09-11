@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.32.0] - Unreleased
 
+**`Pipeline` is retired, and the config split is two parts rather than three.** A transformer pipeline stopped being a thing to configure once each target emitted everything it needs — nothing left to order, and `css` had no output location of its own to name. The other half, `analyses`, never had a reader: `specs analyze` has always taken its analyzers as arguments. `Pipeline`, `ResolvedPipeline`, `TransformEntry`, `AnalysisEntry`, `DEFAULT_PIPELINE` and `pipeline.schema.json` are removed; `Conventions` and `Settings` are unchanged. See the amendment on ADR-071.
+
+**Breaking**: a published type and one of the schema entry points are removed. Nothing outside the CLI consumed them.
+
 **Conventions are keyed by platform, and the spec declares its own.** `conventions.figma` becomes one entry in a `platforms` map whose keys name implementations, and the conventions that describe the spec rather than any platform — the states classification and the prop conventions — move to a `specs` sibling.
 
 **Composed example content can map to preferred components** by matching a primitive's style values with designated component props. Since designers build examples with raw layers, that layer can now become an instance in specs for what component it stood for. Opt-in by default.

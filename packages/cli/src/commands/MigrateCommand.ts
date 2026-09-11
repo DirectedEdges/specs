@@ -49,7 +49,7 @@ const configV1: Migration = {
   subject: 'config',
   from: 'v1',
   to: 'v2',
-  summary: 'single specs.config.yaml → config/conventions/<platform>.yaml + settings and pipeline (ADR-071, ADR-078)',
+  summary: 'single specs.config.yaml → config/conventions/<platform>.yaml + config/settings.yaml (ADR-071, ADR-078)',
 
   detect(dir, source) {
     // An explicit source lets a workspace convert a file that discovery would
@@ -68,7 +68,7 @@ const configV1: Migration = {
   blocked(dir) {
     const configDir = path.join(dir, 'config');
     if (!fs.existsSync(configDir)) return null;
-    const present = ['conventions', 'settings', 'pipeline']
+    const present = ['conventions', 'settings']
       .flatMap(base => ['yaml', 'json'].map(ext => `${base}.${ext}`))
       .filter(file => fs.existsSync(path.join(configDir, file)));
 
@@ -105,7 +105,6 @@ const configV1: Migration = {
       'config/conventions/react.yaml': generateReactConventionsTemplate(),
       'config/conventions/web-components.yaml': generateWebComponentsConventionsTemplate(),
       'config/settings.yaml': migrated.settings === undefined ? undefined : yaml.stringify(migrated.settings),
-      'config/pipeline.yaml': migrated.pipeline === undefined ? undefined : yaml.stringify(migrated.pipeline),
     };
 
     const written: string[] = [];

@@ -2,7 +2,7 @@
  * ConfigLoader unit tests
  *
  * Covers the split `config/` directory (ADR-071): conventions.yaml,
- * settings.yaml, and pipeline.yaml, each optional and independently
+ * and settings.yaml, each optional and independently
  * defaulted. A pre-split `specs.config.yaml`/`.json` is refused with a
  * pointer to `specs migrate config` — the legacy mapping itself is
  * exercised in tests/unit/commands/MigrateCommand.test.ts.
@@ -60,7 +60,7 @@ describe('ConfigLoader', () => {
   }
 
   describe('split config/ directory (ADR-071)', () => {
-    it('loads conventions, settings, and pipeline from config/', () => {
+    it('loads conventions and settings from config/', () => {
       writeSplitFile('conventions/figma.yaml', `
 naming: SENTENCE
 glyphs:
@@ -73,13 +73,6 @@ spec:
   format: YAML
   variantDepth: 2
 `);
-      writeSplitFile('pipeline.yaml', `
-transformers:
-  - name: contract
-  - name: css
-analyses:
-  - name: dependencies
-`);
 
       const config = configLoader.load();
       expect(config.conventions.platforms!.figma.naming).toBe('SENTENCE');
@@ -88,8 +81,6 @@ analyses:
       expect(config.settings.author).toBe('Test Author');
       expect(config.settings.spec.format).toBe('YAML');
       expect(config.settings.spec.variantDepth).toBe(2);
-      expect(config.pipeline.transformers).toEqual([{ name: 'contract' }, { name: 'css' }]);
-      expect(config.pipeline.analyses).toEqual([{ name: 'dependencies' }]);
     });
 
     it('defaults each missing split file independently', () => {
@@ -100,8 +91,6 @@ analyses:
       // because a platform-keyed map has no fixed key to populate (ADR-073). The
       // three defaultable values are applied by whoever resolves a platform.
       expect(config.conventions).toEqual({});
-      // pipeline.yaml absent — empty lists
-      expect(config.pipeline).toEqual({ transformers: [], analyses: [] });
       // settings.yaml present — merged over DEFAULT_SETTINGS
       expect(config.settings.spec.variantDepth).toBe(3);
       expect(config.settings.spec.format).toBe(DEFAULT_SETTINGS.spec.format);
@@ -150,7 +139,7 @@ analyses:
 
       expect(() => configLoader.load()).toThrow(/specs\.config\.yaml is no longer read \(ADR-071\)/);
       expect(() => configLoader.load()).toThrow(/specs migrate config/);
-      expect(() => configLoader.load()).toThrow(/config\/conventions\.yaml, config\/settings\.yaml and config\/pipeline\.yaml/);
+      expect(() => configLoader.load()).toThrow(/config\/conventions\/ and config\/settings\.yaml/);
       expect(() => configLoader.load()).toThrow(/https:\/\/specs\.directededges\.com\/settings\//);
     });
 
@@ -209,7 +198,6 @@ analyses:
       expect(directory).toBeTruthy();
       // DEFAULT_CONVENTIONS carries no members (ADR-073) — see the note above.
       expect(config.conventions).toEqual({});
-      expect(config.pipeline).toEqual({ transformers: [], analyses: [] });
     });
 
     it('returns defaults when an explicit path does not exist', () => {

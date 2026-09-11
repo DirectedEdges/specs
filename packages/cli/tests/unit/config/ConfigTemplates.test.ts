@@ -4,20 +4,18 @@ import {
   generateFigmaConventionsTemplate,
   generateSpecsConventionsTemplate,
   generateSettingsTemplate,
-  generatePipelineTemplate,
   generateConfigTemplates,
 } from '../../../src/Config/ConfigTemplates.js';
 
 describe('ConfigTemplates', () => {
   describe('generateConfigTemplates', () => {
-    it('scaffolds one conventions file per platform, the specs file, plus settings and pipeline', () => {
+    it('scaffolds one conventions file per platform, the specs file, plus settings', () => {
       const templates = generateConfigTemplates();
       expect(Object.keys(templates).sort()).toEqual([
         'config/conventions/figma.yaml',
         'config/conventions/react.yaml',
         'config/conventions/specs.yaml',
         'config/conventions/web-components.yaml',
-        'config/pipeline.yaml',
         'config/settings.yaml',
       ]);
     });
@@ -155,23 +153,4 @@ describe('ConfigTemplates', () => {
     });
   });
 
-  describe('generatePipelineTemplate', () => {
-    it('includes a commented-out transformers: block', () => {
-      const template = generatePipelineTemplate();
-      expect(template).toContain('# transformers:');
-    });
-
-    it('includes commented-out transformer entries for contract, css, react', () => {
-      const template = generatePipelineTemplate();
-      expect(template).toContain('#   - name: contract');
-      expect(template).toContain('#   - name: css');
-      expect(template).toContain('#   - name: react');
-    });
-
-    it('includes a commented-out analyses: block', () => {
-      const template = generatePipelineTemplate();
-      expect(template).toContain('# analyses:');
-      expect(template).toContain('#   - name: dependencies');
-    });
-  });
 });

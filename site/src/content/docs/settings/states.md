@@ -35,7 +35,7 @@ props:
     default: false
 ```
 
-The `states` convention acts on these props during `specs transform` — to determine CSS selector strategy and contract inclusion. The `api.yaml` itself is not modified.
+The `states` convention acts on these props during `specs react` — to determine CSS selector strategy and contract inclusion. The `api.yaml` itself is not modified.
 
 ### State concepts
 
@@ -155,7 +155,7 @@ states:
 | `contract` | `"omit"` \| `"keep"` | No | concept default | Override the concept's default contract behavior. Rarely needed. |
 
 
-Run [`specs transform css`](/cli/commands/transform/) to regenerate stylesheets after updating this declaration. Absence of `states` is safe — all variant props continue to emit as `data-*` selectors.
+Run [`specs react`](/cli/commands/transform/) to regenerate stylesheets after updating this declaration. Absence of `states` is safe — all variant props continue to emit as `data-*` selectors.
 
 ## Path
 

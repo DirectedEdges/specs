@@ -15,7 +15,7 @@ Emits a Storybook Component Story Format (CSF) page for each component, targetin
 ## Invocation
 
 ```bash
-specs transform webcomponents-stories
+specs webcomponents
 ```
 
 Requires `variants.yaml` — components without it are skipped with a warning, since stories are generated from the same variant analysis as the `webcomponents` transformer.
@@ -42,7 +42,7 @@ dsAlert/
 Given an Alert with `severity` (`info` | `warning` | `error`) and `dismissible` (boolean), both expressible as props:
 
 ```ts
-// Generated. Do not edit — regenerate with `specs transform`.
+// Generated. Do not edit — regenerate with `specs react`.
 import type { Meta, StoryObj } from '@storybook/web-components';
 import { html, nothing } from 'lit';
 import '../../src/webcomponents/DsAlert';

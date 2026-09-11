@@ -18,7 +18,7 @@ The react and webcomponents transformers consume the same contract and the same 
 ## Invocation
 
 ```bash
-specs transform webcomponents
+specs webcomponents
 ```
 
 Requires `variants.yaml` — components without it are skipped with a warning, since slot visibility and variant data attributes are both derived from variant data.
@@ -41,7 +41,7 @@ dsAlert/
       DsAlert.proposed.css
 ```
 
-**`generated/webcomponents/{Component}.scaffold.ts`** is always current with the spec — it's regenerated on every `specs transform webcomponents` run, importing `../{Component}.contract` and adopting `../{Component}.styles.css`. Treat it as a live reference, not something to build on directly.
+**`generated/webcomponents/{Component}.scaffold.ts`** is always current with the spec — it's regenerated on every `specs webcomponents` run, importing `../{Component}.contract` and adopting `../{Component}.styles.css`. Treat it as a live reference, not something to build on directly.
 
 **`src/webcomponents/{Component}.ts`** is created once, the first time the transformer runs for that component, as a copy of the scaffold with imports rewritten to the authored paths. If the file already exists, it's left untouched. This is the file you actually implement against.
 
@@ -57,7 +57,7 @@ The authored element adopts all three stylesheets in order — `../../generated/
 Given an Alert with a `severity` enum prop, a `dismissible` boolean, and a `body` slot rendered `always`:
 
 ```ts
-// Authored component — seeded once by `specs transform`, never overwritten.
+// Authored component — seeded once by `specs react`, never overwritten.
 import { LitElement, html, css, unsafeCSS, nothing } from 'lit';
 // @ts-ignore — vite resolves `?inline` to the stylesheet text
 import styles0 from '../../generated/DsAlert.styles.css?inline';

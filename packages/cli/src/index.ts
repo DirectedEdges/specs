@@ -29,7 +29,6 @@ import { Init } from './commands/InitCommand.js';
 import { Migrate } from './commands/MigrateCommand.js';
 import { Analyze } from './commands/AnalyzeCommand.js';
 import { ApplyCustomTokens } from './commands/ApplyCustomTokensCommand.js';
-import { Transform } from './commands/TransformCommand.js';
 import { React, WebComponents } from './commands/TargetCommands.js';
 import { Render } from './commands/RenderCommand.js';
 import { Bridge } from './commands/BridgeCommand.js';
@@ -39,7 +38,7 @@ declare const __SPECS_CLI_VERSION__: string;
 // Backward compatibility: export Scan also as Audit
 export const Audit = Scan;
 
-export { Generate, Scan, Fetch, Init, Migrate, ApplyCustomTokens, Transform, Analyze, Render, Bridge };
+export { Generate, Scan, Fetch, Init, Migrate, ApplyCustomTokens, React, WebComponents, Analyze, Render, Bridge };
 
 export const commands = {
   Init,
@@ -48,7 +47,8 @@ export const commands = {
   Scan,
   Fetch,
   ApplyCustomTokens,
-  Transform,
+  React,
+  WebComponents,
   Analyze,
   Render,
   Bridge,
@@ -71,7 +71,6 @@ export function createProgram(): Command {
   program.addCommand(ApplyCustomTokens);
   program.addCommand(React);
   program.addCommand(WebComponents);
-  program.addCommand(Transform);
   program.addCommand(Analyze);
   program.addCommand(Render);
   program.addCommand(Bridge);

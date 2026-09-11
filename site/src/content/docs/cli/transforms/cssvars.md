@@ -18,7 +18,7 @@ Unlike the per-component transformers, `cssvars` is **library-level**: it runs o
 ## Invocation
 
 ```bash
-specs transform cssvars
+specs reactvars
 ```
 
 ## Output

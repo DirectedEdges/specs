@@ -16,7 +16,7 @@ Emits a `{Component}.styles.css` file for each component. Each anatomy element b
 ## Invocation
 
 ```bash
-specs transform css
+specs react
 ```
 
 ## Output
@@ -28,7 +28,7 @@ Each component subfolder receives a `generated/{Component}.styles.css` file, Pas
 An Alert component with `severity` and `dismissible` variant props, and anatomy elements `root`, `icon`, and `body`:
 
 ```css
-/* Generated. Do not edit — regenerate with `specs transform`. */
+/* Generated. Do not edit — regenerate with `specs react`. */
 
 .ds-alert {
   display: flex;
@@ -189,7 +189,7 @@ dsActionList/
 The subcomponent stylesheet follows the same structure as the parent — default element blocks first, then variant blocks — but BEM selectors are scoped to the subcomponent's own kebab-cased key, not the parent component name:
 
 ```css
-/* Generated. Do not edit — regenerate with `specs transform`. */
+/* Generated. Do not edit — regenerate with `specs react`. */
 
 .group {
   display: flex;

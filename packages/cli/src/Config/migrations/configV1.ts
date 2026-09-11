@@ -3,7 +3,7 @@
  *
  * v1 is the single `specs.config.yaml` with `dataDirectory`, `outputDirectory`,
  * `author`, `sources`, `output` and a `config` block. v2 is the three files
- * under `config/`: conventions, settings, pipeline.
+ * under `config/`: conventions and settings.
  *
  * This runs from `specs migrate config`, never from the loader. Config loading
  * happens inside read-only commands and in CI, and a read path must not write
@@ -18,7 +18,6 @@ export interface MigratedConfig {
   /** Conventions about the spec itself, written to `config/conventions/specs.yaml` (ADR-073 Decision 4). */
   specsConventions: unknown;
   settings: unknown;
-  pipeline: unknown;
 }
 
 /**
@@ -33,7 +32,6 @@ export function migrateConfigV1(parsed: unknown): MigratedConfig {
   const spec: Record<string, any> = {};
   const data: Record<string, any> = {};
   const settings: Record<string, any> = {};
-  const pipeline: Record<string, any> = {};
   /* eslint-enable @typescript-eslint/no-explicit-any */
 
   // Support deprecated 'sourceDirectory' with warning (predates the split)
@@ -124,9 +122,10 @@ export function migrateConfigV1(parsed: unknown): MigratedConfig {
     }
   }
 
-  // config.transformers -> pipeline.transformers
+  // `config.transformers` is dropped rather than carried: a transformer pipeline
+  // stopped being a thing to configure once each target emitted everything it
+  // needs. `specs react` and `specs webcomponents` replace it.
   if (cfg.transformers !== undefined) {
-    pipeline.transformers = cfg.transformers;
   }
 
   if (Object.keys(data).length > 0) settings.data = data;
@@ -138,7 +137,6 @@ export function migrateConfigV1(parsed: unknown): MigratedConfig {
     conventions: Object.keys(figma).length > 0 ? figma : undefined,
     specsConventions: Object.keys(specsConventions).length > 0 ? specsConventions : undefined,
     settings: Object.keys(settings).length > 0 ? settings : undefined,
-    pipeline: Object.keys(pipeline).length > 0 ? pipeline : undefined,
   };
 }
 

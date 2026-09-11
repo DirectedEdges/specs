@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.28.0] - Unreleased
 
+**`specs transform` is retired; `specs react` and `specs webcomponents` replace it.** Each emits one target whole — component, contract, stylesheet and stories — rather than asking for the pieces to be named in the right order. `--no-stories` omits the stories. The transformers behind them are unchanged.
+
+`css`, `cssvars`, `contract`, `stories` and `webcomponents-stories` are no longer names you invoke: each is part of what a target emits, and `css` in particular had no output location of its own once output moved into the platform trees.
+
+`config/pipeline.yaml` is retired with them. `specs init` no longer seeds it and `specs migrate config` no longer writes one, dropping `config.transformers` rather than carrying it forward. A workspace that only declared transformers can delete the file.
+
+**Breaking**: `specs transform` is removed, as is `config.pipeline` on the loaded config.
+
 **Configuration splits into three files** — facts about your Figma library, choices this
 workspace makes, and what it runs. `specs migrate config` converts an existing workspace.
 

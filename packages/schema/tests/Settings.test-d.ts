@@ -8,12 +8,8 @@ import type {
   ResolvedSettings,
   ColorFormat,
   SourceEntry,
-  Pipeline,
-  ResolvedPipeline,
-  TransformEntry,
-  AnalysisEntry,
 } from '../types/index.js';
-import { DEFAULT_SETTINGS, DEFAULT_PIPELINE } from '../types/index.js';
+import { DEFAULT_SETTINGS } from '../types/index.js';
 
 // ─── Empty settings are valid — every member is defaulted or consumer-supplied ─
 
@@ -80,24 +76,7 @@ const depth: 1 | 2 | 3 | 9999 = DEFAULT_SETTINGS.spec.variantDepth;
 // Consumer-supplied members stay optional after resolution
 const dir: string | undefined = DEFAULT_SETTINGS.spec.directory;
 
-// ─── Pipeline ─────────────────────────────────────────────────────────────────
-
-const pipeline: Pipeline = {
-  transformers: [{ name: 'react' }, { name: 'css' }, { name: 'contract' }],
-  analyses: [{ name: 'dependencies' }],
-};
-
-const emptyPipeline: Pipeline = {};
-const resolvedPipeline: ResolvedPipeline = DEFAULT_PIPELINE;
-
-const transformer: TransformEntry = { name: 'react', someOption: true };
-const analysis: AnalysisEntry = { name: 'dependencies' };
-
-// @ts-expect-error — name is required
-const namelessTransformer: TransformEntry = { someOption: true };
-
 export {
   empty, full, source, keylessSource, color, badColor, badDepth, conventionInSettings,
-  defaults, format, depth, dir, pipeline, emptyPipeline, resolvedPipeline,
-  transformer, analysis, namelessTransformer,
+  defaults, format, depth, dir,
 };

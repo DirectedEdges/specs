@@ -16,7 +16,7 @@ Emits a functioning React component — BEM markup from the merged layout tree, 
 ## Invocation
 
 ```bash
-specs transform react
+specs react
 ```
 
 Requires `variants.yaml` — components without it are skipped with a warning, since slot visibility and variant data attributes are both derived from variant data.
@@ -41,7 +41,7 @@ dsAlert/
 
 Every output file — generated and authored alike — is PascalCase-prefixed with the component name (`DsAlert.*`), so filenames stay self-describing wherever they're opened, not just when the containing folder is visible.
 
-**`generated/react/{Component}.scaffold.tsx`** is always current with the spec — it's regenerated on every `specs transform react` run, importing `../{Component}.contract` and `../{Component}.styles.css`. Treat it as a live reference, not something to build on directly.
+**`generated/react/{Component}.scaffold.tsx`** is always current with the spec — it's regenerated on every `specs react` run, importing `../{Component}.contract` and `../{Component}.styles.css`. Treat it as a live reference, not something to build on directly.
 
 **`src/react/{Component}.tsx`** is created once, the first time the transformer runs for that component, as a copy of the scaffold with imports rewritten to the authored paths (`../../generated/{Component}.contract`, plus three CSS imports — see below). If the file already exists, it's left untouched. This is the file you actually implement against.
 
@@ -57,7 +57,7 @@ The authored component imports all three stylesheets in order: `../../generated/
 Given an Alert with a `severity` enum prop, a `dismissible` boolean, and a `body` slot rendered `always`:
 
 ```tsx
-// Authored component — seeded once by `specs transform`, never overwritten.
+// Authored component — seeded once by `specs react`, never overwritten.
 // The always-current generated reference lives at ../../generated/react/DsAlert.scaffold.tsx.
 import * as React from 'react';
 import '../../generated/DsAlert.styles.css';

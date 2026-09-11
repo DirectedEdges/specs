@@ -67,7 +67,6 @@ const settings: Settings = {
 - **`Metadata`** - Generation metadata
 - **`Conventions`** - Facts about the Figma library a spec came from
 - **`Settings`** - Choices about the run that produced it
-- **`Pipeline`** - Transformers and analyses a workspace runs
 
 ### Configuration
 - **`DEFAULT_CONVENTIONS`** - The three convention members that have a default; no blocks
@@ -90,7 +89,7 @@ const settings: Settings = {
 │ - TypeScript type definitions                    │
 │ - Default configuration constants                │
 │ Exports: Component, Conventions, Settings,       │
-│          Pipeline, DEFAULT_* constants           │
+│          DEFAULT_* constants                     │
 └──────────────────────────────────────────────────┘
                     ▲
                     │ imports types & config

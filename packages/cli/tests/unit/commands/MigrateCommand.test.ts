@@ -4,7 +4,7 @@
  * Covers `specs migrate config` (v1 → v2, ADR-071) and the underlying
  * `migrateConfigV1` mapping: every member of the pre-split
  * `specs.config.yaml` shape lands in the right split file — conventions,
- * settings, or pipeline. These mappings used to be exercised through the
+ * or settings. These mappings used to be exercised through the
  * loader's in-memory migration; the loader now refuses legacy files
  * (ConfigLoader.test.ts) and the mapping lives here.
  */
@@ -39,7 +39,6 @@ describe('migrateConfigV1 (config v1 → v2 mapping)', () => {
     expect(result.conventions).toBeUndefined();
     // Not "nothing": the layout flags must be preserved even from an empty source.
     expect(result.settings).toEqual({ spec: { ...PRESERVED_LAYOUT } });
-    expect(result.pipeline).toBeUndefined();
   });
 
   it('maps dataDirectory to settings.data.directory', () => {
@@ -201,18 +200,14 @@ describe('migrateConfigV1 (config v1 → v2 mapping)', () => {
     expect(result.conventions).toBeUndefined();
   });
 
-  it('maps config.transformers to pipeline.transformers', () => {
+  it('drops config.transformers rather than carrying it forward', () => {
+    // A transformer pipeline stopped being a thing to configure once each target
+    // emitted everything it needs. `specs react` and `specs webcomponents` replace it.
     const result = migrateConfigV1({
       config: { transformers: [{ name: 'contract' }, { name: 'css', rules: ['layout'] }] },
     });
-    expect(result.pipeline).toEqual({
-      transformers: [{ name: 'contract' }, { name: 'css', rules: ['layout'] }],
-    });
-  });
-
-  it('omits pipeline when the source declares no transformers', () => {
-    const result = migrateConfigV1({ author: 'Test Author' });
-    expect(result.pipeline).toBeUndefined();
+    expect(result).not.toHaveProperty('pipeline');
+    expect(JSON.stringify(result)).not.toContain('transformers');
   });
 });
 
@@ -275,7 +270,6 @@ config:
 
     const conventions = yaml.parse(fs.readFileSync(path.join(testDir, 'config', 'conventions', 'figma.yaml'), 'utf-8'));
     const settings = yaml.parse(fs.readFileSync(path.join(testDir, 'config', 'settings.yaml'), 'utf-8'));
-    const pipeline = yaml.parse(fs.readFileSync(path.join(testDir, 'config', 'pipeline.yaml'), 'utf-8'));
 
     // The file IS the platform, so its body sits at the root (ADR-078).
     expect(conventions).toEqual({ naming: 'SENTENCE' });
@@ -284,7 +278,7 @@ config:
       data: { directory: './data-in' },
       spec: { directory: './specs-out', variantDepth: 2, ...PRESERVED_LAYOUT },
     });
-    expect(pipeline).toEqual({ transformers: [{ name: 'contract' }] });
+    expect(fs.existsSync(path.join(testDir, 'config', 'pipeline.yaml'))).toBe(false);
 
     // Discovery must stop finding the source: renamed, not left in place.
     expect(fs.existsSync(path.join(testDir, 'specs.config.yaml'))).toBe(false);
@@ -316,11 +310,10 @@ config:
     expect(fs.existsSync(path.join(testDir, 'specs.config.yaml.migrated'))).toBe(false);
     expect(logged()).toContain('Would write: config/conventions/figma.yaml');
     expect(logged()).toContain('Would write: config/settings.yaml');
-    expect(logged()).toContain('Would write: config/pipeline.yaml');
     expect(logged()).toContain('Would rename: specs.config.yaml → specs.config.yaml.migrated');
   });
 
-  it.each(['conventions.yaml', 'settings.yaml', 'pipeline.yaml'])(
+  it.each(['conventions.yaml', 'settings.yaml'])(
     'refuses (and writes nothing) when config/%s already exists',
     async existing => {
       fs.writeFileSync(path.join(testDir, 'specs.config.yaml'), LEGACY_FULL);
@@ -338,7 +331,7 @@ config:
     }
   );
 
-  it('writes no file for a section absent from the source (no transformers → no pipeline.yaml)', async () => {
+  it('writes no file for a section absent from the source', async () => {
     fs.writeFileSync(path.join(testDir, 'specs.config.yaml'), 'author: Test Author\n');
 
     await runMigrate('config');
@@ -449,8 +442,6 @@ config:
     });
 
     // pipeline
-    expect(config.pipeline.transformers).toEqual([{ name: 'contract' }]);
-    expect(config.pipeline.analyses).toEqual([]);
   });
 });
 

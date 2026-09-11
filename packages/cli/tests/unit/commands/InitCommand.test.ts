@@ -30,7 +30,6 @@ describe('InitCommand', () => {
         'config/conventions/react.yaml',
         'config/conventions/specs.yaml',
         'config/conventions/web-components.yaml',
-        'config/pipeline.yaml',
         'config/settings.yaml',
       ]);
     });
@@ -82,7 +81,7 @@ describe('InitCommand', () => {
   });
 
   describe('file operations', () => {
-    it('should create the three config files if they do not exist', async () => {
+    it('should create the config files if they do not exist', async () => {
       const templates = generateConfigTemplates();
       for (const [rel, template] of Object.entries(templates)) {
         const filePath = path.join(testDir, rel);
@@ -91,7 +90,6 @@ describe('InitCommand', () => {
       }
       expect(fs.existsSync(path.join(testDir, 'config', 'conventions', 'figma.yaml'))).toBe(true);
       expect(fs.existsSync(path.join(testDir, 'config', 'settings.yaml'))).toBe(true);
-      expect(fs.existsSync(path.join(testDir, 'config', 'pipeline.yaml'))).toBe(true);
     });
 
     it('should write template content exactly', async () => {

@@ -15,7 +15,7 @@ Emits a Storybook Component Story Format (CSF) page for each component: a `Defau
 ## Invocation
 
 ```bash
-specs transform stories
+specs react
 ```
 
 Requires `variants.yaml` — components without it are skipped with a warning, since stories are generated from the same variant analysis as the `react` transformer.
@@ -42,7 +42,7 @@ dsAlert/
 Given an Alert with `severity` (`info` | `warning` | `error`) and `dismissible` (boolean), both expressible as props:
 
 ```tsx
-// Generated. Do not edit — regenerate with `specs transform`.
+// Generated. Do not edit — regenerate with `specs react`.
 import type { Meta, StoryObj } from '@storybook/react';
 import { DsAlert } from '../../src/react/DsAlert';
 import { DsAlertDefaults } from '../DsAlert.contract';

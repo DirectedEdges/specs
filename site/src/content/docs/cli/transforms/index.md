@@ -1,11 +1,13 @@
 ---
 title: "Transforms"
-description: "Project component spec files into derived artifacts using specs transform"
+description: "Project component spec files into derived artifacts using specs react"
 ---
 
 <script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
 
-The `transform` command fans a component specification out into artifacts your codebase can consume: a TypeScript contract, a baseline stylesheet, a working component, a token inventory. Instead of writing those by hand, you derive them from the spec and keep them in sync as the design evolves. This concept is described in [RFC 001: Component Dictionary](https://github.com/DirectedEdges/specs/blob/main/rfc/001-component-dictionary/README.md).
+[`specs react`](/cli/commands/react/) and [`specs webcomponents`](/cli/commands/webcomponents/) fan a component specification out into artifacts your codebase can consume: a TypeScript contract, a baseline stylesheet, a working component, a token inventory. Instead of writing those by hand, you derive them from the spec and keep them in sync as the design evolves.
+
+These pages describe those artifacts one at a time. They are **not** separately invocable — a target emits everything it needs together, because a role annotated in Figma changes the element emitted, the props the contract declares and the CSS reset applied. Naming the pieces separately was how it worked before; ordering them correctly was the user's problem. This concept is described in [RFC 001: Component Dictionary](https://github.com/DirectedEdges/specs/blob/main/rfc/001-component-dictionary/README.md).
 
 Transforms take spec data as far as it deterministically goes — every prop, token, and style Figma captured — before inference enters the picture. Structured spec data is stable, regeneratable, and cheap to re-read; it's the right foundation for agents and tooling to build on, not a replacement for them. What the spec can't know — behavior, interaction states, accessibility semantics — belongs to agentically-extended specs and the authored files that live alongside.
 
@@ -21,14 +23,14 @@ output/
     api.yaml            # spec
     variants.yaml       # variant data
     generated/
-      DsAlert.contract.ts     # from specs transform contract
-      DsAlert.styles.css      # from specs transform css
+      DsAlert.contract.ts     # from specs react
+      DsAlert.styles.css      # from specs react
       react/
-        DsAlert.scaffold.tsx  # from specs transform react — always current, do not edit
-        DsAlert.stories.tsx   # from specs transform stories
+        DsAlert.scaffold.tsx  # from specs react — always current, do not edit
+        DsAlert.stories.tsx   # from specs react
       webcomponents/
-        DsAlert.scaffold.ts   # from specs transform webcomponents — always current, do not edit
-        DsAlert.stories.ts    # from specs transform webcomponents-stories
+        DsAlert.scaffold.ts   # from specs webcomponents — always current, do not edit
+        DsAlert.stories.ts    # from specs webcomponents
     src/
       react/
         DsAlert.tsx             # seeded once by react transformer, then human-owned
@@ -40,7 +42,7 @@ Every transform output file — generated and authored — is PascalCase-prefixe
 
 #### Authored vs. Generated
 
-`contract`, `css`, `cssvars`, `react`, `stories`, `webcomponents`, and `webcomponents-stories` all regenerate their `generated/` output on every run — never edit those files directly, since the next `specs transform` overwrites them.
+`contract`, `css`, `cssvars`, `react`, `stories`, `webcomponents`, and `webcomponents-stories` all regenerate their `generated/` output on every run — never edit those files directly, since the next `specs react` overwrites them.
 
 The `react` and `webcomponents` transformers additionally seed `src/react/{Component}.tsx` or `src/webcomponents/{Component}.ts` plus `.extensions.css` and `.proposed.css` the first time they run for a component. Those files are created once and never touched again, even on subsequent runs — they're yours to implement against. The `stories` and `webcomponents-stories` transformers import these authored components, not the regenerated scaffolds, so Storybook always reflects what you've built.
 
@@ -48,7 +50,7 @@ The `react` and `webcomponents` transformers additionally seed `src/react/{Compo
 
 ### Prerequisites
 
-`specs transform` discovers components by scanning the output directory for subfolders that each contain an `api.yaml`. That exact shape — a per-component subfolder with `api.yaml` and `variants.yaml` inside it — is what `generate` writes by default:
+`specs react` discovers components by scanning the output directory for subfolders that each contain an `api.yaml`. That exact shape — a per-component subfolder with `api.yaml` and `variants.yaml` inside it — is what `generate` writes by default:
 
 ```bash
 specs generate
@@ -60,17 +62,17 @@ If you only see a single `library.yaml`, or `{Component}.yaml` files with no `ap
 
 ### Processing
 
-`specs transform` discovers component subfolders under the output directory (each must contain an `api.yaml`), then runs one or more named transformers against every component.
+`specs react` discovers component subfolders under the output directory (each must contain an `api.yaml`), then runs one or more named transformers against every component.
 
 ```bash
-specs transform [transformers...] [options]
+specs react [transformers...] [options]
 ```
 
 Transformer names can be passed as positional arguments, configured in `config/pipeline.yaml`, or left absent to use the CLI default (`contract`).
 
 #### Resolution Order
 
-1. Positional arguments — `specs transform css react`
+1. Positional arguments — `specs react react`
 2. `transformers` in `config/pipeline.yaml`
 3. CLI default: `contract`
 
@@ -92,19 +94,19 @@ The `webcomponents` and `webcomponents-stories` transformers are **experimental*
 
 ### Filtering by Component
 
-By default `specs transform` runs against every component subfolder in the output directory. Use `--components` to scope a run to specific components:
+By default `specs react` runs against every component subfolder in the output directory. Use `--components` to scope a run to specific components:
 
 ```bash
-specs transform react stories --components dsAlert dsBadge
+specs react stories --components dsAlert dsBadge
 ```
 
 ## Running All Transformers
 
 ```bash
-specs transform contract css cssvars react stories webcomponents webcomponents-stories
+specs react css cssvars react stories webcomponents webcomponents-stories
 ```
 
-Or configure them in `config/pipeline.yaml` so `specs transform` alone is enough:
+Or configure them in `config/pipeline.yaml` so `specs react` alone is enough:
 
 ```yaml
 transformers:
