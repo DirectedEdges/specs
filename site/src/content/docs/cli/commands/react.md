@@ -18,24 +18,35 @@ No arguments. The target is the command.
 
 ## What it writes
 
+Two trees: its own, and the shared assets every target uses.
+
 ```
 react/
 ├── src/
-│   ├── _runtime.ts                       shared helpers, one per tree
+│   ├── _runtime.ts                           shared helpers, one per tree
 │   └── components/
-│       └── Button/
-│           ├── Button.scaffold.tsx       the component
-│           ├── Button.contract.ts        props, defaults, enums
-│           ├── Button.metadata.ts        slot shapes and rules, when it has slots
-│           ├── Button.styles.css         the stylesheet the scaffold imports
-│           ├── Button.stories.tsx        Storybook CSF
-│           └── StartVisual/              a subcomponent, nested as its spec is
+│       └── ActionList/
+│           ├── ActionList.scaffold.tsx       the component
+│           ├── ActionList.contract.ts        props, defaults, enums
+│           ├── ActionList.styles.css         the stylesheet the scaffold imports
+│           ├── ActionList.stories.tsx        Storybook CSF
+│           └── Item/                         a subcomponent, nested as its spec is
+│               ├── Item.scaffold.tsx
+│               ├── Item.contract.ts
+│               ├── Item.metadata.ts          slot shapes and rules, when it has slots
+│               ├── Item.styles.css
+│               └── Item.stories.tsx
 └── …
+
+assets/
+└── cssvars/
+    ├── cssvars.css                           the library's CSS custom properties
+    └── modes.json
 ```
 
-A component directory is named in PascalCase, from the spec folder's own spelling. Subcomponents nest beneath their parent exactly as their specs nest beneath the parent's spec folder, so the two trees read the same way.
+A component directory is named in PascalCase, from the spec folder's own spelling. Subcomponents nest beneath their parent exactly as their specs nest beneath the parent's spec folder, so the two trees read the same way, and a subcomponent is emitted as completely as a component — its own contract, stylesheet and stories.
 
-It also writes `assets/cssvars/` — the library's CSS custom properties, from the Figma variables and styles the specs reference. That output is platform-neutral and identical whichever target produces it, so [`webcomponents`](/cli/commands/webcomponents/) writes the same file. Running both is not a conflict; the second write is a no-op when the content matches.
+`assets/cssvars/` comes from the Figma variables and styles the specs reference. It is platform-neutral and identical whichever target produces it, so [`webcomponents`](/cli/commands/webcomponents/) writes the same file. Running both is not a conflict; the second write is a no-op when the content matches.
 
 ## Options
 

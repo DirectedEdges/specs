@@ -18,23 +18,37 @@ No arguments. The target is the command.
 
 ## What it writes
 
+Two trees: its own, and the shared assets every target uses.
+
 ```
 webcomponents/
 ├── src/
 │   └── components/
-│       └── Button/
-│           ├── Button.scaffold.ts        the custom element
-│           ├── Button.contract.ts        props, defaults, enums
-│           ├── Button.api.ts             tag name, parts, events
-│           ├── Button.metadata.ts        slot shapes and rules, when it has slots
-│           ├── Button.host.css           the host's own styling
-│           ├── Button.light.css          light-DOM styling for slotted content
-│           ├── Button.stories.ts         Storybook CSF
-│           └── StartVisual/              a subcomponent, nested as its spec is
+│       └── ActionList/
+│           ├── ActionList.scaffold.ts        the custom element
+│           ├── ActionList.contract.ts        props, defaults, enums
+│           ├── ActionList.api.ts             tag name, parts, events
+│           ├── ActionList.host.css           the host's own styling
+│           ├── ActionList.light.css          light-DOM styling for slotted content
+│           ├── ActionList.stories.ts         Storybook CSF
+│           └── Item/                         a subcomponent, nested as its spec is
+│               ├── Item.scaffold.ts
+│               ├── Item.contract.ts
+│               ├── Item.metadata.ts          slot shapes and rules, when it has slots
+│               ├── Item.host.css
+│               ├── Item.light.css
+│               └── Item.stories.ts
 └── …
+
+assets/
+└── cssvars/
+    ├── cssvars.css
+    └── modes.json
 ```
 
-It also writes `assets/cssvars/`, the same platform-neutral custom properties [`react`](/cli/commands/react/) writes. Whichever target runs produces it; running both is not a conflict.
+A subcomponent is emitted as completely as a component, minus the element API: its tag is namespaced by its parent, so the parent's `api.ts` carries it.
+
+`assets/cssvars/` holds the same platform-neutral custom properties [`react`](/cli/commands/react/) writes. Whichever target runs produces it; running both is not a conflict.
 
 Storybook glue lands in `storybook/lib/`, not here. A Lit element renders inside a React Storybook through a small React host component — which belongs to the Storybook project, because a Lit component library has no business importing React for a harness it never uses at runtime.
 
