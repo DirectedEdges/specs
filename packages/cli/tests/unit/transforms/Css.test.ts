@@ -836,7 +836,7 @@ describe('CssTransformer', () => {
       expect(out).toContain('background: linear-gradient(0deg, var(--ds-color-surface-primary) 0%, var(--ds-color-line-brand) 100%)');
     });
 
-    it('maps RADIAL to radial-gradient(at …) and ANGULAR to conic-gradient(from 90deg …)', async () => {
+    it('maps RADIAL to radial-gradient(at …) and ANGULAR to conic-gradient(from 0deg …)', async () => {
       const stops = [
         { position: 0, color: '#FF0000FF' },
         { position: 1, color: '#0000FFFF' },
@@ -850,7 +850,7 @@ describe('CssTransformer', () => {
         },
       });
       expect(out).toContain('background: radial-gradient(at 50% 25%, #FF0000FF 0%, #0000FFFF 100%)');
-      expect(out).toContain('background: conic-gradient(from 90deg at 50% 50%, #FF0000FF 0%, #0000FFFF 100%)');
+      expect(out).toContain('background: conic-gradient(from 0deg at 50% 50%, #FF0000FF 0%, #0000FFFF 100%)');
     });
 
     it('maps gradient strokes to a masked ring and resets it when a variant restores a solid stroke', async () => {
@@ -886,7 +886,7 @@ describe('CssTransformer', () => {
       // A gradient stroke paints on a ::before ring, so the element's own
       // block only cancels the mechanisms a sibling layer may have drawn with.
       expect(gradientBlock).toContain('outline-style: none');
-      expect(out).toContain('background: conic-gradient(from 90deg at 50% 50%, #FF0000FF 0%, #B1F836FF 74%)');
+      expect(out).toContain('background: conic-gradient(from 0deg at 50% 50%, #FF0000FF 0%, #B1F836FF 74%)');
       expect(out).toContain('mask-composite: exclude');
       const solidBlock = out.match(/\.ds-button\[data-a="2"\]\[data-b="2"\] \{[^}]*\}/)?.[0] ?? '';
       // A solid stroke is an outline (layout-safe); the border-image reset is

@@ -342,8 +342,9 @@ function percent(n: unknown): string {
  *
  *   LINEAR  → linear-gradient(Ndeg, …)   — spec angle is already CSS convention
  *   RADIAL  → radial-gradient(at X% Y%, …)
- *   ANGULAR → conic-gradient(from 90deg at X% Y%, …) — Figma's angular sweep
- *             starts at 3 o'clock; CSS conic 0deg is 12 o'clock
+ *   ANGULAR → conic-gradient(from 0deg at X% Y%, …) — both start at 12
+ *             o'clock. An angular gradient carries no angle (ADR-003); the
+ *             rotation it appears at is the node's, applied as a transform
  *
  * Stop colors run through colorValue, so token references become var(--…).
  */
@@ -361,7 +362,7 @@ export function gradientValue(v: unknown, tokensFormat = 'TOKEN'): string | null
   switch (v.type) {
     case 'LINEAR': return `linear-gradient(${v.angle ?? 0}deg, ${stopList})`;
     case 'RADIAL': return `radial-gradient(${at}, ${stopList})`;
-    case 'ANGULAR': return `conic-gradient(from 90deg ${at}, ${stopList})`;
+    case 'ANGULAR': return `conic-gradient(from 0deg ${at}, ${stopList})`;
     default: return null;
   }
 }

@@ -410,6 +410,12 @@ function gradientCss(p: Json, boundVar: (bv: Json | undefined) => string | null)
   }
   const at = `at ${pct(h[0].x)} ${pct(h[0].y)}`;
   if (p.type === 'GRADIENT_RADIAL') return `radial-gradient(${at}, ${stops})`;
-  if (p.type === 'GRADIENT_ANGULAR') return `conic-gradient(from 90deg ${at}, ${stops})`;
+  // CSS conic and Figma's angular sweep both start at 12 o'clock, so no
+  // conversion is applied. The rotation an angular gradient appears at comes
+  // from the node, which the spec records as `rotation` and the element
+  // applies as a transform — the gradient value itself carries centre and
+  // stops and no angle at all (ADR-003), in both capture and render. Adding a
+  // 90-degree constant here turned the arc a second time.
+  if (p.type === 'GRADIENT_ANGULAR') return `conic-gradient(from 0deg ${at}, ${stops})`;
   return null;
 }
