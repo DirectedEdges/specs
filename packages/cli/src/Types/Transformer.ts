@@ -2,8 +2,23 @@ import type { ResolvedPlatformConventions, SpecsConventions } from '@directededg
 import type { ProcessingStates } from '../transforms/states.js';
 
 export interface TransformerContext {
-  /** Absolute path to the component's output subfolder. */
+  /**
+   * Absolute path to the component's **spec** folder — where `api.yaml`,
+   * `variants.yaml` and `examples.yaml` are read from, and where subcomponent
+   * spec folders nest. Read-only input.
+   */
+  specDir: string;
+  /**
+   * Absolute path this transformer writes this component's output to.
+   *
+   * Equal to `specDir` for a transformer that emits beside the spec. A
+   * transformer declaring an `outputTree` is given a path inside that tree
+   * instead, so its output is separable from the spec that produced it
+   * (project 024).
+   */
   outputDir: string;
+  /** Absolute path to the workspace root — the parent of `specs/`. */
+  workspaceDir: string;
   /** camelCase component folder name (e.g. `dsButton`). */
   componentKey: string;
   /** Token format from config.format.tokens. Drives CSS variable resolution. */
@@ -61,6 +76,16 @@ export interface Transformer {
    * implementations with different vocabularies, so each names its own key.
    */
   readonly platformId?: string;
+  /**
+   * The workspace tree this transformer writes into — `react`, `webcomponents`,
+   * `assets`. Absent means it emits beside the spec, which is where everything
+   * wrote before project 024.
+   *
+   * Fixed by the transformer, not configured, for the same reason `platformId`
+   * is: where a transformer's output belongs is a property of what it emits.
+   */
+  readonly outputTree?: string;
+
   run(apiYaml: Record<string, unknown>, context: TransformerContext): Promise<void>;
   /** Called once after all components have been processed. Use for cross-component aggregate output. */
   finalize?(outputDir: string, analysisDir?: string, foundations?: AnalyzerFoundations): Promise<void>;

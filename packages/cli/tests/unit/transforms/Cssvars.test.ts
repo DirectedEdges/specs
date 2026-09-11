@@ -135,7 +135,7 @@ describe('CssvarsTransformer', () => {
   });
 
   async function runFinalize(t = transformer()) {
-    await t.run({}, { outputDir: path.join(outDir, 'comp'), componentKey: 'comp', tokensFormat: 'TOKEN', outputFormat: 'JSON' as const, dataDirectory: dataDir });
+    await t.run({}, { specDir: path.join(outDir, 'comp'), outputDir: path.join(outDir, 'comp'), workspaceDir: outDir, componentKey: 'comp', tokensFormat: 'TOKEN', outputFormat: 'JSON' as const, dataDirectory: dataDir });
     await t.finalize!(outDir);
     return fs.readFile(path.join(outDir, 'cssvars', 'cssvars.css'), 'utf-8');
   }
@@ -198,7 +198,7 @@ describe('CssvarsTransformer', () => {
   it('warns and skips when no data directory exists', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const t = transformer();
-    await t.run({}, { outputDir: path.join(outDir, 'comp'), componentKey: 'comp', tokensFormat: 'TOKEN', outputFormat: 'JSON' as const, dataDirectory: path.join(tmpDir, 'missing') });
+    await t.run({}, { specDir: path.join(outDir, 'comp'), outputDir: path.join(outDir, 'comp'), workspaceDir: outDir, componentKey: 'comp', tokensFormat: 'TOKEN', outputFormat: 'JSON' as const, dataDirectory: path.join(tmpDir, 'missing') });
     await t.finalize!(outDir);
     expect(fs.existsSync(path.join(outDir, 'cssvars'))).toBe(false);
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('no data directory'));

@@ -11,7 +11,7 @@ const transformer = new CssTransformer();
 import type { ProcessingStates } from '../../../src/transforms/states.js';
 
 function makeContext(dir: string, componentKey = 'dsButton', tokensFormat = 'TOKEN', processingStates?: ProcessingStates) {
-  return { outputDir: dir, componentKey, tokensFormat, outputFormat: 'JSON' as const, processingStates };
+  return { specDir: dir, outputDir: dir, workspaceDir: dir, componentKey, tokensFormat, outputFormat: 'JSON' as const, processingStates };
 }
 
 async function writeVariants(dir: string, data: Record<string, unknown>) {

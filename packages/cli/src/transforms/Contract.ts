@@ -11,12 +11,12 @@ export class ContractTransformer implements Transformer {
   readonly name = 'contract';
 
   async run(apiYaml: Record<string, unknown>, context: TransformerContext): Promise<void> {
-    const { outputDir, componentKey } = context;
+    const { specDir, outputDir, componentKey } = context;
     const prefix = toPascalCase(componentKey);
     const omittedProps = buildOmittedProps(context.processingStates ?? {});
 
     // variants.yaml is optional input — without it, contracts omit slot rules.
-    const variantsPath = path.join(outputDir, 'variants.yaml');
+    const variantsPath = path.join(specDir, 'variants.yaml');
     const variantsYaml = fs.existsSync(variantsPath)
       ? (yaml.parse(await fs.readFile(variantsPath, 'utf-8')) as Record<string, unknown>)
       : undefined;

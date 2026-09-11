@@ -40,9 +40,9 @@ export class CssTransformer implements Transformer {
   readonly name = 'css';
 
   async run(apiYaml: Record<string, unknown>, context: TransformerContext): Promise<void> {
-    const { outputDir, componentKey, tokensFormat } = context;
+    const { specDir, outputDir, componentKey, tokensFormat } = context;
 
-    const variantsPath = path.join(outputDir, 'variants.yaml');
+    const variantsPath = path.join(specDir, 'variants.yaml');
     if (!fs.existsSync(variantsPath)) {
       console.warn(`  [css] skipping ${componentKey}: no variants.yaml found`);
       return;
@@ -55,7 +55,7 @@ export class CssTransformer implements Transformer {
     const prefix = toPascalCase(componentKey);
     // Images registry (ADR-063): backgroundImage fills resolve against it;
     // urls are emitted relative to each stylesheet's location.
-    const examples = loadExamples(outputDir);
+    const examples = loadExamples(specDir);
     const lines = buildCssLines(componentClass, variantsYaml, tokensFormat, context, anatomyTypes(apiYaml), {
       examples,
       relPrefix: '../../_images',

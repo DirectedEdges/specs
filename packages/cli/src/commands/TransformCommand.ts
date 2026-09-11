@@ -4,6 +4,7 @@ import path from 'path';
 import yaml from 'yaml';
 import { ConfigLoader } from '../Config/ConfigLoader.js';
 import { resolveTransformers, DEFAULT_TRANSFORMERS } from '../transforms/index.js';
+import { toPascalCase } from '../transforms/naming.js';
 import type { TransformerContext } from '../Types/Transformer.js';
 import type { ProcessingStates } from '../transforms/states.js';
 import { platformOf } from '../Config/PlatformConventions.js';
@@ -68,6 +69,10 @@ export const Transform = new Command('transform')
         console.log(`[transform] transformers: ${transformers.map(t => t.name).join(', ')}`);
       }
 
+      // The workspace root is the parent of the specs directory. Platform trees are
+      // siblings of it, so every transformer's output root is derived from here.
+      const workspaceDir = path.dirname(outputPath);
+
       // Discover component subfolders — each must contain api.yaml
       const entries = await fs.readdir(outputPath, { withFileTypes: true });
       let componentDirs = entries
@@ -105,8 +110,17 @@ export const Transform = new Command('transform')
           const apiYaml = yaml.parse(raw) as Record<string, unknown>;
 
           for (const transformer of transformers) {
+            // Where a transformer writes is its own declaration (project 024). Absent
+            // an `outputTree` it emits beside the spec, which is where everything
+            // wrote before the trees were separated.
+            const outputDir = transformer.outputTree
+              ? path.join(workspaceDir, transformer.outputTree, 'src', 'components', toPascalCase(componentKey))
+              : componentDir;
+
             const context: TransformerContext = {
-              outputDir: componentDir,
+              specDir: componentDir,
+              outputDir,
+              workspaceDir,
               componentKey,
               tokensFormat: config.settings.spec.tokens,
               outputFormat: config.settings.spec.format,
