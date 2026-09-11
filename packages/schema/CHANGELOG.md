@@ -63,6 +63,10 @@ These reshape types that `0.31.0` published: this branch was cut before `0.31.0`
 - [ADR-086](../../adr/086-interactive-root-roles.md) — Interactive Root and Announcement Role Concepts
 - [ADR-087](../../adr/087-behavior-actions.md) — Behavior Actions via `anatomy.action`
 
+### Fixed
+
+- The exports map no longer offers `./schema/pipeline` — the file it pointed at was removed with the `Pipeline` retirement, so the subpath failed at resolution. A test now verifies every exports entry resolves to a shipped file
+
 ## [0.31.0] - 2026-09-04
 
 Configuration now separates what is true about a Figma library from what a run chooses to do with it. A convention — a naming pattern, a state classification, where subcomponents live — is a fact every consumer of that library must share, and getting one wrong produces incorrect output. A setting is a free choice that produces different output. They were peers in one `Config`; they are now two published types, each addressable, each validated on its own, with the work a workspace runs declared separately again.
