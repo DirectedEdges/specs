@@ -30,6 +30,7 @@ import { Migrate } from './commands/MigrateCommand.js';
 import { Analyze } from './commands/AnalyzeCommand.js';
 import { ApplyCustomTokens } from './commands/ApplyCustomTokensCommand.js';
 import { Transform } from './commands/TransformCommand.js';
+import { React, WebComponents } from './commands/TargetCommands.js';
 import { Render } from './commands/RenderCommand.js';
 import { Bridge } from './commands/BridgeCommand.js';
 
@@ -68,6 +69,8 @@ export function createProgram(): Command {
   program.addCommand(Fetch);
   program.addCommand(Cache);
   program.addCommand(ApplyCustomTokens);
+  program.addCommand(React);
+  program.addCommand(WebComponents);
   program.addCommand(Transform);
   program.addCommand(Analyze);
   program.addCommand(Render);

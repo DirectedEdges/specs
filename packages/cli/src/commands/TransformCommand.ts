@@ -1,171 +1,45 @@
+// `specs transform` — the older, name-a-transformer surface.
+//
+// Superseded by `specs react` and `specs webcomponents`, which emit a target whole
+// rather than asking a user to name the pieces and get their order right. Kept for
+// one release so existing workspaces and scripts keep working.
 import { Command } from 'commander';
-import fs from 'fs-extra';
-import path from 'path';
-import yaml from 'yaml';
 import { ConfigLoader } from '../Config/ConfigLoader.js';
 import { resolveTransformers, DEFAULT_TRANSFORMERS } from '../transforms/index.js';
-import { toPascalCase } from '../transforms/naming.js';
-import type { TransformerContext } from '../Types/Transformer.js';
-import type { ProcessingStates } from '../transforms/states.js';
-import { platformOf } from '../Config/PlatformConventions.js';
-
-const ERROR_CODES = { SUCCESS: 0, INVALID_ARGS: 2, FILE_ERROR: 3, GENERAL_ERROR: 1 };
-
-interface TransformOptions {
-  output?: string;
-  config?: string;
-  components?: string[];
-  verbose: boolean;
-}
+import { runEmitters, type EmitOptions } from './runEmitters.js';
 
 export const Transform = new Command('transform')
-  .description('Project component contracts into derived files (contract, css, tokens, …)')
-  .argument('[transformers...]', 'Transformer names to run (default: contract)')
+  .description('Project component contracts into derived files (superseded by `specs react` / `specs webcomponents`)')
+  .argument('[transformers...]', 'Transformer names to run')
   .option('-o, --output <path>', 'Path to the specs directory (input and output)')
   .option('--config <path>', 'Path to a config/ directory or legacy specs.config.yaml')
   .option('--components <keys...>', 'Only transform these component folders (default: all)')
   .option('--verbose', 'Enable detailed logging', false)
-  .action(async (transformerNames: string[], options: TransformOptions) => {
-    try {
-      const configLoader = new ConfigLoader();
-      const config = configLoader.load(options.config);
-
-      // Resolve output/input directory: flag → config → cwd
-      const outputPath = options.output
-        ? path.resolve(options.output)
-        : config.settings.spec.directory
-          ? path.resolve(config.settings.spec.directory)
-          : path.resolve(process.cwd());
-
-      if (!fs.existsSync(outputPath)) {
-        console.error(`Error: specs directory not found: ${outputPath}`);
-        console.error('Tip: run `specs generate` first — it writes this layout by default');
-        process.exit(ERROR_CODES.INVALID_ARGS);
-      }
-
-      // Resolve transformer names: positionals → pipeline.transformers → defaults
-      const configTransformerEntries = config.pipeline.transformers as Array<Record<string, unknown>>;
-      const transformerOptionsMap = new Map<string, Record<string, unknown>>(
-        configTransformerEntries.map(e => {
-          const { name, ...rest } = e;
-          return [name as string, rest];
-        })
-      );
-      const configTransformers = configTransformerEntries.map(e => e.name as string);
-      const names = transformerNames.length > 0
-        ? transformerNames
-        : configTransformers.length > 0
-          ? configTransformers
-          : DEFAULT_TRANSFORMERS;
-
-      const transformers = resolveTransformers(names);
-      if (transformers.length === 0) {
-        console.error('Error: no valid transformers to run');
-        process.exit(ERROR_CODES.INVALID_ARGS);
-      }
-
-      if (options.verbose) {
-        console.log(`[transform] directory: ${outputPath}`);
-        console.log(`[transform] transformers: ${transformers.map(t => t.name).join(', ')}`);
-      }
-
-      // The workspace root is the parent of the specs directory. Platform trees are
-      // siblings of it, so every transformer's output root is derived from here.
-      const workspaceDir = path.dirname(outputPath);
-
-      // Discover component subfolders — each must contain api.yaml
-      const entries = await fs.readdir(outputPath, { withFileTypes: true });
-      let componentDirs = entries
-        .filter(e => e.isDirectory())
-        .map(e => e.name)
-        .filter(name => fs.existsSync(path.join(outputPath, name, 'api.yaml')));
-
-      if (options.components && options.components.length > 0) {
-        const requested = new Set(options.components);
-        const missing = options.components.filter(c => !componentDirs.includes(c));
-        for (const m of missing) {
-          console.warn(`Warning: component "${m}" not found in ${outputPath} — skipping`);
-        }
-        componentDirs = componentDirs.filter(name => requested.has(name));
-      }
-
-      if (componentDirs.length === 0) {
-        console.error(`Error: no component directories with api.yaml found in ${outputPath}`);
-        console.error('Tip: run `specs generate` first — it writes this layout by default');
-        process.exit(ERROR_CODES.FILE_ERROR);
-      }
-
-      console.log(`⏳ Transforming ${componentDirs.length} components (${transformers.map(t => t.name).join(', ')})…`);
-      console.log('');
-
-      let succeeded = 0;
-      let failed = 0;
-
-      for (const componentKey of componentDirs) {
-        const componentDir = path.join(outputPath, componentKey);
-        const apiPath = path.join(componentDir, 'api.yaml');
-
-        try {
-          const raw = await fs.readFile(apiPath, 'utf-8');
-          const apiYaml = yaml.parse(raw) as Record<string, unknown>;
-
-          for (const transformer of transformers) {
-            // Where a transformer writes is its own declaration (project 024). Absent
-            // an `outputTree` it emits beside the spec, which is where everything
-            // wrote before the trees were separated.
-            const outputDir = transformer.outputTree
-              ? path.join(workspaceDir, transformer.outputTree, 'src', 'components', toPascalCase(componentKey))
-              : componentDir;
-
-            const context: TransformerContext = {
-              specDir: componentDir,
-              outputDir,
-              workspaceDir,
-              componentKey,
-              tokensFormat: config.settings.spec.tokens,
-              outputFormat: config.settings.spec.format,
-              processingStates: config.conventions.specs?.states as ProcessingStates | undefined,
-              specs: config.conventions.specs,
-              // The conventions of the platform this transformer emits for (ADR-073).
-              // Each transformer names its own key — react and web-components are peer
-              // implementations, not one shared `web`.
-              platform: transformer.platformId
-                ? platformOf(config.conventions, transformer.platformId)
-                : undefined,
-              transformerOptions: transformerOptionsMap.get(transformer.name),
-              dataDirectory: config.settings.data?.directory
-                ? path.resolve(config.settings.data.directory)
-                : undefined,
-              scoped: (options.components?.length ?? 0) > 0,
-            };
-            await transformer.run(apiYaml, context);
-          }
-
-          if (options.verbose) {
-            console.log(`  ✓ ${componentKey}`);
-          }
-          succeeded++;
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          console.error(`  ✗ ${componentKey}: ${msg}`);
-          failed++;
-        }
-      }
-
-      for (const transformer of transformers) {
-        if (transformer.finalize) {
-          await transformer.finalize(outputPath);
-        }
-      }
-
-      console.log('');
-      console.log(`✓ Transform complete`);
-      console.log(`  ${succeeded} succeeded${failed > 0 ? `, ${failed} failed` : ''}`);
-
-      process.exit(failed > 0 ? ERROR_CODES.GENERAL_ERROR : ERROR_CODES.SUCCESS);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.error(`Error: ${message}`);
-      process.exit(ERROR_CODES.GENERAL_ERROR);
-    }
+  .action(async (transformerNames: string[], options: EmitOptions) => {
+    await runEmitters(
+      {
+        label: 'transform',
+        transformerOptions: optionsByName(new ConfigLoader().load(options.config)),
+        transformers: (config) => {
+          const configured = (config.pipeline.transformers as Array<Record<string, unknown>>)
+            .map(e => e.name as string);
+          const names = transformerNames.length > 0
+            ? transformerNames
+            : configured.length > 0
+              ? configured
+              : DEFAULT_TRANSFORMERS;
+          return resolveTransformers(names);
+        },
+      },
+      options,
+    );
   });
+
+/** Per-transformer options from `pipeline.yaml`, keyed by transformer name. */
+function optionsByName(config: ReturnType<ConfigLoader['load']>): Map<string, Record<string, unknown>> {
+  const entries = config.pipeline.transformers as Array<Record<string, unknown>>;
+  return new Map(entries.map(e => {
+    const { name, ...rest } = e;
+    return [name as string, rest];
+  }));
+}
