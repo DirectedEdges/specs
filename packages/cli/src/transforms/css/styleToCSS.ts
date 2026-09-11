@@ -28,6 +28,30 @@ const FONT_STYLE_WEIGHT_MAP: Record<string, string> = {
 
 const FONT_STYLE_ITALIC_SUFFIXES = ['Italic', 'Oblique'];
 
+/**
+ * Whether a stroke is drawn as an outline rather than a border.
+ *
+ * Everything but a per-side weight, which an outline has no way to express.
+ * `strokeAlign` does not enter into it: no alignment should cost layout space,
+ * and undefined reads as INSIDE, Figma's own default when none is recorded.
+ */
+/**
+ * A length as its negative.
+ *
+ * A plain length just takes a minus sign. Anything else — a `var()`, a `calc()`
+ * — cannot: `-var(--x)` is not a value, and the whole declaration is dropped as
+ * invalid. Every token-valued stroke width hit exactly that, which read as the
+ * stroke sitting in the wrong place rather than as broken CSS.
+ */
+function negate(length: string): string {
+  if (/^[\d.]+(px|rem|em|%)$/.test(length)) return `-${length}`;
+  return `calc(-1 * ${length})`;
+}
+
+function asOutline(strokeWeight: unknown): boolean {
+  return !(typeof strokeWeight === 'object' && strokeWeight !== null && !isTokenRef(strokeWeight));
+}
+
 const DIMENSION_KEYS: Array<[string, string]> = [
   ['width', 'width'],
   ['height', 'height'],
@@ -135,11 +159,24 @@ export function styleToCSS(
   // strokes + strokeWeight together form a border. border-style must be emitted
   // whenever strokes is present and non-null — CSS borders are invisible without it.
   //
-  // strokeAlign mapping:
-  //   INSIDE  → CSS border (default behavior: border inside element bounds)
-  //   CENTER  → CSS outline (renders centered on element edge, outside box model)
-  //   OUTSIDE → CSS outline (renders outside element bounds)
+  // strokeAlign mapping — every alignment is an outline:
+  //   INSIDE  → outline pulled in by its own width (outline-offset: -W)
+  //   CENTER  → outline (renders centered on the element edge)
+  //   OUTSIDE → outline (renders outside element bounds)
   //   null    → remove border (border-width: 0; border-color: transparent)
+  //
+  // A Figma stroke costs no space at any alignment: the frame stays the size it
+  // was and the stroke is drawn relative to its edge. A CSS border cannot do
+  // that — it is only "inside" when the element has an explicit size, and
+  // `box-sizing: border-box` does nothing for a hugging element, where the
+  // border adds its width to the box and pushes the content in. A badge hugging
+  // its content came out 2px taller than the design for exactly that reason.
+  //
+  // An outline affects no layout and follows border-radius, so a negative
+  // offset of its own width lands an inside stroke where Figma draws it. The
+  // one thing an outline cannot express is a per-side weight, which keeps the
+  // border mapping — the design strokes some sides and not others, and four
+  // widths need four properties.
 
   const hasStrokes = 'strokes' in styles;
   const hasStrokeWeight = 'strokeWeight' in styles;
@@ -148,7 +185,12 @@ export function styleToCSS(
   if (hasStrokes) {
     const strokesVal = styles.strokes;
     if (strokesVal === null) {
+      // Clears both mechanisms. A variant that drops its stroke has to cancel
+      // whatever the default block drew, and since a solid stroke is an outline
+      // and a gradient one is a border-image, resetting only the border leaves
+      // the default's outline painting on a variant that has no stroke.
       decls.push('border-color: transparent');
+      decls.push('outline-style: none');
       if (options.resetBorderImage) decls.push('border-image: none');
     } else if (isGradient(strokesVal)) {
       // border-image is the only gradient-capable border mechanism. It ignores
@@ -162,9 +204,13 @@ export function styleToCSS(
     } else {
       const v = colorValue(strokesVal, tokensFormat);
       if (v) {
-        if (strokeAlign === 'OUTSIDE' || strokeAlign === 'CENTER') {
+        if (asOutline(styles.strokeWeight)) {
           decls.push(`outline-color: ${v}`);
           decls.push('outline-style: solid');
+          // A gradient stroke still paints through border-image, so a solid
+          // stroke on another variant of the same element has to cancel it —
+          // the outline it emits instead cannot override a border property.
+          if (options.resetBorderImage) decls.push('border-image: none');
         } else {
           decls.push(`border-color: ${v}`);
           decls.push('border-style: solid');
@@ -178,13 +224,19 @@ export function styleToCSS(
     const v = styles.strokeWeight;
     if (v === null) {
       decls.push('border-width: 0');
+      decls.push('outline-width: 0');
     } else if (typeof v === 'object' && v !== null && !isTokenRef(v)) {
       decls.push(...sidesValue(v as Record<string, unknown>, 'border-width', tokensFormat));
     } else {
       const d = dimensionValue(v, tokensFormat);
       if (d) {
-        if (strokeAlign === 'OUTSIDE' || strokeAlign === 'CENTER') {
+        if (asOutline(v)) {
           decls.push(`outline-width: ${d}`);
+          // Centre and outside sit where the outline naturally falls; only an
+          // inside stroke is pulled back over the element's own edge.
+          if (strokeAlign !== 'OUTSIDE' && strokeAlign !== 'CENTER') {
+            decls.push(`outline-offset: ${negate(d)}`);
+          }
         } else {
           decls.push(`border-width: ${d}`);
         }
@@ -389,6 +441,38 @@ export function styleToCSS(
     if (typeof v === 'string' && TEXT_ALIGN_MAP[v]) {
       decls.push(`text-align: ${TEXT_ALIGN_MAP[v]}`);
     }
+  }
+
+  // ── Text truncation ──────────────────────────────────────────────────────────
+  //
+  // Figma truncates a text layer by line count, optionally with an ellipsis.
+  // CSS has two mechanisms and they do not overlap: a single line truncates
+  // with `text-overflow`, which needs the line held on one line and the
+  // overflow hidden; more than one line needs the line-clamp box.
+  //
+  // Both need `overflow: hidden`, and `clipsContent` may have already said so —
+  // a duplicate declaration is harmless, and omitting it where clipsContent is
+  // absent would leave the truncation inert.
+
+  const maxLines = styles.maxLines;
+  const ellipsis = styles.textOverflow === 'ELLIPSIS';
+  if (typeof maxLines === 'number' && maxLines > 0) {
+    if (maxLines === 1) {
+      decls.push('white-space: nowrap');
+      decls.push('overflow: hidden');
+      if (ellipsis) decls.push('text-overflow: ellipsis');
+    } else {
+      decls.push('display: -webkit-box');
+      decls.push('-webkit-box-orient: vertical');
+      decls.push(`-webkit-line-clamp: ${maxLines}`);
+      decls.push(`line-clamp: ${maxLines}`);
+      decls.push('overflow: hidden');
+    }
+  } else if (ellipsis) {
+    // An ellipsis with no line count is a single-line truncation.
+    decls.push('white-space: nowrap');
+    decls.push('overflow: hidden');
+    decls.push('text-overflow: ellipsis');
   }
 
   // ── Aspect ratio ─────────────────────────────────────────────────────────────

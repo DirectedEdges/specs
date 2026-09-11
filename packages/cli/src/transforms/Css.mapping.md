@@ -98,10 +98,10 @@ skipped for untyped legacy `fill`; `strokes` → see Border below.
 
 | Spec key | CSS property | Notes |
 |----------|-------------|-------|
-| `strokes` | `border-color` | `null` → `transparent` |
+| `strokes` | `outline-color` | `null` clears both mechanisms — `border-color: transparent` and `outline-style: none` — since a variant dropping its stroke must cancel whatever the default drew. Per-side weights still emit `border-color`. |
 | `strokes` (gradient) | `border-image` | `border-image: <gradient> 1` + `border-style: solid` — the only gradient-capable border mechanism. Ignores `border-radius`; OUTSIDE/CENTER strokes fall back to the same mapping (outlines can't take gradients). Elements that mix gradient and solid strokes across variants get `border-image: none` alongside solid `border-color` so the override wins. |
-| `strokeWeight` | `border-width` | Scalar → px. `Sides` object → per-side shorthand. |
-| `strokeAlign` | *(skipped)* | No direct CSS equivalent. `INSIDE` requires a `box-shadow: inset` workaround; `OUTSIDE` requires `outline`. `CENTER` matches default CSS border behavior. Consumer must implement. |
+| `strokeWeight` | `outline-width` | Scalar → px, plus `outline-offset` for inside strokes. `Sides` object → per-side `border-width` shorthand. `null` zeroes both. |
+| `strokeAlign` | `outline-offset` | Every alignment emits an `outline`, which costs no layout space — a Figma stroke never changes a frame's size, and a CSS border does for a hugging element. `INSIDE` (and an unrecorded alignment, Figma's default) is pulled back over its own edge with a negative `outline-offset`; `OUTSIDE` and `CENTER` sit where the outline naturally falls. A per-side `strokeWeight` keeps the border mapping, since an outline has one width. |
 
 ### Corner radius
 
@@ -239,7 +239,7 @@ They are emitted regardless of whether the element is itself a flex container.
 | `itemReverseZIndex` | Figma auto-layout z-index reversal — no CSS equivalent |
 | `primaryAxisSizingMode` | Figma internal (AUTO vs FIXED on main axis) — no CSS equivalent |
 | `layoutMode: NONE` | No auto-layout — emits no flex rules |
-| `strokeAlign` | No direct equivalent; see Border section above |
+| `strokeAlign` | Emitted as `outline-offset`; see Border section above |
 | `textAlignVertical` | Handled by parent flex `align-items` in most cases |
 | `centerHorizontalOffset` / `centerVerticalOffset` | No CSS equivalent for CENTER-constrained Figma positioning |
 | `DIAMOND` gradients | Excluded at the schema level — no native CSS/SwiftUI/Compose equivalent |

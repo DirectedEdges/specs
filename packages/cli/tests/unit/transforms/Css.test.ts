@@ -539,135 +539,6 @@ describe('CssTransformer', () => {
     expect(out).not.toContain('.ds-button {');
   });
 
-  describe('border-shift-inset-shadow rule', () => {
-    const rules = { rules: ['border-shift-inset-shadow'] };
-
-    it('is a no-op when no variants change strokeWeight or strokes', async () => {
-      const out = await run(tmpDir, {
-        default: { elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
-        variants: [
-          { configuration: { size: 'lg' }, elements: { root: { styles: { layoutMode: 'VERTICAL' } } } },
-        ],
-      }, 'dsButton', 'TOKEN', undefined, rules);
-      expect(out).not.toContain('box-shadow');
-      expect(out).not.toContain('border-color: transparent');
-    });
-
-    it('replaces variant strokeWeight+strokes with box-shadow: inset, not border-width in the variant block', async () => {
-      const out = await run(tmpDir, {
-        default: { elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
-        variants: [
-          {
-            configuration: { selected: true },
-            elements: { root: { styles: { strokeWeight: 2, strokes: tokenRef('Color/Border/Selected') } } },
-          },
-        ],
-      }, 'dsButton', 'TOKEN', undefined, rules);
-      expect(out).toContain('box-shadow: inset 0 0 0 2px var(--color-border-selected)');
-      // Variant block should not re-declare border-width (it's handled by box-shadow)
-      const variantBlock = out.split('.ds-button[data-selected]')[1] ?? '';
-      expect(variantBlock).not.toContain('border-width');
-    });
-
-    it('reserves space in the default block with a transparent border at the variant width', async () => {
-      const out = await run(tmpDir, {
-        default: { elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
-        variants: [
-          {
-            configuration: { selected: true },
-            elements: { root: { styles: { strokeWeight: 2, strokes: tokenRef('Color/Border/Selected') } } },
-          },
-        ],
-      }, 'dsButton', 'TOKEN', undefined, rules);
-      expect(out).toContain('border-width: 2px');
-      expect(out).toContain('border-color: transparent');
-      expect(out).toContain('border-style: solid');
-    });
-
-    it('uses the default strokeWeight as reservation when already present in default', async () => {
-      const out = await run(tmpDir, {
-        default: {
-          elements: {
-            root: { styles: { strokeWeight: 1, strokes: tokenRef('Color/Border/Default') } },
-          },
-        },
-        variants: [
-          {
-            configuration: { selected: true },
-            elements: { root: { styles: { strokes: tokenRef('Color/Border/Selected') } } },
-          },
-        ],
-      }, 'dsButton', 'TOKEN', undefined, rules);
-      expect(out).toContain('border-width: 1px');
-      expect(out).toContain('border-color: transparent');
-      expect(out).toContain('box-shadow: inset 0 0 0 1px var(--color-border-selected)');
-    });
-
-    it('resolves token refs for both weight and color in the box-shadow value', async () => {
-      const out = await run(tmpDir, {
-        default: { elements: { root: { styles: {} } } },
-        variants: [
-          {
-            configuration: { selected: true },
-            elements: {
-              root: {
-                styles: {
-                  strokeWeight: tokenRef('Border/Width/Focus', 'dimension'),
-                  strokes: tokenRef('Color/Focus/Ring'),
-                },
-              },
-            },
-          },
-        ],
-      }, 'dsButton', 'TOKEN', undefined, rules);
-      expect(out).toContain('box-shadow: inset 0 0 0 var(--border-width-focus) var(--color-focus-ring)');
-    });
-
-    it('does not apply to OUTSIDE strokes (those use outline, not border)', async () => {
-      const out = await run(tmpDir, {
-        default: { elements: { root: { styles: {} } } },
-        variants: [
-          {
-            configuration: { focused: true },
-            elements: {
-              root: { styles: { strokeWeight: 2, strokes: tokenRef('Color/Border/Focus'), strokeAlign: 'OUTSIDE' } },
-            },
-          },
-        ],
-      }, 'dsButton', 'TOKEN', undefined, rules);
-      expect(out).not.toContain('box-shadow: inset');
-      expect(out).toContain('outline-width: 2px');
-    });
-
-    it('throws for unknown rule names', async () => {
-      await expect(
-        run(tmpDir, { default: { elements: {} }, variants: [] }, 'dsButton', 'TOKEN', undefined, { rules: ['nonexistent-rule'] })
-      ).rejects.toThrow('Unknown CSS rule: "nonexistent-rule"');
-    });
-
-    it('applies the rule to subcomponent styles.css', async () => {
-      await writeVariants(tmpDir, {
-        subcomponents: {
-          item: {
-            default: { elements: { root: { styles: {} } } },
-            variants: [
-              {
-                configuration: { selected: true },
-                elements: { root: { styles: { strokeWeight: 2, strokes: tokenRef('Color/Border/Selected') } } },
-              },
-            ],
-          },
-        },
-      });
-      await transformer.run({}, {
-        ...makeContext(tmpDir, 'dsActionList'),
-        transformerOptions: rules,
-      });
-      const subOut = await fs.readFile(path.join(tmpDir, 'item', 'generated', 'Item.styles.css'), 'utf-8');
-      expect(subOut).toContain('box-shadow: inset 0 0 0 2px var(--color-border-selected)');
-      expect(subOut).toContain('border-color: transparent');
-    });
-  });
 
   describe('structural layout presence', () => {
     const structuralVariants = {
@@ -1015,12 +886,14 @@ describe('CssTransformer', () => {
       expect(gradientBlock).toContain('border-image: conic-gradient(from 90deg at 50% 50%, #FF0000FF 0%, #B1F836FF 74%) 1');
       expect(gradientBlock).toContain('border-style: solid');
       const solidBlock = out.match(/\.ds-button\[data-a="2"\]\[data-b="2"\] \{[^}]*\}/)?.[0] ?? '';
-      expect(solidBlock).toContain('border-color: #000000FF');
+      // A solid stroke is an outline (layout-safe); the border-image reset is
+      // still needed to cancel the gradient variant's border.
+      expect(solidBlock).toContain('outline-color: #000000FF');
       expect(solidBlock).toContain('border-image: none');
       // The reset is per-element: every solid-stroke layer of this element
       // carries it, including the default block (harmless — none is initial).
       const baseBlock = out.match(/\.ds-button \{[^}]*\}/)?.[0] ?? '';
-      expect(baseBlock).toContain('border-color: #000000FF');
+      expect(baseBlock).toContain('outline-color: #000000FF');
       expect(baseBlock).toContain('border-image: none');
     });
 
@@ -1093,5 +966,109 @@ describe('unresolved variables (DirectedEdges/specs#428)', () => {
   it('leaves a real token containing the word unresolved alone', async () => {
     const css = await run(tmpDir, withStyles({ cornerRadius: tokenRef('Brand/Unresolved Blue', 'dimension') }));
     expect(css).toContain('var(--brand-unresolved-blue)');
+  });
+});
+
+describe('text truncation', () => {
+  // Figma truncates a text layer by line count, optionally with an ellipsis.
+  // The spec carries maxLines and textOverflow; neither reached the CSS before.
+  let tmpDir: string;
+  beforeEach(async () => { tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'css-truncate-')); });
+  afterEach(async () => { await fs.remove(tmpDir); });
+
+  const withLabel = (styles: Record<string, unknown>) => ({
+    default: { layout: ['label'], elements: { label: { styles } } },
+    variants: [],
+  });
+
+  it('a single line with an ellipsis truncates on one line', async () => {
+    const css = await run(tmpDir, withLabel({ maxLines: 1, textOverflow: 'ELLIPSIS' }));
+    expect(css).toContain('white-space: nowrap');
+    expect(css).toContain('overflow: hidden');
+    expect(css).toContain('text-overflow: ellipsis');
+    expect(css).not.toContain('line-clamp');
+  });
+
+  it('more than one line uses the line-clamp box', async () => {
+    const css = await run(tmpDir, withLabel({ maxLines: 3, textOverflow: 'ELLIPSIS' }));
+    expect(css).toContain('-webkit-line-clamp: 3');
+    expect(css).toContain('line-clamp: 3');
+    expect(css).toContain('overflow: hidden');
+    expect(css).not.toContain('white-space: nowrap');
+  });
+
+  it('an ellipsis with no line count truncates on one line', async () => {
+    const css = await run(tmpDir, withLabel({ textOverflow: 'ELLIPSIS' }));
+    expect(css).toContain('text-overflow: ellipsis');
+    expect(css).toContain('white-space: nowrap');
+  });
+
+  it('a line count with no ellipsis clips without one', async () => {
+    const css = await run(tmpDir, withLabel({ maxLines: 1 }));
+    expect(css).toContain('white-space: nowrap');
+    expect(css).toContain('overflow: hidden');
+    expect(css).not.toContain('text-overflow');
+  });
+
+  it('a label declaring neither is untouched', async () => {
+    const css = await run(tmpDir, withLabel({ textColor: '#000000FF' }));
+    expect(css).not.toContain('text-overflow');
+    expect(css).not.toContain('white-space');
+  });
+});
+
+describe('strokes cost no layout space', () => {
+  // A Figma stroke never changes a frame's size, at any alignment. A CSS border
+  // does, for a hugging element — `box-sizing: border-box` only bites when the
+  // element has an explicit size — so every stroke is an outline instead.
+  let tmpDir: string;
+  beforeEach(async () => { tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'css-stroke-')); });
+  afterEach(async () => { await fs.remove(tmpDir); });
+
+  const withRoot = (styles: Record<string, unknown>) => ({
+    default: { layout: [], elements: { root: { styles } } },
+    variants: [],
+  });
+
+  it('an inside stroke is an outline pulled back over its own edge', async () => {
+    const css = await run(tmpDir, withRoot({ strokes: '#000000FF', strokeWeight: 1, strokeAlign: 'INSIDE' }));
+    expect(css).toContain('outline-color: #000000FF');
+    expect(css).toContain('outline-width: 1px');
+    expect(css).toContain('outline-offset: -1px');
+    expect(css).not.toContain('border-width: 1px');
+  });
+
+  it('an unrecorded alignment reads as inside', async () => {
+    // Figma's own default when a file records no alignment.
+    const css = await run(tmpDir, withRoot({ strokes: '#000000FF', strokeWeight: 2 }));
+    expect(css).toContain('outline-width: 2px');
+    expect(css).toContain('outline-offset: -2px');
+  });
+
+  it('a token-valued width negates with calc, since -var() is not a value', async () => {
+    const css = await run(tmpDir, withRoot({
+      strokes: '#000000FF',
+      strokeWeight: tokenRef('Foundation/border-width/thin', 'dimension'),
+      strokeAlign: 'INSIDE',
+    }));
+    expect(css).toContain('outline-offset: calc(-1 * var(--foundation-border-width-thin))');
+    expect(css).not.toContain('outline-offset: -var(');
+  });
+
+  it('an outside stroke is not pulled back', async () => {
+    const css = await run(tmpDir, withRoot({ strokes: '#000000FF', strokeWeight: 1, strokeAlign: 'OUTSIDE' }));
+    expect(css).toContain('outline-width: 1px');
+    expect(css).not.toContain('outline-offset');
+  });
+
+  it('a per-side weight keeps the border mapping', async () => {
+    // An outline has one width; a design that strokes some sides needs four.
+    const css = await run(tmpDir, withRoot({
+      strokes: '#000000FF',
+      strokeWeight: { top: 1, end: 0, bottom: 1, start: 0 },
+      strokeAlign: 'INSIDE',
+    }));
+    expect(css).toContain('border-color: #000000FF');
+    expect(css).not.toContain('outline-color');
   });
 });

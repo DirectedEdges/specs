@@ -53,6 +53,8 @@ workspace makes, and what it runs. `specs migrate config` converts an existing w
 - `--split-components`, `--split-concerns`, `--use-subfolders`
 
 ### Fixed
+- A stroke no longer changes an element's size. Figma draws a stroke without costing the frame any space, at any alignment; a CSS border only stays inside when the element has an explicit size, so a component hugging its content came out as much as 2px larger than the design and its content sat a pixel in. Every stroke is an outline now, with an inside stroke pulled back over its own edge
+- A text layer that truncates in the design truncates in the CSS. `maxLines` and `textOverflow` were carried in the spec and emitted nowhere: one line becomes `text-overflow: ellipsis` held on a single line, more than one becomes the line-clamp box
 
 - Stylesheets no longer reference a variable Figma could not resolve. The engine writes a sentinel name for an unreadable variable, and that name derived into an ordinary custom property that nothing defines. A single property now writes `unset` instead — stating that the variant overrode it with something unreadable, so a base rule's value does not win — and a warning at the end of the run names the sentinel and its occurrence count
 - Text components sized in the design now render at the height their type styles ask for, rather than a line short of it
