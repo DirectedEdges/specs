@@ -101,6 +101,6 @@ Composition, glyphs, background images, compound stories and sticker sheets requ
 ## See Also
 
 - [webcomponents](/cli/commands/webcomponents/) — the peer target, same shape
-- [transform](/cli/commands/transform/) — the command this replaces
+- [What gets emitted](/cli/transforms/) — each artifact in detail
 - [Roles](/roles/) — what a role changes about the emitted component and its contract
 - [states convention](/settings/states/) — which prop carries which state concept

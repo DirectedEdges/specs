@@ -13,7 +13,8 @@ The Specs command-line interface (CLI) generates design system specifications fr
 | [`scan`](/cli/commands/scan/) | List all components in file | Markdown manifest |
 | [`applyCustomTokens`](/cli/commands/apply-custom-tokens/) | Inject `$custom` objects into fetched data | Modified variables/styles JSON |
 | [`generate`](/cli/commands/generate/) | Generate specs from a manifest or single component | YAML/JSON spec file(s) |
-| [`transform`](/cli/commands/transform/) *(experimental)* | Run transformers over generated specs | Code artifacts per transformer |
+| [`react`](/cli/commands/react/) *(experimental)* | Emit the React target | Components, contracts, stylesheets, stories in `react/` |
+| [`webcomponents`](/cli/commands/webcomponents/) *(experimental)* | Emit the Web Components target | Elements, contracts, stylesheets, stories in `webcomponents/` |
 | [`bridge`](/cli/commands/bridge/) *(experimental)* | Start/stop/check the local bridge `render` talks to | Background process |
 | [`cache`](/cli/commands/cache/) *(experimental)* | Build the lookup tables `render` resolves specs against | YAML files in `{data.directory}/cache` |
 | [`render`](/cli/commands/render/) *(experimental)* | Send a spec to the CLI bridge to render it live in Figma | Live Figma component |

@@ -3,6 +3,11 @@ title: "panel"
 description: "Mark the region a disclosure controls, generating the id that aria-controls points at"
 ---
 
+:::note[Not implemented yet]
+This page is the specification. Nothing emits for this concept — an annotated spec carries the role and every transform ignores it.
+:::
+
+
 The `panel` part role marks the region that a [disclosure](/roles/disclosure/) trigger expands and collapses.
 
 ## Why it matters

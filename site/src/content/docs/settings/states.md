@@ -155,7 +155,7 @@ states:
 | `contract` | `"omit"` \| `"keep"` | No | concept default | Override the concept's default contract behavior. Rarely needed. |
 
 
-Run [`specs react`](/cli/commands/transform/) to regenerate stylesheets after updating this declaration. Absence of `states` is safe — all variant props continue to emit as `data-*` selectors.
+Run [`specs react`](/cli/commands/react/) to regenerate stylesheets after updating this declaration. Absence of `states` is safe — all variant props continue to emit as `data-*` selectors.
 
 ## Path
 

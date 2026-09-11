@@ -3,6 +3,11 @@ title: "indicator"
 description: "Mark a state glyph as decoration so it is hidden from assistive technology"
 ---
 
+:::caution[Partly implemented]
+Something is emitted for this concept today, but it was written before this page existed and has not been checked against it. Treat the page as the specification and the output as unverified.
+:::
+
+
 The `indicator` part role marks an element as a decorative representation of state — a check glyph inside a checkbox, the thumb of a switch, the chevron on a disclosure.
 
 ## Why it matters

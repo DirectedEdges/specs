@@ -3,6 +3,11 @@ title: "button"
 description: "Emit a native button that focuses, activates from the keyboard, and carries an onClick contract"
 ---
 
+:::tip[Implemented]
+Emitted by [`specs react`](/cli/commands/react/) and [`specs webcomponents`](/cli/commands/webcomponents/), built from this page.
+:::
+
+
 The `button` role declares that an element performs an action when activated.
 
 ## Why it matters

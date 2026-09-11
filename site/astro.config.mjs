@@ -3,6 +3,7 @@ import starlight from '@astrojs/starlight';
 
 const pro = { text: 'Pro', variant: 'tip' };
 const experimental = { text: 'Experimental', variant: 'default' };
+const implemented = { text: 'Implemented', variant: 'success' };
 
 export default defineConfig({
   site: 'https://www.specsplugin.com',
@@ -95,36 +96,19 @@ export default defineConfig({
           ],
         },
         {
-          label: 'Command Line (CLI)',
+          label: 'Specs CLI',
           collapsed: true,
           items: [
             { label: 'Overview', slug: 'cli' },
             { label: 'Workflows', slug: 'cli/workflows' },
             { label: 'init', slug: 'cli/commands/init' },
-            { label: 'migrate', slug: 'cli/commands/migrate' },
             { label: 'fetch', slug: 'cli/commands/fetch' },
             { label: 'scan', slug: 'cli/commands/scan' },
             { label: 'applyCustomTokens', slug: 'cli/commands/apply-custom-tokens' },
             { label: 'generate', slug: 'cli/commands/generate' },
-            { label: 'react', slug: 'cli/commands/react', badge: experimental },
-            { label: 'webcomponents', slug: 'cli/commands/webcomponents', badge: experimental },
             { label: 'bridge', slug: 'cli/commands/bridge', badge: experimental },
             { label: 'cache', slug: 'cli/commands/cache', badge: experimental },
             { label: 'render', slug: 'cli/commands/render', badge: experimental },
-            {
-              label: 'What gets emitted',
-              collapsed: true,
-              badge: experimental,
-              items: [
-                { label: 'Overview', slug: 'cli/transforms' },
-                { label: 'css', slug: 'cli/transforms/css' },
-                { label: 'cssvars', slug: 'cli/transforms/cssvars' },
-                { label: 'react', slug: 'cli/transforms/react' },
-                { label: 'stories', slug: 'cli/transforms/stories' },
-                { label: 'webcomponents', slug: 'cli/transforms/webcomponents' },
-                { label: 'webcomponents-stories', slug: 'cli/transforms/webcomponents-stories' },
-              ],
-            },
             {
               label: 'Analyze',
               collapsed: true,
@@ -135,6 +119,57 @@ export default defineConfig({
                 { label: 'styling', slug: 'cli/analyze/styling' },
                 { label: 'dependencies', slug: 'cli/analyze/dependencies' },
                 { label: 'keys', slug: 'cli/analyze/keys' },
+              ],
+            },
+            { label: 'migrate', slug: 'cli/commands/migrate' },
+          ],
+        },
+        {
+          label: 'Code (React, WC)',
+          collapsed: true,
+          items: [
+            { label: 'react', slug: 'cli/commands/react', badge: experimental },
+            { label: 'webcomponents', slug: 'cli/commands/webcomponents', badge: experimental },
+            {
+              label: 'Roles',
+              collapsed: true,
+              items: [
+                { label: 'Overview', slug: 'roles', badge: experimental },
+                { label: 'Precedence', slug: 'roles/precedence' },
+                {
+                  label: 'Interactive',
+                  items: [
+                    { label: 'button', slug: 'roles/button', badge: implemented },
+                    { label: 'togglebutton', slug: 'roles/togglebutton', badge: implemented },
+                    { label: 'disclosure', slug: 'roles/disclosure' },
+                  ],
+                },
+                {
+                  label: 'Form controls',
+                  items: [
+                    { label: 'textbox', slug: 'roles/textbox' },
+                    { label: 'checkbox', slug: 'roles/checkbox' },
+                  ],
+                },
+                {
+                  label: 'Parts',
+                  items: [
+                    { label: 'label', slug: 'roles/label' },
+                    { label: 'value', slug: 'roles/value' },
+                    { label: 'errormessage', slug: 'roles/errormessage' },
+                    { label: 'panel', slug: 'roles/panel' },
+                    { label: 'indicator', slug: 'roles/indicator' },
+                  ],
+                },
+                { label: 'status, alert, progressbar', slug: 'roles/status' },
+              ],
+            },
+            {
+              label: 'Actions',
+              collapsed: true,
+              items: [
+                { label: 'Overview', slug: 'actions', badge: experimental },
+                { label: 'dismiss', slug: 'actions/dismiss', badge: experimental },
               ],
             },
           ],
@@ -169,48 +204,6 @@ export default defineConfig({
             { label: 'Token Reference', slug: 'schema/token-reference', badge: pro },
             { label: 'Typography', slug: 'schema/typography' },
             { label: 'Variants', slug: 'schema/variants' },
-          ],
-        },
-        {
-          label: 'Roles',
-          collapsed: true,
-          items: [
-            { label: 'Overview', slug: 'roles', badge: experimental },
-            { label: 'Precedence', slug: 'roles/precedence', badge: experimental },
-            {
-              label: 'Interactive',
-              items: [
-                { label: 'button', slug: 'roles/button' },
-                { label: 'togglebutton', slug: 'roles/togglebutton' },
-                { label: 'disclosure', slug: 'roles/disclosure' },
-              ],
-            },
-            {
-              label: 'Form controls',
-              items: [
-                { label: 'textbox', slug: 'roles/textbox' },
-                { label: 'checkbox', slug: 'roles/checkbox' },
-              ],
-            },
-            {
-              label: 'Parts',
-              items: [
-                { label: 'label', slug: 'roles/label' },
-                { label: 'value', slug: 'roles/value' },
-                { label: 'errormessage', slug: 'roles/errormessage' },
-                { label: 'panel', slug: 'roles/panel' },
-                { label: 'indicator', slug: 'roles/indicator' },
-              ],
-            },
-            { label: 'status, alert, progressbar', slug: 'roles/status' },
-          ],
-        },
-        {
-          label: 'Actions',
-          collapsed: true,
-          items: [
-            { label: 'Overview', slug: 'actions', badge: experimental },
-            { label: 'dismiss', slug: 'actions/dismiss', badge: experimental },
           ],
         },
         {

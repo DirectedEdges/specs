@@ -111,5 +111,5 @@ The same seams as [`react`](/cli/commands/react/): the element, its contract, it
 ## See Also
 
 - [react](/cli/commands/react/) — the peer target
-- [transform](/cli/commands/transform/) — the command this replaces
+- [What gets emitted](/cli/transforms/) — each artifact in detail
 - [Roles](/roles/) — and [precedence](/roles/precedence/) for how a shadow host carries state

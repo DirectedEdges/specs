@@ -3,6 +3,11 @@ title: "textbox"
 description: "Collapse the elements standing in for a text control into a native input with label association and a change contract"
 ---
 
+:::note[Not implemented yet]
+This page is the specification. Nothing emits for this concept — an annotated spec carries the role and every transform ignores it.
+:::
+
+
 The `textbox` role declares that an element and its annotated descendants together represent a single-line free-text control.
 
 ## Why it matters

@@ -145,6 +145,20 @@ explicitly for this reason.
 For the iOS and Android transforms this distinction is inert, because neither platform has a
 role string to emit. They bind concepts to native types and read the reach table above.
 
+## What is implemented
+
+The vocabulary is larger than what emits. A concept with no implementation is inert:
+an annotated spec carries the role and every transform ignores it, so nothing breaks
+and nothing changes.
+
+| Status | Concepts |
+|---|---|
+| **Implemented** — emitted, built from its page | `button`, `togglebutton` |
+| **Partly implemented** — something emits, written before its page existed and unverified against it | `label`, `indicator`, `status`, `alert`, `progressbar`, `link` |
+| **Specified, not implemented** | everything else below |
+
+Each role page says which it is.
+
 ## Control role vocabulary
 
 | Role | Declares | Page |

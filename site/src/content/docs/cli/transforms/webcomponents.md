@@ -3,7 +3,16 @@ title: "webcomponents"
 description: "Scaffold a working Lit web component from the spec, then seed an authored copy you own"
 ---
 
-<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
+<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge eol-badge">EOL</span>')</script>
+
+:::caution[No longer emitted this way]
+This page describes a `specs transform` target. That command is retired — a target
+is emitted whole by [`specs react`](/cli/commands/react/) or
+[`specs webcomponents`](/cli/commands/webcomponents/), which is why these artifacts
+can no longer be produced one at a time. Kept for reference on what each artifact
+contains.
+:::
+
 
 Emits a functioning [Lit](https://lit.dev) element — the same merged layout tree, BEM markup, `data-*` variant attributes, and ARIA state attributes as the [`react` transformer](/cli/transforms/react/), rendered into a shadow root that adopts the generated stylesheet. Also seeds a one-time authored copy of that element into your source tree, which the [`webcomponents-stories` transformer](/cli/transforms/webcomponents-stories/) imports.
 

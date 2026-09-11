@@ -3,6 +3,11 @@ title: "value"
 description: "Mark the text element that stands in for a control's value during collapse"
 ---
 
+:::note[Not implemented yet]
+This page is the specification. Nothing emits for this concept — an annotated spec carries the role and every transform ignores it.
+:::
+
+
 The `value` part role marks the text element that stands in for a control's value in the design.
 
 ## Why it matters

@@ -3,6 +3,11 @@ title: "togglebutton"
 description: "Emit a button that carries its pressed state in aria-pressed, with an onPressedChange contract"
 ---
 
+:::tip[Implemented]
+Emitted by [`specs react`](/cli/commands/react/) and [`specs webcomponents`](/cli/commands/webcomponents/), built from this page.
+:::
+
+
 The `togglebutton` role declares that an element performs an action and retains a two-state condition — a favorite affordance, a bold control in a formatting bar, a filter chip that stays on.
 
 ## Why it matters

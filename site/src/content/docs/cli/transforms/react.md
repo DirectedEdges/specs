@@ -3,7 +3,16 @@ title: "react"
 description: "Scaffold a working React component from the spec, then seed an authored copy you own"
 ---
 
-<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
+<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge eol-badge">EOL</span>')</script>
+
+:::caution[No longer emitted this way]
+This page describes a `specs transform` target. That command is retired — a target
+is emitted whole by [`specs react`](/cli/commands/react/) or
+[`specs webcomponents`](/cli/commands/webcomponents/), which is why these artifacts
+can no longer be produced one at a time. Kept for reference on what each artifact
+contains.
+:::
+
 
 Emits a functioning React component — BEM markup from the merged layout tree, `data-*` variant attributes, ARIA state attributes, and slot/element rendering gated on the visibility rules from the [`contract` transformer](/cli/transforms/contract/). Also seeds a one-time authored copy of that component into your source tree, which the [`stories` transformer](/cli/transforms/stories/) imports.
 

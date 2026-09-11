@@ -3,7 +3,16 @@ title: "cssvars"
 description: "Emit CSS variable definitions for your library's tokens, styles, and modes"
 ---
 
-<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
+<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge eol-badge">EOL</span>')</script>
+
+:::caution[No longer emitted this way]
+This page describes a `specs transform` target. That command is retired — a target
+is emitted whole by [`specs react`](/cli/commands/react/) or
+[`specs webcomponents`](/cli/commands/webcomponents/), which is why these artifacts
+can no longer be produced one at a time. Kept for reference on what each artifact
+contains.
+:::
+
 
 Emits the CSS variable definitions that the [`css`](/cli/transforms/css/) transform's `var(--…)` references resolve against — variables, text styles, effect styles, fill styles, and collection modes — from your fetched library data. Together, `css` + `cssvars` produce stylesheets that render with no hand-maintained token files.
 

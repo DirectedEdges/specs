@@ -3,7 +3,16 @@ title: "css"
 description: "Emit a CSS file with custom property rules per component element"
 ---
 
-<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
+<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge eol-badge">EOL</span>')</script>
+
+:::caution[No longer emitted this way]
+This page describes a `specs transform` target. That command is retired — a target
+is emitted whole by [`specs react`](/cli/commands/react/) or
+[`specs webcomponents`](/cli/commands/webcomponents/), which is why these artifacts
+can no longer be produced one at a time. Kept for reference on what each artifact
+contains.
+:::
+
 
 Emits a `{Component}.styles.css` file for each component. Each anatomy element becomes a CSS selector; token references become `var(--)` declarations; variant props become `[data-*]` attribute selectors. Boolean props use presence selectors (`[data-prop]`); string-valued props use value selectors (`[data-prop="value"]`).
 

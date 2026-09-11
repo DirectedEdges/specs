@@ -3,7 +3,16 @@ title: "Transforms"
 description: "Project component spec files into derived artifacts using specs react"
 ---
 
-<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
+<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge eol-badge">EOL</span>')</script>
+
+:::caution[No longer emitted this way]
+This page describes a `specs transform` target. That command is retired — a target
+is emitted whole by [`specs react`](/cli/commands/react/) or
+[`specs webcomponents`](/cli/commands/webcomponents/), which is why these artifacts
+can no longer be produced one at a time. Kept for reference on what each artifact
+contains.
+:::
+
 
 [`specs react`](/cli/commands/react/) and [`specs webcomponents`](/cli/commands/webcomponents/) fan a component specification out into artifacts your codebase can consume: a TypeScript contract, a baseline stylesheet, a working component, a token inventory. Instead of writing those by hand, you derive them from the spec and keep them in sync as the design evolves.
 
@@ -123,5 +132,5 @@ The component transformers (`react`, `stories`, `webcomponents`, `webcomponents-
 
 ## See Also
 
-- [`transform` command](/cli/commands/transform/) — full CLI reference
+- [`react`](/cli/commands/react/) and [`webcomponents`](/cli/commands/webcomponents/) — the commands that emit these artifacts
 - [Pipeline](/schema/pipeline/) — configure default transformers in `config/pipeline.yaml`

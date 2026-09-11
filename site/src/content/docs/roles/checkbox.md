@@ -3,6 +3,11 @@ title: "checkbox"
 description: "Inject a native checkbox input beside the visual control so the component can be checked, focused, and submitted"
 ---
 
+:::note[Not implemented yet]
+This page is the specification. Nothing emits for this concept — an annotated spec carries the role and every transform ignores it.
+:::
+
+
 The `checkbox` role declares that an element is a binary (or indeterminate) selection control.
 
 ## Why it matters

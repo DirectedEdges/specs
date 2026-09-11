@@ -126,6 +126,25 @@ ul.top-level > li > a.large[aria-current='page']:focus {
 	margin-left: 0.5rem;
 }
 
+/* End-of-life badge — a page kept for reference describing something that no
+   longer exists. Warmer than the experimental gray so the two do not read alike. */
+.sl-badge.eol-badge {
+	display: inline-block;
+	border: 1px solid var(--sl-color-orange, var(--sl-color-gray-4));
+	border-radius: 0.25rem;
+	font-family: var(--sl-font-system-mono);
+	font-size: var(--sl-text-xs);
+	font-weight: normal;
+	line-height: 1;
+	padding: 0.125rem 0.375rem;
+	color: var(--sl-color-orange-high, var(--sl-color-gray-2));
+	background-color: var(--sl-color-orange-low, var(--sl-color-gray-6));
+	text-transform: uppercase;
+	vertical-align: middle;
+	margin-left: 0.5rem;
+}
+
+
 /* Experimental badge appended after the Pro badge on specific config nav links.
    Starlight's sidebar `badge` config allows only one badge, so the second
    (Experimental) pill is rendered via ::after on these two links. */
