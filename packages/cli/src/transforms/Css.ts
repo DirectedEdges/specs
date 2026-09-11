@@ -9,7 +9,7 @@ import { toKebab, isGradient, isGradientToken, gradientValue, dimensionValue, re
 import { normalizeEnumValue } from './enumCase.js';
 import { CONCEPT_TABLE, buildStateLookup } from './states.js';
 import { resolveRules } from './css/rules/index.js';
-import { parseLayout, type LayoutNode } from './react/variantAnalysis.js';
+import { parseLayout, type LayoutNode } from './css/layoutTree.js';
 import { loadExamples, type ExamplesData } from './examples.js';
 
 /**
