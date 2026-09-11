@@ -5,7 +5,7 @@ description: "Declare what an anatomy element is for, so transforms emit native 
 
 A **role** declares the interaction semantic of an anatomy element — this element *is* the button, *is* the checkbox control, *is* the label for that control. Without roles, transforms emit visually correct but behaviorally inert markup: a button scaffolds as a `<div>` that cannot be focused or clicked through the contract, and a checkbox has no `<input>` to check. With a role, each transform deterministically emits the platform's native control, the accessibility wiring between elements, and the event handlers in the generated contract.
 
-Roles are stored in `anatomy.<element>.role` in the spec. The value is an open string; the documented vocabulary comes from ADRs 066–068.
+Roles are stored in `anatomy.<element>.role` in the spec. The value is an open string; the documented vocabulary comes from ADRs 067, 068, and 086 (087 for actions). Nothing is read or emitted unless [`settings.spec.roles`](/schema/settings/) is on.
 
 ## Control roles and part roles
 

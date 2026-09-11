@@ -16,6 +16,8 @@ type Anatomy = Record<string, AnatomyElement>;
 | `type` | `ElementType \| ElementTypeRef` | Yes | What kind of element this is |
 | `detectedIn` | `string` | No | Frame or node name where this element was found |
 | `instanceOf` | `string \| SubcomponentRef` | No | Component name this element is an instance of, or a `$ref` to a subcomponent |
+| `role` | `RoleConceptName \| RoleConceptName[]` | No | Behavior concept(s) this element carries, read from `role:` annotation lines when [`settings.spec.roles`](/schema/settings/) is on — see [Roles](/roles/) |
+| `actions` | `ActionEntry[]` | No | Behavior actions (`{ type }`) read from `action:` annotation lines, deduped in annotation order — see [Actions](/actions/) |
 | `$extensions` | `AnatomyElementExtensions` | No | Vendor extensions; `com.figma` carries extraction provenance |
 
 ### AnatomyElementExtensions

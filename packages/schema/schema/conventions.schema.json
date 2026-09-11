@@ -6,7 +6,7 @@
   "definitions": {
     "VariantStateEntry": {
       "type": "object",
-      "description": "Classifies a Figma variant prop as a semantic state concept. The map key (in figma.states) is the concept name (e.g. hover, disabled). (ADR-055)",
+      "description": "Classifies a Figma variant prop as a semantic state concept. The map key (in specs.states) is the concept name (e.g. hover, disabled). (ADR-055, ADR-073)",
       "properties": {
         "prop": {
           "type": "string",

@@ -17,7 +17,7 @@
 | 087 | Behavior Actions via `anatomy.action` | Adds `AnatomyElement.actions` (`ActionEntry[]`) — a second annotation key for what a control *does*, alongside `role` for what it *is* |
 | 086 | Interactive Root and Announcement Role Concepts | Vocabulary for `button`, `togglebutton`, `link`, `disclosure`, `alert`, `status`, `progressbar`; all non-structural — sequence first. Same docs-governed rule as 068 |
 | 085 | `promotePrimitives` — the Switch for Capture-Time Promotion | Adds `Settings.spec.promotePrimitives` (default false) — the opt-in that turns capture-time primitive promotion on |
-| 084 | `Element.$extensions` — Figma Provenance for a Promoted Element | Adds `Element.$extensions` with `com.figma` provenance, so a promoted element records the Figma node it came from |
+| 084 | `Element.$extensions` — Figma Provenance for a Promoted Element | Adds `Element.$extensions` with `com.figma` provenance, so a promoted element records that it was promoted, whether several entries matched, and the content and styles the promotion consumed |
 | 083 | Collapsing a Slot-Only Wrapper | `collapsePrimitiveWrapper` also collapses a root wrapping one slot; both nodes are containers so no style is tested, and the slot's value wins |
 | 081 | `defaultFillWidth` — the Width a Fill-Width Root Fills | Each platform states, in its own `config/conventions/` file, the width of the container it places a fill-width root in; fixed and hugging roots are untouched, and absent a declaration the rendering tool falls back to 375 |
 | 080 | `null` as a Prop Configuration Value | Adds a `null` arm to `PropConfigurationValue` and to `InstanceExample.propConfigurations`; absent inherits, `null` overrides with unset |

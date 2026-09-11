@@ -48,10 +48,11 @@ A `StringProp` is distinguished from an `EnumProp` by the absence of `enum`.
 |----------|------|----------|-------------|
 | `type` | `'number'` | Yes | |
 | `default` | `number` | No | Default value |
+| `enum` | `number[]` | No | Closed set of allowed values, recorded when the prop was inferred from a VARIANT prop's finite value set (ADR-072) |
 | `nullable` | `boolean` | No | Whether `null` is a valid value — absent means `true` (since 0.29.0) |
 | `examples` | `number[]` | No | Example values |
 
-Inferred from Figma variant values when [`conventions.platforms.figma.inferNumberProps`](/schema/conventions/#platform-members) is enabled.
+Inferred from Figma variant values when [`conventions.platforms.figma.inferNumberProps`](/schema/conventions/#platform-members) is enabled; a prop inferred from a VARIANT source carries the variant's values as `enum`.
 
 ### SlotProp
 

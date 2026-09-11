@@ -131,7 +131,7 @@ export interface PrimitiveEntry {
  *
  * - **Encoding** — `naming`, `glyphs`, `codeOnlyProps`, `subcomponents`,
  *   `instanceExamples`, `images.backgroundImage`, `images.sourceProps`,
- *   `slotConstraints`, `inferNumberProps`, `states`. These say how this platform
+ *   `slotConstraints`, `inferNumberProps`. These say how this platform
  *   expresses something the spec models explicitly. A Figma library has no first-class
  *   notion of a subcomponent, so it encodes one in a layer-name pattern.
  * - **Vocabulary** — `stylesProp`, `images.match`, `images.component`. These say which of

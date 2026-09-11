@@ -8,6 +8,27 @@
 
 ---
 
+## Amendment (2026-09-11): `settings.spec.roles` is the feature's on-switch
+
+The Decision below declares `roleValidation` "beside `roles`" without ever
+declaring `roles` itself. The implementation needed it: reading Dev Mode
+annotations is work the generator must be told to do, and a spec whose roles
+came from annotations nobody asked for would carry behavior the workspace never
+opted into.
+
+`Settings.spec.roles` gates the whole feature — annotation reading and
+`role`/`actions` emission both. It is a run choice, not a library fact, which
+is why it is a setting rather than a convention.
+
+| Surface | Change | Semver |
+|---|---|---|
+| `types/Settings.ts` | Add optional field `roles?: boolean` to `Settings.spec` (default `false`), required on `ResolvedSettings.spec`, `false` in `DEFAULT_SETTINGS` | MINOR |
+| `schema/settings.schema.json` | Add `roles` to the `spec` block (`boolean`, `default: false`) | MINOR |
+
+Absence preserves pre-role behavior: nothing is read, nothing is emitted.
+
+---
+
 ## Context
 
 ADR 055 (state classification, now `states` in `conventions/specs.yaml`) lets a library deterministically classify variant props as semantic state concepts (`disabled`, `checked`, `expanded`). Downstream transforms consume that classification — but only at the *prop* level. Nothing in the spec identifies *which element carries the platform behavior*, so the `react` transform has no basis for emitting a `<button>`, injecting a native `<input>`, or wiring a `<label htmlFor>`. Every interactive component scaffolds as `div` + ARIA veneer:
@@ -468,7 +489,7 @@ controls in one component.
 | File | Change | Bump |
 |------|--------|------|
 | `types/Anatomy.ts` | Add exported type alias `RoleConceptName` (open string; documents the naming scheme) | MINOR |
-| `types/Anatomy.ts` | Add optional field `role?: RoleConceptName` to `AnatomyElement` | MINOR |
+| `types/Anatomy.ts` | Add optional field `role?: RoleConceptName \| RoleConceptName[]` to `AnatomyElement` (rule 5: several concepts may share an element) | MINOR |
 | `types/Conventions.ts` | Add `SpecsConventions` (`states`, `accessibility.label`, `value` — no grouping wrapper; ADR 073 Option 4A), and `Conventions.specs` beside `platforms` and `primitives` | MINOR |
 | `types/Conventions.ts` | Add `PropReference` (`{ prop: string }`) and `ValueConvention` (`{ prop, indeterminate? }`), so a prop convention can grow fields | MINOR |
 | `types/Conventions.ts` | Move `states` off `PlatformConventions` — it names a spec prop, not a Figma fact | MINOR |
@@ -491,7 +512,7 @@ AnatomyElement:
   detectedIn?: string
   instanceOf?: string | SubcomponentRef
   $extensions?: AnatomyElementExtensions
-  role?: RoleConceptName   # optional — MINOR
+  role?: RoleConceptName | RoleConceptName[]   # optional — MINOR
 ```
 
 `RoleConceptName` is an open `string` alias (matching the ADR 055 approach for `StateConceptName` keys): the recognized vocabulary is documented on the alias and grown by vocabulary ADRs without schema version bumps. Unrecognized role values are ignored by transforms — safe fall-through to current behavior.
@@ -764,7 +785,7 @@ warning  checkbox 'root' in components/checkbox has no name source
 
 ### Severity
 
-`processing.roleValidation` selects the severity for **required** obligations:
+`settings.spec.roleValidation` selects the severity for **required** obligations:
 
 - `'warn'` (default) — a diagnostic, and the transform continues. Absence of the setting
   preserves current behavior

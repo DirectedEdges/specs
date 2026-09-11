@@ -30,7 +30,10 @@ These reshape types that `0.31.0` published: this branch was cut before `0.31.0`
 - `PlatformConventions` — one shape per platform, carrying encoding and vocabulary members alike, and the root of a single `config/conventions/<id>.yaml` (ADR-073, ADR-078)
 - `Conventions.specs` — conventions about the spec itself, a sibling of `platforms` and `primitives`: the `states` classification, the prop supplying an accessible name (`accessibility.label`), and the props describing a control's value (`value.prop`, with an optional `indeterminate` prop). Authored as `config/conventions/specs.yaml` (ADR-073)
 - `PropReference` and `ValueConvention` — prop conventions are objects rather than bare names, so one can grow fields without a break (ADR-073)
+- `Settings.spec.roles` — the role feature's on-switch: read Figma Dev Mode annotations and emit `anatomy.<element>.role`/`.actions`; `false` by default, so nothing is read or emitted unless a workspace opts in (ADR-067, amendment)
 - `Settings.spec.roleValidation` — severity for unmet required role obligations, `'warn'` (default) or `'error'`; sits beside `roles` because it tunes the same feature (ADR-067)
+- `AnatomyElement.role` and `RoleConceptName` — a behavior concept (or several) an element carries, read from `role:` annotation lines (ADR-067)
+- `AnatomyElement.actions`, `ActionEntry` and `ActionConceptName` — behavior actions read from `action:` annotation lines, deduped in annotation order (ADR-087)
 - `PrimitiveKind` — `'text' | 'glyph' | 'container'`, the subset of `ElementType` that can be promoted to a design system component (ADR-074)
 - `Conventions.primitives` — component-keyed `PrimitiveEntry` values, each an `elementType` and a `map` of `PrimitiveRule`; platform-neutral output, authored as `config/conventions/figma.primitives.yaml` because its sources and token names describe the design tool (ADR-075, ADR-073)
 - `PrimitiveRule` — a `source` read from a captured layer, sent to a `prop` as-is or through a literal `values` lookup writing one or more props (ADR-075)
@@ -45,12 +48,13 @@ These reshape types that `0.31.0` published: this branch was cut before `0.31.0`
 
 #### Accepted
 
-- [ADR-073](../../adr/073-platform-conventions-namespace.md) — `conventions.platforms`, with Figma as One Platform Among Them
+Every ADR this release implements is accepted — fourteen written on this branch,
+plus ADR-072, drafted in 0.31.0 and accepted here.
 
-#### New drafts
-
-- [ADR-067](../../adr/067-anatomy-element-roles.md) — Element Behavior Roles via `anatomy.role`
+- [ADR-067](../../adr/067-anatomy-element-roles.md) — Element Behavior Roles via `anatomy.role` (amended: `settings.spec.roles` is the on-switch)
 - [ADR-068](../../adr/068-form-control-roles.md) — Form Control and Field Plumbing Role Concepts
+- [ADR-072](../../adr/072-numeric-variant-enum.md) — Numeric Enum on NumberProp
+- [ADR-073](../../adr/073-platform-conventions-namespace.md) — `conventions.platforms`, with Figma as One Platform Among Them
 - [ADR-074](../../adr/074-emit-time-primitive-resolution.md) — Primitives Promote to Component Instances During Capture, in Composed Content
 - [ADR-075](../../adr/075-primitive-style-prop-mapping.md) — `conventions.primitives` — a Declared Table from Styles to a Component's Props
 - [ADR-076](../../adr/076-container-primitives-and-shared-styles.md) — Promoting a Container, and a Platform-Level `stylesProp`
