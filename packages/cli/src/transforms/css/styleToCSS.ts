@@ -300,11 +300,10 @@ export function styleToCSS(
       decls.push(`border-radius: ${resolved}`);
     } else if (isTokenRef(v)) {
       // A token reference resolveTokenVar declined is a withheld unresolved
-      // variable. Falling through to the corners branch would substitute a
-      // zero for the value it just refused to name; `unset` says the variant
-      // overrode the radius with something unreadable, so a base rule's radius
-      // does not win here.
-      decls.push('border-radius: unset');
+      // variable. Degrade to the captured raw value where the engine carried
+      // one; otherwise `unset` says the variant overrode the radius with
+      // something unreadable, so a base rule's radius does not win here.
+      decls.push(`border-radius: ${dimensionValueOrUnset(v, tokensFormat) ?? 'unset'}`);
     } else if (typeof v === 'object' && v !== null) {
       // Corners object: topStart topEnd bottomEnd bottomStart
       const c = v as Record<string, unknown>;

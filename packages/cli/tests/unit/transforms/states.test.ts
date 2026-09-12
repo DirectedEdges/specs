@@ -33,12 +33,13 @@ describe('CONCEPT_TABLE', () => {
     expect(CONCEPT_TABLE['pressed']).toEqual({ selector: '[aria-pressed="true"]', contract: 'keep' });
   });
 
-  it('has all 19 expected concepts', () => {
+  it('has all 20 expected concepts', () => {
     const expected = [
       'hover', 'active', 'focus', 'focus-visible', 'focus-within', 'placeholder-shown',
       'disabled', 'readonly', 'required', 'invalid', 'valid',
       'selected', 'checked', 'indeterminate',
       'expanded', 'collapsed', 'pressed', 'busy', 'current',
+      'visited',
     ];
     for (const name of expected) {
       expect(CONCEPT_TABLE).toHaveProperty(name);

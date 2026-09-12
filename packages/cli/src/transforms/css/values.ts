@@ -50,6 +50,19 @@ const nameWarnings = new Map<string, Map<string, number>>();
 
 /** One warning type for every unresolved token, however it was written out. */
 const UNRESOLVED_WARNING = 'unresolved variable — no value emitted for this property';
+const UNRESOLVED_RAW_WARNING = 'unresolved variable — captured raw value emitted as a literal';
+
+/**
+ * The captured raw value the engine carries for an unresolvable token
+ * (`$extensions['com.figma'].rawValue`) — the degrade rung between a dead
+ * var() reference and no declaration at all.
+ */
+function extensionsRawValue(v: unknown): unknown {
+  if (!v || typeof v !== 'object') return undefined;
+  const ext = (v as Record<string, unknown>).$extensions as Record<string, unknown> | undefined;
+  const figma = ext?.['com.figma'] as Record<string, unknown> | undefined;
+  return figma?.rawValue;
+}
 
 /**
  * Name warnings describe the spec's own names, so a second emission of the same
@@ -249,8 +262,20 @@ export function dimensionValue(v: unknown, tokensFormat = 'TOKEN'): string | nul
   }
   // resolveTokenVar returning null for a token ref means it withheld the
   // reference deliberately (an unresolved variable) — the legacy path must not
-  // re-emit what it just refused.
-  if (isTokenRef(v)) return isUnresolvedTokenPath(v.$token) ? null : tokenVar(v);
+  // re-emit what it just refused. The captured raw value, where the engine
+  // carried one, is the honest rung between that and nothing.
+  if (isTokenRef(v)) {
+    if (!isUnresolvedTokenPath(v.$token)) return tokenVar(v);
+    const raw = extensionsRawValue(v);
+    if (raw !== undefined) {
+      const literal = dimensionValue(raw, tokensFormat);
+      if (literal !== null) {
+        recordNameWarning(UNRESOLVED_RAW_WARNING, v.$token);
+        return literal;
+      }
+    }
+    return null;
+  }
   if (typeof v === 'number') return v === 0 ? '0' : `${v}px`;
   if (typeof v === 'string') return v;
   return null;
@@ -273,6 +298,14 @@ export function dimensionValue(v: unknown, tokensFormat = 'TOKEN'): string | nul
  */
 export function dimensionValueOrUnset(v: unknown, tokensFormat = 'TOKEN'): string | null {
   if (isTokenRef(v) && isUnresolvedTokenPath(v.$token)) {
+    // Degrade to the captured raw value where the engine carried one — the
+    // real number the node had at capture time — before falling to `unset`.
+    const raw = extensionsRawValue(v);
+    const literal = raw !== undefined ? dimensionValue(raw, tokensFormat) : null;
+    if (literal !== null) {
+      recordNameWarning(UNRESOLVED_RAW_WARNING, v.$token);
+      return literal;
+    }
     recordNameWarning(UNRESOLVED_WARNING, v.$token);
     return 'unset';
   }

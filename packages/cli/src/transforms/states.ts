@@ -23,6 +23,10 @@ export const CONCEPT_TABLE: Record<string, ConceptEntry> = {
   pressed:             { selector: '[aria-pressed="true"]', contract: 'keep' },
   busy:                { selector: '[aria-busy="true"]', contract: 'keep' },
   current:             { selector: '[aria-current="true"]', contract: 'keep' },
+  // Browser-managed like hover — history decides it, no prop can. Styling is
+  // restricted in :visited (color and background-color paint; most else is
+  // ignored), which covers what designs vary: text and glyph color.
+  visited:             { selector: ':visited', contract: 'omit' },
 };
 
 export type { VariantStateEntry } from '@directededges/specs-schema';
