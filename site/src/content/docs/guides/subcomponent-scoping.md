@@ -65,18 +65,17 @@ The `exclude` array uses the same `{C}` / `{S}` template syntax. If a matched as
 
 ## Configuration
 
-Declare `subcomponents` under `figma` in `config/conventions.yaml`:
+Declare `subcomponents` under `figma` in `config/conventions/figma.yaml`:
 
 ```yaml
-# config/conventions.yaml
-figma:
-  subcomponents:
-    scope: PAGE
-    match:
-      - '{C} / {S}'
-      - '{C} / _ / {S}'
-    exclude:
-      - '{C} / Examples / {S}'
+# config/conventions/figma.yaml
+subcomponents:
+  scope: PAGE
+  match:
+    - '{C} / {S}'
+    - '{C} / _ / {S}'
+  exclude:
+    - '{C} / Examples / {S}'
 ```
 
 **Defaults**:

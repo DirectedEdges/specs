@@ -1,7 +1,7 @@
 # CSS States Setup — Library Analysis Skill
 
 Scans a generated specs output directory, identifies variant configuration props that are
-candidates for `figma.states` concepts, and proposes a `states:` block for `config/conventions.yaml`.
+candidates for state concepts, and proposes a `states:` block for `config/conventions/specs.yaml`.
 
 ---
 
@@ -87,7 +87,7 @@ Given a specs output directory path:
 ## Output format
 
 ```yaml
-# Proposed states config — paste into config/conventions.yaml under figma
+# Proposed states config — paste into config/conventions/specs.yaml
 processing:
   states:
     hover:

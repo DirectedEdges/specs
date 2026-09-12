@@ -34,6 +34,7 @@ import { ImageFillsResolver, IMAGES_DIR_NAME } from '../utilities/ImageFillsReso
 import { postGenerateFromSelection } from '../bridge/client.js';
 import { formatKey } from '../utilities/formatKey.js';
 import { resolveFileKey } from '../bridge/pickConnection.js';
+import { figmaOf } from '../Config/PlatformConventions.js';
 
 declare const __SPECS_CLI_VERSION__: string;
 
@@ -95,6 +96,44 @@ function resolveFileSourceAlias(sources: Record<string, SourceEntry> | undefined
 }
 
 /**
+ * The Figma file key to pull image fills from: whichever file the specs being written
+ * were generated from. For a configured source that is its `key`; for a source fetched
+ * by `specs fetch --source` — a branch, typically — it is the sidecar written beside the
+ * payload, since nothing in config knows that key. Falling back to the configured source
+ * would download the main file's images for specs generated from a branch.
+ */
+function resolveImageFileKey(
+  config: CLIConfig,
+  sourceDir: string,
+  payloadPath: string | undefined
+): { key: string } | { error: string } {
+  const alias = payloadPath && payloadPath.endsWith('.file.json')
+    ? path.basename(payloadPath, '.file.json')
+    : resolveFileSourceAlias(config.settings.data?.sources);
+
+  if (!alias) {
+    return { error: 'Error: --get-images requires a configured source file key (data.sources.<alias>.key in the workspace settings)' };
+  }
+
+  const configured = config.settings.data?.sources?.[alias]?.key;
+  if (configured) return { key: configured };
+
+  const sidecar = path.join(sourceDir, `${alias}.source.json`);
+  if (fs.existsSync(sidecar)) {
+    const recorded = JSON.parse(fs.readFileSync(sidecar, 'utf-8')) as { key?: string };
+    if (recorded.key) return { key: recorded.key };
+  }
+
+  return {
+    error: [
+      `Error: --get-images cannot resolve the Figma file key for "${alias}"`,
+      `  "${alias}" is not in data.sources, and ${path.relative(process.cwd(), sidecar)} is missing or has no key.`,
+      `  Re-fetch it (\`specs fetch --source ${alias}=<url>\`), or generate without --get-images.`
+    ].join('\n')
+  };
+}
+
+/**
  * Write processed components to stdout or via the config-driven output writers.
  * Shared by file/manifest mode (REST-sourced) and selection mode (bridge-sourced) —
  * once a spec exists as a plain object, output resolution/writing is identical.
@@ -104,7 +143,9 @@ async function writeGeneratedOutput(
   errors: Array<{ component: string; error: string }>,
   isManifest: boolean,
   options: GenerateOptions,
-  config: CLIConfig
+  config: CLIConfig,
+  /** The `<alias>.file.json` these specs were generated from, when there was one. */
+  payloadPath?: string
 ): Promise<void> {
   // -------------------------------------------------------------------
   // File mode stdout (no -o)
@@ -173,18 +214,18 @@ async function writeGeneratedOutput(
 
   // -------------------------------------------------------------------
   // Image resolution (ADR-063, --get-images): add src to unresolved
-  // registry entries — files written under {baseDir}/_images/, referenced
+  // registry entries — files written under the workspace's assets/images/, referenced
   // relative to the spec file that points at them. Runs before the
   // manifest so writers serialize the resolved registry values.
   // -------------------------------------------------------------------
   if (options.getImages) {
     const hashes = ImageFillsResolver.collectUnresolvedHashes(processedComponents);
     if (hashes.size === 0) {
-      console.log(config.conventions.figma.images
+      console.log(figmaOf(config.conventions).images
         ? 'Note: --get-images found no unresolved image placeholders'
-        : 'Note: --get-images has no effect — conventions.figma.images is not configured');
+        : 'Note: --get-images has no effect — images is not configured in config/conventions/figma.yaml');
     } else {
-      // Reuse hash-named files already present in _images/ — only the
+      // Reuse hash-named files already present in assets/images/ — only the
       // remainder needs the token, the API call, and downloads.
       const files = await ImageFillsResolver.findExisting(hashes, baseDir);
       const missing = new Set([...hashes].filter(hash => !files.has(hash)));
@@ -195,12 +236,17 @@ async function writeGeneratedOutput(
           console.error('Error: --get-images requires the FIGMA_TOKEN environment variable (same token as `specs fetch`)');
           process.exit(ERROR_CODES.INVALID_ARGS);
         }
-        const fileSourceAlias = resolveFileSourceAlias(config.settings.data?.sources);
-        const fileKey = fileSourceAlias ? config.settings.data?.sources?.[fileSourceAlias]?.key : undefined;
-        if (!fileKey) {
-          console.error('Error: --get-images requires a configured source file key (data.sources.<alias>.key in the workspace settings)');
+        const sourceDir = options.dataDir
+          ? path.resolve(options.dataDir)
+          : config.settings.data?.directory
+            ? path.resolve(config.settings.data.directory)
+            : path.join(process.cwd(), 'data');
+        const resolved = resolveImageFileKey(config, sourceDir, payloadPath);
+        if ('error' in resolved) {
+          console.error(resolved.error);
           process.exit(ERROR_CODES.INVALID_ARGS);
         }
+        const fileKey = resolved.key;
 
         console.log(`Requesting image download URLs from Figma (${missing.size} image(s))...`);
         const urls = await ImageFillsResolver.fetchImageUrls(fileKey, token);
@@ -269,7 +315,7 @@ export const Generate = new Command('generate')
   .option('--combine-as-library', 'Write every component into one library file instead of a file per component')
   .option('--combine-concerns', 'Write API, variants, and examples into one file per component instead of separate files')
   .option('--no-subfolders', 'Write component files side by side instead of nesting each in its own subfolder')
-  .option('--get-images', 'Resolve unresolved registry images into files under _images/ (requires processing.images in config and FIGMA_TOKEN)')
+  .option('--get-images', 'Resolve unresolved registry images into files under assets/images/ (requires processing.images in config and FIGMA_TOKEN)')
   .option('--from-bridge', 'Generate from the current selection in a connected Figma file via the CLI bridge (no REST fetch)')
   .option('--file <fileKey>', 'Target a specific connected Figma file with --from-bridge (prompts to choose if more than one is connected in an interactive terminal; required otherwise)')
   .option('--node <id>', 'With --from-bridge: generate from this node id instead of the current selection')
@@ -396,6 +442,9 @@ export const Generate = new Command('generate')
       let componentIds: string[];
       let componentNames: Map<string, string>; // id → display name
       let libraryJson: Record<string, any>;
+      // The Figma payload these specs come from — carried to --get-images so images are
+      // pulled from that file, which for an ad-hoc source is not the configured one.
+      let payloadPath: string | undefined;
 
       if (isManifest) {
         // MANIFEST MODE
@@ -427,10 +476,18 @@ export const Generate = new Command('generate')
 
         console.log(`✓ Loaded manifest: ${components.length} components (${selectedComponents.length} selected)`);
 
-        // Determine source file
+        // Determine source file. `<alias>.manifest.md` names the source it was
+        // scanned from, so with several fetched files the manifest's own payload
+        // beats the first configured source.
+        const manifestAlias = path.basename(sourcePath).replace(/\.manifest\.md$/, '');
+        const manifestPayload = manifestAlias !== path.basename(sourcePath)
+          ? path.join(sourceDir, `${manifestAlias}.file.json`)
+          : undefined;
         const componentSourceAlias = resolveFileSourceAlias(config.settings.data?.sources);
 
-        const sourceFile = metadata.file || (componentSourceAlias ? path.join(sourceDir, `${componentSourceAlias}.file.json`) : undefined);
+        const sourceFile = metadata.file
+          || (manifestPayload && fs.existsSync(manifestPayload) ? manifestPayload : undefined)
+          || (componentSourceAlias ? path.join(sourceDir, `${componentSourceAlias}.file.json`) : undefined);
 
         if (!sourceFile) {
           console.error('Error: No component source file specified');
@@ -448,6 +505,7 @@ export const Generate = new Command('generate')
           process.exit(ERROR_CODES.FILE_ERROR);
         }
 
+        payloadPath = sourceFile;
         libraryJson = await fs.readJSON(sourceFile);
 
         // `--component` used to apply only in file mode, so asking for one component here
@@ -489,6 +547,7 @@ export const Generate = new Command('generate')
           process.exit(ERROR_CODES.INVALID_ARGS);
         }
 
+        payloadPath = sourcePath;
         libraryJson = JSON.parse(sourceContent);
         componentIds = [options.component];
         const resolvedName =
@@ -670,7 +729,7 @@ export const Generate = new Command('generate')
         process.exit(ERROR_CODES.GENERAL_ERROR);
       }
 
-      await writeGeneratedOutput(processedComponents, errors, isManifest, options, config);
+      await writeGeneratedOutput(processedComponents, errors, isManifest, options, config, payloadPath);
 
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

@@ -3,7 +3,7 @@ title: "Images"
 description: "Process image fills and image-source props — the figma.images block and its representation triggers"
 ---
 
-Image processing is controlled by one block: `figma.images`. A library fact, declared in `config/conventions.yaml` — how a library expresses images is a property of the library, and a wrong declaration loses images rather than merely reshaping them. The block's **presence** is the on-switch (like `subcomponents`), and each member is an **independent representation trigger**. Absent by default, so components are unchanged unless the library declares the convention.
+Image processing is controlled by one block: `figma.images`. A library fact, declared in `config/conventions/figma.yaml` — how a library expresses images is a property of the library, and a wrong declaration loses images rather than merely reshaping them. The block's **presence** is the on-switch (like `subcomponents`), and each member is an **independent representation trigger**. Absent by default, so components are unchanged unless the library declares the convention.
 
 ## `figma.images`
 
@@ -16,36 +16,32 @@ Three triggers, combinable freely:
 Background fills only:
 
 ```yaml
-figma:
-  images:
-    backgroundImage: true
+images:
+  backgroundImage: true
 ```
 
 Component with background-fill fallback — image props route through `DS Image`; any image fill outside it still emits as `backgroundImage`:
 
 ```yaml
-figma:
-  images:
-    backgroundImage: true
-    match: DS Image
-    sourceProps: [source, image]
+images:
+  backgroundImage: true
+  match: DS Image
+  sourceProps: [source, image]
 ```
 
 Component only — the designated component is the sole image representation; stray fills are not detected:
 
 ```yaml
-figma:
-  images:
-    match: DS Image
-    sourceProps: [source]
+images:
+  match: DS Image
+  sourceProps: [source]
 ```
 
 Typed image props only — re-type `image`-named code-only props without detecting fills or designating a component:
 
 ```yaml
-figma:
-  images:
-    sourceProps: [image]
+images:
+  sourceProps: [image]
 ```
 
 ## Result
@@ -70,7 +66,7 @@ components:
                 - $image: "dsAvatar.examples#/images/userPhoto"
     images:
       userPhoto:
-        src: "_images/89b270d29dd5ea753b71af11bfcf1bf0ecc851cf.png"
+        src: "../../assets/images/89b270d29dd5ea753b71af11bfcf1bf0ecc851cf.png"
         $extensions:
           com.figma:
             imageHash: 89b270d29dd5ea753b71af11bfcf1bf0ecc851cf
@@ -94,13 +90,13 @@ Image fills carry an optional `objectFit` using CSS `object-fit` vocabulary — 
 
 ## Storage and Two-Phase Resolution
 
-Each `images` entry is an object holding the Figma identity in `$extensions['com.figma'].imageHash` and — once resolved — a `src` (an emitted asset path, the standard resolved form; a `data:` URI and external URL are also valid). Two-phase, structurally: `src` absent means **unresolved** (the detect phase); the resolution step — `specs generate --get-images` — writes each distinct image to `_images/<imageHash>.<ext>` inside the output directory and **adds** `src` (a spec-file-relative path), so the identity survives for reverse-direction tooling. `$image` pointers always resolve to a registry entry, so they never dangle.
+Each `images` entry is an object holding the Figma identity in `$extensions['com.figma'].imageHash` and — once resolved — a `src` (an emitted asset path, the standard resolved form; a `data:` URI and external URL are also valid). Two-phase, structurally: `src` absent means **unresolved** (the detect phase); the resolution step — `specs generate --get-images` — writes each distinct image to `assets/images/<imageHash>.<ext>` at the workspace root and **adds** `src` (a spec-file-relative path), so the identity survives for reverse-direction tooling. `$image` pointers always resolve to a registry entry, so they never dangle.
 
 The REST runtime resolves entries via a second call (Get Image Fills, whose S3 URLs expire ~14 days), downloading the bytes into emitted files — never persisting the URL or embedding base64. The Figma plugin cannot write files or embed raw bytes on the asset (saved-data limits), so it emits identity-only entries and duplicates detected images into the Foundations section's Images subsection for human reference.
 
 ## Path
 
-`figma.images` in `config/conventions.yaml`
+`images` in `config/conventions/figma.yaml`
 
 **Legacy name**: in the pre-split `specs.config.yaml`, this block was `config.processing.images` and the designated component was named by `imageComponent`. That file is no longer read — [`specs migrate config`](/cli/commands/migrate/) converts it, moving `imageComponent` to `match`.
 

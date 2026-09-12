@@ -3,7 +3,16 @@ title: "css"
 description: "Emit a CSS file with custom property rules per component element"
 ---
 
-<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
+<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge eol-badge">EOL</span>')</script>
+
+:::caution[No longer emitted this way]
+This page describes a `specs transform` target. That command is retired — a target
+is emitted whole by [`specs react`](/cli/commands/react/) or
+[`specs webcomponents`](/cli/commands/webcomponents/), which is why these artifacts
+can no longer be produced one at a time. Kept for reference on what each artifact
+contains.
+:::
+
 
 Emits a `{Component}.styles.css` file for each component. Each anatomy element becomes a CSS selector; token references become `var(--)` declarations; variant props become `[data-*]` attribute selectors. Boolean props use presence selectors (`[data-prop]`); string-valued props use value selectors (`[data-prop="value"]`).
 
@@ -16,7 +25,7 @@ Emits a `{Component}.styles.css` file for each component. Each anatomy element b
 ## Invocation
 
 ```bash
-specs transform css
+specs react
 ```
 
 ## Output
@@ -28,7 +37,7 @@ Each component subfolder receives a `generated/{Component}.styles.css` file, Pas
 An Alert component with `severity` and `dismissible` variant props, and anatomy elements `root`, `icon`, and `body`:
 
 ```css
-/* Generated. Do not edit — regenerate with `specs transform`. */
+/* Generated. Do not edit — regenerate with `specs react`. */
 
 .ds-alert {
   display: flex;
@@ -99,7 +108,7 @@ Token references are resolved to CSS `var(--)` based on `spec.tokens`:
 
 ## Config
 
-No transformer-specific options. Token format comes from `spec.tokens` in `config/settings.yaml`. Selector strategy for variant props comes from the [`figma.states`](/settings/states/) convention in `config/conventions.yaml`.
+No transformer-specific options. Token format comes from `spec.tokens` in `config/settings.yaml`. Selector strategy for variant props comes from the [`states`](/settings/states/) convention in `config/conventions/specs.yaml`.
 
 ```yaml
 # config/settings.yaml
@@ -108,14 +117,13 @@ spec:
 ```
 
 ```yaml
-# config/conventions.yaml
-figma:
-  states:                # optional — omit to keep data-* attribute selectors
-    hover:
-      prop: state
-      value: hover
-    disabled:
-      prop: isDisabled
+# config/conventions/figma.yaml
+states:                # optional — omit to keep data-* attribute selectors
+  hover:
+    prop: state
+    value: hover
+  disabled:
+    prop: isDisabled
 ```
 
 ```yaml
@@ -128,7 +136,7 @@ When the `states` convention is absent, all variant props produce `[data-*]` sel
 
 ### Disabled guard on hover and active
 
-When the `disabled` concept is configured in `figma.states`, the transformer automatically appends `:not(:disabled):not([aria-disabled="true"])` to every `:hover` and `:active` selector — including compound variants that mix a data attribute with `:hover` or `:active`. This prevents hover and active styles from firing on disabled elements without any extra CSS to write.
+When the `disabled` concept is configured in the `states` convention, the transformer automatically appends `:not(:disabled):not([aria-disabled="true"])` to every `:hover` and `:active` selector — including compound variants that mix a data attribute with `:hover` or `:active`. This prevents hover and active styles from firing on disabled elements without any extra CSS to write.
 
 ```css
 /* disabled concept configured → hover and active are guarded */
@@ -190,7 +198,7 @@ dsActionList/
 The subcomponent stylesheet follows the same structure as the parent — default element blocks first, then variant blocks — but BEM selectors are scoped to the subcomponent's own kebab-cased key, not the parent component name:
 
 ```css
-/* Generated. Do not edit — regenerate with `specs transform`. */
+/* Generated. Do not edit — regenerate with `specs react`. */
 
 .group {
   display: flex;
@@ -215,7 +223,7 @@ Subcomponent stylesheets are fully self-contained — elements and variants from
 ## See Also
 
 - [Transforms overview](/cli/transforms/)
-- [`figma.states` convention](/settings/states/) — classify variant props as semantic states
-- [`contract` transformer](/cli/transforms/contract/)
+- [`states` convention](/settings/states/) — classify variant props as semantic states
+- the emitted contract
 - [`react` transformer](/cli/transforms/react/) — imports this stylesheet into the generated and authored components
 - [tokens config](/settings/tokens/)

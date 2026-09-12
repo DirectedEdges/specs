@@ -3,7 +3,7 @@
  *
  * v1 is the single `specs.config.yaml` with `dataDirectory`, `outputDirectory`,
  * `author`, `sources`, `output` and a `config` block. v2 is the three files
- * under `config/`: conventions, settings, pipeline.
+ * under `config/`: conventions and settings.
  *
  * This runs from `specs migrate config`, never from the loader. Config loading
  * happens inside read-only commands and in CI, and a read path must not write
@@ -12,11 +12,12 @@
 
 import type { SourceEntry } from '@directededges/specs-schema';
 
-/** The three split shapes, as authored — unresolved, with absent members omitted. */
+/** The split shapes, as authored — unresolved, with absent members omitted. */
 export interface MigratedConfig {
   conventions: unknown;
+  /** Conventions about the spec itself, written to `config/conventions/specs.yaml` (ADR-073 Decision 4). */
+  specsConventions: unknown;
   settings: unknown;
-  pipeline: unknown;
 }
 
 /**
@@ -27,10 +28,10 @@ export function migrateConfigV1(parsed: unknown): MigratedConfig {
 
   /* eslint-disable @typescript-eslint/no-explicit-any */
   const figma: Record<string, any> = {};
+  const specsConventions: Record<string, any> = {};
   const spec: Record<string, any> = {};
   const data: Record<string, any> = {};
   const settings: Record<string, any> = {};
-  const pipeline: Record<string, any> = {};
   /* eslint-enable @typescript-eslint/no-explicit-any */
 
   // Support deprecated 'sourceDirectory' with warning (predates the split)
@@ -93,9 +94,12 @@ export function migrateConfigV1(parsed: unknown): MigratedConfig {
     for (const key of ['variantDepth', 'details', 'collapsePrimitiveWrapper'] as const) {
       if (proc[key] !== undefined) spec[key] = proc[key];
     }
-    for (const key of ['subcomponents', 'instanceExamples', 'states', 'slotConstraints', 'inferNumberProps'] as const) {
+    for (const key of ['subcomponents', 'instanceExamples', 'slotConstraints', 'inferNumberProps'] as const) {
       if (proc[key] !== undefined) figma[key] = proc[key];
     }
+    // states classifies props the spec declares, not Figma facts, so it lands in
+    // conventions/specs.yaml (ADR-073 Decision 4)
+    if (proc.states !== undefined) specsConventions.states = proc.states;
     if (proc.glyphNamePattern !== undefined) {
       figma.glyphs = { match: proc.glyphNamePattern };
     }
@@ -118,18 +122,21 @@ export function migrateConfigV1(parsed: unknown): MigratedConfig {
     }
   }
 
-  // config.transformers -> pipeline.transformers
+  // `config.transformers` is dropped rather than carried: a transformer pipeline
+  // stopped being a thing to configure once each target emitted everything it
+  // needs. `specs react` and `specs webcomponents` replace it.
   if (cfg.transformers !== undefined) {
-    pipeline.transformers = cfg.transformers;
   }
 
   if (Object.keys(data).length > 0) settings.data = data;
   if (Object.keys(spec).length > 0) settings.spec = spec;
 
   return {
-    conventions: Object.keys(figma).length > 0 ? { figma } : undefined,
+    // The Figma platform's entry BODY, not a `{ figma }` wrapper: it is written to
+    // config/conventions/figma.yaml, where the filename is the platform id (ADR-078).
+    conventions: Object.keys(figma).length > 0 ? figma : undefined,
+    specsConventions: Object.keys(specsConventions).length > 0 ? specsConventions : undefined,
     settings: Object.keys(settings).length > 0 ? settings : undefined,
-    pipeline: Object.keys(pipeline).length > 0 ? pipeline : undefined,
   };
 }
 

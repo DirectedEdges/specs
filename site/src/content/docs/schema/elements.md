@@ -19,6 +19,7 @@ type Elements = Record<string, Element>;
 | `propConfigurations` | [`PropConfigurations`](/schema/prop-configurations/) | No | Prop values that must hold for this element to appear |
 | `instanceOf` | `string \| PropBinding \| SubcomponentRef` | No | Component name, binding, or subcomponent ref |
 | `content` | `string \| PropBinding` | No | Text content or glyph name, or a binding to a prop |
+| `$extensions` | `object` | No | Platform extensions. `com.figma` carries capture provenance for a [promoted](/settings/promote-primitives/) element — `promotedPrimitive` and the `styles` the promotion consumed |
 
 ## Further Reading
 

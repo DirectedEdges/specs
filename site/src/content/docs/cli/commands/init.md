@@ -1,7 +1,7 @@
 ---
 title: "init"
 ---
-Initialize the `config/` directory — `conventions.yaml`, `settings.yaml`, and `pipeline.yaml` — with production-ready defaults.
+Initialize the `config/` directory — one conventions file per platform plus `settings.yaml` — with production-ready defaults.
 
 ## Usage
 
@@ -11,11 +11,12 @@ specs init [options]
 
 ## Purpose
 
-The `init` command scaffolds three configuration files, each answering one question:
+The `init` command scaffolds the split configuration (ADR-071, ADR-078), each file answering one question:
 
-- **`config/conventions.yaml`** — facts about the Figma library: naming patterns, state classification, how images are expressed. See [Conventions](/schema/conventions/).
+- **`config/conventions/figma.yaml`** — facts about the Figma library: naming patterns, glyph and subcomponent matching, how images are expressed. See [Conventions](/schema/conventions/).
+- **`config/conventions/specs.yaml`** — conventions about the spec itself: the states classification and the props carrying accessibility and value semantics. See [Conventions](/schema/conventions/).
+- **`config/conventions/react.yaml`** and **`config/conventions/web-components.yaml`** — commented stubs for the code platforms; a file of pure comments declares nothing until you opt in.
 - **`config/settings.yaml`** — choices about this run: sources, spec output, assets. See [Settings](/schema/settings/).
-- **`config/pipeline.yaml`** — transformers and analyses to run. See [Pipeline](/schema/pipeline/).
 
 Each file ships with sensible defaults and inline documentation with links to the full configuration reference. `settings.yaml` includes an empty `data.sources` object ready for your Figma file keys.
 
@@ -25,34 +26,42 @@ This is the recommended way to get started with Specs in a new project.
 
 ```
 config/
-  conventions.yaml     # what the library is
-  settings.yaml        # how output behaves, and where it goes
-  pipeline.yaml        # what to run
+  conventions/
+    figma.yaml           # what the Figma library is
+    specs.yaml           # what the spec declares about itself
+    react.yaml           # code-platform stub, commented out
+    web-components.yaml  # code-platform stub, commented out
+  settings.yaml          # how output behaves, and where it goes
 ```
 
-`config/conventions.yaml` declares how the library is authored — most conventions start commented out, since absence means the library declares no such convention:
+`config/conventions/figma.yaml` declares how the library is authored — most conventions start commented out, since absence means the library declares no such convention:
 
 ```yaml
 # Facts about the Figma library — every consumer of that library declares the same values.
-figma:
-  # naming: NONE
+# naming: NONE
 
-  # glyphs:
-  #   match: 'DS Icon Glyph / {i}'
+# glyphs:
+#   match: 'DS Icon Glyph / {i}'
 
-  subcomponents:
-    # scope: NESTED
-    match:
-      - '{C} / _ / {S}'
-    # exclude:
-    #   - '{C} / Examples / {S}'
+subcomponents:
+  # scope: NESTED
+  match:
+    - '{C} / _ / {S}'
+  # exclude:
+  #   - '{C} / Examples / {S}'
 
-  slotConstraints: false
+slotConstraints: false
+```
 
-  # states:
-  #   hover:
-  #     prop: state
-  #     value: hover
+`config/conventions/specs.yaml` declares conventions about the spec itself — every member names a prop or enum value the spec declares:
+
+```yaml
+# states:
+#   hover:
+#     prop: state
+#     value: hover
+#   disabled:
+#     prop: disabled   # boolean prop — value defaults to "true"
 ```
 
 `config/settings.yaml` declares run choices, grouped by concern:
@@ -79,19 +88,6 @@ spec:
   # useSubfolders: true
 ```
 
-`config/pipeline.yaml` declares the work to run — everything commented out until you opt in:
-
-```yaml
-# Work this workspace runs: transformers and analyses.
-# transformers:
-#   - name: contract
-#   - name: css
-#   - name: react
-
-# analyses:
-#   - name: dependencies
-```
-
 Each section includes inline comments with references to the full documentation.
 
 ## Options
@@ -99,7 +95,7 @@ Each section includes inline comments with references to the full documentation.
 ### `--force`
 Overwrite existing config files without prompting.
 
-By default, if any of the three files exists, `init` prompts before overwriting. Use `--force` to skip the prompt.
+By default, if any of the files exists, `init` prompts before overwriting. Use `--force` to skip the prompt.
 
 ```bash
 # Prompt before overwrite (default)
@@ -115,7 +111,7 @@ Custom directory to write the `config/` folder into (default: current directory)
 ```bash
 # Scaffold config/ inside a workspace subdirectory
 specs init --config ./workspaces/library
-# Creates ./workspaces/library/config/{conventions,settings,pipeline}.yaml
+# Creates ./workspaces/library/config/conventions/*.yaml and settings.yaml
 ```
 
 ## Examples
@@ -127,9 +123,11 @@ cd my-design-system
 specs init
 
 # Output:
-# ✓ Created config/conventions.yaml
+# ✓ Created config/conventions/figma.yaml
+# ✓ Created config/conventions/specs.yaml
+# ✓ Created config/conventions/react.yaml
+# ✓ Created config/conventions/web-components.yaml
 # ✓ Created config/settings.yaml
-# ✓ Created config/pipeline.yaml
 # 📚 Next steps:
 #    1. Edit the config file to add your Figma file keys
 #    2. Run: specs fetch
@@ -166,7 +164,7 @@ Error: found specs.config.yaml — a pre-split configuration (ADR-071).
   To scaffold fresh defaults instead, remove specs.config.yaml first.
 ```
 
-Run [`specs migrate config`](/cli/commands/migrate/) to convert the file into the three-file layout — the [Settings](/schema/settings/) and [Conventions](/schema/conventions/) references show where each former member now lives. Use `init` only for a workspace with no existing configuration.
+Run [`specs migrate config`](/cli/commands/migrate/) to convert the file into the split layout — the [Settings](/schema/settings/) and [Conventions](/schema/conventions/) references show where each former member now lives. Use `init` only for a workspace with no existing configuration.
 
 ---
 

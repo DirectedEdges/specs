@@ -88,11 +88,15 @@ export const Analyze = new Command('analyze')
 
           for (const analyzer of analyzers) {
             const context: TransformerContext = {
+              specDir: componentDir,
               outputDir: componentDir,
+              // The workspace root is the parent of the specs directory.
+              workspaceDir: path.dirname(outputPath),
               componentKey,
               tokensFormat: config.settings.spec.tokens,
               outputFormat: config.settings.spec.format,
-              processingStates: config.conventions.figma.states as ProcessingStates | undefined,
+              processingStates: config.conventions.specs?.states as ProcessingStates | undefined,
+              specs: config.conventions.specs,
             };
             await analyzer.run(apiYaml, context);
           }

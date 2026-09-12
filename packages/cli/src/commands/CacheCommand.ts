@@ -10,6 +10,7 @@
 import { Command } from 'commander';
 import { ConfigLoader } from '../Config/ConfigLoader.js';
 import { refreshCache, type CacheReport } from '../Cache/Cache.js';
+import { figmaOf } from '../Config/PlatformConventions.js';
 
 const ERROR_CODES = {
   SUCCESS: 0,
@@ -54,7 +55,7 @@ export const Cache = new Command('cache')
       const report = refreshCache({
         dataDir: dataDirectory,
         aliases,
-        glyphNamePattern: config.conventions.figma.glyphs?.match,
+        glyphNamePattern: figmaOf(config.conventions).glyphs?.match,
         force: options.force,
       });
 

@@ -23,11 +23,13 @@ describe('InitCommand', () => {
   });
 
   describe('template generation', () => {
-    it('generates the three split-config files under config/', () => {
+    it('generates the split-config files under config/', () => {
       const templates = generateConfigTemplates();
       expect(Object.keys(templates).sort()).toEqual([
-        'config/conventions.yaml',
-        'config/pipeline.yaml',
+        'config/conventions/figma.yaml',
+        'config/conventions/react.yaml',
+        'config/conventions/specs.yaml',
+        'config/conventions/web-components.yaml',
         'config/settings.yaml',
       ]);
     });
@@ -40,8 +42,10 @@ describe('InitCommand', () => {
     });
 
     it('conventions template carries the figma conventions structure', () => {
-      const conventions = generateConfigTemplates()['config/conventions.yaml'];
-      expect(conventions).toContain('figma:');
+      const conventions = generateConfigTemplates()['config/conventions/figma.yaml'];
+      // The filename is the platform id, so the body has no wrapping key (ADR-078).
+      expect(conventions).not.toContain('\nfigma:');
+      expect(conventions).toContain('# naming: NONE');
       expect(conventions).toContain('subcomponents:');
       expect(conventions).toContain('match:');
     });
@@ -77,16 +81,15 @@ describe('InitCommand', () => {
   });
 
   describe('file operations', () => {
-    it('should create the three config files if they do not exist', async () => {
+    it('should create the config files if they do not exist', async () => {
       const templates = generateConfigTemplates();
       for (const [rel, template] of Object.entries(templates)) {
         const filePath = path.join(testDir, rel);
         fs.ensureDirSync(path.dirname(filePath));
         fs.writeFileSync(filePath, template, 'utf-8');
       }
-      expect(fs.existsSync(path.join(testDir, 'config', 'conventions.yaml'))).toBe(true);
+      expect(fs.existsSync(path.join(testDir, 'config', 'conventions', 'figma.yaml'))).toBe(true);
       expect(fs.existsSync(path.join(testDir, 'config', 'settings.yaml'))).toBe(true);
-      expect(fs.existsSync(path.join(testDir, 'config', 'pipeline.yaml'))).toBe(true);
     });
 
     it('should write template content exactly', async () => {
@@ -173,7 +176,7 @@ describe('InitCommand', () => {
     });
 
     it('conventions template has processing conventions', () => {
-      const conventions = generateConfigTemplates()['config/conventions.yaml'];
+      const conventions = generateConfigTemplates()['config/conventions/figma.yaml'];
 
       expect(conventions).toContain('subcomponents:');
       expect(conventions).toContain('slotConstraints');

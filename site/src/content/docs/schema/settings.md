@@ -41,6 +41,9 @@ Authored in `config/settings.yaml`. Members are grouped by concern, and each con
 | [`variantDepth`](/guides/variant-depth/) | `1 \| 2 \| 3 \| 9999` | `9999` | Maximum variant nesting depth (9999 = unlimited) |
 | [`details`](/guides/variant-layering/) | `'FULL' \| 'LAYERED'` | `'LAYERED'` | Output detail level |
 | [`collapsePrimitiveWrapper`](/settings/collapse-primitive-wrapper/) | `boolean` | `false` | Strip a root container that only wraps one child — a text/glyph leaf, or a slot — and promote the child to spec root |
+| [`promotePrimitives`](/settings/promote-primitives/) | `boolean` | `false` | Promote primitive layers in composed example content to instances of the design system's own components |
+| `roles` | `boolean` | `false` | Read Figma Dev Mode annotations and emit [`anatomy.<element>.role`](/schema/anatomy/) and `.actions` — the on-switch for the [role feature](/roles/) (ADR-067) |
+| `roleValidation` | `'warn' \| 'error'` | `'warn'` | Severity for unmet required role obligations, such as a control with no accessible-name source; `error` fails the transform (ADR-067) |
 | [`invalidVariants`](/settings/invalid-variants/) | `boolean` | `false` | Include variants marked invalid |
 | [`invalidCombinations`](/guides/invalid-variant-combinations/) | `boolean` | `true` | Include `invalidVariantCombinations` list |
 | [`emptyVariants`](/settings/empty-variants/) | `boolean` | `false` | Include variants with no element overrides |
@@ -72,6 +75,9 @@ const DEFAULT_SETTINGS: ResolvedSettings = {
     variantDepth: 9999,
     details: 'LAYERED',
     collapsePrimitiveWrapper: false,
+    promotePrimitives: false,
+    roles: false,
+    roleValidation: 'warn',
     invalidVariants: false,
     invalidCombinations: true,
     emptyVariants: false,

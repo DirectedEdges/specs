@@ -2,8 +2,8 @@
 
 **Branch**: `072-numeric-variant-enum`
 **Created**: 2026-08-24
-**Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Status**: ACCEPTED
+**Summary**: `NumberProp` carries an `enum` of the numeric values a variant prop accepts, so a numeric variant set keeps its options instead of widening to an unbounded number.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

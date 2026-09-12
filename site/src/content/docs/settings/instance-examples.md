@@ -6,7 +6,7 @@ description: "Detect named example frames that demonstrate a configured whole-co
 <script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge pro-badge">Pro</span>')</script>
 <script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
 
-Instance examples are real-world usages of a component placed in your Figma file — instances with their props and slots filled in (for example, an alert with a title, body, and two actions). When detection is configured, those instances are harvested into `Component.instanceExamples` and emitted. A library fact, declared in `config/conventions.yaml`: where a library keeps its examples and how it marks them are properties of the library — a wrong declaration yields no examples, or foreign ones.
+Instance examples are real-world usages of a component placed in your Figma file — instances with their props and slots filled in (for example, an alert with a title, body, and two actions). When detection is configured, those instances are harvested into `Component.instanceExamples` and emitted. A library fact, declared in `config/conventions/figma.yaml`: where a library keeps its examples and how it marks them are properties of the library — a wrong declaration yields no examples, or foreign ones.
 
 A candidate qualifies primarily by **identity**: it must be an *instance of the component being generated* (one of its variants). Naming is not the relevance test — that's what `match` is for, and `match` is optional. This means example instances can be named anything; they don't need to reference the component name.
 
@@ -17,36 +17,33 @@ The **presence** of `figma.instanceExamples` is the on-switch — the same opt-i
 Simplest setup — every instance of the component inside a frame named "Ready-made examples" is an example. No name patterns; identity plus the parent filter do the scoping:
 
 ```yaml
-figma:
-  instanceExamples:
-    scope: PAGE
-    parentNames:
-      - Ready-made examples
+instanceExamples:
+  scope: PAGE
+  parentNames:
+    - Ready-made examples
 ```
 
 Examples on a dedicated page, inside an "Examples" frame, narrowed by name and with deprecated ones excluded:
 
 ```yaml
-figma:
-  instanceExamples:
-    scope: FILE
-    parentNames:
-      - Examples
-    match:
-      - "{C} / *"
-    exclude:
-      - "* / Deprecated / *"
+instanceExamples:
+  scope: FILE
+  parentNames:
+    - Examples
+  match:
+    - "{C} / *"
+  exclude:
+    - "* / Deprecated / *"
 ```
 
 Examples alongside the component, narrowed by name only:
 
 ```yaml
-figma:
-  instanceExamples:
-    scope: PAGE
-    match:
-      - "{C} – *"
-      - "{C} Example *"
+instanceExamples:
+  scope: PAGE
+  match:
+    - "{C} – *"
+    - "{C} Example *"
 ```
 
 ## Result
@@ -102,7 +99,7 @@ The relevance test is **identity**: a candidate qualifies when it's an instance 
 
 ## Path
 
-`figma.instanceExamples` in `config/conventions.yaml`
+`instanceExamples` in `config/conventions/figma.yaml`
 
 ## Licensing
 

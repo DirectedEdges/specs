@@ -4,16 +4,6 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 082 | `Component.description` — The Authored Figma Description, Plain Text and Opt-In |  |
-| 079 | `metadata.conventions` Carries Only the Producing Platform | (reserved, draft in PR #363) |
-| 078 | One Conventions File per Platform, in `config/conventions/` | (reserved, draft in PR #363) |
-| 077 | The Image Component's Code Name, and the Encoding / Vocabulary Boundary | (reserved, draft in PR #363) |
-| 076 | Direction-Keyed Container Bindings, and a Platform-Level `stylesProp` | (reserved, draft in PR #363) |
-| 075 | `props` — a Closed, Concept-Keyed Map onto a Component's Props | (reserved, draft in PR #363) |
-| 074 | Primitives Resolve to Components at Emit Time, Not in the Spec | (reserved, draft in PR #363) |
-| 073 | `conventions.platforms`, with Figma as One Platform Among Them | (reserved, draft in PR #363) |
-| 072 | Numeric Enum on `NumberProp` | Adds optional `enum?: number[]` so a VARIANT whose options are all numbers emits as a number with its closed option set preserved |
-| 070 | Explicit `position: ABSOLUTE` for Children of Non-Auto-Layout Parents | |
 | 045 | Processing Provenance Signals | (reserved, draft in PR #60) |
 | 044 | Duplicate Layer Name Disambiguation | (reserved, draft in PR #60) |
 | 024 | Component Extends Relationship | Add `extends` field to express base/derived component relationships and prop/variant inheritance |
@@ -24,10 +14,25 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 087 | Behavior Actions via `anatomy.action` | Adds `AnatomyElement.actions` (`ActionEntry[]`) — a second annotation key for what a control *does*, alongside `role` for what it *is* |
+| 086 | Interactive Root and Announcement Role Concepts | Vocabulary for `button`, `togglebutton`, `link`, `disclosure`, `alert`, `status`, `progressbar`; all non-structural — sequence first. Same docs-governed rule as 068 |
+| 085 | `promotePrimitives` — the Switch for Capture-Time Promotion | Adds `Settings.spec.promotePrimitives` (default false) — the opt-in that turns capture-time primitive promotion on |
+| 084 | `Element.$extensions` — Figma Provenance for a Promoted Element | Adds `Element.$extensions` with `com.figma` provenance, so a promoted element records that it was promoted, whether several entries matched, and the content and styles the promotion consumed |
 | 083 | Collapsing a Slot-Only Wrapper | `collapsePrimitiveWrapper` also collapses a root wrapping one slot; both nodes are containers so no style is tested, and the slot's value wins |
+| 081 | `defaultFillWidth` — the Width a Fill-Width Root Fills | Each platform states, in its own `config/conventions/` file, the width of the container it places a fill-width root in; fixed and hugging roots are untouched, and absent a declaration the rendering tool falls back to 375 |
 | 080 | `null` as a Prop Configuration Value | Adds a `null` arm to `PropConfigurationValue` and to `InstanceExample.propConfigurations`; absent inherits, `null` overrides with unset |
+| 079 | `metadata.conventions` Carries Only the Producing Platform | A spec records the one platform entry that produced it, not every platform in the workspace — fixing a drift check that fires on unrelated changes, and stopping internal vocabulary leaking into published specs |
+| 078 | One Conventions File per Platform, in `config/conventions/` | `config/conventions/<platform>.yaml` composes into one `Conventions`; the filename is the platform id so no merge rule is needed, and it is the only layout — the single-file form is unreleased and does not survive |
+| 077 | The Image Component's Code Name, and the Encoding / Vocabulary Boundary | Text, glyph and container are node kinds; an image is an attribute, so it gets `images.component` rather than a place in the primitive vocabulary. A container's `backgroundImage` always stays styling |
+| 076 | Promoting a Container, and a Platform-Level `stylesProp` | Promotion extends to containers, and `stylesProp` names the platform prop that carries a promoted element's styles |
+| 075 | `conventions.primitives` — a Declared Table from Styles to a Component's Props | |
+| 074 | Primitives Promote to Component Instances During Capture, in Composed Content | During capture, an element matching a `conventions.primitives` entry emits as an instance of that component, in composed content |
+| 073 | `conventions.platforms`, with Figma as One Platform Among Them | Platform-keyed `conventions.platforms`; `figma` one key among implementations. `conventions.specs` holds spec-side facts like `states` |
+| 072 | Numeric Enum on `NumberProp` | Adds optional `enum?: number[]` so a VARIANT whose options are all numbers emits as a number with its closed option set preserved |
 | 071 | Separate Library Conventions from Tooling Settings | `Conventions`, `Settings` and `Pipeline` replace `Config`, separating library facts from run choices and declared work |
 | 069 | Rename `clipContent` to `clipsContent` | Renames the clip flag to the key the data carries, so container clipping and CSS `overflow` resolve for the first time |
+| 068 | Form Control and Field Plumbing Role Concepts | Vocabulary for `textbox`…`switch` plus the `label`/`description`/`errormessage`/`value`/`placeholder` parts and `group`; establishes that the vocabulary is docs-governed and changes without an ADR |
+| 067 | Element Behavior Roles via `anatomy.role` | Add `AnatomyElement.role` (open `RoleConceptName` string), the Dev Mode annotation that generates it, control-vs-part role resolution, role obligations, `Conventions.specs` prop conventions, and `Settings.spec.roleValidation` |
 | 066 | Lossless Key Formatting — Safe Key Grammar and Figma Name Preservation | Adds opt-in `format.figmaKeys` (`NONE` default), a safe key grammar, and `com.figma.name` on anatomy and props; renames `originalName` |
 | 065 | Document the `nullable` Default and Add `NumberProp.nullable` | Absent `nullable` means true for `StringProp`/`NumberProp`/`SlotProp`/`ImageProp`, false for `EnumProp`; adds `NumberProp.nullable` |
 | 064 | Tighten `textAlignHorizontal` to a Logical-Direction String Enum | Narrow from `Style` to `TextAlignHorizontal \| null` (`'START' \| 'CENTER' \| 'END' \| 'JUSTIFY'`); Figma `LEFT`/`RIGHT`/`JUSTIFIED` remapped |

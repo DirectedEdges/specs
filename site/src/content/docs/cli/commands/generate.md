@@ -137,7 +137,7 @@ Path to a markdown manifest or a Figma REST API JSON file. The mode is detected 
 ## Options
 
 ### `-c, --component <name|id>`
-Component name or Figma node ID. Required in single component mode; ignored in manifest and bridge mode.
+Component name or Figma node ID. Required in single component mode; ignored in bridge mode. In manifest mode it filters the manifest to the named component — matched by name, node ID, or formatted key — and fails with a did-you-mean suggestion when nothing matches.
 
 ### `-o, --output <path>`
 Output file or directory path.
@@ -270,13 +270,13 @@ specs/
 With concerns still split, each component's concern files need a folder to live in, so this flag has no effect.
 
 ### `--get-images`
-Resolve unresolved registry images into real image files. Requires a [`figma.images`](/settings/images/) convention in `config/conventions.yaml`, a configured source file key, and the `FIGMA_TOKEN` environment variable (the same token `specs fetch` uses).
+Resolve unresolved registry images into real image files. Requires a [`figma.images`](/settings/images/) convention in `config/conventions/figma.yaml`, a configured source file key, and the `FIGMA_TOKEN` environment variable (the same token `specs fetch` uses).
 
 ```bash
 specs generate -o specs/ --get-images
 ```
 
-Generation alone (the *detect* phase) records each image fill as an unresolved registry entry — the Figma identity in `$extensions['com.figma'].imageHash`, no `src` — structurally complete, but with no pixels. With `--get-images`, the CLI calls Figma's Get Image Fills endpoint, downloads each distinct image once, writes it as `_images/<imageHash>.<ext>` inside the output directory (format detected from the bytes — png, jpg, gif, or webp), and **adds** `src` to each entry — a path relative to the spec file that references it. The Figma identity survives for reverse-direction tooling:
+Generation alone (the *detect* phase) records each image fill as an unresolved registry entry — the Figma identity in `$extensions['com.figma'].imageHash`, no `src` — structurally complete, but with no pixels. With `--get-images`, the CLI calls Figma's Get Image Fills endpoint, downloads each distinct image once, writes it as `assets/images/<imageHash>.<ext>` at the workspace root — a sibling of `specs/`, beside `assets/icons/` (format detected from the bytes — png, jpg, gif, or webp), and **adds** `src` to each entry — a path relative to the spec file that references it. The Figma identity survives for reverse-direction tooling:
 
 ```yaml
 # without --get-images (detect phase)
@@ -289,20 +289,23 @@ images:
 # with --get-images — src is ADDED; the identity survives
 images:
   dsCard__hero:
-    src: _images/705867125834a686a51bdf161a0a39cdba0f9a58.png
+    src: ../../assets/images/705867125834a686a51bdf161a0a39cdba0f9a58.png
     $extensions:
       com.figma:
         imageHash: 705867125834a686a51bdf161a0a39cdba0f9a58
 ```
 
 ```
+assets/
+└── images/
+    └── 705867125834a686a51bdf161a0a39cdba0f9a58.png
 specs/
-├── _images/
-│   └── 705867125834a686a51bdf161a0a39cdba0f9a58.png
-└── dsCard.yaml
+└── dsCard/
+    ├── api.yaml
+    └── examples.yaml
 ```
 
-`$image` pointers (in `backgroundImage` fills and `ImageBinding` examples) are unaffected — resolution touches one registry entry per image, never the references. Files are named by Figma's content hash, so an image shared by many components is downloaded and stored once, and re-runs are idempotent. Figma's download URLs are temporary and are never persisted. In the default subfolder layout (or any component + concern layout), `src` becomes `../_images/...` so it still resolves relative to each spec file.
+`$image` pointers (in `backgroundImage` fills and `ImageBinding` examples) are unaffected — resolution touches one registry entry per image, never the references. Files are named by Figma's content hash, so an image shared by many components is downloaded and stored once, and re-runs are idempotent. Figma's download URLs are temporary and are never persisted. `src` is written relative to the spec file that carries it, so its depth follows the layout: `../../assets/images/...` from a component folder, `../assets/images/...` from a flat one.
 
 ### `--from-bridge`
 Generate from the current selection in a connected Figma file via the [CLI bridge](/cli/commands/bridge/), instead of from a manifest or downloaded JSON. See [Bridge Mode](#bridge-mode).
@@ -316,6 +319,9 @@ Target a specific connected Figma file (bridge mode only). More than one file ca
 
 ### `--node <id>`
 Generate from a specific node ID instead of the current selection (bridge mode only). The plugin selects the node first, switching pages if the node lives on another one, then restores the page you were on.
+
+### `--remove`
+Delete the node once its spec has been read (bridge mode only) — for round-trip testing, so a rendered-then-generated component leaves the Figma page as it was found. **This mutates the connected file**; there is no undo from the CLI side.
 
 ### `--config <path>`
 Path to a `config/` directory, when it isn't the `config/` directory in the working directory.

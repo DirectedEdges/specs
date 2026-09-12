@@ -131,5 +131,6 @@ When a token has no code syntax defined for the chosen platform, the profile **f
 
 ## See Also
 
+- [Promote Primitives](/settings/promote-primitives/#tokens) — a promotion table's `values` keys are matched against whatever this profile emits, so changing it stops them matching
 - [`applyCustomTokens` command](/cli/commands/apply-custom-tokens/) — mapping file format and pipeline for the `CUSTOM` profile
 - [ADR 007 — Token Reference Config](https://github.com/DirectedEdges/specs/blob/main/adr/007-token-reference-config.md) — the decision consolidating token formatting into a single enum

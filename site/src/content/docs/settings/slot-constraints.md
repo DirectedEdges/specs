@@ -3,7 +3,7 @@ title: "Slot Constraints"
 description: "Consolidate slot constraints from code-only props into the slot property"
 ---
 
-Consolidate slot constraints (`anyOf`, `minChildren`, `maxChildren`) into the slot property. A library fact, declared in `config/conventions.yaml`: it states that the library authors slot constraints as code-only props — a library that does, but leaves this off, loses declared constraint data. Constraints are read from two sources — Figma's native `slotSettings` API (when the slot has native settings configured) and code-only props (the legacy naming convention). Both sources produce the same output fields.
+Consolidate slot constraints (`anyOf`, `minChildren`, `maxChildren`) into the slot property. A library fact, declared in `config/conventions/figma.yaml`: it states that the library authors slot constraints as code-only props — a library that does, but leaves this off, loses declared constraint data. Constraints are read from two sources — Figma's native `slotSettings` API (when the slot has native settings configured) and code-only props (the legacy naming convention). Both sources produce the same output fields.
 
 :::tip[Guide]
 See the [Slot Constraints](/guides/slot-constraints/) guide as well as the [Figma Slots for Repeating Items](https://nathanacurtis.substack.com/p/figma-slots-for-repeating-items) blog post for how constraint consolidation works.
@@ -12,8 +12,7 @@ See the [Slot Constraints](/guides/slot-constraints/) guide as well as the [Figm
 ## Configuration
 
 ```yaml
-figma:
-  slotConstraints: true
+slotConstraints: true
 ```
 
 ## Result
@@ -54,4 +53,4 @@ figma:
 
 ## Path
 
-`figma.slotConstraints` in `config/conventions.yaml`
+`slotConstraints` in `config/conventions/figma.yaml`

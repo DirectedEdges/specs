@@ -12,6 +12,7 @@ import { ManifestParserV2, type ManifestRowV2 } from '../utilities/ManifestParse
 import { isV1Manifest, migrateV1ToV2 } from '../utilities/ManifestMigrationV1ToV2.js';
 import { glyphPatternMatch } from '../utilities/glyphPatternMatch.js';
 import { ConfigLoader } from '../Config/ConfigLoader.js';
+import { figmaOf } from '../Config/PlatformConventions.js';
 
 const SCAN_FORMAT_VERSION = 2;
 
@@ -62,6 +63,69 @@ export function deriveDefaultInclusion(
     }
   }
   return result;
+}
+
+/**
+ * Dev status is a property of a component, and the pieces a component composes
+ * carry none of their own — a subcomponent has no status to read, and a
+ * sibling it instances was curated on its own merits. So devStatus-derived
+ * curation deselects the dependencies of its own selection, and generating
+ * from it produces scaffolds importing output that was never generated.
+ *
+ * Every listed component a checked component composes, transitively, is
+ * retained.
+ */
+export function retainComposedDependencies(
+  rows: Array<{ id: string; included: boolean }>,
+  composedOf: (checkedIds: string[]) => Set<string>
+): number {
+  const checked = rows.filter(r => r.included).map(r => r.id);
+  if (checked.length === 0) return 0;
+  const needed = composedOf(checked);
+  let retained = 0;
+  for (const row of rows) {
+    if (row.included || !needed.has(row.id)) continue;
+    row.included = true;
+    retained += 1;
+  }
+  return retained;
+}
+
+/**
+ * Authoring aids that live in the library as components but are not components
+ * of it: the Examples sets a designer keeps beside a component, and the sets
+ * that carry the code-only-props surface. Generating them writes spec folders
+ * for things nothing consumes.
+ *
+ * Hidden folders (`_`) are organisational, so they are dropped before matching
+ * — otherwise "Slider / _ / Examples / Steps" slips past the declared
+ * `{C} / Examples / {S}` exclusion that is meant to catch exactly it.
+ */
+export function isAuthoringAid(
+  name: string,
+  conventions: { exclude?: string[]; codeOnlyProps?: string } = {}
+): boolean {
+  const segments = name.split('/').map(s => s.trim()).filter(s => s.length > 0 && s !== '_');
+  const path = segments.join(' / ');
+  const norm = (s: string) => s.replace(/\s+/g, ' ').toLowerCase();
+
+  if (conventions.codeOnlyProps && segments.length > 0) {
+    if (norm(segments[0]) === norm(conventions.codeOnlyProps)) return true;
+  }
+
+  // A pattern is a name shape, not a regex: {C} and {S} stand for any parent
+  // and any child, since a listing has no one parent in hand to bind them to.
+  return (conventions.exclude ?? []).some(pattern => {
+    const source = pattern
+      .split(/(\{C\}|\{S\})/)
+      .map(part => (part === '{C}' || part === '{S}' ? '.+' : escapeRegExp(norm(part))))
+      .join('');
+    return new RegExp(`^${source}$`).test(norm(path));
+  });
+}
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 export interface MergeStats {
@@ -210,7 +274,7 @@ function generateManifestV2(
     lines.push('');
     lines.push('## Glyphs');
     lines.push('');
-    lines.push('_Detected via `conventions.figma.glyphs.match`. Excluded from `specs generate`._');
+    lines.push('_Detected via `glyphs.match` in `config/conventions/figma.yaml`. Excluded from `specs generate`._');
     lines.push('');
     lines.push('| Name | ID | Type |');
     lines.push('|------|------|------|');
@@ -258,7 +322,11 @@ export const Scan = new Command('scan')
           ([, entry]) => Array.isArray(entry.fetch) && entry.fetch.includes('file')
         );
 
-        if (fileSources.length === 0) {
+        // An alias fetched with `specs fetch --source` is never in config, so an alias
+        // with a payload on disk is as real a source as a configured one.
+        const fetchedOnDisk = (alias: string) => fs.existsSync(path.join(resolvedDir, `${alias}.file.json`));
+
+        if (fileSources.length === 0 && !(options.source && fetchedOnDisk(options.source))) {
           console.error('Error: No <file> argument provided and no sources configured in the workspace settings');
           console.error('Tip: run `specs fetch` first, or pass a file path explicitly (e.g., `specs scan data/library.file.json`)');
           process.exit(ERROR_CODES.INVALID_ARGS);
@@ -267,13 +335,14 @@ export const Scan = new Command('scan')
         let alias: string;
         if (options.source) {
           const match = fileSources.find(([name]) => name === options.source);
-          if (!match) {
+          if (!match && !fetchedOnDisk(options.source)) {
             const available = fileSources.map(([name]) => name).join(', ');
             console.error(`Error: --source "${options.source}" did not match a configured source with file data`);
-            console.error(`Available: ${available}`);
+            console.error(`Available: ${available || '(none)'}`);
+            console.error(`Tip: an unconfigured source needs its payload fetched first — \`specs fetch --source ${options.source}=<url>\``);
             process.exit(ERROR_CODES.INVALID_ARGS);
           }
-          alias = match[0];
+          alias = match ? match[0] : options.source;
         } else if (fileSources.length === 1) {
           alias = fileSources[0][0];
         } else {
@@ -327,9 +396,19 @@ export const Scan = new Command('scan')
       // Sort by name for stable diffs
       componentInfoList.sort((a, b) => a.name.localeCompare(b.name));
 
-      const glyphPattern = config.conventions.figma.glyphs?.match;
+      const figmaConventions = figmaOf(config.conventions);
+      const aidConventions = {
+        exclude: figmaConventions.subcomponents?.exclude,
+        codeOnlyProps: figmaConventions.codeOnlyProps?.match,
+      };
+      const listable = componentInfoList.filter(c => !isAuthoringAid(c.name, aidConventions));
+      if (options.verbose && listable.length < componentInfoList.length) {
+        console.error(`[CLI] Excluded ${componentInfoList.length - listable.length} authoring-aid component(s)`);
+      }
+
+      const glyphPattern = figmaConventions.glyphs?.match;
       const { components: componentList, glyphs: glyphList } = partitionByGlyphPattern(
-        componentInfoList,
+        listable,
         glyphPattern
       );
 
@@ -355,6 +434,13 @@ export const Scan = new Command('scan')
           included: defaults.get(c.id) ?? false,
           devStatus: c.devStatus as DevStatus
         }));
+      }
+
+      if (!options.includeAll) {
+        const retained = retainComposedDependencies(rows, ids => discovery.composedComponentIds(ids));
+        if (retained > 0) {
+          console.error(`Retained ${retained} component(s) composed by checked components`);
+        }
       }
 
       const manifest = generateManifestV2(

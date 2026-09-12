@@ -1,18 +1,60 @@
+import type { ResolvedPlatformConventions, SpecsConventions } from '@directededges/specs-schema';
 import type { ProcessingStates } from '../transforms/states.js';
 
 export interface TransformerContext {
-  /** Absolute path to the component's output subfolder. */
+  /**
+   * Absolute path to the component's **spec** folder — where `api.yaml`,
+   * `variants.yaml` and `examples.yaml` are read from, and where subcomponent
+   * spec folders nest. Read-only input.
+   */
+  specDir: string;
+  /**
+   * Absolute path this transformer writes this component's output to.
+   *
+   * Equal to `specDir` for a transformer that emits beside the spec. A
+   * transformer declaring an `outputTree` is given a path inside that tree
+   * instead, so its output is separable from the spec that produced it
+   * (project 024).
+   */
   outputDir: string;
+  /** Absolute path to the workspace root — the parent of `specs/`. */
+  workspaceDir: string;
   /** camelCase component folder name (e.g. `dsButton`). */
   componentKey: string;
   /** Token format from config.format.tokens. Drives CSS variable resolution. */
   tokensFormat: string;
   /** Output format from config.format.output. Drives file extension and serialization for analyzers. */
   outputFormat: 'JSON' | 'YAML';
-  /** Semantic state concept map from config.processing.states. */
+  /** Semantic state concept map from `conventions.specs.states`. */
   processingStates?: ProcessingStates;
+  /**
+   * The prop conventions from `config/conventions/specs.yaml` that role emission
+   * consumes (ADR-067; located by ADR-073 Decision 4): which prop supplies an
+   * accessible name (`accessibility.label`) and which props describe a value
+   * (`value`). They name props the *spec* declares, so they are handed to every
+   * transform rather than arriving on the target platform's own conventions.
+   * The file's `states` member arrives as `processingStates`, not here.
+   */
+  specs?: Pick<SpecsConventions, 'accessibility' | 'value'>;
   /** Raw options from the matching config.transformers entry (everything except `name`). */
   transformerOptions?: Record<string, unknown>;
+  /** Absolute path to the workspace data directory (fetched library JSON), when configured. */
+  dataDirectory?: string;
+  /**
+   * True when the run was narrowed with `--components`. Library-level
+   * transforms use this to skip whole-library work that a scoped run cannot
+   * have invalidated.
+   */
+  scoped?: boolean;
+  /**
+   * The conventions of the platform this transformer emits for (ADR-073), from
+   * `config/conventions/<platform>.yaml`. Carries `primitives` — which component
+   * means text, glyph or container here.
+   *
+   * Absent, or absent of `primitives`, means this platform declares no bindings and
+   * elements emit as host elements exactly as before.
+   */
+  platform?: ResolvedPlatformConventions;
 }
 
 /**
@@ -28,6 +70,22 @@ export interface AnalyzerFoundations {
 
 export interface Transformer {
   readonly name: string;
+  /**
+   * The `conventions.platforms` key this transformer reads (ADR-073 Decision 3).
+   * Fixed by the transformer, not configured: React and Web Components are peer
+   * implementations with different vocabularies, so each names its own key.
+   */
+  readonly platformId?: string;
+  /**
+   * The workspace tree this transformer writes into — `react`, `webcomponents`,
+   * `assets`. Absent means it emits beside the spec, which is where everything
+   * wrote before project 024.
+   *
+   * Fixed by the transformer, not configured, for the same reason `platformId`
+   * is: where a transformer's output belongs is a property of what it emits.
+   */
+  readonly outputTree?: string;
+
   run(apiYaml: Record<string, unknown>, context: TransformerContext): Promise<void>;
   /** Called once after all components have been processed. Use for cross-component aggregate output. */
   finalize?(outputDir: string, analysisDir?: string, foundations?: AnalyzerFoundations): Promise<void>;

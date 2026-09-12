@@ -59,7 +59,7 @@ const CARD = {
 };
 
 function makeContext(dir: string, componentKey: string, outputFormat: 'JSON' | 'YAML' = 'JSON') {
-  return { outputDir: dir, componentKey, outputFormat, tokensFormat: 'DEFAULT' };
+  return { specDir: dir, outputDir: dir, workspaceDir: dir, componentKey, outputFormat, tokensFormat: 'DEFAULT' };
 }
 
 describe('DependenciesAnalyzer', () => {

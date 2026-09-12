@@ -2,6 +2,8 @@
 description: Generate a dependency blast-radius or change-impact report for one or more components from fresh `specs analyze dependencies` data.
 ---
 
+**Territory: cli.** Before proceeding, read `packages/cli/CLAUDE.md` and `packages/cli/ARCHITECTURE.md` if not already loaded this session. Invoke the CLI as `node packages/cli/dist/specs.js`, never the global binary.
+
 ## User Input
 
 ```text
