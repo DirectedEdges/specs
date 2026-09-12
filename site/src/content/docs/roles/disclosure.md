@@ -3,11 +3,6 @@ title: "disclosure"
 description: "Emit an expandable trigger wired to its panel through aria-expanded and aria-controls"
 ---
 
-:::note[Not implemented yet]
-This page is the specification. Nothing emits for this concept — an annotated spec carries the role and every transform ignores it.
-:::
-
-
 The `disclosure` role declares that an element is the trigger for a region that expands and collapses — an accordion header, a "show more" control, a details summary. The region itself carries the [`panel`](/roles/panel/) part role.
 
 ## Why it matters

@@ -3,11 +3,6 @@ title: "textbox"
 description: "Collapse the elements standing in for a text control into a native input with label association and a change contract"
 ---
 
-:::note[Not implemented yet]
-This page is the specification. Nothing emits for this concept — an annotated spec carries the role and every transform ignores it.
-:::
-
-
 The `textbox` role declares that an element and its annotated descendants together represent a single-line free-text control.
 
 ## Why it matters
@@ -22,15 +17,29 @@ Without the role, a text input scaffolds as a stack of styled text elements stan
 |---|---|
 | Element | `<input type="text">` |
 | Accepted element types | `container` |
-| Accepted parts | `value`, `placeholder`, `label`, `description`, `errormessage` |
+| Accepted parts | `value`, `placeholder`, `label`, `description`, `errormessage`, `indicator` |
 
 The role collapses its subtree into the control, driven by part roles rather than discovery:
 
 - `#value` becomes the control's value
 - `#placeholder` becomes the `placeholder` attribute
 - `#label` is lifted out as a `<label htmlFor>` sibling at the control's depth
-- Unannotated descendants are chrome and are dropped silently
+- `#indicator` — a required asterisk drawn inside the field's layer stack — is lifted out
+  the same way, `aria-hidden` per its own role, keeping its render condition
+- Unannotated descendants are chrome and do not render — annotation is the declaration
+  of what matters. A bare wrapper drops silently; unannotated descendants that carry
+  content of their own (a text node, a glyph, an image, a composed instance) are named
+  together in one warning, so the drop is a stated choice rather than a silent regression
 - A slot descendant is dropped with a warning — place the role below the slot, not above it
+- A descendant carrying a role that is not a part this control accepts (a `button`, an
+  `indicator`) is dropped with a warning naming it — move it outside the control
+
+What to expect in practice: land the role on the container that holds only the control's
+own layers — the value, placeholder, and label stack. Leading icons, affordance buttons,
+and other adjacent chrome belong *beside* that container, not inside it; content inside
+the collapse does not render, and everything except a bare wrapper says so. Where the
+design's layer tree offers no such container, restructure the layers rather than
+accepting the drops.
 
 The sibling concepts behave identically with a different emitted element. They are separate roles because the concept differs across platforms, not just in the web attribute:
 

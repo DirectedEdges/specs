@@ -3,11 +3,6 @@ title: "errormessage"
 description: "Generate an id on the message element and aria-describedby on the control"
 ---
 
-:::note[Not implemented yet]
-This page is the specification. Nothing emits for this concept — an annotated spec carries the role and every transform ignores it.
-:::
-
-
 The `errormessage` part role marks the element that carries a control's validation message.
 
 The name comes from the ARIA *attribute* `aria-errormessage` — there is no ARIA role by this name, and the emitted wiring uses `aria-describedby`.

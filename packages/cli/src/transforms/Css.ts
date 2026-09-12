@@ -7,7 +7,7 @@ import { styleToCSS, impliesAbsolute } from './css/styleToCSS.js';
 import { layoutToCSS } from './css/layoutToCSS.js';
 import { toKebab, isGradient, isGradientToken, gradientValue, dimensionValue, resolveTokenVar, reportNameWarnings, withNameWarningsSuppressed } from './css/values.js';
 import { normalizeEnumValue } from './enumCase.js';
-import { CONCEPT_TABLE, buildStateLookup } from './states.js';
+import { CONCEPT_TABLE, buildStateLookup, conceptsClaimedByNestedRoles } from './states.js';
 import { resolveRules } from './css/rules/index.js';
 import { parseLayout, type LayoutNode } from './css/layoutTree.js';
 import { loadExamples, type ExamplesData } from './examples.js';
@@ -276,7 +276,7 @@ function anatomyRoles(apiYaml: Record<string, unknown>): Record<string, string> 
  * suppresses the UA border, and the state that does not set one keeps it, so the
  * control changes size when it changes state.
  */
-const UA_STYLED_ROLES = new Set(['button', 'togglebutton', 'link']);
+const UA_STYLED_ROLES = new Set(['button', 'togglebutton', 'link', 'disclosure', 'textbox']);
 
 /** Neutralize the emitted element's UA styling so the spec's declarations govern. */
 function uaResetDecls(role: string): string[] {
@@ -377,6 +377,55 @@ function buildCssLines(
   // Reset the UA styling that tag brings before any spec declaration lands, so the
   // spec still fully describes the appearance and states cannot differ in size for
   // reasons the design never expressed.
+  // A non-root element whose role emits a native control needs the same
+  // neutralization, scoped to its own selector — a disclosure trigger layer
+  // becomes a real <button>, and browser chrome would paint over the design.
+  for (const [elemKey, elemRole] of Object.entries(elemRoles)) {
+    if (elemKey === 'root' || !UA_STYLED_ROLES.has(elemRole)) continue;
+    lines.push(
+      `/* ${elemRole} role: neutralize user-agent styling for the emitted element. */`,
+      `.${componentClass}__${toKebab(elemKey)} {`,
+      ...uaResetDecls(elemRole).map(d => `  ${d};`),
+      '}',
+      '',
+    );
+  }
+  // A proxy-input role injects a hidden native control beside the visual
+  // proxy, which is itself the click-target <label htmlFor> — its whole
+  // footprint activates the input with no positioning involved. The input is
+  // visually hidden but still focusable and announceable.
+  for (const [elemKey, elemRole] of Object.entries(elemRoles)) {
+    if (elemRole !== 'checkbox' && elemRole !== 'switch') continue;
+    const base = `.${componentClass}__${toKebab(elemKey)}`;
+    lines.push(
+      `/* ${elemRole} role: the click-target proxy label and its injected input. */`,
+      `${base} {`,
+      '  cursor: pointer;',
+      '}',
+      `${base}-input {`,
+      '  position: absolute;',
+      '  width: 1px;',
+      '  height: 1px;',
+      '  margin: -1px;',
+      '  padding: 0;',
+      '  overflow: hidden;',
+      '  clip: rect(0 0 0 0);',
+      '  white-space: nowrap;',
+      '  border: 0;',
+      '}',
+      // The platform focus ring draws around the focused element — the hidden
+      // input, which has no visible box. Re-draw it on the visible proxy: the
+      // input is injected immediately before the proxy, so the adjacent-sibling
+      // selector holds by construction, and `outline-style: auto` asks for the
+      // platform's own ring rather than imitating it.
+      `${base}-input:focus-visible + ${base} {`,
+      '  outline: auto;',
+      '  outline-offset: 2px;',
+      '}',
+      '',
+    );
+  }
+
   const rootRole = elemRoles.root;
   if (rootRole && UA_STYLED_ROLES.has(rootRole)) {
     if (rootAs === 'host') {
@@ -560,6 +609,23 @@ function buildCssLines(
   // the base/rest state — the variant is skipped (base block already covers it).
   const { lookup: stateLookup, classifiedProps } =
     buildStateLookup(context.processingStates ?? {});
+
+  // A concept claimed by a role on a nested element is announced there, not on
+  // the root, so the root's rules key off the variant prop's data attribute —
+  // which the scaffold always emits — instead of an aria selector the root no
+  // longer carries. Dropping the classification routes these through the
+  // ordinary data-attribute path below.
+  const nestedClaimed = conceptsClaimedByNestedRoles(elemRoles);
+  if (nestedClaimed.size) {
+    for (const [pair, concept] of [...stateLookup]) {
+      if (!nestedClaimed.has(concept)) continue;
+      stateLookup.delete(pair);
+      const prop = pair.split('::')[0];
+      // The prop stays classified only if another still-classified concept uses it.
+      const stillUsed = [...stateLookup.entries()].some(([k]) => k.split('::')[0] === prop);
+      if (!stillUsed) classifiedProps.delete(prop);
+    }
+  }
 
   // A concept's selector, narrowed to what can actually match this target and
   // this root. Only `disabled` differs; every other concept is target-neutral.

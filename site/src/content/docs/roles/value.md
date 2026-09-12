@@ -3,11 +3,6 @@ title: "value"
 description: "Mark the text element that stands in for a control's value during collapse"
 ---
 
-:::note[Not implemented yet]
-This page is the specification. Nothing emits for this concept — an annotated spec carries the role and every transform ignores it.
-:::
-
-
 The `value` part role marks the text element that stands in for a control's value in the design.
 
 ## Why it matters
@@ -27,7 +22,7 @@ The name is specs-native — ARIA has no vocabulary for pieces of a component, s
 
 The sibling `placeholder` part works the same way: consumed into the control's `placeholder` attribute rather than rendered.
 
-Unannotated descendants of a collapsing control are dropped silently — a decorative text node, an intermediate wrapper, a trailing icon all disappear, because the author declared what mattered by annotating it.
+Unannotated descendants of a collapsing control do not render — the author declared what mattered by annotating it. Expect this and place the role accordingly: chrome that should keep rendering (icons, affordance buttons) belongs beside the collapsing container, not inside it. A bare wrapper drops silently; anything with content of its own — a text node, a glyph, an image, a composed instance — is named in a warning, as are a slot and a non-part role.
 
 ### Contract
 

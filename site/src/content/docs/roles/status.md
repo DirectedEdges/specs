@@ -3,11 +3,6 @@ title: "status, alert, and progressbar"
 description: "Announce content that changes after load through live regions and progress semantics"
 ---
 
-:::caution[Partly implemented]
-Something is emitted for this concept today, but it was written before this page existed and has not been checked against it. Treat the page as the specification and the output as unverified.
-:::
-
-
 Three roles cover content that appears or changes after the page has loaded and must be announced without moving focus: `status` for transient confirmations, `alert` for interruptions, and `progressbar` for determinate or indeterminate progress.
 
 ## Why it matters

@@ -3,11 +3,6 @@ title: "checkbox"
 description: "Inject a native checkbox input beside the visual control so the component can be checked, focused, and submitted"
 ---
 
-:::note[Not implemented yet]
-This page is the specification. Nothing emits for this concept — an annotated spec carries the role and every transform ignores it.
-:::
-
-
 The `checkbox` role declares that an element is a binary (or indeterminate) selection control.
 
 ## Why it matters
@@ -24,9 +19,9 @@ Without the role, a checkbox scaffolds as a generic container carrying `aria-sel
 | Accepted element types | `container`, `glyph` |
 | Accepted parts | `label`, `description`, `errormessage`, `indicator` |
 
-The real input carries the states and the contract. The visual proxy — the element the role landed on — is wrapped in an empty click-target `<label htmlFor>` and marked `aria-hidden`. The wrap encloses only the visual proxy, never the label text: the accessible name comes from a second, separate `<label>` emitted by the element carrying the `label` part, and HTML permits multiple labels per control. Where the role lands on a glyph element, the glyph's decorative `<span>` is re-hosted inside the proxy structure first.
+The real input carries the states and the contract. The visual proxy — the element the role landed on — **becomes the click-target label itself**: it emits as `<label htmlFor>` pointing at the input, keeping its class and `data-element`, and is marked `aria-hidden`. Its whole footprint activates the input through HTML's own label behavior, with no positioning CSS involved — `aria-hidden` silences announcement but not pointer events. The proxy label carries only the drawn state, never the label text: the accessible name comes from a second, separate `<label>` emitted by the element carrying the `label` part, and HTML permits multiple labels per control. Where the role lands on a glyph element, the glyph's decorative `<span>` is re-hosted inside the proxy structure first.
 
-The injection adds a sibling and a wrapper level, so positional CSS (`:nth-child`, adjacent-sibling selectors) in that subtree needs review; classes and `data-element` values are unchanged.
+Because the proxy is a `<label>`, a `label` part must not sit inside its subtree — labels do not nest — and resolution warns if one does. The injection adds one sibling (the input), so positional CSS (`:nth-child`, adjacent-sibling selectors) in that subtree needs review; classes and `data-element` values are unchanged, and the stylesheet gives the proxy `cursor: pointer`.
 
 ### Contract
 
@@ -57,13 +52,46 @@ Where an existing variant prop already supplies the value, the role contributes 
 | `invalid` | `aria-invalid` on the input | Recommended |
 | `hover` | Native hover on the proxy input | Recommended, if the library styles it |
 | `active` | Native pressed-down on the proxy input | Recommended, if the library styles it |
-| `focus` / `focus-visible` | Native focus ring | **Optional — prefer the platform default** |
+| `focus` / `focus-visible` | Platform ring, re-drawn on the proxy | **Optional — prefer the platform default** |
 
 Platforms ship a focus indicator that already meets contrast requirements and matches what users of that platform expect, so specifying one from Figma usually replaces a good default with a worse one.
 
+The proxy structure needs one assist to keep that advice true: the platform draws its ring around the *focused* element, which is the hidden input with no visible box. The generated stylesheet re-draws it on the visible proxy —
+
+```css
+.checkbox__control-input:focus-visible + .checkbox__control {
+  outline: auto;
+  outline-offset: 2px;
+}
+```
+
+— using `outline-style: auto`, which asks for the platform's own ring rather than imitating it. The input is injected immediately before the proxy, so the adjacent-sibling selector holds by construction. A library that wants its own indicator overrides this same selector; a classified `focus-visible` state otherwise behaves as on any control.
+
+### Enum-valued state props
+
+A checked fact is boolean, but libraries routinely carry it in a three-value enum prop
+(`unselected` / `selected` / `indeterminate`). The mapping is declared entirely by the
+[`states` classification](/settings/states/), and the rule is the same for every wired
+role reading an enum-valued prop, not just checkbox:
+
+- The classification names the prop and, optionally, the **value that means the concept
+  holds**: `selected: { prop: selected, value: Selected }`. Without a `value`, the
+  concept's own name is the value — `checked: { prop: state }` means `state === "checked"`.
+- Enum values are **normalized to lowercase** in the emitted contract, and every
+  generated comparison matches that spelling — which is why the example below compares
+  against `"selected"` even where the design file spells the variant `Selected`.
+- The wired handler **writes back through the same mapping**: a boolean prop is assigned
+  directly; an enum prop is written to the declared checked value when the control
+  checks, and to the remaining arm when it unchecks. A tri-state enum keeps its
+  `indeterminate` arm — the flip only ever rewrites the checked/unchecked pair, so an
+  indeterminate value set by the consumer survives until the user operates the control.
+
+Nothing about this mapping is decided by the transform: which prop, and which value
+counts as checked, both come from the classification.
+
 ## Accessible name
 
-The name comes from the `label` part, emitted as a real `<label>` associated to the input by `htmlFor`. The click-target wrap around the visual proxy is an empty label and contributes nothing to the name.
+The name comes from the `label` part, emitted as a real `<label>` associated to the input by `htmlFor`. The click-target proxy label is `aria-hidden` and contributes nothing to the name.
 
 ## Platforms
 
@@ -90,17 +118,16 @@ With the role (annotations `control#checkbox`, `formLabel#label`, `errorMessage#
 
 ```tsx
 <div className="checkbox" data-element="root">
-  <label className="checkbox__control-wrap" htmlFor={controlId} />
   <input id={controlId} type="checkbox"
-    checked={selected === "Selected"}
-    onChange={(e) => { setSelected(e.target.checked ? "Selected" : "Unselected"); p.onChange?.(e); }}
+    checked={selected === "selected"}
+    onChange={(e) => { setSelected(e.target.checked ? "selected" : "unselected"); p.onChange?.(e); }}
     disabled={p.disabled} name={p.name} value={p.value} />
-  <div className="checkbox__control" data-element="control" aria-hidden="true">{/* … */}</div>
+  <label className="checkbox__control" data-element="control" htmlFor={controlId} aria-hidden="true">{/* … */}</label>
   {/* … label routed htmlFor={controlId}; error message gains id + aria-describedby … */}
 </div>
 ```
 
-The proxy's empty label is the single most important detail: without it the visual looks correct and does nothing on click. `aria-selected` is gone; `aria-invalid` and `aria-describedby` sit on the control and disappear when the error does.
+The proxy becoming a label is the single most important detail: without it the visual looks correct and does nothing on click. `aria-selected` is gone; `aria-invalid` and `aria-describedby` sit on the control and disappear when the error does.
 
 ## See also
 

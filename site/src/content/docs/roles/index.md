@@ -99,9 +99,63 @@ itself wherever it renders and needs nothing routed — so naming it would wrong
 the consumer wires it. Only parts that wire by id need declaring: `label`, `description`,
 `errormessage`, `value`, `placeholder`.
 
+### What routing looks like in emitted code
+
+The consumer generates every id — it is the component that can see both ends — and hands
+the wiring to the composed component as generated props. From the switch example above,
+the consumer's scaffold emits:
+
+```tsx
+const actionRoleId = React.useId();
+const formLabelDescriptionRoleId = React.useId();
+// …
+<FormLabel {...defaults} htmlFor={actionRoleId} descriptionId={formLabelDescriptionRoleId} />
+// …
+<input id={actionRoleId} type="checkbox" role="switch"
+  aria-describedby={formLabelDescriptionRoleId} /* … */ />
+```
+
+and the provider's generated contract grows the id props, which its own part elements
+prefer over their self-generated ids:
+
+```tsx
+<label htmlFor={p.htmlFor}>{p.label}</label>
+<span id={p.descriptionId ?? descriptionRoleId}>{p.description}</span>
+```
+
+On Web Components id wiring cannot cross the boundary: an IDREF does not reach into
+another shadow root, so the consumer's control and the provider's part cannot reference
+each other. This is a deliberate decision, not a pending feature — the platform mechanism
+aimed at it (`referenceTarget`) is experimental with limited browser support, and
+generated output must not depend on a specific browser to work.
+
+Accessible **text** recovers through a generated convention instead, in the same
+two-sides-meet style as the routing itself: every provider whose own elements carry
+text-bearing part roles exposes `partText(concept)` on its generated class — built from
+its own spec's element→prop bindings, never from a name — and the consumer reads it at
+runtime, feature-detected, mirroring the result onto its control as `aria-label` /
+`aria-description`. A provider without the surface degrades to the warning. What does
+not recover is activation: clicking the composed label's text does not operate the
+control on this target.
+
 In Figma this is one `role:` line per concept on the instance layer, the same way `action:`
 lines accumulate. Where the set is annotated on more than one variant, the first variant
 wins for the whole set.
+
+## What a swapped element looks like
+
+A role that replaces an element's tag — a container becoming a `<button>`, an `<a>`, or a
+collapsed `<input>` — would inherit that element's user-agent styling: borders,
+backgrounds, fonts, and padding the design never drew. The `css` transformer neutralizes
+this wherever a role swaps the element: the swapped element gets `appearance: none`, zero
+border, margin and padding, no background, and inherited font, color, and text alignment,
+so the spec's own declarations govern and the before and after render alike. Anchors
+additionally drop link decoration.
+
+What a swap *can* change is structure, and each page records its own case: a proxy-input
+role injects one sibling, a rehosted glyph adds one wrapper level, and the textbox
+collapse changes the label's depth. Positional CSS in those subtrees needs review;
+classes and `data-element` values never change.
 
 ## Platform reach
 
@@ -157,7 +211,7 @@ groups by.
 |------|----------|------|
 | `button` | An element that performs an action on activation | [button](/roles/button/) |
 | `togglebutton` | A button with a persistent pressed state | [togglebutton](/roles/togglebutton/) |
-| `link` | An element that navigates on activation | — |
+| `link` | An element that navigates on activation | [link](/roles/link/) |
 | `disclosure` | A trigger that shows and hides a companion panel | [disclosure](/roles/disclosure/) |
 | `textbox` | A single-line free-text control | [textbox](/roles/textbox/) |
 | `password` | A concealed-text control | — |
@@ -167,7 +221,7 @@ groups by.
 | `slider` | A control selecting a value from a range | — |
 | `checkbox` | A binary (or indeterminate) selection control | [checkbox](/roles/checkbox/) |
 | `radio` | An exclusive-selection control within a group | — |
-| `switch` | An on/off control with immediate effect | — |
+| `switch` | An on/off control with immediate effect | [switch](/roles/switch/) |
 | `group` | A fieldset grouping related controls | — |
 | `alert` | An assertive live region announcing interruptions | — |
 | `status` | A polite live region announcing transient updates | — |
@@ -253,6 +307,24 @@ The dependency runs **role → states**, not the reverse. Several roles generate
 management — a `togglebutton` flips its own pressed state — and to do that they must be told
 which prop holds the state. Only the `states` convention can tell them. Without that binding the
 role degrades to an inert handler and warns.
+
+### The wired state model
+
+Every wired role — `togglebutton`, `disclosure`, `checkbox`, `switch`, `textbox` — holds
+its state the same way, and it is neither of the two classic modes:
+
+- **Between prop changes the component is uncontrolled.** Internal state is seeded from
+  the classified prop, the control moves itself on interaction, and the consumer callback
+  reports each change. A consumer may attach nothing and the control still works.
+- **Whenever the prop changes, the prop wins.** The scaffold detects the change during
+  render and resets its internal state to the new value — a consumer driving the prop
+  from external state (including one that just echoes the callback back) gets classic
+  controlled behavior, not a component that ignores it.
+
+There are deliberately no `default*` companion props: the classified prop is both the
+seed and the override, so there is one prop per state fact rather than two. The one
+consequence to know: setting the prop to the *same* value the control has already moved
+to is not a change, and does not snap the control back.
 
 ## See also
 

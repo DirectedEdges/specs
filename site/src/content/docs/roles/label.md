@@ -3,11 +3,6 @@ title: "label"
 description: "Emit a real label element wired to the control it names with htmlFor"
 ---
 
-:::caution[Partly implemented]
-Something is emitted for this concept today, but it was written before this page existed and has not been checked against it. Treat the page as the specification and the output as unverified.
-:::
-
-
 The `label` part role marks the element that carries a control's visible label text.
 
 ## Why it matters
