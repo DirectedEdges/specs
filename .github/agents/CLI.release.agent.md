@@ -8,12 +8,18 @@ description: Release @directededges/specs-cli to npm. Swaps file: refs to versio
 $ARGUMENTS
 ```
 
-Arguments: `<version> <schema-version> <specs-from-figma-version>`
+Arguments: `<version> <schema-version> <specs-from-figma-version> [react-from-specs-version] [webcomponents-from-specs-version]`
 - First argument: the CLI version to release (e.g., `0.6.0`)
 - Second argument: the @directededges/specs-schema version to reference (e.g., `0.16.0`)
 - Third argument: the @directededges/specs-from-figma version to reference (e.g., `0.7.0`)
+- Fourth and fifth (optional): the closed transform versions to reference (e.g. `0.1.0 0.1.0`). Pass them whenever those packages were released in this cycle; omit to keep the ranges already committed.
 
-You **MUST** have all three values before proceeding. If any are missing, ask for them.
+You **MUST** have the first three values before proceeding. If any are missing, ask for them.
+
+**The CLI depends on two closed transform packages.** `@directededges/react-from-specs` and `@directededges/webcomponents-from-specs` are imported at the top level of the CLI's target commands, so a published CLI that names a version not on the registry is broken on install — `npm i @directededges/specs-cli` fails to resolve, before any command runs. Two consequences this agent enforces:
+
+- They must already be **published** when the CLI publishes. The orchestrator releases them first; step 5 verifies it rather than trusting it.
+- Unlike every other cross-repo dependency, these carry a **version range even during development** (local resolution comes from forced symlinks, not from the manifest). So the committed range is the only thing pointing at them, and a stale range is invisible locally while being fatal for consumers.
 
 ## Working Directory
 
@@ -71,7 +77,18 @@ All commands in this agent run from the **CLI package directory**: `packages/cli
 5. **Verify dependency versions**: Read `packages/cli/package.json` and confirm:
    - `@directededges/specs-schema` matches `^[schema-version]`
    - `@directededges/specs-from-figma` matches `^[specs-from-figma-version]`
-   If either is a `file:` path, update it to the versioned reference. If the version doesn't match, ask whether to update or abort.
+   - `@directededges/react-from-specs` and `@directededges/webcomponents-from-specs` match the versions passed (when passed)
+   If any is a `file:` path, update it to the versioned reference. If a version doesn't match, ask whether to update or abort.
+
+   **Then verify the closed transform versions are actually on the registry** — the one dependency check that cannot be satisfied by reading a manifest:
+   ```bash
+   for p in react-from-specs webcomponents-from-specs; do
+     want=$(node -p "require('./packages/cli/package.json').dependencies['@directededges/'+'$p'].replace(/^[^0-9]*/,'')")
+     have=$(npm view "@directededges/$p@$want" version 2>/dev/null || echo "MISSING")
+     echo "$p: wants $want, registry says $have"
+   done
+   ```
+   **If either reports `MISSING`, STOP.** Either that package has not published yet (release it first — the orchestrator's dependency order exists for this) or the range names a version that was never published. Publishing the CLI against a missing dependency ships a package nobody can install.
 
 6. **Build**:
    ```bash
@@ -93,6 +110,7 @@ All commands in this agent run from the **CLI package directory**: `packages/cli
      ✓ Working tree: clean (before ref swap)
      ✓ Auth: [username]
      ✓ Dependencies: specs-schema → ^[schema-version], specs-from-figma → ^[fts-version]
+     ✓ Closed transforms: react-from-specs → ^[rfs-version], webcomponents-from-specs → ^[wcfs-version] (verified on registry)
      ✓ Build: passed
      ✓ Tests: passed (or ⚠ with note)
    ```

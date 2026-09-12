@@ -7,17 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.32.0] - Unreleased
 
-**`Pipeline` is retired, and the config split is two parts rather than three.** A transformer pipeline stopped being a thing to configure once each target emitted everything it needs — nothing left to order, and `css` had no output location of its own to name. The other half, `analyses`, never had a reader: `specs analyze` has always taken its analyzers as arguments. `Pipeline`, `ResolvedPipeline`, `TransformEntry`, `AnalysisEntry`, `DEFAULT_PIPELINE` and `pipeline.schema.json` are removed; `Conventions` and `Settings` are unchanged. See the amendment on ADR-071.
+**`Pipeline` is retired, and the config split is two parts rather than three.** A transformer pipeline stopped being a thing to configure once each target emitted everything it needs — nothing left to order, and `css` had no output location of its own to name. The other half, `analyses`, never had a reader: `specs analyze` has always taken its analyzers as arguments. `Pipeline`, `ResolvedPipeline`, `TransformEntry`, `AnalysisEntry`, `DEFAULT_PIPELINE` and the `./schema/pipeline` entry point are gone from the package's exports; the retirement itself leaves `Conventions` and `Settings` untouched (both change elsewhere in this release). See the amendment on ADR-071.
 
 **Breaking**: a published type and one of the schema entry points are removed. Nothing outside the CLI consumed them.
 
 **Conventions are keyed by platform, and the spec declares its own.** `conventions.figma` becomes one entry in a `platforms` map whose keys name implementations, and the conventions that describe the spec rather than any platform — the states classification and the prop conventions — move to a `specs` sibling.
 
-**Composed example content can map to preferred components** by matching a primitive's style values with designated component props. Since designers build examples with raw layers, that layer can now become an instance in specs for what component it stood for. Opt-in by default.
+**Composed example content can map to preferred components** by matching a primitive's style values with designated component props. Since designers build examples with raw layers, that layer can now become an instance in specs for what component it stood for. Opt-in.
 
 ### Breaking
 
-These reshape types that `0.31.0` published: this branch was cut before `0.31.0` shipped without it, so what began as a free relocation inside an unreleased type now breaks the published shape.
+These reshape types that `0.31.0` published. This branch was cut before `0.31.0` shipped, so what began as a free relocation inside an unreleased type became a break in a published shape once that release went out ahead of it.
 
 - `Conventions` — the `figma` namespace becomes a platform-keyed `platforms` map; `figma` is one key among `react`, `web-components`, `swiftui`, and an absent key means that platform declares nothing (ADR-073)
 - `states` — moves from the `figma` conventions to `Conventions.specs.states`; it names a prop and an enum value the spec declares, so a transform reading only the spec can apply it (ADR-073)
@@ -69,7 +69,7 @@ plus ADR-072, drafted in 0.31.0 and accepted here.
 
 ### Fixed
 
-- The exports map no longer offers `./schema/pipeline` — the file it pointed at was removed with the `Pipeline` retirement, so the subpath failed at resolution. A test now verifies every exports entry resolves to a shipped file
+- A test verifies every exports-map entry resolves to a file this package ships, so a retired subpath cannot outlive what it pointed at
 
 ## [0.31.0] - 2026-09-04
 

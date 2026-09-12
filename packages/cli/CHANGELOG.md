@@ -7,45 +7,89 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.29.0] - Unreleased
 
-**`specs transform` is retired; `specs react` and `specs webcomponents` replace it.** Each emits one target whole — component, contract, stylesheet and stories — rather than asking for the pieces to be named in the right order. `--no-stories` omits the stories. The transformers behind them are unchanged.
+**`specs react` and `specs webcomponents` replace `specs transform`**, each emitting one target whole — component, contract, stylesheet and stories. **Annotated elements emit real controls**: with `settings.spec.roles` on, a checkbox is a native input you can check and submit, a disclosure announces and flips its own state, and the accessibility wiring between a control and its parts is generated. **The emitted code is substantially better** — effects and directly-declared gradients are emitted for the first time, and strokes, gradient geometry, truncation and background images now paint what the design draws. **Configuration is reshaped**: conventions become one file per platform in `config/conventions/`, `config/pipeline.yaml` is retired, and a stale layout stops the run rather than silently generating with defaults — `specs migrate config` moves a workspace over.
 
-`css`, `cssvars`, `contract`, `stories` and `webcomponents-stories` are no longer names you invoke: each is part of what a target emits, and `css` in particular had no output location of its own once output moved into the platform trees.
+### Breaking
 
-`config/pipeline.yaml` is retired with them. `specs init` no longer seeds it and `specs migrate config` no longer writes one, dropping `config.transformers` rather than carrying it forward. A leftover `pipeline.yaml` now produces a warning naming the commands that replaced it, and `specs migrate config` renames it out of discovery.
+**Conventions are one file per platform.** A single `config/conventions.yaml` is no longer read —
+conventions now live in `config/conventions/`, the filename carrying the platform id
+(`figma.yaml`, `react.yaml`, `web-components.yaml`), with each platform's block de-indented to the
+root of its own file (ADR-073, ADR-078). The conventions that describe the spec rather than any
+platform — the `states` classification, `accessibility.label`, `value` — move out of the Figma
+block into `config/conventions/specs.yaml`, and the primitive promotion table is authored as
+`config/conventions/figma.primitives.yaml` (ADR-075).
 
-**A retired configuration layout now stops the run instead of silently defaulting.** A workspace holding only `config/conventions.yaml` was not recognized as configured at all, so generation ran with defaults — missing everything the file declares, without ever failing. Retired files now mark the directory as the workspace's config, and the loader's refusals (`conventions.yaml`, the old `primitives.yaml` basename) stop the run with instructions rather than being logged and swallowed.
+A workspace still holding `config/conventions.yaml` **stops with instructions** rather than being
+silently ignored — in 0.28.0 it was not recognized as configured at all, so generation ran with
+defaults and produced specs missing everything the file declared, without ever failing. The same
+refusal covers the old `primitives.yaml` basename.
 
-**Breaking**: `specs transform` is removed, as is `config.pipeline` on the loaded config.
+`specs migrate config` performs the whole move, including from the pre-0.28.0
+`specs.config.yaml`, and seeds the code-platform files.
+
+**`specs transform` is removed**, as is `config.pipeline` on the loaded config. `specs react` and
+`specs webcomponents` replace it.
 
 ### Added
 
+- **`specs react` and `specs webcomponents`** each emit one target whole — component, contract,
+  stylesheet and stories — rather than asking for the pieces to be named in the right order.
+  `--no-stories` omits the stories. Output lands in that target's own tree (`react/`,
+  `webcomponents/`).
+- **Roles emit native controls and their accessibility wiring** (ADR-067, ADR-068, ADR-086), for
+  both targets. `settings.spec.roles` is the on-switch — off by default, so nothing changes until a
+  workspace opts in. Controls (`button`, `togglebutton`, `link`, `disclosure`, `checkbox`, `switch`,
+  `textbox`), announcements (`alert`, `status`, `progressbar`) and parts (`label`, `description`,
+  `errormessage`, `indicator`, `panel`) are implemented; `value` and `placeholder` are concepts a
+  `textbox` reads while collapsing, not roles that emit on their own. Any other role in the
+  vocabulary stays inert rather than breaking. Roles that own a state — pressed, expanded,
+  checked, value — generate real state management from the prop your `states` convention
+  classifies, and degrade to a stub with a warning when no prop carries it. A part provided by a
+  composed component (a field's label or error message) is wired across that boundary.
+- **A Web Components target.** Lit custom elements with shadow DOM and native slots, driven by the
+  same spec and the same CSS as React. Form controls participate in the page's `<form>` and take
+  focus into the shadow root. Experimental; output shape may change without a breaking-change note.
 - **`specs fetch --source <url>` fetches a Figma branch that is not in your config**, naming it
   after the branch and fetching the same data kinds as the file it branches from. Payloads land
   beside the library's as `<parent>-<branch>.file.json`, so a branch you compare a few times and
   throw away never needs a config edit.
-- **`webcomponents` and `webcomponents-stories` transformers emit a Lit element and its
-  Storybook page.** Experimental; output shape may change without a breaking-change note.
-- **`cssvars` transformer resolves CSS custom properties** from fetched library JSON rather than
-  from any one component.
-- **`css` transformer emits effects and gradients set on an element** — shadows, blurs and
-  gradient fills declared directly rather than through a token, dropped until now.
+- **CSS custom properties resolve from fetched library JSON** rather than from any one component.
+- **Effects and gradients set on an element are emitted** — shadows, blurs and gradient fills
+  declared directly rather than through a token, dropped until now.
 - **`settings.spec.promotePrimitives` swaps raw layers in example content** for the design system
   components they stand in for. Off by default, and sent over `--from-bridge` so the plugin uses
   your table.
-- **`config/conventions/figma.primitives.yaml` names which component each layer becomes** (ADR-075,
-  ADR-073, ADR-078).
+- **A primitive promotion table names which component each raw layer becomes** — matching a layer's
+  style values against designated component props, so a text or container layer a designer drew by
+  hand records as an instance of the component it stood for. Authored as
+  `config/conventions/figma.primitives.yaml` (ADR-075).
 
 ### Changed
 
+- **`css`, `cssvars`, `contract`, `stories` and `webcomponents-stories` are no longer names you
+  invoke.** Each is part of what a target emits, and `css` in particular had no output location of
+  its own once output moved into the platform trees.
+- **`specs scan` retains the components a checked component composes.** A dependency is kept in the
+  manifest even when its own dev status would not have selected it, so generating a checked
+  component no longer produces a spec whose composed children are missing. The run reports how many
+  were retained; `--include-all` bypasses the filtering entirely.
 - **`specs scan --source <alias>` accepts a source fetched with `--source`**, resolving it from
   the payload on disk when config has no entry for it.
 - **`specs generate --get-images` pulls images from the file the specs came from**, rather than
   always from the configured source — so specs generated from a branch get the branch's images.
-- `react` and `stories` transformers moved to `@directededges/react-from-specs` — names, options and output unchanged
+- **The React and Web Components transformers now live in their own packages** —
+  `@directededges/react-from-specs` and `@directededges/webcomponents-from-specs`, which the CLI
+  consumes as dependencies. Both install with the CLI; there is nothing to add to a workspace.
 - Emitted stylesheets and cssvars name the command that regenerates them, per target
 
 ### Removed
 
+- **`specs transform`**, and `config.pipeline` on the loaded config. `specs react` and
+  `specs webcomponents` replace it; `--no-stories` omits the stories.
+- **`config/pipeline.yaml`.** `specs init` no longer seeds it and `specs migrate config` no longer
+  writes one, dropping `config.transformers` rather than carrying it forward. A leftover
+  `pipeline.yaml` produces a warning naming the commands that replaced it, and `specs migrate config`
+  renames it out of discovery.
 - Emit-time primitive binding resolution — `PlatformConventions.primitives` and its per-kind binding types. Which component a layer becomes is decided at capture (ADR-074)
 
 ### Fixed

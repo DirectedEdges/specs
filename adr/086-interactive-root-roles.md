@@ -4,6 +4,7 @@
 **Created**: 2026-08-08
 **Status**: ACCEPTED
 **Deciders**: Nathan Curtis (author)
+**Summary**: Role concepts for a component whose root is itself interactive, and for the live regions that announce — `button`, `link`, `alert`, `status`, `progressbar` — extending the vocabulary without a schema change.
 **Supersedes**: *(none; extends ADR 067; companion to ADR 068)*
 
 ---

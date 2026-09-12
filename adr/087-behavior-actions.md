@@ -3,7 +3,7 @@
 **Branch**: `feat/react-from-specs`
 **Created**: 2026-09-04
 **Status**: ACCEPTED
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Summary**: An `action` field on an anatomy element records what activating it *does*, separate from the `role` that says what it *is*, so behavior and semantics compose rather than multiplying the vocabulary.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none; extends ADR 067)*
 
