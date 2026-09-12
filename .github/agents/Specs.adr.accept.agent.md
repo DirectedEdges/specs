@@ -62,7 +62,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
    Re-check this after any merge or rebase. A draft row claimed on the release branch while the ADR branch was in flight will reappear when the branches reconcile, leaving a duplicate that neither side authored.
 
-7. **Determine release branch** *(skip entirely if `EXISTING_PR` is set — use that PR's base)*: Release branches follow the `release/<pkg>-<version>` convention and may jointly cover multiple published packages (e.g., `release/schema-0.21.0-cli-0.16.0`). Do **not** invent a bare version-number branch (e.g., `0.21.0`).
+7. **Determine release branch** *(skip entirely if `EXISTING_PR` is set — use that PR's base)*: Every repo's release branch is **`release/next`**, covering whichever packages are in the cycle. Do **not** invent a versioned branch name — the version lives in `package.json`, the CHANGELOG and the tag.
    1. Find active in-flight release branches with `git branch -r --list 'origin/release/*'`.
    2. **Default: use the existing active release branch.** ADR branches are started from the current release branch, so the active branch is the correct target. Do not cross-reference the ADR's semver version against the branch name — the branch name reflects where the release *started*, not the final published version.
    3. If exactly one release branch exists, use it as `$RELEASE_BRANCH` without asking.

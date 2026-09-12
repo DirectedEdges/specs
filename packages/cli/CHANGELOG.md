@@ -5,6 +5,15 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.30.0] - Unreleased
+
+### Added
+
+### Changed
+
+### Removed
+
+
 ## [0.29.0] - Unreleased
 
 **`specs react` and `specs webcomponents` replace `specs transform`**, each emitting one target whole — component, contract, stylesheet and stories. **Annotated elements emit real controls**: with `settings.spec.roles` on, a checkbox is a native input you can check and submit, a disclosure announces and flips its own state, and the accessibility wiring between a control and its parts is generated. **The emitted code is substantially better** — effects and directly-declared gradients are emitted for the first time, and strokes, gradient geometry, truncation and background images now paint what the design draws. **Configuration is reshaped**: conventions become one file per platform in `config/conventions/`, `config/pipeline.yaml` is retired, and a stale layout stops the run rather than silently generating with defaults — `specs migrate config` moves a workspace over.

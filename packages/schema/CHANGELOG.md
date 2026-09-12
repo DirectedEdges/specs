@@ -5,6 +5,15 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.33.0] - Unreleased
+
+### Added
+
+### Changed
+
+### Removed
+
+
 ## [0.32.0] - Unreleased
 
 **`Pipeline` is retired, and the config split is two parts rather than three.** A transformer pipeline stopped being a thing to configure once each target emitted everything it needs — nothing left to order, and `css` had no output location of its own to name. The other half, `analyses`, never had a reader: `specs analyze` has always taken its analyzers as arguments. `Pipeline`, `ResolvedPipeline`, `TransformEntry`, `AnalysisEntry`, `DEFAULT_PIPELINE` and the `./schema/pipeline` entry point are gone from the package's exports; the retirement itself leaves `Conventions` and `Settings` untouched (both change elsewhere in this release). See the amendment on ADR-071.
