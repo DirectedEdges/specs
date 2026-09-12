@@ -747,7 +747,24 @@ function buildCssLines(
       const selector = rootSelectors.map(s => `${s}${elemSuffix}`).join(',\n');
 
       const styles = (variantElements[elemKey]?.styles ?? {}) as Record<string, unknown>;
+      // A variant revealing an element the default hides (`visible: true` over
+      // a default `visible: false`) must restore the display the base rule
+      // suppressed — the delta itself carries no layoutMode, so nothing else
+      // re-emits one, and the element stays display: none (an expando's body
+      // never opened). The default's own layout says what to restore; absent
+      // one, revert-layer rolls the property back to the element's un-hidden
+      // default within the cascade.
+      const defaultStyles = (defaultElements[elemKey]?.styles ?? {}) as Record<string, unknown>;
+      const revealDecls: string[] = [];
+      if (styles.visible === true && defaultStyles.visible === false && !('layoutMode' in styles)) {
+        const mode = defaultStyles.layoutMode as string | null | undefined;
+        if (mode === 'HORIZONTAL') revealDecls.push('display: flex', 'flex-direction: row');
+        else if (mode === 'VERTICAL') revealDecls.push('display: flex', 'flex-direction: column');
+        else if (mode === 'NONE' || mode === null) revealDecls.push('display: block');
+        else revealDecls.push('display: revert-layer');
+      }
       const decls = [
+        ...revealDecls,
         ...layoutToCSS(styles, tokensFormat, parentLayoutMode(elemKey)),
         ...styleToCSS(styles, tokensFormat, elemTypes[elemKey], styleOptions(elemKey)),
       ];
