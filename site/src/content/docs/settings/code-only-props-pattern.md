@@ -3,7 +3,7 @@ title: "codeOnlyProps"
 description: "Naming pattern used to detect the code-only props container layer"
 ---
 
-Naming pattern used to detect the code-only props container layer. A library fact, declared in `config/conventions.yaml`: every consumer reading the same library must declare the same layer name — a wrong one leaves code-only props unextracted. Absence means the library has no such convention, and no code-only prop extraction is performed. A `Code only props` layer is a tiny, clipped container parked at `(0,0)` that holds child layers bound to behavioral component properties with no visual representation — for example, a Text Area's `minRows`/`maxRows` sizing bounds and a `minLength` constraint.
+Naming pattern used to detect the code-only props container layer. A library fact, declared in `config/conventions/figma.yaml`: every consumer reading the same library must declare the same layer name — a wrong one leaves code-only props unextracted. Absence means the library has no such convention, and no code-only prop extraction is performed. A `Code only props` layer is a tiny, clipped container parked at `(0,0)` that holds child layers bound to behavioral component properties with no visual representation — for example, a Text Area's `minRows`/`maxRows` sizing bounds and a `minLength` constraint.
 
 :::tip[Guide]
 See the [Code-Only Props](/guides/code-only-props/) guide as well as the [Code-Only Props in Figma](https://nathanacurtis.substack.com/p/code-only-props-in-figma) blog post for how detection and extraction works.
@@ -12,9 +12,8 @@ See the [Code-Only Props](/guides/code-only-props/) guide as well as the [Code-O
 ## Configuration
 
 ```yaml
-figma:
-  codeOnlyProps:
-    match: 'Code only props'
+codeOnlyProps:
+  match: 'Code only props'
 ```
 
 ## Result
@@ -52,6 +51,6 @@ Without a `codeOnlyProps` block, the container and its children are treated as o
 
 ## Path
 
-`figma.codeOnlyProps.match` in `config/conventions.yaml`
+`codeOnlyProps.match` in `config/conventions/figma.yaml`
 
 **Legacy name**: in the pre-split `specs.config.yaml`, this option was the scalar `config.processing.codeOnlyPropsPattern`. That file is no longer read — [`specs migrate config`](/cli/commands/migrate/) converts it, moving that member to `figma.codeOnlyProps.match`.

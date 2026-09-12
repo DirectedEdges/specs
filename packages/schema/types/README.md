@@ -41,9 +41,11 @@ const component: Component = {
 // same values. There is no defaults constant: a convention's absence means the
 // library declares none, and nothing can supply that.
 const conventions: Conventions = {
-  figma: {
-    naming: 'SENTENCE',
-    glyphs: { match: 'DS Icon Glyph / {i}' }
+  platforms: {
+    figma: {
+      naming: 'SENTENCE',
+      glyphs: { match: 'DS Icon Glyph / {i}' }
+    }
   }
 };
 
@@ -67,12 +69,10 @@ const settings: Settings = {
 - **`Metadata`** - Generation metadata
 - **`Conventions`** - Facts about the Figma library a spec came from
 - **`Settings`** - Choices about the run that produced it
-- **`Pipeline`** - Transformers and analyses a workspace runs
 
 ### Configuration
-- **`DEFAULT_CONVENTIONS`** - The three convention members that have a default; no blocks
+- **`DEFAULT_CONVENTIONS`** - Empty: a convention's absence means the library declares none
 - **`DEFAULT_SETTINGS`** - Resolved defaults for the settings half
-- **`DEFAULT_PIPELINE`** - An empty pipeline: no transformers, no analyses
 
 ### Supporting Types
 - **`Element`** - Individual component element
@@ -90,7 +90,7 @@ const settings: Settings = {
 │ - TypeScript type definitions                    │
 │ - Default configuration constants                │
 │ Exports: Component, Conventions, Settings,       │
-│          Pipeline, DEFAULT_* constants           │
+│          DEFAULT_* constants                     │
 └──────────────────────────────────────────────────┘
                     ▲
                     │ imports types & config

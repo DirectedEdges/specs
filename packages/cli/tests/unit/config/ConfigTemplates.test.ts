@@ -1,19 +1,21 @@
 import { describe, it, expect } from 'vitest';
 import yaml from 'yaml';
 import {
-  generateConventionsTemplate,
+  generateFigmaConventionsTemplate,
+  generateSpecsConventionsTemplate,
   generateSettingsTemplate,
-  generatePipelineTemplate,
   generateConfigTemplates,
 } from '../../../src/Config/ConfigTemplates.js';
 
 describe('ConfigTemplates', () => {
   describe('generateConfigTemplates', () => {
-    it('returns the three split-config files keyed by path under config/', () => {
+    it('scaffolds one conventions file per platform, the specs file, plus settings', () => {
       const templates = generateConfigTemplates();
       expect(Object.keys(templates).sort()).toEqual([
-        'config/conventions.yaml',
-        'config/pipeline.yaml',
+        'config/conventions/figma.yaml',
+        'config/conventions/react.yaml',
+        'config/conventions/specs.yaml',
+        'config/conventions/web-components.yaml',
         'config/settings.yaml',
       ]);
     });
@@ -33,26 +35,29 @@ describe('ConfigTemplates', () => {
     });
   });
 
-  describe('generateConventionsTemplate', () => {
+  describe('generateFigmaConventionsTemplate', () => {
     it('documents every feature-toggle block (commented) with a doc link', () => {
-      const template = generateConventionsTemplate();
-      for (const block of ['instanceExamples:', 'states:', 'images:', 'sourceProps:']) {
+      const template = generateFigmaConventionsTemplate();
+      for (const block of ['instanceExamples:', 'images:', 'sourceProps:']) {
         expect(template).toContain(block);
       }
       expect(template).toContain('www.specsplugin.com/guides/images/');
       expect(template).toContain('www.specsplugin.com/guides/instance-examples/');
-      expect(template).toContain('www.specsplugin.com/settings/states/');
+      // states describes the spec's own props, so it lives in specs.yaml (ADR-073 Decision 4)
+      expect(template).not.toContain('states:');
     });
 
     it('should include commented glyphs block for icon glyph naming', () => {
-      const template = generateConventionsTemplate();
+      const template = generateFigmaConventionsTemplate();
       expect(template).toContain('glyphs:');
       expect(template).toContain('glyph');
     });
 
     it('should include figma conventions structure', () => {
-      const template = generateConventionsTemplate();
-      expect(template).toContain('figma:');
+      const template = generateFigmaConventionsTemplate();
+      // The filename is the platform id, so the body has no wrapping key (ADR-078).
+      expect(template).not.toContain('\nfigma:');
+      expect(template).toContain('# naming: NONE');
       expect(template).toContain('naming:');
       expect(template).toContain('subcomponents:');
       expect(template).toContain('match:');
@@ -60,9 +65,36 @@ describe('ConfigTemplates', () => {
       expect(template).toContain('codeOnlyProps:');
     });
 
-    it('figma is the only top-level key', () => {
-      const parsed = yaml.parse(generateConventionsTemplate());
-      expect(Object.keys(parsed)).toEqual(['figma']);
+    it('the body sits at the root — the filename is the platform id', () => {
+      const parsed = yaml.parse(generateFigmaConventionsTemplate());
+      // No wrapping key: conventions/figma.yaml IS the figma entry (ADR-078).
+      expect(Object.keys(parsed)).not.toContain('figma');
+      expect(Object.keys(parsed)).toContain('subcomponents');
+    });
+
+    it('a code platform stub is inert until uncommented', () => {
+      const templates = generateConfigTemplates();
+      for (const key of ['config/conventions/react.yaml', 'config/conventions/web-components.yaml']) {
+        const stub = templates[key];
+        expect(stub).toContain('# primitives:');
+        // Pure comments parse to nothing, which is the same as declaring nothing.
+        expect(yaml.parse(stub)).toBeNull();
+      }
+    });
+  });
+
+  describe('generateSpecsConventionsTemplate', () => {
+    it('documents every member (commented) with a doc link', () => {
+      const template = generateSpecsConventionsTemplate();
+      for (const block of ['# states:', '# accessibility:', '# value:', 'indeterminate:']) {
+        expect(template).toContain(block);
+      }
+      expect(template).toContain('www.specsplugin.com/settings/states/');
+    });
+
+    it('is inert until uncommented', () => {
+      // Pure comments parse to nothing, which is the same as declaring nothing.
+      expect(yaml.parse(generateSpecsConventionsTemplate())).toBeNull();
     });
   });
 
@@ -121,23 +153,4 @@ describe('ConfigTemplates', () => {
     });
   });
 
-  describe('generatePipelineTemplate', () => {
-    it('includes a commented-out transformers: block', () => {
-      const template = generatePipelineTemplate();
-      expect(template).toContain('# transformers:');
-    });
-
-    it('includes commented-out transformer entries for contract, css, react', () => {
-      const template = generatePipelineTemplate();
-      expect(template).toContain('#   - name: contract');
-      expect(template).toContain('#   - name: css');
-      expect(template).toContain('#   - name: react');
-    });
-
-    it('includes a commented-out analyses: block', () => {
-      const template = generatePipelineTemplate();
-      expect(template).toContain('# analyses:');
-      expect(template).toContain('#   - name: dependencies');
-    });
-  });
 });

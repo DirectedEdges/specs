@@ -15,7 +15,7 @@ specs fetch [options]
 - `config/settings.yaml` must include `data.directory` and `data.sources`.
 - Fetching `variables` or `styles` requires your Figma organization to be on an **Enterprise** plan — Figma restricts those REST endpoints regardless of your Specs license. `file` and `icons` data work on any plan. See [CLI Requirements](/cli/#requirements).
 - Fetching `icons` additionally requires:
-  - `figma.glyphs.match` set in `config/conventions.yaml` (see [Glyph Name Pattern](/guides/glyph-name-pattern/))
+  - `figma.glyphs.match` set in `config/conventions/figma.yaml` (see [Glyph Name Pattern](/guides/glyph-name-pattern/))
   - `spec.directory` set in `config/settings.yaml` — icon assets are written to the spec workspace, not the data directory
   - the source's `file` payload — listed before `icons` in the same `fetch` array, or fetched in a previous run
 
@@ -33,8 +33,8 @@ specs fetch --data-dir ./custom-data
 
 > **Deprecated alias**: `--outDir` still works but will emit a deprecation warning. Prefer `--data-dir`.
 
-### `--only <alias[,alias...]>`
-Fetch only specific aliases from `data.sources`.
+### `--only <name[,name...]>`
+Narrow the fetch by source alias, by data kind, or both, comma-separated. Aliases come from `data.sources`; kinds are `file`, `variables`, `styles`, and `icons`. An alias fetches every kind for that source; a kind fetches it for every source; `--only library,icons` fetches only the icons of the `library` source. Names that shadow both an alias and a kind, or match nothing, fail with an error naming the valid values.
 
 ### `--source <[alias=]url|key>`
 Fetch a file or branch that is not in `data.sources` — see [Fetching Figma Branches](#fetching-figma-branches). Repeatable.
@@ -89,7 +89,7 @@ data:
 How it works:
 
 - Glyph components are **derived from the file payload** — every `COMPONENT` node whose name matches the `figma.glyphs.match` convention (with `{i}` capturing the icon name). No `scan` step is involved.
-- SVGs are exported through the Figma images API in batches and written to `<spec.directory>/_icons/` — beside the `_images/` assets and the component specs that reference them, not into the regenerable data cache.
+- SVGs are exported through the Figma images API in batches and written to `assets/icons/` — a sibling of `specs/`, beside `assets/images/`, not into the regenerable data cache. An icon is consumed by every target and produced by none, so it sits outside the spec tree rather than inside it.
 - Filenames are stable kebab-case slugs of the captured icon name, including camelCase splitting: `expandMore` → `expand-more.svg`, `Arrow Left` → `arrow-left.svg`.
 - Two icons that slug identically keep the first as-is; later duplicates are suffixed with their node id so nothing is silently dropped.
 
@@ -105,10 +105,10 @@ Because glyphs come from the saved file payload, `icons` runs after the other ki
 
 ```bash
 # Refresh just the icon assets (file payload already on disk)
-specs fetch --only library --verbose
+specs fetch --only library,icons --verbose
 ```
 
-The downloaded assets match the slugs referenced by generated component output (masked glyph spans resolve `/assets/icons/<slug>.svg`), so serving `<spec.directory>/_icons/` as a static assets directory — for example in Storybook — makes icons render without further mapping. Keeping icons in the spec workspace means a cloned workspace renders completely without re-fetching.
+The downloaded assets match the slugs referenced by generated component output (masked glyph spans resolve `/assets/icons/<slug>.svg`), so serving `assets/icons/` as a static assets directory — for example in Storybook — makes icons render without further mapping. Keeping icons in the spec workspace means a cloned workspace renders completely without re-fetching.
 
 ## Fetching Figma Branches
 
@@ -160,7 +160,7 @@ written into `spec.directory` over the specs generated from the library.
 
 Ad-hoc payloads contribute to the render cache only where the configured sources define
 nothing, so fetching a branch never changes how the library itself resolves. Icons, if
-inherited, are written to `_icons-<alias>/` rather than over `_icons/`.
+inherited, are written to `assets/icons-<alias>/` rather than over `assets/icons/`.
 
 ### Cleaning up
 

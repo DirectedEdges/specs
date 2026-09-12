@@ -4,13 +4,14 @@ import path from 'path';
 import os from 'os';
 import yaml from 'yaml';
 import { CssTransformer } from '../../../src/transforms/Css.js';
+import { drainNameWarnings } from '../../../src/transforms/css/values.js';
 
 const transformer = new CssTransformer();
 
 import type { ProcessingStates } from '../../../src/transforms/states.js';
 
 function makeContext(dir: string, componentKey = 'dsButton', tokensFormat = 'TOKEN', processingStates?: ProcessingStates) {
-  return { outputDir: dir, componentKey, tokensFormat, outputFormat: 'JSON' as const, processingStates };
+  return { specDir: dir, outputDir: dir, workspaceDir: dir, componentKey, tokensFormat, outputFormat: 'JSON' as const, processingStates };
 }
 
 async function writeVariants(dir: string, data: Record<string, unknown>) {
@@ -21,10 +22,22 @@ function toPascalCase(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+// CSS now lands in the platform trees: React's stylesheet under react/, the custom
+// element's under webcomponents/ (project 024). `workspaceDir` in these fixtures is
+// the temp dir, so both are siblings of it.
+function reactDir(dir: string, prefix: string, sub?: string): string {
+  const base = path.join(dir, 'react', 'src', 'components', prefix);
+  return sub ? path.join(base, sub) : base;
+}
+function wcDir(dir: string, prefix: string, sub?: string): string {
+  const base = path.join(dir, 'webcomponents', 'src', 'components', prefix);
+  return sub ? path.join(base, sub) : base;
+}
+
 async function run(dir: string, variantsData: Record<string, unknown>, componentKey = 'dsButton', tokensFormat = 'TOKEN', processingStates?: ProcessingStates, transformerOptions?: Record<string, unknown>) {
   await writeVariants(dir, variantsData);
   await transformer.run({}, { ...makeContext(dir, componentKey, tokensFormat, processingStates), transformerOptions });
-  return fs.readFile(path.join(dir, 'generated', `${toPascalCase(componentKey)}.styles.css`), 'utf-8');
+  return fs.readFile(path.join(reactDir(dir, toPascalCase(componentKey)), `${toPascalCase(componentKey)}.styles.css`), 'utf-8');
 }
 
 // Minimal helpers to build spec-format style objects
@@ -51,7 +64,7 @@ describe('CssTransformer', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     await transformer.run({}, makeContext(tmpDir));
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('no variants.yaml'));
-    expect(fs.existsSync(path.join(tmpDir, 'generated', 'DsButton.styles.css'))).toBe(false);
+    expect(fs.existsSync(path.join(reactDir(tmpDir, 'DsButton'), 'DsButton.styles.css'))).toBe(false);
     warnSpy.mockRestore();
   });
 
@@ -452,7 +465,7 @@ describe('CssTransformer', () => {
     async function runAndReadSub(dir: string, variantsData: Record<string, unknown>, subKey: string, componentKey = 'dsActionList') {
       await writeVariants(dir, variantsData);
       await transformer.run({}, makeContext(dir, componentKey));
-      return fs.readFile(path.join(dir, subKey, 'generated', `${toPascalCase(subKey)}.styles.css`), 'utf-8');
+      return fs.readFile(path.join(reactDir(dir, toPascalCase(componentKey), toPascalCase(subKey)), `${toPascalCase(subKey)}.styles.css`), 'utf-8');
     }
 
     it('emits {Sub}.styles.css in a subfolder for each subcomponent', async () => {
@@ -465,7 +478,7 @@ describe('CssTransformer', () => {
         },
       });
       await transformer.run({}, makeContext(tmpDir, 'dsActionList'));
-      expect(fs.existsSync(path.join(tmpDir, 'group', 'generated', 'Group.styles.css'))).toBe(true);
+      expect(fs.existsSync(path.join(reactDir(tmpDir, 'DsActionList', 'Group'), 'Group.styles.css'))).toBe(true);
     });
 
     it('scopes subcomponent BEM selectors to the subcomponent key, not the parent', async () => {
@@ -518,10 +531,10 @@ describe('CssTransformer', () => {
         },
       });
       await transformer.run({}, makeContext(tmpDir, 'dsActionList'));
-      expect(fs.existsSync(path.join(tmpDir, 'group', 'generated', 'Group.styles.css'))).toBe(true);
-      expect(fs.existsSync(path.join(tmpDir, 'header', 'generated', 'Header.styles.css'))).toBe(true);
-      const groupOut = await fs.readFile(path.join(tmpDir, 'group', 'generated', 'Group.styles.css'), 'utf-8');
-      const headerOut = await fs.readFile(path.join(tmpDir, 'header', 'generated', 'Header.styles.css'), 'utf-8');
+      expect(fs.existsSync(path.join(reactDir(tmpDir, 'DsActionList', 'Group'), 'Group.styles.css'))).toBe(true);
+      expect(fs.existsSync(path.join(reactDir(tmpDir, 'DsActionList', 'Header'), 'Header.styles.css'))).toBe(true);
+      const groupOut = await fs.readFile(path.join(reactDir(tmpDir, 'DsActionList', 'Group'), 'Group.styles.css'), 'utf-8');
+      const headerOut = await fs.readFile(path.join(reactDir(tmpDir, 'DsActionList', 'Header'), 'Header.styles.css'), 'utf-8');
       expect(groupOut).toContain('flex-direction: column');
       expect(headerOut).toContain('flex-direction: row');
     });
@@ -538,135 +551,6 @@ describe('CssTransformer', () => {
     expect(out).not.toContain('.ds-button {');
   });
 
-  describe('border-shift-inset-shadow rule', () => {
-    const rules = { rules: ['border-shift-inset-shadow'] };
-
-    it('is a no-op when no variants change strokeWeight or strokes', async () => {
-      const out = await run(tmpDir, {
-        default: { elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
-        variants: [
-          { configuration: { size: 'lg' }, elements: { root: { styles: { layoutMode: 'VERTICAL' } } } },
-        ],
-      }, 'dsButton', 'TOKEN', undefined, rules);
-      expect(out).not.toContain('box-shadow');
-      expect(out).not.toContain('border-color: transparent');
-    });
-
-    it('replaces variant strokeWeight+strokes with box-shadow: inset, not border-width in the variant block', async () => {
-      const out = await run(tmpDir, {
-        default: { elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
-        variants: [
-          {
-            configuration: { selected: true },
-            elements: { root: { styles: { strokeWeight: 2, strokes: tokenRef('Color/Border/Selected') } } },
-          },
-        ],
-      }, 'dsButton', 'TOKEN', undefined, rules);
-      expect(out).toContain('box-shadow: inset 0 0 0 2px var(--color-border-selected)');
-      // Variant block should not re-declare border-width (it's handled by box-shadow)
-      const variantBlock = out.split('.ds-button[data-selected]')[1] ?? '';
-      expect(variantBlock).not.toContain('border-width');
-    });
-
-    it('reserves space in the default block with a transparent border at the variant width', async () => {
-      const out = await run(tmpDir, {
-        default: { elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
-        variants: [
-          {
-            configuration: { selected: true },
-            elements: { root: { styles: { strokeWeight: 2, strokes: tokenRef('Color/Border/Selected') } } },
-          },
-        ],
-      }, 'dsButton', 'TOKEN', undefined, rules);
-      expect(out).toContain('border-width: 2px');
-      expect(out).toContain('border-color: transparent');
-      expect(out).toContain('border-style: solid');
-    });
-
-    it('uses the default strokeWeight as reservation when already present in default', async () => {
-      const out = await run(tmpDir, {
-        default: {
-          elements: {
-            root: { styles: { strokeWeight: 1, strokes: tokenRef('Color/Border/Default') } },
-          },
-        },
-        variants: [
-          {
-            configuration: { selected: true },
-            elements: { root: { styles: { strokes: tokenRef('Color/Border/Selected') } } },
-          },
-        ],
-      }, 'dsButton', 'TOKEN', undefined, rules);
-      expect(out).toContain('border-width: 1px');
-      expect(out).toContain('border-color: transparent');
-      expect(out).toContain('box-shadow: inset 0 0 0 1px var(--color-border-selected)');
-    });
-
-    it('resolves token refs for both weight and color in the box-shadow value', async () => {
-      const out = await run(tmpDir, {
-        default: { elements: { root: { styles: {} } } },
-        variants: [
-          {
-            configuration: { selected: true },
-            elements: {
-              root: {
-                styles: {
-                  strokeWeight: tokenRef('Border/Width/Focus', 'dimension'),
-                  strokes: tokenRef('Color/Focus/Ring'),
-                },
-              },
-            },
-          },
-        ],
-      }, 'dsButton', 'TOKEN', undefined, rules);
-      expect(out).toContain('box-shadow: inset 0 0 0 var(--border-width-focus) var(--color-focus-ring)');
-    });
-
-    it('does not apply to OUTSIDE strokes (those use outline, not border)', async () => {
-      const out = await run(tmpDir, {
-        default: { elements: { root: { styles: {} } } },
-        variants: [
-          {
-            configuration: { focused: true },
-            elements: {
-              root: { styles: { strokeWeight: 2, strokes: tokenRef('Color/Border/Focus'), strokeAlign: 'OUTSIDE' } },
-            },
-          },
-        ],
-      }, 'dsButton', 'TOKEN', undefined, rules);
-      expect(out).not.toContain('box-shadow: inset');
-      expect(out).toContain('outline-width: 2px');
-    });
-
-    it('throws for unknown rule names', async () => {
-      await expect(
-        run(tmpDir, { default: { elements: {} }, variants: [] }, 'dsButton', 'TOKEN', undefined, { rules: ['nonexistent-rule'] })
-      ).rejects.toThrow('Unknown CSS rule: "nonexistent-rule"');
-    });
-
-    it('applies the rule to subcomponent styles.css', async () => {
-      await writeVariants(tmpDir, {
-        subcomponents: {
-          item: {
-            default: { elements: { root: { styles: {} } } },
-            variants: [
-              {
-                configuration: { selected: true },
-                elements: { root: { styles: { strokeWeight: 2, strokes: tokenRef('Color/Border/Selected') } } },
-              },
-            ],
-          },
-        },
-      });
-      await transformer.run({}, {
-        ...makeContext(tmpDir, 'dsActionList'),
-        transformerOptions: rules,
-      });
-      const subOut = await fs.readFile(path.join(tmpDir, 'item', 'generated', 'Item.styles.css'), 'utf-8');
-      expect(subOut).toContain('box-shadow: inset 0 0 0 2px var(--color-border-selected)');
-      expect(subOut).toContain('border-color: transparent');
-    });
-  });
 
   describe('structural layout presence', () => {
     const structuralVariants = {
@@ -743,5 +627,539 @@ describe('CssTransformer', () => {
       const labelBlock = out.match(/\.ds-button__label \{[^}]*\}/)?.[0];
       expect(labelBlock ?? '').not.toContain('display: none');
     });
+  });
+
+  describe('inline effects', () => {
+    it('maps a single drop shadow to box-shadow', async () => {
+      const out = await run(tmpDir, {
+        default: {
+          elements: {
+            root: {
+              styles: {
+                effects: {
+                  shadows: [{ visible: true, offsetX: 0, offsetY: 4, blur: 4, spread: 0, color: '#00000040' }],
+                },
+              },
+            },
+          },
+        },
+      });
+      expect(out).toContain('box-shadow: 0 4px 4px 0 #00000040');
+    });
+
+    it('joins multiple shadows, marks inset, and drops invisible entries', async () => {
+      const out = await run(tmpDir, {
+        default: {
+          elements: {
+            root: {
+              styles: {
+                effects: {
+                  shadows: [
+                    { visible: false, offsetX: 0, offsetY: 1, blur: 1, spread: 0, color: '#00000010' },
+                    { visible: true, offsetX: 0, offsetY: 4, blur: 4, spread: 0, color: '#00000040' },
+                    { visible: true, offsetX: 0, offsetY: 2, blur: 3, spread: 1, color: '#00000020', inset: true },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      });
+      expect(out).toContain('box-shadow: 0 4px 4px 0 #00000040, inset 0 2px 3px 1px #00000020');
+      expect(out).not.toContain('#00000010');
+    });
+
+    it('resolves token refs in shadow dimensions and color', async () => {
+      const out = await run(tmpDir, {
+        default: {
+          elements: {
+            root: {
+              styles: {
+                effects: {
+                  shadows: [{
+                    visible: true,
+                    offsetX: tokenRef('DS Color/Shadow/Elevated/x', 'dimension'),
+                    offsetY: tokenRef('DS Color/Shadow/Elevated/y', 'dimension'),
+                    blur: tokenRef('DS Color/Shadow/Elevated/blur', 'dimension'),
+                    spread: 0,
+                    color: tokenRef('DS Color/Shadow/Elevated/Color'),
+                  }],
+                },
+              },
+            },
+          },
+        },
+      });
+      expect(out).toContain(
+        'box-shadow: var(--ds-color-shadow-elevated-x) var(--ds-color-shadow-elevated-y) var(--ds-color-shadow-elevated-blur) 0 var(--ds-color-shadow-elevated-color)'
+      );
+    });
+
+    it('maps layerBlur to filter and backgroundBlur to backdrop-filter with /* effects */ trace comments on fan-out', async () => {
+      const out = await run(tmpDir, {
+        default: {
+          elements: {
+            root: {
+              styles: {
+                effects: {
+                  shadows: [{ visible: true, offsetX: 0, offsetY: 4, blur: 4, spread: 0, color: '#00000040' }],
+                  layerBlur: { visible: true, radius: 4 },
+                  backgroundBlur: { visible: true, radius: tokenRef('DS Color/Shadow/Elevated/blur', 'dimension') },
+                },
+              },
+            },
+          },
+        },
+      });
+      expect(out).toContain('box-shadow: 0 4px 4px 0 #00000040 /* effects */');
+      expect(out).toContain('filter: blur(4px) /* effects */');
+      expect(out).toContain('backdrop-filter: blur(var(--ds-color-shadow-elevated-blur)) /* effects */');
+    });
+
+    it('omits the trace comment when effects yields a single declaration', async () => {
+      const out = await run(tmpDir, {
+        default: {
+          elements: {
+            root: {
+              styles: {
+                effects: { layerBlur: { visible: true, radius: 2 } },
+              },
+            },
+          },
+        },
+      });
+      expect(out).toContain('filter: blur(2px);');
+      expect(out).not.toContain('/* effects */');
+    });
+
+    it('emits box-shadow: none when every shadow in the list is invisible', async () => {
+      const out = await run(tmpDir, {
+        default: {
+          elements: {
+            root: {
+              styles: {
+                effects: {
+                  shadows: [{ visible: false, offsetX: 0, offsetY: 4, blur: 4, spread: 0, color: '#00000040' }],
+                },
+              },
+            },
+          },
+        },
+      });
+      expect(out).toContain('box-shadow: none');
+    });
+
+    it('resets all effect properties when a variant sets effects: null', async () => {
+      const out = await run(tmpDir, {
+        default: {
+          elements: {
+            root: {
+              styles: {
+                effects: {
+                  shadows: [{ visible: true, offsetX: 0, offsetY: 4, blur: 4, spread: 0, color: '#00000040' }],
+                },
+              },
+            },
+          },
+        },
+        variants: [
+          { configuration: { flat: true }, elements: { root: { styles: { effects: null } } } },
+        ],
+      });
+      const flatBlock = out.match(/\.ds-button\[data-flat\] \{[^}]*\}/)?.[0] ?? '';
+      expect(flatBlock).toContain('box-shadow: none');
+      expect(flatBlock).toContain('filter: none');
+      expect(flatBlock).toContain('backdrop-filter: none');
+    });
+
+    it('expands effect-style token refs into role vars with none fallbacks, sanitizing invalid name characters', async () => {
+      const out = await run(tmpDir, {
+        default: {
+          elements: {
+            root: { styles: { effects: tokenRef('Effect Style 1 (Shadow)', 'effects') } },
+          },
+        },
+      });
+      expect(out).toContain('box-shadow: var(--effect-style-1-shadow-shadows, none) /* effects */');
+      expect(out).toContain('filter: var(--effect-style-1-shadow-layer-blur, none) /* effects */');
+      expect(out).toContain('backdrop-filter: var(--effect-style-1-shadow-background-blur, none) /* effects */');
+    });
+
+    it('records dropped-character name warnings for the end-of-run summary', async () => {
+      drainNameWarnings(); // reset anything collected by earlier tests
+      await run(tmpDir, {
+        default: {
+          elements: {
+            root: {
+              styles: {
+                effects: tokenRef('Effect Style 1 (Shadow)', 'effects'),
+                backgroundColor: tokenRef('Color/Brand 50%'),
+              },
+            },
+          },
+        },
+      });
+      const warnings = drainNameWarnings();
+      expect(warnings.size).toBe(1);
+      const names = [...warnings.values()][0];
+      expect(names.get('Effect Style 1 (Shadow)')).toBe(1);
+      expect(names.get('Color/Brand 50%')).toBe(1);
+      // Drained — a second drain is empty.
+      expect(drainNameWarnings().size).toBe(0);
+    });
+  });
+
+  describe('gradients', () => {
+    const linear = {
+      type: 'LINEAR',
+      angle: 45,
+      stops: [
+        { position: 0, color: '#FFFFFFFF' },
+        { position: 0.95, color: '#FF0000FF' },
+      ],
+    };
+
+    it('maps a linear gradient backgroundColor to background: linear-gradient()', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: { root: { styles: { backgroundColor: linear } } } },
+      });
+      expect(out).toContain('background: linear-gradient(45deg, #FFFFFFFF 0%, #FF0000FF 95%)');
+    });
+
+    it('resolves token-ref stop colors to var()', async () => {
+      const out = await run(tmpDir, {
+        default: {
+          elements: {
+            root: {
+              styles: {
+                backgroundColor: {
+                  type: 'LINEAR',
+                  angle: 0,
+                  stops: [
+                    { position: 0, color: tokenRef('DS Color/Surface/Primary') },
+                    { position: 1, color: tokenRef('DS Color/Line/Brand') },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      });
+      expect(out).toContain('background: linear-gradient(0deg, var(--ds-color-surface-primary) 0%, var(--ds-color-line-brand) 100%)');
+    });
+
+    it('maps RADIAL to radial-gradient(at …) and ANGULAR to conic-gradient(from 0deg …)', async () => {
+      const stops = [
+        { position: 0, color: '#FF0000FF' },
+        { position: 1, color: '#0000FFFF' },
+      ];
+      const out = await run(tmpDir, {
+        default: {
+          elements: {
+            root: { styles: { backgroundColor: { type: 'RADIAL', center: { x: 0.5, y: 0.25 }, stops } } },
+            halo: { styles: { backgroundColor: { type: 'ANGULAR', center: { x: 0.5, y: 0.5 }, stops } } },
+          },
+        },
+      });
+      expect(out).toContain('background: radial-gradient(at 50% 25%, #FF0000FF 0%, #0000FFFF 100%)');
+      expect(out).toContain('background: conic-gradient(from 0deg at 50% 50%, #FF0000FF 0%, #0000FFFF 100%)');
+    });
+
+    it('maps gradient strokes to a masked ring and resets it when a variant restores a solid stroke', async () => {
+      const out = await run(tmpDir, {
+        default: {
+          elements: { root: { styles: { strokes: '#000000FF', strokeWeight: 1 } } },
+        },
+        variants: [
+          {
+            configuration: { a: '2' },
+            elements: {
+              root: {
+                styles: {
+                  strokes: {
+                    type: 'ANGULAR',
+                    center: { x: 0.5, y: 0.5 },
+                    stops: [
+                      { position: 0, color: '#FF0000FF' },
+                      { position: 0.74, color: '#B1F836FF' },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+          {
+            configuration: { a: '2', b: '2' },
+            elements: { root: { styles: { strokes: '#000000FF' } } },
+          },
+        ],
+      });
+      const gradientBlock = out.match(/\.ds-button\[data-a="2"\] \{[^}]*\}/)?.[0] ?? '';
+      // A gradient stroke paints on a ::before ring, so the element's own
+      // block only cancels the mechanisms a sibling layer may have drawn with.
+      expect(gradientBlock).toContain('outline-style: none');
+      expect(out).toContain('background: conic-gradient(from 0deg at 50% 50%, #FF0000FF 0%, #B1F836FF 74%)');
+      expect(out).toContain('mask-composite: exclude');
+      const solidBlock = out.match(/\.ds-button\[data-a="2"\]\[data-b="2"\] \{[^}]*\}/)?.[0] ?? '';
+      // A solid stroke is an outline (layout-safe); the border-image reset is
+      // still needed to cancel the gradient variant's border.
+      expect(solidBlock).toContain('outline-color: #000000FF');
+      expect(solidBlock).toContain('border-image: none');
+      // The reset is per-element: every solid-stroke layer of this element
+      // carries it, including the default block (harmless — none is initial).
+      const baseBlock = out.match(/\.ds-button \{[^}]*\}/)?.[0] ?? '';
+      expect(baseBlock).toContain('outline-color: #000000FF');
+      expect(baseBlock).toContain('border-image: none');
+    });
+
+    it('paints gradient textColor as background clipped to the glyphs', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: { label: { styles: { textColor: linear } } } },
+      });
+      const block = out.match(/\.ds-button__label \{[^}]*\}/)?.[0] ?? '';
+      expect(block).toContain('background: linear-gradient(45deg, #FFFFFFFF 0%, #FF0000FF 95%)');
+      expect(block).toContain('background-clip: text');
+      expect(block).toContain('color: transparent');
+    });
+  });
+});
+
+describe('unresolved variables (DirectedEdges/specs#428)', () => {
+  // The engine writes a sentinel name when it cannot read the variable at all.
+  // Kebabized, that name looks like any other custom property, so a reference
+  // to it is dead — and on a size property the element collapses to zero. The
+  // spec carries no raw value for it, so nothing is emitted.
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'css-unresolved-'));
+    drainNameWarnings();
+  });
+  afterEach(async () => {
+    await fs.remove(tmpDir);
+    drainNameWarnings();
+  });
+
+  const withStyles = (styles: Record<string, unknown>) => ({
+    default: { layout: ['root'], elements: { root: { styles } } },
+    variants: [],
+  });
+
+  it('writes unset rather than referencing a variable the engine could not resolve', async () => {
+    // Not omitted: the variant overrode this property, and omitting it would
+    // let a base rule's value for the same property win. `unset` is also what
+    // the browser computed from the old dead var() reference.
+    const css = await run(
+      tmpDir,
+      withStyles({
+        width: tokenRef('[collection-name-unresolved]/Unavailable variable', 'dimension'),
+        cornerRadius: tokenRef('Foundation/radius/full', 'dimension'),
+      }),
+    );
+    expect(css).not.toContain('unavailable-variable');
+    expect(css).toContain('width: unset');
+    // A neighbouring real token in the same element still resolves.
+    expect(css).toContain('var(--foundation-radius-full)');
+  });
+
+  it('records a name warning naming the sentinel path', async () => {
+    await run(tmpDir, withStyles({ width: tokenRef('[collection-name-unresolved]/Unavailable variable', 'dimension') }));
+    const warnings = drainNameWarnings();
+    const paths = [...warnings.values()].flatMap(byName => [...byName.keys()]);
+    expect(paths).toContain('[collection-name-unresolved]/Unavailable variable');
+  });
+
+  it('withholds a variable whose collection name alone is missing', async () => {
+    // The sentinel is part of the path the custom-property name derives from,
+    // so a known variable name under an unknown collection is just as dead as
+    // an unknown variable — there is no name a stylesheet could define.
+    const css = await run(tmpDir, withStyles({ cornerRadius: tokenRef('[collection-name-unresolved]/Brand/Blue', 'dimension') }));
+    expect(css).not.toContain('brand-blue');
+    expect(css).toContain('border-radius: unset');
+  });
+
+  it('leaves a real token containing the word unresolved alone', async () => {
+    const css = await run(tmpDir, withStyles({ cornerRadius: tokenRef('Brand/Unresolved Blue', 'dimension') }));
+    expect(css).toContain('var(--brand-unresolved-blue)');
+  });
+});
+
+describe('text truncation', () => {
+  // Figma truncates a text layer by line count, optionally with an ellipsis.
+  // The spec carries maxLines and textOverflow; neither reached the CSS before.
+  let tmpDir: string;
+  beforeEach(async () => { tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'css-truncate-')); });
+  afterEach(async () => { await fs.remove(tmpDir); });
+
+  const withLabel = (styles: Record<string, unknown>) => ({
+    default: { layout: ['label'], elements: { label: { styles } } },
+    variants: [],
+  });
+
+  it('a single line with an ellipsis truncates on one line', async () => {
+    const css = await run(tmpDir, withLabel({ maxLines: 1, textOverflow: 'ELLIPSIS' }));
+    expect(css).toContain('white-space: nowrap');
+    expect(css).toContain('overflow: hidden');
+    expect(css).toContain('text-overflow: ellipsis');
+    expect(css).not.toContain('line-clamp');
+  });
+
+  it('more than one line uses the line-clamp box', async () => {
+    const css = await run(tmpDir, withLabel({ maxLines: 3, textOverflow: 'ELLIPSIS' }));
+    expect(css).toContain('-webkit-line-clamp: 3');
+    expect(css).toContain('line-clamp: 3');
+    expect(css).toContain('overflow: hidden');
+    expect(css).not.toContain('white-space: nowrap');
+  });
+
+  it('an ellipsis with no line count truncates on one line', async () => {
+    const css = await run(tmpDir, withLabel({ textOverflow: 'ELLIPSIS' }));
+    expect(css).toContain('text-overflow: ellipsis');
+    expect(css).toContain('white-space: nowrap');
+  });
+
+  it('a line count with no ellipsis clips without one', async () => {
+    const css = await run(tmpDir, withLabel({ maxLines: 1 }));
+    expect(css).toContain('white-space: nowrap');
+    expect(css).toContain('overflow: hidden');
+    expect(css).not.toContain('text-overflow');
+  });
+
+  it('a label declaring neither is untouched', async () => {
+    const css = await run(tmpDir, withLabel({ textColor: '#000000FF' }));
+    expect(css).not.toContain('text-overflow');
+    expect(css).not.toContain('white-space');
+  });
+});
+
+describe('strokes cost no layout space', () => {
+  // A Figma stroke never changes a frame's size, at any alignment. A CSS border
+  // does, for a hugging element — `box-sizing: border-box` only bites when the
+  // element has an explicit size — so every stroke is an outline instead.
+  let tmpDir: string;
+  beforeEach(async () => { tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'css-stroke-')); });
+  afterEach(async () => { await fs.remove(tmpDir); });
+
+  const withRoot = (styles: Record<string, unknown>) => ({
+    default: { layout: [], elements: { root: { styles } } },
+    variants: [],
+  });
+
+  it('an inside stroke is an outline pulled back over its own edge', async () => {
+    const css = await run(tmpDir, withRoot({ strokes: '#000000FF', strokeWeight: 1, strokeAlign: 'INSIDE' }));
+    expect(css).toContain('outline-color: #000000FF');
+    expect(css).toContain('outline-width: 1px');
+    expect(css).toContain('outline-offset: -1px');
+    expect(css).not.toContain('border-width: 1px');
+  });
+
+  it('an unrecorded alignment reads as inside', async () => {
+    // Figma's own default when a file records no alignment.
+    const css = await run(tmpDir, withRoot({ strokes: '#000000FF', strokeWeight: 2 }));
+    expect(css).toContain('outline-width: 2px');
+    expect(css).toContain('outline-offset: -2px');
+  });
+
+  it('a token-valued width negates with calc, since -var() is not a value', async () => {
+    const css = await run(tmpDir, withRoot({
+      strokes: '#000000FF',
+      strokeWeight: tokenRef('Foundation/border-width/thin', 'dimension'),
+      strokeAlign: 'INSIDE',
+    }));
+    expect(css).toContain('outline-offset: calc(-1 * var(--foundation-border-width-thin))');
+    expect(css).not.toContain('outline-offset: -var(');
+  });
+
+  it('an outside stroke is not pulled back', async () => {
+    const css = await run(tmpDir, withRoot({ strokes: '#000000FF', strokeWeight: 1, strokeAlign: 'OUTSIDE' }));
+    expect(css).toContain('outline-width: 1px');
+    expect(css).not.toContain('outline-offset');
+  });
+
+  it('a per-side weight keeps the border mapping', async () => {
+    // An outline has one width; a design that strokes some sides needs four.
+    const css = await run(tmpDir, withRoot({
+      strokes: '#000000FF',
+      strokeWeight: { top: 1, end: 0, bottom: 1, start: 0 },
+      strokeAlign: 'INSIDE',
+    }));
+    expect(css).toContain('border-color: #000000FF');
+    expect(css).not.toContain('outline-color');
+  });
+});
+
+describe('gradient strokes arriving as token references', () => {
+  // The spec carries the reference, not the gradient — the value arrives
+  // through the custom property the tokens transform writes. `$type` is the
+  // only thing that says which kind it is (DirectedEdges/specs#452).
+  let tmpDir: string;
+  beforeEach(async () => { tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'css-gradtoken-')); });
+  afterEach(async () => { await fs.remove(tmpDir); });
+
+  const withRoot = (styles: Record<string, unknown>) => ({
+    default: { layout: [], elements: { root: { styles } } },
+    variants: [],
+  });
+
+  it('a gradient token paints a ::before ring, not a border colour', async () => {
+    const css = await run(tmpDir, withRoot({
+      strokes: { $token: 'gradient/spinner', $type: 'gradient' },
+      strokeWeight: 2.5,
+      cornerRadius: 999,
+    }));
+    expect(css).toContain('::before');
+    expect(css).toContain('background: var(--gradient-spinner)');
+    expect(css).toContain('mask-composite: exclude');
+    expect(css).toContain('border-radius: inherit');
+    expect(css).not.toContain('outline-color: var(--gradient-spinner)');
+  });
+
+  it('the ring takes its thickness from the stroke weight, as padding', async () => {
+    const css = await run(tmpDir, withRoot({
+      strokes: { $token: 'gradient/spinner', $type: 'gradient' },
+      strokeWeight: 2.5,
+    }));
+    const ring = css.slice(css.indexOf('::before'));
+    expect(ring).toContain('padding: 2.5px');
+  });
+
+  it('the host declares no border, so the ring costs no layout', async () => {
+    const css = await run(tmpDir, withRoot({
+      strokes: { $token: 'gradient/spinner', $type: 'gradient' },
+      strokeWeight: 2.5,
+    }));
+    const host = css.slice(0, css.indexOf('::before'));
+    expect(host).not.toContain('border-width: 2.5px');
+    expect(host).not.toContain('border-style: solid');
+  });
+
+  it("leaves the element's own background alone", async () => {
+    // The mechanism this replaced painted into `background` and masked the
+    // middle out, which erased any fill the element declared.
+    const css = await run(tmpDir, withRoot({
+      strokes: { $token: 'gradient/spinner', $type: 'gradient' },
+      strokeWeight: 2,
+      backgroundColor: '#723FFFFF',
+    }));
+    const host = css.slice(0, css.indexOf('::before'));
+    expect(host).toContain('background: #723FFFFF');
+    expect(host).not.toContain('mask');
+  });
+
+  it('a colour token is untouched and still emits an outline', async () => {
+    const css = await run(tmpDir, withRoot({
+      strokes: { $token: 'border/primary', $type: 'color' },
+      strokeWeight: 1,
+    }));
+    expect(css).toContain('outline-color: var(--border-primary)');
+    expect(css).not.toContain('mask-composite');
+  });
+
+  it('a gradient stroke cancels the outline a solid one would have drawn', async () => {
+    const css = await run(tmpDir, withRoot({
+      strokes: { $token: 'gradient/spinner', $type: 'gradient' },
+      strokeWeight: 2,
+    }));
+    expect(css).toContain('outline-style: none');
   });
 });

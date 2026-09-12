@@ -8,23 +8,24 @@ The Specs command-line interface (CLI) generates design system specifications fr
 
 | Command | Purpose | Output |
 |---------|---------|--------|
-| [`init`](/cli/commands/init/) | Initialize config files with defaults | `config/conventions.yaml`, `config/settings.yaml`, `config/pipeline.yaml` |
+| [`init`](/cli/commands/init/) | Initialize config files with defaults | `config/conventions/` (one file per platform), `config/settings.yaml` |
 | [`fetch`](/cli/commands/fetch/) | Download raw REST payloads from Figma | JSON files in `data.directory` |
 | [`scan`](/cli/commands/scan/) | List all components in file | Markdown manifest |
 | [`applyCustomTokens`](/cli/commands/apply-custom-tokens/) | Inject `$custom` objects into fetched data | Modified variables/styles JSON |
 | [`generate`](/cli/commands/generate/) | Generate specs from a manifest or single component | YAML/JSON spec file(s) |
-| [`transform`](/cli/commands/transform/) *(experimental)* | Run transformers over generated specs | Code artifacts per transformer |
+| [`analyze`](/cli/analyze/) | Run analyzers over generated specs | Reports in `analysis/` |
+| [`migrate`](/cli/commands/migrate/) | Convert older workspace layouts to the current one | Rewritten `config/` files |
+| [`react`](/cli/commands/react/) *(experimental)* | Emit the React target | Components, contracts, stylesheets, stories in `react/` |
+| [`webcomponents`](/cli/commands/webcomponents/) *(experimental)* | Emit the Web Components target | Elements, contracts, stylesheets, stories in `webcomponents/` |
 | [`bridge`](/cli/commands/bridge/) *(experimental)* | Start/stop/check the local bridge `render` talks to | Background process |
 | [`cache`](/cli/commands/cache/) *(experimental)* | Build the lookup tables `render` resolves specs against | YAML files in `{data.directory}/cache` |
 | [`render`](/cli/commands/render/) *(experimental)* | Send a spec to the CLI bridge to render it live in Figma | Live Figma component |
 
 ### Global Options
 
-These options work with all commands:
-
-- `--verbose` - Enable detailed logging
-- `--help` - Show command help
+- `--help` - Show command help (all commands)
 - `--version` - Show CLI version
+- `--verbose` - Enable detailed logging (fetch, scan, generate, react, webcomponents, analyze, render)
 
 ## Free vs. Pro
 
@@ -39,7 +40,7 @@ With a **Pro license**, specs also include design token references, variable bin
 | Design token references | — | Yes |
 | Variable and visibility bindings | — | Yes |
 
-Set up your license key in your environment to unlock Pro features. See [Getting Started — License](/cli/getting-started/#step-3-set-your-license-key-optional).
+Set up your license key in your environment to unlock Pro features. See [Getting Started — environment setup](/cli/getting-started/#step-2-set-up-your-environment) and [Licensing](/overview/licensing/).
 
 ## Output Format
 

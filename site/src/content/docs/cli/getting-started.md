@@ -43,11 +43,11 @@ Scaffold the `config/` directory with sensible defaults:
 specs init
 ```
 
-This creates three files, each answering one question:
+This creates the split configuration, each file answering one question:
 
-- **`config/conventions.yaml`** — facts about the Figma library: naming patterns, state classification, how images are expressed. See [Conventions](/schema/conventions/).
+- **`config/conventions/figma.yaml`** — facts about the Figma library: naming patterns, glyph and subcomponent matching, how images are expressed. See [Conventions](/schema/conventions/).
+- **`config/conventions/specs.yaml`** — conventions about the spec itself, like the [states](/settings/states/) classification.
 - **`config/settings.yaml`** — choices about the run: sources, spec output, assets. See [Settings](/schema/settings/).
-- **`config/pipeline.yaml`** — transformers and analyses to run. See [Pipeline](/schema/pipeline/).
 
 ### Add your Figma file key
 
@@ -87,9 +87,9 @@ A **license key** is optional — Specs CLI works at a free tier without one. To
 The defaults from `specs init` work well for most setups. When you're ready to customize:
 
 - **`data.directory` / `spec.directory`** in `config/settings.yaml` — where fetched data is stored and specs are written. Defaults: `./data` and `./specs`.
-- **`spec.splitComponents` / `spec.splitConcerns` / `spec.useSubfolders`** in `config/settings.yaml` — controls file organization: split per component, split by concern, use subfolders. All default to `true`, which is the layout `transform` and `analyze` read.
-- **`config/conventions.yaml`** — declare how your library names glyphs, subcomponents, and images, and classify variant props as [states](/settings/states/). See [Conventions](/schema/conventions/).
-- **`config/pipeline.yaml`** — the transformers and analyses to run. See [Pipeline](/schema/pipeline/).
+- **`spec.splitComponents` / `spec.splitConcerns` / `spec.useSubfolders`** in `config/settings.yaml` — controls file organization: split per component, split by concern, use subfolders. All default to `true`, which is the layout [`react`](/cli/commands/react/), [`webcomponents`](/cli/commands/webcomponents/) and [`analyze`](/cli/analyze/) read.
+- **`config/conventions/figma.yaml`** — declare how your library names glyphs, subcomponents, and images. See [Conventions](/schema/conventions/).
+- **`config/conventions/specs.yaml`** — classify variant props as [states](/settings/states/).
 
 :::note[Upgrading from a single config file?]
 A pre-split `specs.config.yaml` is no longer read — every command stops with an error until it's converted, and `specs init` refuses to scaffold over it. Run one command to convert it:
@@ -98,7 +98,7 @@ A pre-split `specs.config.yaml` is no longer read — every command stops with a
 specs migrate config
 ```
 
-It writes `config/conventions.yaml`, `config/settings.yaml`, and `config/pipeline.yaml` from your file, then renames the original to `specs.config.yaml.migrated`. See [`migrate`](/cli/commands/migrate/).
+It writes `config/conventions/` and `config/settings.yaml` from your file, then renames the original to `specs.config.yaml.migrated`. See [`migrate`](/cli/commands/migrate/).
 :::
 
 ## Step 3: Fetch the Figma file
@@ -159,9 +159,11 @@ Generate specs for a few components without creating a manifest:
 
 ```bash
 specs generate data/library.file.json \
-  -c "Button" -c "Card" -c "Checkbox" \
-  -o specs/subset.yaml
+  -c "Button" \
+  -o specs/button.yaml
 ```
+
+`-c` takes a single component; run the command once per component to generate several.
 
 ##  Operationalize: CI/CD pipeline
 

@@ -3,7 +3,16 @@ title: "stories"
 description: "Emit a Storybook CSF page with one story per prop-expressible variant"
 ---
 
-<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
+<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge eol-badge">EOL</span>')</script>
+
+:::caution[No longer emitted this way]
+This page describes a `specs transform` target. That command is retired — a target
+is emitted whole by [`specs react`](/cli/commands/react/) or
+[`specs webcomponents`](/cli/commands/webcomponents/), which is why these artifacts
+can no longer be produced one at a time. Kept for reference on what each artifact
+contains.
+:::
+
 
 Emits a Storybook Component Story Format (CSF) page for each component: a `Default` story plus one story per variant configuration that can be expressed through props. It imports the **authored** component seeded by the [`react` transformer](/cli/transforms/react/), so Storybook always reflects your implementation, not the regenerated reference scaffold.
 
@@ -15,7 +24,7 @@ Emits a Storybook Component Story Format (CSF) page for each component: a `Defau
 ## Invocation
 
 ```bash
-specs transform stories
+specs react
 ```
 
 Requires `variants.yaml` — components without it are skipped with a warning, since stories are generated from the same variant analysis as the `react` transformer.
@@ -42,7 +51,7 @@ dsAlert/
 Given an Alert with `severity` (`info` | `warning` | `error`) and `dismissible` (boolean), both expressible as props:
 
 ```tsx
-// Generated. Do not edit — regenerate with `specs transform`.
+// Generated. Do not edit — regenerate with `specs react`.
 import type { Meta, StoryObj } from '@storybook/react';
 import { DsAlert } from '../../src/react/DsAlert';
 import { DsAlertDefaults } from '../DsAlert.contract';
@@ -94,4 +103,4 @@ Each subcomponent gets its own `generated/react/{Subcomponent}.stories.tsx`, imp
 
 - [Transforms overview](/cli/transforms/)
 - [`react` transformer](/cli/transforms/react/) — seeds the authored component these stories import
-- [`contract` transformer](/cli/transforms/contract/) — source of `Defaults` used in story args
+- the emitted contract — source of `Defaults` used in story args

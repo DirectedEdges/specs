@@ -24,7 +24,7 @@ default:
 
 images:
   hero:
-    src: "_images/705867125834a686a51bdf161a0a39cdba0f9a58.jpg"
+    src: "../../assets/images/705867125834a686a51bdf161a0a39cdba0f9a58.jpg"
     $extensions:
       com.figma:
         imageHash: 705867125834a686a51bdf161a0a39cdba0f9a58
@@ -66,15 +66,14 @@ Sourcing binds through `propConfigurations`, never through `backgroundImage` —
 
 ## Configuration
 
-Everything lives in one block: [`figma.images`](/settings/images/) in `config/conventions.yaml`. Its presence is the on-switch, and each member is an independent representation trigger:
+Everything lives in one block: [`figma.images`](/settings/images/) in `config/conventions/figma.yaml`. Its presence is the on-switch, and each member is an independent representation trigger:
 
 ```yaml
-# config/conventions.yaml
-figma:
-  images:
-    backgroundImage: true      # detect image fills → Styles.backgroundImage
-    match: dsImage             # designate an image component (requires sourceProps)
-    sourceProps: [source]      # code-only props typed as images; first = dsImage's source prop
+# config/conventions/figma.yaml
+images:
+  backgroundImage: true      # detect image fills → Styles.backgroundImage
+  match: dsImage             # designate an image component (requires sourceProps)
+  sourceProps: [source]      # code-only props typed as images; first = dsImage's source prop
 ```
 
 | Goal | Convention | Behavior |
@@ -95,7 +94,7 @@ The `images` registry stores each image once. An entry carries the Figma identit
 The Figma plugin cannot embed raw image bytes on the component asset (Figma caps saved data), so it emits identity-only entries and additionally duplicates each detected image into the **Foundations** section for human reference. The REST/CLI path is how you get actual image files.
 
 1. **Detect** — emit `$image` references and the registry, entries carrying only the Figma identity.
-2. **Resolve** (CLI's `generate` command only) — `specs generate --get-images` fetches the bytes, writes each distinct image once to `_images/<imageHash>.<ext>` inside the output directory, and ADDS `src` (the file's path relative to the referencing spec file); the identity survives for reverse-direction tooling.
+2. **Resolve** (CLI's `generate` command only) — `specs generate --get-images` fetches the bytes, writes each distinct image once to `assets/images/<imageHash>.<ext>` at the workspace root, and ADDS `src` (the file's path relative to the referencing spec file); the identity survives for reverse-direction tooling.
 :::
 
 ## Further Reading

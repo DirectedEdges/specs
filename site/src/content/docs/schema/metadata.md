@@ -16,7 +16,7 @@ Generation metadata attached to the spec. Present when the spec was produced by 
 | `generator.license` | `object` | No | License status (`status`: VALID/EXPIRED/NONE) and `level` (FREE/PRO/EXTENDED) |
 | `schema` | `object` | Yes | Schema version info — `url`, `version`, and optional `latest` URL |
 | `source` | `object` | Yes | Figma source — `pageId`, `nodeId`, `nodeType` (COMPONENT, COMPONENT_SET, or FRAME) |
-| `conventions` | [`Conventions`](/schema/conventions/) | Yes | Facts about the Figma library this spec was generated from |
+| `conventions` | `MetadataConventions` | Yes | Exactly the one platform entry that produced this spec — `platforms.figma` for a Figma capture — not every platform the workspace configures (ADR-079); see [Conventions](/schema/conventions/) |
 | `settings` | [`Settings`](/schema/settings/) | Yes | Choices about the run that generated this spec |
 
 ## Further Reading

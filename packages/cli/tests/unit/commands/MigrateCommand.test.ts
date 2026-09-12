@@ -4,7 +4,7 @@
  * Covers `specs migrate config` (v1 → v2, ADR-071) and the underlying
  * `migrateConfigV1` mapping: every member of the pre-split
  * `specs.config.yaml` shape lands in the right split file — conventions,
- * settings, or pipeline. These mappings used to be exercised through the
+ * or settings. These mappings used to be exercised through the
  * loader's in-memory migration; the loader now refuses legacy files
  * (ConfigLoader.test.ts) and the mapping lives here.
  */
@@ -39,7 +39,6 @@ describe('migrateConfigV1 (config v1 → v2 mapping)', () => {
     expect(result.conventions).toBeUndefined();
     // Not "nothing": the layout flags must be preserved even from an empty source.
     expect(result.settings).toEqual({ spec: { ...PRESERVED_LAYOUT } });
-    expect(result.pipeline).toBeUndefined();
   });
 
   it('maps dataDirectory to settings.data.directory', () => {
@@ -111,17 +110,17 @@ describe('migrateConfigV1 (config v1 → v2 mapping)', () => {
 
   it('maps config.format.figmaKeys to conventions.figma.naming', () => {
     const result = migrateConfigV1({ config: { format: { figmaKeys: 'SENTENCE' } } });
-    expect(result.conventions).toEqual({ figma: { naming: 'SENTENCE' } });
+    expect(result.conventions).toEqual({ naming: 'SENTENCE' });
   });
 
   it('maps processing.glyphNamePattern to conventions.figma.glyphs.match', () => {
     const result = migrateConfigV1({ config: { processing: { glyphNamePattern: 'DS Icon Glyph /' } } });
-    expect(result.conventions).toEqual({ figma: { glyphs: { match: 'DS Icon Glyph /' } } });
+    expect(result.conventions).toEqual({ glyphs: { match: 'DS Icon Glyph /' } });
   });
 
   it('maps processing.codeOnlyPropsPattern to conventions.figma.codeOnlyProps.match', () => {
     const result = migrateConfigV1({ config: { processing: { codeOnlyPropsPattern: '^_' } } });
-    expect(result.conventions).toEqual({ figma: { codeOnlyProps: { match: '^_' } } });
+    expect(result.conventions).toEqual({ codeOnlyProps: { match: '^_' } });
   });
 
   it('maps processing.images.imageComponent to conventions.figma.images.match', () => {
@@ -133,18 +132,16 @@ describe('migrateConfigV1 (config v1 → v2 mapping)', () => {
       },
     });
     expect(result.conventions).toEqual({
-      figma: { images: { match: 'DS Image', backgroundImage: true, sourceProps: ['imageSource'] } },
+      images: { match: 'DS Image', backgroundImage: true, sourceProps: ['imageSource'] },
     });
   });
 
-  it('maps processing states/subcomponents/instanceExamples/slotConstraints/inferNumberProps to conventions.figma', () => {
-    const states = { interaction: ['hover', 'pressed'] };
+  it('maps processing subcomponents/instanceExamples/slotConstraints/inferNumberProps to conventions.figma', () => {
     const subcomponents = { match: ['{C} / {S}'] };
     const instanceExamples = { scope: 'FILE', match: ['{C} / Examples / {S}'] };
     const result = migrateConfigV1({
       config: {
         processing: {
-          states,
           subcomponents,
           instanceExamples,
           slotConstraints: true,
@@ -153,8 +150,15 @@ describe('migrateConfigV1 (config v1 → v2 mapping)', () => {
       },
     });
     expect(result.conventions).toEqual({
-      figma: { states, subcomponents, instanceExamples, slotConstraints: true, inferNumberProps: true },
+      subcomponents, instanceExamples, slotConstraints: true, inferNumberProps: true,
     });
+  });
+
+  it('maps processing.states to the specs conventions file, not the figma entry (ADR-073 Decision 4)', () => {
+    const states = { hover: { prop: 'state', value: 'hover' } };
+    const result = migrateConfigV1({ config: { processing: { states } } });
+    expect(result.specsConventions).toEqual({ states });
+    expect(result.conventions).toBeUndefined();
   });
 
   it('maps processing variantDepth/details/collapsePrimitiveWrapper to settings.spec', () => {
@@ -196,18 +200,14 @@ describe('migrateConfigV1 (config v1 → v2 mapping)', () => {
     expect(result.conventions).toBeUndefined();
   });
 
-  it('maps config.transformers to pipeline.transformers', () => {
+  it('drops config.transformers rather than carrying it forward', () => {
+    // A transformer pipeline stopped being a thing to configure once each target
+    // emitted everything it needs. `specs react` and `specs webcomponents` replace it.
     const result = migrateConfigV1({
       config: { transformers: [{ name: 'contract' }, { name: 'css', rules: ['layout'] }] },
     });
-    expect(result.pipeline).toEqual({
-      transformers: [{ name: 'contract' }, { name: 'css', rules: ['layout'] }],
-    });
-  });
-
-  it('omits pipeline when the source declares no transformers', () => {
-    const result = migrateConfigV1({ author: 'Test Author' });
-    expect(result.pipeline).toBeUndefined();
+    expect(result).not.toHaveProperty('pipeline');
+    expect(JSON.stringify(result)).not.toContain('transformers');
   });
 });
 
@@ -268,17 +268,17 @@ config:
 
     await runMigrate('config');
 
-    const conventions = yaml.parse(fs.readFileSync(path.join(testDir, 'config', 'conventions.yaml'), 'utf-8'));
+    const conventions = yaml.parse(fs.readFileSync(path.join(testDir, 'config', 'conventions', 'figma.yaml'), 'utf-8'));
     const settings = yaml.parse(fs.readFileSync(path.join(testDir, 'config', 'settings.yaml'), 'utf-8'));
-    const pipeline = yaml.parse(fs.readFileSync(path.join(testDir, 'config', 'pipeline.yaml'), 'utf-8'));
 
-    expect(conventions).toEqual({ figma: { naming: 'SENTENCE' } });
+    // The file IS the platform, so its body sits at the root (ADR-078).
+    expect(conventions).toEqual({ naming: 'SENTENCE' });
     expect(settings).toEqual({
       author: 'Test Author',
       data: { directory: './data-in' },
       spec: { directory: './specs-out', variantDepth: 2, ...PRESERVED_LAYOUT },
     });
-    expect(pipeline).toEqual({ transformers: [{ name: 'contract' }] });
+    expect(fs.existsSync(path.join(testDir, 'config', 'pipeline.yaml'))).toBe(false);
 
     // Discovery must stop finding the source: renamed, not left in place.
     expect(fs.existsSync(path.join(testDir, 'specs.config.yaml'))).toBe(false);
@@ -308,13 +308,12 @@ config:
     expect(fs.existsSync(path.join(testDir, 'config'))).toBe(false);
     expect(fs.existsSync(path.join(testDir, 'specs.config.yaml'))).toBe(true);
     expect(fs.existsSync(path.join(testDir, 'specs.config.yaml.migrated'))).toBe(false);
-    expect(logged()).toContain('Would write: config/conventions.yaml');
+    expect(logged()).toContain('Would write: config/conventions/figma.yaml');
     expect(logged()).toContain('Would write: config/settings.yaml');
-    expect(logged()).toContain('Would write: config/pipeline.yaml');
     expect(logged()).toContain('Would rename: specs.config.yaml → specs.config.yaml.migrated');
   });
 
-  it.each(['conventions.yaml', 'settings.yaml', 'pipeline.yaml'])(
+  it.each(['conventions.yaml', 'settings.yaml'])(
     'refuses (and writes nothing) when config/%s already exists',
     async existing => {
       fs.writeFileSync(path.join(testDir, 'specs.config.yaml'), LEGACY_FULL);
@@ -332,13 +331,13 @@ config:
     }
   );
 
-  it('writes no file for a section absent from the source (no transformers → no pipeline.yaml)', async () => {
+  it('writes no file for a section absent from the source', async () => {
     fs.writeFileSync(path.join(testDir, 'specs.config.yaml'), 'author: Test Author\n');
 
     await runMigrate('config');
 
     expect(fs.existsSync(path.join(testDir, 'config', 'settings.yaml'))).toBe(true);
-    expect(fs.existsSync(path.join(testDir, 'config', 'conventions.yaml'))).toBe(false);
+    expect(fs.existsSync(path.join(testDir, 'config', 'conventions', 'figma.yaml'))).toBe(false);
     expect(fs.existsSync(path.join(testDir, 'config', 'pipeline.yaml'))).toBe(false);
   });
 
@@ -427,24 +426,47 @@ config:
     expect(config.configDir).toBe(testDir);
 
     // conventions
-    expect(config.conventions.figma.naming).toBe('SENTENCE');
-    expect(config.conventions.figma.glyphs).toEqual({ match: 'DS Icon Glyph /' });
-    expect(config.conventions.figma.codeOnlyProps).toEqual({ match: '^_' });
-    expect(config.conventions.figma.slotConstraints).toBe(true);
-    expect(config.conventions.figma.subcomponents).toEqual({ scope: 'NESTED', match: ['{C} / {S}'] });
-    expect(config.conventions.figma.instanceExamples).toEqual({
+    expect(config.conventions.platforms!.figma.naming).toBe('SENTENCE');
+    expect(config.conventions.platforms!.figma.glyphs).toEqual({ match: 'DS Icon Glyph /' });
+    expect(config.conventions.platforms!.figma.codeOnlyProps).toEqual({ match: '^_' });
+    expect(config.conventions.platforms!.figma.slotConstraints).toBe(true);
+    expect(config.conventions.platforms!.figma.subcomponents).toEqual({ scope: 'NESTED', match: ['{C} / {S}'] });
+    expect(config.conventions.platforms!.figma.instanceExamples).toEqual({
       scope: 'FILE',
       match: ['{C} / Examples / {S}'],
     });
-    expect(config.conventions.figma.images).toEqual({
+    expect(config.conventions.platforms!.figma.images).toEqual({
       backgroundImage: true,
       match: 'DS Image',
       sourceProps: ['imageSource'],
     });
 
     // pipeline
-    expect(config.pipeline.transformers).toEqual([{ name: 'contract' }]);
-    expect(config.pipeline.analyses).toEqual([]);
+  });
+
+  describe('config pipeline → retired (ADR-071 amendment)', () => {
+    it('renames a leftover config/pipeline.yaml out of discovery', async () => {
+      const pipelineFile = path.join(testDir, 'config', 'pipeline.yaml');
+      fs.ensureDirSync(path.dirname(pipelineFile));
+      fs.writeFileSync(pipelineFile, 'transformers:\n  - name: react\n');
+
+      await runMigrate('config');
+
+      expect(fs.existsSync(pipelineFile)).toBe(false);
+      expect(fs.existsSync(`${pipelineFile}.migrated`)).toBe(true);
+      expect(logged()).toContain('pipeline.yaml');
+    });
+
+    it('--dry-run leaves the file in place and reports the rename', async () => {
+      const pipelineFile = path.join(testDir, 'config', 'pipeline.yaml');
+      fs.ensureDirSync(path.dirname(pipelineFile));
+      fs.writeFileSync(pipelineFile, 'transformers: []\n');
+
+      await runMigrate('config', '--dry-run');
+
+      expect(fs.existsSync(pipelineFile)).toBe(true);
+      expect(logged()).toContain('Would rename');
+    });
   });
 });
 

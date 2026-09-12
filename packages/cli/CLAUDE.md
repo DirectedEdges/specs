@@ -1,37 +1,26 @@
 # CLAUDE.md — specs-cli
 
-## What This Is
+`@directededges/specs-cli` orchestrates fetch → scan → generate → transform →
+render over the closed `specs-from-figma` engine and the emitter packages.
+The structural map — commands, key nodes, data flows, gotchas — is
+`ARCHITECTURE.md` in this directory; this file is operating rules only.
 
-`@directededges/specs-cli` is the CLI and MCP server for the Specs ecosystem. It orchestrates Figma data fetching, component scanning, and spec generation via the `specs-from-figma` engine.
+## Operating rules
 
-## Commands
-
-| Command | Source | Role |
-|---------|--------|------|
-| `init` | `commands/Init/` | Scaffold a `specs.config.yaml` file |
-| `fetch` | `commands/Fetch/` | Download raw Figma file, variables, and styles via REST API |
-| `scan` | `commands/Scan/` | Discover components in fetched data and build a manifest |
-| `generate` | `commands/Generate/` | Produce structured specs from the manifest |
-| `applyCustomTokens` | `commands/ApplyCustomTokens/` | Inject custom token objects into fetched foundation data |
-
-## Key Files
-
-- `index.ts` — command registry, `createProgram()`, `runCli()`
-- `bin/` — CLI binary entry point
-- `figma-shim.ts` — adapts Figma Plugin API calls to Node.js (REST API context)
-- `Config/` — CLI configuration loading and validation
-- `Writers/` — output writers (YAML, JSON, Markdown)
-- `Types/` — internal TypeScript types
-- `utilities/` — shared helpers
-
-## Dependencies
-
-- `@directededges/specs-schema` — types and `DEFAULT_CONFIG` (linked via workspace symlink)
-- `@directededges/specs-from-figma` — processing engine (`Component.fromRestApi`)
-
-## Build
-
-```bash
-npm run build    # esbuild bundle + tsc declarations
-npm test         # Vitest
-```
+- Invoke the built CLI as `node <repo>/packages/cli/dist/specs.js …` — never
+  the globally installed `specs` binary (stale published release; a workspace
+  hook blocks it). The dev watcher keeps `dist/specs.js` fresh.
+- The watcher does **not** rebuild `dist/bridge-server.js` — after bridge
+  server changes, run a build explicitly.
+- Run tests from the repo root (`npm test` uses the root `vitest.config.ts`);
+  package-local runs don't resolve.
+- There is no MCP server. The persistent process is the plugin **bridge**
+  (WS 9001 / HTTP 9002); `specs bridge start|stop|status` manages it.
+- `figma-shim.ts` installs a stub `global.figma` so engine code written
+  against the Plugin API runs in Node — it must stay the first import.
+- Config is the split `config/` layout (ADR-071/078); legacy
+  `specs.config.yaml` is refused, `specs migrate config` converts.
+- Engine + emitters (`@directededges/specs-from-figma`, `react-from-specs`,
+  `webcomponents-from-specs`) and `specs-schema` resolve from `node_modules`,
+  which in dev are symlinks into sibling checkouts — never `npm install` a
+  local path; the workspace links handle resolution.

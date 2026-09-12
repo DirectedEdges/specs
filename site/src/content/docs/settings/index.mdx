@@ -8,15 +8,17 @@ import pluginSettingsFormat from '../../../assets/plugin-settings-format.png';
 
 Configuration gives you technical control over how specs are created — the same options drive both the Figma plugin and the CLI, so a component produces the same structured output no matter which one generates it.
 
-A workspace authors three files in a `config/` directory, one per question:
+Two kinds of value exist, whichever surface you set them on:
 
-| File | Question it answers | Kind of value |
-|------|--------------------|---------------|
-| `config/conventions.yaml` | What is true about this Figma library? | **Facts.** Every consumer reading the same library declares the same values — a wrong value produces *incorrect* output (undetected glyphs, unclassified states) |
-| `config/settings.yaml` | What do I want out of this run? | **Choices.** A different team could set any of these differently and still be correct — a different value produces merely *different* output |
-| `config/pipeline.yaml` | What work should run over the specs? | **Work.** Transformers and analyses to run |
+- **Conventions are facts.** Every consumer reading the same library declares the same
+  values, so a wrong value produces *incorrect* output — undetected glyphs, missed
+  subcomponents, a concept landing on the wrong prop.
+- **Settings are choices.** A different team could set any of them differently and still
+  be correct — a different value produces merely *different* output.
 
-The distinction decides where an option lives. Declaring a convention is also what enables its processing: a declared `glyphs` pattern turns glyph detection on, and an absent block means the library has no such convention — there is no separate on-switch. Because conventions describe the library rather than any one workspace, a library can publish its `conventions.yaml` once and every consuming workspace adopts it verbatim.
+Declaring a convention is also what enables its processing: a declared `glyphs` pattern
+turns glyph detection on, and an absent block means the library has no such convention.
+There is no separate on-switch.
 
 <Tabs>
 <TabItem label="Figma Plugin">
@@ -76,117 +78,57 @@ The **Layout** section controls how element hierarchy is represented:
 </TabItem>
 <TabItem label="Command Line (CLI)">
 
-The CLI reads configuration from the workspace's `config/` directory, layered with command-line flags and convention-based fallbacks, so a project's output stays consistent across every `specs` invocation.
-
-## Priority System
-
-The CLI applies configuration using three priority levels:
-
-1. **CLI flags** (highest) - Explicit overrides for individual commands
-2. **Config files** - Project defaults via `config/conventions.yaml`, `config/settings.yaml`, and `config/pipeline.yaml`
-3. **Fallbacks** (lowest) - Convention-based defaults when no sources are configured
-
-### CLI Flags
-
-CLI flags always override values from the config files:
-
-```bash
-# settings.yaml has spec.format: JSON
-# Flag overrides to YAML
-specs generate data/library.file.json -c Button --format yaml
-```
-
-**Available flag overrides**:
-- `--format` → overrides `spec.format` in `settings.yaml`
-- `--variables` → overrides the variables file path for that run
-- `--styles` → overrides the styles file path for that run
-
-### Config Files
-
-Values from the `config/` directory apply when no CLI flag is provided. Use `--config` to point at a different directory instead of the default location:
-
-```bash
-specs generate data/library.file.json \
-  -c "Button" \
-  --config ./configs/mobile \
-  -o specs/mobile/button.yaml
-```
-
-### Fallbacks
-
-Convention-based defaults when no sources are configured and no flags are provided:
+A workspace authors configuration as a `config/` directory, one file per question:
 
 ```
-project/
-├── config/
-│   ├── conventions.yaml       # Library facts (if any declared)
-│   ├── settings.yaml          # Run choices (if exists)
-│   └── pipeline.yaml          # Work to run (if exists)
-├── data/
-│   ├── library.file.json      # Main file (specified in command)
-│   └── foundations/           # Auto-discovery directory
-│       ├── variables.json     # Auto-discovered
-│       └── styles.json        # Auto-discovered
+config/
+├── settings.yaml              What do I want out of this run?
+└── conventions/
+    ├── figma.yaml             What is true about this Figma library?
+    ├── figma.primitives.yaml  Which component does a raw layer stand for?
+    ├── specs.yaml             What do the spec's own props mean?
+    ├── react.yaml             How does React spell those components?
+    └── web-components.yaml    …and Web Components?
 ```
 
-## Configuration Files
+Every file is optional and defaults independently. `specs init` writes all of them
+except the promotion table, each with inline comments.
 
-### Location
+Conventions are **one file per platform** (ADR-078). The filename is the platform:
+`figma.yaml` describes the design tool, `react.yaml` and `web-components.yaml` describe
+the code platforms generated from it. `specs.yaml` is a sibling rather than a platform —
+the spec is the hub every platform converts to or from. Because a convention describes
+the library rather than any one workspace, a library can publish its `conventions/` once
+and every consuming workspace adopts it verbatim.
 
-The CLI looks for configuration in these locations (in order):
+The CLI reads `./config/` in the current directory, or a different directory given to
+`--config <path>`. Nothing else is read: a directory counts as configuration if it holds
+`settings.yaml` or a `conventions/` directory, and `.json` is accepted everywhere `.yaml`
+is. A pre-split `specs.config.yaml` is *detected but never loaded* — finding one is an
+error, not a fallback. See [Legacy single file](#legacy-single-file).
 
-1. Custom path via `--config <path>` flag — a `config/` directory holding the split files
-2. `./config/` (current directory) — any of `conventions.yaml`, `settings.yaml`, `pipeline.yaml` (`.json` also accepted; each file is optional and defaults independently)
+## What each file carries
 
-Nothing else is read. A pre-split `specs.config.yaml` / `specs.config.json` (or `~/.specs/config.yaml`) is detected but never loaded — finding one is an error, not a fallback. See [Legacy single file](#legacy-single-file).
+### `config/settings.yaml`
 
-`specs init` scaffolds all three files with inline documentation.
-
-### Format
-
-Each file answers one question, written in YAML or JSON:
+Choices about this run: where data is read from and written to, and the shape of the
+spec.
 
 ```yaml
-# config/conventions.yaml — facts about the Figma library
-figma:
-  naming: SENTENCE            # the file's layer/property naming convention
-
-  glyphs:
-    match: 'DS Icon Glyph / {i}'
-
-  codeOnlyProps:
-    match: 'Code only props'
-
-  subcomponents:
-    match:
-      - '{C} / _ / {S}'
-
-  states:
-    hover:
-      prop: state
-      value: hover
-    disabled:
-      prop: disabled
-```
-
-```yaml
-# config/settings.yaml — choices about this run
 author: Your Name
 
 data:
   # Where `specs fetch` writes payloads, and where `generate` loads them from
   directory: ./data
-  # Figma file keys and which payloads to fetch/load
   sources:
     library:
       key: REPLACE_WITH_LIBRARY_FILE_KEY
-      fetch: ['file','variables','styles']
+      fetch: ['file', 'variables', 'styles']
     foundations:
       key: REPLACE_WITH_FOUNDATIONS_FILE_KEY
-      fetch: ['variables','styles']
+      fetch: ['variables', 'styles']
 
 spec:
-  # Default location for generated spec files (can override with -o flag)
   directory: ./specs
   format: YAML
   keys: SAFE
@@ -198,28 +140,66 @@ spec:
   invalidCombinations: true
 ```
 
+### `config/conventions/figma.yaml`
+
+Facts about the Figma library — what its layer names mean.
+
 ```yaml
-# config/pipeline.yaml — work to run over the specs
-transformers:
-  - name: contract
-  - name: css
+naming: SENTENCE            # the file's layer/property naming convention
+
+glyphs:
+  match: 'DS Icon Glyph / {i}'
+
+codeOnlyProps:
+  match: 'Code only props'
+
+subcomponents:
+  match:
+    - '{C} / _ / {S}'
 ```
 
-### Legacy single file
+### `config/conventions/specs.yaml`
 
-A pre-split `specs.config.yaml` (or `.json`, or `~/.specs/config.yaml`) is no longer read (ADR-071). When the CLI finds one it stops with an error rather than falling back to defaults — a defaults-only run would generate specs missing everything your configuration declares:
+Facts about the spec's own props: which variant props are states, and which props
+carry an accessible name or a value.
 
+```yaml
+states:
+  hover:
+    prop: state
+    value: hover
+  disabled:
+    prop: disabled
+
+accessibility:
+  label: { prop: a11yLabel }
 ```
-specs.config.yaml is no longer read (ADR-071).
-  Run `specs migrate config` to write config/conventions.yaml, config/settings.yaml and config/pipeline.yaml from it.
-  Docs: https://specs.directededges.com/settings/
+
+### `config/conventions/react.yaml` and `web-components.yaml`
+
+Facts about each code platform: which of its components a promoted primitive
+becomes, and which prop receives styling nothing mapped.
+
+```yaml
+stylesProp: sx
+
+primitives:
+  text:
+    component: DsText
+    props:
+      content: text
 ```
 
-Run [`specs migrate config`](/cli/commands/migrate/) once to convert: it writes the three `config/` files from your legacy file, then renames the source to `specs.config.yaml.migrated` so discovery stops finding it. Review the generated files, then delete the renamed original. Each option page notes its legacy path.
+### `config/conventions/figma.primitives.yaml`
+
+The promotion table: which design system component a raw layer stands for, and how
+its styles become that component's props. Not seeded by `specs init` — a workspace
+adds it when it turns [`promotePrimitives`](/settings/promote-primitives/) on.
 
 ## Validation
 
-The CLI validates every configuration value and provides helpful error messages:
+Every configuration value is validated, and an invalid one falls back to its default
+with a warning so builds continue:
 
 ```bash
 $ specs generate data/library.file.json -c Button
@@ -227,24 +207,65 @@ Warning: Invalid spec.keys: 'invalid'. Using default: SAFE.
 Valid values: SAFE, CAMEL, SNAKE, KEBAB, PASCAL, TRAIN
 ```
 
-Invalid values fall back to defaults with warnings, so builds continue.
+A *misplaced* file is different, and is refused rather than defaulted: a stray
+`config/conventions.yaml` (pre-ADR-078) or a `config/conventions/primitives.yaml`
+missing its `figma.` qualifier stops the run and names the rename that fixes it.
 
-## Best Practices
+## Legacy single file
 
-### 1. Version Control Your Config Directory
+A pre-split `specs.config.yaml` (or `.json`, or `~/.specs/config.yaml`) is no longer
+read (ADR-071). When the CLI finds one it stops rather than falling back to defaults —
+a defaults-only run would generate specs missing everything your configuration
+declares:
 
-Commit `config/` to share configuration across the team:
-
-```bash
-git add config/
-git commit -m "Add Specs configuration"
+```
+specs.config.yaml is no longer read (ADR-071).
+  Run `specs migrate config` to write config/conventions/ and config/settings.yaml from it.
+  Docs: https://specs.directededges.com/settings/
 ```
 
-`conventions.yaml` in particular is worth sharing beyond the team: it describes the library, not the workspace, so every workspace reading the same library should carry the same one.
+Run [`specs migrate config`](/cli/commands/migrate/) once to convert. It writes
+`config/settings.yaml` and the `config/conventions/` files, then renames the source to
+`specs.config.yaml.migrated` so discovery stops finding it. Review the generated files,
+then delete the renamed original. Each option page notes its legacy path.
 
-### 2. Environment-Specific Settings
+## Priority
 
-Use a different config directory for each environment:
+Three levels, highest first. This only matters when the same value is stated in more
+than one place:
+
+1. **CLI flags** — explicit overrides for one command
+2. **Config files** — the project's defaults
+3. **Fallbacks** — convention-based defaults when nothing is configured
+
+A flag always wins:
+
+```bash
+# settings.yaml has spec.format: JSON — the flag overrides it to YAML
+specs generate data/library.file.json -c Button --format yaml
+```
+
+The flags that override a configured value are `--format` (`spec.format`),
+`--variables` and `--styles` (the payload paths for that run), and `--config`, which
+points at a different directory entirely:
+
+```bash
+specs generate data/library.file.json \
+  -c "Button" \
+  --config ./configs/mobile \
+  -o specs/mobile/button.yaml
+```
+
+With nothing configured and no flags given, the CLI falls back to conventional
+locations — `./data` for payloads, with `variables.json` and `styles.json`
+auto-discovered beneath it.
+
+## Keeping configuration in version control
+
+Commit `config/` so the team shares it. The `conventions/` files are worth sharing
+further still: they describe the library, not the workspace, so every workspace
+reading the same library should carry the same ones — and they are typically identical
+across environments, while settings are what differ:
 
 ```
 project/
@@ -253,56 +274,12 @@ project/
 └── configs/staging/         # Staging
 ```
 
-```bash
-# Development (uses default)
-specs generate data/library.file.json -c Button
-
-# Production
-specs generate data/library.file.json -c Button --config configs/production
-```
-
-The conventions file is typically identical across environments — it is the settings that differ.
-
-### 3. Document Custom Patterns
-
-Add comments to explain library-specific conventions:
-
-```yaml
-# config/conventions.yaml
-figma:
-  subcomponents:
-    # Match direct children and underscore-nested subcomponents
-    match:
-      - '{C} / {S}'
-      - '{C} / _ / {S}'
-    exclude:
-      - '{C} / Examples / {S}'
-```
-
-```yaml
-# config/settings.yaml
-spec:
-  # Only 2 levels: size + variant (not size + variant + state)
-  variantDepth: 2
-```
-
-### 4. Consistent Key Format
-
-Choose one key format and stick with it:
-
-```yaml
-# config/settings.yaml
-spec:
-  keys: CAMEL  # All keys in camelCase for consistency
-```
-
 ## See Also
 
-- [Conventions schema reference](/schema/conventions/) - The full `conventions.yaml` shape
-- [Settings schema reference](/schema/settings/) - The full `settings.yaml` shape
-- [Pipeline schema reference](/schema/pipeline/) - The full `pipeline.yaml` shape
-- [CLI Overview](/cli/) - CLI command options
-- [Getting Started](/cli/getting-started/) - Installation and setup
+- [Conventions schema reference](/schema/conventions/) — the full conventions shape
+- [Settings schema reference](/schema/settings/) — the full `settings.yaml` shape
+- [`specs migrate`](/cli/commands/migrate/) — converting a pre-split configuration
+- [Getting Started](/cli/getting-started/) — installation and setup
 
 </TabItem>
 </Tabs>

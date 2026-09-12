@@ -128,18 +128,27 @@ const componentWithImages: Component = {
 
 // ─── Image conventions ────────────────────────────────────────────────────────
 
-// figma.images: presence declares the convention; every member optional
-const imagesAbsent: Conventions = { figma: {} };
-const imagesFillsOnly: Conventions = { figma: { images: { backgroundImage: true } } };
+// platforms.<id>.images: presence declares the convention; every member optional
+const imagesAbsent: Conventions = { platforms: { figma: {} } };
+const imagesFillsOnly: Conventions = { platforms: { figma: { images: { backgroundImage: true } } } };
 const imagesAllTriggers: Conventions = {
-  figma: { images: { backgroundImage: true, match: 'dsImage', sourceProps: ['source', 'image'] } },
+  platforms: { figma: { images: { backgroundImage: true, match: 'dsImage', sourceProps: ['source', 'image'] } } },
+};
+
+// The image component in two languages: its Figma name, and its name on a code platform (ADR-077)
+const imagesComponentName: Conventions = {
+  platforms: { figma: { images: { match: 'dsImage', sourceProps: ['source'] } }, react: { images: { component: 'DsImage' } } },
 };
 
 // @ts-expect-error: match is a plain name string, not the retired { name, sourceProperty } object
-const _imagesV1Shape: Conventions = { figma: { images: { match: { name: 'dsImage' } } } };
+const _imagesV1Shape: Conventions = { platforms: { figma: { images: { match: { name: 'dsImage' } } } } };
 
 // @ts-expect-error: sourceProps must be a string array
-const _imagesBadSourceProps: Conventions = { figma: { images: { sourceProps: 'source' } } };
+const _imagesBadSourceProps: Conventions = { platforms: { figma: { images: { sourceProps: 'source' } } } };
 
 // @ts-expect-error: image conventions do not live in settings
-const _imagesInSettings: Conventions = { figma: {}, spec: { images: {} } };
+const _imagesInSettings: Conventions = { platforms: { figma: {} }, spec: { images: {} } };
+
+// An image is an attribute, not a node kind — it has no place in the primitive vocabulary (ADR-077)
+// @ts-expect-error: image is not a PrimitiveKind
+const _imagePrimitive: Conventions = { platforms: { react: { primitives: { image: { component: 'DsImage' } } } } };

@@ -64,5 +64,5 @@ specs/
 
 ## See Also
 
-- [`transform` command](/cli/commands/transform/) — the sibling command that emits code artifacts
+- [`react`](/cli/commands/react/) and [`webcomponents`](/cli/commands/webcomponents/) — the sibling commands that emit code artifacts
 - [Transforms overview](/cli/transforms/) — build artifacts (contract, css)

@@ -19,8 +19,7 @@
     },
     "./schema/component": "./schema/component.schema.json",
     "./schema/conventions": "./schema/conventions.schema.json",
-    "./schema/settings": "./schema/settings.schema.json",
-    "./schema/pipeline": "./schema/pipeline.schema.json"
+    "./schema/settings": "./schema/settings.schema.json"
   },
   "files": [
     "dist",

@@ -68,12 +68,11 @@ This feature is most valuable when:
 ## Configuration
 
 ```yaml
-# config/conventions.yaml
-figma:
-  slotConstraints: true
+# config/conventions/figma.yaml
+slotConstraints: true
 ```
 
-**Default**: `false` (absent). Existing specs are unaffected until you declare it. It lives in `config/conventions.yaml` because it states how the library authors slot constraints — as code-only props — and requires a `codeOnlyProps` convention to read them from.
+**Default**: `false` (absent). Existing specs are unaffected until you declare it. It lives in `config/conventions/figma.yaml` because it states how the library authors slot constraints — as code-only props — and requires a `codeOnlyProps` convention to read them from.
 
 ## Design Rationale
 

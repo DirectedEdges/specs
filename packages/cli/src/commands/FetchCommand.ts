@@ -28,6 +28,7 @@ const ERROR_CODES = {
 };
 
 import type { SourceEntry } from '@directededges/specs-schema';
+import { figmaOf } from '../Config/PlatformConventions.js';
 import { resolveFigmaFileKey, slugifyBranchName, FigmaKeyError } from '../utilities/figmaFileKey.js';
 
 type FetchKind = 'file' | 'variables' | 'styles' | 'icons';
@@ -520,13 +521,13 @@ export const Fetch = new Command('fetch')
         // the saved file payload, so `file` must be present (fetched this run
         // or a previous one) before icons can resolve.
         if (entry.fetch.includes('icons') && wants('icons')) {
-          const pattern = config.conventions.figma.glyphs?.match;
+          const pattern = figmaOf(config.conventions).glyphs?.match;
           if (!pattern) {
-            console.error(`Error: ${entry.origin === 'adhoc' ? `source "${entry.alias}"` : `data.sources.${entry.alias}.fetch`} includes "icons" but conventions.figma.glyphs.match is not set`);
+            console.error(`Error: ${entry.origin === 'adhoc' ? `source "${entry.alias}"` : `data.sources.${entry.alias}.fetch`} includes "icons" but glyphs.match is not set in config/conventions/figma.yaml`);
             process.exit(ERROR_CODES.INVALID_ARGS);
           }
           // Icons are consumed by generated component output, so they live in
-          // the durable spec workspace (beside _images/), not the data cache.
+          // the durable spec workspace (beside assets/images/), not the data cache.
           const specDirectory = config.settings.spec.directory;
           if (!specDirectory) {
             console.error(`Error: ${entry.origin === 'adhoc' ? `source "${entry.alias}"` : `data.sources.${entry.alias}.fetch`} includes "icons" but spec.directory is not set in the workspace settings`);
@@ -541,13 +542,15 @@ export const Fetch = new Command('fetch')
           const stopSpinner = startSpinner(`Downloading: ${entry.alias} icons`);
           const fileJson = JSON.parse(await fs.readFile(filePath, 'utf-8')) as { document?: unknown };
           const glyphs = collectGlyphComponents(fileJson.document, pattern);
-          // An ad-hoc source's glyphs are a second version of the same icons under the
-          // same slugs. Writing them to `_icons/` would overwrite the durable library's
-          // assets, so they get their own directory — isolated, and deleted with the
-          // rest of the source's payloads.
+          // Assets are a sibling of specs/, not a `_`-prefixed pseudo-component
+          // inside it: an SVG is consumed by every target and produced by none
+          // (project 024). An ad-hoc source's glyphs are a second version of the
+          // same icons under the same slugs — writing them into assets/icons/
+          // would overwrite the durable library's assets, so they get their own
+          // sibling directory, isolated and deleted with the source's payloads.
           const iconsDir = path.join(
-            path.resolve(configDir, specDirectory),
-            entry.origin === 'adhoc' ? `_icons-${entry.alias}` : '_icons'
+            path.resolve(configDir, specDirectory), '..', 'assets',
+            entry.origin === 'adhoc' ? `icons-${entry.alias}` : 'icons'
           );
           await fs.ensureDir(iconsDir);
 
@@ -626,7 +629,7 @@ export const Fetch = new Command('fetch')
           // win, so a branch contributes only what the configured sources don't already
           // define. A branch fetch must not change how the durable library resolves.
           aliases: [...adHoc.map(s => s.alias), ...Object.keys(config.settings.data?.sources ?? {})],
-          glyphNamePattern: config.conventions.figma.glyphs?.match,
+          glyphNamePattern: figmaOf(config.conventions).glyphs?.match,
         });
         reportCache(report);
       }

@@ -4,6 +4,59 @@
 **Created**: 2026-08-18
 **Status**: ACCEPTED
 **Summary**: `Conventions`, `Settings` and `Pipeline` replace `Config`, separating library facts from run choices and declared work.
+
+---
+
+## Amendment (2026-09-11): `Pipeline` is retired; the split is two, not three
+
+The three-way split held for two of its three parts. `Pipeline` did not survive
+contact with what it was describing.
+
+**`transformers` existed to sequence work that no longer needs sequencing.** The
+list was ordered because `contract` and `css` had to run before `react`, which
+imported their output. Once each target emitted everything it imports —  its own
+contract, its own stylesheet, its own stories — there was nothing left to order.
+And once output moved into per-target trees, `css` had no location of its own at
+all: it writes React's stylesheet into `react/` and the custom element's into
+`webcomponents/`, so naming it alone produced two directory trees holding one
+stylesheet each and nothing to import them. A transformer that cannot name a
+destination is not a transformer; it is part of what a target emits.
+
+`specs react` and `specs webcomponents` replace the list. Each emits one target
+whole, which is also why they need no declared order.
+
+**`analyses` never had a reader.** `AnalyzeCommand` takes analyzer names as
+positional arguments and resolves them directly. `ConfigLoader` parsed and
+defaulted `pipeline.analyses` into an object nothing consulted, from this ADR's own
+release onward, while the schema docs described it as working. `specs analyze props
+styling` has always needed no configuration.
+
+With both keys gone the file is empty, so `config/pipeline.yaml` is retired and
+`Pipeline` with it.
+
+### What this changes
+
+| Surface | Change | Semver |
+|---|---|---|
+| `types/Pipeline.ts` | Removed — `Pipeline`, `ResolvedPipeline`, `TransformEntry`, `AnalysisEntry`, `DEFAULT_PIPELINE` | MAJOR |
+| `schema/pipeline.schema.json` | Removed — one of the entry points ADR-061 defined | MAJOR |
+| `types/index.ts` | Drops those exports | MAJOR |
+| `CLIConfig` | `pipeline` off the loaded config; the split it carries is `conventions` and `settings` | MAJOR |
+| `ConfigLoader` | `resolvePipeline()` and the `pipeline` part-read removed | — |
+| `ConfigTemplates` / `specs init` | No longer seeds `config/pipeline.yaml` | — |
+| `specs migrate config` | Drops `config.transformers` rather than carrying it forward, and writes no pipeline file | — |
+| `specs transform` | Removed | MAJOR |
+
+**Nothing outside the CLI consumed `Pipeline`.** Neither emitter package nor the
+plugin imported it, so the removal breaks no downstream type. Workspaces carry the
+file, which is what the migration handles.
+
+**What the amendment does not change.** The reasoning that separated library facts
+from run choices is unaffected, and both surviving members keep their meaning:
+`Conventions` still describes the library a spec came from, `Settings` still
+describes the run that produced it. What is withdrawn is the claim that *declared
+work* is a third thing a workspace configures. It turned out to be a thing a
+workspace runs.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

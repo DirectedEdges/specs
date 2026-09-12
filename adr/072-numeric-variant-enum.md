@@ -2,7 +2,7 @@
 
 **Branch**: `072-numeric-variant-enum`
 **Created**: 2026-08-24
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Summary**: *(written at implementation — see `/specs.adr.implement`)*
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
