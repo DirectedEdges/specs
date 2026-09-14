@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+### Fixed
+
+- **`specs scan` leaves a subcomponent unchecked when its parent component is checked**,
+  since a subcomponent is already specced as part of its parent. A separate component a
+  checked component instances is still selected.
+
 ### Removed
 
 
