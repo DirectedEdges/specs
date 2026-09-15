@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ADRs
 
-#### New drafts
+#### Accepted
 
 - [ADR-088](../../adr/088-image-prop-examples.md) — Authoring-default images on `ImageProp`
 
