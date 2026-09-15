@@ -916,6 +916,13 @@ function elemSelector(componentClass: string, elemKey: string): string {
  * Only dimensions the slot states definitely are passed on. A slot that HUGs is
  * sized *by* its child, so forcing the child to fill it would be circular.
  *
+ * An absolutely positioned slot states its size a third way: opposing insets.
+ * `start` and `end` together say the slot spans its container's width, and
+ * `top` with `bottom` says the same vertically — a dialog's blanket pinned to
+ * all four edges names no width at all, yet is exactly as wide as the dialog.
+ * Without this the child painted at its master's size inside a slot that had
+ * stretched around it.
+ *
  * The selector doubles the class to outrank the child's own root rule, which is
  * a single class and would otherwise win or lose on stylesheet order alone. For
  * the custom-element build the child's size lives in a `:host` rule, and an
@@ -927,9 +934,16 @@ function instanceFitRule(
   styles: Record<string, unknown>,
 ): string[] {
   if (elemType !== 'instance') return [];
+  const stated = (a: string, b: string) =>
+    styles.position === 'ABSOLUTE' && styles[a] !== undefined && styles[a] !== null
+      && styles[b] !== undefined && styles[b] !== null;
   const decls: string[] = [];
-  if ('width' in styles || styles.layoutSizingHorizontal === 'FILL') decls.push('width: 100%');
-  if ('height' in styles || styles.layoutSizingVertical === 'FILL') decls.push('height: 100%');
+  if ('width' in styles || styles.layoutSizingHorizontal === 'FILL' || stated('start', 'end')) {
+    decls.push('width: 100%');
+  }
+  if ('height' in styles || styles.layoutSizingVertical === 'FILL' || stated('top', 'bottom')) {
+    decls.push('height: 100%');
+  }
   if (!decls.length) return [];
   const own = selector.split(' ').pop() ?? selector;
   return [`${selector}${own} > * {`, ...decls.map(d => `  ${d};`), '}', ''];

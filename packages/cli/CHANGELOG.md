@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`specs scan` leaves a subcomponent unchecked when its parent component is checked**,
   since a subcomponent is already specced as part of its parent. A separate component a
   checked component instances is still selected.
+- **A composed instance fills a slot that states its size through opposing insets.**
+  A slot pinned to all four edges of its container names no width, yet is exactly as
+  wide as the container — a dialog's blanket covering the dialog. The child painted at
+  its own master's size inside a slot that had stretched around it.
 
 ### Removed
 
