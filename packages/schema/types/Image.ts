@@ -70,8 +70,15 @@ export type Images = Record<string, ImageData>;
 
 /**
  * Image-valued property definition (e.g. a `dsImage` `source` prop, or a parent
- * prop forwarded into it). The authoring-default image rides on the
- * `ImageBinding` at the binding site, not on the prop.
+ * prop forwarded into it).
+ *
+ * An authoring-default image sits in one of two places, describing two
+ * different things: `ImageBinding.examples` describes the image at *that
+ * binding site*, while `examples` here describes the image the component itself
+ * was authored with — the only home available to a designated image component,
+ * which is the origin of an image rather than a consumer of one and so has no
+ * binding site in its own spec. Where both exist for one rendered instance, the
+ * binding is the more specific statement.
  * @since 0.28.0
  */
 export interface ImageProp {
@@ -84,6 +91,14 @@ export interface ImageProp {
    * accepted unless `false` explicitly asserts otherwise. @since 0.29.0
    */
   nullable?: boolean;
+  /**
+   * Authoring-default example images for this prop — the image the component
+   * was authored with. Non-contractual reference material, parallel to
+   * `StringProp.examples` and identical in shape to `ImageBinding.examples`.
+   * Distinct from `default`, which is a contractual statement about what the
+   * prop resolves to when a consumer omits it. @since 0.33.0
+   */
+  examples?: ImageValue[];
   /** DTCG §5.2.3 platform-specific extensions. */
   $extensions?: PropExtensions;
 }
@@ -96,6 +111,9 @@ export interface ImageProp {
  * `examples` is non-contractual reference material — parallel to
  * `StringProp.examples`. Because `ImageBinding extends PropBinding`, existing
  * `{ $binding }` values still validate.
+ *
+ * These `examples` describe the image at *this binding site*, and are the more
+ * specific statement where `ImageProp.examples` also applies.
  * @since 0.28.0
  */
 export interface ImageBinding extends PropBinding {

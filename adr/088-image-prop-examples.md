@@ -3,7 +3,7 @@
 **Branch**: `088-image-prop-examples`
 **Created**: 2026-09-14
 **Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Summary**: An `examples` field on `ImageProp` carries authoring-default images alongside `default` and `nullable`, matching `ImageBinding.examples`.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none — extends ADR-063)*
 

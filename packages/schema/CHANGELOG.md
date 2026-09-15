@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `ImageProp.examples` — authoring-default images the component was authored with; `ImageValue[]`, matching `ImageBinding.examples` (ADR-088)
+
 ### Changed
 
 ### Removed
