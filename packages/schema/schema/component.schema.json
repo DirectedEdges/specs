@@ -1134,7 +1134,7 @@
     },
     "ImageProp": {
       "type": "object",
-      "description": "Image-valued property definition (ADR-063). The authoring-default image rides on the ImageBinding at the binding site, not here.",
+      "description": "Image-valued property definition (ADR-063). An authoring-default image sits either on the ImageBinding at a binding site (describing that site) or in examples here (describing the image the component itself was authored with, ADR-088); the binding is the more specific statement where both apply.",
       "properties": {
         "type": {
           "type": "string",
@@ -1151,6 +1151,13 @@
           "type": "boolean",
           "default": true,
           "description": "Whether this prop accepts a null value. Absent means true — an image prop has an open value set, so null is accepted unless false explicitly asserts otherwise."
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "$ref": "styles.schema.json#/definitions/ImageValue"
+          },
+          "description": "Authoring-default example images for this prop — the image the component was authored with. Non-contractual reference material, parallel to StringProp.examples. Distinct from default, which states what the prop resolves to when a consumer omits it."
         },
         "$extensions": {
           "$ref": "#/definitions/PropExtensions"

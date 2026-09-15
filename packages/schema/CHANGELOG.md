@@ -9,9 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `ImageProp.examples` — the image a component was authored with, recorded on the prop itself; same `ImageValue` shape as `ImageBinding.examples`, and distinct from `default` (ADR-088)
+
 ### Changed
 
 ### Removed
+
+### ADRs
+
+#### Accepted
+
+- [ADR-088](../../adr/088-image-prop-examples.md) — Authoring-default images on `ImageProp`
 
 
 ## [0.32.0] - Unreleased

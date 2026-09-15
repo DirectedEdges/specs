@@ -14,6 +14,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 088 | Authoring-default images on `ImageProp` | Adds `ImageProp.examples` (`ImageValue[]`) — the image a component was authored with, recorded on the prop; `default` stays contractual |
 | 087 | Behavior Actions via `anatomy.action` | Adds `AnatomyElement.actions` (`ActionEntry[]`) — a second annotation key for what a control *does*, alongside `role` for what it *is* |
 | 086 | Interactive Root and Announcement Role Concepts | Vocabulary for `button`, `togglebutton`, `link`, `disclosure`, `alert`, `status`, `progressbar`; all non-structural — sequence first. Same docs-governed rule as 068 |
 | 085 | `promotePrimitives` — the Switch for Capture-Time Promotion | Adds `Settings.spec.promotePrimitives` (default false) — the opt-in that turns capture-time primitive promotion on |

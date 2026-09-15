@@ -75,9 +75,29 @@ Slot constraint properties (`minChildren`, `maxChildren`, `anyOf`) are emitted w
 | `type` | `'image'` | Yes | |
 | `default` | `string \| null` | No | Default image — an `images` registry reference, or null |
 | `nullable` | `boolean` | No | Whether `null` is a valid value — absent means `true` |
+| `examples` | `ImageValue[]` | No | Authoring-default images the component was authored with (since 0.33.0) |
 | `$extensions` | `PropExtensions` | No | Vendor extensions |
 
-An image-valued property (e.g. a `dsImage` `source` prop). The authoring-default image rides on the [`ImageBinding`](/schema/prop-configurations/) at the binding site, not on the prop. Emitted for code-only props named in [`figma.images.sourceProps`](/schema/conventions/#images) (since 0.28.0).
+An image-valued property (e.g. a `dsImage` `source` prop). Emitted for code-only props named in [`figma.images.sourceProps`](/schema/conventions/#images) (since 0.28.0).
+
+An authoring-default image sits in one of two places, and they describe different things:
+
+| Location | Describes |
+|----------|-----------|
+| [`ImageBinding.examples`](/schema/prop-configurations/) | The image at *that binding site* — how one consumer placed it |
+| `ImageProp.examples` | The image *the component itself* was authored with |
+
+Where both apply to one rendered instance, the binding is the more specific statement. A designated image component is the origin of an image rather than a consumer of one, so it has no binding site in its own spec — `examples` on the prop is its only home for this.
+
+`examples` is non-contractual reference material, parallel to `StringProp.examples`, and is distinct from `default`: a default states what the prop resolves to when a consumer omits it, while examples only demonstrate typical content.
+
+```yaml
+props:
+  imageSource:
+    type: image
+    examples:
+      - $image: "#/components/dsImage/images/dsImage__image"
+```
 
 ## Nullability
 
@@ -133,4 +153,5 @@ The `$extensions` object holds vendor-specific metadata. Currently only the `com
 - [ADR 056 — Rename SlotProp.minItems/maxItems → minChildren/maxChildren](https://github.com/DirectedEdges/specs/blob/main/adr/056-slot-children-constraints.md) — aligns field names with Figma native `slotSettings`; adds native `preferredValues` resolution
 - [ADR 029 — NumberProp](https://github.com/DirectedEdges/specs/blob/main/adr/029-number-prop.md) — adds the `NumberProp` type with opt-in inference
 - [ADR 063 — Image Content](https://github.com/DirectedEdges/specs/blob/main/adr/063-image-content.md) — adds the `ImageProp` type and image fills/registry
+- [ADR 088 — Authoring-default images on `ImageProp`](https://github.com/DirectedEdges/specs/blob/main/adr/088-image-prop-examples.md) — adds `ImageProp.examples`
 - [ADR 066 — Lossless Key Formatting](https://github.com/DirectedEdges/specs/blob/main/adr/066-lossless-key-formatting.md) — adds `name` to `FigmaPropExtension` so lossy key formats stay reversible
