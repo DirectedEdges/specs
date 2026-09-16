@@ -24,6 +24,7 @@ import { ManifestParser } from '../utilities/ManifestParser.js';
 import { ManifestParserV2 } from '../utilities/ManifestParserV2.js';
 import { LicenseStatus } from '../utilities/LicenseStatus.js';
 import { FileManifest } from '../Writers/FileManifest.js';
+import { RunMetadataFile } from '../Writers/RunMetadataFile.js';
 import { SingleFileWriter } from '../Writers/SingleFileWriter.js';
 import { ComponentFileWriter } from '../Writers/ComponentFileWriter.js';
 import { ConcernFileWriter } from '../Writers/ConcernFileWriter.js';
@@ -265,6 +266,25 @@ async function writeGeneratedOutput(
       const resolvedCount = ImageFillsResolver.applyResolvedSources(processedComponents, files, relativePrefix);
       const reused = hashes.size - missing.size;
       console.log(`✓ Resolved ${resolvedCount} image reference(s) into ${files.size} file(s) under ${IMAGES_DIR_NAME}/ (${reused} reused, ${missing.size} downloaded)`);
+    }
+  }
+
+  // -------------------------------------------------------------------
+  // Run metadata (ADR-089): a catalogue run states its facts once, in
+  // `latest.metadata.<format>`, and every spec keeps only `metadata.source`.
+  //
+  // Manifest mode only. A single-component run produces one document, so there
+  // is nothing to factor out of and a second file would only split what already
+  // reads in one place. Runs before the manifest so the writers serialize the
+  // reduced blocks.
+  // -------------------------------------------------------------------
+  if (isManifest) {
+    const run = RunMetadataFile.separate(processedComponents);
+    if (run) {
+      const written = RunMetadataFile.write(run, baseDir, resolvedFormat);
+      console.log(`\u2713 Wrote run metadata: ${path.relative(process.cwd(), written)} (specs carry metadata.source only)`);
+    } else {
+      console.log('Note: specs record no shared run metadata, or disagree on it \u2014 each keeps its own metadata block');
     }
   }
 
