@@ -106,7 +106,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - **Decision**: Precise list of type and schema changes (file, field, modification type)
    - **Type ↔ Schema Impact**: Confirm symmetry or document justified asymmetry
    - **Downstream Impact**: All affected consumers (`specs-cli`, `specs-from-figma`, `specs-plugin-2`) — see Key rules below
-   - **Semver Decision**: the **target version** read verbatim from the active release branch name (e.g. `release/schema-0.31.0+cli-0.28.0` → `0.31.0`), plus the **change class** (MAJOR / MINOR / PATCH) with justification citing the constitution. Never propose a version bump — an ADR ships *inside* a release that already has a version, so `0.30.0 → 0.31.0` invents a version the release process never asked for and conflicts with the branch it merges into.
+   - **Semver Decision**: the **target version** read from the affected package's `package.json` on the active `release/next` branch — the branch name carries no version, by design — plus the **change class** (MAJOR / MINOR / PATCH) with justification citing the constitution. Never propose a version bump — an ADR ships *inside* a release that already has a version, so `0.30.0 → 0.31.0` invents a version the release process never asked for and conflicts with the branch it merges into.
    - **Consequences**: What becomes true after acceptance
 
 7. **Claim ADR number in INDEX** *(mandatory — the index is the register step 1b reads, and skipping this hands the next author a number already in use)*: Update `adr/INDEX.md` to reserve the ADR number and prevent collisions.

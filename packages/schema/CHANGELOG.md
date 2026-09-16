@@ -5,6 +5,33 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.33.0] - Unreleased
+
+### Added
+
+- `ImageProp.examples` — the image a component was authored with, recorded on the prop itself; same `ImageValue` shape as `ImageBinding.examples`, and distinct from `default` (ADR-088)
+- `RunMetadata` — the generation run's facts as a document of its own, validated by the new `schema/metadata` entry point and reachable from `root.schema.json` (ADR-089)
+
+### Changed
+
+### Removed
+
+### Breaking
+
+- `Metadata` — `author`, `lastUpdated`, `generator`, `schema`, `conventions` and `settings` become optional; only `source` is required (ADR-089)
+
+### Migration
+
+- `Metadata.author`, `Metadata.lastUpdated`, `Metadata.generator`, `Metadata.schema`, `Metadata.conventions`, `Metadata.settings`: guard each read — when absent, read the value from the run's `RunMetadata` document instead.
+
+### ADRs
+
+#### Accepted
+
+- [ADR-088](../../adr/088-image-prop-examples.md) — Authoring-default images on `ImageProp`
+- [ADR-089](../../adr/089-manifest-shared-metadata.md) — Run Metadata Factored Out of the Component Spec
+
+
 ## [0.32.0] - Unreleased
 
 **`Pipeline` is retired, and the config split is two parts rather than three.** A transformer pipeline stopped being a thing to configure once each target emitted everything it needs — nothing left to order, and `css` had no output location of its own to name. The other half, `analyses`, never had a reader: `specs analyze` has always taken its analyzers as arguments. `Pipeline`, `ResolvedPipeline`, `TransformEntry`, `AnalysisEntry`, `DEFAULT_PIPELINE` and the `./schema/pipeline` entry point are gone from the package's exports; the retirement itself leaves `Conventions` and `Settings` untouched (both change elsewhere in this release). See the amendment on ADR-071.

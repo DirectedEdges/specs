@@ -5,6 +5,35 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.30.0] - Unreleased
+
+**A catalogue run states its metadata once.** The author, generator, schema, conventions and settings were identical in every file a run produced, and repeated again for every concern document and subcomponent inside it; they now live in one `latest.metadata.yaml` beside the specs.
+
+### Added
+
+- **A manifest run writes its metadata once**, to `latest.metadata.yaml` beside the specs, leaving every spec with `metadata.source` alone instead of the author, generator, schema, conventions and settings repeated in each file (ADR-089).
+
+### Changed
+
+- **`specs render` reads that document back**, so a spec carrying only `metadata.source` still renders under the conventions and settings it was generated with (ADR-089).
+
+### Fixed
+
+- **`specs scan` leaves a subcomponent unchecked when its parent component is checked**,
+  since a subcomponent is already specced as part of its parent. A separate component a
+  checked component instances is still selected.
+- **A composed instance fills a slot that states its size through opposing insets.**
+  A slot pinned to all four edges of its container names no width, yet is exactly as
+  wide as the container — a dialog's blanket covering the dialog. The child painted at
+  its own master's size inside a slot that had stretched around it.
+- **A child filling its parent's cross axis keeps the parent's alignment.** Cross-axis
+  FILL emits a dimension rather than `align-self: stretch`, so a child a `min-width` or
+  `max-width` stops from filling is placed where the design places it — centred under a
+  centring parent — instead of pinned to the start edge.
+
+### Removed
+
+
 ## [0.29.0] - Unreleased
 
 **`specs react` and `specs webcomponents` replace `specs transform`**, each emitting one target whole — component, contract, stylesheet and stories. **Annotated elements emit real controls**: with `settings.spec.roles` on, a checkbox is a native input you can check and submit, a disclosure announces and flips its own state, and the accessibility wiring between a control and its parts is generated. **The emitted code is substantially better** — effects and directly-declared gradients are emitted for the first time, and strokes, gradient geometry, truncation and background images now paint what the design draws. **Configuration is reshaped**: conventions become one file per platform in `config/conventions/`, `config/pipeline.yaml` is retired, and a stale layout stops the run rather than silently generating with defaults — `specs migrate config` moves a workspace over.

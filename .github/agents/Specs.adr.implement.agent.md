@@ -43,7 +43,7 @@ Do not reorder these, and do not fold two steps into one pass. The CLI cannot be
    - Derive `ADR_NAME` from `BRANCH`:
      - The branch name must match an ADR name pattern (e.g., `009-color-values` — starts with a number sequence followed by a hyphen). If it does not, halt: "You must be on an ADR branch (format: `###-short-description`) to implement an ADR."
    - Derive `RELEASE_BRANCH`:
-     - Run `git branch -a | grep 'release/'` from `$REPO_ROOT`. Use the local/remote branch name matching `release/*` as `RELEASE_BRANCH`. If multiple release branches are found, halt and ask the author which to target. If no release branch is found, halt: "No release branch found — create one with `/start-next-release` before implementing an ADR." Do NOT derive the release branch from `package.json` — the version in package.json may not match the branch name (e.g. the branch may be `release/schema-0.25.0-cli-0.21.0` while `package.json` still shows the previous version).
+     - `RELEASE_BRANCH` is `release/next`. Confirm it exists with `git branch -a | grep 'release/next'` from `$REPO_ROOT`. If it does not, halt: "No release branch found — create one with `/start-next-release` before implementing an ADR." If other `release/*` branches exist (leftovers from the old versioned scheme), halt and ask which to target. The branch name carries no version — read the target version from the affected package's `package.json` on that branch.
 
 2. **Load context**:
    - **REQUIRED**: Read `$REPO_ROOT/adr/$ADR_NAME.md` — source of truth for what changes and why

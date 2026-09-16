@@ -16,6 +16,7 @@
 import fs from 'fs';
 import path from 'path';
 import { parse as parseYaml } from 'yaml';
+import { RunMetadataReader } from '../Writers/RunMetadataFile.js';
 
 export interface LoadedSpec {
   spec: Record<string, unknown>;
@@ -143,5 +144,31 @@ export function loadSpec(rawPath: string): LoadedSpec {
   const isDirectory = fs.statSync(absPath).isDirectory();
   const spec = isDirectory ? loadSplitConcernsFolder(absPath) : readSpecFile(absPath);
 
+  rehydrateRunMetadata(spec, absPath);
+
   return { spec, resolvePath: absPath };
+}
+
+/**
+ * Put the run's facts back on a spec that states only `metadata.source` (ADR-089).
+ *
+ * A reduced spec did not lose the conventions and settings it was produced under —
+ * they moved to the run's own document beside it. Render reverses that record, and
+ * every reader of it — key reversal, code-only props, image source props — reaches
+ * for `metadata.conventions`/`metadata.settings` directly and is optional-chained,
+ * so a missing record does not throw. It reads `undefined` and the feature quietly
+ * does nothing, which surfaces as a rendering bug far from its cause.
+ *
+ * Restoring the block here, at the one place every render input is loaded, means no
+ * reader downstream has to know the spec was ever reduced. Keys the spec still
+ * carries win: the document's own record is the more specific statement.
+ */
+function rehydrateRunMetadata(spec: Record<string, unknown>, absPath: string): void {
+  const metadata = spec.metadata as Record<string, unknown> | undefined;
+  if (metadata?.conventions !== undefined || metadata?.settings !== undefined) return;
+
+  const run = RunMetadataReader.find(absPath);
+  if (!run) return;
+
+  spec.metadata = { ...run, ...(metadata ?? {}) };
 }
