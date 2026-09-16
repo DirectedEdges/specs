@@ -7,9 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.30.0] - Unreleased
 
+**A catalogue run states its metadata once.** The author, generator, schema, conventions and settings were identical in every file a run produced, and repeated again for every concern document and subcomponent inside it; they now live in one `latest.metadata.yaml` beside the specs.
+
 ### Added
 
+- **A manifest run writes its metadata once**, to `latest.metadata.yaml` beside the specs, leaving every spec with `metadata.source` alone instead of the author, generator, schema, conventions and settings repeated in each file (ADR-089).
+
 ### Changed
+
+- **`specs render` reads that document back**, so a spec carrying only `metadata.source` still renders under the conventions and settings it was generated with (ADR-089).
 
 ### Fixed
 

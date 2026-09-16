@@ -14,7 +14,7 @@ It also requires a current [cache](/cli/commands/cache/) — the lookup tables t
 
 Each render is a single round trip through four steps:
 
-1. **Load the spec.** A spec file is read directly; a component folder is assembled from its `api.*`, `variants.*`, and optional `examples.*` files.
+1. **Load the spec.** A spec file is read directly; a component folder is assembled from its `api.*`, `variants.*`, and optional `examples.*` files. A spec carrying only `metadata.source` has the conventions and settings it was generated under read back from the `latest.metadata.yaml` beside it — see [Run Metadata](/guides/run-metadata/).
 2. **Resolve the target file.** From `--file`, or from the bridge's connections — prompting when more than one plugin is connected and the terminal is interactive. In a directory batch this happens once, up front, so a sweep never prompts per component.
 3. **Post to the bridge.** The bridge validates the [cache](/cli/commands/cache/) against your fetched data, builds the lookup manifests the spec's names resolve through, and relays the payload to the connected plugin.
 4. **The plugin writes.** The component is built inside the live Figma document — frames, styles, variants, instances — and the resulting node id comes back.
