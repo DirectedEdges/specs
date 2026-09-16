@@ -11,7 +11,7 @@ export type { Component } from './Component.js';
 export type { Anatomy, AnatomyElement, ElementTypeRef, SubcomponentRef, RoleConceptName, ActionConceptName, ActionEntry } from './Anatomy.js';
 export type { Props, AnyProp, BooleanProp, StringProp, EnumProp, SlotProp, NumberProp, FigmaCodeOnlySource, FigmaPropExtension, PropExtensions } from './Props.js';
 export type { Variant, Variants } from './Variant.js';
-export type { Metadata } from './Metadata.js';
+export type { Metadata, RunMetadata } from './Metadata.js';
 export type { Subcomponent, Subcomponents, SubcomponentSource } from './Subcomponent.js';
 export type { InstanceExample, InstanceExamples } from './InstanceExample.js';
 

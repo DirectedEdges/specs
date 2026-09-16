@@ -18,6 +18,7 @@
       "default": "./dist/index.js"
     },
     "./schema/component": "./schema/component.schema.json",
+    "./schema/metadata": "./schema/metadata.schema.json",
     "./schema/conventions": "./schema/conventions.schema.json",
     "./schema/settings": "./schema/settings.schema.json"
   },

@@ -920,73 +920,27 @@
     },
     "Metadata": {
       "type": "object",
-      "description": "Metadata about the component, its author, generator, schema, and Figma source.",
+      "description": "Metadata about the component. `source` identifies the Figma node this spec was captured from and is always present; the run's facts are present only when this document states them rather than a sibling run metadata document. (ADR-089)",
       "properties": {
         "author": {
-          "type": "string"
+          "$ref": "metadata.schema.json#/definitions/RunMetadata/properties/author"
         },
         "lastUpdated": {
-          "type": "string"
+          "$ref": "metadata.schema.json#/definitions/RunMetadata/properties/lastUpdated"
         },
         "generator": {
-          "type": "object",
-          "properties": {
-            "url": {
-              "type": "string"
-            },
-            "version": {
-              "type": "string"
-            },
-            "name": {
-              "type": "string"
-            },
-            "license": {
-              "type": "object",
-              "description": "Resolved license state at the time this component spec was generated. Absent when no license was supplied.",
-              "properties": {
-                "status": {
-                  "type": "string",
-                  "description": "License validation status (e.g. VALID, EXPIRED, NONE)."
-                },
-                "level": {
-                  "type": "string",
-                  "description": "Output entitlement level (e.g. FREE, PRO, EXTENDED). Plain string for extensibility."
-                }
-              },
-              "required": [
-                "status",
-                "level"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "required": [
-            "url",
-            "version",
-            "name"
-          ],
-          "additionalProperties": false
+          "$ref": "metadata.schema.json#/definitions/RunMetadata/properties/generator"
         },
         "schema": {
-          "type": "object",
-          "properties": {
-            "url": {
-              "type": "string",
-              "description": "Versioned schema URL pinned to a git tag (e.g. https://raw.githubusercontent.com/.../v0.13.0/schema/component.schema.json)"
-            },
-            "version": {
-              "type": "string"
-            },
-            "latest": {
-              "type": "string",
-              "description": "Stable URL pointing to the latest schema on the main branch for discovery"
-            }
-          },
-          "required": [
-            "url",
-            "version"
-          ],
-          "additionalProperties": false
+          "$ref": "metadata.schema.json#/definitions/RunMetadata/properties/schema"
+        },
+        "conventions": {
+          "$ref": "metadata.schema.json#/definitions/RunMetadata/properties/conventions",
+          "description": "Conventions of the one platform that produced this spec. A missing platform did not produce it. (ADR-079)"
+        },
+        "settings": {
+          "$ref": "metadata.schema.json#/definitions/RunMetadata/properties/settings",
+          "description": "Choices about the run that generated this spec."
         },
         "source": {
           "type": "object",
@@ -1012,24 +966,10 @@
             "nodeType"
           ],
           "additionalProperties": false
-        },
-        "conventions": {
-          "$ref": "conventions.schema.json#/definitions/MetadataConventions",
-          "description": "Conventions of the one platform that produced this spec. A missing platform did not produce it. (ADR-079)"
-        },
-        "settings": {
-          "$ref": "settings.schema.json#/definitions/Settings",
-          "description": "Choices about the run that generated this spec."
         }
       },
       "required": [
-        "author",
-        "lastUpdated",
-        "generator",
-        "schema",
-        "source",
-        "conventions",
-        "settings"
+        "source"
       ],
       "additionalProperties": false
     },
