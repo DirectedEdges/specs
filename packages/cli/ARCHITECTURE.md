@@ -64,7 +64,8 @@ Registered in `createProgram()` (`src/index.ts`); flat files in
 | `src/utilities/LicenseStatus.ts` | Reads engine-stamped license state; the CLI validates nothing |
 | `src/transforms/` | Open counterparts of transform modules (see drift note below) |
 | `src/Writers/` | Output *strategy* writers: single / component / concern / combined file |
-| `src/Render/SpecLoader.ts` | Spec discovery + loading for render |
+| `src/Writers/RunMetadataFile.ts` | `latest.metadata.<format>` — a manifest run's facts, stated once (ADR-089). `RunMetadataFile.separate()` lifts them out of every spec and reduces each block to `source`; `RunMetadataReader.find()` reads the document back, looking in the spec's own directory then one level up |
+| `src/Render/SpecLoader.ts` | Spec discovery + loading for render. Rehydrates a reduced spec's run metadata here, at the one place every render input is loaded, so no reader downstream has to know the spec was reduced |
 | `tests/unit/config/ConfigLoader.test.ts` | The config feature suite — temp `config/` trees on disk |
 | `tests/integration/cli.integration.test.ts` | In-process runner (spied exit/console, no subprocess) |
 
@@ -76,7 +77,7 @@ File/manifest path: `ConfigLoader.load()` → `loadFoundations` →
 **`Components.fromRestApi(ids, library, conventions, settings, {styles,
 variables, collections, author, generator}, onProgress, licenseInput)`**
 (batch, plural — not `Component.fromRestApi`) → `LicenseStatus.display()` →
-strategy writer. Guards: all-error "not valid for this runtime" → AUTH_ERROR;
+`RunMetadataFile.separate()` (manifest mode only) → strategy writer. Guards: all-error "not valid for this runtime" → AUTH_ERROR;
 with a key present, transient license statuses exit NETWORK_ERROR/RATE_LIMIT
 rather than silently emitting FREE output (specs#119).
 
