@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   A slot pinned to all four edges of its container names no width, yet is exactly as
   wide as the container — a dialog's blanket covering the dialog. The child painted at
   its own master's size inside a slot that had stretched around it.
+- **A child filling its parent's cross axis keeps the parent's alignment.** Cross-axis
+  FILL emits a dimension rather than `align-self: stretch`, so a child a `min-width` or
+  `max-width` stops from filling is placed where the design places it — centred under a
+  centring parent — instead of pinned to the start edge.
 
 ### Removed
 

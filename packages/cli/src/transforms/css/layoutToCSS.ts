@@ -91,14 +91,25 @@ export function layoutToCSS(
   }
 
   // FILL translation depends on the parent's flex direction: fill along the
-  // parent's main axis grows; fill along the cross axis stretches; with no
-  // flex parent (root, or non-auto-layout parent) it is a plain 100%.
+  // parent's main axis grows; fill across it is a plain 100%.
+  //
+  // Cross-axis FILL is NOT `align-self: stretch`. Stretch means "ignore the
+  // parent's alignment, start at the edge and fill", so the moment a min/max
+  // constraint stops the child actually filling, the leftover space all lands
+  // on one side and the parent's alignment has already been discarded — a
+  // dialog's max-width'd body sat against its padding edge where the design
+  // centres it. The two are identical while the child does fill, which is most
+  // of the time and why this went unseen. `width: 100%` stays right when it
+  // does not: a capped child centres under CENTER and sits at the end under END.
+  //
+  // This mapping is duplicated in the React and Web Components emitters
+  // (`Emit/styles.ts` in each, for composed content's inline styles). The three
+  // copies must move together.
   if ('layoutSizingHorizontal' in styles) {
     const v = styles.layoutSizingHorizontal as string | undefined;
     if (v === 'HUG') decls.push('width: fit-content');
     else if (v === 'FILL') {
       if (parentLayoutMode === 'HORIZONTAL') decls.push('flex: 1 0 0');
-      else if (parentLayoutMode === 'VERTICAL') decls.push('align-self: stretch');
       else decls.push('width: 100%');
     }
   }
@@ -108,7 +119,6 @@ export function layoutToCSS(
     if (v === 'HUG') decls.push('height: fit-content');
     else if (v === 'FILL') {
       if (parentLayoutMode === 'VERTICAL') decls.push('flex: 1 0 0');
-      else if (parentLayoutMode === 'HORIZONTAL') decls.push('align-self: stretch');
       else decls.push('height: 100%');
     }
   }
