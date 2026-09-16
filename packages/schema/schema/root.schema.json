@@ -5,6 +5,7 @@
   "version": "0.12.0",
   "oneOf": [
     { "$ref": "component.schema.json" },
-    { "$ref": "components.schema.json" }
+    { "$ref": "components.schema.json" },
+    { "$ref": "metadata.schema.json" }
   ]
 }

@@ -10,16 +10,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `ImageProp.examples` — the image a component was authored with, recorded on the prop itself; same `ImageValue` shape as `ImageBinding.examples`, and distinct from `default` (ADR-088)
+- `RunMetadata` — the generation run's facts as a document of its own, validated by the new `schema/metadata` entry point and reachable from `root.schema.json` (ADR-089)
 
 ### Changed
 
 ### Removed
+
+### Breaking
+
+- `Metadata` — `author`, `lastUpdated`, `generator`, `schema`, `conventions` and `settings` become optional; only `source` is required (ADR-089)
+
+### Migration
+
+- `Metadata.author`, `Metadata.lastUpdated`, `Metadata.generator`, `Metadata.schema`, `Metadata.conventions`, `Metadata.settings`: guard each read — when absent, read the value from the run's `RunMetadata` document instead.
 
 ### ADRs
 
 #### Accepted
 
 - [ADR-088](../../adr/088-image-prop-examples.md) — Authoring-default images on `ImageProp`
+- [ADR-089](../../adr/089-manifest-shared-metadata.md) — Run Metadata Factored Out of the Component Spec
 
 
 ## [0.32.0] - Unreleased
