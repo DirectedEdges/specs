@@ -3,87 +3,99 @@ title: "togglebutton"
 description: "Emit a button that carries its pressed state in aria-pressed, with an onPressedChange contract"
 ---
 
-:::tip[Implemented]
-Emitted by [`specs react`](/cli/commands/react/) and [`specs webcomponents`](/cli/commands/webcomponents/), built from this page.
-:::
+## About
 
+`togglebutton` declares that an element performs an action and retains a two-state condition — a favorite affordance, a bold control in a formatting bar, a filter chip that stays on. Without it the pressed condition exists only as a `data-*` attribute: a screen reader announces "Favorite, button" whether the item is favorited or not, so the one fact the control exists to convey is the one that is missing.
 
-The `togglebutton` role declares that an element performs an action and retains a two-state condition — a favorite affordance, a bold control in a formatting bar, a filter chip that stays on.
+**Status** — React: Implemented • Web Components: Implemented • iOS: Not yet planned • Android: Not yet planned
 
-## Why it matters
+### Roles
 
-Without the role, a toggle scaffolds as an inert container whose pressed condition exists only as a `data-*` attribute. Assistive technology has no way to learn that the control is a toggle at all, let alone which way it is set — a screen reader announces "Favorite, button" whether the item is favorited or not, so the one piece of information the control exists to convey is the piece that is missing.
-
-## Emission
-
-### Scaffold
-
-| | |
-|---|---|
-| Element | `<button type="button" aria-pressed>` |
-| Accepted element types | `container`, `glyph` |
-| Accepted parts | `label`, `description`, `indicator` |
-
-The role element becomes the button, and its descendants render inside it. Where the role lands on a `glyph`, the glyph is re-hosted inside the button rather than becoming it, which adds one level to the markup.
-
-There is no `togglebutton` ARIA role. The emission is a button plus `aria-pressed`; `role="togglebutton"` is never emitted, because it is not a valid ARIA value.
-
-This is also where `togglebutton` and [button](/roles/button/) divide the word "pressed": a `button` bridges the momentary `active` concept — the condition while a pointer is held down — and never emits `aria-pressed`; a `togglebutton` bridges the retained `pressed` concept and does. A component with both a momentary highlight and a retained toggle declares two state entries against two different Figma props, and the role decides which one reaches ARIA.
-
-### Contract
-
-| Prop | Type | Tier | Generated body |
-|------|------|------|----------------|
-| `onPressedChange?` | `(pressed: boolean) => void` | MUST | **Wired** — flips the pressed state, then calls the prop |
-| `onClick?` | `(e: MouseEvent) => void` | SHOULD | Stub, called after the toggle |
-| `pressed` | `boolean` | — | The existing variant prop |
-| `onFocus?` / `onBlur?` | `(e: FocusEvent) => void` | COULD | Forwarded to the element |
-
-`onPressedChange` is **wired**, not stubbed. The transform generates real state logic: it holds internal state seeded from the `pressed` prop, flips that state on activation, and then calls the consumer callback — the toggle works before a consumer attaches anything.
-
-Wiring has a prerequisite: the transform must know which prop holds the pressed state, and it never guesses one by name. That binding comes from the `pressed` classification in the [`states` convention](/settings/states/). Without it the handler degrades to a stub and the transform warns.
-
-`onClick` is a stub — the transform calls the prop and nothing else, because what a click means beyond the toggle is the consumer's decision and the design file cannot say what it is.
-
-The existing `pressed` variant prop is the value source: no `defaultPressed` companion is emitted, and the scaffold seeds its internal state from it.
-
-## States
-
-| State | What the togglebutton does | Classify in `states`? |
-|-------|----------------------------|----------------------------------|
-| `pressed` | `aria-pressed`, flipped by the wired handler | Recommended |
-| `disabled` | Native `disabled` — unfocusable and unclickable, enforced by the platform | Recommended |
-| `hover` | Native hover | Recommended, if the library styles it |
-| `active` | Native pressed-down | Recommended, if the library styles it |
-| `focus` / `focus-visible` | Native focus ring | **Optional — prefer the platform default** |
-
-Platforms ship a focus indicator that already meets contrast requirements and matches what users of that platform expect, so specifying one from Figma usually replaces a good default with a worse one.
-
-## Accessible name
-
-Toggle buttons frequently have no text descendant, so the name usually comes from the prop nominated as the accessible-name source, emitted as `aria-label`. An unnamed toggle warns — a correctly-roled control that announces nothing is worse than the container it replaced.
-
-## Platforms
-
-| | Emits | Behavior a user gets |
+| Role | Type | Element |
 |---|---|---|
-| Web | `<button type="button" aria-pressed>` | Tab-focusable, Enter and Space toggle, screen readers announce the pressed state |
-| iOS | `Toggle` with `.toggleStyle(.button)` | VoiceOver announces the on/off value, and double-tap flips it |
-| Android | `IconToggleButton` | TalkBack announces the checked value, double-tap toggles, and it joins the accessibility focus order |
+| `togglebutton` | Control | Element of `type: container` or `type: glyph` |
+| `label` | Part | Element of `type: text` or nested instance prop of `type: string` |
+| `description` | Part | Element of `type: text` or nested instance prop of `type: string` |
+| `indicator` | Part | Element of `type: container` or `type: glyph` |
 
-## Before and after
+There is no `togglebutton` ARIA role. The emission is a button plus `aria-pressed`; `role="togglebutton"` is never emitted because it is not a valid ARIA value.
 
-Without the role:
+A `glyph` carrying the role is re-hosted inside the button rather than becoming it, adding one level to the markup.
+
+### The two meanings of "pressed"
+
+| Concept | Bound to | Emitted as | Owned by |
+|---|---|---|---|
+| `active` | The momentary prop — the condition while a pointer is held down | `:active` | [`button`](/roles/button/) |
+| `pressed` | The retained prop — the condition the control keeps | `aria-pressed` | `togglebutton` |
+
+A component with both declares two state entries against two different Figma props. The role decides which one reaches ARIA and which stays a pseudo-class.
+
+### States
+
+| State | Effect | Classify in `states`? |
+|---|---|---|
+| `pressed` | `aria-pressed`, flipped by the wired handler | Recommended |
+| `disabled` | Natively disabled, enforced by the platform | Recommended |
+| `hover` / `active` | Native, on the button itself | Recommended, if the library styles it |
+| `focus` / `focus-visible` | Native focus indicator | **Optional — prefer the platform default** |
+
+### Wired state
+
+`onPressedChange` follows [the wired state model](/roles/#the-wired-state-model): internal state seeded from the `pressed` prop, flipped on activation, then the consumer callback. The toggle works before a consumer attaches anything.
+
+Prerequisite: a `pressed` classification in the [`states` convention](/settings/states/) naming the prop. Without it the handler degrades to a stub and warns.
+
+The existing `pressed` variant prop is the value source — no `defaultPressed` companion is emitted.
+
+### Accessible name
+
+| Source | Result |
+|---|---|
+| Text the button contains, or a `label` part | Names it |
+| A prop nominated as the accessible-name source | Emitted as `aria-label` — the usual case, since toggles are often icon-only |
+| Nothing resolves | **Warns** |
+
+## Specs
+
+```yaml
+anatomy:
+  root:
+    type: container
+    role: togglebutton
+  icon:
+    type: glyph
+    role: indicator
+```
+
+## Figma
+
+- `root` as `role:togglebutton` — on the component node
+- decorative glyphs as `role:indicator`
+
+Classify the retained prop as `pressed` in the states convention, not as `active`. A toggle whose prop is classified `active` emits a pseudo-class and no `aria-pressed`.
+
+## React
+
+### Authored as
 
 ```tsx
+<FavoriteButton
+  pressed={isFavorite}
+  onPressedChange={setIsFavorite}
+  accessibilityLabel="Favorite"
+/>
+```
+
+### Before / After
+
+```tsx
+// before
 <div className="favorite" data-element="root" data-pressed={p.pressed}>
   {/* … */}
 </div>
-```
 
-With the role:
-
-```tsx
+// after
 <button
   type="button"
   className="favorite"
@@ -97,8 +109,40 @@ With the role:
 </button>
 ```
 
+### Contract
+
+| Prop | Type | Tier | Generated body |
+|---|---|---|---|
+| `onPressedChange?` | `(pressed: boolean) => void` | MUST | **Wired** — flips pressed, then calls the prop |
+| `onClick?` | `(e: MouseEvent) => void` | SHOULD | Stub, called after the toggle |
+| `pressed` | `boolean` | — | The existing variant prop |
+| `onFocus?` / `onBlur?` | `(e: FocusEvent) => void` | COULD | Forwarded to the element |
+
+## Web Components
+
+As [`button`](/roles/button/#web-components) — a real `<button>` inside the shadow root with `delegatesFocus`, not host semantics. One addition: `aria-pressed` is written through a tri-state host setter, because removing the attribute when false would make the toggle announce as a plain button. It is removed only on `null`.
+
+## iOS
+
+Not yet planned. Intended binding:
+
+| | |
+|---|---|
+| Type | `Toggle` with `.toggleStyle(.button)` |
+| Announced | The on/off value; double-tap flips it |
+
+## Android
+
+Not yet planned. Intended binding:
+
+| | |
+|---|---|
+| Type | `IconToggleButton` with `Role.Switch` |
+| Announced | The checked value; double-tap toggles |
+
 ## See also
 
 - [button](/roles/button/) — the same emission without the retained state
+- [switch](/roles/switch/) — on/off with immediate effect, announced as a switch
 - [indicator](/roles/indicator/) — the decorative glyph a toggle usually contains
-- [Roles overview](/roles/) — how roles and the `states` convention fit together
+- [Roles overview](/roles/) — the vocabulary and how roles are authored

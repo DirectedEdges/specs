@@ -3,98 +3,115 @@ title: "status, alert, and progressbar"
 description: "Announce content that changes after load through live regions and progress semantics"
 ---
 
-Three roles cover content that appears or changes after the page has loaded and must be announced without moving focus: `status` for transient confirmations, `alert` for interruptions, and `progressbar` for determinate or indeterminate progress.
+## About
 
-## Why it matters
+Three roles cover content that appears or changes after load and must be announced without moving focus: `status` for transient confirmations, `alert` for interruptions, and `progressbar` for determinate or indeterminate progress. A toast that fades in, a validation summary on submit, and a progress bar that fills are all silent to a screen reader user unless the region is declared live **before** the content changes.
 
-A toast that fades in, a validation summary that appears on submit, and a progress bar that fills are all invisible to a screen reader user unless the region is declared live before the content changes. There is no partial credit here: a live region declared *after* its content arrives announces nothing. Because the declaration must be in the markup up front, this is exactly the kind of signal a spec can carry and a runtime cannot infer.
+**Status** — React: Implemented • Web Components: Implemented • iOS: Not yet planned • Android: Not yet planned
 
-## Emission
+There is no partial credit: a live region declared *after* its content arrives announces nothing. Because the declaration must be in the markup up front, this is exactly the kind of signal a spec can carry and a runtime cannot infer.
 
-### Scaffold
+### Roles
 
-All three are literal WAI-ARIA role tokens, so the emission is `role="<name>"` directly, and all three substitute in place — the element's tag, classes, and children are unchanged.
+| Role | Type | Element |
+|---|---|---|
+| `alert` | Control | Element of `type: container` |
+| `status` | Control | Element of `type: container` |
+| `progressbar` | Control | Element of `type: container` |
+
+All three are literal WAI-ARIA role tokens, so the emission is `role="<name>"` directly, and all three substitute in place — tag, classes, and children unchanged.
 
 | Role | Web emission |
-|------|--------------|
+|---|---|
 | `alert` | `role="alert"` |
 | `status` | `role="status"` |
 | `progressbar` | `role="progressbar"` + `aria-valuemin` / `aria-valuemax` / `aria-valuenow` |
 
-### Contract
+### Choosing alert or status
 
-| Prop | Type | Role | Generated body |
-|------|------|------|----------------|
-| `min?` | `number` (default `0`) | `progressbar` only | Emitted as `aria-valuemin` |
-| `max?` | `number` (default `100`) | `progressbar` only | Emitted as `aria-valuemax` |
+A declaration of interruption severity, and the designer's to make — nothing in the markup can derive one from the other.
 
-`alert` and `status` add no props. None of the three adds an event handler — an announcement region reports; it does not respond.
-
-## States
-
-| State | What the region does | Classify in `states`? |
-|-------|----------------------|----------------------------------|
-| `busy` | Bridged to `aria-busy` on `status` and `progressbar` | Recommended |
-
-The role does not replace the classification: the Figma variant prop carrying `busy` still wants an entry in the [`states` convention](/settings/states/), which is what tells the transform that the prop carries that state.
-
-## Choosing alert or status
-
-The choice is a declaration of interruption severity, and it is the designer's to make — the two produce materially different user experiences and nothing in the markup can derive one from the other.
-
-| Role | Live region politeness | Use for |
-|------|------------------------|---------|
+| Role | Politeness | Use for |
+|---|---|---|
 | `alert` | Assertive — interrupts whatever is being read | Errors, session expiry, destructive-action warnings |
 | `status` | Polite — waits for a pause | Save confirmations, transient toasts, result counts |
 
 Choosing `alert` for a routine confirmation makes an application hostile to screen reader users, because every toast cuts off the sentence in progress. Choosing `status` for a genuine error means the error may not be announced until the user stops interacting.
 
-## Determinate and indeterminate progress
+### Determinate and indeterminate progress
 
-The split comes from the `value` convention in `conventions/specs.yaml`, never from a prop-name guess, and it carries two members rather than one:
+The split comes from the `value` convention in `conventions/specs.yaml`, never from a prop-name guess, and carries two members:
 
-- **`prop`** names the prop carrying progress.
-- **`indeterminate`** names a boolean prop that forces the indeterminate presentation regardless of value.
+| Member | Names |
+|---|---|
+| `prop` | The prop carrying progress |
+| `indeterminate` | A boolean prop forcing the indeterminate presentation regardless of value |
 
-Two members are necessary because many libraries model an indeterminate loading bar with a boolean and no value prop on the component at all. A value-only mechanism would discard the one signal such a component actually carries.
+Two members are necessary because many libraries model an indeterminate loading bar with a boolean and no value prop at all. A value-only mechanism would discard the one signal such a component carries.
 
 Resolution order:
 
-1. An `indeterminate` binding that resolves true suppresses `aria-valuenow`.
-2. Otherwise a resolved `value` binding produces the determinate form.
-3. Otherwise the indeterminate form is emitted, with a warning.
+1. An `indeterminate` binding that is true suppresses `aria-valuenow`
+2. Otherwise a resolved `value` binding produces the determinate form
+3. Otherwise the indeterminate form is emitted, with a warning
 
-## Interactive content inside an announcement
+### An announcement region may contain a control
 
-An announcement region may legitimately contain an interactive element — a toast with a dismiss affordance is the common case. Where that affordance is an instance of another component, it carries its own [button](/roles/button/) role in its own spec, and the containing `status` role is unaffected. This is the sanctioned form of two roles in one rendered tree: different elements, different specs. The prohibited form is two specs claiming the same DOM position.
+A toast with a dismiss affordance is the common case. That affordance is an instance carrying its own [`button`](/roles/button/) role in its own spec; the containing `status` is unaffected. This is the sanctioned form of two roles in one rendered tree — different elements, different specs.
 
-## Platforms
+### States
 
-| | Emits | Behavior a user gets |
+| State | Effect | Classify in `states`? |
 |---|---|---|
-| Web | `role="status"` / `role="alert"` / `role="progressbar"` with `aria-value*` | Changes announce without moving focus — politely for `status`, immediately for `alert`; progress reads with its value |
-| iOS | Spoken announcements for changed content; progress semantics for progress | VoiceOver speaks the change without moving focus; progress reads with its value |
-| Android | Live-region semantics (polite or assertive); progress range semantics | TalkBack speaks the change without moving focus; progress reads with its value |
+| `busy` | `aria-busy` on `status` and `progressbar` | Recommended |
 
-## Before and after
+The role does not replace the classification: the Figma variant prop carrying `busy` still wants an entry in the [`states` convention](/settings/states/).
 
-Without the role:
+## Specs
+
+```yaml
+anatomy:
+  root:
+    type: container
+    role: status
+  dismiss:
+    type: instance
+    instanceOf: iconButton
+```
+
+## Figma
+
+- `root` as `role:status` or `role:alert` — on the component node
+- a loading or progress component's `root` as `role:progressbar`
+- a dismiss affordance keeps its own `role:button` in **its own** component, not here
+
+For `progressbar`, declare the value binding in `conventions/specs.yaml`. A progress bar with neither a value nor an indeterminate binding emits the indeterminate form and warns.
+
+## React
+
+### Authored as
 
 ```tsx
+<Toast>Trip saved.</Toast>
+<Alert>Your session has expired.</Alert>
+<LoadingBar indeterminate />
+```
+
+### Before / After
+
+```tsx
+// before
 <div className="toast" data-element="root">
   {/* … */}
 </div>
-```
 
-With the role:
-
-```tsx
+// after
 <div className="toast" data-element="root" role="status">
   {/* … */}
 </div>
 ```
 
-And for a progress bar with an indeterminate boolean and no value prop:
+A progress bar with an indeterminate boolean and no value prop:
 
 ```tsx
 <div
@@ -107,8 +124,46 @@ And for a progress bar with an indeterminate boolean and no value prop:
 />
 ```
 
+### Contract
+
+| Prop | Type | Role | Generated body |
+|---|---|---|---|
+| `min?` | `number` (default `0`) | `progressbar` only | `aria-valuemin` |
+| `max?` | `number` (default `100`) | `progressbar` only | `aria-valuemax` |
+
+`alert` and `status` add no props. None of the three adds an event handler — an announcement region reports; it does not respond.
+
+## Web Components
+
+The role goes on the **host**, not on an element inside the shadow root. A live region must be in the document the assistive technology is observing, and while shadow content is observed, declaring the region on the host is what keeps it stable across re-renders of the inner tree.
+
+One consequence: content that changes inside the shadow root announces correctly, but replacing the **whole** host element — rather than mutating its content — re-declares the region and may drop the announcement. Update content, do not swap the element.
+
+## iOS
+
+Not yet planned. Intended binding:
+
+| | |
+|---|---|
+| `alert` | `.accessibilityAddTraits(.isStaticText)` plus an announcement notification |
+| `status` | An announcement notification |
+| `progressbar` | `ProgressView`, determinate or indeterminate |
+| Announced | The change is spoken without moving focus |
+
+## Android
+
+Not yet planned. Intended binding:
+
+| | |
+|---|---|
+| `alert` | `liveRegion = LiveRegionMode.Assertive` |
+| `status` | `liveRegion = LiveRegionMode.Polite` |
+| `progressbar` | `LinearProgressIndicator` with `progressBarRangeInfo` |
+| Announced | The change is spoken without moving focus |
+
 ## See also
 
-- [errormessage](/roles/errormessage/) — validation text wired to a specific control, a different job from a page-level `alert`
+- [errormessage](/roles/errormessage/) — validation text wired to one control, a different job from a page-level `alert`
+- [button](/roles/button/) — the dismiss affordance inside a toast
 - [States](/settings/states/) — the `busy` state concept
-- [Roles overview](/roles/) — how roles and the `states` convention fit together
+- [Roles overview](/roles/) — the vocabulary and how roles are authored

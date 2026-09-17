@@ -93,6 +93,17 @@ The documentation site is built with Astro (port 4323) from `site/src/content/do
 - `guides/` — how-to guides for specific features (slot constraints, variant depth, token format, etc.)
 - `cli/` — CLI overview, getting started, and per-command reference
 - `overview/` — product overview, licensing, releases
+- `roles/` — one page per role concept, plus `inventory` and `precedence`; a concept family shares one page. The `write-role-page` skill carries the template
+
+### Writing for the doc site
+
+Reference pages are scanned while implementing, not read straight through.
+
+- **Table first** wherever content has repeated shape — states, parts, props, platform bindings
+- **One paragraph** of intro, then structure
+- **Never restate what a table just said.** Prose after a table adds a consequence the table cannot hold, or it is cut
+- **Cut sentences whose only job is to introduce the next one**
+- **Explain a rule once.** Later sections reference it rather than re-teaching it
 
 ## Rules
 

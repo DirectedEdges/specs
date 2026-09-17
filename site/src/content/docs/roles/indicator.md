@@ -3,70 +3,106 @@ title: "indicator"
 description: "Mark a state glyph as decoration so it is hidden from assistive technology"
 ---
 
-The `indicator` part role marks an element as a decorative representation of state — a check glyph inside a checkbox, the thumb of a switch, the chevron on a disclosure.
+## About
 
-## Why it matters
+`indicator` marks an element as a decorative representation of state — a check glyph inside a checkbox, the thumb of a switch, the chevron on a disclosure. It is the one part whose job is subtraction: a checkbox already announces "checked" through its control, and a glyph that also exposes itself announces the same fact twice, the second time as noise like "checkmark graphic."
 
-This is the one part whose job is subtraction, and it prevents a specific and common double-announcement. A checkbox with a check glyph already announces "checked" through `aria-checked` or the native input. If the glyph also exposes itself — as an image with a filename, or as a text node containing a character — the same fact is announced twice, and the second announcement is usually noise like "checkmark graphic."
+**Status** — React: Implemented • Web Components: Implemented • iOS: Not yet planned • Android: Not yet planned
 
-Without the role, the transform has no way to distinguish a glyph that means something from a glyph that merely draws the state, so it must either hide all of them or none.
+Without it the transform cannot distinguish a glyph that means something from one that merely draws the state, so it must hide all of them or none.
 
-## Emission
+### Roles
 
-### Scaffold
+| Role | Type | Element |
+|---|---|---|
+| `indicator` | Part | Element of `type: container`, `type: glyph`, or `type: vector` |
 
 | Where | What is emitted |
-|-------|-----------------|
-| The indicator element itself | `aria-hidden="true"` |
+|---|---|
+| The indicator element | `aria-hidden="true"` |
 | The resolved control | Nothing |
 
-The element's tag, classes, layout, and styling are unchanged. Only the attribute is added, so nothing about the visual result changes.
+Tag, classes, layout, and styling are unchanged — only the attribute is added, so nothing visual changes.
 
-An `aria-hidden` element must not contain focusable content. An `indicator` whose subtree contains a slot or an interactive element is a warning: hiding it would strand the focusable descendant in a region assistive technology cannot see.
+**An `aria-hidden` element must not contain focusable content.** An indicator whose subtree holds a slot or an interactive element warns: hiding it would strand the focusable descendant where assistive technology cannot reach it.
+
+### Resolution
+
+| Accepting control | How it resolves |
+|---|---|
+| Value-bearing (`checkbox`, `radio`, `switch`) | To the component's single value-bearing control, regardless of tree position |
+| Non-value-bearing (`button`, `togglebutton`, `disclosure`) | By proximity; ambiguity is an error naming every candidate |
+
+Resolution rarely matters here, because the emission does not depend on which control it resolved to. It matters only for validating that the part is accepted at all.
 
 ### Contract
 
-None. Most parts add an `id` to their own element and an attribute to a different element; `indicator` touches only itself, and the control gains nothing. Either way a part is wiring, not behavior — the only parts that carry handlers are `increment` and `decrement`, which call `stepUp()` / `stepDown()` on their control.
+None. An indicator is decoration by declaration. An element that needs a handler is not an indicator — it is a [button](/roles/button/) or an `increment` / `decrement` part.
 
-An indicator is decoration by declaration. If an element needs a handler it is not an indicator — it is a [button](/roles/button/) or an `increment` / `decrement` part.
+### Where it is consumed instead
 
-## How it resolves
+[`radio`](/roles/radio/) is the exception: it styles its control directly rather than proxying, so a `container`-typed indicator is consumed into styling rather than emitted with `aria-hidden`. A `glyph`-typed indicator cannot be consumed there and warns.
 
-`indicator` is accepted by both value-bearing and non-value-bearing control concepts, so it follows the standard two-path rule:
+## Specs
 
-- Where the component's single value-bearing control accepts it (`checkbox`, `radio`, `switch`), the part resolves to that control regardless of tree position.
-- Where only non-value-bearing concepts accept it (`button`, `togglebutton`, `disclosure`), it resolves by proximity, and ambiguity is an error naming every candidate.
+```yaml
+anatomy:
+  checkGlyph:
+    type: glyph
+    role: indicator
+```
 
-In practice resolution rarely matters for this part, because the emission does not depend on which control it resolved to — `aria-hidden="true"` is the same attribute either way. Resolution matters only for validating that the part is accepted at all.
+## Figma
 
-## Platforms
+- the state glyph as `role:indicator` — the check mark, switch thumb, chevron, or radio dot
 
-| | Emits | Behavior a user gets |
-|---|---|---|
-| Web | `aria-hidden="true"` | Screen readers skip the glyph; the state announces once, from the control |
-| iOS | The glyph hidden from accessibility | VoiceOver skips the glyph and announces the state once, from the control |
-| Android | The glyph's semantics cleared | TalkBack skips the glyph and announces the state once, from the control |
+Annotate every drawn state layer, not just the obvious one. A switch's track, handle, and state glyphs are all drawn state and all want the part.
 
-## Before and after
+## React
 
-Without the role:
+### Authored as
+
+Nothing. `indicator` is a declaration the component acts on for itself.
+
+### Before / After
 
 ```tsx
-{/* … */}
+// before
 <span className="check" data-element="checkGlyph" />
-{/* … */}
-```
 
-With the role:
-
-```tsx
-{/* … */}
+// after
 <span className="check" data-element="checkGlyph" aria-hidden="true" />
-{/* … */}
 ```
+
+### Contract
+
+None.
+
+## Web Components
+
+Identical — `aria-hidden="true"` on the element inside the shadow root. No host involvement, because the attribute describes the glyph, not the component.
+
+## iOS
+
+Not yet planned. Intended binding:
+
+| | |
+|---|---|
+| Emits | `.accessibilityHidden(true)` |
+| Result | VoiceOver skips the glyph; the state announces once, from the control |
+
+## Android
+
+Not yet planned. Intended binding:
+
+| | |
+|---|---|
+| Emits | `clearAndSetSemantics {}` |
+| Result | TalkBack skips the glyph; the state announces once, from the control |
 
 ## See also
 
 - [checkbox](/roles/checkbox/) — the control whose state the indicator draws
+- [radio](/roles/radio/) — where the indicator is consumed into styling instead
 - [togglebutton](/roles/togglebutton/) — another common host for an indicator
-- [Roles overview](/roles/) — how roles and the `states` convention fit together
+- [Roles overview](/roles/) — the vocabulary and how roles are authored
