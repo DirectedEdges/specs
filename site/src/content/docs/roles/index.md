@@ -255,6 +255,13 @@ role:button
 action:dismiss
 ```
 
+Two keys, and deliberately only two. Both are **categorical**: each names a concept from
+a governed vocabulary, and each answers a question about the element that has one answer.
+A key for every attribute a platform happens to accept — autofill hints, input modes,
+spellcheck — would make the annotation surface an API in its own right, with no principle
+saying where it ends. Facts that are neither identity nor behavior reach the output as
+**contract props** the consumer sets, not as annotations.
+
 The boundary between them is announcement:
 
 > **Does it change how the control is announced?** If yes, it is a role. If no, it is an
@@ -265,24 +272,6 @@ changes how its button is announced, so it is an action. Keeping the two apart i
 this vocabulary to concepts ARIA and the native platforms have counterparts for — the
 alternative was a role per behavior-and-control pair, such as `dismissbutton`, which no
 platform can bind to a native type.
-
-## A third key: `autocomplete`
-
-`role` and `action` both describe behavior. A third key describes **autofill**, and it
-exists because the browser's credential and address managers need a hint no other signal
-carries:
-
-```
-role:password
-autocomplete:new-password
-```
-
-It takes any [HTML autofill token](https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#autofill)
-and applies to the [text-control family](/roles/textbox/) — `email` on a `textbox`,
-`one-time-code` on a verification field, `postal-code` on an address line. It is not a
-role, by the same boundary test that separates roles from actions: `current-password`
-and `new-password` announce identically and bind to the same native type everywhere.
-Only `password` warns when it is absent.
 
 An element the component **owns** carries **at most one role**, because the question of what
 it *is* has one answer. It may carry **several actions**, because that question does not. An

@@ -16,7 +16,7 @@ Without a role, a text input scaffolds as a stack of styled text elements standi
 | Role | Web emission | Where the value lives | Notable addition |
 |------|--------------|-----------------------|------------------|
 | `textbox` | `<input type="text">` | `value` attribute | — |
-| `password` | `<input type="password">` | `value` attribute | `autocomplete` is required |
+| `password` | `<input type="password">` | `value` attribute | `autoComplete` must be set |
 | `searchbox` | `<input type="search">` | `value` attribute | UA clear affordance is suppressed |
 | `textarea` | `<textarea>` | element **content**, not an attribute | `rows` |
 
@@ -90,7 +90,7 @@ password reveal is.
 | `onBlur?` | `(e: FocusEvent) => void` | SHOULD | Stub |
 | `onFocus?` / `onKeyDown?` | — | COULD | Forwarded to the element |
 | `name?` | `string` | MUST | — form submission identity |
-| `autoComplete?` | `string` | COULD | Overrides the `autocomplete` annotation |
+| `autoComplete?` | `string` | SHOULD | Pass-through, no default — see below |
 | `rows?` | `number` | COULD | `textarea` only |
 | `value` | `string` | — | The existing variant prop |
 
@@ -103,26 +103,21 @@ Wiring has a prerequisite: a resolved `value` binding, either an existing varian
 
 `onBlur` is a stub — the transform calls the prop and nothing else. It is emitted because blur is the conventional point at which a field validates, but validation logic is not something a spec can supply.
 
-### Autofill is declared, not guessed
+### Autofill is the consumer's to set
 
-A text field with no `autocomplete` is a field browsers and password managers handle badly, and the correct value is never recoverable from the component: the same password component is `current-password` on a sign-in form and `new-password` on a registration form. Guessing one actively harms the other — `current-password` on a registration field invites a manager to fill the old password.
+A text field with no `autocomplete` is a field browsers and password managers handle badly, so the prop is in the contract and the generated code says it should be set. What the transform will not do is choose a value, because the correct one is not a property of the component: the same password component is `current-password` on a sign-in form and `new-password` on a registration form. Guessing one actively harms the other — `current-password` on a registration field invites a manager to fill the old password.
 
-So it is **annotated**, on its own key, beside the role:
+Nor is it annotated. Annotations carry two **categorical** keys, `role` and `action`, each naming a concept from a governed vocabulary. Autofill is neither identity nor behavior; it is one of a long tail of platform attributes — input mode, spellcheck, enterkeyhint — and admitting the first of them makes the annotation surface an API with no principle saying where it stops. A closed set of two keys is worth more than any single attribute it excludes.
 
+So the obligation is made visible instead of resolved. The generated prop carries a doc comment naming the two common values and saying the choice belongs to the form, not the field:
+
+```tsx
+/**
+ * Autofill hint. Set this — a password field without one autofills badly.
+ * `current-password` on a sign-in form, `new-password` on a registration form.
+ */
+autoComplete?: string;
 ```
-role:password
-autocomplete:new-password
-```
-
-The key takes any [HTML autofill token](https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#autofill) and applies to the whole family, which is most of the point — `autocomplete:email` on a `textbox`, `autocomplete:one-time-code` on a verification field, `autocomplete:postal-code` on an address line.
-
-It is a separate key rather than a compound role (`password-new`) for three reasons, and they are worth stating because the compound form looks tidier:
-
-- A role answers **what the element is**, and the [role / action boundary](/roles/#roles-and-actions) is whether the answer changes how the control is announced. `current-password` and `new-password` announce identically, bind to the same native type on every platform, and carry the same ARIA.
-- Unrecognized roles are ignored inertly by design. A transform that did not know `password-new` would drop the role **entirely** — losing `<input type="password">`, not just the hint. An unrecognized `autocomplete` value degrades to a password field with no autofill, which is the right failure.
-- Autofill has roughly fifty tokens and most of them belong to `textbox`, not `password`. In `role` that is `textbox-email`, `textbox-tel`, `textbox-one-time-code`; on its own key it is one rule for the whole family.
-
-**`password` warns when no `autocomplete` resolves**, because the field is the one place the omission has a security consequence. The other three emit without it and say nothing. An `autoComplete` prop is still in the contract for a consumer who needs to override the annotated value.
 
 Where an existing variant prop already supplies the value, the role contributes only the change signal and emits no `default*` companion.
 
@@ -197,15 +192,15 @@ With the role (annotations `labelAndValue#textbox`, `label#label`, `placeholder#
 
 The placeholder conditional vanishes because it was compensating for the missing control — placeholder is an attribute, and the browser knows when to show it. The lift changes the label's depth, so a library whose visual depends on that structure (float labels) needs restyling; one whose label is already a sibling of one input-shaped element pays almost nothing.
 
-The same component annotated `role:password` and `autocomplete:current-password`
-differs by three lines — the emitted `type`, the autofill token, and the reveal
-affordance that survives because it sits beside the collapse rather than inside it:
+The same component annotated `role:password` differs by two lines — the emitted `type`,
+and the reveal affordance that survives because it sits beside the collapse rather than
+inside it:
 
 ```tsx
 <label className="password__label" data-element="label" htmlFor={controlId}>{p.label}</label>
 <input id={controlId} type="password" data-element="labelAndValue" value={value}
   onChange={(e) => { setValue(e.target.value); p.onChange?.(e); }}
-  autoComplete={p.autoComplete ?? "current-password"} />
+  autoComplete={p.autoComplete} />
 <IconButton {...defaults} data-element="maskedAction" onClick={p.onMaskedActionClick} />
 ```
 
