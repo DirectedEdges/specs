@@ -23,9 +23,11 @@ The role element becomes the control itself. `label`, `description`, and `errorm
 
 Unannotated descendants do not render. A bare wrapper drops silently; anything carrying content of its own is dropped and named in a warning.
 
-## States
+### Related States
 
-| State | Effect | Classify in `states`? |
+The `radio` role is typically applied in conjunction with the following states:
+
+| State | Effect | Classify? |
 |---|---|---|
 | `checked` | Natively chosen; draws the indicator | Recommended |
 | `disabled` | Natively disabled, enforced by the platform | Recommended |
@@ -37,6 +39,8 @@ Unannotated descendants do not render. A bare wrapper drops silently; anything c
 All of these land on the element the stylesheet already targets, because the control and the visual are one element — no focus indicator to re-draw, no state to mirror onto a wrapper.
 
 There is no `indeterminate`; that belongs to `checkbox`, and classifying it here warns. A library spelling the chosen state `selected` classifies it as `checked` — the prop keeps its name, and the concept decides the mechanism.
+
+Read more about [states in specs](/settings/states/).
 
 ## Specs
 
@@ -165,7 +169,7 @@ Not yet planned. Intended binding:
 | Announced | "Selected" / "not selected" and the label; double-tap chooses |
 | `indicator` | **Consumed** — `RadioButton` accepts `colors`, so box and dot transfer |
 
-## Details
+## Additional details
 
 ### What the platform supplies
 

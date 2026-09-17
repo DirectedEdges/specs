@@ -20,15 +20,19 @@ Apply the following roles to elements:
 
 `label` names the group itself rather than pointing at a control, and must render first. The heading is usually a `slot`, and `label` on a slot means *whatever is slotted here names this group* — the naming element wraps the slot rather than replacing anything inside it.
 
-## States
+### Related States
 
-| State | Effect | Classify in `states`? |
+The `group` role is typically applied in conjunction with the following states:
+
+| State | Effect | Classify? |
 |---|---|---|
 | `disabled` | Disables every control inside, enforced by the platform | Recommended |
 | `required` | Announced as required | Recommended |
 | `invalid` | Announced as invalid | Recommended |
 
 `disabled` is the one worth classifying: one declaration disables the whole set without the transform touching a child. There is no `readonly` — no platform has a group-level equivalent, so set it per control.
+
+Read more about [states in specs](/settings/states/).
 
 ## Specs
 
@@ -130,7 +134,7 @@ Not yet planned. Intended binding:
 | `disabled` | **Set per control** — does not propagate from a container |
 | Grouping | `selectableGroup()` on the container |
 
-## Details
+## Additional details
 
 ### Naming the controls inside it
 
