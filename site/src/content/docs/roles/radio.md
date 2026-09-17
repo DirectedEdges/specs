@@ -3,20 +3,13 @@ title: "radio"
 description: "Declare that an element is one option in a mutually exclusive set, so the platform supplies selection, roving focus, and grouping"
 ---
 
-## About
-
 `radio` declares that an element is one option in a mutually exclusive set. Without it the option cannot be focused, chosen, submitted, or validated, its label is an unassociated sibling, and nothing makes it exclusive with its siblings — a set behaves as unrelated toggles.
 
 **Status** — React: Specified • Web Components: Specified • iOS: Not yet planned • Android: Not yet planned
 
-Behavior the platform supplies for a grouped set, none of which is markup:
+## Roles
 
-- choosing one option clears the others
-- arrow keys move between options and wrap at the ends
-- the whole set is one stop in the focus order
-- the chosen value participates in submission and validation
-
-### Roles
+Apply the following roles to elements:
 
 | Role | Type | Element |
 |---|---|---|
@@ -26,35 +19,11 @@ Behavior the platform supplies for a grouped set, none of which is markup:
 | `errormessage` | Part | Element of `type: text` or nested instance prop of `type: string` |
 | `indicator` | Part | Element of `type: container` |
 
-The role element **becomes** the control. Everything else is declared or dropped:
+The role element becomes the control itself. `label`, `description`, and `errormessage` are lifted out as siblings wired by id. The `indicator` — the inner dot — is consumed into styling rather than emitted as an element, so a `glyph`-typed indicator cannot be used here and warns; use [checkbox](/roles/checkbox/)'s pattern instead.
 
-| Descendant | Result |
-|---|---|
-| `label`, `description`, `errormessage` | Lifted out, emitted as siblings, wired by id |
-| `indicator` | Consumed into styling — see below |
-| Bare wrapper | Dropped silently |
-| Anything with content of its own | Dropped, named in one warning |
-| A role this control does not accept | Dropped, named in a warning |
+Unannotated descendants do not render. A bare wrapper drops silently; anything carrying content of its own is dropped and named in a warning.
 
-### The indicator is consumed, not rendered
-
-The inner dot's drawn appearance moves onto the control itself, keyed off the chosen state.
-
-| Indicator type | Result |
-|---|---|
-| `container` | Fill, size, and radius transfer cleanly |
-| `glyph` | **Cannot be consumed** — warns, emits the control without it. Use [checkbox](/roles/checkbox/)'s pattern instead |
-
-### Why this differs from checkbox
-
-| | Emits | Because its indicator is |
-|---|---|---|
-| [`checkbox`](/roles/checkbox/) | Hidden control + proxy label | A drawn glyph — a vector needing an element to render into |
-| `radio` | The control itself, styled | A filled circle, drawable from the control's own box |
-
-One element instead of three, and the platform's focus indicator lands on the visible thing with no assistance.
-
-### States
+## States
 
 | State | Effect | Classify in `states`? |
 |---|---|---|
@@ -65,33 +34,13 @@ One element instead of three, and the platform's focus indicator lands on the vi
 | `hover` / `active` | Native, on the control itself | Recommended, if the library styles it |
 | `focus` / `focus-visible` | Native, on the control itself | **Optional — prefer the platform default** |
 
-- All of these land on the element the stylesheet already targets — no focus indicator to re-draw, no state to mirror onto a wrapper.
-- No `indeterminate` — that belongs to `checkbox`. Classifying it here warns.
-- A library spelling the chosen state `selected` classifies it as `checked`. The prop keeps its name; the concept decides the mechanism.
+All of these land on the element the stylesheet already targets, because the control and the visual are one element — no focus indicator to re-draw, no state to mirror onto a wrapper.
 
-### Wired state
-
-`onChange` follows [the wired state model](/roles/#the-wired-state-model): uncontrolled between prop changes, prop wins on change.
-
-It matters more here than anywhere else, because **a radio cannot un-choose itself** — only a sibling becoming chosen clears it, and that sibling is a different component instance. A consumer owning the set should drive `checked` from its own state and treat `onChange` as the report.
-
-Prerequisite: a `checked` classification in the [`states` convention](/settings/states/) naming the prop. Without it the handler degrades to a stub and warns.
-
-### Grouping
-
-A spec describes one radio and cannot see its siblings, so grouping comes from the containing [`group`](/roles/group/) — including through a slot, the usual shape. Per-platform mechanism is in the sections below.
-
-No group and no explicit name **warns**. Two ungrouped sets on one page silently become one set, and choosing in the second clears the first.
-
-### Accessible name
-
-| Source | Result |
-|---|---|
-| `label` part on an element the component owns | Emits a label element wired to the control |
-| `label` on an `instance` | Routes — the control's id is threaded into the instance |
-| No `label` | **Warns** — announced as "2 of 3" with nothing about what choosing it means |
+There is no `indeterminate`; that belongs to `checkbox`, and classifying it here warns. A library spelling the chosen state `selected` classifies it as `checked` — the prop keeps its name, and the concept decides the mechanism.
 
 ## Specs
+
+Component anatomy typically has elements and roles like:
 
 ```yaml
 anatomy:
@@ -111,6 +60,8 @@ anatomy:
 
 ## Figma
 
+Annotate the following layers:
+
 - `control` as `role:radio` — on the layer drawing the control's box **and nothing else**
 - `selected` as `role:indicator` on the dot `container` inside it
 - `label` as `role:label` on a `text` element or through a nested instance
@@ -119,7 +70,7 @@ The label, description, and error layers are **siblings** of the control contain
 
 ## React
 
-### Authored as
+### Implementation
 
 ```tsx
 <FormGroup header={<Legend>Cabin class</Legend>} name="cabin-class">
@@ -185,8 +136,6 @@ Three elements become one, `aria-selected` is gone, and `name` arrives from the 
 | `value?` | `string` | MUST | — submitted value |
 | `checked` | `boolean` | — | The existing variant prop |
 
-Where an existing variant prop supplies the chosen state, the role contributes only the change signal and emits no `default*` companion.
-
 ## Web Components
 
 Same `<input type="radio">` in the shadow root, styled the same way. Two differences:
@@ -216,10 +165,36 @@ Not yet planned. Intended binding:
 | Announced | "Selected" / "not selected" and the label; double-tap chooses |
 | `indicator` | **Consumed** — `RadioButton` accepts `colors`, so box and dot transfer |
 
+## Details
+
+### What the platform supplies
+
+Behavior a grouped set gets for free, none of which is markup:
+
+- choosing one option clears the others
+- arrow keys move between options and wrap at the ends
+- the whole set is one stop in the focus order
+- the chosen value participates in submission and validation
+
+### Wired state
+
+`onChange` follows [the wired state model](/roles/#the-wired-state-model): uncontrolled between prop changes, prop wins on change. Prerequisite: a `checked` classification in the [`states` convention](/settings/states/) naming the prop, or the handler degrades to a stub and warns.
+
+It matters more here than anywhere else, because **a radio cannot un-choose itself** — only a sibling becoming chosen clears it, and that sibling is a different component instance. A consumer owning the set should drive `checked` from its own state and treat `onChange` as the report.
+
+### Grouping
+
+A spec describes one radio and cannot see its siblings, so grouping comes from the containing [`group`](/roles/group/) — including through a slot, the usual shape.
+
+No group and no explicit name **warns**. Two ungrouped sets on one page silently become one set, and choosing in the second clears the first.
+
+### Accessible name
+
+From the `label` part, emitted as a real label element wired to the control. Where the label is an `instance`, the part routes rather than emits. A radio with no resolving `label` warns — an unnamed option is announced as "2 of 3" with nothing about what choosing it means.
+
 ## See also
 
 - [group](/roles/group/) — what makes a set of radios exclusive
 - [checkbox](/roles/checkbox/) — the proxy pattern, and when a drawn indicator needs it
 - [indicator](/roles/indicator/) — the drawn dot, consumed into styling here
-- [Precedence](/roles/precedence/) — role and states resolving together
 - [Roles overview](/roles/) — the vocabulary and how roles are authored

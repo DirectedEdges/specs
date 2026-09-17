@@ -3,13 +3,13 @@ title: "group"
 description: "Declare that a set of controls is answered together, so it is announced as one thing and disabled as one thing"
 ---
 
-## About
-
 `group` declares that an element gathers several related controls answered together — a set of radio buttons, a row of checkboxes, an address block. Without it each control announces its own label and nothing more, the heading that says what is being chosen is programmatically unconnected, and a `disabled` variant styles every control while disabling none.
 
 **Status** — React: Specified • Web Components: Specified • iOS: Not yet planned • Android: Not yet planned
 
-### Roles
+## Roles
+
+Apply the following roles to elements:
 
 | Role | Type | Element |
 |---|---|---|
@@ -18,15 +18,9 @@ description: "Declare that a set of controls is answered together, so it is anno
 | `description` | Part | Element of `type: text` or `type: slot`, or nested instance prop of `type: string` |
 | `errormessage` | Part | Element of `type: text` or `type: slot`, or nested instance prop of `type: string` |
 
-`group` is the only control concept that is not value-bearing — there is no single control beneath it to point at, which is what makes it a group.
+`label` names the group itself rather than pointing at a control, and must render first. The heading is usually a `slot`, and `label` on a slot means *whatever is slotted here names this group* — the naming element wraps the slot rather than replacing anything inside it.
 
-Consequences:
-
-- `label` names the group itself. It emits the naming element rather than a reference to a control, and must render first.
-- `description` and `errormessage` wire to the group by id, as on any control.
-- The heading is usually a `slot`, not a text element the component owns. `label` on a slot means *whatever is slotted here names this group* — the naming element wraps the slot.
-
-### States
+## States
 
 | State | Effect | Classify in `states`? |
 |---|---|---|
@@ -34,27 +28,11 @@ Consequences:
 | `required` | Announced as required | Recommended |
 | `invalid` | Announced as invalid | Recommended |
 
-No `readonly` — no platform has a group-level equivalent. Set it per control.
-
-`disabled` is the one worth classifying: one declaration disables the whole set without the transform touching a child.
-
-### Naming the controls inside it
-
-Radios are exclusive only when grouped, and only the group knows the set exists — so the group generates a name and publishes it. Each [`radio`](/roles/radio/) prefers its own `name` prop if given one. Per-platform mechanism is in the sections below.
-
-Two rules:
-
-- **Never derived from the label text.** It would change with copy edits and localization, collide when two groups share a label, and break deterministic output.
-- **A generated name is the floor, not the answer.** It guarantees exclusivity; it is a meaningless submission key. Anything that submits wants the consumer to pass `name`.
-
-### Accessible name
-
-| Source | Result |
-|---|---|
-| `label` part resolves | Announced when focus enters the set |
-| No `label` | Emits anyway, and **warns** — an unnamed group says nothing about what it groups |
+`disabled` is the one worth classifying: one declaration disables the whole set without the transform touching a child. There is no `readonly` — no platform has a group-level equivalent, so set it per control.
 
 ## Specs
+
+Component anatomy typically has elements and roles like:
 
 ```yaml
 anatomy:
@@ -70,6 +48,8 @@ anatomy:
 
 ## Figma
 
+Annotate the following layers:
+
 - `root` as `role:group` — on the component node
 - `label` as `role:label` on the heading `text` element, its `slot`, or a nested instance
 - `description` / `errormessage` as their own parts, where the group owns them
@@ -78,7 +58,7 @@ Author the heading **first**, above the controls. The transform lifts it into na
 
 ## React
 
-### Authored as
+### Implementation
 
 ```tsx
 <FormGroup header={<Legend>Cabin class</Legend>} name="cabin-class">
@@ -111,7 +91,7 @@ const groupName = p.name ?? React.useId();
 
 - `<fieldset disabled>` disables every control inside, enforced by the browser
 - `<legend>` is announced on focus entry, and HTML requires it to be the first child
-- Context is the only way to reach slotted radios — children are opaque to the component rendering them. This is the first runtime coupling the transforms emit between two components
+- Context is the only way to reach slotted radios — children are opaque to the component rendering them
 
 ### Contract
 
@@ -149,6 +129,18 @@ Not yet planned. Intended binding:
 | Announced | Content description from the `label` part, before the first control |
 | `disabled` | **Set per control** — does not propagate from a container |
 | Grouping | `selectableGroup()` on the container |
+
+## Details
+
+### Naming the controls inside it
+
+Radios are exclusive only when grouped, and only the group knows the set exists — so the group generates a name and publishes it. Each [`radio`](/roles/radio/) prefers its own `name` prop if given one.
+
+The name is **never derived from the label text**: it would change with copy edits and localization, collide when two groups share a label, and break deterministic output. A generated name guarantees exclusivity but is a meaningless submission key, so anything that submits wants the consumer to pass `name`.
+
+### Accessible name
+
+The name comes from the `label` part. Where no `label` resolves, the group still emits, and **warns** — an unnamed group is announced as a group with nothing said about what it groups.
 
 ## See also
 
