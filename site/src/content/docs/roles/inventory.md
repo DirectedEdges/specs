@@ -40,7 +40,7 @@ emitted and adds handlers to the contract.
 | [`checkbox`](/roles/checkbox/) | A binary (or indeterminate) selection control | **Implemented** |
 | [`radio`](/roles/radio/) | An exclusive-selection control within a group | **Specified** |
 | [`switch`](/roles/switch/) | An on/off control with immediate effect | **Implemented** |
-| [`group`](/roles/group/) | A fieldset grouping related controls | **Specified** |
+| [`group`](/roles/group/) | A set of related controls answered together | **Specified** |
 | [`alert`](/roles/status/) | An assertive live region announcing interruptions | **Implemented** |
 | [`status`](/roles/status/) | A polite live region announcing transient updates | **Implemented** |
 | [`progressbar`](/roles/status/) | An element reporting progress toward completion | **Implemented** |

@@ -222,7 +222,7 @@ groups by.
 | `checkbox` | A binary (or indeterminate) selection control | [checkbox](/roles/checkbox/) |
 | `radio` | An exclusive-selection control within a group | [radio](/roles/radio/) |
 | `switch` | An on/off control with immediate effect | [switch](/roles/switch/) |
-| `group` | A fieldset grouping related controls | [group](/roles/group/) |
+| `group` | A set of related controls answered together | [group](/roles/group/) |
 | `alert` | An assertive live region announcing interruptions | [status](/roles/status/) |
 | `status` | A polite live region announcing transient updates | [status](/roles/status/) |
 | `progressbar` | An element reporting progress toward completion | [status](/roles/status/) |

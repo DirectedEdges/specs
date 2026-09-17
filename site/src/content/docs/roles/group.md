@@ -1,87 +1,113 @@
 ---
 title: "group"
-description: "Emit a fieldset whose legend names every control inside it, so a set of related fields is announced as one thing"
+description: "Declare that a set of controls is answered together, so it is announced as one thing and can be disabled as one thing"
 ---
+
+## About
 
 The `group` role declares that an element gathers several related controls that are answered together — a set of radio buttons, a row of checkboxes, an address block.
 
-## Why it matters
+Without it, a set of controls is a container with a heading above it. Each control announces its own label and nothing more, so someone navigating by assistive technology reaches the second of three options and hears the option — but never the question it answers. The heading that would answer it is visually adjacent and programmatically unconnected. A `disabled` variant on the set styles every control and disables none of them, because nothing in the markup says the set exists.
 
-Without the role, a group of controls is a `<div>` with a heading above it. Each control announces its own label and nothing more, so a screen reader user hears "Economy, radio button, 1 of 3" with no indication of what is being chosen. The heading that answers that question is visually adjacent and programmatically unconnected. A `disabled` variant on the group styles every child and disables none of them.
+That is true on every platform. What differs is only the mechanism each one provides, and all three provide one.
 
-With the role the set is announced as one thing — its legend is read when focus enters it, and native `fieldset[disabled]` really does disable every control inside.
+`group` is the only control concept that is not value-bearing and has no single control beneath it — that is what makes it a group rather than a control. It accepts the same plumbing parts a control does.
 
-## Emission
-
-### Scaffold
+### Roles
 
 | | |
 |---|---|
-| Element | `<fieldset>` |
+| Concept | `group` |
 | Accepted element types | `container` |
 | Accepted parts | `label`, `description`, `errormessage` |
+| Value-bearing | No |
 
-`group` is the one control concept that is not value-bearing and has no single control beneath it — that is what makes it a group. It accepts the same plumbing parts a control does, and its `label` part behaves differently from everywhere else in the vocabulary:
+**The `label` part behaves differently here than anywhere else in the vocabulary.** Everywhere else it names one control by pointing at it. On a group there is no control to point at, so the association is structural — the part becomes the group's own name.
 
-**A `label` part resolved to a `group` emits `<legend>`, not `<label htmlFor>`.** There is no control id to point at; the association is structural. HTML requires the `<legend>` to be the **first rendered child** of its `<fieldset>`, so the part is lifted to that position if the design's layer order puts it elsewhere. That lift is the one structural change this role makes, and it is worth checking: a group whose heading sits below its controls, or beside them in a row, will move in the DOM while its classes and `data-element` values stay put. Positional CSS in that subtree needs review.
+`description` and `errormessage` wire to the group by id, exactly as they do on a control.
 
-`description` and `errormessage` wire by id to the `<fieldset>` through `aria-describedby`, exactly as they do on a control.
+### The heading is usually a slot
 
-**What this asks of a Figma file:** put the group's heading layer first, above the controls, and annotate it `role:label`. Where the design puts it elsewhere the transform still lifts it, and the output is still correct — but the DOM no longer matches the layer order, and positional CSS written against that subtree is what breaks. Authoring the heading first is the cheaper half of the bargain.
+The common shape puts the group's heading in a `slot` rather than in a text layer the component owns:
 
-### Contract
-
-| Prop | Type | Tier | Generated body |
-|------|------|------|----------------|
-| `name?` | `string` | COULD | Overrides the generated group name |
-
-`group` adds no event handler. A group does not respond to anything; the controls inside it do.
-
-### It names its radios, through the slot
-
-A set of radios is mutually exclusive only when every radio shares one `name`, and the group is the only element that knows the set exists. The hard part is that the radios usually arrive through a **slot** — runtime content the spec deliberately does not carry — so there is no `instance` element to route a prop into.
-
-The group publishes the name instead of passing it, which reaches slotted content that prop-threading cannot:
-
-```tsx
-// group
-const groupName = p.name ?? React.useId();
-<RadioGroupContext.Provider value={{ name: groupName }}>
-  <fieldset /* … */>{p.children}</fieldset>
-</RadioGroupContext.Provider>
+```yaml
+root:     { type: container }
+header:   { type: slot }
+children: { type: slot }
 ```
 
-Each [`radio`](/roles/radio/) reads the context and falls back to its own `name` prop, so the consumer writes nothing and a radio used outside a group still works.
+A slot is runtime content the spec cannot see inside, so there is no text element to convert. `label` is accepted on a slot anyway, and means **"whatever is slotted here is this group's name"** — the transform wraps the slot in the naming element rather than replacing anything inside it. The same holds for `description`.
 
-On Web Components there is no context and none is needed: slotted children are real descendants of the group's host, so each radio walks up on connect and reads the group's name. No provider, no event protocol, and it re-resolves on reconnect.
+This is the normal case, not an edge case. A group that owns its heading text outright works too, and is simpler; both are supported.
 
-This is the first runtime coupling the transforms emit between two components. It is deliberate: the alternative is a `name` prop the consumer must thread identically through every option, where one miss produces two radio sets that silently behave as one.
-
-## States
+### States
 
 | State | What the group does | Classify in `states`? |
 |-------|---------------------|----------------------------------|
-| `disabled` | Native `disabled` on the `<fieldset>` — disables every descendant control, enforced by the platform | Recommended |
-| `required` | `aria-required` on the `<fieldset>` | Recommended |
-| `invalid` | `aria-invalid` on the `<fieldset>` | Recommended |
+| `disabled` | Disables every control inside it, enforced by the platform | Recommended |
+| `required` | Announced as required | Recommended |
+| `invalid` | Announced as invalid | Recommended |
 
-`disabled` is the state most worth classifying here, because it is the one a `<div>` could never express: one attribute on the group disables everything inside it without the transform touching a single child.
+`disabled` is the state most worth classifying, because it is the one a plain container could never express: one declaration on the group disables everything inside it without the transform touching a single child.
 
-`<fieldset>` has no `readonly`, and there is no ARIA equivalent — a group that models one needs it on each control.
+There is no `readonly` — no platform offers a group-level equivalent, and a set that models one needs it on each control.
 
-## Accessible name
+### Naming the controls inside it
 
-The name comes from the `#label` part, emitted as the `<legend>`. Where no `label` part resolves, the group emits a `<fieldset>` with no legend and **warns**: an unnamed group is announced as a group with nothing said about what it groups, which is close to no improvement over the `<div>` it replaced.
+A set of radios is mutually exclusive only when every radio shares one grouping name, and the group is the only element that knows the set exists. So the group supplies it.
 
-## Platforms
+The hard part is that the controls usually arrive through a **slot**, which no prop can be threaded into by the spec. Each platform section below shows how that platform reaches them; the shared rule is that the group generates the name, publishes it, and every [`radio`](/roles/radio/) inside prefers its own `name` prop if it has one.
 
-| | Emits | Behavior a user gets |
-|---|---|---|
-| Web | `<fieldset>` with a `<legend>` | The legend is announced when focus enters the set; `disabled` on the fieldset disables every control inside |
-| iOS | A `Section` with a header, descendants' semantics merged under it | VoiceOver announces the group name before the first control |
-| Android | `Modifier.semantics(mergeDescendants = true)` with a content description | TalkBack announces the group name before the first control |
+**The name is never derived from the label text.** It is tempting — "Cabin class" is right there — and it is wrong three times over: the form key would change when copy is edited or localized, two groups sharing a label on one page would collide, and identical input would stop producing identical output. A generated identifier is stable per instance and collision-free, which is what makes exclusivity work with no consumer effort.
 
-## Before and after
+What a generated identifier is *not* is a meaningful submission key. **Anything that actually submits wants the consumer to pass `name`**, and the generated one is the floor that keeps the control correct until they do.
+
+### Accessible name
+
+The name comes from the `label` part. Where no `label` resolves, the group still emits, and **warns** — an unnamed group is announced as a group with nothing said about what it groups, which is close to no improvement on the container it replaced.
+
+## Specs
+
+```yaml
+anatomy:
+  root:
+    type: container
+    role: group
+  header:
+    type: slot
+    role: label
+  children:
+    type: slot
+```
+
+## Figma
+
+Annotate the component node, and the layer holding the heading:
+
+```
+role:group
+```
+```
+role:label
+```
+
+**Put the heading layer first, above the controls.** Where the design puts it elsewhere the transform still lifts it into naming position and the output is still correct — but the rendered order then stops matching the layer order, and positional CSS written against that subtree is what breaks. Authoring the heading first is the cheaper half of the bargain.
+
+## React
+
+### Authored as
+
+```tsx
+<FormGroup header={<Legend>Cabin class</Legend>} name="cabin-class">
+  <Radio value="economy" label="Economy" />
+  <Radio value="premium" label="Premium" />
+  <Radio value="business" label="Business" />
+</FormGroup>
+```
+
+The consumer passes `name` because this set submits. Omitting it still yields three mutually exclusive radios — the group generates an identifier and the options group correctly — it just submits under a generated key.
+
+### Before / After
 
 Without the role:
 
@@ -92,7 +118,7 @@ Without the role:
 </div>
 ```
 
-With the role (annotations `root#group`, `header#label`):
+With the role:
 
 ```tsx
 const groupName = p.name ?? React.useId();
@@ -105,11 +131,44 @@ const groupName = p.name ?? React.useId();
 </RadioGroupContext.Provider>
 ```
 
-Here the header is already first, so nothing moves. `disabled` becomes one attribute that really disables every control in the set, the heading is announced when focus enters it, and any radio slotted into `children` gets its grouping name without the consumer writing a line.
+`<fieldset>` is what makes `disabled` real: one attribute disables every control inside, enforced by the browser rather than by generated code. `<legend>` is announced when focus enters the set. HTML requires the legend to be the **first child**, so a heading authored elsewhere in the layer order moves here.
+
+The name reaches slotted radios through context because nothing else can reach them — the children are opaque to the component that renders them. This is the first runtime coupling the transforms emit between two components, and it is deliberate: the alternative is a prop the consumer threads identically through every option, where one miss produces two sets that silently behave as one.
+
+### Contract
+
+| Prop | Type | Tier | Generated body |
+|------|------|------|----------------|
+| `name?` | `string` | SHOULD | Overrides the generated group name |
+
+`group` adds no event handler. A group does not respond to anything; the controls inside it do.
+
+## Web Components
+
+The same `<fieldset>` and `<legend>` inside the shadow root, with one difference: there is no context, and none is needed. Slotted children are real descendants of the group's host element, so each radio walks up on connect and reads the group's name directly. No provider, no event protocol, and it re-resolves on reconnect.
+
+The host carries a plain `[disabled]` attribute alongside the inner fieldset's, so the stylesheet — which is written against the host — can still address the state. That is [precedence rule 1](/roles/precedence/#1-a-role-and-a-states-classification-emitted-once) doing its usual job, not a group-specific exception.
+
+## iOS
+
+**Nothing emits for iOS yet.** The intended binding is recorded here so a transform author has a specification rather than a guess.
+
+`group` becomes a `Section` with a header, its descendants' accessibility merged beneath it. VoiceOver announces the group name before the first control in the set. `disabled` binds to `.disabled(_:)` on the section, which propagates to its content the way `<fieldset disabled>` does.
+
+There is no separate grouping name on iOS: a `Picker` owns its options directly, so the exclusivity the web gets from a shared `name` is structural instead.
+
+## Android
+
+**Nothing emits for Android yet.** As above — intended binding, not shipped behavior.
+
+`group` becomes a container with `Modifier.semantics(mergeDescendants = true)` and a content description drawn from the `label` part. TalkBack announces the group name before the first control. `disabled` propagates through `LocalContentColor` and each control's own `enabled` parameter rather than through a single container attribute, so the transform sets it per control — the one place this concept costs more on Android than elsewhere.
+
+Exclusivity comes from `selectableGroup()` on the container, which is the Compose counterpart to a shared name.
 
 ## See also
 
-- [radio](/roles/radio/) — the control this role most often gathers, and the one that needs its `name`
-- [label](/roles/label/) — the part that becomes the `<legend>` here and a `<label htmlFor>` everywhere else
+- [radio](/roles/radio/) — the control this role most often gathers, and the one that needs its name
+- [label](/roles/label/) — the part that names the group, and names a control everywhere else
 - [errormessage](/roles/errormessage/) — group-level validation text
-- [Roles overview](/roles/) — how roles and the `states` convention fit together
+- [Precedence](/roles/precedence/) — how a role and a states classification resolve together
+- [Roles overview](/roles/) — the vocabulary and how roles are authored
