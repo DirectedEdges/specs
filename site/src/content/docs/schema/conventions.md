@@ -214,7 +214,14 @@ Exactly one of `prop` and `values` is given.
 |------|---------|
 | `text` | `typography`, `typography.fontSize`, `typography.fontFamily`, `typography.fontStyle`, `textColor`, `content` |
 | `glyph` | `width`, `height`, `fillColor`, `content` |
-| `container` | `layoutMode` |
+| `container` | `layoutMode`, `itemSpacing`, `padding`, `mainAxisAlignment`, `crossAxisAlignment`, `wrap`, `wrapAlignment` |
+
+The container set follows one principle (ADR-090): a member qualifies when its authored
+value space is **closed** — a structural enum, or a value drawn from a finite scale the
+library authors with, such as a spacing token collection — so a `values` table can
+enumerate it literally. A value that is genuinely continuous in a library has no closed
+vocabulary, matches no key, and stays styling. For `layoutMode`, an absent value matches
+a `NONE` key — a frame with no auto-layout is what `NONE` means.
 
 The dotted sources address inside the `Typography` composite. `typography` is either a token reference or that composite, never both, so `typography` and the `typography.*` sources can never both resolve — declaring both is how one entry serves a layer wearing a text style and one styled ad hoc.
 

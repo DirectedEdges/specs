@@ -53,6 +53,27 @@ const promotedNoResidue: Element = {
   $extensions: { 'com.figma': { promotedPrimitive: true } },
 };
 
+// A promoted container records the hoisted fill it held, beside the consumed styles (ADR-090)
+const promotedContainer: Element = {
+  instanceOf: 'dsLayout',
+  propConfigurations: {
+    direction: 'VERTICAL',
+    children: { $slotContent: '#/components/dsCard/slotContentExamples/dsCard__content__children' },
+  },
+  $extensions: {
+    'com.figma': {
+      promotedPrimitive: true,
+      children: { $slotContent: '#/components/dsCard/slotContentExamples/dsCard__content__children' },
+      styles: { layoutMode: 'VERTICAL' },
+    },
+  },
+};
+
+// @ts-expect-error — the extension's children is a SlotContentRef, never inline content
+const inlineExtensionChildren: Element = {
+  $extensions: { 'com.figma': { children: ['label'] } },
+};
+
 // @ts-expect-error — the extension namespace is closed
 const unknownNamespace: Element = { $extensions: { 'com.example': { promotedPrimitive: true } } };
 
