@@ -105,7 +105,7 @@ The design file cannot say where a link goes, so `href` has no source in the spe
 
 As [`button`](/roles/button/#web-components) — a real `<a>` inside the shadow root, `all: unset`, with `delegatesFocus` so the host stays one focusable box.
 
-One consequence worth knowing: a link inside a shadow root is **not** reachable by the host page's in-page fragment navigation, since ids do not cross the boundary. Anchors that target fragments on the same page should render in light DOM.
+One asymmetry worth knowing: an `href` **is** resolved against the document, so `href="#section"` from inside a shadow root navigates to a light-DOM target normally. The reverse does not hold — an `id` inside a shadow root is not addressable as a fragment target from outside, so a link elsewhere on the page cannot point *into* this component.
 
 ## iOS
 

@@ -137,7 +137,7 @@ The label must not sit inside the role element's subtree — the proxy becomes a
 
 ## Web Components
 
-Same proxy structure inside the shadow root. One consequence: a shadow-root input is **not** associated with a light-DOM `<form>` unless the component is form-associated, so `name` and `value` do not reach a surrounding form on their own.
+Same proxy structure inside the shadow root. Shadow DOM hides the inner input from a containing form, so the host participates directly through `formAssociated` and `ElementInternals`, reporting its value from `willUpdate` — see [checkbox](/roles/checkbox/#web-components).
 
 ## iOS
 

@@ -191,10 +191,9 @@ The same component as `password` differs by two lines — the emitted `type`, an
 
 ## Web Components
 
-Same collapse inside the shadow root. Two consequences:
+Same collapse inside the shadow root. Shadow DOM hides the inner input from a containing form, so the host participates directly through `formAssociated` and `ElementInternals`, reporting value and validity from `willUpdate`.
 
-- **A shadow-root input is not associated with a light-DOM `<form>`** unless the component is form-associated, so `name` and `value` do not reach a surrounding form on their own.
-- **Autofill is weaker across a shadow boundary.** Password managers heuristically match fields by their surrounding form structure, which they cannot see into. A form-associated custom element with an explicit `autocomplete` is the reliable shape.
+One thing form association does not recover: **autofill is weaker across a shadow boundary**, because password managers match fields heuristically on surrounding form structure they cannot see into. An explicit `autoComplete` matters more here than in light DOM.
 
 ## iOS
 

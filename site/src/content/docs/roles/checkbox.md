@@ -152,7 +152,7 @@ The proxy becoming a label is the single most important detail: without it the v
 
 ## Web Components
 
-Same proxy structure inside the shadow root. One consequence: a shadow-root input is **not** associated with a light-DOM `<form>` unless the component is form-associated, so `name` and `value` do not reach a surrounding form on their own.
+Same proxy structure inside the shadow root. Shadow DOM hides the inner input from a containing form, so the host participates directly: it emits `static formAssociated = true`, attaches `ElementInternals`, and reports its value and validity through them. The sync runs from `willUpdate`, so both user interaction and consumer-driven prop changes reach the form.
 
 ## iOS
 
