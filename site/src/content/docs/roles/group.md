@@ -7,15 +7,16 @@ description: "Declare that a set of controls is answered together, so it is anno
 
 `group` declares that an element gathers several related controls answered together — a set of radio buttons, a row of checkboxes, an address block. Without it each control announces its own label and nothing more, the heading that says what is being chosen is programmatically unconnected, and a `disabled` variant styles every control while disabling none.
 
-| React | Web Components | iOS | Android |
-|---|---|---|---|
-| Specified | Specified | Not yet planned | Not yet planned |
+**Status** — React: Specified • Web Components: Specified • iOS: Not yet planned • Android: Not yet planned
 
 ### Roles
 
-| Role | Type | Element | Parts |
-|---|---|---|---|
-| `group` | Control | `root`, `container` only | `label`, `description`, `errormessage` |
+| Role | Type | Element |
+|---|---|---|
+| `group` | Control | `root` of `type: container` |
+| `label` | Part | Element of `type: text` or `type: slot`, or nested instance prop of `type: string` |
+| `description` | Part | Element of `type: text` or `type: slot`, or nested instance prop of `type: string` |
+| `errormessage` | Part | Element of `type: text` or `type: slot`, or nested instance prop of `type: string` |
 
 `group` is the only control concept that is not value-bearing — there is no single control beneath it to point at, which is what makes it a group.
 

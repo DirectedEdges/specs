@@ -7,9 +7,7 @@ description: "Declare that an element is one option in a mutually exclusive set,
 
 `radio` declares that an element is one option in a mutually exclusive set. Without it the option cannot be focused, chosen, submitted, or validated, its label is an unassociated sibling, and nothing makes it exclusive with its siblings — a set behaves as unrelated toggles.
 
-| React | Web Components | iOS | Android |
-|---|---|---|---|
-| Specified | Specified | Not yet planned | Not yet planned |
+**Status** — React: Specified • Web Components: Specified • iOS: Not yet planned • Android: Not yet planned
 
 Behavior the platform supplies for a grouped set, none of which is markup:
 
@@ -20,9 +18,13 @@ Behavior the platform supplies for a grouped set, none of which is markup:
 
 ### Roles
 
-| Role | Type | Element | Parts |
-|---|---|---|---|
-| `radio` | Control | `container` | `label`, `description`, `errormessage`, `indicator` |
+| Role | Type | Element |
+|---|---|---|
+| `radio` | Control | Element of `type: container` |
+| `label` | Part | Element of `type: text` or nested instance prop of `type: string` |
+| `description` | Part | Element of `type: text` or nested instance prop of `type: string` |
+| `errormessage` | Part | Element of `type: text` or nested instance prop of `type: string` |
+| `indicator` | Part | Element of `type: container` |
 
 The role element **becomes** the control. Everything else is declared or dropped:
 
