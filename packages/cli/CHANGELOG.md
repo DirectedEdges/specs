@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`specs react --watch` and `specs webcomponents --watch` re-emit on every spec change**, so a spec edit reaches Storybook without re-running the command. Every change re-emits the whole set and re-runs `finalize`, keeping stylesheets, barrels and cross-component imports consistent; a failed component is logged and the watch continues (#219).
+
 - **A manifest run writes its metadata once**, to `latest.metadata.yaml` beside the specs, leaving every spec with `metadata.source` alone instead of the author, generator, schema, conventions and settings repeated in each file (ADR-089).
 
 ### Changed
