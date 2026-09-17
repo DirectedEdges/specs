@@ -214,18 +214,18 @@ groups by.
 | `link` | An element that navigates on activation | [link](/roles/link/) |
 | `disclosure` | A trigger that shows and hides a companion panel | [disclosure](/roles/disclosure/) |
 | `textbox` | A single-line free-text control | [textbox](/roles/textbox/) |
-| `password` | A concealed-text control | — |
-| `searchbox` | A search-text control | — |
-| `textarea` | A multi-line text control | — |
+| `password` | A concealed-text control | [textbox](/roles/textbox/) |
+| `searchbox` | A search-text control | [textbox](/roles/textbox/) |
+| `textarea` | A multi-line text control | [textbox](/roles/textbox/) |
 | `spinbutton` | A numeric control with stepper affordances | — |
 | `slider` | A control selecting a value from a range | — |
 | `checkbox` | A binary (or indeterminate) selection control | [checkbox](/roles/checkbox/) |
-| `radio` | An exclusive-selection control within a group | — |
+| `radio` | An exclusive-selection control within a group | [radio](/roles/radio/) |
 | `switch` | An on/off control with immediate effect | [switch](/roles/switch/) |
-| `group` | A fieldset grouping related controls | — |
-| `alert` | An assertive live region announcing interruptions | — |
-| `status` | A polite live region announcing transient updates | — |
-| `progressbar` | An element reporting progress toward completion | — |
+| `group` | A fieldset grouping related controls | [group](/roles/group/) |
+| `alert` | An assertive live region announcing interruptions | [status](/roles/status/) |
+| `status` | A polite live region announcing transient updates | [status](/roles/status/) |
+| `progressbar` | An element reporting progress toward completion | [status](/roles/status/) |
 
 ## Part role vocabulary
 
@@ -265,6 +265,24 @@ changes how its button is announced, so it is an action. Keeping the two apart i
 this vocabulary to concepts ARIA and the native platforms have counterparts for — the
 alternative was a role per behavior-and-control pair, such as `dismissbutton`, which no
 platform can bind to a native type.
+
+## A third key: `autocomplete`
+
+`role` and `action` both describe behavior. A third key describes **autofill**, and it
+exists because the browser's credential and address managers need a hint no other signal
+carries:
+
+```
+role:password
+autocomplete:new-password
+```
+
+It takes any [HTML autofill token](https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#autofill)
+and applies to the [text-control family](/roles/textbox/) — `email` on a `textbox`,
+`one-time-code` on a verification field, `postal-code` on an address line. It is not a
+role, by the same boundary test that separates roles from actions: `current-password`
+and `new-password` announce identically and bind to the same native type everywhere.
+Only `password` warns when it is absent.
 
 An element the component **owns** carries **at most one role**, because the question of what
 it *is* has one answer. It may carry **several actions**, because that question does not. An

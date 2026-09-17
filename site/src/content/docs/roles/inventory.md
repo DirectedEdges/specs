@@ -32,15 +32,15 @@ emitted and adds handlers to the contract.
 | [`link`](/roles/link/) | An element that navigates on activation | **Implemented** |
 | [`disclosure`](/roles/disclosure/) | A trigger that shows and hides a companion panel | **Implemented** |
 | [`textbox`](/roles/textbox/) | A single-line free-text control | **Implemented** |
-| `password` | A concealed-text control | — |
-| `searchbox` | A search-text control | — |
-| `textarea` | A multi-line text control | — |
+| [`password`](/roles/textbox/) | A concealed-text control | **Specified** |
+| [`searchbox`](/roles/textbox/) | A search-text control | **Specified** |
+| [`textarea`](/roles/textbox/) | A multi-line text control | **Specified** |
 | `spinbutton` | A numeric control with stepper affordances | — |
 | `slider` | A control selecting a value from a range | — |
 | [`checkbox`](/roles/checkbox/) | A binary (or indeterminate) selection control | **Implemented** |
-| `radio` | An exclusive-selection control within a group | — |
+| [`radio`](/roles/radio/) | An exclusive-selection control within a group | **Specified** |
 | [`switch`](/roles/switch/) | An on/off control with immediate effect | **Implemented** |
-| `group` | A fieldset grouping related controls | — |
+| [`group`](/roles/group/) | A fieldset grouping related controls | **Specified** |
 | [`alert`](/roles/status/) | An assertive live region announcing interruptions | **Implemented** |
 | [`status`](/roles/status/) | A polite live region announcing transient updates | **Implemented** |
 | [`progressbar`](/roles/status/) | An element reporting progress toward completion | **Implemented** |
@@ -64,7 +64,10 @@ not by tree position; see [precedence](/roles/precedence/).
 | `decrement` | Step-down affordance on a `spinbutton` | — |
 
 A dash means no page yet — the concept is in the vocabulary and nothing describes it
-in detail.
+in detail. `password`, `searchbox`, and `textarea` share the
+[textbox](/roles/textbox/) page, as `alert` and `progressbar` share the
+[status](/roles/status/) page: a family whose members differ only in the element
+reached for is documented once.
 
 ## See also
 
