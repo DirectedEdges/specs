@@ -3,13 +3,13 @@ title: "disclosure"
 description: "Emit an expandable trigger wired to its panel through aria-expanded and aria-controls"
 ---
 
-## About
-
 `disclosure` declares that an element is the trigger for a region that expands and collapses — an accordion header, a "show more" control. Without it the header cannot be focused or activated from the keyboard, and nothing connects it to the region it controls, so assistive technology cannot report that the control is expandable, what state it is in, or where the content went.
 
 **Status** — React: Implemented • Web Components: Implemented • iOS: Not yet planned • Android: Not yet planned
 
-### Roles
+## Roles
+
+Apply the following roles to elements:
 
 | Role | Type | Element |
 |---|---|---|
@@ -22,24 +22,13 @@ There is no `disclosure` ARIA role. The emission is a button plus two attributes
 
 The trigger and the panel are **one concept, not two**. The trigger carries the role, the region carries `panel`, and `aria-controls` follows from the pairing. The panel is usually a sibling of the trigger rather than a descendant, so parts resolve by proximity.
 
-### The role never hides the panel
-
 It emits semantics and linkage only. Visibility stays with CSS and the variant conditions the analysis already produced, so a library that animates the transition keeps working.
-
-### Degradation
-
-| Situation | Result |
-|---|---|
-| No `panel` part | `aria-expanded` only, plus a warning |
-| Panel absent in the current variant | `aria-controls` becomes conditional, matching the panel's render condition |
-| Two disclosures, ambiguous panel | **Error** naming both candidates — never a silent pick |
-| Separate collapsed / expanded label props | Warns. Only one binds to the anatomy, so an expanded trigger would announce its collapsed label |
-
-The last one is fixed by a convention in `conventions/specs.yaml` pairing the alternate text prop with the state that selects it. The `accessibility` block is shaped as objects precisely so it can grow that field.
 
 ### States
 
-| State | Effect | Classify in `states`? |
+The `disclosure` role is typically applied in conjunction with the following states:
+
+| State | Effect | Classify? |
 |---|---|---|
 | `expanded` | `aria-expanded="true"`, flipped by the wired handler | Recommended |
 | `collapsed` | `aria-expanded="false"` | Recommended |
@@ -47,13 +36,11 @@ The last one is fixed by a convention in `conventions/specs.yaml` pairing the al
 | `hover` / `active` | Native, on the trigger itself | Recommended, if the library styles it |
 | `focus` / `focus-visible` | Native focus indicator | **Optional — prefer the platform default** |
 
-### Wired state
-
-`onExpandedChange` follows [the wired state model](/roles/#the-wired-state-model): internal state seeded from the `expanded` prop, flipped on activation, then the consumer callback. The accordion opens and closes before a consumer attaches anything.
-
-Prerequisite: an `expanded` classification in the [`states` convention](/settings/states/) naming the prop. Without it the handler degrades to a stub and warns.
+Read more about [states in specs](/settings/states/).
 
 ## Specs
+
+Component anatomy typically has elements and roles like:
 
 ```yaml
 anatomy:
@@ -70,6 +57,8 @@ anatomy:
 
 ## Figma
 
+Annotate the following layers:
+
 - `header` as `role:disclosure` — on the trigger layer
 - `panel` as `role:panel` on the region it controls, wherever it sits
 - `chevron` as `role:indicator`
@@ -78,7 +67,7 @@ The panel does **not** need to be a descendant of the trigger. Siblings under a 
 
 ## React
 
-### Authored as
+### Implementation
 
 ```tsx
 <Accordion
@@ -146,6 +135,25 @@ Not yet planned. Intended binding:
 | Type | Toggleable header + `AnimatedVisibility` |
 | Semantics | `Modifier.semantics { expand() / collapse() }` |
 | Announced | "Expanded" / "collapsed"; double-tap toggles |
+
+## Additional details
+
+### Degradation
+
+| Situation | Result |
+|---|---|
+| No `panel` part | `aria-expanded` only, plus a warning |
+| Panel absent in the current variant | `aria-controls` becomes conditional, matching the panel's render condition |
+| Two disclosures, ambiguous panel | **Error** naming both candidates — never a silent pick |
+| Separate collapsed / expanded label props | Warns. Only one binds to the anatomy, so an expanded trigger would announce its collapsed label |
+
+The last one is fixed by a convention in `conventions/specs.yaml` pairing the alternate text prop with the state that selects it. The `accessibility` block is shaped as objects precisely so it can grow that field.
+
+### Wired state
+
+`onExpandedChange` follows [the wired state model](/roles/#the-wired-state-model): internal state seeded from the `expanded` prop, flipped on activation, then the consumer callback. The accordion opens and closes before a consumer attaches anything.
+
+Prerequisite: an `expanded` classification in the [`states` convention](/settings/states/) naming the prop. Without it the handler degrades to a stub and warns.
 
 ## See also
 

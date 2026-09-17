@@ -3,13 +3,13 @@ title: "checkbox"
 description: "Inject a native checkbox input beside the visual control so the component can be checked, focused, and submitted"
 ---
 
-## About
-
 `checkbox` declares that an element is a binary (or indeterminate) selection control. Without it the control carries `aria-selected` — a listbox-option attribute — and an inert `aria-checked`. It cannot be focused, checked, submitted, or validated; the label is an unassociated sibling; the error message rendered only when invalid is announced to no one; and the `:checked`, `:disabled`, and `:indeterminate` selectors the `css` transformer emits match nothing.
 
 **Status** — React: Implemented • Web Components: Implemented • iOS: Not yet planned • Android: Not yet planned
 
-### Roles
+## Roles
+
+Apply the following roles to elements:
 
 | Role | Type | Element |
 |---|---|---|
@@ -33,7 +33,9 @@ The proxy's whole footprint activates the input through HTML's own label behavio
 
 ### States
 
-| State | Effect | Classify in `states`? |
+The `checkbox` role is typically applied in conjunction with the following states:
+
+| State | Effect | Classify? |
 |---|---|---|
 | `checked` | Native `checked`, flipped by the wired handler | Recommended |
 | `indeterminate` | Native `.indeterminate` DOM property, set via a ref effect | Recommended |
@@ -54,30 +56,11 @@ The platform draws its ring around the *focused* element, which is the hidden in
 
 `outline-style: auto` asks for the platform's own ring rather than imitating it. The input is injected immediately before the proxy, so the adjacent-sibling selector holds by construction. Override the same selector for a custom indicator.
 
-### Enum-valued state props
-
-A checked fact is boolean, but libraries routinely carry it in a three-value enum (`unselected` / `selected` / `indeterminate`). The mapping is declared entirely by the [`states` classification](/settings/states/), and the rule applies to every wired role reading an enum prop, not just this one.
-
-| Rule | Detail |
-|---|---|
-| Naming the value | `selected: { prop: selected, value: Selected }`. Without a `value`, the concept's own name is the value — `checked: { prop: state }` means `state === "checked"` |
-| Normalization | Enum values are lowercased in the emitted contract, and every generated comparison matches that spelling |
-| Write-back | A boolean prop is assigned directly; an enum prop is written to the declared checked value on check and the remaining arm on uncheck |
-| Tri-state | The flip only rewrites the checked/unchecked pair, so an `indeterminate` value set by the consumer survives until the user operates the control |
-
-Nothing here is decided by the transform — which prop, and which value counts as checked, both come from the classification.
-
-### Wired state
-
-`onChange` follows [the wired state model](/roles/#the-wired-state-model): internal state seeded from the checked prop, flipped on activation, consumer callback after.
-
-Prerequisite: a `checked` classification naming the prop. Without it the handler degrades to a stub and warns.
-
-### Accessible name
-
-From the `label` part, emitted as a real `<label>` associated by `htmlFor`. The click-target proxy is `aria-hidden` and contributes nothing.
+Read more about [states in specs](/settings/states/).
 
 ## Specs
+
+Component anatomy typically has elements and roles like:
 
 ```yaml
 anatomy:
@@ -99,6 +82,8 @@ anatomy:
 
 ## Figma
 
+Annotate the following layers:
+
 - `control` as `role:checkbox` — on the layer drawing the box, and nothing beyond it
 - the check mark as `role:indicator`
 - `label` as `role:label` on a `text` element or through a nested instance
@@ -108,7 +93,7 @@ The label must not sit inside the role element's subtree — the proxy becomes a
 
 ## React
 
-### Authored as
+### Implementation
 
 ```tsx
 <Checkbox label="Send me trip updates" checked={on} onChange={(e) => setOn(e.target.checked)} />
@@ -175,6 +160,31 @@ Not yet planned. Intended binding:
 | Announced | "Checked" / "not checked"; double-tap toggles |
 | `indeterminate` | `TriStateCheckbox` with `ToggleableState.Indeterminate` |
 | `indicator` | Partly consumed — `CheckboxDefaults.colors` takes box and mark colors |
+
+## Additional details
+
+### Enum-valued state props
+
+A checked fact is boolean, but libraries routinely carry it in a three-value enum (`unselected` / `selected` / `indeterminate`). The mapping is declared entirely by the [`states` classification](/settings/states/), and the rule applies to every wired role reading an enum prop, not just this one.
+
+| Rule | Detail |
+|---|---|
+| Naming the value | `selected: { prop: selected, value: Selected }`. Without a `value`, the concept's own name is the value — `checked: { prop: state }` means `state === "checked"` |
+| Normalization | Enum values are lowercased in the emitted contract, and every generated comparison matches that spelling |
+| Write-back | A boolean prop is assigned directly; an enum prop is written to the declared checked value on check and the remaining arm on uncheck |
+| Tri-state | The flip only rewrites the checked/unchecked pair, so an `indeterminate` value set by the consumer survives until the user operates the control |
+
+Nothing here is decided by the transform — which prop, and which value counts as checked, both come from the classification.
+
+### Wired state
+
+`onChange` follows [the wired state model](/roles/#the-wired-state-model): internal state seeded from the checked prop, flipped on activation, consumer callback after.
+
+Prerequisite: a `checked` classification naming the prop. Without it the handler degrades to a stub and warns.
+
+### Accessible name
+
+From the `label` part, emitted as a real `<label>` associated by `htmlFor`. The click-target proxy is `aria-hidden` and contributes nothing.
 
 ## See also
 

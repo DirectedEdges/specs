@@ -3,15 +3,15 @@ title: "value"
 description: "Mark the text element that stands in for a control's value during collapse"
 ---
 
-## About
-
 `value` marks the text element standing in for a control's value in the design. A designed text input is a stack of styled layers — a value text node, a placeholder text node, decorations, wrappers — where a native control is one element with attributes. Collapse replaces the stack, driven by annotation rather than discovery: without `value` the transform would have to guess which text node is the value.
 
 **Status** — React: Implemented • Web Components: Implemented • iOS: Not yet planned • Android: Not yet planned
 
 The name is specs-native. ARIA has no vocabulary for pieces of a component, so the part vocabulary supplies one.
 
-### Roles
+## Roles
+
+Apply the following roles to elements:
 
 | Role | Type | Element |
 |---|---|---|
@@ -24,32 +24,9 @@ The name is specs-native. ARIA has no vocabulary for pieces of a component, so t
 | The `placeholder` element | **Consumed** into the control's `placeholder` attribute |
 | The resolved control | Renders with that value; its own contract carries the change signal |
 
-### What happens to everything else
-
-Unannotated descendants of a collapsing control do not render — the author declared what mattered by annotating it.
-
-| Descendant | Result |
-|---|---|
-| Bare wrapper | Dropped silently |
-| Text, glyph, image, or composed instance | Dropped, named in a warning |
-| A `slot` | Dropped, named in a warning |
-| A non-part role | Dropped, named in a warning |
-
-Chrome that should keep rendering — icons, affordance buttons — belongs **beside** the collapsing container, not inside it.
-
-### Resolution
-
-- Accepted only by value-bearing concepts (`textbox`, `password`, `searchbox`, `spinbutton`, `slider`, `textarea`), so it resolves to the component's single value-bearing control wherever either sits. No tree walk, no ambiguity.
-- At most one element per part per control. Two elements claiming `value` is an error naming both.
-- A `value` with no candidate control is valid and self-describing — it emits no wiring, which arrives on composition.
-
-### Contract
-
-None. `value` tells the control where its value lives; the control's own role carries the event surface. Its `onChange` fires on every keystroke for the text family, or on drag and arrow keys for `slider`.
-
-The only parts carrying handlers sit beside `value` on a `spinbutton`: `increment` and `decrement` emit real buttons whose `onClick` calls `stepUp()` / `stepDown()` on the control. Both delegate rather than owning behavior.
-
 ## Specs
+
+Component anatomy typically has elements and roles like:
 
 ```yaml
 anatomy:
@@ -66,6 +43,8 @@ anatomy:
 
 ## Figma
 
+Annotate the following layers:
+
 - the value text layer as `role:value`
 - the placeholder text layer as `role:placeholder`
 
@@ -73,7 +52,7 @@ Land the control's role on the container holding **only** these layers. Anything
 
 ## React
 
-### Authored as
+### Implementation
 
 Nothing. `value` is a declaration the component acts on for itself; consumers address the control's `value` prop.
 
@@ -97,7 +76,9 @@ Nothing. `value` is a declaration the component acts on for itself; consumers ad
 
 ### Contract
 
-None.
+None. `value` tells the control where its value lives; the control's own role carries the event surface. Its `onChange` fires on every keystroke for the text family, or on drag and arrow keys for `slider`.
+
+The only parts carrying handlers sit beside `value` on a `spinbutton`: `increment` and `decrement` emit real buttons whose `onClick` calls `stepUp()` / `stepDown()` on the control. Both delegate rather than owning behavior.
 
 ## Web Components
 
@@ -120,6 +101,27 @@ Not yet planned. Intended binding:
 |---|---|
 | Emits | The text field state's value |
 | `placeholder` | The `placeholder` slot |
+
+## Additional details
+
+### What happens to everything else
+
+Unannotated descendants of a collapsing control do not render — the author declared what mattered by annotating it.
+
+| Descendant | Result |
+|---|---|
+| Bare wrapper | Dropped silently |
+| Text, glyph, image, or composed instance | Dropped, named in a warning |
+| A `slot` | Dropped, named in a warning |
+| A non-part role | Dropped, named in a warning |
+
+Chrome that should keep rendering — icons, affordance buttons — belongs **beside** the collapsing container, not inside it.
+
+### Resolution
+
+- Accepted only by value-bearing concepts (`textbox`, `password`, `searchbox`, `spinbutton`, `slider`, `textarea`), so it resolves to the component's single value-bearing control wherever either sits. No tree walk, no ambiguity.
+- At most one element per part per control. Two elements claiming `value` is an error naming both.
+- A `value` with no candidate control is valid and self-describing — it emits no wiring, which arrives on composition.
 
 ## See also
 

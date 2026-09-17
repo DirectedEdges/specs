@@ -23,7 +23,7 @@ The role element becomes the control itself. `label`, `description`, and `errorm
 
 Unannotated descendants do not render. A bare wrapper drops silently; anything carrying content of its own is dropped and named in a warning.
 
-### Related States
+### States
 
 The `radio` role is typically applied in conjunction with the following states:
 

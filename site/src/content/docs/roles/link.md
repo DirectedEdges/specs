@@ -3,15 +3,15 @@ title: "link"
 description: "Emit a real anchor with href, so navigation is announced, focusable, and copyable"
 ---
 
-## About
-
 `link` declares that an element navigates to another location when activated. Without it the element cannot be tabbed to, Enter does nothing, and there is no `href` for a consumer to point anywhere.
 
 **Status** — React: Implemented • Web Components: Implemented • iOS: Not yet planned • Android: Not yet planned
 
 An anchor rather than a button, and the distinction is not cosmetic: a link is announced as a link, opens in a new tab on modifier-click, appears in a screen reader's links list, and is dragged and copied as a URL. A button does none of that.
 
-### Roles
+## Roles
+
+Apply the following roles to elements:
 
 | Role | Type | Element |
 |---|---|---|
@@ -22,7 +22,9 @@ A `glyph` carrying the role is re-hosted inside the anchor rather than becoming 
 
 ### States
 
-| State | Effect | Classify in `states`? |
+The `link` role is typically applied in conjunction with the following states:
+
+| State | Effect | Classify? |
 |---|---|---|
 | `disabled` | **Drops `href`** and announces `aria-disabled` | Recommended |
 | `current` | `aria-current="true"` | Recommended |
@@ -34,15 +36,11 @@ Two decisions earlier emission made silently:
 - **An anchor has no `disabled` property.** Dropping `href` is what actually removes it from the tab order; `aria-disabled` alone announces a state the element does not enforce. The `css` transformer's disabled selector special-cases anchors to match.
 - **`current` emits the generic token**, `aria-current="true"`, matching the states table's canonical selector. An earlier emission wrote `aria-current="page"`, which no stylesheet selector matched.
 
-### Accessible name
-
-| Source | Result |
-|---|---|
-| The link's own text | Names it |
-| The `accessibility.label` convention's prop | Emitted as `aria-label` |
-| Nothing resolves | **Warns** |
+Read more about [states in specs](/settings/states/).
 
 ## Specs
+
+Component anatomy typically has elements and roles like:
 
 ```yaml
 anatomy:
@@ -55,6 +53,8 @@ anatomy:
 
 ## Figma
 
+Annotate the following layers:
+
 - `root` as `role:link` — on the component node, or on an inline `text` element
 - `label` as `role:label` where the link's name is not its own text
 
@@ -62,7 +62,7 @@ The design file cannot say where a link goes, so `href` has no source in the spe
 
 ## React
 
-### Authored as
+### Implementation
 
 ```tsx
 <InlineLink href="/pricing">See pricing</InlineLink>
@@ -126,6 +126,16 @@ Not yet planned. Intended binding:
 | Type | Clickable text with link semantics |
 | Announced | As a link; double-tap opens it |
 | `disabled` | Clickable removed; text remains |
+
+## Additional details
+
+### Accessible name
+
+| Source | Result |
+|---|---|
+| The link's own text | Names it |
+| The `accessibility.label` convention's prop | Emitted as `aria-label` |
+| Nothing resolves | **Warns** |
 
 ## See also
 

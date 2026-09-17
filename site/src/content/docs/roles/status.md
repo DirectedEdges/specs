@@ -3,15 +3,15 @@ title: "status, alert, and progressbar"
 description: "Announce content that changes after load through live regions and progress semantics"
 ---
 
-## About
-
 Three roles cover content that appears or changes after load and must be announced without moving focus: `status` for transient confirmations, `alert` for interruptions, and `progressbar` for determinate or indeterminate progress. A toast that fades in, a validation summary on submit, and a progress bar that fills are all silent to a screen reader user unless the region is declared live **before** the content changes.
 
 **Status** — React: Implemented • Web Components: Implemented • iOS: Not yet planned • Android: Not yet planned
 
 There is no partial credit: a live region declared *after* its content arrives announces nothing. Because the declaration must be in the markup up front, this is exactly the kind of signal a spec can carry and a runtime cannot infer.
 
-### Roles
+## Roles
+
+Apply the following roles to elements:
 
 | Role | Type | Element |
 |---|---|---|
@@ -27,47 +27,21 @@ All three are literal WAI-ARIA role tokens, so the emission is `role="<name>"` d
 | `status` | `role="status"` |
 | `progressbar` | `role="progressbar"` + `aria-valuemin` / `aria-valuemax` / `aria-valuenow` |
 
-### Choosing alert or status
-
-A declaration of interruption severity, and the designer's to make — nothing in the markup can derive one from the other.
-
-| Role | Politeness | Use for |
-|---|---|---|
-| `alert` | Assertive — interrupts whatever is being read | Errors, session expiry, destructive-action warnings |
-| `status` | Polite — waits for a pause | Save confirmations, transient toasts, result counts |
-
-Choosing `alert` for a routine confirmation makes an application hostile to screen reader users, because every toast cuts off the sentence in progress. Choosing `status` for a genuine error means the error may not be announced until the user stops interacting.
-
-### Determinate and indeterminate progress
-
-The split comes from the `value` convention in `conventions/specs.yaml`, never from a prop-name guess, and carries two members:
-
-| Member | Names |
-|---|---|
-| `prop` | The prop carrying progress |
-| `indeterminate` | A boolean prop forcing the indeterminate presentation regardless of value |
-
-Two members are necessary because many libraries model an indeterminate loading bar with a boolean and no value prop at all. A value-only mechanism would discard the one signal such a component carries.
-
-Resolution order:
-
-1. An `indeterminate` binding that is true suppresses `aria-valuenow`
-2. Otherwise a resolved `value` binding produces the determinate form
-3. Otherwise the indeterminate form is emitted, with a warning
-
-### An announcement region may contain a control
-
-A toast with a dismiss affordance is the common case. That affordance is an instance carrying its own [`button`](/roles/button/) role in its own spec; the containing `status` is unaffected. This is the sanctioned form of two roles in one rendered tree — different elements, different specs.
-
 ### States
 
-| State | Effect | Classify in `states`? |
+These roles are typically applied in conjunction with the following states:
+
+| State | Effect | Classify? |
 |---|---|---|
 | `busy` | `aria-busy` on `status` and `progressbar` | Recommended |
 
-The role does not replace the classification: the Figma variant prop carrying `busy` still wants an entry in the [`states` convention](/settings/states/).
+The role does not replace the classification — the variant prop carrying `busy` still wants an entry.
+
+Read more about [states in specs](/settings/states/).
 
 ## Specs
+
+Component anatomy typically has elements and roles like:
 
 ```yaml
 anatomy:
@@ -81,6 +55,8 @@ anatomy:
 
 ## Figma
 
+Annotate the following layers:
+
 - `root` as `role:status` or `role:alert` — on the component node
 - a loading or progress component's `root` as `role:progressbar`
 - a dismiss affordance keeps its own `role:button` in **its own** component, not here
@@ -89,7 +65,7 @@ For `progressbar`, declare the value binding in `conventions/specs.yaml`. A prog
 
 ## React
 
-### Authored as
+### Implementation
 
 ```tsx
 <Toast>Trip saved.</Toast>
@@ -160,6 +136,40 @@ Not yet planned. Intended binding:
 | `status` | `liveRegion = LiveRegionMode.Polite` |
 | `progressbar` | `LinearProgressIndicator` with `progressBarRangeInfo` |
 | Announced | The change is spoken without moving focus |
+
+## Additional details
+
+### Choosing alert or status
+
+A declaration of interruption severity, and the designer's to make — nothing in the markup can derive one from the other.
+
+| Role | Politeness | Use for |
+|---|---|---|
+| `alert` | Assertive — interrupts whatever is being read | Errors, session expiry, destructive-action warnings |
+| `status` | Polite — waits for a pause | Save confirmations, transient toasts, result counts |
+
+Choosing `alert` for a routine confirmation makes an application hostile to screen reader users, because every toast cuts off the sentence in progress. Choosing `status` for a genuine error means the error may not be announced until the user stops interacting.
+
+### Determinate and indeterminate progress
+
+The split comes from the `value` convention in `conventions/specs.yaml`, never from a prop-name guess, and carries two members:
+
+| Member | Names |
+|---|---|
+| `prop` | The prop carrying progress |
+| `indeterminate` | A boolean prop forcing the indeterminate presentation regardless of value |
+
+Two members are necessary because many libraries model an indeterminate loading bar with a boolean and no value prop at all. A value-only mechanism would discard the one signal such a component carries.
+
+Resolution order:
+
+1. An `indeterminate` binding that is true suppresses `aria-valuenow`
+2. Otherwise a resolved `value` binding produces the determinate form
+3. Otherwise the indeterminate form is emitted, with a warning
+
+### An announcement region may contain a control
+
+A toast with a dismiss affordance is the common case. That affordance is an instance carrying its own [`button`](/roles/button/) role in its own spec; the containing `status` is unaffected. This is the sanctioned form of two roles in one rendered tree — different elements, different specs.
 
 ## See also
 

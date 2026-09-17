@@ -3,8 +3,6 @@ title: "textbox, password, searchbox, and textarea"
 description: "Collapse the elements standing in for a text control into a native input with label association and a change contract"
 ---
 
-## About
-
 Four roles cover free-text entry. Without one, a text input is a stack of styled text elements standing in for a control — a label span, a conditional placeholder span, a value span — with no input anywhere. The component is render-only: no focus, no typing, no form participation, no label association, and the `:placeholder-shown`, `:disabled`, and `:focus-visible` selectors the `css` transformer emits target states the markup can never enter.
 
 **Status** — React: Implemented • Web Components: Implemented • iOS: Not yet planned • Android: Not yet planned
@@ -20,7 +18,9 @@ They are four concepts rather than one with a modifier because the difference is
 
 Everything below applies to all four unless marked otherwise.
 
-### Roles
+## Roles
+
+Apply the following roles to elements:
 
 | Role | Type | Element |
 |---|---|---|
@@ -51,37 +51,11 @@ Land the role on the container holding **only** the control's own layers. Leadin
 
 A password field's reveal affordance is the clearest case: it is a control in its own right, usually an icon button instance, and carries [`button`](/roles/button/) as a **sibling** of the collapsing container. Inside, it is dropped with a warning.
 
-### Where `textarea` differs
-
-`<textarea>` has no `value` attribute — its value is its content.
-
-- Never self-closing. An empty field emits no children rather than `value=""`
-- `rows` is emitted where the spec carries a height expressible as a line count; otherwise the stylesheet governs
-- `type` is never emitted — the element carries no `type` attribute
-
-### Where `searchbox` differs
-
-`<input type="search">` brings a user-agent clear affordance the design did not draw. The `css` transformer suppresses it alongside the other UA resets. Where the design draws its own clear affordance, it is a `button` sibling of the collapsing container, as the password reveal is.
-
-### Autofill is the consumer's to set
-
-A text field with no `autocomplete` is handled badly by browsers and password managers, so the prop is in the contract and the generated code says it should be set. The transform will not choose a value: the same password component is `current-password` on a sign-in form and `new-password` on a registration form, and guessing one harms the other.
-
-Nor is it annotated. Annotations carry two **categorical** keys, `role` and `action`, each naming a concept from a governed vocabulary. Autofill is neither identity nor behavior; it is one of a long tail of platform attributes — input mode, spellcheck, enterkeyhint — and admitting the first makes the annotation surface an API with no principle saying where it stops.
-
-The obligation is made visible instead:
-
-```tsx
-/**
- * Autofill hint. Set this — a password field without one autofills badly.
- * `current-password` on a sign-in form, `new-password` on a registration form.
- */
-autoComplete?: string;
-```
-
 ### States
 
-| State | Effect | Classify in `states`? |
+These roles are typically applied in conjunction with the following states:
+
+| State | Effect | Classify? |
 |---|---|---|
 | `disabled` | Natively disabled, enforced by the platform | Recommended |
 | `readonly` | Native `readonly` | Recommended |
@@ -91,17 +65,11 @@ autoComplete?: string;
 | `hover` / `active` | Native, on the control itself | Recommended, if the library styles it |
 | `focus` / `focus-visible` | Native focus indicator | **Optional — prefer the platform default** |
 
-### Wired state
-
-`onChange` follows [the wired state model](/roles/#the-wired-state-model): internal state seeded from the value prop, set on input, consumer callback after. The field is typeable before a consumer attaches anything.
-
-Prerequisite: a resolved `value` binding, either an existing variant prop or the `value` convention in `conventions/specs.yaml`. Without it the handler degrades to a stub and warns.
-
-### Accessible name
-
-From the `label` part, lifted out beside the control and associated by `htmlFor`.
+Read more about [states in specs](/settings/states/).
 
 ## Specs
+
+Component anatomy typically has elements and roles like:
 
 ```yaml
 anatomy:
@@ -121,6 +89,8 @@ anatomy:
 
 ## Figma
 
+Annotate the following layers:
+
 - the field container as `role:textbox` — or `password`, `searchbox`, `textarea`
 - the value text layer as `role:value`
 - the placeholder text layer as `role:placeholder`
@@ -131,7 +101,7 @@ The container must hold **only** those layers. Icons and affordance buttons go b
 
 ## React
 
-### Authored as
+### Implementation
 
 ```tsx
 <TextInput label="Email address" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -220,6 +190,46 @@ Not yet planned. Intended binding:
 | `textarea` | `TextField(singleLine = false)` |
 
 **One type plus three parameter values**, where web has four spellings and iOS three types plus a modifier. Carrying the distinction in the concept name is what lets each transform map it with a lookup table; collapsing to one concept with modifier fields would move the same information into a second schema surface without removing any of it.
+
+## Additional details
+
+### Where `textarea` differs
+
+`<textarea>` has no `value` attribute — its value is its content.
+
+- Never self-closing. An empty field emits no children rather than `value=""`
+- `rows` is emitted where the spec carries a height expressible as a line count; otherwise the stylesheet governs
+- `type` is never emitted — the element carries no `type` attribute
+
+### Where `searchbox` differs
+
+`<input type="search">` brings a user-agent clear affordance the design did not draw. The `css` transformer suppresses it alongside the other UA resets. Where the design draws its own clear affordance, it is a `button` sibling of the collapsing container, as the password reveal is.
+
+### Autofill is the consumer's to set
+
+A text field with no `autocomplete` is handled badly by browsers and password managers, so the prop is in the contract and the generated code says it should be set. The transform will not choose a value: the same password component is `current-password` on a sign-in form and `new-password` on a registration form, and guessing one harms the other.
+
+Nor is it annotated. Annotations carry two **categorical** keys, `role` and `action`, each naming a concept from a governed vocabulary. Autofill is neither identity nor behavior; it is one of a long tail of platform attributes — input mode, spellcheck, enterkeyhint — and admitting the first makes the annotation surface an API with no principle saying where it stops.
+
+The obligation is made visible instead:
+
+```tsx
+/**
+ * Autofill hint. Set this — a password field without one autofills badly.
+ * `current-password` on a sign-in form, `new-password` on a registration form.
+ */
+autoComplete?: string;
+```
+
+### Wired state
+
+`onChange` follows [the wired state model](/roles/#the-wired-state-model): internal state seeded from the value prop, set on input, consumer callback after. The field is typeable before a consumer attaches anything.
+
+Prerequisite: a resolved `value` binding, either an existing variant prop or the `value` convention in `conventions/specs.yaml`. Without it the handler degrades to a stub and warns.
+
+### Accessible name
+
+From the `label` part, lifted out beside the control and associated by `htmlFor`.
 
 ## See also
 

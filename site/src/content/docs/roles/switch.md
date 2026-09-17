@@ -3,13 +3,13 @@ title: "switch"
 description: "Inject a native input announced as a switch, so the on/off state is keyboard-operable and heard"
 ---
 
-## About
-
 `switch` declares an on/off control whose change takes effect immediately — no submit, no confirm. Without it the control is a container drawing a track and a handle: it cannot be focused or flipped from the keyboard, and its condition reaches assistive technology as a `data-*` attribute if at all, so a screen reader announces the same thing whether it is on or off.
 
 **Status** — React: Implemented • Web Components: Implemented • iOS: Not yet planned • Android: Not yet planned
 
-### Roles
+## Roles
+
+Apply the following roles to elements:
 
 | Role | Type | Element |
 |---|---|---|
@@ -31,22 +31,13 @@ The proxy's whole footprint activates the input through HTML's own label behavio
 
 A switch's track, handle, and state glyphs are all drawn state. Each carries [`indicator`](/roles/indicator/) and is hidden, so the state announces once, from the input.
 
-### How it differs from its neighbors
-
-| | `switch` | [`checkbox`](/roles/checkbox/) | [`togglebutton`](/roles/togglebutton/) |
-|---|---|---|---|
-| Element | `<input role="switch">` | `<input type="checkbox">` | `<button>` |
-| State attribute | `aria-checked`, announced "on"/"off" | Native checked, announced "checked" | `aria-pressed` |
-| Immediacy | Applies at once | Usually submits with a form | Applies at once |
-| Indeterminate | None — binary by definition | Native `.indeterminate` | None |
-
-They do not collapse into one implementation: a togglebutton is a button that stays pressed; a switch and a checkbox are form controls whose announcements differ because their timing differs.
-
 ### States
+
+The `switch` role is typically applied in conjunction with the following states:
 
 The switch reads the `checked` classification, falling back to `selected` — libraries split this one fact across both vocabularies, and a switch's prop is routinely the same `selected` boolean its checkbox sibling uses. Precedence suppresses by prop, so whichever concept binds, the fact announces once.
 
-| State | Effect | Classify in `states`? |
+| State | Effect | Classify? |
 |---|---|---|
 | `checked` / `selected` | Native checked, announced on/off via `role="switch"` | Recommended |
 | `disabled` | Natively disabled | Recommended |
@@ -63,15 +54,11 @@ The focus ring reaches the visible proxy through the adjacent-sibling selector t
 
 Override that selector to draw a custom indicator.
 
-### Wired state
-
-`onChange` follows [the wired state model](/roles/#the-wired-state-model): internal state seeded from the classified prop, flipped on activation, consumer callback after. Without a binding it degrades to a stub and warns.
-
-### Accessible name
-
-From the `label` part — owned or routed through a composed label component — emitted as a real `<label htmlFor>`. The click-target proxy is `aria-hidden` and contributes nothing to the name.
+Read more about [states in specs](/settings/states/).
 
 ## Specs
+
+Component anatomy typically has elements and roles like:
 
 ```yaml
 anatomy:
@@ -92,6 +79,8 @@ anatomy:
 
 ## Figma
 
+Annotate the following layers:
+
 - `action` as `role:switch` — on the layer drawing the track, and nothing beyond it
 - `track`, `handle`, and any state glyph as `role:indicator`
 - `label` as `role:label` on a `text` element or through a nested instance
@@ -100,7 +89,7 @@ The label must not sit inside the role element's subtree — the proxy becomes a
 
 ## React
 
-### Authored as
+### Implementation
 
 ```tsx
 <Switch label="Email notifications" checked={on} onChange={(e) => setOn(e.target.checked)} />
@@ -158,6 +147,16 @@ Not yet planned. Intended binding:
 | Type | `Switch` with `Role.Switch` |
 | Announced | "On" / "off"; double-tap flips it |
 | `indicator` | Partly consumed — `SwitchDefaults.colors` takes track and thumb colors |
+
+## Additional details
+
+### Wired state
+
+`onChange` follows [the wired state model](/roles/#the-wired-state-model): internal state seeded from the classified prop, flipped on activation, consumer callback after. Without a binding it degrades to a stub and warns.
+
+### Accessible name
+
+From the `label` part — owned or routed through a composed label component — emitted as a real `<label htmlFor>`. The click-target proxy is `aria-hidden` and contributes nothing to the name.
 
 ## See also
 

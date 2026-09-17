@@ -3,13 +3,13 @@ title: "button"
 description: "Emit a native button that focuses, activates from the keyboard, and carries an onClick contract"
 ---
 
-## About
-
 `button` declares that an element performs an action when activated. Without it the element cannot be tabbed to, Enter and Space do nothing, the generated props carry no `onClick` for a consumer to attach to, and a disabled state renders as an `aria-disabled` attribute the element cannot enforce — so a greyed-out button still receives clicks.
 
 **Status** — React: Implemented • Web Components: Implemented • iOS: Not yet planned • Android: Not yet planned
 
-### Roles
+## Roles
+
+Apply the following roles to elements:
 
 | Role | Type | Element |
 |---|---|---|
@@ -29,7 +29,9 @@ Descendants that would otherwise emit as `<div>` emit as `<span>`: a button may 
 
 ### States
 
-| State | Effect | Classify in `states`? |
+The `button` role is typically applied in conjunction with the following states:
+
+| State | Effect | Classify? |
 |---|---|---|
 | `disabled` | Natively disabled — unfocusable and unclickable, enforced by the platform | Recommended |
 | `hover` / `active` | Native, on the button itself | Recommended, if the library styles it |
@@ -39,22 +41,11 @@ Platforms ship a focus indicator that already meets contrast requirements. Speci
 
 Unclassified props still work — they emit as `data-*` attributes for styling.
 
-### Accessible name
-
-| Source | Result |
-|---|---|
-| Text the button already contains | Names it; no `label` part needed |
-| `label` part | Names it |
-| A prop nominated as the accessible-name source | Emitted as the platform's label — the icon-only case |
-| Nothing resolves | **Warns.** A correctly-marked button that announces nothing is worse than the container it replaced |
-
-### `onClick` is a stub, deliberately
-
-A click on a button means whatever the consumer decides, and the design file cannot say what. The transform calls the prop and does nothing else.
-
-This is where `button` differs from [togglebutton](/roles/togglebutton/), which owns a state the click changes and so gets real generated logic.
+Read more about [states in specs](/settings/states/).
 
 ## Specs
+
+Component anatomy typically has elements and roles like:
 
 ```yaml
 anatomy:
@@ -71,6 +62,8 @@ anatomy:
 
 ## Figma
 
+Annotate the following layers:
+
 - `root` as `role:button` — on the component node
 - `label` as `role:label` on a `text` element or through a nested instance
 - decorative glyphs as `role:indicator`
@@ -79,7 +72,7 @@ An icon-only button needs a name it cannot get from content. Nominate the prop c
 
 ## React
 
-### Authored as
+### Implementation
 
 ```tsx
 <Button onClick={() => save()}>Save</Button>
@@ -151,6 +144,23 @@ Not yet planned. Intended binding:
 | Announced | "Button"; double-tap activates |
 | `disabled` | `enabled = false` |
 | Focus | Joins the accessibility focus order |
+
+## Additional details
+
+### Accessible name
+
+| Source | Result |
+|---|---|
+| Text the button already contains | Names it; no `label` part needed |
+| `label` part | Names it |
+| A prop nominated as the accessible-name source | Emitted as the platform's label — the icon-only case |
+| Nothing resolves | **Warns.** A correctly-marked button that announces nothing is worse than the container it replaced |
+
+### `onClick` is a stub, deliberately
+
+A click on a button means whatever the consumer decides, and the design file cannot say what. The transform calls the prop and does nothing else.
+
+This is where `button` differs from [togglebutton](/roles/togglebutton/), which owns a state the click changes and so gets real generated logic.
 
 ## See also
 

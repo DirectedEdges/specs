@@ -20,7 +20,7 @@ Apply the following roles to elements:
 
 `label` names the group itself rather than pointing at a control, and must render first. The heading is usually a `slot`, and `label` on a slot means *whatever is slotted here names this group* — the naming element wraps the slot rather than replacing anything inside it.
 
-### Related States
+### States
 
 The `group` role is typically applied in conjunction with the following states:
 

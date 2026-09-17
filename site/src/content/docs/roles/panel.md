@@ -3,15 +3,15 @@ title: "panel"
 description: "Mark the region a disclosure controls, generating the id that aria-controls points at"
 ---
 
-## About
-
 `panel` marks the region a [disclosure](/roles/disclosure/) trigger expands and collapses. `aria-expanded` tells assistive technology that something expands; it does not say *what*. Without the linkage a screen reader user hears that a control is expanded and must hunt for the content in reading order.
 
 **Status** — React: Implemented • Web Components: Implemented • iOS: Not yet planned • Android: Not yet planned
 
 This is the only way to supply that half of the pattern, because ids are generated at render and cannot be authored.
 
-### Roles
+## Roles
+
+Apply the following roles to elements:
 
 | Role | Type | Element |
 |---|---|---|
@@ -24,26 +24,9 @@ This is the only way to supply that half of the pattern, because ids are generat
 
 The panel's tag, classes, and children are unchanged. The role adds linkage, never show/hide logic.
 
-### Resolution
-
-`disclosure` is not value-bearing, so `panel` resolves by proximity:
-
-1. The candidate disclosure whose subtree contains the panel, if there is one
-2. Otherwise the candidate that is the panel's closest sibling-path ancestor's child
-
-| Situation | Result |
-|---|---|
-| Panel is a sibling of its trigger | Resolves — the usual shape, and what the proximity rule exists for |
-| Two disclosures, ambiguous panel | **Error** naming the panel and every candidate |
-| No `disclosure` in the component | Valid. Emits the id, no wiring — the component *provides* a panel, and wiring arrives on composition |
-
-### Contract
-
-None. `panel` adds an `id` to its own element and an attribute to a different one. The expansion event belongs to the trigger, which owns `onExpandedChange`.
-
-The only parts carrying handlers are `increment` and `decrement`.
-
 ## Specs
+
+Component anatomy typically has elements and roles like:
 
 ```yaml
 anatomy:
@@ -57,13 +40,15 @@ anatomy:
 
 ## Figma
 
+Annotate the following layers:
+
 - `panel` as `role:panel` — on the region the trigger controls
 
 It does not need to be a descendant of the trigger.
 
 ## React
 
-### Authored as
+### Implementation
 
 Nothing. `panel` is wiring the component emits for itself; a consumer never addresses it.
 
@@ -81,7 +66,9 @@ The panel's own diff is one attribute. The change that matters happens on the tr
 
 ### Contract
 
-None.
+None. `panel` adds an `id` to its own element and an attribute to a different one. The expansion event belongs to the trigger, which owns `onExpandedChange`.
+
+The only parts carrying handlers are `increment` and `decrement`.
 
 ## Web Components
 
@@ -104,6 +91,21 @@ Not yet planned. Intended binding:
 |---|---|
 | Type | The `AnimatedVisibility` content of the toggleable header |
 | Linkage | Structural |
+
+## Additional details
+
+### Resolution
+
+`disclosure` is not value-bearing, so `panel` resolves by proximity:
+
+1. The candidate disclosure whose subtree contains the panel, if there is one
+2. Otherwise the candidate that is the panel's closest sibling-path ancestor's child
+
+| Situation | Result |
+|---|---|
+| Panel is a sibling of its trigger | Resolves — the usual shape, and what the proximity rule exists for |
+| Two disclosures, ambiguous panel | **Error** naming the panel and every candidate |
+| No `disclosure` in the component | Valid. Emits the id, no wiring — the component *provides* a panel, and wiring arrives on composition |
 
 ## See also
 

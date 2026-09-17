@@ -3,15 +3,15 @@ title: "indicator"
 description: "Mark a state glyph as decoration so it is hidden from assistive technology"
 ---
 
-## About
-
 `indicator` marks an element as a decorative representation of state — a check glyph inside a checkbox, the thumb of a switch, the chevron on a disclosure. It is the one part whose job is subtraction: a checkbox already announces "checked" through its control, and a glyph that also exposes itself announces the same fact twice, the second time as noise like "checkmark graphic."
 
 **Status** — React: Implemented • Web Components: Implemented • iOS: Not yet planned • Android: Not yet planned
 
 Without it the transform cannot distinguish a glyph that means something from one that merely draws the state, so it must hide all of them or none.
 
-### Roles
+## Roles
+
+Apply the following roles to elements:
 
 | Role | Type | Element |
 |---|---|---|
@@ -26,24 +26,9 @@ Tag, classes, layout, and styling are unchanged — only the attribute is added,
 
 **An `aria-hidden` element must not contain focusable content.** An indicator whose subtree holds a slot or an interactive element warns: hiding it would strand the focusable descendant where assistive technology cannot reach it.
 
-### Resolution
-
-| Accepting control | How it resolves |
-|---|---|
-| Value-bearing (`checkbox`, `radio`, `switch`) | To the component's single value-bearing control, regardless of tree position |
-| Non-value-bearing (`button`, `togglebutton`, `disclosure`) | By proximity; ambiguity is an error naming every candidate |
-
-Resolution rarely matters here, because the emission does not depend on which control it resolved to. It matters only for validating that the part is accepted at all.
-
-### Contract
-
-None. An indicator is decoration by declaration. An element that needs a handler is not an indicator — it is a [button](/roles/button/) or an `increment` / `decrement` part.
-
-### Where it is consumed instead
-
-[`radio`](/roles/radio/) is the exception: it styles its control directly rather than proxying, so a `container`-typed indicator is consumed into styling rather than emitted with `aria-hidden`. A `glyph`-typed indicator cannot be consumed there and warns.
-
 ## Specs
+
+Component anatomy typically has elements and roles like:
 
 ```yaml
 anatomy:
@@ -54,13 +39,15 @@ anatomy:
 
 ## Figma
 
+Annotate the following layers:
+
 - the state glyph as `role:indicator` — the check mark, switch thumb, chevron, or radio dot
 
 Annotate every drawn state layer, not just the obvious one. A switch's track, handle, and state glyphs are all drawn state and all want the part.
 
 ## React
 
-### Authored as
+### Implementation
 
 Nothing. `indicator` is a declaration the component acts on for itself.
 
@@ -76,7 +63,7 @@ Nothing. `indicator` is a declaration the component acts on for itself.
 
 ### Contract
 
-None.
+None. An indicator is decoration by declaration. An element that needs a handler is not an indicator — it is a [button](/roles/button/) or an `increment` / `decrement` part.
 
 ## Web Components
 
@@ -99,6 +86,21 @@ Not yet planned. Intended binding:
 |---|---|
 | Emits | `clearAndSetSemantics {}` |
 | Result | TalkBack skips the glyph; the state announces once, from the control |
+
+## Additional details
+
+### Resolution
+
+| Accepting control | How it resolves |
+|---|---|
+| Value-bearing (`checkbox`, `radio`, `switch`) | To the component's single value-bearing control, regardless of tree position |
+| Non-value-bearing (`button`, `togglebutton`, `disclosure`) | By proximity; ambiguity is an error naming every candidate |
+
+Resolution rarely matters here, because the emission does not depend on which control it resolved to. It matters only for validating that the part is accepted at all.
+
+### Where it is consumed instead
+
+[`radio`](/roles/radio/) is the exception: it styles its control directly rather than proxying, so a `container`-typed indicator is consumed into styling rather than emitted with `aria-hidden`. A `glyph`-typed indicator cannot be consumed there and warns.
 
 ## See also
 
