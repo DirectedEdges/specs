@@ -3,72 +3,112 @@ title: "panel"
 description: "Mark the region a disclosure controls, generating the id that aria-controls points at"
 ---
 
-The `panel` part role marks the region that a [disclosure](/roles/disclosure/) trigger expands and collapses.
+`panel` marks the region a [disclosure](/roles/disclosure/) trigger expands and collapses. `aria-expanded` tells assistive technology that something expands; it does not say *what*. Without the linkage a screen reader user hears that a control is expanded and must hunt for the content in reading order.
 
-## Why it matters
+**Status** — React: Implemented • Web Components: Implemented • iOS: Not yet planned • Android: Not yet planned
 
-`aria-expanded` on a trigger tells assistive technology that something expands. It does not say *what*. Without the linkage a screen reader user hears that a control is expanded and has no way to reach the content that appeared — they must hunt for it in reading order. The `panel` part supplies the missing half of the pattern, and it is the only way to supply it, because ids are generated at render and cannot be authored.
+This is the only way to supply that half of the pattern, because ids are generated at render and cannot be authored.
 
-## Emission
+## Roles
 
-### Scaffold
+Apply the following roles to elements:
+
+| Role | Type | Element |
+|---|---|---|
+| `panel` | Part | Element of `type: container` or `type: slot` |
 
 | Where | What is emitted |
-|-------|-----------------|
-| The panel element itself | A generated `id` |
+|---|---|
+| The panel element | A generated `id` |
 | The `disclosure` trigger | `aria-controls={panelId}` |
 
-The panel element's tag, classes, and children are unchanged.
+The panel's tag, classes, and children are unchanged. The role adds linkage, never show/hide logic.
 
-The role never hides the panel. Visibility stays with CSS and the variant conditions the analysis already produced — the role adds linkage, never show/hide logic.
+## Specs
+
+Component anatomy typically has elements and roles like:
+
+```yaml
+anatomy:
+  header:
+    type: container
+    role: disclosure
+  panel:
+    type: container
+    role: panel
+```
+
+## Figma
+
+Annotate the following layers:
+
+- `panel` as `role:panel` — on the region the trigger controls
+
+It does not need to be a descendant of the trigger.
+
+## React
+
+### Implementation
+
+Nothing. `panel` is wiring the component emits for itself; a consumer never addresses it.
+
+### Before / After
+
+```tsx
+// before
+<div className="accordion-panel" data-element="panel">{p.children}</div>
+
+// after
+<div className="accordion-panel" data-element="panel" id={panelId}>{p.children}</div>
+```
+
+The panel's own diff is one attribute. The change that matters happens on the trigger, which gains `aria-controls={panelId}`.
 
 ### Contract
 
-None. Like most parts, `panel` adds an `id` to its own element and an attribute to a *different* element — the trigger. It is wiring, not behavior; the only parts that carry handlers are `increment` and `decrement`, which call `stepUp()` / `stepDown()` on their control.
+None. `panel` adds an `id` to its own element and an attribute to a different one. The expansion event belongs to the trigger, which owns `onExpandedChange`.
 
-The expansion event belongs to the trigger, which owns `onExpandedChange`.
+The only parts carrying handlers are `increment` and `decrement`.
 
-## How it resolves
+## Web Components
 
-`disclosure` is not a value-bearing control, so `panel` resolves by proximity:
+Same emission. The id and the trigger's `aria-controls` must be in the **same shadow root** — an id reference does not cross the boundary, so a panel arriving as slotted content from another component cannot be linked.
 
-- The candidate disclosure whose subtree contains the panel, if there is one.
-- Otherwise the candidate that is the panel's closest sibling-path ancestor's child.
+## iOS
 
-The panel is usually a *sibling* of its trigger rather than a descendant, which is exactly the case the proximity rule exists for. Two disclosures in one component with an ambiguous panel is an error naming the panel and every candidate — never a silent pick.
+Not yet planned. Intended binding:
 
-A `panel` with no `disclosure` in its own component is valid and self-describing: it declares that the component *provides* a panel rather than consuming one. Such a component emits the generated id but no wiring, because it has no trigger to wire to. The wiring arrives when the component is composed.
+| | |
+|---|---|
+| Type | The disclosure's content |
+| Linkage | Structural — no id reference exists or is needed |
 
-## Platforms
+## Android
 
-| | Emits | Behavior a user gets |
-|---|---|---|
-| Web | `id` on the panel, `aria-controls` on the trigger | Assistive technology can move from the trigger to the content it expands |
-| iOS | The panel as the disclosure's content | The content appears with the expanded state VoiceOver announces on the trigger |
-| Android | The panel as the disclosure's content | The content appears with the expanded state TalkBack announces on the trigger |
+Not yet planned. Intended binding:
 
-## Before and after
+| | |
+|---|---|
+| Type | The `AnimatedVisibility` content of the toggleable header |
+| Linkage | Structural |
 
-Without the role:
+## Additional details
 
-```tsx
-{/* … */}
-<div className="accordion-panel" data-element="panel">{p.children}</div>
-{/* … */}
-```
+### Resolution
 
-With the role:
+`disclosure` is not value-bearing, so `panel` resolves by proximity:
 
-```tsx
-{/* … */}
-<div className="accordion-panel" data-element="panel" id={panelId}>{p.children}</div>
-{/* … */}
-```
+1. The candidate disclosure whose subtree contains the panel, if there is one
+2. Otherwise the candidate that is the panel's closest sibling-path ancestor's child
 
-The panel's own diff is a single attribute. The change that matters happens on the trigger, which gains `aria-controls={panelId}`.
+| Situation | Result |
+|---|---|
+| Panel is a sibling of its trigger | Resolves — the usual shape, and what the proximity rule exists for |
+| Two disclosures, ambiguous panel | **Error** naming the panel and every candidate |
+| No `disclosure` in the component | Valid. Emits the id, no wiring — the component *provides* a panel, and wiring arrives on composition |
 
 ## See also
 
 - [disclosure](/roles/disclosure/) — the trigger this part wires to
 - [errormessage](/roles/errormessage/) — the same id-plus-attribute shape, for controls
-- [Roles overview](/roles/) — how roles and the `states` convention fit together
+- [Roles overview](/roles/) — the vocabulary and how roles are authored

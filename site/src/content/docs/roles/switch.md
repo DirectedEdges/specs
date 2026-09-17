@@ -3,89 +3,108 @@ title: "switch"
 description: "Inject a native input announced as a switch, so the on/off state is keyboard-operable and heard"
 ---
 
-The `switch` role declares an on/off control whose change takes effect immediately — no submit, no confirm.
+`switch` declares an on/off control whose change takes effect immediately — no submit, no confirm. Without it the control is a container drawing a track and a handle: it cannot be focused or flipped from the keyboard, and its condition reaches assistive technology as a `data-*` attribute if at all, so a screen reader announces the same thing whether it is on or off.
 
-## Why it matters
+**Status** — React: Implemented • Web Components: Implemented • iOS: Not yet planned • Android: Not yet planned
 
-Without the role, a switch scaffolds as a container drawing a track and a handle: it cannot be focused or flipped from the keyboard, and its condition reaches assistive technology as a `data-*` attribute if at all, so a screen reader announces the same thing whether the switch is on or off. With it, the control announces as a switch — "on" or "off", not "checked" — and flips from the keyboard.
+## Roles
 
-## Emission
+Apply the following roles to elements:
 
-### Scaffold
+| Role | Type | Element |
+|---|---|---|
+| `switch` | Control | Element of `type: container` or `type: glyph` |
+| `label` | Part | Element of `type: text` or nested instance prop of `type: string` |
+| `description` | Part | Element of `type: text` or nested instance prop of `type: string` |
+| `indicator` | Part | Element of `type: container`, `type: glyph`, or `type: vector` |
 
-| | |
+Emission is the proxy-input structure [checkbox](/roles/checkbox/) uses:
+
+| Element | Emitted as |
 |---|---|
-| Element | Visually hidden `<input type="checkbox" role="switch">`, injected as first sibling of the role element |
-| Accepted element types | `container`, `glyph` |
-| Accepted parts | `label`, `description`, `indicator` |
+| Injected first sibling | Visually hidden `<input type="checkbox" role="switch">` — carries state and contract |
+| The role element | `<label htmlFor>` pointing at the input, keeping its class and `data-element`, `aria-hidden` |
 
-The same proxy-input structure as [checkbox](/roles/checkbox/): the real input carries state and contract, and the visual proxy — the element the role landed on — **becomes the click-target label itself**: it emits as `<label htmlFor>` pointing at the input, keeping its class and `data-element`, marked `aria-hidden`. Its whole footprint activates the input through HTML's own label behavior, with no positioning CSS involved. Because the proxy is a `<label>`, a `label` part must not sit inside its subtree — labels do not nest — and resolution warns if one does. `role="switch"` on a native checkbox input is the standard pattern: the input supplies keyboard operation, focus, and form participation; the role changes only the announcement, from "checked" to "on".
+The proxy's whole footprint activates the input through HTML's own label behavior, with no positioning CSS. Because the proxy is a `<label>`, a `label` part must not sit inside its subtree — labels do not nest, and resolution warns if one does.
 
-A switch's track, handle, and state glyphs are all drawn state. Each carries [`indicator`](/roles/indicator/) and is hidden from assistive technology — the state announces once, from the input.
+`role="switch"` on a native checkbox input is the standard pattern: the input supplies keyboard operation, focus, and form participation, and the role changes only the announcement, from "checked" to "on".
 
-### How it differs from its neighbors
+A switch's track, handle, and state glyphs are all drawn state. Each carries [`indicator`](/roles/indicator/) and is hidden, so the state announces once, from the input.
 
-| | `switch` | [`checkbox`](/roles/checkbox/) | [`togglebutton`](/roles/togglebutton/) |
-|---|---|---|---|
-| Element | `<input role="switch">` | `<input type="checkbox">` | `<button>` |
-| State attribute | `aria-checked`, announced "on"/"off" | native checked, announced "checked" | `aria-pressed` |
-| Immediacy | Applies at once | Usually submits with a form | Applies at once |
-| Indeterminate | None — a switch is binary | Native `.indeterminate` | None |
+### States
 
-They do not collapse into one implementation: a togglebutton is a button that stays pressed; a switch and a checkbox are form controls whose announcements differ because their timing differs.
+The `switch` role is typically applied in conjunction with the following states:
 
-### Contract
+The switch reads the `checked` classification, falling back to `selected` — libraries split this one fact across both vocabularies, and a switch's prop is routinely the same `selected` boolean its checkbox sibling uses. Precedence suppresses by prop, so whichever concept binds, the fact announces once.
 
-| Prop | Type | Tier | Generated body |
-|------|------|------|----------------|
-| `onChange?` | `(e: ChangeEvent<HTMLInputElement>) => void` | MUST | **Wired** — flips the state, then calls the prop |
-| `onBlur?` | `(e: FocusEvent) => void` | SHOULD | Stub |
-| `name?` | `string` | MUST | — form submission identity |
-| `value?` | `string` | MUST | — submitted value |
-
-`onChange` is **wired**, exactly as on checkbox: internal state seeded from the classified prop, flipped on activation, consumer callback after. Without a binding it degrades to a stub and warns.
-
-## States
-
-The switch reads the `checked` classification, falling back to `selected` — the same alias rule as checkbox, because libraries split this one fact across both vocabularies, and a switch's prop is routinely the same `selected` boolean its checkbox sibling uses. Precedence suppresses by prop, so whichever concept binds, the fact announces once.
-
-| State | What the switch does | Classify in `states`? |
-|-------|----------------------|----------------------------------|
-| `checked` / `selected` | Native checked on the input, announced on/off via `role="switch"` | Recommended |
-| `disabled` | Native `disabled` | Recommended |
-| `hover` / `active` | Native on the proxy input | Recommended, if the library styles it |
+| State | Effect | Classify? |
+|---|---|---|
+| `checked` / `selected` | Native checked, announced on/off via `role="switch"` | Recommended |
+| `disabled` | Natively disabled | Recommended |
+| `hover` / `active` | Native, on the proxy input | Recommended, if the library styles it |
 | `focus` / `focus-visible` | Platform ring, re-drawn on the proxy | **Optional — prefer the platform default** |
 
-There is no indeterminate arm: a switch is binary by definition.
+No indeterminate arm — a switch is binary by definition.
 
-The focus ring reaches the visible proxy the same way it does on [checkbox](/roles/checkbox/): the platform draws its ring around the focused hidden input, so the generated stylesheet re-draws it on the proxy through the adjacent-sibling selector (`.switch__action-input:focus-visible + .switch__action { outline: auto; }`). Override that selector to draw a custom indicator.
+The focus ring reaches the visible proxy through the adjacent-sibling selector the generated stylesheet emits:
 
-## Accessible name
+```css
+.switch__action-input:focus-visible + .switch__action { outline: auto; }
+```
 
-From the `label` part — owned or routed through a composed label component — emitted as a real `<label htmlFor>`. The click-target proxy label is `aria-hidden` and contributes nothing to the name.
+Override that selector to draw a custom indicator.
 
-## Platforms
+Read more about [states in specs](/settings/states/).
 
-| | Emits | Behavior a user gets |
-|---|---|---|
-| Web | Hidden `<input type="checkbox" role="switch">` beside the visual control | Click and keyboard flip it; screen readers announce "on"/"off" |
-| iOS | `Toggle` with switch styling | VoiceOver announces the label and on/off value; double-tap flips it |
-| Android | `Switch` with `Role.Switch` | TalkBack announces "on"/"off", double-tap flips it |
+## Specs
 
-## Before and after
+Component anatomy typically has elements and roles like:
 
-Without the role:
+```yaml
+anatomy:
+  action:
+    type: container
+    role: switch
+  track:
+    type: container
+    role: indicator
+  handle:
+    type: container
+    role: indicator
+  formLabel:
+    type: instance
+    instanceOf: formLabel
+    role: [label]
+```
+
+## Figma
+
+Annotate the following layers:
+
+- `action` as `role:switch` — on the layer drawing the track, and nothing beyond it
+- `track`, `handle`, and any state glyph as `role:indicator`
+- `label` as `role:label` on a `text` element or through a nested instance
+
+The label must not sit inside the role element's subtree — the proxy becomes a `<label>`, and labels do not nest.
+
+## React
+
+### Implementation
 
 ```tsx
+<Switch label="Email notifications" checked={on} onChange={(e) => setOn(e.target.checked)} />
+```
+
+### Before / After
+
+```tsx
+// before
 <div className="switch__action" data-element="action">
   <div className="switch__track" data-element="track" />
   <div className="switch__handle" data-element="handle" />
 </div>
-```
 
-With the role:
-
-```tsx
+// after
 <input className="switch__action-input" id={actionId} type="checkbox" role="switch"
   checked={checked}
   onChange={(e) => { setChecked(e.target.checked); p.onChange?.(e); }}
@@ -96,8 +115,52 @@ With the role:
 </label>
 ```
 
+### Contract
+
+| Prop | Type | Tier | Generated body |
+|---|---|---|---|
+| `onChange?` | `(e: ChangeEvent<HTMLInputElement>) => void` | MUST | **Wired** — flips the state, then calls the prop |
+| `onBlur?` | `(e: FocusEvent) => void` | SHOULD | Stub |
+| `name?` | `string` | MUST | — form submission identity |
+| `value?` | `string` | MUST | — submitted value |
+
+## Web Components
+
+Same proxy structure inside the shadow root. Shadow DOM hides the inner input from a containing form, so the host participates directly through `formAssociated` and `ElementInternals`, reporting its value from `willUpdate` — see [checkbox](/roles/checkbox/#web-components).
+
+## iOS
+
+Not yet planned. Intended binding:
+
+| | |
+|---|---|
+| Type | `Toggle` with `.toggleStyle(.switch)` |
+| Announced | The label and on/off value; double-tap flips it |
+| `indicator` | Not consumed — the platform draws its own track and thumb |
+
+## Android
+
+Not yet planned. Intended binding:
+
+| | |
+|---|---|
+| Type | `Switch` with `Role.Switch` |
+| Announced | "On" / "off"; double-tap flips it |
+| `indicator` | Partly consumed — `SwitchDefaults.colors` takes track and thumb colors |
+
+## Additional details
+
+### Wired state
+
+`onChange` follows [the wired state model](/roles/#the-wired-state-model): internal state seeded from the classified prop, flipped on activation, consumer callback after. Without a binding it degrades to a stub and warns.
+
+### Accessible name
+
+From the `label` part — owned or routed through a composed label component — emitted as a real `<label htmlFor>`. The click-target proxy is `aria-hidden` and contributes nothing to the name.
+
 ## See also
 
 - [checkbox](/roles/checkbox/) — the same structure, announced as a checkbox
 - [togglebutton](/roles/togglebutton/) — pressed state on a button, not a form control
-- [Roles overview](/roles/) — how roles and the `states` convention fit together
+- [indicator](/roles/indicator/) — the track, handle, and state glyphs
+- [Roles overview](/roles/) — the vocabulary and how roles are authored

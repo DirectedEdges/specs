@@ -1,102 +1,118 @@
 ---
-title: "textbox"
+title: "textbox, password, searchbox, and textarea"
 description: "Collapse the elements standing in for a text control into a native input with label association and a change contract"
 ---
 
-The `textbox` role declares that an element and its annotated descendants together represent a single-line free-text control.
+Four roles cover free-text entry. Without one, a text input is a stack of styled text elements standing in for a control — a label span, a conditional placeholder span, a value span — with no input anywhere. The component is render-only: no focus, no typing, no form participation, no label association, and the `:placeholder-shown`, `:disabled`, and `:focus-visible` selectors the `css` transformer emits target states the markup can never enter.
 
-## Why it matters
+**Status** — React: Implemented • Web Components: Implemented • iOS: Not yet planned • Android: Not yet planned
 
-Without the role, a text input scaffolds as a stack of styled text elements standing in for one control — a `label` span, a conditional `placeholder` span, a `value` span — with no `<input>` anywhere. The component is render-only: no focus, no typing, no form participation, and no label association. The `:placeholder-shown`, `:disabled`, and `:focus-visible` selectors the `css` transformer emits target states the markup can never enter.
+They are four concepts rather than one with a modifier because the difference is not a web attribute. Each names a distinct native type on at least one platform, and a transform that knew only "text control" would have nothing to bind.
 
-## Emission
+| Role | Web emission | Where the value lives | Notable |
+|---|---|---|---|
+| `textbox` | `<input type="text">` | `value` attribute | — |
+| `password` | `<input type="password">` | `value` attribute | `autoComplete` must be set |
+| `searchbox` | `<input type="search">` | `value` attribute | UA clear affordance suppressed |
+| `textarea` | `<textarea>` | element **content** | `rows` |
 
-### Scaffold
+Everything below applies to all four unless marked otherwise.
 
-| | |
+## Roles
+
+Apply the following roles to elements:
+
+| Role | Type | Element |
+|---|---|---|
+| `textbox` / `password` / `searchbox` / `textarea` | Control | Element of `type: container` |
+| `value` | Part | Element of `type: text` |
+| `placeholder` | Part | Element of `type: text` |
+| `label` | Part | Element of `type: text` or nested instance prop of `type: string` |
+| `description` | Part | Element of `type: text` or nested instance prop of `type: string` |
+| `errormessage` | Part | Element of `type: text` or `type: instance` |
+| `indicator` | Part | Element of `type: text`, `type: glyph`, or `type: vector` |
+
+### The collapse
+
+The role replaces its subtree with the control, driven by part roles rather than discovery:
+
+| Descendant | Result |
 |---|---|
-| Element | `<input type="text">` |
-| Accepted element types | `container` |
-| Accepted parts | `value`, `placeholder`, `label`, `description`, `errormessage`, `indicator` |
+| `value` | Becomes the control's value |
+| `placeholder` | Becomes the `placeholder` attribute |
+| `label` | Lifted out as a `<label htmlFor>` sibling at the control's depth |
+| `indicator` | Lifted out the same way — a required asterisk drawn inside the field's stack — `aria-hidden`, keeping its render condition |
+| Bare wrapper | Dropped silently |
+| Text, glyph, image, or composed instance | Dropped, named together in one warning |
+| A `slot` | Dropped with a warning — place the role below the slot, not above it |
+| A role this control does not accept | Dropped, named in a warning |
 
-The role collapses its subtree into the control, driven by part roles rather than discovery:
+Land the role on the container holding **only** the control's own layers. Leading icons, affordance buttons, and adjacent chrome belong *beside* that container. Where the layer tree offers no such container, restructure the layers rather than accepting the drops.
 
-- `#value` becomes the control's value
-- `#placeholder` becomes the `placeholder` attribute
-- `#label` is lifted out as a `<label htmlFor>` sibling at the control's depth
-- `#indicator` — a required asterisk drawn inside the field's layer stack — is lifted out
-  the same way, `aria-hidden` per its own role, keeping its render condition
-- Unannotated descendants are chrome and do not render — annotation is the declaration
-  of what matters. A bare wrapper drops silently; unannotated descendants that carry
-  content of their own (a text node, a glyph, an image, a composed instance) are named
-  together in one warning, so the drop is a stated choice rather than a silent regression
-- A slot descendant is dropped with a warning — place the role below the slot, not above it
-- A descendant carrying a role that is not a part this control accepts (a `button`, an
-  `indicator`) is dropped with a warning naming it — move it outside the control
+A password field's reveal affordance is the clearest case: it is a control in its own right, usually an icon button instance, and carries [`button`](/roles/button/) as a **sibling** of the collapsing container. Inside, it is dropped with a warning.
 
-What to expect in practice: land the role on the container that holds only the control's
-own layers — the value, placeholder, and label stack. Leading icons, affordance buttons,
-and other adjacent chrome belong *beside* that container, not inside it; content inside
-the collapse does not render, and everything except a bare wrapper says so. Where the
-design's layer tree offers no such container, restructure the layers rather than
-accepting the drops.
+### States
 
-The sibling concepts behave identically with a different emitted element. They are separate roles because the concept differs across platforms, not just in the web attribute:
+These roles are typically applied in conjunction with the following states:
 
-- `password` — `<input type="password">`
-- `searchbox` — `<input type="search">`
-- `textarea` — `<textarea>`
-
-### Contract
-
-| Prop | Type | Tier | Generated body |
-|------|------|------|----------------|
-| `onChange?` | `(e: ChangeEvent<HTMLInputElement>) => void` | MUST | **Wired** — sets the value, then calls the prop |
-| `onBlur?` | `(e: FocusEvent) => void` | SHOULD | Stub |
-| `onFocus?` / `onKeyDown?` | — | COULD | Forwarded to the element |
-| `name?` | `string` | MUST | — form submission identity |
-| `value` | `string` | — | The existing variant prop |
-
-`onChange` is **wired**: the transform generates real state logic — it holds internal state seeded from the value prop, sets it on input, and calls the consumer callback. The field is typeable before a consumer attaches anything.
-
-Wiring has a prerequisite: a resolved `value` binding, either an existing variant prop or the `value` convention in `conventions/specs.yaml`. The transform never guesses a prop by name; without the binding the handler degrades to a stub and warns.
-
-`onBlur` is a stub — the transform calls the prop and nothing else. It is emitted because blur is the conventional point at which a field validates, but validation logic is not something a spec can supply.
-
-Where an existing variant prop already supplies the value, the role contributes only the change signal and emits no `default*` companion.
-
-## States
-
-| State | What the textbox does | Classify in `states`? |
-|-------|-----------------------|----------------------------------|
-| `disabled` | Native `disabled` — unfocusable and uneditable, enforced by the platform | Recommended |
+| State | Effect | Classify? |
+|---|---|---|
+| `disabled` | Natively disabled, enforced by the platform | Recommended |
 | `readonly` | Native `readonly` | Recommended |
 | `required` | Native `required` | Recommended |
 | `invalid` | `aria-invalid` | Recommended |
 | `placeholder-shown` | Native `:placeholder-shown` | Recommended |
-| `hover` | Native hover | Recommended, if the library styles it |
-| `active` | Native pressed-down | Recommended, if the library styles it |
-| `focus` / `focus-visible` | Native focus ring | **Optional — prefer the platform default** |
+| `hover` / `active` | Native, on the control itself | Recommended, if the library styles it |
+| `focus` / `focus-visible` | Native focus indicator | **Optional — prefer the platform default** |
 
-Platforms ship a focus indicator that already meets contrast requirements and matches what users of that platform expect, so specifying one from Figma usually replaces a good default with a worse one.
+Read more about [states in specs](/settings/states/).
 
-## Accessible name
+## Specs
 
-The name comes from the `#label` part, lifted out beside the control and associated to it by `htmlFor` — a screen reader announces it when the field takes focus.
+Component anatomy typically has elements and roles like:
 
-## Platforms
+```yaml
+anatomy:
+  labelAndValue:
+    type: container
+    role: textbox
+  label:
+    type: text
+    role: label
+  placeholder:
+    type: text
+    role: placeholder
+  value:
+    type: text
+    role: value
+```
 
-| | Emits | Behavior a user gets |
-|---|---|---|
-| Web | `<input type="text">` with an associated `<label>` | Focus, typing, and form participation; the label is announced on focus |
-| iOS | `TextField` | Tapping focuses and opens the keyboard; VoiceOver announces the label and "text field" |
-| Android | `TextField` | Focus opens the keyboard; TalkBack announces the label and that the field is editable |
+## Figma
 
-## Before and after
+Annotate the following layers:
 
-Without the role:
+- the field container as `role:textbox` — or `password`, `searchbox`, `textarea`
+- the value text layer as `role:value`
+- the placeholder text layer as `role:placeholder`
+- the label text layer as `role:label`
+- a required asterisk as `role:indicator`
+
+The container must hold **only** those layers. Icons and affordance buttons go beside it, each with its own role.
+
+## React
+
+### Implementation
 
 ```tsx
+<TextInput label="Email address" value={email} onChange={(e) => setEmail(e.target.value)} />
+<PasswordInput label="Password" autoComplete="current-password" />
+<TextArea label="Notes" rows={4} />
+```
+
+### Before / After
+
+```tsx
+// before
 <div className="text-input__label-and-value" data-element="labelAndValue">
   <span className="text-input__label" data-element="label">{p.label}</span>
   {p.displayedContent === "Placeholder" && (
@@ -104,11 +120,8 @@ Without the role:
   )}
   <span className="text-input__value" data-element="value">&nbsp;</span>
 </div>
-```
 
-With the role (annotations `labelAndValue#textbox`, `label#label`, `placeholder#placeholder`, `value#value`):
-
-```tsx
+// after
 <label className="text-input__label" data-element="label" htmlFor={controlId}>{p.label}</label>
 <input
   id={controlId}
@@ -121,10 +134,107 @@ With the role (annotations `labelAndValue#textbox`, `label#label`, `placeholder#
 />
 ```
 
-The placeholder conditional vanishes because it was compensating for the missing control — placeholder is an attribute, and the browser knows when to show it. The lift changes the label's depth, so a library whose visual depends on that structure (float labels) needs restyling; one whose label is already a sibling of one input-shaped element pays almost nothing.
+The placeholder conditional vanishes because it was compensating for the missing control — placeholder is an attribute, and the browser knows when to show it. The lift changes the label's depth, so a float-label library needs restyling; one whose label is already a sibling pays almost nothing.
+
+The same component as `password` differs by two lines — the emitted `type`, and the reveal affordance that survives by sitting beside the collapse:
+
+```tsx
+<input id={controlId} type="password" data-element="labelAndValue" value={value}
+  onChange={(e) => { setValue(e.target.value); p.onChange?.(e); }}
+  autoComplete={p.autoComplete} />
+<IconButton {...defaults} data-element="maskedAction" onClick={p.onMaskedActionClick} />
+```
+
+### Contract
+
+| Prop | Type | Tier | Generated body |
+|---|---|---|---|
+| `onChange?` | `(e: ChangeEvent<E>) => void` | MUST | **Wired** — sets the value, then calls the prop |
+| `onBlur?` | `(e: FocusEvent) => void` | SHOULD | Stub |
+| `onFocus?` / `onKeyDown?` | — | COULD | Forwarded to the element |
+| `name?` | `string` | MUST | — form submission identity |
+| `autoComplete?` | `string` | SHOULD | Pass-through, no default |
+| `rows?` | `number` | COULD | `textarea` only |
+| `value` | `string` | — | The existing variant prop |
+
+`E` is the emitted element's type — `HTMLInputElement` for three of the four, `HTMLTextAreaElement` for `textarea`.
+
+## Web Components
+
+Same collapse inside the shadow root. Shadow DOM hides the inner input from a containing form, so the host participates directly through `formAssociated` and `ElementInternals`, reporting value and validity from `willUpdate`.
+
+One thing form association does not recover: **autofill is weaker across a shadow boundary**, because password managers match fields heuristically on surrounding form structure they cannot see into. An explicit `autoComplete` matters more here than in light DOM.
+
+## iOS
+
+Not yet planned. Intended binding:
+
+| Role | Type |
+|---|---|
+| `textbox` | `TextField` |
+| `password` | `SecureField` |
+| `searchbox` | `TextField` + `.searchable` |
+| `textarea` | `TextEditor` |
+
+`placeholder` becomes the field's prompt. Tapping focuses and opens the keyboard; VoiceOver announces the label and the field type.
+
+## Android
+
+Not yet planned. Intended binding:
+
+| Role | Type |
+|---|---|
+| `textbox` | `TextField` |
+| `password` | `TextField` + `PasswordVisualTransformation` |
+| `searchbox` | `SearchBar` |
+| `textarea` | `TextField(singleLine = false)` |
+
+**One type plus three parameter values**, where web has four spellings and iOS three types plus a modifier. Carrying the distinction in the concept name is what lets each transform map it with a lookup table; collapsing to one concept with modifier fields would move the same information into a second schema surface without removing any of it.
+
+## Additional details
+
+### Where `textarea` differs
+
+`<textarea>` has no `value` attribute — its value is its content.
+
+- Never self-closing. An empty field emits no children rather than `value=""`
+- `rows` is emitted where the spec carries a height expressible as a line count; otherwise the stylesheet governs
+- `type` is never emitted — the element carries no `type` attribute
+
+### Where `searchbox` differs
+
+`<input type="search">` brings a user-agent clear affordance the design did not draw. The `css` transformer suppresses it alongside the other UA resets. Where the design draws its own clear affordance, it is a `button` sibling of the collapsing container, as the password reveal is.
+
+### Autofill is the consumer's to set
+
+A text field with no `autocomplete` is handled badly by browsers and password managers, so the prop is in the contract and the generated code says it should be set. The transform will not choose a value: the same password component is `current-password` on a sign-in form and `new-password` on a registration form, and guessing one harms the other.
+
+Nor is it annotated. Annotations carry two **categorical** keys, `role` and `action`, each naming a concept from a governed vocabulary. Autofill is neither identity nor behavior; it is one of a long tail of platform attributes — input mode, spellcheck, enterkeyhint — and admitting the first makes the annotation surface an API with no principle saying where it stops.
+
+The obligation is made visible instead:
+
+```tsx
+/**
+ * Autofill hint. Set this — a password field without one autofills badly.
+ * `current-password` on a sign-in form, `new-password` on a registration form.
+ */
+autoComplete?: string;
+```
+
+### Wired state
+
+`onChange` follows [the wired state model](/roles/#the-wired-state-model): internal state seeded from the value prop, set on input, consumer callback after. The field is typeable before a consumer attaches anything.
+
+Prerequisite: a resolved `value` binding, either an existing variant prop or the `value` convention in `conventions/specs.yaml`. Without it the handler degrades to a stub and warns.
+
+### Accessible name
+
+From the `label` part, lifted out beside the control and associated by `htmlFor`.
 
 ## See also
 
-- [checkbox](/roles/checkbox/) — the proxy + wrap alternative for selection controls
-- [button](/roles/button/) — affordance siblings inside a text field carry this role
-- [Roles overview](/roles/) — how roles and the `states` convention fit together
+- [value](/roles/value/) — the part driving the collapse, and where `placeholder` is described
+- [checkbox](/roles/checkbox/) — the proxy alternative for selection controls
+- [button](/roles/button/) — reveal and clear affordances beside a text field
+- [group](/roles/group/) — grouping several fields under one legend
+- [Roles overview](/roles/) — the vocabulary and how roles are authored

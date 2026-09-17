@@ -3,76 +3,83 @@ title: "link"
 description: "Emit a real anchor with href, so navigation is announced, focusable, and copyable"
 ---
 
-The `link` role declares that an element navigates to another location when activated.
+`link` declares that an element navigates to another location when activated. Without it the element cannot be tabbed to, Enter does nothing, and there is no `href` for a consumer to point anywhere.
 
-## Why it matters
+**Status** — React: Implemented • Web Components: Implemented • iOS: Not yet planned • Android: Not yet planned
 
-An anchor, not a button — and the distinction is not cosmetic. A link is announced as a link, opens in a new tab on modifier-click, appears in a screen reader's links list, and is dragged and copied as a URL. A button does none of that. Without the role, a link scaffolds as a generic container: it cannot be tabbed to, Enter does nothing, and it has no `href` for a consumer to point anywhere.
+An anchor rather than a button, and the distinction is not cosmetic: a link is announced as a link, opens in a new tab on modifier-click, appears in a screen reader's links list, and is dragged and copied as a URL. A button does none of that.
 
-## Emission
+## Roles
 
-### Scaffold
+Apply the following roles to elements:
 
-| | |
-|---|---|
-| Element | `<a href>` |
-| Accepted element types | `container`, `text`, `glyph` |
-| Accepted parts | `label` |
+| Role | Type | Element |
+|---|---|---|
+| `link` | Control | Element of `type: container`, `type: text`, or `type: glyph` |
+| `label` | Part | Element of `type: text` or nested instance prop of `type: string` |
 
-A glyph carrying the role is re-hosted inside the anchor rather than becoming it, the way a glyph carrying [button](/roles/button/) is.
+A `glyph` carrying the role is re-hosted inside the anchor rather than becoming it, as with [`button`](/roles/button/).
 
-### Contract
+### States
 
-| Prop | Type | Tier | Generated body |
-|------|------|------|----------------|
-| `href?` | `string` | MUST | Destination. Absent renders a placeholder the browser cannot focus |
-| `target?` | `string` | SHOULD | Passed through |
-| `rel?` | `string` | SHOULD | Passed through |
-| `onClick?` | `(e: MouseEvent) => void` | SHOULD | Stub — navigation is the browser's; what a click means beyond it is the consumer's |
+The `link` role is typically applied in conjunction with the following states:
 
-The design file cannot say where a link goes, so `href` is a contract addition with no source in the spec — the one prop this role exists to create a home for.
-
-## States
-
-| State | What the link does | Classify in `states`? |
-|-------|--------------------|----------------------------------|
-| `disabled` | Drops `href` — which is what actually removes it from the tab order — and announces `aria-disabled` | Recommended |
+| State | Effect | Classify? |
+|---|---|---|
+| `disabled` | **Drops `href`** and announces `aria-disabled` | Recommended |
 | `current` | `aria-current="true"` | Recommended |
 | `hover` / `active` | Native anchor states | Recommended, if the library styles it |
-| `focus` / `focus-visible` | Native focus ring | **Optional — prefer the platform default** |
+| `focus` / `focus-visible` | Native focus indicator | **Optional — prefer the platform default** |
 
-Two decisions recorded here that earlier emission made silently:
+Two decisions earlier emission made silently:
 
-- **Disabled.** An anchor has no `disabled` property. A disabled link drops `href` and carries `aria-disabled="true"`; `aria-disabled` alone would announce a state the element does not enforce. The `css` transformer's disabled selector special-cases anchors to match.
-- **`current` is a role concern**, bridged natively like `pressed` on a togglebutton: the role emits `aria-current="true"` — the generic token, matching the states table's canonical `[aria-current="true"]` selector — and the states convention supplies the prop. An earlier emission wrote `aria-current="page"`, which no stylesheet selector matched; the generic token is the recorded resolution.
+- **An anchor has no `disabled` property.** Dropping `href` is what actually removes it from the tab order; `aria-disabled` alone announces a state the element does not enforce. The `css` transformer's disabled selector special-cases anchors to match.
+- **`current` emits the generic token**, `aria-current="true"`, matching the states table's canonical selector. An earlier emission wrote `aria-current="page"`, which no stylesheet selector matched.
 
-## Accessible name
+Read more about [states in specs](/settings/states/).
 
-A link takes its name from its own text. Where none resolves, the `accessibility.label` convention's prop emits as `aria-label`, and nothing resolving is a warning — a link that announces nothing is worse than the container it replaced.
+## Specs
 
-## Platforms
+Component anatomy typically has elements and roles like:
 
-| | Emits | Behavior a user gets |
-|---|---|---|
-| Web | `<a href>` | Tab-focusable, Enter navigates, modifier-click opens a tab, appears in the links list |
-| iOS | `Link` | VoiceOver announces it as a link and double-tap opens it |
-| Android | Clickable text with link semantics | TalkBack announces it as a link and double-tap opens it |
-
-## Before and after
-
-Without the role:
-
-```tsx
-<div className="ds-inline-link" data-element="root">
-  {p.text}
-</div>
+```yaml
+anatomy:
+  root:
+    type: container
+    role: link
+  text:
+    type: text
 ```
 
-With the role:
+## Figma
+
+Annotate the following layers:
+
+- `root` as `role:link` — on the component node, or on an inline `text` element
+- `label` as `role:label` where the link's name is not its own text
+
+The design file cannot say where a link goes, so `href` has no source in the spec. It is the one prop this role exists to create a home for.
+
+## React
+
+### Implementation
 
 ```tsx
+<InlineLink href="/pricing">See pricing</InlineLink>
+<InlineLink href="/settings" current>Settings</InlineLink>
+```
+
+### Before / After
+
+```tsx
+// before
+<div className="inline-link" data-element="root">
+  {p.text}
+</div>
+
+// after
 <a
-  className="ds-inline-link"
+  className="inline-link"
   data-element="root"
   href={p.disabled ? undefined : p.href}
   aria-disabled={p.disabled ? true : undefined}
@@ -85,8 +92,53 @@ With the role:
 </a>
 ```
 
+### Contract
+
+| Prop | Type | Tier | Generated body |
+|---|---|---|---|
+| `href?` | `string` | MUST | Destination. Absent renders a placeholder the browser cannot focus |
+| `target?` | `string` | SHOULD | Passed through |
+| `rel?` | `string` | SHOULD | Passed through |
+| `onClick?` | `(e: MouseEvent) => void` | SHOULD | Stub — navigation is the browser's |
+
+## Web Components
+
+As [`button`](/roles/button/#web-components) — a real `<a>` inside the shadow root, `all: unset`, with `delegatesFocus` so the host stays one focusable box.
+
+One asymmetry worth knowing: an `href` **is** resolved against the document, so `href="#section"` from inside a shadow root navigates to a light-DOM target normally. The reverse does not hold — an `id` inside a shadow root is not addressable as a fragment target from outside, so a link elsewhere on the page cannot point *into* this component.
+
+## iOS
+
+Not yet planned. Intended binding:
+
+| | |
+|---|---|
+| Type | `Link` |
+| Announced | As a link; double-tap opens it |
+| `disabled` | No native equivalent — degrades to plain text |
+
+## Android
+
+Not yet planned. Intended binding:
+
+| | |
+|---|---|
+| Type | Clickable text with link semantics |
+| Announced | As a link; double-tap opens it |
+| `disabled` | Clickable removed; text remains |
+
+## Additional details
+
+### Accessible name
+
+| Source | Result |
+|---|---|
+| The link's own text | Names it |
+| The `accessibility.label` convention's prop | Emitted as `aria-label` |
+| Nothing resolves | **Warns** |
+
 ## See also
 
 - [button](/roles/button/) — activation without navigation
 - [disclosure](/roles/disclosure/) — a trigger that expands a region rather than leaving the page
-- [Roles overview](/roles/) — how roles and the `states` convention fit together
+- [Roles overview](/roles/) — the vocabulary and how roles are authored
