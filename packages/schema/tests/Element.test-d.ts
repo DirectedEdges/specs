@@ -69,8 +69,8 @@ const promotedContainer: Element = {
   },
 };
 
-// @ts-expect-error — the extension's children is a SlotContentRef, never inline content
 const inlineExtensionChildren: Element = {
+  // @ts-expect-error — the extension's children is a SlotContentRef, never inline content
   $extensions: { 'com.figma': { children: ['label'] } },
 };
 

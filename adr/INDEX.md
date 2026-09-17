@@ -4,7 +4,6 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 090 | Container Promotion Sources Opened to Closed-Value Layout Properties | |
 | 045 | Processing Provenance Signals | (reserved, draft in PR #60) |
 | 044 | Duplicate Layer Name Disambiguation | (reserved, draft in PR #60) |
 | 024 | Component Extends Relationship | Add `extends` field to express base/derived component relationships and prop/variant inheritance |
@@ -15,6 +14,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 090 | Container Promotion Sources Opened to Closed-Value Layout Properties | Adds `FigmaElementExtension.children` (`SlotContentRef`) and widens container sources to all closed-value layout members |
 | 089 | Run Metadata Factored Out of the Component Spec | Adds `RunMetadata` — the run's facts as a document of its own — and narrows the required set on `Metadata` to `source` |
 | 088 | Authoring-default images on `ImageProp` | Adds `ImageProp.examples` (`ImageValue[]`) — the image a component was authored with, recorded on the prop; `default` stays contractual |
 | 087 | Behavior Actions via `anatomy.action` | Adds `AnatomyElement.actions` (`ActionEntry[]`) — a second annotation key for what a control *does*, alongside `role` for what it *is* |

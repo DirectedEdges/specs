@@ -2,7 +2,7 @@
 
 **Branch**: `adr/layout-primitive-sources`
 **Created**: 2026-09-17
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Summary**: `FigmaElementExtension.children` records a promoted container's hoisted fill beside the consumed styles, and container promotion sources widen to all closed-value layout members.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none — amends the container decisions of ADR-076)*
