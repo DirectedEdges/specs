@@ -1199,6 +1199,10 @@
         "styles": {
           "$ref": "#/definitions/Styles",
           "description": "The styles the promotion consumed, recorded verbatim as captured. A prop value cannot be inverted back to the style that produced it, so the original is what lets a promoted layer be rendered back as a layer."
+        },
+        "children": {
+          "$ref": "#/definitions/SlotContentRef",
+          "description": "The hoisted slot fill of a promoted container — the subtree the frame held, moved into slotContentExamples when the frame became an instance. The container analogue of content: the pointer also sits in propConfigurations under the table-named prop, and recording it here is what lets a promoted frame be restored without consulting the table. (ADR-090)"
         }
       },
       "additionalProperties": false

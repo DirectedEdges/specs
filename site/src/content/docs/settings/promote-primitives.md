@@ -70,6 +70,8 @@ The styles are **partitioned**, not copied. What the promotion consumed moves to
 
 `styles` holds what the promotion consumed, verbatim. A prop value cannot be turned back into the style that produced it, since two sources may map to one value: `size: XS` cannot say whether the layer carried a sizing token or a raw `16`. Recording the original is what lets a promoted layer be rendered back to Figma as a layer.
 
+`children` holds the hoisted slot fill of a promoted container — the subtree the frame held, moved into `slotContentExamples` when the frame became an instance. Its pointer also sits in `propConfigurations`, but only under whichever prop the table named — recording it here is what lets a promoted frame be restored with its children back in place, without consulting the table.
+
 ## Unmatched sources
 
 A source with no matching row in the table does not resolve. Its value stays in `styles` and reaches output as passed styling, so an incomplete table produces more verbose output rather than missing design intent.

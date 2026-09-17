@@ -60,7 +60,18 @@ export type PrimitiveKind = 'text' | 'glyph' | 'container';
  * - `text` — `typography`, `typography.fontSize`, `typography.fontFamily`,
  *   `typography.fontStyle`, `textColor`, `content`
  * - `glyph` — `width`, `height`, `fillColor`, `content`
- * - `container` — `layoutMode`
+ * - `container` — `layoutMode`, `itemSpacing`, `padding`, `mainAxisAlignment`,
+ *   `crossAxisAlignment`, `wrap`, `wrapAlignment`
+ *
+ * The container set follows one principle (ADR-090): a member qualifies when its
+ * authored value space is **closed** — a structural enum, or a value drawn from a finite
+ * scale the library authors with (a token collection, a fixed set of raw scalars) — so a
+ * `values` table can enumerate it literally. A value that is genuinely continuous in a
+ * library (a measured width, an arbitrary pixel gap) has no closed vocabulary, matches
+ * no key, and stays styling. Whether a member is closed is a fact about the library's
+ * authoring discipline, and the table author owns that judgement exactly as they own
+ * every `values` key. For `layoutMode`, an absent or `null` value matches a `NONE` key —
+ * a frame with no auto-layout is what `NONE` means.
  *
  * The dotted typography sources address inside the `Typography` composite.
  * `Styles.typography` is `TokenReference | Typography`, so a layer wearing a text style
