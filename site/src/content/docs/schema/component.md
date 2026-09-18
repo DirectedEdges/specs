@@ -30,3 +30,19 @@ Several optional fields document configured and composed usages of a component. 
 - [`SlotContentRef`](/schema/slot-content-ref/) — the `$slotContent` pointer that references a fill.
 - [`Composition`](/schema/composition/) — a named, authored unit of composed content (system-scoped, external composition files).
 - [`Children`](/schema/children/) — an element's children, including slot bindings that carry example fills.
+
+## Concern documents
+
+A run with [`spec.splitConcerns`](/schema/settings/) writes one file per concern rather than a single component file. Each file has its own type, requiring what its concern carries and permitting nothing else — a `variants.yaml` cannot hold an anatomy, and an `api.yaml` cannot hold a default block.
+
+| Document | File | Required | Also carries |
+|---|---|---|---|
+| `SpecApiDocument` | `api.yaml` | `metadata`, `title`, `anatomy`, `props` | `subcomponents` |
+| `SpecVariantsDocument` | `variants.yaml` | `metadata`, `default`, `variants` | `invalidVariantCombinations`, `subcomponents` |
+| `SpecExamplesDocument` | `examples.yaml` | `metadata` | `slotContentExamples`, `instanceExamples`, `images`, `subcomponents` |
+
+Each document's `metadata` must state its [`concern`](/schema/metadata/) — `api`, `variants` or `examples`. That is what identifies the file, and what tells the three apart. A whole `Component` carries no `concern` at all.
+
+A nested subcomponent is sliced by the same concern as the document holding it, so each document's `subcomponents` uses its own subcomponent shape — `SpecApiSubcomponent`, `SpecVariantsSubcomponent`, `SpecExamplesSubcomponent`.
+
+`SpecConcernDocument` is the union of the three. TypeScript cannot narrow it on `metadata.concern`, since the discriminant sits one level down; narrow on a key instead (`'title' in doc`).

@@ -11,7 +11,19 @@
       "examples": [],
       "properties": {
         "metadata": {
-          "$ref": "#/definitions/Metadata"
+          "allOf": [
+            {
+              "$ref": "#/definitions/Metadata"
+            },
+            {
+              "not": {
+                "required": [
+                  "concern"
+                ]
+              }
+            }
+          ],
+          "description": "Metadata associated with the component. A whole component carries no `concern` — that key marks a concern document."
         },
         "title": {
           "type": "string",
@@ -966,6 +978,15 @@
             "nodeType"
           ],
           "additionalProperties": false
+        },
+        "concern": {
+          "type": "string",
+          "enum": [
+            "api",
+            "variants",
+            "examples"
+          ],
+          "description": "Which slice of a component this document carries, when a run wrote one file per concern. Absent on a single-file component, which carries every concern at once. (ADR-091)"
         }
       },
       "required": [

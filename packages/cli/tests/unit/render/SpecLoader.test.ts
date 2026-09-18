@@ -28,7 +28,7 @@ const COMPONENT = {
   default: { appearance: 'Filled' },
   variants: [{ appearance: 'Filled' }, { appearance: 'Outline' }],
   slotContentExamples: { label: 'Click me' },
-  metadata: { generatedAt: '2026-01-01T00:00:00.000Z' },
+  metadata: { lastUpdated: '2026-01-01T00:00:00.000Z' },
 };
 
 describe('loadSpec — single file', () => {

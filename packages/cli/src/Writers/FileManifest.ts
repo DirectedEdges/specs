@@ -173,7 +173,7 @@ export class FileManifest {
       content: {
         components: apiComponents,
         metadata: {
-          generatedAt: timestamp.toISOString(),
+          lastUpdated: timestamp.toISOString(),
           componentCount: components.length,
           concern: 'api'
         }
@@ -187,7 +187,7 @@ export class FileManifest {
       content: {
         components: variantsComponents,
         metadata: {
-          generatedAt: timestamp.toISOString(),
+          lastUpdated: timestamp.toISOString(),
           componentCount: components.length,
           concern: 'variants'
         }
@@ -204,7 +204,7 @@ export class FileManifest {
         content: {
           components: examplesComponents,
           metadata: {
-            generatedAt: timestamp.toISOString(),
+            lastUpdated: timestamp.toISOString(),
             componentCount: exampleComponentCount,
             concern: 'examples'
           }
@@ -237,7 +237,7 @@ export class FileManifest {
           ...api,
           metadata: {
             ...api.metadata,
-            generatedAt: timestamp.toISOString(),
+            lastUpdated: timestamp.toISOString(),
             concern: 'api'
           }
         },
@@ -254,7 +254,7 @@ export class FileManifest {
           ...variants,
           metadata: {
             ...variants.metadata,
-            generatedAt: timestamp.toISOString(),
+            lastUpdated: timestamp.toISOString(),
             concern: 'variants'
           }
         },
@@ -272,7 +272,7 @@ export class FileManifest {
             ...examples,
             metadata: {
               ...examples.metadata,
-              generatedAt: timestamp.toISOString(),
+              lastUpdated: timestamp.toISOString(),
               concern: 'examples'
             }
           },
