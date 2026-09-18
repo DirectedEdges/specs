@@ -237,6 +237,30 @@ describe('CssTransformer', () => {
       expect(out).toContain('.ds-button:focus-within {');
     });
 
+    it('narrows the focus concept to :has(:focus-visible) on a wrapper root', async () => {
+      const focusStates: ProcessingStates = { focus: { prop: 'state', value: 'focus' } };
+      const out = await run(tmpDir, {
+        default: { elements: {} },
+        variants: [{ configuration: { state: 'focus' }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } }],
+      }, 'dsButton', 'TOKEN', focusStates);
+      expect(out).toContain('.ds-button:has(:focus-visible) {');
+    });
+
+    it('narrows the focus concept to :focus-visible on a self-focusable roled root', async () => {
+      const focusStates: ProcessingStates = { focus: { prop: 'state', value: 'focus' } };
+      await writeVariants(tmpDir, {
+        default: { elements: {} },
+        variants: [{ configuration: { state: 'focus' }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } }],
+      });
+      await transformer.run(
+        { anatomy: { root: { type: 'container', role: 'button' } } },
+        makeContext(tmpDir, 'dsButton', 'TOKEN', focusStates),
+      );
+      const out = await fs.readFile(path.join(reactDir(tmpDir, 'DsButton'), 'styles.css'), 'utf-8');
+      expect(out).toContain('.ds-button:focus-visible {');
+      expect(out).not.toContain(':has(:focus-visible)');
+    });
+
     it('emits :disabled, [aria-disabled="true"] for disabled concept', async () => {
       const out = await run(tmpDir, variantsWithStates, 'dsButton', 'TOKEN', states);
       expect(out).toContain('.ds-button:disabled,');

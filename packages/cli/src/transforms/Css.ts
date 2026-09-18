@@ -276,6 +276,30 @@ function disabledSelectorFor(rootAs: RootForm, rootRole: string | undefined): st
 /** Roles whose emitted element carries a real `disabled` property. */
 const NATIVE_DISABLED_ROLES = new Set(['button', 'togglebutton', 'disclosure']);
 
+/**
+ * The focus selector that can actually match, for this target and this root.
+ *
+ * The `focus` concept means the platform's visible-focus heuristic
+ * (`:focus-visible`), but that selector only matches a root that can itself
+ * hold focus. A wrapper root reaches its control with `:has(:focus-visible)`:
+ * a text control matches whenever it is focused, a button-like control only
+ * from the keyboard — so click-into-a-field styling survives while a clicked
+ * button does not hold its ring. A shadow host matches `:focus-visible`
+ * itself when its roled scaffold delegates focus; an un-roled host cannot,
+ * and `:focus-within` is the only spelling that can match, because `:has()`
+ * does not cross the shadow boundary. A library that declares the
+ * `focus-within` concept has said exactly what it means and is never
+ * narrowed.
+ */
+function focusSelectorFor(rootAs: RootForm, rootRole: string | undefined): string {
+  const native = rootRole ? NATIVE_FOCUSABLE_ROLES.has(rootRole) : false;
+  if (rootAs === 'host') return native ? ':focus-visible' : ':focus-within';
+  return native ? ':focus-visible' : ':has(:focus-visible)';
+}
+
+/** Roles whose emitted element can itself hold visible focus. */
+const NATIVE_FOCUSABLE_ROLES = new Set(['button', 'togglebutton', 'disclosure', 'link', 'textbox']);
+
 /** api.yaml props, keyed by prop name. */
 function apiPropsOf(apiYaml: Record<string, unknown>): Record<string, Record<string, unknown>> {
   return (apiYaml.props ?? {}) as Record<string, Record<string, unknown>>;
@@ -652,11 +676,14 @@ function buildCssLines(
   }
 
   // A concept's selector, narrowed to what can actually match this target and
-  // this root. Only `disabled` differs; every other concept is target-neutral.
+  // this root. Only `disabled` and the focus heuristic differ; every other
+  // concept is target-neutral.
   const selectorFor = (concept: string): string | undefined =>
     concept === 'disabled'
       ? disabledSelectorFor(rootAs, elemRoles.root)
-      : CONCEPT_TABLE[concept]?.selector;
+      : concept === 'focus' || concept === 'focus-visible'
+        ? focusSelectorFor(rootAs, elemRoles.root)
+        : CONCEPT_TABLE[concept]?.selector;
 
   // ── Variants — in schema order ─────────────────────────────────────────────
   // variants.yaml variant order is intentional: single-prop variants before

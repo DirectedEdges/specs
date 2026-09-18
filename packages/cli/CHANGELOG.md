@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Focus styling for the `focus` state concept follows the platform's keyboard-focus heuristic** — `:focus-visible` on a root that can hold focus itself, `:has(:focus-visible)` on a wrapper around its control — so a clicked button no longer holds its focus styling until you click elsewhere, while clicking into a field still shows it. A library that declares the `focus-within` concept keeps `:focus-within` exactly as declared.
+
 - **An image fills and centres itself in the element that displays it**, whatever its aspect ratio, instead of drawing at its natural size cropped to the top-left corner when a component takes its image from a source prop rather than a downloaded file.
 
 - **`specs scan` leaves a subcomponent unchecked when its parent component is checked**,
