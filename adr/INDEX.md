@@ -4,6 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 092 | Package Identity for Emitted Platform Trees | |
 | 091 | Concern Documents Are a Typed Root Document | |
 | 090 | Container Promotion Sources Opened to Closed-Value Layout Properties | |
 | 082 | `Component.description` — The Authored Figma Description, Plain Text and Opt-In | (reserved, draft in PR #375) |
