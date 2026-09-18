@@ -4,7 +4,6 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 092 | Package Identity for Emitted Platform Trees | |
 | 090 | Container Promotion Sources Opened to Closed-Value Layout Properties | |
 | 082 | `Component.description` — The Authored Figma Description, Plain Text and Opt-In | (reserved, draft in PR #375) |
 | 070 | Explicit `position: ABSOLUTE` for Children of Non-Auto-Layout Parents | (reserved, draft on branch `070-explicit-absolute-position`) |
