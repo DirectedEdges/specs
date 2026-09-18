@@ -225,9 +225,8 @@ SpecConcernDocument: SpecApiDocument | SpecVariantsDocument | SpecExamplesDocume
 | File | Change | Bump |
 |------|--------|------|
 | `component.schema.json` | Added optional property `concern` to `#/definitions/Metadata` | MINOR |
-| `component.schema.json` | Added the three document definitions and their three subcomponent definitions | MINOR |
 | `component.schema.json` | `Component.metadata` now forbids `concern` | MINOR |
-| `concern.schema.json` | Added — a `oneOf` over the three document definitions | MINOR |
+| `concern.schema.json` | Added — the three document definitions, their three subcomponent definitions, and a `oneOf` over the documents | MINOR |
 | `root.schema.json` | Added `concern.schema.json` to `oneOf` | MINOR |
 
 **Example — new shape** (`schema/component.schema.json`):
@@ -245,6 +244,8 @@ concern:
 
 `Component.metadata` forbids `concern` outright. Without that the branches overlap in one direction: a concern document carrying enough keys to satisfy `Component` matches `Component` too, concern and all. An `api.yaml` with a stray `default` block was accepted until this was added.
 
+The six definitions live in `concern.schema.json` and reference `component.schema.json` for the component-level definitions they reuse — `Anatomy`, `Props`, `Variant` and the rest — rather than restating them. That is the same cross-file reference `conventions.schema.json` already makes.
+
 A subcomponent inside a concern document is sliced by the same concern, so each document's `subcomponents` points at its own subcomponent shape. Holding a nested subcomponent to the whole-subcomponent requirements fails for exactly the reason the document itself would.
 
 ---
@@ -255,7 +256,7 @@ A subcomponent inside a concern document is sliced by the same concern, so each 
 - **Parity check**:
   - `Concern` ↔ the `enum` on `#/definitions/Metadata/properties/concern`
   - `Metadata.concern` ↔ `#/definitions/Metadata/properties/concern`, absent from `required`
-  - `SpecApiDocument` / `SpecVariantsDocument` / `SpecExamplesDocument` ↔ the same three definitions in `component.schema.json`, each with the same property set and the same required list
+  - `SpecApiDocument` / `SpecVariantsDocument` / `SpecExamplesDocument` ↔ the same three definitions in `concern.schema.json`, each with the same property set and the same required list
   - `SpecApiSubcomponent` / `SpecVariantsSubcomponent` / `SpecExamplesSubcomponent` ↔ likewise
   - `SpecConcernDocument` (the union) ↔ the `oneOf` in `concern.schema.json`
 
