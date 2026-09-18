@@ -7,7 +7,16 @@
  */
 
 // Core component types
-export type { Component, SpecConcernDocument, SpecConcernSubcomponent } from './Component.js';
+export type { Component } from './Component.js';
+export type {
+  SpecConcernDocument,
+  SpecApiDocument,
+  SpecVariantsDocument,
+  SpecExamplesDocument,
+  SpecApiSubcomponent,
+  SpecVariantsSubcomponent,
+  SpecExamplesSubcomponent,
+} from './ConcernDocument.js';
 export type { Anatomy, AnatomyElement, ElementTypeRef, SubcomponentRef, RoleConceptName, ActionConceptName, ActionEntry } from './Anatomy.js';
 export type { Props, AnyProp, BooleanProp, StringProp, EnumProp, SlotProp, NumberProp, FigmaCodeOnlySource, FigmaPropExtension, PropExtensions } from './Props.js';
 export type { Variant, Variants } from './Variant.js';

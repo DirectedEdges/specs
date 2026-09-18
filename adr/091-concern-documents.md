@@ -1,9 +1,9 @@
-# ADR: Concern documents are a typed root document
+# ADR: Each concern document is its own type
 
 **Branch**: `091-concern-documents`
 **Created**: 2026-09-18
 **Status**: ACCEPTED
-**Summary**: A `SpecConcernDocument` root type and `Metadata.concern` type the per-concern files a `splitConcerns` run writes.
+**Summary**: `SpecApiDocument`, `SpecVariantsDocument` and `SpecExamplesDocument` type each file a `splitConcerns` run writes.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none — extends ADR-089)*
 
@@ -64,38 +64,54 @@ The result is that a correctly generated workspace cannot be validated against i
 
 ### Decision 1 — How a concern document is validated
 
-#### Option A: A `SpecConcernDocument` root type discriminated by `metadata.concern` *(Selected)*
+#### Option A: One type per concern, discriminated by `metadata.concern` *(Selected)*
 
-Add a fourth branch to `root.schema.json`. A concern document is its own document type: every component-level property optional, `metadata.concern` required and constrained to the concern enum.
+`SpecApiDocument`, `SpecVariantsDocument` and `SpecExamplesDocument`. Each states what its concern carries, requires it, and permits nothing else. `root.schema.json` gains a branch holding the three.
 
 ```yaml
-# schema/concern.schema.json — new
-SpecConcernDocument:
-  type: object
-  required: [metadata]
+SpecApiDocument:
+  required: [metadata, title, anatomy, props]
+  additionalProperties: false
   properties:
-    metadata:            # requires `concern`
-    title:               # all component properties, all optional
+    metadata:      # concern must be the literal 'api'
+    title:
     anatomy:
     props:
+    subcomponents: # each one sliced to its api concern too
+
+SpecVariantsDocument:
+  required: [metadata, default, variants]
+  additionalProperties: false
+  properties:
+    metadata:      # concern must be the literal 'variants'
     default:
     variants:
-    # …
+    invalidVariantCombinations:
+    subcomponents:
 ```
 
 **Pros**:
-- `Component` is untouched, so single-file output keeps the exact contract it has today — the fourth driver is satisfied without qualification.
-- `metadata.concern` is already written by the generator, so the discriminator is a fact the document states about itself rather than a shape a validator has to guess at.
-- Purely additive: a new schema file and a new exported type. Existing consumers compile unchanged.
-- A consumer can narrow on `concern` in TypeScript and get the slice it expects, which is the same information the validator uses.
+- A key in the wrong file is an error. A `variants.yaml` carrying an `anatomy`, or an `api.yaml` carrying a `default` block, is rejected — by the schema and by the compiler.
+- Each document requires what it genuinely carries, so an `api.yaml` missing its anatomy is caught. A single all-optional shape catches neither.
+- `Component` is untouched, so single-file output keeps the contract it has today.
+- The shapes already exist. `ComponentApiData`, `ComponentVariantsData` and `ComponentExamplesData` live in the CLI as `any`-typed interfaces; this moves them into the contract that ought to own them.
 
 **Cons / Trade-offs**:
-- Two document types describe overlapping property sets, so a property added to `Component` must be added in both places or the concern document silently cannot carry it.
-- A concern document with every property optional cannot, on its own, catch a `variants.yaml` that forgot its variants. Validation of the *union* of a component's concern files is not expressible here and remains out of reach.
+- The key-to-file allocation becomes contractual. Moving a key between concerns is now a schema change — though it was already a breaking change for anything reading the files.
+- Three shapes plus three subcomponent shapes must track `Component`. A property added to `Component` must be placed in whichever concern carries it, rather than inherited automatically.
+- TypeScript cannot discriminate the union on `metadata.concern`, because the discriminant sits one level down. A consumer narrows on a key (`'title' in doc`) instead. The schema has no such limit.
 
 ---
 
-#### Option B: Relax `Component.required` to `title` only *(Rejected)*
+#### Option B: One `SpecConcernDocument` with every property optional *(Rejected)*
+
+A single shape: every `Component` property optional, `metadata.concern` required as the discriminator.
+
+**Rejected because**: it accepts any key in any file. A `variants.yaml` with an `anatomy` block validates, and so does an `api.yaml` with no anatomy at all — the type says nothing about what belongs where. It closes the reported errors without adding validation, which is the weaker half of the goal.
+
+---
+
+#### Option C: Relax `Component.required` to `title` only *(Rejected)*
 
 Drop `anatomy` and `default` from the required list so that every concern document validates as a `Component`.
 
@@ -103,11 +119,11 @@ Drop `anatomy` and `default` from the required list so that every concern docume
 
 ---
 
-#### Option C: Conditional `if`/`then` on `metadata.concern` inside `Component` *(Rejected)*
+#### Option D: Conditional `if`/`then` on `metadata.concern` inside `Component` *(Rejected)*
 
-Keep one type and make its required list depend on the value of `metadata.concern` — absent means all three are required, `api` means `title` and `anatomy`, `variants` means `default`.
+Keep one type and make its required list depend on the value of `metadata.concern`.
 
-**Rejected because**: it encodes generation behaviour in the shape of the contract. The required list of a component would become a function of which file it happens to be sitting in, which is a fact about the run, not about the component. It also reads poorly as a published type: `Component` in TypeScript cannot express the conditional at all, so the type and the schema would describe different structures — a direct violation of constitution I.
+**Rejected because**: `Component` in TypeScript cannot express the conditional at all, so the type and the schema would describe different structures — a direct violation of constitution I.
 
 ---
 
@@ -159,9 +175,8 @@ Put per-file facts in their own block: `document: { concern: api }`.
 |------|--------|------|
 | `Metadata.ts` | Added optional field `concern` to `Metadata` | MINOR |
 | `Metadata.ts` | Added exported type `Concern` | MINOR |
-| `Component.ts` | Added exported type `SpecConcernDocument` | MINOR |
-| `Component.ts` | Added exported type `SpecConcernSubcomponent` | MINOR |
-| `index.ts` | Export `Concern`, `SpecConcernDocument` and `SpecConcernSubcomponent` | MINOR |
+| `ConcernDocument.ts` | Added — `SpecApiDocument`, `SpecVariantsDocument`, `SpecExamplesDocument`, their three subcomponent shapes, and the `SpecConcernDocument` union | MINOR |
+| `index.ts` | Export all seven, plus `Concern` | MINOR |
 
 **Example — new shape** (`types/Metadata.ts`):
 ```yaml
@@ -173,37 +188,46 @@ Metadata:
 # After
 Metadata:
   source: { pageId, nodeId, nodeType }
-  concern?: Concern    # optional — which slice of a component this document is
+  concern?: Concern    # optional — which concern this document carries
   # …optional RunMetadata fields
 
 Concern: 'api' | 'variants' | 'examples'
 ```
 
-**Example — new shape** (`types/Component.ts`):
+**Example — new shape** (`types/ConcernDocument.ts`):
 ```yaml
-# New type — one slice of a component, as written by splitConcerns
-SpecConcernDocument:
-  metadata: Metadata          # required; its `concern` states which slice
-  title?: string              # every component property, optional
-  anatomy?: Anatomy
-  props?: Props
-  default?: Variant
-  variants?: Variant[]
-  invalidVariantCombinations?: …
-  subcomponents?: Record<string, SpecConcernSubcomponent>
-  instanceExamples?: …
-  slotContentExamples?: …
-  images?: …
-  source?: …
+SpecApiDocument:
+  metadata: Metadata & { concern: 'api' }
+  title: string
+  anatomy: Anatomy
+  props: Props
+  subcomponents?: Record<string, SpecApiSubcomponent>
+
+SpecVariantsDocument:
+  metadata: Metadata & { concern: 'variants' }
+  default: Variant
+  variants: Variants
+  invalidVariantCombinations?: PropConfigurations[]
+  subcomponents?: Record<string, SpecVariantsSubcomponent>
+
+SpecExamplesDocument:
+  metadata: Metadata & { concern: 'examples' }
+  slotContentExamples?: Record<string, SlotContent>
+  instanceExamples?: InstanceExamples
+  images?: Images
+  subcomponents?: Record<string, SpecExamplesSubcomponent>
+
+SpecConcernDocument: SpecApiDocument | SpecVariantsDocument | SpecExamplesDocument
 ```
 
 ### Schema changes (`schema/`)
 
 | File | Change | Bump |
 |------|--------|------|
-| `concern.schema.json` | Added — new file pointing at `SpecConcernDocument` | MINOR |
-| `component.schema.json` | Added definition `SpecConcernSubcomponent` | MINOR |
 | `component.schema.json` | Added optional property `concern` to `#/definitions/Metadata` | MINOR |
+| `component.schema.json` | Added the three document definitions and their three subcomponent definitions | MINOR |
+| `component.schema.json` | `Component.metadata` now forbids `concern` | MINOR |
+| `concern.schema.json` | Added — a `oneOf` over the three document definitions | MINOR |
 | `root.schema.json` | Added `concern.schema.json` to `oneOf` | MINOR |
 
 **Example — new shape** (`schema/component.schema.json`):
@@ -212,26 +236,16 @@ SpecConcernDocument:
 concern:
   type: string
   enum: [api, variants, examples]
-  description: "Which slice of a component this document carries, when a run wrote one file per concern. Absent on a single-file component."
-  # not in required[] — optional field
-```
-
-**Example — new shape** (`schema/root.schema.json`):
-```yaml
-oneOf:
-  - $ref: component.schema.json
-  - $ref: components.schema.json
-  - $ref: metadata.schema.json
-  - $ref: concern.schema.json    # new
+  description: "Which concern this document carries. Absent on a single-file component."
 ```
 
 ### Notes
 
-A concern document's `subcomponents` are narrowed to `SpecConcernSubcomponent` rather than `Subcomponent`. A subcomponent is sliced by the same concern as the document holding it — an `api` document carries its subcomponents' anatomy and props and no `default` block — so holding a nested subcomponent to the whole-subcomponent requirements fails for exactly the reason the document itself would. Every component with subcomponents failed validation until this was added.
+`concern` is optional on `Metadata`, which is shared with single-file components, but each document definition pins it to a literal — `const: api` on `SpecApiDocument`, and so on. That is what keeps the three branches apart from each other.
 
-`concern` is optional on `Metadata` rather than required on it, because `Metadata` is shared with single-file components, which have no concern. It is required on `SpecConcernDocument`, which is what makes the `oneOf` branch discriminate rather than overlap: a document with no `concern` is a `Component` and is held to `Component`'s required list.
+`Component.metadata` forbids `concern` outright. Without that the branches overlap in one direction: a concern document carrying enough keys to satisfy `Component` matches `Component` too, concern and all. An `api.yaml` with a stray `default` block was accepted until this was added.
 
-`generatedAt` is deliberately **not** added. The generator writes it today and must be changed to write `lastUpdated` instead — see Downstream Impact.
+A subcomponent inside a concern document is sliced by the same concern, so each document's `subcomponents` points at its own subcomponent shape. Holding a nested subcomponent to the whole-subcomponent requirements fails for exactly the reason the document itself would.
 
 ---
 
@@ -241,7 +255,11 @@ A concern document's `subcomponents` are narrowed to `SpecConcernSubcomponent` r
 - **Parity check**:
   - `Concern` ↔ the `enum` on `#/definitions/Metadata/properties/concern`
   - `Metadata.concern` ↔ `#/definitions/Metadata/properties/concern`, absent from `required`
-  - `SpecConcernDocument` ↔ `concern.schema.json#/definitions/SpecConcernDocument`, whose property set mirrors `#/definitions/Component` with an empty `required` list apart from `metadata`
+  - `SpecApiDocument` / `SpecVariantsDocument` / `SpecExamplesDocument` ↔ the same three definitions in `component.schema.json`, each with the same property set and the same required list
+  - `SpecApiSubcomponent` / `SpecVariantsSubcomponent` / `SpecExamplesSubcomponent` ↔ likewise
+  - `SpecConcernDocument` (the union) ↔ the `oneOf` in `concern.schema.json`
+
+One asymmetry, and it is TypeScript's rather than a modelling choice: the schema discriminates the three branches on `metadata.concern`, while TypeScript cannot narrow a union on a nested property. A consumer narrows on a key instead — `'title' in doc`. Both reach the same branch; only the route differs.
 
 ---
 
@@ -269,8 +287,10 @@ Until the generator change lands, concern documents continue to fail validation 
 
 ## Consequences
 
-- A generated workspace using the default `splitConcerns: true` can be validated against the published schema, so editor diagnostics on spec files become trustworthy rather than noise to be ignored.
-- A consumer reading a spec file can narrow on `metadata.concern` to know which slice it holds, using the same fact the validator discriminates on.
-- Two document types now describe overlapping property sets. A property added to `Component` must be added to `SpecConcernDocument` in the same change, or concern-split output silently cannot carry it. This is a new parity obligation on every future component-shape ADR.
-- Validating a component *across* its concern files — catching an `api.yaml` with no matching `variants.yaml`, or a set that collectively lacks an anatomy — remains outside the contract. Each file validates alone.
-- The published contract states one name for the generation timestamp. Generators writing `generatedAt` are wrong against the schema until they change, which is a deliberate short-term break in favour of not publishing a redundant key.
+- A generated workspace using the default `splitConcerns: true` validates against the published schema, so editor diagnostics on spec files become trustworthy rather than noise to be ignored.
+- A key in the wrong concern file is now an error rather than silently accepted — in the schema and in the compiler.
+- Each document requires what its concern carries, so a truncated or half-written concern file is caught rather than passing as "all fields optional".
+- The key-to-file allocation is contractual. Moving a key between concerns is a schema change, and a property added to `Component` must be placed in whichever concern carries it rather than inherited.
+- Six new shapes track `Component`. This is a parity obligation on every future component-shape ADR, and the cost paid for the validation above.
+- Validating a component *across* its concern files — catching an `api.yaml` with no matching `variants.yaml` — remains outside the contract. Each file validates alone.
+- The published contract states one name for the generation timestamp. Generators writing `generatedAt` are wrong against the schema until they change.

@@ -20,7 +20,7 @@ Only `source` describes the component that carries it. The other six properties 
 | `schema` | `object` | No | Schema version info — `url`, `version`, and optional `latest` URL |
 | `conventions` | `MetadataConventions` | No | Exactly the one platform entry that produced this spec — `platforms.figma` for a Figma capture — not every platform the workspace configures (ADR-079); see [Conventions](/schema/conventions/) |
 | `settings` | [`Settings`](/schema/settings/) | No | Choices about the run that generated this spec |
-| `concern` | `Concern` | No | Which slice of a component this document carries — `api`, `variants`, or `examples` — when a run wrote one file per concern. Absent on a single-file component; see [Component](/schema/component/) |
+| `concern` | `Concern` | No | Which concern this document carries — `api`, `variants`, or `examples` — when a run wrote one file per concern. Forbidden on a whole component; see [Component](/schema/component/) |
 
 ### Full form
 

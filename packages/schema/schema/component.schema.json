@@ -11,7 +11,19 @@
       "examples": [],
       "properties": {
         "metadata": {
-          "$ref": "#/definitions/Metadata"
+          "allOf": [
+            {
+              "$ref": "#/definitions/Metadata"
+            },
+            {
+              "not": {
+                "required": [
+                  "concern"
+                ]
+              }
+            }
+          ],
+          "description": "Metadata associated with the component. A whole component carries no `concern` — that key marks a concern document."
         },
         "title": {
           "type": "string",
@@ -1226,11 +1238,128 @@
       },
       "additionalProperties": false
     },
-    "SpecConcernDocument": {
+    "SpecApiSubcomponent": {
       "type": "object",
-      "description": "One slice of a component, as written by a run with splitConcerns. Every component property is optional: each document carries only the part of the component its concern names, and a component's requirements are met by the set of its concern documents together rather than by any one of them. A document omitting `metadata.concern` is a Component and is held to Component's requirements. (ADR-091)",
+      "description": "A subcomponent's api slice: what it is and what it takes. (ADR-091)",
       "required": [
-        "metadata"
+        "title",
+        "anatomy",
+        "props"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The component asset name",
+          "examples": [
+            "Button",
+            "Card",
+            "Text Input"
+          ]
+        },
+        "anatomy": {
+          "$ref": "#/definitions/Anatomy",
+          "description": "The elements that comprise the component, corresponding largely to Figma layers"
+        },
+        "props": {
+          "$ref": "#/definitions/Props",
+          "description": "Configurable properties that control component behavior and appearance"
+        },
+        "source": {
+          "$ref": "#/definitions/SubcomponentSource",
+          "description": "Figma source identity for this subcomponent's node."
+        },
+        "subcomponents": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/SpecApiSubcomponent"
+          },
+          "description": "Nested subcomponents, sliced by the same concern."
+        }
+      }
+    },
+    "SpecVariantsSubcomponent": {
+      "type": "object",
+      "description": "A subcomponent's variants slice: how it looks by default and how each variant changes it. (ADR-091)",
+      "required": [
+        "default",
+        "variants"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "default": {
+          "$ref": "#/definitions/Variant",
+          "description": "The base variant configuration that's both the component default display as well as the foundation for all other variants"
+        },
+        "variants": {
+          "$ref": "#/definitions/Variants",
+          "description": "The styling, layout, and configuration of nested instances based on a cmoponent configuration"
+        },
+        "invalidVariantCombinations": {
+          "type": "array",
+          "description": "Non-default prop values that when used in combination result in an invalid component state, such as a component being set to disabled and hover simultaneously",
+          "items": {
+            "$ref": "#/definitions/PropConfigurations"
+          }
+        },
+        "source": {
+          "$ref": "#/definitions/SubcomponentSource",
+          "description": "Figma source identity for this subcomponent's node."
+        },
+        "subcomponents": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/SpecVariantsSubcomponent"
+          },
+          "description": "Nested subcomponents, sliced by the same concern."
+        }
+      }
+    },
+    "SpecExamplesSubcomponent": {
+      "type": "object",
+      "description": "A subcomponent's examples slice: documented usages and the content they compose. (ADR-091)",
+      "required": [],
+      "additionalProperties": false,
+      "properties": {
+        "slotContentExamples": {
+          "type": "object",
+          "description": "Named slot-content examples for this component (ADR-047). Each entry is a SlotContent — a flat anatomy+elements+layout triplet usable as a named slot fill. Referenced via SlotContentRef from SlotBinding.examples and from Element.propConfigurations slot-prop entries (ADR-049). specs-from-figma de-duplicates entries by structural equality.",
+          "patternProperties": {
+            "^[a-zA-Z0-9_-]+$": {
+              "$ref": "#/definitions/SlotContent"
+            }
+          },
+          "additionalProperties": false
+        },
+        "instanceExamples": {
+          "$ref": "#/definitions/InstanceExamples",
+          "description": "Named instance examples (documented usages) for this component."
+        },
+        "images": {
+          "$ref": "#/definitions/Images",
+          "description": "Registry of image data referenced by backgroundImage fills, ImageBinding examples, and ImageProp defaults. De-duplicated so each distinct image is stored once (ADR-063)."
+        },
+        "source": {
+          "$ref": "#/definitions/SubcomponentSource",
+          "description": "Figma source identity for this subcomponent's node."
+        },
+        "subcomponents": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/SpecExamplesSubcomponent"
+          },
+          "description": "Nested subcomponents, sliced by the same concern."
+        }
+      }
+    },
+    "SpecApiDocument": {
+      "type": "object",
+      "description": "The api concern of a component: what it is and what it takes — title, anatomy and props. Written as api.yaml by a run with splitConcerns. (ADR-091)",
+      "required": [
+        "metadata",
+        "title",
+        "anatomy",
+        "props"
       ],
       "additionalProperties": false,
       "properties": {
@@ -1242,10 +1371,15 @@
             {
               "required": [
                 "concern"
-              ]
+              ],
+              "properties": {
+                "concern": {
+                  "const": "api"
+                }
+              }
             }
           ],
-          "description": "The component's metadata, which must state which concern this document carries."
+          "description": "Must state `concern: api`. This is what identifies the document, and what separates it from the other concerns in root.schema.json."
         },
         "title": {
           "type": "string",
@@ -1263,6 +1397,43 @@
         "props": {
           "$ref": "#/definitions/Props",
           "description": "Configurable properties that control component behavior and appearance"
+        },
+        "subcomponents": {
+          "type": "object",
+          "description": "This document's slice of each subcomponent, keyed by subcomponent name.",
+          "additionalProperties": {
+            "$ref": "#/definitions/SpecApiSubcomponent"
+          }
+        }
+      }
+    },
+    "SpecVariantsDocument": {
+      "type": "object",
+      "description": "The variants concern of a component: the default appearance and every variant override. Written as variants.yaml by a run with splitConcerns. (ADR-091)",
+      "required": [
+        "metadata",
+        "default",
+        "variants"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "metadata": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Metadata"
+            },
+            {
+              "required": [
+                "concern"
+              ],
+              "properties": {
+                "concern": {
+                  "const": "variants"
+                }
+              }
+            }
+          ],
+          "description": "Must state `concern: variants`. This is what identifies the document, and what separates it from the other concerns in root.schema.json."
         },
         "default": {
           "$ref": "#/definitions/Variant",
@@ -1283,73 +1454,36 @@
           "type": "object",
           "description": "This document's slice of each subcomponent, keyed by subcomponent name.",
           "additionalProperties": {
-            "$ref": "#/definitions/SpecConcernSubcomponent"
+            "$ref": "#/definitions/SpecVariantsSubcomponent"
           }
-        },
-        "instanceExamples": {
-          "$ref": "#/definitions/InstanceExamples",
-          "description": "Named instance examples (documented usages) for this component."
-        },
-        "slotContentExamples": {
-          "type": "object",
-          "description": "Named slot-content examples for this component (ADR-047). Each entry is a SlotContent — a flat anatomy+elements+layout triplet usable as a named slot fill. Referenced via SlotContentRef from SlotBinding.examples and from Element.propConfigurations slot-prop entries (ADR-049). specs-from-figma de-duplicates entries by structural equality.",
-          "patternProperties": {
-            "^[a-zA-Z0-9_-]+$": {
-              "$ref": "#/definitions/SlotContent"
-            }
-          },
-          "additionalProperties": false
-        },
-        "images": {
-          "$ref": "#/definitions/Images",
-          "description": "Registry of image data referenced by backgroundImage fills, ImageBinding examples, and ImageProp defaults. De-duplicated so each distinct image is stored once (ADR-063)."
-        },
-        "source": {
-          "$ref": "#/definitions/SubcomponentSource",
-          "description": "Figma source identity, populated by the generator on subcomponent entries (ADR-060); top-level components carry identity in metadata.source instead. Declared here because Subcomponent composes this closed definition via allOf and draft-07 has no unevaluatedProperties."
         }
       }
     },
-    "SpecConcernSubcomponent": {
+    "SpecExamplesDocument": {
       "type": "object",
-      "description": "One slice of a subcomponent, inside a concern document. Sliced by the same concern as the document holding it, so every property is optional for the same reason it is on SpecConcernDocument. (ADR-091)",
+      "description": "The examples concern of a component: documented usages, the content they compose, and the image registry those reference. Written as examples.yaml when a component has any. (ADR-091)",
+      "required": [
+        "metadata"
+      ],
       "additionalProperties": false,
       "properties": {
-        "title": {
-          "type": "string",
-          "description": "The component asset name",
-          "examples": [
-            "Button",
-            "Card",
-            "Text Input"
-          ]
-        },
-        "anatomy": {
-          "$ref": "#/definitions/Anatomy",
-          "description": "The elements that comprise the component, corresponding largely to Figma layers"
-        },
-        "props": {
-          "$ref": "#/definitions/Props",
-          "description": "Configurable properties that control component behavior and appearance"
-        },
-        "default": {
-          "$ref": "#/definitions/Variant",
-          "description": "The base variant configuration that's both the component default display as well as the foundation for all other variants"
-        },
-        "variants": {
-          "$ref": "#/definitions/Variants",
-          "description": "The styling, layout, and configuration of nested instances based on a cmoponent configuration"
-        },
-        "invalidVariantCombinations": {
-          "type": "array",
-          "description": "Non-default prop values that when used in combination result in an invalid component state, such as a component being set to disabled and hover simultaneously",
-          "items": {
-            "$ref": "#/definitions/PropConfigurations"
-          }
-        },
-        "instanceExamples": {
-          "$ref": "#/definitions/InstanceExamples",
-          "description": "Named instance examples (documented usages) for this component."
+        "metadata": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Metadata"
+            },
+            {
+              "required": [
+                "concern"
+              ],
+              "properties": {
+                "concern": {
+                  "const": "examples"
+                }
+              }
+            }
+          ],
+          "description": "Must state `concern: examples`. This is what identifies the document, and what separates it from the other concerns in root.schema.json."
         },
         "slotContentExamples": {
           "type": "object",
@@ -1361,13 +1495,20 @@
           },
           "additionalProperties": false
         },
+        "instanceExamples": {
+          "$ref": "#/definitions/InstanceExamples",
+          "description": "Named instance examples (documented usages) for this component."
+        },
         "images": {
           "$ref": "#/definitions/Images",
           "description": "Registry of image data referenced by backgroundImage fills, ImageBinding examples, and ImageProp defaults. De-duplicated so each distinct image is stored once (ADR-063)."
         },
-        "source": {
-          "$ref": "#/definitions/SubcomponentSource",
-          "description": "Figma source identity for this subcomponent's node."
+        "subcomponents": {
+          "type": "object",
+          "description": "This document's slice of each subcomponent, keyed by subcomponent name.",
+          "additionalProperties": {
+            "$ref": "#/definitions/SpecExamplesSubcomponent"
+          }
         }
       }
     }

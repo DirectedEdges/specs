@@ -1,6 +1,16 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Specs Concern Document Schema",
-  "description": "One slice of a component, as written by a run with splitConcerns. Defined in component.schema.json so that every property reference resolves against the same definitions the whole component uses. (ADR-091)",
-  "$ref": "component.schema.json#/definitions/SpecConcernDocument"
+  "description": "One concern of a component, as written by a run with splitConcerns. Each concern has its own shape, requiring what it carries and permitting nothing else. Defined in component.schema.json so every property reference resolves against the same definitions the whole component uses. (ADR-091)",
+  "oneOf": [
+    {
+      "$ref": "component.schema.json#/definitions/SpecApiDocument"
+    },
+    {
+      "$ref": "component.schema.json#/definitions/SpecVariantsDocument"
+    },
+    {
+      "$ref": "component.schema.json#/definitions/SpecExamplesDocument"
+    }
+  ]
 }

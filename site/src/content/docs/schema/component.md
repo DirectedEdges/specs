@@ -31,18 +31,18 @@ Several optional fields document configured and composed usages of a component. 
 - [`Composition`](/schema/composition/) — a named, authored unit of composed content (system-scoped, external composition files).
 - [`Children`](/schema/children/) — an element's children, including slot bindings that carry example fills.
 
-## SpecConcernDocument
+## Concern documents
 
-A run with [`spec.splitConcerns`](/schema/settings/) writes one file per concern — `api.yaml`, `variants.yaml`, and `examples.yaml` when the component has any — rather than a single component file. Each of those files is a `SpecConcernDocument`: the same properties as `Component`, all of them optional, because each file carries only the part of the component its concern names.
+A run with [`spec.splitConcerns`](/schema/settings/) writes one file per concern rather than a single component file. Each file has its own type, requiring what its concern carries and permitting nothing else — a `variants.yaml` cannot hold an anatomy, and an `api.yaml` cannot hold a default block.
 
-| Property | Type | Required | Description |
-|----------|------|----------|-------------|
-| `metadata` | [`Metadata`](/schema/metadata/) | Yes | Must state [`concern`](/schema/metadata/) — this is what identifies the file as a slice |
-| `subcomponents` | `Record<string, SpecConcernSubcomponent>` | No | This document's slice of each subcomponent |
-| *(every other `Component` property)* | — | No | Present when the concern carries it |
+| Document | File | Required | Also carries |
+|---|---|---|---|
+| `SpecApiDocument` | `api.yaml` | `metadata`, `title`, `anatomy`, `props` | `subcomponents` |
+| `SpecVariantsDocument` | `variants.yaml` | `metadata`, `default`, `variants` | `invalidVariantCombinations`, `subcomponents` |
+| `SpecExamplesDocument` | `examples.yaml` | `metadata` | `slotContentExamples`, `instanceExamples`, `images`, `subcomponents` |
 
-A nested subcomponent is sliced by the same concern as the document holding it — an `api.yaml` carries its subcomponents' anatomy and props, not their `default` block — so `subcomponents` here is a `SpecConcernSubcomponent`, which relaxes the same requirements for the same reason.
+Each document's `metadata` must state its [`concern`](/schema/metadata/) — `api`, `variants` or `examples`. That is what identifies the file, and what tells the three apart. A whole `Component` carries no `concern` at all.
 
-An `api.yaml` states `title`, `anatomy` and `props`; a `variants.yaml` states `default` and `variants`. Neither is a valid `Component` on its own, and neither is meant to be — a component's requirements are met by the set of its concern documents together.
+A nested subcomponent is sliced by the same concern as the document holding it, so each document's `subcomponents` uses its own subcomponent shape — `SpecApiSubcomponent`, `SpecVariantsSubcomponent`, `SpecExamplesSubcomponent`.
 
-A document with no `metadata.concern` is a `Component`, and is held to `Component`'s required properties.
+`SpecConcernDocument` is the union of the three. TypeScript cannot narrow it on `metadata.concern`, since the discriminant sits one level down; narrow on a key instead (`'title' in doc`).
