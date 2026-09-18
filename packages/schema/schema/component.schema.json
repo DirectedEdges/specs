@@ -1226,7 +1226,7 @@
       },
       "additionalProperties": false
     },
-    "ConcernDocument": {
+    "SpecConcernDocument": {
       "type": "object",
       "description": "One slice of a component, as written by a run with splitConcerns. Every component property is optional: each document carries only the part of the component its concern names, and a component's requirements are met by the set of its concern documents together rather than by any one of them. A document omitting `metadata.concern` is a Component and is held to Component's requirements. (ADR-091)",
       "required": [

@@ -31,9 +31,9 @@ Several optional fields document configured and composed usages of a component. 
 - [`Composition`](/schema/composition/) — a named, authored unit of composed content (system-scoped, external composition files).
 - [`Children`](/schema/children/) — an element's children, including slot bindings that carry example fills.
 
-## ConcernDocument
+## SpecConcernDocument
 
-A run with [`spec.splitConcerns`](/schema/settings/) writes one file per concern — `api.yaml`, `styling.yaml`, `variants.yaml` — rather than a single component file. Each of those files is a `ConcernDocument`: the same properties as `Component`, all of them optional, because each file carries only the part of the component its concern names.
+A run with [`spec.splitConcerns`](/schema/settings/) writes one file per concern — `api.yaml`, `styling.yaml`, `variants.yaml` — rather than a single component file. Each of those files is a `SpecConcernDocument`: the same properties as `Component`, all of them optional, because each file carries only the part of the component its concern names.
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|

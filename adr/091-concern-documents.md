@@ -3,7 +3,7 @@
 **Branch**: `091-concern-documents`
 **Created**: 2026-09-18
 **Status**: DRAFT
-**Summary**: A `ConcernDocument` root type and `Metadata.concern` type the per-concern files a `splitConcerns` run writes.
+**Summary**: A `SpecConcernDocument` root type and `Metadata.concern` type the per-concern files a `splitConcerns` run writes.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none — extends ADR-089)*
 
@@ -64,13 +64,13 @@ The result is that a correctly generated workspace cannot be validated against i
 
 ### Decision 1 — How a concern document is validated
 
-#### Option A: A `ConcernDocument` root type discriminated by `metadata.concern` *(Selected)*
+#### Option A: A `SpecConcernDocument` root type discriminated by `metadata.concern` *(Selected)*
 
 Add a fourth branch to `root.schema.json`. A concern document is its own document type: every component-level property optional, `metadata.concern` required and constrained to the concern enum.
 
 ```yaml
 # schema/concern.schema.json — new
-ConcernDocument:
+SpecConcernDocument:
   type: object
   required: [metadata]
   properties:
@@ -159,8 +159,8 @@ Put per-file facts in their own block: `document: { concern: api }`.
 |------|--------|------|
 | `Metadata.ts` | Added optional field `concern` to `Metadata` | MINOR |
 | `Metadata.ts` | Added exported type `Concern` | MINOR |
-| `Component.ts` | Added exported type `ConcernDocument` | MINOR |
-| `index.ts` | Export `Concern` and `ConcernDocument` | MINOR |
+| `Component.ts` | Added exported type `SpecConcernDocument` | MINOR |
+| `index.ts` | Export `Concern` and `SpecConcernDocument` | MINOR |
 
 **Example — new shape** (`types/Metadata.ts`):
 ```yaml
@@ -181,7 +181,7 @@ Concern: 'api' | 'styling' | 'variants'
 **Example — new shape** (`types/Component.ts`):
 ```yaml
 # New type — one slice of a component, as written by splitConcerns
-ConcernDocument:
+SpecConcernDocument:
   metadata: Metadata          # required; its `concern` states which slice
   title?: string              # every component property, optional
   anatomy?: Anatomy
@@ -200,7 +200,7 @@ ConcernDocument:
 
 | File | Change | Bump |
 |------|--------|------|
-| `concern.schema.json` | Added — new file defining `ConcernDocument` | MINOR |
+| `concern.schema.json` | Added — new file defining `SpecConcernDocument` | MINOR |
 | `component.schema.json` | Added optional property `concern` to `#/definitions/Metadata` | MINOR |
 | `root.schema.json` | Added `concern.schema.json` to `oneOf` | MINOR |
 
@@ -225,7 +225,7 @@ oneOf:
 
 ### Notes
 
-`concern` is optional on `Metadata` rather than required on it, because `Metadata` is shared with single-file components, which have no concern. It is required on `ConcernDocument`, which is what makes the `oneOf` branch discriminate rather than overlap: a document with no `concern` is a `Component` and is held to `Component`'s required list.
+`concern` is optional on `Metadata` rather than required on it, because `Metadata` is shared with single-file components, which have no concern. It is required on `SpecConcernDocument`, which is what makes the `oneOf` branch discriminate rather than overlap: a document with no `concern` is a `Component` and is held to `Component`'s required list.
 
 `generatedAt` is deliberately **not** added. The generator writes it today and must be changed to write `lastUpdated` instead — see Downstream Impact.
 
@@ -237,7 +237,7 @@ oneOf:
 - **Parity check**:
   - `Concern` ↔ the `enum` on `#/definitions/Metadata/properties/concern`
   - `Metadata.concern` ↔ `#/definitions/Metadata/properties/concern`, absent from `required`
-  - `ConcernDocument` ↔ `concern.schema.json#/definitions/ConcernDocument`, whose property set mirrors `#/definitions/Component` with an empty `required` list apart from `metadata`
+  - `SpecConcernDocument` ↔ `concern.schema.json#/definitions/SpecConcernDocument`, whose property set mirrors `#/definitions/Component` with an empty `required` list apart from `metadata`
 
 ---
 
@@ -267,6 +267,6 @@ Until the generator change lands, concern documents continue to fail validation 
 
 - A generated workspace using the default `splitConcerns: true` can be validated against the published schema, so editor diagnostics on spec files become trustworthy rather than noise to be ignored.
 - A consumer reading a spec file can narrow on `metadata.concern` to know which slice it holds, using the same fact the validator discriminates on.
-- Two document types now describe overlapping property sets. A property added to `Component` must be added to `ConcernDocument` in the same change, or concern-split output silently cannot carry it. This is a new parity obligation on every future component-shape ADR.
+- Two document types now describe overlapping property sets. A property added to `Component` must be added to `SpecConcernDocument` in the same change, or concern-split output silently cannot carry it. This is a new parity obligation on every future component-shape ADR.
 - Validating a component *across* its concern files — catching an `api.yaml` with no matching `variants.yaml`, or a set that collectively lacks an anatomy — remains outside the contract. Each file validates alone.
 - The published contract states one name for the generation timestamp. Generators writing `generatedAt` are wrong against the schema until they change, which is a deliberate short-term break in favour of not publishing a redundant key.

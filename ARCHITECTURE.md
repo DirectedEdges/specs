@@ -51,7 +51,7 @@ There is no `Config.ts` anymore — older links to "Config" mean these three.
 | `packages/schema/types/Settings.ts` | Run choices + `DEFAULT_SETTINGS` |
 | `packages/schema/types/Anatomy.ts` | Element tree; `role`/`action` concepts (open string sets, docs-governed) |
 | `packages/schema/types/Props.ts` | `AnyProp` union |
-| `packages/schema/schema/component.schema.json` | Primary JSON Schema — must mirror the `Component` tree; also defines `ConcernDocument`, the same properties with everything optional |
+| `packages/schema/schema/component.schema.json` | Primary JSON Schema — must mirror the `Component` tree; also defines `SpecConcernDocument`, the same properties with everything optional |
 | `packages/schema/schema/styles.schema.json` | Pairs with `types/Styles.ts` |
 | `packages/schema/CONSTITUTION.md` | Governance: semver policy, 6-gate check |
 | `packages/schema/CHANGELOG.md` | Mandatory per publish; bullets cite ADRs |

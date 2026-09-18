@@ -100,6 +100,6 @@ export type Component = {
  * document as a slice rather than a component. A document without it is a
  * `Component` and is held to `Component`'s requirements.
  */
-export type ConcernDocument = Partial<Component> & {
+export type SpecConcernDocument = Partial<Component> & {
   metadata: Metadata;
 };

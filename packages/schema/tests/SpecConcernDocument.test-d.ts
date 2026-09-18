@@ -1,9 +1,9 @@
 /**
- * Type-level tests for ConcernDocument and Metadata.concern (ADR-091).
+ * Type-level tests for SpecConcernDocument and Metadata.concern (ADR-091).
  * These files are intentionally never executed — they are compiled with tsc
  * to assert that the type shape is correct.
  */
-import type { ConcernDocument, Concern, Metadata } from '../types/index.js';
+import type { SpecConcernDocument, Concern, Metadata } from '../types/index.js';
 
 const source: Metadata['source'] = {
   pageId: '0:1',
@@ -12,21 +12,21 @@ const source: Metadata['source'] = {
 };
 
 // An api document: title and anatomy, no default block.
-const api: ConcernDocument = {
+const api: SpecConcernDocument = {
   metadata: { source, concern: 'api' },
   title: 'DE Favorite button',
   anatomy: { root: { type: 'container' } },
 };
 
 // A variants document: the reverse — a default block, no title or anatomy.
-const variants: ConcernDocument = {
+const variants: SpecConcernDocument = {
   metadata: { source, concern: 'variants' },
   default: { elements: {} },
 };
 
 // metadata is the one required property.
 // @ts-expect-error — a concern document must carry metadata
-const noMetadata: ConcernDocument = { title: 'DE Favorite button' };
+const noMetadata: SpecConcernDocument = { title: 'DE Favorite button' };
 
 // The concern vocabulary is closed.
 const known: Concern[] = ['api', 'styling', 'variants'];
