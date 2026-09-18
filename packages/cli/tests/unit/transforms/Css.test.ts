@@ -1163,3 +1163,70 @@ describe('gradient strokes arriving as token references', () => {
     expect(css).toContain('outline-style: none');
   });
 });
+
+// The fit declarations describe how the element presents a background image.
+// A component can also take its image from a code-only source prop at runtime,
+// where the registry has no `src` to resolve — the element still needs the fit.
+describe('CssTransformer background image fit', () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'css-image-test-'));
+  });
+
+  afterEach(async () => {
+    await fs.remove(tmpDir);
+  });
+
+  async function runWithImages(images: Record<string, unknown>, objectFit?: string) {
+    await fs.writeFile(
+      path.join(tmpDir, 'examples.yaml'),
+      yaml.stringify({ images }),
+      'utf-8',
+    );
+    return run(tmpDir, {
+      default: {
+        layout: [{ root: ['imageFill'] }],
+        elements: {
+          root: { styles: {} },
+          imageFill: {
+            styles: {
+              backgroundImage: {
+                $image: '#/components/dsImage/images/dsImage__imageFill',
+                ...(objectFit ? { objectFit } : {}),
+              },
+            },
+          },
+        },
+      },
+    }, 'dsImage');
+  }
+
+  it('emits the url and the fit when the registry entry resolves', async () => {
+    const css = await runWithImages({
+      dsImage__imageFill: { src: '../../assets/images/abc123.jpg' },
+    });
+    expect(css).toContain("background-image: url('../../../../assets/images/abc123.jpg')");
+    expect(css).toContain('background-position: center');
+    expect(css).toContain('background-repeat: no-repeat');
+    expect(css).toContain('background-size: cover');
+  });
+
+  it('emits the fit without a url when the registry entry is unresolved', async () => {
+    const css = await runWithImages({
+      dsImage__imageFill: { $extensions: { 'com.figma': { imageHash: 'abc123' } } },
+    });
+    expect(css).not.toContain('background-image:');
+    expect(css).toContain('background-position: center');
+    expect(css).toContain('background-repeat: no-repeat');
+    expect(css).toContain('background-size: cover');
+  });
+
+  it('honours objectFit CONTAIN on an unresolved entry', async () => {
+    const css = await runWithImages(
+      { dsImage__imageFill: { $extensions: { 'com.figma': { imageHash: 'abc123' } } } },
+      'CONTAIN',
+    );
+    expect(css).toContain('background-size: contain');
+  });
+});

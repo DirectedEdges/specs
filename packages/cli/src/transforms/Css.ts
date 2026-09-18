@@ -166,29 +166,45 @@ interface ImagesCssContext {
   relPrefix: string;
 }
 
-/** backgroundImage style ({ $image, objectFit? } | null) → CSS declarations. */
+/**
+ * backgroundImage style ({ $image, objectFit? } | null) → CSS declarations.
+ *
+ * Fit describes the element, not the asset. An element that declares a
+ * background image sizes and positions it the same way whether the URL comes
+ * from the registry here or from a code-only source prop supplied at runtime,
+ * so the fit declarations come from the declaration itself and only the
+ * `background-image` URL depends on the registry entry resolving.
+ */
 function backgroundImageDecls(value: unknown, images: ImagesCssContext | undefined): string[] {
   if (value === null) return ['background-image: none'];
-  if (!images?.examples || !value || typeof value !== 'object') return [];
+  if (!value || typeof value !== 'object') return [];
   const v = value as Record<string, unknown>;
   if (typeof v.$image !== 'string') return [];
-  const id = v.$image.match(/#\/components\/[^/]+\/images\/(.+)$/)?.[1];
-  const entry = id ? images.examples.images[id] : undefined;
-  // `src` is the registry's own portable data: an entry without one is
-  // unresolved, and there is nothing further to try. Reading a Figma image
-  // hash to guess a filename made output depend on where the spec came from
-  // (ADR-063).
-  if (typeof entry?.src !== 'string') return [];
-  if (/^(data:|https?:)/.test(entry.src)) {
-    return imageDecls(`url('${entry.src}')`, v.objectFit);
-  }
-  return imageDecls(`url('${images.relPrefix}/${path.basename(entry.src)}')`, v.objectFit);
+  const url = imageUrl(v.$image, images);
+  return [...(url ? [`background-image: ${url}`] : []), ...fitDecls(v.objectFit)];
 }
 
-function imageDecls(url: string, objectFit: unknown): string[] {
-  const decls = [`background-image: ${url}`, 'background-position: center', 'background-repeat: no-repeat'];
-  decls.push(`background-size: ${objectFit === 'CONTAIN' ? 'contain' : 'cover'}`);
-  return decls;
+/**
+ * The `url()` for a `$image` ref, or undefined when the registry entry is
+ * unresolved. `src` is the registry's own portable data: an entry without one
+ * has nothing further to try. Reading a Figma image hash to guess a filename
+ * made output depend on where the spec came from (ADR-063).
+ */
+function imageUrl(ref: string, images: ImagesCssContext | undefined): string | undefined {
+  if (!images?.examples) return undefined;
+  const id = ref.match(/#\/components\/[^/]+\/images\/(.+)$/)?.[1];
+  const entry = id ? images.examples.images[id] : undefined;
+  if (typeof entry?.src !== 'string') return undefined;
+  if (/^(data:|https?:)/.test(entry.src)) return `url('${entry.src}')`;
+  return `url('${images.relPrefix}/${path.basename(entry.src)}')`;
+}
+
+function fitDecls(objectFit: unknown): string[] {
+  return [
+    'background-position: center',
+    'background-repeat: no-repeat',
+    `background-size: ${objectFit === 'CONTAIN' ? 'contain' : 'cover'}`,
+  ];
 }
 
 /** Glyphs, raw vectors, and icon-wrapper instances (instance with a name propConfiguration). */
