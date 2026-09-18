@@ -43,6 +43,8 @@ export interface EmitRun {
 interface EmitResult {
   /** The resolved specs directory this run read from. */
   specsPath: string;
+  /** The `config/` directory this run read conventions from, if there was one. */
+  configPath: string | null;
   succeeded: number;
   failed: number;
 }
@@ -177,6 +179,18 @@ async function emitOnce(run: EmitRun, options: EmitOptions): Promise<EmitResult>
     }
   }
 
+  // A full run is authoritative over the trees it emits into: a component
+  // renamed in Figma, or a naming convention changed in config, produces output
+  // under a new directory and leaves the old one behind. Nothing else deletes
+  // it, so it keeps appearing in Storybook as a component that no longer exists.
+  //
+  // Only a full run may do this. A `--components` run knows nothing about the
+  // components it was not asked to emit, and every one of them would look
+  // orphaned.
+  if (!options.components?.length) {
+    await pruneOrphans(transformers, componentDirs, workspaceDir);
+  }
+
   // Stylesheets and index output are derived from the whole set, so they are
   // rebuilt after every pass — including a watch-triggered one, which would
   // otherwise leave them stale against the component that just changed.
@@ -188,7 +202,47 @@ async function emitOnce(run: EmitRun, options: EmitOptions): Promise<EmitResult>
   console.log(`✓ ${run.label} complete`);
   console.log(`  ${succeeded} succeeded${failed > 0 ? `, ${failed} failed` : ''}`);
 
-  return { specsPath, succeeded, failed };
+  return { specsPath, configPath: configLoader.resolveDirectory(options.config), succeeded, failed };
+}
+
+/**
+ * Delete emitted component directories that no spec in this run accounts for.
+ *
+ * The expected set is derived the same way `outputDir` is, so the two cannot
+ * disagree about where a component's output lives. Only whole component
+ * directories are pruned — a stale file *inside* a directory whose component
+ * still exists is not visible from here, because what a transformer writes
+ * inside its `outputDir` is the transformer's own business.
+ */
+async function pruneOrphans(
+  transformers: Transformer[],
+  componentDirs: string[],
+  workspaceDir: string,
+): Promise<void> {
+  const expected = new Set(componentDirs.map(toPascalCase));
+  const trees = new Set(
+    transformers.map(t => t.outputTree).filter((t): t is string => Boolean(t)),
+  );
+
+  for (const tree of trees) {
+    const componentsRoot = path.join(workspaceDir, tree, 'src', 'components');
+    if (!(await fs.pathExists(componentsRoot))) continue;
+
+    const entries = await fs.readdir(componentsRoot, { withFileTypes: true });
+    const orphans = entries
+      .filter(e => e.isDirectory() && !expected.has(e.name))
+      .map(e => e.name);
+
+    if (orphans.length === 0) continue;
+
+    // One line, not one per directory: the list is the finding, and a rename
+    // that changes a convention can orphan the whole tree at once.
+    console.warn(
+      `⚠ removed ${orphans.length} emitted ${orphans.length === 1 ? 'directory' : 'directories'} ` +
+        `under ${tree}/src/components with no matching spec: ${orphans.join(', ')}`,
+    );
+    for (const orphan of orphans) await fs.remove(path.join(componentsRoot, orphan));
+  }
 }
 
 function reportSetupError(error: unknown): void {
@@ -201,7 +255,14 @@ function reportSetupError(error: unknown): void {
 }
 
 /**
- * Watch the specs directory and re-emit the whole set on every change.
+ * Watch the specs directory — and the workspace's `config/` — and re-emit the
+ * whole set on every change.
+ *
+ * Config is watched because a convention decides what the emitted code looks
+ * like just as directly as the spec does. Only these two are watched, not the
+ * workspace root: the emitted platform trees are siblings of the specs
+ * directory, and a recursive watch over their parent would re-trigger on this
+ * run's own output.
  *
  * The whole set, not the changed component: a spec edit can change what one
  * component imports from another, and a partial re-emit would leave the emitted
@@ -247,9 +308,14 @@ async function watchAndEmit(run: EmitRun, options: EmitOptions): Promise<never> 
     debounceTimer = setTimeout(runEmit, WATCH_DEBOUNCE_MS);
   };
 
+  // Both watchers share one debounce, so a config edit and a spec edit are the
+  // same event as far as the re-emit is concerned.
+  const watched = [first.specsPath, ...(first.configPath ? [first.configPath] : [])];
+  const label = watched.map(p => path.relative(process.cwd(), p) || '.').join(' and ');
+
   console.log('');
-  console.log(`Watching ${path.relative(process.cwd(), first.specsPath) || '.'} for changes...`);
-  fs.watch(first.specsPath, { recursive: true }, scheduleEmit);
+  console.log(`Watching ${label} for changes...`);
+  for (const target of watched) fs.watch(target, { recursive: true }, scheduleEmit);
 
   await new Promise(() => {}); // keep the process alive until Ctrl+C
   throw new Error('unreachable');

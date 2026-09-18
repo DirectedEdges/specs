@@ -130,6 +130,22 @@ export class ConfigLoader {
   }
 
   /**
+   * The `config/` directory a `load()` with the same argument would read from,
+   * or null when the run falls back to defaults or to a legacy file.
+   *
+   * Exposed for the watch paths: config is re-read on every pass, so a
+   * convention edit already takes effect — it just needs something to watch
+   * for it. A legacy file returns null rather than a path, because `load()`
+   * refuses it and there is nothing to re-run.
+   */
+  public resolveDirectory(configPath?: string): string | null {
+    const source = configPath
+      ? this.classifyExplicitPath(configPath)
+      : this.findConfigSource();
+    return source?.kind === 'directory' ? source.dir : null;
+  }
+
+  /**
    * Classify an explicit `configPath` argument as either a split-config
    * directory or a legacy file.
    */

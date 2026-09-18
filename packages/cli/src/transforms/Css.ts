@@ -11,6 +11,10 @@ import { CONCEPT_TABLE, buildStateLookup, conceptsClaimedByNestedRoles } from '.
 import { resolveRules } from './css/rules/index.js';
 import { parseLayout, type LayoutNode } from './css/layoutTree.js';
 import { loadExamples, type ExamplesData } from './examples.js';
+// The filenames come from the packages that emit the scaffolds importing them,
+// so a stylesheet can never be written under a name no scaffold reaches for.
+import { REACT_FILES } from '@directededges/react-from-specs';
+import { WEBCOMPONENT_FILES } from '@directededges/webcomponents-from-specs';
 
 /**
  * The light-DOM companion sheet for a custom element.
@@ -104,7 +108,7 @@ export class CssTransformer implements Transformer {
     const wcDir = componentOutDir(context, 'webcomponents', prefix);
     if (this.writes('react')) {
       await fs.ensureDir(reactDir);
-      await writeAtomic(path.join(reactDir, `${prefix}.styles.css`), lines.join('\n'));
+      await writeAtomic(path.join(reactDir, REACT_FILES.styles), lines.join('\n'));
     }
 
     // The same rules written for a shadow tree, where the custom element itself
@@ -117,11 +121,11 @@ export class CssTransformer implements Transformer {
     }, 'host', anatomyRoles(apiYaml), apiPropsOf(apiYaml)));
     if (this.writes('webcomponents')) {
       await fs.ensureDir(wcDir);
-      await writeAtomic(path.join(wcDir, `${prefix}.host.css`), hostLines.join('\n'));
-      await writeAtomic(path.join(wcDir, `${prefix}.light.css`), lightDomLines(componentClass).join('\n'));
+      await writeAtomic(path.join(wcDir, WEBCOMPONENT_FILES.hostCss), hostLines.join('\n'));
+      await writeAtomic(path.join(wcDir, WEBCOMPONENT_FILES.lightCss), lightDomLines(componentClass).join('\n'));
     }
 
-    // Subcomponents — each gets {Sub}.styles.css in its own subfolder
+    // Subcomponents — each gets its own stylesheets in its own subfolder
     const subcomponents = (variantsYaml.subcomponents ?? {}) as Record<string, unknown>;
     const apiSubs = (apiYaml.subcomponents ?? {}) as Record<string, unknown>;
     for (const [subKey, subRaw] of Object.entries(subcomponents)) {
@@ -137,7 +141,7 @@ export class CssTransformer implements Transformer {
       const subWcDir = path.join(wcDir, subFilePrefix);
       if (this.writes('react')) {
         await fs.ensureDir(subReactDir);
-        await writeAtomic(path.join(subReactDir, `${subFilePrefix}.styles.css`), subLines.join('\n'));
+        await writeAtomic(path.join(subReactDir, REACT_FILES.styles), subLines.join('\n'));
       }
       const subHostLines = withNameWarningsSuppressed(() => buildCssLines(subClass, subVariantsYaml, tokensFormat, context, subTypes, {
         examples,
@@ -145,8 +149,8 @@ export class CssTransformer implements Transformer {
       }, 'host'));
       if (this.writes('webcomponents')) {
         await fs.ensureDir(subWcDir);
-        await writeAtomic(path.join(subWcDir, `${subFilePrefix}.host.css`), subHostLines.join('\n'));
-        await writeAtomic(path.join(subWcDir, `${subFilePrefix}.light.css`), lightDomLines(subClass).join('\n'));
+        await writeAtomic(path.join(subWcDir, WEBCOMPONENT_FILES.hostCss), subHostLines.join('\n'));
+        await writeAtomic(path.join(subWcDir, WEBCOMPONENT_FILES.lightCss), lightDomLines(subClass).join('\n'));
       }
     }
   }
