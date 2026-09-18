@@ -14,12 +14,12 @@ import { Command } from 'commander';
 import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
-import type { SourceEntry } from '@directededges/specs-schema';
 import { Components } from '@directededges/specs-from-figma';
 import type { ProgressEvent, RestLicenseInput } from '@directededges/specs-from-figma';
 import { ConfigLoader } from '../Config/ConfigLoader.js';
 import type { CLIConfig } from '../Types/CLIConfig.js';
 import { loadFoundations } from '../utilities/loadFoundations.js';
+import { resolveFileSourceAlias } from '../utilities/fileSourceAlias.js';
 import { ManifestParser } from '../utilities/ManifestParser.js';
 import { ManifestParserV2 } from '../utilities/ManifestParserV2.js';
 import { LicenseStatus } from '../utilities/LicenseStatus.js';
@@ -81,19 +81,6 @@ interface GenerateOptions {
   file?: string;
   node?: string;
   remove?: boolean;
-}
-
-/**
- * Resolve the config source alias that carries the component file: `library`
- * when configured with `fetch: [file]`, else the first source that is.
- * Single source of truth for the default-manifest path, the manifest-mode
- * component file, and the --get-images file key.
- */
-function resolveFileSourceAlias(sources: Record<string, SourceEntry> | undefined): string | null {
-  const entries = sources ?? {};
-  if (entries.library && Array.isArray(entries.library.fetch) && entries.library.fetch.includes('file')) return 'library';
-  const candidate = Object.entries(entries).find(([, s]) => Array.isArray(s.fetch) && s.fetch.includes('file'));
-  return candidate ? candidate[0] : null;
 }
 
 /**

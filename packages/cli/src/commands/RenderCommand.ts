@@ -19,6 +19,7 @@ import { startSpinner } from '../utilities/spinner.js';
 import { refreshCache } from '../Cache/Cache.js';
 import { reportCache } from './CacheCommand.js';
 import { figmaOf } from '../Config/PlatformConventions.js';
+import { loadDevStatusByNodeId, devStatusForSpec, type WritableDevStatus } from '../utilities/ManifestDevStatus.js';
 
 const ERROR_CODES = {
   SUCCESS: 0,
@@ -90,17 +91,26 @@ export const Render = new Command('render')
       // reverses that record — so the spec's own `metadata.conventions`/`metadata.settings`
       // govern. This is the fallback for a spec carrying none, such as a hand-authored one.
       // A workspace without a config file is fine: the spec is then the only source there is.
+      //
+      // The same load supplies the Dev Mode status index: `specs scan` recorded each
+      // component's status in the workspace manifest, and render stamps it back onto
+      // the node it writes. Indexed once for the whole run — a batch renders hundreds
+      // of specs against the one manifest, which does not change mid-run.
       let workspaceConventions: ResolvedConventions | undefined;
       let workspaceSettings: ResolvedSettings | undefined;
+      let devStatusByNodeId: Map<string, WritableDevStatus> | undefined;
       try {
         const workspace = new ConfigLoader().load(options.config);
         workspaceConventions = workspace.conventions;
         workspaceSettings = workspace.settings;
+        devStatusByNodeId = loadDevStatusByNodeId(workspace);
       } catch {
         workspaceConventions = undefined;
         workspaceSettings = undefined;
+        devStatusByNodeId = undefined;
       }
-      const withConfig = { ...options, workspaceConventions, workspaceSettings };
+
+      const withConfig = { ...options, workspaceConventions, workspaceSettings, devStatusByNodeId };
 
       const isBatchDir = fs.statSync(absSpecPath).isDirectory() && !isComponentFolder(absSpecPath);
       if (isBatchDir) {
@@ -125,7 +135,7 @@ export const Render = new Command('render')
 // logged and retried on the next change (watch).
 async function renderSpecPath(
   specPath: string,
-  options: { file?: string; page?: string; overwrite?: boolean; strict?: boolean; timing?: boolean; workspaceConventions?: ResolvedConventions; workspaceSettings?: ResolvedSettings }
+  options: { file?: string; page?: string; overwrite?: boolean; strict?: boolean; timing?: boolean; workspaceConventions?: ResolvedConventions; workspaceSettings?: ResolvedSettings; devStatusByNodeId?: Map<string, WritableDevStatus> }
 ): Promise<number> {
   const { spec, resolvePath } = loadSpec(specPath);
   // The component, not the path it came from: the full path is noise on every line of a
@@ -141,7 +151,7 @@ async function renderSpecPath(
   const startedAt = Date.now();
   let result: RenderResponse;
   try {
-    result = await postRender({ specPath: resolvePath, spec, fileKey, pageId: options.page, overwrite: options.overwrite, conventions: options.workspaceConventions, settings: options.workspaceSettings });
+    result = await postRender({ specPath: resolvePath, spec, fileKey, pageId: options.page, overwrite: options.overwrite, conventions: options.workspaceConventions, settings: options.workspaceSettings, devStatus: devStatusForSpec(spec, options.devStatusByNodeId) });
   } finally {
     stopSpinner();
   }
@@ -242,7 +252,7 @@ function confirm(question: string): Promise<boolean> {
  */
 async function renderBatchDirectory(
   absDir: string,
-  options: { file?: string; page?: string; overwrite?: boolean; strict?: boolean; timing?: boolean; workspaceConventions?: ResolvedConventions; workspaceSettings?: ResolvedSettings },
+  options: { file?: string; page?: string; overwrite?: boolean; strict?: boolean; timing?: boolean; workspaceConventions?: ResolvedConventions; workspaceSettings?: ResolvedSettings; devStatusByNodeId?: Map<string, WritableDevStatus> },
   // In watch mode a batch is re-run on every change: don't re-confirm, and
   // don't exit the process on a failure the next save might fix.
   { watch = false }: { watch?: boolean } = {}
@@ -301,7 +311,7 @@ const WATCH_DEBOUNCE_MS = 300;
 
 async function watchAndRender(
   specPath: string,
-  options: { file?: string; workspaceConventions?: ResolvedConventions; workspaceSettings?: ResolvedSettings }
+  options: { config?: string; file?: string; workspaceConventions?: ResolvedConventions; workspaceSettings?: ResolvedSettings }
 ): Promise<void> {
   const absSpecPath = path.resolve(specPath);
   if (!fs.existsSync(absSpecPath)) {
@@ -311,6 +321,17 @@ async function watchAndRender(
   const isDir = fs.statSync(absSpecPath).isDirectory();
   const watchTarget = isDir ? absSpecPath : path.dirname(absSpecPath);
   const isBatchDir = isDir && !isComponentFolder(absSpecPath);
+
+  // Read once rather than per re-render: the manifest is curation output, not something
+  // a spec edit changes, and a watcher that re-parsed it on every save would pay for it
+  // on every keystroke.
+  let devStatusByNodeId: Map<string, WritableDevStatus> | undefined;
+  try {
+    devStatusByNodeId = loadDevStatusByNodeId(new ConfigLoader().load(options.config));
+  } catch {
+    devStatusByNodeId = undefined;
+  }
+  const watchOptions = { ...options, devStatusByNodeId, overwrite: true };
 
   let rendering = false;
   let pending = false;
@@ -324,9 +345,9 @@ async function watchAndRender(
     rendering = true;
     try {
       if (isBatchDir) {
-        await renderBatchDirectory(absSpecPath, { ...options, overwrite: true }, { watch: true });
+        await renderBatchDirectory(absSpecPath, watchOptions, { watch: true });
       } else {
-        await renderSpecPath(absSpecPath, { ...options, overwrite: true });
+        await renderSpecPath(absSpecPath, watchOptions);
       }
     } catch (e) {
       console.error(`✗ ${(e as Error).message}`);

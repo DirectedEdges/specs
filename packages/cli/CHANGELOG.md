@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`specs render` marks the rendered component ready for dev.** A component's Dev Mode status is already recorded by `specs scan`, in the manifest's Dev Status column, and render now carries it back to Figma instead of dropping it: a component whose row says `READY_FOR_DEV` or `COMPLETED` is rendered with that status set. The status is read from the workspace manifest once per run and matched to each spec by the Figma node it was generated from, so a batch render pays for the lookup once. A spec with no row, a row reading `NONE`, and a workspace with no manifest all render as before — nothing is written, and a status the scan never recorded is never asserted.
+
 - **`specs react --watch` and `specs webcomponents --watch` re-emit on every spec or config change**, so a spec edit reaches Storybook without re-running the command. The workspace's `config/` directory is watched alongside the specs directory, because a convention decides what the emitted code looks like just as directly as a spec does. Every change re-emits the whole set and re-runs `finalize`, keeping stylesheets, barrels and cross-component imports consistent; a failed component is logged and the watch continues (#219).
 
 - **A manifest run writes its metadata once**, to `latest.metadata.yaml` beside the specs, leaving every spec with `metadata.source` alone instead of the author, generator, schema, conventions and settings repeated in each file (ADR-089).
