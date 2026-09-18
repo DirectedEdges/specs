@@ -45,6 +45,15 @@ export type RunMetadata = {
 };
 
 /**
+ * Which slice of a component a document carries.
+ *
+ * A run with `Settings.spec.splitConcerns` writes one file per concern rather
+ * than a single component file. The value names the slice, and is what tells a
+ * consumer — and a validator — which document it is holding (ADR-091).
+ */
+export type Concern = 'api' | 'styling' | 'variants';
+
+/**
  * Represents the metadata for a component.
  *
  * `source` is the one metadata fact that belongs to the component carrying it —
@@ -63,4 +72,11 @@ export type Metadata = Partial<RunMetadata> & {
     nodeId: string;
     nodeType: 'COMPONENT' | 'COMPONENT_SET' | 'FRAME';
   };
+
+  /**
+   * Which slice of a component this document carries, when a run wrote one
+   * file per concern. Absent on a single-file component, which carries every
+   * concern at once (ADR-091).
+   */
+  concern?: Concern;
 };

@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `FigmaElementExtension.children` — a promoted container's hoisted fill, typed `SlotContentRef`, for table-free restoration (ADR-090)
 - `ImageProp.examples` — the image a component was authored with, recorded on the prop itself; same `ImageValue` shape as `ImageBinding.examples`, and distinct from `default` (ADR-088)
 - `RunMetadata` — the generation run's facts as a document of its own, validated by the new `schema/metadata` entry point and reachable from `root.schema.json` (ADR-089)
+- `ConcernDocument` — one slice of a component as written by a `splitConcerns` run; every `Component` property optional, reachable from `root.schema.json` (ADR-091)
+- `Metadata.concern` — typed as `Concern` (`'api' | 'styling' | 'variants'`); which slice a document carries (ADR-091)
 
 ### Changed
 

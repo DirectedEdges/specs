@@ -84,3 +84,22 @@ export type Component = {
    */
   images?: Images;
 };
+
+/**
+ * One slice of a component, as written by a run with
+ * `Settings.spec.splitConcerns` (ADR-091).
+ *
+ * Every component property is optional here, because each concern document
+ * carries only the part of the component its concern names — an `api` document
+ * has a title and an anatomy but no `default` block, and a `variants` document
+ * is the reverse. A `Component` states the requirements a whole component must
+ * meet; those requirements are met by the set of concern documents together,
+ * not by any one of them.
+ *
+ * `metadata` is required, because `metadata.concern` is what identifies the
+ * document as a slice rather than a component. A document without it is a
+ * `Component` and is held to `Component`'s requirements.
+ */
+export type ConcernDocument = Partial<Component> & {
+  metadata: Metadata;
+};

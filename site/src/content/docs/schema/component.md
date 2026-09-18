@@ -30,3 +30,16 @@ Several optional fields document configured and composed usages of a component. 
 - [`SlotContentRef`](/schema/slot-content-ref/) — the `$slotContent` pointer that references a fill.
 - [`Composition`](/schema/composition/) — a named, authored unit of composed content (system-scoped, external composition files).
 - [`Children`](/schema/children/) — an element's children, including slot bindings that carry example fills.
+
+## ConcernDocument
+
+A run with [`spec.splitConcerns`](/schema/settings/) writes one file per concern — `api.yaml`, `styling.yaml`, `variants.yaml` — rather than a single component file. Each of those files is a `ConcernDocument`: the same properties as `Component`, all of them optional, because each file carries only the part of the component its concern names.
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `metadata` | [`Metadata`](/schema/metadata/) | Yes | Must state [`concern`](/schema/metadata/) — this is what identifies the file as a slice |
+| *(every `Component` property)* | — | No | Present when the concern carries it |
+
+An `api.yaml` states `title`, `anatomy` and `props`; a `variants.yaml` states `default` and `variants`. Neither is a valid `Component` on its own, and neither is meant to be — a component's requirements are met by the set of its concern documents together.
+
+A document with no `metadata.concern` is a `Component`, and is held to `Component`'s required properties.

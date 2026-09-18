@@ -1,0 +1,6 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Specs Concern Document Schema",
+  "description": "One slice of a component, as written by a run with splitConcerns. Defined in component.schema.json so that every property reference resolves against the same definitions the whole component uses. (ADR-091)",
+  "$ref": "component.schema.json#/definitions/ConcernDocument"
+}
