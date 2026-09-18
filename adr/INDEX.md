@@ -5,7 +5,6 @@
 | # | Title | Highlights |
 |---|-------|------------|
 | 092 | Package Identity for Emitted Platform Trees | |
-| 091 | Concern Documents Are a Typed Root Document | |
 | 090 | Container Promotion Sources Opened to Closed-Value Layout Properties | |
 | 082 | `Component.description` — The Authored Figma Description, Plain Text and Opt-In | (reserved, draft in PR #375) |
 | 070 | Explicit `position: ABSOLUTE` for Children of Non-Auto-Layout Parents | (reserved, draft on branch `070-explicit-absolute-position`) |
@@ -19,6 +18,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 091 | Each Concern Document Is Its Own Type | Adds `SpecApiDocument`, `SpecVariantsDocument`, `SpecExamplesDocument` and `Metadata.concern`; a key in the wrong file is an error |
 | 089 | Run Metadata Factored Out of the Component Spec | Adds `RunMetadata` — the run's facts as a document of its own — and narrows the required set on `Metadata` to `source` |
 | 088 | Authoring-default images on `ImageProp` | Adds `ImageProp.examples` (`ImageValue[]`) — the image a component was authored with, recorded on the prop; `default` stays contractual |
 | 087 | Behavior Actions via `anatomy.action` | Adds `AnatomyElement.actions` (`ActionEntry[]`) — a second annotation key for what a control *does*, alongside `role` for what it *is* |
