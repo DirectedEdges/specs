@@ -27,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **An image fills and centres itself in the element that displays it**, whatever its aspect ratio, instead of drawing at its natural size cropped to the top-left corner when a component takes its image from a source prop rather than a downloaded file.
+
 - **`specs scan` leaves a subcomponent unchecked when its parent component is checked**,
   since a subcomponent is already specced as part of its parent. A separate component a
   checked component instances is still selected.
