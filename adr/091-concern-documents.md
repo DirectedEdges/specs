@@ -28,7 +28,7 @@ A concern document matches none of them. It is a slice of a component, and each 
 |---|---|---|
 | `api.yaml` | `title`, `anatomy`, `props` | `default` |
 | `variants.yaml` | `default`, `variants`, `invalidVariantCombinations` | `title`, `anatomy` |
-| `styling.yaml` | `default` | `title`, `anatomy` |
+| `examples.yaml` | `instanceExamples`, `slotContentExamples`, `subcomponents` | `title`, `anatomy`, `default` |
 
 A validator picks the nearest `oneOf` branch and reports its failures, so an editor tells the author of a `variants.yaml` that their file needs a title. The file is correct; the contract has no way to say so.
 
@@ -45,7 +45,7 @@ metadata:
 
 The result is that a correctly generated workspace cannot be validated against its own published schema. Authors editing specs in an editor see errors on every file and learn to ignore the validator, which then cannot catch the mistakes it exists to catch.
 
-**Out of scope**: whether `splitConcerns` should remain the default, and the set of concerns themselves (`api`, `styling`, `variants`). This ADR types the documents that setting already produces.
+**Out of scope**: whether `splitConcerns` should remain the default, and the set of concerns themselves (`api`, `variants`, `examples`). This ADR types the documents that setting already produces.
 
 ---
 
@@ -160,7 +160,8 @@ Put per-file facts in their own block: `document: { concern: api }`.
 | `Metadata.ts` | Added optional field `concern` to `Metadata` | MINOR |
 | `Metadata.ts` | Added exported type `Concern` | MINOR |
 | `Component.ts` | Added exported type `SpecConcernDocument` | MINOR |
-| `index.ts` | Export `Concern` and `SpecConcernDocument` | MINOR |
+| `Component.ts` | Added exported type `SpecConcernSubcomponent` | MINOR |
+| `index.ts` | Export `Concern`, `SpecConcernDocument` and `SpecConcernSubcomponent` | MINOR |
 
 **Example — new shape** (`types/Metadata.ts`):
 ```yaml
@@ -175,7 +176,7 @@ Metadata:
   concern?: Concern    # optional — which slice of a component this document is
   # …optional RunMetadata fields
 
-Concern: 'api' | 'styling' | 'variants'
+Concern: 'api' | 'variants' | 'examples'
 ```
 
 **Example — new shape** (`types/Component.ts`):
@@ -189,7 +190,7 @@ SpecConcernDocument:
   default?: Variant
   variants?: Variant[]
   invalidVariantCombinations?: …
-  subcomponents?: …
+  subcomponents?: Record<string, SpecConcernSubcomponent>
   instanceExamples?: …
   slotContentExamples?: …
   images?: …
@@ -200,7 +201,8 @@ SpecConcernDocument:
 
 | File | Change | Bump |
 |------|--------|------|
-| `concern.schema.json` | Added — new file defining `SpecConcernDocument` | MINOR |
+| `concern.schema.json` | Added — new file pointing at `SpecConcernDocument` | MINOR |
+| `component.schema.json` | Added definition `SpecConcernSubcomponent` | MINOR |
 | `component.schema.json` | Added optional property `concern` to `#/definitions/Metadata` | MINOR |
 | `root.schema.json` | Added `concern.schema.json` to `oneOf` | MINOR |
 
@@ -209,7 +211,7 @@ SpecConcernDocument:
 # New property under #/definitions/Metadata/properties
 concern:
   type: string
-  enum: [api, styling, variants]
+  enum: [api, variants, examples]
   description: "Which slice of a component this document carries, when a run wrote one file per concern. Absent on a single-file component."
   # not in required[] — optional field
 ```
@@ -224,6 +226,8 @@ oneOf:
 ```
 
 ### Notes
+
+A concern document's `subcomponents` are narrowed to `SpecConcernSubcomponent` rather than `Subcomponent`. A subcomponent is sliced by the same concern as the document holding it — an `api` document carries its subcomponents' anatomy and props and no `default` block — so holding a nested subcomponent to the whole-subcomponent requirements fails for exactly the reason the document itself would. Every component with subcomponents failed validation until this was added.
 
 `concern` is optional on `Metadata` rather than required on it, because `Metadata` is shared with single-file components, which have no concern. It is required on `SpecConcernDocument`, which is what makes the `oneOf` branch discriminate rather than overlap: a document with no `concern` is a `Component` and is held to `Component`'s required list.
 

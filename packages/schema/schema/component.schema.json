@@ -971,8 +971,8 @@
           "type": "string",
           "enum": [
             "api",
-            "styling",
-            "variants"
+            "variants",
+            "examples"
           ],
           "description": "Which slice of a component this document carries, when a run wrote one file per concern. Absent on a single-file component, which carries every concern at once. (ADR-091)"
         }
@@ -1281,9 +1281,9 @@
         },
         "subcomponents": {
           "type": "object",
-          "description": "A record of subcomponents, where each key is a subcomponent name that matches a system-specific naming convention.",
+          "description": "This document's slice of each subcomponent, keyed by subcomponent name.",
           "additionalProperties": {
-            "$ref": "#/definitions/Subcomponent"
+            "$ref": "#/definitions/SpecConcernSubcomponent"
           }
         },
         "instanceExamples": {
@@ -1307,6 +1307,67 @@
         "source": {
           "$ref": "#/definitions/SubcomponentSource",
           "description": "Figma source identity, populated by the generator on subcomponent entries (ADR-060); top-level components carry identity in metadata.source instead. Declared here because Subcomponent composes this closed definition via allOf and draft-07 has no unevaluatedProperties."
+        }
+      }
+    },
+    "SpecConcernSubcomponent": {
+      "type": "object",
+      "description": "One slice of a subcomponent, inside a concern document. Sliced by the same concern as the document holding it, so every property is optional for the same reason it is on SpecConcernDocument. (ADR-091)",
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The component asset name",
+          "examples": [
+            "Button",
+            "Card",
+            "Text Input"
+          ]
+        },
+        "anatomy": {
+          "$ref": "#/definitions/Anatomy",
+          "description": "The elements that comprise the component, corresponding largely to Figma layers"
+        },
+        "props": {
+          "$ref": "#/definitions/Props",
+          "description": "Configurable properties that control component behavior and appearance"
+        },
+        "default": {
+          "$ref": "#/definitions/Variant",
+          "description": "The base variant configuration that's both the component default display as well as the foundation for all other variants"
+        },
+        "variants": {
+          "$ref": "#/definitions/Variants",
+          "description": "The styling, layout, and configuration of nested instances based on a cmoponent configuration"
+        },
+        "invalidVariantCombinations": {
+          "type": "array",
+          "description": "Non-default prop values that when used in combination result in an invalid component state, such as a component being set to disabled and hover simultaneously",
+          "items": {
+            "$ref": "#/definitions/PropConfigurations"
+          }
+        },
+        "instanceExamples": {
+          "$ref": "#/definitions/InstanceExamples",
+          "description": "Named instance examples (documented usages) for this component."
+        },
+        "slotContentExamples": {
+          "type": "object",
+          "description": "Named slot-content examples for this component (ADR-047). Each entry is a SlotContent — a flat anatomy+elements+layout triplet usable as a named slot fill. Referenced via SlotContentRef from SlotBinding.examples and from Element.propConfigurations slot-prop entries (ADR-049). specs-from-figma de-duplicates entries by structural equality.",
+          "patternProperties": {
+            "^[a-zA-Z0-9_-]+$": {
+              "$ref": "#/definitions/SlotContent"
+            }
+          },
+          "additionalProperties": false
+        },
+        "images": {
+          "$ref": "#/definitions/Images",
+          "description": "Registry of image data referenced by backgroundImage fills, ImageBinding examples, and ImageProp defaults. De-duplicated so each distinct image is stored once (ADR-063)."
+        },
+        "source": {
+          "$ref": "#/definitions/SubcomponentSource",
+          "description": "Figma source identity for this subcomponent's node."
         }
       }
     }

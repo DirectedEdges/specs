@@ -1,6 +1,6 @@
 import { Anatomy } from "./Anatomy.js";
 import { Props } from "./Props.js";
-import { Subcomponents } from "./Subcomponent.js";
+import { Subcomponents, SubcomponentSource } from "./Subcomponent.js";
 import { Variant, Variants } from "./Variant.js";
 import { Metadata } from "./Metadata.js";
 import { PropConfigurations } from "./PropConfigurations.js";
@@ -86,6 +86,20 @@ export type Component = {
 };
 
 /**
+ * One slice of a component's subcomponent, inside a concern document.
+ *
+ * A subcomponent is sliced by the same concern as the document holding it: an
+ * `api` document carries its subcomponents' anatomy and props, a `variants`
+ * document carries their variants. Every property is optional for the same
+ * reason it is on {@link SpecConcernDocument} — the whole subcomponent is the
+ * set of its slices, not any one of them (ADR-091).
+ */
+export type SpecConcernSubcomponent = Partial<Omit<Component, 'metadata' | 'subcomponents'>> & {
+  /** Figma source identity for this subcomponent's node. */
+  source?: SubcomponentSource;
+};
+
+/**
  * One slice of a component, as written by a run with
  * `Settings.spec.splitConcerns` (ADR-091).
  *
@@ -99,7 +113,12 @@ export type Component = {
  * `metadata` is required, because `metadata.concern` is what identifies the
  * document as a slice rather than a component. A document without it is a
  * `Component` and is held to `Component`'s requirements.
+ *
+ * `subcomponents` is narrowed to {@link SpecConcernSubcomponent}: a nested
+ * subcomponent inside a concern document is sliced by that same concern, so it
+ * cannot be held to the whole-subcomponent requirements either.
  */
-export type SpecConcernDocument = Partial<Component> & {
+export type SpecConcernDocument = Partial<Omit<Component, 'subcomponents'>> & {
   metadata: Metadata;
+  subcomponents?: Record<string, SpecConcernSubcomponent>;
 };

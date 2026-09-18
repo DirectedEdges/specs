@@ -51,7 +51,7 @@ export type RunMetadata = {
  * than a single component file. The value names the slice, and is what tells a
  * consumer — and a validator — which document it is holding (ADR-091).
  */
-export type Concern = 'api' | 'styling' | 'variants';
+export type Concern = 'api' | 'variants' | 'examples';
 
 /**
  * Represents the metadata for a component.

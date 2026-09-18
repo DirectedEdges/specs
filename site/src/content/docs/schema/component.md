@@ -33,12 +33,15 @@ Several optional fields document configured and composed usages of a component. 
 
 ## SpecConcernDocument
 
-A run with [`spec.splitConcerns`](/schema/settings/) writes one file per concern — `api.yaml`, `styling.yaml`, `variants.yaml` — rather than a single component file. Each of those files is a `SpecConcernDocument`: the same properties as `Component`, all of them optional, because each file carries only the part of the component its concern names.
+A run with [`spec.splitConcerns`](/schema/settings/) writes one file per concern — `api.yaml`, `variants.yaml`, and `examples.yaml` when the component has any — rather than a single component file. Each of those files is a `SpecConcernDocument`: the same properties as `Component`, all of them optional, because each file carries only the part of the component its concern names.
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
 | `metadata` | [`Metadata`](/schema/metadata/) | Yes | Must state [`concern`](/schema/metadata/) — this is what identifies the file as a slice |
-| *(every `Component` property)* | — | No | Present when the concern carries it |
+| `subcomponents` | `Record<string, SpecConcernSubcomponent>` | No | This document's slice of each subcomponent |
+| *(every other `Component` property)* | — | No | Present when the concern carries it |
+
+A nested subcomponent is sliced by the same concern as the document holding it — an `api.yaml` carries its subcomponents' anatomy and props, not their `default` block — so `subcomponents` here is a `SpecConcernSubcomponent`, which relaxes the same requirements for the same reason.
 
 An `api.yaml` states `title`, `anatomy` and `props`; a `variants.yaml` states `default` and `variants`. Neither is a valid `Component` on its own, and neither is meant to be — a component's requirements are met by the set of its concern documents together.
 
