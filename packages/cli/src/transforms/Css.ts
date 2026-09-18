@@ -7,6 +7,7 @@ import { styleToCSS, impliesAbsolute } from './css/styleToCSS.js';
 import { layoutToCSS } from './css/layoutToCSS.js';
 import { toKebab, isGradient, isGradientToken, gradientValue, dimensionValue, resolveTokenVar, reportNameWarnings, withNameWarningsSuppressed } from './css/values.js';
 import { normalizeEnumValue } from './enumCase.js';
+import { subComponentKey } from './naming.js';
 import { CONCEPT_TABLE, buildStateLookup, conceptsClaimedByNestedRoles } from './states.js';
 import { resolveRules } from './css/rules/index.js';
 import { parseLayout, type LayoutNode } from './css/layoutTree.js';
@@ -130,7 +131,10 @@ export class CssTransformer implements Transformer {
     const apiSubs = (apiYaml.subcomponents ?? {}) as Record<string, unknown>;
     for (const [subKey, subRaw] of Object.entries(subcomponents)) {
       const subVariantsYaml = subRaw as Record<string, unknown>;
-      const subClass = toKebab(subKey);
+      // Namespaced by the parent, matching the class the react and web-component
+      // emitters put on the subcomponent's root. The two are written by different
+      // packages; if only one composes the parent, nothing selects.
+      const subClass = toKebab(subComponentKey(componentKey, subKey));
       const subFilePrefix = toPascalCase(subKey);
       const subTypes = anatomyTypes((apiSubs[subKey] ?? {}) as Record<string, unknown>);
       const subLines = buildCssLines(subClass, subVariantsYaml, tokensFormat, context, subTypes, {
