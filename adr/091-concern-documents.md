@@ -2,7 +2,7 @@
 
 **Branch**: `091-concern-documents`
 **Created**: 2026-09-18
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Summary**: A `SpecConcernDocument` root type and `Metadata.concern` type the per-concern files a `splitConcerns` run writes.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none — extends ADR-089)*

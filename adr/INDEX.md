@@ -14,7 +14,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 091 | Concern Documents Are a Typed Root Document | |
+| 091 | Concern Documents Are a Typed Root Document | Adds `SpecConcernDocument` — a component's properties all optional — and `Metadata.concern`, so `splitConcerns` output validates |
 | 090 | Container Promotion Sources Opened to Closed-Value Layout Properties | Adds `FigmaElementExtension.children` (`SlotContentRef`) and widens container sources to all closed-value layout members |
 | 089 | Run Metadata Factored Out of the Component Spec | Adds `RunMetadata` — the run's facts as a document of its own — and narrows the required set on `Metadata` to `source` |
 | 088 | Authoring-default images on `ImageProp` | Adds `ImageProp.examples` (`ImageValue[]`) — the image a component was authored with, recorded on the prop; `default` stays contractual |
