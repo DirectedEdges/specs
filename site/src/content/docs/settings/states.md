@@ -107,6 +107,8 @@ With `states` config, classified props produce semantic selectors:
 
 Props not listed in `states` continue to emit as `data-*` attribute selectors. Unmatched values on a classified prop (e.g. the `rest` default on a `state` prop) are treated as the base state and skipped — the base block already covers them.
 
+For the `focus` and `focus-visible` concepts, the emitted selector is narrowed to the shape of the component's root: a root that can hold focus itself (a button, a link) emits `:focus-visible`, and a wrapper root emits `:has(:focus-visible)` so the styling reaches the control inside — a clicked button never holds its focus ring, while clicking into a text field still shows it. A declared `focus-within` concept always emits `:focus-within` exactly as declared.
+
 ### Contract transform
 
 Browser-driven concepts (`hover`, `active`, `focus`, `focus-within`, etc.) are omitted from generated Props interfaces — the browser fires these without the application setting anything. Consumer-controlled concepts (`disabled`, `readOnly`, `validation`, etc.) are included — the consumer sets them and the component bridges them to the appropriate HTML or ARIA attribute.
