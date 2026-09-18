@@ -15,3 +15,18 @@ export function toPascalCase(str: string): string {
     .replace(/[-_\s]+(.)?/g, (_, c) => (c ? c.toUpperCase() : ''))
     .replace(/^(.)/, c => c.toUpperCase());
 }
+
+/**
+ * The composite key a subcomponent is named by: the parent's key with the
+ * subcomponent's key appended ("deCard" + "reviews" → "deCardReviews").
+ *
+ * A subcomponent's emitted names compose the parent because they share one flat
+ * namespace — a stylesheet, a module scope, the custom element registry — while
+ * its directory does not, because the parent directory already namespaces it.
+ *
+ * The emitters in `@directededges/from-specs` carry the matching helper, and the
+ * two must agree: the class this produces is the selector for markup they emit.
+ */
+export function subComponentKey(parentKey: string, subKey: string): string {
+  return `${parentKey}${toPascalCase(subKey)}`;
+}

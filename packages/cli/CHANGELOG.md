@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **A subcomponent's CSS class is namespaced by its parent**, so `deCard`'s `reviews` styles under `.de-card-reviews` rather than `.reviews`, matching the component name the React and Web Components trees now emit. Regenerate every platform tree together.
+
 - **A per-concern spec file records its write time as `lastUpdated`**, the key the schema already defines for that fact, instead of `generatedAt`. With this, `api.yaml`, `variants.yaml` and `examples.yaml` validate against the published schema, so an editor stops reporting an error on every spec file in the workspace.
 
 - **Emitted files no longer repeat the component's name**, so `DeFavoriteButton/` holds `scaffold.tsx`, `contract.ts`, `styles.css` and `stories.tsx`. Regenerate each platform tree from scratch: a run overwrites the new files but leaves the old prefixed ones, and Storybook would load both.

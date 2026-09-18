@@ -481,7 +481,7 @@ describe('CssTransformer', () => {
       expect(fs.existsSync(path.join(reactDir(tmpDir, 'DsActionList', 'Group'), 'styles.css'))).toBe(true);
     });
 
-    it('scopes subcomponent BEM selectors to the subcomponent key, not the parent', async () => {
+    it('namespaces subcomponent BEM selectors with the parent key', async () => {
       const out = await runAndReadSub(tmpDir, {
         subcomponents: {
           group: {
@@ -495,9 +495,10 @@ describe('CssTransformer', () => {
           },
         },
       }, 'group');
-      expect(out).toContain('.group {');
-      expect(out).toContain('.group__text {');
-      expect(out).not.toContain('ds-action-list');
+      expect(out).toContain('.ds-action-list-group {');
+      expect(out).toContain('.ds-action-list-group__text {');
+      // The parent's own class must not select the subcomponent's elements.
+      expect(out).not.toContain('.ds-action-list__');
     });
 
     it('emits subcomponent variant selectors scoped to the subcomponent class', async () => {
@@ -514,7 +515,7 @@ describe('CssTransformer', () => {
           },
         },
       }, 'item');
-      expect(out).toContain('.item[data-size="medium"] {');
+      expect(out).toContain('.ds-action-list-item[data-size="medium"] {');
     });
 
     it('emits multiple subcomponent subfolders independently', async () => {
