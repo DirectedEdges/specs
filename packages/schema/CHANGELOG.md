@@ -7,25 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.33.0] - Unreleased
 
-### Added
+**A generation run states its facts once, in a document of its own.** The author, timestamp, generator, schema, conventions and settings were identical in every file a run produced; `RunMetadata` holds them now, and `Metadata` keeps only `source` (ADR-089).
 
-- `FigmaElementExtension.children` — a promoted container's hoisted fill, typed `SlotContentRef`, for table-free restoration (ADR-090)
-- `ImageProp.examples` — the image a component was authored with, recorded on the prop itself; same `ImageValue` shape as `ImageBinding.examples`, and distinct from `default` (ADR-088)
-- `RunMetadata` — the generation run's facts as a document of its own, validated by the new `schema/metadata` entry point and reachable from `root.schema.json` (ADR-089)
-- `SpecApiDocument`, `SpecVariantsDocument`, `SpecExamplesDocument` — the files a `splitConcerns` run writes, each requiring what its concern carries and permitting nothing else; reachable from `root.schema.json` (ADR-091)
-- `SpecApiSubcomponent`, `SpecVariantsSubcomponent`, `SpecExamplesSubcomponent` — a nested subcomponent's slice of each concern (ADR-091)
-- `SpecConcernDocument` — the union of the three, narrowed on a key (ADR-091)
-- `Metadata.concern` — typed as `Concern` (`'api' | 'variants' | 'examples'`); which concern a document carries (ADR-091)
+**A spec can be written as three documents, one per concern.** `SpecApiDocument`, `SpecVariantsDocument` and `SpecExamplesDocument` each require what their concern carries and permit nothing else, so a file states which of the three it is and validates as that alone (ADR-091).
 
-### Changed
+**A component records the image it was authored with.** `ImageProp.examples` gives a component that paints its own image somewhere to say so, which a binding site cannot do for it (ADR-088).
 
-- `PrimitiveRule.source` — container honoured set widened to all closed-value layout members (ADR-090)
-
-### Removed
+**Breaking**: six `Metadata` keys become optional. Read them from the run's `RunMetadata` document instead — see Migration below.
 
 ### Breaking
 
-- `Metadata` — `author`, `lastUpdated`, `generator`, `schema`, `conventions` and `settings` become optional; only `source` is required (ADR-089)
+- **`Metadata` requires only `source`.** `author`, `lastUpdated`, `generator`, `schema`, `conventions` and `settings` become optional, because the run's document states them once for every file it produced (ADR-089)
+
+### Added
+
+- **`RunMetadata` states a generation run's facts as a document of its own**, validated by the new `schema/metadata` entry point and reachable from `root.schema.json` (ADR-089)
+- **`SpecApiDocument`, `SpecVariantsDocument` and `SpecExamplesDocument` type the files a `splitConcerns` run writes**, each requiring what its concern carries and permitting nothing else, all three reachable from `root.schema.json` (ADR-091)
+- **`SpecApiSubcomponent`, `SpecVariantsSubcomponent` and `SpecExamplesSubcomponent` carry a nested subcomponent's slice of each concern** (ADR-091)
+- **`SpecConcernDocument` unions the three concern documents**, narrowed on a key (ADR-091)
+- **`Metadata.concern` names which concern a document carries**, typed as `Concern` — `'api' | 'variants' | 'examples'` (ADR-091)
+- **An image prop records the image its component was authored with** in `ImageProp.examples`, the same `ImageValue` shape as `ImageBinding.examples` and distinct from `default` (ADR-088)
+- **A promoted container records its hoisted fill on `FigmaElementExtension.children`**, typed `SlotContentRef`, so restoring the frame needs no table lookup (ADR-090)
+
+### Changed
+
+- **A container's `PrimitiveRule.source` honours every closed-value layout member** (ADR-090)
 
 ### Migration
 
@@ -37,7 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - [ADR-088](../../adr/088-image-prop-examples.md) — Authoring-default images on `ImageProp`
 - [ADR-089](../../adr/089-manifest-shared-metadata.md) — Run Metadata Factored Out of the Component Spec
-
+- [ADR-090](../../adr/090-container-promotion-sources.md) — Container Promotion Sources Opened to Closed-Value Layout Properties
+- [ADR-091](../../adr/091-concern-documents.md) — Each concern document is its own type
 
 ## [0.32.0] - Unreleased
 

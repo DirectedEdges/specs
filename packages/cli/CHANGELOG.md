@@ -9,46 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **A catalogue run states its metadata once.** The author, generator, schema, conventions and settings were identical in every file a run produced, and repeated again for every concern document and subcomponent inside it; they now live in one `latest.metadata.yaml` beside the specs.
 
+**A watch keeps Storybook current without re-running a command.** `specs react --watch` and `specs webcomponents --watch` re-emit on every spec or config change, and a full run now prunes emitted directories no spec accounts for.
+
 ### Added
 
+- **A manifest run writes its metadata once**, to `latest.metadata.yaml` beside the specs, leaving every spec with `metadata.source` alone (ADR-089).
+- **`specs react --watch` and `specs webcomponents --watch` re-emit on every spec or config change**, watching `config/` alongside the specs directory. Each change re-emits the whole set and re-runs `finalize`; a failed component is logged and the watch continues.
+- **A full `specs react` or `specs webcomponents` run removes emitted component directories no spec accounts for**, naming them in one warning line, so Storybook stops indexing a renamed component under its old name. A `--components` run never prunes.
 - **`specs render` marks a component ready for dev in Figma**, using the status `specs scan` recorded for it. A component whose manifest row reads `NONE`, or has no row at all, renders unmarked as before.
-
-- **`specs react --watch` and `specs webcomponents --watch` re-emit on every spec or config change**, so a spec edit reaches Storybook without re-running the command. The workspace's `config/` directory is watched alongside the specs directory, because a convention decides what the emitted code looks like just as directly as a spec does. Every change re-emits the whole set and re-runs `finalize`, keeping stylesheets, barrels and cross-component imports consistent; a failed component is logged and the watch continues (#219).
-
-- **A manifest run writes its metadata once**, to `latest.metadata.yaml` beside the specs, leaving every spec with `metadata.source` alone instead of the author, generator, schema, conventions and settings repeated in each file (ADR-089).
-
-- **A full `specs react` or `specs webcomponents` run removes emitted component directories no spec accounts for**, and names them in a single warning line. A component renamed in Figma, or a naming convention changed in `config/`, used to emit under its new name and leave the old directory behind, where Storybook kept indexing it as a component that no longer exists. A `--components` run never prunes — it knows nothing about the components it was not asked to emit.
 
 ### Changed
 
-- **A subcomponent's CSS class is namespaced by its parent**, so `deCard`'s `reviews` styles under `.de-card-reviews` rather than `.reviews`, matching the component name the React and Web Components trees now emit. Regenerate every platform tree together.
-
-- **A per-concern spec file records its write time as `lastUpdated`**, the key the schema already defines for that fact, instead of `generatedAt`. With this, `api.yaml`, `variants.yaml` and `examples.yaml` validate against the published schema, so an editor stops reporting an error on every spec file in the workspace.
-
+- **A subcomponent's CSS class is namespaced by its parent**, so `deCard`'s `reviews` styles under `.de-card-reviews` rather than `.reviews`. Regenerate every platform tree together.
 - **Emitted files no longer repeat the component's name**, so `DeFavoriteButton/` holds `scaffold.tsx`, `contract.ts`, `styles.css` and `stories.tsx`. Regenerate each platform tree from scratch: a run overwrites the new files but leaves the old prefixed ones, and Storybook would load both.
-
-- **`specs render` reads that document back**, so a spec carrying only `metadata.source` still renders under the conventions and settings it was generated with (ADR-089).
+- **A per-concern spec file records its write time as `lastUpdated`**, the key the schema already defines for that fact, so `api.yaml`, `variants.yaml` and `examples.yaml` validate and an editor stops reporting an error on every spec file.
+- **`specs render` reads the run's metadata document back**, so a spec carrying only `metadata.source` still renders under the conventions and settings it was generated with (ADR-089).
 
 ### Fixed
 
-- **Focus styling for the `focus` state concept follows the platform's keyboard-focus heuristic** — `:focus-visible` on a root that can hold focus itself, `:has(:focus-visible)` on a wrapper around its control — so a clicked button no longer holds its focus styling until you click elsewhere, while clicking into a field still shows it. A library that declares the `focus-within` concept keeps `:focus-within` exactly as declared.
-
-- **An image fills and centres itself in the element that displays it**, whatever its aspect ratio, instead of drawing at its natural size cropped to the top-left corner when a component takes its image from a source prop rather than a downloaded file.
-
-- **`specs scan` leaves a subcomponent unchecked when its parent component is checked**,
-  since a subcomponent is already specced as part of its parent. A separate component a
-  checked component instances is still selected.
-- **A composed instance fills a slot that states its size through opposing insets.**
-  A slot pinned to all four edges of its container names no width, yet is exactly as
-  wide as the container — a dialog's blanket covering the dialog. The child painted at
-  its own master's size inside a slot that had stretched around it.
-- **A child filling its parent's cross axis keeps the parent's alignment.** Cross-axis
-  FILL emits a dimension rather than `align-self: stretch`, so a child a `min-width` or
-  `max-width` stops from filling is placed where the design places it — centred under a
-  centring parent — instead of pinned to the start edge.
-
-### Removed
-
+- **Focus styling follows the platform's keyboard-focus heuristic** — `:focus-visible` on a root that can hold focus, `:has(:focus-visible)` on a wrapper around its control — so a clicked button no longer keeps its focus ring after the click. A declared `focus-within` concept is untouched.
+- **An image fills and centres itself in the element that displays it**, whatever its aspect ratio, instead of drawing at its natural size cropped to the top-left corner when a component takes its image from a source prop.
+- **`specs scan` leaves a subcomponent unchecked when its parent is checked**, since a subcomponent is already specced as part of its parent. A separate component that a checked component instances is still selected.
+- **A composed instance fills a slot that states its size through opposing insets.** A slot pinned to all four edges names no width yet is as wide as its container; the child used to paint at its own master's size.
+- **A child filling its parent's cross axis keeps the parent's alignment.** Cross-axis FILL emits a dimension rather than `align-self: stretch`, so a child stopped from filling by a `min-width` or `max-width` is centred under a centring parent.
 
 ## [0.29.0] - Unreleased
 
