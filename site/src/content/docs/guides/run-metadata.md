@@ -65,11 +65,16 @@ title: Button
 anatomy: { ... }
 props: { ... }
 metadata:
+  concern: api
   source:
     pageId: "12622:6"
     nodeId: "21757:2758"
     nodeType: COMPONENT_SET
 ```
+
+`concern` names which slice the file carries. It is what tells a reader — and a
+validator — that this document is one part of a component rather than a whole
+one missing its variants.
 
 The output directory looks like this:
 
