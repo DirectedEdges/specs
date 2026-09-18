@@ -27,6 +27,41 @@ export interface SourceEntry {
 }
 
 /**
+ * The package an emitted platform tree constitutes.
+ *
+ * A code-platform target emits a tree of sources that may be lifted out and installed
+ * elsewhere. This is what that tree declares itself to be. It is a **choice**, not a
+ * fact about the library: two teams emitting from the same library may name their
+ * package differently and both are correct, which is why it sits on `Settings` rather
+ * than on `Conventions` (ADR-092).
+ *
+ * Both members are optional and neither has a default. A workspace may name a package
+ * and defer versioning, and no default can invent a package name.
+ *
+ * @since 0.33.0
+ */
+export interface PackageIdentity {
+  /** The package the emitted tree constitutes (e.g. `"@example/library-react"`). */
+  name?: string;
+  /** The version the emitted tree declares. A dotted string, as every package registry in scope expresses it. */
+  version?: string;
+}
+
+/**
+ * One platform target's run choices.
+ *
+ * Keyed in {@link Settings.platforms} by the same free-form implementation id as
+ * `Conventions.platforms` — `react`, `web-components`, `swiftui` — so a platform key
+ * means the same thing in both artifacts.
+ *
+ * @since 0.33.0
+ */
+export interface PlatformSettings {
+  /** Package identity for this platform's emitted tree. Optional; absence means the workspace declares none. */
+  package?: PackageIdentity;
+}
+
+/**
  * Choices about a run rather than facts about a library.
  *
  * Changing a setting produces **different** output, never incorrect output: a
@@ -148,6 +183,12 @@ export interface Settings {
     /** Directory holding shared assets. */
     directory?: string;
   };
+  /**
+   * Run choices scoped to one platform target, keyed by implementation id.
+   *
+   * Optional; absence means no platform target declares any. @since 0.33.0
+   */
+  platforms?: Record<string, PlatformSettings>;
 }
 
 /**
@@ -155,9 +196,9 @@ export interface Settings {
  * Produced by merging a partial `Settings` with `DEFAULT_SETTINGS`.
  *
  * Rule: every property with a default in `DEFAULT_SETTINGS` is required here.
- * Members with no schema-level default — directories, sources, author, and the
- * split flags — remain optional, because the value is supplied by the consumer
- * rather than by this package.
+ * Members with no schema-level default — directories, sources, author, the split
+ * flags, and platform targets — remain optional, because the value is supplied by
+ * the consumer rather than by this package.
  *
  * @since 0.31.0
  */
@@ -213,6 +254,8 @@ export interface ResolvedSettings {
   assets?: {
     directory?: string;
   };
+  /** Run choices scoped to one platform target. Optional; no default — absence means none are declared. @since 0.33.0 */
+  platforms?: Record<string, PlatformSettings>;
 }
 
 /**
@@ -235,8 +278,9 @@ export interface ResolvedSettings {
  * - spec.emptyVariants: false reduces output size by excluding semantically empty layered variants
  * - spec.defaultSlotContent: false — opt-in (ADR-050); off by default so unannotated components are unchanged
  *
- * Directories, sources, author, and the split flags carry no default here: the
- * consumer supplies them, and this package has no basis for choosing one.
+ * Directories, sources, author, the split flags, and platform targets carry no
+ * default here: the consumer supplies them, and this package has no basis for
+ * choosing one.
  */
 export const DEFAULT_SETTINGS: ResolvedSettings = {
   spec: {

@@ -25,6 +25,32 @@
       ],
       "additionalProperties": false
     },
+    "PackageIdentity": {
+      "type": "object",
+      "description": "The package an emitted platform tree constitutes. A choice about a run, not a fact about the library: two teams emitting from the same library may name their package differently and both are correct.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The package the emitted tree constitutes (e.g. @example/library-react)."
+        },
+        "version": {
+          "type": "string",
+          "description": "The version the emitted tree declares. A dotted string, as every package registry in scope expresses it."
+        }
+      },
+      "additionalProperties": false
+    },
+    "PlatformSettings": {
+      "type": "object",
+      "description": "One platform target's run choices.",
+      "properties": {
+        "package": {
+          "$ref": "#/definitions/PackageIdentity",
+          "description": "Package identity for this platform's emitted tree. Absence means the workspace declares none."
+        }
+      },
+      "additionalProperties": false
+    },
     "Settings": {
       "type": "object",
       "description": "Run settings, grouped by concern. Each concern carries its own directory.",
@@ -214,6 +240,13 @@
             }
           },
           "additionalProperties": false
+        },
+        "platforms": {
+          "type": "object",
+          "description": "Run choices scoped to one platform target, keyed by the same free-form implementation id as Conventions.platforms (react, web-components, swiftui).",
+          "additionalProperties": {
+            "$ref": "#/definitions/PlatformSettings"
+          }
         }
       },
       "additionalProperties": false

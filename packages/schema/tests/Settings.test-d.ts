@@ -8,6 +8,8 @@ import type {
   ResolvedSettings,
   ColorFormat,
   SourceEntry,
+  PackageIdentity,
+  PlatformSettings,
 } from '../types/index.js';
 import { DEFAULT_SETTINGS } from '../types/index.js';
 
@@ -45,7 +47,29 @@ const full: Settings = {
     useSubfolders: true,
   },
   assets: { directory: './assets' },
+  platforms: {
+    react: { package: { name: '@example/library-react', version: '0.1.0' } },
+    'web-components': { package: { name: '@example/library-wc', version: '0.1.0' } },
+  },
 };
+
+// ─── Package identity ─────────────────────────────────────────────────────────
+
+// Both members are optional — a workspace may name a package and defer versioning
+const nameOnly: PackageIdentity = { name: '@example/library-react' };
+const emptyIdentity: PackageIdentity = {};
+
+// A platform may declare no package at all
+const emptyPlatform: PlatformSettings = {};
+
+// @ts-expect-error — version is a dotted string, not a number
+const numericVersion: PackageIdentity = { version: 1 };
+
+// @ts-expect-error — the emitter owns dependencies; they are not declared here
+const withDependencies: PackageIdentity = { name: '@example/x', peerDependencies: { react: '^18' } };
+
+// Platform keys are free-form implementation ids
+const swiftui: Settings = { platforms: { swiftui: { package: { name: 'ExampleLibrary' } } } };
 
 // ─── Sources ──────────────────────────────────────────────────────────────────
 
@@ -76,7 +100,12 @@ const depth: 1 | 2 | 3 | 9999 = DEFAULT_SETTINGS.spec.variantDepth;
 // Consumer-supplied members stay optional after resolution
 const dir: string | undefined = DEFAULT_SETTINGS.spec.directory;
 
+// platforms has no default — it stays optional after resolution
+const resolvedPlatforms: Record<string, PlatformSettings> | undefined = DEFAULT_SETTINGS.platforms;
+
 export {
   empty, full, source, keylessSource, color, badColor, badDepth, conventionInSettings,
   defaults, format, depth, dir,
+  nameOnly, emptyIdentity, emptyPlatform, numericVersion, withDependencies, swiftui,
+  resolvedPlatforms,
 };

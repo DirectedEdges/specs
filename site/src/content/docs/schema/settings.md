@@ -13,6 +13,7 @@ Authored in `config/settings.yaml`. Members are grouped by concern, and each con
 | `data` | `object` | — | Source acquisition and the directory holding fetched, computed, and authored data |
 | `spec` | `object` | — | The generated spec — where it lands, how it is split, what it contains, how values are serialized |
 | `assets` | `object` | — | Shared resources every code output points at: icons, images, generated CSS, fonts |
+| `platforms` | `object` | — | Run choices scoped to one platform target, keyed by implementation id |
 
 ## `data`
 
@@ -59,6 +60,29 @@ Authored in `config/settings.yaml`. Members are grouped by concern, and each con
 | `directory` | `string` | — | Directory holding shared assets |
 
 Grouped by consumer rather than producer: icons, images, generated CSS, and fonts arrive from fetch, from generate, from transform, or from a process outside this tool — and every code output points at them, whatever the platform.
+
+## `platforms`
+
+Keyed by the same free-form implementation id as [`conventions.platforms`](/schema/conventions/) — `react`, `web-components`, `swiftui` — so a platform key means the same thing in both artifacts.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `package` | `PackageIdentity` | — | Package identity for this platform's emitted tree |
+
+### `platforms.<key>.package`
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `name` | `string` | — | The package the emitted tree constitutes |
+| `version` | `string` | — | The version the emitted tree declares |
+
+A code-platform target emits a tree of sources that may be lifted out and installed elsewhere. This is what that tree declares itself to be.
+
+It is a setting rather than a convention because it is a choice: two teams emitting from the same library may name their package differently and both are correct. A convention, by contrast, can be *wrong* — a mismatched glyph pattern leaves assets undetected.
+
+Both members are optional, so a workspace may name a package and defer versioning. Neither has a default; no default can invent a package name.
+
+A declared identity describes the tree. It does not install anything — imports in an emitted tree resolve only once a consumer installs its dependencies.
 
 ## DEFAULT_SETTINGS
 

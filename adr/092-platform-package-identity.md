@@ -3,7 +3,7 @@
 **Branch**: `092-platform-package-identity`
 **Created**: 2026-09-18
 **Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Summary**: A `platforms` map on `Settings` carries per-target `PackageIdentity`, naming the package an emitted tree constitutes.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 
@@ -187,7 +187,7 @@ PackageIdentity:
 |------|--------|------|
 | `settings.schema.json` | Added `PackageIdentity` definition | MINOR |
 | `settings.schema.json` | Added `PlatformSettings` definition | MINOR |
-| `settings.schema.json` | Added `platforms` property to `Settings` and `ResolvedSettings` | MINOR |
+| `settings.schema.json` | Added `platforms` property to `Settings` | MINOR |
 
 **Example — new shape** (`schema/settings.schema.json`):
 ```yaml
@@ -223,12 +223,12 @@ PackageIdentity:
 
 ## Type ↔ Schema Impact
 
-- **Symmetric**: Yes.
+- **Symmetric**: Yes, for every definition the schema models.
 - **Parity check**:
   - `Settings.platforms` ↔ `#/definitions/Settings/properties/platforms`
-  - `ResolvedSettings.platforms` ↔ `#/definitions/ResolvedSettings/properties/platforms`
   - `PlatformSettings` ↔ `#/definitions/PlatformSettings`
   - `PackageIdentity` ↔ `#/definitions/PackageIdentity`
+- **Pre-existing asymmetry, not introduced here**: `settings.schema.json` has no `ResolvedSettings` definition at all. `metadata.schema.json` references `#/definitions/Settings` for the resolved-settings slot, so the resolved form has never been modelled separately in JSON Schema. `ResolvedSettings.platforms` therefore gains a type-side member with no schema counterpart to add, exactly as every other `ResolvedSettings` member already stands. Closing that gap is its own change, not this one.
 
 ---
 
