@@ -4,6 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 091 | Concern Documents Are a Typed Root Document | |
 | 090 | Container Promotion Sources Opened to Closed-Value Layout Properties | |
 | 045 | Processing Provenance Signals | (reserved, draft in PR #60) |
 | 044 | Duplicate Layer Name Disambiguation | (reserved, draft in PR #60) |
