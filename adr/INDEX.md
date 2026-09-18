@@ -4,6 +4,8 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 082 | `Component.description` — The Authored Figma Description, Plain Text and Opt-In | (reserved, draft in PR #375) |
+| 070 | Explicit `position: ABSOLUTE` for Children of Non-Auto-Layout Parents | (reserved, draft on branch `070-explicit-absolute-position`) |
 | 045 | Processing Provenance Signals | (reserved, draft in PR #60) |
 | 044 | Duplicate Layer Name Disambiguation | (reserved, draft in PR #60) |
 | 024 | Component Extends Relationship | Add `extends` field to express base/derived component relationships and prop/variant inheritance |
