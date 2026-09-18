@@ -142,10 +142,10 @@ describe('CombinedFileWriter', () => {
       await fs.readFile(path.join(testDir, 'button', 'variants.yaml'), 'utf-8')
     );
 
-    expect(buttonApiContent.metadata).toHaveProperty('generatedAt');
+    expect(buttonApiContent.metadata).toHaveProperty('lastUpdated');
     expect(buttonApiContent.metadata).toHaveProperty('concern', 'api');
 
-    expect(buttonVariantsContent.metadata).toHaveProperty('generatedAt');
+    expect(buttonVariantsContent.metadata).toHaveProperty('lastUpdated');
     expect(buttonVariantsContent.metadata).toHaveProperty('concern', 'variants');
   });
 });

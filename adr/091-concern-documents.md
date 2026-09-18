@@ -268,11 +268,11 @@ One asymmetry, and it is TypeScript's rather than a modelling choice: the schema
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-cli` | Writes `metadata.generatedAt` on every concern document, which the contract does not declare | Write `lastUpdated` instead, and set `metadata.concern` on each document it splits |
-| `specs-from-figma` | Produces the metadata block the CLI writes | Same key change, at the point the block is built |
-| `specs-plugin-2` | Emits concern-split output when the setting is on | Recompile; same key change if it builds the block independently |
+| `specs-cli` | Writes `metadata.generatedAt` on every concern document, which the contract does not declare | Write `lastUpdated` instead — one writer, `Writers/FileManifest.ts`. `metadata.concern` is already set correctly |
+| `specs-from-figma` | None — it writes no concern document and names neither key | None |
+| `specs-plugin-2` | None, for the same reason | None |
 
-Until the generator change lands, concern documents continue to fail validation on `generatedAt`. This ADR closes the contract gap; it does not by itself make existing workspaces valid.
+The CLI's `Writers/DataTransformers.ts` holds `any`-typed interfaces for these three shapes. They can be replaced by the published types once this ships; that is a cleanup, not a requirement.
 
 ---
 

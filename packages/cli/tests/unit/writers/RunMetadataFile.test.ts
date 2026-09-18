@@ -55,7 +55,7 @@ describe('RunMetadataFile.separate', () => {
   it('drops writer-added keys that describe the document, not the component', () => {
     const specs = [{
       name: 'Button',
-      spec: { metadata: { ...run(), source: source('n1'), concern: 'api', generatedAt: 'x' } },
+      spec: { metadata: { ...run(), source: source('n1'), concern: 'api', componentCount: 3 } },
     }];
     RunMetadataFile.separate(specs);
     expect(specs[0].spec.metadata).toEqual({ source: source('n1') });

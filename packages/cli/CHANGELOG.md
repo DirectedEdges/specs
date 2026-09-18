@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **A per-concern spec file records its write time as `lastUpdated`**, the key the schema already defines for that fact, instead of `generatedAt`. With this, `api.yaml`, `variants.yaml` and `examples.yaml` validate against the published schema, so an editor stops reporting an error on every spec file in the workspace.
+
 - **Emitted files no longer repeat the component's name**, so `DeFavoriteButton/` holds `scaffold.tsx`, `contract.ts`, `styles.css` and `stories.tsx`. Regenerate each platform tree from scratch: a run overwrites the new files but leaves the old prefixed ones, and Storybook would load both.
 
 - **`specs render` reads that document back**, so a spec carrying only `metadata.source` still renders under the conventions and settings it was generated with (ADR-089).

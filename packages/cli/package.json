@@ -23,8 +23,8 @@
   "dependencies": {
     "@directededges/react-from-specs": "^0.1.0",
     "@directededges/webcomponents-from-specs": "^0.1.0",
-    "@directededges/specs-schema": "^0.32.0",
-    "@directededges/specs-from-figma": "^0.31.0",
+    "@directededges/specs-schema": "file:../../../specs/packages/schema",
+    "@directededges/specs-from-figma": "file:../../../specs-from-figma/packages/specs-from-figma",
     "commander": "^11.1.0",
     "fs-extra": "^11.2.0",
     "tslib": "^2.6.2",

@@ -180,12 +180,12 @@ describe('FileManifest', () => {
       expect(apiEntry.content).toHaveProperty('metadata');
       expect(apiEntry.content.metadata).toHaveProperty('componentCount', 2);
       expect(apiEntry.content.metadata).toHaveProperty('concern', 'api');
-      expect(apiEntry.content.metadata).toHaveProperty('generatedAt');
+      expect(apiEntry.content.metadata).toHaveProperty('lastUpdated');
 
       expect(variantsEntry.content).toHaveProperty('metadata');
       expect(variantsEntry.content.metadata).toHaveProperty('componentCount', 2);
       expect(variantsEntry.content.metadata).toHaveProperty('concern', 'variants');
-      expect(variantsEntry.content.metadata).toHaveProperty('generatedAt');
+      expect(variantsEntry.content.metadata).toHaveProperty('lastUpdated');
     });
   });
 
