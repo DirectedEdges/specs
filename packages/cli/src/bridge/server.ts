@@ -51,12 +51,17 @@ import { parse } from 'yaml';
 import { WS_PORT, HTTP_PORT, DEFAULT_PAGE_ID, resolveWorkspaceDir } from './config.js';
 import { ConnectionRegistry, type Connection } from './connections.js';
 import { RequestTracker } from './requestTracker.js';
+import type { RenderRequestBody } from './client.js';
 import { countUnpublished, type VariablesIndex } from '../utilities/variablesIndex.js';
 import { formatKey } from '../utilities/formatKey.js';
 import {
   readCacheFile, validateCache, describeProblems,
   type ComponentsEntry, type StylesEntry, type VariablesEntry, type IconsEntry,
 } from '../Cache/Cache.js';
+
+/** The Dev Mode status a render request may carry — the bridge relays it, it does not
+ *  derive it. `RenderCommand` reads it from the workspace scan manifest. */
+type DevStatusRequest = RenderRequestBody['devStatus'];
 
 /** id = same-file node id (fast path); key = published cross-file key (fallback import). */
 type ComponentEntry = { id: string; key?: string };
@@ -267,14 +272,14 @@ const http = createServer((req, res) => {
   let body = '';
   req.on('data', (chunk) => { body += chunk; });
   req.on('end', () => {
-    let params: { specPath?: string; spec?: Record<string, unknown>; pageId?: string | null; fileKey?: string; overwrite?: boolean; conventions?: ResolvedConventions; settings?: ResolvedSettings };
+    let params: { specPath?: string; spec?: Record<string, unknown>; pageId?: string | null; fileKey?: string; overwrite?: boolean; conventions?: ResolvedConventions; settings?: ResolvedSettings; devStatus?: DevStatusRequest };
     try { params = JSON.parse(body); } catch {
       res.writeHead(400);
       res.end(JSON.stringify({ error: 'Invalid JSON body.' }));
       return;
     }
 
-    const { specPath: specArg, spec: preParsedSpec, pageId = null, fileKey, overwrite, conventions, settings } = params;
+    const { specPath: specArg, spec: preParsedSpec, pageId = null, fileKey, overwrite, conventions, settings, devStatus } = params;
 
     if (!specArg) {
       res.writeHead(400);
@@ -289,7 +294,7 @@ const http = createServer((req, res) => {
       return;
     }
 
-    sendRender(specArg, pageId, fileKey, preParsedSpec, overwrite, conventions, settings)
+    sendRender(specArg, pageId, fileKey, preParsedSpec, overwrite, conventions, settings, devStatus)
       .then((result) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(result));
@@ -626,7 +631,7 @@ async function sendGenerateFromSelection(fileKey?: string, nodeId?: string, conv
 /**
  * Send a single renderComponent message over the WebSocket and wait for the result.
  */
-async function sendRender(specPath: string, rawPageId: string | null, fileKey?: string, preParsedSpec?: Record<string, unknown>, overwrite?: boolean, conventions?: ResolvedConventions, settings?: ResolvedSettings): Promise<RenderResult> {
+async function sendRender(specPath: string, rawPageId: string | null, fileKey?: string, preParsedSpec?: Record<string, unknown>, overwrite?: boolean, conventions?: ResolvedConventions, settings?: ResolvedSettings, devStatus?: DevStatusRequest): Promise<RenderResult> {
   const conn = registry.resolve(fileKey);
 
   let spec: Record<string, unknown>;
@@ -688,7 +693,7 @@ async function sendRender(specPath: string, rawPageId: string | null, fileKey?: 
   // A large component set against a big library can take minutes today; a timeout
   // shorter than the render discards a result the plugin actually produced.
   const { requestId, promise } = requests.create(300000, 'Timed out waiting for renderComponent-result.');
-  const payload = JSON.stringify({ type: 'renderComponent', requestId, spec, pageId, instanceIdManifest: manifest, glyphIdManifest, stylesManifest, variablesManifest, overwrite, conventions, settings });
+  const payload = JSON.stringify({ type: 'renderComponent', requestId, spec, pageId, instanceIdManifest: manifest, glyphIdManifest, stylesManifest, variablesManifest, overwrite, conventions, settings, devStatus });
 
   const sentAt = Date.now();
   conn.ws.send(payload);

@@ -42,6 +42,13 @@ export interface RenderRequestBody {
    */
   conventions?: ResolvedConventions;
   settings?: ResolvedSettings;
+  /**
+   * The Dev Mode status to stamp on the rendered component, taken from the workspace
+   * scan manifest's Dev Status column. Omitted when the manifest has no row for this
+   * spec or records no status — render then leaves the node's status untouched rather
+   * than asserting one the scan never recorded.
+   */
+  devStatus?: 'READY_FOR_DEV' | 'COMPLETED';
 }
 
 // Render reports success/failure only — the round-trip spec read is a second,
