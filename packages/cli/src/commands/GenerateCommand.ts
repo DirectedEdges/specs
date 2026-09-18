@@ -214,24 +214,34 @@ async function writeGeneratedOutput(
     : undefined;
 
   // -------------------------------------------------------------------
-  // Image resolution (ADR-063, --get-images): add src to unresolved
-  // registry entries — files written under the workspace's assets/images/, referenced
-  // relative to the spec file that points at them. Runs before the
-  // manifest so writers serialize the resolved registry values.
+  // Image resolution (ADR-063): add src to unresolved registry entries —
+  // files under the workspace's assets/images/, referenced relative to the
+  // spec file that points at them. Runs before the manifest so writers
+  // serialize the resolved registry values.
+  //
+  // Mapping an identity to a file already on disk is filesystem work and
+  // always runs: a hash-named file is content-addressed, so its presence is
+  // observation rather than the filename guessing ADR-063 removed. Only
+  // fetching the bytes of a missing image needs --get-images, a token, and a
+  // file key. Gating both together made a plain regenerate drop `src` that a
+  // previous run had resolved, silently degrading output it could have
+  // reconstructed for free.
   // -------------------------------------------------------------------
-  if (options.getImages) {
+  {
     const hashes = ImageFillsResolver.collectUnresolvedHashes(processedComponents);
     if (hashes.size === 0) {
-      console.log(figmaOf(config.conventions).images
-        ? 'Note: --get-images found no unresolved image placeholders'
-        : 'Note: --get-images has no effect — images is not configured in config/conventions/figma.yaml');
+      if (options.getImages) {
+        console.log(figmaOf(config.conventions).images
+          ? 'Note: --get-images found no unresolved image placeholders'
+          : 'Note: --get-images has no effect — images is not configured in config/conventions/figma.yaml');
+      }
     } else {
       // Reuse hash-named files already present in assets/images/ — only the
       // remainder needs the token, the API call, and downloads.
       const files = await ImageFillsResolver.findExisting(hashes, baseDir);
       const missing = new Set([...hashes].filter(hash => !files.has(hash)));
 
-      if (missing.size > 0) {
+      if (missing.size > 0 && options.getImages) {
         const token = process.env.FIGMA_TOKEN;
         if (!token) {
           console.error('Error: --get-images requires the FIGMA_TOKEN environment variable (same token as `specs fetch`)');
@@ -264,8 +274,17 @@ async function writeGeneratedOutput(
       const inComponentFolders = !!outputConfig.splitComponents && (!!outputConfig.useSubfolders || !!outputConfig.splitConcerns);
       const relativePrefix = inComponentFolders ? `../${IMAGES_DIR_NAME}/` : `${IMAGES_DIR_NAME}/`;
       const resolvedCount = ImageFillsResolver.applyResolvedSources(processedComponents, files, relativePrefix);
-      const reused = hashes.size - missing.size;
-      console.log(`✓ Resolved ${resolvedCount} image reference(s) into ${files.size} file(s) under ${IMAGES_DIR_NAME}/ (${reused} reused, ${missing.size} downloaded)`);
+      const downloadedCount = options.getImages ? missing.size : 0;
+      const reused = hashes.size - downloadedCount;
+      if (resolvedCount > 0) {
+        console.log(`✓ Resolved ${resolvedCount} image reference(s) into ${files.size} file(s) under ${IMAGES_DIR_NAME}/ (${reused} reused, ${downloadedCount} downloaded)`);
+      }
+      // An image with no file on disk keeps its identity and no src. Say so
+      // rather than leaving a pointer to be discovered in emitted output.
+      const unresolved = options.getImages ? 0 : missing.size;
+      if (unresolved > 0) {
+        console.log(`Note: ${unresolved} image(s) have no file under ${IMAGES_DIR_NAME}/ — re-run with --get-images to download them`);
+      }
     }
   }
 
