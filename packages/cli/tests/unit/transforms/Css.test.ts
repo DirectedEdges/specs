@@ -261,6 +261,54 @@ describe('CssTransformer', () => {
       expect(out).not.toContain(':has(:focus-visible)');
     });
 
+    it('warns when a classified prop carries a value no concept names', async () => {
+      // The value still reaches the contract and the stories, so the state looks
+      // supported and renders as the default — the loss was only findable by
+      // diffing the rendered component against the design.
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const linkStates: ProcessingStates = { hover: { prop: 'state', value: 'hover' } };
+      await writeVariants(tmpDir, {
+        default: { elements: {} },
+        variants: [{ configuration: { state: 'visited' }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } }],
+      });
+      await transformer.run(
+        { props: { state: { type: 'string', enum: ['default', 'hover', 'visited'], default: 'default' } } },
+        makeContext(tmpDir, 'dsLink', 'TOKEN', linkStates),
+      );
+
+      const message = warnSpy.mock.calls.map(c => String(c[0])).join('\n');
+      expect(message).toContain('dsLink');
+      expect(message).toContain("'state'");
+      expect(message).toContain("'visited'");
+      warnSpy.mockRestore();
+    });
+
+    it('stays silent for the prop\'s resting value, which the base block already covers', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const linkStates: ProcessingStates = { hover: { prop: 'state', value: 'hover' } };
+      await writeVariants(tmpDir, {
+        default: { elements: {} },
+        variants: [{ configuration: { state: 'default' }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } }],
+      });
+      await transformer.run(
+        { props: { state: { type: 'string', enum: ['default', 'hover'], default: 'default' } } },
+        makeContext(tmpDir, 'dsLink', 'TOKEN', linkStates),
+      );
+
+      expect(warnSpy.mock.calls.map(c => String(c[0])).join('\n')).not.toContain('no concept names');
+      warnSpy.mockRestore();
+    });
+
+    it('emits :visited for a link modelling visited through a classified prop', async () => {
+      const linkStates: ProcessingStates = { visited: { prop: 'state', value: 'visited' } };
+      const out = await run(tmpDir, {
+        default: { elements: {} },
+        variants: [{ configuration: { state: 'visited' }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } }],
+      }, 'dsLink', 'TOKEN', linkStates);
+
+      expect(out).toContain('.ds-link:visited {');
+    });
+
     it('emits :disabled, [aria-disabled="true"] for disabled concept', async () => {
       const out = await run(tmpDir, variantsWithStates, 'dsButton', 'TOKEN', states);
       expect(out).toContain('.ds-button:disabled,');
