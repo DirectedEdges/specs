@@ -675,6 +675,32 @@ function buildCssLines(
     }
   }
 
+  /**
+   * A value of a classified prop that no concept names, reported once per
+   * (prop, value) pair.
+   *
+   * Skipping such a variant is correct for the prop's *resting* value — the base
+   * block already covers it. Every other unnamed value is styling the spec
+   * declares and the stylesheet drops, and it drops silently: the value still
+   * reaches the generated contract and the stories, so the state looks supported
+   * and simply renders as the default. Every comparable drop in this pipeline
+   * warns; this one did not.
+   */
+  const warnedUnnamed = new Set<string>();
+  const warnUnnamedValue = (prop: string, value: string): void => {
+    const def = apiProps[prop] as { default?: unknown } | undefined;
+    const resting = def?.default;
+    if (resting !== undefined && String(resting).toLowerCase() === value.toLowerCase()) return;
+    const key = `${prop}::${value}`;
+    if (warnedUnnamed.has(key)) return;
+    warnedUnnamed.add(key);
+    console.warn(
+      `  [css] ${context.componentKey}: '${prop}' is classified by the states convention, ` +
+        `but no concept names the value '${value}' — the styling declared for it is not emitted. ` +
+        `Add a states entry mapping a concept to this value, or rename the value to one a concept names.`
+    );
+  };
+
   // A concept's selector, narrowed to what can actually match this target and
   // this root. Only `disabled` and the focus heuristic differ; every other
   // concept is target-neutral.
@@ -720,7 +746,13 @@ function buildCssLines(
           // `:not(:disabled):not([aria-disabled="true"])`.
           if (trueSel) negated = trueSel.split(',').map(part => `:not(${part.trim()})`).join('');
         }
-        if (!concept && !negated) { skip = true; break; } // unmatched value = base/rest state
+        if (!concept && !negated) {
+          // Unmatched value: the base block covers the resting one; anything else
+          // is declared styling that will not be emitted, so say so.
+          warnUnnamedValue(k, vStr);
+          skip = true;
+          break;
+        }
         const sel = negated ?? (concept ? selectorFor(concept) : undefined) ?? `[data-${toKebab(k)}="${normalizeEnumValue(vStr)}"]`;
         const parts = negated ? [negated] : sel.split(',').map(s => s.trim());
         const expanded: string[] = [];
