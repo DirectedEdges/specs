@@ -8,6 +8,7 @@ import { layoutToCSS } from './css/layoutToCSS.js';
 import { toKebab, isGradient, isGradientToken, gradientValue, dimensionValue, resolveTokenVar, reportNameWarnings, withNameWarningsSuppressed } from './css/values.js';
 import { normalizeEnumValue } from './enumCase.js';
 import { subComponentKey } from './naming.js';
+import { attrNameFor } from './hostAttributes.js';
 import { CONCEPT_TABLE, buildStateLookup, conceptsClaimedByNestedRoles } from './states.js';
 import { resolveRules } from './css/rules/index.js';
 import { parseLayout, type LayoutNode } from './css/layoutTree.js';
@@ -753,7 +754,7 @@ function buildCssLines(
           skip = true;
           break;
         }
-        const sel = negated ?? (concept ? selectorFor(concept) : undefined) ?? `[data-${toKebab(k)}="${normalizeEnumValue(vStr)}"]`;
+        const sel = negated ?? (concept ? selectorFor(concept) : undefined) ?? `[${attrNameFor(k, rootAs)}="${normalizeEnumValue(vStr)}"]`;
         const parts = negated ? [negated] : sel.split(',').map(s => s.trim());
         const expanded: string[] = [];
         for (const existing of stateSelSuffixes) {
@@ -766,9 +767,9 @@ function buildCssLines(
         // variant is the ABSENCE of the attribute; `[data-x="false"]` would
         // match nothing and the variant's styling would never apply.
         dataAttrs.push(
-          v === true ? `[data-${toKebab(k)}]`
-            : v === false ? `:not([data-${toKebab(k)}])`
-              : `[data-${toKebab(k)}="${normalizeEnumValue(vStr)}"]`
+          v === true ? `[${attrNameFor(k, rootAs)}]`
+            : v === false ? `:not([${attrNameFor(k, rootAs)}])`
+              : `[${attrNameFor(k, rootAs)}="${normalizeEnumValue(vStr)}"]`
         );
       }
     }
