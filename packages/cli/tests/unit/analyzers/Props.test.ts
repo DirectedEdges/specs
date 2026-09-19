@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
 import yaml from 'yaml';
-import { PropsAnalyzer } from '../../../src/analyzers/Props.js';
+import { PropsAnalyzer, propIsNullable } from '../../../src/analyzers/Props.js';
 
 type AggregateYaml = {
   summary: { totalProps: number; totalComponents: number; uniquePropNames: number; typeDistribution: Record<string, number> };
@@ -221,7 +221,32 @@ describe('PropsAnalyzer', () => {
     expect(slot?.minItems).toBe(1);
     expect(slot?.maxItems).toBe(3);
     expect(slot?.anyOf).toEqual(['DsButton']);
-    expect(slot?.nullable).toBe(false);
+    // ADR-065: an absent `nullable` on a slot prop means true.
+    expect(slot?.nullable).toBe(true);
+  });
+
+  it('applies the per-type default ADR-065 documents for an absent nullable', () => {
+    // Open value sets accept null; a closed one already enumerates every value
+    // it accepts. Testing for an explicit `true` reported the opposite of the
+    // documented default for essentially every non-enum prop.
+    expect(propIsNullable({ type: 'string' })).toBe(true);
+    expect(propIsNullable({ type: 'number' })).toBe(true);
+    expect(propIsNullable({ type: 'image' })).toBe(true);
+    expect(propIsNullable({ type: 'slot' })).toBe(true);
+    expect(propIsNullable({ type: 'string', enum: ['sm', 'md'] })).toBe(false);
+    expect(propIsNullable({ type: 'boolean' })).toBe(false);
+  });
+
+  it('an explicit nullable always wins over the default', () => {
+    expect(propIsNullable({ type: 'string', nullable: false })).toBe(false);
+    expect(propIsNullable({ type: 'string', enum: ['sm', 'md'], nullable: true })).toBe(true);
+  });
+
+  it('reports a slot prop with no declared nullable as nullable', async () => {
+    const { slots } = await runAnalyzer({
+      compA: { props: { children: { type: 'slot' } } },
+    });
+    expect(slots.find(s => s.name === 'children')?.nullable).toBe(true);
   });
 
   it('output is deterministic for the same input', async () => {
