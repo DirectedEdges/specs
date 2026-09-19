@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Fetch, formatDuration, formatRateLimitError, formatNotFoundError, formatAuthError, parseAdHocSource } from '../../../src/commands/FetchCommand.js';
+import { Fetch, formatDuration, formatRateLimitError, formatNotFoundError, formatAuthError, parseAdHocSource, matchBridgeSource } from '../../../src/commands/FetchCommand.js';
 
 describe('FetchCommand', () => {
   it('registers name and description', () => {
@@ -14,7 +14,56 @@ describe('FetchCommand', () => {
     expect(options).toContain('--data-dir');
     expect(options).toContain('--outDir'); // deprecated alias
     expect(options).toContain('--only');
+    expect(options).toContain('--from-bridge');
+    expect(options).toContain('--file');
     expect(options).toContain('--verbose');
+  });
+});
+
+describe('matchBridgeSource', () => {
+  const sources = [
+    { alias: 'library', key: 'AAA111' },
+    { alias: 'icons', key: 'BBB222' }
+  ];
+
+  it('matches the connected file to its configured source', () => {
+    const result = matchBridgeSource(sources, 'AAA111', []);
+    expect(result).toEqual({ entry: { alias: 'library', key: 'AAA111' } });
+  });
+
+  it('accepts a match that --only also named', () => {
+    const result = matchBridgeSource(sources, 'BBB222', ['icons']);
+    expect(result).toEqual({ entry: { alias: 'icons', key: 'BBB222' } });
+  });
+
+  it('rejects a connected file that is not a configured source', () => {
+    const result = matchBridgeSource(sources, 'CCC333', []);
+    expect(result).toHaveProperty('error');
+    expect((result as { error: string }).error).toContain('CCC333');
+    expect((result as { error: string }).error).toContain('library (AAA111)');
+  });
+
+  it('rejects a match that --only excluded', () => {
+    const result = matchBridgeSource(sources, 'AAA111', ['icons']);
+    expect(result).toHaveProperty('error');
+    expect((result as { error: string }).error).toContain('"library"');
+    expect((result as { error: string }).error).toContain('icons');
+  });
+
+  it('rejects a missing fileKey when no alias names the destination', () => {
+    const result = matchBridgeSource(sources, undefined, []);
+    expect(result).toHaveProperty('error');
+  });
+
+  it('falls back to a single --only alias when the key matches nothing', () => {
+    // The plugin cannot always read the real file key (unsaved- placeholder).
+    const result = matchBridgeSource(sources, 'unsaved-xyz', ['library']);
+    expect(result).toEqual({ entry: { alias: 'library', key: 'AAA111' } });
+  });
+
+  it('does not fall back when --only names several aliases', () => {
+    const result = matchBridgeSource(sources, 'unsaved-xyz', ['library', 'icons']);
+    expect(result).toHaveProperty('error');
   });
 });
 

@@ -111,3 +111,30 @@ export async function postGenerateFromSelection(body: GenerateFromSelectionReque
   });
   return (await res.json()) as GenerateFromSelectionResponse;
 }
+
+export interface GetVariablesRequestBody {
+  fileKey?: string;
+}
+
+/** The variables and collections of the connected file, read by the plugin and
+ * shaped like the `meta` of `GET /v1/files/:key/variables/local` — so a file
+ * written from this response is indistinguishable from a REST fetch downstream. */
+export interface GetVariablesResponse {
+  success: boolean;
+  /** The connection that answered — identifies the source alias when the request named no fileKey. */
+  fileKey?: string;
+  meta?: {
+    variableCollections: Record<string, unknown>;
+    variables: Record<string, unknown>;
+  };
+  error?: unknown;
+}
+
+export async function postGetVariables(body: GetVariablesRequestBody = {}): Promise<GetVariablesResponse> {
+  const res = await fetch(`http://localhost:${HTTP_PORT}/variables`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  return (await res.json()) as GetVariablesResponse;
+}

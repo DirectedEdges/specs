@@ -30,6 +30,8 @@ const ERROR_CODES = {
 import type { SourceEntry } from '@directededges/specs-schema';
 import { figmaOf } from '../Config/PlatformConventions.js';
 import { resolveFigmaFileKey, slugifyBranchName, FigmaKeyError } from '../utilities/figmaFileKey.js';
+import { postGetVariables } from '../bridge/client.js';
+import { resolveFileKey } from '../bridge/pickConnection.js';
 
 type FetchKind = 'file' | 'variables' | 'styles' | 'icons';
 
@@ -267,8 +269,46 @@ export interface FetchOptions {
   outDir?: string; // deprecated alias for --data-dir
   only?: string;
   source?: string[];
+  fromBridge?: boolean;
+  file?: string;
   geometry: boolean;
   verbose: boolean;
+}
+
+/**
+ * Which configured source a bridge variables payload belongs to. A bridge fetch writes
+ * to a configured alias's filenames — that is what lets cache, generate, and render find
+ * the payload — so the payload must be attributable to a source the workspace declares.
+ * The connected file's key decides when it matches; the plugin cannot always read the
+ * real key (it reports an `unsaved-` placeholder without file-key access), so an
+ * explicit `--only <alias>` names the destination when key matching cannot.
+ */
+export function matchBridgeSource(
+  sources: Array<{ alias: string; key: string }>,
+  fileKey: string | undefined,
+  onlyAliases: string[]
+): { entry: { alias: string; key: string } } | { error: string } {
+  const entry = fileKey ? sources.find(s => s.key === fileKey) : undefined;
+  if (entry) {
+    if (onlyAliases.length > 0 && !onlyAliases.includes(entry.alias)) {
+      return { error: `Error: the connected file is the source "${entry.alias}", but --only named ${onlyAliases.join(', ')}.` };
+    }
+    return { entry };
+  }
+
+  if (onlyAliases.length === 1) {
+    const named = sources.find(s => s.alias === onlyAliases[0]);
+    if (named) return { entry: named };
+  }
+
+  return {
+    error: [
+      `Error: the connected Figma file (${fileKey ?? 'unknown'}) is not a configured source.`,
+      '  A bridge fetch writes to a configured alias\'s filenames so generate and render can find it.',
+      '  If this file is one of your sources, name it: --only variables,<alias>',
+      `  Sources: ${sources.map(s => `${s.alias} (${s.key})`).join(', ') || '(none)'}`
+    ].join('\n')
+  };
 }
 
 export const Fetch = new Command('fetch')
@@ -283,16 +323,11 @@ export const Fetch = new Command('fetch')
     (value: string, previous: string[] = []) => previous.concat(value)
   )
   .option('--no-geometry', 'Omit geometry data (fillGeometry, strokeGeometry, size, relativeTransform) from file payloads')
+  .option('--from-bridge', 'Fetch variables from the connected Figma file via the CLI bridge instead of the REST API (no FIGMA_TOKEN or Enterprise plan needed) — combine with --only variables')
+  .option('--file <fileKey>', 'Target a specific connected Figma file with --from-bridge (prompts to choose if more than one is connected in an interactive terminal; required otherwise)')
   .option('--verbose', 'Enable detailed logging', false)
   .action(async (options: FetchOptions) => {
     try {
-      const token = process.env.FIGMA_TOKEN;
-      if (!token) {
-        console.error('Error: FIGMA_TOKEN environment variable is required');
-        console.error('Tip: create a .env file with FIGMA_TOKEN=your_token_here');
-        process.exit(ERROR_CODES.INVALID_ARGS);
-      }
-
       const configPath = options.config ? path.resolve(options.config) : null;
       const config = new ConfigLoader().load(options.config);
       const configDir = config.configDir ?? process.cwd();
@@ -341,6 +376,83 @@ export const Fetch = new Command('fetch')
         console.error(`Aliases: ${fileEntries.map(f => f.alias).join(', ') || '(none)'}`);
         console.error(`Kinds:   ${FETCH_KINDS.join(', ')}`);
         process.exit(ERROR_CODES.INVALID_ARGS);
+      }
+
+      // -------------------------------------------------------------------
+      // Bridge mode (--from-bridge): read variables through the connected plugin
+      // instead of the REST API. The plugin shapes the payload like the REST
+      // variables/local response, so the written file — and everything that reads
+      // it — is identical between the two paths. This is what makes variables
+      // reachable without an Enterprise plan (the REST variables endpoints are
+      // Enterprise-only; the Plugin API is not).
+      // -------------------------------------------------------------------
+      if (options.fromBridge) {
+        if (adHocValues.length > 0) {
+          console.error('Error: --from-bridge reads from the connected Figma file — it cannot be combined with --source.');
+          process.exit(ERROR_CODES.INVALID_ARGS);
+        }
+        if (!(onlyKinds.length === 1 && onlyKinds[0] === 'variables')) {
+          console.error('Error: --from-bridge currently fetches variables only.');
+          console.error('  Run: specs fetch --only variables --from-bridge');
+          process.exit(ERROR_CODES.INVALID_ARGS);
+        }
+
+        let result;
+        try {
+          const fileKey = await resolveFileKey(options.file);
+          result = await postGetVariables({ fileKey });
+        } catch (e) {
+          const err = e as NodeJS.ErrnoException & { cause?: NodeJS.ErrnoException };
+          if (err.cause && err.cause.code === 'ECONNREFUSED') {
+            console.error('Error: bridge is not running.');
+            console.error('  Start it with: specs bridge start');
+          } else {
+            console.error(`Error: ${err.message}`);
+          }
+          process.exit(ERROR_CODES.GENERAL_ERROR);
+        }
+
+        if (!result.success || !result.meta) {
+          const msg = typeof result.error === 'string' ? result.error : JSON.stringify(result.error ?? 'Bridge returned no variables payload.');
+          console.error(`Error: ${msg}`);
+          process.exit(ERROR_CODES.GENERAL_ERROR);
+        }
+
+        const match = matchBridgeSource(fileEntries, result.fileKey, onlyAliases);
+        if ('error' in match) {
+          console.error(match.error);
+          process.exit(ERROR_CODES.INVALID_ARGS);
+          return;
+        }
+
+        await fs.ensureDir(outDir);
+        const outputPath = path.join(outDir, `${match.entry.alias}.variables.json`);
+        // The REST response's own envelope, so nothing downstream can tell the two paths apart.
+        await fs.writeFile(outputPath, JSON.stringify({ status: 200, error: false, meta: result.meta }), 'utf-8');
+        const count = Object.keys(result.meta.variables ?? {}).length;
+        console.log(`✓ Downloaded: ${match.entry.alias} variables (${count} variables, via bridge)`);
+
+        const bridgeDataDirectory = config.settings.data?.directory;
+        if (bridgeDataDirectory) {
+          const dataDir = path.resolve(configDir, bridgeDataDirectory);
+          const report = refreshCache({
+            dataDir,
+            aliases: Object.keys(config.settings.data?.sources ?? {}),
+            glyphNamePattern: figmaOf(config.conventions).glyphs?.match,
+          });
+          reportCache(report);
+        }
+
+        console.log('✓ Fetch complete');
+        process.exit(ERROR_CODES.SUCCESS);
+      }
+
+      const token = process.env.FIGMA_TOKEN;
+      if (!token) {
+        console.error('Error: FIGMA_TOKEN environment variable is required');
+        console.error('Tip: create a .env file with FIGMA_TOKEN=your_token_here');
+        process.exit(ERROR_CODES.INVALID_ARGS);
+        return;
       }
 
       // -------------------------------------------------------------------
