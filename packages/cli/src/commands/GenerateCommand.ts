@@ -23,6 +23,7 @@ import { resolveFileSourceAlias } from '../utilities/fileSourceAlias.js';
 import { ManifestParser } from '../utilities/ManifestParser.js';
 import { ManifestParserV2 } from '../utilities/ManifestParserV2.js';
 import { LicenseStatus } from '../utilities/LicenseStatus.js';
+import { TRANSIENT_FAILURES, transientFailureLines } from '../utilities/licenseGuidance.js';
 import { FileManifest } from '../Writers/FileManifest.js';
 import { RunMetadataFile } from '../Writers/RunMetadataFile.js';
 import { SingleFileWriter } from '../Writers/SingleFileWriter.js';
@@ -694,14 +695,8 @@ export const Generate = new Command('generate')
       // ---------------------------------------------------------------
       if (licenseKey) {
         const license = LicenseStatus.resolve(results);
-        // 'invalid'/'removed'/'expired' are definitive key rejections where FREE
-        // fallback is reasonable; these are the transient "check didn't complete"
-        // states where the key may well be valid.
-        const TRANSIENT_FAILURES = new Set(['error', 'network-error', 'rate-limited']);
         if (license?.status && TRANSIENT_FAILURES.has(license.status)) {
-          console.error(`Error: License check could not be completed (status: ${license.status}).`);
-          console.error(`Your key was not validated, so no licensed output was produced.`);
-          console.error(`This is usually temporary — retry in a few seconds, or remove the key for free-tier output.`);
+          for (const line of transientFailureLines(license.status)) console.error(line);
           process.exit(license.status === 'rate-limited' ? ERROR_CODES.RATE_LIMIT : ERROR_CODES.NETWORK_ERROR);
         }
       }
