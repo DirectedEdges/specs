@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **A web components stylesheet selects a reflected attribute** — `:host([appearance="filled"])` rather than `[data-appearance="filled"]` — because the custom element now reflects its variant props instead of stamping data attributes in `willUpdate`. The React sheet is unchanged: its root is a real element and keeps `data-*`. A prop whose kebab name is a global HTML attribute (`hidden`, `title`, `role`) keeps the `data-` form on both sides, since reflecting it would take over real browser behaviour.
 - **A subcomponent's CSS class is namespaced by its parent**, so `deCard`'s `reviews` styles under `.de-card-reviews` rather than `.reviews`. Regenerate every platform tree together.
 - **Emitted files no longer repeat the component's name**, so `DeFavoriteButton/` holds `scaffold.tsx`, `contract.ts`, `styles.css` and `stories.tsx`. Regenerate each platform tree from scratch: a run overwrites the new files but leaves the old prefixed ones, and Storybook would load both.
 - **A per-concern spec file records its write time as `lastUpdated`**, the key the schema already defines for that fact, so `api.yaml`, `variants.yaml` and `examples.yaml` validate and an editor stops reporting an error on every spec file.
