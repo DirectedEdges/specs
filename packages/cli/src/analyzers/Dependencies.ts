@@ -5,6 +5,9 @@ import type { Transformer, TransformerContext } from '../Types/Transformer.js';
 
 type EdgeKind = 'instance' | 'slot' | 'example';
 
+/** Every edge kind, for counts that must cover all of them. */
+const EDGE_KINDS: EdgeKind[] = ['instance', 'slot', 'example'];
+
 /** Which spec section a prop configuration site was found in. */
 type SiteOrigin = 'default' | 'variant' | 'example';
 
@@ -50,8 +53,12 @@ interface EdgeJson {
 
 interface NodeJson {
   external: boolean;
+  /** Components this one relates to, across every edge kind. */
   dependsOn: number;
+  /** Components relating to this one, across every edge kind. */
   dependedOnBy: number;
+  /** The same two counts split by the kind of relationship behind them. */
+  byKind: Record<EdgeKind, { dependsOn: number; dependedOnBy: number }>;
 }
 
 interface GraphJson {
@@ -59,8 +66,17 @@ interface GraphJson {
     components: number;
     externals: number;
     edges: Record<EdgeKind, number>;
+    /** Nothing relates to these — across every edge kind, as `nodes[].dependedOnBy` counts. */
     roots: string[];
+    /** These relate to nothing — across every edge kind, as `nodes[].dependsOn` counts. */
     leaves: string[];
+    /**
+     * Neither depended on nor depending on anything. Held apart from the two
+     * lists above rather than appearing in both, which is true of an unconnected
+     * component but says nothing a reader can use.
+     */
+    isolated: string[];
+    /** Composition cycles, over instance edges only — a slot constraint cannot cycle. */
     cycles: string[][];
   };
   nodes: Record<string, NodeJson>;
@@ -190,21 +206,34 @@ export class DependenciesAnalyzer implements Transformer {
     }
 
     // Adjacency over instance edges: forward = dependencies, reverse = dependents.
+    // Kept separate from the contract relations because composition is what a
+    // cycle can exist in, and what the transitive closures below walk.
     const forward = new Map<string, Set<string>>();
     const reverse = new Map<string, Set<string>>();
     const contractForward = new Map<string, Set<string>>();
     const contractReverse = new Map<string, Set<string>>();
+    // Per-kind adjacency, so a node's counts can name what each is made of and
+    // the summary's edge totals and the node counts describe one set of edges.
+    const byKindForward: Record<EdgeKind, Map<string, Set<string>>> =
+      { instance: new Map(), slot: new Map(), example: new Map() };
+    const byKindReverse: Record<EdgeKind, Map<string, Set<string>>> =
+      { instance: new Map(), slot: new Map(), example: new Map() };
+    const add = (m: Map<string, Set<string>>, from: string, to: string): void => {
+      (m.get(from) ?? m.set(from, new Set()).get(from)!).add(to);
+    };
     for (const edge of edgeMap.values()) {
       const [fwd, rev] = edge.kind === 'instance'
         ? [forward, reverse]
         : [contractForward, contractReverse];
-      (fwd.get(edge.from) ?? fwd.set(edge.from, new Set()).get(edge.from)!).add(edge.to);
-      (rev.get(edge.to) ?? rev.set(edge.to, new Set()).get(edge.to)!).add(edge.from);
+      add(fwd, edge.from, edge.to);
+      add(rev, edge.to, edge.from);
+      add(byKindForward[edge.kind], edge.from, edge.to);
+      add(byKindReverse[edge.kind], edge.to, edge.from);
     }
 
     const propUsage = this._aggregatePropUsage(resolve);
 
-    await this._writeGraph(outDir, known, externals, edgeMap, forward, reverse);
+    await this._writeGraph(outDir, known, externals, edgeMap, byKindForward, byKindReverse, forward);
     await this._writeByComponent(outDir, known, forward, reverse, contractForward, contractReverse, propUsage);
   }
 
@@ -263,18 +292,31 @@ export class DependenciesAnalyzer implements Transformer {
     known: Set<string>,
     externals: Set<string>,
     edgeMap: Map<string, { from: string; to: string; kind: EdgeKind; labels: Set<string> }>,
-    forward: Map<string, Set<string>>,
-    reverse: Map<string, Set<string>>
+    byKindForward: Record<EdgeKind, Map<string, Set<string>>>,
+    byKindReverse: Record<EdgeKind, Map<string, Set<string>>>,
+    instanceForward: Map<string, Set<string>>
   ): Promise<void> {
     const sortedKnown = Array.from(known).sort((a, b) => a.localeCompare(b));
     const sortedExternals = Array.from(externals).sort((a, b) => a.localeCompare(b));
+
+    // A relationship of any kind counts. Counting instance edges only left a
+    // component related through nothing but a slot reading as unconnected, and
+    // put components in the roots and leaves lists at once.
+    const relatedCount = (by: Record<EdgeKind, Map<string, Set<string>>>, id: string): number =>
+      new Set(EDGE_KINDS.flatMap(kind => [...(by[kind].get(id) ?? [])])).size;
 
     const nodes: Record<string, NodeJson> = {};
     for (const id of [...sortedKnown, ...sortedExternals].sort((a, b) => a.localeCompare(b))) {
       nodes[id] = {
         external: externals.has(id),
-        dependsOn: forward.get(id)?.size ?? 0,
-        dependedOnBy: reverse.get(id)?.size ?? 0,
+        dependsOn: relatedCount(byKindForward, id),
+        dependedOnBy: relatedCount(byKindReverse, id),
+        byKind: Object.fromEntries(
+          EDGE_KINDS.map(kind => [kind, {
+            dependsOn: byKindForward[kind].get(id)?.size ?? 0,
+            dependedOnBy: byKindReverse[kind].get(id)?.size ?? 0,
+          }])
+        ) as NodeJson['byKind'],
       };
     }
 
@@ -301,9 +343,10 @@ export class DependenciesAnalyzer implements Transformer {
         components: known.size,
         externals: externals.size,
         edges: edgeCounts,
-        roots: sortedKnown.filter(id => (reverse.get(id)?.size ?? 0) === 0),
-        leaves: sortedKnown.filter(id => (forward.get(id)?.size ?? 0) === 0),
-        cycles: findCycles(sortedKnown, forward),
+        roots: sortedKnown.filter(id => nodes[id].dependedOnBy === 0 && nodes[id].dependsOn > 0),
+        leaves: sortedKnown.filter(id => nodes[id].dependsOn === 0 && nodes[id].dependedOnBy > 0),
+        isolated: sortedKnown.filter(id => nodes[id].dependsOn === 0 && nodes[id].dependedOnBy === 0),
+        cycles: findCycles(sortedKnown, instanceForward),
       },
       nodes,
       edges,
