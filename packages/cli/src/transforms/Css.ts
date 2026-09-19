@@ -865,6 +865,7 @@ function buildCssLines(
       if (reverse && !decls.some(d => d.startsWith('flex-direction:'))) decls.push(reverse);
 
       if (decls.length > 0) {
+        lines.push(`/* ${variantLabel(configuration)}${elemKey === 'root' ? '' : ` — ${elemKey}`} */`);
         lines.push(`${selector} {`);
         for (const d of decls) lines.push(`  ${d};`);
         lines.push('}');
@@ -891,11 +892,15 @@ function buildCssLines(
   // unpressed silently lost its pointer — and it inferred behavior from output
   // rather than reading what the library declared.
   if (declaresState(context, apiProps, 'active') || declaresState(context, apiProps, 'pressed')) {
-    lines.push(`${rootSel()} {`, '  cursor: pointer;', '}', '');
+    lines.push(
+      '/* Press affordance: the states convention names an active or pressed concept, so this is a press target. Figma has no cursor. */',
+      `${rootSel()} {`, '  cursor: pointer;', '}', '',
+    );
   }
   if (declaresState(context, apiProps, 'disabled')) {
     const disabledSel = disabledSelectorFor(rootAs, elemRoles.root);
     lines.push(
+      '/* Disabled affordance: the states convention names a disabled concept. */',
       disabledSel.split(',').map(part => rootSel(part.trim())).join(',\n') + ' {',
       '  cursor: not-allowed;',
       '}',
@@ -906,6 +911,22 @@ function buildCssLines(
   lines.push('}');
   lines.push('');
   return lines;
+}
+
+/**
+ * The spec configuration a rule block came from, as a CSS comment body.
+ *
+ * Blocks sharing a selector are kept apart rather than merged — each is a
+ * separate statement about the component, and merging them would lose which
+ * statement a declaration belongs to (and move rules relative to each other,
+ * where order is what decides which wins). Labelling each one is what makes the
+ * separation readable instead of merely repetitive.
+ */
+function variantLabel(configuration: Record<string, unknown>): string {
+  const pairs = Object.entries(configuration)
+    .map(([k, v]) => (v === true ? k : v === false ? `not ${k}` : `${k}=${String(v)}`))
+    .join(', ');
+  return pairs ? `Variant: ${pairs}` : 'Variant';
 }
 
 function collectLayoutKeys(nodes: LayoutNode[], into: Set<string>): void {

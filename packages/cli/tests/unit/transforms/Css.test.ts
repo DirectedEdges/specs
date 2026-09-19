@@ -580,6 +580,58 @@ describe('CssTransformer', () => {
     });
   });
 
+  describe('why each rule block exists (specs#385)', () => {
+    it('labels a variant block with the configuration it came from', async () => {
+      // Blocks sharing a selector are kept apart deliberately — each is a
+      // separate statement about the component — so each says which.
+      const out = await run(tmpDir, {
+        default: { elements: {} },
+        variants: [
+          { configuration: { size: 'large', appearance: 'filled' }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+        ],
+      });
+
+      expect(out).toContain('/* Variant: size=large, appearance=filled */');
+    });
+
+    it('names the element when the block is not the root', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: { label: { styles: { layoutMode: 'NONE' } } } },
+        variants: [
+          { configuration: { size: 'large' }, elements: { label: { styles: { opacity: 0.5 } } } },
+        ],
+      });
+
+      expect(out).toContain('/* Variant: size=large — label */');
+    });
+
+    it('spells a boolean configuration as the concept, not as a value', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: {} },
+        variants: [
+          { configuration: { loading: true }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+        ],
+      });
+
+      expect(out).toContain('/* Variant: loading */');
+    });
+
+    it('says what declared each cursor affordance', async () => {
+      // The affordance is read from the states classification, so the prop it
+      // names has to exist on the component for it to apply at all.
+      const pressStates: ProcessingStates = { active: { prop: 'state', value: 'active' } };
+      await writeVariants(tmpDir, { default: { elements: {} }, variants: [] });
+      await transformer.run(
+        { props: { state: { type: 'string', enum: ['default', 'active'] } } },
+        makeContext(tmpDir, 'dsButton', 'TOKEN', pressStates),
+      );
+      const out = await fs.readFile(path.join(reactDir(tmpDir, 'DsButton'), 'styles.css'), 'utf-8');
+
+      expect(out).toContain('Press affordance');
+      expect(out).toContain('cursor: pointer;');
+    });
+  });
+
   describe('subcomponent styles', () => {
     async function runAndReadSub(dir: string, variantsData: Record<string, unknown>, subKey: string, componentKey = 'dsActionList') {
       await writeVariants(dir, variantsData);
