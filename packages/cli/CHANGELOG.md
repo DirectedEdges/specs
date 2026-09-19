@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`analyze dependencies` counts a slot relationship toward a component's degrees.** A component related to another only through a slot constraint read as entirely unconnected, and the roots and leaves lists — derived from those counts — overlapped. `nodes[].byKind` splits the totals by relationship, and a component connected to nothing is listed under `summary.isolated` rather than appearing in both lists.
 - **Focus styling follows the platform's keyboard-focus heuristic** — `:focus-visible` on a root that can hold focus, `:has(:focus-visible)` on a wrapper around its control — so a clicked button no longer keeps its focus ring after the click. A declared `focus-within` concept is untouched.
 - **An image fills and centres itself in the element that displays it**, whatever its aspect ratio, instead of drawing at its natural size cropped to the top-left corner when a component takes its image from a source prop.
 - **`specs scan` leaves a subcomponent unchecked when its parent is checked**, since a subcomponent is already specced as part of its parent. A separate component that a checked component instances is still selected.
