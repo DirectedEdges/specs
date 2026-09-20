@@ -99,10 +99,16 @@ specs version restore dsButton 0.3.0 --out ./tmp     # concern files into a dire
 Pre-merge impact report for a Figma branch, from just its URL: the command derives the main file from the branch, downloads both sides, generates specs from each, and grades the differences. No version history involved, so it works before anything is versioned. Report anatomy is covered in [Reports & Changelogs](/versioning/reports/).
 
 ```bash
-specs version figmapremerge https://www.figma.com/design/<key>/<branch>
+specs version figmapremerge "https://www.figma.com/design/<mainKey>/branch/<branchKey>/..."
 ```
 
-Each run writes its artifacts under `versions/diffs/<branch>/` — the generated `base/` and `current/` spec trees plus `report.md` — and prints the report to stdout. Re-running against the same branch overwrites that run's own folder.
+| Flag | Description |
+|------|-------------|
+| `--workspace <dir>` | Workspace directory — needs `config/` (and your `FIGMA_TOKEN` in the environment or `.env`), since the command fetches and generates |
+| `--keep-payloads` | Keep the fetched Figma JSON in the run folder; by default it is deleted once specs are generated |
+| `--rules <path>` | As above |
+
+Each run writes its artifacts under `versions/diffs/<branch>/` — the generated `base/` (main side) and `current/` (branch side) spec trees, `report.md`, and the underlying change data — and prints the report to stdout. Re-running against the same branch overwrites that run's own folder.
 
 ## `specs version report`
 
