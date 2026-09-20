@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.31.0] - Unreleased
 
+### Breaking
+
+- **A component's unsupported prop combinations are written to `api.yaml` as `invalidPropCombinations`**, rather than to `variants.yaml` as `invalidVariantCombinations`. Regenerate your specs; anything reading the old key or the old file finds nothing (ADR-092).
+
 ### Added
 
 ### Changed
