@@ -1,0 +1,59 @@
+author: Nathan Curtis CLI
+lastUpdated: 2026-09-20T14:50:46.250Z
+generator:
+  name: "@directededges/specs-cli"
+  version: 0.31.0
+  url: https://www.npmjs.com/package/@directededges/specs-cli
+  license:
+    status: active
+    level: PARTNER
+schema:
+  url: https://raw.githubusercontent.com/DirectedEdges/specs/specs-schema@0.34.0/packages/schema/schema/component.schema.json
+  version: 0.34.0
+  latest: https://raw.githubusercontent.com/DirectedEdges/specs/main/packages/schema/schema/component.schema.json
+conventions:
+  platforms:
+    figma:
+      naming: SENTENCE
+      slotConstraints: true
+      inferNumberProps: true
+      glyphs:
+        match: DS Icon asset / {i}
+      codeOnlyProps:
+        match: Code only props
+      subcomponents:
+        scope: PAGE
+        match:
+          - "{C} / {S}"
+          - "{C} / Subfolder / {S}"
+        exclude:
+          - "{C} / Examples / {S}"
+      instanceExamples:
+        scope: PAGE
+        parentNames:
+          - Examples
+      images:
+        backgroundImage: true
+        match: DE Image
+        sourceProps:
+          - Image source
+settings:
+  spec:
+    format: YAML
+    keys: CAMEL
+    layout: LAYOUT
+    tokens: TOKEN
+    color: HEXA
+    variantDepth: 9999
+    details: LAYERED
+    collapsePrimitiveWrapper: true
+    promotePrimitives: true
+    roles: true
+    roleValidation: warn
+    invalidVariants: false
+    invalidCombinations: true
+    emptyVariants: false
+    defaultSlotContent: true
+    splitComponents: true
+    splitConcerns: true
+    useSubfolders: false

@@ -1,0 +1,160 @@
+default:
+  layout:
+    - root:
+        - decorativeIcon
+        - children
+        - deIconButton
+  elements:
+    root:
+      styles:
+        cornerRadius:
+          $token: DE Shape/Border radius/module
+          $type: dimension
+        width:
+          $token: DE Sizing/platform/iOS default width
+          $type: dimension
+        primaryAxisSizingMode: FIXED
+        layoutMode: HORIZONTAL
+        layoutSizingVertical: HUG
+        itemSpacing:
+          $token: DE Space/Item spacing/0_5x
+          $type: dimension
+        padding:
+          $token: DE Space/Padding/1x
+          $type: dimension
+        backgroundColor:
+          $token: DE Color/Alert/Info/Background
+          $type: color
+    decorativeIcon:
+      styles:
+        width: 20
+        height: 20
+        fillColor:
+          $token: DE Color/Alert/Info/Element
+          $type: color
+      content: info
+    children:
+      children:
+        $binding: "#/props/children"
+        examples:
+          - $slotContent: "#/components/deAlert/slotContentExamples/deAlert__children__default"
+      styles:
+        layoutMode: VERTICAL
+        layoutSizingHorizontal: FILL
+        layoutSizingVertical: HUG
+        itemSpacing:
+          $token: DE Space/Item spacing/1x
+          $type: dimension
+    deIconButton:
+      styles:
+        visible:
+          $binding: "#/props/dismissable"
+        width: 32
+        height: 32
+      propConfigurations:
+        name: close
+        accessibilityLabel: Accessibility label
+        appearance: Flat Inverse
+        size: Small
+        disabled: false
+        state: Rest
+      instanceOf: deIconButton
+variants:
+  - configuration:
+      appearance: Basic
+    elements:
+      root:
+        styles:
+          clipsContent: true
+          backgroundColor:
+            $token: DE Color/Alert/Basic/Background
+            $type: color
+      decorativeIcon:
+        styles:
+          visible:
+            if:
+              condition:
+                operation: isNull
+                args:
+                  value:
+                    $binding: "#/props/icon"
+              then: false
+              else: true
+          fillColor:
+            $token: DE Color/Alert/Basic/Element
+            $type: color
+        content:
+          $binding: "#/props/icon"
+  - configuration:
+      appearance: Success
+    elements:
+      root:
+        styles:
+          backgroundColor:
+            $token: DE Color/Alert/Success/Background
+            $type: color
+      decorativeIcon:
+        styles:
+          fillColor:
+            $token: DE Color/Alert/Success/Element
+            $type: color
+        content: check
+  - configuration:
+      appearance: Error
+    elements:
+      root:
+        styles:
+          backgroundColor:
+            $token: DE Color/Alert/Error/Background
+            $type: color
+      decorativeIcon:
+        styles:
+          fillColor:
+            $token: DE Color/Alert/Error/Element
+            $type: color
+        content: alertError
+  - configuration:
+      appearance: Warning
+    elements:
+      root:
+        styles:
+          backgroundColor:
+            $token: DE Color/Alert/Warning/Background
+            $type: color
+      decorativeIcon:
+        styles:
+          fillColor:
+            $token: DE Color/Alert/Warning/Element
+            $type: color
+        content: alertWarning
+      children:
+        children:
+          $binding: "#/props/children"
+          examples:
+            - $slotContent: "#/components/deAlert/slotContentExamples/deAlert__children__warning"
+metadata:
+  source:
+    pageId: 5168:19888
+    nodeId: 6064:1247
+    nodeType: COMPONENT_SET
+  lastUpdated: 2026-09-20T14:50:46.659Z
+  concern: variants
+subcomponents:
+  actions:
+    default:
+      elements:
+        root:
+          children:
+            $binding: "#/props/children"
+            examples:
+              - $slotContent: "#/components/deAlert/subcomponents/actions/slotContentExamples/deAlertActions__children__default"
+          styles:
+            clipsContent: true
+            crossAxisAlignment: CENTER
+            layoutMode: HORIZONTAL
+            layoutSizingHorizontal: HUG
+            layoutSizingVertical: HUG
+            itemSpacing:
+              $token: DE Space/Padding/1x
+              $type: dimension
+    variants: []

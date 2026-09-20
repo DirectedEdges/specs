@@ -1,0 +1,349 @@
+default:
+  layout:
+    - root:
+        - startIcon
+        - label
+  elements:
+    root:
+      styles:
+        cornerRadius:
+          $token: DE Shape/Border radius/components/button
+          $type: dimension
+        height: 28
+        mainAxisAlignment: CENTER
+        crossAxisAlignment: CENTER
+        layoutMode: HORIZONTAL
+        layoutSizingHorizontal: HUG
+        itemSpacing:
+          $token: DE Space/Padding/0_25x
+          $type: dimension
+        padding:
+          top: 0
+          bottom: 0
+          start:
+            $token: DE Space/Padding/0_375x
+            $type: dimension
+          end:
+            $token: DE Space/Padding/0_375x
+            $type: dimension
+        backgroundColor:
+          $token: DE Color/Action/Initial
+          $type: color
+    startIcon:
+      styles:
+        visible:
+          $binding: "#/props/startIconVisible"
+        width: 16
+        height: 16
+        fillColor:
+          $token: DE Palette/Neutral/100
+          $type: color
+      content: plus
+    label:
+      styles:
+        layoutSizingHorizontal: HUG
+        layoutSizingVertical: HUG
+        textColor:
+          $token: DE Palette/Neutral/100
+          $type: color
+        typography:
+          $token: Body/Small
+          $type: typography
+        textAlignHorizontal: CENTER
+        textAlignVertical: CENTER
+      content:
+        $binding: "#/props/label"
+    focusRing:
+      styles:
+        clipsContent: true
+        cornerRadius: 8
+        height: 36
+        position: ABSOLUTE
+        start: -4
+        end: -4
+        centerVerticalOffset: 0
+        strokes:
+          $token: DE Color/Action/Focus
+          $type: color
+        strokeWeight: 2
+variants:
+  - configuration:
+      focus: true
+    layout:
+      - root:
+          - startIcon
+          - label
+          - focusRing
+  - configuration:
+      state: Hover
+    elements:
+      root:
+        styles:
+          effects:
+            shadows:
+              - visible: true
+                offsetX: 0
+                offsetY: 1
+                blur: 3
+                spread: 1
+                color: "#00000026"
+              - visible: true
+                offsetX: 0
+                offsetY: 1
+                blur: 3
+                spread: 0
+                color: "#0000004D"
+          backgroundColor:
+            $token: DE Color/Action/Hover
+            $type: color
+  - configuration:
+      state: Pressed
+    elements:
+      root:
+        styles:
+          backgroundColor:
+            $token: DE Color/Action/Press
+            $type: color
+  - configuration:
+      disabled: true
+    elements:
+      root:
+        styles:
+          opacity: 0.36
+  - configuration:
+      size: Medium
+    elements:
+      root:
+        styles:
+          height: 36
+          itemSpacing:
+            $token: DE Space/Padding/0_375x
+            $type: dimension
+          padding:
+            end:
+              $token: DE Space/Padding/0_5x
+              $type: dimension
+            start:
+              $token: DE Space/Padding/0_5x
+              $type: dimension
+      startIcon:
+        styles:
+          width: 20
+          height: 20
+      label:
+        styles:
+          typography:
+            $token: DE/Body/Medium
+            $type: typography
+  - configuration:
+      size: Large
+    elements:
+      root:
+        styles:
+          height: 42
+          itemSpacing:
+            $token: DE Space/Padding/0_5x
+            $type: dimension
+          padding:
+            end:
+              $token: DE Space/Padding/0_75x
+              $type: dimension
+            start:
+              $token: DE Space/Padding/0_75x
+              $type: dimension
+      startIcon:
+        styles:
+          width: 20
+          height: 20
+      label:
+        styles:
+          typography:
+            $token: DE/Body/Medium
+            $type: typography
+  - configuration:
+      appearance: Outline
+    elements:
+      root:
+        styles:
+          strokes:
+            $token: DE Color/Action/Initial
+            $type: color
+          strokeAlign: INSIDE
+          strokeWeight: 1
+          backgroundColor: null
+      startIcon:
+        styles:
+          fillColor:
+            $token: DE Color/Action/Initial
+            $type: color
+      label:
+        styles:
+          textColor:
+            $token: DE Color/Action/Initial
+            $type: color
+  - configuration:
+      appearance: Text
+    elements:
+      root:
+        styles:
+          backgroundColor: null
+      startIcon:
+        styles:
+          fillColor:
+            $token: DE Color/Action/Initial
+            $type: color
+      label:
+        styles:
+          textColor:
+            $token: DE Color/Action/Initial
+            $type: color
+  - configuration:
+      size: Medium
+      focus: true
+    elements:
+      focusRing:
+        styles:
+          height: 44
+  - configuration:
+      size: Large
+      focus: true
+    elements:
+      focusRing:
+        styles:
+          height: 50
+  - configuration:
+      appearance: Outline
+      state: Hover
+    elements:
+      root:
+        styles:
+          strokes:
+            $token: DE Color/Action/Hover
+            $type: color
+          effects: null
+          backgroundColor:
+            $token: DE Color/Action/Hover background
+            $type: color
+      startIcon:
+        styles:
+          fillColor:
+            $token: DE Color/Action/Hover
+            $type: color
+      label:
+        styles:
+          textColor:
+            $token: DE Color/Action/Hover
+            $type: color
+  - configuration:
+      appearance: Outline
+      state: Pressed
+    elements:
+      root:
+        styles:
+          strokes:
+            $token: DE Color/Action/Hover
+            $type: color
+          strokeWeight: 2
+          effects:
+            shadows:
+              - visible: false
+                offsetX: -1
+                offsetY: 0
+                blur: 1
+                spread: 0
+                color: "#00000026"
+                inset: true
+              - visible: false
+                offsetX: 1
+                offsetY: 0
+                blur: 1
+                spread: 0
+                color: "#00000026"
+                inset: true
+              - visible: false
+                offsetX: 0
+                offsetY: 2
+                blur: 1
+                spread: 0
+                color: "#00000026"
+                inset: true
+          backgroundColor:
+            $token: DE Color/Action/Hover background
+            $type: color
+      startIcon:
+        styles:
+          fillColor:
+            $token: DE Color/Action/Press
+            $type: color
+      label:
+        styles:
+          textColor:
+            $token: DE Color/Action/Press
+            $type: color
+  - configuration:
+      appearance: Text
+      state: Hover
+    elements:
+      root:
+        styles:
+          effects: null
+          backgroundColor:
+            $token: DE Color/Action/Hover background
+            $type: color
+      startIcon:
+        styles:
+          fillColor:
+            $token: DE Color/Action/Hover
+            $type: color
+      label:
+        styles:
+          textColor:
+            $token: DE Color/Action/Hover
+            $type: color
+  - configuration:
+      appearance: Text
+      state: Pressed
+    elements:
+      root:
+        styles:
+          strokes:
+            $token: DE Color/Action/Press
+            $type: color
+          strokeAlign: INSIDE
+          strokeWeight: 2
+          backgroundColor:
+            $token: DE Color/Action/Hover background
+            $type: color
+      startIcon:
+        styles:
+          fillColor:
+            $token: DE Color/Action/Press
+            $type: color
+      label:
+        styles:
+          textColor:
+            $token: DE Color/Action/Press
+            $type: color
+  - configuration:
+      appearance: Outline
+      size: Medium
+      state: Pressed
+    elements:
+      root:
+        styles:
+          effects: null
+  - configuration:
+      appearance: Outline
+      size: Large
+      state: Pressed
+    elements:
+      root:
+        styles:
+          effects: null
+metadata:
+  source:
+    pageId: 1581:2982
+    nodeId: 5641:6911
+    nodeType: COMPONENT_SET
+  lastUpdated: 2026-09-20T14:50:46.659Z
+  concern: variants
