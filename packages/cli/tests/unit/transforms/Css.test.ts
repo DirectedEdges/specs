@@ -533,6 +533,53 @@ describe('CssTransformer', () => {
     });
   });
 
+  describe('the attribute a host selector keys off (specs#385)', () => {
+    const variants = {
+      default: { elements: {} },
+      variants: [
+        { configuration: { appearance: 'filled' }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+      ],
+    };
+
+    async function bothSheets(dir: string) {
+      await writeVariants(dir, variants);
+      await transformer.run({ props: { appearance: { type: 'string', enum: ['filled', 'ghost'] } } }, makeContext(dir, 'dsButton'));
+      return {
+        react: await fs.readFile(path.join(reactDir(dir, 'DsButton'), 'styles.css'), 'utf-8'),
+        host: await fs.readFile(path.join(wcDir(dir, 'DsButton'), 'host.css'), 'utf-8'),
+      };
+    }
+
+    it('selects a reflected bare attribute on the host', async () => {
+      // Lit reflects the reactive property, so the element writes `appearance`
+      // itself and nothing stamps a data attribute.
+      const { host } = await bothSheets(tmpDir);
+
+      expect(host).toContain('[appearance="filled"]');
+      expect(host).not.toContain('[data-appearance');
+    });
+
+    it('leaves the React sheet on data attributes, where the root is a div', async () => {
+      const { react } = await bothSheets(tmpDir);
+
+      expect(react).toContain('[data-appearance="filled"]');
+      expect(react).not.toContain('[appearance="filled"]');
+    });
+
+    it('keeps the data- form for a prop whose name is a global HTML attribute', async () => {
+      // Reflecting `hidden` would stop the component rendering; `title` would
+      // raise a tooltip. data-* avoided this by construction.
+      await writeVariants(tmpDir, {
+        default: { elements: {} },
+        variants: [{ configuration: { hidden: true }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } }],
+      });
+      await transformer.run({ props: { hidden: { type: 'boolean' } } }, makeContext(tmpDir, 'dsButton'));
+      const host = await fs.readFile(path.join(wcDir(tmpDir, 'DsButton'), 'host.css'), 'utf-8');
+
+      expect(host).toContain('[data-hidden]');
+    });
+  });
+
   describe('subcomponent styles', () => {
     async function runAndReadSub(dir: string, variantsData: Record<string, unknown>, subKey: string, componentKey = 'dsActionList') {
       await writeVariants(dir, variantsData);
