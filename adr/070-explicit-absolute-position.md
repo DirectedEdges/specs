@@ -2,7 +2,7 @@
 
 **Branch**: `070-explicit-absolute-position`
 **Created**: 2026-08-17
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none — clarifies the presence contract introduced by ADR-041)*
 
@@ -124,7 +124,7 @@ offsets (top / bottom / start / end / center*Offset):
 | File | Change | Bump |
 |------|--------|------|
 | `styles.schema.json` | `description` updates on `position` and the six offset properties stating the same presence contract | PATCH |
-| `component.schema.json` | Matching `description` updates on its `position` and offset properties | PATCH |
+| `component.schema.json` | Satisfied by reference — it `$ref`s `styles.schema.json#/definitions/Styles`, so the updated descriptions apply without a second copy | PATCH |
 
 ### Notes
 
@@ -152,7 +152,7 @@ offsets (top / bottom / start / end / center*Offset):
 
 ## Semver Decision
 
-**Version**: `0.30.0` (active release branch) — `PATCH`-class change
+**Version**: `0.34.0` (active release branch) — `PATCH`-class change
 
 **Justification**: All changes are documentation — doc comments in `types/` and `description` strings in `schema/`, with no change to any type signature, field presence, or schema structure ("PATCH for documentation, comments, or formatting" per the constitution's Versioning standard).
 
