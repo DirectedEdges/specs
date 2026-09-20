@@ -106,13 +106,12 @@ Best for: consumers that need both tree traversal and direct element lookups, or
 
 ## Configuration
 
-Set `layout` under `model.format` in your config file:
+Set `layout` under `spec` in `config/settings.yaml`:
 
 ```yaml
-# specs.config.yaml
-model:
-  format:
-    layout: LAYOUT    # Default — top-level tree only
+# config/settings.yaml
+spec:
+  layout: LAYOUT    # Default — top-level tree only
 ```
 
 **Default**: `LAYOUT`.

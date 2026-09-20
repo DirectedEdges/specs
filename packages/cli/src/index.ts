@@ -24,26 +24,34 @@ import { Command } from 'commander';
 import { Generate } from './commands/GenerateCommand.js';
 import { Scan } from './commands/ScanCommand.js';
 import { Fetch } from './commands/FetchCommand.js';
+import { Cache } from './commands/CacheCommand.js';
 import { Init } from './commands/InitCommand.js';
+import { Migrate } from './commands/MigrateCommand.js';
 import { Analyze } from './commands/AnalyzeCommand.js';
 import { ApplyCustomTokens } from './commands/ApplyCustomTokensCommand.js';
-import { Transform } from './commands/TransformCommand.js';
+import { React, WebComponents } from './commands/TargetCommands.js';
+import { Render } from './commands/RenderCommand.js';
+import { Bridge } from './commands/BridgeCommand.js';
 
-declare const __SPECS_CLI_VERSION__;
+declare const __SPECS_CLI_VERSION__: string;
 
 // Backward compatibility: export Scan also as Audit
 export const Audit = Scan;
 
-export { Generate, Scan, Fetch, Init, ApplyCustomTokens, Transform, Analyze };
+export { Generate, Scan, Fetch, Init, Migrate, ApplyCustomTokens, React, WebComponents, Analyze, Render, Bridge };
 
 export const commands = {
   Init,
+  Migrate,
   Generate,
   Scan,
   Fetch,
   ApplyCustomTokens,
-  Transform,
+  React,
+  WebComponents,
   Analyze,
+  Render,
+  Bridge,
 };
 
 export function createProgram(): Command {
@@ -55,12 +63,17 @@ export function createProgram(): Command {
     .version(__SPECS_CLI_VERSION__);
 
   program.addCommand(Init);
+  program.addCommand(Migrate);
   program.addCommand(Generate);
   program.addCommand(Scan);
   program.addCommand(Fetch);
+  program.addCommand(Cache);
   program.addCommand(ApplyCustomTokens);
-  program.addCommand(Transform);
+  program.addCommand(React);
+  program.addCommand(WebComponents);
   program.addCommand(Analyze);
+  program.addCommand(Render);
+  program.addCommand(Bridge);
 
   // Deprecated alias: 'audit' → 'scan'
   const auditAlias = new Command('audit')

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Fetch, formatDuration, formatRateLimitError, formatNotFoundError, formatAuthError } from '../../../src/commands/FetchCommand.js';
+import { Fetch, formatDuration, formatRateLimitError, formatNotFoundError, formatAuthError, parseAdHocSource, matchBridgeSource } from '../../../src/commands/FetchCommand.js';
 
 describe('FetchCommand', () => {
   it('registers name and description', () => {
@@ -14,7 +14,56 @@ describe('FetchCommand', () => {
     expect(options).toContain('--data-dir');
     expect(options).toContain('--outDir'); // deprecated alias
     expect(options).toContain('--only');
+    expect(options).toContain('--from-bridge');
+    expect(options).toContain('--file');
     expect(options).toContain('--verbose');
+  });
+});
+
+describe('matchBridgeSource', () => {
+  const sources = [
+    { alias: 'library', key: 'AAA111' },
+    { alias: 'icons', key: 'BBB222' }
+  ];
+
+  it('matches the connected file to its configured source', () => {
+    const result = matchBridgeSource(sources, 'AAA111', []);
+    expect(result).toEqual({ entry: { alias: 'library', key: 'AAA111' } });
+  });
+
+  it('accepts a match that --only also named', () => {
+    const result = matchBridgeSource(sources, 'BBB222', ['icons']);
+    expect(result).toEqual({ entry: { alias: 'icons', key: 'BBB222' } });
+  });
+
+  it('rejects a connected file that is not a configured source', () => {
+    const result = matchBridgeSource(sources, 'CCC333', []);
+    expect(result).toHaveProperty('error');
+    expect((result as { error: string }).error).toContain('CCC333');
+    expect((result as { error: string }).error).toContain('library (AAA111)');
+  });
+
+  it('rejects a match that --only excluded', () => {
+    const result = matchBridgeSource(sources, 'AAA111', ['icons']);
+    expect(result).toHaveProperty('error');
+    expect((result as { error: string }).error).toContain('"library"');
+    expect((result as { error: string }).error).toContain('icons');
+  });
+
+  it('rejects a missing fileKey when no alias names the destination', () => {
+    const result = matchBridgeSource(sources, undefined, []);
+    expect(result).toHaveProperty('error');
+  });
+
+  it('falls back to a single --only alias when the key matches nothing', () => {
+    // The plugin cannot always read the real file key (unsaved- placeholder).
+    const result = matchBridgeSource(sources, 'unsaved-xyz', ['library']);
+    expect(result).toEqual({ entry: { alias: 'library', key: 'AAA111' } });
+  });
+
+  it('does not fall back when --only names several aliases', () => {
+    const result = matchBridgeSource(sources, 'unsaved-xyz', ['library', 'icons']);
+    expect(result).toHaveProperty('error');
   });
 });
 
@@ -135,14 +184,14 @@ describe('formatNotFoundError', () => {
       '  This usually means the key in your config is stale or out of reach:',
       '    • The file was moved, deleted, or recreated (keys change on duplicate/recreate)',
       '    • Your FIGMA_TOKEN account cannot open this file',
-      '  Check: sources.library.key in /proj/specs.config.yaml'
+      '  Check: data.sources.library.key in /proj/specs.config.yaml'
     ].join('\n'));
   });
 
   it('falls back to a default config name when path is null', () => {
     const result = formatNotFoundError('kds', 'variables', null);
 
-    expect(result).toContain('Check: sources.kds.key in specs.config.yaml');
+    expect(result).toContain('Check: data.sources.kds.key in the workspace settings (config/settings.yaml)');
   });
 });
 
@@ -164,13 +213,66 @@ describe('formatAuthError', () => {
     expect(result).toBe([
       'Error: Access denied (403) while fetching library.styles',
       '  Your FIGMA_TOKEN is valid but cannot access this file.',
-      '    • Confirm your Figma account can open the file for sources.library.key',
+      '    • Confirm your Figma account can open the file for data.sources.library.key',
       '    • Personal access tokens only reach files your account can view',
       '    • If your org enforces SAML/SSO, personal access tokens are blocked',
       '      Use an OAuth token or ask your admin to allow PATs',
       '      See: https://www.figma.com/developers/api#oauth2',
       '    • The file may be in personal drafts or a restricted team (403 = exists but no access)',
-      '  Check: sources.library.key in /proj/specs.config.yaml'
+      '  Check: data.sources.library.key in /proj/specs.config.yaml'
     ].join('\n'));
+  });
+});
+
+/**
+ * `--source` is what a diff run pastes a branch URL into, so the parse has to accept
+ * what Figma's URL bar produces and refuse anything that would name a file on disk.
+ */
+describe('parseAdHocSource', () => {
+  const KEY = 'abcDEF123456789xyz01';
+
+  it('takes a bare URL and leaves the alias to be derived from the branch', () => {
+    expect(parseAdHocSource(`https://www.figma.com/design/${KEY}/DS?node-id=1-2`)).toEqual({
+      alias: undefined,
+      key: KEY,
+      raw: `https://www.figma.com/design/${KEY}/DS?node-id=1-2`
+    });
+  });
+
+  it('takes an explicit alias before the first =', () => {
+    expect(parseAdHocSource(`library-branch=${KEY}`)).toMatchObject({ alias: 'library-branch', key: KEY });
+  });
+
+  it('does not read a URL\'s query string as an alias', () => {
+    expect(parseAdHocSource(`https://www.figma.com/design/${KEY}/DS?t=a=b`)).toMatchObject({ alias: undefined, key: KEY });
+  });
+
+  it('rejects an alias that would not survive as a filename', () => {
+    expect(() => parseAdHocSource(`my branch=${KEY}`)).toThrow(/usable source alias/);
+  });
+
+  it('rejects a target that is neither a key nor a Figma URL', () => {
+    expect(() => parseAdHocSource('branch=data/library.file.json')).toThrow(/Figma file key or URL/);
+  });
+});
+
+/**
+ * An ad-hoc source has no config entry, so the config-shaped remedies in these errors
+ * would send the reader somewhere that says nothing about the key that failed.
+ */
+describe('error messages for ad-hoc sources', () => {
+  it('404 points at the pasted URL, not data.sources', () => {
+    const result = formatNotFoundError('library-branch', 'file', '/proj/config', 'adhoc');
+
+    expect(result).toContain('the key passed as --source library-branch');
+    expect(result).not.toContain('data.sources');
+  });
+
+  it('403 drops the config check and keeps the token remedies', () => {
+    const result = formatAuthError(403, 'library-branch', 'file', '/proj/config', undefined, 'adhoc');
+
+    expect(result).toContain('cannot access the file passed as --source');
+    expect(result).not.toContain('data.sources');
+    expect(result).toContain('SAML/SSO');
   });
 });

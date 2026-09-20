@@ -24,7 +24,11 @@ const WRAP_ALIGN_MAP: Record<string, string> = {
   SPACE_BETWEEN: 'space-between',
 };
 
-export function layoutToCSS(styles: Record<string, unknown>, tokensFormat = 'TOKEN'): string[] {
+export function layoutToCSS(
+  styles: Record<string, unknown>,
+  tokensFormat = 'TOKEN',
+  parentLayoutMode?: string | null,
+): string[] {
   const decls: string[] = [];
 
   if ('layoutMode' in styles) {
@@ -67,10 +71,12 @@ export function layoutToCSS(styles: Record<string, unknown>, tokensFormat = 'TOK
   if ('itemSpacing' in styles && styles.itemSpacing !== undefined && styles.itemSpacing !== null) {
     const v = styles.itemSpacing;
     if (typeof v === 'number') {
-      // gap does not accept negative values — negative itemSpacing represents
-      // overlapping children and requires margin on child elements instead.
-      if (v < 0) return decls; // caller handles via child margins (deferred)
-      decls.push(`gap: ${v === 0 ? '0' : `${v}px`}`);
+      // gap does not accept negative values — negative itemSpacing means the
+      // children OVERLAP, which CSS expresses as a negative margin on each
+      // child after the first. Css.ts emits that rule; here we only skip the
+      // gap declaration. (Skipping must not return: the rest of this function
+      // still owns FILL translation and the other layout declarations.)
+      if (v >= 0) decls.push(`gap: ${v === 0 ? '0' : `${v}px`}`);
     } else if (isTokenRef(v) || (typeof v === 'object' && v !== null && '$cssVar' in (v as object))) {
       const r = resolveTokenVar(v, tokensFormat);
       if (r) decls.push(`gap: ${r}`);
@@ -84,16 +90,37 @@ export function layoutToCSS(styles: Record<string, unknown>, tokensFormat = 'TOK
     }
   }
 
+  // FILL translation depends on the parent's flex direction: fill along the
+  // parent's main axis grows; fill across it is a plain 100%.
+  //
+  // Cross-axis FILL is NOT `align-self: stretch`. Stretch means "ignore the
+  // parent's alignment, start at the edge and fill", so the moment a min/max
+  // constraint stops the child actually filling, the leftover space all lands
+  // on one side and the parent's alignment has already been discarded — a
+  // dialog's max-width'd body sat against its padding edge where the design
+  // centres it. The two are identical while the child does fill, which is most
+  // of the time and why this went unseen. `width: 100%` stays right when it
+  // does not: a capped child centres under CENTER and sits at the end under END.
+  //
+  // This mapping is duplicated in the React and Web Components emitters
+  // (`Emit/styles.ts` in each, for composed content's inline styles). The three
+  // copies must move together.
   if ('layoutSizingHorizontal' in styles) {
     const v = styles.layoutSizingHorizontal as string | undefined;
     if (v === 'HUG') decls.push('width: fit-content');
-    else if (v === 'FILL') decls.push('flex-grow: 1');
+    else if (v === 'FILL') {
+      if (parentLayoutMode === 'HORIZONTAL') decls.push('flex: 1 0 0');
+      else decls.push('width: 100%');
+    }
   }
 
   if ('layoutSizingVertical' in styles) {
     const v = styles.layoutSizingVertical as string | undefined;
     if (v === 'HUG') decls.push('height: fit-content');
-    else if (v === 'FILL') decls.push('align-self: stretch');
+    else if (v === 'FILL') {
+      if (parentLayoutMode === 'VERTICAL') decls.push('flex: 1 0 0');
+      else decls.push('height: 100%');
+    }
   }
 
   return decls;

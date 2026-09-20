@@ -3,6 +3,7 @@
 **Branch**: `010-sides-and-corners`
 **Created**: 2026-03-05
 **Status**: ACCEPTED
+**Summary**: Composite `Sides` and `Corners` types replace flat padding, stroke weight and corner radius properties.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

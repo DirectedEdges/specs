@@ -97,6 +97,21 @@ const slotWithExt: SlotProp = { type: 'slot', $extensions: { 'com.figma': { type
 // $extensions with empty com.figma
 const boolEmptyFigma: BooleanProp = { type: 'boolean', default: true, $extensions: { 'com.figma': {} } };
 
+// com.figma.name preserves a Figma property name the key could not represent (ADR-066)
+const boolDivergentKey: BooleanProp = {
+  type: 'boolean',
+  default: false,
+  $extensions: { 'com.figma': { type: 'BOOLEAN', name: 'Cut & paste' } },
+};
+
+// name is optional — safe keys emit no name at all
+const enumSafeKey: EnumProp = {
+  type: 'string',
+  default: 'sm',
+  enum: ['sm', 'md'],
+  $extensions: { 'com.figma': { type: 'VARIANT' } },
+};
+
 // $extensions with empty object
 const boolEmptyExt: BooleanProp = { type: 'boolean', default: true, $extensions: {} };
 
@@ -189,6 +204,25 @@ const _numberStringDefault: NumberProp = { type: 'number', default: '24' };
 
 // @ts-expect-error: examples must be number[], not string[]
 const _numberStringExamples: NumberProp = { type: 'number', examples: ['1', '2'] };
+
+// ─── NumberProp.enum (ADR 072) ────────────────────────────────────────────────
+
+// enum is optional — its absence means the prop accepts any number
+const numberNoEnum: NumberProp = { type: 'number', default: 1 };
+
+// a numeric VARIANT: numeric type, closed option set, absence excluded
+const numberWithEnum: NumberProp = {
+  type: 'number',
+  default: 1,
+  enum: [1, 2, 3, 4, 5, 6, 7, 8],
+  nullable: false,
+};
+
+// @ts-expect-error: enum must be number[], not string[]
+const _numberStringEnum: NumberProp = { type: 'number', enum: ['1', '2'] };
+
+// @ts-expect-error: EnumProp still carries string values only
+const _enumNumericValues: EnumProp = { type: 'string', default: '1', enum: [1, 2] };
 
 // ─── nullable (ADR 065) ───────────────────────────────────────────────────────
 

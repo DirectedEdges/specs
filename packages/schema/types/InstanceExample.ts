@@ -17,10 +17,11 @@ export type InstanceExample = {
 
   /**
    * Prop values for this example. Scalar types for scalar props;
-   * `SlotContentRef` (into `Component.slotContentExamples`) for slot props.
+   * `SlotContentRef` (into `Component.slotContentExamples`) for slot props;
+   * `null` when the prop is unset in this example (ADR-080).
    * `PropBinding` is not permitted here.
    */
-  propConfigurations?: Record<string, string | number | boolean | SlotContentRef>;
+  propConfigurations?: Record<string, string | number | boolean | null | SlotContentRef>;
 };
 
 /**

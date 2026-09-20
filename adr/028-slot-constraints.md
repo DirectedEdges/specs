@@ -3,6 +3,7 @@
 **Branch**: `028-slot-constraints`
 **Created**: 2026-03-16
 **Status**: ACCEPTED
+**Summary**: `minItems`, `maxItems` and `anyOf` on `SlotProp`, with a `slotConstraints` option, describe what a slot accepts.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

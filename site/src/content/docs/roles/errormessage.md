@@ -1,0 +1,126 @@
+---
+title: "errormessage"
+description: "Generate an id on the message element and aria-describedby on the control"
+---
+
+`errormessage` marks the element carrying a control's validation message. Without it the message is red text near an input: assistive technology announces the invalid state but never reads *why*.
+
+**Status** — React: Implemented • Web Components: Implemented • iOS: Not yet planned • Android: Not yet planned
+
+The name comes from the ARIA *attribute* `aria-errormessage`. There is no ARIA role by this name, and the emitted wiring uses `aria-describedby`.
+
+## Roles
+
+Apply the following roles to elements:
+
+| Role | Type | Element |
+|---|---|---|
+| `errormessage` | Part | Element of `type: text` or `type: instance`, or nested instance prop of `type: string` |
+| `description` | Part | Element of `type: text` or `type: instance`, or nested instance prop of `type: string` |
+
+| Where | What is emitted |
+|---|---|
+| The message element | A generated `id` |
+| The resolved control | `aria-describedby` referencing it, **only while the message renders** |
+| An `instance` element carrying the role | Routing only — the wrapper's tag never changes |
+
+`description` works identically for supplementary, non-error text.
+
+## Specs
+
+Component anatomy typically has elements and roles like:
+
+```yaml
+anatomy:
+  field:
+    type: container
+    role: textbox
+  errorText:
+    type: text
+    role: errormessage
+```
+
+## Figma
+
+Annotate the following layers:
+
+- the validation message layer as `role:errormessage`
+- supplementary help text as `role:description`
+
+Place it **beside** a collapsing control, not inside it — content inside a collapse does not render.
+
+## React
+
+### Implementation
+
+```tsx
+<TextInput label="Email" validation="invalid" errorText="Enter a valid email address." />
+```
+
+### Before / After
+
+```tsx
+// before
+<div className="input" data-validation={p.validation} />
+{p.validation === 'invalid' && (
+  <div className="error-text">{p.errorText}</div>
+)}
+
+// after
+<input className="input" aria-invalid={invalid}
+  aria-describedby={invalid ? errorId : undefined} />
+{invalid && (
+  <div className="error-text" id={errorId}>{p.errorText}</div>
+)}
+```
+
+### Contract
+
+None. `errormessage` adds an `id` to its own element and an attribute to a different one. Validation state changes arrive through the control's own contract — the `invalid` concept bridged to `aria-invalid`.
+
+## Web Components
+
+Same emission **within one shadow root**. An id reference does not cross the boundary, so a message rendered by a different component cannot describe this control by id — the composed case recovers accessible text through [`partText()`](/roles/#parts-across-a-composed-component) instead.
+
+## iOS
+
+Not yet planned. Intended binding:
+
+| | |
+|---|---|
+| Emits | The message folded into the field's accessibility output |
+| Announced | The error is read together with the field |
+
+## Android
+
+Not yet planned. Intended binding:
+
+| | |
+|---|---|
+| Emits | `Modifier.semantics { error(message) }` on the field |
+| Announced | The error is read together with the field |
+
+## Additional details
+
+### Conditional by design
+
+The message typically renders only while the [`invalid` state](/settings/states/) is active, so the association appears and disappears with it. `aria-describedby` omits ids for elements whose render condition is false in the current variant — an `aria-describedby` pointing at an absent id is worse than none.
+
+The role adds linkage, never show/hide logic. Visibility stays with the render condition the analysis already produced.
+
+**Roles never invent markup.** Where no element carries the part, the control's contract omits the message prop rather than shipping a dead one.
+
+### Resolution
+
+| Situation | Result |
+|---|---|
+| Accepted by a value-bearing control or `group` | Resolves to the component's single value-bearing control, wherever either sits |
+| Two elements claiming it for one control | **Error** naming both |
+| No candidate control in the component | Valid — emits element and id, no wiring. Wiring arrives on composition |
+
+## See also
+
+- [label](/roles/label/) — the naming part; this is the describing part
+- [textbox](/roles/textbox/) and [checkbox](/roles/checkbox/) — controls that accept it
+- [States](/settings/states/) — the `invalid` concept that gates rendering
+- [Roles overview](/roles/) — the vocabulary and how roles are authored

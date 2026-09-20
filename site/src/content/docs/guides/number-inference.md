@@ -69,16 +69,14 @@ Leave it disabled if your library uses TEXT props for values that look numeric b
 
 ## Configuration
 
-Add `inferNumberProps: true` under `model.processing` in your config file:
+Declare `inferNumberProps: true` under `figma` in `config/conventions/figma.yaml` — it states how the library authors numeric props:
 
 ```yaml
-# specs.config.yaml
-model:
-  processing:
-    inferNumberProps: true
+# config/conventions/figma.yaml
+inferNumberProps: true
 ```
 
-**Default**: `false` (absent). Existing specs are unaffected until you opt in.
+**Default**: `false` (absent). Existing specs are unaffected until you declare it.
 
 ## Design Rationale
 

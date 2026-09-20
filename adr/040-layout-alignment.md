@@ -3,6 +3,7 @@
 **Branch**: `040-layout-alignment`
 **Created**: 2026-04-23
 **Status**: ACCEPTED
+**Summary**: `mainAxisAlignment` and `crossAxisAlignment` with named enums replace `primaryAxisAlignItems` and `counterAxisAlignItems`.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

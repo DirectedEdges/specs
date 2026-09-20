@@ -3,7 +3,16 @@ title: "css"
 description: "Emit a CSS file with custom property rules per component element"
 ---
 
-<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
+<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge eol-badge">EOL</span>')</script>
+
+:::caution[No longer emitted this way]
+This page describes a `specs transform` target. That command is retired — a target
+is emitted whole by [`specs react`](/cli/commands/react/) or
+[`specs webcomponents`](/cli/commands/webcomponents/), which is why these artifacts
+can no longer be produced one at a time. Kept for reference on what each artifact
+contains.
+:::
+
 
 Emits a `{Component}.styles.css` file for each component. Each anatomy element becomes a CSS selector; token references become `var(--)` declarations; variant props become `[data-*]` attribute selectors. Boolean props use presence selectors (`[data-prop]`); string-valued props use value selectors (`[data-prop="value"]`).
 
@@ -16,7 +25,7 @@ Emits a `{Component}.styles.css` file for each component. Each anatomy element b
 ## Invocation
 
 ```bash
-specs transform css
+specs react
 ```
 
 ## Output
@@ -28,7 +37,7 @@ Each component subfolder receives a `generated/{Component}.styles.css` file, Pas
 An Alert component with `severity` and `dismissible` variant props, and anatomy elements `root`, `icon`, and `body`:
 
 ```css
-/* Generated. Do not edit — regenerate with `specs transform`. */
+/* Generated. Do not edit — regenerate with `specs react`. */
 
 .ds-alert {
   display: flex;
@@ -88,7 +97,7 @@ Root element selectors use the component's kebab-cased name. Child elements use 
 
 ## Token Resolution
 
-Token references are resolved to CSS `var(--)` based on `config.format.tokens`:
+Token references are resolved to CSS `var(--)` based on `spec.tokens`:
 
 | Format | Resolution |
 |--------|------------|
@@ -99,28 +108,35 @@ Token references are resolved to CSS `var(--)` based on `config.format.tokens`:
 
 ## Config
 
-No transformer-specific options. Token format comes from `config.format.tokens`. Selector strategy for variant props comes from [`config.processing.states`](/settings/states/).
+No transformer-specific options. Token format comes from `spec.tokens` in `config/settings.yaml`. Selector strategy for variant props comes from the [`states`](/settings/states/) convention in `config/conventions/specs.yaml`.
 
 ```yaml
-config:
-  format:
-    tokens: TOKEN        # controls how token vars are named
-  processing:
-    states:              # optional — omit to keep data-* attribute selectors
-      hover:
-        prop: state
-        value: hover
-      disabled:
-        prop: isDisabled
-  transformers:
-    - name: css
+# config/settings.yaml
+spec:
+  tokens: TOKEN          # controls how token vars are named
 ```
 
-When `processing.states` is absent, all variant props produce `[data-*]` selectors (the default shown in the example above). When present, classified props emit semantic CSS pseudo-classes and ARIA attribute selectors instead.
+```yaml
+# config/conventions/figma.yaml
+states:                # optional — omit to keep data-* attribute selectors
+  hover:
+    prop: state
+    value: hover
+  disabled:
+    prop: isDisabled
+```
+
+```yaml
+# config/pipeline.yaml
+transformers:
+  - name: css
+```
+
+When the `states` convention is absent, all variant props produce `[data-*]` selectors (the default shown in the example above). When present, classified props emit semantic CSS pseudo-classes and ARIA attribute selectors instead.
 
 ### Disabled guard on hover and active
 
-When the `disabled` concept is configured in `processing.states`, the transformer automatically appends `:not(:disabled):not([aria-disabled="true"])` to every `:hover` and `:active` selector — including compound variants that mix a data attribute with `:hover` or `:active`. This prevents hover and active styles from firing on disabled elements without any extra CSS to write.
+When the `disabled` concept is configured in the `states` convention, the transformer automatically appends `:not(:disabled):not([aria-disabled="true"])` to every `:hover` and `:active` selector — including compound variants that mix a data attribute with `:hover` or `:active`. This prevents hover and active styles from firing on disabled elements without any extra CSS to write.
 
 ```css
 /* disabled concept configured → hover and active are guarded */
@@ -182,7 +198,7 @@ dsActionList/
 The subcomponent stylesheet follows the same structure as the parent — default element blocks first, then variant blocks — but BEM selectors are scoped to the subcomponent's own kebab-cased key, not the parent component name:
 
 ```css
-/* Generated. Do not edit — regenerate with `specs transform`. */
+/* Generated. Do not edit — regenerate with `specs react`. */
 
 .group {
   display: flex;
@@ -202,12 +218,12 @@ The subcomponent stylesheet follows the same structure as the parent — default
 }
 ```
 
-Subcomponent stylesheets are fully self-contained — elements and variants from the parent component never appear in them. Configure subcomponent discovery in [`config.processing.subcomponents`](/settings/subcomponents/).
+Subcomponent stylesheets are fully self-contained — elements and variants from the parent component never appear in them. Configure subcomponent discovery in the [`figma.subcomponents`](/settings/subcomponents/) convention.
 
 ## See Also
 
 - [Transforms overview](/cli/transforms/)
-- [`processing.states` config](/settings/states/) — classify variant props as semantic states
-- [`contract` transformer](/cli/transforms/contract/)
+- [`states` convention](/settings/states/) — classify variant props as semantic states
+- the emitted contract
 - [`react` transformer](/cli/transforms/react/) — imports this stylesheet into the generated and authored components
 - [tokens config](/settings/tokens/)

@@ -59,7 +59,7 @@ const CARD = {
 };
 
 function makeContext(dir: string, componentKey: string, outputFormat: 'JSON' | 'YAML' = 'JSON') {
-  return { outputDir: dir, componentKey, outputFormat, tokensFormat: 'DEFAULT' };
+  return { specDir: dir, outputDir: dir, workspaceDir: dir, componentKey, outputFormat, tokensFormat: 'DEFAULT' };
 }
 
 describe('DependenciesAnalyzer', () => {
@@ -132,7 +132,8 @@ describe('DependenciesAnalyzer', () => {
 
     it('counts node degrees over instance edges', async () => {
       const { graph } = await runAll({ dsIcon: ICON, dsButton: BUTTON, dsCard: CARD });
-      expect(graph.nodes.dsButton).toEqual({ external: false, dependsOn: 1, dependedOnBy: 1 });
+      expect(graph.nodes.dsButton).toMatchObject({ external: false, dependsOn: 1, dependedOnBy: 1 });
+      expect(graph.nodes.dsButton.byKind.instance).toEqual({ dependsOn: 1, dependedOnBy: 1 });
       expect(graph.nodes.dsIcon.dependedOnBy).toBe(1);
       expect(graph.nodes.dsIcon.dependsOn).toBe(0);
     });
@@ -187,7 +188,7 @@ describe('DependenciesAnalyzer', () => {
         default: { elements: {} },
       };
       const { graph } = await runAll({ dsHeader: withExternal });
-      expect(graph.nodes['Third Party Logo']).toEqual({ external: true, dependsOn: 0, dependedOnBy: 1 });
+      expect(graph.nodes['Third Party Logo']).toMatchObject({ external: true, dependsOn: 0, dependedOnBy: 1 });
       expect(graph.summary.externals).toBe(1);
     });
 
@@ -247,6 +248,65 @@ describe('DependenciesAnalyzer', () => {
       const slotEdges = graph.edges.filter((e: { kind: string; from: string }) => e.kind === 'slot' && e.from === 'dsToolbar');
       expect(slotEdges.map((e: { to: string }) => e.to).sort()).toEqual(['dsButton', 'dsIcon']);
       expect(slotEdges[0].slots).toEqual(['items']);
+    });
+
+    it('counts a slot relationship toward the node degrees', async () => {
+      // Counting instance edges only left a component related through nothing
+      // but a slot reading as entirely unconnected.
+      const toolbar = {
+        anatomy: { root: { type: 'container' } },
+        props: { items: { type: 'slot', anyOf: ['dsIcon'] } },
+        default: { elements: {} },
+      };
+      const { graph } = await runAll({ dsIcon: ICON, dsToolbar: toolbar });
+
+      expect(graph.nodes.dsToolbar.dependsOn).toBe(1);
+      expect(graph.nodes.dsToolbar.byKind.slot.dependsOn).toBe(1);
+      expect(graph.nodes.dsIcon.dependedOnBy).toBe(1);
+      expect(graph.nodes.dsIcon.byKind.slot.dependedOnBy).toBe(1);
+    });
+
+    it('keeps the roots and leaves lists disjoint', async () => {
+      // A root is depended on by nothing and a leaf depends on nothing, so a
+      // component cannot be both — it previously was, because the counts behind
+      // the two lists ignored slot relationships.
+      const toolbar = {
+        anatomy: { root: { type: 'container' } },
+        props: { items: { type: 'slot', anyOf: ['dsIcon'] } },
+        default: { elements: {} },
+      };
+      const { graph } = await runAll({ dsIcon: ICON, dsToolbar: toolbar });
+      const both = graph.summary.roots.filter((id: string) => graph.summary.leaves.includes(id));
+
+      expect(both).toEqual([]);
+      expect(graph.summary.roots).toContain('dsToolbar');
+      expect(graph.summary.leaves).toContain('dsIcon');
+    });
+
+    it('holds an unconnected component apart rather than listing it as both', async () => {
+      const alone = { anatomy: { root: { type: 'container' } }, default: { elements: {} } };
+      const { graph } = await runAll({ dsDivider: alone });
+
+      expect(graph.summary.isolated).toEqual(['dsDivider']);
+      expect(graph.summary.roots).not.toContain('dsDivider');
+      expect(graph.summary.leaves).not.toContain('dsDivider');
+    });
+
+    it('describes the same edge set in the summary totals and the node counts', async () => {
+      const toolbar = {
+        anatomy: { icon: { type: 'instance', instanceOf: 'dsIcon' } },
+        props: { items: { type: 'slot', anyOf: ['dsButton'] } },
+        default: { elements: {} },
+      };
+      const { graph } = await runAll({ dsIcon: ICON, dsButton: BUTTON, dsToolbar: toolbar });
+
+      const summaryTotal = Object.values(graph.summary.edges as Record<string, number>)
+        .reduce((a, b) => a + b, 0);
+      const nodeTotal = Object.values(graph.nodes as Record<string, { byKind: Record<string, { dependsOn: number }> }>)
+        .flatMap(n => Object.values(n.byKind).map(k => k.dependsOn))
+        .reduce((a, b) => a + b, 0);
+
+      expect(nodeTotal).toBe(summaryTotal);
     });
 
     it('emits example edges from slotContentExamples', async () => {

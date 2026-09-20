@@ -3,6 +3,7 @@
 **Branch**: `001-license-check`
 **Created**: 2026-02-24
 **Status**: ACCEPTED
+**Summary**: A `license` field inside `metadata.generator` records the license state that produced a component's output.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

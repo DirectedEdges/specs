@@ -74,12 +74,59 @@ EOF
     esac
 done
 
-# Source common functions
+# Resolve repo root and branch. These were previously sourced from common.sh, which
+# was removed with the rest of the spec-kit scaffolding; the helpers this script
+# actually used are inlined here so it has no external dependency.
 SCRIPT_DIR="$(CDPATH="" cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/common.sh"
 
-# Get feature paths and validate branch
-eval $(get_feature_paths)
+if git rev-parse --show-toplevel >/dev/null 2>&1; then
+    REPO_ROOT="$(git rev-parse --show-toplevel)"
+    HAS_GIT="true"
+else
+    # Fall back to the script's parent directory (scripts/ lives at the repo root)
+    REPO_ROOT="$(CDPATH="" cd "$SCRIPT_DIR/.." && pwd)"
+    HAS_GIT="false"
+fi
+
+if [[ -n "${SPECIFY_FEATURE:-}" ]]; then
+    CURRENT_BRANCH="$SPECIFY_FEATURE"
+elif [[ "$HAS_GIT" == "true" ]]; then
+    CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+else
+    CURRENT_BRANCH=""
+fi
+
+check_feature_branch() {
+    local branch="$1"
+    local has_git_repo="$2"
+
+    if [[ "$has_git_repo" != "true" ]]; then
+        echo "[specify] Warning: Git repository not detected; skipped branch validation" >&2
+        return 0
+    fi
+
+    # Accept feature branches (###-name) or ADR branches under a release (X.Y.Z/###-name)
+    if [[ ! "$branch" =~ ^[0-9]{3}- ]] && [[ ! "$branch" =~ ^[0-9]+\.[0-9]+\.[0-9]+/[0-9]{3}- ]]; then
+        echo "ERROR: Not on a feature branch. Current branch: $branch" >&2
+        echo "Feature branches should be named like: 001-feature-name or 0.12.0/001-feature-name" >&2
+        return 1
+    fi
+
+    return 0
+}
+
+check_file() { [[ -f "$1" ]] && echo "  ✓ $2" || echo "  ✗ $2"; }
+check_dir() { [[ -d "$1" && -n $(ls -A "$1" 2>/dev/null) ]] && echo "  ✓ $2" || echo "  ✗ $2"; }
+
+FEATURE_DIR="$REPO_ROOT/specs/$CURRENT_BRANCH"
+FEATURE_SPEC="$FEATURE_DIR/spec.md"
+IMPL_PLAN="$FEATURE_DIR/plan.md"
+TASKS="$FEATURE_DIR/tasks.md"
+RESEARCH="$FEATURE_DIR/research.md"
+DATA_MODEL="$FEATURE_DIR/data-model.md"
+QUICKSTART="$FEATURE_DIR/quickstart.md"
+CONTRACTS_DIR="$FEATURE_DIR/contracts"
+
 check_feature_branch "$CURRENT_BRANCH" "$HAS_GIT" || exit 1
 
 # If paths-only mode, output paths and exit (support JSON + paths-only combined)

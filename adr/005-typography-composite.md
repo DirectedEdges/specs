@@ -3,6 +3,7 @@
 **Branch**: `005-typography-composite`
 **Created**: 2026-02-26
 **Status**: ACCEPTED
+**Summary**: A composite `typography` property replaces fourteen flat text keys including `fontSize`, `lineHeight`, `letterSpacing` and `textStyleId`.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

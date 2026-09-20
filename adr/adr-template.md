@@ -3,6 +3,7 @@
 **Branch**: `[###-short-name]`
 **Created**: [DATE]
 **Status**: DRAFT
+**Summary**: *(written at implementation — see `/specs.adr.implement`)*
 **Deciders**: [Author] (author), [name], [name]
 **Supersedes**: *(none, or link to prior ADR)*
 
@@ -148,9 +149,11 @@ newField:
 
 ## Semver Decision
 
-**Version bump**: `[CURRENT] → [NEW]` (`MAJOR` / `MINOR` / `PATCH`)
+**Target version**: `[VERSION]` — the version of the active release branch this ADR merges into.
 
-**Justification**: [State which constitution rule applies — e.g., "All changes are additive optional fields → MINOR per constitution III"]
+**Change class**: `MAJOR` / `MINOR` / `PATCH` — for CHANGELOG placement, not a version bump.
+
+**Justification**: [State which constitution rule applies — e.g., "All changes are additive optional fields → MINOR-class per constitution III"]
 
 ---
 

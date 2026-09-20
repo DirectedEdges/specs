@@ -3,6 +3,7 @@
 **Branch**: `033-font-token-reference`
 **Created**: 2026-03-25
 **Status**: ACCEPTED
+**Summary**: `Typography.fontFamily` and `fontStyle` accept a `TokenReference` and drop `number`, matching how fonts are tokenized.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

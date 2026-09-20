@@ -3,7 +3,7 @@ title: "Invalid Variants"
 description: "Include invalid variant data in output"
 ---
 
-Include invalid variant data in output.
+Include invalid variant data in output. A run choice in `config/settings.yaml`.
 
 ## Options
 
@@ -13,12 +13,11 @@ Include invalid variant data in output.
 
 ## Path
 
-`config.include.invalidVariants`
+`spec.invalidVariants` in `config/settings.yaml`
 
 ### Example
 
 ```yaml
-config:
-  include:
-    invalidVariants: false  # Exclude invalid variants
+spec:
+  invalidVariants: false  # Exclude invalid variants
 ```

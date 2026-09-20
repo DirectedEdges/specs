@@ -11,21 +11,21 @@ specs fetch [options]
 
 ## Requirements
 
-- `FIGMA_TOKEN` must be set in your environment.
-- `specs.config.yaml` must include `dataDirectory` (or deprecated `sourceDirectory`) and `sources`.
-- Fetching `variables` or `styles` requires your Figma organization to be on an **Enterprise** plan — Figma restricts those REST endpoints regardless of your Specs license. `file` and `icons` data work on any plan. See [CLI Requirements](/cli/#requirements).
+- `FIGMA_TOKEN` must be set in your environment (not needed with `--from-bridge`).
+- `config/settings.yaml` must include `data.directory` and `data.sources`.
+- Fetching `variables` over REST requires your Figma organization to be on an **Enterprise** plan — Figma restricts the variables REST endpoints regardless of your Specs license. On any other plan, fetch variables through the plugin instead with [`--from-bridge`](#fetching-variables-via-the-bridge). `file`, `styles`, and `icons` data work over REST on any plan. See [CLI Requirements](/cli/#requirements).
 - Fetching `icons` additionally requires:
-  - `config.processing.glyphNamePattern` set in your config (see [Glyph Name Pattern](/guides/glyph-name-pattern/))
-  - `outputDirectory` set in your config — icon assets are written to the spec workspace, not the data directory
-  - the source's `file` payload — listed before `icons` in the same `data` array, or fetched in a previous run
+  - `figma.glyphs.match` set in `config/conventions/figma.yaml` (see [Glyph Name Pattern](/guides/glyph-name-pattern/))
+  - `spec.directory` set in `config/settings.yaml` — icon assets are written to the spec workspace, not the data directory
+  - the source's `file` payload — listed before `icons` in the same `fetch` array, or fetched in a previous run
 
 ## Options
 
 ### `--config <path>`
-Use a specific config file.
+Use a specific `config/` directory.
 
 ### `--data-dir <dir>`
-Override output directory for fetched payloads. Defaults to `dataDirectory` from config, or `./data` if not configured.
+Override output directory for fetched payloads. Defaults to `data.directory` from `config/settings.yaml`, or `./data` if not configured.
 
 ```bash
 specs fetch --data-dir ./custom-data
@@ -33,8 +33,17 @@ specs fetch --data-dir ./custom-data
 
 > **Deprecated alias**: `--outDir` still works but will emit a deprecation warning. Prefer `--data-dir`.
 
-### `--only <alias[,alias...]>`
-Fetch only specific aliases from `sources`.
+### `--only <name[,name...]>`
+Narrow the fetch by source alias, by data kind, or both, comma-separated. Aliases come from `data.sources`; kinds are `file`, `variables`, `styles`, and `icons`. An alias fetches every kind for that source; a kind fetches it for every source; `--only library,icons` fetches only the icons of the `library` source. Names that shadow both an alias and a kind, or match nothing, fail with an error naming the valid values.
+
+### `--source <[alias=]url|key>`
+Fetch a file or branch that is not in `data.sources` — see [Fetching Figma Branches](#fetching-figma-branches). Repeatable.
+
+### `--from-bridge`
+Fetch variables from the connected Figma file through the [CLI bridge](/cli/commands/bridge/) instead of the REST API — see [Fetching Variables via the Bridge](#fetching-variables-via-the-bridge). Requires `--only variables`; no `FIGMA_TOKEN` or Enterprise plan needed.
+
+### `--file <fileKey>`
+Target a specific connected Figma file with `--from-bridge`. Prompts to choose when more than one is connected in an interactive terminal; required otherwise.
 
 ### `--no-geometry`
 Omit geometry data from file payloads. By default, `fetch` requests `?geometry=paths` from the Figma API, which includes `fillGeometry`, `strokeGeometry`, `size`, and `relativeTransform` on every node. This roughly doubles the payload size.
@@ -48,6 +57,18 @@ specs fetch --no-geometry --verbose
 ### `--verbose`
 Show request URLs and write locations.
 
+## The Render Cache
+
+After downloading, `fetch` builds the lookup tables [`render`](/cli/commands/render/) resolves specs against, under `{data.directory}/cache/`. This is why a normal workflow never needs to run [`specs cache`](/cli/commands/cache/) by hand.
+
+It covers every source in your config that has been fetched — the ones downloaded this run, plus any downloaded previously — and rebuilds only the ones whose payloads actually changed, so refreshing one library doesn't re-read the rest. A source you haven't fetched yet is skipped and reported:
+
+```
+  Cache rebuilt: library
+  Not fetched, skipped: brand
+  Entries: 3567 components, 97 styles, 1458 variables, 469 icons
+```
+
 ## Examples
 
 ```bash
@@ -60,19 +81,21 @@ specs fetch --only foundations --verbose
 
 ## Fetching Icon Assets
 
-Add `icons` to a source's `data` array to download the library's icon glyphs as SVG files:
+Add `icons` to a source's `fetch` array to download the library's icon glyphs as SVG files:
 
 ```yaml
-sources:
-  library:
-    key: YOUR_FILE_KEY
-    data: ['file', 'variables', 'styles', 'icons']
+# config/settings.yaml
+data:
+  sources:
+    library:
+      key: YOUR_FILE_KEY
+      fetch: ['file', 'variables', 'styles', 'icons']
 ```
 
 How it works:
 
-- Glyph components are **derived from the file payload** — every `COMPONENT` node whose name matches `config.processing.glyphNamePattern` (with `{i}` capturing the icon name). No `scan` step is involved.
-- SVGs are exported through the Figma images API in batches and written to `<outputDirectory>/_icons/` — beside the `_images/` assets and the component specs that reference them, not into the regenerable data cache.
+- Glyph components are **derived from the file payload** — every `COMPONENT` node whose name matches the `figma.glyphs.match` convention (with `{i}` capturing the icon name). No `scan` step is involved.
+- SVGs are exported through the Figma images API in batches and written to `assets/icons/` — a sibling of `specs/`, beside `assets/images/`, not into the regenerable data cache. An icon is consumed by every target and produced by none, so it sits outside the spec tree rather than inside it.
 - Filenames are stable kebab-case slugs of the captured icon name, including camelCase splitting: `expandMore` → `expand-more.svg`, `Arrow Left` → `arrow-left.svg`.
 - Two icons that slug identically keep the first as-is; later duplicates are suffixed with their node id so nothing is silently dropped.
 
@@ -88,20 +111,92 @@ Because glyphs come from the saved file payload, `icons` runs after the other ki
 
 ```bash
 # Refresh just the icon assets (file payload already on disk)
-specs fetch --only library --verbose
+specs fetch --only library,icons --verbose
 ```
 
-The downloaded assets match the slugs referenced by generated component output (masked glyph spans resolve `/assets/icons/<slug>.svg`), so serving `<outputDirectory>/_icons/` as a static assets directory — for example in Storybook — makes icons render without further mapping. Keeping icons in the spec workspace means a cloned workspace renders completely without re-fetching.
+The downloaded assets match the slugs referenced by generated component output (masked glyph spans resolve `/assets/icons/<slug>.svg`), so serving `assets/icons/` as a static assets directory — for example in Storybook — makes icons render without further mapping. Keeping icons in the spec workspace means a cloned workspace renders completely without re-fetching.
+
+## Fetching Variables via the Bridge
+
+Figma gates the variables REST endpoints behind an Enterprise plan, but the Plugin API reads the same data on any plan. With the [bridge](/cli/commands/bridge/) running and the Specs plugin connected in your library file:
+
+```bash
+specs fetch --only variables --from-bridge
+```
+
+The plugin reads the file's variables and collections and returns them shaped exactly like the REST payload, so the written `<alias>.variables.json` — and everything that reads it: the render cache, [`generate`](/cli/commands/generate/), [`render`](/cli/commands/render/) — works identically whichever way the payload was fetched.
+
+Requirements:
+
+- The bridge is running (`specs bridge start`) and the plugin's CLI Bridge is enabled in the library file (a Pro feature).
+- The connected file is one of your configured `data.sources`. The match is by file key; when the plugin cannot read its file's key, name the source yourself: `--only variables,<alias>`.
+
+Differences from a REST fetch:
+
+- Variables consumed from *other* libraries are included only where your file's own variables alias them. A variable used purely through node bindings — never aliased — is not in the payload.
+- Deleted-but-still-referenced variables are omitted unless something still aliases them; the REST payload keeps all of them.
+- A handful of scope names differ in spelling between Figma's two APIs (the plugin reports `FONT_WEIGHT` where REST reports `FONT_STYLE`); nothing in the pipeline reads them.
 
 ## Fetching Figma Branches
 
-You can fetch data from a Figma branch instead of the main file by using the branch's file key in your `sources` config. Every Figma branch has its own unique key, which works anywhere a main file key does.
+A branch is a file with its own key, so nothing about fetching one is special — but a
+branch is usually short-lived and fetched to be compared against the library it came
+from, which is not worth an edit to `config/settings.yaml`. `--source` fetches a file
+that is not in config:
 
-```yaml
-sources:
-  library:
-    key: BRANCH_FILE_KEY   # branch key instead of main file key
-    data: ['file', 'variables', 'styles']
+```bash
+specs fetch --source "https://www.figma.com/design/BRANCH_KEY/Design-System?node-id=0-1"
+```
+
+Paste the branch's URL as it appears in Figma, or pass a bare file key. The flag is
+repeatable, and naming any `--source` means only those sources are fetched — the
+configured library is not re-downloaded unless `--only <alias>` asks for it.
+
+### What it resolves
+
+Before downloading anything, `fetch` reads the file's name and, for a branch, the file it
+branches from — one small request that also fails on a bad key or token before the large
+one starts. It reports what it found:
+
+```
+✓ Resolved: library-new-nav-tokens (branch of library) → file, variables, styles
+```
+
+- **The alias** — the file's name, prefixed with the configured source it branches from,
+  so payloads land beside the library's as `data/library-new-nav-tokens.file.json`.
+  Override it with `--source <alias>=<url>`. An alias that collides with a configured
+  source is refused rather than overwriting the payload you mean to compare against.
+- **The data kinds** — copied from the configured source the branch came from, so the two
+  payloads are comparable. Fetching a branch of a file that is not in `data.sources` is
+  fine; with nothing to copy from, `--only` decides and `file` alone is the default.
+
+A `<alias>.source.json` sidecar records the key and where it came from, since config has
+no record of them.
+
+### Using what you fetched
+
+The alias behaves like any other from here:
+
+```bash
+specs scan --source library-new-nav-tokens
+specs generate data/library-new-nav-tokens.manifest.md -o ./branch-specs
+```
+
+`generate` takes the manifest path, and `-o` matters — without it, branch specs are
+written into `spec.directory` over the specs generated from the library.
+
+Ad-hoc payloads contribute to the render cache only where the configured sources define
+nothing, so fetching a branch never changes how the library itself resolves. Icons, if
+inherited, are written to `assets/icons-<alias>/` rather than over `assets/icons/`.
+
+### Cleaning up
+
+Everything an ad-hoc source wrote is named after its alias, so a finished branch is
+removed with:
+
+```bash
+rm data/library-new-nav-tokens.*
+specs cache --force
 ```
 
 ### How to find a branch key
@@ -120,8 +215,22 @@ Open the branch in Figma — the URL contains the key: `figma.com/design/<KEY>/.
 
 If you use `applyCustomTokens` with branch-fetched data, be aware that Figma variable and style IDs may differ between main and a branch. Your mapping file IDs must match the IDs in the branch's data files, not main's.
 
+### Keeping a branch in config
+
+A branch you fetch repeatedly over a long life is still worth a config entry — give it
+its own alias so the library keeps its own:
+
+```yaml
+# config/settings.yaml
+data:
+  sources:
+    library-redesign:
+      key: BRANCH_FILE_KEY
+      fetch: ['file', 'variables', 'styles']
+```
+
 ---
 
 **See Also:**
-- [Configuration Reference](/settings/) - dataDirectory and sources setup
+- [Configuration Reference](/settings/) - data.directory and data.sources setup
 - [Generate Command](/cli/commands/generate/) - Processing fetched data

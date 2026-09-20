@@ -1,0 +1,144 @@
+---
+title: "link"
+description: "Emit a real anchor with href, so navigation is announced, focusable, and copyable"
+---
+
+`link` declares that an element navigates to another location when activated. Without it the element cannot be tabbed to, Enter does nothing, and there is no `href` for a consumer to point anywhere.
+
+**Status** — React: Implemented • Web Components: Implemented • iOS: Not yet planned • Android: Not yet planned
+
+An anchor rather than a button, and the distinction is not cosmetic: a link is announced as a link, opens in a new tab on modifier-click, appears in a screen reader's links list, and is dragged and copied as a URL. A button does none of that.
+
+## Roles
+
+Apply the following roles to elements:
+
+| Role | Type | Element |
+|---|---|---|
+| `link` | Control | Element of `type: container`, `type: text`, or `type: glyph` |
+| `label` | Part | Element of `type: text` or nested instance prop of `type: string` |
+
+A `glyph` carrying the role is re-hosted inside the anchor rather than becoming it, as with [`button`](/roles/button/).
+
+### States
+
+The `link` role is typically applied in conjunction with the following states:
+
+| State | Effect | Classify? |
+|---|---|---|
+| `disabled` | **Drops `href`** and announces `aria-disabled` | Recommended |
+| `current` | `aria-current="true"` | Recommended |
+| `hover` / `active` | Native anchor states | Recommended, if the library styles it |
+| `focus` / `focus-visible` | Native focus indicator | **Optional — prefer the platform default** |
+
+Two decisions earlier emission made silently:
+
+- **An anchor has no `disabled` property.** Dropping `href` is what actually removes it from the tab order; `aria-disabled` alone announces a state the element does not enforce. The `css` transformer's disabled selector special-cases anchors to match.
+- **`current` emits the generic token**, `aria-current="true"`, matching the states table's canonical selector. An earlier emission wrote `aria-current="page"`, which no stylesheet selector matched.
+
+Read more about [states in specs](/settings/states/).
+
+## Specs
+
+Component anatomy typically has elements and roles like:
+
+```yaml
+anatomy:
+  root:
+    type: container
+    role: link
+  text:
+    type: text
+```
+
+## Figma
+
+Annotate the following layers:
+
+- `root` as `role:link` — on the component node, or on an inline `text` element
+- `label` as `role:label` where the link's name is not its own text
+
+The design file cannot say where a link goes, so `href` has no source in the spec. It is the one prop this role exists to create a home for.
+
+## React
+
+### Implementation
+
+```tsx
+<InlineLink href="/pricing">See pricing</InlineLink>
+<InlineLink href="/settings" current>Settings</InlineLink>
+```
+
+### Before / After
+
+```tsx
+// before
+<div className="inline-link" data-element="root">
+  {p.text}
+</div>
+
+// after
+<a
+  className="inline-link"
+  data-element="root"
+  href={p.disabled ? undefined : p.href}
+  aria-disabled={p.disabled ? true : undefined}
+  aria-current={p.current ? 'true' : undefined}
+  target={p.target}
+  rel={p.rel}
+  onClick={(e) => p.onClick?.(e)}
+>
+  {p.text}
+</a>
+```
+
+### Contract
+
+| Prop | Type | Tier | Generated body |
+|---|---|---|---|
+| `href?` | `string` | MUST | Destination. Absent renders a placeholder the browser cannot focus |
+| `target?` | `string` | SHOULD | Passed through |
+| `rel?` | `string` | SHOULD | Passed through |
+| `onClick?` | `(e: MouseEvent) => void` | SHOULD | Stub — navigation is the browser's |
+
+## Web Components
+
+As [`button`](/roles/button/#web-components) — a real `<a>` inside the shadow root, `all: unset`, with `delegatesFocus` so the host stays one focusable box.
+
+One asymmetry worth knowing: an `href` **is** resolved against the document, so `href="#section"` from inside a shadow root navigates to a light-DOM target normally. The reverse does not hold — an `id` inside a shadow root is not addressable as a fragment target from outside, so a link elsewhere on the page cannot point *into* this component.
+
+## iOS
+
+Not yet planned. Intended binding:
+
+| | |
+|---|---|
+| Type | `Link` |
+| Announced | As a link; double-tap opens it |
+| `disabled` | No native equivalent — degrades to plain text |
+
+## Android
+
+Not yet planned. Intended binding:
+
+| | |
+|---|---|
+| Type | Clickable text with link semantics |
+| Announced | As a link; double-tap opens it |
+| `disabled` | Clickable removed; text remains |
+
+## Additional details
+
+### Accessible name
+
+| Source | Result |
+|---|---|
+| The link's own text | Names it |
+| The `accessibility.label` convention's prop | Emitted as `aria-label` |
+| Nothing resolves | **Warns** |
+
+## See also
+
+- [button](/roles/button/) — activation without navigation
+- [disclosure](/roles/disclosure/) — a trigger that expands a region rather than leaving the page
+- [Roles overview](/roles/) — the vocabulary and how roles are authored

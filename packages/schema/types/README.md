@@ -15,8 +15,8 @@ npm install @directededges/specs-schema
 ## Usage
 
 ```typescript
-import type { Component, Variant, Anatomy, Config } from '@directededges/specs-schema';
-import { DEFAULT_CONFIG } from '@directededges/specs-schema';
+import type { Component, Variant, Anatomy, Conventions, Settings } from '@directededges/specs-schema';
+import { DEFAULT_SETTINGS } from '@directededges/specs-schema';
 
 // Type-safe component data
 const component: Component = {
@@ -37,12 +37,24 @@ const component: Component = {
   }
 };
 
-// Use default config or customize
-const config: Config = {
-  ...DEFAULT_CONFIG,
-  format: {
-    ...DEFAULT_CONFIG.format,
-    output: 'YAML'
+// Facts about the Figma library — every consumer of that library declares the
+// same values. There is no defaults constant: a convention's absence means the
+// library declares none, and nothing can supply that.
+const conventions: Conventions = {
+  platforms: {
+    figma: {
+      naming: 'SENTENCE',
+      glyphs: { match: 'DS Icon Glyph / {i}' }
+    }
+  }
+};
+
+// Choices about this run — start from the defaults and override.
+const settings: Settings = {
+  ...DEFAULT_SETTINGS,
+  spec: {
+    ...DEFAULT_SETTINGS.spec,
+    format: 'YAML'
   }
 };
 ```
@@ -55,10 +67,12 @@ const config: Config = {
 - **`Props`** - Configurable component properties
 - **`Variant`** - Component state/configuration
 - **`Metadata`** - Generation metadata
-- **`Config`** - Transformer configuration type
+- **`Conventions`** - Facts about the Figma library a spec came from
+- **`Settings`** - Choices about the run that produced it
 
 ### Configuration
-- **`DEFAULT_CONFIG`** - Default configuration constant for transformer setup
+- **`DEFAULT_CONVENTIONS`** - Empty: a convention's absence means the library declares none
+- **`DEFAULT_SETTINGS`** - Resolved defaults for the settings half
 
 ### Supporting Types
 - **`Element`** - Individual component element
@@ -75,7 +89,8 @@ const config: Config = {
 │ - JSON Schema definitions                        │
 │ - TypeScript type definitions                    │
 │ - Default configuration constants                │
-│ Exports: Component, Config, DEFAULT_CONFIG       │
+│ Exports: Component, Conventions, Settings,       │
+│          DEFAULT_* constants                     │
 └──────────────────────────────────────────────────┘
                     ▲
                     │ imports types & config

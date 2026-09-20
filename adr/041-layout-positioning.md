@@ -3,6 +3,7 @@
 **Branch**: `041-layout-positioning`
 **Created**: 2026-04-27
 **Status**: ACCEPTED
+**Summary**: `Position` and `PositionOffset` types describe constraint-based placement, replacing `x`, `y` and `layoutPositioning`.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

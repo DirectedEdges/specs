@@ -5,11 +5,319 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.31.0] - Unreleased
 
 ### Added
 
+### Changed
+
+### Removed
+
+
+## [0.30.0] - 2026-09-20
+
+**A catalogue run states its metadata once.** The author, generator, schema, conventions and settings were identical in every file a run produced, and repeated again for every concern document and subcomponent inside it; they now live in one `latest.metadata.yaml` beside the specs.
+
+**A watch keeps Storybook current without re-running a command.** `specs react --watch` and `specs webcomponents --watch` re-emit on every spec or config change, and a full run now prunes emitted directories no spec accounts for.
+
+### Added
+
+- **A manifest run writes its metadata once**, to `latest.metadata.yaml` beside the specs, leaving every spec with `metadata.source` alone (ADR-089).
+- **`specs react --watch` and `specs webcomponents --watch` re-emit on every spec or config change**, watching `config/` alongside the specs directory. Each change re-emits the whole set and re-runs `finalize`; a failed component is logged and the watch continues.
+- **A full `specs react` or `specs webcomponents` run removes emitted component directories no spec accounts for**, naming them in one warning line, so Storybook stops indexing a renamed component under its old name. A `--components` run never prunes.
+- **`specs render` marks a component ready for dev in Figma**, using the status `specs scan` recorded for it. A component whose manifest row reads `NONE`, or has no row at all, renders unmarked as before.
+- **`specs fetch --only variables --from-bridge` downloads a library's variables through the connected plugin**, so a workspace on any Figma plan gets variables without the Enterprise-only REST endpoint or a `FIGMA_TOKEN`. Needs the bridge running and the plugin connected in the library file.
+
+### Changed
+
+- **Every rule in a generated stylesheet is labelled with the spec statement that produced it**, so a variant block names its configuration and the cursor rules name the state that declared them.
+- **A web components stylesheet selects on the attribute the element reflects**, `:host([appearance="filled"])` rather than a data attribute. A prop named after a global HTML attribute such as `hidden` or `title` keeps the data form. React stylesheets are unchanged.
+- **A subcomponent's CSS class is namespaced by its parent**, so `deCard`'s `reviews` styles under `.de-card-reviews` rather than `.reviews`. Regenerate every platform tree together.
+- **Emitted files no longer repeat the component's name**, so `DeFavoriteButton/` holds `scaffold.tsx`, `contract.ts`, `styles.css` and `stories.tsx`. Regenerate each platform tree from scratch: a run overwrites the new files but leaves the old prefixed ones, and Storybook would load both.
+- **A per-concern spec file records its write time as `lastUpdated`**, the key the schema already defines for that fact, so `api.yaml`, `variants.yaml` and `examples.yaml` validate and an editor stops reporting an error on every spec file.
+- **`specs render` reads the run's metadata document back**, so a spec carrying only `metadata.source` still renders under the conventions and settings it was generated with (ADR-089).
+
+### Fixed
+
+- **An unreachable license server reports differently from a failed check**: the first points at your network, any proxy, and TLS inspection; the second says to retry. Both say the key was not validated and no licensed output was written.
+- **`analyze props` reports a prop with no declared `nullable` as accepting null** where its value set is open — a string, number, slot or image prop — and as not accepting null for an enum or boolean (ADR-065).
+- **A classified state prop carrying a value no concept names now warns**, naming the prop, the value and the component, instead of dropping the styling declared for it from the stylesheet in silence.
+- **`analyze dependencies` counts a slot relationship toward a component's totals**, so the roots and leaves lists no longer overlap and a component connected only through a slot is no longer reported as unconnected.
+- **Focus styling follows the platform's keyboard-focus heuristic** — `:focus-visible` on a root that can hold focus, `:has(:focus-visible)` on a wrapper around its control — so a clicked button no longer keeps its focus ring after the click. A declared `focus-within` concept is untouched.
+- **An image fills and centres itself in the element that displays it**, whatever its aspect ratio, instead of drawing at its natural size cropped to the top-left corner when a component takes its image from a source prop.
+- **`specs scan` leaves a subcomponent unchecked when its parent is checked**, since a subcomponent is already specced as part of its parent. A separate component that a checked component instances is still selected.
+- **A composed instance fills a slot that states its size through opposing insets.** A slot pinned to all four edges names no width yet is as wide as its container; the child used to paint at its own master's size.
+- **A child filling its parent's cross axis keeps the parent's alignment.** Cross-axis FILL emits a dimension rather than `align-self: stretch`, so a child stopped from filling by a `min-width` or `max-width` is centred under a centring parent.
+
+### Dependency updates
+
+- **specs-schema 0.33.0** — a run's shared facts (author, timestamp, generator, schema, conventions, settings) now have a document type of their own, so specs carry only their `source` and the run states the rest once. The three per-concern files a split run writes are each typed as their own document, and a component can record the image it was authored with.
+- **specs-from-figma 0.32.0** — generated specs keep more of what designers composed: a plain frame inside an example can become a placed instance with its children as slot content, and an image reaches the spec through any instance carrying a configured source prop, not only a direct instance of the designated image component. License checking no longer degrades silently — a key that could not be checked fails the run and says so, rate-limited checks retry with backoff, and an unreachable server reports differently from a failed check.
+- **react-from-specs 0.2.0 / webcomponents-from-specs 0.2.0** — an emitted platform tree is a self-contained package (its own `package.json` and `tsconfig.json`), generated files drop the component-name prefix, a subcomponent's exports are namespaced by its parent, and a long list of contract and render fixes makes emitted trees typecheck clean.
+
+## [0.29.0] - 2026-09-12
+
+**`specs react` and `specs webcomponents` replace `specs transform`**, each emitting one target whole — component, contract, stylesheet and stories. **Annotated elements emit real controls**: with `settings.spec.roles` on, a checkbox is a native input you can check and submit, a disclosure announces and flips its own state, and the accessibility wiring between a control and its parts is generated. **The emitted code is substantially better** — effects and directly-declared gradients are emitted for the first time, and strokes, gradient geometry, truncation and background images now paint what the design draws. **Configuration is reshaped**: conventions become one file per platform in `config/conventions/`, `config/pipeline.yaml` is retired, and a stale layout stops the run rather than silently generating with defaults — `specs migrate config` moves a workspace over.
+
+### Breaking
+
+**Conventions are one file per platform.** A single `config/conventions.yaml` is no longer read —
+conventions now live in `config/conventions/`, the filename carrying the platform id
+(`figma.yaml`, `react.yaml`, `web-components.yaml`), with each platform's block de-indented to the
+root of its own file (ADR-073, ADR-078). The conventions that describe the spec rather than any
+platform — the `states` classification, `accessibility.label`, `value` — move out of the Figma
+block into `config/conventions/specs.yaml`, and the primitive promotion table is authored as
+`config/conventions/figma.primitives.yaml` (ADR-075).
+
+A workspace still holding `config/conventions.yaml` **stops with instructions** rather than being
+silently ignored — in 0.28.0 it was not recognized as configured at all, so generation ran with
+defaults and produced specs missing everything the file declared, without ever failing. The same
+refusal covers the old `primitives.yaml` basename.
+
+`specs migrate config` performs the whole move, including from the pre-0.28.0
+`specs.config.yaml`, and seeds the code-platform files.
+
+**`specs transform` is removed**, as is `config.pipeline` on the loaded config. `specs react` and
+`specs webcomponents` replace it.
+
+### Added
+
+- **`specs react` and `specs webcomponents`** each emit one target whole — component, contract,
+  stylesheet and stories — rather than asking for the pieces to be named in the right order.
+  `--no-stories` omits the stories. Output lands in that target's own tree (`react/`,
+  `webcomponents/`).
+- **Roles emit native controls and their accessibility wiring** (ADR-067, ADR-068, ADR-086), for
+  both targets. `settings.spec.roles` is the on-switch — off by default, so nothing changes until a
+  workspace opts in. Controls (`button`, `togglebutton`, `link`, `disclosure`, `checkbox`, `switch`,
+  `textbox`), announcements (`alert`, `status`, `progressbar`) and parts (`label`, `description`,
+  `errormessage`, `indicator`, `panel`) are implemented; `value` and `placeholder` are concepts a
+  `textbox` reads while collapsing, not roles that emit on their own. Any other role in the
+  vocabulary stays inert rather than breaking. Roles that own a state — pressed, expanded,
+  checked, value — generate real state management from the prop your `states` convention
+  classifies, and degrade to a stub with a warning when no prop carries it. A part provided by a
+  composed component (a field's label or error message) is wired across that boundary.
+- **A Web Components target.** Lit custom elements with shadow DOM and native slots, driven by the
+  same spec and the same CSS as React. Form controls participate in the page's `<form>` and take
+  focus into the shadow root. Experimental; output shape may change without a breaking-change note.
+- **`specs fetch --source <url>` fetches a Figma branch that is not in your config**, naming it
+  after the branch and fetching the same data kinds as the file it branches from. Payloads land
+  beside the library's as `<parent>-<branch>.file.json`, so a branch you compare a few times and
+  throw away never needs a config edit.
+- **CSS custom properties resolve from fetched library JSON** rather than from any one component.
+- **Effects and gradients set on an element are emitted** — shadows, blurs and gradient fills
+  declared directly rather than through a token, dropped until now.
+- **`settings.spec.promotePrimitives` swaps raw layers in example content** for the design system
+  components they stand in for. Off by default, and sent over `--from-bridge` so the plugin uses
+  your table.
+- **A primitive promotion table names which component each raw layer becomes** — matching a layer's
+  style values against designated component props, so a text or container layer a designer drew by
+  hand records as an instance of the component it stood for. Authored as
+  `config/conventions/figma.primitives.yaml` (ADR-075).
+
+### Changed
+
+- **`css`, `cssvars`, `contract`, `stories` and `webcomponents-stories` are no longer names you
+  invoke.** Each is part of what a target emits, and `css` in particular had no output location of
+  its own once output moved into the platform trees.
+- **`specs scan` retains the components a checked component composes.** A dependency is kept in the
+  manifest even when its own dev status would not have selected it, so generating a checked
+  component no longer produces a spec whose composed children are missing. The run reports how many
+  were retained; `--include-all` bypasses the filtering entirely.
+- **`specs scan --source <alias>` accepts a source fetched with `--source`**, resolving it from
+  the payload on disk when config has no entry for it.
+- **`specs generate --get-images` pulls images from the file the specs came from**, rather than
+  always from the configured source — so specs generated from a branch get the branch's images.
+- **The React and Web Components transformers now live in their own packages** —
+  `@directededges/react-from-specs` and `@directededges/webcomponents-from-specs`, which the CLI
+  consumes as dependencies. Both install with the CLI; there is nothing to add to a workspace.
+- Emitted stylesheets and cssvars name the command that regenerates them, per target
+
+### Removed
+
+- **`specs transform`**, and `config.pipeline` on the loaded config. `specs react` and
+  `specs webcomponents` replace it; `--no-stories` omits the stories.
+- **`config/pipeline.yaml`.** `specs init` no longer seeds it and `specs migrate config` no longer
+  writes one, dropping `config.transformers` rather than carrying it forward. A leftover
+  `pipeline.yaml` produces a warning naming the commands that replaced it, and `specs migrate config`
+  renames it out of discovery.
+- Emit-time primitive binding resolution — `PlatformConventions.primitives` and its per-kind binding types. Which component a layer becomes is decided at capture (ADR-074)
+
+### Fixed
+- **A background image resolves from the stylesheet that references it.** Image assets moved to `assets/images/` at the workspace root when output split into platform trees, but the stylesheets kept emitting `url('../../_images/…')` — a path into the React or Web Components tree, where nothing has been written since. The depth is now derived from where each stylesheet lands, so a component and a subcomponent cannot drift apart
+- **An angular gradient starts where the design starts it.** It was written with a 90-degree offset, on the premise that Figma's angular sweep begins at 3 o'clock and CSS's conic at 12. An angular gradient carries no angle (ADR-003) — the rotation it appears at is the node's, recorded as `rotation` and applied as a transform — so the offset turned the arc a second time and every gradient-stroked element painted its arc a quarter turn out
+- **A gradient stroke paints the ring the design draws.** It was emitted as `border-color`, which cannot hold a gradient, so the surface painted flat — and `border-image`, the only gradient-capable border property, ignores `border-radius` and turns a circular element into a square frame. The ring is now a `::before` that covers the element, inherits its radius, and masks out its own middle: the element keeps its own background and declares no border, so the stroke costs no layout, the same as a solid one. A gradient arriving as a token reference is recognised by its `$type`, which previously said `color` for every styled paint
+- A stroke no longer changes an element's size. Figma draws a stroke without costing the frame any space, at any alignment; a CSS border only stays inside when the element has an explicit size, so a component hugging its content came out as much as 2px larger than the design and its content sat a pixel in. Every stroke is an outline now, with an inside stroke pulled back over its own edge
+- A text layer that truncates in the design truncates in the CSS. `maxLines` and `textOverflow` were carried in the spec and emitted nowhere: one line becomes `text-overflow: ellipsis` held on a single line, more than one becomes the line-clamp box
+
+- Stylesheets no longer reference a variable Figma could not resolve. The engine writes a sentinel name for an unreadable variable, and that name derived into an ordinary custom property that nothing defines. A single property now writes `unset` instead — stating that the variant overrode it with something unreadable, so a base rule's value does not win — and a warning at the end of the run names the sentinel and its occurrence count
+- Text components sized in the design now render at the height their type styles ask for, rather than a line short of it
+- `scan` keeps the components a selected component is built from, instead of leaving them unchecked because they carry no dev status of their own
+- `scan` leaves out the Examples sets and code-only-props sets a library keeps as authoring aids, including those filed in a hidden folder
+- Loading a workspace with no `config/` no longer throws while resolving conventions
+
+## [0.28.0] - 2026-09-04
+
+Configuration is now three files that say different kinds of things — facts about your Figma library, choices your runs make, and the work your workspace runs — and `specs migrate config` moves an existing workspace over in one command. The split folder-per-component layout is now what `specs generate` writes without flags, since it is the shape every downstream command reads. And `scan` now records the dev status Figma actually set, so a component marked complete no longer looks identical to one nobody has touched.
+
+### Breaking
+
+**`specs.config.yaml` → a `config/` directory for conventions, settings and pipeline**, and
+`specs migrate config` switches an existing workspace over.
+
+The single file mixed two kinds of statement: facts about your Figma library that every
+consumer of it must agree on, and choices this particular run makes. A wrong fact produces
+incorrect output, while a different choice just produces different output — so they are
+now three files that can be read, validated and reviewed apart. Every command that loads
+configuration is affected, and a workspace that has not migrated gets an error naming the
+file and the command that converts it rather than a silent fall back to defaults, because
+the shape of your output depends on this file and ignoring it quietly would change what
+you emit without saying so.
+
+### Added
+
+- **`specs migrate <subject>` — versioned workspace migrations.** `specs migrate config`
+  reads `specs.config.yaml` (or `.json`) and writes `config/conventions.yaml`,
+  `config/settings.yaml` and `config/pipeline.yaml`, then renames the source to
+  `.migrated` so discovery stops finding it. `conventions.yaml` and `pipeline.yaml` are
+  written only if the source configured them; `settings.yaml` is always written, because
+  the layout flags have to be carried across explicitly (see below).
+  - `--dry-run` reports what would change without writing.
+  - `--source <path>` converts a file discovery would not find — a custom name, or one you
+    pass to other commands via `--config`.
+  - `--from <version>` pins the source version; `--list` shows what is registered.
+  - The command is a registry, not a synonym for this one conversion: later migrations
+    register alongside `config v1 → v2` rather than replacing it.
+  - It writes to your workspace, which is why it is a command you run rather than
+    something the loader does for you. Configuration is loaded by read-only commands and
+    in CI, and a read path must not mutate a checkout.
+
+### Changed
+
+- **Configuration is discovered in `./config/`.** A directory is used when it holds at
+  least one of `conventions`, `settings` or `pipeline` (`.yaml` or `.json`). `--config`
+  now accepts that directory as well as a file path.
+- **`specs init` scaffolds the three files** and refuses to run in a workspace that still
+  has `specs.config.yaml`, pointing at `specs migrate config`. Scaffolding fresh defaults
+  over a configured workspace would replace what it declares, and `migrate` would then
+  refuse because `config/` exists.
+- **The vocabulary changed with the split** — `format.figmaKeys` is now
+  `conventions.figma.naming`, `processing.glyphNamePattern` is `conventions.figma.glyphs.match`,
+  `format.output` is `settings.spec.format`, and the root `sources`, `dataDirectory`,
+  `outputDirectory` and `output` blocks fold into `settings`. `specs migrate config`
+  applies all of it; the [schema changelog](../schema/CHANGELOG.md) lists the mapping in full.
+- **Spec metadata records conventions and settings separately**, so either half can be
+  compared across specs on its own. Regenerating rewrites the `metadata` block of every
+  spec file.
+- **The split layout is now the default.** `specs generate` writes one folder per component
+  holding `api`, `variants` and (when there are examples) `examples` files, without any
+  flags. Everything downstream — `transform`, `analyze`, `render` — reads that layout, so
+  it was the shape almost every workspace had to opt into by hand.
+- **Layout flags are named for what they do.** `--split-components`, `--split-concerns` and
+  `--use-subfolders` are replaced by `--combine-as-library`, `--combine-concerns` and
+  `--no-subfolders`. Each turns a split off; an absent flag defers to the configured value
+  rather than overriding it.
+- **`specs migrate config` preserves the layout a workspace emits today.** The three flags
+  defaulted to `false` in `specs.config.yaml` and default to `true` now, so migration
+  writes all three out explicitly — including from a source that configured no `output`
+  block. Deleting those three lines from `config/settings.yaml` is how a migrated
+  workspace adopts the new default.
+- **`specs init` no longer writes the three flags.** The generated `config/settings.yaml`
+  shows them commented out at their defaults.
+- **`transform`'s prerequisite tip** no longer names flags that no longer exist; running
+  `specs generate` is now sufficient.
+
+### Removed
+
+- **`specs.config.yaml` and `specs.config.json` are no longer read.** They are still
+  detected, but only to refuse with the command that converts them.
+- **`~/.specs/config.yaml` — user-level configuration — has no equivalent.** Conventions
+  describe a specific Figma library and settings describe a specific workspace; neither is
+  a personal preference that should follow you between projects. Move what it declares
+  into the workspace's `config/` directory and delete it.
+- `--split-components`, `--split-concerns` and `--use-subfolders` on `specs generate`,
+  replaced by the negative flags above.
+
+### Fixed
+
+- **`scan` records the dev status Figma actually set, including `COMPLETED`** — Every status
+  on a node is carried through to the manifest's Dev Status column verbatim instead of being
+  collapsed to `READY_FOR_DEV` or `NONE`, so a component marked complete is no longer
+  indistinguishable from one nobody has touched. Selection is unchanged: `scan` still checks
+  only `READY_FOR_DEV` rows by default, and `generate` still builds only what is checked.
+- **A manifest row with an unfamiliar dev status is kept and left unselected, not dropped** —
+  The parser previously accepted only two status values and silently discarded any row it
+  could not match, so the component vanished from the run while the summary line still read
+  as healthy. Such a row is now parsed, reported with a warning, and left unchecked.
+- **`scan` and `generate` warn about manifest rows they cannot read** — Any line that looks
+  like a component row but fails to parse now prints a warning naming the row instead of
+  disappearing.
+
+### Dependency updates
+
+- **specs-schema 0.31.0** — the single `Config` type splits into `Conventions`, `Settings`
+  and `Pipeline`, each authored and validated on its own; spec `metadata` records
+  conventions and settings separately. A prop configuration can state `null` to leave a
+  nullable prop unset, and a numeric variant prop now carries its closed set of values in
+  authored order.
+- **specs-from-figma 0.30.0** — a root that only wraps a slot now collapses when
+  `collapsePrimitiveWrapper` is on; an instance example that hides a slot records it as
+  unset rather than bound-and-hidden; and a code-only prop layer carrying both a content
+  and a visibility binding is named from the binding it was extracted from, so a phantom
+  prop no longer displaces the real one.
+
+
+
+## [0.27.0] - 2026-08-17
+
+Specs can now go back into Figma. `specs render` takes a spec you already have and builds
+the component it describes in a connected Figma file — the reverse of `specs generate`, and
+the other half of a round trip you can run and re-run as a spec changes.
+
+### Added
+
+- **`specs render` — build a component in Figma from a spec.** Point it at a spec file, a
+  component folder, or a directory of them; with no argument it renders everything in your
+  configured `outputDirectory`. Variants, styles, props, slots, subcomponents, and icons are
+  all reconstructed, with tokens bound to the file's own variables and styles.
+  - `--watch` re-renders on every save, so you can edit a spec and watch the component change.
+  - `--overwrite` replaces a component of the same name. Without it, a name collision is an
+    error rather than a silent deletion.
+  - `--page <id>` renders onto a specific page instead of whichever one is open — worth using
+    in any script, since the open page can move underneath you.
+  - `--strict` fails the run when an element cannot be resolved, instead of producing a
+    component with content missing.
+  - `--timing` reports where the time went, phase by phase.
+- **`specs bridge` — the connection render works over.** `start`, `stop`, and `status` for a
+  local server the Figma plugin connects to. Figma cannot be reached from outside, so the
+  plugin opens the connection and the CLI talks through it. Enable the CLI Bridge in the
+  plugin, and `specs bridge status` will name the file it is connected to. Several Figma
+  files can be connected at once; `--file <fileKey>` picks one, and in an interactive
+  terminal you are offered a numbered list instead of an error.
+- **`specs cache` — the lookup tables render needs.** Every component, icon, style, and
+  variable name in your fetched data, resolved to what Figma needs to place it. Built from
+  `specs fetch` output, refreshed with `--force`, or rebuilt in place with
+  `specs render --refresh-cache`. A stale cache fails the render rather than rendering
+  something subtly wrong.
+- **`specs generate --from-bridge` — read a spec from what's selected in Figma.** A third
+  source for `generate` alongside a fetched file and a manifest, with no REST fetch and no
+  Figma token: select a component in a connected file and generate its spec directly. Your
+  config governs the result, exactly as it does for a fetched generate, and the run leaves
+  the Figma file untouched. Output follows the same `--output` / `--split-components` /
+  `--split-concerns` resolution as every other source.
+- **`specs fetch --only <name>` now narrows by data kind as well as by source.** `--only icons` re-downloads just the icon SVGs, deriving them from the file payload already on disk rather than pulling the whole file again; `--only variables,styles` skips the file entirely. A source alias still works as before, and the two combine (`--only library,icons`). A name that matches neither is an error listing both the configured aliases and the available kinds, rather than being quietly ignored.
+- `format.figmaKeys` in the generated `specs.config.yaml` template — commented out at its `NONE` default, documenting the opt-in that enables the safe key grammar and Figma name preservation (ADR-066)
+- `specs analyze keys` — reports Figma layer and property names a formatted key cannot reconstruct, written to `_analysis/keys.yaml`. Organized `byComponent` as a designer's checklist — each component splitting into `props` and `anatomy`, with an empty surface omitted — then `byCause` for systemic problems and `byName` for a name repeated across the library. Requires `format.figmaKeys` to declare a convention; empty under the `NONE` default (ADR-066)
 - **`specs fetch` icons** — a fourth data kind alongside `file`, `variables`, and `styles`: fetch derives the library's icon glyphs from the downloaded file payload (no `scan` required) and downloads their SVG assets with stable kebab-case slugs.
+
+### Changed
+
+- CSS `overflow` output — keyed on the renamed `Styles.clipsContent`, so `overflow: hidden` / `overflow: visible` is emitted for the first time (ADR-069)
+
+### Dependency updates
+
+- **`@directededges/specs-schema` ^0.30.0** — specs can now record the name a designer sees in Figma alongside a formatted key, so a key that cannot reconstruct its original name no longer loses it. Number properties gained the same platform-extension capability every other property type already had, and the style that records whether an element clips its content is now spelled `clipsContent`.
+- **`@directededges/specs-from-figma` ^0.29.0** — generated specs carry Figma names wherever a key diverges, and a name already well-formed in your key convention is kept as authored instead of being reformatted. Several sources of phantom variants are gone: slot content no longer records measured sizes or withdrawn host bindings as design intent, an invalid variant combination now names the combination that is actually missing, and elements that clip their content report it for the first time — expect regenerated specs to gain `clipsContent: true` on containers that clip, which is common rather than rare.
+
 
 ## [0.26.0] - 2026-08-07
 

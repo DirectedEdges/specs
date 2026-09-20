@@ -59,16 +59,15 @@ Depth 2 includes everything from depth 1 plus all two-property pairings. Each de
 
 ## Configuration
 
-Set `variantDepth` under `model.processing` in your config file:
+Set `variantDepth` under `spec` in `config/settings.yaml`:
 
 ```yaml
-# specs.config.yaml
-model:
-  processing:
-    variantDepth: 2    # Recommended for production
+# config/settings.yaml
+spec:
+  variantDepth: 2    # Recommended for production
 ```
 
-**Default**: `9999` (unlimited) in the processing engine. The CLI config template suggests `2` as a practical starting point.
+**Default**: `9999` (unlimited) — the value the `specs init` template ships. `2` is a practical starting point for large variant spaces.
 
 **Allowed values**: `1`, `2`, `3`, or `9999`.
 

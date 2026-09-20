@@ -7,11 +7,12 @@
 import { Command } from 'commander';
 import fs from 'fs-extra';
 import path from 'path';
-import yaml from 'yaml';
 import { ComponentDiscovery, type ComponentInfo, type DevStatus } from '../utilities/ComponentDiscovery.js';
 import { ManifestParserV2, type ManifestRowV2 } from '../utilities/ManifestParserV2.js';
 import { isV1Manifest, migrateV1ToV2 } from '../utilities/ManifestMigrationV1ToV2.js';
 import { glyphPatternMatch } from '../utilities/glyphPatternMatch.js';
+import { ConfigLoader } from '../Config/ConfigLoader.js';
+import { figmaOf } from '../Config/PlatformConventions.js';
 
 const SCAN_FORMAT_VERSION = 2;
 
@@ -32,38 +33,6 @@ interface ScanOptions {
   resetChecks: boolean;
   variables?: string;
   verbose: boolean;
-}
-
-type MinimalConfig = {
-  dataDirectory?: string;
-  sourceDirectory?: string; // deprecated alias
-  sources?: Record<string, { key: string; data: string[] }>;
-  config?: { processing?: { glyphNamePattern?: string } };
-};
-
-function findConfigFile(cwd: string): string | null {
-  const locations = [
-    path.join(cwd, 'specs.config.yaml'),
-    path.join(cwd, 'specs.config.json'),
-    path.join(process.env.HOME || '~', '.specs', 'config.yaml')
-  ];
-  for (const location of locations) {
-    if (fs.existsSync(location)) return location;
-  }
-  return null;
-}
-
-function loadConfig(configPath?: string): { configDir: string; config: MinimalConfig } {
-  const resolvedPath = configPath ? path.resolve(configPath) : findConfigFile(process.cwd());
-  if (!resolvedPath || !fs.existsSync(resolvedPath)) {
-    return { configDir: process.cwd(), config: {} };
-  }
-  const raw = fs.readFileSync(resolvedPath, 'utf-8');
-  const parsed = resolvedPath.endsWith('.json') ? JSON.parse(raw) : (yaml.parse(raw) as unknown);
-  return {
-    configDir: path.dirname(resolvedPath),
-    config: (parsed as MinimalConfig) || {}
-  };
 }
 
 /**
@@ -94,6 +63,122 @@ export function deriveDefaultInclusion(
     }
   }
   return result;
+}
+
+/**
+ * A subcomponent is generated as part of its parent's spec, so it needs no
+ * row of its own checked. `{C} / {S}` binds {C} to a real listed component
+ * rather than to any text, so "List / Item" is recognised as belonging
+ * to "List" and only to it.
+ */
+export function subcomponentParentOf(
+  name: string,
+  listedNames: string[],
+  conventions: { match?: string[]; exclude?: string[] } = {}
+): string | null {
+  const patterns = conventions.match ?? [];
+  if (patterns.length === 0) return null;
+  const path = normalizePath(name);
+
+  const matchesAnyWith = (list: string[], parent: string) =>
+    list.some(pattern => bindPattern(pattern, parent).test(path));
+
+  for (const parent of listedNames) {
+    const parentPath = normalizePath(parent);
+    if (parentPath === path) continue;
+    if (!matchesAnyWith(patterns, parentPath)) continue;
+    if (matchesAnyWith(conventions.exclude ?? [], parentPath)) continue;
+    return parent;
+  }
+  return null;
+}
+
+function normalizePath(name: string): string {
+  return name
+    .split('/')
+    .map(s => s.trim())
+    .filter(s => s.length > 0)
+    .join(' / ')
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
+function bindPattern(pattern: string, parentPath: string): RegExp {
+  const source = normalizePath(pattern)
+    .split(/(\{c\}|\{s\})/)
+    .map(part => {
+      if (part === '{c}') return escapeRegExp(parentPath);
+      if (part === '{s}') return '.+';
+      return escapeRegExp(part);
+    })
+    .join('');
+  return new RegExp(`^${source}$`);
+}
+
+/**
+ * Dev status is a property of a component, and the pieces a component composes
+ * carry none of their own — a subcomponent has no status to read, and a
+ * sibling it instances was curated on its own merits. So devStatus-derived
+ * curation deselects the dependencies of its own selection, and generating
+ * from it produces scaffolds importing output that was never generated.
+ *
+ * Every listed component a checked component composes, transitively, is
+ * retained.
+ */
+export function retainComposedDependencies(
+  rows: Array<{ id: string; name: string; included: boolean }>,
+  composedOf: (checkedIds: string[]) => Set<string>,
+  conventions: { match?: string[]; exclude?: string[] } = {}
+): number {
+  const checkedRows = rows.filter(r => r.included);
+  if (checkedRows.length === 0) return 0;
+  const needed = composedOf(checkedRows.map(r => r.id));
+  const checkedNames = checkedRows.map(r => r.name);
+  let retained = 0;
+  for (const row of rows) {
+    if (row.included || !needed.has(row.id)) continue;
+    if (subcomponentParentOf(row.name, checkedNames, conventions)) continue;
+    row.included = true;
+    retained += 1;
+  }
+  return retained;
+}
+
+/**
+ * Authoring aids that live in the library as components but are not components
+ * of it: the Examples sets a designer keeps beside a component, and the sets
+ * that carry the code-only-props surface. Generating them writes spec folders
+ * for things nothing consumes.
+ *
+ * Hidden folders (`_`) are organisational, so they are dropped before matching
+ * — otherwise "Slider / _ / Examples / Steps" slips past the declared
+ * `{C} / Examples / {S}` exclusion that is meant to catch exactly it.
+ */
+export function isAuthoringAid(
+  name: string,
+  conventions: { exclude?: string[]; codeOnlyProps?: string } = {}
+): boolean {
+  const segments = name.split('/').map(s => s.trim()).filter(s => s.length > 0 && s !== '_');
+  const path = segments.join(' / ');
+  const norm = (s: string) => s.replace(/\s+/g, ' ').toLowerCase();
+
+  if (conventions.codeOnlyProps && segments.length > 0) {
+    if (norm(segments[0]) === norm(conventions.codeOnlyProps)) return true;
+  }
+
+  // A pattern is a name shape, not a regex: {C} and {S} stand for any parent
+  // and any child, since a listing has no one parent in hand to bind them to.
+  return (conventions.exclude ?? []).some(pattern => {
+    const source = pattern
+      .split(/(\{C\}|\{S\})/)
+      .map(part => (part === '{C}' || part === '{S}' ? '.+' : escapeRegExp(norm(part))))
+      .join('');
+    return new RegExp(`^${source}$`).test(norm(path));
+  });
+}
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 export interface MergeStats {
@@ -177,7 +262,9 @@ function readPriorManifest(outputPath: string): ManifestRowV2[] | null {
   }
 
   if (ManifestParserV2.isV2(content)) {
-    return ManifestParserV2.parse(content).components;
+    const { components, warnings } = ManifestParserV2.parse(content);
+    for (const warning of warnings) console.warn(`⚠ ${warning}`);
+    return components;
   }
   return null;
 }
@@ -187,7 +274,7 @@ function escapeCell(value: string): string {
 }
 
 /**
- * Partition components by glyphNamePattern. When pattern is falsy, all
+ * Partition components by the glyph naming convention. When the pattern is falsy, all
  * components stay in the components list and glyphs is empty.
  */
 export function partitionByGlyphPattern(
@@ -240,7 +327,7 @@ function generateManifestV2(
     lines.push('');
     lines.push('## Glyphs');
     lines.push('');
-    lines.push('_Detected via `glyphNamePattern`. Excluded from `specs generate`._');
+    lines.push('_Detected via `glyphs.match` in `config/conventions/figma.yaml`. Excluded from `specs generate`._');
     lines.push('');
     lines.push('| Name | ID | Type |');
     lines.push('|------|------|------|');
@@ -254,11 +341,11 @@ function generateManifestV2(
 
 export const Scan = new Command('scan')
   .description('Scan Figma file and generate component manifest for curation')
-  .argument('[file]', 'Path to Figma JSON file (default: resolved from configured source in specs.config.yaml)')
+  .argument('[file]', 'Path to Figma JSON file (default: resolved from a configured source in the workspace settings)')
   .option('--source <alias>', 'Configured source alias to scan (required when multiple sources exist)')
-  .option('-o, --output <path>', 'Output manifest file path (default: {dataDirectory}/{alias}.manifest.md)')
+  .option('-o, --output <path>', 'Output manifest file path (default: {data.directory}/{alias}.manifest.md)')
   .option('--data-dir <dir>', 'Override data directory for default manifest output path')
-  .option('--config <path>', 'Path to config file (specs.config.yaml)')
+  .option('--config <path>', 'Path to a config/ directory or legacy specs.config.yaml')
   .option('--include-all', 'Include all components (overrides devStatus and heuristics)', false)
   .option('--keep-checks', 'Preserve prior checkbox state for existing rows; ignore devStatus changes', false)
   .option('--reset-checks', 'Ignore prior manifest and re-derive checks from devStatus / heuristics', false)
@@ -271,8 +358,9 @@ export const Scan = new Command('scan')
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
 
-      const { configDir, config } = loadConfig(options.config);
-      const dataDir = options.dataDir || config.dataDirectory || config.sourceDirectory;
+      const config = new ConfigLoader().load(options.config);
+      const configDir = config.configDir ?? process.cwd();
+      const dataDir = options.dataDir || config.settings.data?.directory;
       const resolvedDir = path.resolve(configDir, dataDir || '.');
 
       let file: string;
@@ -283,12 +371,16 @@ export const Scan = new Command('scan')
         }
         file = fileArg;
       } else {
-        const fileSources = Object.entries(config.sources || {}).filter(
-          ([, entry]) => Array.isArray(entry.data) && entry.data.includes('file')
+        const fileSources = Object.entries(config.settings.data?.sources ?? {}).filter(
+          ([, entry]) => Array.isArray(entry.fetch) && entry.fetch.includes('file')
         );
 
-        if (fileSources.length === 0) {
-          console.error('Error: No <file> argument provided and no sources configured in specs.config.yaml');
+        // An alias fetched with `specs fetch --source` is never in config, so an alias
+        // with a payload on disk is as real a source as a configured one.
+        const fetchedOnDisk = (alias: string) => fs.existsSync(path.join(resolvedDir, `${alias}.file.json`));
+
+        if (fileSources.length === 0 && !(options.source && fetchedOnDisk(options.source))) {
+          console.error('Error: No <file> argument provided and no sources configured in the workspace settings');
           console.error('Tip: run `specs fetch` first, or pass a file path explicitly (e.g., `specs scan data/library.file.json`)');
           process.exit(ERROR_CODES.INVALID_ARGS);
         }
@@ -296,13 +388,14 @@ export const Scan = new Command('scan')
         let alias: string;
         if (options.source) {
           const match = fileSources.find(([name]) => name === options.source);
-          if (!match) {
+          if (!match && !fetchedOnDisk(options.source)) {
             const available = fileSources.map(([name]) => name).join(', ');
             console.error(`Error: --source "${options.source}" did not match a configured source with file data`);
-            console.error(`Available: ${available}`);
+            console.error(`Available: ${available || '(none)'}`);
+            console.error(`Tip: an unconfigured source needs its payload fetched first — \`specs fetch --source ${options.source}=<url>\``);
             process.exit(ERROR_CODES.INVALID_ARGS);
           }
-          alias = match[0];
+          alias = match ? match[0] : options.source;
         } else if (fileSources.length === 1) {
           alias = fileSources[0][0];
         } else {
@@ -356,9 +449,19 @@ export const Scan = new Command('scan')
       // Sort by name for stable diffs
       componentInfoList.sort((a, b) => a.name.localeCompare(b.name));
 
-      const glyphPattern = config.config?.processing?.glyphNamePattern;
+      const figmaConventions = figmaOf(config.conventions);
+      const aidConventions = {
+        exclude: figmaConventions.subcomponents?.exclude,
+        codeOnlyProps: figmaConventions.codeOnlyProps?.match,
+      };
+      const listable = componentInfoList.filter(c => !isAuthoringAid(c.name, aidConventions));
+      if (options.verbose && listable.length < componentInfoList.length) {
+        console.error(`[CLI] Excluded ${componentInfoList.length - listable.length} authoring-aid component(s)`);
+      }
+
+      const glyphPattern = figmaConventions.glyphs?.match;
       const { components: componentList, glyphs: glyphList } = partitionByGlyphPattern(
-        componentInfoList,
+        listable,
         glyphPattern
       );
 
@@ -384,6 +487,20 @@ export const Scan = new Command('scan')
           included: defaults.get(c.id) ?? false,
           devStatus: c.devStatus as DevStatus
         }));
+      }
+
+      if (!options.includeAll) {
+        const retained = retainComposedDependencies(
+          rows,
+          ids => discovery.composedComponentIds(ids),
+          {
+            match: figmaConventions.subcomponents?.match,
+            exclude: figmaConventions.subcomponents?.exclude,
+          }
+        );
+        if (retained > 0) {
+          console.error(`Retained ${retained} component(s) composed by checked components`);
+        }
       }
 
       const manifest = generateManifestV2(

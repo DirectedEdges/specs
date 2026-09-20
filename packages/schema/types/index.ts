@@ -8,15 +8,24 @@
 
 // Core component types
 export type { Component } from './Component.js';
-export type { Anatomy, AnatomyElement, ElementTypeRef, SubcomponentRef } from './Anatomy.js';
+export type {
+  SpecConcernDocument,
+  SpecApiDocument,
+  SpecVariantsDocument,
+  SpecExamplesDocument,
+  SpecApiSubcomponent,
+  SpecVariantsSubcomponent,
+  SpecExamplesSubcomponent,
+} from './ConcernDocument.js';
+export type { Anatomy, AnatomyElement, ElementTypeRef, SubcomponentRef, RoleConceptName, ActionConceptName, ActionEntry } from './Anatomy.js';
 export type { Props, AnyProp, BooleanProp, StringProp, EnumProp, SlotProp, NumberProp, FigmaCodeOnlySource, FigmaPropExtension, PropExtensions } from './Props.js';
 export type { Variant, Variants } from './Variant.js';
-export type { Metadata } from './Metadata.js';
+export type { Metadata, RunMetadata, Concern } from './Metadata.js';
 export type { Subcomponent, Subcomponents, SubcomponentSource } from './Subcomponent.js';
 export type { InstanceExample, InstanceExamples } from './InstanceExample.js';
 
 // Element and structure types
-export type { Element, Elements, ElementType } from './Element.js';
+export type { Element, Elements, ElementType, ElementExtensions, FigmaElementExtension } from './Element.js';
 export type { Layout, LayoutNode } from './Layout.js';
 export type { Children, SlotBinding } from './Children.js';
 export type { SlotContent } from './SlotContent.js';
@@ -24,8 +33,23 @@ export type { Composition, Compositions } from './Composition.js';
 
 // Configuration types
 export type { PropConfigurations, PropConfigurationValue, NestedPropConfiguration } from './PropConfigurations.js';
-export type { Config, ResolvedConfig, ColorFormat, VariantStateEntry, TransformEntry } from './Config.js';
-export { DEFAULT_CONFIG } from './Config.js';
+export type {
+  Conventions,
+  ResolvedConventions,
+  MetadataConventions,
+  PlatformConventions,
+  ResolvedPlatformConventions,
+  PrimitiveKind,
+  PrimitiveEntry,
+  PrimitiveRule,
+  VariantStateEntry,
+  SpecsConventions,
+  PropReference,
+  ValueConvention,
+} from './Conventions.js';
+export { DEFAULT_CONVENTIONS } from './Conventions.js';
+export type { Settings, ResolvedSettings, ColorFormat, SourceEntry } from './Settings.js';
+export { DEFAULT_SETTINGS } from './Settings.js';
 
 // Style types
 export type { Styles, Style, ColorStyle, ColorObject, StyleKey, TokenReference, AspectRatioValue, AspectRatioStyle, Typography, Sides, Corners, ItemSpacing, LayoutMode, WrapAlignment, MainAxisAlignment, CrossAxisAlignment, Position, PositionOffset, StrokeDashPattern, TextAlignHorizontal, TextOverflow } from './Styles.js';

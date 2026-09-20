@@ -8,7 +8,7 @@
 
 | Package | Path | Description |
 |---------|------|-------------|
-| `@directededges/specs-schema` | `packages/schema/` | TypeScript types and JSON schema definitions for component specifications. Exports are type-only except for `DEFAULT_CONFIG`. |
+| `@directededges/specs-schema` | `packages/schema/` | TypeScript types and JSON schema definitions for component specifications. Exports are type-only except for `DEFAULT_CONVENTIONS`, `DEFAULT_SETTINGS`, and `DEFAULT_PIPELINE`. |
 | `@directededges/specs-cli` | `packages/cli/` | CLI for design system operations: generate, scan, and fetch component specs from the Figma REST API. |
 
 ## Dependency Flow
@@ -32,7 +32,8 @@ packages/
 │   ├── types/                   # TypeScript type definitions (source of truth)
 │   │   ├── index.ts             # Barrel export
 │   │   ├── Component.ts         # Top-level component spec shape
-│   │   ├── Config.ts            # Config interface + DEFAULT_CONFIG
+│   │   ├── Conventions.ts       # Conventions interface + DEFAULT_CONVENTIONS
+│   │   ├── Settings.ts          # Settings interface + DEFAULT_SETTINGS
 │   │   └── ...                  # Anatomy, Props, Element, Styles, etc.
 │   ├── schema/                  # JSON Schema definitions (for validation)
 │   │   ├── component.schema.json
@@ -67,7 +68,7 @@ npm run build --workspace=packages/cli      # Build CLI only
 - **Test framework**: Vitest with globals enabled
 - **Path alias**: `@` → `./src` (used in CLI package)
 - **Deterministic output**: Same input produces identical output. No side effects in the processing pipeline.
-- **Config type** (from `@directededges/specs-schema`): Controls output shape — `DETAILS`, `FORMAT_KEYS`, `FORMAT_COLOR`, `DATA_LAYOUT`, `VARIANT_DEPTH`, etc.
+- **Conventions / Settings types** (from `@directededges/specs-schema`): `Conventions` declares facts about the libraries (`platforms.figma.naming`, `platforms.figma.glyphs`, etc.) and about the spec itself (`specs.states`, `specs.accessibility`, `specs.value`) — a wrong value produces incorrect output; `Settings` controls output shape (`spec.details`, `spec.keys`, `spec.color`, `spec.layout`, `spec.variantDepth`, etc. — a different value produces different output)
 
 ## Schema Governance
 
@@ -88,10 +89,21 @@ Each step is a separate skill; run them in order. The ADR stays `DRAFT` until al
 The documentation site is built with Astro (port 4323) from `site/src/content/docs/`. Content sections:
 
 - `schema/` — one page per schema type (Component, Styles, Props, etc.)
-- `config/` — one page per config option (color, keys, layout, tokens, etc.)
+- `settings/` — one page per convention or setting (color, keys, layout, tokens, states, etc.)
 - `guides/` — how-to guides for specific features (slot constraints, variant depth, token format, etc.)
 - `cli/` — CLI overview, getting started, and per-command reference
 - `overview/` — product overview, licensing, releases
+- `roles/` — one page per role concept, plus `inventory` and `precedence`; a concept family shares one page. The `write-role-page` skill carries the template
+
+### Writing for the doc site
+
+Reference pages are scanned while implementing, not read straight through.
+
+- **Table first** wherever content has repeated shape — states, parts, props, platform bindings
+- **One paragraph** of intro, then structure
+- **Never restate what a table just said.** Prose after a table adds a consequence the table cannot hold, or it is cut
+- **Cut sentences whose only job is to introduce the next one**
+- **Explain a rule once.** Later sections reference it rather than re-teaching it
 
 ## Rules
 

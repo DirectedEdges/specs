@@ -3,6 +3,7 @@
 **Branch**: `012-element-type-references`
 **Created**: 2026-03-05
 **Status**: ACCEPTED
+**Summary**: An `ElementTypeRef` widens `AnatomyElement.type`, letting an element type point at a shared definition.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

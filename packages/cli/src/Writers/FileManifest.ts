@@ -75,12 +75,10 @@ export class FileManifest {
     const sortedComponents = sortComponentsByName(components);
     
     // Determine output mode and build appropriate manifest
-    const splitComponents = config.splitComponents || false;
-    const splitConcerns = config.splitConcerns || false;
-    const useSubfolders = config.useSubfolders || false;
-    
+    const { splitComponents, splitConcerns, useSubfolders } = config;
+
     if (!splitComponents && !splitConcerns) {
-      // Mode 1: Single file (default)
+      // Mode 1: Single library file
       this.buildSingleFileManifest(sortedComponents);
     } else if (splitComponents && !splitConcerns) {
       // Mode 2 & 3: Per-component (flat or subfolders)
@@ -89,7 +87,8 @@ export class FileManifest {
       // Mode 4: Per-concern
       this.buildPerConcernManifest(sortedComponents);
     } else {
-      // Mode 5: Combined (per-component + per-concern)
+      // Mode 5: Combined (per-component + per-concern) — the default. Component
+      // folders are structural here, so useSubfolders does not apply.
       this.buildCombinedManifest(sortedComponents);
     }
   }
@@ -174,7 +173,7 @@ export class FileManifest {
       content: {
         components: apiComponents,
         metadata: {
-          generatedAt: timestamp.toISOString(),
+          lastUpdated: timestamp.toISOString(),
           componentCount: components.length,
           concern: 'api'
         }
@@ -188,7 +187,7 @@ export class FileManifest {
       content: {
         components: variantsComponents,
         metadata: {
-          generatedAt: timestamp.toISOString(),
+          lastUpdated: timestamp.toISOString(),
           componentCount: components.length,
           concern: 'variants'
         }
@@ -205,7 +204,7 @@ export class FileManifest {
         content: {
           components: examplesComponents,
           metadata: {
-            generatedAt: timestamp.toISOString(),
+            lastUpdated: timestamp.toISOString(),
             componentCount: exampleComponentCount,
             concern: 'examples'
           }
@@ -238,7 +237,7 @@ export class FileManifest {
           ...api,
           metadata: {
             ...api.metadata,
-            generatedAt: timestamp.toISOString(),
+            lastUpdated: timestamp.toISOString(),
             concern: 'api'
           }
         },
@@ -255,7 +254,7 @@ export class FileManifest {
           ...variants,
           metadata: {
             ...variants.metadata,
-            generatedAt: timestamp.toISOString(),
+            lastUpdated: timestamp.toISOString(),
             concern: 'variants'
           }
         },
@@ -273,7 +272,7 @@ export class FileManifest {
             ...examples,
             metadata: {
               ...examples.metadata,
-              generatedAt: timestamp.toISOString(),
+              lastUpdated: timestamp.toISOString(),
               concern: 'examples'
             }
           },

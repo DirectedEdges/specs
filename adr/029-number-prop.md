@@ -3,6 +3,7 @@
 **Branch**: `029-number-prop`
 **Created**: 2026-03-17
 **Status**: ACCEPTED
+**Summary**: A `NumberProp` type and `inferNumberProps` option carry numeric properties alongside boolean, string, enum and slot props.
 **Deciders**: (author)
 **Supersedes**: *(none)*
 

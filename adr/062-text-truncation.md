@@ -2,7 +2,8 @@
 
 **Branch**: `062-text-truncation`
 **Created**: 2026-07-09
-**Status**: DRAFT
+**Status**: ACCEPTED
+**Summary**: `textOverflow` and `maxLines` properties add truncation to styles already covering typography and layout.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

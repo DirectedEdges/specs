@@ -6,16 +6,15 @@ description: "Emit the component's structurally-detected default slot content as
 <script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge pro-badge">Pro</span>')</script>
 <script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
 
-When `true`, the generator emits `Component.slotContentExamples` — the **default content placed inside a component's slot layers**, captured structurally and referenced from each slot binding via `$slotContent`. Defaults to `false`, so output for unannotated components is unchanged until you opt in.
+A run choice in `config/settings.yaml`. When `true`, the generator emits `Component.slotContentExamples` — the **default content placed inside a component's slot layers**, captured structurally and referenced from each slot binding via `$slotContent`. Defaults to `false`, so output for unannotated components is unchanged until you opt in.
 
-Unlike [`instanceExamples`](/settings/instance-examples/), slot content examples need **no detection config** — they are derived structurally from whatever content sits inside slot layers. This flag is the only control.
+Unlike [`instanceExamples`](/settings/instance-examples/), slot content examples need **no detection convention** — they are derived structurally from whatever content sits inside slot layers. This flag is the only control, and because it is a run choice rather than a library fact, it lives in `settings.yaml`.
 
 ## Configuration
 
 ```yaml
-config:
-  include:
-    defaultSlotContent: true   # emit structurally-detected default slot fills
+spec:
+  defaultSlotContent: true   # emit structurally-detected default slot fills
 ```
 
 ## Result
@@ -74,7 +73,7 @@ With `defaultSlotContent: false` (the default), the slot binding carries no `$sl
 
 ## Path
 
-`config.include.defaultSlotContent`
+`spec.defaultSlotContent` in `config/settings.yaml`
 
 ## Licensing
 
@@ -83,5 +82,5 @@ With `defaultSlotContent: false` (the default), the slot binding carries no `$sl
 ## See Also
 
 - [Guide: Default Slot Content](/guides/default-slot-content/) — what it captures and how to author it
-- [`processing.instanceExamples`](/settings/instance-examples/) — the separate, presence-driven instance-example feature
+- [`instanceExamples`](/settings/instance-examples/) — the separate, presence-driven instance-example feature
 - [Schema: Component](/schema/component/) — `slotContentExamples` registry shape

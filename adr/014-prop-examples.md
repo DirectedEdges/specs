@@ -3,6 +3,7 @@
 **Branch**: `014-prop-examples`
 **Created**: 2026-03-09
 **Status**: ACCEPTED
+**Summary**: An `examples` array on `TextProp` and `IconProp` carries sample values, and `default` becomes optional.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

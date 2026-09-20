@@ -3,7 +3,7 @@
  * These files are intentionally never executed — they are compiled with tsc
  * to assert that the type shape is correct.
  */
-import type { Anatomy, AnatomyElement, ElementTypeRef, SubcomponentRef } from '../types/index.js';
+import type { Anatomy, AnatomyElement, ElementTypeRef, SubcomponentRef, RoleConceptName } from '../types/index.js';
 
 // AnatomyElement.type accepts ElementType values
 const textElement: AnatomyElement = { type: 'text' };
@@ -90,14 +90,45 @@ if (typeof element.type === 'string') {
   const _ref: string = element.type.$ref;
 }
 
-// AnatomyElement.$extensions carries collapse provenance (ADR-058)
+// AnatomyElement.$extensions carries the Figma name (ADR-058 collapse, ADR-066 key divergence)
 const collapsedRoot: AnatomyElement = {
   type: 'text',
-  $extensions: { 'com.figma': { originalName: 'Text' } },
+  $extensions: { 'com.figma': { name: 'Text' } },
 };
+
+// ADR-066 — a key that could not represent its Figma name losslessly
+const divergentKey: AnatomyElement = {
+  type: 'glyph',
+  $extensions: { 'com.figma': { name: 'Cut & paste' } },
+};
+
+// name is optional — safe keys emit no extension at all
+const safeKey: AnatomyElement = { type: 'text' };
 
 const badExtension: AnatomyElement = {
   type: 'text',
   // @ts-expect-error — unknown extension members are rejected
   $extensions: { 'com.figma': { layerName: 'Text' } },
 };
+
+const renamedExtension: AnatomyElement = {
+  type: 'text',
+  // @ts-expect-error — originalName was renamed to name in 0.30.0 (ADR-066)
+  $extensions: { 'com.figma': { originalName: 'Text' } },
+};
+
+// ─── Element behavior roles (ADR-067) ─────────────────────────────────────────
+
+// role is optional and open — the vocabulary grows in the docs, not the schema
+const roledElement: AnatomyElement = { type: 'container', role: 'button' };
+const partRoled: AnatomyElement = { type: 'text', role: 'label' };
+
+// An unrecognized concept still type-checks: transforms ignore what they do not know
+const unknownRole: AnatomyElement = { type: 'container', role: 'carousel' };
+
+// Absence is the default — no role, today's behavior
+const unroled: AnatomyElement = { type: 'container' };
+
+const roleAlias: RoleConceptName = 'togglebutton';
+
+export { roledElement, partRoled, unknownRole, unroled, roleAlias };

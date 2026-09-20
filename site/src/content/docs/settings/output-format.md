@@ -1,9 +1,9 @@
 ---
-title: "Output Format"
+title: "format"
 description: "Control the serialization format for generated specs"
 ---
 
-Output serialization format.
+Output serialization format. A run choice in `config/settings.yaml` — a different team could pick the other format and still be correct.
 
 ## Options
 
@@ -16,12 +16,11 @@ Output serialization format.
 
 ## Path
 
-`config.format.output`
+`spec.format` in `config/settings.yaml`
 
 ### Example
 
 ```yaml
-config:
-  format:
-    output: YAML  # Generate YAML by default
+spec:
+  format: YAML  # Generate YAML by default
 ```

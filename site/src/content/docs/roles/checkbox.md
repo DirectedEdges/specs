@@ -1,0 +1,194 @@
+---
+title: "checkbox"
+description: "Inject a native checkbox input beside the visual control so the component can be checked, focused, and submitted"
+---
+
+`checkbox` declares that an element is a binary (or indeterminate) selection control. Without it the control carries `aria-selected` — a listbox-option attribute — and an inert `aria-checked`. It cannot be focused, checked, submitted, or validated; the label is an unassociated sibling; the error message rendered only when invalid is announced to no one; and the `:checked`, `:disabled`, and `:indeterminate` selectors the `css` transformer emits match nothing.
+
+**Status** — React: Implemented • Web Components: Implemented • iOS: Not yet planned • Android: Not yet planned
+
+## Roles
+
+Apply the following roles to elements:
+
+| Role | Type | Element |
+|---|---|---|
+| `checkbox` | Control | Element of `type: container` or `type: glyph` |
+| `label` | Part | Element of `type: text` or nested instance prop of `type: string` |
+| `description` | Part | Element of `type: text` or nested instance prop of `type: string` |
+| `errormessage` | Part | Element of `type: text` or `type: instance` |
+| `indicator` | Part | Element of `type: container`, `type: glyph`, or `type: vector` |
+
+| Element | Emitted as |
+|---|---|
+| Injected first sibling | Visually hidden `<input type="checkbox">` — carries the states and the contract |
+| The role element | `<label htmlFor>` pointing at the input, keeping its class and `data-element`, `aria-hidden` |
+
+The proxy's whole footprint activates the input through HTML's own label behavior, with no positioning CSS — `aria-hidden` silences announcement but not pointer events. The proxy carries only the drawn state, never the label text: the accessible name comes from a **second** `<label>` emitted by the element carrying the `label` part, and HTML permits multiple labels per control.
+
+- A `label` part must not sit inside the proxy's subtree — labels do not nest, and resolution warns if one does
+- A `glyph` carrying the role is re-hosted inside the proxy structure first
+- The injection adds one sibling, so positional CSS (`:nth-child`, adjacent-sibling selectors) in that subtree needs review
+- The stylesheet gives the proxy `cursor: pointer`
+
+### States
+
+The `checkbox` role is typically applied in conjunction with the following states:
+
+| State | Effect | Classify? |
+|---|---|---|
+| `checked` | Native `checked`, flipped by the wired handler | Recommended |
+| `indeterminate` | Native `.indeterminate` DOM property, set via a ref effect | Recommended |
+| `disabled` | Natively disabled, enforced by the platform | Recommended |
+| `required` | Native `required` | Recommended |
+| `invalid` | `aria-invalid` on the input | Recommended |
+| `hover` / `active` | Native, on the proxy input | Recommended, if the library styles it |
+| `focus` / `focus-visible` | Platform ring, re-drawn on the proxy | **Optional — prefer the platform default** |
+
+The platform draws its ring around the *focused* element, which is the hidden input with no visible box. The generated stylesheet re-draws it on the visible proxy:
+
+```css
+.checkbox__control-input:focus-visible + .checkbox__control {
+  outline: auto;
+  outline-offset: 2px;
+}
+```
+
+`outline-style: auto` asks for the platform's own ring rather than imitating it. The input is injected immediately before the proxy, so the adjacent-sibling selector holds by construction. Override the same selector for a custom indicator.
+
+Read more about [states in specs](/settings/states/).
+
+## Specs
+
+Component anatomy typically has elements and roles like:
+
+```yaml
+anatomy:
+  control:
+    type: container
+    role: checkbox
+  checkGlyph:
+    type: glyph
+    role: indicator
+  formLabel:
+    type: instance
+    instanceOf: formLabel
+    role: [label]
+  errorMessage:
+    type: instance
+    instanceOf: formErrorMessage
+    role: [errormessage]
+```
+
+## Figma
+
+Annotate the following layers:
+
+- `control` as `role:checkbox` — on the layer drawing the box, and nothing beyond it
+- the check mark as `role:indicator`
+- `label` as `role:label` on a `text` element or through a nested instance
+- the validation message as `role:errormessage`
+
+The label must not sit inside the role element's subtree — the proxy becomes a `<label>`, and labels do not nest.
+
+## React
+
+### Implementation
+
+```tsx
+<Checkbox label="Send me trip updates" checked={on} onChange={(e) => setOn(e.target.checked)} />
+```
+
+### Before / After
+
+```tsx
+// before
+<div className="checkbox" data-element="root"
+  aria-disabled={p.disabled ? 'true' : undefined}
+  aria-selected={p.selected ? 'true' : undefined}>
+  <div className="checkbox__control" data-element="control">{/* … */}</div>
+  {/* … unassociated label and error message … */}
+</div>
+
+// after
+<div className="checkbox" data-element="root">
+  <input id={controlId} type="checkbox"
+    checked={selected === "selected"}
+    onChange={(e) => { setSelected(e.target.checked ? "selected" : "unselected"); p.onChange?.(e); }}
+    disabled={p.disabled} name={p.name} value={p.value} />
+  <label className="checkbox__control" data-element="control" htmlFor={controlId} aria-hidden="true">{/* … */}</label>
+  {/* … label routed htmlFor={controlId}; error message gains id + aria-describedby … */}
+</div>
+```
+
+The proxy becoming a label is the single most important detail: without it the visual looks correct and does nothing on click.
+
+### Contract
+
+| Prop | Type | Tier | Generated body |
+|---|---|---|---|
+| `onChange?` | `(e: ChangeEvent<HTMLInputElement>) => void` | MUST | **Wired** — flips checked, then calls the prop |
+| `onBlur?` | `(e: FocusEvent) => void` | SHOULD | Stub |
+| `name?` | `string` | MUST | — form submission identity |
+| `value?` | `string` | MUST | — submitted value |
+| `checked` | `boolean` | — | The existing variant prop |
+
+`name` and `value` are genuinely new API the spec does not declare.
+
+## Web Components
+
+Same proxy structure inside the shadow root. Shadow DOM hides the inner input from a containing form, so the host participates directly: it emits `static formAssociated = true`, attaches `ElementInternals`, and reports its value and validity through them. The sync runs from `willUpdate`, so both user interaction and consumer-driven prop changes reach the form.
+
+## iOS
+
+Not yet planned. Intended binding:
+
+| | |
+|---|---|
+| Type | `Toggle` |
+| Announced | The label and checked value; double-tap flips it |
+| `indeterminate` | No native equivalent — degrades to unchecked with a warning |
+| `indicator` | Not consumed — the platform draws its own mark |
+
+## Android
+
+Not yet planned. Intended binding:
+
+| | |
+|---|---|
+| Type | `Checkbox` with `Role.Checkbox` |
+| Announced | "Checked" / "not checked"; double-tap toggles |
+| `indeterminate` | `TriStateCheckbox` with `ToggleableState.Indeterminate` |
+| `indicator` | Partly consumed — `CheckboxDefaults.colors` takes box and mark colors |
+
+## Additional details
+
+### Enum-valued state props
+
+A checked fact is boolean, but libraries routinely carry it in a three-value enum (`unselected` / `selected` / `indeterminate`). The mapping is declared entirely by the [`states` classification](/settings/states/), and the rule applies to every wired role reading an enum prop, not just this one.
+
+| Rule | Detail |
+|---|---|
+| Naming the value | `selected: { prop: selected, value: Selected }`. Without a `value`, the concept's own name is the value — `checked: { prop: state }` means `state === "checked"` |
+| Normalization | Enum values are lowercased in the emitted contract, and every generated comparison matches that spelling |
+| Write-back | A boolean prop is assigned directly; an enum prop is written to the declared checked value on check and the remaining arm on uncheck |
+| Tri-state | The flip only rewrites the checked/unchecked pair, so an `indeterminate` value set by the consumer survives until the user operates the control |
+
+Nothing here is decided by the transform — which prop, and which value counts as checked, both come from the classification.
+
+### Wired state
+
+`onChange` follows [the wired state model](/roles/#the-wired-state-model): internal state seeded from the checked prop, flipped on activation, consumer callback after.
+
+Prerequisite: a `checked` classification naming the prop. Without it the handler degrades to a stub and warns.
+
+### Accessible name
+
+From the `label` part, emitted as a real `<label>` associated by `htmlFor`. The click-target proxy is `aria-hidden` and contributes nothing.
+
+## See also
+
+- [radio](/roles/radio/) — exclusive selection, styled in place rather than proxied
+- [switch](/roles/switch/) — the same structure, announced as a switch
+- [indicator](/roles/indicator/) — the check glyph
+- [Roles overview](/roles/) — the vocabulary and how roles are authored

@@ -26,7 +26,26 @@ interface RestApiNode {
   devStatus?: { type?: string; description?: string };
 }
 
-export type DevStatus = 'READY_FOR_DEV' | 'NONE';
+/** Dev statuses Figma itself sets, plus 'NONE' for a node with no status. */
+export type KnownDevStatus = 'READY_FOR_DEV' | 'COMPLETED' | 'NONE';
+
+export const KNOWN_DEV_STATUSES: readonly KnownDevStatus[] = ['READY_FOR_DEV', 'COMPLETED', 'NONE'];
+
+/**
+ * A dev status as carried from Figma. Values outside `KnownDevStatus` are passed
+ * through verbatim rather than collapsed, so a status this CLI predates stays visible.
+ */
+export type DevStatus = KnownDevStatus | (string & {});
+
+export function isKnownDevStatus(value: string): value is KnownDevStatus {
+  return (KNOWN_DEV_STATUSES as readonly string[]).includes(value);
+}
+
+/** Normalize a node's devStatus, carrying unknown values through untouched. */
+function readDevStatus(node: RestApiNode): DevStatus {
+  const type = node.devStatus?.type?.trim();
+  return type ? type.toUpperCase() : 'NONE';
+}
 
 /**
  * Minimal structure for REST API file data
@@ -49,7 +68,7 @@ export interface ComponentInfo {
   name: string;
   /** Node type (COMPONENT or COMPONENT_SET) */
   type: string;
-  /** Dev-ready status from Figma. 'NONE' when the property is absent on the node. */
+  /** Dev status from Figma, verbatim. 'NONE' when the property is absent on the node. */
   devStatus: DevStatus;
 }
 
@@ -125,7 +144,7 @@ export class ComponentDiscovery {
           id: node.id,
           name: node.name,
           type: node.type,
-          devStatus: node.devStatus?.type === 'READY_FOR_DEV' ? 'READY_FOR_DEV' : 'NONE'
+          devStatus: readDevStatus(node)
         });
         continue;
       }
@@ -145,12 +164,60 @@ export class ComponentDiscovery {
           id: node.id,
           name: node.name,
           type: node.type,
-          devStatus: node.devStatus?.type === 'READY_FOR_DEV' ? 'READY_FOR_DEV' : 'NONE'
+          devStatus: readDevStatus(node)
         });
       }
     }
     
     return components;
+  }
+
+  /**
+   * The listable components instanced anywhere inside the given components —
+   * what those components compose, and what their composed pieces compose in
+   * turn, to a fixpoint. A generated scaffold imports the output of everything
+   * it instances, so a selection that omits these cannot generate cleanly.
+   *
+   * An instance resolves to the same row `findAllComponents` would list: a
+   * variant's COMPONENT_SET rather than the variant itself.
+   */
+  composedComponentIds(rootIds: Iterable<string>): Set<string> {
+    const found = new Set<string>();
+    const queue = [...rootIds];
+    const walked = new Set<string>();
+
+    const listableOwner = (componentId: string): string | undefined => {
+      const node = this._nodeMap.get(componentId);
+      if (!node) return undefined;
+      if (node.type === 'COMPONENT') {
+        const parent = this._nodeMap.get(this._parentMap.get(node.id) ?? '');
+        if (parent?.type === 'COMPONENT_SET') return parent.id;
+      }
+      return node.id;
+    };
+
+    while (queue.length > 0) {
+      const rootId = queue.shift()!;
+      if (walked.has(rootId)) continue;
+      walked.add(rootId);
+      const root = this._nodeMap.get(rootId);
+      if (!root) continue;
+
+      const visit = (node: RestApiNode): void => {
+        const componentId = (node as { componentId?: string }).componentId;
+        if (node.type === 'INSTANCE' && componentId) {
+          const owner = listableOwner(componentId);
+          // Self-instancing (a set's own variant) adds nothing to the selection.
+          if (owner && owner !== rootId && !found.has(owner)) {
+            found.add(owner);
+            queue.push(owner);
+          }
+        }
+        for (const child of node.children ?? []) visit(child);
+      };
+      visit(root);
+    }
+    return found;
   }
 
   /**

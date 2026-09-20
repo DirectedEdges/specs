@@ -200,6 +200,49 @@ describe('ComponentDiscovery', () => {
       expect(discovery.getFileLastModified()).toBe('2026-05-08T17:48:26Z');
     });
 
+    it('should carry non-READY_FOR_DEV statuses through verbatim', async () => {
+      const filePath = path.join(testDir, 'library.json');
+      const data = {
+        name: 'Test Library',
+        document: {
+          id: '0:0',
+          name: 'Document',
+          type: 'DOCUMENT',
+          children: [
+            {
+              id: '1:1',
+              name: 'Page',
+              type: 'CANVAS',
+              children: [
+                {
+                  id: '9313:18494',
+                  name: 'Text Field',
+                  type: 'COMPONENT_SET',
+                  devStatus: { type: 'COMPLETED', description: '' },
+                  children: []
+                },
+                {
+                  id: '9313:18495',
+                  name: 'Future Set',
+                  type: 'COMPONENT_SET',
+                  devStatus: { type: 'in_review' },
+                  children: []
+                }
+              ]
+            }
+          ]
+        }
+      };
+
+      fs.writeJSONSync(filePath, data);
+
+      const discovery = await ComponentDiscovery.fromFile(filePath);
+      const components = discovery.findAllComponents();
+
+      expect(components.find(c => c.id === '9313:18494')?.devStatus).toBe('COMPLETED');
+      expect(components.find(c => c.id === '9313:18495')?.devStatus).toBe('IN_REVIEW');
+    });
+
     it('should exclude variant children from results', async () => {
       const filePath = path.join(testDir, 'library.json');
       const data = {

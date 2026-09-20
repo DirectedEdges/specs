@@ -2,7 +2,8 @@
 
 **Branch**: `042-composition-type`
 **Created**: 2026-05-19
-**Status**: DRAFT
+**Status**: ACCEPTED
+**Summary**: A `processing.instanceExamples` block and `include.defaultSlotContent` govern which examples a spec carries.
 **Deciders**: Nathan Curtis (author)
 **Depends on**: [ADR-047 — Component Slot Examples](047-component-slot-examples), [ADR-048 — Component Instance Examples](048-component-instance-examples)
 

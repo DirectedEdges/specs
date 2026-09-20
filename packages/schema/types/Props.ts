@@ -35,6 +35,17 @@ export interface FigmaPropExtension {
   type?: string;
   /** Provenance metadata — present only for props extracted from a code-only container layer. @since 0.14.0 */
   source?: FigmaCodeOnlySource;
+  /**
+   * The Figma component-property name (ADR-066). Recorded when the name fell outside
+   * the safe key grammar, or when it was already written in the destination format and
+   * passed through unformatted — in which case reversal is identity, not re-derivation.
+   *
+   * Both triggers require `format.figmaKeys` to be other than NONE. Under NONE no
+   * source convention is declared, so divergence is not evaluated and this field is
+   * absent however the key was derived.
+   * @since 0.30.0
+   */
+  name?: string;
   /** Additional Figma-specific metadata passes through without type enforcement. */
   [key: string]: unknown;
 }
@@ -97,12 +108,25 @@ export interface EnumProp {
 }
 
 /**
- * Number property definition (numeric-valued props inferred from TEXT code-only props)
+ * Number property definition — a numeric-valued prop, whether inferred from a TEXT
+ * code-only prop or from a VARIANT whose options are all numbers (in which case
+ * `enum` carries them).
  */
 export interface NumberProp {
   type: 'number';
   /** Default numeric value. Optional — omitted when no meaningful default exists. */
   default?: number;
+  /**
+   * The closed set of accepted values, when the source enumerates them rather than
+   * leaving the range open — a Figma VARIANT whose every option is numeric, say.
+   * Absent means the prop accepts any number.
+   *
+   * Its presence changes what `nullable` defaults to in spirit but not in rule: an
+   * enumerated prop lists every value it accepts, so a numeric enum that excludes
+   * null should say `nullable: false` rather than rely on the open-set default
+   * below. @since 0.31.0
+   */
+  enum?: number[];
   /**
    * Whether this prop accepts a null value.
    * Absent means `true` — a number prop has an open value set, so null is
@@ -111,6 +135,8 @@ export interface NumberProp {
   nullable?: boolean;
   /** Sample numeric values demonstrating typical content for this prop */
   examples?: number[];
+  /** DTCG §5.2.3 platform-specific extensions. @since 0.30.0 */
+  $extensions?: PropExtensions;
 }
 
 /**

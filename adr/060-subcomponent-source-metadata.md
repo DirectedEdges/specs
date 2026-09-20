@@ -3,6 +3,7 @@
 **Branch**: `060-subcomponent-source-metadata`
 **Created**: 2026-06-27
 **Status**: ACCEPTED
+**Summary**: A `Subcomponent.source` carrying `pageId`, `nodeId` and `nodeType` resolves a subcomponent back to its Figma node.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

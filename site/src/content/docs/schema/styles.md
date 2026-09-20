@@ -15,7 +15,7 @@ The `Styles` object holds visual properties for an element. Every property is op
 | [`bottom`](/schema/styles/bottom/) | `PositionOffset` | `y` and constraints <small>[ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md)</small> |
 | [`centerHorizontalOffset`](/schema/styles/center-horizontal-offset/) | `PositionOffset` | `x` and constraints <small>[ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md)</small> |
 | [`centerVerticalOffset`](/schema/styles/center-vertical-offset/) | `PositionOffset` | `y` and constraints <small>[ADR 041](https://github.com/DirectedEdges/specs/blob/main/adr/041-layout-positioning.md)</small> |
-| [`clipContent`](/schema/styles/clip-content/) | `Style` | — |
+| [`clipsContent`](/schema/styles/clips-content/) | `Style` | — |
 | [`cornerRadius`](/schema/styles/corner-radius/) | `Style`<br>`Corners` | — |
 | [`cornerSmoothing`](/schema/styles/corner-smoothing/) | `Style` | — |
 | [`crossAxisAlignment`](/schema/styles/cross-axis-alignment/) | `CrossAxisAlignment` | `counterAxisAlignItems` <small>[ADR 040](https://github.com/DirectedEdges/specs/blob/main/adr/040-layout-alignment.md)</small> |

@@ -48,10 +48,11 @@ A `StringProp` is distinguished from an `EnumProp` by the absence of `enum`.
 |----------|------|----------|-------------|
 | `type` | `'number'` | Yes | |
 | `default` | `number` | No | Default value |
+| `enum` | `number[]` | No | Closed set of allowed values, recorded when the prop was inferred from a VARIANT prop's finite value set (ADR-072) |
 | `nullable` | `boolean` | No | Whether `null` is a valid value — absent means `true` (since 0.29.0) |
 | `examples` | `number[]` | No | Example values |
 
-Inferred from Figma variant values when [`inferNumberProps`](/schema/config.md/#processing) is enabled.
+Inferred from Figma variant values when [`conventions.platforms.figma.inferNumberProps`](/schema/conventions/#platform-members) is enabled; a prop inferred from a VARIANT source carries the variant's values as `enum`.
 
 ### SlotProp
 
@@ -65,7 +66,7 @@ Inferred from Figma variant values when [`inferNumberProps`](/schema/config.md/#
 | `anyOf` | `string[]` | No | Permitted component type names (since 0.14.0) |
 | `$extensions` | `PropExtensions` | No | Vendor extensions |
 
-Slot constraint properties (`minChildren`, `maxChildren`, `anyOf`) are emitted when [`slotConstraints`](/schema/config.md/#processing) is enabled in config.
+Slot constraint properties (`minChildren`, `maxChildren`, `anyOf`) are emitted when [`conventions.platforms.figma.slotConstraints`](/schema/conventions/#platform-members) is declared.
 
 ### ImageProp
 
@@ -74,9 +75,29 @@ Slot constraint properties (`minChildren`, `maxChildren`, `anyOf`) are emitted w
 | `type` | `'image'` | Yes | |
 | `default` | `string \| null` | No | Default image — an `images` registry reference, or null |
 | `nullable` | `boolean` | No | Whether `null` is a valid value — absent means `true` |
+| `examples` | `ImageValue[]` | No | Authoring-default images the component was authored with (since 0.33.0) |
 | `$extensions` | `PropExtensions` | No | Vendor extensions |
 
-An image-valued property (e.g. a `dsImage` `source` prop). The authoring-default image rides on the [`ImageBinding`](/schema/prop-configurations/) at the binding site, not on the prop. Emitted for code-only props named in [`processing.images.sourceProps`](/schema/config/#processingimages) (since 0.28.0).
+An image-valued property (e.g. a `dsImage` `source` prop). Emitted for code-only props named in [`figma.images.sourceProps`](/schema/conventions/#images) (since 0.28.0).
+
+An authoring-default image sits in one of two places, and they describe different things:
+
+| Location | Describes |
+|----------|-----------|
+| [`ImageBinding.examples`](/schema/prop-configurations/) | The image at *that binding site* — how one consumer placed it |
+| `ImageProp.examples` | The image *the component itself* was authored with |
+
+Where both apply to one rendered instance, the binding is the more specific statement. A designated image component is the origin of an image rather than a consumer of one, so it has no binding site in its own spec — `examples` on the prop is its only home for this.
+
+`examples` is non-contractual reference material, parallel to `StringProp.examples`, and is distinct from `default`: a default states what the prop resolves to when a consumer omits it, while examples only demonstrate typical content.
+
+```yaml
+props:
+  imageSource:
+    type: image
+    examples:
+      - $image: "#/components/dsImage/images/dsImage__image"
+```
 
 ## Nullability
 
@@ -115,6 +136,7 @@ The `$extensions` object holds vendor-specific metadata. Currently only the `com
 |----------|------|-------------|
 | `type` | `string` | Figma property type (e.g. `BOOLEAN`, `TEXT`, `INSTANCE_SWAP`, `VARIANT`) |
 | `source` | `FigmaCodeOnlySource` | Present when the prop originates from a code-only prop layer |
+| `name` | `string` | The Figma property name, present only when the prop key cannot reconstruct it — see [Key Formatting](/guides/key-formatting/) |
 
 ### FigmaCodeOnlySource
 
@@ -131,3 +153,5 @@ The `$extensions` object holds vendor-specific metadata. Currently only the `com
 - [ADR 056 — Rename SlotProp.minItems/maxItems → minChildren/maxChildren](https://github.com/DirectedEdges/specs/blob/main/adr/056-slot-children-constraints.md) — aligns field names with Figma native `slotSettings`; adds native `preferredValues` resolution
 - [ADR 029 — NumberProp](https://github.com/DirectedEdges/specs/blob/main/adr/029-number-prop.md) — adds the `NumberProp` type with opt-in inference
 - [ADR 063 — Image Content](https://github.com/DirectedEdges/specs/blob/main/adr/063-image-content.md) — adds the `ImageProp` type and image fills/registry
+- [ADR 088 — Authoring-default images on `ImageProp`](https://github.com/DirectedEdges/specs/blob/main/adr/088-image-prop-examples.md) — adds `ImageProp.examples`
+- [ADR 066 — Lossless Key Formatting](https://github.com/DirectedEdges/specs/blob/main/adr/066-lossless-key-formatting.md) — adds `name` to `FigmaPropExtension` so lossy key formats stay reversible

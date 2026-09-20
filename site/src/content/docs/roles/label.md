@@ -1,0 +1,121 @@
+---
+title: "label"
+description: "Emit a real label element wired to the control it names"
+---
+
+`label` marks the element carrying a control's visible label text. Without it a label is a container with text: clicking it does nothing, and assistive technology has no way to connect the text to the control it names.
+
+**Status** — React: Implemented • Web Components: Implemented • iOS: Not yet planned • Android: Not yet planned
+
+For a proxy-input control like [checkbox](/roles/checkbox/), keeping the label as its own element is what stops the accessible name from swallowing description and required-indicator text sharing a wrapper.
+
+## Roles
+
+Apply the following roles to elements:
+
+| Role | Type | Element |
+|---|---|---|
+| `label` | Part | Element of `type: text`, `type: slot`, or `type: instance`, or nested instance prop of `type: string` |
+
+| Where | What is emitted |
+|---|---|
+| The `label` element | A real `<label>` with `htmlFor` referencing the control's generated id |
+| The resolved control | A generated `id` |
+| On a [`group`](/roles/group/) | `<legend>` instead, rendered first — there is no control id to point at |
+| On an `instance` | Routing only — the control's id is routed in; the wrapper's tag never changes |
+| Inside a collapsing control | Lifted out, re-emitted as a sibling of the emitted control |
+
+A component only emits the `<label>` element for text it owns. A consumer wrapping a label subcomponent routes its control id in and the subcomponent emits the element — two nested `<label>` tags are impossible by construction.
+
+## Specs
+
+Component anatomy typically has elements and roles like:
+
+```yaml
+anatomy:
+  field:
+    type: container
+    role: textbox
+  fieldLabel:
+    type: text
+    role: label
+```
+
+## Figma
+
+Annotate the following layers:
+
+- the label text layer as `role:label`
+- on a composed label component, `role:label` on the instance — it routes rather than emits
+- on a [`group`](/roles/group/), the heading layer or its `slot`
+
+## React
+
+### Implementation
+
+```tsx
+<TextInput label="Email address" />
+```
+
+### Before / After
+
+```tsx
+// before
+<div className="field-label">{p.label}</div>
+<div className="input" />
+
+// after
+<label className="field-label" htmlFor={inputId}>{p.label}</label>
+<input className="input" id={inputId} />
+```
+
+### Contract
+
+None. Clicking a `<label htmlFor>` focuses or activates its control because HTML supplies that behavior; the control's own role carries the event surface.
+
+## Web Components
+
+Within one shadow root the emission is identical. Across components it is not: an `htmlFor` reference does not cross a shadow boundary, so a composed label cannot associate to the consumer's control by id.
+
+Accessible **text** recovers through the generated [`partText()`](/roles/#parts-across-a-composed-component) convention. What does not recover is **activation** — clicking a composed label's text does not operate the control on this target.
+
+## iOS
+
+Not yet planned. Intended binding:
+
+| | |
+|---|---|
+| Emits | `.accessibilityLabel`, or `LabeledContent` where the label is visible |
+| Announced | The control is announced by this text |
+| Activation | Structural — a `LabeledContent` row is one target |
+
+## Android
+
+Not yet planned. Intended binding:
+
+| | |
+|---|---|
+| Emits | `contentDescription`, merged into the control's semantics |
+| Announced | The control is announced by this text |
+| Activation | The label is included in the control's touch target when merged |
+
+## Additional details
+
+### Resolution
+
+| Accepting control | How it resolves |
+|---|---|
+| Value-bearing (`textbox`, `checkbox`, `radio`, `switch`, `slider`, …) | To the component's single value-bearing control, wherever either sits |
+| Non-value-bearing (`button`, `togglebutton`, `link`, `disclosure`) | By proximity; ambiguity is an error naming the part and every candidate |
+| No candidate control | Valid — emits `<label>` and an id, no `htmlFor`. It *provides* the part; wiring arrives on composition |
+
+### Where it emits nothing
+
+Against a control named by its own content — a [`button`](/roles/button/) whose text is inside it — a `<label>` would be invalid markup and redundant. The part still matters as a **declaration**: it is what tells `button` to skip emitting an `aria-label` over text that already names it.
+
+## See also
+
+- [errormessage](/roles/errormessage/) — the describing part, wired through `aria-describedby`
+- [group](/roles/group/) — where `label` becomes a `<legend>`
+- [textbox](/roles/textbox/) and [checkbox](/roles/checkbox/) — controls that accept it
+- [Roles overview](/roles/) — the vocabulary and how roles are authored

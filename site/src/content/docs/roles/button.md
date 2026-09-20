@@ -1,0 +1,170 @@
+---
+title: "button"
+description: "Emit a native button that focuses, activates from the keyboard, and carries an onClick contract"
+---
+
+`button` declares that an element performs an action when activated. Without it the element cannot be tabbed to, Enter and Space do nothing, the generated props carry no `onClick` for a consumer to attach to, and a disabled state renders as an `aria-disabled` attribute the element cannot enforce — so a greyed-out button still receives clicks.
+
+**Status** — React: Implemented • Web Components: Implemented • iOS: Not yet planned • Android: Not yet planned
+
+## Roles
+
+Apply the following roles to elements:
+
+| Role | Type | Element |
+|---|---|---|
+| `button` | Control | Element of `type: container` or `type: glyph` |
+| `label` | Part | Element of `type: text` or nested instance prop of `type: string` |
+| `description` | Part | Element of `type: text` or nested instance prop of `type: string` |
+| `indicator` | Part | Element of `type: container` or `type: glyph` |
+
+The role element becomes the button and its descendants render inside it.
+
+| Landing on | Result |
+|---|---|
+| `container` | Becomes the button; descendants render inside |
+| `glyph` | Re-hosted **inside** the button rather than becoming it — adds one level to the markup |
+
+Descendants that would otherwise emit as `<div>` emit as `<span>`: a button may only contain phrasing content. Classes, `data-element` values, and layout are unchanged.
+
+### States
+
+The `button` role is typically applied in conjunction with the following states:
+
+| State | Effect | Classify? |
+|---|---|---|
+| `disabled` | Natively disabled — unfocusable and unclickable, enforced by the platform | Recommended |
+| `hover` / `active` | Native, on the button itself | Recommended, if the library styles it |
+| `focus` / `focus-visible` | Native focus indicator | **Optional — prefer the platform default** |
+
+Platforms ship a focus indicator that already meets contrast requirements. Specifying one from Figma usually replaces a good default with a worse one.
+
+Unclassified props still work — they emit as `data-*` attributes for styling.
+
+Read more about [states in specs](/settings/states/).
+
+## Specs
+
+Component anatomy typically has elements and roles like:
+
+```yaml
+anatomy:
+  root:
+    type: container
+    role: button
+  label:
+    type: text
+    role: label
+  icon:
+    type: glyph
+    role: indicator
+```
+
+## Figma
+
+Annotate the following layers:
+
+- `root` as `role:button` — on the component node
+- `label` as `role:label` on a `text` element or through a nested instance
+- decorative glyphs as `role:indicator`
+
+An icon-only button needs a name it cannot get from content. Nominate the prop carrying it as the accessible-name source in `conventions/specs.yaml`, or the transform warns.
+
+## React
+
+### Implementation
+
+```tsx
+<Button onClick={() => save()}>Save</Button>
+<IconButton icon="close" accessibilityLabel="Close" onClick={() => dismiss()} />
+```
+
+### Before / After
+
+```tsx
+// before
+<div
+  className="button"
+  data-element="root"
+  aria-disabled={p.disabled ? 'true' : undefined}
+>
+  {/* … */}
+</div>
+
+// after
+<button
+  type="button"
+  className="button"
+  data-element="root"
+  disabled={p.disabled}
+  onClick={p.onClick}
+>
+  {/* … */}
+</button>
+```
+
+### Contract
+
+| Prop | Type | Tier | Generated body |
+|---|---|---|---|
+| `onClick?` | `(e: MouseEvent) => void` | MUST | Calls the prop, nothing more |
+| `type?` | `'button' \| 'submit' \| 'reset'` | MUST | — |
+| `onFocus?` / `onBlur?` | `(e: FocusEvent) => void` | COULD | Forwarded to the element |
+
+## Web Components
+
+The custom element **is** the root, so a root `button` cannot become a `<button>` tag. A real `<button>` is emitted **inside** the shadow root, wrapping the root's content:
+
+- The shadow root sets `delegatesFocus`, so the host stays one focusable box
+- The inner button is `all: unset` and takes no box, so the host keeps the root's layout and appearance exactly as the stylesheet writes it
+- It is exposed as `part="button"` for consumers who need to reach it
+
+Host semantics — `role="button"` plus `tabindex` — were tried and rejected. An ARIA role buys the announcement and nothing else: Enter and Space activation, `:disabled` blocking events, `:focus-visible`, and form participation are all behavior only a native element supplies. The earlier version announced a button no keyboard user could operate.
+
+A **non-root** button is an ordinary element in the template and carries the tag directly.
+
+## iOS
+
+Not yet planned. Intended binding:
+
+| | |
+|---|---|
+| Type | `Button` |
+| Announced | "Button"; becomes a rotor stop |
+| `disabled` | `.disabled(_:)` |
+| Keyboard | Reachable via Full Keyboard Access |
+
+## Android
+
+Not yet planned. Intended binding:
+
+| | |
+|---|---|
+| Type | `Button` with `Role.Button` |
+| Announced | "Button"; double-tap activates |
+| `disabled` | `enabled = false` |
+| Focus | Joins the accessibility focus order |
+
+## Additional details
+
+### Accessible name
+
+| Source | Result |
+|---|---|
+| Text the button already contains | Names it; no `label` part needed |
+| `label` part | Names it |
+| A prop nominated as the accessible-name source | Emitted as the platform's label — the icon-only case |
+| Nothing resolves | **Warns.** A correctly-marked button that announces nothing is worse than the container it replaced |
+
+### `onClick` is a stub, deliberately
+
+A click on a button means whatever the consumer decides, and the design file cannot say what. The transform calls the prop and does nothing else.
+
+This is where `button` differs from [togglebutton](/roles/togglebutton/), which owns a state the click changes and so gets real generated logic.
+
+## See also
+
+- [togglebutton](/roles/togglebutton/) — a button that keeps a pressed state
+- [link](/roles/link/) — activation that navigates rather than acts
+- [indicator](/roles/indicator/) — decorative glyphs inside a button
+- [Roles overview](/roles/) — the vocabulary and how roles are authored

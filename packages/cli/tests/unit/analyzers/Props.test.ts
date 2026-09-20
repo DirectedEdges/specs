@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
 import yaml from 'yaml';
-import { PropsAnalyzer } from '../../../src/analyzers/Props.js';
+import { PropsAnalyzer, propIsNullable } from '../../../src/analyzers/Props.js';
 
 type AggregateYaml = {
   summary: { totalProps: number; totalComponents: number; uniquePropNames: number; typeDistribution: Record<string, number> };
@@ -32,7 +32,7 @@ describe('PropsAnalyzer', () => {
     for (const [componentKey, apiYaml] of Object.entries(components)) {
       const compDir = path.join(outputDir, componentKey);
       await fs.ensureDir(compDir);
-      await a.run(apiYaml, { outputDir: compDir, componentKey, outputFormat });
+      await a.run(apiYaml, { specDir: compDir, outputDir: compDir, workspaceDir: compDir, componentKey, tokensFormat: 'TOKEN', outputFormat });
     }
     await a.finalize!(outputDir, analysisDir);
     if (outputFormat === 'JSON') {
@@ -61,7 +61,7 @@ describe('PropsAnalyzer', () => {
     const compDir = path.join(outputDir, 'compA');
     await fs.ensureDir(compDir);
     const a = new PropsAnalyzer();
-    await a.run({ props: { label: { type: 'string' } } }, { outputDir: compDir, componentKey: 'compA', outputFormat: 'YAML' });
+    await a.run({ props: { label: { type: 'string' } } }, { specDir: compDir, outputDir: compDir, workspaceDir: compDir, componentKey: 'compA', tokensFormat: 'TOKEN', outputFormat: 'YAML' });
     expect(fs.existsSync(path.join(compDir, 'props.yaml'))).toBe(false);
   });
 
@@ -221,7 +221,32 @@ describe('PropsAnalyzer', () => {
     expect(slot?.minItems).toBe(1);
     expect(slot?.maxItems).toBe(3);
     expect(slot?.anyOf).toEqual(['DsButton']);
-    expect(slot?.nullable).toBe(false);
+    // ADR-065: an absent `nullable` on a slot prop means true.
+    expect(slot?.nullable).toBe(true);
+  });
+
+  it('applies the per-type default ADR-065 documents for an absent nullable', () => {
+    // Open value sets accept null; a closed one already enumerates every value
+    // it accepts. Testing for an explicit `true` reported the opposite of the
+    // documented default for essentially every non-enum prop.
+    expect(propIsNullable({ type: 'string' })).toBe(true);
+    expect(propIsNullable({ type: 'number' })).toBe(true);
+    expect(propIsNullable({ type: 'image' })).toBe(true);
+    expect(propIsNullable({ type: 'slot' })).toBe(true);
+    expect(propIsNullable({ type: 'string', enum: ['sm', 'md'] })).toBe(false);
+    expect(propIsNullable({ type: 'boolean' })).toBe(false);
+  });
+
+  it('an explicit nullable always wins over the default', () => {
+    expect(propIsNullable({ type: 'string', nullable: false })).toBe(false);
+    expect(propIsNullable({ type: 'string', enum: ['sm', 'md'], nullable: true })).toBe(true);
+  });
+
+  it('reports a slot prop with no declared nullable as nullable', async () => {
+    const { slots } = await runAnalyzer({
+      compA: { props: { children: { type: 'slot' } } },
+    });
+    expect(slots.find(s => s.name === 'children')?.nullable).toBe(true);
   });
 
   it('output is deterministic for the same input', async () => {
@@ -231,7 +256,7 @@ describe('PropsAnalyzer', () => {
       const a2 = new PropsAnalyzer();
       const compDir2 = path.join(outputDir2, 'compA');
       await fs.ensureDir(compDir2);
-      await a2.run({ props: { size: { type: 'string', enum: ['sm', 'md'] }, disabled: { type: 'boolean' } } }, { outputDir: compDir2, componentKey: 'compA' });
+      await a2.run({ props: { size: { type: 'string', enum: ['sm', 'md'] }, disabled: { type: 'boolean' } } }, { specDir: compDir2, outputDir: compDir2, workspaceDir: compDir2, componentKey: 'compA', tokensFormat: 'TOKEN', outputFormat: 'YAML' as const });
       const analysisDir2 = path.join(outputDir2, '_analysis');
       await a2.finalize!(outputDir2, analysisDir2);
       const raw2 = await fs.readFile(path.join(analysisDir2, 'props.yaml'), 'utf-8');
@@ -247,7 +272,7 @@ describe('PropsAnalyzer', () => {
     const a = new PropsAnalyzer();
     const compDir = path.join(outputDir, 'compA');
     await fs.ensureDir(compDir);
-    await a.run({ props: { label: { type: 'string' } } }, { outputDir: compDir, componentKey: 'compA' });
+    await a.run({ props: { label: { type: 'string' } } }, { specDir: compDir, outputDir: compDir, workspaceDir: compDir, componentKey: 'compA', tokensFormat: 'TOKEN', outputFormat: 'YAML' as const });
     await a.finalize!(outputDir, customDir);
     expect(fs.existsSync(path.join(customDir, 'props.yaml'))).toBe(true);
     expect(fs.existsSync(path.join(outputDir, '_analysis', 'props.yaml'))).toBe(false);

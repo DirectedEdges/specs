@@ -3,6 +3,7 @@
 **Branch**: `055-processing-states`
 **Created**: 2026-06-05
 **Status**: ACCEPTED
+**Summary**: A `processing.states` list of `VariantStateEntry` classifies variant props as browser-driven or consumer-controlled.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

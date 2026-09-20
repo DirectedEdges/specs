@@ -3,7 +3,7 @@ title: "Empty Variants"
 description: "Include layered variants that contain no element overrides"
 ---
 
-Include layered variants that contain no element overrides.
+Include layered variants that contain no element overrides. A run choice in `config/settings.yaml`.
 
 ## Options
 
@@ -13,12 +13,11 @@ Include layered variants that contain no element overrides.
 
 ## Path
 
-`config.include.emptyVariants`
+`spec.emptyVariants` in `config/settings.yaml`
 
 ### Example
 
 ```yaml
-config:
-  include:
-    emptyVariants: false  # Exclude empty variants (default)
+spec:
+  emptyVariants: false  # Exclude empty variants (default)
 ```

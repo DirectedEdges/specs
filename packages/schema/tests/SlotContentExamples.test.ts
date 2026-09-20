@@ -166,6 +166,18 @@ describe('PropConfigurations.$nested structural conformance (ADR-052)', () => {
     );
   });
 
+  it('PropConfigurationValue admits null — the prop is unset in this configuration (ADR-080)', () => {
+    const kinds = (schema.definitions.PropConfigurationValue.oneOf as any[]).map((s) => s.type ?? s.$ref);
+    expect(kinds).toContain('null');
+  });
+
+  it('InstanceExample.propConfigurations admits null, and still refuses PropBinding (ADR-080)', () => {
+    const value = schema.definitions.InstanceExample.properties.propConfigurations.additionalProperties;
+    const kinds = (value.oneOf as any[]).map((s) => s.type ?? s.$ref);
+    expect(kinds).toContain('null');
+    expect(kinds).not.toContain('#/definitions/PropBinding');
+  });
+
   it('NestedPropConfiguration requires path (array of strings, minItems 1)', () => {
     expect(nestedDef.required).toContain('path');
     expect(nestedDef.properties.path.type).toBe('array');

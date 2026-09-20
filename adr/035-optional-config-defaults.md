@@ -3,6 +3,7 @@
 **Branch**: `035-optional-config-defaults`
 **Created**: 2026-04-10
 **Status**: ACCEPTED
+**Summary**: Every `Config` property carrying a default becomes optional, so a config states only what it changes.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

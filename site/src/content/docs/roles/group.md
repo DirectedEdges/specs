@@ -1,0 +1,154 @@
+---
+title: "group"
+description: "Declare that a set of controls is answered together, so it is announced as one thing and disabled as one thing"
+---
+
+`group` declares that an element gathers several related controls answered together — a set of radio buttons, a row of checkboxes, an address block. Without it each control announces its own label and nothing more, the heading that says what is being chosen is programmatically unconnected, and a `disabled` variant styles every control while disabling none.
+
+**Status** — React: Specified • Web Components: Specified • iOS: Not yet planned • Android: Not yet planned
+
+## Roles
+
+Apply the following roles to elements:
+
+| Role | Type | Element |
+|---|---|---|
+| `group` | Control | `root` of `type: container` |
+| `label` | Part | Element of `type: text` or `type: slot`, or nested instance prop of `type: string` |
+| `description` | Part | Element of `type: text` or `type: slot`, or nested instance prop of `type: string` |
+| `errormessage` | Part | Element of `type: text` or `type: slot`, or nested instance prop of `type: string` |
+
+`label` names the group itself rather than pointing at a control, and must render first. The heading is usually a `slot`, and `label` on a slot means *whatever is slotted here names this group* — the naming element wraps the slot rather than replacing anything inside it.
+
+### States
+
+The `group` role is typically applied in conjunction with the following states:
+
+| State | Effect | Classify? |
+|---|---|---|
+| `disabled` | Disables every control inside, enforced by the platform | Recommended |
+| `required` | Announced as required | Recommended |
+| `invalid` | Announced as invalid | Recommended |
+
+`disabled` is the one worth classifying: one declaration disables the whole set without the transform touching a child. There is no `readonly` — no platform has a group-level equivalent, so set it per control.
+
+Read more about [states in specs](/settings/states/).
+
+## Specs
+
+Component anatomy typically has elements and roles like:
+
+```yaml
+anatomy:
+  root:
+    type: container
+    role: group
+  header:
+    type: slot
+    role: label
+  children:
+    type: slot
+```
+
+## Figma
+
+Annotate the following layers:
+
+- `root` as `role:group` — on the component node
+- `label` as `role:label` on the heading `text` element, its `slot`, or a nested instance
+- `description` / `errormessage` as their own parts, where the group owns them
+
+Author the heading **first**, above the controls. The transform lifts it into naming position either way, but a lift means rendered order stops matching layer order, and positional CSS in that subtree breaks.
+
+## React
+
+### Implementation
+
+```tsx
+<FormGroup header={<Legend>Cabin class</Legend>} name="cabin-class">
+  <Radio value="economy" label="Economy" />
+  <Radio value="premium" label="Premium" />
+</FormGroup>
+```
+
+Omitting `name` still yields exclusive radios — it just submits under a generated key.
+
+### Before / After
+
+```tsx
+// before
+<div className="form-group" data-element="root">
+  <div className="form-group__header" data-element="header">{p.header}</div>
+  <div className="form-group__children" data-element="children">{p.children}</div>
+</div>
+
+// after
+const groupName = p.name ?? React.useId();
+
+<RadioGroupContext.Provider value={{ name: groupName }}>
+  <fieldset className="form-group" data-element="root" disabled={p.disabled}>
+    <legend className="form-group__header" data-element="header">{p.header}</legend>
+    <div className="form-group__children" data-element="children">{p.children}</div>
+  </fieldset>
+</RadioGroupContext.Provider>
+```
+
+- `<fieldset disabled>` disables every control inside, enforced by the browser
+- `<legend>` is announced on focus entry, and HTML requires it to be the first child
+- Context is the only way to reach slotted radios — children are opaque to the component rendering them
+
+### Contract
+
+| Prop | Type | Tier | Generated body |
+|---|---|---|---|
+| `name?` | `string` | SHOULD | Overrides the generated group name |
+
+No event handler. A group does not respond; the controls inside it do.
+
+## Web Components
+
+Same `<fieldset>` and `<legend>` in the shadow root. Two differences:
+
+- **No context needed.** Slotted children are real descendants of the host, so each radio walks up on connect and reads the group's name. Re-resolves on reconnect.
+- **The host carries `[disabled]`** alongside the inner fieldset, so the stylesheet — written against the host — can still address the state. That is [precedence rule 1](/roles/precedence/#1-a-role-and-a-states-classification-emitted-once), not an exception.
+
+## iOS
+
+Not yet planned. Intended binding:
+
+| | |
+|---|---|
+| Type | `Section` with a header, descendants' accessibility merged |
+| Announced | Group name before the first control |
+| `disabled` | `.disabled(_:)` on the section, propagates to content |
+| Grouping | Structural — a `Picker` owns its options, so no shared name exists |
+
+## Android
+
+Not yet planned. Intended binding:
+
+| | |
+|---|---|
+| Type | Container with `Modifier.semantics(mergeDescendants = true)` |
+| Announced | Content description from the `label` part, before the first control |
+| `disabled` | **Set per control** — does not propagate from a container |
+| Grouping | `selectableGroup()` on the container |
+
+## Additional details
+
+### Naming the controls inside it
+
+Radios are exclusive only when grouped, and only the group knows the set exists — so the group generates a name and publishes it. Each [`radio`](/roles/radio/) prefers its own `name` prop if given one.
+
+The name is **never derived from the label text**: it would change with copy edits and localization, collide when two groups share a label, and break deterministic output. A generated name guarantees exclusivity but is a meaningless submission key, so anything that submits wants the consumer to pass `name`.
+
+### Accessible name
+
+The name comes from the `label` part. Where no `label` resolves, the group still emits, and **warns** — an unnamed group is announced as a group with nothing said about what it groups.
+
+## See also
+
+- [radio](/roles/radio/) — the control this role most often gathers
+- [label](/roles/label/) — names the group here, names a control everywhere else
+- [Precedence](/roles/precedence/) — role and states resolving together
+- [Roles overview](/roles/) — the vocabulary and how roles are authored

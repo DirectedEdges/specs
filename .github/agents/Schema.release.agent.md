@@ -35,7 +35,8 @@ All commands in this agent run from the **schema package directory**: `packages/
 
 2. **Verify CHANGELOG**: Read `packages/schema/CHANGELOG.md`. Confirm:
    - An entry exists for this version (e.g., `## [0.16.0]`)
-   - The entry has an appended date (e.g., `## [0.16.0] - 2026-04-05`). If missing, use today's date.
+   - The entry has an appended **date** (e.g., `## [0.16.0] - 2026-04-05`). A heading reading `- Unreleased` counts as undated — replace it with today's date; "Unreleased" left in place ships verbatim to the docs site's Releases page (it did on 2026-09-12).
+   - **No other entry in the file still reads `- Unreleased`.** Run `grep -n ' - Unreleased' packages/schema/CHANGELOG.md`: after this entry is dated, the grep must return nothing. A hit on a published version is a prior cycle's miss — date it from that version's GitHub release (`gh release view <tag> --json publishedAt`) in this release's commit. A hit on a version never published anywhere: STOP and report.
    - A **Summary paragraph** exists at the top of the version entry (immediately after the heading). This is written last, after all bullets are done. It must:
      - Open with the most important user-facing capability in this release
      - Answer "So what?" — what can consumers of this schema now express or do that they couldn't before?

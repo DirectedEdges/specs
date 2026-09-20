@@ -9,7 +9,7 @@ description: "Calculate and include invalid property combinations"
 See [Invalid Variant Combinations](/guides/invalid-variant-combinations/) for what invalid combinations are, why they matter, and worked examples.
 :::
 
-Calculate and include invalid property combinations.
+Calculate and include invalid property combinations. A run choice in `config/settings.yaml`.
 
 ## Options
 
@@ -19,12 +19,11 @@ Calculate and include invalid property combinations.
 
 ## Path
 
-`config.include.invalidCombinations`
+`spec.invalidCombinations` in `config/settings.yaml`
 
 ### Example
 
 ```yaml
-config:
-  include:
-    invalidCombinations: true  # Show invalid combinations (default)
+spec:
+  invalidCombinations: true  # Show invalid combinations (default)
 ```

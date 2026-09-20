@@ -15,7 +15,8 @@ export type Styles = Partial<{
   /** Glyph fill color. Present on GLYPH element type only. Represented in Figma as fills. @since 0.13.0 */
   fillColor: ColorStyle;
   effects: TokenReference | Effects;
-  clipContent: Style;
+  /** Whether the element clips content that overflows its box. @since 0.30.0 */
+  clipsContent: Style;
   /** Corner radius. Scalar when uniform; `Corners` object when per-corner values differ. @since 1.0.0 */
   cornerRadius: Style | Corners;
   width: Style;
@@ -152,7 +153,7 @@ export interface ColorObject { /** Candidate */
  * whose values are always colour-semantics and may carry gradient data.
  *
  * The `string` arm covers formatted colour strings (e.g. `#FF6600`, `rgba(...)`)
- * emitted when `Config.format.color` is set to a non-`OBJECT` format.
+ * emitted when `Settings.spec.color` is set to a non-`OBJECT` format.
  */
 export type ColorStyle = string | ColorObject | TokenReference | GradientValue | null;
 
@@ -343,7 +344,7 @@ export type StyleKey =
   | 'backgroundImage'
   | 'fillColor'
   | 'effects'
-  | 'clipContent'
+  | 'clipsContent'
   | 'cornerRadius'
   | 'width'
   | 'height'

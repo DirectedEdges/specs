@@ -1,11 +1,13 @@
 ---
-description: Applies the changes described in an ADR directly to types, schema, tests, docs, and changelog. Runs all validation gates. Author reviews the result as a normal code diff before merging.
+description: Applies the changes described in an ADR to the specs-schema package only — types, schema, tests, docs, and changelog. Runs all validation gates. Author reviews the result as a normal code diff before merging.
 handoffs:
   - label: Accept ADR
     agent: Specs.adr.accept
     prompt: All gates passed — mark the ADR as ACCEPTED
     send: true
 ---
+
+**Territory: schema.** Before proceeding, read `CLAUDE.md` and `ARCHITECTURE.md` at the repo root if not already loaded this session — the Constitution digest and sync set there govern the implementation gates.
 
 ## User Input
 
@@ -15,13 +17,33 @@ $ARGUMENTS
 
 You **MUST** consider the user input before proceeding (if not empty).
 
+## Scope — `packages/schema` only
+
+**This command changes `packages/schema` and the docs site. It does not touch `packages/cli`, and it does not touch another repo.**
+
+An ADR's Decision section names types and schema; its Downstream Impact table names consumers. This command implements the first and *records* the second. Implementing a consumer is separate work, in its own commit, against that consumer's own tests.
+
+Consumers are updated in dependency order, because each depends on the one before it:
+
+1. **`specs-schema`** — types and schema. This command.
+2. **`specs-from-figma`** — the processing engine, which compiles against the new types.
+3. **`specs-cli`** — depends on `specs-from-figma`, so it comes last.
+
+`specs-plugin-2` compiles `specs-from-figma` from source and follows step 2.
+
+Do not reorder these, and do not fold two steps into one pass. The CLI cannot be verified against types that `specs-from-figma` has not yet adopted.
+
+**When an ADR has no schema-package surface at all** — its Type changes table reads *(none)* and its changes are entirely a consumer's — implement whatever schema-side artifact it does name (a definition, a doc comment), then report the ADR as *not implemented here* and name the consumer that owns it. Do not follow it into that consumer.
+
+**If the schema change leaves a consumer uncompilable, that is expected and is not a reason to widen scope.** Say so in the report. Widening it silently is the failure mode this section exists to prevent.
+
 ## Outline
 
 1. **Setup**: Run `scripts/check-prerequisites.sh --json --paths-only` from repo root. Parse `REPO_ROOT`, `BRANCH`. All paths must be absolute.
    - Derive `ADR_NAME` from `BRANCH`:
      - The branch name must match an ADR name pattern (e.g., `009-color-values` — starts with a number sequence followed by a hyphen). If it does not, halt: "You must be on an ADR branch (format: `###-short-description`) to implement an ADR."
    - Derive `RELEASE_BRANCH`:
-     - Run `git branch -a | grep 'release/'` from `$REPO_ROOT`. Use the local/remote branch name matching `release/*` as `RELEASE_BRANCH`. If multiple release branches are found, halt and ask the author which to target. If no release branch is found, halt: "No release branch found — create one with `/start-next-release` before implementing an ADR." Do NOT derive the release branch from `package.json` — the version in package.json may not match the branch name (e.g. the branch may be `release/schema-0.25.0-cli-0.21.0` while `package.json` still shows the previous version).
+     - `RELEASE_BRANCH` is `release/next`. Confirm it exists with `git branch -a | grep 'release/next'` from `$REPO_ROOT`. If it does not, halt: "No release branch found — create one with `/start-next-release` before implementing an ADR." If other `release/*` branches exist (leftovers from the old versioned scheme), halt and ask which to target. The branch name carries no version — read the target version from the affected package's `package.json` on that branch.
 
 2. **Load context**:
    - **REQUIRED**: Read `$REPO_ROOT/adr/$ADR_NAME.md` — source of truth for what changes and why
@@ -31,7 +53,8 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Read `package.json` for the current version
    - Read `CHANGELOG.md` for the existing format
 
-3. **Verify ADR completeness**: The ADR must have a clear Decision section (type and schema changes listed) and a Semver Decision with `CURRENT → NEW`. If either is missing or marked NEEDS CLARIFICATION, halt and ask the author to complete the ADR first.
+3. **Verify ADR completeness**: The ADR must have a clear Decision section (type and schema changes listed) and a Semver Decision naming the **target version** and the **change class**. If either is missing or marked NEEDS CLARIFICATION, halt and ask the author to complete the ADR first.
+   - The target version is the active release branch's version — an ADR ships inside a release that already has one. If the Semver section instead proposes a bump (`0.30.0 → 0.31.0`), treat the right-hand version as the target only if it matches `$RELEASE_BRANCH`; otherwise halt and ask the author to correct it.
 
 4. **Constitution gate check**: Evaluate all six gates against the ADR's stated changes. If any gate fails without a documented exception in the ADR, halt and report the violation before touching any file.
 
@@ -62,9 +85,20 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Create or update `tests/[type-name].test-d.ts` for each changed type using `tsd`-style assertions or `@ts-expect-error` patterns
    - Run: `tsc --noEmit --strict tests/*.test-d.ts` to confirm test files compile
    - If tests fail: halt and report
-   - **All gates have now passed. Steps 10–12 are REQUIRED before reporting completion. Do not skip to step 13.**
+   - **All gates have now passed. Steps 10–13 are REQUIRED before reporting completion. Do not skip to step 14.**
 
-10. **Update docs**:
+10. **Write the ADR summary**: Add or update the `**Summary**:` line in the ADR's metadata block, directly beneath `**Status**`. Write it now rather than at draft time — it must describe what was actually implemented, which often differs from the original draft.
+    - **One sentence, present tense, roughly 15–18 words.** The new property, type, or config option is the grammatical subject.
+    - Anchor the addition to the neighbouring fields it joins, not to the gap it filled.
+    - Never open with "The schema", and never include a past-tense problem clause ("could not", "was dropped", "had nowhere to land").
+    - Keep identifiers in backticks.
+    - Examples of the target voice:
+      - A `strokeDashPattern` property adds dashes to strokes already supported with color, weight and alignment.
+      - A `glyph` element type, `IconProp` and `glyphNamePattern` emit icons as first-class by applying Figma conventions.
+      - Images are supported by `backgroundImage` style, `ImageProp` and binding in components and examples.
+    - **Gate**: read the ADR back and confirm the `**Summary**:` line is present and no longer a placeholder. The docs site publishes this line verbatim with no fallback — a missing summary leaves a blank row in the published index.
+
+11. **Update docs**:
     - Docs live in `site/src/content/docs/`. Schema type pages are under `site/src/content/docs/schema/` (e.g., `schema/styles.md` for `Styles`, `schema/config.md` for `Config`). Individual config option pages are under `site/src/content/docs/config/` (e.g., `config/tokens.md`, `config/keys.md`).
     - For each property added, removed, or renamed in the ADR: update the relevant doc page's Properties table, Values table, and "Relating properties to values" section to reflect the new state.
     - For new dedicated types (e.g., `LayoutMode`, `WrapAlignment`, `ItemSpacing`): add a row to the Values table describing the type and its valid values.
@@ -72,7 +106,7 @@ You **MUST** consider the user input before proceeding (if not empty).
     - Do not create new doc pages for types that are only used as field values on an existing documented type — document them inline in the parent type's page.
     - If no doc file exists for the changed type, skip this step.
 
-11. **Update CHANGELOG.md**:
+12. **Update CHANGELOG.md**:
     - The release branch scaffolds an `## [X.Y.Z] - Unreleased` heading with empty sections. Add entries into the existing scaffold — do **not** replace `Unreleased` with a date (the date is set at release time). If no scaffold heading exists, prepend one using `Unreleased` as the date.
     - **Format**: one top-level bullet per user-visible change; no sub-bullets; no bold; no code blocks; no wrapping prose paragraphs
     - **Entry line**: `` `Parent.field` `` — one-phrase description; aim for ≤ 12 words; omit implementation detail (class names, file paths, method names)
@@ -80,16 +114,17 @@ You **MUST** consider the user input before proceeding (if not empty).
     - **Consolidation**: When a new type exists only to serve a property, merge into one property-first bullet — e.g. `` `Styles.mainAxisAlignment` — typed as `MainAxisAlignment` (`'START' | 'END' | 'CENTER' | 'SPACE_BETWEEN'`) or `null`; description ``. Do not list the type as a separate bullet.
     - **Sections**: use `### Added`, `### Changed`, `### Removed` as needed; add `### Migration` (MAJOR or rename only)
     - **Migration line**: `` `Parent.old` → `Parent.new` ``: one sentence; imperative; describe what to read instead and how to handle the new type
-    - **Gate**: After writing, verify the new entry is present in the file. If CHANGELOG.md does not contain the new version heading, halt and report — do not proceed to step 12.
+    - **Gate**: After writing, verify the new entry is present in the file. If CHANGELOG.md does not contain the new version heading, halt and report — do not proceed to step 13.
 
-12. **Bump version in `package.json`**: Apply the `NEW` version from the ADR's Semver Decision.
-    - **Gate**: After writing, read `package.json` back and confirm the `"version"` field matches the ADR's `NEW` version. If it does not match, halt and report — do not proceed to step 13.
+13. **Confirm the version in `package.json`**: It must equal the ADR's **target version** — the one the release branch already carries, normally set by `/start-next-release`. Write it only if it differs; do not invent a bump beyond the release branch's version.
+    - **Gate**: After writing, read `package.json` back and confirm the `"version"` field matches the ADR's target version. If it does not match, halt and report — do not proceed to step 14.
 
-13. **Report**: List every file modified (with one-line description each). The list **must** include `CHANGELOG.md` and `package.json` — if either is absent from the list, halt: steps 11–12 were not completed. State that the author should review the diff and accept the ADR once satisfied. Remind the author that this ADR branch (`$BRANCH`) targets the release branch (`$RELEASE_BRANCH`), not `main`.
+14. **Report**: List every file modified (with one-line description each) — all of which must be under `packages/schema/`, `adr/`, or `site/`. Name any ADR that had no schema-package surface, and any consumer left uncompilable, as outstanding work rather than doing it. The list **must** include the ADR file, `CHANGELOG.md`, and `package.json` — if any is absent from the list, halt: steps 10, 12, or 13 were not completed. State that the author should review the diff and accept the ADR once satisfied. Remind the author that this ADR branch (`$BRANCH`) targets the release branch (`$RELEASE_BRANCH`), not `main`.
 
 ## Key rules
 
 - Apply changes directly — do not produce a description document.
+- **Never edit `packages/cli`, `specs-from-figma`, or `specs-plugin-2` from this command**, even when the ADR's Downstream Impact table names them and even when the schema change breaks their build. Those are separate passes, in the order given under Scope.
 - Halt and revert on any gate failure. Do not partially apply a change set.
 - Never modify type or schema files not listed in the ADR Decision section. Doc files (`docs/schema/`) corresponding to changed types are always in scope.
 - If the actual change required is a higher semver bump than the ADR states, halt and report before touching any file.

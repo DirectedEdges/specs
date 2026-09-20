@@ -3,6 +3,7 @@
 **Branch**: `058-wrapper-collapse`
 **Created**: 2026-06-16
 **Status**: ACCEPTED
+**Summary**: A `collapsePrimitiveWrapper` processing option strips plain wrappers, promoting a single text or glyph child to the spec root.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

@@ -23,6 +23,10 @@ export const CONCEPT_TABLE: Record<string, ConceptEntry> = {
   pressed:             { selector: '[aria-pressed="true"]', contract: 'keep' },
   busy:                { selector: '[aria-busy="true"]', contract: 'keep' },
   current:             { selector: '[aria-current="true"]', contract: 'keep' },
+  // Browser-managed like hover — history decides it, no prop can. Styling is
+  // restricted in :visited (color and background-color paint; most else is
+  // ignored), which covers what designs vary: text and glyph color.
+  visited:             { selector: ':visited', contract: 'omit' },
 };
 
 export type { VariantStateEntry } from '@directededges/specs-schema';
@@ -71,4 +75,40 @@ export function buildOmittedProps(states: ProcessingStates): Set<string> {
     if (contracts.every(c => c === 'omit')) omitted.add(prop);
   }
   return omitted;
+}
+
+/**
+ * State concepts each role concept emits natively on its own element.
+ *
+ * MIRRORED from the closed transform packages' RoleSpecs (`nativeStates` in
+ * `@directededges/from-specs`' roleSpecs.ts) — the CLI cannot import them, and
+ * this transformer needs the same fact to know when a claimed state left the
+ * root. A change there must land here too, or root state selectors anchor on
+ * an attribute the scaffold no longer emits.
+ */
+export const ROLE_NATIVE_STATES: Readonly<Record<string, readonly string[]>> = {
+  button: ['disabled'],
+  togglebutton: ['pressed', 'disabled'],
+  disclosure: ['expanded', 'disabled'],
+  status: ['busy'],
+  progressbar: ['busy'],
+  link: ['disabled', 'current'],
+  checkbox: ['checked', 'selected', 'indeterminate', 'disabled', 'required', 'invalid'],
+  switch: ['checked', 'selected', 'disabled'],
+  textbox: ['disabled', 'readonly', 'required', 'invalid'],
+};
+
+/**
+ * Concepts claimed by a role on a NON-root element. The root cannot carry
+ * their aria selectors — the nested control emits the state natively — so
+ * these concepts fall back to the variant prop's data-attribute selector,
+ * which the scaffold's root always carries.
+ */
+export function conceptsClaimedByNestedRoles(elemRoles: Record<string, string>): Set<string> {
+  const claimed = new Set<string>();
+  for (const [elemKey, role] of Object.entries(elemRoles)) {
+    if (elemKey === 'root') continue;
+    for (const concept of ROLE_NATIVE_STATES[role] ?? []) claimed.add(concept);
+  }
+  return claimed;
 }

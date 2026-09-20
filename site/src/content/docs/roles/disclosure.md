@@ -1,0 +1,162 @@
+---
+title: "disclosure"
+description: "Emit an expandable trigger wired to its panel through aria-expanded and aria-controls"
+---
+
+`disclosure` declares that an element is the trigger for a region that expands and collapses — an accordion header, a "show more" control. Without it the header cannot be focused or activated from the keyboard, and nothing connects it to the region it controls, so assistive technology cannot report that the control is expandable, what state it is in, or where the content went.
+
+**Status** — React: Implemented • Web Components: Implemented • iOS: Not yet planned • Android: Not yet planned
+
+## Roles
+
+Apply the following roles to elements:
+
+| Role | Type | Element |
+|---|---|---|
+| `disclosure` | Control | Element of `type: container` |
+| `label` | Part | Element of `type: text` or nested instance prop of `type: string` |
+| [`panel`](/roles/panel/) | Part | Element of `type: container` or `type: slot` |
+| `indicator` | Part | Element of `type: container` or `type: glyph` |
+
+There is no `disclosure` ARIA role. The emission is a button plus two attributes; `role="disclosure"` is never emitted because it is not a valid ARIA value.
+
+The trigger and the panel are **one concept, not two**. The trigger carries the role, the region carries `panel`, and `aria-controls` follows from the pairing. The panel is usually a sibling of the trigger rather than a descendant, so parts resolve by proximity.
+
+It emits semantics and linkage only. Visibility stays with CSS and the variant conditions the analysis already produced, so a library that animates the transition keeps working.
+
+### States
+
+The `disclosure` role is typically applied in conjunction with the following states:
+
+| State | Effect | Classify? |
+|---|---|---|
+| `expanded` | `aria-expanded="true"`, flipped by the wired handler | Recommended |
+| `collapsed` | `aria-expanded="false"` | Recommended |
+| `disabled` | Natively disabled, enforced by the platform | Recommended |
+| `hover` / `active` | Native, on the trigger itself | Recommended, if the library styles it |
+| `focus` / `focus-visible` | Native focus indicator | **Optional — prefer the platform default** |
+
+Read more about [states in specs](/settings/states/).
+
+## Specs
+
+Component anatomy typically has elements and roles like:
+
+```yaml
+anatomy:
+  header:
+    type: container
+    role: disclosure
+  chevron:
+    type: glyph
+    role: indicator
+  panel:
+    type: container
+    role: panel
+```
+
+## Figma
+
+Annotate the following layers:
+
+- `header` as `role:disclosure` — on the trigger layer
+- `panel` as `role:panel` on the region it controls, wherever it sits
+- `chevron` as `role:indicator`
+
+The panel does **not** need to be a descendant of the trigger. Siblings under a shared root are the usual shape and resolve correctly. Two disclosures in one component need unambiguous panels, or the transform errors.
+
+## React
+
+### Implementation
+
+```tsx
+<Accordion
+  label="Baggage allowance"
+  expanded={open}
+  onExpandedChange={setOpen}
+>
+  <p>One carry-on bag and one personal item.</p>
+</Accordion>
+```
+
+### Before / After
+
+```tsx
+// before
+<div className="accordion-header" data-element="header" data-expanded={p.expanded}>
+  {/* … */}
+</div>
+<div className="accordion-panel" data-element="panel">{p.children}</div>
+
+// after
+<button
+  type="button"
+  className="accordion-header"
+  data-element="header"
+  aria-expanded={isExpanded}
+  aria-controls={panelId}
+  onClick={() => { setExpanded(!isExpanded); p.onExpandedChange?.(!isExpanded); }}
+>
+  {/* … */}
+</button>
+<div className="accordion-panel" data-element="panel" id={panelId}>{p.children}</div>
+```
+
+Two elements change and neither changes depth.
+
+### Contract
+
+| Prop | Type | Tier | Generated body |
+|---|---|---|---|
+| `onExpandedChange?` | `(expanded: boolean) => void` | MUST | **Wired** — flips expanded, then calls the prop |
+| `onClick?` | `(e: MouseEvent) => void` | SHOULD | Stub, called after the toggle |
+| `expanded` | `boolean` | — | The existing variant prop |
+
+## Web Components
+
+As [`button`](/roles/button/#web-components) for the trigger. One difference that matters: `aria-controls` is an id reference and **does not cross a shadow boundary**, so a trigger and panel in different components cannot be linked. Both must live in the same component's shadow root — which is the usual shape for an accordion, but rules out a disclosure whose panel arrives as slotted content from elsewhere.
+
+## iOS
+
+Not yet planned. Intended binding:
+
+| | |
+|---|---|
+| Type | `DisclosureGroup` |
+| Announced | The expanded state; double-tap toggles |
+| Linkage | Structural — the panel is the group's content, so no id reference exists |
+
+## Android
+
+Not yet planned. Intended binding:
+
+| | |
+|---|---|
+| Type | Toggleable header + `AnimatedVisibility` |
+| Semantics | `Modifier.semantics { expand() / collapse() }` |
+| Announced | "Expanded" / "collapsed"; double-tap toggles |
+
+## Additional details
+
+### Degradation
+
+| Situation | Result |
+|---|---|
+| No `panel` part | `aria-expanded` only, plus a warning |
+| Panel absent in the current variant | `aria-controls` becomes conditional, matching the panel's render condition |
+| Two disclosures, ambiguous panel | **Error** naming both candidates — never a silent pick |
+| Separate collapsed / expanded label props | Warns. Only one binds to the anatomy, so an expanded trigger would announce its collapsed label |
+
+The last one is fixed by a convention in `conventions/specs.yaml` pairing the alternate text prop with the state that selects it. The `accessibility` block is shaped as objects precisely so it can grow that field.
+
+### Wired state
+
+`onExpandedChange` follows [the wired state model](/roles/#the-wired-state-model): internal state seeded from the `expanded` prop, flipped on activation, then the consumer callback. The accordion opens and closes before a consumer attaches anything.
+
+Prerequisite: an `expanded` classification in the [`states` convention](/settings/states/) naming the prop. Without it the handler degrades to a stub and warns.
+
+## See also
+
+- [panel](/roles/panel/) — the controlled region
+- [button](/roles/button/) — the same base emission without expansion
+- [Roles overview](/roles/) — the vocabulary and how roles are authored

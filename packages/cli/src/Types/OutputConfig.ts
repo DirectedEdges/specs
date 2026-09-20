@@ -12,8 +12,8 @@ export interface OutputConfig {
 }
 
 export const DEFAULT_OUTPUT_CONFIG: OutputConfig = {
-  splitComponents: false,
-  splitConcerns: false,
-  useSubfolders: false,
+  splitComponents: true,
+  splitConcerns: true,
+  useSubfolders: true,
   defaultFormat: 'json'
 };

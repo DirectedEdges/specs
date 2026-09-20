@@ -1,7 +1,7 @@
 /**
  * Type-level tests for image content (ADR-063):
  * ObjectFit, ImageValue, ImageData, Images, ImageProp, ImageBinding,
- * Styles.backgroundImage, and Config image fields.
+ * Styles.backgroundImage, and the image conventions.
  *
  * These files are intentionally never executed — they are compiled with tsc
  * to assert that the type shape is correct.
@@ -17,7 +17,7 @@ import type {
   Styles,
   Component,
   PropConfigurationValue,
-  Config,
+  Conventions,
 } from '../types/index.js';
 
 // ─── ObjectFit ────────────────────────────────────────────────────────────────
@@ -84,6 +84,37 @@ const imagePropDefault: ImageProp = { type: 'image', default: '#/images/hero' };
 const imagePropNullDefault: ImageProp = { type: 'image', default: null, nullable: true };
 const imagePropExt: ImageProp = { type: 'image', $extensions: { 'com.figma': { type: 'INSTANCE_SWAP' } } };
 
+// Authoring-default images the component itself was authored with (ADR-088) —
+// same shape as ImageBinding.examples, so a value moves between the two forms
+// without translation.
+const imagePropExamples: ImageProp = {
+  type: 'image',
+  examples: [{ $image: '#/components/dsImage/images/dsImage__image' }],
+};
+
+// objectFit rides along, exactly as it does on an ImageValue anywhere else
+const imagePropExamplesFit: ImageProp = {
+  type: 'image',
+  examples: [{ $image: '#/images/hero', objectFit: 'CONTAIN' }],
+};
+
+// examples is independent of default — sample content does not imply a
+// contractual default, and a prop may carry both
+const imagePropBoth: ImageProp = {
+  type: 'image',
+  default: null,
+  examples: [{ $image: '#/images/hero' }],
+};
+
+// @ts-expect-error: examples is ImageValue[], not bare pointer strings
+const _imagePropExamplesStrings: ImageProp = { type: 'image', examples: ['#/images/hero'] };
+
+// @ts-expect-error: examples entries need $image
+const _imagePropExamplesNoRef: ImageProp = { type: 'image', examples: [{ objectFit: 'COVER' }] };
+
+// @ts-expect-error: examples is a list, not a single value
+const _imagePropExamplesScalar: ImageProp = { type: 'image', examples: { $image: '#/images/hero' } };
+
 // @ts-expect-error: type must be the literal 'image'
 const _imagePropBadType: ImageProp = { type: 'string' };
 
@@ -126,31 +157,29 @@ const componentWithImages: Component = {
   images: { hero: { src: 'data:image/png;base64,AAAA' } },
 };
 
-// ─── Config image fields ──────────────────────────────────────────────────────
+// ─── Image conventions ────────────────────────────────────────────────────────
 
-// processing.images: presence-switched block; every member optional on Config
-const configImagesAbsent: Config = { processing: {}, format: {}, include: {} };
-const configImagesFillsOnly: Config = {
-  processing: { images: { backgroundImage: true } },
-  format: {},
-  include: {},
-};
-const configImagesComponent: Config = {
-  processing: { images: { imageComponent: 'dsImage', sourceProps: ['source'] } },
-  format: {},
-  include: {},
-};
-const configImagesAllTriggers: Config = {
-  processing: { images: { backgroundImage: true, imageComponent: 'dsImage', sourceProps: ['source', 'image'] } },
-  format: {},
-  include: {},
+// platforms.<id>.images: presence declares the convention; every member optional
+const imagesAbsent: Conventions = { platforms: { figma: {} } };
+const imagesFillsOnly: Conventions = { platforms: { figma: { images: { backgroundImage: true } } } };
+const imagesAllTriggers: Conventions = {
+  platforms: { figma: { images: { backgroundImage: true, match: 'dsImage', sourceProps: ['source', 'image'] } } },
 };
 
-// @ts-expect-error: imageComponent is a plain name string, not the retired { name, sourceProperty } object
-const _configImagesV1Shape: Config = { processing: { images: { imageComponent: { name: 'dsImage' } } }, format: {}, include: {} };
+// The image component in two languages: its Figma name, and its name on a code platform (ADR-077)
+const imagesComponentName: Conventions = {
+  platforms: { figma: { images: { match: 'dsImage', sourceProps: ['source'] } }, react: { images: { component: 'DsImage' } } },
+};
+
+// @ts-expect-error: match is a plain name string, not the retired { name, sourceProperty } object
+const _imagesV1Shape: Conventions = { platforms: { figma: { images: { match: { name: 'dsImage' } } } } };
 
 // @ts-expect-error: sourceProps must be a string array
-const _configBadSourceProps: Config = { processing: { images: { sourceProps: 'source' } }, format: {}, include: {} };
+const _imagesBadSourceProps: Conventions = { platforms: { figma: { images: { sourceProps: 'source' } } } };
 
-// @ts-expect-error: include.imageData was retired — the processing.images block presence is the on-switch
-const _configRetiredImageData: Config = { processing: {}, format: {}, include: { imageData: true } };
+// @ts-expect-error: image conventions do not live in settings
+const _imagesInSettings: Conventions = { platforms: { figma: {} }, spec: { images: {} } };
+
+// An image is an attribute, not a node kind — it has no place in the primitive vocabulary (ADR-077)
+// @ts-expect-error: image is not a PrimitiveKind
+const _imagePrimitive: Conventions = { platforms: { react: { primitives: { image: { component: 'DsImage' } } } } };

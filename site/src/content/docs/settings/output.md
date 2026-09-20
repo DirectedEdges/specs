@@ -3,43 +3,44 @@ title: "Output"
 description: "Control where and how generated specifications are written"
 ---
 
-Controls where and how to write generated specifications. Configured via the `output` field in `specs.config.yaml` or CLI flags.
+Controls where and how to write generated specifications. Run choices, configured via the `spec` block in `config/settings.yaml` or CLI flags — any split arrangement carries the same spec data.
+
+The split layout is the default: one folder per component, holding one file per concern. Downstream commands — `transform`, `analyze`, `render` — read that layout, so most workspaces never set these at all.
 
 ```yaml
-output:
-  splitComponents: false    # Create separate file per component
-  splitConcerns: false      # Separate API, variants, and examples
-  useSubfolders: false      # Use component subdirectories
-  defaultFormat: yaml       # Output format (yaml|json)
+spec:
+  splitComponents: true    # One file per component (default)
+  splitConcerns: true      # Separate API, variants, and examples (default)
+  useSubfolders: true      # Nest each component in its own folder (default)
 ```
 
 ## Output Modes
 
-The CLI supports four output modes based on flag combinations:
+Four output modes, reached by turning parts of the default split off:
 
-| Mode | `--split-components` | `--split-concerns` | Output Structure |
-|------|---------------------|-------------------|------------------|
-| **Single-file** | - | - | `library.yaml` (all components) |
-| **Per-component** | yes | - | `button.yaml`, `alert.yaml`, ... |
-| **Per-concern** | - | yes | `api.yaml` + `variants.yaml` (+ `examples.yaml` if any examples) |
-| **Combined** | yes | yes | `button/api.yaml`, `button/variants.yaml` (+ `button/examples.yaml` if examples), ... |
+| Mode | `splitComponents` | `splitConcerns` | Output Structure |
+|------|-------------------|-----------------|------------------|
+| **Combined** (default) | true | true | `button/api.yaml`, `button/variants.yaml` (+ `button/examples.yaml` if examples), ... |
+| **Per-component** | true | false | `button.yaml`, `alert.yaml`, ... |
+| **Per-concern** | false | true | `api.yaml` + `variants.yaml` (+ `examples.yaml` if any examples) |
+| **Single-file** | false | false | `library.yaml` (all components) |
 
 ## `splitComponents`
 
-Create separate file per component.
+Write one file per component rather than a single combined library file.
 
 - **Type**: boolean
-- **Default**: `false` (single library file)
-- **CLI Flag**: `--split-components`
+- **Default**: `true`
+- **CLI Flag**: `--combine-as-library` turns it off
 
 ```yaml
-output:
+spec:
   splitComponents: true
   useSubfolders: false  # button.yaml, alert.yaml (flat)
 ```
 
 ```yaml
-output:
+spec:
   splitComponents: true
   useSubfolders: true   # button/button.yaml, alert/alert.yaml
 ```
@@ -51,12 +52,12 @@ File naming converts display names to camelCase (e.g., `"DS Alert"` → `dsAlert
 Separate API specification, variant configuration, and examples.
 
 - **Type**: boolean
-- **Default**: `false` (complete component data)
-- **CLI Flag**: `--split-concerns`
+- **Default**: `true`
+- **CLI Flag**: `--combine-concerns` turns it off
 
 ```yaml
-output:
-  splitConcerns: true
+spec:
+  splitConcerns: false
 ```
 
 **API file** (`api.yaml`):
@@ -91,22 +92,14 @@ Example output is a [Pro feature](/settings/default-slot-content/) — on the fr
 
 ## `useSubfolders`
 
-Create component subdirectories when splitting by component.
+Nest each component's files in a subfolder named for the component.
 
 - **Type**: boolean
-- **Default**: `false` (flat structure)
+- **Default**: `true`
 - **Effect**: Only applies when `splitComponents: true`
-- **CLI Flag**: `--use-subfolders`
+- **CLI Flag**: `--no-subfolders` turns it off
 
-**Without subfolders** (flat):
-```
-specs/
-├── button.yaml
-├── alert.yaml
-└── card.yaml
-```
-
-**With subfolders**:
+**With subfolders** (default):
 ```
 specs/
 ├── button/
@@ -117,31 +110,22 @@ specs/
     └── card.yaml
 ```
 
-## `defaultFormat`
-
-Default output format for stdout only.
-
-- **Type**: string
-- **Default**: `yaml`
-- **Options**: `yaml`, `json`
-- **Override**: CLI `--format` flag takes precedence
-- **Note**: File output is always YAML. This setting controls stdout format only.
-- **Note**: Different from `config.format.output` (controls serialization, not file format)
-
-```yaml
-output:
-  defaultFormat: yaml  # stdout format (files use YAML)
+**Without subfolders** (flat):
+```
+specs/
+├── button.yaml
+├── alert.yaml
+└── card.yaml
 ```
 
 ## Combined Mode
 
-Using both `splitComponents` and `splitConcerns` creates component directories with concern files:
+The default. Both `splitComponents` and `splitConcerns` on gives component directories of concern files:
 
 ```yaml
-output:
+spec:
   splitComponents: true
   splitConcerns: true
-  useSubfolders: false  # Component dirs created automatically
 ```
 
 ```
@@ -162,12 +146,16 @@ specs/
 
 Output configuration follows the standard [priority system](/settings/#priority-system):
 
-1. **CLI flags** (highest): `--split-components`, `--split-concerns`, `--use-subfolders`
-2. **Config file**: `output` field in `specs.config.yaml`
-3. **Defaults** (lowest): Single-file mode, YAML format
+1. **CLI flags** (highest): `--combine-as-library`, `--combine-concerns`, `--no-subfolders`
+2. **Config file**: `spec` block in `config/settings.yaml`
+3. **Defaults** (lowest): the full split layout, YAML format
+
+Each flag only ever turns a split off, so an absent flag defers to the configured value rather than overriding it.
 
 ```bash
-# Config has splitComponents: false
-# CLI overrides to true
-specs generate --split-components
+# Config leaves splitConcerns at its default of true
+# CLI overrides to false for this run
+specs generate --combine-concerns
 ```
+
+In the pre-split `specs.config.yaml`, these flags lived in a root-level `output` block and defaulted to `false`. That file is no longer read — [`specs migrate config`](/cli/commands/migrate/) converts it, moving them to `spec`. Because the defaults inverted, the migration writes all three out explicitly so a migrated workspace keeps emitting what it emits today; delete those three lines to adopt the new default.

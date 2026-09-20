@@ -3,6 +3,7 @@
 **Branch**: `059-border-style`
 **Created**: 2026-06-26
 **Status**: ACCEPTED
+**Summary**: A `strokeDashPattern` property adds dashes to strokes already supported with color, weight and alignment.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

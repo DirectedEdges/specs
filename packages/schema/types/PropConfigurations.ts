@@ -6,6 +6,10 @@ import { ImageBinding } from "./Image.js";
  * The value of a single prop configuration entry (ADR-049).
  *
  * - Scalar values (`string | number | boolean`) — static prop values.
+ * - `null` — the prop is **unset** in this configuration (ADR-080). A value, not
+ *   an absence: an absent key inherits from the layer beneath, a `null` key
+ *   overrides an inherited value with "no value". Meaningful only under a
+ *   nullable prop.
  * - `PropBinding` — pass-through binding to a parent prop, e.g.
  *   `{ $binding: "#/props/label" }`. Forwards a parent prop value into a
  *   nested instance's prop.
@@ -21,6 +25,7 @@ export type PropConfigurationValue =
   | string
   | number
   | boolean
+  | null
   | PropBinding
   | SlotContentRef
   | ImageBinding;

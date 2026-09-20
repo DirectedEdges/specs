@@ -8,18 +8,37 @@ A flat map of prop names to the values they must hold for a condition to apply, 
 ```ts
 type PropConfigurations = Record<
   string,
-  string | number | boolean | PropBinding | CompositionRef | ImageBinding
+  string | number | boolean | null | PropBinding | CompositionRef | ImageBinding
 >;
 ```
 
 | Arm | Where it applies | Description |
 |-----|------------------|-------------|
 | `string \| number \| boolean` | Anywhere `PropConfigurations` is used | Static scalar prop value |
+| `null` | Anywhere `PropConfigurations` is used, under a nullable prop | The prop is unset in this configuration (since 0.31.0) |
 | `PropBinding` (`{ $binding }`) | `Element.propConfigurations` only | Pass-through binding to a parent prop |
 | `CompositionRef` (`{ $composition }`) | `Element.propConfigurations` only, under a slot-prop key | JSON Pointer to a named `Composition` (in `Component.slotContent` or in an external composition file) used to fill a nested instance's slot |
 | `ImageBinding` (`{ $binding, examples? }`) | `Element.propConfigurations` only, under an image-prop key | Forwards a parent image prop into a nested image instance's source prop, carrying authoring-default example images (since 0.28.0) |
 
-`InstanceExample.propConfigurations` is scalar-only by design — `PropBinding` and `CompositionRef` are not permitted there.
+`InstanceExample.propConfigurations` accepts scalars, `null`, and slot-content references — `PropBinding` is not permitted there.
+
+## Unset props
+
+`null` means the prop is **unset** in this configuration. It is a value, not an absence, and the distinction matters because configurations layer:
+
+- an **absent** key inherits whatever the layer beneath it set
+- a **`null`** key overrides an inherited value with "no value"
+
+A nullable prop is therefore fully described by its own key. Nothing beside it — a paired visibility flag, a producer extension — needs to be read to know whether the prop is set:
+
+```yaml
+# The header slot is filled
+header:
+  $slotContent: "#/components/card/slotContentExamples/cardHeader"
+
+# The header slot is unset — this component shows no header
+header: null
+```
 
 ## Usage
 
@@ -28,7 +47,7 @@ PropConfigurations appear in four places:
 - **Variant `configuration`** — declares which prop combination activates a [variant](/schema/variants.md/#variant). When all listed props match their specified values, the variant's overrides are applied.
 - **`invalidVariantCombinations`** — an array on the [Component](/schema/component/) root that declares prop combinations which should never occur together.
 - **`Element.propConfigurations`** — sets prop values on a nested instance element; accepts the full union (scalars, `PropBinding`, `CompositionRef`).
-- **`InstanceExample.propConfigurations`** — documents a complete scalar-prop configuration; scalars only.
+- **`InstanceExample.propConfigurations`** — documents a complete configuration; scalars, `null`, and slot-content references.
 
 ## Example
 
