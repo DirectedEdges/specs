@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **An element carrying positioning offsets always declares `position: ABSOLUTE`**, so its placement is readable without consulting the parent's layout mode. Documentation-only: the presence contract is stated on `position` and the six offset properties in the types and schema; no shape changes (ADR-070)
+
 ### Removed
 
 
