@@ -9,13 +9,13 @@ Every time you regenerate specs, something may have changed — a prop added, a 
 
 Versioning earns its place the moment anything downstream depends on your specs — generated code, documentation, another team's build. Three moments in particular:
 
-| Moment | Question | What versioning provides |
-|--------|----------|--------------------------|
-| Before merging a Figma branch | "What impact does merging this feature have?" | A [pre-merge report](/versioning/reports/) from just the branch URL (`figmapremerge`) |
-| Before shipping a release | "What does this release change, at a glance?" | A [pre-release report](/versioning/reports/) covering everything since the last release (`report`) |
-| Shipping a release | "How do I record this as the next version?" | `cut` grades every change, decides the version, and stores the release in full; `tag` marks it in git |
-| After shipping | "What exactly changed, and how do I migrate?" | The final release report paired with an itemized [changelog](/versioning/reports/) carrying rename migrations |
-| Anytime after | "What changed between two versions — and what did this look like back then?" | `diff`, `history`, and `restore` over the recorded [history](/versioning/history/) |
+| Moment | Question | Versioning command(s) |
+|--------|----------|-----------------------|
+| Before merging a Figma branch | "What impact does merging this feature have?" | `figmapremerge` — a [pre-merge report](/versioning/reports/) from just the branch URL |
+| Before shipping a release | "What does this release change, at a glance?" | `report` — a [pre-release report](/versioning/reports/) covering everything since the last release |
+| Shipping a release | "How do I record this as the next version?" | `cut` — grades every change, decides the version, and stores the release in full; `tag` marks it in git |
+| After shipping | "What exactly changed, and how do I migrate?" | `report` — the final release report paired with an itemized [changelog](/versioning/reports/) carrying rename migrations, both also stored in the version's folder |
+| Anytime after | "What changed between two versions — and what did this look like back then?" | `diff`, `history`, `restore` — queries over the recorded [history](/versioning/history/) |
 
 If you generate specs for yourself and nothing consumes them yet, you can adopt versioning later — it starts from whatever state your specs are in.
 
