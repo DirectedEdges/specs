@@ -60,6 +60,13 @@
           "$ref": "component.schema.json#/definitions/Props",
           "description": "Configurable properties that control component behavior and appearance"
         },
+        "invalidPropCombinations": {
+          "type": "array",
+          "description": "Non-default prop values that when used in combination result in an invalid component state, such as a component being set to disabled and hover simultaneously",
+          "items": {
+            "$ref": "component.schema.json#/definitions/PropConfigurations"
+          }
+        },
         "subcomponents": {
           "type": "object",
           "description": "This document's slice of each subcomponent, keyed by subcomponent name.",
@@ -104,13 +111,6 @@
         "variants": {
           "$ref": "component.schema.json#/definitions/Variants",
           "description": "The styling, layout, and configuration of nested instances based on a cmoponent configuration"
-        },
-        "invalidVariantCombinations": {
-          "type": "array",
-          "description": "Non-default prop values that when used in combination result in an invalid component state, such as a component being set to disabled and hover simultaneously",
-          "items": {
-            "$ref": "component.schema.json#/definitions/PropConfigurations"
-          }
         },
         "subcomponents": {
           "type": "object",
@@ -201,6 +201,13 @@
           "$ref": "component.schema.json#/definitions/Props",
           "description": "Configurable properties that control component behavior and appearance"
         },
+        "invalidPropCombinations": {
+          "type": "array",
+          "description": "Non-default prop values that when used in combination result in an invalid component state, such as a component being set to disabled and hover simultaneously",
+          "items": {
+            "$ref": "component.schema.json#/definitions/PropConfigurations"
+          }
+        },
         "source": {
           "$ref": "component.schema.json#/definitions/SubcomponentSource",
           "description": "Figma source identity for this subcomponent's node."
@@ -230,13 +237,6 @@
         "variants": {
           "$ref": "component.schema.json#/definitions/Variants",
           "description": "The styling, layout, and configuration of nested instances based on a cmoponent configuration"
-        },
-        "invalidVariantCombinations": {
-          "type": "array",
-          "description": "Non-default prop values that when used in combination result in an invalid component state, such as a component being set to disabled and hover simultaneously",
-          "items": {
-            "$ref": "component.schema.json#/definitions/PropConfigurations"
-          }
         },
         "source": {
           "$ref": "component.schema.json#/definitions/SubcomponentSource",

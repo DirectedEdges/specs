@@ -16,6 +16,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 092 | `invalidPropCombinations` — Renamed and Relocated to the Api Concern | Renames `invalidVariantCombinations` and moves it to the api concern — legality of prop combinations is contract, not manifestation |
 | 091 | Each Concern Document Is Its Own Type | Adds `SpecApiDocument`, `SpecVariantsDocument`, `SpecExamplesDocument` and `Metadata.concern`; a key in the wrong file is an error |
 | 090 | Container Promotion Sources Opened to Closed-Value Layout Properties | Adds `FigmaElementExtension.children` (`SlotContentRef`) and widens container sources to all closed-value layout members |
 | 089 | Run Metadata Factored Out of the Component Spec | Adds `RunMetadata` — the run's facts as a document of its own — and narrows the required set on `Metadata` to `source` |

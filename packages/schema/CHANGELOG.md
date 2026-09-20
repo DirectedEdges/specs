@@ -12,8 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **An element carrying positioning offsets always declares `position: ABSOLUTE`**, so its placement is readable without consulting the parent's layout mode. Documentation-only: the presence contract is stated on `position` and the six offset properties in the types and schema; no shape changes (ADR-070)
+- `Component.invalidPropCombinations` — renames `invalidVariantCombinations`; carried by the api concern document (ADR-092)
 
 ### Removed
+
+### Migration
+
+- `Component.invalidVariantCombinations` → `Component.invalidPropCombinations`: read the renamed key, and from `api.yaml` rather than `variants.yaml` in split-concern output; regenerate specs to migrate
 
 
 ## [0.33.0] - 2026-09-20

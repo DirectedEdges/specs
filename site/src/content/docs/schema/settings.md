@@ -45,7 +45,7 @@ Authored in `config/settings.yaml`. Members are grouped by concern, and each con
 | `roles` | `boolean` | `false` | Read Figma Dev Mode annotations and emit [`anatomy.<element>.role`](/schema/anatomy/) and `.actions` — the on-switch for the [role feature](/roles/) (ADR-067) |
 | `roleValidation` | `'warn' \| 'error'` | `'warn'` | Severity for unmet required role obligations, such as a control with no accessible-name source; `error` fails the transform (ADR-067) |
 | [`invalidVariants`](/settings/invalid-variants/) | `boolean` | `false` | Include variants marked invalid |
-| [`invalidCombinations`](/guides/invalid-variant-combinations/) | `boolean` | `true` | Include `invalidVariantCombinations` list |
+| [`invalidCombinations`](/guides/invalid-variant-combinations/) | `boolean` | `true` | Include `invalidPropCombinations` list |
 | [`emptyVariants`](/settings/empty-variants/) | `boolean` | `false` | Include variants with no element overrides |
 | [`defaultSlotContent`](/guides/default-slot-content/) | `boolean` | `false` | **Pro.** Emit the component's default slot content into `Component.slotContentExamples`. Ignored on the free tier |
 | `splitComponents` | `boolean` | `true` | Write one file per component rather than a single combined library file |

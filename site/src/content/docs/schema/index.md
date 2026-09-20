@@ -38,7 +38,7 @@ components:
   │ └─ - <a href="/schema/prop-configurations/">configuration</a>:
   │     <a href="/schema/layout/">layout</a>:
   │     <a href="/schema/elements/">elements</a>:                      (layered styling and binding changes)
-  ├─ invalidVariantCombinations:           → <a href="/schema/prop-configurations/">PropConfigurations</a>[]
+  ├─ invalidPropCombinations:              → <a href="/schema/prop-configurations/">PropConfigurations</a>[]
   ├─ <a href="/schema/subcomponents/">subcomponents</a>:
   │ └─ {name}: { …same shape as above }
   ├─ <a href="/schema/metadata/">metadata</a>:

@@ -446,12 +446,12 @@ configuration:
 
 Boolean flag indicating this prop combination cannot be instantiated (e.g., `disabled: true, hover: true`). Invalid variants are excluded from layer resolution. Controlled by `spec.invalidVariants` (default: `false`).
 
-### `Component.invalidVariantCombinations`
+### `Component.invalidPropCombinations`
 
-When `spec.invalidCombinations` is `true` (the default), the component output includes an `invalidVariantCombinations` array listing prop combinations that have no corresponding valid variant.
+When `spec.invalidCombinations` is `true` (the default), the component output includes an `invalidPropCombinations` array listing prop combinations that have no corresponding valid variant.
 
 ```yaml
-invalidVariantCombinations:
+invalidPropCombinations:
   - disabled: true
     state: hover
   - disabled: true

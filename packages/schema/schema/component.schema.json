@@ -50,7 +50,7 @@
           "$ref": "#/definitions/Variants",
           "description": "The styling, layout, and configuration of nested instances based on a cmoponent configuration"
         },
-        "invalidVariantCombinations": {
+        "invalidPropCombinations": {
           "type": "array",
           "description": "Non-default prop values that when used in combination result in an invalid component state, such as a component being set to disabled and hover simultaneously",
           "items": {
