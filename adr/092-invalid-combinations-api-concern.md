@@ -2,7 +2,7 @@
 
 **Branch**: `092-invalid-combinations-api-concern`
 **Created**: 2026-09-20
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Summary**: `invalidPropCombinations` renames `invalidVariantCombinations` and joins `title`, `anatomy` and `props` in the api concern document.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: ADR-021 (draft) — proposed the rename as `invalidPropConfigurations`; this ADR resolves it as `invalidPropCombinations` and adds the concern relocation
