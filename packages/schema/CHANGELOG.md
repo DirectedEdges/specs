@@ -5,7 +5,7 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.33.0] - Unreleased
+## [0.33.0] - 2026-09-20
 
 **A generation run states its facts once, in a document of its own.** The author, timestamp, generator, schema, conventions and settings were identical in every file a run produced; `RunMetadata` holds them now, and `Metadata` keeps only `source` (ADR-089).
 
