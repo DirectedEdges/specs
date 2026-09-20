@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`specs react --watch` and `specs webcomponents --watch` re-emit on every spec or config change**, watching `config/` alongside the specs directory. Each change re-emits the whole set and re-runs `finalize`; a failed component is logged and the watch continues.
 - **A full `specs react` or `specs webcomponents` run removes emitted component directories no spec accounts for**, naming them in one warning line, so Storybook stops indexing a renamed component under its old name. A `--components` run never prunes.
 - **`specs render` marks a component ready for dev in Figma**, using the status `specs scan` recorded for it. A component whose manifest row reads `NONE`, or has no row at all, renders unmarked as before.
+- **`specs fetch --only variables --from-bridge` downloads a library's variables through the connected plugin**, so a workspace on any Figma plan gets variables without the Enterprise-only REST endpoint or a `FIGMA_TOKEN`. Needs the bridge running and the plugin connected in the library file.
 
 ### Changed
 

@@ -12,7 +12,7 @@ hook blocks it).
 - **There is no MCP server.** The persistent local process is the *bridge*
   (`src/bridge/server.ts`): WebSocket 9001 for plugin connections keyed by
   `fileKey`, HTTP 9002 control (`POST /render`, `POST /generate`,
-  `GET /status`). Pid/log files live under `~/.specs`.
+  `POST /variables`, `GET /status`). Pid/log files live under `~/.specs`.
 - `npm run watch` rebuilds only `dist/specs.js` — **bridge/server changes need
   an explicit `npm run build`** to refresh `dist/bridge-server.js`.
 - Legacy single-file configs (`specs.config.yaml`) are **refused with an
@@ -45,7 +45,7 @@ Registered in `createProgram()` (`src/index.ts`); flat files in
 | `migrate` | `MigrateCommand.ts` | Legacy config → split layout; manifest v1→v2 |
 | `generate` | `GenerateCommand.ts` | Figma file / manifest / bridge → specs |
 | `scan` | `ScanCommand.ts` | Discover components → `<alias>.manifest.md` |
-| `fetch` | `FetchCommand.ts` | Figma REST download (file, variables, styles, icons) |
+| `fetch` | `FetchCommand.ts` | Figma REST download (file, variables, styles, icons); `--from-bridge` reads variables through the plugin instead (non-Enterprise path) |
 | `cache` | `CacheCommand.ts` | Render lookup caches |
 | `applyCustomTokens` | `ApplyCustomTokensCommand.ts` | Inject custom tokens into foundations |
 | `transform` | `TransformCommand.ts` | Project `api.yaml` → derived files |

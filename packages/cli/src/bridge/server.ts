@@ -20,6 +20,11 @@
 //   Body: { "fileKey": "..." }  (fileKey optional under the same single-connection rule)
 //   Generates a spec from the plugin's current Figma selection — no REST fetch needed.
 //   Response: { "success": true, "nodeId": "...", "name": "...", "specData": {...} }
+//   POST http://localhost:9002/variables
+//   Body: { "fileKey": "..." }  (fileKey optional under the same single-connection rule)
+//   Reads the connected file's variables via the Plugin API, shaped like the REST
+//   variables/local response's meta — no REST call, no Enterprise plan needed.
+//   Response: { "success": true, "fileKey": "...", "meta": { "variableCollections": {...}, "variables": {...} } }
 //   GET  http://localhost:9002/status
 //   Response: { "connections": [{ "fileKey": "...", "fileName": "...", "connected": true }] }
 //
@@ -91,6 +96,15 @@ interface GenerateResult {
   error?: string;
 }
 
+/** The connected file's variables, read by the plugin and shaped like the REST
+ *  variables/local response's `meta` — see bridge/client.ts GetVariablesResponse. */
+interface VariablesResult {
+  success: boolean;
+  fileKey?: string;
+  meta?: { variableCollections: Record<string, unknown>; variables: Record<string, unknown> };
+  error?: string;
+}
+
 // ── Startup workspace (optional) ──────────────────────────────────────────────
 // If set, all requests use this workspace. If not set, workspace is derived per-request.
 
@@ -144,7 +158,7 @@ const registry = new ConnectionRegistry<WebSocket>();
 
 // Pending requests keyed by a generated requestId, so responses route to the
 // right caller regardless of which connection they came from.
-const requests = new RequestTracker<string | RenderResult | GenerateResult>();
+const requests = new RequestTracker<string | RenderResult | GenerateResult | VariablesResult>();
 
 wss.on('connection', (ws: WebSocket) => {
   // This connection's fileKey isn't known until its 'hello' message arrives.
@@ -163,12 +177,24 @@ wss.on('connection', (ws: WebSocket) => {
       return;
     }
 
-    if (msg.type === 'pageId-result' || msg.type === 'renderComponent-result' || msg.type === 'generateFromSelection-result' || msg.type === 'removeNode-result') {
+    if (msg.type === 'pageId-result' || msg.type === 'renderComponent-result' || msg.type === 'generateFromSelection-result' || msg.type === 'removeNode-result' || msg.type === 'getVariables-result') {
       const requestId = msg.requestId as string | undefined;
       if (!requestId) return; // no way to route this response
 
       if (msg.type === 'pageId-result') {
         requests.resolve(requestId, msg.pageId as string);
+        return;
+      }
+
+      if (msg.type === 'getVariables-result') {
+        if (msg.success) {
+          const meta = msg.meta as VariablesResult['meta'];
+          console.log(`✓ Variables read from plugin (${Object.keys(meta?.variables ?? {}).length} variables)`);
+          requests.resolve(requestId, { success: true, meta });
+        } else {
+          console.error(`✗ Get variables failed: ${msg.error}`);
+          requests.resolve(requestId, { success: false, error: msg.error as string });
+        }
         return;
       }
 
@@ -263,9 +289,33 @@ const http = createServer((req, res) => {
     return;
   }
 
+  if (req.method === 'POST' && req.url === '/variables') {
+    let varsBody = '';
+    req.on('data', (chunk) => { varsBody += chunk; });
+    req.on('end', () => {
+      let params: { fileKey?: string };
+      try { params = varsBody ? JSON.parse(varsBody) : {}; } catch {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Invalid JSON body.' }));
+        return;
+      }
+
+      sendGetVariables(params.fileKey)
+        .then((result) => {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(result));
+        })
+        .catch((err) => {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: errorMessage(err) }));
+        });
+    });
+    return;
+  }
+
   if (req.method !== 'POST' || req.url !== '/render') {
     res.writeHead(405);
-    res.end(JSON.stringify({ error: 'Only POST /render, POST /generate, or GET /status is supported.' }));
+    res.end(JSON.stringify({ error: 'Only POST /render, POST /generate, POST /variables, or GET /status is supported.' }));
     return;
   }
 
@@ -617,6 +667,16 @@ async function sendRemoveNode(nodeId: string, fileKey?: string): Promise<{ succe
   const { requestId, promise } = requests.create(30000, 'Timed out waiting for removeNode-result.');
   conn.ws.send(JSON.stringify({ type: 'removeNode', requestId, nodeId }));
   return promise as Promise<{ success: boolean; error?: string }>;
+}
+
+/** Ask a connection's plugin for the file's variables, shaped like the REST payload's meta. */
+async function sendGetVariables(fileKey?: string): Promise<VariablesResult> {
+  const conn = registry.resolve(fileKey);
+  const { requestId, promise } = requests.create(60000, 'Timed out waiting for getVariables-result.');
+  conn.ws.send(JSON.stringify({ type: 'getVariables', requestId }));
+  const result = await (promise as Promise<VariablesResult>);
+  // The answering connection names the file — the caller maps it to a source alias.
+  return { ...result, fileKey: conn.fileKey };
 }
 
 async function sendGenerateFromSelection(fileKey?: string, nodeId?: string, conventions?: ResolvedConventions, settings?: ResolvedSettings): Promise<GenerateResult> {
