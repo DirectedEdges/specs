@@ -46,7 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [ADR-090](../../adr/090-container-promotion-sources.md) — Container Promotion Sources Opened to Closed-Value Layout Properties
 - [ADR-091](../../adr/091-concern-documents.md) — Each concern document is its own type
 
-## [0.32.0] - Unreleased
+## [0.32.0] - 2026-09-12
 
 **`Pipeline` is retired, and the config split is two parts rather than three.** A transformer pipeline stopped being a thing to configure once each target emitted everything it needs — nothing left to order, and `css` had no output location of its own to name. The other half, `analyses`, never had a reader: `specs analyze` has always taken its analyzers as arguments. `Pipeline`, `ResolvedPipeline`, `TransformEntry`, `AnalysisEntry`, `DEFAULT_PIPELINE` and the `./schema/pipeline` entry point are gone from the package's exports; the retirement itself leaves `Conventions` and `Settings` untouched (both change elsewhere in this release). See the amendment on ADR-071.
 
