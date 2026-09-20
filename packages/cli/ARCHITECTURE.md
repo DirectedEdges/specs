@@ -52,6 +52,8 @@ Registered in `createProgram()` (`src/index.ts`); flat files in
 | `analyze` | `AnalyzeCommand.ts` | Dependency/prop/styling/key analyzers |
 | `render` | `RenderCommand.ts` | Spec → Figma via bridge |
 | `bridge` | `BridgeCommand.ts` | start/stop/status for the daemon |
+| `version` | `VersionCommand.ts` | Spec workspace versioning: diff/history/bump/restore/premerge/report over `src/version/` (diff engine, rules-as-data classifier, ledgers, report renderer). Free tier |
+| `skills` | `SkillsCommand.ts` | Emits the canonical premerge/release orchestration skills into `.claude/skills/` |
 | `audit` | (inline alias) | Deprecated; rewrites argv to `scan` |
 
 ## Key nodes

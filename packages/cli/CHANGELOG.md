@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`specs version` — spec workspace versioning** (free tier). Automated semantic versioning of the generated spec payload: `bump` classifies the workspace diff since the last version against rules compiled from the authored semver tables (api changes drive MAJOR/MINOR; `variants.yaml` and examples concerns can never exceed PATCH; assets graded, with removed-while-referenced failing the run) and writes append-only ledgers plus a full `versions/<libraryVersion>/` folder (report.md, changelog.md, specs/); `diff` and `history` query the ledgers; `restore` reads a component at any ledgered version straight out of its version folder; `premerge` grades two spec trees supplied as paths; `report` renders the pre-release report and itemized changelog from ledger diffs. Tracked renames (`versions/renames.yaml`, components/props/enum values) diff as single renames with migration lines, never remove+add; manual overrides (`--force-major|--force-minor|--force-patch "reason"`) are recorded in the ledger; `--tag` creates the annotated library tag, never pushed.
+- **`specs skills install`** — emits the canonical `specs-cli.premerge` and `specs-cli.release` orchestration skills into `.claude/skills/`, overwriting on refresh.
+
 ### Changed
 
 ### Removed
