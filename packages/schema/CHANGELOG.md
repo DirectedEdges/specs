@@ -284,7 +284,7 @@ Introduces the transformer pipeline's schema foundation. `Config.transformers` (
 ### Removed
 
 
-## [0.23.0] - Unreleased
+## [0.23.0] - never published (shipped in 0.24.0)
 
 ### Added
 

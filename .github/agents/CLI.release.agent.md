@@ -46,7 +46,8 @@ All commands in this agent run from the **CLI package directory**: `packages/cli
 
 2. **Verify CHANGELOG**: Read `packages/cli/CHANGELOG.md`. Confirm:
    - An entry exists for this version (e.g., `## [0.6.0]`)
-   - The entry has a date (use today if missing)
+   - The entry has a **date**. A heading reading `- Unreleased` counts as undated — replace it with today's date; "Unreleased" left in place ships verbatim to the docs site's Releases page (it did on 2026-09-12).
+   - **No other entry in the file still reads `- Unreleased`.** Run `grep -n ' - Unreleased' packages/cli/CHANGELOG.md`: after this entry is dated, the grep must return nothing. A hit on a published version is a prior cycle's miss — date it from that version's GitHub release in this release's commit. A hit on a version never published anywhere: STOP and report.
    - A **Summary paragraph** exists at the top of the version entry (immediately after the heading). This is written last, after all bullets are done. It must:
      - Open with the most important user-facing capability in this release
      - Answer "So what?" — what can users now do that they couldn't before?
