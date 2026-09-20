@@ -9,11 +9,11 @@ Versioning produces three human-readable outputs. All of them are **fully genera
 
 | Output | Compares | Question it answers |
 |--------|----------|---------------------|
-| **Pre-merge report** — `specs version premerge` | A Figma branch against main, right now | "What impact does merging this feature have?" |
+| **Pre-merge report** — `specs version figmapremerge` | A Figma branch against main, right now | "What impact does merging this feature have?" |
 | **Pre-release report** — `specs version report` | This release against the last one, over time | "What does this release change, at a glance?" |
 | **Release changelog** — same command | Same as pre-release | "Every change, itemized, with migrations" |
 
-The pre-merge report diffs two freshly generated spec trees directly — no history involved, so it works before anything is versioned. The pre-release report and changelog read accumulated [ledger](/versioning/history/) entries instead. Everything downstream of that input — the diff engine, the [grading rules](/versioning/change-classification/), the renderer — is identical, so a change is described the same way wherever it appears.
+The pre-merge report needs only the Figma branch's URL: the command derives the main file, downloads and generates specs from both sides, and diffs the two trees directly — no history involved, so it works before anything is versioned. Each run's spec trees and report land under `versions/diffs/<branch>/`. The pre-release report and changelog read accumulated [ledger](/versioning/history/) entries instead. Everything downstream of that input — the diff engine, the [grading rules](/versioning/change-classification/), the renderer — is identical, so a change is described the same way wherever it appears.
 
 The pre-release report and the changelog are two renderings of **one change dataset**: the report is the glance layer, the changelog is the itemized layer. Generated from the same data, they cannot disagree.
 
@@ -53,7 +53,7 @@ Rename entries come from the rename ledger, so a recorded rename produces one mi
 
 ## One rule set, three consumers
 
-The grading rules ship as data inside the CLI, and three things read them: `specs version bump`, the pre-merge report, and the pre-release report. A given change is graded identically by all three — the report you read before merging and the version bump you get after are guaranteed to agree.
+The grading rules ship as data inside the CLI, and three things read them: `specs version cut`, the pre-merge report, and the pre-release report. A given change is graded identically by all three — the report you read before merging and the version you cut after are guaranteed to agree.
 
 ## See Also
 

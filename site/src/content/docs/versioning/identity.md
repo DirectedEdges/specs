@@ -72,7 +72,7 @@ The diff engine consults these mappings before comparing names at each scope, so
 | **Component rename** | MAJOR | Ledger file renamed, mapping recorded, history continues |
 | **Prop rename** | MAJOR — one rename with migration mapping, not remove + add | Path-scoped mapping recorded |
 | **Enum value rename** | MAJOR — same single-rename reporting | Path-scoped mapping recorded |
-| **Split** (one component becomes two) | Source archived at its final version; new components start at 1.0.0 with an `originatedFrom` pointer | Split entry records the resulting components |
+| **Split** (one component becomes two) | Source archived at its final version; new components start at 0.1.0 with an `originatedFrom` pointer | Split entry records the resulting components |
 | **Merge** (two components become one) | The designated primary's history continues with a MAJOR; the others are archived with a forward pointer | Merge entry designates the primary |
 | **Origin update** (recreated in Figma, files moved) | None | Source metadata updated, noted in the ledger |
 

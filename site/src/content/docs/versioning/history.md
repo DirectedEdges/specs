@@ -17,11 +17,12 @@ workspace/
     │   ├── changelog.md
     │   ├── specs/
     │   └── assets/             # icons + images — kept only in latest/
-    ├── 1.0.0/
+    ├── 0.1.0/
     │   ├── report.md           # the release report for this version
     │   ├── changelog.md        # the itemized changelog for this version
     │   └── specs/              # the specs exactly as versioned
-    ├── 1.1.0/
+    ├── 0.2.0/
+    ├── diffs/                  # pre-merge comparison runs — see Reports & Changelogs
     ├── ledgers/
     │   ├── library.ledger.json # library versions, per-release component roll-up
     │   └── dsButton.ledger.json# one per component, named by spec folder
@@ -39,13 +40,13 @@ Two file formats, matched to who touches each:
 
 ## What a ledger entry records
 
-Every version bump appends one entry per changed component:
+Every cut appends one entry per changed component:
 
 | Field | What it holds |
 |-------|---------------|
 | `version` / `libraryVersion` | The component's new version, and the library version it shipped under |
 | `timestamp`, `author` | When and who |
-| `git` | Commit, branch, and tag at bump time |
+| `git` | Commit, branch, and tag when the version was cut |
 | `run` | Generator and schema versions, captured from [`latest.metadata.yaml`](/guides/run-metadata/) |
 | `diff` | The graded changes since the component's previous version |
 | `changeType`, `reason` | The grade (`major`/`minor`/`patch`) and the generated reason line |
@@ -75,8 +76,8 @@ Three question shapes, three commands:
 
 Releases are marked with **library-level annotated tags** (`v2.4.0`); the tag message carries the per-component change roll-up, so `git show v2.4.0` summarizes the release without any other tooling. Components are not tagged individually — their history is in the ledgers.
 
-- Ledger entries record the commit, branch, and tag at bump time, so every version is traceable to exact repository state.
-- Tags are created by `specs version bump --tag` and **pushed manually** — the tool never pushes for you.
+- Ledger entries record the commit, branch, and tag at cut time, so every version is traceable to exact repository state.
+- Tags are created by `specs version tag` — at cut time or any time after, from the ledger's recorded data — and **pushed manually**; the tool never pushes for you.
 - A deleted or force-moved tag is a process error, not a versioning feature; the ledger's recorded commit lets you recreate a lost tag.
 
 ## See Also

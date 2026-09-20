@@ -1,6 +1,6 @@
 ---
 title: "version"
-description: "Spec workspace versioning: diffs, semver bumps, ledgers, reports, and changelogs."
+description: "Spec workspace versioning: diffs, semver cuts, ledgers, reports, and changelogs."
 ---
 Version the spec workspace — compare versions, classify changes as MAJOR/MINOR/PATCH, record history, and generate reports and changelogs. Concepts are covered in the [Versioning](/versioning/) section; this page is the command reference.
 
@@ -14,9 +14,10 @@ specs version <subcommand> [options]
 |------------|---------|
 | [`diff`](#specs-version-diff) | What changed for a component between two versions |
 | [`history`](#specs-version-history) | Every ledgered version of a component |
-| [`bump`](#specs-version-bump) | Classify workspace changes, write the new version |
+| [`cut`](#specs-version-cut) | Classify workspace changes, write the new version |
+| [`tag`](#specs-version-tag) | Create the git tag for a cut version |
 | [`restore`](#specs-version-restore) | Read a component's spec back at an older version |
-| [`premerge`](#specs-version-premerge) | Pre-merge report from two spec trees |
+| [`figmapremerge`](#specs-version-figmapremerge) | Pre-merge report for a Figma branch, from its URL |
 | [`report`](#specs-version-report) | Pre-release report + itemized changelog |
 
 Shared conventions:
@@ -31,8 +32,8 @@ Shared conventions:
 Jump comparison: what changed for one component between two versions.
 
 ```bash
-specs version diff dsButton --from 1.0.0              # against the current working spec
-specs version diff dsButton --from 1.0.0 --to 2.0.0   # between two ledgered versions
+specs version diff dsButton --from 0.1.0              # against the current working spec
+specs version diff dsButton --from 0.1.0 --to 1.0.0   # between two ledgered versions
 ```
 
 | Flag | Description |
@@ -49,67 +50,67 @@ Layered listing: every ledgered version of a component, with grades, reasons, an
 
 ```bash
 specs version history dsButton
-specs version history dsButton 1.0.0..2.0.0    # inclusive range
+specs version history dsButton 0.1.0..1.0.0    # inclusive range
 ```
 
-## `specs version bump`
+## `specs version cut`
 
-Compares the workspace against its last recorded version, grades every change, appends ledger entries, and writes the new version folder — `versions/<libraryVersion>/` with the full `specs/` tree plus that version's `report.md` and `changelog.md`, then refreshes `versions/latest/` (which also carries `assets/`). See [Version History](/versioning/history/) for the layout.
+Cuts the next version: compares the workspace against its last recorded version, grades every change, appends ledger entries, and writes the new version folder — `versions/<libraryVersion>/` with the full `specs/` tree plus that version's `report.md` and `changelog.md`, then refreshes `versions/latest/` (which also carries `assets/`). See [Version History](/versioning/history/) for the layout.
 
 ```bash
-specs version bump
-specs version bump --tag
-specs version bump --force-minor "visual break: brand background sweep"
+specs version cut
+specs version cut --force-minor "visual break: brand background sweep"
 ```
 
 | Flag | Description |
 |------|-------------|
 | `--force-major <reason>` / `--force-minor <reason>` / `--force-patch <reason>` | Override the computed class; mutually exclusive, reason required and recorded in the ledger |
-| `--tag` | Create the annotated library git tag `v<version>` with the per-component roll-up in its message — never pushed |
 | `--workspace <dir>`, `--rules <path>` | As above |
 
 Behavior worth knowing:
 
-- The **first bump** on an unversioned workspace initializes every component and the library at 1.0.0 as a baseline.
-- An **untracked likely rename** (title changed, Figma node matches an existing ledger) stops the bump with nothing written — record the rename in [`renames.yaml`](/versioning/identity/) and re-run.
-- An **asset removed while specs still reference it** also stops the bump — a broken reference is a defect, not a version. A `--force-*` flag proceeds anyway, downgrading these stops to recorded warnings.
-- Components with no changes never bump, even under `--force-*`.
+- The **first cut** on an unversioned workspace initializes every component and the library at 0.1.0 as a baseline.
+- An **untracked likely rename** (title changed, Figma node matches an existing ledger) stops the cut with nothing written — record the rename in [`renames.yaml`](/versioning/identity/) and re-run.
+- An **asset removed while specs still reference it** also stops the cut — a broken reference is a defect, not a version. A `--force-*` flag proceeds anyway, downgrading these stops to recorded warnings.
+- Components with no changes never move, even under `--force-*`.
+
+## `specs version tag`
+
+Creates the annotated library git tag `v<version>` for a cut version, with the per-component roll-up as the tag message — from the ledger's recorded data, so it works at cut time or any time after, without re-running `cut`. Never pushed; pushing the tag is always your call.
+
+```bash
+specs version tag           # tag the newest cut version
+specs version tag 1.2.0     # tag an earlier cut version
+```
 
 ## `specs version restore`
 
 Reads a component's spec back at an older version — resolved through the ledger to the release that shipped it, then read from that version folder.
 
 ```bash
-specs version restore dsButton 1.5.0                 # concern files to stdout
-specs version restore dsButton 1.5.0 --out ./tmp     # concern files into a directory
+specs version restore dsButton 0.3.0                 # concern files to stdout
+specs version restore dsButton 0.3.0 --out ./tmp     # concern files into a directory
 ```
 
 `restore` refuses to write into the live spec directory — it never overwrites your working specs.
 
-## `specs version premerge`
+## `specs version figmapremerge`
 
-Pre-merge impact report from two spec trees supplied as paths — typically specs generated from a Figma branch and from main. No ledger involved, so it works before anything is versioned. Report anatomy is covered in [Reports & Changelogs](/versioning/reports/).
+Pre-merge impact report for a Figma branch, from just its URL: the command derives the main file from the branch, downloads both sides, generates specs from each, and grades the differences. No version history involved, so it works before anything is versioned. Report anatomy is covered in [Reports & Changelogs](/versioning/reports/).
 
 ```bash
-specs version premerge --base ./main-specs --current ./branch-specs \
-  --target-label "main" --source-label "feature/compact-density" --out premerge.md
+specs version figmapremerge https://www.figma.com/design/<key>/<branch>
 ```
 
-| Flag | Description |
-|------|-------------|
-| `--base <specs-dir>` | The merge target's spec tree — what is being merged into (required) |
-| `--current <specs-dir>` | The arriving spec tree — the feature branch (required) |
-| `--target-label <label>` / `--source-label <label>` | Names for the two sides in the report header |
-| `--out <file>` | Write the report to a file instead of stdout |
-| `--rules <path>` | As above |
+Each run writes its artifacts under `versions/diffs/<branch>/` — the generated `base/` and `current/` spec trees plus `report.md` — and prints the report to stdout. Re-running against the same branch overwrites that run's own folder.
 
 ## `specs version report`
 
-Pre-release report and itemized changelog, built from ledger diffs accumulated since the last release. The same two files are also written into each version folder at bump time.
+Pre-release report and itemized changelog, built from ledger diffs accumulated since the last release. The same two files are also written into each version folder when the version is cut.
 
 ```bash
 specs version report                     # since the previous library version, to stdout
-specs version report --since 2.0.0 --out ./release-docs
+specs version report --since 1.0.0 --out ./release-docs
 ```
 
 | Flag | Description |

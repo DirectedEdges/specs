@@ -45,11 +45,12 @@ workspace/
     │   ├── changelog.md
     │   ├── specs/
     │   └── assets/             # …plus icons and images (kept only here, not per version)
-    ├── 1.0.0/
+    ├── 0.1.0/
     │   ├── report.md
     │   ├── changelog.md
     │   └── specs/
-    ├── 1.1.0/
+    ├── 0.2.0/
+    ├── diffs/                  # pre-merge comparison runs, one folder per Figma branch
     ├── ledgers/                # machine-managed history, one file per component
     └── renames.yaml            # renames you've recorded, so history survives them
 ```
@@ -61,7 +62,7 @@ The `versions/` folder travels with your workspace and lands in the same git rep
 ```
 specs generate            produce specs as usual
        ↓
-specs version bump        compare against the last recorded version
+specs version cut         compare against the last recorded version
        ↓
    diff → classify        every change graded MAJOR / MINOR / PATCH by rule
        ↓

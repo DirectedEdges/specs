@@ -15,12 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`specs version bump` gives the spec workspace a semantic version**, grading every change since the last version: `api.yaml` changes drive MAJOR or MINOR, while `variants.yaml` and examples never exceed PATCH. Each version is stored in full under `versions/<version>/`, with `versions/latest/` mirroring the newest.
-- **`specs version diff`, `history`, and `restore` answer what changed, how it happened, and what a component looked like at any version**, reading the history `bump` maintains. `restore` never overwrites the live spec.
-- **`specs version premerge` grades the impact of one spec tree arriving in another** before you merge, from two spec directories — no version history required.
-- **`specs version report` renders the release report and itemized changelog** for everything versioned since the last release; the same two files land in each version's folder at bump time.
+- **`specs version cut` gives the spec workspace a semantic version**, grading every change since the last version: `api.yaml` changes drive MAJOR or MINOR, while `variants.yaml` and examples never exceed PATCH. A first cut starts the workspace at 0.1.0; each version is stored in full under `versions/<version>/`, with `versions/latest/` mirroring the newest.
+- **`specs version diff`, `history`, and `restore` answer what changed, how it happened, and what a component looked like at any version**, reading the history `cut` maintains. `restore` never overwrites the live spec.
+- **`specs version figmapremerge` reports the impact of a Figma branch before you merge it**, from just the branch URL — it derives the main file, generates specs from both sides, and writes the graded comparison under `versions/diffs/`.
+- **`specs version report` renders the release report and itemized changelog** for everything versioned since the last release; the same two files land in each version's folder when it is cut.
 - **A recorded rename reports as one change with a `from → to` migration line**, never a removal plus an addition. Record component, prop, and enum value renames in `versions/renames.yaml`.
-- **`--force-major`, `--force-minor`, and `--force-patch` override the computed grade** with a required reason, recorded permanently in the history; `--tag` creates the annotated library git tag, never pushed.
+- **`--force-major`, `--force-minor`, and `--force-patch` override the computed grade** with a required reason, recorded permanently in the history.
+- **`specs version tag` creates the annotated library git tag for any cut version**, at cut time or later, from the recorded history — never pushed.
 - **`specs skills install` emits the premerge and release orchestration skills into `.claude/skills/`**, overwriting on refresh so the skills always match the CLI that ships them.
 
 ### Changed

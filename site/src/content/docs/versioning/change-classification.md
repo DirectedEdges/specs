@@ -3,7 +3,7 @@ title: "Change Classification"
 description: "The rules that grade every spec change as MAJOR, MINOR, or PATCH — and why variants can never break the contract."
 ---
 
-Every change detected between two versions of a spec is graded by rule: **BREAKING** (forces a MAJOR bump), **ADDITIVE** (MINOR), **PATCH**, or **IGNORE**. The component's bump is the most severe grade present, and the library bump is the most severe component bump in the release. The rules live in a data file the CLI ships with, so `specs version bump` and both [reports](/versioning/reports/) grade any given change identically.
+Every change detected between two versions of a spec is graded by rule: **BREAKING** (forces a MAJOR bump), **ADDITIVE** (MINOR), **PATCH**, or **IGNORE**. The component's bump is the most severe grade present, and the library bump is the most severe component bump in the release. The rules live in a data file the CLI ships with, so `specs version cut` and both [reports](/versioning/reports/) grade any given change identically.
 
 ## The organizing principle
 
@@ -95,10 +95,10 @@ Generated icons, images, and CSS variables that specs reference by name:
 
 ## Manual overrides
 
-The automatic grade can be overridden at bump time, with a required reason that is recorded permanently in the [ledger](/versioning/history/):
+The automatic grade can be overridden when a version is cut, with a required reason that is recorded permanently in the [ledger](/versioning/history/):
 
 ```bash
-specs version bump --force-minor "visual break: brand background sweep"
+specs version cut --force-minor "visual break: brand background sweep"
 ```
 
 `--force-major`, `--force-minor`, and `--force-patch` are the only escape hatch — there is no automatic elevation for any style change. The recorded reason keeps the history honest about why a version moved differently than the rules said.

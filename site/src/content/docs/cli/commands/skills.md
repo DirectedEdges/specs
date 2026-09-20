@@ -18,8 +18,8 @@ Two skills are emitted:
 
 | Skill | Orchestrates |
 |-------|--------------|
-| `specs-cli.premerge` | Generate specs from both sides → [`specs version premerge`](/cli/commands/version/#specs-version-premerge) → human reviews the report → merge proceeds or not |
-| `specs-cli.release` | [`specs version report`](/cli/commands/version/#specs-version-report) → human review → [`specs version bump`](/cli/commands/version/#specs-version-bump) → tag → publish |
+| `specs-cli.premerge` | [`specs version figmapremerge`](/cli/commands/version/#specs-version-figmapremerge) fetches, generates, and reports → human reviews the report → merge proceeds or not |
+| `specs-cli.release` | [`specs version report`](/cli/commands/version/#specs-version-report) → human review → [`specs version cut`](/cli/commands/version/#specs-version-cut) → [`specs version tag`](/cli/commands/version/#specs-version-tag) → publish |
 
 The emitted files are **canonical and overwritten on every install** — re-running after a CLI upgrade refreshes them to match the commands they orchestrate. Keep local customization in your own separate skills rather than editing the emitted ones.
 
