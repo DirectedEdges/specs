@@ -2,8 +2,8 @@ import { describe, it, expect, afterEach } from 'vitest';
 import fsx from 'fs-extra';
 import path from 'path';
 import { assemble, resolveWorkspace } from '../../../src/version/assemble.js';
-import { planBump, commitBump } from '../../../src/version/bump.js';
-import { buildBumpChangelog, buildBumpDataset, buildLedgerReport, buildPremergeDataset } from '../../../src/version/datasets.js';
+import { planCut, commitCut } from '../../../src/version/cut.js';
+import { buildCutChangelog, buildCutDataset, buildLedgerReport, buildPremergeDataset } from '../../../src/version/datasets.js';
 import { renderChangelog, renderReport, valueText, configText } from '../../../src/version/report.js';
 import { loadRules } from '../../../src/version/rules.js';
 import { makeWorkspace, removeWorkspace, editYaml, writeYaml } from './helpers.js';
@@ -119,11 +119,11 @@ describe('premerge report', () => {
   });
 });
 
-describe('bump-time report and changelog', () => {
+describe('cut-time report and changelog', () => {
   it('renders one dataset two ways: glance report and itemized changelog with migrations', () => {
     const dir = workspace('release');
     const ws = resolveWorkspace(dir);
-    commitBump(ws, planBump(ws, ruleSet), { reportMd: 'r', changelogMd: 'c' });
+    commitCut(ws, planCut(ws, ruleSet), { reportMd: 'r', changelogMd: 'c' });
 
     // tracked prop rename + an addition
     writeYaml(dir, 'versions/renames.yaml', {
@@ -135,16 +135,16 @@ describe('bump-time report and changelog', () => {
       doc.props.scale = def;
       doc.props.rounded = { type: 'boolean', default: false };
     });
-    const plan = planBump(ws, ruleSet);
-    const report = renderReport(buildBumpDataset(plan, 'built-in'));
-    const changelog = renderChangelog(buildBumpChangelog(plan));
+    const plan = planCut(ws, ruleSet);
+    const report = renderReport(buildCutDataset(plan, 'built-in'));
+    const changelog = renderChangelog(buildCutChangelog(plan));
 
-    expect(plan.libraryVersion).toBe('2.0.0');
-    expect(report).toContain('# Release Report — 2.0.0');
+    expect(plan.libraryVersion).toBe('1.0.0');
+    expect(report).toContain('# Release Report — 1.0.0');
     expect(report).toContain('`props.size` → `props.scale`');
 
-    expect(changelog).toContain('## 2.0.0');
-    expect(changelog).toContain('### DE Button (1.0.0 → 2.0.0) — BREAKING');
+    expect(changelog).toContain('## 1.0.0');
+    expect(changelog).toContain('### DE Button (0.1.0 → 1.0.0) — BREAKING');
     expect(changelog).toContain('#### Breaking');
     expect(changelog).toContain('#### Added');
     expect(changelog).toContain('#### Migration');
@@ -156,13 +156,13 @@ describe('ledger-backed pre-release report', () => {
   it('accumulates diffs across releases since a version', () => {
     const dir = workspace('since');
     const ws = resolveWorkspace(dir);
-    commitBump(ws, planBump(ws, ruleSet), { reportMd: 'r', changelogMd: 'c' });
+    commitCut(ws, planCut(ws, ruleSet), { reportMd: 'r', changelogMd: 'c' });
 
     editYaml(dir, 'specs/deButton/api.yaml', doc => {
       doc.props.rounded = { type: 'boolean', default: false };
     });
-    let plan = planBump(ws, ruleSet);
-    commitBump(ws, plan, { reportMd: 'r', changelogMd: 'c' }); // 1.1.0
+    let plan = planCut(ws, ruleSet);
+    commitCut(ws, plan, { reportMd: 'r', changelogMd: 'c' }); // 0.2.0
 
     editYaml(dir, 'specs/deAlert/api.yaml', doc => { delete doc.props.dismissable; });
     editYaml(dir, 'specs/deAlert/variants.yaml', doc => {
@@ -170,26 +170,26 @@ describe('ledger-backed pre-release report', () => {
         doc.variants = doc.variants.filter((v: any) => v.configuration?.dismissable === undefined);
       }
     });
-    plan = planBump(ws, ruleSet);
-    commitBump(ws, plan, { reportMd: 'r', changelogMd: 'c' }); // 2.0.0
+    plan = planCut(ws, ruleSet);
+    commitCut(ws, plan, { reportMd: 'r', changelogMd: 'c' }); // 1.0.0
 
     const { dataset, releases, since, latest } = buildLedgerReport({
       versionsDir: path.join(dir, 'versions'),
       ruleSet,
       rulesLabel: 'built-in',
-      since: '1.0.0',
+      since: '0.1.0',
     });
 
-    expect(since).toBe('1.0.0');
-    expect(latest).toBe('2.0.0');
-    expect(releases.map(r => r.libraryVersion)).toEqual(['2.0.0', '1.1.0']);
+    expect(since).toBe('0.1.0');
+    expect(latest).toBe('1.0.0');
+    expect(releases.map(r => r.libraryVersion)).toEqual(['1.0.0', '0.2.0']);
 
     const report = renderReport(dataset);
     expect(report).toContain('added `props.rounded`');
     expect(report).toContain('removed `props.dismissable`');
 
     const changelog = renderChangelog(releases);
-    expect(changelog.indexOf('## 2.0.0')).toBeLessThan(changelog.indexOf('## 1.1.0'));
+    expect(changelog.indexOf('## 1.0.0')).toBeLessThan(changelog.indexOf('## 0.2.0'));
     expect(changelog).toContain('### DE Alert');
   });
 });

@@ -4,9 +4,10 @@
  * ledgers (pre-release report + changelog over time).
  */
 
+import * as fs from 'fs';
 import * as path from 'path';
-import { assembleAll, resolveWorkspace } from './assemble.js';
-import type { BumpPlan } from './bump.js';
+import { assembleAll, resolveWorkspace, slugify } from './assemble.js';
+import type { CutPlan } from './cut.js';
 import { diffComponent } from './diff.js';
 import {
   ledgeredComponents,
@@ -20,15 +21,47 @@ import type { AssembledComponent, DiffEntry, RenameMap } from './types.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+/** A scan-manifest row: the component exists in Figma; `checked` says whether it qualifies to be written out. */
+export interface ManifestRow {
+  title: string;
+  checked: boolean;
+  devStatus: string;
+}
+
+/**
+ * The scan manifest, keyed by spec folder name (ported from the specs-testing
+ * premerge tooling). A component the manifest lists but leaves unchecked
+ * exists in Figma and is deliberately not written out as a spec — most often
+ * because its dev status is not Ready for dev.
+ */
+export function loadManifest(filePath: string | undefined): Map<string, ManifestRow> | null {
+  if (!filePath || !fs.existsSync(filePath)) return null;
+  const rows = new Map<string, ManifestRow>();
+  for (const line of fs.readFileSync(filePath, 'utf8').split('\n')) {
+    if (!/^\|\s*\[[x ]\]/.test(line)) continue;
+    const cells = line.split('|').map(c => c.trim());
+    const [, checkbox, title, , , devStatus] = cells;
+    if (!title) continue;
+    rows.set(slugify(title), { title, checked: checkbox === '[x]', devStatus: devStatus || 'NONE' });
+  }
+  return rows;
+}
+
 const nodeIdOf = (component: AssembledComponent | undefined): string | undefined => {
   const source = (component?.concerns.api?.metadata as Record<string, any> | undefined)?.source;
   return source?.nodeId !== undefined ? String(source.nodeId) : undefined;
 };
 
-function presenceEntry(ruleSet: RuleSet, operation: 'added' | 'removed', title: string): DiffEntry {
+function presenceEntry(
+  ruleSet: RuleSet,
+  operation: 'added' | 'removed',
+  title: string,
+  extras: Partial<DiffEntry> = {},
+): DiffEntry {
   const entry: DiffEntry = {
     path: '', concernFile: 'component', operation, impact: 'unclassified',
     ...(operation === 'added' ? { newValue: title } : { oldValue: title }),
+    ...extras,
   };
   return grade(ruleSet, entry);
 }
@@ -42,6 +75,13 @@ export interface PremergeOptions {
   rulesLabel: string;
   targetLabel?: string;
   sourceLabel?: string;
+  /** Scan manifests; with them, a component that vanished because its dev status changed is told apart from one that was deleted. */
+  baseManifest?: string;
+  currentManifest?: string;
+  /** Explicit rename map; defaults to the current tree's workspace renames.yaml when resolvable. */
+  renames?: RenameMap;
+  /** Extra rows for the closing provenance table. */
+  provenance?: Array<[string, string]>;
 }
 
 /**
@@ -53,13 +93,17 @@ export interface PremergeOptions {
  */
 export function buildPremergeDataset(options: PremergeOptions): ChangeDataset {
   const { baseDir, currentDir, ruleSet } = options;
-  let renames: RenameMap = emptyRenameMap();
-  try {
-    const workspace = resolveWorkspace(currentDir);
-    renames = loadRenames(workspace.versionsDir);
-  } catch {
-    // A bare spec tree with no workspace around it: no recorded renames.
+  let renames: RenameMap = options.renames ?? emptyRenameMap();
+  if (!options.renames) {
+    try {
+      const workspace = resolveWorkspace(currentDir);
+      renames = loadRenames(workspace.versionsDir);
+    } catch {
+      // A bare spec tree with no workspace around it: no recorded renames.
+    }
   }
+  const baseManifest = loadManifest(options.baseManifest);
+  const currentManifest = loadManifest(options.currentManifest);
 
   const base = assembleAll(baseDir);
   const current = assembleAll(currentDir);
@@ -124,18 +168,28 @@ export function buildPremergeDataset(options: PremergeOptions): ChangeDataset {
         renameRecords.push({ from: component.title, to: current.get(match)!.title, provenance: 'inferred', confidence: 0.9 });
       }
     }
+    // Listed in the current side's manifest but not selected: the component is
+    // still in Figma, it just no longer qualifies to be written out.
+    const row = currentManifest?.get(name);
+    const unpublished = row !== undefined && !row.checked;
     components.push({
       name, title: component.title, presence: 'removed',
-      entries: [presenceEntry(ruleSet, 'removed', component.title)], warnings,
+      entries: [presenceEntry(ruleSet, 'removed', component.title, unpublished
+        ? { flags: ['unpublished'], newValue: `dev status ${row!.devStatus}` }
+        : {})],
+      warnings,
     });
   }
 
   for (const name of added) {
     if (claimedNew.has(name)) continue;
     const component = current.get(name)!;
+    const row = baseManifest?.get(name);
+    const published = row !== undefined && !row.checked;
     components.push({
       name, title: component.title, presence: 'added',
-      entries: [presenceEntry(ruleSet, 'added', component.title)], warnings: [],
+      entries: [presenceEntry(ruleSet, 'added', component.title, published ? { flags: ['published'] } : {})],
+      warnings: [],
     });
   }
 
@@ -151,19 +205,20 @@ export function buildPremergeDataset(options: PremergeOptions): ChangeDataset {
     runEntries: [],
     renames: renameRecords,
     provenance: [
+      ...(options.provenance ?? []),
       ['Base', `\`${path.resolve(baseDir)}\``],
       ['Current', `\`${path.resolve(currentDir)}\``],
-      ['Components', `${base.size} in the base tree, ${current.size} in the current tree`],
+      ['Components', `${base.size} in the base tree, ${current.size} in the current tree, same curation rules on both sides`],
       ['Compared', 'every concern file per component (`api.yaml`, `variants.yaml`, examples concerns)'],
       ['Severity rules', options.rulesLabel],
     ],
   };
 }
 
-// ---------------------------------------------------------------- bump-time
+// ---------------------------------------------------------------- cut-time
 
-/** The release report/changelog dataset for a just-planned bump. */
-export function buildBumpDataset(plan: BumpPlan, rulesLabel: string): ChangeDataset {
+/** The release report/changelog dataset for a just-planned cut. */
+export function buildCutDataset(plan: CutPlan, rulesLabel: string): ChangeDataset {
   const components: ComponentChange[] = plan.components
     .map(c => ({
       name: c.name,
@@ -190,7 +245,7 @@ export function buildBumpDataset(plan: BumpPlan, rulesLabel: string): ChangeData
     renames: plan.renames,
     provenance: [
       ['Basis', plan.initialized
-        ? 'First bump on an unledgered workspace: every component initialized at 1.0.0; nothing was diffed'
+        ? 'First cut on an unledgered workspace: every component initialized at 0.1.0; nothing was diffed'
         : 'Workspace `specs/` diffed against `versions/latest/specs/` (the last versioned state)'],
       ['Run facts', `generator ${plan.run.generatorVersion ?? 'unknown'}, schema ${plan.run.schemaVersion ?? 'unknown'} (from latest.metadata.yaml, ADR-089)`],
       ['Git', `${plan.git.branch ?? 'no branch'} @ ${plan.git.commit?.slice(0, 12) ?? 'no commit'}`],
@@ -200,7 +255,7 @@ export function buildBumpDataset(plan: BumpPlan, rulesLabel: string): ChangeData
   };
 }
 
-export function buildBumpChangelog(plan: BumpPlan): ChangelogRelease[] {
+export function buildCutChangelog(plan: CutPlan): ChangelogRelease[] {
   return [{
     libraryVersion: plan.libraryVersion,
     components: plan.components
@@ -238,7 +293,7 @@ export interface LedgerReport {
 export function buildLedgerReport(options: LedgerReportOptions): LedgerReport {
   const library = readLibraryLedger(options.versionsDir);
   if (!library || library.versions.length === 0) {
-    throw new Error('No library ledger — run `specs version bump` first.');
+    throw new Error('No library ledger — run `specs version cut` first.');
   }
   const versions = library.versions;
   const latest = versions[versions.length - 1].version;

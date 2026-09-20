@@ -44,7 +44,7 @@ export function slugify(title: string): string {
     .replace(/[^A-Za-z0-9]+/g, ' ')
     .trim()
     .split(' ')
-    .map((word, i) => (i === 0 ? word.charAt(0).toLowerCase() + word.slice(1) : word.charAt(0).toUpperCase() + word.slice(1)))
+    .map((word, i) => (i === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1)))
     .join('');
 }
 

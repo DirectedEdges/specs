@@ -129,6 +129,19 @@ export function specPathAtVersion(
   return { dir, entry };
 }
 
+/**
+ * The annotated tag message for a ledgered library version: the per-component
+ * roll-up recorded at cut time.
+ */
+export function tagMessageFor(versionsDir: string, entry: LibraryLedgerEntry): string {
+  const lines = [`Release ${entry.version}`, ''];
+  for (const [name, movement] of Object.entries(entry.components)) {
+    const title = readComponentLedger(versionsDir, name)?.component.title ?? name;
+    lines.push(`${title}: ${movement.from ?? 'new'} -> ${movement.to} (${movement.changeType})`);
+  }
+  return lines.join('\n');
+}
+
 // ---------------------------------------------------------------- version folders
 
 /** Recursive copy that tolerates a missing source. */

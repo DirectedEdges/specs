@@ -26,6 +26,24 @@
 export const SEMVER_RULES_YAML = String.raw`
 rules:
   # ---- whole components ---------------------------------------------------
+  # A component can leave the specs without leaving the library: it is still in
+  # Figma, but its dev status no longer qualifies it to be written out. The
+  # effect on a consumer is the same as deletion, but the cause is a workflow
+  # change, usually accidental, so it is worth saying which happened.
+  - id: component-unpublished
+    concern: component
+    operation: removed
+    flag: unpublished
+    grade: major
+    why: No longer published as a spec; still present in Figma, with a different dev status.
+
+  - id: component-published
+    concern: component
+    operation: added
+    flag: published
+    grade: minor
+    why: Published as a spec for the first time, following a dev status change.
+
   - id: component-removed
     concern: component
     operation: removed

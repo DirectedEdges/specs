@@ -1,5 +1,5 @@
 /**
- * Bump engine — classify the workspace's current specs against the last
+ * Cut engine — classify the workspace's current specs against the last
  * versioned state (`versions/latest/specs/`), plan per-component and library
  * version movement, and commit the plan: ledger entries, a new
  * `versions/<libraryVersion>/` folder, and a refreshed `latest/`.
@@ -7,8 +7,8 @@
  * Identity per the decision tree: title (folder) is primary; renames are always
  * explicit via versions/renames.yaml, never heuristic. An untracked title change
  * whose source.nodeId matches a vanished component is surfaced as a likely
- * rename needing confirmation — the pair is held out of the bump entirely so
- * history is never written on a guess.
+ * rename needing confirmation — the cut fails so history is never written on
+ * a guess.
  */
 
 import * as fs from 'fs';
@@ -56,7 +56,7 @@ export interface PlannedComponent {
   changeType: 'initial' | 'major' | 'minor' | 'patch' | 'removed';
 }
 
-export interface BumpPlan {
+export interface CutPlan {
   initialized: boolean;
   libraryFrom: string | null;
   libraryVersion: string;
@@ -81,11 +81,11 @@ const nodeIdOf = (component: AssembledComponent | undefined): string | undefined
   return source?.nodeId !== undefined ? String(source.nodeId) : undefined;
 };
 
-export function planBump(
+export function planCut(
   workspace: Workspace,
   ruleSet: RuleSet,
   override: LedgerOverride | null = null,
-): BumpPlan {
+): CutPlan {
   const renames = loadRenames(workspace.versionsDir);
   const current = assembleAll(workspace.specsDir);
   const runMeta = readRunMetadata(workspace.specsDir);
@@ -94,10 +94,10 @@ export function planBump(
   const libraryLedger = readLibraryLedger(workspace.versionsDir);
   const assets = assetManifest(workspace.assetsDir);
 
-  const plan: BumpPlan = {
+  const plan: CutPlan = {
     initialized: libraryLedger === null,
     libraryFrom: null,
-    libraryVersion: '1.0.0',
+    libraryVersion: '0.1.0',
     libraryBump: 'none',
     components: [],
     assetEntries: [],
@@ -113,12 +113,12 @@ export function planBump(
     override,
   };
 
-  // First bump on an unledgered workspace: everything starts at 1.0.0.
+  // First cut on an unledgered workspace: everything starts at 0.1.0.
   if (libraryLedger === null) {
     for (const [name, component] of current) {
       plan.components.push({
         name, title: component.title, presence: 'added',
-        entries: [], warnings: [], from: null, to: '1.0.0', changeType: 'initial',
+        entries: [], warnings: [], from: null, to: '0.1.0', changeType: 'initial',
       });
     }
     plan.libraryBump = 'none';
@@ -167,7 +167,7 @@ export function planBump(
   }
 
   // Untracked title change with a matching nodeId: likely rename, needs
-  // confirmation. Never auto-recorded — the bump fails so history is not
+  // confirmation. Never auto-recorded — the cut fails so history is not
   // written on a guess; a --force-* override proceeds as removal + addition.
   for (const oldName of removed) {
     if (claimedOld.has(oldName)) continue;
@@ -179,7 +179,7 @@ export function planBump(
         const message =
           `Likely rename: \`${base.get(oldName)!.title}\` → \`${current.get(newName)!.title}\` ` +
           `(matching source.nodeId ${oldId}), but versions/renames.yaml has no event for it. ` +
-          `Record the rename and run bump again, or pass a --force-* override to record it as a removal plus an addition.`;
+          `Record the rename and run cut again, or pass a --force-* override to record it as a removal plus an addition.`;
         if (override) plan.warnings.push(message);
         else plan.fatal.push(message);
         plan.renames.push({
@@ -239,7 +239,7 @@ export function planBump(
     grade(ruleSet, entry);
     plan.components.push({
       name, title: component.title, presence: 'added',
-      entries: [entry], warnings: [], from: null, to: '1.0.0', changeType: 'initial',
+      entries: [entry], warnings: [], from: null, to: '0.1.0', changeType: 'initial',
     });
   }
 
@@ -268,17 +268,17 @@ export function planBump(
 
   if (plan.libraryBump === 'none') {
     plan.noChanges = true;
-    plan.libraryVersion = plan.libraryFrom ?? '1.0.0';
+    plan.libraryVersion = plan.libraryFrom ?? '0.1.0';
     return plan;
   }
-  plan.libraryVersion = applyBump(plan.libraryFrom ?? '1.0.0', plan.libraryBump);
+  plan.libraryVersion = applyBump(plan.libraryFrom ?? '0.1.0', plan.libraryBump);
   return plan;
 }
 
 /** Write the plan: ledger entries, the version folder, refreshed latest/. */
-export function commitBump(
+export function commitCut(
   workspace: Workspace,
-  plan: BumpPlan,
+  plan: CutPlan,
   rendered: { reportMd: string; changelogMd: string },
 ): void {
   const timestamp = new Date().toISOString();
@@ -296,7 +296,7 @@ export function commitBump(
     }
     ledger.component.title = component.title;
     ledger.versions.push({
-      version: component.to ?? component.from ?? '1.0.0',
+      version: component.to ?? component.from ?? '0.1.0',
       libraryVersion: plan.libraryVersion,
       timestamp,
       author: plan.author,
@@ -361,12 +361,3 @@ function reasonFor(component: PlannedComponent): string {
   return parts.length ? `${parts.join(', ')} change(s)` : 'No classified changes';
 }
 
-/** The per-component roll-up carried in the annotated tag message. */
-export function tagMessage(plan: BumpPlan): string {
-  const lines = [`Release ${plan.libraryVersion}`, ''];
-  for (const component of plan.components) {
-    if (component.entries.length === 0 && !plan.initialized) continue;
-    lines.push(`${component.title}: ${component.from ?? 'new'} -> ${component.to} (${component.changeType})`);
-  }
-  return lines.join('\n');
-}

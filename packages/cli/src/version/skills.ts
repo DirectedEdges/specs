@@ -21,14 +21,15 @@ const HEADER_COMMENT = `<!--
 
 const PREMERGE = `---
 name: specs-cli.premerge
-description: Pre-merge impact report for a Figma feature branch — generate specs from both sides, diff them, and stop for a human read of the report before any merge proceeds.
+description: Pre-merge impact report for a Figma feature branch — one command fetches both sides, generates both spec trees, and diffs them; stop for a human read of the report before any merge proceeds.
 ---
 ${HEADER_COMMENT}
 
 # Pre-merge report
 
-Compare the specs a feature branch produces against the specs main produces,
-and put the graded impact report in front of a human before the merge.
+Compare the specs a Figma feature branch produces against the specs main
+produces, and put the graded impact report in front of a human before the
+merge.
 
 All content is scripted. This skill only sequences commands and stops at the
 gates — it never writes or edits report content, never summarizes the diff in
@@ -36,35 +37,34 @@ its own words, and never decides whether the merge proceeds.
 
 ## Steps
 
-1. **Fetch and generate both sides.** Produce two spec trees with the same
-   curation rules — one from the merge target (main), one from the feature
-   branch. Use the project's usual \`specs fetch\` / \`specs generate\`
-   invocations, writing to two separate directories (for example
-   \`premerge/main/specs\` and \`premerge/branch/specs\`).
-
-2. **Run the report:**
+1. **Run the pipeline** from the workspace (it needs \`config/\` and a
+   \`FIGMA_TOKEN\` in the workspace \`.env\`), passing the Figma branch URL:
 
    \`\`\`bash
-   specs version premerge --base premerge/main/specs --current premerge/branch/specs --out premerge/report.md
+   specs version figmapremerge "<figma branch URL>"
    \`\`\`
 
-3. **GATE — human reads the report.** Hand over \`premerge/report.md\` and stop.
+   The command fetches both sides, generates both spec trees, diffs them, and
+   writes everything under \`versions/diffs/<branch>/\` — the report is
+   \`report.md\` in that folder, and it also prints to stdout.
+
+2. **GATE — human reads the report.** Hand over the report path and stop.
    Do not summarize it, grade it, or soften it. The reader decides whether the
    merge proceeds.
 
-4. Only after an explicit go-ahead does the merge continue, outside this skill.
+3. Only after an explicit go-ahead does the merge continue, outside this skill.
 `;
 
 const RELEASE = `---
 name: specs-cli.release
-description: Release a spec workspace — pre-release report and changelog from the ledgers, human review, then version bump, tag, and publish sequence with a stop at every gate.
+description: Release a spec workspace — pre-release report and changelog from the ledgers, human review, then cut the version, tag, and publish sequence with a stop at every gate.
 ---
 ${HEADER_COMMENT}
 
 # Release
 
 Accumulate what changed since the last release, put the report and itemized
-changelog in front of a human, then bump, tag, and publish — stopping at every
+changelog in front of a human, then cut, tag, and publish — stopping at every
 gate.
 
 All content is scripted. This skill sequences commands and stops; it never
@@ -82,10 +82,10 @@ drafts or polishes report/changelog content and never invents version numbers.
 2. **GATE — human reviews.** Hand over the report and changelog and stop.
    The reader decides the release proceeds — or does not.
 
-3. **Bump.** After an explicit go-ahead:
+3. **Cut the version.** After an explicit go-ahead:
 
    \`\`\`bash
-   specs version bump
+   specs version cut
    \`\`\`
 
    If the human directed an override, pass it with its reason, exactly as
@@ -94,11 +94,11 @@ drafts or polishes report/changelog content and never invents version numbers.
 4. **Tag** only when the human asks for it:
 
    \`\`\`bash
-   specs version bump --tag
+   specs version tag
    \`\`\`
 
-   (or run the bump with \`--tag\` in step 3). Tags are never pushed by this
-   skill — pushing is a manual act.
+   (defaults to the newest cut version). Tags are never pushed by this skill —
+   pushing is a manual act.
 
 5. **GATE — publish sequence.** Whatever ships the release (npm publish, docs,
    announcements) happens outside this skill, after another explicit go-ahead.

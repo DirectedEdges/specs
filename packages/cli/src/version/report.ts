@@ -147,8 +147,18 @@ export function bulletFor(component: ComponentChange, entry: DiffEntry): string 
 
   // Whole-component presence entries.
   if (entry.concernFile === 'component') {
-    if (entry.operation === 'removed') return `${title} — no longer in the library.`;
-    if (entry.operation === 'added') return `${title} — new component.`;
+    if (entry.operation === 'removed') {
+      if (entry.flags?.includes('unpublished')) {
+        return `${title} — no longer published as a spec. The component is still in Figma; its ${code(entry.newValue ?? 'dev status not set')} means it is not marked ready, and components that are not marked ready are not written out.`;
+      }
+      return `${title} — no longer in the library.`;
+    }
+    if (entry.operation === 'added') {
+      if (entry.flags?.includes('published')) {
+        return `${title} — published as a spec for the first time, following a dev status change.`;
+      }
+      return `${title} — new component.`;
+    }
     if (entry.operation === 'renamed') return `${title} — renamed from ${code(entry.oldValue)}.`;
   }
 

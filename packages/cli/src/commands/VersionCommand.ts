@@ -6,28 +6,35 @@
  * under `<workspace>/versions/`, and fully scripted reports and changelogs.
  * Free tier — no license gating.
  *
- * Subcommands: diff · history · bump · restore · premerge · report.
+ * Subcommands: diff · history · cut · tag · restore · figmapremerge · report.
  */
 
 import { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
 import { assemble, resolveWorkspace, slugify, type Workspace } from '../version/assemble.js';
-import { commitBump, planBump, tagMessage } from '../version/bump.js';
+import { commitCut, planCut } from '../version/cut.js';
 import {
-  buildBumpChangelog,
-  buildBumpDataset,
+  buildCutChangelog,
+  buildCutDataset,
   buildLedgerReport,
   buildPremergeDataset,
 } from '../version/datasets.js';
 import { diffComponent } from '../version/diff.js';
-import { createAnnotatedTag } from '../version/gitInfo.js';
+import { createAnnotatedTag, tagExists } from '../version/gitInfo.js';
 import {
   ledgeredComponents,
   readComponentLedger,
+  readLibraryLedger,
   specPathAtVersion,
+  tagMessageFor,
 } from '../version/ledger.js';
 import { loadRenames } from '../version/renames.js';
+import {
+  runFigmaPremerge,
+  type PremergeSteps,
+} from '../version/figmaPremerge.js';
+import { execFileSync } from 'child_process';
 import { loadRules, type RuleSet } from '../version/rules.js';
 import { renderChangelog, renderReport } from '../version/report.js';
 import type { ComponentLedger, LedgerOverride } from '../version/types.js';
@@ -69,7 +76,7 @@ function findLedger(versionsDir: string, componentArg: string): { name: string; 
   }
   return fail(
     `No ledger for component "${componentArg}" under ${versionsDir} — ` +
-    `known: ${ledgeredComponents(versionsDir).join(', ') || 'none (run specs version bump first)'}`,
+    `known: ${ledgeredComponents(versionsDir).join(', ') || 'none (run specs version cut first)'}`,
     ERROR_CODES.INVALID_ARGS,
   );
 }
@@ -187,47 +194,46 @@ const compare = (a: string, b: string): number => {
   return 0;
 };
 
-// ---------------------------------------------------------------- bump
+// ---------------------------------------------------------------- cut
 
-const BumpCmd = new Command('bump')
-  .description('Classify the workspace diff since the last version, write ledger entries and a new version folder, and suggest/apply bumps')
+const Cut = new Command('cut')
+  .description('Cut the next version: classify the workspace diff since the last one, write ledger entries and a new version folder')
   .option('--force-major <reason>', 'Override the computed class to MAJOR (reason required, recorded in the ledger)')
   .option('--force-minor <reason>', 'Override the computed class to MINOR (reason required, recorded in the ledger)')
   .option('--force-patch <reason>', 'Override the computed class to PATCH (reason required, recorded in the ledger)')
-  .option('--tag', 'Create the annotated library git tag v<version> (never pushed)')
   .option('--workspace <dir>', 'Workspace directory (contains specs/ and versions/)')
   .option('--rules <path>', 'Override the built-in severity rules with an external YAML file')
   .action((options: {
     forceMajor?: string; forceMinor?: string; forcePatch?: string;
-    tag?: boolean; workspace?: string; rules?: string;
+    workspace?: string; rules?: string;
   }) => {
     try {
       const workspace = workspaceOf(options);
       const { ruleSet, label } = rulesOf(options);
       const override = overrideOf(options);
 
-      const plan = planBump(workspace, ruleSet, override);
+      const plan = planCut(workspace, ruleSet, override);
 
       if (plan.fatal.length > 0) {
         for (const message of plan.fatal) console.error(`✗ ${message}`);
-        console.error('The bump was not written. Restore the asset or remove the reference; a --force-* override (with reason) records the defect and proceeds.');
+        console.error('The cut was not written. Restore the asset or remove the reference; a --force-* override (with reason) records the defect and proceeds.');
         process.exit(ERROR_CODES.GENERAL_ERROR);
       }
 
       for (const warning of plan.warnings) console.warn(`Warning: ${warning}`);
 
       if (!plan.initialized && plan.noChanges) {
-        console.log(`No changes since v${plan.libraryFrom}. Nothing to bump.`);
+        console.log(`No changes since v${plan.libraryFrom}. Nothing to cut.`);
         return;
       }
 
-      const dataset = buildBumpDataset(plan, label);
+      const dataset = buildCutDataset(plan, label);
       const reportMd = renderReport(dataset);
-      const changelogMd = renderChangelog(buildBumpChangelog(plan));
-      commitBump(workspace, plan, { reportMd, changelogMd });
+      const changelogMd = renderChangelog(buildCutChangelog(plan));
+      commitCut(workspace, plan, { reportMd, changelogMd });
 
       if (plan.initialized) {
-        console.log(`✓ Initialized: ${plan.components.length} components at 1.0.0, library at 1.0.0.`);
+        console.log(`✓ Initialized: ${plan.components.length} components at 0.1.0, library at 0.1.0.`);
       } else {
         const moved = plan.components.filter(c => c.presence !== 'unchanged');
         console.log(`✓ Library ${plan.libraryFrom} → ${plan.libraryVersion} (${plan.libraryBump}${override ? `, forced: ${override.reason}` : ''})`);
@@ -236,11 +242,41 @@ const BumpCmd = new Command('bump')
         }
       }
       console.log(`  versions/${plan.libraryVersion}/ written (report.md, changelog.md, specs/); latest/ refreshed.`);
+      console.log(`  Tag it when ready: specs version tag ${plan.libraryVersion}`);
+    } catch (e) {
+      fail((e as Error).message);
+    }
+  });
 
-      if (options.tag) {
-        createAnnotatedTag(workspace.root, plan.libraryVersion, tagMessage(plan));
-        console.log(`✓ Tagged v${plan.libraryVersion} (annotated, not pushed).`);
+// ---------------------------------------------------------------- tag
+
+const Tag = new Command('tag')
+  .description('Create the annotated library git tag v<version> from ledger-recorded data (never pushed)')
+  .argument('[version]', 'Library version to tag; defaults to the newest ledgered version')
+  .option('--workspace <dir>', 'Workspace directory (contains specs/ and versions/)')
+  .action((versionArg: string | undefined, options: { workspace?: string }) => {
+    try {
+      const workspace = workspaceOf(options);
+      const library = readLibraryLedger(workspace.versionsDir);
+      if (!library || library.versions.length === 0) {
+        fail('No library ledger — run `specs version cut` first.', ERROR_CODES.INVALID_ARGS);
       }
+      const version = versionArg
+        ? normalizeVersion(versionArg)
+        : library!.versions[library!.versions.length - 1].version;
+      const entry = library!.versions.find(v => v.version === version);
+      if (!entry) {
+        fail(
+          `Library version ${version} is not in the ledger ` +
+          `(has: ${library!.versions.map(v => v.version).join(', ')}).`,
+          ERROR_CODES.INVALID_ARGS,
+        );
+      }
+      if (tagExists(workspace.root, version)) {
+        fail(`Tag v${version} already exists.`, ERROR_CODES.INVALID_ARGS);
+      }
+      createAnnotatedTag(workspace.root, version, tagMessageFor(workspace.versionsDir, entry!));
+      console.log(`✓ Tagged v${version} (annotated, not pushed).`);
     } catch (e) {
       fail((e as Error).message);
     }
@@ -282,40 +318,86 @@ const Restore = new Command('restore')
     }
   });
 
-// ---------------------------------------------------------------- premerge
+// ---------------------------------------------------------------- figmapremerge
 
-const Premerge = new Command('premerge')
-  .description('Pre-merge report from two spec trees supplied as paths (target ← source)')
-  .requiredOption('--base <specs-dir>', 'The merge target\'s spec tree (what is being merged into)')
-  .requiredOption('--current <specs-dir>', 'The arriving spec tree (the feature branch)')
-  .option('--target-label <label>', 'Label for the base side in the report header')
-  .option('--source-label <label>', 'Label for the current side in the report header')
-  .option('--out <file>', 'Write the report to a file instead of stdout')
-  .option('--rules <path>', 'Override the built-in severity rules with an external YAML file')
-  .action((options: {
-    base: string; current: string; targetLabel?: string; sourceLabel?: string; out?: string; rules?: string;
-  }) => {
+/**
+ * Real pipeline steps: the CLI invokes itself (dist/specs.js) per step, from
+ * the workspace root so `.env` (FIGMA_TOKEN) and `config/` resolve the way
+ * every other command resolves them. Icons are deliberately not fetched: the
+ * diff never reads them and they land in the workspace's own spec directory.
+ */
+function cliSteps(workspaceRoot: string): PremergeSteps {
+  const configDir = path.join(workspaceRoot, 'config');
+  const invoke = (args: string[]): void => {
     try {
-      for (const [flag, dir] of [['--base', options.base], ['--current', options.current]] as const) {
-        if (!fs.existsSync(dir)) fail(`${flag} directory does not exist: ${dir}`, ERROR_CODES.INVALID_ARGS);
+      execFileSync(process.execPath, [process.argv[1], ...args], {
+        cwd: workspaceRoot,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+    } catch (e) {
+      const err = e as { stdout?: Buffer; stderr?: Buffer; message: string };
+      const output = [err.stdout?.toString(), err.stderr?.toString()].filter(Boolean).join('\n');
+      throw new Error(output || err.message);
+    }
+  };
+  return {
+    fetch: (_side, sourceArg, dataDir) =>
+      invoke(['fetch', '--config', configDir, '--data-dir', dataDir, '--source', sourceArg, '--only', 'file,variables,styles']),
+    scan: (_side, filePath, manifestPath) =>
+      invoke(['scan', filePath, '--config', configDir, '-o', manifestPath]),
+    generate: (_side, manifestPath, specsDir, variablesPath, stylesPath) =>
+      invoke(['generate', manifestPath, '--config', configDir, '-o', specsDir, '-v', variablesPath, '-s', stylesPath]),
+  };
+}
+
+const FigmaPremerge = new Command('figmapremerge')
+  .description('Pre-merge report for a Figma branch: fetch both sides, generate both spec trees, diff, and report (target ← branch)')
+  .argument('<url>', 'Figma branch URL (…/design/<mainKey>/branch/<branchKey>/…)')
+  .option('--workspace <dir>', 'Workspace directory (contains config/ and versions/)')
+  .option('--keep-payloads', 'Keep the fetched JSON payloads in the run folder (default: deleted once specs are generated)')
+  .option('--rules <path>', 'Override the built-in severity rules with an external YAML file')
+  .action((url: string, options: { workspace?: string; keepPayloads?: boolean; rules?: string }) => {
+    try {
+      const workspace = workspaceOf(options);
+      if (!fs.existsSync(path.join(workspace.root, 'config'))) {
+        fail(`No config/ directory under ${workspace.root} — figmapremerge fetches and generates, so it needs the workspace config.`, ERROR_CODES.INVALID_ARGS);
       }
       const { ruleSet, label } = rulesOf(options);
+
+      const run = runFigmaPremerge({
+        url,
+        workspaceRoot: workspace.root,
+        versionsDir: workspace.versionsDir,
+        keepPayloads: options.keepPayloads,
+        steps: cliSteps(workspace.root),
+        log: line => console.log(line),
+      });
+
       const dataset = buildPremergeDataset({
-        baseDir: options.base,
-        currentDir: options.current,
+        baseDir: run.baseSpecsDir,
+        currentDir: run.currentSpecsDir,
         ruleSet,
         rulesLabel: label,
-        targetLabel: options.targetLabel,
-        sourceLabel: options.sourceLabel,
+        targetLabel: run.targetLabel,
+        sourceLabel: run.sourceLabel,
+        baseManifest: run.baseManifest,
+        currentManifest: run.currentManifest,
+        renames: loadRenames(workspace.versionsDir),
+        provenance: [
+          ['Branch', `\`${run.branchKey}\` — ${run.branchName}`],
+          ['Main', `\`${run.mainKey}\`${run.targetLabel !== 'main' ? ` — ${run.targetLabel}` : ''}`],
+        ],
       });
       const report = renderReport(dataset);
-      if (options.out) {
-        fs.mkdirSync(path.dirname(path.resolve(options.out)), { recursive: true });
-        fs.writeFileSync(options.out, report);
-        console.log(`✓ wrote ${options.out}`);
-      } else {
-        console.log(report);
-      }
+      const reportPath = path.join(run.runDir, 'report.md');
+      fs.writeFileSync(reportPath, report);
+      fs.writeFileSync(
+        path.join(run.runDir, 'diff.json'),
+        `${JSON.stringify({ components: dataset.components, renames: dataset.renames }, null, 2)}\n`,
+      );
+      console.log('');
+      console.log(report);
+      console.log(`✓ wrote ${reportPath}`);
     } catch (e) {
       fail((e as Error).message);
     }
@@ -360,10 +442,11 @@ const Report = new Command('report')
 // ---------------------------------------------------------------- root
 
 export const Version = new Command('version')
-  .description('Spec workspace versioning: diffs, semver bumps, ledgers, reports, changelogs')
+  .description('Spec workspace versioning: diffs, version cuts, tags, ledgers, reports, changelogs')
   .addCommand(Diff)
   .addCommand(History)
-  .addCommand(BumpCmd)
+  .addCommand(Cut)
+  .addCommand(Tag)
   .addCommand(Restore)
-  .addCommand(Premerge)
+  .addCommand(FigmaPremerge)
   .addCommand(Report);

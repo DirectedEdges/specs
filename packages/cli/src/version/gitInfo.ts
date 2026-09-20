@@ -34,3 +34,7 @@ export function gitAuthor(cwd: string): string | null {
 export function createAnnotatedTag(cwd: string, version: string, message: string): void {
   execFileSync('git', ['tag', '-a', `v${version}`, '-m', message], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
 }
+
+export function tagExists(cwd: string, version: string): boolean {
+  return git(cwd, ['tag', '-l', `v${version}`]) === `v${version}`;
+}
