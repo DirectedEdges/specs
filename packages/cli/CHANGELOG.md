@@ -7,14 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.31.0] - Unreleased
 
+**The spec workspace now versions itself.** `specs version` grades every change, keeps full history under `versions/`, and generates the release report and changelog — all in the free tier.
+
 ### Breaking
 
 - **A component's unsupported prop combinations are written to `api.yaml` as `invalidPropCombinations`**, rather than to `variants.yaml` as `invalidVariantCombinations`. Regenerate your specs; anything reading the old key or the old file finds nothing (ADR-092).
 
 ### Added
 
-- **`specs version` — spec workspace versioning** (free tier). Automated semantic versioning of the generated spec payload: `bump` classifies the workspace diff since the last version against rules compiled from the authored semver tables (api changes drive MAJOR/MINOR; `variants.yaml` and examples concerns can never exceed PATCH; assets graded, with removed-while-referenced failing the run) and writes append-only ledgers plus a full `versions/<libraryVersion>/` folder (report.md, changelog.md, specs/); `diff` and `history` query the ledgers; `restore` reads a component at any ledgered version straight out of its version folder; `premerge` grades two spec trees supplied as paths; `report` renders the pre-release report and itemized changelog from ledger diffs. Tracked renames (`versions/renames.yaml`, components/props/enum values) diff as single renames with migration lines, never remove+add; manual overrides (`--force-major|--force-minor|--force-patch "reason"`) are recorded in the ledger; `--tag` creates the annotated library tag, never pushed.
-- **`specs skills install`** — emits the canonical `specs-cli.premerge` and `specs-cli.release` orchestration skills into `.claude/skills/`, overwriting on refresh.
+- **`specs version bump` gives the spec workspace a semantic version**, grading every change since the last version: `api.yaml` changes drive MAJOR or MINOR, while `variants.yaml` and examples never exceed PATCH. Each version is stored in full under `versions/<version>/`, with `versions/latest/` mirroring the newest.
+- **`specs version diff`, `history`, and `restore` answer what changed, how it happened, and what a component looked like at any version**, reading the history `bump` maintains. `restore` never overwrites the live spec.
+- **`specs version premerge` grades the impact of one spec tree arriving in another** before you merge, from two spec directories — no version history required.
+- **`specs version report` renders the release report and itemized changelog** for everything versioned since the last release; the same two files land in each version's folder at bump time.
+- **A recorded rename reports as one change with a `from → to` migration line**, never a removal plus an addition. Record component, prop, and enum value renames in `versions/renames.yaml`.
+- **`--force-major`, `--force-minor`, and `--force-patch` override the computed grade** with a required reason, recorded permanently in the history; `--tag` creates the annotated library git tag, never pushed.
+- **`specs skills install` emits the premerge and release orchestration skills into `.claude/skills/`**, overwriting on refresh so the skills always match the CLI that ships them.
 
 ### Changed
 

@@ -92,6 +92,7 @@ The documentation site is built with Astro (port 4323) from `site/src/content/do
 - `settings/` — one page per convention or setting (color, keys, layout, tokens, states, etc.)
 - `guides/` — how-to guides for specific features (slot constraints, variant depth, token format, etc.)
 - `cli/` — CLI overview, getting started, and per-command reference
+- `versioning/` — spec workspace versioning: overview, change classification, history, identity, reports
 - `overview/` — product overview, licensing, releases
 - `roles/` — one page per role concept, plus `inventory` and `precedence`; a concept family shares one page. The `write-role-page` skill carries the template
 
