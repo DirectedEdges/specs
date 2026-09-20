@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A classified state prop carrying a value no concept names now warns.** The value still reaches the generated contract and the stories, so the state looked supported and simply rendered as the default, and the styling the spec declared for it was dropped from the stylesheet with no diagnostic. The prop's resting value stays silent, since the base block already covers it.
 - **`analyze dependencies` counts a slot relationship toward a component's degrees.** A component related to another only through a slot constraint read as entirely unconnected, and the roots and leaves lists — derived from those counts — overlapped. `nodes[].byKind` splits the totals by relationship, and a component connected to nothing is listed under `summary.isolated` rather than appearing in both lists.
 - **Focus styling follows the platform's keyboard-focus heuristic** — `:focus-visible` on a root that can hold focus, `:has(:focus-visible)` on a wrapper around its control — so a clicked button no longer keeps its focus ring after the click. A declared `focus-within` concept is untouched.
 - **An image fills and centres itself in the element that displays it**, whatever its aspect ratio, instead of drawing at its natural size cropped to the top-left corner when a component takes its image from a source prop.
