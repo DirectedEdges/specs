@@ -1,76 +1,71 @@
 ---
-title: "Reserved Names"
-description: "Prop names the generated code cannot give you cleanly, and what each target does with one"
+title: "Prop Naming"
+description: "A prop name is a claim about what the prop means — when that claim is right, when it collides, and which names are never yours"
 ---
 
 ## About
 
 A prop name in Figma becomes an identifier in generated code — a property on a custom
-element, a prop on a React component, an attribute a stylesheet selects. Most names
-travel through untouched. A small number are already spoken for, and naming a prop after
-one of them gets you something other than what you asked for.
+element, a prop on a React component, an attribute a stylesheet selects. Some names
+already mean something there, and the generated code will act on the meaning it knows.
 
 **Checked by** — Schema: no • `generate`: no • `react`: no • `webcomponents`: no
 
-Nothing validates this. A spec naming a prop `hidden` is a valid spec, and every command
-accepts it. What follows is what each target does with the name once it has it.
+Nothing validates any of this. A spec naming a prop `hidden` is a valid spec and every
+command accepts it. What follows is what the targets do with the name once they have it.
 
-## Reserved names
+## A name is a claim about meaning
 
-| Group | Names | Reached by |
-|---|---|---|
-| Global HTML attributes | `id`, `title`, `hidden`, `role`, `slot`, `style`, `class`, `tabindex`, `lang`, `dir`, `part`, `popover`, `inert`, `contenteditable`, `draggable`, `spellcheck`, `translate` | Web Components |
-| Accessibility attributes | any name whose kebab form starts with `aria-` | Web Components, React |
-| React reserved | `children`, `key`, `ref` | React |
-| Scaffold-declared | `className`, `style` | React |
-| Role-contributed | `value`, `name`, `type`, `href`, `target`, `rel`, `min`, `max`, `onClick`, `onChange`, `onBlur`, `onFocus`, `onPressedChange`, `onExpandedChange`, `onDismiss` | React, Web Components |
-| Native Figma property | any name the component already carries natively | the spec itself |
+Using a name the platform knows is not a problem. It is usually the **right** answer:
+a `textbox` whose text layer is named `value` is naming it exactly what it is, and a slot
+called `children` means what React means by children. The machinery lines up because the
+name and the meaning agree.
 
-The rule tests the **kebab-cased** name, which is what reaches the attribute. `tabIndex`
-becomes `tab-index`, which no browser knows, so it is free; a prop literally named
-`tabindex` is not.
+The hazard is a disagreement between the two.
 
-## Web Components
+| Your prop | Outcome |
+|---|---|
+| A conventional name, for the conventional meaning | **Correct.** The role or the platform is already expecting it, and its handling is what you wanted. |
+| A name of your own | **Safe**, and you may have to declare intent that the conventional name would have implied. A primary slot called `primarySlot` breaks nothing; it just is not recognised as children without being declared. |
+| A conventional name, for a different meaning | **Collides.** A `value` prop that means a displayed price, on a component later annotated as a `textbox`, is two things competing for one slot in the contract. |
 
-A variant prop reflects to an attribute so the stylesheet can select
-`:host([appearance="filled"])`. That makes it a real attribute on a real element, and the
-global names above already carry behaviour — `hidden` stops the element rendering,
+So the question to ask of a name is not "is this on a list" but **"does this prop mean
+what that name already means here?"** If yes, use it. If no, call it something else.
+
+A role contributes its props **only when it is applied**, so `value` is free until the
+component is annotated. That makes this a naming risk rather than a spec error: a prop
+named `value` becomes a collision on the day someone annotates the component as a
+`textbox`. See the [roles overview](/roles/) for what each role contributes — `button`
+brings `onClick`, `textbox` brings `value`, `name` and `type`.
+
+## Names that are never yours
+
+A second group has no correct use, because what they mean has nothing to do with your
+component's data model. A custom element reflects a variant prop to a real attribute, and
+these already carry behaviour on any element: `hidden` stops the element rendering,
 `title` raises a tooltip, `id` collides with every id reference in the document.
 
-A reserved name falls back to the `data-` form on both sides: the element writes
-`data-hidden` and the stylesheet selects `[data-hidden]`. Nothing breaks. The cost is
-that most of your variant props produce `:host([appearance="filled"])` and this one
-produces `:host([data-hidden])`, so a reader of the emitted CSS has to know why one
-is different.
-
-## React
-
-| Name | What happens |
+| Group | Names |
 |---|---|
-| `key`, `ref` | Consumed by React; never reaches the component |
-| `children` | Content nested between the tags — correct for a slot, wrong for anything else |
-| `className`, `style` | The scaffold declares both so a caller can style the root; a spec prop of either name competes with it |
-
-## Roles and actions
-
-A role contributes props to the contract **only when it is applied**, so `value` is free
-on a component with no control role on it. The risk is in naming rather than in the spec:
-a prop named `value` on a component you later annotate as a `textbox` becomes a collision
-you did not have yesterday.
-
-| Role or action | Contributes |
-|---|---|
-| `link` | `href`, `target`, `rel` |
-| `progressbar` | `min`, `max` |
-| `textbox`, `checkbox`, `switch` | `value`, `name`, `type` |
-| `togglebutton` | `onPressedChange`, `onClick` |
-| `disclosure` | `onExpandedChange` |
-| any wired control | `onChange`, `onBlur`, `onFocus`, `onClick` |
-| `dismiss` | `onDismiss` |
+| Global HTML attributes | `id`, `title`, `hidden`, `role`, `slot`, `style`, `class`, `tabindex`, `lang`, `dir`, `part`, `popover`, `inert`, `contenteditable`, `draggable`, `spellcheck`, `translate` |
+| Accessibility attributes | any name whose kebab form starts with `aria-` |
+| React reserved | `children` *(outside its conventional use)*, `key`, `ref` |
+| Scaffold-declared | `className`, `style` |
 
 For an accessible name, nominate the prop through `specs.accessibility.label` rather than
 naming it `ariaLabel`. The roles layer routes it correctly on both targets; a prop named
 `ariaLabel` writes a second `aria-label` beside the one the role computed.
+
+## What each target does
+
+| Target | With a name it owns |
+|---|---|
+| Web Components | Falls back to the `data-` form on both sides — the element writes `data-hidden`, the stylesheet selects `[data-hidden]`. Nothing breaks; it is just inconsistent with the `:host([appearance="filled"])` every other variant prop produces. |
+| React | `key` and `ref` are consumed by React and never reach the component. `className` and `style` are declared by the scaffold, so a spec prop of either name competes with it. |
+
+The rule tests the **kebab-cased** name, which is what reaches the attribute. `tabIndex`
+becomes `tab-index`, which no browser knows, so it is free; a prop literally named
+`tabindex` is not.
 
 ## Figma authoring
 
@@ -87,14 +82,7 @@ but in a catalogue run that scrolls past, and the run still reports success.
 
 Give a code-only prop a name the component does not already use natively.
 
-## Choosing a name
-
-Name the prop for what it means to a consumer, not for what it does to the DOM. `hidden`
-becomes `isCollapsed`, `title` becomes `heading`, `id` becomes `itemId`. A name that
-describes the component's own vocabulary is not a name the platform has taken.
-
 ## See also
 
 - [Roles overview](/roles/) — what each role contributes to a contract
 - [Precedence](/roles/precedence/) — how a role, a states classification and an action resolve together
-- [dismiss](/actions/dismiss/) — the action contributing `onDismiss`

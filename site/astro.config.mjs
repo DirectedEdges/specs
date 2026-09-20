@@ -129,7 +129,7 @@ export default defineConfig({
           items: [
             { label: 'react', slug: 'cli/commands/react', badge: experimental },
             { label: 'webcomponents', slug: 'cli/commands/webcomponents', badge: experimental },
-            { label: 'Reserved Names', slug: 'guides/reserved-names' },
+            { label: 'Prop Naming', slug: 'guides/reserved-names' },
             {
               label: 'Roles',
               collapsed: true,
