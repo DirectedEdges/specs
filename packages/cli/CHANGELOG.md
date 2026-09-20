@@ -5,6 +5,47 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.30.0] - 2026-09-20
+
+**A catalogue run states its metadata once.** The author, generator, schema, conventions and settings were identical in every file a run produced, and repeated again for every concern document and subcomponent inside it; they now live in one `latest.metadata.yaml` beside the specs.
+
+**A watch keeps Storybook current without re-running a command.** `specs react --watch` and `specs webcomponents --watch` re-emit on every spec or config change, and a full run now prunes emitted directories no spec accounts for.
+
+### Added
+
+- **A manifest run writes its metadata once**, to `latest.metadata.yaml` beside the specs, leaving every spec with `metadata.source` alone (ADR-089).
+- **`specs react --watch` and `specs webcomponents --watch` re-emit on every spec or config change**, watching `config/` alongside the specs directory. Each change re-emits the whole set and re-runs `finalize`; a failed component is logged and the watch continues.
+- **A full `specs react` or `specs webcomponents` run removes emitted component directories no spec accounts for**, naming them in one warning line, so Storybook stops indexing a renamed component under its old name. A `--components` run never prunes.
+- **`specs render` marks a component ready for dev in Figma**, using the status `specs scan` recorded for it. A component whose manifest row reads `NONE`, or has no row at all, renders unmarked as before.
+- **`specs fetch --only variables --from-bridge` downloads a library's variables through the connected plugin**, so a workspace on any Figma plan gets variables without the Enterprise-only REST endpoint or a `FIGMA_TOKEN`. Needs the bridge running and the plugin connected in the library file.
+
+### Changed
+
+- **Every rule in a generated stylesheet is labelled with the spec statement that produced it**, so a variant block names its configuration and the cursor rules name the state that declared them.
+- **A web components stylesheet selects on the attribute the element reflects**, `:host([appearance="filled"])` rather than a data attribute. A prop named after a global HTML attribute such as `hidden` or `title` keeps the data form. React stylesheets are unchanged.
+- **A subcomponent's CSS class is namespaced by its parent**, so `deCard`'s `reviews` styles under `.de-card-reviews` rather than `.reviews`. Regenerate every platform tree together.
+- **Emitted files no longer repeat the component's name**, so `DeFavoriteButton/` holds `scaffold.tsx`, `contract.ts`, `styles.css` and `stories.tsx`. Regenerate each platform tree from scratch: a run overwrites the new files but leaves the old prefixed ones, and Storybook would load both.
+- **A per-concern spec file records its write time as `lastUpdated`**, the key the schema already defines for that fact, so `api.yaml`, `variants.yaml` and `examples.yaml` validate and an editor stops reporting an error on every spec file.
+- **`specs render` reads the run's metadata document back**, so a spec carrying only `metadata.source` still renders under the conventions and settings it was generated with (ADR-089).
+
+### Fixed
+
+- **An unreachable license server reports differently from a failed check**: the first points at your network, any proxy, and TLS inspection; the second says to retry. Both say the key was not validated and no licensed output was written.
+- **`analyze props` reports a prop with no declared `nullable` as accepting null** where its value set is open — a string, number, slot or image prop — and as not accepting null for an enum or boolean (ADR-065).
+- **A classified state prop carrying a value no concept names now warns**, naming the prop, the value and the component, instead of dropping the styling declared for it from the stylesheet in silence.
+- **`analyze dependencies` counts a slot relationship toward a component's totals**, so the roots and leaves lists no longer overlap and a component connected only through a slot is no longer reported as unconnected.
+- **Focus styling follows the platform's keyboard-focus heuristic** — `:focus-visible` on a root that can hold focus, `:has(:focus-visible)` on a wrapper around its control — so a clicked button no longer keeps its focus ring after the click. A declared `focus-within` concept is untouched.
+- **An image fills and centres itself in the element that displays it**, whatever its aspect ratio, instead of drawing at its natural size cropped to the top-left corner when a component takes its image from a source prop.
+- **`specs scan` leaves a subcomponent unchecked when its parent is checked**, since a subcomponent is already specced as part of its parent. A separate component that a checked component instances is still selected.
+- **A composed instance fills a slot that states its size through opposing insets.** A slot pinned to all four edges names no width yet is as wide as its container; the child used to paint at its own master's size.
+- **A child filling its parent's cross axis keeps the parent's alignment.** Cross-axis FILL emits a dimension rather than `align-self: stretch`, so a child stopped from filling by a `min-width` or `max-width` is centred under a centring parent.
+
+### Dependency updates
+
+- **specs-schema 0.33.0** — a run's shared facts (author, timestamp, generator, schema, conventions, settings) now have a document type of their own, so specs carry only their `source` and the run states the rest once. The three per-concern files a split run writes are each typed as their own document, and a component can record the image it was authored with.
+- **specs-from-figma 0.32.0** — generated specs keep more of what designers composed: a plain frame inside an example can become a placed instance with its children as slot content, and an image reaches the spec through any instance carrying a configured source prop, not only a direct instance of the designated image component. License checking no longer degrades silently — a key that could not be checked fails the run and says so, rate-limited checks retry with backoff, and an unreachable server reports differently from a failed check.
+- **react-from-specs 0.2.0 / webcomponents-from-specs 0.2.0** — an emitted platform tree is a self-contained package (its own `package.json` and `tsconfig.json`), generated files drop the component-name prefix, a subcomponent's exports are namespaced by its parent, and a long list of contract and render fixes makes emitted trees typecheck clean.
+
 ## [0.29.0] - Unreleased
 
 **`specs react` and `specs webcomponents` replace `specs transform`**, each emitting one target whole — component, contract, stylesheet and stories. **Annotated elements emit real controls**: with `settings.spec.roles` on, a checkbox is a native input you can check and submit, a disclosure announces and flips its own state, and the accessibility wiring between a control and its parts is generated. **The emitted code is substantially better** — effects and directly-declared gradients are emitted for the first time, and strokes, gradient geometry, truncation and background images now paint what the design draws. **Configuration is reshaped**: conventions become one file per platform in `config/conventions/`, `config/pipeline.yaml` is retired, and a stale layout stops the run rather than silently generating with defaults — `specs migrate config` moves a workspace over.

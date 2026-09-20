@@ -14,16 +14,18 @@ import { Command } from 'commander';
 import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
-import type { SourceEntry } from '@directededges/specs-schema';
 import { Components } from '@directededges/specs-from-figma';
 import type { ProgressEvent, RestLicenseInput } from '@directededges/specs-from-figma';
 import { ConfigLoader } from '../Config/ConfigLoader.js';
 import type { CLIConfig } from '../Types/CLIConfig.js';
 import { loadFoundations } from '../utilities/loadFoundations.js';
+import { resolveFileSourceAlias } from '../utilities/fileSourceAlias.js';
 import { ManifestParser } from '../utilities/ManifestParser.js';
 import { ManifestParserV2 } from '../utilities/ManifestParserV2.js';
 import { LicenseStatus } from '../utilities/LicenseStatus.js';
+import { TRANSIENT_FAILURES, transientFailureLines } from '../utilities/licenseGuidance.js';
 import { FileManifest } from '../Writers/FileManifest.js';
+import { RunMetadataFile } from '../Writers/RunMetadataFile.js';
 import { SingleFileWriter } from '../Writers/SingleFileWriter.js';
 import { ComponentFileWriter } from '../Writers/ComponentFileWriter.js';
 import { ConcernFileWriter } from '../Writers/ConcernFileWriter.js';
@@ -80,19 +82,6 @@ interface GenerateOptions {
   file?: string;
   node?: string;
   remove?: boolean;
-}
-
-/**
- * Resolve the config source alias that carries the component file: `library`
- * when configured with `fetch: [file]`, else the first source that is.
- * Single source of truth for the default-manifest path, the manifest-mode
- * component file, and the --get-images file key.
- */
-function resolveFileSourceAlias(sources: Record<string, SourceEntry> | undefined): string | null {
-  const entries = sources ?? {};
-  if (entries.library && Array.isArray(entries.library.fetch) && entries.library.fetch.includes('file')) return 'library';
-  const candidate = Object.entries(entries).find(([, s]) => Array.isArray(s.fetch) && s.fetch.includes('file'));
-  return candidate ? candidate[0] : null;
 }
 
 /**
@@ -213,24 +202,34 @@ async function writeGeneratedOutput(
     : undefined;
 
   // -------------------------------------------------------------------
-  // Image resolution (ADR-063, --get-images): add src to unresolved
-  // registry entries — files written under the workspace's assets/images/, referenced
-  // relative to the spec file that points at them. Runs before the
-  // manifest so writers serialize the resolved registry values.
+  // Image resolution (ADR-063): add src to unresolved registry entries —
+  // files under the workspace's assets/images/, referenced relative to the
+  // spec file that points at them. Runs before the manifest so writers
+  // serialize the resolved registry values.
+  //
+  // Mapping an identity to a file already on disk is filesystem work and
+  // always runs: a hash-named file is content-addressed, so its presence is
+  // observation rather than the filename guessing ADR-063 removed. Only
+  // fetching the bytes of a missing image needs --get-images, a token, and a
+  // file key. Gating both together made a plain regenerate drop `src` that a
+  // previous run had resolved, silently degrading output it could have
+  // reconstructed for free.
   // -------------------------------------------------------------------
-  if (options.getImages) {
+  {
     const hashes = ImageFillsResolver.collectUnresolvedHashes(processedComponents);
     if (hashes.size === 0) {
-      console.log(figmaOf(config.conventions).images
-        ? 'Note: --get-images found no unresolved image placeholders'
-        : 'Note: --get-images has no effect — images is not configured in config/conventions/figma.yaml');
+      if (options.getImages) {
+        console.log(figmaOf(config.conventions).images
+          ? 'Note: --get-images found no unresolved image placeholders'
+          : 'Note: --get-images has no effect — images is not configured in config/conventions/figma.yaml');
+      }
     } else {
       // Reuse hash-named files already present in assets/images/ — only the
       // remainder needs the token, the API call, and downloads.
       const files = await ImageFillsResolver.findExisting(hashes, baseDir);
       const missing = new Set([...hashes].filter(hash => !files.has(hash)));
 
-      if (missing.size > 0) {
+      if (missing.size > 0 && options.getImages) {
         const token = process.env.FIGMA_TOKEN;
         if (!token) {
           console.error('Error: --get-images requires the FIGMA_TOKEN environment variable (same token as `specs fetch`)');
@@ -263,8 +262,36 @@ async function writeGeneratedOutput(
       const inComponentFolders = !!outputConfig.splitComponents && (!!outputConfig.useSubfolders || !!outputConfig.splitConcerns);
       const relativePrefix = inComponentFolders ? `../${IMAGES_DIR_NAME}/` : `${IMAGES_DIR_NAME}/`;
       const resolvedCount = ImageFillsResolver.applyResolvedSources(processedComponents, files, relativePrefix);
-      const reused = hashes.size - missing.size;
-      console.log(`✓ Resolved ${resolvedCount} image reference(s) into ${files.size} file(s) under ${IMAGES_DIR_NAME}/ (${reused} reused, ${missing.size} downloaded)`);
+      const downloadedCount = options.getImages ? missing.size : 0;
+      const reused = hashes.size - downloadedCount;
+      if (resolvedCount > 0) {
+        console.log(`✓ Resolved ${resolvedCount} image reference(s) into ${files.size} file(s) under ${IMAGES_DIR_NAME}/ (${reused} reused, ${downloadedCount} downloaded)`);
+      }
+      // An image with no file on disk keeps its identity and no src. Say so
+      // rather than leaving a pointer to be discovered in emitted output.
+      const unresolved = options.getImages ? 0 : missing.size;
+      if (unresolved > 0) {
+        console.log(`Note: ${unresolved} image(s) have no file under ${IMAGES_DIR_NAME}/ — re-run with --get-images to download them`);
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------
+  // Run metadata (ADR-089): a catalogue run states its facts once, in
+  // `latest.metadata.<format>`, and every spec keeps only `metadata.source`.
+  //
+  // Manifest mode only. A single-component run produces one document, so there
+  // is nothing to factor out of and a second file would only split what already
+  // reads in one place. Runs before the manifest so the writers serialize the
+  // reduced blocks.
+  // -------------------------------------------------------------------
+  if (isManifest) {
+    const run = RunMetadataFile.separate(processedComponents);
+    if (run) {
+      const written = RunMetadataFile.write(run, baseDir, resolvedFormat);
+      console.log(`\u2713 Wrote run metadata: ${path.relative(process.cwd(), written)} (specs carry metadata.source only)`);
+    } else {
+      console.log('Note: specs record no shared run metadata, or disagree on it \u2014 each keeps its own metadata block');
     }
   }
 
@@ -668,14 +695,8 @@ export const Generate = new Command('generate')
       // ---------------------------------------------------------------
       if (licenseKey) {
         const license = LicenseStatus.resolve(results);
-        // 'invalid'/'removed'/'expired' are definitive key rejections where FREE
-        // fallback is reasonable; these are the transient "check didn't complete"
-        // states where the key may well be valid.
-        const TRANSIENT_FAILURES = new Set(['error', 'network-error', 'rate-limited']);
         if (license?.status && TRANSIENT_FAILURES.has(license.status)) {
-          console.error(`Error: License check could not be completed (status: ${license.status}).`);
-          console.error(`Your key was not validated, so no licensed output was produced.`);
-          console.error(`This is usually temporary — retry in a few seconds, or remove the key for free-tier output.`);
+          for (const line of transientFailureLines(license.status)) console.error(line);
           process.exit(license.status === 'rate-limited' ? ERROR_CODES.RATE_LIMIT : ERROR_CODES.NETWORK_ERROR);
         }
       }

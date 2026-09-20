@@ -96,8 +96,8 @@ data/
 - **Node.js** 18 or higher
 - **Figma access token** (for `fetch`) via `FIGMA_TOKEN`
 - **Figma REST API data** (JSON files from Figma API endpoints, produced by `fetch`):
-  - `file` — any Figma plan with REST API access
-  - `variables` / `styles` — Figma restricts these REST endpoints to organizations on an **Enterprise** plan, regardless of your Specs license
+  - `file` / `styles` — any Figma plan with REST API access
+  - `variables` — Figma restricts the variables REST endpoints to organizations on an **Enterprise** plan, regardless of your Specs license; on any other plan, fetch variables through the plugin with [`--from-bridge`](/cli/commands/fetch/#fetching-variables-via-the-bridge)
 - **License key** (optional) via `SPECS_LICENSE_KEY` for Pro features
 - **A running CLI bridge and open Figma session** (for `render` only) — see the [Render to Figma guide](/guides/render-to-figma/)
 

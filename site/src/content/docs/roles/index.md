@@ -214,18 +214,18 @@ groups by.
 | `link` | An element that navigates on activation | [link](/roles/link/) |
 | `disclosure` | A trigger that shows and hides a companion panel | [disclosure](/roles/disclosure/) |
 | `textbox` | A single-line free-text control | [textbox](/roles/textbox/) |
-| `password` | A concealed-text control | — |
-| `searchbox` | A search-text control | — |
-| `textarea` | A multi-line text control | — |
+| `password` | A concealed-text control | [textbox](/roles/textbox/) |
+| `searchbox` | A search-text control | [textbox](/roles/textbox/) |
+| `textarea` | A multi-line text control | [textbox](/roles/textbox/) |
 | `spinbutton` | A numeric control with stepper affordances | — |
 | `slider` | A control selecting a value from a range | — |
 | `checkbox` | A binary (or indeterminate) selection control | [checkbox](/roles/checkbox/) |
-| `radio` | An exclusive-selection control within a group | — |
+| `radio` | An exclusive-selection control within a group | [radio](/roles/radio/) |
 | `switch` | An on/off control with immediate effect | [switch](/roles/switch/) |
-| `group` | A fieldset grouping related controls | — |
-| `alert` | An assertive live region announcing interruptions | — |
-| `status` | A polite live region announcing transient updates | — |
-| `progressbar` | An element reporting progress toward completion | — |
+| `group` | A set of related controls answered together | [group](/roles/group/) |
+| `alert` | An assertive live region announcing interruptions | [status](/roles/status/) |
+| `status` | A polite live region announcing transient updates | [status](/roles/status/) |
+| `progressbar` | An element reporting progress toward completion | [status](/roles/status/) |
 
 ## Part role vocabulary
 
@@ -254,6 +254,13 @@ keys sit side by side on the same element:
 role:button
 action:dismiss
 ```
+
+Two keys, and deliberately only two. Both are **categorical**: each names a concept from
+a governed vocabulary, and each answers a question about the element that has one answer.
+A key for every attribute a platform happens to accept — autofill hints, input modes,
+spellcheck — would make the annotation surface an API in its own right, with no principle
+saying where it ends. Facts that are neither identity nor behavior reach the output as
+**contract props** the consumer sets, not as annotations.
 
 The boundary between them is announcement:
 

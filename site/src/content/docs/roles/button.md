@@ -3,75 +3,86 @@ title: "button"
 description: "Emit a native button that focuses, activates from the keyboard, and carries an onClick contract"
 ---
 
-:::tip[Implemented]
-Emitted by [`specs react`](/cli/commands/react/) and [`specs webcomponents`](/cli/commands/webcomponents/), built from this page.
-:::
+`button` declares that an element performs an action when activated. Without it the element cannot be tabbed to, Enter and Space do nothing, the generated props carry no `onClick` for a consumer to attach to, and a disabled state renders as an `aria-disabled` attribute the element cannot enforce — so a greyed-out button still receives clicks.
 
+**Status** — React: Implemented • Web Components: Implemented • iOS: Not yet planned • Android: Not yet planned
 
-The `button` role declares that an element performs an action when activated.
+## Roles
 
-## Why it matters
+Apply the following roles to elements:
 
-Without the role, a button scaffolds as a generic container. It cannot be tabbed to, Enter and Space do nothing, and the generated props contain no `onClick` — so a consumer cannot attach a handler through the component's own interface. A disabled state renders as an `aria-disabled` attribute the element cannot enforce, so a greyed-out button still receives clicks.
-
-## Emission
-
-### Scaffold
-
-| | |
-|---|---|
-| Element | `<button type="button">` |
-| Accepted element types | `container`, `glyph` |
-| Accepted parts | `label`, `description`, `indicator` |
-
-The role element becomes the button, and its descendants render inside it. Descendants that would otherwise be `<div>` become `<span>`, because a button may only contain phrasing content — classes and layout are unchanged.
-
-Where the role lands on a `glyph`, the glyph is re-hosted inside the button rather than becoming it, which adds one level to the markup.
-
-### Contract
-
-| Prop | Type | Tier | Generated body |
-|------|------|------|----------------|
-| `onClick?` | `(e: MouseEvent) => void` | Always | Calls the prop, nothing more |
-| `type?` | `'button' \| 'submit' \| 'reset'` | Always | — |
-| `onFocus?` / `onBlur?` | `(e: FocusEvent) => void` | On request | Forwarded to the element |
-
-`onClick` is generated empty on purpose. A click on a button means whatever the consumer decides, and the design file has no way to say what that is, so the transform calls the prop and does nothing else.
-
-This is where `button` differs from [togglebutton](/roles/togglebutton/), which owns a state the click changes and so gets real generated logic.
-
-## States
-
-| State | What the button does | Classify in `states`? |
-|-------|----------------------|----------------------------------|
-| `disabled` | Native `disabled` — unfocusable and unclickable, enforced by the platform | Recommended |
-| `hover` | Native hover | Recommended, if the library styles it |
-| `active` | Native pressed-down | Recommended, if the library styles it |
-| `focus` / `focus-visible` | Native focus ring | **Optional — prefer the platform default** |
-
-A button transforms best when the Figma variant props for these states are classified in the [`states` convention](/settings/states/), which is what tells the transform that a given prop carries a given state. Unclassified props still work; they emit as `data-*` attributes for styling, as they do today.
-
-**Focus is the exception worth calling out.** Browsers and mobile platforms ship a focus indicator that already meets contrast requirements and matches what users of that platform expect. Specifying one from Figma usually replaces a good default with a worse one, so leave `focus` unclassified unless the library deliberately overrides it.
-
-## Accessible name
-
-A button needs a name. It takes one from a `label` part, or from text it already contains.
-
-Where the button has no text at all — an icon-only button is the common case — the name comes from a prop nominated as the accessible-name source, and the transform emits it as the platform's label. Where no name source resolves, the transform warns: a correctly-marked button that announces nothing is worse than the container it replaced.
-
-## Platforms
-
-| | Emits | Behavior a user gets |
+| Role | Type | Element |
 |---|---|---|
-| Web | `<button type="button">` | Tab-focusable, Enter and Space activate, `disabled` blocks interaction |
-| iOS | `Button` | VoiceOver announces "Button", it becomes a rotor stop, and Full Keyboard Access can reach it |
-| Android | `Button` with `Role.Button` | TalkBack announces "Button", double-tap activates, and it joins the accessibility focus order |
+| `button` | Control | Element of `type: container` or `type: glyph` |
+| `label` | Part | Element of `type: text` or nested instance prop of `type: string` |
+| `description` | Part | Element of `type: text` or nested instance prop of `type: string` |
+| `indicator` | Part | Element of `type: container` or `type: glyph` |
 
-## Before and after
+The role element becomes the button and its descendants render inside it.
 
-Without the role:
+| Landing on | Result |
+|---|---|
+| `container` | Becomes the button; descendants render inside |
+| `glyph` | Re-hosted **inside** the button rather than becoming it — adds one level to the markup |
+
+Descendants that would otherwise emit as `<div>` emit as `<span>`: a button may only contain phrasing content. Classes, `data-element` values, and layout are unchanged.
+
+### States
+
+The `button` role is typically applied in conjunction with the following states:
+
+| State | Effect | Classify? |
+|---|---|---|
+| `disabled` | Natively disabled — unfocusable and unclickable, enforced by the platform | Recommended |
+| `hover` / `active` | Native, on the button itself | Recommended, if the library styles it |
+| `focus` / `focus-visible` | Native focus indicator | **Optional — prefer the platform default** |
+
+Platforms ship a focus indicator that already meets contrast requirements. Specifying one from Figma usually replaces a good default with a worse one.
+
+Unclassified props still work — they emit as `data-*` attributes for styling.
+
+Read more about [states in specs](/settings/states/).
+
+## Specs
+
+Component anatomy typically has elements and roles like:
+
+```yaml
+anatomy:
+  root:
+    type: container
+    role: button
+  label:
+    type: text
+    role: label
+  icon:
+    type: glyph
+    role: indicator
+```
+
+## Figma
+
+Annotate the following layers:
+
+- `root` as `role:button` — on the component node
+- `label` as `role:label` on a `text` element or through a nested instance
+- decorative glyphs as `role:indicator`
+
+An icon-only button needs a name it cannot get from content. Nominate the prop carrying it as the accessible-name source in `conventions/specs.yaml`, or the transform warns.
+
+## React
+
+### Implementation
 
 ```tsx
+<Button onClick={() => save()}>Save</Button>
+<IconButton icon="close" accessibilityLabel="Close" onClick={() => dismiss()} />
+```
+
+### Before / After
+
+```tsx
+// before
 <div
   className="button"
   data-element="root"
@@ -79,11 +90,8 @@ Without the role:
 >
   {/* … */}
 </div>
-```
 
-With the role:
-
-```tsx
+// after
 <button
   type="button"
   className="button"
@@ -95,8 +103,68 @@ With the role:
 </button>
 ```
 
+### Contract
+
+| Prop | Type | Tier | Generated body |
+|---|---|---|---|
+| `onClick?` | `(e: MouseEvent) => void` | MUST | Calls the prop, nothing more |
+| `type?` | `'button' \| 'submit' \| 'reset'` | MUST | — |
+| `onFocus?` / `onBlur?` | `(e: FocusEvent) => void` | COULD | Forwarded to the element |
+
+## Web Components
+
+The custom element **is** the root, so a root `button` cannot become a `<button>` tag. A real `<button>` is emitted **inside** the shadow root, wrapping the root's content:
+
+- The shadow root sets `delegatesFocus`, so the host stays one focusable box
+- The inner button is `all: unset` and takes no box, so the host keeps the root's layout and appearance exactly as the stylesheet writes it
+- It is exposed as `part="button"` for consumers who need to reach it
+
+Host semantics — `role="button"` plus `tabindex` — were tried and rejected. An ARIA role buys the announcement and nothing else: Enter and Space activation, `:disabled` blocking events, `:focus-visible`, and form participation are all behavior only a native element supplies. The earlier version announced a button no keyboard user could operate.
+
+A **non-root** button is an ordinary element in the template and carries the tag directly.
+
+## iOS
+
+Not yet planned. Intended binding:
+
+| | |
+|---|---|
+| Type | `Button` |
+| Announced | "Button"; becomes a rotor stop |
+| `disabled` | `.disabled(_:)` |
+| Keyboard | Reachable via Full Keyboard Access |
+
+## Android
+
+Not yet planned. Intended binding:
+
+| | |
+|---|---|
+| Type | `Button` with `Role.Button` |
+| Announced | "Button"; double-tap activates |
+| `disabled` | `enabled = false` |
+| Focus | Joins the accessibility focus order |
+
+## Additional details
+
+### Accessible name
+
+| Source | Result |
+|---|---|
+| Text the button already contains | Names it; no `label` part needed |
+| `label` part | Names it |
+| A prop nominated as the accessible-name source | Emitted as the platform's label — the icon-only case |
+| Nothing resolves | **Warns.** A correctly-marked button that announces nothing is worse than the container it replaced |
+
+### `onClick` is a stub, deliberately
+
+A click on a button means whatever the consumer decides, and the design file cannot say what. The transform calls the prop and does nothing else.
+
+This is where `button` differs from [togglebutton](/roles/togglebutton/), which owns a state the click changes and so gets real generated logic.
+
 ## See also
 
 - [togglebutton](/roles/togglebutton/) — a button that keeps a pressed state
+- [link](/roles/link/) — activation that navigates rather than acts
 - [indicator](/roles/indicator/) — decorative glyphs inside a button
-- [Roles overview](/roles/) — how roles and the `states` convention fit together
+- [Roles overview](/roles/) — the vocabulary and how roles are authored

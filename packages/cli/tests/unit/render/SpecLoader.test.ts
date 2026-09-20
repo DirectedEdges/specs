@@ -1,8 +1,9 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { stringify } from 'yaml';
+import * as yaml from 'yaml';
 import { findComponentFolders, loadSpec } from '../../../src/Render/SpecLoader';
 import { splitComponentByConcern } from '../../../src/Writers/DataTransformers';
 
@@ -27,7 +28,7 @@ const COMPONENT = {
   default: { appearance: 'Filled' },
   variants: [{ appearance: 'Filled' }, { appearance: 'Outline' }],
   slotContentExamples: { label: 'Click me' },
-  metadata: { generatedAt: '2026-01-01T00:00:00.000Z' },
+  metadata: { lastUpdated: '2026-01-01T00:00:00.000Z' },
 };
 
 describe('loadSpec — single file', () => {
@@ -201,5 +202,66 @@ describe('findComponentFolders', () => {
     fs.writeFileSync(path.join(dir, 'deHalf', 'api.yaml'), stringify({}), 'utf8');
 
     expect(findComponentFolders(dir)).toEqual([button]);
+  });
+});
+
+describe('loadSpec — run metadata rehydration (ADR-089)', () => {
+  let dir: string;
+  beforeEach(() => { dir = fs.mkdtempSync(path.join(os.tmpdir(), 'spec-loader-run-')); });
+  afterEach(() => { fs.rmSync(dir, { recursive: true, force: true }); });
+
+  const run = {
+    author: 'Design Systems Team',
+    lastUpdated: '2026-09-15T00:00:00.000Z',
+    generator: { url: 'https://example.com', version: '0.30.0', name: 'specs-cli' },
+    schema: { url: 'https://example.com/schema', version: '0.33.0' },
+    conventions: { platforms: { figma: { naming: 'SENTENCE', slotConstraints: false, inferNumberProps: false } } },
+    settings: { spec: { keys: 'SAFE' } },
+  };
+  const source = { pageId: 'p1', nodeId: 'n1', nodeType: 'COMPONENT' };
+
+  const writeRun = () => fs.writeFileSync(path.join(dir, 'latest.metadata.yaml'), yaml.stringify(run));
+
+  it('restores the run facts onto a reduced spec', () => {
+    writeRun();
+    const specPath = path.join(dir, 'button.yaml');
+    fs.writeFileSync(specPath, yaml.stringify({ title: 'Button', metadata: { source } }));
+
+    const { spec } = loadSpec(specPath);
+    const metadata = spec.metadata as Record<string, unknown>;
+    expect(metadata.conventions).toEqual(run.conventions);
+    expect(metadata.settings).toEqual(run.settings);
+    expect(metadata.source).toEqual(source);
+  });
+
+  it('leaves a spec that carries its own record untouched', () => {
+    writeRun();
+    const own = { platforms: { figma: { naming: 'TITLE', slotConstraints: false, inferNumberProps: false } } };
+    const specPath = path.join(dir, 'button.yaml');
+    fs.writeFileSync(specPath, yaml.stringify({ title: 'Button', metadata: { source, conventions: own, settings: { spec: { keys: 'NONE' } } } }));
+
+    const { spec } = loadSpec(specPath);
+    const metadata = spec.metadata as Record<string, unknown>;
+    expect(metadata.conventions).toEqual(own);
+    expect(metadata.settings).toEqual({ spec: { keys: 'NONE' } });
+  });
+
+  it('finds the run document one level up from a component folder', () => {
+    writeRun();
+    const folder = path.join(dir, 'button');
+    fs.mkdirSync(folder);
+    fs.writeFileSync(path.join(folder, 'api.yaml'), yaml.stringify({ title: 'Button', anatomy: {}, props: {}, metadata: { source } }));
+    fs.writeFileSync(path.join(folder, 'variants.yaml'), yaml.stringify({ default: {}, variants: [], metadata: { source } }));
+
+    const { spec } = loadSpec(folder);
+    expect((spec.metadata as Record<string, unknown>).conventions).toEqual(run.conventions);
+  });
+
+  it('leaves a reduced spec reduced when no run document is present', () => {
+    const specPath = path.join(dir, 'button.yaml');
+    fs.writeFileSync(specPath, yaml.stringify({ title: 'Button', metadata: { source } }));
+
+    const { spec } = loadSpec(specPath);
+    expect(spec.metadata).toEqual({ source });
   });
 });

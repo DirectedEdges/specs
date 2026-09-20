@@ -105,6 +105,25 @@ export class PropsAnalyzer implements Transformer {
   }
 }
 
+/**
+ * Whether a prop accepts null, applying the per-type default ADR-065 documents
+ * for an absent `nullable`.
+ *
+ * Absent means `true` for the open-valued types — a string, number, slot or
+ * image prop with no closed value set is understood to accept null — and `false`
+ * for an enum or boolean, whose `enum` or two-value domain already enumerates
+ * every accepted value. Testing for an explicit `true` reported the opposite of
+ * the documented default for essentially every non-enum prop.
+ *
+ * MIRRORED in the transform packages' contract emission. A change here must land
+ * there too, or a spec's contract and its analysis disagree about the same prop.
+ */
+export function propIsNullable(prop: Record<string, unknown>): boolean {
+  if (typeof prop.nullable === 'boolean') return prop.nullable;
+  if (Array.isArray(prop.enum)) return false;
+  return prop.type !== 'boolean';
+}
+
 function extractProps(scopeKey: string, comp: Record<string, unknown>): PropEntry[] {
   const results: PropEntry[] = [];
   const props = (comp.props ?? {}) as Record<string, unknown>;
@@ -120,7 +139,7 @@ function extractProps(scopeKey: string, comp: Record<string, unknown>): PropEntr
       enumValues: Array.isArray(prop.enum) ? (prop.enum as string[]) : null,
       enumCount: Array.isArray(prop.enum) ? prop.enum.length : 0,
       default: prop.default ?? null,
-      nullable: prop.nullable === true,
+      nullable: propIsNullable(prop),
       slotAnyOf: Array.isArray(prop.anyOf) ? (prop.anyOf as unknown[]) : null,
       slotMinItems: typeof prop.minItems === 'number' ? prop.minItems : null,
       slotMaxItems: typeof prop.maxItems === 'number' ? prop.maxItems : null,

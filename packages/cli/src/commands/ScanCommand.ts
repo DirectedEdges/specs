@@ -66,6 +66,56 @@ export function deriveDefaultInclusion(
 }
 
 /**
+ * A subcomponent is generated as part of its parent's spec, so it needs no
+ * row of its own checked. `{C} / {S}` binds {C} to a real listed component
+ * rather than to any text, so "List / Item" is recognised as belonging
+ * to "List" and only to it.
+ */
+export function subcomponentParentOf(
+  name: string,
+  listedNames: string[],
+  conventions: { match?: string[]; exclude?: string[] } = {}
+): string | null {
+  const patterns = conventions.match ?? [];
+  if (patterns.length === 0) return null;
+  const path = normalizePath(name);
+
+  const matchesAnyWith = (list: string[], parent: string) =>
+    list.some(pattern => bindPattern(pattern, parent).test(path));
+
+  for (const parent of listedNames) {
+    const parentPath = normalizePath(parent);
+    if (parentPath === path) continue;
+    if (!matchesAnyWith(patterns, parentPath)) continue;
+    if (matchesAnyWith(conventions.exclude ?? [], parentPath)) continue;
+    return parent;
+  }
+  return null;
+}
+
+function normalizePath(name: string): string {
+  return name
+    .split('/')
+    .map(s => s.trim())
+    .filter(s => s.length > 0)
+    .join(' / ')
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
+function bindPattern(pattern: string, parentPath: string): RegExp {
+  const source = normalizePath(pattern)
+    .split(/(\{c\}|\{s\})/)
+    .map(part => {
+      if (part === '{c}') return escapeRegExp(parentPath);
+      if (part === '{s}') return '.+';
+      return escapeRegExp(part);
+    })
+    .join('');
+  return new RegExp(`^${source}$`);
+}
+
+/**
  * Dev status is a property of a component, and the pieces a component composes
  * carry none of their own — a subcomponent has no status to read, and a
  * sibling it instances was curated on its own merits. So devStatus-derived
@@ -76,15 +126,18 @@ export function deriveDefaultInclusion(
  * retained.
  */
 export function retainComposedDependencies(
-  rows: Array<{ id: string; included: boolean }>,
-  composedOf: (checkedIds: string[]) => Set<string>
+  rows: Array<{ id: string; name: string; included: boolean }>,
+  composedOf: (checkedIds: string[]) => Set<string>,
+  conventions: { match?: string[]; exclude?: string[] } = {}
 ): number {
-  const checked = rows.filter(r => r.included).map(r => r.id);
-  if (checked.length === 0) return 0;
-  const needed = composedOf(checked);
+  const checkedRows = rows.filter(r => r.included);
+  if (checkedRows.length === 0) return 0;
+  const needed = composedOf(checkedRows.map(r => r.id));
+  const checkedNames = checkedRows.map(r => r.name);
   let retained = 0;
   for (const row of rows) {
     if (row.included || !needed.has(row.id)) continue;
+    if (subcomponentParentOf(row.name, checkedNames, conventions)) continue;
     row.included = true;
     retained += 1;
   }
@@ -437,7 +490,14 @@ export const Scan = new Command('scan')
       }
 
       if (!options.includeAll) {
-        const retained = retainComposedDependencies(rows, ids => discovery.composedComponentIds(ids));
+        const retained = retainComposedDependencies(
+          rows,
+          ids => discovery.composedComponentIds(ids),
+          {
+            match: figmaConventions.subcomponents?.match,
+            exclude: figmaConventions.subcomponents?.exclude,
+          }
+        );
         if (retained > 0) {
           console.error(`Retained ${retained} component(s) composed by checked components`);
         }

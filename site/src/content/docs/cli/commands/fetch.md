@@ -11,9 +11,9 @@ specs fetch [options]
 
 ## Requirements
 
-- `FIGMA_TOKEN` must be set in your environment.
+- `FIGMA_TOKEN` must be set in your environment (not needed with `--from-bridge`).
 - `config/settings.yaml` must include `data.directory` and `data.sources`.
-- Fetching `variables` or `styles` requires your Figma organization to be on an **Enterprise** plan — Figma restricts those REST endpoints regardless of your Specs license. `file` and `icons` data work on any plan. See [CLI Requirements](/cli/#requirements).
+- Fetching `variables` over REST requires your Figma organization to be on an **Enterprise** plan — Figma restricts the variables REST endpoints regardless of your Specs license. On any other plan, fetch variables through the plugin instead with [`--from-bridge`](#fetching-variables-via-the-bridge). `file`, `styles`, and `icons` data work over REST on any plan. See [CLI Requirements](/cli/#requirements).
 - Fetching `icons` additionally requires:
   - `figma.glyphs.match` set in `config/conventions/figma.yaml` (see [Glyph Name Pattern](/guides/glyph-name-pattern/))
   - `spec.directory` set in `config/settings.yaml` — icon assets are written to the spec workspace, not the data directory
@@ -38,6 +38,12 @@ Narrow the fetch by source alias, by data kind, or both, comma-separated. Aliase
 
 ### `--source <[alias=]url|key>`
 Fetch a file or branch that is not in `data.sources` — see [Fetching Figma Branches](#fetching-figma-branches). Repeatable.
+
+### `--from-bridge`
+Fetch variables from the connected Figma file through the [CLI bridge](/cli/commands/bridge/) instead of the REST API — see [Fetching Variables via the Bridge](#fetching-variables-via-the-bridge). Requires `--only variables`; no `FIGMA_TOKEN` or Enterprise plan needed.
+
+### `--file <fileKey>`
+Target a specific connected Figma file with `--from-bridge`. Prompts to choose when more than one is connected in an interactive terminal; required otherwise.
 
 ### `--no-geometry`
 Omit geometry data from file payloads. By default, `fetch` requests `?geometry=paths` from the Figma API, which includes `fillGeometry`, `strokeGeometry`, `size`, and `relativeTransform` on every node. This roughly doubles the payload size.
@@ -109,6 +115,27 @@ specs fetch --only library,icons --verbose
 ```
 
 The downloaded assets match the slugs referenced by generated component output (masked glyph spans resolve `/assets/icons/<slug>.svg`), so serving `assets/icons/` as a static assets directory — for example in Storybook — makes icons render without further mapping. Keeping icons in the spec workspace means a cloned workspace renders completely without re-fetching.
+
+## Fetching Variables via the Bridge
+
+Figma gates the variables REST endpoints behind an Enterprise plan, but the Plugin API reads the same data on any plan. With the [bridge](/cli/commands/bridge/) running and the Specs plugin connected in your library file:
+
+```bash
+specs fetch --only variables --from-bridge
+```
+
+The plugin reads the file's variables and collections and returns them shaped exactly like the REST payload, so the written `<alias>.variables.json` — and everything that reads it: the render cache, [`generate`](/cli/commands/generate/), [`render`](/cli/commands/render/) — works identically whichever way the payload was fetched.
+
+Requirements:
+
+- The bridge is running (`specs bridge start`) and the plugin's CLI Bridge is enabled in the library file (a Pro feature).
+- The connected file is one of your configured `data.sources`. The match is by file key; when the plugin cannot read its file's key, name the source yourself: `--only variables,<alias>`.
+
+Differences from a REST fetch:
+
+- Variables consumed from *other* libraries are included only where your file's own variables alias them. A variable used purely through node bindings — never aliased — is not in the payload.
+- Deleted-but-still-referenced variables are omitted unless something still aliases them; the REST payload keeps all of them.
+- A handful of scope names differ in spelling between Figma's two APIs (the plugin reports `FONT_WEIGHT` where REST reports `FONT_STYLE`); nothing in the pipeline reads them.
 
 ## Fetching Figma Branches
 

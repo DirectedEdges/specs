@@ -64,7 +64,7 @@ Verify the last lines of the output name your sources and non-zero entry counts:
   Entries: 3567 components, 97 styles, 1458 variables, 469 icons
 ```
 
-See [`fetch`](/cli/commands/fetch/) for flags, and note that `variables` and `styles` data requires a Figma Enterprise plan — `file` and `icons` work on any plan.
+See [`fetch`](/cli/commands/fetch/) for flags, and note that `variables` data requires a Figma Enterprise plan over REST — on any other plan, fetch it [through the bridge](/cli/commands/fetch/#fetching-variables-via-the-bridge). `file`, `styles`, and `icons` work over REST on any plan.
 
 ## Stage 3 — The Cache
 

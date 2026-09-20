@@ -80,6 +80,14 @@ Only emit the named component folders. Unknown keys warn and are skipped. Scoped
 
 Emit the element, its contract, its API and its stylesheets, but no Storybook stories.
 
+### `--watch`
+
+Watch the specs directory and re-emit on every change. Debounced, non-overlapping, and a failed component is logged rather than fatal. Same behaviour as [`react --watch`](/cli/commands/react/#--watch), including re-emitting the whole set on every change.
+
+```bash
+specs webcomponents --watch
+```
+
 ### `-o, --output <path>`
 
 The specs directory to read from. Defaults to `spec.directory` in `config/settings.yaml`.

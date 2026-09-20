@@ -129,6 +129,7 @@ export default defineConfig({
           items: [
             { label: 'react', slug: 'cli/commands/react', badge: experimental },
             { label: 'webcomponents', slug: 'cli/commands/webcomponents', badge: experimental },
+            { label: 'Prop Naming', slug: 'guides/prop-naming' },
             {
               label: 'Roles',
               collapsed: true,
@@ -252,6 +253,7 @@ export default defineConfig({
             { label: 'Layout Positioning', slug: 'guides/layout-positioning' },
             { label: 'Number Inference', slug: 'guides/number-inference' },
             { label: 'Render to Figma', slug: 'guides/render-to-figma', badge: experimental },
+            { label: 'Run Metadata', slug: 'guides/run-metadata' },
             { label: 'Slot Constraints', slug: 'guides/slot-constraints', badge: pro },
             { label: 'Subcomponents', slug: 'guides/subcomponent-scoping', badge: pro },
             { label: 'Variant Depth', slug: 'guides/variant-depth' },

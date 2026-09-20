@@ -19,7 +19,7 @@ The `Component` type is the root object of every spec. It contains the component
 | `metadata` | [`Metadata`](/schema/metadata/) | No | Generation metadata (author, schema version, config) |
 | `instanceExamples` | [`InstanceExamples`](/schema/instance-examples/) | No | **Pro.** Documented whole-component usage examples (emitted only with a Pro license) |
 | `slotContentExamples` | `Record<string, `[`SlotContent`](/schema/slot-content/)`>` | No | **Pro.** Named slot-content fills, referenced by [`SlotContentRef`](/schema/slot-content-ref/) from slot bindings and from `Element.propConfigurations` slot-prop entries |
-| `images` | `Record<string, ImageData>` | No | Registry of image data keyed by id, referenced by `Styles.backgroundImage`, `ImageBinding` examples, and `ImageProp` defaults. Each entry carries the Figma identity in `$extensions['com.figma'].imageHash`; resolution adds `src` (asset path, `data:` URI, or URL) without replacing it. Emitted when [`figma.images`](/schema/conventions/#images) is configured |
+| `images` | `Record<string, ImageData>` | No | Registry of image data keyed by id, referenced by `Styles.backgroundImage`, and by `examples` and `default` on `ImageBinding` and `ImageProp`. Each entry carries the Figma identity in `$extensions['com.figma'].imageHash`; resolution adds `src` (asset path, `data:` URI, or URL) without replacing it. Emitted when [`figma.images`](/schema/conventions/#images) is configured |
 
 ## Examples and composed content
 
@@ -30,3 +30,19 @@ Several optional fields document configured and composed usages of a component. 
 - [`SlotContentRef`](/schema/slot-content-ref/) — the `$slotContent` pointer that references a fill.
 - [`Composition`](/schema/composition/) — a named, authored unit of composed content (system-scoped, external composition files).
 - [`Children`](/schema/children/) — an element's children, including slot bindings that carry example fills.
+
+## Concern documents
+
+A run with [`spec.splitConcerns`](/schema/settings/) writes one file per concern rather than a single component file. Each file has its own type, requiring what its concern carries and permitting nothing else — a `variants.yaml` cannot hold an anatomy, and an `api.yaml` cannot hold a default block.
+
+| Document | File | Required | Also carries |
+|---|---|---|---|
+| `SpecApiDocument` | `api.yaml` | `metadata`, `title`, `anatomy`, `props` | `subcomponents` |
+| `SpecVariantsDocument` | `variants.yaml` | `metadata`, `default`, `variants` | `invalidVariantCombinations`, `subcomponents` |
+| `SpecExamplesDocument` | `examples.yaml` | `metadata` | `slotContentExamples`, `instanceExamples`, `images`, `subcomponents` |
+
+Each document's `metadata` must state its [`concern`](/schema/metadata/) — `api`, `variants` or `examples`. That is what identifies the file, and what tells the three apart. A whole `Component` carries no `concern` at all.
+
+A nested subcomponent is sliced by the same concern as the document holding it, so each document's `subcomponents` uses its own subcomponent shape — `SpecApiSubcomponent`, `SpecVariantsSubcomponent`, `SpecExamplesSubcomponent`.
+
+`SpecConcernDocument` is the union of the three. TypeScript cannot narrow it on `metadata.concern`, since the discriminant sits one level down; narrow on a key instead (`'title' in doc`).

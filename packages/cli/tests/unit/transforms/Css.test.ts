@@ -37,7 +37,7 @@ function wcDir(dir: string, prefix: string, sub?: string): string {
 async function run(dir: string, variantsData: Record<string, unknown>, componentKey = 'dsButton', tokensFormat = 'TOKEN', processingStates?: ProcessingStates, transformerOptions?: Record<string, unknown>) {
   await writeVariants(dir, variantsData);
   await transformer.run({}, { ...makeContext(dir, componentKey, tokensFormat, processingStates), transformerOptions });
-  return fs.readFile(path.join(reactDir(dir, toPascalCase(componentKey)), `${toPascalCase(componentKey)}.styles.css`), 'utf-8');
+  return fs.readFile(path.join(reactDir(dir, toPascalCase(componentKey)), 'styles.css'), 'utf-8');
 }
 
 // Minimal helpers to build spec-format style objects
@@ -64,7 +64,7 @@ describe('CssTransformer', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     await transformer.run({}, makeContext(tmpDir));
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('no variants.yaml'));
-    expect(fs.existsSync(path.join(reactDir(tmpDir, 'DsButton'), 'DsButton.styles.css'))).toBe(false);
+    expect(fs.existsSync(path.join(reactDir(tmpDir, 'DsButton'), 'styles.css'))).toBe(false);
     warnSpy.mockRestore();
   });
 
@@ -235,6 +235,78 @@ describe('CssTransformer', () => {
     it('emits :focus-within for focus-within concept (boolean prop, value defaults to "true")', async () => {
       const out = await run(tmpDir, variantsWithStates, 'dsButton', 'TOKEN', states);
       expect(out).toContain('.ds-button:focus-within {');
+    });
+
+    it('narrows the focus concept to :has(:focus-visible) on a wrapper root', async () => {
+      const focusStates: ProcessingStates = { focus: { prop: 'state', value: 'focus' } };
+      const out = await run(tmpDir, {
+        default: { elements: {} },
+        variants: [{ configuration: { state: 'focus' }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } }],
+      }, 'dsButton', 'TOKEN', focusStates);
+      expect(out).toContain('.ds-button:has(:focus-visible) {');
+    });
+
+    it('narrows the focus concept to :focus-visible on a self-focusable roled root', async () => {
+      const focusStates: ProcessingStates = { focus: { prop: 'state', value: 'focus' } };
+      await writeVariants(tmpDir, {
+        default: { elements: {} },
+        variants: [{ configuration: { state: 'focus' }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } }],
+      });
+      await transformer.run(
+        { anatomy: { root: { type: 'container', role: 'button' } } },
+        makeContext(tmpDir, 'dsButton', 'TOKEN', focusStates),
+      );
+      const out = await fs.readFile(path.join(reactDir(tmpDir, 'DsButton'), 'styles.css'), 'utf-8');
+      expect(out).toContain('.ds-button:focus-visible {');
+      expect(out).not.toContain(':has(:focus-visible)');
+    });
+
+    it('warns when a classified prop carries a value no concept names', async () => {
+      // The value still reaches the contract and the stories, so the state looks
+      // supported and renders as the default — the loss was only findable by
+      // diffing the rendered component against the design.
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const linkStates: ProcessingStates = { hover: { prop: 'state', value: 'hover' } };
+      await writeVariants(tmpDir, {
+        default: { elements: {} },
+        variants: [{ configuration: { state: 'visited' }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } }],
+      });
+      await transformer.run(
+        { props: { state: { type: 'string', enum: ['default', 'hover', 'visited'], default: 'default' } } },
+        makeContext(tmpDir, 'dsLink', 'TOKEN', linkStates),
+      );
+
+      const message = warnSpy.mock.calls.map(c => String(c[0])).join('\n');
+      expect(message).toContain('dsLink');
+      expect(message).toContain("'state'");
+      expect(message).toContain("'visited'");
+      warnSpy.mockRestore();
+    });
+
+    it('stays silent for the prop\'s resting value, which the base block already covers', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const linkStates: ProcessingStates = { hover: { prop: 'state', value: 'hover' } };
+      await writeVariants(tmpDir, {
+        default: { elements: {} },
+        variants: [{ configuration: { state: 'default' }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } }],
+      });
+      await transformer.run(
+        { props: { state: { type: 'string', enum: ['default', 'hover'], default: 'default' } } },
+        makeContext(tmpDir, 'dsLink', 'TOKEN', linkStates),
+      );
+
+      expect(warnSpy.mock.calls.map(c => String(c[0])).join('\n')).not.toContain('no concept names');
+      warnSpy.mockRestore();
+    });
+
+    it('emits :visited for a link modelling visited through a classified prop', async () => {
+      const linkStates: ProcessingStates = { visited: { prop: 'state', value: 'visited' } };
+      const out = await run(tmpDir, {
+        default: { elements: {} },
+        variants: [{ configuration: { state: 'visited' }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } }],
+      }, 'dsLink', 'TOKEN', linkStates);
+
+      expect(out).toContain('.ds-link:visited {');
     });
 
     it('emits :disabled, [aria-disabled="true"] for disabled concept', async () => {
@@ -461,14 +533,113 @@ describe('CssTransformer', () => {
     });
   });
 
+  describe('the attribute a host selector keys off (specs#385)', () => {
+    const variants = {
+      default: { elements: {} },
+      variants: [
+        { configuration: { appearance: 'filled' }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+      ],
+    };
+
+    async function bothSheets(dir: string) {
+      await writeVariants(dir, variants);
+      await transformer.run({ props: { appearance: { type: 'string', enum: ['filled', 'ghost'] } } }, makeContext(dir, 'dsButton'));
+      return {
+        react: await fs.readFile(path.join(reactDir(dir, 'DsButton'), 'styles.css'), 'utf-8'),
+        host: await fs.readFile(path.join(wcDir(dir, 'DsButton'), 'host.css'), 'utf-8'),
+      };
+    }
+
+    it('selects a reflected bare attribute on the host', async () => {
+      // Lit reflects the reactive property, so the element writes `appearance`
+      // itself and nothing stamps a data attribute.
+      const { host } = await bothSheets(tmpDir);
+
+      expect(host).toContain('[appearance="filled"]');
+      expect(host).not.toContain('[data-appearance');
+    });
+
+    it('leaves the React sheet on data attributes, where the root is a div', async () => {
+      const { react } = await bothSheets(tmpDir);
+
+      expect(react).toContain('[data-appearance="filled"]');
+      expect(react).not.toContain('[appearance="filled"]');
+    });
+
+    it('keeps the data- form for a prop whose name is a global HTML attribute', async () => {
+      // Reflecting `hidden` would stop the component rendering; `title` would
+      // raise a tooltip. data-* avoided this by construction.
+      await writeVariants(tmpDir, {
+        default: { elements: {} },
+        variants: [{ configuration: { hidden: true }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } }],
+      });
+      await transformer.run({ props: { hidden: { type: 'boolean' } } }, makeContext(tmpDir, 'dsButton'));
+      const host = await fs.readFile(path.join(wcDir(tmpDir, 'DsButton'), 'host.css'), 'utf-8');
+
+      expect(host).toContain('[data-hidden]');
+    });
+  });
+
+  describe('why each rule block exists (specs#385)', () => {
+    it('labels a variant block with the configuration it came from', async () => {
+      // Blocks sharing a selector are kept apart deliberately — each is a
+      // separate statement about the component — so each says which.
+      const out = await run(tmpDir, {
+        default: { elements: {} },
+        variants: [
+          { configuration: { size: 'large', appearance: 'filled' }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+        ],
+      });
+
+      expect(out).toContain('/* Variant: size=large, appearance=filled */');
+    });
+
+    it('names the element when the block is not the root', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: { label: { styles: { layoutMode: 'NONE' } } } },
+        variants: [
+          { configuration: { size: 'large' }, elements: { label: { styles: { opacity: 0.5 } } } },
+        ],
+      });
+
+      expect(out).toContain('/* Variant: size=large — label */');
+    });
+
+    it('spells a boolean configuration as the concept, not as a value', async () => {
+      const out = await run(tmpDir, {
+        default: { elements: {} },
+        variants: [
+          { configuration: { loading: true }, elements: { root: { styles: { layoutMode: 'HORIZONTAL' } } } },
+        ],
+      });
+
+      expect(out).toContain('/* Variant: loading */');
+    });
+
+    it('says what declared each cursor affordance', async () => {
+      // The affordance is read from the states classification, so the prop it
+      // names has to exist on the component for it to apply at all.
+      const pressStates: ProcessingStates = { active: { prop: 'state', value: 'active' } };
+      await writeVariants(tmpDir, { default: { elements: {} }, variants: [] });
+      await transformer.run(
+        { props: { state: { type: 'string', enum: ['default', 'active'] } } },
+        makeContext(tmpDir, 'dsButton', 'TOKEN', pressStates),
+      );
+      const out = await fs.readFile(path.join(reactDir(tmpDir, 'DsButton'), 'styles.css'), 'utf-8');
+
+      expect(out).toContain('Press affordance');
+      expect(out).toContain('cursor: pointer;');
+    });
+  });
+
   describe('subcomponent styles', () => {
     async function runAndReadSub(dir: string, variantsData: Record<string, unknown>, subKey: string, componentKey = 'dsActionList') {
       await writeVariants(dir, variantsData);
       await transformer.run({}, makeContext(dir, componentKey));
-      return fs.readFile(path.join(reactDir(dir, toPascalCase(componentKey), toPascalCase(subKey)), `${toPascalCase(subKey)}.styles.css`), 'utf-8');
+      return fs.readFile(path.join(reactDir(dir, toPascalCase(componentKey), toPascalCase(subKey)), 'styles.css'), 'utf-8');
     }
 
-    it('emits {Sub}.styles.css in a subfolder for each subcomponent', async () => {
+    it('emits styles.css in a subfolder for each subcomponent', async () => {
       await writeVariants(tmpDir, {
         subcomponents: {
           group: {
@@ -478,10 +649,10 @@ describe('CssTransformer', () => {
         },
       });
       await transformer.run({}, makeContext(tmpDir, 'dsActionList'));
-      expect(fs.existsSync(path.join(reactDir(tmpDir, 'DsActionList', 'Group'), 'Group.styles.css'))).toBe(true);
+      expect(fs.existsSync(path.join(reactDir(tmpDir, 'DsActionList', 'Group'), 'styles.css'))).toBe(true);
     });
 
-    it('scopes subcomponent BEM selectors to the subcomponent key, not the parent', async () => {
+    it('namespaces subcomponent BEM selectors with the parent key', async () => {
       const out = await runAndReadSub(tmpDir, {
         subcomponents: {
           group: {
@@ -495,9 +666,10 @@ describe('CssTransformer', () => {
           },
         },
       }, 'group');
-      expect(out).toContain('.group {');
-      expect(out).toContain('.group__text {');
-      expect(out).not.toContain('ds-action-list');
+      expect(out).toContain('.ds-action-list-group {');
+      expect(out).toContain('.ds-action-list-group__text {');
+      // The parent's own class must not select the subcomponent's elements.
+      expect(out).not.toContain('.ds-action-list__');
     });
 
     it('emits subcomponent variant selectors scoped to the subcomponent class', async () => {
@@ -514,7 +686,7 @@ describe('CssTransformer', () => {
           },
         },
       }, 'item');
-      expect(out).toContain('.item[data-size="medium"] {');
+      expect(out).toContain('.ds-action-list-item[data-size="medium"] {');
     });
 
     it('emits multiple subcomponent subfolders independently', async () => {
@@ -531,10 +703,10 @@ describe('CssTransformer', () => {
         },
       });
       await transformer.run({}, makeContext(tmpDir, 'dsActionList'));
-      expect(fs.existsSync(path.join(reactDir(tmpDir, 'DsActionList', 'Group'), 'Group.styles.css'))).toBe(true);
-      expect(fs.existsSync(path.join(reactDir(tmpDir, 'DsActionList', 'Header'), 'Header.styles.css'))).toBe(true);
-      const groupOut = await fs.readFile(path.join(reactDir(tmpDir, 'DsActionList', 'Group'), 'Group.styles.css'), 'utf-8');
-      const headerOut = await fs.readFile(path.join(reactDir(tmpDir, 'DsActionList', 'Header'), 'Header.styles.css'), 'utf-8');
+      expect(fs.existsSync(path.join(reactDir(tmpDir, 'DsActionList', 'Group'), 'styles.css'))).toBe(true);
+      expect(fs.existsSync(path.join(reactDir(tmpDir, 'DsActionList', 'Header'), 'styles.css'))).toBe(true);
+      const groupOut = await fs.readFile(path.join(reactDir(tmpDir, 'DsActionList', 'Group'), 'styles.css'), 'utf-8');
+      const headerOut = await fs.readFile(path.join(reactDir(tmpDir, 'DsActionList', 'Header'), 'styles.css'), 'utf-8');
       expect(groupOut).toContain('flex-direction: column');
       expect(headerOut).toContain('flex-direction: row');
     });
@@ -1161,5 +1333,72 @@ describe('gradient strokes arriving as token references', () => {
       strokeWeight: 2,
     }));
     expect(css).toContain('outline-style: none');
+  });
+});
+
+// The fit declarations describe how the element presents a background image.
+// A component can also take its image from a code-only source prop at runtime,
+// where the registry has no `src` to resolve — the element still needs the fit.
+describe('CssTransformer background image fit', () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'css-image-test-'));
+  });
+
+  afterEach(async () => {
+    await fs.remove(tmpDir);
+  });
+
+  async function runWithImages(images: Record<string, unknown>, objectFit?: string) {
+    await fs.writeFile(
+      path.join(tmpDir, 'examples.yaml'),
+      yaml.stringify({ images }),
+      'utf-8',
+    );
+    return run(tmpDir, {
+      default: {
+        layout: [{ root: ['imageFill'] }],
+        elements: {
+          root: { styles: {} },
+          imageFill: {
+            styles: {
+              backgroundImage: {
+                $image: '#/components/dsImage/images/dsImage__imageFill',
+                ...(objectFit ? { objectFit } : {}),
+              },
+            },
+          },
+        },
+      },
+    }, 'dsImage');
+  }
+
+  it('emits the url and the fit when the registry entry resolves', async () => {
+    const css = await runWithImages({
+      dsImage__imageFill: { src: '../../assets/images/abc123.jpg' },
+    });
+    expect(css).toContain("background-image: url('../../../../assets/images/abc123.jpg')");
+    expect(css).toContain('background-position: center');
+    expect(css).toContain('background-repeat: no-repeat');
+    expect(css).toContain('background-size: cover');
+  });
+
+  it('emits the fit without a url when the registry entry is unresolved', async () => {
+    const css = await runWithImages({
+      dsImage__imageFill: { $extensions: { 'com.figma': { imageHash: 'abc123' } } },
+    });
+    expect(css).not.toContain('background-image:');
+    expect(css).toContain('background-position: center');
+    expect(css).toContain('background-repeat: no-repeat');
+    expect(css).toContain('background-size: cover');
+  });
+
+  it('honours objectFit CONTAIN on an unresolved entry', async () => {
+    const css = await runWithImages(
+      { dsImage__imageFill: { $extensions: { 'com.figma': { imageHash: 'abc123' } } } },
+      'CONTAIN',
+    );
+    expect(css).toContain('background-size: contain');
   });
 });

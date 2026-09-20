@@ -63,6 +63,8 @@ specs generate -o specs/
 
 Components that fail are reported individually and the rest still generate; the run exits non-zero if any failed.
 
+A manifest run also writes `latest.metadata.yaml` at the root of the output directory. It holds the facts about the run — author, generator, schema version, conventions and settings — which are identical for every component, so each spec keeps only `metadata.source`. See [Run Metadata](/guides/run-metadata/). Single component and bridge mode are unaffected: each writes the full `metadata` block into its spec.
+
 ## Single Component Mode
 
 Pass a Figma JSON file directly and name one component with `-c`, by name or node ID. Useful when setting up a new component, or iterating quickly on one spec without touching the rest of the library.

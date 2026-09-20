@@ -12,7 +12,7 @@ hook blocks it).
 - **There is no MCP server.** The persistent local process is the *bridge*
   (`src/bridge/server.ts`): WebSocket 9001 for plugin connections keyed by
   `fileKey`, HTTP 9002 control (`POST /render`, `POST /generate`,
-  `GET /status`). Pid/log files live under `~/.specs`.
+  `POST /variables`, `GET /status`). Pid/log files live under `~/.specs`.
 - `npm run watch` rebuilds only `dist/specs.js` — **bridge/server changes need
   an explicit `npm run build`** to refresh `dist/bridge-server.js`.
 - Legacy single-file configs (`specs.config.yaml`) are **refused with an
@@ -45,7 +45,7 @@ Registered in `createProgram()` (`src/index.ts`); flat files in
 | `migrate` | `MigrateCommand.ts` | Legacy config → split layout; manifest v1→v2 |
 | `generate` | `GenerateCommand.ts` | Figma file / manifest / bridge → specs |
 | `scan` | `ScanCommand.ts` | Discover components → `<alias>.manifest.md` |
-| `fetch` | `FetchCommand.ts` | Figma REST download (file, variables, styles, icons) |
+| `fetch` | `FetchCommand.ts` | Figma REST download (file, variables, styles, icons); `--from-bridge` reads variables through the plugin instead (non-Enterprise path) |
 | `cache` | `CacheCommand.ts` | Render lookup caches |
 | `applyCustomTokens` | `ApplyCustomTokensCommand.ts` | Inject custom tokens into foundations |
 | `transform` | `TransformCommand.ts` | Project `api.yaml` → derived files |
@@ -64,7 +64,8 @@ Registered in `createProgram()` (`src/index.ts`); flat files in
 | `src/utilities/LicenseStatus.ts` | Reads engine-stamped license state; the CLI validates nothing |
 | `src/transforms/` | Open counterparts of transform modules (see drift note below) |
 | `src/Writers/` | Output *strategy* writers: single / component / concern / combined file |
-| `src/Render/SpecLoader.ts` | Spec discovery + loading for render |
+| `src/Writers/RunMetadataFile.ts` | `latest.metadata.<format>` — a manifest run's facts, stated once (ADR-089). `RunMetadataFile.separate()` lifts them out of every spec and reduces each block to `source`; `RunMetadataReader.find()` reads the document back, looking in the spec's own directory then one level up |
+| `src/Render/SpecLoader.ts` | Spec discovery + loading for render. Rehydrates a reduced spec's run metadata here, at the one place every render input is loaded, so no reader downstream has to know the spec was reduced |
 | `tests/unit/config/ConfigLoader.test.ts` | The config feature suite — temp `config/` trees on disk |
 | `tests/integration/cli.integration.test.ts` | In-process runner (spied exit/console, no subprocess) |
 
@@ -76,7 +77,7 @@ File/manifest path: `ConfigLoader.load()` → `loadFoundations` →
 **`Components.fromRestApi(ids, library, conventions, settings, {styles,
 variables, collections, author, generator}, onProgress, licenseInput)`**
 (batch, plural — not `Component.fromRestApi`) → `LicenseStatus.display()` →
-strategy writer. Guards: all-error "not valid for this runtime" → AUTH_ERROR;
+`RunMetadataFile.separate()` (manifest mode only) → strategy writer. Guards: all-error "not valid for this runtime" → AUTH_ERROR;
 with a key present, transient license statuses exit NETWORK_ERROR/RATE_LIMIT
 rather than silently emitting FREE output (specs#119).
 

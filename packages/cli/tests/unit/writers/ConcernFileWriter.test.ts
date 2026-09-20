@@ -111,11 +111,11 @@ describe('ConcernFileWriter', () => {
     const apiContent = yaml.parse(await fs.readFile(path.join(testDir, 'api.yaml'), 'utf-8'));
     const variantsContent = yaml.parse(await fs.readFile(path.join(testDir, 'variants.yaml'), 'utf-8'));
 
-    expect(apiContent.metadata).toHaveProperty('generatedAt');
+    expect(apiContent.metadata).toHaveProperty('lastUpdated');
     expect(apiContent.metadata).toHaveProperty('componentCount', 2);
     expect(apiContent.metadata).toHaveProperty('concern', 'api');
 
-    expect(variantsContent.metadata).toHaveProperty('generatedAt');
+    expect(variantsContent.metadata).toHaveProperty('lastUpdated');
     expect(variantsContent.metadata).toHaveProperty('componentCount', 2);
     expect(variantsContent.metadata).toHaveProperty('concern', 'variants');
   });

@@ -42,6 +42,13 @@ export interface RenderRequestBody {
    */
   conventions?: ResolvedConventions;
   settings?: ResolvedSettings;
+  /**
+   * The Dev Mode status to stamp on the rendered component, taken from the workspace
+   * scan manifest's Dev Status column. Omitted when the manifest has no row for this
+   * spec or records no status — render then leaves the node's status untouched rather
+   * than asserting one the scan never recorded.
+   */
+  devStatus?: 'READY_FOR_DEV' | 'COMPLETED';
 }
 
 // Render reports success/failure only — the round-trip spec read is a second,
@@ -103,4 +110,31 @@ export async function postGenerateFromSelection(body: GenerateFromSelectionReque
     body: JSON.stringify(body),
   });
   return (await res.json()) as GenerateFromSelectionResponse;
+}
+
+export interface GetVariablesRequestBody {
+  fileKey?: string;
+}
+
+/** The variables and collections of the connected file, read by the plugin and
+ * shaped like the `meta` of `GET /v1/files/:key/variables/local` — so a file
+ * written from this response is indistinguishable from a REST fetch downstream. */
+export interface GetVariablesResponse {
+  success: boolean;
+  /** The connection that answered — identifies the source alias when the request named no fileKey. */
+  fileKey?: string;
+  meta?: {
+    variableCollections: Record<string, unknown>;
+    variables: Record<string, unknown>;
+  };
+  error?: unknown;
+}
+
+export async function postGetVariables(body: GetVariablesRequestBody = {}): Promise<GetVariablesResponse> {
+  const res = await fetch(`http://localhost:${HTTP_PORT}/variables`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  return (await res.json()) as GetVariablesResponse;
 }

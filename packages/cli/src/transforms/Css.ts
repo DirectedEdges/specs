@@ -7,10 +7,16 @@ import { styleToCSS, impliesAbsolute } from './css/styleToCSS.js';
 import { layoutToCSS } from './css/layoutToCSS.js';
 import { toKebab, isGradient, isGradientToken, gradientValue, dimensionValue, resolveTokenVar, reportNameWarnings, withNameWarningsSuppressed } from './css/values.js';
 import { normalizeEnumValue } from './enumCase.js';
+import { subComponentKey } from './naming.js';
+import { attrNameFor } from './hostAttributes.js';
 import { CONCEPT_TABLE, buildStateLookup, conceptsClaimedByNestedRoles } from './states.js';
 import { resolveRules } from './css/rules/index.js';
 import { parseLayout, type LayoutNode } from './css/layoutTree.js';
 import { loadExamples, type ExamplesData } from './examples.js';
+// The filenames come from the packages that emit the scaffolds importing them,
+// so a stylesheet can never be written under a name no scaffold reaches for.
+import { REACT_FILES } from '@directededges/react-from-specs';
+import { WEBCOMPONENT_FILES } from '@directededges/webcomponents-from-specs';
 
 /**
  * The light-DOM companion sheet for a custom element.
@@ -104,7 +110,7 @@ export class CssTransformer implements Transformer {
     const wcDir = componentOutDir(context, 'webcomponents', prefix);
     if (this.writes('react')) {
       await fs.ensureDir(reactDir);
-      await writeAtomic(path.join(reactDir, `${prefix}.styles.css`), lines.join('\n'));
+      await writeAtomic(path.join(reactDir, REACT_FILES.styles), lines.join('\n'));
     }
 
     // The same rules written for a shadow tree, where the custom element itself
@@ -117,16 +123,19 @@ export class CssTransformer implements Transformer {
     }, 'host', anatomyRoles(apiYaml), apiPropsOf(apiYaml)));
     if (this.writes('webcomponents')) {
       await fs.ensureDir(wcDir);
-      await writeAtomic(path.join(wcDir, `${prefix}.host.css`), hostLines.join('\n'));
-      await writeAtomic(path.join(wcDir, `${prefix}.light.css`), lightDomLines(componentClass).join('\n'));
+      await writeAtomic(path.join(wcDir, WEBCOMPONENT_FILES.hostCss), hostLines.join('\n'));
+      await writeAtomic(path.join(wcDir, WEBCOMPONENT_FILES.lightCss), lightDomLines(componentClass).join('\n'));
     }
 
-    // Subcomponents — each gets {Sub}.styles.css in its own subfolder
+    // Subcomponents — each gets its own stylesheets in its own subfolder
     const subcomponents = (variantsYaml.subcomponents ?? {}) as Record<string, unknown>;
     const apiSubs = (apiYaml.subcomponents ?? {}) as Record<string, unknown>;
     for (const [subKey, subRaw] of Object.entries(subcomponents)) {
       const subVariantsYaml = subRaw as Record<string, unknown>;
-      const subClass = toKebab(subKey);
+      // Namespaced by the parent, matching the class the react and web-component
+      // emitters put on the subcomponent's root. The two are written by different
+      // packages; if only one composes the parent, nothing selects.
+      const subClass = toKebab(subComponentKey(componentKey, subKey));
       const subFilePrefix = toPascalCase(subKey);
       const subTypes = anatomyTypes((apiSubs[subKey] ?? {}) as Record<string, unknown>);
       const subLines = buildCssLines(subClass, subVariantsYaml, tokensFormat, context, subTypes, {
@@ -137,7 +146,7 @@ export class CssTransformer implements Transformer {
       const subWcDir = path.join(wcDir, subFilePrefix);
       if (this.writes('react')) {
         await fs.ensureDir(subReactDir);
-        await writeAtomic(path.join(subReactDir, `${subFilePrefix}.styles.css`), subLines.join('\n'));
+        await writeAtomic(path.join(subReactDir, REACT_FILES.styles), subLines.join('\n'));
       }
       const subHostLines = withNameWarningsSuppressed(() => buildCssLines(subClass, subVariantsYaml, tokensFormat, context, subTypes, {
         examples,
@@ -145,8 +154,8 @@ export class CssTransformer implements Transformer {
       }, 'host'));
       if (this.writes('webcomponents')) {
         await fs.ensureDir(subWcDir);
-        await writeAtomic(path.join(subWcDir, `${subFilePrefix}.host.css`), subHostLines.join('\n'));
-        await writeAtomic(path.join(subWcDir, `${subFilePrefix}.light.css`), lightDomLines(subClass).join('\n'));
+        await writeAtomic(path.join(subWcDir, WEBCOMPONENT_FILES.hostCss), subHostLines.join('\n'));
+        await writeAtomic(path.join(subWcDir, WEBCOMPONENT_FILES.lightCss), lightDomLines(subClass).join('\n'));
       }
     }
   }
@@ -162,29 +171,45 @@ interface ImagesCssContext {
   relPrefix: string;
 }
 
-/** backgroundImage style ({ $image, objectFit? } | null) → CSS declarations. */
+/**
+ * backgroundImage style ({ $image, objectFit? } | null) → CSS declarations.
+ *
+ * Fit describes the element, not the asset. An element that declares a
+ * background image sizes and positions it the same way whether the URL comes
+ * from the registry here or from a code-only source prop supplied at runtime,
+ * so the fit declarations come from the declaration itself and only the
+ * `background-image` URL depends on the registry entry resolving.
+ */
 function backgroundImageDecls(value: unknown, images: ImagesCssContext | undefined): string[] {
   if (value === null) return ['background-image: none'];
-  if (!images?.examples || !value || typeof value !== 'object') return [];
+  if (!value || typeof value !== 'object') return [];
   const v = value as Record<string, unknown>;
   if (typeof v.$image !== 'string') return [];
-  const id = v.$image.match(/#\/components\/[^/]+\/images\/(.+)$/)?.[1];
-  const entry = id ? images.examples.images[id] : undefined;
-  // `src` is the registry's own portable data: an entry without one is
-  // unresolved, and there is nothing further to try. Reading a Figma image
-  // hash to guess a filename made output depend on where the spec came from
-  // (ADR-063).
-  if (typeof entry?.src !== 'string') return [];
-  if (/^(data:|https?:)/.test(entry.src)) {
-    return imageDecls(`url('${entry.src}')`, v.objectFit);
-  }
-  return imageDecls(`url('${images.relPrefix}/${path.basename(entry.src)}')`, v.objectFit);
+  const url = imageUrl(v.$image, images);
+  return [...(url ? [`background-image: ${url}`] : []), ...fitDecls(v.objectFit)];
 }
 
-function imageDecls(url: string, objectFit: unknown): string[] {
-  const decls = [`background-image: ${url}`, 'background-position: center', 'background-repeat: no-repeat'];
-  decls.push(`background-size: ${objectFit === 'CONTAIN' ? 'contain' : 'cover'}`);
-  return decls;
+/**
+ * The `url()` for a `$image` ref, or undefined when the registry entry is
+ * unresolved. `src` is the registry's own portable data: an entry without one
+ * has nothing further to try. Reading a Figma image hash to guess a filename
+ * made output depend on where the spec came from (ADR-063).
+ */
+function imageUrl(ref: string, images: ImagesCssContext | undefined): string | undefined {
+  if (!images?.examples) return undefined;
+  const id = ref.match(/#\/components\/[^/]+\/images\/(.+)$/)?.[1];
+  const entry = id ? images.examples.images[id] : undefined;
+  if (typeof entry?.src !== 'string') return undefined;
+  if (/^(data:|https?:)/.test(entry.src)) return `url('${entry.src}')`;
+  return `url('${images.relPrefix}/${path.basename(entry.src)}')`;
+}
+
+function fitDecls(objectFit: unknown): string[] {
+  return [
+    'background-position: center',
+    'background-repeat: no-repeat',
+    `background-size: ${objectFit === 'CONTAIN' ? 'contain' : 'cover'}`,
+  ];
 }
 
 /** Glyphs, raw vectors, and icon-wrapper instances (instance with a name propConfiguration). */
@@ -251,6 +276,30 @@ function disabledSelectorFor(rootAs: RootForm, rootRole: string | undefined): st
 
 /** Roles whose emitted element carries a real `disabled` property. */
 const NATIVE_DISABLED_ROLES = new Set(['button', 'togglebutton', 'disclosure']);
+
+/**
+ * The focus selector that can actually match, for this target and this root.
+ *
+ * The `focus` concept means the platform's visible-focus heuristic
+ * (`:focus-visible`), but that selector only matches a root that can itself
+ * hold focus. A wrapper root reaches its control with `:has(:focus-visible)`:
+ * a text control matches whenever it is focused, a button-like control only
+ * from the keyboard — so click-into-a-field styling survives while a clicked
+ * button does not hold its ring. A shadow host matches `:focus-visible`
+ * itself when its roled scaffold delegates focus; an un-roled host cannot,
+ * and `:focus-within` is the only spelling that can match, because `:has()`
+ * does not cross the shadow boundary. A library that declares the
+ * `focus-within` concept has said exactly what it means and is never
+ * narrowed.
+ */
+function focusSelectorFor(rootAs: RootForm, rootRole: string | undefined): string {
+  const native = rootRole ? NATIVE_FOCUSABLE_ROLES.has(rootRole) : false;
+  if (rootAs === 'host') return native ? ':focus-visible' : ':focus-within';
+  return native ? ':focus-visible' : ':has(:focus-visible)';
+}
+
+/** Roles whose emitted element can itself hold visible focus. */
+const NATIVE_FOCUSABLE_ROLES = new Set(['button', 'togglebutton', 'disclosure', 'link', 'textbox']);
 
 /** api.yaml props, keyed by prop name. */
 function apiPropsOf(apiYaml: Record<string, unknown>): Record<string, Record<string, unknown>> {
@@ -627,12 +676,41 @@ function buildCssLines(
     }
   }
 
+  /**
+   * A value of a classified prop that no concept names, reported once per
+   * (prop, value) pair.
+   *
+   * Skipping such a variant is correct for the prop's *resting* value — the base
+   * block already covers it. Every other unnamed value is styling the spec
+   * declares and the stylesheet drops, and it drops silently: the value still
+   * reaches the generated contract and the stories, so the state looks supported
+   * and simply renders as the default. Every comparable drop in this pipeline
+   * warns; this one did not.
+   */
+  const warnedUnnamed = new Set<string>();
+  const warnUnnamedValue = (prop: string, value: string): void => {
+    const def = apiProps[prop] as { default?: unknown } | undefined;
+    const resting = def?.default;
+    if (resting !== undefined && String(resting).toLowerCase() === value.toLowerCase()) return;
+    const key = `${prop}::${value}`;
+    if (warnedUnnamed.has(key)) return;
+    warnedUnnamed.add(key);
+    console.warn(
+      `  [css] ${context.componentKey}: '${prop}' is classified by the states convention, ` +
+        `but no concept names the value '${value}' — the styling declared for it is not emitted. ` +
+        `Add a states entry mapping a concept to this value, or rename the value to one a concept names.`
+    );
+  };
+
   // A concept's selector, narrowed to what can actually match this target and
-  // this root. Only `disabled` differs; every other concept is target-neutral.
+  // this root. Only `disabled` and the focus heuristic differ; every other
+  // concept is target-neutral.
   const selectorFor = (concept: string): string | undefined =>
     concept === 'disabled'
       ? disabledSelectorFor(rootAs, elemRoles.root)
-      : CONCEPT_TABLE[concept]?.selector;
+      : concept === 'focus' || concept === 'focus-visible'
+        ? focusSelectorFor(rootAs, elemRoles.root)
+        : CONCEPT_TABLE[concept]?.selector;
 
   // ── Variants — in schema order ─────────────────────────────────────────────
   // variants.yaml variant order is intentional: single-prop variants before
@@ -669,8 +747,14 @@ function buildCssLines(
           // `:not(:disabled):not([aria-disabled="true"])`.
           if (trueSel) negated = trueSel.split(',').map(part => `:not(${part.trim()})`).join('');
         }
-        if (!concept && !negated) { skip = true; break; } // unmatched value = base/rest state
-        const sel = negated ?? (concept ? selectorFor(concept) : undefined) ?? `[data-${toKebab(k)}="${normalizeEnumValue(vStr)}"]`;
+        if (!concept && !negated) {
+          // Unmatched value: the base block covers the resting one; anything else
+          // is declared styling that will not be emitted, so say so.
+          warnUnnamedValue(k, vStr);
+          skip = true;
+          break;
+        }
+        const sel = negated ?? (concept ? selectorFor(concept) : undefined) ?? `[${attrNameFor(k, rootAs)}="${normalizeEnumValue(vStr)}"]`;
         const parts = negated ? [negated] : sel.split(',').map(s => s.trim());
         const expanded: string[] = [];
         for (const existing of stateSelSuffixes) {
@@ -683,9 +767,9 @@ function buildCssLines(
         // variant is the ABSENCE of the attribute; `[data-x="false"]` would
         // match nothing and the variant's styling would never apply.
         dataAttrs.push(
-          v === true ? `[data-${toKebab(k)}]`
-            : v === false ? `:not([data-${toKebab(k)}])`
-              : `[data-${toKebab(k)}="${normalizeEnumValue(vStr)}"]`
+          v === true ? `[${attrNameFor(k, rootAs)}]`
+            : v === false ? `:not([${attrNameFor(k, rootAs)}])`
+              : `[${attrNameFor(k, rootAs)}="${normalizeEnumValue(vStr)}"]`
         );
       }
     }
@@ -781,6 +865,7 @@ function buildCssLines(
       if (reverse && !decls.some(d => d.startsWith('flex-direction:'))) decls.push(reverse);
 
       if (decls.length > 0) {
+        lines.push(`/* ${variantLabel(configuration)}${elemKey === 'root' ? '' : ` — ${elemKey}`} */`);
         lines.push(`${selector} {`);
         for (const d of decls) lines.push(`  ${d};`);
         lines.push('}');
@@ -807,11 +892,15 @@ function buildCssLines(
   // unpressed silently lost its pointer — and it inferred behavior from output
   // rather than reading what the library declared.
   if (declaresState(context, apiProps, 'active') || declaresState(context, apiProps, 'pressed')) {
-    lines.push(`${rootSel()} {`, '  cursor: pointer;', '}', '');
+    lines.push(
+      '/* Press affordance: the states convention names an active or pressed concept, so this is a press target. Figma has no cursor. */',
+      `${rootSel()} {`, '  cursor: pointer;', '}', '',
+    );
   }
   if (declaresState(context, apiProps, 'disabled')) {
     const disabledSel = disabledSelectorFor(rootAs, elemRoles.root);
     lines.push(
+      '/* Disabled affordance: the states convention names a disabled concept. */',
       disabledSel.split(',').map(part => rootSel(part.trim())).join(',\n') + ' {',
       '  cursor: not-allowed;',
       '}',
@@ -822,6 +911,22 @@ function buildCssLines(
   lines.push('}');
   lines.push('');
   return lines;
+}
+
+/**
+ * The spec configuration a rule block came from, as a CSS comment body.
+ *
+ * Blocks sharing a selector are kept apart rather than merged — each is a
+ * separate statement about the component, and merging them would lose which
+ * statement a declaration belongs to (and move rules relative to each other,
+ * where order is what decides which wins). Labelling each one is what makes the
+ * separation readable instead of merely repetitive.
+ */
+function variantLabel(configuration: Record<string, unknown>): string {
+  const pairs = Object.entries(configuration)
+    .map(([k, v]) => (v === true ? k : v === false ? `not ${k}` : `${k}=${String(v)}`))
+    .join(', ');
+  return pairs ? `Variant: ${pairs}` : 'Variant';
 }
 
 function collectLayoutKeys(nodes: LayoutNode[], into: Set<string>): void {
@@ -916,6 +1021,13 @@ function elemSelector(componentClass: string, elemKey: string): string {
  * Only dimensions the slot states definitely are passed on. A slot that HUGs is
  * sized *by* its child, so forcing the child to fill it would be circular.
  *
+ * An absolutely positioned slot states its size a third way: opposing insets.
+ * `start` and `end` together say the slot spans its container's width, and
+ * `top` with `bottom` says the same vertically — a dialog's blanket pinned to
+ * all four edges names no width at all, yet is exactly as wide as the dialog.
+ * Without this the child painted at its master's size inside a slot that had
+ * stretched around it.
+ *
  * The selector doubles the class to outrank the child's own root rule, which is
  * a single class and would otherwise win or lose on stylesheet order alone. For
  * the custom-element build the child's size lives in a `:host` rule, and an
@@ -927,9 +1039,16 @@ function instanceFitRule(
   styles: Record<string, unknown>,
 ): string[] {
   if (elemType !== 'instance') return [];
+  const stated = (a: string, b: string) =>
+    styles.position === 'ABSOLUTE' && styles[a] !== undefined && styles[a] !== null
+      && styles[b] !== undefined && styles[b] !== null;
   const decls: string[] = [];
-  if ('width' in styles || styles.layoutSizingHorizontal === 'FILL') decls.push('width: 100%');
-  if ('height' in styles || styles.layoutSizingVertical === 'FILL') decls.push('height: 100%');
+  if ('width' in styles || styles.layoutSizingHorizontal === 'FILL' || stated('start', 'end')) {
+    decls.push('width: 100%');
+  }
+  if ('height' in styles || styles.layoutSizingVertical === 'FILL' || stated('top', 'bottom')) {
+    decls.push('height: 100%');
+  }
   if (!decls.length) return [];
   const own = selector.split(' ').pop() ?? selector;
   return [`${selector}${own} > * {`, ...decls.map(d => `  ${d};`), '}', ''];

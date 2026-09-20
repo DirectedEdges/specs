@@ -66,6 +66,20 @@ Emit the component, its contract and its stylesheet, but no Storybook stories.
 
 For a consumer who does not use Storybook. Stories are part of the target by default because a component you cannot see is hard to trust, and the cost of emitting them is a file nobody has to open.
 
+### `--watch`
+
+Watch the specs directory and re-emit on every change. Changes are debounced (300ms), an emit in flight defers the next one rather than overlapping, and the run continues until interrupted with Ctrl+C.
+
+Every change re-emits the whole set, not the changed component. A spec edit can change what one component imports from another, and a partial re-emit would leave the tree internally inconsistent — which Storybook's HMR serves without complaint. `--components` still narrows the set, and the narrowed set is what re-emits.
+
+A failed component is logged and the watch continues, rather than exiting — the next save may fix it. Only the first pass can exit, and only for a condition that stops it before any component is emitted.
+
+```bash
+specs react --watch
+```
+
+Pair it with [`render --watch`](/cli/commands/render/#--watch) and a running Storybook to edit a spec and see it land in both Figma and the browser.
+
 ### `-o, --output <path>`
 
 The specs directory to read from. Defaults to `spec.directory` in `config/settings.yaml`.

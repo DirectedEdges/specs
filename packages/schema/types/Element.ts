@@ -3,6 +3,7 @@ import { Styles } from "./Styles.js";
 import { PropConfigurations } from "./PropConfigurations.js";
 import { PropBinding } from "./PropBinding.js";
 import { SubcomponentRef } from "./Anatomy.js";
+import { SlotContentRef } from "./SlotContentRef.js";
 
 /**
  * Represents elements within a component.
@@ -73,6 +74,18 @@ export interface FigmaElementExtension {
    * rendered back as a layer rather than as an instance.
    */
   styles?: Styles;
+  /**
+   * The hoisted slot fill of a promoted container — the subtree the frame held,
+   * moved into `slotContentExamples` when the frame became an instance (ADR-076).
+   *
+   * The container analogue of `content`, recorded for the same reason: the pointer
+   * survives in `propConfigurations`, but only under whichever prop the conventions
+   * table named — recording it here is what lets a promoted frame be restored, with
+   * its children back in place, without consulting that table (ADR-090).
+   *
+   * @since 0.33.0
+   */
+  children?: SlotContentRef;
 }
 
 /**

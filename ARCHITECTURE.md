@@ -13,7 +13,7 @@ the site at `site/ARCHITECTURE.md`.
 |---|---|
 | `packages/schema/` | `@directededges/specs-schema` — the contract (detail below) |
 | `packages/cli/` | `@directededges/specs-cli` — see its own ARCHITECTURE.md |
-| `adr/` | 81 numbered decision records + `INDEX.md`; the only front door for schema changes |
+| `adr/` | 82 numbered decision records + `INDEX.md`; the only front door for schema changes |
 | `rfc/` | Broader-than-ADR proposals (one so far) |
 | `site/` | Astro docs site, port 4323 — own package, **not** a workspace member |
 | `scripts/validate-schema.sh` | JSON-parse gate over `schema/*.schema.json` (metaschema pass only if `check-jsonschema` is installed — full validation is optional in practice) |
@@ -46,16 +46,18 @@ There is no `Config.ts` anymore — older links to "Config" mean these three.
 |---|---|
 | `packages/schema/types/index.ts` | Barrel; the public API surface |
 | `packages/schema/types/Component.ts` | Top-level spec shape |
+| `packages/schema/types/ConcernDocument.ts` | The three per-concern documents a `splitConcerns` run writes |
 | `packages/schema/types/Conventions.ts` | Largest type file; platform-keyed library facts + `DEFAULT_CONVENTIONS` |
 | `packages/schema/types/Styles.ts` | Style values, token/prop/conditional binding, style enums |
 | `packages/schema/types/Settings.ts` | Run choices + `DEFAULT_SETTINGS` |
 | `packages/schema/types/Anatomy.ts` | Element tree; `role`/`action` concepts (open string sets, docs-governed) |
 | `packages/schema/types/Props.ts` | `AnyProp` union |
 | `packages/schema/schema/component.schema.json` | Primary JSON Schema — must mirror the `Component` tree |
+| `packages/schema/schema/concern.schema.json` | The three per-concern documents; references `component.schema.json` for shared definitions |
 | `packages/schema/schema/styles.schema.json` | Pairs with `types/Styles.ts` |
 | `packages/schema/CONSTITUTION.md` | Governance: semver policy, 6-gate check |
 | `packages/schema/CHANGELOG.md` | Mandatory per publish; bullets cite ADRs |
-| `packages/schema/tests/` | 14 type-level `*.test-d.ts` + 1 runtime test |
+| `packages/schema/tests/` | 15 type-level `*.test-d.ts` + 1 runtime test |
 
 Enums have no separate file: closed sets are string-literal unions inside the
 owning type file, mirrored as `enum` arrays in the matching `*.schema.json`.

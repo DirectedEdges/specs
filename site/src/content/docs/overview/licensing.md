@@ -148,10 +148,10 @@ Pro features are never stripped from output — they're simply not created at th
 
 > **Note**: Token references require that your source's `fetch` list in `config/settings.yaml` includes `variables`. Style references require `styles`. See [Configuration](/settings/) for details.
 
-:::caution[Fetching variables and styles requires a Figma Enterprise plan]
+:::caution[Fetching variables over REST requires a Figma Enterprise plan]
 A Specs Pro license controls whether **already-fetched** variable and style data gets turned into token references and style references — it does not control whether that data can be fetched from Figma in the first place.
 
-Figma's REST API restricts the `variables` and `styles` endpoints to organizations on an **Enterprise** plan, regardless of your Specs license. If your Figma organization isn't on Enterprise, `specs fetch` can still fetch `file` data, but `variables` and `styles` fetches will fail — so a Pro license alone won't produce design token references or named style references. This restriction is specific to the CLI's REST-based `fetch`; it doesn't apply to the Figma Plugin, which reads variables and styles directly from the open file via Figma's Plugin API. See [CLI Requirements](/cli/#requirements) for details.
+Figma's REST API restricts the `variables` endpoints to organizations on an **Enterprise** plan, regardless of your Specs license; `file` and `styles` data fetch over REST on any plan. On any other plan, fetch variables through the plugin instead — [`specs fetch --only variables --from-bridge`](/cli/commands/fetch/#fetching-variables-via-the-bridge) reads them via Figma's Plugin API, which has no plan restriction, and writes the same payload a REST fetch would. The Figma Plugin itself is likewise unaffected — it always reads variables and styles directly from the open file. See [CLI Requirements](/cli/#requirements) for details.
 :::
 
 ### Config Settings and Licensing

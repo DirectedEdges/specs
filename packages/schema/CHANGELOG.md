@@ -5,6 +5,47 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.33.0] - 2026-09-20
+
+**A generation run states its facts once, in a document of its own.** The author, timestamp, generator, schema, conventions and settings were identical in every file a run produced; `RunMetadata` holds them now, and `Metadata` keeps only `source` (ADR-089).
+
+**A spec can be written as three documents, one per concern.** `SpecApiDocument`, `SpecVariantsDocument` and `SpecExamplesDocument` each require what their concern carries and permit nothing else, so a file states which of the three it is and validates as that alone (ADR-091).
+
+**A component records the image it was authored with.** `ImageProp.examples` gives a component that paints its own image somewhere to say so, which a binding site cannot do for it (ADR-088).
+
+**Breaking**: six `Metadata` keys become optional. Read them from the run's `RunMetadata` document instead — see Migration below.
+
+### Breaking
+
+- **`Metadata` requires only `source`.** `author`, `lastUpdated`, `generator`, `schema`, `conventions` and `settings` become optional, because the run's document states them once for every file it produced (ADR-089)
+
+### Added
+
+- **`RunMetadata` states a generation run's facts as a document of its own**, validated by the new `schema/metadata` entry point and reachable from `root.schema.json` (ADR-089)
+- **`SpecApiDocument`, `SpecVariantsDocument` and `SpecExamplesDocument` type the files a `splitConcerns` run writes**, each requiring what its concern carries and permitting nothing else, all three reachable from `root.schema.json` (ADR-091)
+- **`SpecApiSubcomponent`, `SpecVariantsSubcomponent` and `SpecExamplesSubcomponent` carry a nested subcomponent's slice of each concern** (ADR-091)
+- **`SpecConcernDocument` unions the three concern documents**, narrowed on a key (ADR-091)
+- **`Metadata.concern` names which concern a document carries**, typed as `Concern` — `'api' | 'variants' | 'examples'` (ADR-091)
+- **An image prop records the image its component was authored with** in `ImageProp.examples`, the same `ImageValue` shape as `ImageBinding.examples` and distinct from `default` (ADR-088)
+- **A promoted container records its hoisted fill on `FigmaElementExtension.children`**, typed `SlotContentRef`, so restoring the frame needs no table lookup (ADR-090)
+
+### Changed
+
+- **A container's `PrimitiveRule.source` honours every closed-value layout member** (ADR-090)
+
+### Migration
+
+- `Metadata.author`, `Metadata.lastUpdated`, `Metadata.generator`, `Metadata.schema`, `Metadata.conventions`, `Metadata.settings`: guard each read — when absent, read the value from the run's `RunMetadata` document instead.
+
+### ADRs
+
+#### Accepted
+
+- [ADR-088](../../adr/088-image-prop-examples.md) — Authoring-default images on `ImageProp`
+- [ADR-089](../../adr/089-manifest-shared-metadata.md) — Run Metadata Factored Out of the Component Spec
+- [ADR-090](../../adr/090-container-promotion-sources.md) — Container Promotion Sources Opened to Closed-Value Layout Properties
+- [ADR-091](../../adr/091-concern-documents.md) — Each concern document is its own type
+
 ## [0.32.0] - Unreleased
 
 **`Pipeline` is retired, and the config split is two parts rather than three.** A transformer pipeline stopped being a thing to configure once each target emitted everything it needs — nothing left to order, and `css` had no output location of its own to name. The other half, `analyses`, never had a reader: `specs analyze` has always taken its analyzers as arguments. `Pipeline`, `ResolvedPipeline`, `TransformEntry`, `AnalysisEntry`, `DEFAULT_PIPELINE` and the `./schema/pipeline` entry point are gone from the package's exports; the retirement itself leaves `Conventions` and `Settings` untouched (both change elsewhere in this release). See the amendment on ADR-071.

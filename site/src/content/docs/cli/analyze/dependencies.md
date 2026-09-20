@@ -34,7 +34,7 @@ The output uses a handful of graph-theory terms. Each maps to a concrete questio
 | **Dependencies** of A | Every node reachable by following edges *forward* from A — what A is built from. |
 | **Dependents** of B | Every node that can reach B by following edges — what is built from B. Computed by walking edges in reverse; this reverse reachability *is* the blast radius. |
 | **Depth** | The length of the shortest dependency chain between two components. A direct dependent has depth 1; `dsCard → dsButton → dsIcon` puts Card at depth 2 from Icon. |
-| **Degree** | Edge counts at a node: `dependsOn` (how many components it uses) and `dependedOnBy` (how many use it). A high `dependedOnBy` marks a load-bearing component. |
+| **Degree** | Edge counts at a node: `dependsOn` (how many components it relates to) and `dependedOnBy` (how many relate to it). Both cover every edge kind — a component reachable only through another's slot still counts — and `byKind` splits them by the relationship behind them. A high `dependedOnBy` marks a load-bearing component. |
 | **Root** | A component nothing depends on — the top of a composition chain (pages, dialogs, full patterns). |
 | **Leaf** | A component that depends on nothing — a primitive (icons, dividers). |
 | **Cycle** | A set of components that depend on each other in a loop, directly (`A → A`) or mutually (`A → B → A`). Healthy component libraries have none; any that exist are reported. |
@@ -75,6 +75,8 @@ Two aggregate files are written to `_analysis/` after all components are process
 
 The raw graph — the durable, diffable artifact. `summary` carries library-wide facts; `nodes` carries per-node degrees; `edges` is the full adjacency list with per-kind labels showing *where* each dependency occurs.
 
+`roots` and `leaves` are disjoint: a root is depended on by nothing, a leaf depends on nothing, and a component that is neither — connected to nothing at all — is listed under `isolated` rather than in both. `cycles` is over instance edges only, since a slot constraint cannot form one.
+
 ```json
 {
   "summary": {
@@ -83,13 +85,20 @@ The raw graph — the durable, diffable artifact. `summary` carries library-wide
     "edges": { "instance": 3, "slot": 1, "example": 0 },
     "roots": ["dsCard"],
     "leaves": ["dsIcon"],
+    "isolated": [],
     "cycles": []
   },
   "nodes": {
-    "dsButton": { "external": false, "dependsOn": 1, "dependedOnBy": 1 },
-    "dsCard": { "external": false, "dependsOn": 2, "dependedOnBy": 0 },
-    "dsIcon": { "external": false, "dependsOn": 0, "dependedOnBy": 1 },
-    "Partner Logo": { "external": true, "dependsOn": 0, "dependedOnBy": 1 }
+    "dsButton": {
+      "external": false,
+      "dependsOn": 1,
+      "dependedOnBy": 1,
+      "byKind": {
+        "instance": { "dependsOn": 1, "dependedOnBy": 1 },
+        "slot": { "dependsOn": 0, "dependedOnBy": 0 },
+        "example": { "dependsOn": 0, "dependedOnBy": 0 }
+      }
+    }
   },
   "edges": [
     { "from": "dsButton", "to": "dsIcon", "kind": "instance", "elements": ["startIcon"], "count": 1 },
