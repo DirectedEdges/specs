@@ -5,7 +5,7 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.30.0] - Unreleased
+## [0.30.0] - 2026-09-20
 
 **A catalogue run states its metadata once.** The author, generator, schema, conventions and settings were identical in every file a run produced, and repeated again for every concern document and subcomponent inside it; they now live in one `latest.metadata.yaml` beside the specs.
 
@@ -39,6 +39,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`specs scan` leaves a subcomponent unchecked when its parent is checked**, since a subcomponent is already specced as part of its parent. A separate component that a checked component instances is still selected.
 - **A composed instance fills a slot that states its size through opposing insets.** A slot pinned to all four edges names no width yet is as wide as its container; the child used to paint at its own master's size.
 - **A child filling its parent's cross axis keeps the parent's alignment.** Cross-axis FILL emits a dimension rather than `align-self: stretch`, so a child stopped from filling by a `min-width` or `max-width` is centred under a centring parent.
+
+### Dependency updates
+
+- **specs-schema 0.33.0** — a run's shared facts (author, timestamp, generator, schema, conventions, settings) now have a document type of their own, so specs carry only their `source` and the run states the rest once. The three per-concern files a split run writes are each typed as their own document, and a component can record the image it was authored with.
+- **specs-from-figma 0.32.0** — generated specs keep more of what designers composed: a plain frame inside an example can become a placed instance with its children as slot content, and an image reaches the spec through any instance carrying a configured source prop, not only a direct instance of the designated image component. License checking no longer degrades silently — a key that could not be checked fails the run and says so, rate-limited checks retry with backoff, and an unreachable server reports differently from a failed check.
+- **react-from-specs 0.2.0 / webcomponents-from-specs 0.2.0** — an emitted platform tree is a self-contained package (its own `package.json` and `tsconfig.json`), generated files drop the component-name prefix, a subcomponent's exports are namespaced by its parent, and a long list of contract and render fixes makes emitted trees typecheck clean.
 
 ## [0.29.0] - Unreleased
 
