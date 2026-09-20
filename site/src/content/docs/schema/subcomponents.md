@@ -25,7 +25,7 @@ A `Subcomponent` contains:
 | `props` | [`Props`](/schema/props/) | No | Prop definitions |
 | `default` | [`Variant`](/schema/variants.md/#variant) | Yes | Default variant |
 | `variants` | [`Variant[]`](variants.md) | No | Variant overrides |
-| `invalidVariantCombinations` | [`PropConfigurations[]`](prop-configurations.md) | No | Invalid prop combinations |
+| `invalidPropCombinations` | [`PropConfigurations[]`](prop-configurations.md) | No | Invalid prop combinations |
 | `source` | `SubcomponentSource` | No | Figma source identity for this subcomponent's node |
 
 ### SubcomponentSource

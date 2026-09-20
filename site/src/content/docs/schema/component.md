@@ -14,7 +14,7 @@ The `Component` type is the root object of every spec. It contains the component
 | `props` | [`Props`](/schema/props/) | No | Configurable input properties |
 | `default` | [`Variant`](/schema/variants.md/#variant) | Yes | Default variant — the baseline appearance |
 | `variants` | [`Variant[]`](variants.md) | No | Layered variant overrides |
-| `invalidVariantCombinations` | [`PropConfigurations[]`](prop-configurations.md) | No | Prop combinations that are not valid together |
+| `invalidPropCombinations` | [`PropConfigurations[]`](prop-configurations.md) | No | Prop combinations that are not valid together |
 | `subcomponents` | [`Subcomponents`](/schema/subcomponents/) | No | Embedded child component definitions |
 | `metadata` | [`Metadata`](/schema/metadata/) | No | Generation metadata (author, schema version, config) |
 | `instanceExamples` | [`InstanceExamples`](/schema/instance-examples/) | No | **Pro.** Documented whole-component usage examples (emitted only with a Pro license) |
@@ -37,8 +37,8 @@ A run with [`spec.splitConcerns`](/schema/settings/) writes one file per concern
 
 | Document | File | Required | Also carries |
 |---|---|---|---|
-| `SpecApiDocument` | `api.yaml` | `metadata`, `title`, `anatomy`, `props` | `subcomponents` |
-| `SpecVariantsDocument` | `variants.yaml` | `metadata`, `default`, `variants` | `invalidVariantCombinations`, `subcomponents` |
+| `SpecApiDocument` | `api.yaml` | `metadata`, `title`, `anatomy`, `props` | `invalidPropCombinations`, `subcomponents` |
+| `SpecVariantsDocument` | `variants.yaml` | `metadata`, `default`, `variants` | `subcomponents` |
 | `SpecExamplesDocument` | `examples.yaml` | `metadata` | `slotContentExamples`, `instanceExamples`, `images`, `subcomponents` |
 
 Each document's `metadata` must state its [`concern`](/schema/metadata/) — `api`, `variants` or `examples`. That is what identifies the file, and what tells the three apart. A whole `Component` carries no `concern` at all.

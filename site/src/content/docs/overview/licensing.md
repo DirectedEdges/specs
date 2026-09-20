@@ -103,7 +103,7 @@ With a valid license key, specs additionally include:
 | **Design token references** | Variable bindings on style properties (spacing, color, corner radius, stroke, typography, shadows, gradients) — connecting raw values to your token system |
 | **Named style references** | Links to Figma text styles, color styles, and effect styles instead of inline values |
 | **Prop bindings** | `$binding` references connecting anatomy elements to component props (slot content, instance swaps, visibility toggles, text overrides) |
-| **Invalid combinations** | The `invalidVariantCombinations` array showing which property combinations are impossible (requires `spec.invalidCombinations: true` in `config/settings.yaml`) |
+| **Invalid combinations** | The `invalidPropCombinations` array showing which property combinations are impossible (requires `spec.invalidCombinations: true` in `config/settings.yaml`) |
 
 ### Example: Free vs Pro Output
 
@@ -164,7 +164,7 @@ Controls **how** token references are serialized — not **whether** they appear
 
 #### `spec.invalidCombinations`
 
-Controls whether invalid variant combinations are computed. Even when set to `true` (the default), this feature requires a pro license. At free tier, the setting is accepted but the computation is skipped — the `invalidVariantCombinations` array is simply absent from output.
+Controls whether invalid variant combinations are computed. Even when set to `true` (the default), this feature requires a pro license. At free tier, the setting is accepted but the computation is skipped — the `invalidPropCombinations` array is simply absent from output.
 
 ## Activating a License
 
@@ -229,7 +229,7 @@ When no license key is provided, the `license` block is omitted from metadata. W
 **I see "network-error" in the license output**
 License validation requires a brief network call to the license server. If your network blocks outbound HTTPS or you're offline, validation fails and output falls back to free tier. Generation still completes — it does not error out.
 
-**My `invalidVariantCombinations` are missing**
+**My `invalidPropCombinations` are missing**
 This requires both `spec.invalidCombinations: true` (the default) and an active Pro license. If either condition is missing, the array is silently omitted.
 
 ## FAQ

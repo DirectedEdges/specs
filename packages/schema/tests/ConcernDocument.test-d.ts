@@ -22,6 +22,7 @@ const api: SpecApiDocument = {
   title: 'DE Favorite button',
   anatomy: { root: { type: 'container' } },
   props: {},
+  invalidPropCombinations: [{ disabled: true, state: 'Hover' }],
   subcomponents: {
     icon: { title: 'Icon', anatomy: { root: { type: 'glyph' } }, props: {} },
   },
@@ -45,6 +46,14 @@ const variantsWithAnatomy: SpecVariantsDocument = {
   variants: [],
   // @ts-expect-error — a variants document has no anatomy
   anatomy: { root: { type: 'container' } },
+};
+
+const variantsWithInvalidCombinations: SpecVariantsDocument = {
+  metadata: { source, concern: 'variants' },
+  default: { elements: {} },
+  variants: [],
+  // @ts-expect-error — invalid prop combinations are api contract, not variants (ADR-092)
+  invalidPropCombinations: [{ disabled: true }],
 };
 
 const apiWithDefault: SpecApiDocument = {
@@ -74,4 +83,5 @@ function slice(doc: SpecConcernDocument): string {
 }
 
 void api; void variants; void examples; void slice;
-void variantsWithAnatomy; void apiWithDefault; void mismatched;
+void variantsWithAnatomy; void variantsWithInvalidCombinations;
+void apiWithDefault; void mismatched;

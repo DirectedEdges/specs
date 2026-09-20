@@ -45,7 +45,7 @@ header: null
 PropConfigurations appear in four places:
 
 - **Variant `configuration`** — declares which prop combination activates a [variant](/schema/variants.md/#variant). When all listed props match their specified values, the variant's overrides are applied.
-- **`invalidVariantCombinations`** — an array on the [Component](/schema/component/) root that declares prop combinations which should never occur together.
+- **`invalidPropCombinations`** — an array on the [Component](/schema/component/) root (carried by the api concern) that declares prop combinations which should never occur together.
 - **`Element.propConfigurations`** — sets prop values on a nested instance element; accepts the full union (scalars, `PropBinding`, `CompositionRef`).
 - **`InstanceExample.propConfigurations`** — documents a complete configuration; scalars, `null`, and slot-content references.
 
