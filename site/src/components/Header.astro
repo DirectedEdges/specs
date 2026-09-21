@@ -57,13 +57,58 @@ const SLACK_PATHS = [
 ];
 ---
 
+<script is:inline>
+  // Runs before the sidebar renders so a collapsed state applies without a flash.
+  try {
+    if (localStorage.getItem('specs:sidebar-collapsed') === 'true') {
+      document.documentElement.setAttribute('data-sidebar-collapsed', '');
+    }
+  } catch {}
+</script>
+
 <div class="header sl-flex">
   <div class="title-wrapper sl-flex">
+    <button
+      id="sidebar-collapse-toggle"
+      class="sidebar-toggle"
+      type="button"
+      aria-label="Toggle sidebar"
+      aria-controls="starlight__sidebar"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        aria-hidden="true"
+        class="sidebar-toggle-icon"
+      >
+        <path d="M3 5h18M3 12h18M3 19h18" />
+      </svg>
+    </button>
     <SiteTitle {...Astro.props} />
   </div>
   <div class="search-wrapper sl-flex">
     {shouldRenderSearch && <Search {...Astro.props} />}
   </div>
+  <script>
+    const toggle = document.getElementById('sidebar-collapse-toggle');
+    if (toggle) {
+      const html = document.documentElement;
+      const sync = () =>
+        toggle.setAttribute('aria-expanded', String(!html.hasAttribute('data-sidebar-collapsed')));
+      toggle.addEventListener('click', () => {
+        const collapsed = html.toggleAttribute('data-sidebar-collapsed');
+        try {
+          localStorage.setItem('specs:sidebar-collapsed', String(collapsed));
+        } catch {}
+        sync();
+      });
+      sync();
+    }
+  </script>
   <div class="sl-hidden md:sl-flex right-group">
     <nav class="section-links">
       {SECTION_LINKS.map((link) => (
@@ -107,6 +152,39 @@ const SLACK_PATHS = [
     /* Prevent long titles overflowing and covering the search and menu buttons on narrow viewports. */
     overflow: hidden;
     flex-shrink: 0;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .sidebar-toggle {
+    /* Desktop-only: below 50rem Starlight's own mobile menu button owns the sidebar. */
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--sl-color-white);
+    cursor: pointer;
+  }
+  .sidebar-toggle:hover {
+    opacity: 0.66;
+  }
+  .sidebar-toggle-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  @media (min-width: 50rem) {
+    .sidebar-toggle {
+      display: flex;
+    }
+    /* No sidebar to toggle on splash pages. */
+    :global(html:not([data-has-sidebar])) .sidebar-toggle {
+      display: none;
+    }
   }
 
   .right-group,

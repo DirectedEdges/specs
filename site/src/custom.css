@@ -19,6 +19,19 @@
 	}
 }
 
+/* User-collapsed sidebar (hamburger toggle in the header, ≥50rem only —
+   below that Starlight's mobile menu owns the sidebar). Zeroing
+   --sl-sidebar-width collapses both the pane and the main-frame inset
+   Starlight derives from it. */
+@media (min-width: 50rem) {
+	html[data-sidebar-collapsed] {
+		--sl-sidebar-width: 0rem;
+	}
+	html[data-sidebar-collapsed] .sidebar-pane {
+		visibility: hidden;
+	}
+}
+
 /* Remove distinct surface color and borders from nav/sidebar */
 .header,
 nav.sidebar {
