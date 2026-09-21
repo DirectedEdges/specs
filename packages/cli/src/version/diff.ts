@@ -174,13 +174,6 @@ function diffProps(ctx: Ctx, a: Record<string, unknown>, b: Record<string, unkno
         diffScalarSet(ctx, (ov ?? []) as unknown[], (nv ?? []) as unknown[], fieldPath, enumMap);
         continue;
       }
-      if (field === 'nullable') {
-        const flags = ov === true && nv === false ? ['tightened']
-          : nv === true && ov !== true ? ['loosened']
-          : ['annotation'];
-        push(ctx, fieldPath, 'modified', ov, nv, flags);
-        continue;
-      }
       const op: Operation = ov === undefined ? 'added' : nv === undefined ? 'removed' : 'modified';
       push(ctx, fieldPath, op, ov, nv);
     }

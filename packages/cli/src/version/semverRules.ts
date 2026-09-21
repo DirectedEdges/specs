@@ -14,6 +14,14 @@
  *   flag       semantic fact(s) the diff engine stamped on the entry; every listed
  *              flag must be present
  *
+ * The shape most rules take: a component's contract is the set of things code
+ * looks up by name or programs against — a part, a property, and the attributes
+ * that say what each accepts. Stating one for the first time is additive;
+ * changing what it says, or withdrawing it, breaks whoever relied on it. So an
+ * attribute pairs an `operation: added` rule at minor with a broad rule at
+ * major. Everything else a spec carries — descriptions, examples, provenance,
+ * and the whole of variants — is how the contract is manifested, and is patch.
+ *
  * Grades: major (BREAKING) | minor (ADDITIVE) | patch (PATCH) | ignore (IGNORE).
  * First match wins, so order is the whole design: specific paths come before the
  * broad ones that would swallow them. An entry no rule matches is `unclassified`
@@ -89,6 +97,11 @@ rules:
     why: Document metadata, not contract.
 
   # ---- api: title -----------------------------------------------------------
+  # A title edit is content: it says the same component differently. It is not
+  # free of consequence — the title is what the component name and its spec
+  # folder are derived from — so it still has to be recorded in
+  # versions/renames.yaml, and an untracked one fails a cut. A rename recorded
+  # there is an identity move, and grades with the other identity rules above.
   - id: title-renamed
     concern: api
     operation: renamed
@@ -99,21 +112,38 @@ rules:
   - id: title-changed
     concern: api
     path: '(^|\.)title$'
-    grade: major
-    why: The component title changed - a rename event; it must also be recorded in versions/renames.yaml.
+    grade: patch
+    why: The component title changed; it must also be recorded in versions/renames.yaml.
 
   # ---- api: anatomy ----------------------------------------------------------
+  # A part's name, its type, its binding and its behavior are all things code
+  # depends on, and they all move the same way: stating one for the first time is
+  # additive, losing it or changing what it says breaks whoever relied on it.
+  - id: anatomy-type-added
+    concern: api
+    operation: added
+    path: '(^|\.)anatomy\.[^.\[]+\.type$'
+    grade: minor
+    why: The element states its type for the first time.
+
   - id: anatomy-type-changed
     concern: api
     path: '(^|\.)anatomy\.[^.\[]+\.type$'
     grade: major
-    why: The element type changed; expected structure changes.
+    why: The element type changed or was withdrawn; expected structure changes.
+
+  - id: anatomy-instanceof-added
+    concern: api
+    operation: added
+    path: '(^|\.)anatomy\.[^.\[]+\.instanceOf$'
+    grade: minor
+    why: The element states the subcomponent it instantiates for the first time.
 
   - id: anatomy-instanceof-changed
     concern: api
     path: '(^|\.)anatomy\.[^.\[]+\.instanceOf$'
     grade: major
-    why: The element is an instance of a different subcomponent, a different surface.
+    why: The element is an instance of a different subcomponent, or no longer declares one.
 
   - id: anatomy-role-added
     concern: api
@@ -135,9 +165,8 @@ rules:
     grade: minor
     why: Additive behavior.
 
-  - id: anatomy-actions-removed
+  - id: anatomy-actions-changed
     concern: api
-    operation: removed
     path: '(^|\.)anatomy\.[^.\[]+\.actions$'
     grade: major
     why: Consumers wiring the action break.
@@ -168,22 +197,22 @@ rules:
     grade: major
     why: Code targeting the element breaks.
 
+  # Anything else a part says about itself is description, not contract.
+  - id: anatomy-element-detail
+    concern: api
+    path: '(^|\.)anatomy\.[^.\[]+\.[^.\[]+'
+    grade: patch
+    why: Descriptive content on a named part, not the part itself.
+
   # ---- api: props -------------------------------------------------------------
-  - id: prop-added-optional
+  # A property arriving is additive whether or not it has a default: nothing that
+  # compiled before stops compiling because a new one exists.
+  - id: prop-added
     concern: api
     operation: added
-    flag: optional
     path: '(^|\.)props\.[^.\[]+$'
     grade: minor
-    why: An optional property was added; consumers can ignore it.
-
-  - id: prop-added-required
-    concern: api
-    operation: added
-    flag: required
-    path: '(^|\.)props\.[^.\[]+$'
-    grade: major
-    why: A required property was added; consumers must supply it.
+    why: A property was added.
 
   - id: prop-removed
     concern: api
@@ -199,6 +228,18 @@ rules:
     grade: major
     why: The property was renamed; the mapping is recorded in the rename ledger.
 
+  # ---- api: the attributes a consumer programs against ------------------------
+  # type, default, nullable, anyOf, minItems, maxItems and the enum: each is
+  # stated for the first time (additive) or changed and withdrawn (breaking).
+  # A prop's type arrives with the prop itself, so a type added is part of that
+  # same additive event rather than a second one.
+  - id: prop-type-added
+    concern: api
+    operation: added
+    path: '(^|\.)props\.[^.\[]+\.type$'
+    grade: minor
+    why: The property states its type, arriving with the property itself.
+
   - id: prop-type-changed
     concern: api
     path: '(^|\.)props\.[^.\[]+\.type$'
@@ -212,40 +253,37 @@ rules:
     grade: minor
     why: The property gained a default and became optional; the contract loosened.
 
-  - id: prop-default-removed
-    concern: api
-    operation: removed
-    path: '(^|\.)props\.[^.\[]+\.default$'
-    grade: major
-    why: The property lost its default and became required; the contract tightened.
-
   - id: prop-default-changed
     concern: api
     path: '(^|\.)props\.[^.\[]+\.default$'
     grade: major
-    why: The default changed - a silent behavior change.
+    why: The default changed or was withdrawn - a silent behavior change, or a property that is now required.
 
-  - id: prop-nullable-loosened
+  - id: prop-nullable-added
     concern: api
-    flag: loosened
+    operation: added
     path: '(^|\.)props\.[^.\[]+\.nullable$'
     grade: minor
-    why: The property became nullable; the contract loosened.
+    why: The property states its nullability for the first time.
 
-  - id: prop-nullable-tightened
+  - id: prop-nullable-changed
     concern: api
-    flag: tightened
     path: '(^|\.)props\.[^.\[]+\.nullable$'
     grade: major
-    why: The property is no longer nullable; the contract tightened.
+    why: What the property accepts as empty changed.
 
-  # nullable stated explicitly where it was implicit (or dropped while false) -
-  # the semantics did not move.
-  - id: prop-nullable-annotation
+  - id: prop-bounds-added
     concern: api
-    path: '(^|\.)props\.[^.\[]+\.nullable$'
-    grade: patch
-    why: The nullable annotation changed form without changing the contract.
+    operation: added
+    path: '(^|\.)props\.[^.\[]+\.(minItems|maxItems|minChildren|maxChildren)$'
+    grade: minor
+    why: The property states how many children it accepts for the first time.
+
+  - id: prop-bounds-changed
+    concern: api
+    path: '(^|\.)props\.[^.\[]+\.(minItems|maxItems|minChildren|maxChildren)$'
+    grade: major
+    why: How many children the property accepts changed or is no longer stated.
 
   - id: enum-value-renamed
     concern: api
@@ -275,6 +313,23 @@ rules:
     grade: patch
     why: Order is presentational.
 
+  # anyOf is the slot's stated set of permitted component types. Losing it is a
+  # contract change even though the slot technically accepts more afterwards:
+  # nothing downstream can still tell what belongs in the slot.
+  - id: slot-anyof-added
+    concern: api
+    operation: added
+    path: '(^|\.)props\.[^.\[]+\.anyOf'
+    grade: minor
+    why: The slot now states which component types it accepts.
+
+  - id: slot-anyof-changed
+    concern: api
+    path: '(^|\.)props\.[^.\[]+\.anyOf'
+    grade: major
+    why: The set of component types the slot accepts changed, or is no longer stated.
+
+  # ---- api: props, everything else --------------------------------------------
   - id: prop-examples
     concern: api
     path: '(^|\.)props\.[^.\[]+\.examples'
@@ -286,6 +341,14 @@ rules:
     path: '(^|\.)props\.[^.\[]+\.\$extensions'
     grade: patch
     why: Figma provenance; consumers never see it.
+
+  # Description and anything else a property says about itself. Last of the prop
+  # rules, so it only ever catches what the attributes above did not name.
+  - id: prop-detail
+    concern: api
+    path: '(^|\.)props\.[^.\[]+\.[^.\[]+'
+    grade: patch
+    why: Descriptive content on a property, not the contract.
 
   # ---- api: subcomponents (whole-subcomponent add/remove) ---------------------
   - id: subcomponent-added
@@ -307,15 +370,14 @@ rules:
     concern: api
     operation: added
     path: '(^|\.)invalidPropCombinations$'
-    grade: major
-    why: A previously valid combination is now invalid; existing legal usage is restricted.
-
-  - id: combination-allowed
-    concern: api
-    operation: removed
-    path: '(^|\.)invalidPropCombinations$'
     grade: minor
-    why: The combination is now valid; the contract loosened.
+    why: The component now states a combination it does not support.
+
+  - id: combination-changed
+    concern: api
+    path: '(^|\.)invalidPropCombinations$'
+    grade: major
+    why: Which combinations are unsupported changed, or is no longer stated.
 
   # ---- run metadata (latest.metadata.yaml, diffed once per run) ----------------
   - id: schema-version-major

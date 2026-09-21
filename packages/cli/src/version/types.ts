@@ -47,8 +47,8 @@ export interface DiffEntry {
   why?: string;
   /**
    * Semantic facts the diff engine computed that rules match on:
-   * `optional` / `required` (prop additions), `loosened` / `tightened` (nullable),
-   * `schemaMajor` (run metadata), `referenced` / `unreferenced` (asset removals).
+   * `optional` / `required` (prop additions), `schemaMajor` (run metadata),
+   * `referenced` / `unreferenced` (asset removals).
    */
   flags?: string[];
   /** Orphaned variant configurations / dangling bindings attached to the api-side change that caused them. */

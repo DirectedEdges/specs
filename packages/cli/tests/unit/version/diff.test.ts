@@ -54,12 +54,12 @@ describe('diff engine — api.yaml', () => {
     expect(bumpOf(entries)).toBe('minor');
   });
 
-  it('grades a required prop addition MAJOR', () => {
+  it('grades any prop addition MINOR, default or not', () => {
     const { entries } = diffButton(doc => {
       doc.props.variantName = { type: 'string' };
     });
     const entry = entries.find(e => e.path === 'props.variantName');
-    expect(entry?.impact).toBe('major');
+    expect(entry?.impact).toBe('minor');
     expect(entry?.flags).toContain('required');
   });
 
@@ -103,14 +103,10 @@ describe('diff engine — api.yaml', () => {
     expect(entry?.newValue).toBe('Outline');
   });
 
-  it('grades nullable transitions by direction', () => {
+  it('grades a nullable move MAJOR in either direction', () => {
     const loosened = diffButton(doc => { doc.props.appearance.nullable = true; });
-    expect(loosened.entries.find(e => e.path === 'props.appearance.nullable')?.impact).toBe('minor');
+    expect(loosened.entries.find(e => e.path === 'props.appearance.nullable')?.impact).toBe('major');
 
-    const tightened = diffButton(doc => {
-      doc.props.icon = { type: 'string', nullable: true };
-    });
-    // set up a base where icon is nullable, then flip: use deAlert which has nullable: true
     const scratch = makeWorkspace('diff-nullable');
     try {
       editYaml(scratch, 'specs/deAlert/api.yaml', doc => { doc.props.icon.nullable = false; });
@@ -121,7 +117,44 @@ describe('diff engine — api.yaml', () => {
     } finally {
       removeWorkspace(scratch);
     }
-    expect(tightened.entries.find(e => e.path === 'props.icon')?.impact).toBe('minor'); // added, optional (nullable)
+
+    // the prop carrying it is still just a prop arriving
+    const added = diffButton(doc => { doc.props.icon = { type: 'string', nullable: true }; });
+    expect(added.entries.find(e => e.path === 'props.icon')?.impact).toBe('minor');
+  });
+
+  it('grades slot anyOf add MINOR, change and removal MAJOR', () => {
+    const slotOnly = makeWorkspace('diff-anyof-base');
+    const withAnyOf = makeWorkspace('diff-anyof-current');
+    const narrowed = makeWorkspace('diff-anyof-narrowed');
+    try {
+      editYaml(slotOnly, 'specs/deButton/api.yaml', doc => {
+        doc.props.children = { type: 'slot', nullable: true };
+      });
+      editYaml(withAnyOf, 'specs/deButton/api.yaml', doc => {
+        doc.props.children = { type: 'slot', nullable: true, anyOf: ['deIcon', 'deBadge'] };
+      });
+      editYaml(narrowed, 'specs/deButton/api.yaml', doc => {
+        doc.props.children = { type: 'slot', nullable: true, anyOf: ['deIcon'] };
+      });
+      const base = assemble(path.join(slotOnly, 'specs'), 'deButton');
+      const wide = assemble(path.join(withAnyOf, 'specs'), 'deButton');
+
+      const added = diffComponent(base, wide, { ruleSet, renames: noRenames });
+      expect(added.entries.find(e => e.path === 'props.children.anyOf')?.impact).toBe('minor');
+
+      const changed = diffComponent(wide, assemble(path.join(narrowed, 'specs'), 'deButton'), { ruleSet, renames: noRenames });
+      expect(changed.entries.find(e => e.path === 'props.children.anyOf')?.impact).toBe('major');
+
+      const removed = diffComponent(wide, base, { ruleSet, renames: noRenames });
+      const entry = removed.entries.find(e => e.path === 'props.children.anyOf');
+      expect(entry?.operation).toBe('removed');
+      expect(entry?.impact).toBe('major');
+    } finally {
+      removeWorkspace(slotOnly);
+      removeWorkspace(withAnyOf);
+      removeWorkspace(narrowed);
+    }
   });
 
   it('grades anatomy element add MINOR, remove MAJOR, role change MAJOR, role add MINOR', () => {
@@ -138,7 +171,7 @@ describe('diff engine — api.yaml', () => {
     expect(roleAdded.entries.find(e => e.path === 'anatomy.startIcon.role')?.impact).toBe('minor');
   });
 
-  it('grades invalidPropCombinations added MAJOR / removed MINOR, matched as a set', () => {
+  it('grades invalidPropCombinations added MINOR / removed MAJOR, matched as a set', () => {
     const { entries } = diffButton(doc => {
       doc.invalidPropCombinations = [
         // original five, minus one, plus a new one, reordered
@@ -152,9 +185,9 @@ describe('diff engine — api.yaml', () => {
     const added = entries.filter(e => e.path === 'invalidPropCombinations' && e.operation === 'added');
     const removed = entries.filter(e => e.path === 'invalidPropCombinations' && e.operation === 'removed');
     expect(added).toHaveLength(1);
-    expect(added[0].impact).toBe('major');
+    expect(added[0].impact).toBe('minor');
     expect(removed).toHaveLength(1);
-    expect(removed[0].impact).toBe('minor');
+    expect(removed[0].impact).toBe('major');
     expect(entries).toHaveLength(2); // reorder of surviving members is not a finding
   });
 
@@ -192,7 +225,8 @@ describe('diff engine — api.yaml', () => {
 
   it('flags an untracked title change as a warning', () => {
     const { entries, warnings } = diffButton(doc => { doc.title = 'DE Push Button'; });
-    expect(entries.find(e => e.path === 'title')?.impact).toBe('major');
+    // The edit itself is content; recording it in renames.yaml is the identity question.
+    expect(entries.find(e => e.path === 'title')?.impact).toBe('patch');
     expect(warnings.some(w => w.includes('renames.yaml'))).toBe(true);
   });
 });
