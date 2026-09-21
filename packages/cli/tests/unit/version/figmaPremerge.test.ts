@@ -169,8 +169,8 @@ describe('figmapremerge orchestration (injected steps, no network)', () => {
     expect(lines).toContain('✓ Specs generated (branch 2 / main 2 components, 1s)');
     // no per-side milestone lines
     expect(lines.some(l => /branch: fetch complete|main: fetch complete|branch: specs generated|main: specs generated/.test(l))).toBe(false);
-    // the two generate starts are staggered out of the license burst window
-    expect(waits).toEqual([15_000]);
+    // both generates start as soon as their own side's scan completes — no waits
+    expect(waits).toEqual([]);
 
     // a second run of the same branch lands in a numbered sibling
     const second = await runFigmaPremerge({
@@ -209,9 +209,8 @@ describe('figmapremerge orchestration (injected steps, no network)', () => {
       steps,
       sleep: async ms => { waits.push(ms); },
     });
-    // one transient retry (30s) plus the generate stagger (15s)
-    expect(waits.filter(w => w === 30_000)).toHaveLength(1);
-    expect(waits.filter(w => w === 15_000)).toHaveLength(1);
+    // exactly one transient retry (30s), nothing else
+    expect(waits).toEqual([30_000]);
     expect(fs.existsSync(run.runDir)).toBe(true);
   });
 
@@ -235,7 +234,7 @@ describe('figmapremerge orchestration (injected steps, no network)', () => {
       steps,
       sleep: async ms => { waits.push(ms); },
     });
-    expect(waits.filter(w => w === 30_000)).toHaveLength(1);
+    expect(waits).toEqual([30_000]);
     expect(fs.existsSync(path.join(run.currentSpecsDir, 'deButton', 'api.yaml'))).toBe(true);
   });
 

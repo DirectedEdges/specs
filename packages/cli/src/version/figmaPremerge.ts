@@ -134,13 +134,6 @@ export interface FigmaPremergeRun {
 const MAX_ATTEMPTS = 3;
 const RETRY_WAIT_MS = 30_000;
 
-/**
- * The two sides' generate steps each validate the license, and the validate
- * endpoint rate-limits bursts (~3 requests per ~32s). Starting the second
- * generate ~15s after the first keeps the pair out of one burst window.
- */
-const GENERATE_STAGGER_MS = 15_000;
-
 function componentCount(specsDir: string): number {
   if (!fs.existsSync(specsDir)) return 0;
   return fs.readdirSync(specsDir)
@@ -245,19 +238,6 @@ export async function runFigmaPremerge(options: FigmaPremergeOptions): Promise<F
   fs.renameSync(staging, runDir);
   log(`✓ Run folder: ${runDir}`);
 
-  // Generate starts are staggered so the two license validations never land
-  // in the same burst window; everything before generate stays fully parallel.
-  // The wait is created only for an actual later starter — no dangling timer
-  // outlives the run.
-  let previousStart: Promise<void> | null = null;
-  const staggeredStart = (): Promise<void> => {
-    const myTurn = previousStart === null
-      ? Promise.resolve()
-      : previousStart.then(() => sleep(GENERATE_STAGGER_MS));
-    previousStart = myTurn;
-    return myTurn;
-  };
-
   const counts: Record<'branch' | 'main', number> = { branch: 0, main: 0 };
   const sideTask = (side: 'branch' | 'main') => async (): Promise<void> => {
     const dir = path.join(runDir, side === 'main' ? 'base' : 'current');
@@ -265,7 +245,6 @@ export async function runFigmaPremerge(options: FigmaPremergeOptions): Promise<F
     const manifest = path.join(data, `${side}.manifest.md`);
     const specsDir = path.join(dir, 'specs');
     await step(`${side}: scan`, () => steps.scan(side, path.join(data, `${side}.file.json`), manifest));
-    await staggeredStart();
     await step(`${side}: generate`, () => steps.generate(
       side,
       manifest,
