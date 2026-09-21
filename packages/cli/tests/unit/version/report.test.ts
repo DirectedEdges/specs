@@ -52,11 +52,12 @@ describe('premerge report', () => {
       rulesLabel: 'built-in',
       targetLabel: 'main',
       sourceLabel: 'feature',
+      author: 'Nathan Curtis',
     });
     const report = renderReport(dataset);
 
-    // header: date, target ← source
-    expect(report).toMatch(/\d{4}-\d{2}-\d{2} `main` ← `feature`/);
+    // header: date, target ← source, then who ran it
+    expect(report).toMatch(/\d{4}-\d{2}-\d{2} `main` ← `feature` · Nathan Curtis/);
     // impact table first, totals row, counts only with · for zero
     const impactIndex = report.indexOf('## Impact');
     expect(impactIndex).toBeGreaterThan(-1);
@@ -191,5 +192,35 @@ describe('ledger-backed pre-release report', () => {
     const changelog = renderChangelog(releases);
     expect(changelog.indexOf('## 1.0.0')).toBeLessThan(changelog.indexOf('## 0.2.0'));
     expect(changelog).toContain('### DE Alert');
+  });
+
+  it('collects new variants into one bullet per component, without their styles', () => {
+    const base = workspace('rp-variants-base');
+    const current = workspace('rp-variants-current');
+    editYaml(current, 'specs/deButton/variants.yaml', doc => {
+      doc.variants.push({
+        configuration: { size: 'XLarge' },
+        elements: { root: { styles: { height: 44, cornerRadius: 8 } } },
+      });
+      doc.variants.push({
+        configuration: { size: 'Tiny' },
+        elements: { root: { styles: { height: 20 } } },
+      });
+    });
+
+    const report = renderReport(buildPremergeDataset({
+      baseDir: path.join(base, 'specs'),
+      currentDir: path.join(current, 'specs'),
+      ruleSet,
+      rulesLabel: 'built-in',
+      targetLabel: 'main',
+      sourceLabel: 'feature',
+    }));
+
+    expect(report).toContain('**DE Button** — new variants added:');
+    expect(report).toContain('  - `size=XLarge`');
+    expect(report).toContain('  - `size=Tiny`');
+    // the styles each new variant sets are the variant, not a finding of their own
+    expect(report).not.toContain('`44`');
   });
 });

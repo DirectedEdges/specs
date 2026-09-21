@@ -107,10 +107,12 @@ Keep the quotes — a copied Figma URL carries `&` characters, which an unquoted
 | Flag | Description |
 |------|-------------|
 | `--workspace <dir>` | Workspace directory — needs `config/` (and your `FIGMA_TOKEN` in the environment or `.env`), since the command fetches and generates |
-| `--keep-data` | Keep everything in the run folder: the full `base/` and `current/` trees and the fetched payloads. By default only the report, the change data, and the impacted components' specs survive |
+| `--keep-data` | Keep everything in the run folder: the full `main/` and `branch/` trees and the fetched payloads. By default only the report, the change data, and the impacted components' specs survive |
 | `--rules <path>` | As above |
 
-The two sides fetch and generate in parallel, with phase-level progress — a loading state while fetching resolves to one ✓ when both sides are fetched, then the same for generating, then the report. Each run gets its own dated folder under `versions/diffs/` — `<YYYY-MM-DD>-<branch name>`, with a number appended for repeat runs (` 2`, ` 3`) so an earlier run someone may have shared is never overwritten. After the report prints to stdout, the folder is trimmed to `report.md`, `diff.json`, `run.json`, and `current/specs/` for just the changed components — unless `--keep-data` is set.
+When past runs already sit in `versions/diffs/`, the command asks first — keep them, or remove them, with the count and total size shown. Keeping is the default, and the only answer a non-interactive run is given; there is no flag.
+
+The two sides fetch and generate in parallel, with phase-level progress — a loading state while fetching resolves to one ✓ when both sides are fetched, then the same for generating, then the report. Each run gets its own dated folder under `versions/diffs/` — `<YYYY-MM-DD>-<branch name>`, with a number appended for repeat runs (` 2`, ` 3`) so an earlier run someone may have shared is never overwritten. The report header carries the date, the two sides, and `settings.author` from the workspace config. The report is written to the folder, not printed; the folder is then trimmed to `report.md`, `diff.json`, and `branch/specs/` for just the changed components — unless `--keep-data` is set.
 
 ## `specs version report`
 

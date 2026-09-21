@@ -46,6 +46,8 @@ export interface ChangeDataset {
   source: { label: string; detail?: string };
   date: string;
   title: string;
+  /** Who ran it, from the workspace's settings. Omitted when unset. */
+  author?: string;
   components: ComponentChange[];
   assetEntries: DiffEntry[];
   runEntries: DiffEntry[];
@@ -228,7 +230,20 @@ export function bulletFor(component: ComponentChange, entry: DiffEntry): string 
 function groupedVariantBullets(component: ComponentChange, entries: DiffEntry[]): string[] {
   const groups = new Map<string, DiffEntry[]>();
   const singles: DiffEntry[] = [];
+  // New variants, collected per component: what a reader needs is which
+  // configurations arrived, not what each one styles — the styles are the
+  // variant, and listing them buries the list.
+  const arrived = new Map<string, string[]>();
   for (const entry of entries) {
+    const added = entry.concernFile === 'variants.yaml' && entry.operation === 'added'
+      ? entry.path.match(VARIANT_PATH)
+      : null;
+    if (added) {
+      const where = withinText(entry.path);
+      if (!arrived.has(where)) arrived.set(where, []);
+      arrived.get(where)!.push(added[2].replace(/"/g, ''));
+      continue;
+    }
     const match = entry.path.match(STYLE_ANCHOR);
     if (entry.concernFile === 'variants.yaml' && match && match[2]) {
       const anchor = match[1];
@@ -240,6 +255,12 @@ function groupedVariantBullets(component: ComponentChange, entries: DiffEntry[])
   }
 
   const bullets: string[] = [];
+  for (const [where, configs] of arrived) {
+    bullets.push(nest(
+      `**${component.title}**${where} — ${configs.length === 1 ? 'new variant added' : 'new variants added'}:`,
+      configs.map(c => code(c)),
+    ));
+  }
   for (const [anchor, group] of groups) {
     if (group.length === 1) { bullets.push(bulletFor(component, group[0])); continue; }
     const cleanAnchor = anchor.replace(/"/g, '');
@@ -297,7 +318,8 @@ export function renderReport(dataset: ChangeDataset): string {
   lines.push('');
   const detail = (side: { label: string; detail?: string }) =>
     `${code(side.label)}${side.detail ? ` (${code(side.detail)})` : ''}`;
-  lines.push(`${dataset.date} ${detail(dataset.target)} ← ${detail(dataset.source)}`);
+  lines.push(`${dataset.date} ${detail(dataset.target)} ← ${detail(dataset.source)}`
+    + (dataset.author ? ` · ${dataset.author}` : ''));
   lines.push('');
 
   // Impact table first: totals row, one row per component, counts only.

@@ -8,6 +8,9 @@ import {
   parseBranchUrl,
   resolveRunFolder,
   retryable,
+  formatBytes,
+  pastRuns,
+  removePastRuns,
   runFigmaPremerge,
   type PremergeSteps,
 } from '../../../src/version/figmaPremerge.js';
@@ -155,18 +158,18 @@ describe('figmapremerge orchestration (injected steps, no network)', () => {
     expect(run.targetLabel).toBe('My Library');
     // both fetches started before either scan ran — the sides are concurrent
     expect(steps.calls.slice(0, 2).every(c => c.startsWith('fetch'))).toBe(true);
-    expect(fs.existsSync(path.join(run.runDir, 'run.json'))).toBe(true);
     expect(fs.existsSync(run.baseSpecsDir)).toBe(true);
     expect(fs.existsSync(run.currentSpecsDir)).toBe(true);
     // payload cleanup is the caller's post-report step now, not the run's
-    expect(fs.existsSync(path.join(run.runDir, 'current/data/branch.file.json'))).toBe(true);
+    expect(fs.existsSync(path.join(run.runDir, 'branch/data/branch.file.json'))).toBe(true);
 
     // opening milestone names what is being compared
     expect(lines[0]).toBe('Premerge diff — branch BRANCHKEY456 onto MAINKEY123');
     // phase-level display: one loading state per phase, one ✓ when BOTH sides are done
     expect(phases).toEqual(['Fetching branch and main', 'Generating specs from branch and main']);
     expect(lines).toContain('✓ Fetched branch and main (1s)');
-    expect(lines).toContain('✓ Specs generated (branch 2 / main 2 components, 1s)');
+    expect(lines).toContain('✓ Generate specs (1s)');
+    expect(lines).toContain(`✓ Create diff folder: /versions/diffs/${TODAY}-Feature tokens`);
     // no per-side milestone lines
     expect(lines.some(l => /branch: fetch complete|main: fetch complete|branch: specs generated|main: specs generated/.test(l))).toBe(false);
     // both generates start as soon as their own side's scan completes — no waits
@@ -287,32 +290,31 @@ describe('post-report cleanup', () => {
     return run;
   }
 
-  it('default: removes base/ entirely and keeps only the impacted components\' specs in current/', async () => {
+  it('default: removes main/ entirely and keeps only the impacted components\' specs in branch/', async () => {
     const dir = workspace('clean-default');
     const run = await finishedRun(dir);
 
     cleanupRun(run.runDir, ['deButton'], false);
 
-    expect(fs.existsSync(path.join(run.runDir, 'base'))).toBe(false);
-    expect(fs.existsSync(path.join(run.runDir, 'current/data'))).toBe(false);
-    expect(fs.existsSync(path.join(run.runDir, 'current/specs/deButton/api.yaml'))).toBe(true);
-    expect(fs.existsSync(path.join(run.runDir, 'current/specs/deAlert'))).toBe(false);
-    expect(fs.existsSync(path.join(run.runDir, 'current/specs/latest.metadata.yaml'))).toBe(false);
+    expect(fs.existsSync(path.join(run.runDir, 'main'))).toBe(false);
+    expect(fs.existsSync(path.join(run.runDir, 'branch/data'))).toBe(false);
+    expect(fs.existsSync(path.join(run.runDir, 'branch/specs/deButton/api.yaml'))).toBe(true);
+    expect(fs.existsSync(path.join(run.runDir, 'branch/specs/deAlert'))).toBe(false);
+    expect(fs.existsSync(path.join(run.runDir, 'branch/specs/latest.metadata.yaml'))).toBe(false);
     // the report and receipt survive
     expect(fs.existsSync(path.join(run.runDir, 'report.md'))).toBe(true);
-    expect(fs.existsSync(path.join(run.runDir, 'run.json'))).toBe(true);
   });
 
-  it('--keep-data keeps everything: base/, all of current/, and the payloads', async () => {
+  it('--keep-data keeps everything: main/, all of branch/, and the payloads', async () => {
     const dir = workspace('clean-keep');
     const run = await finishedRun(dir);
 
     cleanupRun(run.runDir, ['deButton'], true);
 
-    expect(fs.existsSync(path.join(run.runDir, 'base/specs/deAlert/api.yaml'))).toBe(true);
-    expect(fs.existsSync(path.join(run.runDir, 'current/specs/deAlert/api.yaml'))).toBe(true);
-    expect(fs.existsSync(path.join(run.runDir, 'current/data/branch.file.json'))).toBe(true);
-    expect(fs.existsSync(path.join(run.runDir, 'base/data/main.file.json'))).toBe(true);
+    expect(fs.existsSync(path.join(run.runDir, 'main/specs/deAlert/api.yaml'))).toBe(true);
+    expect(fs.existsSync(path.join(run.runDir, 'branch/specs/deAlert/api.yaml'))).toBe(true);
+    expect(fs.existsSync(path.join(run.runDir, 'branch/data/branch.file.json'))).toBe(true);
+    expect(fs.existsSync(path.join(run.runDir, 'main/data/main.file.json'))).toBe(true);
   });
 });
 
@@ -364,5 +366,27 @@ describe('manifest-aware presence (ported from premerge-diff.mjs)', () => {
     expect(report).toContain('no longer published as a spec');
     expect(report).toContain('dev status IN_PROGRESS');
     expect(report).toContain('published as a spec for the first time');
+  });
+});
+
+describe('past runs — the housekeeping prompt reads these', () => {
+  it('lists run folders with their total size, and removes them on request', () => {
+    const dir = workspace('mf-past');
+    const diffs = path.join(dir, 'versions/diffs');
+    fs.outputFileSync(path.join(diffs, '2026-09-01-One/report.md'), 'x'.repeat(1024));
+    fs.outputFileSync(path.join(diffs, '2026-09-02-Two/report.md'), 'y'.repeat(2048));
+    fs.ensureDirSync(path.join(diffs, '.staging-abc'));
+
+    const past = pastRuns(diffs);
+    expect(past.folders.map(f => path.basename(f))).toEqual(['2026-09-01-One', '2026-09-02-Two']);
+    expect(past.bytes).toBe(3072);
+    expect(formatBytes(past.bytes)).toBe('3K');
+
+    removePastRuns(past.folders);
+    expect(pastRuns(diffs).folders).toEqual([]);
+  });
+
+  it('reports nothing for a diffs folder that does not exist yet', () => {
+    expect(pastRuns(path.join(workspace('mf-none'), 'versions/diffs')).folders).toEqual([]);
   });
 });

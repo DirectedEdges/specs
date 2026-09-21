@@ -82,6 +82,8 @@ export interface PremergeOptions {
   renames?: RenameMap;
   /** Extra rows for the closing provenance table. */
   provenance?: Array<[string, string]>;
+  /** Who ran it — `settings.author` from the workspace config. */
+  author?: string;
 }
 
 /**
@@ -198,6 +200,7 @@ export function buildPremergeDataset(options: PremergeOptions): ChangeDataset {
   return {
     title: 'Premerge Diff Report',
     date: today(),
+    ...(options.author ? { author: options.author } : {}),
     target: { label: options.targetLabel ?? path.basename(path.resolve(baseDir)) },
     source: { label: options.sourceLabel ?? path.basename(path.resolve(currentDir)) },
     components,
@@ -206,10 +209,9 @@ export function buildPremergeDataset(options: PremergeOptions): ChangeDataset {
     renames: renameRecords,
     provenance: [
       ...(options.provenance ?? []),
-      ['Base', `\`${path.resolve(baseDir)}\``],
-      ['Current', `\`${path.resolve(currentDir)}\``],
-      ['Components', `${base.size} in the base tree, ${current.size} in the current tree, same curation rules on both sides`],
-      ['Compared', 'every concern file per component (`api.yaml`, `variants.yaml`, examples concerns)'],
+      ['Specs compared', `main \`${path.resolve(baseDir)}\`, branch \`${path.resolve(currentDir)}\``],
+      ['Components', `${base.size} on main, ${current.size} on the branch, same curation rules on both sides`],
+      ['Concern files', 'every concern file per component (`api.yaml`, `variants.yaml`, examples concerns)'],
       ['Severity rules', options.rulesLabel],
     ],
   };

@@ -70,13 +70,6 @@ export function resolveRunFolder(
   return candidate;
 }
 
-interface RunReceipt {
-  branchKey: string;
-  mainKey: string;
-  branchName: string;
-  ranAt: string;
-}
-
 /**
  * One pipeline step per side. Implementations throw an Error whose message
  * carries the step's combined output; transient failures are retried here.
@@ -98,6 +91,15 @@ export interface PremergeSteps {
  */
 export function retryable(output: string): boolean {
   return /license check could not be completed|license server could not be reached|key was not validated|network-error|rate limit|429|ETIMEDOUT|ECONNRESET/i.test(output);
+}
+
+/**
+ * Run folders sit deep under the workspace; the absolute path buries the part
+ * a reader acts on. Progress lines show the path from the workspace root.
+ */
+export function workspaceRelativePath(workspaceRoot: string, target: string): string {
+  const rel = path.relative(workspaceRoot, target);
+  return rel && !rel.startsWith('..') ? `/${rel}` : target;
 }
 
 export interface FigmaPremergeOptions {
@@ -133,14 +135,6 @@ export interface FigmaPremergeRun {
 
 const MAX_ATTEMPTS = 3;
 const RETRY_WAIT_MS = 30_000;
-
-function componentCount(specsDir: string): number {
-  if (!fs.existsSync(specsDir)) return 0;
-  return fs.readdirSync(specsDir)
-    .filter(name => !name.startsWith('_') && !name.startsWith('.'))
-    .filter(name => fs.statSync(path.join(specsDir, name)).isDirectory())
-    .length;
-}
 
 /**
  * Fetch + scan + generate both sides into the run folder, the two sides
@@ -210,7 +204,7 @@ export async function runFigmaPremerge(options: FigmaPremergeOptions): Promise<F
   // before scan writes manifests that record absolute paths.
   const staging = path.join(diffsDir, `.staging-${branchKey}`);
   fs.rmSync(staging, { recursive: true, force: true });
-  const dataDir = (root: string, side: 'branch' | 'main') => path.join(root, side === 'main' ? 'base' : 'current', 'data');
+  const dataDir = (root: string, side: 'branch' | 'main') => path.join(root, side, 'data');
   fs.mkdirSync(dataDir(staging, 'branch'), { recursive: true });
   fs.mkdirSync(dataDir(staging, 'main'), { recursive: true });
 
@@ -236,11 +230,10 @@ export async function runFigmaPremerge(options: FigmaPremergeOptions): Promise<F
   const runDir = resolveRunFolder(diffsDir, branchName);
   fs.mkdirSync(path.dirname(runDir), { recursive: true });
   fs.renameSync(staging, runDir);
-  log(`✓ Run folder: ${runDir}`);
+  log(`✓ Create diff folder: ${workspaceRelativePath(options.workspaceRoot, runDir)}`);
 
-  const counts: Record<'branch' | 'main', number> = { branch: 0, main: 0 };
   const sideTask = (side: 'branch' | 'main') => async (): Promise<void> => {
-    const dir = path.join(runDir, side === 'main' ? 'base' : 'current');
+    const dir = path.join(runDir, side);
     const data = path.join(dir, 'data');
     const manifest = path.join(data, `${side}.manifest.md`);
     const specsDir = path.join(dir, 'specs');
@@ -252,14 +245,13 @@ export async function runFigmaPremerge(options: FigmaPremergeOptions): Promise<F
       path.join(data, `${side}.variables.json`),
       path.join(data, `${side}.styles.json`),
     ));
-    counts[side] = componentCount(specsDir);
   };
 
   await phase(
     'Generating specs from branch and main',
     () => runDir,
     [sideTask('branch'), sideTask('main')],
-    elapsed => `Specs generated (branch ${counts.branch} / main ${counts.main} components, ${elapsed})`,
+    elapsed => `Generate specs (${elapsed})`,
   );
 
   // The main side's `branchName` is whatever Figma calls that file — for a
@@ -274,21 +266,61 @@ export async function runFigmaPremerge(options: FigmaPremergeOptions): Promise<F
     // keep 'main'
   }
 
-  const receipt: RunReceipt = { branchKey, mainKey, branchName, ranAt: new Date().toISOString() };
-  fs.writeFileSync(path.join(runDir, 'run.json'), `${JSON.stringify(receipt, null, 2)}\n`);
-
   return {
     runDir,
     branchName,
     mainKey,
     branchKey,
-    baseSpecsDir: path.join(runDir, 'base', 'specs'),
-    baseManifest: path.join(runDir, 'base', 'data', 'main.manifest.md'),
-    currentSpecsDir: path.join(runDir, 'current', 'specs'),
-    currentManifest: path.join(runDir, 'current', 'data', 'branch.manifest.md'),
+    baseSpecsDir: path.join(runDir, 'main', 'specs'),
+    baseManifest: path.join(runDir, 'main', 'data', 'main.manifest.md'),
+    currentSpecsDir: path.join(runDir, 'branch', 'specs'),
+    currentManifest: path.join(runDir, 'branch', 'data', 'branch.manifest.md'),
     targetLabel,
     sourceLabel: branchName,
   };
+}
+
+/**
+ * Past runs as a reader meets them: one entry per finished run folder, newest
+ * first, with the bytes each occupies. Several similarly-named folders is how a
+ * designer ends up sent last week's report, so the command asks what to do with
+ * them — and "remove old runs" means nothing without the count and the size.
+ */
+export interface PastRuns {
+  folders: string[];
+  bytes: number;
+}
+
+function bytesIn(dir: string): number {
+  let total = 0;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const child = path.join(dir, entry.name);
+    total += entry.isDirectory() ? bytesIn(child) : fs.statSync(child).size;
+  }
+  return total;
+}
+
+export function pastRuns(diffsDir: string): PastRuns {
+  if (!fs.existsSync(diffsDir)) return { folders: [], bytes: 0 };
+  const folders = fs.readdirSync(diffsDir, { withFileTypes: true })
+    .filter(e => e.isDirectory() && !e.name.startsWith('.'))
+    .map(e => path.join(diffsDir, e.name))
+    .sort();
+  return { folders, bytes: folders.reduce((sum, f) => sum + bytesIn(f), 0) };
+}
+
+/** `330M`, `1.2G` — the `du -sh` shape the shell version printed. */
+export function formatBytes(bytes: number): string {
+  const units = ['B', 'K', 'M', 'G', 'T'];
+  let value = bytes;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit += 1; }
+  const rounded = value >= 10 || unit === 0 ? Math.round(value) : Math.round(value * 10) / 10;
+  return `${rounded}${units[unit]}`;
+}
+
+export function removePastRuns(folders: string[]): void {
+  for (const folder of folders) fs.rmSync(folder, { recursive: true, force: true });
 }
 
 /**
@@ -296,15 +328,15 @@ export async function runFigmaPremerge(options: FigmaPremergeOptions): Promise<F
  * make diffs/ unusable within a week; a reader needs the report and the
  * impacted components' specs, nothing else.
  *
- * Default: `base/` is removed entirely; in `current/` only `specs/` survives,
+ * Default: `main/` is removed entirely; in `branch/` only `specs/` survives,
  * and inside it only the impacted components. Fetched payloads go with their
  * data folders. `keepData` keeps everything.
  */
 export function cleanupRun(runDir: string, impactedComponents: string[], keepData: boolean): void {
   if (keepData) return;
-  fs.rmSync(path.join(runDir, 'base'), { recursive: true, force: true });
+  fs.rmSync(path.join(runDir, 'main'), { recursive: true, force: true });
 
-  const current = path.join(runDir, 'current');
+  const current = path.join(runDir, 'branch');
   if (!fs.existsSync(current)) return;
   for (const entry of fs.readdirSync(current)) {
     if (entry !== 'specs') fs.rmSync(path.join(current, entry), { recursive: true, force: true });

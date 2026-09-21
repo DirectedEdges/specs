@@ -32,13 +32,19 @@ import {
 import { loadRenames } from '../version/renames.js';
 import {
   cleanupRun,
+  formatBytes,
+  pastRuns,
+  removePastRuns,
   runFigmaPremerge,
+  workspaceRelativePath,
   type PremergeSteps,
 } from '../version/figmaPremerge.js';
 import { execFile } from 'child_process';
 import { formatElapsed, isInteractive, startSpinner } from '../utilities/spinner.js';
+import { chooseOption } from '../utilities/chooseOption.js';
+import { ConfigLoader } from '../Config/ConfigLoader.js';
 import { loadRules, type RuleSet } from '../version/rules.js';
-import { renderChangelog, renderReport } from '../version/report.js';
+import { gradeOf, renderChangelog, renderReport } from '../version/report.js';
 import type { ComponentLedger, LedgerOverride } from '../version/types.js';
 
 const ERROR_CODES = {
@@ -368,15 +374,35 @@ const FigmaPremerge = new Command('figmapremerge')
   .description('Pre-merge report for a Figma branch: fetch both sides, generate both spec trees, diff, and report (target ← branch)')
   .argument('<url>', 'Figma branch URL (…/design/<mainKey>/branch/<branchKey>/…)')
   .option('--workspace <dir>', 'Workspace directory (contains config/ and versions/)')
-  .option('--keep-data', 'Keep everything in the run folder: base/, all of current/, and the fetched payloads (default: only the report and the impacted components\' specs survive)')
+  .option('--keep-data', 'Keep everything in the run folder: main/, all of branch/, and the fetched payloads (default: only the report and the impacted components\' specs survive)')
   .option('--rules <path>', 'Override the built-in severity rules with an external YAML file')
   .action(async (url: string, options: { workspace?: string; keepData?: boolean; rules?: string }) => {
     try {
       const workspace = workspaceOf(options);
-      if (!fs.existsSync(path.join(workspace.root, 'config'))) {
+      const config = path.join(workspace.root, 'config');
+      if (!fs.existsSync(config)) {
         fail(`No config/ directory under ${workspace.root} — figmapremerge fetches and generates, so it needs the workspace config.`, ERROR_CODES.INVALID_ARGS);
       }
       const { ruleSet, label } = rulesOf(options);
+
+      // Past runs accumulate, and several similarly-named folders make it easy
+      // to send a lead last week's report. Keeping is first because it is the
+      // answer that cannot lose anything — and the only one a non-interactive
+      // run can be given.
+      const past = pastRuns(path.join(workspace.versionsDir, 'diffs'));
+      if (past.folders.length > 0 && isInteractive()) {
+        console.log('↑↓ to choose, enter to confirm');
+        const choice = await chooseOption([
+          'Keep past diffs',
+          `Remove past diffs (${past.folders.length}, ${formatBytes(past.bytes)})`,
+        ]);
+        if (choice === -1) fail('Cancelled.', ERROR_CODES.INVALID_ARGS);
+        if (choice === 1) {
+          removePastRuns(past.folders);
+          console.log(`✓ Removed ${past.folders.length} past run${past.folders.length === 1 ? '' : 's'}`);
+        }
+        console.log('');
+      }
 
       const run = await runFigmaPremerge({
         url,
@@ -397,6 +423,7 @@ const FigmaPremerge = new Command('figmapremerge')
         baseManifest: run.baseManifest,
         currentManifest: run.currentManifest,
         renames: loadRenames(workspace.versionsDir),
+        author: new ConfigLoader().load(config).settings.author,
         provenance: [
           ['Branch', `\`${run.branchKey}\` — ${run.branchName}`],
           ['Main', `\`${run.mainKey}\`${run.targetLabel !== 'main' ? ` — ${run.targetLabel}` : ''}`],
@@ -410,17 +437,17 @@ const FigmaPremerge = new Command('figmapremerge')
         `${JSON.stringify({ components: dataset.components, renames: dataset.renames }, null, 2)}\n`,
       );
 
+      // The same predicate the report's Impact table uses: a component whose
+      // only entries are ignored did not change as far as a reader is concerned.
       const impacted = dataset.components
-        .filter(c => c.entries.length > 0 && c.presence !== 'removed')
+        .filter(c => c.presence !== 'removed' && c.entries.some(e => gradeOf(e) !== 'ignored'))
         .map(c => c.name);
       cleanupRun(run.runDir, impacted, options.keepData ?? false);
       if (!options.keepData) {
-        console.log(`✓ cleaned run folder (kept report + ${impacted.length} impacted component spec${impacted.length === 1 ? '' : 's'}; --keep-data keeps everything)`);
+        console.log('✓ Remove temporary files from diff folder');
       }
 
-      console.log('');
-      console.log(report);
-      console.log(`✓ report written → ${reportPath}`);
+      console.log(`✓ Wrote report: ${workspaceRelativePath(workspace.root, reportPath)}`);
     } catch (e) {
       fail((e as Error).message);
     }
