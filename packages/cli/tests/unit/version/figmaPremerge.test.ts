@@ -3,15 +3,16 @@ import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
 import {
+  cleanupRun,
+  folderNameFor,
   parseBranchUrl,
   resolveRunFolder,
   retryable,
   runFigmaPremerge,
-  slugifyBranchName,
   type PremergeSteps,
 } from '../../../src/version/figmaPremerge.js';
 import { buildPremergeDataset, loadManifest } from '../../../src/version/datasets.js';
-import { renderReport, gradeOf } from '../../../src/version/report.js';
+import { renderReport } from '../../../src/version/report.js';
 import { loadRules } from '../../../src/version/rules.js';
 import { makeWorkspace, removeWorkspace, editYaml } from './helpers.js';
 
@@ -28,6 +29,7 @@ function workspace(name: string): string {
   return dir;
 }
 
+const TODAY = new Date().toISOString().slice(0, 10);
 const BRANCH_URL = 'https://www.figma.com/design/MAINKEY123/My-Library/branch/BRANCHKEY456/My-Library?node-id=1-2';
 
 describe('branch URL parsing (ported from premerge-run.sh)', () => {
@@ -46,25 +48,31 @@ describe('branch URL parsing (ported from premerge-run.sh)', () => {
   });
 });
 
-describe('run folder resolution', () => {
-  it('names the folder after the branch; reruns of the same branch reuse it; a different branch gets a date suffix', () => {
-    const dir = workspace('runfolder');
+describe('run folder naming (premerge-name-run.mjs semantics)', () => {
+  it('names the folder <date>-<branch name>, spaces kept', () => {
+    const dir = workspace('naming');
     const diffs = path.join(dir, 'versions', 'diffs');
-
-    const first = resolveRunFolder(diffs, 'Homepage refresh Q3', 'KEY1');
-    expect(path.basename(first)).toBe('Homepage-refresh-Q3');
-
-    fs.ensureDirSync(first);
-    fs.writeJsonSync(path.join(first, 'run.json'), { branchKey: 'KEY1' });
-    expect(resolveRunFolder(diffs, 'Homepage refresh Q3', 'KEY1')).toBe(first); // rerun overwrites its own folder
-
-    const other = resolveRunFolder(diffs, 'Homepage refresh Q3', 'KEY2');
-    expect(path.basename(other)).toMatch(/^Homepage-refresh-Q3-\d{4}-\d{2}-\d{2}$/);
+    const first = resolveRunFolder(diffs, 'Premerge spec review', TODAY);
+    expect(path.basename(first)).toBe(`${TODAY}-Premerge spec review`);
   });
 
-  it('slugifies branch names safely', () => {
-    expect(slugifyBranchName('feat: new tokens / spacing')).toBe('feat-new-tokens-spacing');
-    expect(slugifyBranchName('***')).toBe('branch');
+  it('numbers duplicate runs as siblings instead of overwriting', () => {
+    const dir = workspace('duplicates');
+    const diffs = path.join(dir, 'versions', 'diffs');
+    const first = resolveRunFolder(diffs, 'Premerge spec review', TODAY);
+    fs.ensureDirSync(first);
+    const second = resolveRunFolder(diffs, 'Premerge spec review', TODAY);
+    expect(path.basename(second)).toBe(`${TODAY}-Premerge spec review 2`);
+    fs.ensureDirSync(second);
+    const third = resolveRunFolder(diffs, 'Premerge spec review', TODAY);
+    expect(path.basename(third)).toBe(`${TODAY}-Premerge spec review 3`);
+  });
+
+  it('keeps branch names verbatim apart from path-hostile characters', () => {
+    expect(folderNameFor('Premerge spec review')).toBe('Premerge spec review');
+    expect(folderNameFor('feat: tokens / spacing')).toBe('feat- tokens - spacing');
+    expect(folderNameFor('***')).toBe('***');
+    expect(folderNameFor('///')).toBe('branch');
   });
 });
 
@@ -122,25 +130,45 @@ function fakeSteps(fixturesFrom: string, options: { branchName?: string | null; 
 }
 
 describe('figmapremerge orchestration (injected steps, no network)', () => {
-  it('fetches, scans, and generates both sides into versions/diffs/<branch>/, then cleans payloads', () => {
+  it('runs both sides in parallel into versions/diffs/<date>-<branch>/', async () => {
     const dir = workspace('fp-run');
-    const run = runFigmaPremerge({
+    const lines: string[] = [];
+    const steps = fakeSteps(dir);
+    const run = await runFigmaPremerge({
+      url: BRANCH_URL,
+      workspaceRoot: dir,
+      versionsDir: path.join(dir, 'versions'),
+      steps,
+      sleep: async () => undefined,
+      log: line => lines.push(line),
+    });
+
+    expect(path.basename(run.runDir)).toBe(`${TODAY}-Feature tokens`);
+    expect(run.branchName).toBe('Feature tokens');
+    expect(run.targetLabel).toBe('My Library');
+    // both fetches started before either scan ran — the sides are concurrent
+    expect(steps.calls.slice(0, 2).every(c => c.startsWith('fetch'))).toBe(true);
+    expect(fs.existsSync(path.join(run.runDir, 'run.json'))).toBe(true);
+    expect(fs.existsSync(run.baseSpecsDir)).toBe(true);
+    expect(fs.existsSync(run.currentSpecsDir)).toBe(true);
+    // payload cleanup is the caller's post-report step now, not the run's
+    expect(fs.existsSync(path.join(run.runDir, 'current/data/branch.file.json'))).toBe(true);
+    // milestone lines, prefixed per side
+    expect(lines.some(l => /✓ branch: fetch complete/.test(l))).toBe(true);
+    expect(lines.some(l => /✓ main: fetch complete/.test(l))).toBe(true);
+    expect(lines.some(l => /✓ branch: specs generated \(2 components/.test(l))).toBe(true);
+    expect(lines.some(l => /✓ main: specs generated \(2 components/.test(l))).toBe(true);
+
+    // a second run of the same branch lands in a numbered sibling
+    const second = await runFigmaPremerge({
       url: BRANCH_URL,
       workspaceRoot: dir,
       versionsDir: path.join(dir, 'versions'),
       steps: fakeSteps(dir),
-      sleep: () => undefined,
+      sleep: async () => undefined,
     });
-
-    expect(path.basename(run.runDir)).toBe('Feature-tokens');
-    expect(run.branchName).toBe('Feature tokens');
-    expect(run.targetLabel).toBe('My Library');
-    expect(fs.existsSync(path.join(run.runDir, 'run.json'))).toBe(true);
-    expect(fs.existsSync(run.baseSpecsDir)).toBe(true);
-    expect(fs.existsSync(run.currentSpecsDir)).toBe(true);
-    // payloads deleted, receipts kept
-    expect(fs.existsSync(path.join(run.runDir, 'current/data/branch.file.json'))).toBe(false);
-    expect(fs.existsSync(path.join(run.runDir, 'current/data/branch.source.json'))).toBe(true);
+    expect(path.basename(second.runDir)).toBe(`${TODAY}-Feature tokens 2`);
+    expect(fs.existsSync(run.runDir)).toBe(true); // the first run survived
 
     // the diff sees the branch-side edit as MINOR
     const dataset = buildPremergeDataset({
@@ -157,46 +185,93 @@ describe('figmapremerge orchestration (injected steps, no network)', () => {
     expect(report).toContain('`My Library` ← `Feature tokens`');
   });
 
-  it('retries a transient fetch failure and then succeeds', () => {
+  it('retries a transient fetch failure and then succeeds', async () => {
     const dir = workspace('fp-retry');
     const steps = fakeSteps(dir, { failFetchTimes: 1 });
     const waits: number[] = [];
-    const run = runFigmaPremerge({
+    const run = await runFigmaPremerge({
       url: BRANCH_URL,
       workspaceRoot: dir,
       versionsDir: path.join(dir, 'versions'),
       steps,
-      sleep: ms => { waits.push(ms); },
+      sleep: async ms => { waits.push(ms); },
     });
     expect(waits).toEqual([30_000]);
     expect(fs.existsSync(run.runDir)).toBe(true);
   });
 
-  it('gives up on a non-retryable failure, naming the step', () => {
+  it('a non-retryable failure names the step and removes the half-run folder', async () => {
     const dir = workspace('fp-fail');
     const steps = fakeSteps(dir);
-    steps.scan = () => { throw new Error('component had no anatomy'); };
-    expect(() => runFigmaPremerge({
+    steps.scan = side => {
+      if (side === 'branch') throw new Error('component had no anatomy');
+      // main side still writes its manifest so both sides settle
+      };
+    await expect(runFigmaPremerge({
       url: BRANCH_URL,
       workspaceRoot: dir,
       versionsDir: path.join(dir, 'versions'),
       steps,
-      sleep: () => undefined,
-    })).toThrow(/scan branch failed/);
+      sleep: async () => undefined,
+    })).rejects.toThrow(/branch: scan failed/);
+    // no half-run folder left behind
+    const diffs = path.join(dir, 'versions', 'diffs');
+    expect(fs.existsSync(path.join(diffs, `${TODAY}-Feature tokens`))).toBe(false);
+    expect(fs.readdirSync(diffs).filter(n => !n.startsWith('.'))).toEqual([]);
   });
 
-  it('keeps payloads under --keep-payloads and falls back to "branch" without a receipt name', () => {
-    const dir = workspace('fp-keep');
-    const run = runFigmaPremerge({
+  it('falls back to "branch" without a receipt name', async () => {
+    const dir = workspace('fp-noname');
+    const run = await runFigmaPremerge({
       url: BRANCH_URL,
       workspaceRoot: dir,
       versionsDir: path.join(dir, 'versions'),
       steps: fakeSteps(dir, { branchName: null }),
-      keepPayloads: true,
-      sleep: () => undefined,
+      sleep: async () => undefined,
     });
-    expect(path.basename(run.runDir)).toBe('branch');
+    expect(path.basename(run.runDir)).toBe(`${TODAY}-branch`);
+  });
+});
+
+describe('post-report cleanup', () => {
+  async function finishedRun(dir: string) {
+    const run = await runFigmaPremerge({
+      url: BRANCH_URL,
+      workspaceRoot: dir,
+      versionsDir: path.join(dir, 'versions'),
+      steps: fakeSteps(dir),
+      sleep: async () => undefined,
+    });
+    fs.writeFileSync(path.join(run.runDir, 'report.md'), '# report\n');
+    return run;
+  }
+
+  it('default: removes base/ entirely and keeps only the impacted components\' specs in current/', async () => {
+    const dir = workspace('clean-default');
+    const run = await finishedRun(dir);
+
+    cleanupRun(run.runDir, ['deButton'], false);
+
+    expect(fs.existsSync(path.join(run.runDir, 'base'))).toBe(false);
+    expect(fs.existsSync(path.join(run.runDir, 'current/data'))).toBe(false);
+    expect(fs.existsSync(path.join(run.runDir, 'current/specs/deButton/api.yaml'))).toBe(true);
+    expect(fs.existsSync(path.join(run.runDir, 'current/specs/deAlert'))).toBe(false);
+    expect(fs.existsSync(path.join(run.runDir, 'current/specs/latest.metadata.yaml'))).toBe(false);
+    // the report and receipt survive
+    expect(fs.existsSync(path.join(run.runDir, 'report.md'))).toBe(true);
+    expect(fs.existsSync(path.join(run.runDir, 'run.json'))).toBe(true);
+  });
+
+  it('--keep-data keeps everything: base/, all of current/, and the payloads', async () => {
+    const dir = workspace('clean-keep');
+    const run = await finishedRun(dir);
+
+    cleanupRun(run.runDir, ['deButton'], true);
+
+    expect(fs.existsSync(path.join(run.runDir, 'base/specs/deAlert/api.yaml'))).toBe(true);
+    expect(fs.existsSync(path.join(run.runDir, 'current/specs/deAlert/api.yaml'))).toBe(true);
     expect(fs.existsSync(path.join(run.runDir, 'current/data/branch.file.json'))).toBe(true);
+    expect(fs.existsSync(path.join(run.runDir, 'base/data/main.file.json'))).toBe(true);
   });
 });
 

@@ -31,10 +31,11 @@ import {
 } from '../version/ledger.js';
 import { loadRenames } from '../version/renames.js';
 import {
+  cleanupRun,
   runFigmaPremerge,
   type PremergeSteps,
 } from '../version/figmaPremerge.js';
-import { execFileSync } from 'child_process';
+import { execFile } from 'child_process';
 import { loadRules, type RuleSet } from '../version/rules.js';
 import { renderChangelog, renderReport } from '../version/report.js';
 import type { ComponentLedger, LedgerOverride } from '../version/types.js';
@@ -328,18 +329,18 @@ const Restore = new Command('restore')
  */
 function cliSteps(workspaceRoot: string): PremergeSteps {
   const configDir = path.join(workspaceRoot, 'config');
-  const invoke = (args: string[]): void => {
-    try {
-      execFileSync(process.execPath, [process.argv[1], ...args], {
-        cwd: workspaceRoot,
-        stdio: ['ignore', 'pipe', 'pipe'],
-      });
-    } catch (e) {
-      const err = e as { stdout?: Buffer; stderr?: Buffer; message: string };
-      const output = [err.stdout?.toString(), err.stderr?.toString()].filter(Boolean).join('\n');
-      throw new Error(output || err.message);
-    }
-  };
+  const invoke = (args: string[]): Promise<void> => new Promise((resolve, reject) => {
+    execFile(
+      process.execPath,
+      [process.argv[1], ...args],
+      { cwd: workspaceRoot, maxBuffer: 64 * 1024 * 1024 },
+      (error, stdout, stderr) => {
+        if (!error) return resolve();
+        const output = [stdout, stderr].filter(Boolean).join('\n');
+        reject(new Error(output || error.message));
+      },
+    );
+  });
   return {
     fetch: (_side, sourceArg, dataDir) =>
       invoke(['fetch', '--config', configDir, '--data-dir', dataDir, '--source', sourceArg, '--only', 'file,variables,styles']),
@@ -354,9 +355,9 @@ const FigmaPremerge = new Command('figmapremerge')
   .description('Pre-merge report for a Figma branch: fetch both sides, generate both spec trees, diff, and report (target ← branch)')
   .argument('<url>', 'Figma branch URL (…/design/<mainKey>/branch/<branchKey>/…)')
   .option('--workspace <dir>', 'Workspace directory (contains config/ and versions/)')
-  .option('--keep-payloads', 'Keep the fetched JSON payloads in the run folder (default: deleted once specs are generated)')
+  .option('--keep-data', 'Keep everything in the run folder: base/, all of current/, and the fetched payloads (default: only the report and the impacted components\' specs survive)')
   .option('--rules <path>', 'Override the built-in severity rules with an external YAML file')
-  .action((url: string, options: { workspace?: string; keepPayloads?: boolean; rules?: string }) => {
+  .action(async (url: string, options: { workspace?: string; keepData?: boolean; rules?: string }) => {
     try {
       const workspace = workspaceOf(options);
       if (!fs.existsSync(path.join(workspace.root, 'config'))) {
@@ -364,11 +365,10 @@ const FigmaPremerge = new Command('figmapremerge')
       }
       const { ruleSet, label } = rulesOf(options);
 
-      const run = runFigmaPremerge({
+      const run = await runFigmaPremerge({
         url,
         workspaceRoot: workspace.root,
         versionsDir: workspace.versionsDir,
-        keepPayloads: options.keepPayloads,
         steps: cliSteps(workspace.root),
         log: line => console.log(line),
       });
@@ -395,9 +395,18 @@ const FigmaPremerge = new Command('figmapremerge')
         path.join(run.runDir, 'diff.json'),
         `${JSON.stringify({ components: dataset.components, renames: dataset.renames }, null, 2)}\n`,
       );
+
+      const impacted = dataset.components
+        .filter(c => c.entries.length > 0 && c.presence !== 'removed')
+        .map(c => c.name);
+      cleanupRun(run.runDir, impacted, options.keepData ?? false);
+      if (!options.keepData) {
+        console.log(`✓ cleaned run folder (kept report + ${impacted.length} impacted component spec${impacted.length === 1 ? '' : 's'}; --keep-data keeps everything)`);
+      }
+
       console.log('');
       console.log(report);
-      console.log(`✓ wrote ${reportPath}`);
+      console.log(`✓ report written → ${reportPath}`);
     } catch (e) {
       fail((e as Error).message);
     }

@@ -44,9 +44,12 @@ its own words, and never decides whether the merge proceeds.
    specs version figmapremerge "<figma branch URL>"
    \`\`\`
 
-   The command fetches both sides, generates both spec trees, diffs them, and
-   writes everything under \`versions/diffs/<branch>/\` — the report is
-   \`report.md\` in that folder, and it also prints to stdout.
+   The command fetches both sides in parallel, generates both spec trees,
+   diffs them, and writes the run under \`versions/diffs/<date>-<branch>/\` —
+   the report is \`report.md\` in that folder, and it also prints to stdout.
+   By default only the report and the impacted components' specs are kept;
+   pass \`--keep-data\` to retain both full spec trees and the fetched
+   payloads.
 
 2. **GATE — human reads the report.** Hand over the report path and stop.
    Do not summarize it, grade it, or soften it. The reader decides whether the
