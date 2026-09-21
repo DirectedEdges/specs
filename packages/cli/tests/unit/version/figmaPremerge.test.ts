@@ -76,12 +76,16 @@ describe('run folder naming (premerge-name-run.mjs semantics)', () => {
   });
 });
 
-describe('retryable causes (ported verbatim)', () => {
+describe('retryable causes', () => {
   it('matches license, rate-limit, and network causes only', () => {
     expect(retryable('The license check could not be completed')).toBe(true);
     expect(retryable('HTTP 429 Too Many Requests')).toBe(true);
     expect(retryable('connect ETIMEDOUT 1.2.3.4')).toBe(true);
     expect(retryable('Error: component had no anatomy')).toBe(false);
+  });
+
+  it('treats the license-validation burst refusal as transient', () => {
+    expect(retryable('The license server could not be reached. Your key was not validated, so no licensed output was produced.')).toBe(true);
   });
 });
 
@@ -133,14 +137,17 @@ describe('figmapremerge orchestration (injected steps, no network)', () => {
   it('runs both sides in parallel into versions/diffs/<date>-<branch>/', async () => {
     const dir = workspace('fp-run');
     const lines: string[] = [];
+    const phases: string[] = [];
+    const waits: number[] = [];
     const steps = fakeSteps(dir);
     const run = await runFigmaPremerge({
       url: BRANCH_URL,
       workspaceRoot: dir,
       versionsDir: path.join(dir, 'versions'),
       steps,
-      sleep: async () => undefined,
+      sleep: async ms => { waits.push(ms); },
       log: line => lines.push(line),
+      spinner: text => { phases.push(text); return () => '1s'; },
     });
 
     expect(path.basename(run.runDir)).toBe(`${TODAY}-Feature tokens`);
@@ -153,11 +160,17 @@ describe('figmapremerge orchestration (injected steps, no network)', () => {
     expect(fs.existsSync(run.currentSpecsDir)).toBe(true);
     // payload cleanup is the caller's post-report step now, not the run's
     expect(fs.existsSync(path.join(run.runDir, 'current/data/branch.file.json'))).toBe(true);
-    // milestone lines, prefixed per side
-    expect(lines.some(l => /✓ branch: fetch complete/.test(l))).toBe(true);
-    expect(lines.some(l => /✓ main: fetch complete/.test(l))).toBe(true);
-    expect(lines.some(l => /✓ branch: specs generated \(2 components/.test(l))).toBe(true);
-    expect(lines.some(l => /✓ main: specs generated \(2 components/.test(l))).toBe(true);
+
+    // opening milestone names what is being compared
+    expect(lines[0]).toBe('Premerge diff — branch BRANCHKEY456 onto MAINKEY123');
+    // phase-level display: one loading state per phase, one ✓ when BOTH sides are done
+    expect(phases).toEqual(['Fetching branch and main', 'Generating specs from branch and main']);
+    expect(lines).toContain('✓ Fetched branch and main (1s)');
+    expect(lines).toContain('✓ Specs generated (branch 2 / main 2 components, 1s)');
+    // no per-side milestone lines
+    expect(lines.some(l => /branch: fetch complete|main: fetch complete|branch: specs generated|main: specs generated/.test(l))).toBe(false);
+    // the two generate starts are staggered out of the license burst window
+    expect(waits).toEqual([15_000]);
 
     // a second run of the same branch lands in a numbered sibling
     const second = await runFigmaPremerge({
@@ -196,8 +209,34 @@ describe('figmapremerge orchestration (injected steps, no network)', () => {
       steps,
       sleep: async ms => { waits.push(ms); },
     });
-    expect(waits).toEqual([30_000]);
+    // one transient retry (30s) plus the generate stagger (15s)
+    expect(waits.filter(w => w === 30_000)).toHaveLength(1);
+    expect(waits.filter(w => w === 15_000)).toHaveLength(1);
     expect(fs.existsSync(run.runDir)).toBe(true);
+  });
+
+  it('retries a generate that hits the license burst refusal', async () => {
+    const dir = workspace('fp-license');
+    const steps = fakeSteps(dir);
+    const originalGenerate = steps.generate.bind(steps);
+    let refusals = 1;
+    steps.generate = (side, manifest, specsDir, variablesPath, stylesPath) => {
+      if (side === 'branch' && refusals > 0) {
+        refusals--;
+        throw new Error('The license server could not be reached. Your key was not validated, so no licensed output was produced.');
+      }
+      return originalGenerate(side, manifest, specsDir, variablesPath, stylesPath);
+    };
+    const waits: number[] = [];
+    const run = await runFigmaPremerge({
+      url: BRANCH_URL,
+      workspaceRoot: dir,
+      versionsDir: path.join(dir, 'versions'),
+      steps,
+      sleep: async ms => { waits.push(ms); },
+    });
+    expect(waits.filter(w => w === 30_000)).toHaveLength(1);
+    expect(fs.existsSync(path.join(run.currentSpecsDir, 'deButton', 'api.yaml'))).toBe(true);
   });
 
   it('a non-retryable failure names the step and removes the half-run folder', async () => {
@@ -207,13 +246,16 @@ describe('figmapremerge orchestration (injected steps, no network)', () => {
       if (side === 'branch') throw new Error('component had no anatomy');
       // main side still writes its manifest so both sides settle
       };
+    const lines: string[] = [];
     await expect(runFigmaPremerge({
       url: BRANCH_URL,
       workspaceRoot: dir,
       versionsDir: path.join(dir, 'versions'),
       steps,
       sleep: async () => undefined,
+      log: line => lines.push(line),
     })).rejects.toThrow(/branch: scan failed/);
+    expect(lines).toContain('✗ Generating specs from branch and main failed — run folder removed');
     // no half-run folder left behind
     const diffs = path.join(dir, 'versions', 'diffs');
     expect(fs.existsSync(path.join(diffs, `${TODAY}-Feature tokens`))).toBe(false);

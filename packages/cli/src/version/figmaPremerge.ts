@@ -91,11 +91,13 @@ export interface PremergeSteps {
 }
 
 /**
- * Transient causes worth waiting out (ported verbatim): the license endpoint
- * rate-limits, and a failure there would otherwise throw away two full fetches.
+ * Transient causes worth waiting out: the license validate endpoint
+ * rate-limits bursts (~3 requests per ~32s window), and a failure there would
+ * otherwise throw away two full fetches. "License server could not be
+ * reached" is that endpoint refusing a burst — 30 seconds clears the window.
  */
 export function retryable(output: string): boolean {
-  return /license check could not be completed|network-error|rate limit|429|ETIMEDOUT|ECONNRESET/i.test(output);
+  return /license check could not be completed|license server could not be reached|key was not validated|network-error|rate limit|429|ETIMEDOUT|ECONNRESET/i.test(output);
 }
 
 export interface FigmaPremergeOptions {
@@ -103,9 +105,15 @@ export interface FigmaPremergeOptions {
   workspaceRoot: string;
   versionsDir: string;
   steps: PremergeSteps;
-  /** Injected for tests; defaults to a real 30s wait. */
+  /** Injected for tests; defaults to a real wait. */
   sleep?: (ms: number) => Promise<void>;
   log?: (line: string) => void;
+  /**
+   * The in-flight loading state for a phase: called when the phase starts,
+   * returns a stop function reporting elapsed time. The command passes the
+   * CLI's spinner; the default keeps time silently.
+   */
+  spinner?: (text: string) => () => string;
 }
 
 export interface FigmaPremergeRun {
@@ -126,6 +134,13 @@ export interface FigmaPremergeRun {
 const MAX_ATTEMPTS = 3;
 const RETRY_WAIT_MS = 30_000;
 
+/**
+ * The two sides' generate steps each validate the license, and the validate
+ * endpoint rate-limits bursts (~3 requests per ~32s). Starting the second
+ * generate ~15s after the first keeps the pair out of one burst window.
+ */
+const GENERATE_STAGGER_MS = 15_000;
+
 function componentCount(specsDir: string): number {
   if (!fs.existsSync(specsDir)) return 0;
   return fs.readdirSync(specsDir)
@@ -143,7 +158,14 @@ export async function runFigmaPremerge(options: FigmaPremergeOptions): Promise<F
   const { url, steps } = options;
   const sleep = options.sleep ?? ((ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms)));
   const log = options.log ?? (() => undefined);
+  const spinner = options.spinner ?? ((_text: string) => {
+    const start = Date.now();
+    return () => `${Math.round((Date.now() - start) / 1000)}s`;
+  });
   const { mainKey, branchKey } = parseBranchUrl(url);
+
+  // What is being compared, named once up front.
+  log(`Premerge diff — branch ${branchKey} onto ${mainKey}`);
 
   const step = async (label: string, work: () => void | Promise<void>): Promise<void> => {
     for (let attempt = 1; ; attempt++) {
@@ -163,19 +185,29 @@ export async function runFigmaPremerge(options: FigmaPremergeOptions): Promise<F
   };
 
   /**
-   * Both sides at once. On failure the run folder is removed once the other
-   * side settles — a half-run folder without a report reads as a finished run
-   * and must not survive — and the first failure is rethrown with its step
-   * named.
+   * One displayed phase over both sides. Execution inside stays pipelined —
+   * a side that finished fetching may already be scanning — but the display
+   * aggregates: one loading state, one ✓ when both sides are done. On failure
+   * the run folder is removed once the other side settles — a half-run folder
+   * without a report reads as a finished run and must not survive — and the
+   * first failure is rethrown with its step named.
    */
-  const bothSides = async (folder: string, tasks: Array<() => Promise<void>>): Promise<void> => {
+  const phase = async (
+    text: string,
+    folder: () => string,
+    tasks: Array<() => Promise<void>>,
+    done: (elapsed: string) => string,
+  ): Promise<void> => {
+    const stop = spinner(text);
     const results = await Promise.allSettled(tasks.map(task => task()));
+    const elapsed = stop();
     const failed = results.find((r): r is PromiseRejectedResult => r.status === 'rejected');
     if (failed) {
-      fs.rmSync(folder, { recursive: true, force: true });
-      log(`✗ run folder removed after failure`);
+      fs.rmSync(folder(), { recursive: true, force: true });
+      log(`✗ ${text} failed — run folder removed`);
       throw failed.reason;
     }
+    log(`✓ ${done(elapsed)}`);
   };
 
   const diffsDir = path.join(options.versionsDir, 'diffs');
@@ -189,18 +221,15 @@ export async function runFigmaPremerge(options: FigmaPremergeOptions): Promise<F
   fs.mkdirSync(dataDir(staging, 'branch'), { recursive: true });
   fs.mkdirSync(dataDir(staging, 'main'), { recursive: true });
 
-  await bothSides(staging, [
-    async () => {
-      const began = Date.now();
-      await step('branch: fetch', () => steps.fetch('branch', `branch=${url}`, dataDir(staging, 'branch')));
-      log(`✓ branch: fetch complete (${Math.round((Date.now() - began) / 1000)}s)`);
-    },
-    async () => {
-      const began = Date.now();
-      await step('main: fetch', () => steps.fetch('main', `main=${mainKey}`, dataDir(staging, 'main')));
-      log(`✓ main: fetch complete (${Math.round((Date.now() - began) / 1000)}s)`);
-    },
-  ]);
+  await phase(
+    'Fetching branch and main',
+    () => staging,
+    [
+      () => step('branch: fetch', () => steps.fetch('branch', `branch=${url}`, dataDir(staging, 'branch'))),
+      () => step('main: fetch', () => steps.fetch('main', `main=${mainKey}`, dataDir(staging, 'main'))),
+    ],
+    elapsed => `Fetched branch and main (${elapsed})`,
+  );
 
   let branchName = 'branch';
   const receiptPath = path.join(dataDir(staging, 'branch'), 'branch.source.json');
@@ -214,15 +243,29 @@ export async function runFigmaPremerge(options: FigmaPremergeOptions): Promise<F
   const runDir = resolveRunFolder(diffsDir, branchName);
   fs.mkdirSync(path.dirname(runDir), { recursive: true });
   fs.renameSync(staging, runDir);
-  log(`✓ run folder: ${runDir}`);
+  log(`✓ Run folder: ${runDir}`);
 
+  // Generate starts are staggered so the two license validations never land
+  // in the same burst window; everything before generate stays fully parallel.
+  // The wait is created only for an actual later starter — no dangling timer
+  // outlives the run.
+  let previousStart: Promise<void> | null = null;
+  const staggeredStart = (): Promise<void> => {
+    const myTurn = previousStart === null
+      ? Promise.resolve()
+      : previousStart.then(() => sleep(GENERATE_STAGGER_MS));
+    previousStart = myTurn;
+    return myTurn;
+  };
+
+  const counts: Record<'branch' | 'main', number> = { branch: 0, main: 0 };
   const sideTask = (side: 'branch' | 'main') => async (): Promise<void> => {
     const dir = path.join(runDir, side === 'main' ? 'base' : 'current');
     const data = path.join(dir, 'data');
     const manifest = path.join(data, `${side}.manifest.md`);
     const specsDir = path.join(dir, 'specs');
     await step(`${side}: scan`, () => steps.scan(side, path.join(data, `${side}.file.json`), manifest));
-    const began = Date.now();
+    await staggeredStart();
     await step(`${side}: generate`, () => steps.generate(
       side,
       manifest,
@@ -230,10 +273,15 @@ export async function runFigmaPremerge(options: FigmaPremergeOptions): Promise<F
       path.join(data, `${side}.variables.json`),
       path.join(data, `${side}.styles.json`),
     ));
-    log(`✓ ${side}: specs generated (${componentCount(specsDir)} components, ${Math.round((Date.now() - began) / 1000)}s)`);
+    counts[side] = componentCount(specsDir);
   };
 
-  await bothSides(runDir, [sideTask('branch'), sideTask('main')]);
+  await phase(
+    'Generating specs from branch and main',
+    () => runDir,
+    [sideTask('branch'), sideTask('main')],
+    elapsed => `Specs generated (branch ${counts.branch} / main ${counts.main} components, ${elapsed})`,
+  );
 
   // The main side's `branchName` is whatever Figma calls that file — for a
   // file rather than a branch, that is the library's own name.

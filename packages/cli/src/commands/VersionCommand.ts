@@ -36,6 +36,7 @@ import {
   type PremergeSteps,
 } from '../version/figmaPremerge.js';
 import { execFile } from 'child_process';
+import { formatElapsed, isInteractive, startSpinner } from '../utilities/spinner.js';
 import { loadRules, type RuleSet } from '../version/rules.js';
 import { renderChangelog, renderReport } from '../version/report.js';
 import type { ComponentLedger, LedgerOverride } from '../version/types.js';
@@ -351,6 +352,18 @@ function cliSteps(workspaceRoot: string): PremergeSteps {
   };
 }
 
+/**
+ * The in-flight state for one phase, in the fetch style: a spinner holding one
+ * line in a TTY, a single "⏳ …" line otherwise; either way the caller prints
+ * the ✓ outcome line when the phase resolves.
+ */
+function phaseSpinner(text: string): () => string {
+  if (isInteractive()) return startSpinner(`${text}…`);
+  console.log(`⏳ ${text}…`);
+  const start = Date.now();
+  return () => formatElapsed(Date.now() - start);
+}
+
 const FigmaPremerge = new Command('figmapremerge')
   .description('Pre-merge report for a Figma branch: fetch both sides, generate both spec trees, diff, and report (target ← branch)')
   .argument('<url>', 'Figma branch URL (…/design/<mainKey>/branch/<branchKey>/…)')
@@ -371,6 +384,7 @@ const FigmaPremerge = new Command('figmapremerge')
         versionsDir: workspace.versionsDir,
         steps: cliSteps(workspace.root),
         log: line => console.log(line),
+        spinner: phaseSpinner,
       });
 
       const dataset = buildPremergeDataset({
