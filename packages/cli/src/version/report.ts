@@ -288,6 +288,30 @@ function groupedVariantBullets(component: ComponentChange, entries: DiffEntry[])
   return bullets;
 }
 
+/**
+ * A graded section is a list of components, each with its findings — so the
+ * component is a heading and its findings are the list beneath it, rather than
+ * a name repeated at the head of every bullet.
+ */
+function sectionBody(groups: Array<{ subject: string; bullets: string[] }>): string[] {
+  const lines: string[] = [];
+  const populated = groups.filter(g => g.bullets.length > 0);
+  if (populated.length === 0) return ['None.', ''];
+  for (const { subject, bullets } of populated) {
+    lines.push(`### ${subject}`);
+    lines.push('');
+    for (const b of bullets) lines.push(`- ${unprefix(b, subject)}`);
+    lines.push('');
+  }
+  return lines;
+}
+
+/** Drop the `**Subject** — ` a bullet leads with; the heading above it says that now. */
+function unprefix(bullet: string, subject: string): string {
+  const stripped = bullet.startsWith(`**${subject}**`) ? bullet.slice(`**${subject}**`.length) : bullet;
+  return stripped.replace(/^ — /, '').replace(/^ /, '');
+}
+
 // ---------------------------------------------------------------- the report
 
 type Grade = 'breaking' | 'minor' | 'patch' | 'examples' | 'reordered' | 'ignored' | 'review';
@@ -375,60 +399,64 @@ export function renderReport(dataset: ChangeDataset): string {
   for (const { heading, grade: g } of sections) {
     lines.push(`## ${heading}`);
     lines.push('');
-    const bullets: string[] = [];
+    const groups: Array<{ subject: string; bullets: string[] }> = [];
     for (const component of dataset.components) {
       if (g === 'examples') {
         const n = component.entries.filter(e => gradeOf(e) === 'examples').length;
-        if (n > 0) bullets.push(`**${component.title}** — ${n} documented ${n === 1 ? 'example' : 'examples'} changed.`);
+        if (n > 0) {
+          groups.push({ subject: component.title, bullets: [`${n} documented ${n === 1 ? 'example' : 'examples'} changed.`] });
+        }
         continue;
       }
       const graded = component.entries.filter(e => gradeOf(e) === g);
-      if (g === 'patch') bullets.push(...groupedVariantBullets(component, graded));
-      else bullets.push(...graded.map(e => bulletFor(component, e)));
+      if (graded.length === 0) continue;
+      groups.push({
+        subject: component.title,
+        bullets: g === 'patch' ? groupedVariantBullets(component, graded) : graded.map(e => bulletFor(component, e)),
+      });
     }
-    for (const entry of dataset.assetEntries.filter(e => gradeOf(e) === g)) {
-      const sentence = entry.operation === 'added' ? `**assets/** — added ${code(entry.path)}.`
-        : entry.operation === 'removed' ? `**assets/** — removed ${code(entry.path)}${entry.flags?.includes('referenced') ? ' — still referenced by a spec; this is a broken reference' : ''}.`
-        : `**assets/** — ${code(entry.path)} content changed (same name).`;
-      bullets.push(sentence);
-    }
-    for (const entry of dataset.runEntries.filter(e => gradeOf(e) === g)) {
-      bullets.push(`**run** — ${code(entry.path)}: ${code(entry.oldValue)} → ${code(entry.newValue)}.${entry.flags?.includes('schemaMajor') ? ' The spec now speaks a different schema dialect.' : ''}`);
-    }
-    if (bullets.length === 0) lines.push('None.');
-    else for (const b of bullets) lines.push(`- ${b}`);
-    lines.push('');
+    const assets = dataset.assetEntries.filter(e => gradeOf(e) === g).map(entry =>
+      entry.operation === 'added' ? `added ${code(entry.path)}.`
+        : entry.operation === 'removed' ? `removed ${code(entry.path)}${entry.flags?.includes('referenced') ? ' — still referenced by a spec; this is a broken reference' : ''}.`
+        : `${code(entry.path)} content changed (same name).`);
+    if (assets.length > 0) groups.push({ subject: 'assets/', bullets: assets });
+    const run = dataset.runEntries.filter(e => gradeOf(e) === g).map(entry =>
+      `${code(entry.path)}: ${code(entry.oldValue)} → ${code(entry.newValue)}.${entry.flags?.includes('schemaMajor') ? ' The spec now speaks a different schema dialect.' : ''}`);
+    if (run.length > 0) groups.push({ subject: 'run', bullets: run });
+    lines.push(...sectionBody(groups));
   }
 
   // Conditional sections: only when they have something in them.
-  const reordered: string[] = [];
-  const review: string[] = [];
-  for (const component of dataset.components) {
-    reordered.push(...component.entries.filter(e => gradeOf(e) === 'reordered').map(e => bulletFor(component, e)));
-    review.push(...component.entries.filter(e => gradeOf(e) === 'review').map(e => bulletFor(component, e)));
-  }
+  const conditional = (grade: Grade) => dataset.components
+    .map(component => ({
+      subject: component.title,
+      bullets: component.entries.filter(e => gradeOf(e) === grade).map(e => bulletFor(component, e)),
+    }))
+    .filter(g => g.bullets.length > 0);
+
+  const reordered = conditional('reordered');
   if (reordered.length > 0) {
     lines.push('## Reordered');
     lines.push('');
-    for (const b of reordered) lines.push(`- ${b}`);
-    lines.push('');
+    lines.push(...sectionBody(reordered));
   }
+  const review = conditional('review');
   if (review.length > 0) {
     lines.push('## Needs review');
     lines.push('');
     lines.push('No rule in the severity rules covers these paths yet, so they are ungraded and need a human read.');
     lines.push('');
-    for (const b of review) lines.push(`- ${b}`);
-    lines.push('');
+    lines.push(...sectionBody(review));
   }
 
   // Warnings that are not entries (likely renames, orphans, untracked titles).
-  const warnings = dataset.components.flatMap(c => c.warnings.map(w => `**${c.title}** — ${w}`));
+  const warnings = dataset.components
+    .map(c => ({ subject: c.title, bullets: c.warnings }))
+    .filter(g => g.bullets.length > 0);
   if (warnings.length > 0) {
     lines.push('## Warnings');
     lines.push('');
-    for (const w of warnings) lines.push(`- ${w}`);
-    lines.push('');
+    lines.push(...sectionBody(warnings));
   }
 
   // Renames with provenance: recorded (renames.yaml) or inferred, with confidence.

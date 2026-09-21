@@ -68,6 +68,9 @@ describe('premerge report', () => {
     expect(report).toMatch(/\| DE Button \| 1 \| 1 \| \d+ \| · \|/);
     // graded sections carry values, not just paths
     expect(report).toContain('## Breaking');
+    // the component is a heading; its findings are the list beneath it
+    expect(report).toMatch(/## Breaking\n\n### DE Button\n\n- /);
+    expect(report).not.toMatch(/- \*\*DE Button\*\* — /);
     expect(report).toContain('removed `props.startIconVisible`');
     expect(report).toContain('boolean, default false');
     expect(report).toContain('DE Color/Action/Loud');
@@ -218,7 +221,8 @@ describe('ledger-backed pre-release report', () => {
       sourceLabel: 'feature',
     }));
 
-    expect(report).toContain('**DE Button** — added variants:');
+    expect(report).toContain('### DE Button');
+    expect(report).toContain('- added variants:');
     expect(report).toContain('  - `size=XLarge`');
     expect(report).toContain('  - `size=Tiny`');
     // the styles each new variant sets are the variant, not a finding of their own
