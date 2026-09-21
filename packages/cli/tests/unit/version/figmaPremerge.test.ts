@@ -162,6 +162,11 @@ describe('figmapremerge orchestration (injected steps, no network)', () => {
     expect(fs.existsSync(run.currentSpecsDir)).toBe(true);
     // payload cleanup is the caller's post-report step now, not the run's
     expect(fs.existsSync(path.join(run.runDir, 'branch/data/branch.file.json'))).toBe(true);
+    // neither side fetches published styles; both read the same empty document
+    for (const side of ['branch', 'main']) {
+      expect(fs.readJsonSync(path.join(run.runDir, `${side}/data/${side}.styles.json`)))
+        .toEqual({ meta: { styles: [] } });
+    }
 
     // opening milestone names what is being compared
     expect(lines[0]).toBe('Premerge diff — branch BRANCHKEY456 onto MAINKEY123');

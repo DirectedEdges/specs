@@ -75,7 +75,7 @@ export function resolveRunFolder(
  * carries the step's combined output; transient failures are retried here.
  */
 export interface PremergeSteps {
-  /** `specs fetch --source <sourceArg> --data-dir <dataDir> --only file,variables,styles` */
+  /** `specs fetch --source <sourceArg> --data-dir <dataDir> --only file,variables` */
   fetch(side: 'branch' | 'main', sourceArg: string, dataDir: string): void | Promise<void>;
   /** `specs scan <filePath> -o <manifestPath>` */
   scan(side: 'branch' | 'main', filePath: string, manifestPath: string): void | Promise<void>;
@@ -237,6 +237,14 @@ export async function runFigmaPremerge(options: FigmaPremergeOptions): Promise<F
     const data = path.join(dir, 'data');
     const manifest = path.join(data, `${side}.manifest.md`);
     const specsDir = path.join(dir, 'specs');
+    // Published styles are a property of a file, and a branch has none of its
+    // own: the endpoint answers for main and comes back empty for the branch,
+    // so fetching them makes main's specs richer than the branch's for a
+    // reason that has nothing to do with the change under review. Neither side
+    // fetches them, and both resolve styles from the seed their own file
+    // payload carries. The empty document is what `generate` reads in place of
+    // a download it was not asked to make.
+    fs.writeFileSync(path.join(data, `${side}.styles.json`), '{"meta":{"styles":[]}}\n');
     await step(`${side}: scan`, () => steps.scan(side, path.join(data, `${side}.file.json`), manifest));
     await step(`${side}: generate`, () => steps.generate(
       side,

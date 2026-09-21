@@ -350,7 +350,7 @@ function cliSteps(workspaceRoot: string): PremergeSteps {
   });
   return {
     fetch: (_side, sourceArg, dataDir) =>
-      invoke(['fetch', '--config', configDir, '--data-dir', dataDir, '--source', sourceArg, '--only', 'file,variables,styles']),
+      invoke(['fetch', '--config', configDir, '--data-dir', dataDir, '--source', sourceArg, '--only', 'file,variables']),
     scan: (_side, filePath, manifestPath) =>
       invoke(['scan', filePath, '--config', configDir, '-o', manifestPath]),
     generate: (_side, manifestPath, specsDir, variablesPath, stylesPath) =>
