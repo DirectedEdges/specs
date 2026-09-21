@@ -32,8 +32,9 @@ One exception ladder: when a variant references something the API no longer decl
 | Prop added | **MINOR** | Nothing that compiled before stops compiling because a new property exists |
 | Prop removed | **MAJOR** | Always breaking |
 | Prop renamed (recorded in `renames.yaml`) | **MAJOR** | Reported as one rename with a `from → to` migration line, never as remove + add |
-| `type`, `default`, `nullable`, `anyOf`, `minItems` / `maxItems` stated for the first time | **MINOR** | The property says more about itself than it did |
+| `type`, `default`, `nullable`, `minItems` / `maxItems` stated for the first time | **MINOR** | The property says more about itself than it did |
 | Any of those changed or withdrawn | **MAJOR** | Whoever relied on the old value or the old constraint can break |
+| `anyOf` on a slot | **Ignored, temporarily** | It is derived by resolving component keys against the fetched file, and those keys do not survive a branch, so the two sides are not comparable |
 | Enum value added | **MINOR** | New option; existing code unaffected |
 | Enum value removed | **MAJOR** | Code using the value breaks |
 | Enum value renamed (recorded) | **MAJOR** | One rename with migration line |

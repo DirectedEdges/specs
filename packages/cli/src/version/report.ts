@@ -114,6 +114,8 @@ function propSummary(def: unknown): string {
 
 const VARIANT_PATH = /^((?:subcomponents\.[^.[]+\.)*)variants\[([^\]]*)\]$/;
 const STYLE_ANCHOR = /^((?:subcomponents\.[^.[]+\.)*(?:variants\[[^\]]*\]|default)(?:\.elements\.[^.[]+)?)\.?(.*)$/;
+/** One variant's whole body: `default`, or `variants[<configuration>]`. */
+const VARIANT_SCOPE = /^((?:subcomponents\.[^.[]+\.)*(?:variants\[[^\]]*\]|default))\.(.+)$/;
 
 function subcomponentOf(path: string): string | null {
   return path.match(/^subcomponents\.([^.[]+)\./)?.[1] ?? null;
@@ -224,8 +226,11 @@ export function bulletFor(component: ComponentChange, entry: DiffEntry): string 
 // ---------------------------------------------------------------- grouping
 
 /**
- * Style-leaf entries under one element of one variant read as a wall one per
- * bullet; grouped, they are one finding with the values as sub-bullets.
+ * A variant is the unit a reader thinks in, so it is the unit a bullet reports:
+ * one bullet per variant, its changes beneath it, each naming what happened and
+ * where inside that variant. Reported one leaf per bullet they read as a wall;
+ * grouped by the element they touch they read as an index of elements, which is
+ * not a question anyone asked.
  */
 function groupedVariantBullets(component: ComponentChange, entries: DiffEntry[]): string[] {
   const groups = new Map<string, DiffEntry[]>();
@@ -244,9 +249,9 @@ function groupedVariantBullets(component: ComponentChange, entries: DiffEntry[])
       arrived.get(where)!.push(added[2].replace(/"/g, ''));
       continue;
     }
-    const match = entry.path.match(STYLE_ANCHOR);
-    if (entry.concernFile === 'variants.yaml' && match && match[2]) {
-      const anchor = match[1];
+    const scope = entry.concernFile === 'variants.yaml' ? entry.path.match(VARIANT_SCOPE) : null;
+    if (scope) {
+      const anchor = scope[1];
       if (!groups.has(anchor)) groups.set(anchor, []);
       groups.get(anchor)!.push(entry);
     } else {
@@ -257,20 +262,27 @@ function groupedVariantBullets(component: ComponentChange, entries: DiffEntry[])
   const bullets: string[] = [];
   for (const [where, configs] of arrived) {
     bullets.push(nest(
-      `**${component.title}**${where} — ${configs.length === 1 ? 'new variant added' : 'new variants added'}:`,
+      `**${component.title}**${where} — ${configs.length === 1 ? 'added variant' : 'added variants'}:`,
       configs.map(c => code(c)),
     ));
   }
   for (const [anchor, group] of groups) {
-    if (group.length === 1) { bullets.push(bulletFor(component, group[0])); continue; }
-    const cleanAnchor = anchor.replace(/"/g, '');
+    const config = anchor.match(/variants\[([^\]]*)\]$/)?.[1];
+    const scopeText = config === undefined ? 'default' : `variant ${code(config.replace(/"/g, ''))}`;
     const items = group.map(e => {
       const leaf = e.path.slice(anchor.length).replace(/^\./, '');
-      if (e.operation === 'added') return `${code(leaf)}: ${code(valueText(e.newValue))}`;
-      if (e.operation === 'removed') return `${code(leaf)}: was ${code(valueText(e.oldValue))}, now gone`;
-      return `${code(leaf)}: ${code(valueText(e.oldValue))} → ${code(valueText(e.newValue))}`;
+      if (e.operation === 'added') {
+        const value = valueText(e.newValue);
+        return value && value.length <= 60 ? `added ${code(leaf)}: ${code(value)}` : `added ${code(leaf)}`;
+      }
+      if (e.operation === 'removed') {
+        const value = valueText(e.oldValue);
+        return value && value.length <= 60 ? `removed ${code(leaf)}: was ${code(value)}` : `removed ${code(leaf)}`;
+      }
+      if (e.operation === 'reordered') return `reordered ${code(leaf)}`;
+      return `updated ${code(leaf)}: ${code(valueText(e.oldValue))} → ${code(valueText(e.newValue))}`;
     });
-    bullets.push(nest(`**${component.title}** — changed ${code(cleanAnchor)}${withinText(anchor)}:`, items));
+    bullets.push(nest(`**${component.title}**${withinText(anchor)} — ${scopeText}:`, items));
   }
   for (const entry of singles) bullets.push(bulletFor(component, entry));
   return bullets;
@@ -327,11 +339,13 @@ export function renderReport(dataset: ChangeDataset): string {
   lines.push('');
   lines.push('| Component | Breaking | Minor | Patch | Examples |');
   lines.push('|---|---:|---:|---:|---:|');
-  lines.push(`| **All components** | **${totals.breaking}** | **${totals.minor}** | **${totals.patch}** | **${totals.examples}** |`);
-
   const withCounts = dataset.components
     .map(c => ({ c, counts: countsOf(c.entries) }))
     .filter(({ c, counts }) => c.entries.length > 0 && (counts.breaking || counts.minor || counts.patch || counts.examples || counts.reordered || counts.review));
+  // With one component changed the totals row restates the row beneath it.
+  if (withCounts.length > 1 || dataset.assetEntries.length > 0) {
+    lines.push(`| **All components** | **${totals.breaking}** | **${totals.minor}** | **${totals.patch}** | **${totals.examples}** |`);
+  }
   withCounts.sort((a, b) =>
     b.counts.breaking - a.counts.breaking
     || b.counts.minor - a.counts.minor

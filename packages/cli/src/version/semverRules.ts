@@ -316,18 +316,33 @@ rules:
   # anyOf is the slot's stated set of permitted component types. Losing it is a
   # contract change even though the slot technically accepts more afterwards:
   # nothing downstream can still tell what belongs in the slot.
-  - id: slot-anyof-added
+  #
+  # TEMPORARILY IGNORED. anyOf is not authored: the engine derives it by
+  # resolving a slot's preferredValues keys against the components the fetched
+  # file reports. A branch file reports different keys for nearly all of its
+  # components while the slot still points at the parent file's keys, so the
+  # list silently shrinks on the branch side and every comparison reports a
+  # break nobody made. Ignoring it here removes a finding that says nothing
+  # about the change under review. The rules below return once the key
+  # resolution is fixed and the two sides can be compared honestly.
+  - id: slot-anyof-derived
     concern: api
-    operation: added
     path: '(^|\.)props\.[^.\[]+\.anyOf'
-    grade: minor
-    why: The slot now states which component types it accepts.
+    grade: ignore
+    why: Derived from key resolution that does not survive a branch; not comparable across two files.
 
-  - id: slot-anyof-changed
-    concern: api
-    path: '(^|\.)props\.[^.\[]+\.anyOf'
-    grade: major
-    why: The set of component types the slot accepts changed, or is no longer stated.
+  # - id: slot-anyof-added
+  #   concern: api
+  #   operation: added
+  #   path: '(^|\.)props\.[^.\[]+\.anyOf'
+  #   grade: minor
+  #   why: The slot now states which component types it accepts.
+  #
+  # - id: slot-anyof-changed
+  #   concern: api
+  #   path: '(^|\.)props\.[^.\[]+\.anyOf'
+  #   grade: major
+  #   why: The set of component types the slot accepts changed, or is no longer stated.
 
   # ---- api: props, everything else --------------------------------------------
   - id: prop-examples

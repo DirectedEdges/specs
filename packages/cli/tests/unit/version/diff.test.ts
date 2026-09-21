@@ -123,10 +123,9 @@ describe('diff engine — api.yaml', () => {
     expect(added.entries.find(e => e.path === 'props.icon')?.impact).toBe('minor');
   });
 
-  it('grades slot anyOf add MINOR, change and removal MAJOR', () => {
+  it('ignores slot anyOf while it is derived from key resolution', () => {
     const slotOnly = makeWorkspace('diff-anyof-base');
     const withAnyOf = makeWorkspace('diff-anyof-current');
-    const narrowed = makeWorkspace('diff-anyof-narrowed');
     try {
       editYaml(slotOnly, 'specs/deButton/api.yaml', doc => {
         doc.props.children = { type: 'slot', nullable: true };
@@ -134,26 +133,20 @@ describe('diff engine — api.yaml', () => {
       editYaml(withAnyOf, 'specs/deButton/api.yaml', doc => {
         doc.props.children = { type: 'slot', nullable: true, anyOf: ['deIcon', 'deBadge'] };
       });
-      editYaml(narrowed, 'specs/deButton/api.yaml', doc => {
-        doc.props.children = { type: 'slot', nullable: true, anyOf: ['deIcon'] };
-      });
       const base = assemble(path.join(slotOnly, 'specs'), 'deButton');
       const wide = assemble(path.join(withAnyOf, 'specs'), 'deButton');
 
-      const added = diffComponent(base, wide, { ruleSet, renames: noRenames });
-      expect(added.entries.find(e => e.path === 'props.children.anyOf')?.impact).toBe('minor');
-
-      const changed = diffComponent(wide, assemble(path.join(narrowed, 'specs'), 'deButton'), { ruleSet, renames: noRenames });
-      expect(changed.entries.find(e => e.path === 'props.children.anyOf')?.impact).toBe('major');
-
-      const removed = diffComponent(wide, base, { ruleSet, renames: noRenames });
-      const entry = removed.entries.find(e => e.path === 'props.children.anyOf');
-      expect(entry?.operation).toBe('removed');
-      expect(entry?.impact).toBe('major');
+      for (const { entries } of [
+        diffComponent(base, wide, { ruleSet, renames: noRenames }),
+        diffComponent(wide, base, { ruleSet, renames: noRenames }),
+      ]) {
+        const entry = entries.find(e => e.path === 'props.children.anyOf');
+        expect(entry?.impact).toBe('ignore');
+        expect(bumpOf(entries)).toBe('none');
+      }
     } finally {
       removeWorkspace(slotOnly);
       removeWorkspace(withAnyOf);
-      removeWorkspace(narrowed);
     }
   });
 

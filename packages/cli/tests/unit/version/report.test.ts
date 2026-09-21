@@ -58,11 +58,12 @@ describe('premerge report', () => {
 
     // header: date, target ← source, then who ran it
     expect(report).toMatch(/\d{4}-\d{2}-\d{2} `main` ← `feature` · Nathan Curtis/);
-    // impact table first, totals row, counts only with · for zero
+    // impact table first, counts only with · for zero
     const impactIndex = report.indexOf('## Impact');
     expect(impactIndex).toBeGreaterThan(-1);
     expect(impactIndex).toBeLessThan(report.indexOf('## Breaking'));
-    expect(report).toContain('| **All components** | **1** | **1** |');
+    // one component changed: the totals row would restate the row beneath it
+    expect(report).not.toContain('**All components**');
     expect(report).toContain('| DE Button | 1 | 1 |');
     expect(report).toMatch(/\| DE Button \| 1 \| 1 \| \d+ \| · \|/);
     // graded sections carry values, not just paths
@@ -217,7 +218,7 @@ describe('ledger-backed pre-release report', () => {
       sourceLabel: 'feature',
     }));
 
-    expect(report).toContain('**DE Button** — new variants added:');
+    expect(report).toContain('**DE Button** — added variants:');
     expect(report).toContain('  - `size=XLarge`');
     expect(report).toContain('  - `size=Tiny`');
     // the styles each new variant sets are the variant, not a finding of their own
