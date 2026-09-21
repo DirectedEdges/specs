@@ -110,7 +110,7 @@ Keep the quotes — a copied Figma URL carries `&` characters, which an unquoted
 | `--keep-data` | Keep everything in the run folder: the full `base/` and `current/` trees and the fetched payloads. By default only the report, the change data, and the impacted components' specs survive |
 | `--rules <path>` | As above |
 
-The two sides fetch and generate in parallel, with milestone progress per side. Each run gets its own dated folder under `versions/diffs/` — `<YYYY-MM-DD>-<branch name>`, with a number appended for repeat runs (` 2`, ` 3`) so an earlier run someone may have shared is never overwritten. After the report prints to stdout, the folder is trimmed to `report.md`, `diff.json`, `run.json`, and `current/specs/` for just the changed components — unless `--keep-data` is set.
+The two sides fetch and generate in parallel, with phase-level progress — a loading state while fetching resolves to one ✓ when both sides are fetched, then the same for generating, then the report. Each run gets its own dated folder under `versions/diffs/` — `<YYYY-MM-DD>-<branch name>`, with a number appended for repeat runs (` 2`, ` 3`) so an earlier run someone may have shared is never overwritten. After the report prints to stdout, the folder is trimmed to `report.md`, `diff.json`, `run.json`, and `current/specs/` for just the changed components — unless `--keep-data` is set.
 
 ## `specs version report`
 
