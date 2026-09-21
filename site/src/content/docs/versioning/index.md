@@ -52,7 +52,7 @@ workspace/
     │   ├── changelog.md
     │   └── specs/
     ├── 0.2.0/
-    ├── diffs/                  # pre-merge comparison runs, one folder per Figma branch
+    ├── diffs/                  # pre-merge comparison runs, one dated folder per run
     ├── ledgers/                # machine-managed history, one file per component
     └── renames.yaml            # renames you've recorded, so history survives them
 ```

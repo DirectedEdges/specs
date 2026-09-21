@@ -102,13 +102,15 @@ Pre-merge impact report for a Figma branch, from just its URL: the command deriv
 specs version figmapremerge "https://www.figma.com/design/<mainKey>/branch/<branchKey>/..."
 ```
 
+Keep the quotes — a copied Figma URL carries `&` characters, which an unquoted shell command splits into separate background jobs.
+
 | Flag | Description |
 |------|-------------|
 | `--workspace <dir>` | Workspace directory — needs `config/` (and your `FIGMA_TOKEN` in the environment or `.env`), since the command fetches and generates |
-| `--keep-payloads` | Keep the fetched Figma JSON in the run folder; by default it is deleted once specs are generated |
+| `--keep-data` | Keep everything in the run folder: the full `base/` and `current/` trees and the fetched payloads. By default only the report, the change data, and the impacted components' specs survive |
 | `--rules <path>` | As above |
 
-Each run writes its artifacts under `versions/diffs/<branch>/` — the generated `base/` (main side) and `current/` (branch side) spec trees, `report.md`, and the underlying change data — and prints the report to stdout. Re-running against the same branch overwrites that run's own folder.
+The two sides fetch and generate in parallel, with milestone progress per side. Each run gets its own dated folder under `versions/diffs/` — `<YYYY-MM-DD>-<branch name>`, with a number appended for repeat runs (` 2`, ` 3`) so an earlier run someone may have shared is never overwritten. After the report prints to stdout, the folder is trimmed to `report.md`, `diff.json`, `run.json`, and `current/specs/` for just the changed components — unless `--keep-data` is set.
 
 ## `specs version report`
 

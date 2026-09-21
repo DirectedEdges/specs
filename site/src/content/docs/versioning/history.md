@@ -22,7 +22,7 @@ workspace/
     │   ├── changelog.md        # the itemized changelog for this version
     │   └── specs/              # the specs exactly as versioned
     ├── 0.2.0/
-    ├── diffs/                  # pre-merge comparison runs — see Reports & Changelogs
+    ├── diffs/                  # dated pre-merge runs — see Reports & Changelogs
     ├── ledgers/
     │   ├── library.ledger.json # library versions, per-release component roll-up
     │   └── dsButton.ledger.json# one per component, named by spec folder
