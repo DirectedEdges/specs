@@ -98,7 +98,7 @@ Repo-root `npm test`; invoke the built CLI as `node
 packages/cli/dist/specs.js` (watcher keeps it fresh). License integration
 tests are placeholder-only (skipped without `ANOVA_TEST_KEY_*` env).
 
-## Known drift (as of 2026-09-05)
+## Known drift (as of 2026-09-22)
 
 - `packages/cli/CLAUDE.md` (May 11) is badly stale: claims an MCP server,
   directory-per-command layout, `Component.fromRestApi`, a working
@@ -106,4 +106,10 @@ tests are placeholder-only (skipped without `ANOVA_TEST_KEY_*` env).
 - `src/transforms/` holds open counterparts of from-specs modules in the
   other repo — deliberately unsynced; which side is authoritative is an open
   cross-repo question.
+- `src/transforms/states.ts` mirrors two facts from the closed packages'
+  RoleSpecs: `ROLE_NATIVE_STATES` (which state concepts a role announces on
+  its own element) and `COLLAPSING_ROLES` (which roles consume their subtree).
+  The stylesheet needs both to know what markup the scaffold actually emits —
+  a change to either fact there must land here too, or selectors anchor on
+  elements and attributes that no longer exist.
 - No tsc declaration step despite `types: dist/index.d.ts` in package.json.

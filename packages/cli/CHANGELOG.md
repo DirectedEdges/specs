@@ -52,6 +52,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`specs scan` leaves a subcomponent unchecked when its parent is checked**, since a subcomponent is already specced as part of its parent. A separate component that a checked component instances is still selected.
 - **A composed instance fills a slot that states its size through opposing insets.** A slot pinned to all four edges names no width yet is as wide as its container; the child used to paint at its own master's size.
 - **A child filling its parent's cross axis keeps the parent's alignment.** Cross-axis FILL emits a dimension rather than `align-self: stretch`, so a child stopped from filling by a `min-width` or `max-width` is centred under a centring parent.
+- **A variant styled on a state the component's own control announces keeps its rule**, selecting on the prop's data attribute rather than being dropped with a warning that no concept names the value.
+- **The `not-allowed` cursor reaches a component whose disabled state lives on a control inside it**, selecting what the root actually carries instead of an attribute only the nested control has.
+- **A text field keeps the font and colour the spec gave its value and placeholder**, carried onto the emitted input and its `::placeholder` rather than left on elements the control replaced.
 
 ### Dependency updates
 
