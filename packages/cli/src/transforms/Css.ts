@@ -9,7 +9,7 @@ import { toKebab, isGradient, isGradientToken, gradientValue, dimensionValue, re
 import { normalizeEnumValue } from './enumCase.js';
 import { subComponentKey } from './naming.js';
 import { attrNameFor } from './hostAttributes.js';
-import { CONCEPT_TABLE, buildStateLookup, conceptsClaimedByNestedRoles } from './states.js';
+import { CONCEPT_TABLE, buildStateLookup, conceptsClaimedByNestedRoles, COLLAPSING_ROLES } from './states.js';
 import { resolveRules } from './css/rules/index.js';
 import { parseLayout, type LayoutNode } from './css/layoutTree.js';
 import { loadExamples, type ExamplesData } from './examples.js';
@@ -273,6 +273,32 @@ function disabledSelectorFor(rootAs: RootForm, rootRole: string | undefined): st
   const native = rootRole ? NATIVE_DISABLED_ROLES.has(rootRole) : false;
   return native ? ':disabled' : ':disabled, [aria-disabled="true"]';
 }
+
+/**
+ * Declarations that describe TEXT rather than the box around it.
+ *
+ * Used when a collapsing role consumes a part: the part's box is gone with the
+ * element, but its typography and colour are what the emitted control must
+ * look like. Listed rather than inferred — a prefix test would sweep up
+ * `text-indent` and `font` shorthand inconsistently, and the set is closed.
+ */
+const TEXT_PROPERTIES: ReadonlySet<string> = new Set([
+  'color',
+  'font',
+  'font-family',
+  'font-size',
+  'font-style',
+  'font-weight',
+  'font-variant',
+  'line-height',
+  'letter-spacing',
+  'word-spacing',
+  'text-align',
+  'text-transform',
+  'text-decoration',
+  'font-feature-settings',
+  '-webkit-font-smoothing',
+]);
 
 /** Roles whose emitted element carries a real `disabled` property. */
 const NATIVE_DISABLED_ROLES = new Set(['button', 'togglebutton', 'disclosure']);
@@ -579,6 +605,27 @@ function buildCssLines(
   // not restate it: see the note at the variant call site.
   const displayedInDefault = new Set<string>();
 
+  // A collapsing role consumes its `value` and `placeholder` parts into the
+  // emitted control's attributes, so those elements never reach the page and
+  // every declaration written for them is dead. Their TEXT styling is not dead
+  // though — it is what the field is supposed to look like — so it moves onto
+  // the control, and the placeholder's onto `::placeholder`.
+  //
+  // Resolved only where the component declares exactly one collapsing control,
+  // matching how part ownership resolves for a value-bearing concept. More than
+  // one and the pairing is ambiguous: nothing is moved and nothing suppressed.
+  const collapsingKeys = Object.entries(elemRoles)
+    .filter(([, role]) => COLLAPSING_ROLES.has(role))
+    .map(([key]) => key);
+  const collapseControl = collapsingKeys.length === 1 ? collapsingKeys[0]! : undefined;
+  const consumedByCollapse = new Map<string, 'value' | 'placeholder'>();
+  if (collapseControl) {
+    for (const [elemKey, role] of Object.entries(elemRoles)) {
+      if (role === 'value' || role === 'placeholder') consumedByCollapse.set(elemKey, role);
+    }
+  }
+  const foldedText = new Map<'value' | 'placeholder', string[]>();
+
   for (const [elemKey, elem] of Object.entries(defaultElements)) {
     const selector = elemKey === 'root' ? rootSel() : elemSelector(componentClass, elemKey);
     const styles = (elem.styles ?? {}) as Record<string, unknown>;
@@ -628,6 +675,13 @@ function buildCssLines(
       decls.push('display: none');
     }
 
+    const consumed = consumedByCollapse.get(elemKey);
+    if (consumed) {
+      // Keep the text styling for the control; drop the rest with the element.
+      foldedText.set(consumed, decls.filter(d => TEXT_PROPERTIES.has(d.split(':')[0]!.trim())));
+      continue;
+    }
+
     if (decls.length > 0) {
       lines.push(`${selector} {`);
       for (const d of decls) lines.push(`  ${d};`);
@@ -648,6 +702,31 @@ function buildCssLines(
       lines.push('  display: none;');
       lines.push('}');
       lines.push('');
+    }
+  }
+
+  if (collapseControl) {
+    const controlSel =
+      collapseControl === 'root' ? rootSel() : elemSelector(componentClass, collapseControl);
+    const valueText = foldedText.get('value') ?? [];
+    if (valueText.length) {
+      lines.push(
+        `/* ${elemRoles[collapseControl]} role: text styling from the consumed value element. */`,
+        `${controlSel} {`,
+        ...valueText.map(d => `  ${d};`),
+        '}',
+        '',
+      );
+    }
+    const placeholderText = foldedText.get('placeholder') ?? [];
+    if (placeholderText.length) {
+      lines.push(
+        `/* ${elemRoles[collapseControl]} role: text styling from the consumed placeholder element. */`,
+        `${controlSel}::placeholder {`,
+        ...placeholderText.map(d => `  ${d};`),
+        '}',
+        '',
+      );
     }
   }
 
