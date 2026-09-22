@@ -23,19 +23,20 @@ Two trees: its own, and the shared assets every target uses.
 ```
 react/
 ├── src/
-│   ├── _runtime.ts                           shared helpers, one per tree
+│   ├── _runtime.ts                 shared helpers, one per tree
 │   └── components/
 │       └── ActionList/
-│           ├── ActionList.scaffold.tsx       the component
-│           ├── ActionList.contract.ts        props, defaults, enums
-│           ├── ActionList.styles.css         the stylesheet the scaffold imports
-│           ├── ActionList.stories.tsx        Storybook CSF
-│           └── Item/                         a subcomponent, nested as its spec is
-│               ├── Item.scaffold.tsx
-│               ├── Item.contract.ts
-│               ├── Item.metadata.ts          slot shapes and rules, when it has slots
-│               ├── Item.styles.css
-│               └── Item.stories.tsx
+│           ├── contract.ts         props, defaults, enums
+│           ├── metadata.ts         slot shapes and rules, when it has slots
+│           ├── scaffold.tsx        the component
+│           ├── styles.css          the stylesheet the scaffold imports
+│           ├── stories.tsx         Storybook CSF
+│           └── Item/               a subcomponent, nested as its spec is
+│               ├── contract.ts
+│               ├── metadata.ts
+│               ├── scaffold.tsx
+│               ├── styles.css
+│               └── stories.tsx
 └── …
 
 assets/
@@ -46,7 +47,22 @@ assets/
 
 A component directory is named in PascalCase, from the spec folder's own spelling. Subcomponents nest beneath their parent exactly as their specs nest beneath the parent's spec folder, so the two trees read the same way, and a subcomponent is emitted as completely as a component — its own contract, stylesheet and stories.
 
+The directory is already named for the component, so the files inside it do not repeat the name.
+
 `assets/cssvars/` comes from the Figma variables and styles the specs reference. It is platform-neutral and identical whichever target produces it, so [`webcomponents`](/cli/commands/webcomponents/) writes the same file. Running both is not a conflict; the second write is a no-op when the content matches.
+
+## Each file in detail
+
+| File | What it carries |
+|---|---|
+| [`contract.ts`](/code/contract/) | The props interface, the enums those props draw from, and a defaults constant. Both targets emit it identically |
+| [`metadata.ts`](/code/contract/#metadatats) | Slot shapes and the visibility rule governing each — emitted only when the component has slots |
+| [`scaffold.tsx`](/code/scaffold/) | The working component: BEM markup from the merged layout tree, `data-*` variant attributes, ARIA state attributes, conditional slots, subcomponent calls |
+| [`styles.css`](/code/styles/) | A rule per anatomy element, token references as `var()`, a selector per variant, and structural presence and stacking fixes |
+| [`stories.tsx`](/code/stories/) | Storybook CSF: controls typed from the contract, a story per variant axis, a sticker sheet |
+| [`cssvars.css`](/code/cssvars/) | The library's custom properties — what every `var()` above resolves against |
+
+Every one of them opens with a `Generated. Do not edit` header and is overwritten on each run. The seam for code you own is a sibling `component.tsx`, which no command writes and the stories import instead of the scaffold when it exists. [What gets emitted](/code/) covers all of it.
 
 ## Options
 
@@ -115,6 +131,6 @@ Composition, glyphs, background images, compound stories and sticker sheets requ
 ## See Also
 
 - [webcomponents](/cli/commands/webcomponents/) — the peer target, same shape
-- [What gets emitted](/cli/transforms/) — each artifact in detail
+- [What gets emitted](/code/) — each artifact in detail
 - [Roles](/roles/) — what a role changes about the emitted component and its contract
 - [states convention](/settings/states/) — which prop carries which state concept

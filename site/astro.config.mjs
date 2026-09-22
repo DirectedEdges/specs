@@ -129,6 +129,19 @@ export default defineConfig({
           items: [
             { label: 'react', slug: 'cli/commands/react', badge: experimental },
             { label: 'webcomponents', slug: 'cli/commands/webcomponents', badge: experimental },
+            {
+              label: 'What gets emitted',
+              collapsed: true,
+              badge: experimental,
+              items: [
+                { label: 'Overview', slug: 'code' },
+                { label: 'contract.ts', slug: 'code/contract' },
+                { label: 'scaffold', slug: 'code/scaffold' },
+                { label: 'styles', slug: 'code/styles' },
+                { label: 'stories', slug: 'code/stories' },
+                { label: 'cssvars', slug: 'code/cssvars' },
+              ],
+            },
             { label: 'Prop Naming', slug: 'guides/prop-naming' },
             {
               label: 'Roles',
