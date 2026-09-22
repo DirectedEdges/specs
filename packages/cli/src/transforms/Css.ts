@@ -665,10 +665,17 @@ function buildCssLines(
   // longer carries. Dropping the classification routes these through the
   // ordinary data-attribute path below.
   const nestedClaimed = conceptsClaimedByNestedRoles(elemRoles);
+  // The (prop, value) pairs this removal declassified. A prop keeps its
+  // classification when another concept still uses it — `validation` mapping both
+  // `invalid` (claimed by a nested textbox) and `valid` (not claimed) — and then
+  // the claimed value looks unnamed to the variant loop below, which would drop
+  // the whole variant and warn about a states entry the config already has.
+  const nestedClaimedPairs = new Set<string>();
   if (nestedClaimed.size) {
     for (const [pair, concept] of [...stateLookup]) {
       if (!nestedClaimed.has(concept)) continue;
       stateLookup.delete(pair);
+      nestedClaimedPairs.add(pair);
       const prop = pair.split('::')[0];
       // The prop stays classified only if another still-classified concept uses it.
       const stillUsed = [...stateLookup.entries()].some(([k]) => k.split('::')[0] === prop);
@@ -748,6 +755,13 @@ function buildCssLines(
           if (trueSel) negated = trueSel.split(',').map(part => `:not(${part.trim()})`).join('');
         }
         if (!concept && !negated) {
+          // A value whose concept was claimed by a nested role is not unnamed —
+          // it was declassified deliberately, and the root carries the variant
+          // prop's data attribute for exactly this case. Route it there.
+          if (nestedClaimedPairs.has(`${k}::${vStr}`) || nestedClaimedPairs.has(`${k}::${vStr.toLowerCase()}`)) {
+            dataAttrs.push(`[${attrNameFor(k, rootAs)}="${normalizeEnumValue(vStr)}"]`);
+            continue;
+          }
           // Unmatched value: the base block covers the resting one; anything else
           // is declared styling that will not be emitted, so say so.
           warnUnnamedValue(k, vStr);
@@ -898,7 +912,18 @@ function buildCssLines(
     );
   }
   if (declaresState(context, apiProps, 'disabled')) {
-    const disabledSel = disabledSelectorFor(rootAs, elemRoles.root);
+    // Where a nested role claims `disabled`, the native control announces it and
+    // the root carries only the variant prop's data attribute — so `:disabled`
+    // and `[aria-disabled]` both match nothing and the affordance is dead CSS.
+    const disabledEntry = (context.processingStates ?? {}).disabled as
+      | { prop?: string; value?: string }
+      | undefined;
+    const disabledSel =
+      nestedClaimed.has('disabled') && disabledEntry?.prop
+        ? disabledEntry.value === undefined
+          ? `[${attrNameFor(disabledEntry.prop, rootAs)}]`
+          : `[${attrNameFor(disabledEntry.prop, rootAs)}="${normalizeEnumValue(disabledEntry.value)}"]`
+        : disabledSelectorFor(rootAs, elemRoles.root);
     lines.push(
       '/* Disabled affordance: the states convention names a disabled concept. */',
       disabledSel.split(',').map(part => rootSel(part.trim())).join(',\n') + ' {',

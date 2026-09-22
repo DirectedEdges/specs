@@ -111,32 +111,36 @@ For example, a Button's default variant with a consolidated label and icon:
 
 ```yaml
 default:
-  anatomy:
+  elements:
     label:
       styles:
         visible:
           if:
             condition:
-              operation: isNotNull
+              operation: isNull
               args:
                 value:
-                  $bind: label
-            then: true
-            else: false
-        characters: "Button"
+                  $binding: "#/props/label"
+            then: false
+            else: true
+      content:
+        $binding: "#/props/label"
     iconGlyph:
       styles:
         visible:
           if:
             condition:
-              operation: isNotNull
+              operation: isNull
               args:
                 value:
-                  $bind: icon
-            then: true
-            else: false
-        mainComponent: "IconPlus"
+                  $binding: "#/props/icon"
+            then: false
+            else: true
+      content:
+        $binding: "#/props/icon"
 ```
+
+The test is written as `isNull` with `then: false` — the operation asks whether the prop *is* null, and `then` is the visibility when it is. `isNull` is the only null test the analyzer recognizes; a condition naming anything else yields no rule, and the element renders unconditionally.
 
 Rather than requiring consumers to cross-reference `showLabel: true` with a separate boolean prop, the conditional makes the relationship explicit: the Label element is visible when `label` is not `null`, and hidden when it is. The same applies to the icon glyph — its visibility is tied directly to whether the `icon` prop has a value.
 
