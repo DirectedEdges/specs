@@ -20,13 +20,19 @@ const shouldRenderSearch =
 // live under /cli/ alongside the rest of the CLI. Longest matching prefix wins, so
 // /cli/commands/react/ highlights Code rather than Commands.
 const SECTION_LINKS = [
-  { label: 'Plugin', href: '/plugin/', prefixes: ['/plugin/'] },
-  { label: 'Commands', href: '/cli/', prefixes: ['/cli/'] },
   { label: 'Schema', href: '/schema/', prefixes: ['/schema/'] },
+  { label: 'Figma', href: '/plugin/', prefixes: ['/plugin/'] },
+  { label: 'Command Line', href: '/cli/', prefixes: ['/cli/'] },
   {
     label: 'Code',
     href: '/cli/commands/react/',
-    prefixes: ['/cli/commands/react/', '/cli/commands/webcomponents/', '/roles/', '/actions/'],
+    prefixes: [
+      '/cli/commands/react/',
+      '/cli/commands/webcomponents/',
+      '/code/',
+      '/roles/',
+      '/actions/',
+    ],
   },
   // Points at the Settings section home for now, per explicit instruction.
   // TODO: point to the future consolidated Docs section landing page once Settings+Guides are merged.
@@ -35,13 +41,16 @@ const SECTION_LINKS = [
 
 const pathname = Astro.url.pathname;
 
+// A splash page (the homepage) renders the sidebar but starts collapsed, so
+// the hero is not competing with a nav nobody asked for.
+const collapsedByDefault = !Astro.props.hasSidebar;
+
 const matchLength = (link: (typeof SECTION_LINKS)[number]) =>
   Math.max(0, ...link.prefixes.map((prefix) => (pathname.startsWith(prefix) ? prefix.length : 0)));
 const best = Math.max(...SECTION_LINKS.map(matchLength));
 
-// Slack has no confirmed workspace URL for Specs 2 yet.
-// TODO: set real Slack workspace URL for Specs 2.
-const SLACK_URL = '#';
+const SLACK_URL =
+  'https://join.slack.com/t/directededges-plugins/shared_invite/zt-3noz35ayr-ZMl1vUoVmhS9latJaHXsSQ';
 
 // Real Slack mark (the four-lobe pinwheel), sourced from Slack.svg,
 // viewBox 0 0 123 123. Colors set to currentColor to match other icons.
@@ -57,13 +66,19 @@ const SLACK_PATHS = [
 ];
 ---
 
-<script is:inline>
+<script is:inline define:vars={{ collapsedByDefault }}>
   // Runs before the sidebar renders so a collapsed state applies without a flash.
   try {
-    if (localStorage.getItem('specs:sidebar-collapsed') === 'true') {
+    const stored = localStorage.getItem('specs:sidebar-collapsed');
+    const collapsed = stored === null ? collapsedByDefault : stored === 'true';
+    if (collapsed) {
       document.documentElement.setAttribute('data-sidebar-collapsed', '');
     }
-  } catch {}
+  } catch {
+    if (collapsedByDefault) {
+      document.documentElement.setAttribute('data-sidebar-collapsed', '');
+    }
+  }
 </script>
 
 <div class="header sl-flex">
@@ -180,10 +195,6 @@ const SLACK_PATHS = [
   @media (min-width: 50rem) {
     .sidebar-toggle {
       display: flex;
-    }
-    /* No sidebar to toggle on splash pages. */
-    :global(html:not([data-has-sidebar])) .sidebar-toggle {
-      display: none;
     }
   }
 
