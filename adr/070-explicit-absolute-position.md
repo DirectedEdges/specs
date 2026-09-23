@@ -3,6 +3,7 @@
 **Branch**: `070-explicit-absolute-position`
 **Created**: 2026-08-17
 **Status**: ACCEPTED
+**Summary**: Children of non-auto-layout parents always emit `position: ABSOLUTE` explicitly, so consumers never infer positioning from a suppressed `layoutMode`.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none — clarifies the presence contract introduced by ADR-041)*
 
