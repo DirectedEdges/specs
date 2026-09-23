@@ -5,11 +5,76 @@ description: "The working component: markup from the layout tree, variant attrib
 
 <script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
 
+import Figure from '../../../components/Figure.astro';
+import textInputFixture from '../../../assets/TextInputFixture.png';
+
 The renderable component — `scaffold.tsx` for React, `scaffold.ts` for Web Components. It imports the [contract](/code/contract/) and the [stylesheet](/code/styles/), renders the merged layout tree as BEM-classed markup, and gates each element on the visibility rule its spec declares.
 
 It is regenerated on every run. An implementation you own goes in a sibling `component.tsx` / `component.ts`, which no command writes and the stories import in the scaffold's place when it exists.
 
 The examples below are a fully annotated component — a text input with a states convention configured and a `textbox` role on its value container. That is the richest form the file takes; [what changes the output](#what-changes-the-output) at the end of this page says which input is responsible for which part, and what is left when one of them is absent.
+
+## Source
+
+The same component, in the two surfaces it passes through before a scaffold exists.
+
+### Figma
+
+<Figure
+  src={textInputFixture}
+  alt="A text input component in Figma with role badges annotating its layers — label, description and indicator on the form label, textbox on the container, value, placeholder, indicator on each icon, and errormessage on the error instance — beside the properties panel listing State, Disabled, Focus, Read only, Validation, value, Placeholder, Start icon, End icon, Accessibility label, Name and Max length"
+  maxWidth="none"
+  caption="Roles annotate layers; the properties panel is what becomes the contract."
+/>
+
+Two annotations, doing two jobs. The badges name what each layer *is* — a layer called `Container` is a textbox, one called `Value` is the value it holds — which is what a scaffold cannot infer from a name or a fill. The properties panel is the variant and text properties, which become the props.
+
+### Specs
+
+`specs generate` writes both into `api.yaml`. The `anatomy` block is the layer tree with its roles; `props` (not shown) is the panel.
+
+```yaml
+anatomy:
+  root:
+    type: container
+  formLabel:
+    type: instance
+    role:
+      - label
+      - description
+      - indicator
+    instanceOf: formLabel
+  container:
+    type: container
+    role: textbox
+  startIcon:
+    type: glyph
+    role: indicator
+  value:
+    type: text
+    role: value
+  placeholder:
+    type: text
+    role: placeholder
+  endIcon:
+    type: glyph
+    role: indicator
+  formErrorMessage:
+    type: instance
+    role: errormessage
+    detectedIn: State=Rest, Validation=Error
+    instanceOf: formErrorMessage
+```
+
+| Field | What the scaffold does with it |
+|---|---|
+| The key | The `data-element` value and the BEM class suffix — `container` becomes `.text-input__container` |
+| `type` | Whether the element renders as a container, a text node, a glyph, or a call to another component |
+| `role` | The element emitted in its place, and the wiring around it. A list means one layer carries several |
+| `instanceOf` | Which component's scaffold to import and call |
+| `detectedIn` | The variant this element was found in — which becomes the conditional that shows it |
+
+Layout, spacing and every styled property are in `variants.yaml`, and go to the [stylesheet](/code/styles/) rather than here. The scaffold takes structure; the stylesheet takes appearance.
 
 ## React
 

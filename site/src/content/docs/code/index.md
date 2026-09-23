@@ -80,6 +80,8 @@ The seam is a sibling: an authored `component.tsx` (React) or `component.ts` (We
 
 A component with no `variants.yaml` is skipped with a warning rather than emitted empty — slot visibility and variant attributes both come from variant data.
 
+The [scaffold](/code/scaffold/#source) page shows one component in both surfaces — the annotated Figma layers, and the `anatomy` block `specs generate` writes from them.
+
 ## See Also
 
 - [`react`](/cli/commands/react/) and [`webcomponents`](/cli/commands/webcomponents/) — the commands, their options, and the free/Pro seams
