@@ -4,9 +4,19 @@ title: "Licensing"
 
 <script>document.querySelector('#_top').insertAdjacentHTML('afterbegin','<span class="sl-badge pro-badge pro-badge-hero">Pro</span>')</script>
 
-Specs works at two tiers: **Free** and **Pro**. Both tiers use the same configuration, read the same Figma files, and produce the same structure — the difference is how much of it is filled in.
+Specs works at two tiers: **Free** and **Pro**. Both read the same Figma files, honour the same configuration, and produce the same structure. The difference is how much of that structure is filled in — free output describes each component, Pro output connects it to your token system, its other components, and every state it can be in.
 
-Two parts of the toolchain read a license, and they read it independently:
+Everything is usable at the free tier. Nothing is time-limited, watermarked, or withheld until you pay; a free spec is a complete, valid spec, and a free React component renders.
+
+A Pro subscription is **$10/month**.
+
+- [Purchase Pro](https://buy.polar.sh/polar_cl_xnq7zeKLXunrhOIpfNwA56F4wIq2Y0lLNCKmb0hhYJH) via Polar — you'll receive your license keys by email at checkout
+- [Manage your subscription](https://polar.sh/directed-edges-llc/portal) from your Polar customer portal
+- Need help? Contact [nathan@specsplugin.com](mailto:nathan@specsplugin.com)
+
+## How it works
+
+A license key raises the tier of what a command produces. Two parts of the toolchain read one, and they read it independently.
 
 | Command | Licensed | What Pro adds |
 |---|---|---|
@@ -16,15 +26,9 @@ Two parts of the toolchain read a license, and they read it independently:
 
 Independently means what it says: `specs react` resolves its own entitlement from the same key sources rather than inheriting anything from a `generate` run. A Pro spec emitted by a free transform loses Pro code, and a free spec cannot be rescued by a licensed transform — there is nothing in it to compose.
 
-A Pro license can be [purchased via Polar](https://buy.polar.sh/polar_cl_xnq7zeKLXunrhOIpfNwA56F4wIq2Y0lLNCKmb0hhYJH). Once checkout is completed, you'll receive an email with license keys. From there you can manage the subscription via your Polar customer portal.
-
-- [Purchase Pro](https://buy.polar.sh/polar_cl_xnq7zeKLXunrhOIpfNwA56F4wIq2Y0lLNCKmb0hhYJH)
-- [Manage your subscription](https://polar.sh/directed-edges-llc/portal) via Polar
-- Need help? Contact [nathan@specsplugin.com](mailto:nathan@specsplugin.com)
+The plugin and the CLI take **separate keys**, purchased together and activated separately. [Activating a license](#activating-a-license) covers both.
 
 ## What You Get
-
-A Pro subscription is **$10/month** and includes:
 
 ### Plugin License
 
