@@ -207,11 +207,11 @@ export default defineConfig({
           badge: experimental,
           items: [
             { label: 'Overview', slug: 'versioning' },
-            { label: 'Figma Premerge Check', slug: 'versioning/figma-premerge' },
             { label: 'Change Classification', slug: 'versioning/change-classification' },
             { label: 'Version History', slug: 'versioning/history' },
             { label: 'Renames & Identity', slug: 'versioning/identity' },
             { label: 'Reports & Changelogs', slug: 'versioning/reports' },
+            { label: 'Figma Premerge Check', slug: 'versioning/figma-premerge' },
             { label: 'Commands', slug: 'cli/commands/version' },
           ],
         },
