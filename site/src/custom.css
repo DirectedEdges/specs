@@ -71,6 +71,49 @@
 	}
 }
 
+/* With the left nav collapsed, its column is free well before Starlight's
+   72rem TOC breakpoint — show the page nav from 50rem (800px) instead, the
+   same breakpoint where the top nav's section links appear and the header's
+   collapse toggle exists. Replicates Starlight's ≥72rem
+   TwoColumnContent/PageSidebar rules for the 50–72rem window: the TOC is a
+   fixed 15rem column and the content fills what remains, up to its max
+   width. */
+@media (min-width: 50rem) and (max-width: 71.9375rem) {
+	html[data-sidebar-collapsed][data-has-sidebar][data-has-toc] .lg\:sl-flex {
+		display: flex;
+	}
+	html[data-sidebar-collapsed][data-has-sidebar][data-has-toc] .right-sidebar-container {
+		display: block;
+		order: 2;
+		position: relative;
+		width: 15rem;
+		flex-shrink: 0;
+	}
+	html[data-sidebar-collapsed][data-has-sidebar][data-has-toc] .right-sidebar {
+		position: fixed;
+		top: 0;
+		width: 15rem;
+		height: 100vh;
+		padding-top: var(--sl-nav-height);
+		overflow-y: auto;
+		scrollbar-width: none;
+		border-inline-start: 1px solid var(--sl-color-gray-6);
+	}
+	html[data-sidebar-collapsed][data-has-sidebar][data-has-toc] .right-sidebar-panel {
+		display: block;
+	}
+	html[data-sidebar-collapsed][data-has-sidebar][data-has-toc] .right-sidebar-panel .sl-container {
+		width: calc(15rem - 2 * var(--sl-sidebar-pad-x));
+		max-width: none;
+	}
+	html[data-sidebar-collapsed][data-has-sidebar][data-has-toc] .main-pane {
+		--sl-content-margin-inline: auto 0;
+		--sl-content-width: 60rem;
+		order: 1;
+		width: calc(100% - 15rem);
+	}
+}
+
 /* Remove distinct surface color and borders from nav/sidebar */
 .header,
 nav.sidebar {

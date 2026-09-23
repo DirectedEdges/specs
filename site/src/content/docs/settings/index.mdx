@@ -109,7 +109,7 @@ error, not a fallback. See [Legacy single file](#legacy-single-file).
 
 ## What each file carries
 
-### `config/settings.yaml`
+### `settings.yaml`
 
 Choices about this run: where data is read from and written to, and the shape of the
 spec.
@@ -140,7 +140,7 @@ spec:
   invalidCombinations: true
 ```
 
-### `config/conventions/figma.yaml`
+### `conventions/figma.yaml`
 
 Facts about the Figma library — what its layer names mean.
 
@@ -158,7 +158,7 @@ subcomponents:
     - '{C} / _ / {S}'
 ```
 
-### `config/conventions/specs.yaml`
+### `conventions/specs.yaml`
 
 Facts about the spec's own props: which variant props are states, and which props
 carry an accessible name or a value.
@@ -175,7 +175,7 @@ accessibility:
   label: { prop: a11yLabel }
 ```
 
-### `config/conventions/react.yaml` and `web-components.yaml`
+### `conventions/react.yaml` and `web-components.yaml`
 
 Facts about each code platform: which of its components a promoted primitive
 becomes, and which prop receives styling nothing mapped.
@@ -190,7 +190,7 @@ primitives:
       content: text
 ```
 
-### `config/conventions/figma.primitives.yaml`
+### `conventions/figma.primitives.yaml`
 
 The promotion table: which design system component a raw layer stands for, and how
 its styles become that component's props. Not seeded by `specs init` — a workspace

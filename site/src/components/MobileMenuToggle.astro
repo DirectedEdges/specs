@@ -1,0 +1,105 @@
+---
+// Custom MobileMenuToggle override for Starlight.
+// Same behavior as the default (toggles the mobile sidebar via aria-expanded),
+// restyled to match the desktop sidebar toggle in the header: an unfilled
+// stroke hamburger at the inline start, before the site title, instead of the
+// default filled circle at the inline end.
+---
+
+<starlight-menu-button>
+	<button
+		aria-expanded="false"
+		aria-label={Astro.locals.t('menuButton.accessibleLabel')}
+		aria-controls="starlight__sidebar"
+		class="sl-flex md:sl-hidden"
+	>
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			aria-hidden="true"
+			class="menu-toggle-icon"
+		>
+			<path d="M3 5h18M3 12h18M3 19h18" />
+		</svg>
+	</button>
+</starlight-menu-button>
+
+<script>
+	class StarlightMenuButton extends HTMLElement {
+		btn = this.querySelector('button')!;
+
+		constructor() {
+			super();
+			// Toggle `aria-expanded` state when a user clicks the button.
+			this.btn.addEventListener('click', () => this.toggleExpanded());
+
+			// Close the menu when a user presses the escape key.
+			const parentNav = this.closest('nav');
+			if (parentNav) {
+				parentNav.addEventListener('keyup', (e) => this.closeOnEscape(e));
+			}
+		}
+
+		setExpanded(expanded: boolean) {
+			this.setAttribute('aria-expanded', String(expanded));
+			document.body.toggleAttribute('data-mobile-menu-expanded', expanded);
+		}
+
+		toggleExpanded() {
+			this.setExpanded(this.getAttribute('aria-expanded') !== 'true');
+		}
+
+		closeOnEscape(e: KeyboardEvent) {
+			if (e.code === 'Escape') {
+				this.setExpanded(false);
+				this.btn.focus();
+			}
+		}
+	}
+
+	customElements.define('starlight-menu-button', StarlightMenuButton);
+</script>
+
+<style>
+	button {
+		position: fixed;
+		top: calc((var(--sl-nav-height) - var(--sl-menu-button-size)) / 2);
+		inset-inline-start: var(--sl-nav-pad-x);
+		z-index: var(--sl-z-index-navbar);
+		align-items: center;
+		justify-content: center;
+		border: 0;
+		width: var(--sl-menu-button-size);
+		height: var(--sl-menu-button-size);
+		padding: 0;
+		background: transparent;
+		color: var(--sl-color-white);
+		cursor: pointer;
+	}
+	button:hover {
+		opacity: 0.66;
+	}
+	[aria-expanded='true'] button {
+		color: var(--sl-color-text-accent);
+	}
+	.menu-toggle-icon {
+		width: 1.25rem;
+		height: 1.25rem;
+	}
+</style>
+
+<style is:global>
+	[data-mobile-menu-expanded] {
+		overflow: hidden;
+	}
+
+	@media (min-width: 50rem) {
+		[data-mobile-menu-expanded] {
+			overflow: auto;
+		}
+	}
+</style>

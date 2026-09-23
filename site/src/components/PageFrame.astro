@@ -1,11 +1,16 @@
 ---
 import MobileMenuToggle from 'virtual:starlight/components/MobileMenuToggle';
+import Sidebar from 'virtual:starlight/components/Sidebar';
 import type { Props } from '@astrojs/starlight/props';
 
 // Starlight renders the sidebar only when `hasSidebar` — false for splash
 // pages. The homepage is a splash page, and a reader who lands there should
 // still be able to reach the nav, so it is always rendered and the header's
 // hamburger toggles it. On a splash page it starts collapsed (see Header).
+// Starlight's Page component also guards the sidebar *slot* with `hasSidebar`,
+// so on a splash page the slot arrives empty (present but with no content,
+// which also suppresses slot fallbacks) — render the same Sidebar directly
+// instead (`Astro.props.sidebar` is computed for every page).
 const { hasSidebar } = Astro.props;
 ---
 
@@ -15,7 +20,7 @@ const { hasSidebar } = Astro.props;
 		<MobileMenuToggle {...Astro.props} />
 		<div id="starlight__sidebar" class="sidebar-pane">
 			<div class="sidebar-content sl-flex">
-				<slot name="sidebar" />
+				{hasSidebar ? <slot name="sidebar" /> : <Sidebar {...Astro.props} />}
 			</div>
 		</div>
 	</nav>
@@ -37,12 +42,10 @@ const { hasSidebar } = Astro.props;
 		height: var(--sl-nav-height);
 		border-bottom: 1px solid var(--sl-color-hairline-shade);
 		padding: var(--sl-nav-pad-y) var(--sl-nav-pad-x);
-		padding-inline-end: var(--sl-nav-pad-x);
+		/* The mobile menu button sits fixed at the inline start, before the
+		   site title — make room for it. */
+		padding-inline-start: calc(var(--sl-nav-pad-x) + var(--sl-menu-button-size) + 0.5rem);
 		background-color: var(--sl-color-bg-nav);
-	}
-
-	:global([data-has-sidebar]) .header {
-		padding-inline-end: calc(var(--sl-nav-gap) + var(--sl-nav-pad-x) + var(--sl-menu-button-size));
 	}
 
 	.sidebar-pane {
@@ -81,8 +84,9 @@ const { hasSidebar } = Astro.props;
 	}
 
 	@media (min-width: 50rem) {
-		:global([data-has-sidebar]) .header {
-			padding-inline-end: var(--sl-nav-pad-x);
+		.header {
+			/* The mobile menu button is gone; the header's own toggle is in flow. */
+			padding-inline-start: var(--sl-nav-pad-x);
 		}
 		/* A splash page has no [data-has-sidebar], so Starlight never insets
 		   its main frame. While its sidebar is open, inset it here. */

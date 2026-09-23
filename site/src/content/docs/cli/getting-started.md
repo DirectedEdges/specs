@@ -14,11 +14,12 @@ Claude will handle install, config, token setup, fetch, and your first generate 
 :::
 
 **Quick nav:**
-- [Step 1: Install](#step-1-install)
-- [Step 2: Set up your environment](#step-2-set-up-your-environment)
-- [Step 3: Fetch the Figma file](#step-3-fetch-the-figma-file)
-- [Step 4: Scan and select components](#step-4-scan-and-select-components)
-- [Step 5: Generate specs](#step-5-generate-specs)
+1. [Install](#step-1-install)
+2. [Set up your environment](#step-2-set-up-your-environment)
+3. [Fetch the Figma file](#step-3-fetch-the-figma-file)
+4. [Scan and select components](#step-4-scan-and-select-components)
+5. [Generate specs](#step-5-generate-specs)
+6. [Generate code (optional)](#step-6-generate-code-optional)
 
 ---
 
@@ -47,6 +48,7 @@ This creates the split configuration, each file answering one question:
 
 - **`config/conventions/figma.yaml`** — facts about the Figma library: naming patterns, glyph and subcomponent matching, how images are expressed. See [Conventions](/schema/conventions/).
 - **`config/conventions/specs.yaml`** — conventions about the spec itself, like the [states](/settings/states/) classification.
+- **`config/conventions/react.yaml`** and **`config/conventions/web-components.yaml`** — what each code platform calls the things the spec models. Scaffolded fully commented, so they're inert until you uncomment a binding. See [Conventions](/schema/conventions/).
 - **`config/settings.yaml`** — choices about the run: sources, spec output, assets. See [Settings](/schema/settings/).
 
 ### Add your Figma file key
@@ -141,11 +143,9 @@ specs generate
 
 Once generated, open the specs file to review the results!
 
-Alternatively, you can generate specs for one or some components.
-
 ### Single component
 
-Generate a spec for one component directly from fetched data — useful when setting up or iterating:
+Alternatively, generate a spec for one component directly from fetched data — useful when setting up or iterating:
 
 ```bash
 specs generate data/library.file.json \
@@ -153,17 +153,18 @@ specs generate data/library.file.json \
   -o specs/button.yaml
 ```
 
-### Subset of components
+`-c` takes a single component. To generate a small subset without editing the manifest, run the command once per component.
 
-Generate specs for a few components without creating a manifest:
+## Step 6: Generate code (optional)
+
+Specs are also the input to the experimental code generators. Each command emits a working component for every spec — its contract, stylesheet, and Storybook stories — into a directory shaped like the package it could become:
 
 ```bash
-specs generate data/library.file.json \
-  -c "Button" \
-  -o specs/button.yaml
+specs react            # React components into react/
+specs webcomponents    # Lit custom elements into webcomponents/
 ```
 
-`-c` takes a single component; run the command once per component to generate several.
+No arguments — the target is the command. Both read the default file layout `generate` writes (the split flags at their `true` defaults), and both write the same platform-neutral `assets/cssvars/` tree, so running both is not a conflict. See [`react`](/cli/commands/react/) and [`webcomponents`](/cli/commands/webcomponents/) for what each file carries.
 
 ##  Operationalize: CI/CD pipeline
 
@@ -197,6 +198,7 @@ jobs:
 
       - run: |
           git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
           git add specs/
           git commit -m "Update specs" || true
           git push
