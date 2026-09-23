@@ -47,6 +47,7 @@ This creates the split configuration, each file answering one question:
 
 - **`config/conventions/figma.yaml`** — facts about the Figma library: naming patterns, glyph and subcomponent matching, how images are expressed. See [Conventions](/schema/conventions/).
 - **`config/conventions/specs.yaml`** — conventions about the spec itself, like the [states](/settings/states/) classification.
+- **`config/conventions/react.yaml`** and **`config/conventions/web-components.yaml`** — what each code platform calls the things the spec models. Scaffolded fully commented, so they're inert until you uncomment a binding. See [Conventions](/schema/conventions/).
 - **`config/settings.yaml`** — choices about the run: sources, spec output, assets. See [Settings](/schema/settings/).
 
 ### Add your Figma file key
@@ -141,11 +142,9 @@ specs generate
 
 Once generated, open the specs file to review the results!
 
-Alternatively, you can generate specs for one or some components.
-
 ### Single component
 
-Generate a spec for one component directly from fetched data — useful when setting up or iterating:
+Alternatively, generate a spec for one component directly from fetched data — useful when setting up or iterating:
 
 ```bash
 specs generate data/library.file.json \
@@ -153,17 +152,7 @@ specs generate data/library.file.json \
   -o specs/button.yaml
 ```
 
-### Subset of components
-
-Generate specs for a few components without creating a manifest:
-
-```bash
-specs generate data/library.file.json \
-  -c "Button" \
-  -o specs/button.yaml
-```
-
-`-c` takes a single component; run the command once per component to generate several.
+`-c` takes a single component. To generate a small subset without editing the manifest, run the command once per component.
 
 ##  Operationalize: CI/CD pipeline
 
@@ -197,6 +186,7 @@ jobs:
 
       - run: |
           git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
           git add specs/
           git commit -m "Update specs" || true
           git push
