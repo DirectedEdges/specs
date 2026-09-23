@@ -96,7 +96,7 @@ specs version restore dsButton 0.3.0 --out ./tmp     # concern files into a dire
 
 ## `specs version figmapremerge`
 
-Pre-merge impact report for a Figma branch, from just its URL: the command derives the main file from the branch, downloads both sides, generates specs from each, and grades the differences. No version history involved, so it works before anything is versioned. Report anatomy is covered in [Reports & Changelogs](/versioning/reports/).
+Pre-merge impact report for a Figma branch, from just its URL: the command derives the main file from the branch, downloads both sides, generates specs from each, and grades the differences. No version history involved, so it works before anything is versioned. The process end to end is covered in [Figma premerge check](/versioning/figma-premerge/), and the report format in [Reports & Changelogs](/versioning/reports/).
 
 ```bash
 specs version figmapremerge "https://www.figma.com/design/<mainKey>/branch/<branchKey>/..."

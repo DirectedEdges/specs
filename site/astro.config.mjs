@@ -202,6 +202,7 @@ export default defineConfig({
           collapsed: true,
           items: [
             { label: 'Overview', slug: 'versioning' },
+            { label: 'Figma Premerge Check', slug: 'versioning/figma-premerge' },
             { label: 'Change Classification', slug: 'versioning/change-classification' },
             { label: 'Version History', slug: 'versioning/history' },
             { label: 'Renames & Identity', slug: 'versioning/identity' },

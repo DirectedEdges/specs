@@ -9,11 +9,13 @@ Versioning produces three human-readable outputs. All of them are **fully genera
 
 | Output | Compares | Question it answers |
 |--------|----------|---------------------|
-| **Pre-merge report** — `specs version figmapremerge` | A Figma branch against main, right now | "What impact does merging this feature have?" |
+| **Pre-merge report** — [`figmapremerge`](/versioning/figma-premerge/) | A Figma branch against main, right now | "What impact does merging this feature have?" |
 | **Pre-release report** — `specs version report` | This release against the last one, over time | "What does this release change, at a glance?" |
 | **Release changelog** — same command | Same as pre-release | "Every change, itemized, with migrations" |
 
-The pre-merge report needs only the Figma branch's URL: the command derives the main file, downloads and generates specs from both sides, and diffs the two trees directly — no history involved, so it works before anything is versioned. Each run lands in its own dated folder under `versions/diffs/` — the report, the change data, and the impacted components' specs. The pre-release report and changelog read accumulated [ledger](/versioning/history/) entries instead. Everything downstream of that input — the diff engine, the [grading rules](/versioning/change-classification/), the renderer — is identical, so a change is described the same way wherever it appears.
+What differs between them is only the input. The pre-merge report diffs two live Figma files and needs no history at all — see [Figma premerge check](/versioning/figma-premerge/) for how it derives both sides from one URL and where it writes. The pre-release report and changelog read accumulated [ledger](/versioning/history/) entries instead.
+
+Everything downstream of that input — the diff engine, the [grading rules](/versioning/change-classification/), the renderer — is identical, so a change is described the same way wherever it appears.
 
 The pre-release report and the changelog are two renderings of **one change dataset**: the report is the glance layer, the changelog is the itemized layer. Generated from the same data, they cannot disagree.
 
@@ -57,6 +59,7 @@ The grading rules ship as data inside the CLI, and three things read them: `spec
 
 ## See Also
 
+- [Figma premerge check](/versioning/figma-premerge/) — the pre-merge report end to end
 - [Change Classification](/versioning/change-classification/) — the rules behind every grade
 - [Version History](/versioning/history/) — the ledger the release outputs read from
 - [Versioning Overview](/versioning/) — where reports fit in the workflow

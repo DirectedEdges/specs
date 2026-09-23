@@ -11,7 +11,7 @@ Versioning earns its place the moment anything downstream depends on your specs 
 
 | Moment | Question | Versioning command(s) |
 |--------|----------|-----------------------|
-| Before merging a Figma branch | "What impact does merging this feature have?" | `figmapremerge` — a [pre-merge report](/versioning/reports/) from just the branch URL |
+| Before merging a Figma branch | "What impact does merging this feature have?" | `figmapremerge` — a [premerge check](/versioning/figma-premerge/) from just the branch URL |
 | Before shipping a release | "What does this release change, at a glance?" | `report` — a [pre-release report](/versioning/reports/) covering everything since the last release |
 | Shipping a release | "How do I record this as the next version?" | `cut` — grades every change, decides the version, and stores the release in full; `tag` marks it in git |
 | After shipping | "What exactly changed, and how do I migrate?" | `report` — the final release report paired with an itemized [changelog](/versioning/reports/) carrying rename migrations, both also stored in the version's folder |
