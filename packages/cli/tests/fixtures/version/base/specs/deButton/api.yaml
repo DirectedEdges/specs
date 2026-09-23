@@ -1,0 +1,85 @@
+title: DE Button
+anatomy:
+  root:
+    type: container
+    role: button
+  startIcon:
+    type: glyph
+  label:
+    type: text
+    role: label
+  focusRing:
+    type: container
+    detectedIn: Appearance=Filled, Size=Small, Disabled=false, State=Rest, Focus=true
+props:
+  appearance:
+    type: string
+    default: Filled
+    enum:
+      - Filled
+      - Outline
+      - Text
+    nullable: false
+  size:
+    type: string
+    default: Small
+    enum:
+      - Medium
+      - Small
+      - Large
+    nullable: false
+  disabled:
+    type: boolean
+    default: false
+    $extensions:
+      com.figma:
+        type: VARIANT
+  state:
+    type: string
+    default: Rest
+    enum:
+      - Rest
+      - Hover
+      - Pressed
+    nullable: false
+  focus:
+    type: boolean
+    default: false
+    $extensions:
+      com.figma:
+        type: VARIANT
+  label:
+    type: string
+    examples:
+      - "{Label}"
+  startIconVisible:
+    type: boolean
+    default: false
+  accessibilityLabel:
+    type: string
+    examples:
+      - Accessibility label
+    $extensions:
+      com.figma:
+        type: TEXT
+        source:
+          kind: codeOnlyProp
+          layer: Accessibility label
+metadata:
+  source:
+    pageId: 1581:2982
+    nodeId: 5641:6911
+    nodeType: COMPONENT_SET
+  lastUpdated: 2026-09-20T14:50:46.659Z
+  concern: api
+invalidPropCombinations:
+  - state: Hover
+    focus: true
+  - state: Pressed
+    focus: true
+  - disabled: true
+    focus: true
+  - disabled: true
+    state: Hover
+  - disabled: true
+    state: Pressed

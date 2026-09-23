@@ -109,6 +109,8 @@ export default defineConfig({
             { label: 'cache', slug: 'cli/commands/cache', badge: experimental },
             { label: 'render', slug: 'cli/commands/render', badge: experimental },
             { label: 'migrate', slug: 'cli/commands/migrate' },
+            { label: 'version', slug: 'cli/commands/version' },
+            { label: 'skills', slug: 'cli/commands/skills' },
             {
               label: 'Analyze',
               collapsed: true,
@@ -121,6 +123,18 @@ export default defineConfig({
                 { label: 'keys', slug: 'cli/analyze/keys' },
               ],
             },
+          ],
+        },
+        {
+          label: 'Versioning',
+          collapsed: true,
+          items: [
+            { label: 'Overview', slug: 'versioning' },
+            { label: 'Change Classification', slug: 'versioning/change-classification' },
+            { label: 'Version History', slug: 'versioning/history' },
+            { label: 'Renames & Identity', slug: 'versioning/identity' },
+            { label: 'Reports & Changelogs', slug: 'versioning/reports' },
+            { label: 'Commands', slug: 'cli/commands/version' },
           ],
         },
         {

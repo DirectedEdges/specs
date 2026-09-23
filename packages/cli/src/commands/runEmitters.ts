@@ -17,7 +17,11 @@ import { platformOf } from '../Config/PlatformConventions.js';
 
 export const ERROR_CODES = { SUCCESS: 0, INVALID_ARGS: 2, FILE_ERROR: 3, GENERAL_ERROR: 1 };
 
-const WATCH_DEBOUNCE_MS = 300;
+// Editors commonly write a file two or three times per save, and a config edit
+// re-emits the whole catalogue — so a short debounce turns one Cmd-S into
+// overlapping full emits. Long enough to coalesce a save burst, short enough to
+// stay imperceptible between saving a spec and seeing the story update.
+const WATCH_DEBOUNCE_MS = 800;
 
 export interface EmitOptions {
   output?: string;

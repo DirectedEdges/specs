@@ -52,6 +52,8 @@ Registered in `createProgram()` (`src/index.ts`); flat files in
 | `analyze` | `AnalyzeCommand.ts` | Dependency/prop/styling/key analyzers |
 | `render` | `RenderCommand.ts` | Spec → Figma via bridge |
 | `bridge` | `BridgeCommand.ts` | start/stop/status for the daemon |
+| `version` | `VersionCommand.ts` | Spec workspace versioning: diff/history/bump/restore/premerge/report over `src/version/` (diff engine, rules-as-data classifier, ledgers, report renderer). Free tier |
+| `skills` | `SkillsCommand.ts` | Emits the canonical premerge/release orchestration skills into `.claude/skills/` |
 | `audit` | (inline alias) | Deprecated; rewrites argv to `scan` |
 
 ## Key nodes
@@ -64,6 +66,7 @@ Registered in `createProgram()` (`src/index.ts`); flat files in
 | `src/utilities/LicenseStatus.ts` | Reads engine-stamped license state; the CLI validates nothing |
 | `src/transforms/` | Open counterparts of transform modules (see drift note below) |
 | `src/Writers/` | Output *strategy* writers: single / component / concern / combined file |
+| `src/version/` | Versioning internals: `assemble` (concern files → component) → `diff` → `rules` classifier (rules-as-data in `semverRules.ts`, `--rules` overrides) → `bump`/`ledger` (`versions/<libVersion>/` folders + `ledgers/*.json`, no snapshots) → `report` renderer (premerge canon). Skill markdown emitted by `skills.ts` |
 | `src/Writers/RunMetadataFile.ts` | `latest.metadata.<format>` — a manifest run's facts, stated once (ADR-089). `RunMetadataFile.separate()` lifts them out of every spec and reduces each block to `source`; `RunMetadataReader.find()` reads the document back, looking in the spec's own directory then one level up |
 | `src/Render/SpecLoader.ts` | Spec discovery + loading for render. Rehydrates a reduced spec's run metadata here, at the one place every render input is loaded, so no reader downstream has to know the spec was reduced |
 | `tests/unit/config/ConfigLoader.test.ts` | The config feature suite — temp `config/` trees on disk |

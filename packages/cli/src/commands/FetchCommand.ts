@@ -717,7 +717,10 @@ export const Fetch = new Command('fetch')
           JSON.stringify({
             alias: entry.alias,
             key: entry.key,
-            fetch: entry.fetch,
+            // What this run actually downloaded, not what the source is
+            // configured for: a branch inherits its parent's kinds so the two
+            // payloads are comparable, and `--only` narrows that further.
+            fetch: entry.fetch.filter(wants),
             mainFileKey: entry.mainFileKey ?? null,
             parentAlias: entry.parentAlias ?? null,
             branchName: entry.branchName ?? null,
