@@ -13,7 +13,7 @@
 
 ## Role
 
-You are setting up Specs CLI for a user in the current working directory. Specs CLI generates component specifications from a Figma design system. Your job is to walk the user through the setup interactively, make every non-obvious decision *with* the user (not for them), and leave them with a working `config/` directory (`conventions.yaml`, `settings.yaml`, `pipeline.yaml`), a populated `.env`, and a generated spec file.
+You are setting up Specs CLI for a user in the current working directory. Specs CLI generates component specifications from a Figma design system. Your job is to walk the user through the setup interactively, make every non-obvious decision *with* the user (not for them), and leave them with a working `config/` directory (a `conventions/` folder plus `settings.yaml`), a populated `.env`, and a generated spec file.
 
 You must follow this document **top to bottom**. Do not skip steps. Do not batch multiple steps before checking in. After each numbered step, verify the step succeeded before moving on.
 
@@ -35,9 +35,11 @@ If they say no, ask them to `cd` and restart. Do not proceed.
 
 Run `ls -la`. If the directory has a `specs.config.yaml` or `specs.config.json`, that's a **pre-split configuration** (ADR-071). The CLI refuses to read it — `specs init` will refuse too — so it must be converted first:
 
-> "This directory has a `specs.config.yaml` from an earlier Specs CLI. I can run `specs migrate config` to convert it — it writes `config/conventions.yaml`, `config/settings.yaml`, and `config/pipeline.yaml`, and renames the old file to `.migrated`. Or should I stop so you can pick a different directory?"
+> "This directory has a `specs.config.yaml` from an earlier Specs CLI. I can run `specs migrate config` to convert it — it writes `config/conventions/` (per-platform files) and `config/settings.yaml`, and renames the old file to `.migrated`. Or should I stop so you can pick a different directory?"
 
-If they choose migration, continue to Step 1 to install the CLI, then run `specs migrate config` in place of Step 2 and show them the three generated files. Resume from Step 6 (secrets) — the migrated files already carry their sources and settings, so confirm rather than re-ask.
+If they choose migration, continue to Step 1 to install the CLI, then run `specs migrate config` in place of Step 2 and show them the generated files. Resume from Step 6 (secrets) — the migrated files already carry their sources and settings, so confirm rather than re-ask.
+
+A leftover `config/conventions.yaml` (flat file) or `config/pipeline.yaml` is also pre-split residue: the conventions file makes the CLI refuse; the pipeline file is ignored with a warning (its transformers became `specs react` / `specs webcomponents`, and `specs analyze` takes its analyzers as arguments). `specs migrate config` cleans both up.
 
 If the directory has any of: `config/`, `.env`, `data/`, `specs/` — assume a previous setup exists:
 
@@ -76,17 +78,16 @@ Record which choice was made and use it consistently for the rest of the session
 
 ## Step 2. Scaffold the config
 
-Run `specs init` (or `npx @directededges/specs-cli init`). Verify a `config/` directory appears holding three files: `conventions.yaml`, `settings.yaml`, and `pipeline.yaml`.
+Run `specs init` (or `npx @directededges/specs-cli init`). Verify a `config/` directory appears holding a `conventions/` folder and `settings.yaml`:
 
-Each file answers one question:
-
-- `config/conventions.yaml` — **facts about the Figma library** (naming patterns, state classification). A wrong value here produces *incorrect* output.
+- `config/conventions/figma.yaml` — **facts about the Figma library** (naming patterns, glyph and subcomponent matching, images). A wrong value here produces *incorrect* output.
+- `config/conventions/specs.yaml` — **conventions about the spec itself** (states classification, accessibility props). Scaffolded fully commented; leave it alone during onboarding.
+- `config/conventions/react.yaml` and `config/conventions/web-components.yaml` — **what each code platform calls the things the spec models**. Scaffolded fully commented; leave them alone during onboarding.
 - `config/settings.yaml` — **choices about the run** (sources, format, file layout). A different value here produces merely *different* output. This is where most of the setup below goes.
-- `config/pipeline.yaml` — **work to run over the specs** (transformers, analyses). Scaffolded fully commented; leave it alone during onboarding.
 
 Tell the user:
 
-> "I've created a `config/` directory with three files: `conventions.yaml` (facts about your Figma library), `settings.yaml` (choices about this run — most of our setup goes here), and `pipeline.yaml` (optional downstream work — we'll skip it today). We'll fill in the sections together now."
+> "I've created a `config/` directory: `conventions/` holds facts about your Figma library plus commented-out spec and platform conventions, and `settings.yaml` holds choices about this run — most of our setup goes there. We'll fill in the sections together now."
 
 If `specs init` refuses because it found a `specs.config.yaml`, you skipped P2 — go back and run `specs migrate config` first.
 
@@ -184,26 +185,28 @@ At this point, the `config/` directory should contain everything below. Every kn
 
 This is both a checklist (so the walkthrough's coverage can be audited) and an accurate snapshot of the file state before we tune anything.
 
-**`config/conventions.yaml`** — facts about the Figma library. The onboarding flow doesn't ask about these: the defaults suit a first setup, and getting them right means knowing how the library is authored, which the user can tune later.
+**`config/conventions/figma.yaml`** — facts about the Figma library. The file's name is the platform id (ADR-078), so its contents sit at the root with no wrapping key. The onboarding flow doesn't ask about these: the defaults suit a first setup, and getting them right means knowing how the library is authored, which the user can tune later.
 
 ```yaml
-figma:
-  subcomponents:                       # DEFAULT — subcomponent detection on with a common pattern
-    match:
-      - '{C} / _ / {S}'
-    # scope: NESTED                    # OMITTED — optional; defaults to NESTED when the block is present
-    # exclude: ['...']                 # OMITTED — optional
-  # naming: NONE                       # OMITTED — opt-in; the file's naming convention (SENTENCE | TITLE)
-  # glyphs:                            # OMITTED — opt-in; absence = glyph detection off
-  #   match: 'DS Icon Glyph / {i}'
-  # codeOnlyProps:                     # OMITTED — opt-in; absence = code-only prop extraction off
-  #   match: 'Code only props'
-  # images: { ... }                    # OMITTED — opt-in; absence = image detection off
-  # instanceExamples: { ... }          # OMITTED — opt-in (Pro)
-  slotConstraints: false               # DEFAULT — opt-in advanced feature
-  # inferNumberProps: false            # OMITTED — opt-in advanced feature
-  # states: { ... }                    # OMITTED — opt-in; classifies variant props as semantic states
+# naming: NONE                         # OMITTED — opt-in; the file's naming convention (SENTENCE | TITLE)
+# glyphs:                              # OMITTED — opt-in; absence = glyph detection off
+#   match: 'DS Icon Glyph / {i}'
+# codeOnlyProps:                       # OMITTED — opt-in; absence = code-only prop extraction off
+#   match: 'Code only props'
+subcomponents:                         # DEFAULT — subcomponent detection on with a common pattern
+  match:
+    - '{C} / _ / {S}'
+  # scope: NESTED                      # OMITTED — optional; defaults to NESTED when the block is present
+  # exclude: ['...']                   # OMITTED — optional
+# instanceExamples: { ... }            # OMITTED — opt-in (Pro)
+# images: { ... }                      # OMITTED — opt-in; absence = image detection off
+slotConstraints: false                 # DEFAULT — opt-in advanced feature
+# inferNumberProps: false              # OMITTED — opt-in advanced feature
 ```
+
+**`config/conventions/specs.yaml`** — conventions about the spec itself, scaffolded fully commented (**OMITTED** throughout): `states` (classify variant props as semantic states), `accessibility`, and `value`. Nothing in onboarding touches it.
+
+**`config/conventions/react.yaml`** / **`config/conventions/web-components.yaml`** — platform primitive bindings, scaffolded fully commented (**OMITTED** throughout). Nothing in onboarding touches them.
 
 **`config/settings.yaml`** — choices about the run:
 
@@ -221,25 +224,25 @@ spec:
   directory: ./specs                   # DEFAULT
   format: JSON                         # ASKED-5a (Essentials) → YAML | JSON
   keys: SAFE                           # ASKED-5b (Essentials) → SAFE | CAMEL | KEBAB | SNAKE | PASCAL | TRAIN
-  tokens: TOKEN                        # ASKED-5d (Complete)   → TOKEN | TOKEN_NAME | FIGMA_NAME | TOKEN_FIGMA_EXTENSIONS | CUSTOM
   layout: LAYOUT                       # ASKED-5e (Complete)   → LAYOUT | PARENT_CHILDREN | BOTH
+  tokens: TOKEN                        # ASKED-5d (Complete)   → TOKEN | TOKEN_NAME | FIGMA_NAME | TOKEN_FIGMA_EXTENSIONS | CUSTOM | FIGMA_SYNTAX_WEB | FIGMA_SYNTAX_IOS | FIGMA_SYNTAX_ANDROID
   color: HEX                           # DEFAULT
   variantDepth: 9999                   # DEFAULT — unlimited
   details: LAYERED                     # DEFAULT — compact diff-from-default output
+  # collapsePrimitiveWrapper: false    # OMITTED — opt-in advanced feature
   # invalidVariants: false             # ASKED-5f (Complete)
   # invalidCombinations: true          # ASKED-5f (Complete)
   # emptyVariants: false               # OMITTED — opt-in edge case
-  splitComponents: true                # ASKED-5c (Essentials) — file layout on disk
-  splitConcerns: true                  # ASKED-5c
-  useSubfolders: true                  # ASKED-5c
+  # defaultSlotContent: false          # OMITTED — opt-in (Pro)
+  # splitComponents: true              # ASKED-5c (Essentials) — file layout on disk; commented at its true default
+  # splitConcerns: true                # ASKED-5c
+  # useSubfolders: true                # ASKED-5c
 
 # assets:                              # OMITTED — opt-in shared-assets location
 #   directory: ./assets
 ```
 
-**`config/pipeline.yaml`** — work to run over the specs. Scaffolded fully commented (**OMITTED** throughout); nothing in onboarding touches it.
-
-If the user later wants to enable anything marked **OMITTED**, point them at the [Settings Reference](https://www.specsplugin.com/settings/) — those features are opt-in because either (a) a convention that isn't declared isn't processed — absence *is* the off-switch (`glyphs`, `codeOnlyProps`, `images`, `instanceExamples`, `states`), or (b) they're advanced tuning knobs rarely needed in a first setup (`slotConstraints`, `inferNumberProps`, `emptyVariants`).
+If the user later wants to enable anything marked **OMITTED**, point them at the [Settings Reference](https://www.specsplugin.com/settings/) — those features are opt-in because either (a) a convention that isn't declared isn't processed — absence *is* the off-switch (`glyphs`, `codeOnlyProps`, `images`, `instanceExamples`, `states`, the platform bindings), or (b) they're advanced tuning knobs rarely needed in a first setup (`slotConstraints`, `inferNumberProps`, `collapsePrimitiveWrapper`, `emptyVariants`).
 
 ---
 
@@ -283,15 +286,15 @@ For every prompt below: ask, record the answer, write it to `config/settings.yam
 >
 > Common presets:
 >
-> - **One file, done** → all three **false** (default).
-> - **Everything downstream** (`transform`, `analyze`, `render`) → leave all three at their `true` default.
+> - **Everything downstream** (`react`, `webcomponents`, `analyze`, `render`) → leave all three at their `true` default.
+> - **One file, done** → all three **false**.
 > - **Component-level PRs** → `splitComponents: true`, others false.
 > - **Large library, namespaced** → `splitComponents: true` + `useSubfolders: true`.
 > - **API-first / backend-frontend split** → `splitComponents: true` + `splitConcerns: true`.
 >
 > Which preset (or custom combination)?"
 
-Update the three flags in the `spec:` section of `config/settings.yaml` in place — `specs init` already wrote them as `false`:
+`specs init` scaffolds the three flags commented out at their `true` defaults. If the user keeps the defaults, touch nothing; otherwise uncomment and set only the flags whose answer differs:
 
 ```yaml
 spec:
@@ -316,6 +319,7 @@ spec:
 > - **TOKEN_NAME** — just the name (`primary`), no collection prefix.
 > - **FIGMA_NAME** — raw Figma variable path as-is.
 > - **TOKEN_FIGMA_EXTENSIONS** — token with extra Figma-specific metadata.
+> - **FIGMA_SYNTAX_WEB / FIGMA_SYNTAX_IOS / FIGMA_SYNTAX_ANDROID** — the variable's platform code syntax as authored in Figma.
 > - **CUSTOM** — for advanced custom token mappings (requires `specs applyCustomTokens`; skip unless you're explicitly doing this).
 >
 > Recommended: **TOKEN**."
@@ -479,7 +483,7 @@ Verify:
 
 1. Command exits 0.
 2. The output files exist in `./specs/` (or the configured `spec.directory`) and are non-empty.
-3. Peek at the first ~30 lines of one file to sanity-check: it should start with `components:` and show at least one component's structure.
+3. Peek at the first ~30 lines of one file to sanity-check. With the default split layout, each component has its own folder (e.g. `specs/button/`) holding `api` and `variants` files, and the api file opens with the component's `title:` and `anatomy:`. If the user chose the single-file layout in 5c, the one library file starts with `components:` instead.
 
 ---
 
@@ -487,18 +491,19 @@ Verify:
 
 Summarize what exists now:
 
-- `config/` — `conventions.yaml`, `settings.yaml`, `pipeline.yaml` — project config, **safe to commit**.
+- `config/` — the `conventions/` folder and `settings.yaml` — project config, **safe to commit**.
 - `.gitignore` — contains `.env`.
 - `.env` — secrets, **never commit**.
 - `data/` — raw Figma payloads. Usually gitignored; ask the user if unsure.
 - `data/<source>.manifest.md` — manifest, **commit** (it's the curated source of truth). Note: `data/` is often gitignored wholesale — if so, make sure the manifest is explicitly un-ignored (e.g., `!data/*.manifest.md`) so this file still gets tracked.
-- `specs/<source>.yaml` — generated specs, **commit** so PRs show spec diffs when design changes.
+- `specs/` — generated specs (per-component folders by default, or a single library file), **commit** so PRs show spec diffs when design changes.
 
 Suggest immediate next steps:
 
 - Re-run `specs fetch && specs generate` anytime the Figma file updates.
 - See the [Workflows](https://www.specsplugin.com/cli/workflows/) guide for CI/CD automation.
 - Enable Pro features later by adding `SPECS_LICENSE_KEY` to `.env`.
+- When the library evolves, [`specs version`](https://www.specsplugin.com/cli/commands/version/) compares versions, classifies changes, and generates reports and changelogs; [`specs skills`](https://www.specsplugin.com/cli/commands/skills/) installs the AI orchestration skills that sequence those workflows.
 
 Do **not** offer to `git init`, `git add`, or `git commit` unless the user asks.
 
