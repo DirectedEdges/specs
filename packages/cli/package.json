@@ -21,10 +21,10 @@
     "test": "cd ../.. && vitest -c vitest.config.ts packages/cli/tests"
   },
   "dependencies": {
-    "@directededges/react-from-specs": "^0.2.0",
-    "@directededges/webcomponents-from-specs": "^0.2.0",
-    "@directededges/specs-schema": "file:../../../specs/packages/schema",
-    "@directededges/specs-from-figma": "file:../../../specs-from-figma/packages/specs-from-figma",
+    "@directededges/react-from-specs": "^0.3.0",
+    "@directededges/webcomponents-from-specs": "^0.3.0",
+    "@directededges/specs-schema": "^0.34.0",
+    "@directededges/specs-from-figma": "^0.33.0",
     "commander": "^11.1.0",
     "fs-extra": "^11.2.0",
     "tslib": "^2.6.2",

@@ -5,7 +5,7 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.31.0] - Unreleased
+## [0.31.0] - 2026-09-23
 
 **The spec workspace now versions itself.** `specs version` grades every change, keeps full history under `versions/`, and generates the release report and changelog — all in the free tier.
 
@@ -24,9 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`specs version tag` creates the annotated library git tag for any cut version**, at cut time or later, from the recorded history — never pushed.
 - **`specs skills install` emits the premerge and release orchestration skills into `.claude/skills/`**, overwriting on refresh so the skills always match the CLI that ships them.
 
-### Changed
+### Dependency updates
 
-### Removed
+- `@directededges/specs-schema` ^0.34.0 — specs name disallowed prop combinations `invalidPropCombinations`, carried in `api.yaml`, and an element carrying positioning offsets always declares `position: ABSOLUTE`, so placement reads without consulting the parent's layout mode.
+- `@directededges/specs-from-figma` ^0.33.0 — generated specs emit the renamed `invalidPropCombinations` key; entries and gating are unchanged.
+- `@directededges/react-from-specs` ^0.3.0 and `@directededges/webcomponents-from-specs` ^0.3.0 — generated components no longer reference parts that were never drawn: ids referenced by `htmlFor` or `aria-describedby` always exist, collapsed controls take their name from the nominated accessibility prop, form controls emit the accessible name they resolved, and repeated indicators each render on the side the layout drew them. A rate-limited license check no longer locks a watch session into failure until restart.
 
 
 ## [0.30.0] - 2026-09-20
