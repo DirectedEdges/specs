@@ -72,11 +72,13 @@
 }
 
 /* With the left nav collapsed, its column is free well before Starlight's
-   72rem TOC breakpoint — show the page nav from 62.5rem (1000px) instead.
-   Replicates Starlight's ≥72rem TwoColumnContent/PageSidebar rules for the
-   62.5–72rem window: the TOC is a fixed 18.75rem column and the content
-   fills what remains, up to its max width. */
-@media (min-width: 62.5rem) and (max-width: 71.9375rem) {
+   72rem TOC breakpoint — show the page nav from 50rem (800px) instead, the
+   same breakpoint where the top nav's section links appear and the header's
+   collapse toggle exists. Replicates Starlight's ≥72rem
+   TwoColumnContent/PageSidebar rules for the 50–72rem window: the TOC is a
+   fixed 18.75rem column and the content fills what remains, up to its max
+   width. */
+@media (min-width: 50rem) and (max-width: 71.9375rem) {
 	html[data-sidebar-collapsed][data-has-sidebar][data-has-toc] .lg\:sl-flex {
 		display: flex;
 	}
