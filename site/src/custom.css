@@ -56,6 +56,19 @@
 			var(--specs-toc-column) + (100% - var(--sl-content-width) - var(--specs-toc-column)) / 2
 		);
 	}
+
+	/* The TOC's inner container is sized from --sl-sidebar-width too, so the
+	   zeroed variable collapsed it to 0 and every entry wrapped one character
+	   per line. Same substitution. */
+	html[data-sidebar-collapsed] .right-sidebar-panel .sl-container {
+		width: calc(var(--specs-toc-column) - 2 * var(--sl-sidebar-pad-x));
+		max-width: calc(
+			(
+					100vw - var(--specs-toc-column) - 2 * var(--sl-content-pad-x) - 2 *
+						var(--sl-sidebar-pad-x)
+				) * 0.25
+		);
+	}
 }
 
 /* Remove distinct surface color and borders from nav/sidebar */
