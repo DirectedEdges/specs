@@ -171,7 +171,6 @@ export default defineConfig({
             {
               label: 'What gets emitted',
               collapsed: true,
-              badge: experimental,
               items: [
                 { label: 'Overview', slug: 'code' },
                 { label: 'Contract', slug: 'code/contract' },
