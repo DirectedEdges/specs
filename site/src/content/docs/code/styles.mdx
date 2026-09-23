@@ -5,6 +5,9 @@ description: "The stylesheet the scaffold imports: one rule per anatomy element,
 
 <script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
 
+import Figure from '../../../components/Figure.astro';
+import favoriteButtonFixture from '../../../assets/FavoriteButtonFixture.png';
+
 The component's baseline stylesheet, derived from what Figma applied: a rule per anatomy element, token references as `var(--)`, and a selector per variant. React emits one file, `styles.css`. Web Components emits two — `host.css` and `light.css` — because a shadow boundary means one file cannot do both jobs.
 
 ## Shape
@@ -104,14 +107,37 @@ What those names resolve *against* is [`cssvars.css`](/code/cssvars/). See the [
 
 ## State selectors
 
-With no [`states` convention](/settings/states/) configured, every variant prop produces a `[data-*]` selector. Configured, classified props emit the semantic pseudo-class or ARIA selector instead — `:hover`, `:disabled`, `[aria-invalid="true"]`.
+With no [`states` convention](/settings/states/) configured, every variant prop produces a `[data-*]` selector. Configured, a classified prop emits the semantic pseudo-class or ARIA selector instead.
 
-When a `disabled` concept is configured, every `:hover` and `:active` selector is appended with `:not(:disabled):not([aria-disabled="true"])`, including compound selectors that mix a data attribute with one of them. Hover styles do not fire on a disabled control, with no extra CSS to write.
+A favourite button with `state` (Rest, Hover, Pressed), `selected` and `disabled` classified emits no `data-*` at all:
 
 ```css
-.button:hover:not(:disabled):not([aria-disabled="true"]) { … }
-.button[data-variant="primary"]:hover:not(:disabled):not([aria-disabled="true"]) { … }
+/* Variant: disabled */
+.favorite-button:disabled {
+  opacity: 0.36;
+}
+
+/* Variant: state=Hover — hover */
+.favorite-button:hover:not(:disabled) .favorite-button__hover {
+  display: block;
+}
+
+/* Variant: state=Pressed — hover */
+.favorite-button:active:not(:disabled) .favorite-button__hover {
+  inset-block-start: 2px;
+  inset-inline-start: 2px;
+  display: block;
+}
+
+/* Variant: selected — icon */
+.favorite-button[aria-pressed="true"] .favorite-button__icon {
+  background-color: var(--palette-red-58);
+}
 ```
+
+Three axes, three different selector kinds: a pseudo-class the browser owns, a pseudo-class the pointer drives, and an ARIA attribute the component writes. Which prop maps to which is the convention's to declare, and the comment above each block names the variant it came from so the mapping stays legible.
+
+The `:not(:disabled)` on the hover and active blocks is added automatically wherever a `disabled` concept is configured — every `:hover` and `:active` selector gets it, including compound selectors that mix a data attribute with one of them. Hover styles do not fire on a disabled control, with no extra CSS to write. When `disabled` is expressed with ARIA rather than the native attribute, the guard is `:not(:disabled):not([aria-disabled="true"])`.
 
 Selectors that are not `:hover` or `:active` — `:focus-within`, `:disabled` itself — are never guarded.
 
@@ -119,11 +145,19 @@ Selectors that are not `:hover` or `:active` — `:focus-within`, `:disabled` it
 
 Two adjustments come from comparing the default layout against every variant layout. Neither is configurable, because neither is a preference.
 
-**Structurally-absent elements.** An element a variant includes but the default omits is hidden at the base and un-hidden under the variants that include it.
+**Structurally-absent elements.** An element a variant includes but the default omits is hidden at the base and un-hidden under the variants that include it. The favourite button's hover wash exists only in two of its twelve cells:
 
 ```css
-.select__clear-icon { display: none; }
-.select[data-clearable] .select__clear-icon { display: flex; }
+.favorite-button__hover {
+  background: var(--color-action-press);
+  opacity: 0.1;
+  position: absolute;
+  inset: 0;
+  display: none;
+}
+
+.favorite-button:hover:not(:disabled) .favorite-button__hover { display: block; }
+.favorite-button:active:not(:disabled) .favorite-button__hover { display: block; }
 ```
 
 **Stacking and containing blocks.** An absolutely-positioned element needs its layout parent to establish a containing block, or its offsets resolve against the viewport. That parent gets `position: relative`. So do the absolute element's non-absolute siblings — without it, the absolute element paints above them regardless of Figma layer order, since only positioned elements participate in DOM paint sequence.
@@ -134,6 +168,72 @@ Two adjustments come from comparing the default layout against every variant lay
 ```
 
 `position: relative` is added only when the element does not already declare its own `position`.
+
+## What a role adds to the sheet
+
+A role changes the element the [scaffold](/code/scaffold/) emits, which leaves the stylesheet with two problems Figma cannot describe. Both are solved in the sheet rather than in the markup.
+
+**The user agent's own styling.** A `togglebutton` role emits a real `<button>`, and a `<button>` arrives with a border, a background, a font and a text alignment nobody asked for. Figma's fill and radius would be layered on top of them:
+
+```css
+/* togglebutton role: neutralize user-agent styling for the emitted element. */
+.favorite-button {
+  appearance: none;
+  -webkit-appearance: none;
+  background: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+}
+```
+
+It is emitted before the component's own rules, so anything the spec does declare still wins.
+
+**Affordances the design file has no way to hold.** Figma has no cursor. When the states convention names a press or a disabled concept, the component is known to be interactive, and the sheet says so:
+
+```css
+/* Press affordance: the states convention names an active or pressed concept, so this is a press target. Figma has no cursor. */
+.favorite-button { cursor: pointer; }
+
+/* Disabled affordance: the states convention names a disabled concept. */
+.favorite-button:disabled { cursor: not-allowed; }
+```
+
+Each carries the reason in a comment, because a rule with no source in the spec is otherwise indistinguishable from a hand edit.
+
+## Source
+
+### Specs
+
+Every rule above traces to `variants.yaml` — the per-variant styling — except the role and affordance blocks, which come from `anatomy` in `api.yaml`:
+
+```yaml
+anatomy:
+  root:
+    type: container
+    role: togglebutton
+  icon:
+    type: glyph
+  hover:
+    type: container
+    detectedIn: Selected=false, State=Hover, Disabled=false
+```
+
+`detectedIn` is what makes `.favorite-button__hover` structurally absent: the element was found in one variant and not the default, so the sheet hides it and un-hides it exactly there.
+
+### Figma
+
+<Figure
+  src={favoriteButtonFixture}
+  alt="A favourite button component set in Figma arranged as a matrix: columns for Selected false and true, each split by Disabled false and true, and rows for Rest, Hover and Pressed. Role badges label the icon as indicator and the root as togglebutton"
+  maxWidth="none"
+  caption="Each axis of the matrix becomes a selector kind, not a separate rule set."
+/>
+
+The matrix is the source of every variant block on this page. What it does not contain is the cursor, the user-agent reset, or the `:not(:disabled)` guard — all three are consequences of the emitted element being a real control, which is a fact about the role rather than about the artwork.
 
 ## Subcomponents
 
