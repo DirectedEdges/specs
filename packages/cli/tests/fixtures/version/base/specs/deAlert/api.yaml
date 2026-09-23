@@ -1,0 +1,65 @@
+title: DE Alert
+anatomy:
+  root:
+    type: container
+    role: alert
+  decorativeIcon:
+    type: glyph
+    $extensions:
+      com.figma:
+        name: Decorative Icon
+  children:
+    type: slot
+  deIconButton:
+    type: instance
+    instanceOf: deIconButton
+    $extensions:
+      com.figma:
+        name: DE Icon button
+props:
+  appearance:
+    type: string
+    default: Informational
+    enum:
+      - Informational
+      - Basic
+      - Success
+      - Error
+      - Warning
+    nullable: false
+  children:
+    type: slot
+  icon:
+    type: string
+    examples:
+      - info
+    nullable: true
+    $extensions:
+      com.figma:
+        visibilityProp: showIcon
+  dismissable:
+    type: boolean
+    default: true
+metadata:
+  source:
+    pageId: 5168:19888
+    nodeId: 6064:1247
+    nodeType: COMPONENT_SET
+  lastUpdated: 2026-09-20T14:50:46.659Z
+  concern: api
+subcomponents:
+  actions:
+    title: DE Alert / Actions
+    anatomy:
+      root:
+        type: container
+        $extensions:
+          com.figma:
+            name: Children
+    props:
+      children:
+        type: slot
+        minChildren: 1
+        maxChildren: 2
+        anyOf:
+          - dsButton

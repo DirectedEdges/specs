@@ -15,6 +15,8 @@ The Specs command-line interface (CLI) generates design system specifications fr
 | [`generate`](/cli/commands/generate/) | Generate specs from a manifest or single component | YAML/JSON spec file(s) |
 | [`analyze`](/cli/analyze/) | Run analyzers over generated specs | Reports in `analysis/` |
 | [`migrate`](/cli/commands/migrate/) | Convert older workspace layouts to the current one | Rewritten `config/` files |
+| [`version`](/cli/commands/version/) | Version the workspace: diffs, semver bumps, reports, changelogs | `versions/` folders, ledgers, reports |
+| [`skills`](/cli/commands/skills/) | Install the premerge and release orchestration skills | Skill files in `.claude/skills/` |
 | [`react`](/cli/commands/react/) *(experimental)* | Emit the React target | Components, contracts, stylesheets, stories in `react/` |
 | [`webcomponents`](/cli/commands/webcomponents/) *(experimental)* | Emit the Web Components target | Elements, contracts, stylesheets, stories in `webcomponents/` |
 | [`bridge`](/cli/commands/bridge/) *(experimental)* | Start/stop/check the local bridge `render` talks to | Background process |

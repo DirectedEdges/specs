@@ -65,4 +65,4 @@ specs/
 ## See Also
 
 - [`react`](/cli/commands/react/) and [`webcomponents`](/cli/commands/webcomponents/) — the sibling commands that emit code artifacts
-- [Transforms overview](/cli/transforms/) — build artifacts (contract, css)
+- [What gets emitted](/code/) — the files `specs react` and `specs webcomponents` write

@@ -36,7 +36,9 @@ content).
 | `src/content/docs/` | All pages; directory = URL prefix; `index.md(x)` = section root |
 | `src/content/docs/cli/commands/` | One page per CLI command (maps 1:1 to `packages/cli/src/commands/`) |
 | `src/content/docs/schema/` | Type pages + deep `styles/`/`typography/`/`effects/` property trees |
+| `src/content/docs/code/` | One page per emitted artifact (`contract`, `scaffold`, `styles`, `stories`, `cssvars`) — what `specs react` / `specs webcomponents` write, linked from both command pages |
 | `src/content/docs/settings/` | One page per config key |
+| `src/content/docs/versioning/` | Spec workspace versioning: overview + concept pages; command reference stays in `cli/commands/version.md` (linked from both sidebar groups) |
 | `src/content/docs/roles/` | One page per role concept, plus `inventory` and `precedence`; a concept family shares one page (`textbox`, `status`) and the inventory links every member to it |
 | `src/components/Figure.astro` | The in-content authoring component (`src, alt, caption?, maxWidth?`) |
 | `src/custom.css` | The only stylesheet — Starlight overrides |
