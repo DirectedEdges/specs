@@ -165,9 +165,10 @@ export default defineConfig({
         {
           label: 'Code',
           collapsed: true,
+          badge: experimental,
           items: [
-            { label: 'react', slug: 'cli/commands/react', badge: experimental },
-            { label: 'webcomponents', slug: 'cli/commands/webcomponents', badge: experimental },
+            { label: 'react', slug: 'cli/commands/react' },
+            { label: 'webcomponents', slug: 'cli/commands/webcomponents' },
             {
               label: 'What gets emitted',
               collapsed: true,
@@ -203,6 +204,7 @@ export default defineConfig({
         {
           label: 'Versioning',
           collapsed: true,
+          badge: experimental,
           items: [
             { label: 'Overview', slug: 'versioning' },
             { label: 'Figma Premerge Check', slug: 'versioning/figma-premerge' },
