@@ -137,6 +137,7 @@ async function emitOnce(run: EmitRun, options: EmitOptions): Promise<EmitResult>
 
   let succeeded = 0;
   let failed = 0;
+  let licenseAborted = false;
 
   for (const componentKey of componentDirs) {
     const componentDir = path.join(specsPath, componentKey);
@@ -180,6 +181,23 @@ async function emitOnce(run: EmitRun, options: EmitOptions): Promise<EmitResult>
     } catch (err) {
       console.error(`  ✗ ${componentKey}: ${err instanceof Error ? err.message : String(err)}`);
       failed++;
+
+      // A provided key that could not be validated fails identically for every
+      // component, and each per-component retry is another request into the
+      // very rate limit that caused the failure — a full catalogue run can keep
+      // the window saturated for its whole duration. One unchecked key is one
+      // failure: stop the run at the first.
+      if (err instanceof Error && (err as Error & { code?: string }).code === 'LICENSE_NOT_VALIDATED') {
+        const remaining = componentDirs.length - succeeded - failed;
+        if (remaining > 0) {
+          console.error('');
+          console.error(`Stopping: the license check failed and would fail identically for the remaining ${remaining} components.`);
+          console.error('Nothing more will contact the license server this run.');
+          failed += remaining;
+        }
+        licenseAborted = true;
+        break;
+      }
     }
   }
 
@@ -190,16 +208,20 @@ async function emitOnce(run: EmitRun, options: EmitOptions): Promise<EmitResult>
   //
   // Only a full run may do this. A `--components` run knows nothing about the
   // components it was not asked to emit, and every one of them would look
-  // orphaned.
-  if (!options.components?.length) {
+  // orphaned. A license-aborted run stopped mid-catalogue, so it is not
+  // authoritative over anything either — pruning and derived output would be
+  // rebuilt from a partial pass.
+  if (!options.components?.length && !licenseAborted) {
     await pruneOrphans(transformers, componentDirs, workspaceDir);
   }
 
   // Stylesheets and index output are derived from the whole set, so they are
   // rebuilt after every pass — including a watch-triggered one, which would
   // otherwise leave them stale against the component that just changed.
-  for (const transformer of transformers) {
-    if (transformer.finalize) await transformer.finalize(specsPath);
+  if (!licenseAborted) {
+    for (const transformer of transformers) {
+      if (transformer.finalize) await transformer.finalize(specsPath);
+    }
   }
 
   console.log('');
