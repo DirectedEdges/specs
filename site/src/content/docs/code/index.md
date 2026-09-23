@@ -11,11 +11,11 @@ description: "The files specs react and specs webcomponents write for every comp
 
 | File | Page | What it is |
 |---|---|---|
-| `contract.ts` | [contract](/code/contract/) | The props interface, the enums those props draw from, and a defaults constant. Shared by both targets. |
-| `scaffold.tsx` / `scaffold.ts` | [scaffold](/code/scaffold/) | The working component — markup, variant attributes, conditional slots, subcomponent calls. |
-| `styles.css` / `host.css` + `light.css` | [styles](/code/styles/) | The stylesheet the scaffold imports: one rule per anatomy element, variant selectors, token `var()` references. |
-| `stories.tsx` / `stories.ts` | [stories](/code/stories/) | Storybook CSF — controls typed from the contract, a story per variant axis, a sticker sheet. |
-| `cssvars.css` + `modes.json` | [cssvars](/code/cssvars/) | Library-level custom properties the stylesheets resolve against. Written once, shared by both targets. |
+| `contract.ts` | [Contract](/code/contract/) | The props interface, the enums those props draw from, and a defaults constant. Shared by both targets. |
+| `scaffold.tsx` / `scaffold.ts` | [Scaffold](/code/scaffold/) | The working component — markup, variant attributes, conditional slots, subcomponent calls. |
+| `styles.css` / `host.css` + `light.css` | [Styles](/code/styles/) | The stylesheet the scaffold imports: one rule per anatomy element, variant selectors, token `var()` references. |
+| `stories.tsx` / `stories.ts` | [Stories](/code/stories/) | Storybook CSF — controls typed from the contract, a story per variant axis, a sticker sheet. |
+| `cssvars.css` + `modes.json` | [CSS variables](/code/cssvars/) | Library-level custom properties the stylesheets resolve against. Written once, shared by both targets. |
 
 Two more files appear when a component earns them: `metadata.ts` (slot shapes and visibility rules) when the component has slots, and `api.ts` (tag, parts, element-tag map) for every Web Components root. Both are covered on the [contract](/code/contract/) page, because they are the same job — declaring the surface — for a different consumer.
 

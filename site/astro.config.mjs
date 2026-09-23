@@ -136,10 +136,10 @@ export default defineConfig({
               items: [
                 { label: 'Overview', slug: 'code' },
                 { label: 'Contract', slug: 'code/contract' },
-                { label: 'Scaffold', slug: 'code/scaffold' },
-                { label: 'Styles', slug: 'code/styles' },
-                { label: 'Stories', slug: 'code/stories' },
                 { label: 'CSS variables', slug: 'code/cssvars' },
+                { label: 'Scaffold', slug: 'code/scaffold' },
+                { label: 'Stories', slug: 'code/stories' },
+                { label: 'Styles', slug: 'code/styles' },
               ],
             },
             { label: 'Prop Naming', slug: 'guides/prop-naming' },

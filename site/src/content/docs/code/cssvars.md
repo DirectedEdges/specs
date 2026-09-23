@@ -1,5 +1,5 @@
 ---
-title: "cssvars"
+title: "CSS variables"
 description: "The library-level CSS custom properties every emitted stylesheet resolves against"
 ---
 
@@ -73,6 +73,6 @@ Names pass through the same derivation the stylesheets use, so a reference and i
 
 ## See Also
 
-- [styles](/code/styles/) — the stylesheets these variables resolve
+- [Styles](/code/styles/) — the stylesheets these variables resolve
 - [`fetch`](/cli/commands/fetch/) — populates the data these are derived from
 - [tokens setting](/settings/tokens/) — how token references are serialized in spec output
