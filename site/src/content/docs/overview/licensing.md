@@ -14,13 +14,23 @@ A Pro subscription is **$10/month**.
 - [Manage your subscription](https://polar.sh/directed-edges-llc/portal) from your Polar customer portal
 - Need help? Contact [nathan@specsplugin.com](mailto:nathan@specsplugin.com)
 
-## How it works
+## What Pro unlocks
 
-The plugin and the CLI take **separate keys**, purchased together and activated separately. What they gate is not the same.
+Specs makes three things. Each has a free tier and a Pro tier, and they are gated separately.
 
-One thing is shared: the **spec** itself. Both surfaces run the same engine, so a spec is the same at a given tier whichever made it. Everything else is specific to where you are working.
+| What you get | Made by | Free | Pro adds |
+|---|---|---|---|
+| **[The spec](#the-spec)** | The plugin, and `generate` | Component structure, the default variant, metadata | Every other variant, token and style references, prop bindings, invalid combinations |
+| **[Canvas output](#canvas-output)** | The plugin | Every spec section, multi-column layout, all settings | Custom styling, the Examples settings, the Bridge tab |
+| **[Emitted code](#emitted-code)** | `react` and `webcomponents` | The component, its contract, its stylesheet, one story per variant axis | Composition, glyphs, background images, compound stories, sticker sheets |
 
-## What a spec contains
+Nothing else is licensed. `fetch`, `scan`, `init`, `render`, `version`, `analyze`, `bridge`, `cache`, `migrate`, `applyCustomTokens` and `skills` behave identically with or without a key.
+
+The rest of this page is the detail behind those three rows, then how keys and billing work.
+
+## The spec
+
+A spec is the same at a given tier whichever made it — the plugin and `generate` run the same engine — so this applies to both.
 
 ### Free
 
@@ -44,9 +54,7 @@ With a valid license key, specs additionally include:
 | **Prop bindings** | `$binding` references connecting anatomy elements to component props (slot content, instance swaps, visibility toggles, text overrides) |
 | **Invalid combinations** | The `invalidPropCombinations` array showing which property combinations are impossible (requires `spec.invalidCombinations: true` in `config/settings.yaml`) |
 
-### Example: the same property at each tier
-
-The same component property at each tier:
+### The same property at each tier
 
 **Free** — raw values only, default variant only:
 ```yaml
@@ -85,6 +93,7 @@ elements:
 
 Pro features are never stripped from output — they're simply not created at the free tier. If a style property has a bound Figma variable, free-tier output shows the raw resolved value; pro-tier output shows the token reference alongside the value.
 
+
 > **Note**: Token references require that your source's `fetch` list in `config/settings.yaml` includes `variables`. Style references require `styles`. See [Configuration](/settings/) for details.
 
 :::caution[Fetching variables over REST requires a Figma Enterprise plan]
@@ -105,17 +114,21 @@ Controls **how** token references are serialized — not **whether** they appear
 
 Controls whether invalid variant combinations are computed. Even when set to `true` (the default), this feature requires a pro license. At free tier, the setting is accepted but the computation is skipped — the `invalidPropCombinations` array is simply absent from output.
 
-## In the CLI
+## Canvas output
 
-| Command | Licensed | What Pro adds |
-|---|---|---|
-| [`generate`](/cli/commands/generate/) | Yes | [What a spec contains](#what-a-spec-contains) — non-default variants, token and style references, prop bindings, invalid combinations |
-| [`react`](/cli/commands/react/), [`webcomponents`](/cli/commands/webcomponents/) | Yes | [Emitted code](#emitted-code) — composition, glyphs, background images, compound-variant stories, sticker sheets |
-| `fetch`, `scan`, `init`, `render`, `version`, `analyze`, `bridge`, `cache`, `migrate`, `applyCustomTokens`, `skills` | No | — |
+What the plugin draws on the Figma canvas, as opposed to what the spec says. Every spec section, the [multi-column layout](/plugin/multi-column-layout/), and all settings are free. Three things are not:
 
-`generate` produces the spec described above. The two transform commands have a tier of their own, resolved from the same key but checked independently — `specs react` does not inherit anything from a `generate` run. A Pro spec emitted by a free transform loses Pro code, and a free spec cannot be rescued by a licensed transform, because there is nothing in it to compose.
+| Pro feature | What it adds |
+|---|---|
+| **Custom styling** (Output settings) | Generates Specs' own Figma styles and variables so the output matches your system: [color including dark mode](/plugin/color/), [typography from text styles](/plugin/text/), [spacing from variables](/plugin/spacing/) |
+| **Examples** (Settings) | The Examples section of the settings pane |
+| **Bridge** tab | The plugin's connection to the CLI — how [`fetch --from-bridge`](/cli/commands/fetch/) and [`render`](/cli/commands/render/) reach the open file |
 
-### Emitted code
+The Bridge is the one place the two surfaces meet, and it needs a Pro **plugin** key. The CLI commands that talk to it are free.
+
+## Emitted code
+
+The React and Web Components trees [`specs react`](/cli/commands/react/) and [`specs webcomponents`](/cli/commands/webcomponents/) write. The plugin has no equivalent — it draws on the canvas rather than writing a code tree.
 
 | Artifact | Free | Pro adds |
 |---|---|---|
@@ -127,25 +140,15 @@ Free output is a working component, not a crippled one. What it lacks is the par
 
 The emitted files say so themselves rather than leaving it silent — a free stories file carries `// Compound-variant stories available with Pro.` and `// Composed slot content available with Pro.` where the omission falls.
 
-## In the plugin
+These commands check the key themselves rather than inheriting a verdict from a `generate` run, so the two tiers are independent. A Pro spec emitted by a free transform loses Pro code, and a free spec cannot be rescued by a licensed transform — there is nothing in it to compose.
 
-The plugin writes specs onto the Figma canvas rather than to files, so its tier is about the spec's content and what the plugin can do with it. There is no transform tier here — the plugin writes to the canvas, not to a code tree.
+## Your keys
 
-| Surface | Licensed | What Pro adds |
-|---|---|---|
-| Generated spec content | Yes | [What a spec contains](#what-a-spec-contains) — the same tier as `generate`, from the same engine |
-| **Custom styling** (Output settings) | Yes | Generate Specs' own Figma styles and variables so the output matches your system: [color including dark mode](/plugin/color/), [typography from text styles](/plugin/text/), [spacing from variables](/plugin/spacing/) |
-| **Examples** (Settings) | Yes | The Examples section of the settings pane |
-| **Bridge** tab | Yes | The plugin's connection to the CLI, which is how [`fetch --from-bridge`](/cli/commands/fetch/) and [`render`](/cli/commands/render/) reach the open file |
-| Every spec section, [multi-column layout](/plugin/multi-column-layout/), settings, and canvas output | No | — |
+A subscription issues **two keys** — one for the plugin, one for the CLI — purchased together and activated separately.
 
-Nothing in the plugin is a CLI feature and nothing in the CLI is a plugin feature. The one place they meet is the Bridge, which needs a Pro plugin key on the Figma side; the CLI commands that talk to it are free.
+### Plugin key
 
-## What You Get
-
-### Plugin License
-
-Your Figma plugin license key activates Pro features when generating specs from the Figma plugin. Each key is meant for an individual user and can be activated on up to two machines (e.g. a work laptop and a personal machine).
+Activates the Pro tiers above when you work in Figma. Each key is meant for an individual user and can be activated on up to two machines (e.g. a work laptop and a personal machine).
 
 :::caution[Specs 2 vs Specs (Classic)]
 This page covers licensing for [**Specs 2**](https://www.figma.com/community/plugin/1549454283615386215/anova) — first published on the Figma community in 2025 as "Anova" — and the **Specs CLI**. Subscriptions are purchased through Polar and managed from your Polar customer portal.
@@ -153,9 +156,9 @@ This page covers licensing for [**Specs 2**](https://www.figma.com/community/plu
 [**Specs (Classic)**](https://www.figma.com/community/plugin/1205622541257680763/specs) is the original Figma plugin launched in 2023. Classic subscriptions are managed entirely by the Figma payment platform and cannot be transferred, converted, or applied to Specs 2 or the CLI. If you have an active Classic subscription and want to use Specs 2, you'll need a separate Pro subscription through Polar.
 :::
 
-### CLI License
+### CLI key
 
-A separate CLI license key activates Pro features when generating specs via the command line.
+Activates the Pro tiers above on the command line.
 
 CLI usage is metered at **50 generations per month**, resetting each billing cycle. Each `generate` call that produces Pro-tier output counts as one generation. Other commands — `fetch`, `scan`, `init` — are not metered. If you hit your monthly limit, you can purchase top-off packs to add more generations without waiting for the next cycle.
 
