@@ -9,9 +9,9 @@ The renderable component — `scaffold.tsx` for React, `scaffold.ts` for Web Com
 
 It is regenerated on every run. An implementation you own goes in a sibling `component.tsx` / `component.ts`, which no command writes and the stories import in the scaffold's place when it exists.
 
-The examples below are a text input whose container element carries the `textbox` role. A role is the clearest way to read this file, because it is the one annotation that changes every part of it at once — the element emitted, the props the contract declares, and the accessibility wiring between them.
-
 ## React
+
+A text input, with a label, an optional leading visual, a value, and an error message shown under one validation value.
 
 ```tsx
 // Generated. Do not edit — regenerate with `specs react`.
@@ -19,69 +19,54 @@ import * as React from 'react';
 import './styles.css';
 import { TextInputDefaults, type TextInputProps } from './contract';
 import { definedProps, restProps } from '../../_runtime';
-import { FormLabel } from '../FormLabel/scaffold';
 import { FormErrorMessage } from '../FormErrorMessage/scaffold';
 
 export interface TextInputScaffoldProps
   extends TextInputProps,
-    Omit<React.ComponentPropsWithRef<'div'>, keyof TextInputProps | "className" | "style" | "onChange" | "onBlur" | "name"> {
-  /** Fires on every keystroke, after the value updates. */
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  /** What happens on blur — typically validation — is the consumer's. */
-  onBlur?: (e: React.FocusEvent) => void;
-  /** Form submission identity. */
-  name?: string;
+    Omit<React.ComponentPropsWithRef<'div'>, keyof TextInputProps | "className" | "style" | "startVisual"> {
+  startVisual?: React.ReactNode;
   /** Merged onto the root, so a caller can place and size this component. */
   className?: string;
   style?: React.CSSProperties;
 }
 
+const TextInputOwned = [
+  "validation", "disabled", "readOnly", "required",
+  "label", "value", "placeholder", "startVisual",
+  "className", "style",
+] as const;
+
 export function TextInput(props: TextInputScaffoldProps) {
   const p = { ...TextInputDefaults, ...definedProps(props) } as TextInputScaffoldProps;
   const rest = restProps(props, TextInputOwned);
-  const containerRoleId = React.useId();
-  const formLabelDescriptionRoleId = React.useId();
-  const errorMessageRoleId = React.useId();
-  const valueProp = p.value ?? '';
-  const [value, setValue] = React.useState(valueProp);
-  const [prevValue, setPrevValue] = React.useState(valueProp);
-  if (prevValue !== valueProp) { setPrevValue(valueProp); setValue(valueProp); }
-  p.value = value;
   return (
     <div
       className={['text-input', p.className].filter(Boolean).join(' ')}
       data-element="root"
-      {...(p.disabled ? { 'data-disabled': '' } : {})}
-      {...(p.readOnly ? { 'data-read-only': '' } : {})}
       data-validation={p.validation}
+      {...(p.readOnly ? { 'data-read-only': '' } : {})}
+      aria-disabled={p.disabled ? 'true' : undefined}
+      aria-required={p.required ? 'true' : undefined}
+      aria-invalid={p.validation === "error" ? 'true' : undefined}
       {...rest}
       style={p.style}
     >
-      <div className="text-input__form-label" data-element="formLabel">
-        <FormLabel {...{ required: false, label: "{Label}", size: "medium" }}
-          htmlFor={containerRoleId} descriptionId={formLabelDescriptionRoleId} />
+      <div className="text-input__display" data-element="display">
+        {p.startVisual != null && (
+          <div className="text-input__start-visual" data-element="startVisual">
+            {p.startVisual}
+          </div>
+        )}
+        <div className="text-input__label-and-value" data-element="labelAndValue">
+          <span className="text-input__label" data-element="label">{p.label}</span>
+          <span className="text-input__value" data-element="value">
+            {p.value != null ? p.value : p.placeholder}
+          </span>
+        </div>
       </div>
-      {p.startIconName != null && (
-        <span className="text-input__start-icon" data-element="startIcon" aria-hidden="true">{p.startIconName}</span>
-      )}
-      <input
-        className="text-input__container"
-        data-element="container"
-        id={containerRoleId}
-        type="text"
-        value={value}
-        onChange={(e) => { const next = e.target.value; setValue(next); p.onChange?.(e); }}
-        placeholder={p.placeholder ?? undefined}
-        disabled={p.disabled}
-        readOnly={p.readOnly}
-        aria-invalid={p.validation === "error" ? 'true' : undefined}
-        aria-describedby={[formLabelDescriptionRoleId, p.validation === "error" ? errorMessageRoleId : null].filter(Boolean).join(' ') || undefined}
-        name={p.name}
-        onBlur={p.onBlur}
-      />
       {p.validation === "error" && (
-        <div className="text-input__error-message" data-element="errorMessage">
-          <FormErrorMessage {...{ label: "{Error text}", size: "small" }} errorMessageId={errorMessageRoleId} />
+        <div className="text-input__error" data-element="error">
+          <FormErrorMessage {...{ text: "{Error message}" }} />
         </div>
       )}
     </div>
@@ -92,27 +77,12 @@ export function TextInput(props: TextInputScaffoldProps) {
 | Emitted | Why |
 |---|---|
 | `{ ...Defaults, ...definedProps(props) }` | An explicitly passed `undefined` must not beat a default; `definedProps` drops those keys before the merge |
-| `restProps(props, Owned)` | Everything the component does not own — `id`, `onFocus`, `data-testid` — passes through to the root |
+| `restProps(props, Owned)` | Everything the component does not own — `id`, `onClick`, `data-testid` — passes through to the root |
 | `className` merged, not replaced | A caller places and sizes the component without losing its own class |
-| `data-<prop>` on the root | What the [stylesheet's](/code/styles/) variant selectors match |
-| `{p.x != null && …}` | The slot rule from [`metadata.ts`](/code/contract/#metadatats), compiled |
-| `aria-hidden` on a decorative element | A glyph beside a labelled control adds nothing to the accessible name |
-
-### What the role added
-
-The `textbox` role on the container element is responsible for everything in that file a container could not have produced on its own.
-
-| Emitted | Because |
-|---|---|
-| `<input type="text">` in place of a `<div>` | The role names a native control, and React can replace a root or child tag with it |
-| `value` / `onChange` / `useState` | A native input is stateful; an uncontrolled one would ignore a `value` prop after first paint. The `prevValue` comparison re-syncs when the prop changes, without an effect |
-| `disabled` and `readOnly` as real attributes | The native element enforces them — blocking events and excluding the field from form submission — rather than announcing them with ARIA |
-| `React.useId()` for the control and its description | `htmlFor` and `aria-describedby` need matching ids on two elements the spec knows only as anatomy names |
-| `htmlFor`/`descriptionId` passed into `FormLabel` | The label is a separate component. The role wires the pair across that boundary rather than assuming one element |
-| `aria-describedby` accumulating the error id | Only when validation is in error, so the description is announced exactly while it is shown |
-| `onChange` / `onBlur` in the contract | Role-derived props. A container declares no events; a textbox has to |
-
-Without a licence, an annotated spec emits what it would emit unannotated — a `<div>` container, no role-derived props, no wiring — so the free output is still a correct component, just not a native control.
+| `data-<prop>` on the root | What the [stylesheet's](/code/styles/) variant selectors match. A boolean prop emits presence, an enum emits a value |
+| `aria-*` from state props | Which prop maps to which attribute is the [states convention](/settings/states/) |
+| `{p.x != null && …}` | The slot rule from [`metadata.ts`](/code/contract/#metadatats), compiled into a conditional |
+| A `ReactNode` prop outside the contract | A slot that takes arbitrary content is a scaffold concern, not part of the typed props API |
 
 ## Web Components
 
@@ -125,7 +95,7 @@ import { LitElement, html, css, unsafeCSS, nothing } from 'lit';
 import styles0 from './host.css?inline';
 import './light.css';
 import { TextInputDefaults, type TextInputProps } from './contract';
-import '../FormLabel/scaffold';
+import '../FormErrorMessage/scaffold';
 
 export class TextInput extends LitElement {
   static styles = [
@@ -137,8 +107,8 @@ export class TextInput extends LitElement {
     validation: { type: String, reflect: true },
     disabled: { type: Boolean },
     readOnly: { type: Boolean, attribute: 'read-only' },
-    placeholder: { type: String },
-    startIconName: { type: String, attribute: 'start-icon-name' },
+    label: { type: String },
+    value: { type: String },
   };
 
   declare validation: TextInputProps['validation'];
@@ -156,11 +126,14 @@ export class TextInput extends LitElement {
 
   render() {
     return html`
-      <div class="text-input__form-label" part="formLabel" data-element="formLabel">
-        <ui-form-label .label=${"{Label}"} .size=${"medium"}></ui-form-label>
+      <div class="text-input__display" part="display" data-element="display">
+        <span class="text-input__label" part="label">${this.label}</span>
+        <span class="text-input__value" part="value">${this.value}</span>
       </div>
-      ${this.startIconName != null ? html`
-        <span class="text-input__start-icon" part="startIcon" aria-hidden="true">${this.startIconName}</span>
+      ${this.validation === "error" ? html`
+        <div class="text-input__error" part="error">
+          <ui-form-error-message .text=${"{Error message}"}></ui-form-error-message>
+        </div>
       ` : nothing}
     `;
   }
@@ -178,40 +151,52 @@ export class TextInput extends LitElement {
 | `nothing`, not `''` | Lit removes the node rather than rendering an empty one |
 | `.property=${…}` on a child tag | A subcomponent takes objects and booleans as properties; attributes are strings |
 
-### Where the role lands differently
-
-React can replace a root's tag when a role calls for a native control. This target cannot — the root is already the element the consumer wrote. So the semantic element is emitted *inside* the shadow root, wrapping the root's content, with focus delegated to it:
-
-```ts
-export class Button extends LitElement {
-  // The shadow root contains a real interactive element; delegating focus
-  // makes the host a real tab stop and keeps `:host(:focus-visible)`
-  // matching, so the stylesheet needs no knowledge of the inner element.
-  static shadowRootOptions = { ...LitElement.shadowRootOptions, delegatesFocus: true };
-
-  render() {
-    return html`
-      <button part="button" type="button" ?disabled=${this.disabled}
-        @click=${(e: MouseEvent) => this.onClick?.(e)}>
-        …
-      </button>
-    `;
-  }
-}
-```
-
-The inner element is styled to nothing and takes no box, so the host keeps the root's layout and appearance exactly as the stylesheet describes them.
-
-A state the role expresses natively — `:disabled`, `:checked` — then lives on an element no `:host()` selector can reach, and a host is not a form control, so `:host(:disabled)` cannot match either. The host carries a plain styling attribute for the concept so the stylesheet still has something to select. See [precedence](/roles/precedence/).
-
 ## Subcomponents
 
 A composed element renders as a call to its subcomponent's scaffold, with the props the parent's variant data pins. React passes them as spread objects and imports the function; Lit imports the module for its side effect — defining the tag — and passes `.property` bindings. Either way the child comes from its own directory, so a change to the child's contract is a compile error in the parent rather than silent drift.
 
-When a role spans that boundary — a label in one component describing a control in another — the parent generates the ids and passes them down as explicit props, as `htmlFor` and `descriptionId` above.
+## What changes the output
+
+The scaffold above is what a component's own spec data produces. Four other inputs change it, and each changes it in a different place.
+
+### Variant data
+
+The layout tree is merged across every variant before anything is emitted, so the scaffold renders the union. An element only some variants include becomes a conditional, and the `data-*` attributes on the root are what let the [stylesheet](/code/styles/) style the rest. A component with no `variants.yaml` is skipped rather than emitted empty — there would be nothing to gate on.
+
+### The states convention
+
+Without one, every variant prop stays a `data-*` attribute. With one, a classified prop emits the semantic attribute instead — `aria-disabled`, `aria-invalid`, `aria-required` above are all this. See the [states convention](/settings/states/).
+
+### Roles
+
+An annotated element is emitted as the thing it was annotated as, rather than as the container it looks like in Figma. On the text input above, a `textbox` role on the value's container replaces that `<div>` with a real `<input type="text">`, and with it come the things a native control needs and a container never does:
+
+```tsx
+const controlId = React.useId();
+const descriptionId = React.useId();
+const [value, setValue] = React.useState(p.value ?? '');
+…
+<input
+  id={controlId}
+  type="text"
+  value={value}
+  onChange={(e) => { setValue(e.target.value); p.onChange?.(e); }}
+  disabled={p.disabled}
+  readOnly={p.readOnly}
+  aria-describedby={descriptionId}
+/>
+```
+
+`disabled` and `readOnly` stop being ARIA announcements and become real attributes the browser enforces; `onChange` and `onBlur` join the [contract](/code/contract/); the ids wire the control to a label that may live in a different component.
+
+Web Components diverge here, because the root is already the tag the consumer wrote and cannot be replaced. The semantic element is emitted inside the shadow root with `delegatesFocus`, and the host carries a plain styling attribute for any state the inner element now expresses natively. [Roles](/roles/) covers the inventory; [precedence](/roles/precedence/) covers that last part.
+
+### The licence
+
+Without one, an annotated spec emits what it would emit unannotated — the container, and no role-derived props. Composition, glyphs and background images are licensed the same way. Free output is a correct component, with less in it.
 
 ## See Also
 
 - [contract](/code/contract/) — the props, enums and defaults this file consumes
 - [styles](/code/styles/) — the stylesheet these class names and data attributes are written against
-- [Roles](/roles/) — the full inventory and what each one changes
+- [stories](/code/stories/) — what imports this file, unless you authored a sibling
