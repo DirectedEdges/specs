@@ -4,7 +4,17 @@ title: "Licensing"
 
 <script>document.querySelector('#_top').insertAdjacentHTML('afterbegin','<span class="sl-badge pro-badge pro-badge-hero">Pro</span>')</script>
 
-Specs works at two tiers: **Free** and **Pro**. Both tiers use the same configuration and generate the same component structure — the difference is in how much detail the `generate` command's output contains. Other commands (`fetch`, `scan`, `init`) are not affected by licensing. 
+Specs works at two tiers: **Free** and **Pro**. Both tiers use the same configuration, read the same Figma files, and produce the same structure — the difference is how much of it is filled in.
+
+Two parts of the toolchain read a license, and they read it independently:
+
+| Command | Licensed | What Pro adds |
+|---|---|---|
+| [`generate`](/cli/commands/generate/) | Yes | Non-default variants, token and style references, prop bindings, invalid combinations — see [Free vs Pro](#free-vs-pro) |
+| [`react`](/cli/commands/react/), [`webcomponents`](/cli/commands/webcomponents/) | Yes | Composition, glyphs, background images, compound-variant stories, sticker sheets — see [Emitted code](#emitted-code) |
+| `fetch`, `scan`, `init`, `render`, `version`, `analyze`, `bridge`, `cache`, `migrate`, `applyCustomTokens`, `skills` | No | — |
+
+Independently means what it says: `specs react` resolves its own entitlement from the same key sources rather than inheriting anything from a `generate` run. A Pro spec emitted by a free transform loses Pro code, and a free spec cannot be rescued by a licensed transform — there is nothing in it to compose.
 
 A Pro license can be [purchased via Polar](https://buy.polar.sh/polar_cl_xnq7zeKLXunrhOIpfNwA56F4wIq2Y0lLNCKmb0hhYJH). Once checkout is completed, you'll receive an email with license keys. From there you can manage the subscription via your Polar customer portal.
 
@@ -83,6 +93,8 @@ The total seat count can be adjusted up or down at any time. Changes are **prora
 
 ## Free vs Pro
 
+What follows is the tier for `generate` — the spec itself. [Emitted code](#emitted-code) covers the transforms.
+
 ### Free
 
 Without a license key, every generated spec includes:
@@ -145,6 +157,20 @@ elements:
 ```
 
 Pro features are never stripped from output — they're simply not created at the free tier. If a style property has a bound Figma variable, free-tier output shows the raw resolved value; pro-tier output shows the token reference alongside the value.
+
+### Emitted code
+
+[`specs react`](/cli/commands/react/) and [`specs webcomponents`](/cli/commands/webcomponents/) have their own free and Pro tiers, resolved from the same key.
+
+| Artifact | Free | Pro adds |
+|---|---|---|
+| [Scaffold](/code/scaffold/) | The component, its markup, its variant attributes and its conditionals | **Composition** — an instance element renders as a call to its target component rather than an empty wrapper; **glyphs**; **background images** |
+| [Stories](/code/stories/) | One story per variant-prop axis | **Compound-variant stories**, the **sticker sheet**, and **composed slot content** — the ready-made examples a designer assembled |
+| [Contract](/code/contract/), [Styles](/code/styles/), [CSS variables](/code/cssvars/) | Complete | — |
+
+Free output is a working component, not a crippled one. What it lacks is the part that depends on other components: a card emits its own shell and its own stylesheet either way, but only a Pro run fills the card with the image, title and price the design file already contains.
+
+The emitted files say so themselves rather than leaving it silent — a free stories file carries `// Compound-variant stories available with Pro.` and `// Composed slot content available with Pro.` where the omission falls.
 
 > **Note**: Token references require that your source's `fetch` list in `config/settings.yaml` includes `variables`. Style references require `styles`. See [Configuration](/settings/) for details.
 
@@ -227,7 +253,14 @@ When no license key is provided, the `license` block is omitted from metadata. W
 3. For token references specifically, confirm your source's `fetch` list includes `variables` — tokens require fetched variable data.
 
 **I see "network-error" in the license output**
-License validation requires a brief network call to the license server. If your network blocks outbound HTTPS or you're offline, validation fails and output falls back to free tier. Generation still completes — it does not error out.
+License validation requires a brief network call to the license server. If your network blocks outbound HTTPS or you're offline, validation fails and `generate` falls back to free tier. Generation still completes — it does not error out.
+
+**`specs react` or `specs webcomponents` failed with a license error**
+The transforms behave differently on purpose. When a key is provided and the check cannot be completed — offline, rate-limited, interrupted — they **fail the run** rather than falling back to free.
+
+A silent fallback there is worse than an error: it writes a whole free-tier tree under a valid key, and the run reports success. You would find out from the output, days later. A definitive rejection is different — `invalid`, `removed`, `expired` and `wrong-runtime` are answers, and free tier is the right response to them.
+
+Run without a key to emit free-tier output deliberately. That is not an unchecked key, so nothing fails.
 
 **My `invalidPropCombinations` are missing**
 This requires both `spec.invalidCombinations: true` (the default) and an active Pro license. If either condition is missing, the array is silently omitted.
@@ -247,7 +280,7 @@ Yes. Previously generated specs are static files and won't retroactively gain Pr
 No. The CLI and Figma plugin use separate license keys. Each is purchased and activated independently.
 
 **Does license validation require internet access?**
-Yes. The CLI makes a brief HTTPS call to validate your key. If the network is unavailable, generation continues with free-tier output and reports `network-error` in the license status. Previously validated sessions do not cache — each generation validates independently.
+Yes. The CLI makes a brief HTTPS call to validate your key. If the network is unavailable, `generate` continues with free-tier output and reports `network-error` in the license status; `react` and `webcomponents` fail the run instead, for the reason above. Previously validated sessions do not cache — each generation validates independently.
 
 **Can I share my license key with my team?**
 License terms depend on your plan, but generally, no. Each Pro license is intended for an individual user.
