@@ -181,7 +181,6 @@ export default defineConfig({
                 { label: 'Styles', slug: 'code/styles' },
               ],
             },
-            { label: 'Prop Naming', slug: 'guides/prop-naming' },
             {
               label: 'Roles',
               collapsed: true,
@@ -199,6 +198,7 @@ export default defineConfig({
                 { label: 'dismiss', slug: 'actions/dismiss', badge: experimental },
               ],
             },
+            { label: 'Prop Naming', slug: 'guides/prop-naming' },
           ],
         },
         {
