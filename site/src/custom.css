@@ -32,6 +32,32 @@
 	}
 }
 
+/* Starlight sizes BOTH content columns from --sl-sidebar-width — the TOC
+   column is `sidebar-width + leftover/2`, the content column is the rest —
+   so zeroing that variable collapses the TOC along with the nav, and the
+   content keeps its old width instead of taking the space back.
+
+   Re-run the same math with the nav's width as a constant: the TOC column
+   stays exactly as wide as it is with the nav open, and the content widens
+   into everything the nav gave up. The selectors carry the two attributes
+   Starlight's own rule uses, plus one more, so they win without !important. */
+@media (min-width: 72rem) {
+	html[data-sidebar-collapsed] {
+		--specs-toc-column: 18.75rem;
+		--sl-content-width: 60rem;
+	}
+	html[data-sidebar-collapsed][data-has-sidebar][data-has-toc] .main-pane {
+		width: calc(
+			var(--sl-content-width) + (100% - var(--sl-content-width) - var(--specs-toc-column)) / 2
+		);
+	}
+	html[data-sidebar-collapsed][data-has-sidebar][data-has-toc] .right-sidebar-container {
+		width: calc(
+			var(--specs-toc-column) + (100% - var(--sl-content-width) - var(--specs-toc-column)) / 2
+		);
+	}
+}
+
 /* Remove distinct surface color and borders from nav/sidebar */
 .header,
 nav.sidebar {
