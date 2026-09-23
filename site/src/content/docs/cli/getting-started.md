@@ -14,11 +14,12 @@ Claude will handle install, config, token setup, fetch, and your first generate 
 :::
 
 **Quick nav:**
-- [Step 1: Install](#step-1-install)
-- [Step 2: Set up your environment](#step-2-set-up-your-environment)
-- [Step 3: Fetch the Figma file](#step-3-fetch-the-figma-file)
-- [Step 4: Scan and select components](#step-4-scan-and-select-components)
-- [Step 5: Generate specs](#step-5-generate-specs)
+1. [Install](#step-1-install)
+2. [Set up your environment](#step-2-set-up-your-environment)
+3. [Fetch the Figma file](#step-3-fetch-the-figma-file)
+4. [Scan and select components](#step-4-scan-and-select-components)
+5. [Generate specs](#step-5-generate-specs)
+6. [Generate code (optional)](#step-6-generate-code-optional)
 
 ---
 
@@ -154,7 +155,7 @@ specs generate data/library.file.json \
 
 `-c` takes a single component. To generate a small subset without editing the manifest, run the command once per component.
 
-## Generate code (optional)
+## Step 6: Generate code (optional)
 
 Specs are also the input to the experimental code generators. Each command emits a working component for every spec — its contract, stylesheet, and Storybook stories — into a directory shaped like the package it could become:
 
