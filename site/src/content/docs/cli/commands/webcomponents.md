@@ -23,21 +23,23 @@ Two trees: its own, and the shared assets every target uses.
 ```
 webcomponents/
 ├── src/
+│   ├── _runtime.ts                 shared helpers, one per tree
 │   └── components/
 │       └── ActionList/
-│           ├── ActionList.scaffold.ts        the custom element
-│           ├── ActionList.contract.ts        props, defaults, enums
-│           ├── ActionList.api.ts             tag name, parts, events
-│           ├── ActionList.host.css           the host's own styling
-│           ├── ActionList.light.css          light-DOM styling for slotted content
-│           ├── ActionList.stories.ts         Storybook CSF
-│           └── Item/                         a subcomponent, nested as its spec is
-│               ├── Item.scaffold.ts
-│               ├── Item.contract.ts
-│               ├── Item.metadata.ts          slot shapes and rules, when it has slots
-│               ├── Item.host.css
-│               ├── Item.light.css
-│               └── Item.stories.ts
+│           ├── contract.ts         props, defaults, enums
+│           ├── metadata.ts         slot shapes and rules, when it has slots
+│           ├── api.ts              tag name, parts, element-tag map
+│           ├── scaffold.ts         the custom element
+│           ├── host.css            the host's own styling
+│           ├── light.css           light-DOM styling for slotted content
+│           ├── stories.ts          Storybook CSF
+│           └── Item/               a subcomponent, nested as its spec is
+│               ├── contract.ts
+│               ├── metadata.ts
+│               ├── scaffold.ts
+│               ├── host.css
+│               ├── light.css
+│               └── stories.ts
 └── …
 
 assets/
@@ -46,11 +48,25 @@ assets/
     └── modes.json
 ```
 
-A subcomponent is emitted as completely as a component, minus the element API: its tag is namespaced by its parent, so the parent's `api.ts` carries it.
+A subcomponent is emitted as completely as a component, minus the element API: its tag is namespaced by its parent, so the parent's `api.ts` carries it. The directory is already named for the component, so the files inside it do not repeat the name.
 
 `assets/cssvars/` holds the same platform-neutral custom properties [`react`](/cli/commands/react/) writes. Whichever target runs produces it; running both is not a conflict.
 
 Storybook glue lands in `storybook/lib/`, not here. A Lit element renders inside a React Storybook through a small React host component — which belongs to the Storybook project, because a Lit component library has no business importing React for a harness it never uses at runtime.
+
+## Each file in detail
+
+| File | What it carries |
+|---|---|
+| [`contract.ts`](/code/contract/) | The props interface, the enums those props draw from, and a defaults constant — byte-for-byte what [`react`](/cli/commands/react/) emits |
+| [`metadata.ts`](/code/contract/#metadatats) | Slot shapes and the visibility rule governing each — emitted only when the component has slots |
+| [`api.ts`](/code/contract/#apits) | The custom-element surface: tag name, the `::part()` names, and the `HTMLElementTagNameMap` entry |
+| [`scaffold.ts`](/code/scaffold/) | The Lit element: reflected properties, `part`-annotated markup from the merged layout tree, conditional slots |
+| [`host.css`](/code/styles/) and [`light.css`](/code/styles/#the-web-components-split) | The element's own styling, and the styling for content a consumer slots in |
+| [`stories.ts`](/code/stories/) | Storybook CSF: controls typed from the contract, a story per variant axis, a sticker sheet |
+| [`cssvars.css`](/code/cssvars/) | The library's custom properties — what every `var()` above resolves against |
+
+Every one of them opens with a `Generated. Do not edit` header and is overwritten on each run. The seam for code you own is a sibling `component.ts`, which no command writes and the stories import instead of the scaffold when it exists. [What gets emitted](/code/) covers all of it.
 
 ## Two stylesheets, not one
 
@@ -119,5 +135,5 @@ The same seams as [`react`](/cli/commands/react/): the element, its contract, it
 ## See Also
 
 - [react](/cli/commands/react/) — the peer target
-- [What gets emitted](/cli/transforms/) — each artifact in detail
+- [What gets emitted](/code/) — each artifact in detail
 - [Roles](/roles/) — and [precedence](/roles/precedence/) for how a shadow host carries state

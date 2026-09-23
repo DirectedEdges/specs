@@ -200,4 +200,4 @@ Note that "unused" means unused *by the analyzed component specs* — a token ma
 - [Analyze overview](/cli/analyze/)
 - [`props` analyzer](/cli/analyze/props/)
 - [`dependencies` analyzer](/cli/analyze/dependencies/)
-- [Transforms overview](/cli/transforms/)
+- [What gets emitted](/code/) — the files `specs react` and `specs webcomponents` write
