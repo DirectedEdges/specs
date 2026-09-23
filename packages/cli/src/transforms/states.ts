@@ -86,6 +86,20 @@ export function buildOmittedProps(states: ProcessingStates): Set<string> {
  * root. A change there must land here too, or root state selectors anchor on
  * an attribute the scaffold no longer emits.
  */
+/**
+ * Roles that collapse their subtree into the emitted control.
+ *
+ * MIRRORED from the closed transform packages' RoleSpecs (`collapses` in
+ * `@directededges/from-specs`' roleSpecs.ts). The emitted element has no
+ * contents — the `value` part becomes its value and the `placeholder` part
+ * becomes an attribute — so declarations written for those elements can never
+ * match a selector. This stylesheet needs the same fact to move them onto the
+ * control instead of orphaning them.
+ */
+export const COLLAPSING_ROLES: ReadonlySet<string> = new Set([
+  'textbox', 'password', 'searchbox', 'textarea',
+]);
+
 export const ROLE_NATIVE_STATES: Readonly<Record<string, readonly string[]>> = {
   button: ['disabled'],
   togglebutton: ['pressed', 'disabled'],
