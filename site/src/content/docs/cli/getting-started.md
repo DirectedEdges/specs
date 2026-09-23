@@ -154,6 +154,17 @@ specs generate data/library.file.json \
 
 `-c` takes a single component. To generate a small subset without editing the manifest, run the command once per component.
 
+## Generate code (optional)
+
+Specs are also the input to the experimental code generators. Each command emits a working component for every spec — its contract, stylesheet, and Storybook stories — into a directory shaped like the package it could become:
+
+```bash
+specs react            # React components into react/
+specs webcomponents    # Lit custom elements into webcomponents/
+```
+
+No arguments — the target is the command. Both read the default file layout `generate` writes (the split flags at their `true` defaults), and both write the same platform-neutral `assets/cssvars/` tree, so running both is not a conflict. See [`react`](/cli/commands/react/) and [`webcomponents`](/cli/commands/webcomponents/) for what each file carries.
+
 ##  Operationalize: CI/CD pipeline
 
 To operationalize spec generation, teams use a github action script that runs at a specific cadence.
