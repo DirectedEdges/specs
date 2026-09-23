@@ -16,33 +16,130 @@ A Pro subscription is **$10/month**.
 
 ## How it works
 
-A license key raises the tier of what a command produces. Two parts of the toolchain read one, and they read it independently.
+The plugin and the CLI take **separate keys**, purchased together and activated separately. What they gate is not the same.
 
-The plugin and the CLI take **separate keys**, purchased together and activated separately, and they gate different things.
+One thing is shared: the **spec** itself. Both surfaces run the same engine, so a spec is the same at a given tier whichever made it. Everything else is specific to where you are working.
 
-### In the CLI
+## What a spec contains
+
+### Free
+
+Without a license key, every generated spec includes:
+
+- **Component structure** — anatomy (element tree), props (with raw values), and layout
+- **Default variant** — the component in its base state, with all style values as raw numbers, colors, and strings
+- **Metadata** — generator info, author, timestamps, and the conventions and settings used to produce the spec
+
+Free-tier output gives you a complete structural picture of each component — enough to understand what a component is, how it's built, and what its default state looks like.
+
+### Pro
+
+With a valid license key, specs additionally include:
+
+| Feature | What it adds |
+|---------|-------------|
+| **Non-default variants** | All variant combinations beyond the default — size, state, kind, and any other variant properties |
+| **Design token references** | Variable bindings on style properties (spacing, color, corner radius, stroke, typography, shadows, gradients) — connecting raw values to your token system |
+| **Named style references** | Links to Figma text styles, color styles, and effect styles instead of inline values |
+| **Prop bindings** | `$binding` references connecting anatomy elements to component props (slot content, instance swaps, visibility toggles, text overrides) |
+| **Invalid combinations** | The `invalidPropCombinations` array showing which property combinations are impossible (requires `spec.invalidCombinations: true` in `config/settings.yaml`) |
+
+### Example: the same property at each tier
+
+The same component property at each tier:
+
+**Free** — raw values only, default variant only:
+```yaml
+elements:
+  label:
+    typography:
+      fontSize: 14
+      lineHeight: 20
+    fill:
+      color: "#1A1A1A"
+    visible: true
+```
+
+**Pro** — token references, style references, and bindings:
+```yaml
+elements:
+  label:
+    typography:
+      $style:
+        name: Body/Medium
+        key: S:abc123
+      fontSize:
+        $value: 14
+        $variable: typography/body-medium/font-size
+      lineHeight:
+        $value: 20
+        $variable: typography/body-medium/line-height
+    fill:
+      color:
+        $value: "#1A1A1A"
+        $variable: colors/text/primary
+    visible:
+      $value: true
+      $binding: "#/props/showLabel"
+```
+
+Pro features are never stripped from output — they're simply not created at the free tier. If a style property has a bound Figma variable, free-tier output shows the raw resolved value; pro-tier output shows the token reference alongside the value.
+
+> **Note**: Token references require that your source's `fetch` list in `config/settings.yaml` includes `variables`. Style references require `styles`. See [Configuration](/settings/) for details.
+
+:::caution[Fetching variables over REST requires a Figma Enterprise plan]
+A Specs Pro license controls whether **already-fetched** variable and style data gets turned into token references and style references — it does not control whether that data can be fetched from Figma in the first place.
+
+Figma's REST API restricts the `variables` endpoints to organizations on an **Enterprise** plan, regardless of your Specs license; `file` and `styles` data fetch over REST on any plan. On any other plan, fetch variables through the plugin instead — [`specs fetch --only variables --from-bridge`](/cli/commands/fetch/#fetching-variables-via-the-bridge) reads them via Figma's Plugin API, which has no plan restriction, and writes the same payload a REST fetch would. The Figma Plugin itself is likewise unaffected — it always reads variables and styles directly from the open file. See [CLI Requirements](/cli/#requirements) for details.
+:::
+
+### Config settings and licensing
+
+All configuration values work at both tiers. Two settings interact with licensing:
+
+#### `spec.tokens`
+
+Controls **how** token references are serialized — not **whether** they appear. At free tier, no token references are created regardless of this setting. At pro tier, this controls the output shape.
+
+#### `spec.invalidCombinations`
+
+Controls whether invalid variant combinations are computed. Even when set to `true` (the default), this feature requires a pro license. At free tier, the setting is accepted but the computation is skipped — the `invalidPropCombinations` array is simply absent from output.
+
+## In the CLI
 
 | Command | Licensed | What Pro adds |
 |---|---|---|
-| [`generate`](/cli/commands/generate/) | Yes | Non-default variants, token and style references, prop bindings, invalid combinations — see [Free vs Pro](#free-vs-pro) |
-| [`react`](/cli/commands/react/), [`webcomponents`](/cli/commands/webcomponents/) | Yes | Composition, glyphs, background images, compound-variant stories, sticker sheets — see [Emitted code](#emitted-code) |
+| [`generate`](/cli/commands/generate/) | Yes | [What a spec contains](#what-a-spec-contains) — non-default variants, token and style references, prop bindings, invalid combinations |
+| [`react`](/cli/commands/react/), [`webcomponents`](/cli/commands/webcomponents/) | Yes | [Emitted code](#emitted-code) — composition, glyphs, background images, compound-variant stories, sticker sheets |
 | `fetch`, `scan`, `init`, `render`, `version`, `analyze`, `bridge`, `cache`, `migrate`, `applyCustomTokens`, `skills` | No | — |
 
-Those two entitlements resolve independently: `specs react` checks the key itself rather than inheriting anything from a `generate` run. A Pro spec emitted by a free transform loses Pro code, and a free spec cannot be rescued by a licensed transform — there is nothing in it to compose.
+`generate` produces the spec described above. The two transform commands have a tier of their own, resolved from the same key but checked independently — `specs react` does not inherit anything from a `generate` run. A Pro spec emitted by a free transform loses Pro code, and a free spec cannot be rescued by a licensed transform, because there is nothing in it to compose.
 
-### In the plugin
+### Emitted code
 
-The plugin writes specs onto the Figma canvas rather than to files, so its tier is about what the generated spec contains and what the plugin can do with it.
+| Artifact | Free | Pro adds |
+|---|---|---|
+| [Scaffold](/code/scaffold/) | The component, its markup, its variant attributes and its conditionals | **Composition** — an instance element renders as a call to its target component rather than an empty wrapper; **glyphs**; **background images** |
+| [Stories](/code/stories/) | One story per variant-prop axis | **Compound-variant stories**, the **sticker sheet**, and **composed slot content** — the ready-made examples a designer assembled |
+| [Contract](/code/contract/), [Styles](/code/styles/), [CSS variables](/code/cssvars/) | Complete | — |
+
+Free output is a working component, not a crippled one. What it lacks is the part that depends on other components: a card emits its own shell and its own stylesheet either way, but only a Pro run fills the card with the image, title and price the design file already contains.
+
+The emitted files say so themselves rather than leaving it silent — a free stories file carries `// Compound-variant stories available with Pro.` and `// Composed slot content available with Pro.` where the omission falls.
+
+## In the plugin
+
+The plugin writes specs onto the Figma canvas rather than to files, so its tier is about the spec's content and what the plugin can do with it. There is no transform tier here — the plugin writes to the canvas, not to a code tree.
 
 | Surface | Licensed | What Pro adds |
 |---|---|---|
-| Generated spec content | Yes | The same tier as `generate` — non-default variants, token and style references, prop bindings, invalid combinations |
+| Generated spec content | Yes | [What a spec contains](#what-a-spec-contains) — the same tier as `generate`, from the same engine |
 | **Custom styling** (Output settings) | Yes | Generate Specs' own Figma styles and variables so the output matches your system: [color including dark mode](/plugin/color/), [typography from text styles](/plugin/text/), [spacing from variables](/plugin/spacing/) |
 | **Examples** (Settings) | Yes | The Examples section of the settings pane |
 | **Bridge** tab | Yes | The plugin's connection to the CLI, which is how [`fetch --from-bridge`](/cli/commands/fetch/) and [`render`](/cli/commands/render/) reach the open file |
 | Every spec section, [multi-column layout](/plugin/multi-column-layout/), settings, and canvas output | No | — |
 
-Nothing in the plugin is a CLI feature and nothing in the CLI is a plugin feature. The one place they meet is the Bridge, which needs a Pro plugin key on the Figma side; the CLI command that talks to it is free.
+Nothing in the plugin is a CLI feature and nothing in the CLI is a plugin feature. The one place they meet is the Bridge, which needs a Pro plugin key on the Figma side; the CLI commands that talk to it are free.
 
 ## What You Get
 
@@ -110,107 +207,6 @@ Administrators manage everything from the Polar customer portal — the same por
 - Update payment method, download invoices, and cancel the subscription
 
 The total seat count can be adjusted up or down at any time. Changes are **prorated** on month-to-month invoices — adding a seat mid-cycle adds a partial charge for the remaining days, and removing a seat issues a partial credit applied to the next invoice. The volume discount tier is re-evaluated whenever the seat count crosses a threshold (for example, going from 4 to 5 seats activates the 10% discount on the next invoice).
-
-## Free vs Pro
-
-What follows is the tier of the **spec itself**, and it is the same whether the spec came from `generate` or from the plugin — both run the same engine. [Emitted code](#emitted-code) covers the transforms, which are CLI-only.
-
-### Free
-
-Without a license key, every generated spec includes:
-
-- **Component structure** — anatomy (element tree), props (with raw values), and layout
-- **Default variant** — the component in its base state, with all style values as raw numbers, colors, and strings
-- **Metadata** — generator info, author, timestamps, and the conventions and settings used to produce the spec
-
-Free-tier output gives you a complete structural picture of each component — enough to understand what a component is, how it's built, and what its default state looks like.
-
-### Pro
-
-With a valid license key, specs additionally include:
-
-| Feature | What it adds |
-|---------|-------------|
-| **Non-default variants** | All variant combinations beyond the default — size, state, kind, and any other variant properties |
-| **Design token references** | Variable bindings on style properties (spacing, color, corner radius, stroke, typography, shadows, gradients) — connecting raw values to your token system |
-| **Named style references** | Links to Figma text styles, color styles, and effect styles instead of inline values |
-| **Prop bindings** | `$binding` references connecting anatomy elements to component props (slot content, instance swaps, visibility toggles, text overrides) |
-| **Invalid combinations** | The `invalidPropCombinations` array showing which property combinations are impossible (requires `spec.invalidCombinations: true` in `config/settings.yaml`) |
-
-### Example: Free vs Pro Output
-
-The same component property at each tier:
-
-**Free** — raw values only, default variant only:
-```yaml
-elements:
-  label:
-    typography:
-      fontSize: 14
-      lineHeight: 20
-    fill:
-      color: "#1A1A1A"
-    visible: true
-```
-
-**Pro** — token references, style references, and bindings:
-```yaml
-elements:
-  label:
-    typography:
-      $style:
-        name: Body/Medium
-        key: S:abc123
-      fontSize:
-        $value: 14
-        $variable: typography/body-medium/font-size
-      lineHeight:
-        $value: 20
-        $variable: typography/body-medium/line-height
-    fill:
-      color:
-        $value: "#1A1A1A"
-        $variable: colors/text/primary
-    visible:
-      $value: true
-      $binding: "#/props/showLabel"
-```
-
-Pro features are never stripped from output — they're simply not created at the free tier. If a style property has a bound Figma variable, free-tier output shows the raw resolved value; pro-tier output shows the token reference alongside the value.
-
-### Emitted code
-
-[`specs react`](/cli/commands/react/) and [`specs webcomponents`](/cli/commands/webcomponents/) have their own free and Pro tiers, resolved from the same CLI key. The plugin has no equivalent — it writes to the canvas, not to a code tree.
-
-| Artifact | Free | Pro adds |
-|---|---|---|
-| [Scaffold](/code/scaffold/) | The component, its markup, its variant attributes and its conditionals | **Composition** — an instance element renders as a call to its target component rather than an empty wrapper; **glyphs**; **background images** |
-| [Stories](/code/stories/) | One story per variant-prop axis | **Compound-variant stories**, the **sticker sheet**, and **composed slot content** — the ready-made examples a designer assembled |
-| [Contract](/code/contract/), [Styles](/code/styles/), [CSS variables](/code/cssvars/) | Complete | — |
-
-Free output is a working component, not a crippled one. What it lacks is the part that depends on other components: a card emits its own shell and its own stylesheet either way, but only a Pro run fills the card with the image, title and price the design file already contains.
-
-The emitted files say so themselves rather than leaving it silent — a free stories file carries `// Compound-variant stories available with Pro.` and `// Composed slot content available with Pro.` where the omission falls.
-
-> **Note**: Token references require that your source's `fetch` list in `config/settings.yaml` includes `variables`. Style references require `styles`. See [Configuration](/settings/) for details.
-
-:::caution[Fetching variables over REST requires a Figma Enterprise plan]
-A Specs Pro license controls whether **already-fetched** variable and style data gets turned into token references and style references — it does not control whether that data can be fetched from Figma in the first place.
-
-Figma's REST API restricts the `variables` endpoints to organizations on an **Enterprise** plan, regardless of your Specs license; `file` and `styles` data fetch over REST on any plan. On any other plan, fetch variables through the plugin instead — [`specs fetch --only variables --from-bridge`](/cli/commands/fetch/#fetching-variables-via-the-bridge) reads them via Figma's Plugin API, which has no plan restriction, and writes the same payload a REST fetch would. The Figma Plugin itself is likewise unaffected — it always reads variables and styles directly from the open file. See [CLI Requirements](/cli/#requirements) for details.
-:::
-
-### Config Settings and Licensing
-
-All configuration values work at both tiers. Two settings interact with licensing:
-
-#### `spec.tokens`
-
-Controls **how** token references are serialized — not **whether** they appear. At free tier, no token references are created regardless of this setting. At pro tier, this controls the output shape.
-
-#### `spec.invalidCombinations`
-
-Controls whether invalid variant combinations are computed. Even when set to `true` (the default), this feature requires a pro license. At free tier, the setting is accepted but the computation is skipped — the `invalidPropCombinations` array is simply absent from output.
 
 ## Activating a License
 
