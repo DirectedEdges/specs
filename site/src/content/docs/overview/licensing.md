@@ -20,9 +20,9 @@ Specs makes three things. Each has a free tier and a Pro tier, and they are gate
 
 | What you get | Free | Pro adds |
 |---|---|---|
-| **[Data](#the-spec)** | Component structure, variant evaluation, and metadata | Token and style references, prop bindings, invalid combinations |
-| **[Figma canvas output](#canvas-output)** | Every spec section, multi-column layout, all settings | Custom styling, the Examples settings, the Bridge tab |
-| **[Code](#emitted-code)** | The component, its contract, its stylesheet, one story per variant axis | Composition, glyphs, background images, compound stories, sticker sheets |
+| **Data** | Component structure, variant evaluation, and metadata | Token and style references, prop bindings, invalid combinations |
+| **Figma canvas output** | Every spec section, multi-column layout, all settings | Custom styling, the Examples settings, the Bridge tab |
+| **Code** | The component, its contract, its stylesheet, one story per variant axis | Composition, glyphs, background images, compound stories, sticker sheets |
 
 Nothing else is licensed. `fetch`, `scan`, `init`, `render`, `version`, `analyze`, `bridge`, `cache`, `migrate`, `applyCustomTokens` and `skills` behave identically with or without a key.
 
