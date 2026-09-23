@@ -18,15 +18,31 @@ A Pro subscription is **$10/month**.
 
 A license key raises the tier of what a command produces. Two parts of the toolchain read one, and they read it independently.
 
+The plugin and the CLI take **separate keys**, purchased together and activated separately, and they gate different things.
+
+### In the CLI
+
 | Command | Licensed | What Pro adds |
 |---|---|---|
 | [`generate`](/cli/commands/generate/) | Yes | Non-default variants, token and style references, prop bindings, invalid combinations — see [Free vs Pro](#free-vs-pro) |
 | [`react`](/cli/commands/react/), [`webcomponents`](/cli/commands/webcomponents/) | Yes | Composition, glyphs, background images, compound-variant stories, sticker sheets — see [Emitted code](#emitted-code) |
 | `fetch`, `scan`, `init`, `render`, `version`, `analyze`, `bridge`, `cache`, `migrate`, `applyCustomTokens`, `skills` | No | — |
 
-Independently means what it says: `specs react` resolves its own entitlement from the same key sources rather than inheriting anything from a `generate` run. A Pro spec emitted by a free transform loses Pro code, and a free spec cannot be rescued by a licensed transform — there is nothing in it to compose.
+Those two entitlements resolve independently: `specs react` checks the key itself rather than inheriting anything from a `generate` run. A Pro spec emitted by a free transform loses Pro code, and a free spec cannot be rescued by a licensed transform — there is nothing in it to compose.
 
-The plugin and the CLI take **separate keys**, purchased together and activated separately. [Activating a license](#activating-a-license) covers both.
+### In the plugin
+
+The plugin writes specs onto the Figma canvas rather than to files, so its tier is about what the generated spec contains and what the plugin can do with it.
+
+| Surface | Licensed | What Pro adds |
+|---|---|---|
+| Generated spec content | Yes | The same tier as `generate` — non-default variants, token and style references, prop bindings, invalid combinations |
+| **Custom styling** (Output settings) | Yes | Generate Specs' own Figma styles and variables so the output matches your system: [color including dark mode](/plugin/color/), [typography from text styles](/plugin/text/), [spacing from variables](/plugin/spacing/) |
+| **Examples** (Settings) | Yes | The Examples section of the settings pane |
+| **Bridge** tab | Yes | The plugin's connection to the CLI, which is how [`fetch --from-bridge`](/cli/commands/fetch/) and [`render`](/cli/commands/render/) reach the open file |
+| Every spec section, [multi-column layout](/plugin/multi-column-layout/), settings, and canvas output | No | — |
+
+Nothing in the plugin is a CLI feature and nothing in the CLI is a plugin feature. The one place they meet is the Bridge, which needs a Pro plugin key on the Figma side; the CLI command that talks to it is free.
 
 ## What You Get
 
@@ -97,7 +113,7 @@ The total seat count can be adjusted up or down at any time. Changes are **prora
 
 ## Free vs Pro
 
-What follows is the tier for `generate` — the spec itself. [Emitted code](#emitted-code) covers the transforms.
+What follows is the tier of the **spec itself**, and it is the same whether the spec came from `generate` or from the plugin — both run the same engine. [Emitted code](#emitted-code) covers the transforms, which are CLI-only.
 
 ### Free
 
@@ -164,7 +180,7 @@ Pro features are never stripped from output — they're simply not created at th
 
 ### Emitted code
 
-[`specs react`](/cli/commands/react/) and [`specs webcomponents`](/cli/commands/webcomponents/) have their own free and Pro tiers, resolved from the same key.
+[`specs react`](/cli/commands/react/) and [`specs webcomponents`](/cli/commands/webcomponents/) have their own free and Pro tiers, resolved from the same CLI key. The plugin has no equivalent — it writes to the canvas, not to a code tree.
 
 | Artifact | Free | Pro adds |
 |---|---|---|
