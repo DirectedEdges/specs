@@ -5,6 +5,20 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.34.0] - 2026-09-23
+
+**A component's disallowed prop combinations now live with its API.** `invalidPropCombinations` renames `invalidVariantCombinations` and travels in the api concern document, so the constraint sits beside the props it constrains rather than with variant data. The schema also now states plainly that an element carrying positioning offsets always declares `position: ABSOLUTE`, so a spec's placement reads on its own, without consulting the parent's layout mode.
+
+### Changed
+
+- **An element carrying positioning offsets always declares `position: ABSOLUTE`**, so its placement is readable without consulting the parent's layout mode. Documentation-only: the presence contract is stated on `position` and the six offset properties in the types and schema; no shape changes (ADR-070)
+- **`Component.invalidPropCombinations` renames `invalidVariantCombinations`**, carried by the api concern document so disallowed combinations live beside the props they constrain (ADR-092)
+
+### Migration
+
+- `Component.invalidVariantCombinations` → `Component.invalidPropCombinations`: read the renamed key, and from `api.yaml` rather than `variants.yaml` in split-concern output; regenerate specs to migrate
+
+
 ## [0.33.0] - 2026-09-20
 
 **A generation run states its facts once, in a document of its own.** The author, timestamp, generator, schema, conventions and settings were identical in every file a run produced; `RunMetadata` holds them now, and `Metadata` keeps only `source` (ADR-089).

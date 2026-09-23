@@ -27,6 +27,8 @@ export type SpecApiSubcomponent = {
   title: string;
   anatomy: Anatomy;
   props: Props;
+  /** Prop-value combinations that produce an invalid component state (ADR-092). */
+  invalidPropCombinations?: PropConfigurations[];
   /** Figma source identity for this subcomponent's node. */
   source?: SubcomponentSource;
   subcomponents?: Record<string, SpecApiSubcomponent>;
@@ -36,7 +38,6 @@ export type SpecApiSubcomponent = {
 export type SpecVariantsSubcomponent = {
   default: Variant;
   variants: Variants;
-  invalidVariantCombinations?: PropConfigurations[];
   /** Figma source identity for this subcomponent's node. */
   source?: SubcomponentSource;
   subcomponents?: Record<string, SpecVariantsSubcomponent>;
@@ -64,6 +65,8 @@ export type SpecApiDocument = {
   title: string;
   anatomy: Anatomy;
   props: Props;
+  /** Prop-value combinations that produce an invalid component state (ADR-092). */
+  invalidPropCombinations?: PropConfigurations[];
   subcomponents?: Record<string, SpecApiSubcomponent>;
 };
 
@@ -78,7 +81,6 @@ export type SpecVariantsDocument = {
   metadata: Metadata & { concern: 'variants' };
   default: Variant;
   variants: Variants;
-  invalidVariantCombinations?: PropConfigurations[];
   subcomponents?: Record<string, SpecVariantsSubcomponent>;
 };
 

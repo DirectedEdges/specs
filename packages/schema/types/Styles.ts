@@ -25,19 +25,19 @@ export type Styles = Partial<{
   minHeight: Style;
   maxWidth: Style;
   maxHeight: Style;
-  /** Layout positioning mode — AUTO (participates in parent auto-layout) or ABSOLUTE. Structural property — not token-bindable. @since 0.19.0 */
+  /** Layout positioning mode — AUTO (participates in parent auto-layout) or ABSOLUTE. Present as ABSOLUTE on every element that emits positioning offsets, including children of non-auto-layout containers; AUTO appears only inside auto-layout containers (ADR-070). Structural property — not token-bindable. @since 0.19.0 */
   position: Position | null;
-  /** Offset from block-start (top) edge. Present when vertical constraint is MIN, STRETCH, or SCALE. Pixel number or percentage string. @since 0.19.0 */
+  /** Offset from block-start (top) edge. Emitted only alongside `position` (ADR-070). Present when vertical constraint is MIN, STRETCH, or SCALE. Pixel number or percentage string. @since 0.19.0 */
   top: PositionOffset;
-  /** Offset from block-end (bottom) edge. Present when vertical constraint is MAX or STRETCH. Pixel number. @since 0.19.0 */
+  /** Offset from block-end (bottom) edge. Emitted only alongside `position` (ADR-070). Present when vertical constraint is MAX or STRETCH. Pixel number. @since 0.19.0 */
   bottom: PositionOffset;
-  /** Offset from inline-start edge. Present when horizontal constraint is MIN, STRETCH, or SCALE. Pixel number or percentage string. @since 0.19.0 */
+  /** Offset from inline-start edge. Emitted only alongside `position` (ADR-070). Present when horizontal constraint is MIN, STRETCH, or SCALE. Pixel number or percentage string. @since 0.19.0 */
   start: PositionOffset;
-  /** Offset from inline-end edge. Present when horizontal constraint is MAX or STRETCH. Pixel number. @since 0.19.0 */
+  /** Offset from inline-end edge. Emitted only alongside `position` (ADR-070). Present when horizontal constraint is MAX or STRETCH. Pixel number. @since 0.19.0 */
   end: PositionOffset;
-  /** Horizontal offset from center. Present when horizontal constraint is CENTER. @since 0.19.0 */
+  /** Horizontal offset from center. Emitted only alongside `position` (ADR-070). Present when horizontal constraint is CENTER. @since 0.19.0 */
   centerHorizontalOffset: PositionOffset;
-  /** Vertical offset from center. Present when vertical constraint is CENTER. @since 0.19.0 */
+  /** Vertical offset from center. Emitted only alongside `position` (ADR-070). Present when vertical constraint is CENTER. @since 0.19.0 */
   centerVerticalOffset: PositionOffset;
   layoutSizingHorizontal: Style;
   layoutSizingVertical: Style;

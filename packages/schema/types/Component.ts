@@ -46,9 +46,9 @@ export type Component = {
   variants?: Variants;
 
   /**
-   * Invalid variant combinations for the component.
+   * Prop-value combinations that produce an invalid component state (ADR-092).
    */
-  invalidVariantCombinations?: PropConfigurations[];
+  invalidPropCombinations?: PropConfigurations[];
 
   /**
    * Metadata associated with the component.

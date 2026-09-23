@@ -1,5 +1,5 @@
 ---
-title: "Invalid Variant Combinations"
+title: "Invalid Prop Combinations"
 description: "Declare which variant combinations are intentionally unsupported for a component"
 ---
 
@@ -16,7 +16,7 @@ Without surfacing these exclusions, consumers face silent failures:
 
 ## What It Does
 
-The `invalidVariantCombinations` field on `Component` lists every prop combination that has no corresponding valid variant. Each entry is a `PropConfigurations` object — the same shape used in `Variant.configuration` — declaring which prop values, when combined, are intentionally unsupported.
+The `invalidPropCombinations` field on `Component` — written into `api.yaml` when a run splits concerns, because it restricts the component's contract (ADR-092) — lists every prop combination that has no corresponding valid variant. Each entry is a `PropConfigurations` object — the same shape used in `Variant.configuration` — declaring which prop values, when combined, are intentionally unsupported.
 
 Each entry means: "this combination of prop values was not designed and should not be used."
 
@@ -49,7 +49,7 @@ Note that `state: rest` remains valid with both `disabled: true` and `readonly: 
 The resulting output:
 
 ```yaml
-invalidVariantCombinations:
+invalidPropCombinations:
   - disabled: true
     state: hover
   - disabled: true
@@ -74,7 +74,7 @@ This is controlled by the `spec.invalidCombinations` setting:
 
 | Value | Behavior |
 |-------|----------|
-| `true` (default) | Include `invalidVariantCombinations` in output |
+| `true` (default) | Include `invalidPropCombinations` in output |
 | `false` | Omit the field entirely |
 
 ```yaml
@@ -88,12 +88,12 @@ spec:
 Invalid variant combinations and the `variants` array are complementary:
 
 - **`variants`** lists the prop combinations that *are* designed, along with their visual overrides
-- **`invalidVariantCombinations`** lists the prop combinations that are *not* designed
+- **`invalidPropCombinations`** lists the prop combinations that are *not* designed
 
 Together they form a complete picture of the component's variant space. A prop combination appears in exactly one of:
 1. The `default` variant (when all props are at their default values)
 2. A `variants` entry (a valid non-default combination)
-3. An `invalidVariantCombinations` entry (an excluded combination)
+3. An `invalidPropCombinations` entry (an excluded combination)
 
 ### Relationship to `Variant.invalid`
 
@@ -103,17 +103,17 @@ The two mechanisms serve different purposes:
 
 | Mechanism | Scope | Default |
 |-----------|-------|---------|
-| `invalidVariantCombinations` | Summary list on `Component` | Included (`true`) |
+| `invalidPropCombinations` | Summary list on `Component` | Included (`true`) |
 | `Variant.invalid` | Flag on individual `Variant` records | Excluded (`false`) |
 
 When `spec.invalidVariants` is `true`, invalid variants appear in the `variants` array with `invalid: true` and empty `elements`. When `spec.invalidCombinations` is `true`, the same combinations appear in the summary list. Both can be active simultaneously — the summary list provides a quick lookup table, while the variant-level flag preserves the combination within the variant array for tools that iterate all variants.
 
 ## Schema Reference
 
-### `Component.invalidVariantCombinations`
+### `Component.invalidPropCombinations`
 
 ```typescript
-invalidVariantCombinations?: PropConfigurations[];
+invalidPropCombinations?: PropConfigurations[];
 ```
 
 An array of `PropConfigurations` objects. Each object is a `Record<string, string | number | boolean>` mapping prop names to the values that form the invalid combination.
@@ -126,7 +126,7 @@ include: {
 }
 ```
 
-When `true`, the component output includes the `invalidVariantCombinations` field. When `false`, the field is omitted from output.
+When `true`, the component output includes the `invalidPropCombinations` field. When `false`, the field is omitted from output.
 
 ---
 

@@ -5,6 +5,32 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.31.0] - 2026-09-23
+
+**The spec workspace now versions itself.** `specs version` grades every change, keeps full history under `versions/`, and generates the release report and changelog — all in the free tier.
+
+### Breaking
+
+- **A component's unsupported prop combinations are written to `api.yaml` as `invalidPropCombinations`**, rather than to `variants.yaml` as `invalidVariantCombinations`. Regenerate your specs; anything reading the old key or the old file finds nothing (ADR-092).
+
+### Added
+
+- **`specs version cut` gives the spec workspace a semantic version**, grading every change since the last version: `api.yaml` changes drive MAJOR or MINOR, while `variants.yaml` and examples never exceed PATCH. A first cut starts the workspace at 0.1.0; each version is stored in full under `versions/<version>/`, with `versions/latest/` mirroring the newest.
+- **`specs version diff`, `history`, and `restore` answer what changed, how it happened, and what a component looked like at any version**, reading the history `cut` maintains. `restore` never overwrites the live spec.
+- **`specs version figmapremerge` reports the impact of a Figma branch before you merge it**, from just the branch URL — it derives the main file, generates specs from both sides, and writes the graded comparison under `versions/diffs/`.
+- **`specs version report` renders the release report and itemized changelog** for everything versioned since the last release; the same two files land in each version's folder when it is cut.
+- **A recorded rename reports as one change with a `from → to` migration line**, never a removal plus an addition. Record component, prop, and enum value renames in `versions/renames.yaml`.
+- **`--force-major`, `--force-minor`, and `--force-patch` override the computed grade** with a required reason, recorded permanently in the history.
+- **`specs version tag` creates the annotated library git tag for any cut version**, at cut time or later, from the recorded history — never pushed.
+- **`specs skills install` emits the premerge and release orchestration skills into `.claude/skills/`**, overwriting on refresh so the skills always match the CLI that ships them.
+
+### Dependency updates
+
+- `@directededges/specs-schema` ^0.34.0 — specs name disallowed prop combinations `invalidPropCombinations`, carried in `api.yaml`, and an element carrying positioning offsets always declares `position: ABSOLUTE`, so placement reads without consulting the parent's layout mode.
+- `@directededges/specs-from-figma` ^0.33.0 — generated specs emit the renamed `invalidPropCombinations` key; entries and gating are unchanged.
+- `@directededges/react-from-specs` ^0.3.0 and `@directededges/webcomponents-from-specs` ^0.3.0 — generated components no longer reference parts that were never drawn: ids referenced by `htmlFor` or `aria-describedby` always exist, collapsed controls take their name from the nominated accessibility prop, form controls emit the accessible name they resolved, and repeated indicators each render on the side the layout drew them. A rate-limited license check no longer locks a watch session into failure until restart.
+
+
 ## [0.30.0] - 2026-09-20
 
 **A catalogue run states its metadata once.** The author, generator, schema, conventions and settings were identical in every file a run produced, and repeated again for every concern document and subcomponent inside it; they now live in one `latest.metadata.yaml` beside the specs.
@@ -39,6 +65,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`specs scan` leaves a subcomponent unchecked when its parent is checked**, since a subcomponent is already specced as part of its parent. A separate component that a checked component instances is still selected.
 - **A composed instance fills a slot that states its size through opposing insets.** A slot pinned to all four edges names no width yet is as wide as its container; the child used to paint at its own master's size.
 - **A child filling its parent's cross axis keeps the parent's alignment.** Cross-axis FILL emits a dimension rather than `align-self: stretch`, so a child stopped from filling by a `min-width` or `max-width` is centred under a centring parent.
+- **A variant styled on a state the component's own control announces keeps its rule**, selecting on the prop's data attribute rather than being dropped with a warning that no concept names the value.
+- **The `not-allowed` cursor reaches a component whose disabled state lives on a control inside it**, selecting what the root actually carries instead of an attribute only the nested control has.
+- **A text field keeps the font and colour the spec gave its value and placeholder**, carried onto the emitted input and its `::placeholder` rather than left on elements the control replaced.
 
 ### Dependency updates
 

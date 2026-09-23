@@ -13,7 +13,7 @@ the site at `site/ARCHITECTURE.md`.
 |---|---|
 | `packages/schema/` | `@directededges/specs-schema` — the contract (detail below) |
 | `packages/cli/` | `@directededges/specs-cli` — see its own ARCHITECTURE.md |
-| `adr/` | 82 numbered decision records + `INDEX.md`; the only front door for schema changes |
+| `adr/` | 87 numbered decision records + `INDEX.md`; the only front door for schema changes |
 | `rfc/` | Broader-than-ADR proposals (one so far) |
 | `site/` | Astro docs site, port 4323 — own package, **not** a workspace member |
 | `scripts/validate-schema.sh` | JSON-parse gate over `schema/*.schema.json` (metaschema pass only if `check-jsonschema` is installed — full validation is optional in practice) |

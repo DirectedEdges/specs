@@ -52,6 +52,8 @@ Registered in `createProgram()` (`src/index.ts`); flat files in
 | `analyze` | `AnalyzeCommand.ts` | Dependency/prop/styling/key analyzers |
 | `render` | `RenderCommand.ts` | Spec → Figma via bridge |
 | `bridge` | `BridgeCommand.ts` | start/stop/status for the daemon |
+| `version` | `VersionCommand.ts` | Spec workspace versioning: diff/history/bump/restore/premerge/report over `src/version/` (diff engine, rules-as-data classifier, ledgers, report renderer). Free tier |
+| `skills` | `SkillsCommand.ts` | Emits the canonical premerge/release orchestration skills into `.claude/skills/` |
 | `audit` | (inline alias) | Deprecated; rewrites argv to `scan` |
 
 ## Key nodes
@@ -64,6 +66,7 @@ Registered in `createProgram()` (`src/index.ts`); flat files in
 | `src/utilities/LicenseStatus.ts` | Reads engine-stamped license state; the CLI validates nothing |
 | `src/transforms/` | Open counterparts of transform modules (see drift note below) |
 | `src/Writers/` | Output *strategy* writers: single / component / concern / combined file |
+| `src/version/` | Versioning internals: `assemble` (concern files → component) → `diff` → `rules` classifier (rules-as-data in `semverRules.ts`, `--rules` overrides) → `bump`/`ledger` (`versions/<libVersion>/` folders + `ledgers/*.json`, no snapshots) → `report` renderer (premerge canon). Skill markdown emitted by `skills.ts` |
 | `src/Writers/RunMetadataFile.ts` | `latest.metadata.<format>` — a manifest run's facts, stated once (ADR-089). `RunMetadataFile.separate()` lifts them out of every spec and reduces each block to `source`; `RunMetadataReader.find()` reads the document back, looking in the spec's own directory then one level up |
 | `src/Render/SpecLoader.ts` | Spec discovery + loading for render. Rehydrates a reduced spec's run metadata here, at the one place every render input is loaded, so no reader downstream has to know the spec was reduced |
 | `tests/unit/config/ConfigLoader.test.ts` | The config feature suite — temp `config/` trees on disk |
@@ -98,7 +101,7 @@ Repo-root `npm test`; invoke the built CLI as `node
 packages/cli/dist/specs.js` (watcher keeps it fresh). License integration
 tests are placeholder-only (skipped without `ANOVA_TEST_KEY_*` env).
 
-## Known drift (as of 2026-09-05)
+## Known drift (as of 2026-09-22)
 
 - `packages/cli/CLAUDE.md` (May 11) is badly stale: claims an MCP server,
   directory-per-command layout, `Component.fromRestApi`, a working
@@ -106,4 +109,10 @@ tests are placeholder-only (skipped without `ANOVA_TEST_KEY_*` env).
 - `src/transforms/` holds open counterparts of from-specs modules in the
   other repo — deliberately unsynced; which side is authoritative is an open
   cross-repo question.
+- `src/transforms/states.ts` mirrors two facts from the closed packages'
+  RoleSpecs: `ROLE_NATIVE_STATES` (which state concepts a role announces on
+  its own element) and `COLLAPSING_ROLES` (which roles consume their subtree).
+  The stylesheet needs both to know what markup the scaffold actually emits —
+  a change to either fact there must land here too, or selectors anchor on
+  elements and attributes that no longer exist.
 - No tsc declaration step despite `types: dist/index.d.ts` in package.json.

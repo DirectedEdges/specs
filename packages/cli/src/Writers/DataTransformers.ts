@@ -1,12 +1,13 @@
 /**
  * API concern data extracted from component
- * Contains: title, anatomy, props, subcomponents
+ * Contains: title, anatomy, props, invalidPropCombinations, subcomponents
  * Metadata always appears last in serialization
  */
 export interface ComponentApiData {
   title: string;
   anatomy: any;
   props: Record<string, any>;
+  invalidPropCombinations?: any[];
   subcomponents?: Record<string, SubcomponentApiData>;
   metadata: any;
 }
@@ -18,18 +19,18 @@ export interface SubcomponentApiData {
   title: string;
   anatomy: any;
   props: Record<string, any>;
+  invalidPropCombinations?: any[];
   metadata: any;
 }
 
 /**
  * Variants concern data extracted from component
- * Contains: default, variants, invalidVariantCombinations, subcomponents
+ * Contains: default, variants, subcomponents
  * Metadata always appears last in serialization
  */
 export interface ComponentVariantsData {
   default: any;
   variants: any[];
-  invalidVariantCombinations?: any[];
   subcomponents?: Record<string, SubcomponentVariantsData>;
   metadata: any;
 }
@@ -40,7 +41,6 @@ export interface ComponentVariantsData {
 export interface SubcomponentVariantsData {
   default: any;
   variants: any[];
-  invalidVariantCombinations?: any[];
   metadata: any;
 }
 
@@ -79,7 +79,8 @@ export function splitComponentByConcern(data: Record<string, any>): {
   variants: ComponentVariantsData;
   examples: ComponentExamplesData;
 } {
-  // Extract API concern: title, anatomy, props, subcomponents (recursive)
+  // Extract API concern: title, anatomy, props, invalidPropCombinations,
+  // subcomponents (recursive)
   const api: ComponentApiData = {
     title: data.title,
     anatomy: data.anatomy,
@@ -87,22 +88,22 @@ export function splitComponentByConcern(data: Record<string, any>): {
     metadata: data.metadata
   };
 
+  // Include invalidPropCombinations only if present
+  if (data.invalidPropCombinations && data.invalidPropCombinations.length > 0) {
+    api.invalidPropCombinations = data.invalidPropCombinations;
+  }
+
   // Handle subcomponents recursively for API
   if (data.subcomponents) {
     api.subcomponents = extractApiFromSubcomponents(data.subcomponents);
   }
 
-  // Extract Variants concern: default, variants, invalidVariantCombinations, subcomponents (recursive)
+  // Extract Variants concern: default, variants, subcomponents (recursive)
   const variants: ComponentVariantsData = {
     default: data.default,
     variants: data.variants || [],
     metadata: data.metadata
   };
-
-  // Include invalidVariantCombinations only if present
-  if (data.invalidVariantCombinations && data.invalidVariantCombinations.length > 0) {
-    variants.invalidVariantCombinations = data.invalidVariantCombinations;
-  }
 
   // Handle subcomponents recursively for Variants
   if (data.subcomponents) {
@@ -160,7 +161,12 @@ export function extractApiFromSubcomponents(
       props: data.props || {},
       metadata: data.metadata
     };
-    
+
+    // Include invalidPropCombinations only if present
+    if (data.invalidPropCombinations && data.invalidPropCombinations.length > 0) {
+      apiData.invalidPropCombinations = data.invalidPropCombinations;
+    }
+
     // Recursively handle nested subcomponents
     if (data.subcomponents) {
       (apiData as any).subcomponents = extractApiFromSubcomponents(data.subcomponents);
@@ -191,12 +197,7 @@ export function extractVariantsFromSubcomponents(
       variants: data.variants || [],
       metadata: data.metadata
     };
-    
-    // Include invalidVariantCombinations only if present
-    if (data.invalidVariantCombinations && data.invalidVariantCombinations.length > 0) {
-      variantsData.invalidVariantCombinations = data.invalidVariantCombinations;
-    }
-    
+
     // Recursively handle nested subcomponents
     if (data.subcomponents) {
       (variantsData as any).subcomponents = extractVariantsFromSubcomponents(data.subcomponents);

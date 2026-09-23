@@ -32,4 +32,4 @@ When a variant's `configuration` matches the current prop values, its `elements`
 
 Variants with `invalid: true` represent prop combinations that exist in Figma but are semantically invalid. They are excluded from output by default (controlled by [`settings.spec.invalidVariants`](/schema/settings/#spec) in config).
 
-The top-level `invalidVariantCombinations` array lists prop combinations that should never occur together, separately from the variant list.
+The top-level `invalidPropCombinations` array — carried by the [api concern](/schema/component/) rather than the variants document (ADR-092) — lists prop combinations that should never occur together, separately from the variant list.
