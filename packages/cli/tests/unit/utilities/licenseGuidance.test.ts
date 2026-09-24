@@ -23,8 +23,19 @@ describe('transientFailureLines', () => {
     expect(lines).not.toContain('network connection');
   });
 
-  it('names the status, so a report says which failure it was', () => {
-    expect(transientFailureLines('rate-limited').join('\n')).toContain('rate-limited');
+  it('sends a rate limit to a wait, not to the network or a quick retry', () => {
+    // A rate limit clears by not sending requests; a quick retry feeds it and
+    // network advice sends diagnosis to the wrong layer.
+    const lines = transientFailureLines('rate-limited').join('\n');
+
+    expect(lines).toContain('rate limited');
+    expect(lines).toContain('Wait');
+    expect(lines).not.toContain('network connection');
+    expect(lines).not.toContain('Retry in a few seconds');
+  });
+
+  it('names an unrecognised status, so a report says which failure it was', () => {
+    expect(transientFailureLines('some-new-status').join('\n')).toContain('some-new-status');
   });
 
   it('always says the key was not validated and nothing licensed was written', () => {
