@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+### Fixed
+
+- **A run whose license key cannot be checked stops at the first component** instead of failing every one into the same rate limit, and a rate-limited check now says to wait it out rather than to check your network.
+
 ### Removed
 
 
