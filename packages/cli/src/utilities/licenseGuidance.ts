@@ -16,10 +16,12 @@ export const TRANSIENT_FAILURES: ReadonlySet<string> = new Set(['error', 'networ
 /**
  * The lines to print for a transient failure.
  *
- * Two different problems hide under "the check failed", and their remedies have
+ * Distinct problems hide under "the check failed", and their remedies have
  * nothing in common. `network-error` means the license server was never reached
  * — an offline machine, a DNS failure, a corporate TLS interception — and
- * "retry in a few seconds" is useless advice for it. Anything else means the
+ * "retry in a few seconds" is useless advice for it. `rate-limited` means the
+ * server answered and declined: the fix is to stop sending requests until the
+ * window clears, and more retries prolong it. Anything else means the
  * server answered and the check itself did not complete, which usually clears.
  */
 export function transientFailureLines(status: string): string[] {
@@ -29,6 +31,14 @@ export function transientFailureLines(status: string): string[] {
       'Your key was not validated, so no licensed output was produced.',
       "Check this machine's network connection, and any proxy or TLS inspection between it and the internet.",
       'To work offline, remove the key for free-tier output.',
+    ];
+  }
+  if (status === 'rate-limited') {
+    return [
+      'Error: The license server is rate limited.',
+      'Your key was not validated, so no licensed output was produced.',
+      'Wait about a minute without running licensed commands, then retry — repeated runs keep the limit saturated.',
+      'Or remove the key for free-tier output.',
     ];
   }
   return [
