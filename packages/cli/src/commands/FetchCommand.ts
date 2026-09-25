@@ -30,6 +30,7 @@ const ERROR_CODES = {
 import type { SourceEntry } from '@directededges/specs-schema';
 import { figmaOf } from '../Config/PlatformConventions.js';
 import { MAX_JSON_STRING_BYTES, readJsonPayload } from '../utilities/payloadRead.js';
+import { PayloadSplitter, splitDirFor } from '../utilities/payloadSplit.js';
 import { resolveFigmaFileKey, slugifyBranchName, FigmaKeyError } from '../utilities/figmaFileKey.js';
 import { postGetVariables } from '../bridge/client.js';
 import { resolveFileKey } from '../bridge/pickConnection.js';
@@ -625,6 +626,18 @@ export const Fetch = new Command('fetch')
           }
 
           const outputPath = path.join(outDir, `${entry.alias}.${kind}.json`);
+          // File payloads dual-write a page-split directory while streaming
+          // (specs#559): the sectioned artifact every consumer will migrate to.
+          // Additive — a split failure warns and cleans up, never fails the fetch.
+          let splitter = kind === 'file' ? new PayloadSplitter(splitDirFor(outDir, entry.alias)) : null;
+          const feedSplitter = (bytes: Uint8Array) => {
+            if (!splitter) return;
+            try { splitter.write(Buffer.from(bytes)); } catch (e) {
+              console.warn(`⚠ ${entry.alias}.file/ page split failed (${e instanceof Error ? e.message : e}) — the single-file payload is unaffected.`);
+              splitter.abort();
+              splitter = null;
+            }
+          };
           if (stream) {
             const tmpPath = `${outputPath}.tmp`;
             try {
@@ -634,6 +647,7 @@ export const Fetch = new Command('fetch')
                 const pump = () =>
                   reader.read().then(({ done, value }) => {
                     if (done) { writeStream.end(); return; }
+                    feedSplitter(value);
                     writeStream.write(value, (err) => { if (err) reject(err); else pump(); });
                   }).catch(reject);
                 writeStream.on('finish', resolve);
@@ -643,10 +657,22 @@ export const Fetch = new Command('fetch')
               await fs.rename(tmpPath, outputPath);
             } catch (err) {
               await fs.remove(tmpPath).catch(() => {});
+              splitter?.abort();
+              splitter = null;
               throw err;
             }
           } else {
+            if (body) feedSplitter(Buffer.from(body, 'utf-8'));
             await fs.writeFile(outputPath, body, 'utf-8');
+          }
+          if (splitter) {
+            try {
+              const split = await splitter.finish();
+              console.log(`✓ Split: ${entry.alias}.file/ (${split.pages.length} pages, root ${Math.round(fs.statSync(path.join(splitDirFor(outDir, entry.alias), 'root.json')).size / 1048576)}MB)`);
+            } catch (e) {
+              console.warn(`⚠ ${entry.alias}.file/ page split failed (${e instanceof Error ? e.message : e}) — the single-file payload is unaffected.`);
+              splitter.abort();
+            }
           }
 
           console.log(`✓ Downloaded: ${entry.alias} ${kind} (${elapsed})`);
