@@ -109,12 +109,23 @@ export class SectionedFile {
   /** Which page defines the node with this id, by raw byte scan. Null when
    *  no local page does (a remote-library component — a normal outcome). */
   locatePageOfNodeId(nodeId: string): SplitPageEntry | null {
-    const candidate = new Set([nodeId]);
+    return this.locatePagesOfNodeIds([nodeId]).get(nodeId) ?? null;
+  }
+
+  /** Batch page location: one scan per page for all ids. Ids found in no page
+   *  are absent from the result (remote-library components). */
+  locatePagesOfNodeIds(nodeIds: Iterable<string>): Map<string, SplitPageEntry> {
+    const missing = new Set(nodeIds);
+    const located = new Map<string, SplitPageEntry>();
     for (const entry of this.manifest.pages) {
+      if (missing.size === 0) break;
       const raw = this.rawCache.get(entry.id) ?? readFileSync(join(this.dir, entry.file));
-      if (extractDefinedIds(raw, candidate).length > 0) return entry;
+      for (const id of extractDefinedIds(raw, missing)) {
+        located.set(id, entry);
+        missing.delete(id);
+      }
     }
-    return null;
+    return located;
   }
 
   /**

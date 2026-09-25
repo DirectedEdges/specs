@@ -23,6 +23,7 @@ import { resolveFileSourceAlias } from '../utilities/fileSourceAlias.js';
 import { ManifestParser } from '../utilities/ManifestParser.js';
 import { ManifestParserV2 } from '../utilities/ManifestParserV2.js';
 import { assertPayloadReadable, readJsonPayload } from '../utilities/payloadRead.js';
+import { SectionedFile, shadowIngestEnabled, shadowCompare } from '../utilities/sectionedFile.js';
 import { LicenseStatus } from '../utilities/LicenseStatus.js';
 import { TRANSIENT_FAILURES, transientFailureLines } from '../utilities/licenseGuidance.js';
 import { FileManifest } from '../Writers/FileManifest.js';
@@ -472,7 +473,9 @@ export const Generate = new Command('generate')
       // ---------------------------------------------------------------
       let componentIds: string[];
       let componentNames: Map<string, string>; // id → display name
-      let libraryJson: Record<string, any>;
+      let libraryJson: Record<string, any> | undefined;
+      // Shadow mode only: the monolithic payload for a second engine run.
+      let shadowJson: Record<string, any> | undefined;
       // The Figma payload these specs come from — carried to --get-images so images are
       // pulled from that file, which for an ad-hoc source is not the configured one.
       let payloadPath: string | undefined;
@@ -537,7 +540,9 @@ export const Generate = new Command('generate')
         }
 
         payloadPath = sourceFile;
-        libraryJson = readJsonPayload(sourceFile);
+        // Deferred: the payload loads after component selection, so the
+        // sectioned path can assemble a pruned document from just the pages
+        // the selected components need (specs#562).
 
         // `--component` used to apply only in file mode, so asking for one component here
         // silently generated the whole catalogue — a slow surprise, and one that looks like
@@ -590,6 +595,48 @@ export const Generate = new Command('generate')
         if (options.verbose) {
           console.log(`[CLI] File loaded: ${libraryJson.name || path.basename(sourcePath)}`);
         }
+      }
+
+      // ---------------------------------------------------------------
+      // Load the payload (manifest mode deferred it): sectioned first —
+      // a pruned document assembled from the selected components' pages plus
+      // automatic cross-page fault-in — monolithic as the fallback (specs#562).
+      // ---------------------------------------------------------------
+      if (libraryJson === undefined && payloadPath) {
+        const payloadDir = path.dirname(payloadPath);
+        const payloadAlias = path.basename(payloadPath).endsWith('.file.json')
+          ? path.basename(payloadPath).replace(/\.file\.json$/, '')
+          : null;
+        const sectioned = payloadAlias ? SectionedFile.open(payloadDir, payloadAlias) : null;
+        if (sectioned) {
+          const located = sectioned.locatePagesOfNodeIds(componentIds);
+          const unlocated = componentIds.filter(id => !located.has(id));
+          if (unlocated.length > 0) {
+            // A manifest-selected component missing from the split artifact
+            // means it is stale relative to the manifest — say so and use the
+            // monolithic payload for this run.
+            console.warn(`⚠ ${payloadAlias}.file/ does not contain ${unlocated.length} selected component(s) (${unlocated.slice(0, 3).join(', ')}${unlocated.length > 3 ? ', …' : ''}) — falling back to the single-file payload. Re-run \`specs fetch\` to refresh the split artifact.`);
+          } else {
+            const seedIds = [...new Set([...located.values()].map(e => e.id))];
+            const assembled = sectioned.assembleDocument(seedIds, options.verbose
+              ? f => console.log(`[CLI] fault-in: page "${f.pageName}" (needed for ${f.causedBy})`)
+              : undefined);
+            libraryJson = assembled.json;
+            const { stats } = assembled;
+            console.log(`✓ Sectioned read: ${stats.pagesLoaded.length}/${stats.pagesTotal} pages (${seedIds.length} seeded, ${stats.faults.length} faulted in, ${stats.remoteIds.length} remote refs)`);
+            if (shadowIngestEnabled() && fs.existsSync(payloadPath)) {
+              shadowJson = readJsonPayload(payloadPath);
+            }
+          }
+        }
+        if (libraryJson === undefined) {
+          libraryJson = readJsonPayload(payloadPath);
+        }
+      }
+      if (libraryJson === undefined) {
+        console.error('Error: no payload loaded'); // unreachable: every mode sets or defers
+        process.exit(ERROR_CODES.FILE_ERROR);
+        return;
       }
 
       // ---------------------------------------------------------------
@@ -677,6 +724,22 @@ export const Generate = new Command('generate')
         },
         licenseInput,
       );
+
+      // Shadow mode: rerun the engine on the monolithic payload and diff the
+      // emitted specs against the sectioned-path results. Dev-only; deleted at
+      // the dual-write flip. (Validates the license a second time.)
+      if (shadowJson) {
+        const shadowResults = await Components.fromRestApi(
+          componentIds, shadowJson, config.conventions, config.settings,
+          { styles, variables, collections, author: config.settings.author, generator: CLI_GENERATOR },
+          () => {}, licenseInput,
+        );
+        // metadata.lastUpdated is wall-clock — the one legitimately volatile
+        // field (the perf harness normalizes it the same way).
+        const stripClock = (value: unknown): unknown =>
+          JSON.parse(JSON.stringify(value, (key, v) => (key === 'lastUpdated' ? undefined : v)));
+        shadowCompare('generate:results', stripClock(shadowResults), stripClock(results));
+      }
 
       // ---------------------------------------------------------------
       // Hard-fail: wrong-runtime license key → AUTH_ERROR
