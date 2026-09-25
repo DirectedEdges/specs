@@ -13,7 +13,7 @@
  * Transformation uses Component.fromRestApi() from specs-from-figma.
  */
 
-import fs from 'fs-extra';
+import { readJsonPayload } from './payloadRead.js';
 
 /**
  * Minimal node structure from REST API
@@ -90,10 +90,11 @@ export class ComponentDiscovery {
   }
 
   /**
-   * Load from JSON file on disk
+   * Load from JSON file on disk. Size-guarded: a payload too large for a
+   * single-string read fails with the file named and remedies listed.
    */
   static async fromFile(filePath: string): Promise<ComponentDiscovery> {
-    const data = await fs.readJSON(filePath);
+    const data = readJsonPayload(filePath) as unknown as RestApiFileData;
     return new ComponentDiscovery(data);
   }
 

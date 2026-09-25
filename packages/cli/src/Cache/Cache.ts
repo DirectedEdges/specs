@@ -35,6 +35,7 @@ import { join } from 'path';
 import { parse, stringify } from 'yaml';
 import { buildVariablesIndex } from '../utilities/variablesIndex.js';
 import { collectGlyphComponents } from '../utilities/glyphComponents.js';
+import { readJsonPayload } from '../utilities/payloadRead.js';
 
 /** The four caches, by concern. Order is display order for reporting. */
 export const CACHE_CONCERNS = ['components', 'styles', 'variables', 'icons'] as const;
@@ -92,6 +93,15 @@ export interface CacheOptions {
   force?: boolean;
 }
 
+/** A payload that exists on disk but could not be read — its alias contributed
+ *  nothing, and that absence must be reported, never inferred from counts. */
+export interface CacheFailure {
+  alias: string;
+  /** Payload file name, relative to the data directory. */
+  file: string;
+  reason: string;
+}
+
 export interface CacheReport {
   /** Aliases whose entries were re-derived. */
   rebuilt: string[];
@@ -101,6 +111,11 @@ export interface CacheReport {
   unfetched: string[];
   /** Entry counts per concern, after the rebuild. */
   counts: Record<CacheConcern, number>;
+  /** Entry counts per alias — what each source actually contributed. */
+  aliasCounts: Record<string, Record<CacheConcern, number>>;
+  /** Payloads on disk that could not be read. Never empty silently: a failed
+   *  alias appears here AND contributes zero entries. */
+  failures: CacheFailure[];
 }
 
 // ── Paths ─────────────────────────────────────────────────────────────────────
@@ -161,19 +176,26 @@ function matches(recorded: CacheSource | undefined, current: CacheSource | null)
 
 // ── Builders ──────────────────────────────────────────────────────────────────
 
-function readJson(path: string): Record<string, unknown> | null {
+/** Read one payload; a failure returns its reason instead of vanishing. */
+function readJson(path: string): { data?: Record<string, unknown>; error?: string } {
   try {
-    return JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
-  } catch {
-    return null;
+    return { data: readJsonPayload(path) };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : String(error) };
   }
 }
 
 /**
  * Derive one alias's entries for all four concerns. The file payload is parsed once and
  * feeds three of them; the variables payload is separate and much smaller.
+ * A payload that exists but cannot be read lands in `failures` — never a silent skip.
  */
-function buildAliasSlice(alias: string, dataDir: string, glyphNamePattern?: string): AliasSlice {
+function buildAliasSlice(
+  alias: string,
+  dataDir: string,
+  glyphNamePattern: string | undefined,
+  failures: CacheFailure[],
+): AliasSlice {
   const empty: AliasSlice = {
     components: { source: null, entries: {} },
     styles: { source: null, entries: {} },
@@ -184,7 +206,8 @@ function buildAliasSlice(alias: string, dataDir: string, glyphNamePattern?: stri
   const fileName = `${alias}.file.json`;
   const fileSource = sourceOf(dataDir, fileName);
   if (fileSource) {
-    const data = readJson(join(dataDir, fileName));
+    const { data, error } = readJson(join(dataDir, fileName));
+    if (error) failures.push({ alias, file: fileName, reason: error });
     if (data) {
       const refs = {
         ...((data.components as Record<string, { key?: string; name?: string }> | undefined) ?? {}),
@@ -221,7 +244,8 @@ function buildAliasSlice(alias: string, dataDir: string, glyphNamePattern?: stri
   const variablesName = `${alias}.variables.json`;
   const variablesSource = sourceOf(dataDir, variablesName);
   if (variablesSource) {
-    const data = readJson(join(dataDir, variablesName));
+    const { data, error } = readJson(join(dataDir, variablesName));
+    if (error) failures.push({ alias, file: variablesName, reason: error });
     if (data) {
       const index = buildVariablesIndex((data.meta ? data : { meta: data }) as Parameters<typeof buildVariablesIndex>[0]);
       for (const [name, entry] of Object.entries(index)) {
@@ -267,6 +291,8 @@ export function refreshCache(options: CacheOptions): CacheReport {
     current: [],
     unfetched: [],
     counts: { components: 0, styles: 0, variables: 0, icons: 0 },
+    aliasCounts: {},
+    failures: [],
   };
 
   for (const alias of aliases) {
@@ -290,22 +316,28 @@ export function refreshCache(options: CacheOptions): CacheReport {
       return !matches(existing[concern]?.sources[alias], current);
     });
 
+    report.aliasCounts[alias] = { components: 0, styles: 0, variables: 0, icons: 0 };
+
     if (!stale) {
       for (const concern of CACHE_CONCERNS) {
         const from = existing[concern];
         if (!from?.sources[alias]) continue;
         next[concern].sources[alias] = from.sources[alias];
         for (const [key, entry] of Object.entries(from.entries)) {
-          if ((entry as { file?: string }).file === alias) next[concern].entries[key] = entry;
+          if ((entry as { file?: string }).file === alias) {
+            next[concern].entries[key] = entry;
+            report.aliasCounts[alias][concern]++;
+          }
         }
       }
       report.current.push(alias);
       continue;
     }
 
-    const slice = buildAliasSlice(alias, dataDir, glyphNamePattern);
+    const slice = buildAliasSlice(alias, dataDir, glyphNamePattern, report.failures);
     for (const concern of CACHE_CONCERNS) {
       const built = slice[concern];
+      report.aliasCounts[alias][concern] = Object.keys(built.entries).length;
       if (!built.source) continue;
       next[concern].sources[alias] = built.source;
       Object.assign(next[concern].entries, built.entries);

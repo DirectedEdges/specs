@@ -29,6 +29,7 @@ const ERROR_CODES = {
 
 import type { SourceEntry } from '@directededges/specs-schema';
 import { figmaOf } from '../Config/PlatformConventions.js';
+import { MAX_JSON_STRING_BYTES, readJsonPayload } from '../utilities/payloadRead.js';
 import { resolveFigmaFileKey, slugifyBranchName, FigmaKeyError } from '../utilities/figmaFileKey.js';
 import { postGetVariables } from '../bridge/client.js';
 import { resolveFileKey } from '../bridge/pickConnection.js';
@@ -548,6 +549,32 @@ export const Fetch = new Command('fetch')
 
       const wants = (kind: FetchKind): boolean => onlyKinds.length === 0 || onlyKinds.includes(kind);
 
+      // -------------------------------------------------------------------
+      // Validate config for every selected source BEFORE the first byte
+      // downloads. A config error surfacing after minutes of downloading
+      // wastes the download — and used to abort the remaining sources too.
+      // -------------------------------------------------------------------
+      for (const entry of selected) {
+        if (entry.fetch.includes('icons') && wants('icons')) {
+          if (!figmaOf(config.conventions).glyphs?.match) {
+            console.error(`Error: ${entry.origin === 'adhoc' ? `source "${entry.alias}"` : `data.sources.${entry.alias}.fetch`} includes "icons" but glyphs.match is not set in config/conventions/figma.yaml`);
+            process.exit(ERROR_CODES.INVALID_ARGS);
+          }
+          if (!config.settings.spec.directory) {
+            console.error(`Error: ${entry.origin === 'adhoc' ? `source "${entry.alias}"` : `data.sources.${entry.alias}.fetch`} includes "icons" but spec.directory is not set in the workspace settings`);
+            process.exit(ERROR_CODES.INVALID_ARGS);
+          }
+        }
+      }
+
+      // One source's download failure is recorded and reported; the remaining
+      // sources still fetch. Auth and rate-limit failures stay fatal — they are
+      // token-wide or API-wide, and retrying other sources cannot succeed.
+      const sourceFailures: Array<{ alias: string; code: number }> = [];
+      class SourceFetchError extends Error {
+        constructor(readonly code: number) { super('source fetch failed'); }
+      }
+
       await fs.ensureDir(outDir);
 
       if (options.verbose) {
@@ -557,6 +584,7 @@ export const Fetch = new Command('fetch')
       }
 
       for (const entry of selected) {
+        try {
         for (const kind of entry.fetch.filter(k => k !== 'icons' && wants(k))) {
           const url =
             kind === 'file'
@@ -593,7 +621,7 @@ export const Fetch = new Command('fetch')
             } else {
               console.error(`Error: HTTP ${status} while fetching ${entry.alias}.${kind}`);
             }
-            process.exit(ERROR_CODES.NETWORK_ERROR);
+            throw new SourceFetchError(ERROR_CODES.NETWORK_ERROR);
           }
 
           const outputPath = path.join(outDir, `${entry.alias}.${kind}.json`);
@@ -623,6 +651,16 @@ export const Fetch = new Command('fetch')
 
           console.log(`✓ Downloaded: ${entry.alias} ${kind} (${elapsed})`);
 
+          // Warn at download time when a payload lands over the single-string
+          // read limit — otherwise the next command's failure is the first sign.
+          const written = await fs.stat(outputPath);
+          if (written.size >= MAX_JSON_STRING_BYTES) {
+            console.warn(`⚠ ${entry.alias}.${kind}.json is ${Math.round(written.size / 1048576)}MB — over the ~${Math.round(MAX_JSON_STRING_BYTES / 1048576)}MB limit Node can read as a single JSON string. Downstream commands (cache, scan, generate) will refuse it.`);
+            console.warn(options.geometry
+              ? `  Remedy: re-fetch with --no-geometry (roughly halves the payload).`
+              : `  Already fetched without geometry — the file itself is too large; remove or split pages in Figma.`);
+          }
+
           if (options.verbose) {
             const relativeOut = path.relative(process.cwd(), outputPath);
             console.log(`[CLI] Wrote: ${relativeOut}`);
@@ -648,11 +686,11 @@ export const Fetch = new Command('fetch')
           const filePath = path.join(outDir, `${entry.alias}.file.json`);
           if (!fs.existsSync(filePath)) {
             console.error(`Error: icons require the file payload — fetch "file" for ${entry.alias} first (${filePath} not found)`);
-            process.exit(ERROR_CODES.FILE_ERROR);
+            throw new SourceFetchError(ERROR_CODES.FILE_ERROR);
           }
 
           const stopSpinner = startSpinner(`Downloading: ${entry.alias} icons`);
-          const fileJson = JSON.parse(await fs.readFile(filePath, 'utf-8')) as { document?: unknown };
+          const fileJson = readJsonPayload(filePath) as { document?: unknown };
           const glyphs = collectGlyphComponents(fileJson.document, pattern);
           // Assets are a sibling of specs/, not a `_`-prefixed pseudo-component
           // inside it: an SVG is consumed by every target and produced by none
@@ -685,13 +723,13 @@ export const Fetch = new Command('fetch')
                 process.exit(ERROR_CODES.RATE_LIMIT);
               }
               console.error(`Error: HTTP ${result.status} while exporting ${entry.alias} icons`);
-              process.exit(ERROR_CODES.NETWORK_ERROR);
+              throw new SourceFetchError(ERROR_CODES.NETWORK_ERROR);
             }
             const payload = JSON.parse(await streamToString(result.stream)) as { err?: string; images: Record<string, string | null> };
             if (payload.err) {
               stopSpinner();
               console.error(`Error: images API error while exporting ${entry.alias} icons: ${payload.err}`);
-              process.exit(ERROR_CODES.NETWORK_ERROR);
+              throw new SourceFetchError(ERROR_CODES.NETWORK_ERROR);
             }
             for (const glyph of chunk) {
               const imageUrl = payload.images[glyph.id];
@@ -704,6 +742,16 @@ export const Fetch = new Command('fetch')
           }
           const elapsed = stopSpinner();
           console.log(`✓ Downloaded: ${entry.alias} icons (${downloaded}/${glyphs.length} glyphs, ${elapsed})`);
+        }
+        } catch (error) {
+          clearInlineStatus();
+          const code = error instanceof SourceFetchError ? error.code : ERROR_CODES.GENERAL_ERROR;
+          if (!(error instanceof SourceFetchError)) {
+            const message = error instanceof Error ? error.message : String(error);
+            for (const line of message.split('\n')) console.error(`  ${line}`);
+          }
+          sourceFailures.push({ alias: entry.alias, code });
+          console.error(`✗ ${entry.alias}: fetch failed — continuing with remaining sources`);
         }
       }
 
@@ -736,6 +784,7 @@ export const Fetch = new Command('fetch')
       // run, plus any fetched previously. A source with no payload yet is skipped: not
       // having fetched it is a normal state, and only render treats it as an error.
       const dataDirectory = config.settings.data?.directory;
+      let cacheOk = true;
       if (dataDirectory) {
         const dataDir = path.resolve(configDir, dataDirectory);
         const report = refreshCache({
@@ -746,9 +795,17 @@ export const Fetch = new Command('fetch')
           aliases: [...adHoc.map(s => s.alias), ...Object.keys(config.settings.data?.sources ?? {})],
           glyphNamePattern: figmaOf(config.conventions).glyphs?.match,
         });
-        reportCache(report);
+        cacheOk = reportCache(report);
       }
 
+      if (sourceFailures.length > 0) {
+        console.error(`✗ Fetch incomplete: ${sourceFailures.length} of ${selected.length} sources failed (${sourceFailures.map(f => f.alias).join(', ')})`);
+        process.exit(sourceFailures[0].code);
+      }
+      if (!cacheOk) {
+        console.error('✗ Fetch downloaded, but the cache could not read every payload (see above).');
+        process.exit(ERROR_CODES.GENERAL_ERROR);
+      }
       console.log('✓ Fetch complete');
       process.exit(ERROR_CODES.SUCCESS);
     } catch (error) {

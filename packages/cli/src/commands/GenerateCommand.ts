@@ -22,6 +22,7 @@ import { loadFoundations } from '../utilities/loadFoundations.js';
 import { resolveFileSourceAlias } from '../utilities/fileSourceAlias.js';
 import { ManifestParser } from '../utilities/ManifestParser.js';
 import { ManifestParserV2 } from '../utilities/ManifestParserV2.js';
+import { assertPayloadReadable, readJsonPayload } from '../utilities/payloadRead.js';
 import { LicenseStatus } from '../utilities/LicenseStatus.js';
 import { TRANSIENT_FAILURES, transientFailureLines } from '../utilities/licenseGuidance.js';
 import { FileManifest } from '../Writers/FileManifest.js';
@@ -447,6 +448,9 @@ export const Generate = new Command('generate')
       // - v2 manifest: markdown table emitted by `specs scan` (declares **Scan format version:** 2)
       // - v1 manifest: checkbox bullet list emitted by `specs audit`
       // - JSON: raw Figma file (file mode)
+      // A JSON payload argument can exceed the single-string read limit; fail it
+      // with the file named rather than V8's bare message. (Manifests are tiny.)
+      assertPayloadReadable(sourcePath);
       const sourceContent = await fs.readFile(sourcePath, 'utf-8');
       const trimmed = sourceContent.trimStart();
       const isV2Manifest = ManifestParserV2.isV2(sourceContent);
@@ -533,7 +537,7 @@ export const Generate = new Command('generate')
         }
 
         payloadPath = sourceFile;
-        libraryJson = await fs.readJSON(sourceFile);
+        libraryJson = readJsonPayload(sourceFile);
 
         // `--component` used to apply only in file mode, so asking for one component here
         // silently generated the whole catalogue — a slow surprise, and one that looks like

@@ -18,17 +18,33 @@ const ERROR_CODES = {
   INVALID_ARGS: 2,
 };
 
-/** Shared by this command and every command that refreshes the cache as a final step. */
-export function reportCache(report: CacheReport): void {
-  const { rebuilt, current, unfetched, counts } = report;
+/** Shared by this command and every command that refreshes the cache as a final step.
+ *  Returns false when any payload failed to read — callers decide the exit code, but
+ *  the failure is printed here so no caller can lose it. */
+export function reportCache(report: CacheReport): boolean {
+  const { rebuilt, current, unfetched, counts, aliasCounts, failures } = report;
   if (rebuilt.length > 0) console.log(`  Cache rebuilt: ${rebuilt.join(', ')}`);
   if (current.length > 0) console.log(`  Cache current: ${current.join(', ')}`);
   // Not an error here — only render is in a position to insist a source be fetched.
   if (unfetched.length > 0) console.log(`  Not fetched, skipped: ${unfetched.join(', ')}`);
+
+  // Per-source contribution, so a source contributing nothing is visible as itself
+  // rather than hidden inside a merged total.
+  const failedAliases = new Set(failures.map(f => f.alias));
+  for (const [alias, c] of Object.entries(aliasCounts)) {
+    const line = `${c.components} components, ${c.styles} styles, ${c.variables} variables, ${c.icons} icons`;
+    console.log(`    ${alias}: ${failedAliases.has(alias) ? `✗ FAILED — ${line}` : line}`);
+  }
   console.log(
     `  Entries: ${counts.components} components, ${counts.styles} styles, ` +
     `${counts.variables} variables, ${counts.icons} icons`
   );
+
+  for (const failure of failures) {
+    console.error(`✗ Cache could not read ${failure.file} (source "${failure.alias}") — it contributed no entries.`);
+    for (const reasonLine of failure.reason.split('\n')) console.error(`  ${reasonLine}`);
+  }
+  return failures.length === 0;
 }
 
 export const Cache = new Command('cache')
@@ -59,7 +75,11 @@ export const Cache = new Command('cache')
         force: options.force,
       });
 
-      reportCache(report);
+      const ok = reportCache(report);
+      if (!ok) {
+        console.error('✗ Cache incomplete — one or more payloads could not be read.');
+        process.exit(ERROR_CODES.GENERAL_ERROR);
+      }
       console.log('✓ Cache written.');
     } catch (e) {
       console.error(`Error: ${(e as Error).message}`);
