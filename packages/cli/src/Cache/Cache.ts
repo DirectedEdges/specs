@@ -36,6 +36,7 @@ import { parse, stringify } from 'yaml';
 import { buildVariablesIndex } from '../utilities/variablesIndex.js';
 import { collectGlyphComponents } from '../utilities/glyphComponents.js';
 import { readJsonPayload } from '../utilities/payloadRead.js';
+import { SectionedFile, shadowIngestEnabled, shadowCompare } from '../utilities/sectionedFile.js';
 
 /** The four caches, by concern. Order is display order for reporting. */
 export const CACHE_CONCERNS = ['components', 'styles', 'variables', 'icons'] as const;
@@ -205,39 +206,45 @@ function buildAliasSlice(
 
   const fileName = `${alias}.file.json`;
   const fileSource = sourceOf(dataDir, fileName);
-  if (fileSource) {
+
+  // Sectioned path (specs#561): the page-split artifact serves the root maps
+  // without reading the payload as one string, and the glyph walk streams
+  // page by page. The monolithic file remains the fallback until the flip.
+  let sectioned: SectionedFile | null = null;
+  try {
+    sectioned = SectionedFile.open(dataDir, alias);
+  } catch (error) {
+    // e.g. unknown format version — loud, and the monolithic path still runs.
+    failures.push({ alias, file: `${alias}.file/`, reason: error instanceof Error ? error.message : String(error) });
+  }
+
+  if (sectioned && fileSource) {
+    const data = sectioned.root();
+    buildFileConcerns(alias, data, empty, glyphNamePattern, fileSource, dataDir);
+    if (glyphNamePattern) {
+      for (const entry of sectioned.pageEntries()) {
+        const page = sectioned.loadPage(entry);
+        collectGlyphsInto(alias, page, glyphNamePattern, empty);
+        sectioned.releasePage(entry.id);
+      }
+    }
+    if (shadowIngestEnabled()) {
+      const { data: monoData } = readJson(join(dataDir, fileName));
+      if (monoData) {
+        const shadow: AliasSlice = { components: { source: null, entries: {} }, styles: { source: null, entries: {} }, variables: { source: null, entries: {} }, icons: { source: null, entries: {} } };
+        buildFileConcerns(alias, monoData, shadow, glyphNamePattern, fileSource, dataDir);
+        collectGlyphsInto(alias, (monoData as { document?: unknown }).document, glyphNamePattern, shadow);
+        shadowCompare(`cache:${alias}:components`, shadow.components.entries, empty.components.entries);
+        shadowCompare(`cache:${alias}:styles`, shadow.styles.entries, empty.styles.entries);
+        shadowCompare(`cache:${alias}:icons`, shadow.icons.entries, empty.icons.entries);
+      }
+    }
+  } else if (fileSource) {
     const { data, error } = readJson(join(dataDir, fileName));
     if (error) failures.push({ alias, file: fileName, reason: error });
     if (data) {
-      const refs = {
-        ...((data.components as Record<string, { key?: string; name?: string }> | undefined) ?? {}),
-        ...((data.componentSets as Record<string, { key?: string; name?: string }> | undefined) ?? {}),
-      };
-      for (const [id, meta] of Object.entries(refs)) {
-        if (meta?.key) empty.components.entries[id] = { key: meta.key, name: meta.name ?? '', file: alias };
-      }
-      empty.components.source = fileSource;
-
-      const styles = (data.styles as Record<string, { styleType?: string; name?: string; key?: string }> | undefined) ?? {};
-      for (const meta of Object.values(styles)) {
-        const type = meta.styleType;
-        if ((type === 'EFFECT' || type === 'TEXT' || type === 'FILL') && meta.name && meta.key) {
-          empty.styles.entries[meta.name] = { key: meta.key, type, file: alias };
-        }
-      }
-      empty.styles.source = fileSource;
-
-      // An unset pattern means this workspace has no glyph convention — the cache is
-      // written empty rather than skipped, so "no glyphs" stays distinguishable from
-      // "never built".
-      empty.icons.source = sourceOf(dataDir, fileName, glyphNamePattern);
-      if (glyphNamePattern) {
-        for (const glyph of collectGlyphComponents(data.document, glyphNamePattern)) {
-          if (empty.icons.entries[glyph.name]) continue; // first occurrence wins, as scan does
-          const key = refs[glyph.id]?.key;
-          empty.icons.entries[glyph.name] = key ? { id: glyph.id, key, file: alias } : { id: glyph.id, file: alias };
-        }
-      }
+      buildFileConcerns(alias, data, empty, glyphNamePattern, fileSource, dataDir);
+      collectGlyphsInto(alias, (data as { document?: unknown }).document, glyphNamePattern, empty);
     }
   }
 
@@ -256,6 +263,56 @@ function buildAliasSlice(
   }
 
   return empty;
+}
+
+/** The root-map concerns (components, styles, icon provenance) from a payload's
+ *  root object — shared verbatim by the sectioned and monolithic paths. */
+function buildFileConcerns(
+  alias: string,
+  data: Record<string, unknown>,
+  slice: AliasSlice,
+  glyphNamePattern: string | undefined,
+  fileSource: CacheSource,
+  dataDir: string,
+): void {
+  const refs = {
+    ...((data.components as Record<string, { key?: string; name?: string }> | undefined) ?? {}),
+    ...((data.componentSets as Record<string, { key?: string; name?: string }> | undefined) ?? {}),
+  };
+  for (const [id, meta] of Object.entries(refs)) {
+    if (meta?.key) slice.components.entries[id] = { key: meta.key, name: meta.name ?? '', file: alias };
+  }
+  slice.components.source = fileSource;
+
+  const styles = (data.styles as Record<string, { styleType?: string; name?: string; key?: string }> | undefined) ?? {};
+  for (const meta of Object.values(styles)) {
+    const type = meta.styleType;
+    if ((type === 'EFFECT' || type === 'TEXT' || type === 'FILL') && meta.name && meta.key) {
+      slice.styles.entries[meta.name] = { key: meta.key, type, file: alias };
+    }
+  }
+  slice.styles.source = fileSource;
+
+  // An unset pattern means this workspace has no glyph convention — the cache is
+  // written empty rather than skipped, so "no glyphs" stays distinguishable from
+  // "never built".
+  slice.icons.source = sourceOf(dataDir, `${alias}.file.json`, glyphNamePattern);
+}
+
+/** Record glyph components found under one document or page node. First
+ *  occurrence wins across calls, as scan does — callers may walk page by page. */
+function collectGlyphsInto(
+  alias: string,
+  docOrPage: unknown,
+  glyphNamePattern: string | undefined,
+  slice: AliasSlice,
+): void {
+  if (!glyphNamePattern || !docOrPage) return;
+  for (const glyph of collectGlyphComponents(docOrPage, glyphNamePattern)) {
+    if (slice.icons.entries[glyph.name]) continue; // first occurrence wins, as scan does
+    const key = slice.components.entries[glyph.id]?.key;
+    slice.icons.entries[glyph.name] = key ? { id: glyph.id, key, file: alias } : { id: glyph.id, file: alias };
+  }
 }
 
 // ── Refresh ───────────────────────────────────────────────────────────────────

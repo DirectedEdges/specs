@@ -7,7 +7,8 @@
 import { Command } from 'commander';
 import fs from 'fs-extra';
 import path from 'path';
-import { ComponentDiscovery, type ComponentInfo, type DevStatus } from '../utilities/ComponentDiscovery.js';
+import { ComponentDiscovery, SectionedComponentDiscovery, type DiscoverySource, type ComponentInfo, type DevStatus } from '../utilities/ComponentDiscovery.js';
+import { SectionedFile, shadowIngestEnabled, shadowCompare } from '../utilities/sectionedFile.js';
 import { ManifestParserV2, type ManifestRowV2 } from '../utilities/ManifestParserV2.js';
 import { isV1Manifest, migrateV1ToV2 } from '../utilities/ManifestMigrationV1ToV2.js';
 import { glyphPatternMatch } from '../utilities/glyphPatternMatch.js';
@@ -364,6 +365,7 @@ export const Scan = new Command('scan')
       const resolvedDir = path.resolve(configDir, dataDir || '.');
 
       let file: string;
+      let scanAlias: string | null = null;
       if (fileArg) {
         if (options.source) {
           console.error('Error: Pass either a <file> argument or --source, not both');
@@ -406,6 +408,7 @@ export const Scan = new Command('scan')
         }
 
         file = path.join(resolvedDir, `${alias}.file.json`);
+        scanAlias = alias;
 
         if (options.verbose) {
           console.error(`[CLI] Using source "${alias}": ${path.relative(process.cwd(), file)}`);
@@ -421,7 +424,15 @@ export const Scan = new Command('scan')
         console.error(`[CLI] Scanning file: ${file}`);
       }
 
-      if (!fs.existsSync(file)) {
+      // Sectioned path (specs#561): a page-split artifact reads page by page —
+      // no single-string limit, no whole-document graph. Monolithic fallback
+      // stands until the dual-write flip.
+      let sectioned: SectionedFile | null = null;
+      if (scanAlias) {
+        sectioned = SectionedFile.open(resolvedDir, scanAlias); // throws loudly on an unknown format version
+      }
+
+      if (!sectioned && !fs.existsSync(file)) {
         console.error(`Error: File not found: ${file}`);
         if (!fileArg) {
           console.error('Tip: run `specs fetch` to download source data');
@@ -429,7 +440,14 @@ export const Scan = new Command('scan')
         process.exit(ERROR_CODES.FILE_ERROR);
       }
 
-      const discovery = await ComponentDiscovery.fromFile(file);
+      const discovery: DiscoverySource = sectioned
+        ? new SectionedComponentDiscovery(sectioned)
+        : await ComponentDiscovery.fromFile(file);
+
+      if (sectioned && shadowIngestEnabled() && fs.existsSync(file)) {
+        const mono = await ComponentDiscovery.fromFile(file);
+        shadowCompare(`scan:${scanAlias}:components`, mono.findAllComponents(), discovery.findAllComponents());
+      }
 
       if (options.verbose) {
         console.error(`[CLI] File loaded: ${discovery.getFileName()}`);

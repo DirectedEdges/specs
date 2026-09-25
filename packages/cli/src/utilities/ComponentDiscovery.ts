@@ -14,6 +14,7 @@
  */
 
 import { readJsonPayload } from './payloadRead.js';
+import type { SectionedFile } from './sectionedFile.js';
 
 /**
  * Minimal node structure from REST API
@@ -231,5 +232,107 @@ export class ComponentDiscovery {
   /** File-level lastModified (ISO 8601) from the REST API payload, if present. */
   getFileLastModified(): string | undefined {
     return this._data.lastModified;
+  }
+}
+
+/** What scan needs from a discovery — served by the whole-graph class above or
+ *  the page-streaming one below. */
+export interface DiscoverySource {
+  findAllComponents(): ComponentInfo[];
+  composedComponentIds(rootIds: Iterable<string>): Set<string>;
+  getFileName(): string;
+  getFileLastModified(): string | undefined;
+}
+
+/**
+ * Discovery over a page-split payload (specs#561). Walks one page at a time and
+ * keeps only tables — listable rows, variant→set relations, and each listable
+ * component's instanced ids — so no whole-document graph is ever resident and
+ * the single-string read limit never applies.
+ */
+export class SectionedComponentDiscovery implements DiscoverySource {
+  private rows: ComponentInfo[] = [];
+  private variantToSet = new Map<string, string>();
+  private knownComponentIds = new Set<string>();
+  private instancedBy = new Map<string, Set<string>>();
+  private fileName: string;
+  private fileLastModified: string | undefined;
+
+  constructor(sectioned: SectionedFile) {
+    const root = sectioned.root() as { name?: string; lastModified?: string };
+    this.fileName = root.name || 'Untitled';
+    this.fileLastModified = root.lastModified;
+
+    for (const entry of sectioned.pageEntries()) {
+      this.indexPage(sectioned.loadPage(entry) as unknown as RestApiNode);
+      sectioned.releasePage(entry.id);
+    }
+  }
+
+  private indexPage(page: RestApiNode): void {
+    const walk = (node: RestApiNode, parent: RestApiNode | null): void => {
+      if (node.type === 'COMPONENT_SET' || node.type === 'COMPONENT') {
+        this.knownComponentIds.add(node.id);
+        const isVariant = node.type === 'COMPONENT' && parent?.type === 'COMPONENT_SET';
+        if (isVariant && parent) this.variantToSet.set(node.id, parent.id);
+        if (!isVariant) {
+          this.rows.push({ id: node.id, name: node.name, type: node.type, devStatus: readDevStatus(node) });
+          this.instancedBy.set(node.id, this.collectInstancedIds(node));
+        }
+      }
+      for (const child of node.children ?? []) walk(child, node);
+    };
+    walk(page, null);
+  }
+
+  private collectInstancedIds(root: RestApiNode): Set<string> {
+    const ids = new Set<string>();
+    const visit = (node: RestApiNode): void => {
+      const componentId = (node as { componentId?: string }).componentId;
+      if (node.type === 'INSTANCE' && componentId) ids.add(componentId);
+      for (const child of node.children ?? []) visit(child);
+    };
+    visit(root);
+    return ids;
+  }
+
+  findAllComponents(): ComponentInfo[] {
+    return this.rows;
+  }
+
+  /** Same fixpoint as ComponentDiscovery.composedComponentIds, resolved through
+   *  the tables: an instance's componentId maps to the listable row that
+   *  represents it (its set for a variant), unknown ids resolve to nothing. */
+  composedComponentIds(rootIds: Iterable<string>): Set<string> {
+    const found = new Set<string>();
+    const queue = [...rootIds];
+    const walked = new Set<string>();
+
+    const listableOwner = (componentId: string): string | undefined => {
+      if (!this.knownComponentIds.has(componentId)) return undefined;
+      return this.variantToSet.get(componentId) ?? componentId;
+    };
+
+    while (queue.length > 0) {
+      const rootId = queue.shift()!;
+      if (walked.has(rootId)) continue;
+      walked.add(rootId);
+      for (const componentId of this.instancedBy.get(rootId) ?? []) {
+        const owner = listableOwner(componentId);
+        if (owner && owner !== rootId && !found.has(owner)) {
+          found.add(owner);
+          queue.push(owner);
+        }
+      }
+    }
+    return found;
+  }
+
+  getFileName(): string {
+    return this.fileName;
+  }
+
+  getFileLastModified(): string | undefined {
+    return this.fileLastModified;
   }
 }
