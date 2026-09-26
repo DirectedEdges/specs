@@ -31,6 +31,7 @@ import type { SourceEntry } from '@directededges/specs-schema';
 import { figmaOf } from '../Config/PlatformConventions.js';
 import { MAX_JSON_STRING_BYTES, readJsonPayload } from '../utilities/payloadRead.js';
 import { PayloadSplitter, splitDirFor } from '../utilities/payloadSplit.js';
+import { SectionedFile } from '../utilities/sectionedFile.js';
 import { resolveFigmaFileKey, slugifyBranchName, FigmaKeyError } from '../utilities/figmaFileKey.js';
 import { postGetVariables } from '../bridge/client.js';
 import { resolveFileKey } from '../bridge/pickConnection.js';

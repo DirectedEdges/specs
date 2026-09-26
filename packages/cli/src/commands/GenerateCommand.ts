@@ -583,7 +583,8 @@ export const Generate = new Command('generate')
         componentNames = new Map(chosen.map(c => [c.id, c.name]));
 
         if (options.verbose) {
-          console.log(`[CLI] File loaded: ${libraryJson.name || path.basename(sourceFile)}`);
+          // The payload itself loads after component selection (sectioned path).
+          console.log(`[CLI] Payload source: ${path.basename(sourceFile)}`);
         }
       } else {
         // FILE MODE
@@ -594,7 +595,7 @@ export const Generate = new Command('generate')
         }
 
         payloadPath = sourcePath;
-        libraryJson = JSON.parse(sourceContent);
+        libraryJson = JSON.parse(sourceContent) as Record<string, any>;
         componentIds = [options.component];
         const resolvedName =
           libraryJson.componentSets?.[options.component]?.name ||
