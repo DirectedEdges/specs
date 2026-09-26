@@ -18,7 +18,7 @@ Generate a spec for one component:
 ```bash
 specs fetch --verbose
 
-specs generate data/library.file.json \
+specs generate data/library.file \
   -c "DS Alert" \
   -o specs/alert.yaml \
   --verbose
@@ -35,7 +35,7 @@ specs scan -o manifest.md
 # | [x] | DS Button/Icon | 5507:123 | COMPONENT_SET | READY_FOR_DEV |
 
 # Generate by ID
-specs generate data/library.file.json \
+specs generate data/library.file \
   -c "5507:123" \
   -o specs/button-icon.yaml
 ```
@@ -55,7 +55,7 @@ Process multiple components from a design system using a curated manifest.
 specs scan
 
 # Or pass an explicit path:
-specs scan data/design-system.file.json
+specs scan data/design-system.file
 ```
 
 ### Step 2: Review and Edit
@@ -67,7 +67,7 @@ Open `data/design-system.manifest.md`:
 
 **Scan format version:** 2  
 **Generated:** 2026-05-08T20:45:00Z  
-**File:** data/design-system.file.json
+**File:** data/design-system.file
 **Variables:** data/design-system.variables.json
 **File last modified:** 2026-05-08T17:48:26Z
 

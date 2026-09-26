@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.32.0] - Unreleased
 
+### Breaking
+
+- **`specs fetch` writes each file payload as a page-split `<alias>.file/` directory** — `root.json` plus one JSON per Figma page — instead of a single `<alias>.file.json`. Payloads of any size now flow through the pipeline (a real 916MB community file previously could not be read at all), and `generate` loads only the pages your selected components need. Every command reads the new layout and still reads existing single-file payloads, so nothing breaks until you re-fetch; only your own scripts that open `<alias>.file.json` directly need to read the directory instead.
+
 ### Added
+
+- **Regenerating an unchanged design produces unchanged files**: each spec's `metadata.lastUpdated` now carries the Figma file's `lastModified` instead of the run's wall clock, so spec diffs show real changes only.
+- Transport-level fetch failures (connection reset, DNS) now name the source, the data kind, the underlying cause chain, and the exact `--only` retry command — previously a bare "fetch failed".
+
+- **No ingest failure is silent.** The cache reports what every source contributed and fails loudly when a payload cannot be read (previously a zero-entry source still reported success); payload-size failures name the file, the ~512MB single-string limit, and remedies; fetch warns at download time when a kept payload exceeds that limit.
+- **Fetch validates config before downloading** (icons ↔ `glyphs.match`, `spec.directory`), and one source's failure no longer aborts the remaining sources — the run reports per-source results and exits non-zero on partial failure.
+- `specs scan` and `specs generate` accept a `<alias>.file` directory anywhere a payload path is accepted.
 
 ### Changed
 

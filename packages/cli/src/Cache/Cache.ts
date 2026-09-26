@@ -12,10 +12,10 @@
  *
  * | file              | maps                              | built from             |
  * |-------------------|-----------------------------------|------------------------|
- * | `components.yaml` | node id → published key + name    | `<alias>.file.json`    |
- * | `styles.yaml`     | style name → key + type           | `<alias>.file.json`    |
+ * | `components.yaml` | node id → published key + name    | `<alias>.file/` (or `.file.json`) |
+ * | `styles.yaml`     | style name → key + type           | `<alias>.file/` (or `.file.json`) |
  * | `variables.yaml`  | token name → key, id, published   | `<alias>.variables.json` |
- * | `icons.yaml`      | glyph name → node id + key        | `<alias>.file.json`    |
+ * | `icons.yaml`      | glyph name → node id + key        | `<alias>.file/` (or `.file.json`) |
  *
  * Merged rather than per-library, because render wants one lookup, not N. Each entry
  * records the alias it came from: node ids are file-scoped, so knowing an entry's origin
@@ -35,6 +35,8 @@ import { join } from 'path';
 import { parse, stringify } from 'yaml';
 import { buildVariablesIndex } from '../utilities/variablesIndex.js';
 import { collectGlyphComponents } from '../utilities/glyphComponents.js';
+import { readJsonPayload } from '../utilities/payloadRead.js';
+import { SectionedFile, shadowIngestEnabled, shadowCompare } from '../utilities/sectionedFile.js';
 
 /** The four caches, by concern. Order is display order for reporting. */
 export const CACHE_CONCERNS = ['components', 'styles', 'variables', 'icons'] as const;
@@ -92,6 +94,15 @@ export interface CacheOptions {
   force?: boolean;
 }
 
+/** A payload that exists on disk but could not be read — its alias contributed
+ *  nothing, and that absence must be reported, never inferred from counts. */
+export interface CacheFailure {
+  alias: string;
+  /** Payload file name, relative to the data directory. */
+  file: string;
+  reason: string;
+}
+
 export interface CacheReport {
   /** Aliases whose entries were re-derived. */
   rebuilt: string[];
@@ -101,6 +112,11 @@ export interface CacheReport {
   unfetched: string[];
   /** Entry counts per concern, after the rebuild. */
   counts: Record<CacheConcern, number>;
+  /** Entry counts per alias — what each source actually contributed. */
+  aliasCounts: Record<string, Record<CacheConcern, number>>;
+  /** Payloads on disk that could not be read. Never empty silently: a failed
+   *  alias appears here AND contributes zero entries. */
+  failures: CacheFailure[];
 }
 
 // ── Paths ─────────────────────────────────────────────────────────────────────
@@ -149,6 +165,28 @@ function sourceOf(dataDir: string, fileName: string, glyphNamePattern?: string):
   };
 }
 
+/** Provenance for an alias's file payload: the monolithic file when present,
+ *  else the split artifact (post-flip fetches write only the split — its
+ *  manifest carries the original payload's byte count, and the manifest file's
+ *  mtime marks the fetch). */
+function fileSourceOf(dataDir: string, alias: string, glyphNamePattern?: string): CacheSource | null {
+  const monolithic = sourceOf(dataDir, `${alias}.file.json`, glyphNamePattern);
+  if (monolithic) return monolithic;
+  const manifestPath = join(dataDir, `${alias}.file`, 'manifest.json');
+  if (!existsSync(manifestPath)) return null;
+  const stat = statSync(manifestPath);
+  let bytes = stat.size;
+  try {
+    bytes = (JSON.parse(readFileSync(manifestPath, 'utf8')) as { sourceBytes?: number }).sourceBytes ?? bytes;
+  } catch { /* unreadable manifest surfaces later as a read failure */ }
+  return {
+    from: `${alias}.file/`,
+    bytes,
+    mtime: stat.mtime.toISOString(),
+    ...(glyphNamePattern ? { glyphNamePattern } : {}),
+  };
+}
+
 /** True when a recorded source still describes the file on disk. A payload that has been
  *  re-fetched, or a glyph pattern that has been edited in config, fails this. */
 function matches(recorded: CacheSource | undefined, current: CacheSource | null): boolean {
@@ -161,19 +199,26 @@ function matches(recorded: CacheSource | undefined, current: CacheSource | null)
 
 // ── Builders ──────────────────────────────────────────────────────────────────
 
-function readJson(path: string): Record<string, unknown> | null {
+/** Read one payload; a failure returns its reason instead of vanishing. */
+function readJson(path: string): { data?: Record<string, unknown>; error?: string } {
   try {
-    return JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
-  } catch {
-    return null;
+    return { data: readJsonPayload(path) };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : String(error) };
   }
 }
 
 /**
  * Derive one alias's entries for all four concerns. The file payload is parsed once and
  * feeds three of them; the variables payload is separate and much smaller.
+ * A payload that exists but cannot be read lands in `failures` — never a silent skip.
  */
-function buildAliasSlice(alias: string, dataDir: string, glyphNamePattern?: string): AliasSlice {
+function buildAliasSlice(
+  alias: string,
+  dataDir: string,
+  glyphNamePattern: string | undefined,
+  failures: CacheFailure[],
+): AliasSlice {
   const empty: AliasSlice = {
     components: { source: null, entries: {} },
     styles: { source: null, entries: {} },
@@ -182,46 +227,54 @@ function buildAliasSlice(alias: string, dataDir: string, glyphNamePattern?: stri
   };
 
   const fileName = `${alias}.file.json`;
-  const fileSource = sourceOf(dataDir, fileName);
-  if (fileSource) {
-    const data = readJson(join(dataDir, fileName));
+  const fileSource = fileSourceOf(dataDir, alias);
+
+  // Sectioned path (specs#561): the page-split artifact serves the root maps
+  // without reading the payload as one string, and the glyph walk streams
+  // page by page. The monolithic file remains the fallback until the flip.
+  let sectioned: SectionedFile | null = null;
+  try {
+    sectioned = SectionedFile.open(dataDir, alias);
+  } catch (error) {
+    // e.g. unknown format version — loud, and the monolithic path still runs.
+    failures.push({ alias, file: `${alias}.file/`, reason: error instanceof Error ? error.message : String(error) });
+  }
+
+  if (sectioned && fileSource) {
+    const data = sectioned.root();
+    buildFileConcerns(alias, data, empty, glyphNamePattern, fileSource, dataDir);
+    if (glyphNamePattern) {
+      for (const entry of sectioned.pageEntries()) {
+        const page = sectioned.loadPage(entry);
+        collectGlyphsInto(alias, page, glyphNamePattern, empty);
+        sectioned.releasePage(entry.id);
+      }
+    }
+    if (shadowIngestEnabled()) {
+      const { data: monoData } = readJson(join(dataDir, fileName));
+      if (monoData) {
+        const shadow: AliasSlice = { components: { source: null, entries: {} }, styles: { source: null, entries: {} }, variables: { source: null, entries: {} }, icons: { source: null, entries: {} } };
+        buildFileConcerns(alias, monoData, shadow, glyphNamePattern, fileSource, dataDir);
+        collectGlyphsInto(alias, (monoData as { document?: unknown }).document, glyphNamePattern, shadow);
+        shadowCompare(`cache:${alias}:components`, shadow.components.entries, empty.components.entries);
+        shadowCompare(`cache:${alias}:styles`, shadow.styles.entries, empty.styles.entries);
+        shadowCompare(`cache:${alias}:icons`, shadow.icons.entries, empty.icons.entries);
+      }
+    }
+  } else if (fileSource) {
+    const { data, error } = readJson(join(dataDir, fileName));
+    if (error) failures.push({ alias, file: fileName, reason: error });
     if (data) {
-      const refs = {
-        ...((data.components as Record<string, { key?: string; name?: string }> | undefined) ?? {}),
-        ...((data.componentSets as Record<string, { key?: string; name?: string }> | undefined) ?? {}),
-      };
-      for (const [id, meta] of Object.entries(refs)) {
-        if (meta?.key) empty.components.entries[id] = { key: meta.key, name: meta.name ?? '', file: alias };
-      }
-      empty.components.source = fileSource;
-
-      const styles = (data.styles as Record<string, { styleType?: string; name?: string; key?: string }> | undefined) ?? {};
-      for (const meta of Object.values(styles)) {
-        const type = meta.styleType;
-        if ((type === 'EFFECT' || type === 'TEXT' || type === 'FILL') && meta.name && meta.key) {
-          empty.styles.entries[meta.name] = { key: meta.key, type, file: alias };
-        }
-      }
-      empty.styles.source = fileSource;
-
-      // An unset pattern means this workspace has no glyph convention — the cache is
-      // written empty rather than skipped, so "no glyphs" stays distinguishable from
-      // "never built".
-      empty.icons.source = sourceOf(dataDir, fileName, glyphNamePattern);
-      if (glyphNamePattern) {
-        for (const glyph of collectGlyphComponents(data.document, glyphNamePattern)) {
-          if (empty.icons.entries[glyph.name]) continue; // first occurrence wins, as scan does
-          const key = refs[glyph.id]?.key;
-          empty.icons.entries[glyph.name] = key ? { id: glyph.id, key, file: alias } : { id: glyph.id, file: alias };
-        }
-      }
+      buildFileConcerns(alias, data, empty, glyphNamePattern, fileSource, dataDir);
+      collectGlyphsInto(alias, (data as { document?: unknown }).document, glyphNamePattern, empty);
     }
   }
 
   const variablesName = `${alias}.variables.json`;
   const variablesSource = sourceOf(dataDir, variablesName);
   if (variablesSource) {
-    const data = readJson(join(dataDir, variablesName));
+    const { data, error } = readJson(join(dataDir, variablesName));
+    if (error) failures.push({ alias, file: variablesName, reason: error });
     if (data) {
       const index = buildVariablesIndex((data.meta ? data : { meta: data }) as Parameters<typeof buildVariablesIndex>[0]);
       for (const [name, entry] of Object.entries(index)) {
@@ -232,6 +285,56 @@ function buildAliasSlice(alias: string, dataDir: string, glyphNamePattern?: stri
   }
 
   return empty;
+}
+
+/** The root-map concerns (components, styles, icon provenance) from a payload's
+ *  root object — shared verbatim by the sectioned and monolithic paths. */
+function buildFileConcerns(
+  alias: string,
+  data: Record<string, unknown>,
+  slice: AliasSlice,
+  glyphNamePattern: string | undefined,
+  fileSource: CacheSource,
+  dataDir: string,
+): void {
+  const refs = {
+    ...((data.components as Record<string, { key?: string; name?: string }> | undefined) ?? {}),
+    ...((data.componentSets as Record<string, { key?: string; name?: string }> | undefined) ?? {}),
+  };
+  for (const [id, meta] of Object.entries(refs)) {
+    if (meta?.key) slice.components.entries[id] = { key: meta.key, name: meta.name ?? '', file: alias };
+  }
+  slice.components.source = fileSource;
+
+  const styles = (data.styles as Record<string, { styleType?: string; name?: string; key?: string }> | undefined) ?? {};
+  for (const meta of Object.values(styles)) {
+    const type = meta.styleType;
+    if ((type === 'EFFECT' || type === 'TEXT' || type === 'FILL') && meta.name && meta.key) {
+      slice.styles.entries[meta.name] = { key: meta.key, type, file: alias };
+    }
+  }
+  slice.styles.source = fileSource;
+
+  // An unset pattern means this workspace has no glyph convention — the cache is
+  // written empty rather than skipped, so "no glyphs" stays distinguishable from
+  // "never built".
+  slice.icons.source = fileSourceOf(dataDir, alias, glyphNamePattern);
+}
+
+/** Record glyph components found under one document or page node. First
+ *  occurrence wins across calls, as scan does — callers may walk page by page. */
+function collectGlyphsInto(
+  alias: string,
+  docOrPage: unknown,
+  glyphNamePattern: string | undefined,
+  slice: AliasSlice,
+): void {
+  if (!glyphNamePattern || !docOrPage) return;
+  for (const glyph of collectGlyphComponents(docOrPage, glyphNamePattern)) {
+    if (slice.icons.entries[glyph.name]) continue; // first occurrence wins, as scan does
+    const key = slice.components.entries[glyph.id]?.key;
+    slice.icons.entries[glyph.name] = key ? { id: glyph.id, key, file: alias } : { id: glyph.id, file: alias };
+  }
 }
 
 // ── Refresh ───────────────────────────────────────────────────────────────────
@@ -267,21 +370,23 @@ export function refreshCache(options: CacheOptions): CacheReport {
     current: [],
     unfetched: [],
     counts: { components: 0, styles: 0, variables: 0, icons: 0 },
+    aliasCounts: {},
+    failures: [],
   };
 
   for (const alias of aliases) {
-    const hasFile = existsSync(join(dataDir, `${alias}.file.json`));
+    const fileSource = fileSourceOf(dataDir, alias);
     const hasVariables = existsSync(join(dataDir, `${alias}.variables.json`));
-    if (!hasFile && !hasVariables) {
+    if (!fileSource && !hasVariables) {
       report.unfetched.push(alias);
       continue;
     }
 
     const currentSources = {
-      components: sourceOf(dataDir, `${alias}.file.json`),
-      styles: sourceOf(dataDir, `${alias}.file.json`),
+      components: fileSource,
+      styles: fileSource,
       variables: sourceOf(dataDir, `${alias}.variables.json`),
-      icons: sourceOf(dataDir, `${alias}.file.json`, glyphNamePattern),
+      icons: fileSourceOf(dataDir, alias, glyphNamePattern),
     };
 
     const stale = force || CACHE_CONCERNS.some(concern => {
@@ -290,22 +395,28 @@ export function refreshCache(options: CacheOptions): CacheReport {
       return !matches(existing[concern]?.sources[alias], current);
     });
 
+    report.aliasCounts[alias] = { components: 0, styles: 0, variables: 0, icons: 0 };
+
     if (!stale) {
       for (const concern of CACHE_CONCERNS) {
         const from = existing[concern];
         if (!from?.sources[alias]) continue;
         next[concern].sources[alias] = from.sources[alias];
         for (const [key, entry] of Object.entries(from.entries)) {
-          if ((entry as { file?: string }).file === alias) next[concern].entries[key] = entry;
+          if ((entry as { file?: string }).file === alias) {
+            next[concern].entries[key] = entry;
+            report.aliasCounts[alias][concern]++;
+          }
         }
       }
       report.current.push(alias);
       continue;
     }
 
-    const slice = buildAliasSlice(alias, dataDir, glyphNamePattern);
+    const slice = buildAliasSlice(alias, dataDir, glyphNamePattern, report.failures);
     for (const concern of CACHE_CONCERNS) {
       const built = slice[concern];
+      report.aliasCounts[alias][concern] = Object.keys(built.entries).length;
       if (!built.source) continue;
       next[concern].sources[alias] = built.source;
       Object.assign(next[concern].entries, built.entries);
@@ -347,11 +458,12 @@ export function validateCache(options: Omit<CacheOptions, 'force'>): CacheProble
   };
 
   for (const alias of aliases) {
+    const fileSource = fileSourceOf(dataDir, alias);
     const currentSources = {
-      components: sourceOf(dataDir, `${alias}.file.json`),
-      styles: sourceOf(dataDir, `${alias}.file.json`),
+      components: fileSource,
+      styles: fileSource,
       variables: sourceOf(dataDir, `${alias}.variables.json`),
-      icons: sourceOf(dataDir, `${alias}.file.json`, glyphNamePattern),
+      icons: fileSourceOf(dataDir, alias, glyphNamePattern),
     };
 
     for (const concern of CACHE_CONCERNS) {

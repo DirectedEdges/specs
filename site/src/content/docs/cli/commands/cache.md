@@ -26,10 +26,10 @@ Four files under `{data.directory}/cache/`, each covering every source you've fe
 
 | File | Maps | Built from |
 |------|------|------------|
-| `components.yaml` | component node id → published key and name | `{alias}.file.json` |
-| `styles.yaml` | style name → key and type | `{alias}.file.json` |
+| `components.yaml` | component node id → published key and name | `{alias}.file/` (or `.file.json`) |
+| `styles.yaml` | style name → key and type | `{alias}.file/` (or `.file.json`) |
 | `variables.yaml` | token name → key, id, published flag | `{alias}.variables.json` |
-| `icons.yaml` | glyph name → node id and key | `{alias}.file.json` |
+| `icons.yaml` | glyph name → node id and key | `{alias}.file/` (or `.file.json`) |
 
 They're generated files. Deleting them is safe — the next `specs cache` rebuilds them — and they should not be edited by hand.
 

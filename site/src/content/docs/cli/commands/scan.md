@@ -18,7 +18,7 @@ The manifest is a markdown file with a metadata header, a Components table, and 
 
 **Scan format version:** 2  
 **Generated:** 2026-05-08T18:02:11Z  
-**File:** /absolute/path/to/data/library.file.json
+**File:** /absolute/path/to/data/library.file
 **Variables:** /absolute/path/to/data/library.variables.json
 **File last modified:** 2026-05-08T17:48:26Z
 
@@ -120,7 +120,7 @@ If you remove the `glyphs` convention and rescan, previously-partitioned glyphs 
 specs scan
 
 # Or pass an explicit file path
-specs scan data/library.file.json -o components.md
+specs scan data/library.file -o components.md
 ```
 
 ### Multiple sources
@@ -145,7 +145,7 @@ specs scan --variables data/library.variables.json
 specs scan --verbose
 
 # Output:
-# ✓ Scanned library.file.json
+# ✓ Scanned library.file
 # ✓ Found 164 components (12 selected, 152 excluded)
 # ✓ Detected 48 glyphs (excluded from generate)
 #   Merge: 1 updated by devStatus, 163 preserved
@@ -169,7 +169,7 @@ specs scan
 specs scan --source library
 
 # Or pass a file path explicitly
-specs scan data/library.file.json
+specs scan data/library.file
 ```
 
 ## Options
@@ -182,7 +182,7 @@ specs scan --source library
 ```
 
 ### `-o, --output <path>`
-Output manifest path. Optional — defaults to `{data.directory}/{alias}.manifest.md`, where `data.directory` comes from `config/settings.yaml` and `alias` is either the resolved source name or derived from the input filename (e.g., `library.file.json` → `library.manifest.md`).
+Output manifest path. Optional — defaults to `{data.directory}/{alias}.manifest.md`, where `data.directory` comes from `config/settings.yaml` and `alias` is either the resolved source name or derived from the input filename (e.g., `library.file` (or `library.file.json`) → `library.manifest.md`).
 
 ```bash
 # Explicit output path
