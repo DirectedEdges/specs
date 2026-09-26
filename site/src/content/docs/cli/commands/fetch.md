@@ -9,6 +9,21 @@ Fetch raw Figma REST API payloads for configured sources.
 specs fetch [options]
 ```
 
+## Output
+
+Payloads land in `data.directory` under deterministic names. The **file**
+payload is written as a page-split directory — `{alias}.file/` holding
+`manifest.json` (a page index), `root.json` (the file's component, component-set,
+and style tables), and one JSON per Figma page — so a library of any size flows
+through the pipeline, and `generate` reads only the pages your selected
+components need. `variables` and `styles` remain single JSON files
+(`{alias}.variables.json`, `{alias}.styles.json`).
+
+There is nothing to configure or opt into: every fetch writes this layout, every
+command reads it, and a single-file `{alias}.file.json` from an earlier CLI
+keeps working everywhere until your next fetch replaces it. Only scripts of your
+own that open `{alias}.file.json` directly need to read the directory instead.
+
 ## Requirements
 
 - `FIGMA_TOKEN` must be set in your environment (not needed with `--from-bridge`).
