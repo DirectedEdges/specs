@@ -71,19 +71,19 @@ Pass a Figma JSON file directly and name one component with `-c`, by name or nod
 
 ```bash
 specs fetch
-specs generate data/library.file.json -c "DS Button" -o specs/button.yaml
+specs generate data/library.file -c "DS Button" -o specs/button.yaml
 ```
 
 The component is resolved against the JSON file's components and component sets. Node IDs work equally well, and are the reliable choice when a name contains special characters or is duplicated:
 
 ```bash
-specs generate data/library.file.json -c "1234:5678" -o specs/button.yaml
+specs generate data/library.file -c "1234:5678" -o specs/button.yaml
 ```
 
 Without `-o` (and with no configured `spec.directory`), the spec goes to stdout — handy for piping:
 
 ```bash
-specs generate data/library.file.json -c "DS Button" -f yaml | yq '.dsButton.anatomy'
+specs generate data/library.file -c "DS Button" -f yaml | yq '.dsButton.anatomy'
 ```
 
 Variables and styles are resolved from your configured sources; without config, `generate` falls back to `foundations/variables.json` and `foundations/styles.json` next to the JSON file. Override either with [`-v`](#-v---variables-path) / [`-s`](#-s---styles-path).

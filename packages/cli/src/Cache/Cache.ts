@@ -12,10 +12,10 @@
  *
  * | file              | maps                              | built from             |
  * |-------------------|-----------------------------------|------------------------|
- * | `components.yaml` | node id → published key + name    | `<alias>.file.json`    |
- * | `styles.yaml`     | style name → key + type           | `<alias>.file.json`    |
+ * | `components.yaml` | node id → published key + name    | `<alias>.file/` (or `.file.json`) |
+ * | `styles.yaml`     | style name → key + type           | `<alias>.file/` (or `.file.json`) |
  * | `variables.yaml`  | token name → key, id, published   | `<alias>.variables.json` |
- * | `icons.yaml`      | glyph name → node id + key        | `<alias>.file.json`    |
+ * | `icons.yaml`      | glyph name → node id + key        | `<alias>.file/` (or `.file.json`) |
  *
  * Merged rather than per-library, because render wants one lookup, not N. Each entry
  * records the alias it came from: node ids are file-scoped, so knowing an entry's origin
@@ -165,6 +165,28 @@ function sourceOf(dataDir: string, fileName: string, glyphNamePattern?: string):
   };
 }
 
+/** Provenance for an alias's file payload: the monolithic file when present,
+ *  else the split artifact (post-flip fetches write only the split — its
+ *  manifest carries the original payload's byte count, and the manifest file's
+ *  mtime marks the fetch). */
+function fileSourceOf(dataDir: string, alias: string, glyphNamePattern?: string): CacheSource | null {
+  const monolithic = sourceOf(dataDir, `${alias}.file.json`, glyphNamePattern);
+  if (monolithic) return monolithic;
+  const manifestPath = join(dataDir, `${alias}.file`, 'manifest.json');
+  if (!existsSync(manifestPath)) return null;
+  const stat = statSync(manifestPath);
+  let bytes = stat.size;
+  try {
+    bytes = (JSON.parse(readFileSync(manifestPath, 'utf8')) as { sourceBytes?: number }).sourceBytes ?? bytes;
+  } catch { /* unreadable manifest surfaces later as a read failure */ }
+  return {
+    from: `${alias}.file/`,
+    bytes,
+    mtime: stat.mtime.toISOString(),
+    ...(glyphNamePattern ? { glyphNamePattern } : {}),
+  };
+}
+
 /** True when a recorded source still describes the file on disk. A payload that has been
  *  re-fetched, or a glyph pattern that has been edited in config, fails this. */
 function matches(recorded: CacheSource | undefined, current: CacheSource | null): boolean {
@@ -205,7 +227,7 @@ function buildAliasSlice(
   };
 
   const fileName = `${alias}.file.json`;
-  const fileSource = sourceOf(dataDir, fileName);
+  const fileSource = fileSourceOf(dataDir, alias);
 
   // Sectioned path (specs#561): the page-split artifact serves the root maps
   // without reading the payload as one string, and the glyph walk streams
@@ -296,7 +318,7 @@ function buildFileConcerns(
   // An unset pattern means this workspace has no glyph convention — the cache is
   // written empty rather than skipped, so "no glyphs" stays distinguishable from
   // "never built".
-  slice.icons.source = sourceOf(dataDir, `${alias}.file.json`, glyphNamePattern);
+  slice.icons.source = fileSourceOf(dataDir, alias, glyphNamePattern);
 }
 
 /** Record glyph components found under one document or page node. First
@@ -353,18 +375,18 @@ export function refreshCache(options: CacheOptions): CacheReport {
   };
 
   for (const alias of aliases) {
-    const hasFile = existsSync(join(dataDir, `${alias}.file.json`));
+    const fileSource = fileSourceOf(dataDir, alias);
     const hasVariables = existsSync(join(dataDir, `${alias}.variables.json`));
-    if (!hasFile && !hasVariables) {
+    if (!fileSource && !hasVariables) {
       report.unfetched.push(alias);
       continue;
     }
 
     const currentSources = {
-      components: sourceOf(dataDir, `${alias}.file.json`),
-      styles: sourceOf(dataDir, `${alias}.file.json`),
+      components: fileSource,
+      styles: fileSource,
       variables: sourceOf(dataDir, `${alias}.variables.json`),
-      icons: sourceOf(dataDir, `${alias}.file.json`, glyphNamePattern),
+      icons: fileSourceOf(dataDir, alias, glyphNamePattern),
     };
 
     const stale = force || CACHE_CONCERNS.some(concern => {
@@ -436,11 +458,12 @@ export function validateCache(options: Omit<CacheOptions, 'force'>): CacheProble
   };
 
   for (const alias of aliases) {
+    const fileSource = fileSourceOf(dataDir, alias);
     const currentSources = {
-      components: sourceOf(dataDir, `${alias}.file.json`),
-      styles: sourceOf(dataDir, `${alias}.file.json`),
+      components: fileSource,
+      styles: fileSource,
       variables: sourceOf(dataDir, `${alias}.variables.json`),
-      icons: sourceOf(dataDir, `${alias}.file.json`, glyphNamePattern),
+      icons: fileSourceOf(dataDir, alias, glyphNamePattern),
     };
 
     for (const concern of CACHE_CONCERNS) {

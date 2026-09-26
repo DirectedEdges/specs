@@ -416,7 +416,7 @@ export const Scan = new Command('scan')
       }
 
       if (!options.output) {
-        const baseName = path.basename(file, '.file.json');
+        const baseName = path.basename(file, '.file.json').replace(/\.file$/, '');
         options.output = path.join(resolvedDir, `${baseName}.manifest.md`);
       }
 
@@ -425,11 +425,20 @@ export const Scan = new Command('scan')
       }
 
       // Sectioned path (specs#561): a page-split artifact reads page by page —
-      // no single-string limit, no whole-document graph. Monolithic fallback
-      // stands until the dual-write flip.
+      // no single-string limit, no whole-document graph. Reads of pre-existing
+      // monolithic payloads keep working.
       let sectioned: SectionedFile | null = null;
       if (scanAlias) {
         sectioned = SectionedFile.open(resolvedDir, scanAlias); // throws loudly on an unknown format version
+        // The manifest's **File:** header must name the artifact actually
+        // scanned — generate resolves its payload from it.
+        if (sectioned && !fs.existsSync(file)) file = sectioned.dir;
+      } else if (fileArg && fs.existsSync(file) && fs.statSync(file).isDirectory()) {
+        sectioned = SectionedFile.openDir(file);
+        if (!sectioned) {
+          console.error(`Error: ${file} is a directory but not a split payload (no manifest.json)`);
+          process.exit(ERROR_CODES.INVALID_ARGS);
+        }
       }
 
       if (!sectioned && !fs.existsSync(file)) {

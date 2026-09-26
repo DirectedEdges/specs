@@ -665,26 +665,35 @@ export const Fetch = new Command('fetch')
             if (body) feedSplitter(Buffer.from(body, 'utf-8'));
             await fs.writeFile(outputPath, body, 'utf-8');
           }
+          // The flip (specs#563): the page-split directory IS the file
+          // artifact. The monolithic file exists only transiently during the
+          // download, and survives only as a rescue when the split fails.
+          let monolithicKept = true;
           if (splitter) {
             try {
               const split = await splitter.finish();
               console.log(`✓ Split: ${entry.alias}.file/ (${split.pages.length} pages, root ${Math.round(fs.statSync(path.join(splitDirFor(outDir, entry.alias), 'root.json')).size / 1048576)}MB)`);
+              await fs.remove(outputPath);
+              monolithicKept = false;
             } catch (e) {
-              console.warn(`⚠ ${entry.alias}.file/ page split failed (${e instanceof Error ? e.message : e}) — the single-file payload is unaffected.`);
+              console.warn(`⚠ ${entry.alias}.file/ page split failed (${e instanceof Error ? e.message : e}) — keeping the single-file payload instead.`);
               splitter.abort();
             }
           }
 
           console.log(`✓ Downloaded: ${entry.alias} ${kind} (${elapsed})`);
 
-          // Warn at download time when a payload lands over the single-string
-          // read limit — otherwise the next command's failure is the first sign.
-          const written = await fs.stat(outputPath);
-          if (written.size >= MAX_JSON_STRING_BYTES) {
-            console.warn(`⚠ ${entry.alias}.${kind}.json is ${Math.round(written.size / 1048576)}MB — over the ~${Math.round(MAX_JSON_STRING_BYTES / 1048576)}MB limit Node can read as a single JSON string. Downstream commands (cache, scan, generate) will refuse it.`);
-            console.warn(options.geometry
-              ? `  Remedy: re-fetch with --no-geometry (roughly halves the payload).`
-              : `  Already fetched without geometry — the file itself is too large; remove or split pages in Figma.`);
+          // Warn at download time when a kept payload is over the
+          // single-string read limit — otherwise the next command's failure is
+          // the first sign. (A split payload has no such limit.)
+          if (monolithicKept) {
+            const written = await fs.stat(outputPath);
+            if (written.size >= MAX_JSON_STRING_BYTES) {
+              console.warn(`⚠ ${entry.alias}.${kind}.json is ${Math.round(written.size / 1048576)}MB — over the ~${Math.round(MAX_JSON_STRING_BYTES / 1048576)}MB limit Node can read as a single JSON string. Downstream commands (cache, scan, generate) will refuse it.`);
+              console.warn(options.geometry
+                ? `  Remedy: re-fetch with --no-geometry (roughly halves the payload).`
+                : `  Already fetched without geometry — the file itself is too large; remove or split pages in Figma.`);
+            }
           }
 
           if (options.verbose) {
@@ -710,14 +719,20 @@ export const Fetch = new Command('fetch')
             process.exit(ERROR_CODES.INVALID_ARGS);
           }
           const filePath = path.join(outDir, `${entry.alias}.file.json`);
-          if (!fs.existsSync(filePath)) {
+          const iconsSectioned = SectionedFile.open(outDir, entry.alias);
+          if (!iconsSectioned && !fs.existsSync(filePath)) {
             console.error(`Error: icons require the file payload — fetch "file" for ${entry.alias} first (${filePath} not found)`);
             throw new SourceFetchError(ERROR_CODES.FILE_ERROR);
           }
 
           const stopSpinner = startSpinner(`Downloading: ${entry.alias} icons`);
-          const fileJson = readJsonPayload(filePath) as { document?: unknown };
-          const glyphs = collectGlyphComponents(fileJson.document, pattern);
+          // Page-split payloads collect glyphs from a page-assembled document;
+          // slug dedupe must see every page at once, so pages load together here
+          // (parsed size is what the old whole-file parse cost anyway).
+          const glyphSource = iconsSectioned
+            ? { children: iconsSectioned.pageEntries().map(e => iconsSectioned.loadPage(e)) }
+            : (readJsonPayload(filePath) as { document?: unknown }).document;
+          const glyphs = collectGlyphComponents(glyphSource, pattern);
           // Assets are a sibling of specs/, not a `_`-prefixed pseudo-component
           // inside it: an SVG is consumed by every target and produced by none
           // (project 024). An ad-hoc source's glyphs are a second version of the

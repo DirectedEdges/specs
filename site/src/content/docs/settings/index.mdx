@@ -202,7 +202,7 @@ Every configuration value is validated, and an invalid one falls back to its def
 with a warning so builds continue:
 
 ```bash
-$ specs generate data/library.file.json -c Button
+$ specs generate data/library.file -c Button
 Warning: Invalid spec.keys: 'invalid'. Using default: SAFE.
 Valid values: SAFE, CAMEL, SNAKE, KEBAB, PASCAL, TRAIN
 ```
@@ -242,7 +242,7 @@ A flag always wins:
 
 ```bash
 # settings.yaml has spec.format: JSON — the flag overrides it to YAML
-specs generate data/library.file.json -c Button --format yaml
+specs generate data/library.file -c Button --format yaml
 ```
 
 The flags that override a configured value are `--format` (`spec.format`),
@@ -250,7 +250,7 @@ The flags that override a configured value are `--format` (`spec.format`),
 points at a different directory entirely:
 
 ```bash
-specs generate data/library.file.json \
+specs generate data/library.file \
   -c "Button" \
   --config ./configs/mobile \
   -o specs/mobile/button.yaml

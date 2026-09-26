@@ -59,13 +59,17 @@ export class SectionedFile {
    *  this build does not understand — silently misreading it is the one
    *  forbidden outcome. */
   static open(dataDir: string, alias: string): SectionedFile | null {
-    const dir = splitDirFor(dataDir, alias);
+    return SectionedFile.openDir(splitDirFor(dataDir, alias));
+  }
+
+  /** Open a split directory by path (e.g. a `<alias>.file` argument). */
+  static openDir(dir: string): SectionedFile | null {
     const manifestPath = join(dir, 'manifest.json');
     if (!existsSync(manifestPath)) return null;
     const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8')) as SplitManifest;
     if (manifest.formatVersion !== SPLIT_FORMAT_VERSION) {
       throw new Error(
-        `${alias}.file/ uses split format v${manifest.formatVersion}, but this build reads v${SPLIT_FORMAT_VERSION}. ` +
+        `${dir} uses split format v${manifest.formatVersion}, but this build reads v${SPLIT_FORMAT_VERSION}. ` +
         `Re-run \`specs fetch\` to rewrite it.`
       );
     }

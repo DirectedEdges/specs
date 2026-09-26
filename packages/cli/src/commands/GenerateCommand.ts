@@ -100,7 +100,9 @@ function resolveImageFileKey(
 ): { key: string } | { error: string } {
   const alias = payloadPath && payloadPath.endsWith('.file.json')
     ? path.basename(payloadPath, '.file.json')
-    : resolveFileSourceAlias(config.settings.data?.sources);
+    : payloadPath && payloadPath.endsWith('.file')
+      ? path.basename(payloadPath, '.file')
+      : resolveFileSourceAlias(config.settings.data?.sources);
 
   if (!alias) {
     return { error: 'Error: --get-images requires a configured source file key (data.sources.<alias>.key in the workspace settings)' };
@@ -514,14 +516,22 @@ export const Generate = new Command('generate')
         // scanned from, so with several fetched files the manifest's own payload
         // beats the first configured source.
         const manifestAlias = path.basename(sourcePath).replace(/\.manifest\.md$/, '');
-        const manifestPayload = manifestAlias !== path.basename(sourcePath)
-          ? path.join(sourceDir, `${manifestAlias}.file.json`)
-          : undefined;
         const componentSourceAlias = resolveFileSourceAlias(config.settings.data?.sources);
+        // An alias's payload on disk: the monolithic file, or the split
+        // directory when only that exists (post-flip fetches).
+        const payloadFor = (alias: string): string | undefined => {
+          const monolithic = path.join(sourceDir, `${alias}.file.json`);
+          if (fs.existsSync(monolithic)) return monolithic;
+          const split = path.join(sourceDir, `${alias}.file`);
+          return fs.existsSync(path.join(split, 'manifest.json')) ? split : undefined;
+        };
 
-        const sourceFile = metadata.file
-          || (manifestPayload && fs.existsSync(manifestPayload) ? manifestPayload : undefined)
-          || (componentSourceAlias ? path.join(sourceDir, `${componentSourceAlias}.file.json`) : undefined);
+        // metadata.file may predate the payload's current shape (a manifest
+        // scanned before a re-fetch switched monolithic ↔ split) — trust it
+        // only when it still exists, then fall through to what's on disk.
+        const sourceFile = (metadata.file && fs.existsSync(metadata.file) ? metadata.file : undefined)
+          || (manifestAlias !== path.basename(sourcePath) ? payloadFor(manifestAlias) : undefined)
+          || (componentSourceAlias ? payloadFor(componentSourceAlias) ?? path.join(sourceDir, `${componentSourceAlias}.file.json`) : undefined);
 
         if (!sourceFile) {
           console.error('Error: No component source file specified');
@@ -604,18 +614,27 @@ export const Generate = new Command('generate')
       // ---------------------------------------------------------------
       if (libraryJson === undefined && payloadPath) {
         const payloadDir = path.dirname(payloadPath);
-        const payloadAlias = path.basename(payloadPath).endsWith('.file.json')
-          ? path.basename(payloadPath).replace(/\.file\.json$/, '')
+        const base = path.basename(payloadPath);
+        const payloadAlias = base.endsWith('.file.json') ? base.replace(/\.file\.json$/, '')
+          : base.endsWith('.file') ? base.replace(/\.file$/, '')
           : null;
-        const sectioned = payloadAlias ? SectionedFile.open(payloadDir, payloadAlias) : null;
+        const sectioned = payloadPath.endsWith('.file')
+          ? SectionedFile.openDir(payloadPath)
+          : payloadAlias ? SectionedFile.open(payloadDir, payloadAlias) : null;
         if (sectioned) {
           const located = sectioned.locatePagesOfNodeIds(componentIds);
           const unlocated = componentIds.filter(id => !located.has(id));
           if (unlocated.length > 0) {
             // A manifest-selected component missing from the split artifact
-            // means it is stale relative to the manifest — say so and use the
-            // monolithic payload for this run.
-            console.warn(`⚠ ${payloadAlias}.file/ does not contain ${unlocated.length} selected component(s) (${unlocated.slice(0, 3).join(', ')}${unlocated.length > 3 ? ', …' : ''}) — falling back to the single-file payload. Re-run \`specs fetch\` to refresh the split artifact.`);
+            // means it is stale relative to the manifest.
+            const detail = `${payloadAlias}.file/ does not contain ${unlocated.length} selected component(s) (${unlocated.slice(0, 3).join(', ')}${unlocated.length > 3 ? ', …' : ''})`;
+            const monolithicExists = !payloadPath.endsWith('.file') && fs.existsSync(payloadPath);
+            if (!monolithicExists) {
+              console.error(`Error: ${detail} and no single-file payload exists to fall back to.`);
+              console.error('Tip: re-run `specs fetch`, then `specs scan`, so the payload and manifest agree.');
+              process.exit(ERROR_CODES.FILE_ERROR);
+            }
+            console.warn(`⚠ ${detail} — falling back to the single-file payload. Re-run \`specs fetch\` to refresh the split artifact.`);
           } else {
             const seedIds = [...new Set([...located.values()].map(e => e.id))];
             const assembled = sectioned.assembleDocument(seedIds, options.verbose

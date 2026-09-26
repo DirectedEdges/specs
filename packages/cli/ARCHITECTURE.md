@@ -84,20 +84,27 @@ variables, collections, author, generator}, onProgress, licenseInput)`**
 with a key present, transient license statuses exit NETWORK_ERROR/RATE_LIMIT
 rather than silently emitting FREE output (specs#119).
 
-## Data — split file payloads (specs#559, umbrella #553)
+## Data — split file payloads (specs#559–#563, umbrella #553)
 
-`fetch` dual-writes every file payload: the monolithic `<alias>.file.json`
-(current consumer contract) plus a page-split `<alias>.file/` directory —
+The file payload artifact is the page-split `<alias>.file/` directory —
 `manifest.json` (formatVersion, page index with id/name/bytes/sha256,
 separators, whole-payload sha256), `root.json` (the payload with
 `document.children` emptied — valid JSON, holds the root
 components/componentSets/styles maps), and one raw `page-NNN.json` per page.
-Reassembly is byte-perfect: `root[0..prefixBytes) + sep_i + page_i … +
-root[prefixBytes..)`, verifiable against `sourceSha256` (harness/dev check
-only — customer runs never pay it). Split failures warn and clean up; they
-never fail the fetch. Splitter: `utilities/payloadSplit.ts` (byte-level JSON
-state machine; 769MB in ~13s). Consumers migrate to reading the directory in
-specs#560–#563, after which the monolithic file is retired.
+`fetch` streams the download through the splitter
+(`utilities/payloadSplit.ts`, byte-level JSON state machine; 769MB in ~13s)
+and removes the transient monolithic file on success; a split failure keeps
+`<alias>.file.json` as the rescue. Reassembly is byte-perfect:
+`root[0..prefixBytes) + sep_i + page_i … + root[prefixBytes..)`, verifiable
+against `sourceSha256` (harness/dev check only).
+
+All consumers read through `utilities/sectionedFile.ts` (`SectionedFile`) —
+root maps, per-page iteration, or `assembleDocument()` (pruned documents with
+automatic cross-page fault-in; generate seeds the manifest-selected
+components' pages). Pre-existing monolithic payloads keep working everywhere
+as a read fallback. `SPECS_SHADOW_INGEST=1` runs both paths and diffs
+(dev-only). Scan and generate accept a `<alias>.file` directory path wherever
+a payload path is accepted; version premerge passes whichever exists.
 
 ## Data flow — transform
 

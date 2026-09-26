@@ -163,7 +163,7 @@ one starts. It reports what it found:
 ```
 
 - **The alias** — the file's name, prefixed with the configured source it branches from,
-  so payloads land beside the library's as `data/library-new-nav-tokens.file.json`.
+  so payloads land beside the library's as `data/library-new-nav-tokens.file/`.
   Override it with `--source <alias>=<url>`. An alias that collides with a configured
   source is refused rather than overwriting the payload you mean to compare against.
 - **The data kinds** — copied from the configured source the branch came from, so the two
