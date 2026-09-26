@@ -586,8 +586,12 @@ export const Fetch = new Command('fetch')
       }
 
       for (const entry of selected) {
+        // Which step was in flight when a transport error threw — transport
+        // failures carry no request context of their own (specs#569).
+        let activeKind: string = 'file';
         try {
         for (const kind of entry.fetch.filter(k => k !== 'icons' && wants(k))) {
+          activeKind = kind;
           const url =
             kind === 'file'
               ? `https://api.figma.com/v1/files/${entry.key}${options.geometry ? '?geometry=paths' : ''}`
@@ -707,6 +711,7 @@ export const Fetch = new Command('fetch')
         // the saved file payload, so `file` must be present (fetched this run
         // or a previous one) before icons can resolve.
         if (entry.fetch.includes('icons') && wants('icons')) {
+          activeKind = 'icons';
           const pattern = figmaOf(config.conventions).glyphs?.match;
           if (!pattern) {
             console.error(`Error: ${entry.origin === 'adhoc' ? `source "${entry.alias}"` : `data.sources.${entry.alias}.fetch`} includes "icons" but glyphs.match is not set in config/conventions/figma.yaml`);
@@ -789,11 +794,19 @@ export const Fetch = new Command('fetch')
           clearInlineStatus();
           const code = error instanceof SourceFetchError ? error.code : ERROR_CODES.GENERAL_ERROR;
           if (!(error instanceof SourceFetchError)) {
-            const message = error instanceof Error ? error.message : String(error);
-            for (const line of message.split('\n')) console.error(`  ${line}`);
+            // A transport-level throw (connection reset, DNS, TLS) says only
+            // "fetch failed" — the real reason rides the cause chain, and the
+            // request context lives here, not on the error (specs#569).
+            const causes: string[] = [];
+            for (let e: unknown = error; e instanceof Error; e = e.cause) {
+              causes.push(e.message);
+              if (causes.length >= 4) break;
+            }
+            console.error(`  ${causes.join(' — caused by: ') || String(error)}`);
           }
           sourceFailures.push({ alias: entry.alias, code });
-          console.error(`✗ ${entry.alias}: fetch failed — continuing with remaining sources`);
+          console.error(`✗ ${entry.alias}: fetch failed while downloading "${activeKind}" — continuing with remaining sources`);
+          console.error(`  Retry just this work: specs fetch --only ${entry.alias},${activeKind}`);
         }
       }
 

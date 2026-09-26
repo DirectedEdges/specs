@@ -138,7 +138,10 @@ async function writeGeneratedOutput(
   options: GenerateOptions,
   config: CLIConfig,
   /** The `<alias>.file.json` these specs were generated from, when there was one. */
-  payloadPath?: string
+  payloadPath?: string,
+  /** The source payload's lastModified — stamps metadata.lastUpdated so an
+   *  unchanged design regenerates to unchanged files (specs#568). */
+  sourceLastModified?: string
 ): Promise<void> {
   // -------------------------------------------------------------------
   // File mode stdout (no -o)
@@ -299,7 +302,11 @@ async function writeGeneratedOutput(
     }
   }
 
-  const manifest = new FileManifest(processedComponents, outputConfig, baseDir, outputFileName);
+  const sourceTimestamp = sourceLastModified ? new Date(sourceLastModified) : undefined;
+  const manifest = new FileManifest(
+    processedComponents, outputConfig, baseDir, outputFileName,
+    sourceTimestamp && !isNaN(sourceTimestamp.getTime()) ? sourceTimestamp : undefined
+  );
 
   // Select appropriate writer
   let writer: FileWriter;
@@ -837,7 +844,10 @@ export const Generate = new Command('generate')
         process.exit(ERROR_CODES.GENERAL_ERROR);
       }
 
-      await writeGeneratedOutput(processedComponents, errors, isManifest, options, config, payloadPath);
+      await writeGeneratedOutput(
+        processedComponents, errors, isManifest, options, config, payloadPath,
+        typeof libraryJson.lastModified === 'string' ? libraryJson.lastModified : undefined
+      );
 
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

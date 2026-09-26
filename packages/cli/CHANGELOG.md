@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Regenerating an unchanged design produces unchanged files**: each spec's `metadata.lastUpdated` now carries the Figma file's `lastModified` instead of the run's wall clock, so spec diffs show real changes only.
+- Transport-level fetch failures (connection reset, DNS) now name the source, the data kind, the underlying cause chain, and the exact `--only` retry command — previously a bare "fetch failed".
+
 - **No ingest failure is silent.** The cache reports what every source contributed and fails loudly when a payload cannot be read (previously a zero-entry source still reported success); payload-size failures name the file, the ~512MB single-string limit, and remedies; fetch warns at download time when a kept payload exceeds that limit.
 - **Fetch validates config before downloading** (icons ↔ `glyphs.match`, `spec.directory`), and one source's failure no longer aborts the remaining sources — the run reports per-source results and exits non-zero on partial failure.
 - `specs scan` and `specs generate` accept a `<alias>.file` directory anywhere a payload path is accepted.
