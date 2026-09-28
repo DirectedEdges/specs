@@ -727,11 +727,11 @@ export const Fetch = new Command('fetch')
           const filePath = path.join(outDir, `${entry.alias}.file.json`);
           const iconsSectioned = SectionedFile.open(outDir, entry.alias);
           if (!iconsSectioned && !fs.existsSync(filePath)) {
-            console.error(`Error: icons require the file payload — fetch "file" for ${entry.alias} first (${filePath} not found)`);
+            console.error(`Error: glyphs require the file payload — fetch "file" for ${entry.alias} first (${filePath} not found)`);
             throw new SourceFetchError(ERROR_CODES.FILE_ERROR);
           }
 
-          const stopSpinner = startSpinner(`Downloading: ${entry.alias} icons`);
+          const stopSpinner = startSpinner(`Downloading: ${entry.alias} glyphs`);
           // Page-split payloads collect glyphs from a page-assembled document;
           // slug dedupe must see every page at once, so pages load together here
           // (parsed size is what the old whole-file parse cost anyway).
@@ -762,20 +762,20 @@ export const Fetch = new Command('fetch')
               stopSpinner();
               const classification = classifyHttpStatus(result.status);
               if (classification === 'auth') {
-                console.error(formatAuthError(result.status, entry.alias, 'icons', configPath));
+                console.error(formatAuthError(result.status, entry.alias, 'glyphs', configPath));
                 process.exit(ERROR_CODES.AUTH_ERROR);
               }
               if (classification === 'rate') {
-                console.error(formatRateLimitError(entry.alias, 'icons', result.headers));
+                console.error(formatRateLimitError(entry.alias, 'glyphs', result.headers));
                 process.exit(ERROR_CODES.RATE_LIMIT);
               }
-              console.error(`Error: HTTP ${result.status} while exporting ${entry.alias} icons`);
+              console.error(`Error: HTTP ${result.status} while exporting ${entry.alias} glyphs`);
               throw new SourceFetchError(ERROR_CODES.NETWORK_ERROR);
             }
             const payload = JSON.parse(await streamToString(result.stream)) as { err?: string; images: Record<string, string | null> };
             if (payload.err) {
               stopSpinner();
-              console.error(`Error: images API error while exporting ${entry.alias} icons: ${payload.err}`);
+              console.error(`Error: images API error while exporting ${entry.alias} glyphs: ${payload.err}`);
               throw new SourceFetchError(ERROR_CODES.NETWORK_ERROR);
             }
             for (const glyph of chunk) {
@@ -788,7 +788,7 @@ export const Fetch = new Command('fetch')
             }
           }
           const elapsed = stopSpinner();
-          console.log(`✓ Downloaded: ${entry.alias} icons (${downloaded}/${glyphs.length} glyphs, ${elapsed})`);
+          console.log(`✓ Downloaded: ${entry.alias} glyphs (${downloaded}/${glyphs.length}, ${elapsed})`);
         }
         } catch (error) {
           clearInlineStatus();
