@@ -9,9 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking
 
+- **`specs scan` matches subcomponent patterns exactly**, every character outside `{C}` and `{S}` included — spaces and slashes among them. A library spelling the hidden-folder separator two ways (`/ _ /` and `/_ /`) now declares a pattern for each; scan previously dropped `_` segments before matching, so one pattern silently covered both spellings and a pattern containing `_` could never match. Patterns now mean the same thing here as they do when specs are generated (ADR-094).
+
 - **`specs fetch` writes each file payload as a page-split `<alias>.file/` directory** — `root.json` plus one JSON per Figma page — instead of a single `<alias>.file.json`. Payloads of any size now flow through the pipeline (a real 916MB community file previously could not be read at all), and `generate` loads only the pages your selected components need. Every command reads the new layout and still reads existing single-file payloads, so nothing breaks until you re-fetch; only your own scripts that open `<alias>.file.json` directly need to read the directory instead.
 
 ### Added
+
+- **`settings.curation` decides which components a scan selects**, with `defaultSelection` (`READY_FOR_DEV` or `ALL`), `preserveManualSelections` for whether your manifest edits outrank a changed Figma dev status, and `includeDependencies` for whether the components a selected one is built from are selected too. `--include-all` and `--keep-checks` override the first two for one run. Every default matches previous behaviour (ADR-093).
 
 - **Regenerating an unchanged design produces unchanged files**: each spec's `metadata.lastUpdated` now carries the Figma file's `lastModified` instead of the run's wall clock, so spec diffs show real changes only.
 - Transport-level fetch failures (connection reset, DNS) now name the source, the data kind, the underlying cause chain, and the exact `--only` retry command — previously a bare "fetch failed".
@@ -23,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+
+- **A component you unchecked stays unchecked** when `curation.preserveManualSelections` is on. Dependency selection ran after prior manifest edits were merged forward and re-selected what a human had deselected, so no option preserved the edit (ADR-093).
 
 - **A run whose license key cannot be checked stops at the first component** instead of failing every one into the same rate limit, and a rate-limited check now says to wait it out rather than to check your network.
 
