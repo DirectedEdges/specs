@@ -572,7 +572,7 @@ export const Fetch = new Command('fetch')
       // One source's download failure is recorded and reported; the remaining
       // sources still fetch. Auth and rate-limit failures stay fatal — they are
       // token-wide or API-wide, and retrying other sources cannot succeed.
-      const sourceFailures: Array<{ alias: string; code: number }> = [];
+      const sourceFailures: Array<{ alias: string; code: number; outstanding: string[] }> = [];
       class SourceFetchError extends Error {
         constructor(readonly code: number) { super('source fetch failed'); }
       }
@@ -589,6 +589,10 @@ export const Fetch = new Command('fetch')
         // Which step was in flight when a transport error threw — transport
         // failures carry no request context of their own (specs#569).
         let activeKind: string = 'file';
+        // A whole source dies on the first failing kind, so the kinds after it were
+        // never attempted. The retry hint has to name those too, or following it
+        // recovers one kind and leaves the rest missing (specs#572).
+        const completedKinds = new Set<string>();
         try {
         for (const kind of entry.fetch.filter(k => k !== 'icons' && wants(k))) {
           activeKind = kind;
@@ -687,6 +691,7 @@ export const Fetch = new Command('fetch')
           }
 
           console.log(`✓ Downloaded: ${entry.alias} ${kind} (${elapsed})`);
+          completedKinds.add(kind);
 
           // Warn at download time when a kept payload is over the
           // single-string read limit — otherwise the next command's failure is
@@ -789,6 +794,7 @@ export const Fetch = new Command('fetch')
           }
           const elapsed = stopSpinner();
           console.log(`✓ Downloaded: ${entry.alias} glyphs (${downloaded}/${glyphs.length}, ${elapsed})`);
+          completedKinds.add('icons');
         }
         } catch (error) {
           clearInlineStatus();
@@ -804,9 +810,21 @@ export const Fetch = new Command('fetch')
             }
             console.error(`  ${causes.join(' — caused by: ') || String(error)}`);
           }
-          sourceFailures.push({ alias: entry.alias, code });
+          // Everything this source was asked for that did not land — the kind that
+          // threw, plus every kind the loop never reached.
+          const outstanding = entry.fetch.filter(k => wants(k) && !completedKinds.has(k));
+          sourceFailures.push({ alias: entry.alias, code, outstanding });
           console.error(`✗ ${entry.alias}: fetch failed while downloading "${activeKind}" — continuing with remaining sources`);
-          console.error(`  Retry just this work: specs fetch --only ${entry.alias},${activeKind}`);
+          // Naming every outstanding kind matters more than brevity: a hint that
+          // names only the kind that threw recovers it and silently leaves the
+          // rest missing (specs#572).
+          const retryTarget = outstanding.length === entry.fetch.filter(wants).length
+            ? entry.alias
+            : `${entry.alias},${outstanding.join(',')}`;
+          console.error(`  Retry just this work: specs fetch --only ${retryTarget}`);
+          if (outstanding.length > 1) {
+            console.error(`  Still missing for ${entry.alias}: ${outstanding.join(', ')}`);
+          }
         }
       }
 
@@ -855,7 +873,50 @@ export const Fetch = new Command('fetch')
 
       if (sourceFailures.length > 0) {
         console.error(`✗ Fetch incomplete: ${sourceFailures.length} of ${selected.length} sources failed (${sourceFailures.map(f => f.alias).join(', ')})`);
+        for (const failure of sourceFailures.filter(f => f.outstanding.length > 0)) {
+          console.error(`  ${failure.alias}: still missing ${failure.outstanding.join(', ')}`);
+        }
         process.exit(sourceFailures[0].code);
+      }
+
+      // Nothing above proves the payloads exist, and "✓ Fetch complete" is a claim
+      // about disk. So it is checked against disk rather than inferred from the
+      // absence of an error (specs#572).
+      //
+      // Two different situations, and conflating them would be wrong in both
+      // directions. A kind this run asked for and did not land is a failure. A kind
+      // the config declares but `--only` excluded is not — narrowing is the whole
+      // point of the flag — yet leaving it unsaid is how a scoped retry reports
+      // success while the source is still incomplete, which is the case that filed
+      // this issue.
+      const onDisk = (alias: string, kind: string): boolean =>
+        fs.existsSync(path.join(outDir, `${alias}.${kind}.json`)) ||
+        (kind === 'file' && fs.existsSync(splitDirFor(outDir, alias)));
+      // Glyph assets are files under the spec directory rather than a payload here,
+      // and the cache report already counts them.
+      const payloadKinds = (kinds: readonly FetchKind[]): FetchKind[] => kinds.filter(k => k !== 'icons');
+
+      const requestedMissing: string[] = [];
+      const unrequestedMissing = new Map<string, string[]>();
+      for (const entry of selected) {
+        for (const kind of payloadKinds(entry.fetch)) {
+          if (onDisk(entry.alias, kind)) continue;
+          if (wants(kind)) {
+            requestedMissing.push(`${entry.alias}.${kind}`);
+          } else {
+            unrequestedMissing.set(entry.alias, [...(unrequestedMissing.get(entry.alias) ?? []), kind]);
+          }
+        }
+      }
+
+      if (requestedMissing.length > 0) {
+        console.error(`✗ Fetch did not complete: ${requestedMissing.length} requested ${requestedMissing.length === 1 ? 'kind is' : 'kinds are'} missing on disk — ${requestedMissing.join(', ')}`);
+        process.exit(ERROR_CODES.GENERAL_ERROR);
+      }
+
+      for (const [alias, kinds] of unrequestedMissing) {
+        console.warn(`⚠ ${alias}: configured ${kinds.length === 1 ? 'kind' : 'kinds'} not on disk and not fetched this run — ${kinds.join(', ')}`);
+        console.warn(`  Fetch ${kinds.length === 1 ? 'it' : 'them'}: specs fetch --only ${alias},${kinds.join(',')}`);
       }
       if (!cacheOk) {
         console.error('✗ Fetch downloaded, but the cache could not read every payload (see above).');
