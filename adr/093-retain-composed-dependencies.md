@@ -3,7 +3,7 @@
 **Branch**: `093-retain-composed-dependencies`
 **Created**: 2026-09-28
 **Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Summary**: A `composedDependencies` setting joins the inclusion choices `invalidVariants`, `emptyVariants` and `defaultSlotContent`, closing the generated set under composition.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

@@ -262,6 +262,7 @@ export default defineConfig({
                 { label: 'collapsePrimitiveWrapper', slug: 'settings/collapse-primitive-wrapper' },
                 { label: 'promotePrimitives', slug: 'settings/promote-primitives' },
                 { label: 'defaultSlotContent', slug: 'settings/default-slot-content', badge: pro },
+                { label: 'composedDependencies', slug: 'settings/composed-dependencies' },
                 { label: 'sources', slug: 'settings/data-sources' },
                 { label: 'Folders', slug: 'settings/folders' },
                 { label: 'Output', slug: 'settings/output' },

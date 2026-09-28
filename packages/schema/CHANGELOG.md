@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `Settings.spec.composedDependencies` — select what a selected component composes; defaults to true
+
 ### Changed
 
 ### Removed

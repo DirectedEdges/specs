@@ -136,6 +136,23 @@ export interface Settings {
     emptyVariants?: boolean;
     /** Include slot content examples in output (ADR-050). Optional; defaults to false. @since 0.21.0 */
     defaultSlotContent?: boolean;
+    /**
+     * Select the components a selected component composes, transitively (ADR-093).
+     *
+     * Curation derived from a library's own signals is incomplete: a component marked
+     * ready composes others that carry no such marking of their own, so selecting only
+     * what is marked deselects what the selection needs. When true, the selected set is
+     * closed under composition.
+     *
+     * What counts as composition is a convention, not a setting — this governs only
+     * whether the closure is applied. When false, a spec may reference a component that
+     * has no spec of its own; consumers resolve such a reference by lookup and treat a
+     * miss as "not composable", so the element degrades to a plain container rather than
+     * failing. Optional; defaults to true.
+     *
+     * @since 0.35.0
+     */
+    composedDependencies?: boolean;
     /** Write one file per component rather than a single combined library file. Optional; defaults to true. */
     splitComponents?: boolean;
     /** Write one file per concern (api, styling, variants) rather than a single component file. Optional; defaults to true. */
@@ -202,6 +219,8 @@ export interface ResolvedSettings {
     emptyVariants: boolean;
     /** Include slot content examples in output. */
     defaultSlotContent: boolean;
+    /** The components a selected component composes are themselves selected, transitively. */
+    composedDependencies: boolean;
     /** Write one file per component rather than a single combined library file. */
     splitComponents: boolean;
     /** Write one file per concern (api, styling, variants) rather than a single component file. */
@@ -234,6 +253,8 @@ export interface ResolvedSettings {
  * - spec.invalidCombinations: true helps designers identify property conflicts
  * - spec.emptyVariants: false reduces output size by excluding semantically empty layered variants
  * - spec.defaultSlotContent: false — opt-in (ADR-050); off by default so unannotated components are unchanged
+ * - spec.composedDependencies: true — a selected set closed under composition is complete; the
+ *   alternative admits specs referencing components that were never generated
  *
  * Directories, sources, author, and the split flags carry no default here: the
  * consumer supplies them, and this package has no basis for choosing one.
@@ -255,6 +276,7 @@ export const DEFAULT_SETTINGS: ResolvedSettings = {
     invalidCombinations: true,
     emptyVariants: false,
     defaultSlotContent: false,
+    composedDependencies: true,
     splitComponents: true,
     splitConcerns: true,
     useSubfolders: true,

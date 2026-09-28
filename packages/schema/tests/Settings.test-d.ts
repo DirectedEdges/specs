@@ -40,6 +40,7 @@ const full: Settings = {
     invalidCombinations: true,
     emptyVariants: false,
     defaultSlotContent: true,
+    composedDependencies: false,
     splitComponents: true,
     splitConcerns: true,
     useSubfolders: true,
@@ -76,7 +77,13 @@ const depth: 1 | 2 | 3 | 9999 = DEFAULT_SETTINGS.spec.variantDepth;
 // Consumer-supplied members stay optional after resolution
 const dir: string | undefined = DEFAULT_SETTINGS.spec.directory;
 
+// A defaulted member is required — and present — on the resolved type
+const composed: boolean = DEFAULT_SETTINGS.spec.composedDependencies;
+
+// @ts-expect-error — composedDependencies is a boolean, not a mode
+const badComposed: Settings = { spec: { composedDependencies: 'RETAIN' } };
+
 export {
   empty, full, source, keylessSource, color, badColor, badDepth, conventionInSettings,
-  defaults, format, depth, dir,
+  defaults, format, depth, dir, composed, badComposed,
 };
