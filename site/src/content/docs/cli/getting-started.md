@@ -148,7 +148,7 @@ Once generated, open the specs file to review the results!
 Alternatively, generate a spec for one component directly from fetched data — useful when setting up or iterating:
 
 ```bash
-specs generate data/library.file.json \
+specs generate data/library.file \
   -c "Button" \
   -o specs/button.yaml
 ```

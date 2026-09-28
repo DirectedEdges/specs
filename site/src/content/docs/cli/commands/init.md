@@ -144,7 +144,7 @@ specs init --config ./workspaces/prod --force
 
 # Use with --config flag on other commands
 specs fetch --config ./workspaces/dev/config
-specs generate data/library.file.json -c "Button" --config ./workspaces/prod/config
+specs generate data/library.file -c "Button" --config ./workspaces/prod/config
 ```
 
 ### Example 3: Force Overwrite

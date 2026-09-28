@@ -259,4 +259,37 @@ describe('Cache', () => {
       expect(problems.some(p => p.concern === 'components' && p.reason === 'missing')).toBe(true);
     });
   });
+
+  describe('unreadable payloads', () => {
+    it('reports a payload that cannot be parsed as a failure, never a silent skip', () => {
+      writeFileSync(join(dataDir, 'broken.file.json'), '{ this is not json');
+      const report = build(['library', 'broken']);
+
+      expect(report.rebuilt).toContain('broken');
+      expect(report.failures).toHaveLength(1);
+      expect(report.failures[0].alias).toBe('broken');
+      expect(report.failures[0].file).toBe('broken.file.json');
+      expect(report.failures[0].reason).toContain('broken.file.json');
+      expect(report.aliasCounts.broken).toEqual({ components: 0, styles: 0, variables: 0, icons: 0 });
+      // The healthy alias is unaffected — and its contribution is attributable.
+      expect(report.aliasCounts.library.components).toBe(3);
+      expect(report.counts.components).toBe(3);
+    });
+
+    it('reports an unreadable variables payload without losing the file payload entries', () => {
+      writeFileSync(join(dataDir, 'library.variables.json'), 'nope');
+      const report = build(['library']);
+
+      expect(report.failures).toHaveLength(1);
+      expect(report.failures[0].file).toBe('library.variables.json');
+      expect(report.aliasCounts.library.variables).toBe(0);
+      expect(report.aliasCounts.library.components).toBe(3);
+    });
+
+    it('records per-alias contributions when every payload is healthy', () => {
+      const report = build();
+      expect(report.failures).toEqual([]);
+      expect(report.aliasCounts.library).toEqual({ components: 3, styles: 3, variables: 2, icons: 1 });
+    });
+  });
 });

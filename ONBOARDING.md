@@ -424,7 +424,7 @@ Ask:
 Run `specs fetch`. Verify:
 
 1. Command exits 0.
-2. Files exist in `data.directory` (default `./data/`) matching `<source>.file.json`, `<source>.variables.json`, `<source>.styles.json` for each source (only the fetch kinds they configured).
+2. Artifacts exist in `data.directory` (default `./data/`) for each source (only the fetch kinds they configured): a `<source>.file/` directory (the file payload, split into `root.json` plus one JSON per Figma page) and `<source>.variables.json` / `<source>.styles.json` files.
 3. The files are non-empty.
 
 If `fetch` fails with an auth error, the token is wrong or missing scopes. Ask the user to regenerate it with all the scopes listed in 6a.
