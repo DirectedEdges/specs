@@ -37,31 +37,27 @@ interface ScanOptions {
 }
 
 /**
- * Default inclusion when no prior manifest exists (or --reset-checks).
+ * Default inclusion when no prior manifest exists (or --reset-checks), from
+ * `settings.curation.defaultSelection` (ADR-093).
  *
- * - If ANY component in the file has devStatus=READY_FOR_DEV, only those
- *   components are checked. Designers are signalling curation explicitly.
- * - Otherwise (no devStatus signal anywhere), fall back to the legacy
- *   heuristic: include all COMPONENT_SETs and standalone COMPONENTs.
+ * - `READY_FOR_DEV` checks the components the library marks ready. A library
+ *   that marks none is not curated down to nothing: every component is checked
+ *   instead, since a library not using the signal has said nothing by omitting it.
+ * - `ALL` checks every component regardless of marking.
  */
 export function deriveDefaultInclusion(
   components: ComponentInfo[],
-  includeAll: boolean
+  defaultSelection: 'READY_FOR_DEV' | 'ALL'
 ): Map<string, boolean> {
   const result = new Map<string, boolean>();
   const anyReady = components.some(c => c.devStatus === 'READY_FOR_DEV');
 
   for (const c of components) {
-    if (includeAll) {
+    if (defaultSelection === 'ALL' || !anyReady) {
       result.set(c.id, true);
       continue;
     }
-    if (anyReady) {
-      result.set(c.id, c.devStatus === 'READY_FOR_DEV');
-    } else {
-      // Legacy heuristic: COMPONENT_SET and standalone COMPONENT both included.
-      result.set(c.id, c.type === 'COMPONENT' || c.type === 'COMPONENT_SET');
-    }
+    result.set(c.id, c.devStatus === 'READY_FOR_DEV');
   }
   return result;
 }
@@ -79,41 +75,34 @@ export function subcomponentParentOf(
 ): string | null {
   const patterns = conventions.match ?? [];
   if (patterns.length === 0) return null;
-  const path = normalizePath(name);
 
   const matchesAnyWith = (list: string[], parent: string) =>
-    list.some(pattern => bindPattern(pattern, parent).test(path));
+    list.some(pattern => bindPattern(pattern, parent).test(name));
 
   for (const parent of listedNames) {
-    const parentPath = normalizePath(parent);
-    if (parentPath === path) continue;
-    if (!matchesAnyWith(patterns, parentPath)) continue;
-    if (matchesAnyWith(conventions.exclude ?? [], parentPath)) continue;
+    if (parent.toLowerCase() === name.toLowerCase()) continue;
+    if (!matchesAnyWith(patterns, parent)) continue;
+    if (matchesAnyWith(conventions.exclude ?? [], parent)) continue;
     return parent;
   }
   return null;
 }
 
-function normalizePath(name: string): string {
-  return name
-    .split('/')
-    .map(s => s.trim())
-    .filter(s => s.length > 0)
-    .join(' / ')
-    .replace(/\s+/g, ' ')
-    .toLowerCase();
-}
-
-function bindPattern(pattern: string, parentPath: string): RegExp {
-  const source = normalizePath(pattern)
-    .split(/(\{c\}|\{s\})/)
+/**
+ * `{C}` bound to a known parent is that parent's name exactly, slashes included
+ * (ADR-094 rule 3), `{S}` spans separators (rule 1), and every other character is
+ * literal (rule 4).
+ */
+function bindPattern(pattern: string, parentName: string): RegExp {
+  const source = pattern
+    .split(/(\{C\}|\{S\})/)
     .map(part => {
-      if (part === '{c}') return escapeRegExp(parentPath);
-      if (part === '{s}') return '.+';
+      if (part === '{C}') return escapeRegExp(parentName);
+      if (part === '{S}') return '.+';
       return escapeRegExp(part);
     })
     .join('');
-  return new RegExp(`^${source}$`);
+  return new RegExp(`^${source}$`, 'i');
 }
 
 /**
@@ -124,12 +113,14 @@ function bindPattern(pattern: string, parentPath: string): RegExp {
  * from it produces scaffolds importing output that was never generated.
  *
  * Every listed component a checked component composes, transitively, is
- * retained.
+ * retained — except one the caller protects, which is how a manifest that
+ * outranks the library keeps a deselection this pass would otherwise reverse.
  */
 export function retainComposedDependencies(
   rows: Array<{ id: string; name: string; included: boolean }>,
   composedOf: (checkedIds: string[]) => Set<string>,
-  conventions: { match?: string[]; exclude?: string[] } = {}
+  conventions: { match?: string[]; exclude?: string[] } = {},
+  protectedIds: ReadonlySet<string> = new Set()
 ): number {
   const checkedRows = rows.filter(r => r.included);
   if (checkedRows.length === 0) return 0;
@@ -138,6 +129,7 @@ export function retainComposedDependencies(
   let retained = 0;
   for (const row of rows) {
     if (row.included || !needed.has(row.id)) continue;
+    if (protectedIds.has(row.id)) continue;
     if (subcomponentParentOf(row.name, checkedNames, conventions)) continue;
     row.included = true;
     retained += 1;
@@ -151,31 +143,39 @@ export function retainComposedDependencies(
  * that carry the code-only-props surface. Generating them writes spec folders
  * for things nothing consumes.
  *
- * Hidden folders (`_`) are organisational, so they are dropped before matching
- * — otherwise "Slider / _ / Examples / Steps" slips past the declared
- * `{C} / Examples / {S}` exclusion that is meant to catch exactly it.
+ * Patterns match per ADR-094: `{S}` spans separators, `{C}` fills one segment when no
+ * parent is known, and every other character — spaces and slashes included — matches
+ * exactly. A library using two spellings of a separator declares a pattern for each.
  */
 export function isAuthoringAid(
   name: string,
   conventions: { exclude?: string[]; codeOnlyProps?: string } = {}
 ): boolean {
-  const segments = name.split('/').map(s => s.trim()).filter(s => s.length > 0 && s !== '_');
-  const path = segments.join(' / ');
-  const norm = (s: string) => s.replace(/\s+/g, ' ').toLowerCase();
-
-  if (conventions.codeOnlyProps && segments.length > 0) {
-    if (norm(segments[0]) === norm(conventions.codeOnlyProps)) return true;
+  const firstSegment = name.split('/')[0].trim();
+  if (conventions.codeOnlyProps && firstSegment) {
+    if (firstSegment.toLowerCase() === conventions.codeOnlyProps.trim().toLowerCase()) return true;
   }
 
-  // A pattern is a name shape, not a regex: {C} and {S} stand for any parent
-  // and any child, since a listing has no one parent in hand to bind them to.
-  return (conventions.exclude ?? []).some(pattern => {
-    const source = pattern
-      .split(/(\{C\}|\{S\})/)
-      .map(part => (part === '{C}' || part === '{S}' ? '.+' : escapeRegExp(norm(part))))
-      .join('');
-    return new RegExp(`^${source}$`).test(norm(path));
-  });
+  return (conventions.exclude ?? []).some(pattern =>
+    patternToRegExp(pattern).test(name)
+  );
+}
+
+/**
+ * A `{C}`/`{S}` pattern as a regular expression, for the case where no parent is known
+ * (ADR-094). `{C}` fills one segment, `{S}` spans them, and every other character is
+ * literal. Case is the one thing not significant.
+ */
+function patternToRegExp(pattern: string): RegExp {
+  const source = pattern
+    .split(/(\{C\}|\{S\})/)
+    .map(part => {
+      if (part === '{C}') return '[^/]+';
+      if (part === '{S}') return '.+';
+      return escapeRegExp(part);
+    })
+    .join('');
+  return new RegExp(`^${source}$`, 'i');
 }
 
 function escapeRegExp(s: string): string {
@@ -190,23 +190,23 @@ export interface MergeStats {
 }
 
 /**
- * Merge prior rows with current scan.
+ * Merge prior rows with current scan, per `settings.curation.preserveManualSelections`
+ * (ADR-093).
  *
- * Rules (default):
+ * Rules:
  * - New rows: use deriveDefaultInclusion.
- * - Existing rows where devStatus changed: Figma wins — use new devStatus's
- *   implied check state (READY_FOR_DEV → checked, NONE → unchecked).
- * - Existing rows where devStatus unchanged: preserve prior checkbox.
+ * - Existing rows where devStatus changed: the library wins by default — use the
+ *   new devStatus's implied check state (READY_FOR_DEV → checked, NONE →
+ *   unchecked). With `preserveManualSelections`, the recorded checkbox wins and
+ *   only the devStatus column updates.
+ * - Existing rows where devStatus unchanged: preserve prior checkbox either way.
  * - Removed rows: dropped.
- *
- * `--keep-checks`: prior checkbox always wins for existing rows; devStatus
- * column still updates. New rows still use deriveDefaultInclusion.
  */
 export function mergeRows(
   current: ComponentInfo[],
   prior: ManifestRowV2[],
   defaults: Map<string, boolean>,
-  keepChecks: boolean
+  preserveManualSelections: boolean
 ): { rows: ManifestRowV2[]; stats: MergeStats } {
   const priorById = new Map(prior.map(r => [r.id, r]));
   const stats: MergeStats = { added: 0, removed: 0, flippedByFigma: 0, preserved: 0 };
@@ -225,7 +225,7 @@ export function mergeRows(
     }
 
     let included: boolean;
-    if (keepChecks) {
+    if (preserveManualSelections) {
       included = prev.included;
       stats.preserved++;
     } else if (prev.devStatus !== c.devStatus) {
@@ -347,9 +347,9 @@ export const Scan = new Command('scan')
   .option('-o, --output <path>', 'Output manifest file path (default: {data.directory}/{alias}.manifest.md)')
   .option('--data-dir <dir>', 'Override data directory for default manifest output path')
   .option('--config <path>', 'Path to a config/ directory or legacy specs.config.yaml')
-  .option('--include-all', 'Include all components (overrides devStatus and heuristics)', false)
-  .option('--keep-checks', 'Preserve prior checkbox state for existing rows; ignore devStatus changes', false)
-  .option('--reset-checks', 'Ignore prior manifest and re-derive checks from devStatus / heuristics', false)
+  .option('--include-all', 'Select every component for this run — overrides settings.curation.defaultSelection', false)
+  .option('--keep-checks', 'Prior checkbox state wins over a changed devStatus for this run — overrides settings.curation.preserveManualSelections', false)
+  .option('--reset-checks', 'Ignore the prior manifest and re-derive every checkbox from settings.curation', false)
   .option('-v, --variables <path>', 'Variables file path (for reference in manifest)')
   .option('--verbose', 'Enable detailed logging', false)
   .action(async (fileArg: string | undefined, options: ScanOptions) => {
@@ -496,14 +496,28 @@ export const Scan = new Command('scan')
         console.error(`[CLI] Glyph pattern "${glyphPattern}" matched ${glyphList.length} components`);
       }
 
+      // Curation settings (ADR-093), each overridable for one run by its flag.
+      const curation = config.settings.curation;
+      const defaultSelection = options.includeAll ? 'ALL' : curation.defaultSelection;
+      const preserveManualSelections = options.keepChecks || curation.preserveManualSelections;
+      const includeDependencies = curation.includeDependencies;
+
+      if (options.verbose) {
+        console.error(
+          `[CLI] Curation: defaultSelection=${defaultSelection}, ` +
+          `preserveManualSelections=${preserveManualSelections}, ` +
+          `includeDependencies=${includeDependencies}`
+        );
+      }
+
       const outputPath = path.resolve(options.output!);
       const prior = options.resetChecks ? null : readPriorManifest(outputPath);
-      const defaults = deriveDefaultInclusion(componentList, options.includeAll);
+      const defaults = deriveDefaultInclusion(componentList, defaultSelection);
 
       let rows: ManifestRowV2[];
       let stats: MergeStats | null = null;
-      if (prior && !options.includeAll) {
-        const merged = mergeRows(componentList, prior, defaults, options.keepChecks);
+      if (prior && defaultSelection !== 'ALL') {
+        const merged = mergeRows(componentList, prior, defaults, preserveManualSelections);
         rows = merged.rows;
         stats = merged.stats;
       } else {
@@ -516,14 +530,22 @@ export const Scan = new Command('scan')
         }));
       }
 
-      if (!options.includeAll) {
+      // Retention must not undo a deselection the manifest is the authority for:
+      // it runs after the merge, so without this it re-checks exactly what a human
+      // unchecked. Rows the prior manifest recorded as unchecked are protected.
+      const protectedIds = preserveManualSelections && prior
+        ? new Set(prior.filter(r => !r.included).map(r => r.id))
+        : new Set<string>();
+
+      if (includeDependencies && defaultSelection !== 'ALL') {
         const retained = retainComposedDependencies(
           rows,
           ids => discovery.composedComponentIds(ids),
           {
             match: figmaConventions.subcomponents?.match,
             exclude: figmaConventions.subcomponents?.exclude,
-          }
+          },
+          protectedIds
         );
         if (retained > 0) {
           console.error(`Retained ${retained} component(s) composed by checked components`);
