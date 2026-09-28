@@ -335,6 +335,51 @@ specs generate --config workspaces/mobile/config -o specs/mobile.yaml
 ### `--verbose`
 Enable detailed logging — resolved config path, source and mode detection, foundations loaded, and per-component progress.
 
+## Output no longer generated
+
+A full manifest run removes spec folders it did not write. A component you deselect
+in the manifest, rename in Figma, or rename by changing a naming convention would
+otherwise leave its old folder behind, and nothing else deletes it — so it keeps
+appearing to every command and tool that reads the tree as a component that still
+exists.
+
+What is removed is reported on one line:
+
+```
+⚠ removed 2 spec folders no longer generated: table/oldPart, oldComponent
+```
+
+The rule is deliberately narrow, because this deletes from the tree you author
+against:
+
+- **Only a full run prunes.** A `-c, --component` run knows nothing about the
+  components it was not asked for, and every one of them would look orphaned.
+- **Only a run with no failures prunes.** A run that failed part way is not
+  authoritative about what should exist.
+- **Only folders holding an `api.<format>` file are removed** — proof the generator
+  wrote them. `_analysis/`, run metadata, and anything else you keep under the spec
+  directory are left alone.
+- **Subcomponent folders follow the same rule**, so reverting a subcomponent
+  convention removes the parts it had harvested.
+
+### Forcing a clean rebuild
+
+Pruning covers the spec tree. It does not reach files *inside* a surviving
+component's folder, or output written by other commands, so a convention change
+with wide effects is still cleanest to rebuild from empty:
+
+```bash
+rm -rf specs/ react/src webcomponents/src
+specs generate
+specs react
+specs webcomponents
+```
+
+If a Storybook is running against those trees, restart it afterwards. Its index
+holds the story ids it saw at startup, so components you removed keep appearing —
+and a snapshot run that walks the index will spend its time on stories that no
+longer exist.
+
 ---
 
 **See Also:**
