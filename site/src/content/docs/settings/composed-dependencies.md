@@ -3,11 +3,13 @@ title: "Composed Dependencies"
 description: "Select the components a selected component composes, so the generated set is closed under composition"
 ---
 
-A run choice in `config/settings.yaml`. When on, selecting a component also selects everything that component is built from.
+A run choice in `config/settings.yaml`. It decides whether generating a component also generates the components inside it.
 
-You normally choose what to generate by marking components Ready for dev in Figma. `specs scan` reads those marks and checks the matching rows in the manifest.
+You pick what to generate by marking components Ready for dev in Figma. `specs scan` checks those components in the manifest, and `specs generate` writes a spec for each checked row.
 
-Marks alone leave gaps. A slider marked ready is built from a handle that nobody marked — a piece has no status of its own, and a component the slider instances was marked on its own merits. Generate from the marks alone and the slider's spec points at a handle spec that was never written.
+Nested components break that. A slider marked Ready contains a handle that nobody marked, because a handle is a part, not a deliverable. Generate the marked list on its own and the slider's spec refers to a handle spec that was never written.
+
+Leaving this setting on generates the handle too.
 
 ## Configuration
 
