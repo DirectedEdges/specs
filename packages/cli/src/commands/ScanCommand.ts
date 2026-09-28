@@ -75,41 +75,34 @@ export function subcomponentParentOf(
 ): string | null {
   const patterns = conventions.match ?? [];
   if (patterns.length === 0) return null;
-  const path = normalizePath(name);
 
   const matchesAnyWith = (list: string[], parent: string) =>
-    list.some(pattern => bindPattern(pattern, parent).test(path));
+    list.some(pattern => bindPattern(pattern, parent).test(name));
 
   for (const parent of listedNames) {
-    const parentPath = normalizePath(parent);
-    if (parentPath === path) continue;
-    if (!matchesAnyWith(patterns, parentPath)) continue;
-    if (matchesAnyWith(conventions.exclude ?? [], parentPath)) continue;
+    if (parent.toLowerCase() === name.toLowerCase()) continue;
+    if (!matchesAnyWith(patterns, parent)) continue;
+    if (matchesAnyWith(conventions.exclude ?? [], parent)) continue;
     return parent;
   }
   return null;
 }
 
-function normalizePath(name: string): string {
-  return name
-    .split('/')
-    .map(s => s.trim())
-    .filter(s => s.length > 0)
-    .join(' / ')
-    .replace(/\s+/g, ' ')
-    .toLowerCase();
-}
-
-function bindPattern(pattern: string, parentPath: string): RegExp {
-  const source = normalizePath(pattern)
-    .split(/(\{c\}|\{s\})/)
+/**
+ * `{C}` bound to a known parent is that parent's name exactly, slashes included
+ * (ADR-094 rule 3), `{S}` spans separators (rule 1), and every other character is
+ * literal (rule 4).
+ */
+function bindPattern(pattern: string, parentName: string): RegExp {
+  const source = pattern
+    .split(/(\{C\}|\{S\})/)
     .map(part => {
-      if (part === '{c}') return escapeRegExp(parentPath);
-      if (part === '{s}') return '.+';
+      if (part === '{C}') return escapeRegExp(parentName);
+      if (part === '{S}') return '.+';
       return escapeRegExp(part);
     })
     .join('');
-  return new RegExp(`^${source}$`);
+  return new RegExp(`^${source}$`, 'i');
 }
 
 /**
@@ -150,31 +143,39 @@ export function retainComposedDependencies(
  * that carry the code-only-props surface. Generating them writes spec folders
  * for things nothing consumes.
  *
- * Hidden folders (`_`) are organisational, so they are dropped before matching
- * — otherwise "Slider / _ / Examples / Steps" slips past the declared
- * `{C} / Examples / {S}` exclusion that is meant to catch exactly it.
+ * Patterns match per ADR-094: `{S}` spans separators, `{C}` fills one segment when no
+ * parent is known, and every other character — spaces and slashes included — matches
+ * exactly. A library using two spellings of a separator declares a pattern for each.
  */
 export function isAuthoringAid(
   name: string,
   conventions: { exclude?: string[]; codeOnlyProps?: string } = {}
 ): boolean {
-  const segments = name.split('/').map(s => s.trim()).filter(s => s.length > 0 && s !== '_');
-  const path = segments.join(' / ');
-  const norm = (s: string) => s.replace(/\s+/g, ' ').toLowerCase();
-
-  if (conventions.codeOnlyProps && segments.length > 0) {
-    if (norm(segments[0]) === norm(conventions.codeOnlyProps)) return true;
+  const firstSegment = name.split('/')[0].trim();
+  if (conventions.codeOnlyProps && firstSegment) {
+    if (firstSegment.toLowerCase() === conventions.codeOnlyProps.trim().toLowerCase()) return true;
   }
 
-  // A pattern is a name shape, not a regex: {C} and {S} stand for any parent
-  // and any child, since a listing has no one parent in hand to bind them to.
-  return (conventions.exclude ?? []).some(pattern => {
-    const source = pattern
-      .split(/(\{C\}|\{S\})/)
-      .map(part => (part === '{C}' || part === '{S}' ? '.+' : escapeRegExp(norm(part))))
-      .join('');
-    return new RegExp(`^${source}$`).test(norm(path));
-  });
+  return (conventions.exclude ?? []).some(pattern =>
+    patternToRegExp(pattern).test(name)
+  );
+}
+
+/**
+ * A `{C}`/`{S}` pattern as a regular expression, for the case where no parent is known
+ * (ADR-094). `{C}` fills one segment, `{S}` spans them, and every other character is
+ * literal. Case is the one thing not significant.
+ */
+function patternToRegExp(pattern: string): RegExp {
+  const source = pattern
+    .split(/(\{C\}|\{S\})/)
+    .map(part => {
+      if (part === '{C}') return '[^/]+';
+      if (part === '{S}') return '.+';
+      return escapeRegExp(part);
+    })
+    .join('');
+  return new RegExp(`^${source}$`, 'i');
 }
 
 function escapeRegExp(s: string): string {

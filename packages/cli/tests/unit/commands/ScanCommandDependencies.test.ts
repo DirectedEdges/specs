@@ -1,12 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import {
+  isAuthoringAid,
   retainComposedDependencies,
   subcomponentParentOf,
 } from '../../../src/commands/ScanCommand.js';
 
+// Two spellings of the hidden-folder separator, because the fixtures use both and
+// ADR-094 rule 4 matches every character exactly.
 const CONVENTIONS = {
-  match: ['{C} / {S}', '{C} / _ / {S}'],
-  exclude: ['{C} / Examples / {S}'],
+  match: ['{C} / {S}', '{C} / _ / {S}', '{C} /_ / {S}'],
+  exclude: ['{C} / Examples / {S}', '{C} /_ / Examples / {S}'],
 };
 
 function row(id: string, name: string, included: boolean) {
@@ -112,5 +115,39 @@ describe('retainComposedDependencies', () => {
     expect(retained).toBe(1);
     expect(rows[1].included).toBe(false);
     expect(rows[2].included).toBe(true);
+  });
+});
+
+// ADR-094 — the five rules, each asserted on its own.
+describe('pattern matching rules (ADR-094)', () => {
+  it('rule 1: {S} spans separators', () => {
+    expect(subcomponentParentOf('Card / _ / Header', ['Card'], { match: ['{C} / {S}'] })).toBe('Card');
+  });
+
+  it('rule 2: {C} fills one segment when no parent is known', () => {
+    expect(isAuthoringAid('Slider /_ / Examples / Steps', { exclude: ['{C} / Examples / {S}'] })).toBe(false);
+    expect(isAuthoringAid('Slider / Examples / Steps', { exclude: ['{C} / Examples / {S}'] })).toBe(true);
+  });
+
+  it('rule 3: a known parent is matched exactly, slashes included', () => {
+    expect(
+      subcomponentParentOf('Asset / Mark / Flag / Icon', ['Asset / Mark / Flag'], { match: ['{C} / {S}'] })
+    ).toBe('Asset / Mark / Flag');
+  });
+
+  it('rule 4: spacing around a separator is significant', () => {
+    expect(isAuthoringAid('Card / _ / Header', { exclude: ['{C} / _ / {S}'] })).toBe(true);
+    expect(isAuthoringAid('Button /_ / End Visual', { exclude: ['{C} / _ / {S}'] })).toBe(false);
+    expect(isAuthoringAid('Button /_ / End Visual', { exclude: ['{C} /_ / {S}'] })).toBe(true);
+  });
+
+  it('rule 4: a library using both spellings declares a pattern for each', () => {
+    const conv = { exclude: ['{C} / _ / {S}', '{C} /_ / {S}'] };
+    expect(isAuthoringAid('Card / _ / Header', conv)).toBe(true);
+    expect(isAuthoringAid('Button /_ / End Visual', conv)).toBe(true);
+  });
+
+  it('matching is case-insensitive', () => {
+    expect(isAuthoringAid('card / examples / header', { exclude: ['{C} / Examples / {S}'] })).toBe(true);
   });
 });
