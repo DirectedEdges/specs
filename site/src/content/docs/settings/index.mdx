@@ -56,7 +56,6 @@ The **Elements** section controls which layers are detected as special-purpose c
 
 - [Glyphs](/settings/glyph-name-pattern/) — Matches names like `DS Icon Glyph / check`
 - [Subcomponents](/settings/subcomponents/) — Matches names like `Card / _ / Header` within `NESTED` or `PAGE`
-- [Composed Dependencies](/settings/composed-dependencies/) — Selects what a selected component composes, so nothing it references is missing
 - [Collapse Primitive Wrapper](/settings/collapse-primitive-wrapper/) — Collapses a wrapper around a lone `text` or `glyph` child
 - [Default Slot Content](/settings/default-slot-content/) — Emits authored defaults as `slotContentExamples`
 - [Instance Examples](/settings/instance-examples/) — Detects frames like `{C} Example` as `instanceExamples`
@@ -117,6 +116,11 @@ spec.
 
 ```yaml
 author: Your Name
+
+curation:
+  # Which components of the library get a spec at all
+  defaultSelection: READY_FOR_DEV
+  includeDependencies: true
 
 data:
   # Where `specs fetch` writes payloads, and where `generate` loads them from

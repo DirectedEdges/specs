@@ -31,14 +31,61 @@ export interface SourceEntry {
  *
  * Changing a setting produces **different** output, never incorrect output: a
  * different team reading the same library may set every one of these differently
- * and each result is correct. Members are grouped by concern — `data`, `spec`,
- * `assets` — and each concern carries its own `directory`.
+ * and each result is correct. Members are grouped by concern — `curation`, `data`,
+ * `spec`, `assets` — and each concern that owns a location carries its own
+ * `directory`.
  *
  * @since 0.31.0
  */
 export interface Settings {
   /** Author recorded in generated spec metadata. */
   author?: string;
+  /**
+   * Which components of a library a run produces specs for (ADR-093).
+   *
+   * A library holds more than a team consumes. Curation is the step that decides
+   * which of its components are worth a spec, recorded in a manifest a human can
+   * edit. These members state how that decision is derived, how it survives a later
+   * pass, and how far it reaches.
+   *
+   * @since 0.35.0
+   */
+  curation?: {
+    /**
+     * The signal a first pass derives selection from.
+     *
+     * `READY_FOR_DEV` selects the components the library marks ready, and selects
+     * every component set and standalone component when the library marks none —
+     * a library that does not use the signal is not curated down to nothing. `ALL`
+     * selects every component regardless of marking. Optional; defaults to
+     * `READY_FOR_DEV`.
+     */
+    defaultSelection?: 'READY_FOR_DEV' | 'ALL';
+    /**
+     * Whether a hand-edited selection outranks a later change to the library's signal.
+     *
+     * A selection is recorded so a human can correct it, and the library keeps moving
+     * underneath that record. When false, a component whose signal changed takes the
+     * new signal, overriding an edit. When true, the edit stands. A component whose
+     * signal did not change keeps its recorded selection either way. Optional;
+     * defaults to false.
+     */
+    preserveManualSelections?: boolean;
+    /**
+     * Whether the components a selected component is built from are selected too,
+     * transitively.
+     *
+     * Derived selection is incomplete on its own: a component marked ready is built
+     * from others that carry no marking, because a part is not separately consumed.
+     * Selecting only what is marked therefore omits what the selection needs, and
+     * produces specs referencing specs that were never written.
+     *
+     * What counts as being built from something is a convention, not a setting — a
+     * component specced inside its parent is unaffected either way. Optional;
+     * defaults to true.
+     */
+    includeDependencies?: boolean;
+  };
   /** Source acquisition: what to fetch, and where fetched artifacts, computed caches, and extracted assets are kept. */
   data?: {
     /** Directory holding fetched downloads, computed caches, extracted assets, and authored inputs. */
@@ -136,23 +183,6 @@ export interface Settings {
     emptyVariants?: boolean;
     /** Include slot content examples in output (ADR-050). Optional; defaults to false. @since 0.21.0 */
     defaultSlotContent?: boolean;
-    /**
-     * Select the components a selected component composes, transitively (ADR-093).
-     *
-     * Curation derived from a library's own signals is incomplete: a component marked
-     * ready composes others that carry no such marking of their own, so selecting only
-     * what is marked deselects what the selection needs. When true, the selected set is
-     * closed under composition.
-     *
-     * What counts as composition is a convention, not a setting — this governs only
-     * whether the closure is applied. When false, a spec may reference a component that
-     * has no spec of its own; consumers resolve such a reference by lookup and treat a
-     * miss as "not composable", so the element degrades to a plain container rather than
-     * failing. Optional; defaults to true.
-     *
-     * @since 0.35.0
-     */
-    composedDependencies?: boolean;
     /** Write one file per component rather than a single combined library file. Optional; defaults to true. */
     splitComponents?: boolean;
     /** Write one file per concern (api, styling, variants) rather than a single component file. Optional; defaults to true. */
@@ -181,6 +211,15 @@ export interface Settings {
 export interface ResolvedSettings {
   /** Author recorded in generated spec metadata. */
   author?: string;
+  /** Which components of a library a run produces specs for. */
+  curation: {
+    /** The signal a first pass derives selection from. */
+    defaultSelection: 'READY_FOR_DEV' | 'ALL';
+    /** A hand-edited selection outranks a later change to the library's signal. */
+    preserveManualSelections: boolean;
+    /** The components a selected component is built from are selected too, transitively. */
+    includeDependencies: boolean;
+  };
   /** Source acquisition settings. */
   data?: {
     directory?: string;
@@ -219,8 +258,6 @@ export interface ResolvedSettings {
     emptyVariants: boolean;
     /** Include slot content examples in output. */
     defaultSlotContent: boolean;
-    /** The components a selected component composes are themselves selected, transitively. */
-    composedDependencies: boolean;
     /** Write one file per component rather than a single combined library file. */
     splitComponents: boolean;
     /** Write one file per concern (api, styling, variants) rather than a single component file. */
@@ -253,13 +290,22 @@ export interface ResolvedSettings {
  * - spec.invalidCombinations: true helps designers identify property conflicts
  * - spec.emptyVariants: false reduces output size by excluding semantically empty layered variants
  * - spec.defaultSlotContent: false — opt-in (ADR-050); off by default so unannotated components are unchanged
- * - spec.composedDependencies: true — a selected set closed under composition is complete; the
- *   alternative admits specs referencing components that were never generated
+ * - curation.defaultSelection: READY_FOR_DEV — a library that marks readiness is stating what it
+ *   wants consumed; one that marks nothing falls back to every set and standalone component
+ * - curation.preserveManualSelections: false — the library is the moving record, so a signal that
+ *   changes is news, not noise
+ * - curation.includeDependencies: true — a selection that omits what it is built from produces
+ *   specs referencing specs that were never written
  *
  * Directories, sources, author, and the split flags carry no default here: the
  * consumer supplies them, and this package has no basis for choosing one.
  */
 export const DEFAULT_SETTINGS: ResolvedSettings = {
+  curation: {
+    defaultSelection: 'READY_FOR_DEV',
+    preserveManualSelections: false,
+    includeDependencies: true,
+  },
   spec: {
     format: 'JSON',
     keys: 'SAFE',
@@ -276,7 +322,6 @@ export const DEFAULT_SETTINGS: ResolvedSettings = {
     invalidCombinations: true,
     emptyVariants: false,
     defaultSlotContent: false,
-    composedDependencies: true,
     splitComponents: true,
     splitConcerns: true,
     useSubfolders: true,

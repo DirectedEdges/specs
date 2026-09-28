@@ -27,11 +27,37 @@
     },
     "Settings": {
       "type": "object",
-      "description": "Run settings, grouped by concern. Each concern carries its own directory.",
+      "description": "Run settings, grouped by concern. Each concern that owns a location carries its own directory.",
       "properties": {
         "author": {
           "type": "string",
           "description": "Author recorded in generated spec metadata."
+        },
+        "curation": {
+          "type": "object",
+          "description": "Which components of a library a run produces specs for. (ADR-093)",
+          "properties": {
+            "defaultSelection": {
+              "type": "string",
+              "enum": [
+                "READY_FOR_DEV",
+                "ALL"
+              ],
+              "default": "READY_FOR_DEV",
+              "description": "The signal a first pass derives selection from. READY_FOR_DEV selects the components the library marks ready, and selects every component set and standalone component when the library marks none. ALL selects every component regardless of marking."
+            },
+            "preserveManualSelections": {
+              "type": "boolean",
+              "default": false,
+              "description": "Whether a hand-edited selection outranks a later change to the library signal. When false, a component whose signal changed takes the new signal, overriding an edit. A component whose signal did not change keeps its recorded selection either way."
+            },
+            "includeDependencies": {
+              "type": "boolean",
+              "default": true,
+              "description": "Whether the components a selected component is built from are selected too, transitively. What counts as being built from something is a convention, not a setting."
+            }
+          },
+          "additionalProperties": false
         },
         "data": {
           "type": "object",
@@ -171,11 +197,6 @@
               "type": "boolean",
               "default": false,
               "description": "Include slot content examples in output (ADR-050)."
-            },
-            "composedDependencies": {
-              "type": "boolean",
-              "default": true,
-              "description": "Select the components a selected component composes, transitively, so the selected set is closed under composition. What counts as composition is a convention, not a setting. When false, a spec may reference a component that has no spec of its own. (ADR-093)"
             },
             "splitComponents": {
               "type": "boolean",
