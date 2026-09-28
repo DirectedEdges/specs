@@ -78,4 +78,39 @@ describe('retainComposedDependencies', () => {
     const rows = [row('1', 'List', false)];
     expect(retainComposedDependencies(rows, () => new Set(['1']), CONVENTIONS)).toBe(0);
   });
+
+  // ADR-093: retention runs after prior selections are merged forward, so without
+  // protection it re-checks exactly what a human unchecked — and a setting that
+  // says the manifest outranks the library would not actually outrank it.
+  it('leaves a protected row unchecked even when a checked component composes it', () => {
+    const rows = [
+      row('1', 'Card', true),
+      row('2', 'Mark / Brand / Member only deal', false),
+    ];
+    const retained = retainComposedDependencies(
+      rows,
+      () => new Set(['2']),
+      CONVENTIONS,
+      new Set(['2'])
+    );
+    expect(retained).toBe(0);
+    expect(rows[1].included).toBe(false);
+  });
+
+  it('protects only the named rows', () => {
+    const rows = [
+      row('1', 'Card', true),
+      row('2', 'Mark / Brand / Member only deal', false),
+      row('3', 'Brand Logo', false),
+    ];
+    const retained = retainComposedDependencies(
+      rows,
+      () => new Set(['2', '3']),
+      CONVENTIONS,
+      new Set(['2'])
+    );
+    expect(retained).toBe(1);
+    expect(rows[1].included).toBe(false);
+    expect(rows[2].included).toBe(true);
+  });
 });

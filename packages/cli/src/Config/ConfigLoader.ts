@@ -599,6 +599,9 @@ export class ConfigLoader {
     if (!corrected.spec || typeof corrected.spec !== 'object') {
       corrected.spec = JSON.parse(JSON.stringify(DEFAULT_SETTINGS.spec));
     }
+    if (!corrected.curation || typeof corrected.curation !== 'object') {
+      corrected.curation = JSON.parse(JSON.stringify(DEFAULT_SETTINGS.curation));
+    }
     if (corrected.data !== undefined && (corrected.data === null || typeof corrected.data !== 'object')) {
       delete corrected.data;
     }
@@ -683,6 +686,32 @@ export class ConfigLoader {
           );
         }
         spec[flag] = DEFAULT_SETTINGS.spec[flag];
+      }
+    }
+
+    // curation (ADR-093) — which components of a library a run specs.
+    const curation = corrected.curation;
+    const validSelections = ['READY_FOR_DEV', 'ALL'];
+    curation.defaultSelection = (
+      typeof curation.defaultSelection === 'string' ? curation.defaultSelection.toUpperCase() : ''
+    ) as typeof curation.defaultSelection;
+    if (!validSelections.includes(curation.defaultSelection)) {
+      if ((curation as Record<string, unknown>).defaultSelection) {
+        console.warn(
+          `Invalid settings.curation.defaultSelection: expected 'READY_FOR_DEV' or 'ALL'. Using default: ${DEFAULT_SETTINGS.curation.defaultSelection}`
+        );
+      }
+      curation.defaultSelection = DEFAULT_SETTINGS.curation.defaultSelection;
+    }
+    for (const flag of ['preserveManualSelections', 'includeDependencies'] as const) {
+      const value = (curation as Record<string, unknown>)[flag];
+      if (typeof value !== 'boolean') {
+        if (value !== undefined) {
+          console.warn(
+            `Invalid settings.curation.${flag}: expected boolean, got ${typeof value}. Using default: ${DEFAULT_SETTINGS.curation[flag]}`
+          );
+        }
+        curation[flag] = DEFAULT_SETTINGS.curation[flag];
       }
     }
 
