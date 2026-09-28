@@ -1,6 +1,6 @@
 # ADR: Curation is a settings concern
 
-**Branch**: `093-retain-composed-dependencies`
+**Branch**: `093-curation-settings`
 **Created**: 2026-09-28
 **Status**: DRAFT
 **Summary**: A `curation` concern with `defaultSelection`, `preserveManualSelections` and `includeDependencies` states which components a run specs.
