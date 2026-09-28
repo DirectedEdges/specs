@@ -86,6 +86,30 @@ resolves through workspace/sibling symlinks; the `set-references-*` skills
 swap `file:` ↔ versioned refs around releases, so mixed reference styles in
 package.json files usually mean mid-release-cycle, not breakage.
 
+## What the tooling may delete
+
+The spec tree and the platform trees are not alike, and commands treat them
+differently on purpose.
+
+`specs/` is the **authored hub**. No command removes anything from it. A folder
+can be absent from a run for reasons the run cannot distinguish — a component
+deselected in the manifest on purpose, or specs generated into the directory from
+another source — so `generate` overwrites what it produces, reports folders it
+found but did not write, and stops there (specs#595).
+
+`react/src`, `webcomponents/src` and the other platform trees are **derived**.
+Their files carry "Generated. Do not edit" headers, and a full emit removes
+emitted component directories that have no corresponding spec folder. Keyed on
+the spec tree rather than on the manifest, which is what makes it safe: a
+deselected component keeps its spec folder and therefore its emitted output, and
+a tree holding components from several sources orphans none of them, because emit
+reads the whole spec tree. Directories only disappear when their spec genuinely
+no longer exists — a rename or a removal — which is what keeps Storybook from
+carrying components whose imports no longer resolve (specs#614).
+
+The rule, if the two ever seem to disagree: derived output tracks the hub; the hub
+tracks nothing and is never deleted from.
+
 ## Verification
 
 - `npm test` from repo root (root `vitest.config.ts` — package-local runs
