@@ -2,6 +2,8 @@ import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
 import type { Transformer, TransformerContext } from '../Types/Transformer.js';
+import { RunMetadataReader } from '../Writers/RunMetadataFile.js';
+import { FIGMA_PLATFORM, platformOf } from '../Config/PlatformConventions.js';
 
 /**
  * Reports Figma layer and property names that a formatted key cannot reconstruct
@@ -92,19 +94,21 @@ interface Collected extends NameEntry {
 
 export class KeysAnalyzer implements Transformer {
   readonly name = 'keys';
+  /** The report measures Figma names against the Figma naming convention (ADR-073). */
+  readonly platformId = FIGMA_PLATFORM;
 
   private readonly _divergent: Collected[] = [];
   private readonly _components = new Set<string>();
   private _totalNames = 0;
   private _outputFormat: 'JSON' | 'YAML' = 'JSON';
-  /** Read from each spec's own metadata; undefined means no convention declared. */
+  /** Resolved from the spec, its run document, or the workspace; undefined means none declared. */
   private _convention: DeclaredConvention | undefined;
 
   async run(apiYaml: Record<string, unknown>, context: TransformerContext): Promise<void> {
     const { componentKey, outputFormat } = context;
     this._outputFormat = outputFormat;
     this._components.add(componentKey);
-    this._convention = declaredConvention(apiYaml) ?? this._convention;
+    this._convention = resolveConvention(apiYaml, context) ?? this._convention;
 
     this.collect(componentKey, apiYaml);
 
@@ -160,6 +164,12 @@ export class KeysAnalyzer implements Transformer {
 
   async finalize(outputDir: string, analysisDir?: string): Promise<void> {
     if (this._totalNames === 0) return;
+
+    // Without a convention every name passes vacuously, and a zero report reads as a
+    // clean catalogue rather than as one that was never measured. Say which it is.
+    if (!this._convention) {
+      console.warn('Warning: no Figma naming convention declared — `analyze keys` has nothing to measure names against, so it reports zero divergence. Set `naming` in config/conventions/figma.yaml.');
+    }
 
     const outDir = analysisDir ?? path.join(outputDir, '_analysis');
     await fs.ensureDir(outDir);
@@ -261,6 +271,36 @@ function causeOf(name: string): Cause {
   return 'casing';
 }
 
+/**
+ * The convention to measure names against, most specific statement first.
+ *
+ * A spec's own metadata is the most specific record, but since ADR-089 a generated
+ * spec keeps only `metadata.source` and the run's facts live in `latest.metadata.yaml`
+ * beside it — so the run document is read next, and the workspace's own
+ * `config/conventions/figma.yaml` (arriving as `context.platform`) last. Reading only
+ * the per-spec block, as this did, found nothing on any current output and reported
+ * zero divergence for every catalogue.
+ */
+function resolveConvention(
+  apiYaml: Record<string, unknown>,
+  context: TransformerContext,
+): DeclaredConvention | undefined {
+  return declaredConvention(apiYaml)
+    ?? runConvention(context.specDir)
+    ?? asConvention(context.platform?.naming);
+}
+
+/** The convention recorded by the run that produced this spec (ADR-089). */
+function runConvention(specDir: string): DeclaredConvention | undefined {
+  const run = RunMetadataReader.find(specDir);
+  return asConvention(platformOf(run?.conventions, FIGMA_PLATFORM).naming);
+}
+
+/** Only SENTENCE and TITLE have a safe key grammar to test against. */
+function asConvention(value: unknown): DeclaredConvention | undefined {
+  return value === 'SENTENCE' || value === 'TITLE' ? value : undefined;
+}
+
 /** The convention the spec was generated under, from its own metadata. */
 function declaredConvention(apiYaml: Record<string, unknown>): DeclaredConvention | undefined {
   const metadata = apiYaml.metadata as Record<string, unknown> | undefined;
@@ -272,6 +312,5 @@ function declaredConvention(apiYaml: Record<string, unknown>): DeclaredConventio
   const figma = conventions?.figma as Record<string, unknown> | undefined;
   const legacyConfig = metadata?.config as Record<string, unknown> | undefined;
   const legacyFormat = legacyConfig?.format as Record<string, unknown> | undefined;
-  const value = figma?.naming ?? legacyFormat?.figmaKeys;
-  return value === 'SENTENCE' || value === 'TITLE' ? value : undefined;
+  return asConvention(figma?.naming ?? legacyFormat?.figmaKeys);
 }
