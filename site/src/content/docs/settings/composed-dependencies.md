@@ -3,9 +3,11 @@ title: "Composed Dependencies"
 description: "Select the components a selected component composes, so the generated set is closed under composition"
 ---
 
-A run choice in `config/settings.yaml`. When enabled, curating a component also curates everything it composes, transitively.
+A run choice in `config/settings.yaml`. When on, selecting a component also selects everything that component is built from.
 
-Curation usually starts from the library's own signal — most commonly a component's Figma dev status. That signal is incomplete by nature. A component marked ready composes others that carry no marking of their own: a subcomponent has no status to read, and a sibling it instances was curated on its own merits. Selecting only what is marked therefore deselects the very pieces the selection needs.
+You normally choose what to generate by marking components Ready for dev in Figma. `specs scan` reads those marks and checks the matching rows in the manifest.
+
+Marks alone leave gaps. A slider marked ready is built from a handle that nobody marked — a piece has no status of its own, and a component the slider instances was marked on its own merits. Generate from the marks alone and the slider's spec points at a handle spec that was never written.
 
 ## Configuration
 
