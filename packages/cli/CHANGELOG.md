@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A style referencing a variable your fetch did not reach falls back to the value Figma last read for it**, instead of rendering as though the property were never declared. Requires the `TOKEN_FIGMA_EXTENSIONS` or `CUSTOM` tokens format, which is what carries that value.
+
 - **A component you unchecked stays unchecked** when `curation.preserveManualSelections` is on. Dependency selection ran after prior manifest edits were merged forward and re-selected what a human had deselected, so no option preserved the edit (ADR-093).
 
 - **`specs analyze keys` finds divergent names again** — it looks for the declared Figma naming convention where a run now records it (the run document beside the specs) and in the workspace config, not only in the per-spec metadata that specs stopped carrying.
