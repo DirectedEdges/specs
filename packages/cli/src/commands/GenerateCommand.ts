@@ -336,25 +336,6 @@ async function writeGeneratedOutput(
     process.exit(ERROR_CODES.FILE_ERROR);
   }
 
-  // A component deselected in the manifest, renamed in Figma, or renamed by a
-  // convention change generates under a new folder and leaves the old one behind.
-  // Nothing else removes it, so it stays in the spec tree — and in everything
-  // downstream that reads the tree — as a component that no longer exists
-  // (specs#595).
-  //
-  // Authority is the constraint. A `--component` run knows nothing about the
-  // components it was not asked for, and a run with failures is not authoritative
-  // over what should exist; either would prune what it simply did not generate.
-  if (
-    isManifest &&
-    !options.component &&
-    errors.length === 0 &&
-    outputConfig.useSubfolders &&
-    !isSingleFileMode
-  ) {
-    await pruneOrphanSpecs(baseDir, writeResult.filesWritten, resolvedFormat);
-  }
-
   process.exit(errors.length > 0 ? ERROR_CODES.GENERAL_ERROR : ERROR_CODES.SUCCESS);
 }
 
@@ -877,73 +858,3 @@ export const Generate = new Command('generate')
       process.exit(ERROR_CODES.GENERAL_ERROR);
     }
   });
-
-/**
- * Remove spec folders that this run did not produce.
- *
- * The set of folders to keep comes from what the writer reports it wrote, not from
- * re-deriving folder names from component names — the writer already made that
- * decision, and a second implementation of it would be a second chance to disagree.
- * Because those paths carry their nesting, a subcomponent folder is covered by the
- * same rule as a top-level one; a reverted subcomponent convention is exactly the
- * case that leaves output behind.
- *
- * Conservative by construction, because this deletes from the tree the customer
- * reads: a folder is only removed when it holds an `api.<format>` file, which is
- * the proof that the generator wrote it rather than the customer. Anything else
- * under the spec directory — `_analysis/`, run metadata, notes someone keeps
- * there — is left alone.
- */
-async function pruneOrphanSpecs(
-  specsDir: string,
-  filesWritten: string[],
-  format: string,
-): Promise<void> {
-  if (!(await fs.pathExists(specsDir))) return;
-
-  // Every directory this run wrote into, relative to the spec root, plus each of
-  // their ancestors — a parent holding only subcomponent folders still has to
-  // survive.
-  //
-  // The writers report absolute paths despite what the WriteResult type says, so
-  // they are re-based here rather than trusted as relative. Getting this wrong is
-  // not a near miss: an empty expected-set makes every folder on disk an orphan.
-  const written = new Set<string>();
-  for (const file of filesWritten) {
-    const relative = path.relative(specsDir, path.resolve(file));
-    if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) continue;
-    const segments = relative.split(path.sep).slice(0, -1).filter(s => s && s !== '.');
-    for (let i = 1; i <= segments.length; i++) written.add(segments.slice(0, i).join('/'));
-  }
-  // No recognised output means no authority to delete anything.
-  if (written.size === 0) return;
-
-  const orphans: string[] = [];
-
-  const walk = async (relative: string): Promise<void> => {
-    const absolute = relative ? path.join(specsDir, relative) : specsDir;
-    for (const entry of await fs.readdir(absolute, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue;
-      const childRelative = relative ? `${relative}/${entry.name}` : entry.name;
-      if (written.has(childRelative)) {
-        // Kept, but a subcomponent inside it may not be.
-        await walk(childRelative);
-        continue;
-      }
-      if (await fs.pathExists(path.join(specsDir, childRelative, `api.${format}`))) {
-        orphans.push(childRelative);
-      }
-    }
-  };
-  await walk('');
-
-  if (orphans.length === 0) return;
-
-  // One line, not one per folder: the list is the finding, and a convention change
-  // can orphan the whole catalogue at once.
-  console.warn(
-    `\u26a0 removed ${orphans.length} spec ${orphans.length === 1 ? 'folder' : 'folders'} ` +
-      `no longer generated: ${orphans.join(', ')}`,
-  );
-  for (const orphan of orphans) await fs.remove(path.join(specsDir, orphan));
-}

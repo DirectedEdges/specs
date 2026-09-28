@@ -335,38 +335,16 @@ specs generate --config workspaces/mobile/config -o specs/mobile.yaml
 ### `--verbose`
 Enable detailed logging — resolved config path, source and mode detection, foundations loaded, and per-component progress.
 
-## Output no longer generated
+## Rebuilding the spec tree
 
-A full manifest run removes spec folders it did not write. A component you deselect
-in the manifest, rename in Figma, or rename by changing a naming convention would
-otherwise leave its old folder behind, and nothing else deletes it — so it keeps
-appearing to every command and tool that reads the tree as a component that still
-exists.
+`generate` overwrites the files it produces and removes nothing else. A component
+you deselect in the manifest, rename in Figma, or rename by changing a naming
+convention keeps its old folder — the run has no way to tell a deliberately
+deselected component from a stale one, and the same spec directory may hold
+components generated from more than one source.
 
-What is removed is reported on one line:
-
-```
-⚠ removed 2 spec folders no longer generated: table/oldPart, oldComponent
-```
-
-The rule is deliberately narrow, because this deletes from the tree you author
-against:
-
-- **Only a full run prunes.** A `-c, --component` run knows nothing about the
-  components it was not asked for, and every one of them would look orphaned.
-- **Only a run with no failures prunes.** A run that failed part way is not
-  authoritative about what should exist.
-- **Only folders holding an `api.<format>` file are removed** — proof the generator
-  wrote them. `_analysis/`, run metadata, and anything else you keep under the spec
-  directory are left alone.
-- **Subcomponent folders follow the same rule**, so reverting a subcomponent
-  convention removes the parts it had harvested.
-
-### Forcing a clean rebuild
-
-Pruning covers the spec tree. It does not reach files *inside* a surviving
-component's folder, or output written by other commands, so a convention change
-with wide effects is still cleanest to rebuild from empty:
+That means a convention change with wide effects leaves output behind. When you
+want the tree to reflect only what is generated now, rebuild it from empty:
 
 ```bash
 rm -rf specs/ react/src webcomponents/src
@@ -374,6 +352,10 @@ specs generate
 specs react
 specs webcomponents
 ```
+
+Delete only directories you generate into. Anything you author or keep alongside
+them — analysis reports, notes, hand-written files — is yours, and no command
+removes it.
 
 If a Storybook is running against those trees, restart it afterwards. Its index
 holds the story ids it saw at startup, so components you removed keep appearing —
