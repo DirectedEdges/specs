@@ -30,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **A component you unchecked stays unchecked** when `curation.preserveManualSelections` is on. Dependency selection ran after prior manifest edits were merged forward and re-selected what a human had deselected, so no option preserved the edit (ADR-093).
 
+- **`specs analyze keys` finds divergent names again** — it looks for the declared Figma naming convention where a run now records it (the run document beside the specs) and in the workspace config, not only in the per-spec metadata that specs stopped carrying.
+- **A zero-divergence keys report says when nothing was measured** — a run that finds no declared naming convention warns, instead of reporting a clean result.
 - **A run whose license key cannot be checked stops at the first component** instead of failing every one into the same rate limit, and a rate-limited check now says to wait it out rather than to check your network.
 
 ### Removed
