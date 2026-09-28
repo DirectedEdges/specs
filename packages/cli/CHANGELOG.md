@@ -19,11 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **No ingest failure is silent.** The cache reports what every source contributed and fails loudly when a payload cannot be read (previously a zero-entry source still reported success); payload-size failures name the file, the ~512MB single-string limit, and remedies; fetch warns at download time when a kept payload exceeds that limit.
 - **Fetch validates config before downloading** (icons ↔ `glyphs.match`, `spec.directory`), and one source's failure no longer aborts the remaining sources — the run reports per-source results and exits non-zero on partial failure.
 - `specs scan` and `specs generate` accept a `<alias>.file` directory anywhere a payload path is accepted.
+- **`specs analyze` runs every analyzer when you name none**, and names the per-component `styling.yaml` it writes into each component folder alongside the aggregate reports.
+- **A full `specs generate` run names spec folders it found but did not write**, so a deselected component or a reverted convention leaves nothing for you to discover later. Nothing is deleted — the note says so.
 
 ### Changed
 
+- **`specs fetch` says "glyphs" wherever it used to say "icons"**, matching `scan` and the `glyphs.match` convention. The `icons` fetch kind and the `assets/icons/` directory are unchanged.
+
 ### Fixed
 
+- **A failed source's retry hint names every kind still missing**, not only the one that failed, so following it recovers the whole source in one run.
+- **`specs fetch` no longer reports success while a configured data kind is absent from disk**: a requested kind that did not land fails the run, and a kind excluded by `--only` is called out. Cache counts are labelled as cache contents, so they cannot read as this run's downloads.
 - **A run whose license key cannot be checked stops at the first component** instead of failing every one into the same rate limit, and a rate-limited check now says to wait it out rather than to check your network.
 
 ### Removed
