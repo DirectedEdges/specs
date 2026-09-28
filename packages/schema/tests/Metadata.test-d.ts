@@ -18,6 +18,11 @@ const baseConventions: RunMetadata['conventions'] = {
 };
 
 const baseSettings: RunMetadata['settings'] = {
+  curation: {
+    defaultSelection: 'READY_FOR_DEV',
+    preserveManualSelections: false,
+    includeDependencies: true,
+  },
   spec: {
     format: 'JSON',
     keys: 'SAFE',

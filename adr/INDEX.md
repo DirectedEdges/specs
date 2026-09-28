@@ -4,7 +4,6 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 093 | Curation Is a Settings Concern | |
 | 092 | `invalidPropCombinations` — Renamed and Relocated to the Api Concern | |
 | 082 | `Component.description` — The Authored Figma Description, Plain Text and Opt-In | (reserved, draft in PR #375) |
 | 045 | Processing Provenance Signals | (reserved, draft in PR #60) |
@@ -17,6 +16,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 093 | Curation Is a Settings Concern | `curation.defaultSelection`, `preserveManualSelections` and `includeDependencies` state which components a run specs |
 | 092 | `invalidPropCombinations` — Renamed and Relocated to the Api Concern | Renames `invalidVariantCombinations` and moves it to the api concern — legality of prop combinations is contract, not manifestation |
 | 091 | Each Concern Document Is Its Own Type | Adds `SpecApiDocument`, `SpecVariantsDocument`, `SpecExamplesDocument` and `Metadata.concern`; a key in the wrong file is an error |
 | 090 | Container Promotion Sources Opened to Closed-Value Layout Properties | Adds `FigmaElementExtension.children` (`SlotContentRef`) and widens container sources to all closed-value layout members |
