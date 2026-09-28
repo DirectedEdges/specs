@@ -343,8 +343,20 @@ convention keeps its old folder — the run has no way to tell a deliberately
 deselected component from a stale one, and the same spec directory may hold
 components generated from more than one source.
 
-That means a convention change with wide effects leaves output behind. When you
-want the tree to reflect only what is generated now, rebuild it from empty:
+A full run says which folders it found but did not write, so nothing is left for
+you to discover later:
+
+```
+Note: 2 spec folders are present but were not generated this run: table/oldPart, oldComponent
+  Expected if you deselected them or generate from more than one source. Otherwise they are stale — remove them yourself.
+```
+
+The note is a statement, not a warning: being present without being generated is
+normal in several workflows. Only a full run with no failures reports it — a
+`-c, --component` run knows nothing about the components it was not asked for.
+
+When you want the tree to reflect only what is generated now, rebuild it from
+empty:
 
 ```bash
 rm -rf specs/ react/src webcomponents/src
