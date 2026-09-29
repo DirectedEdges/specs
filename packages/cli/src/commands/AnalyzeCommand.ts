@@ -8,6 +8,7 @@ import { platformOf } from '../Config/PlatformConventions.js';
 import { loadFoundations } from '../utilities/loadFoundations.js';
 import type { TransformerContext } from '../Types/Transformer.js';
 import type { ProcessingStates } from '../transforms/states.js';
+import { resolveSpecsLayout, legacyLayoutNotice, specFolderNames } from '../utilities/specsLayout.js';
 
 const ERROR_CODES = { SUCCESS: 0, INVALID_ARGS: 2, FILE_ERROR: 3, GENERAL_ERROR: 1 };
 
@@ -41,9 +42,16 @@ export const Analyze = new Command('analyze')
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
 
+      // The layout (ADR-096) decides where specs are read from and where analysis
+      // is written — including for a pre-`components/` directory, which keeps its
+      // `_analysis/` so a re-analysis does not scatter reports across two folders.
+      const layout = resolveSpecsLayout(outputPath);
+      const notice = legacyLayoutNotice(layout);
+      if (notice) console.log(notice);
+
       const analysisDir = options.analysis
         ? path.resolve(options.analysis)
-        : path.join(outputPath, '_analysis');
+        : layout.analysisDir();
 
       // No names given runs every analyzer: the whole report set is the useful
       // default, and refusing to act was only ever a way of asking again.
@@ -62,14 +70,14 @@ export const Analyze = new Command('analyze')
         console.log(`[analyze] analyzers: ${analyzers.map(a => a.name).join(', ')}`);
       }
 
-      const entries = await fs.readdir(outputPath, { withFileTypes: true });
-      const componentDirs = entries
-        .filter(e => e.isDirectory())
-        .map(e => e.name)
-        .filter(name => fs.existsSync(path.join(outputPath, name, 'api.yaml')));
+      // Analyzers report on the component contract, so compositions are out of
+      // scope: a composition declares no props, no variants and no styling of its
+      // own to analyse, and counting it would dilute every per-component figure.
+      const componentsDir = layout.dirFor('component');
+      const componentDirs = specFolderNames(componentsDir, 'yaml');
 
       if (componentDirs.length === 0) {
-        console.error(`Error: no component directories with api.yaml found in ${outputPath}`);
+        console.error(`Error: no component directories with api.yaml found in ${componentsDir}`);
         process.exit(ERROR_CODES.FILE_ERROR);
       }
 
@@ -80,7 +88,7 @@ export const Analyze = new Command('analyze')
       let failed = 0;
 
       for (const componentKey of componentDirs) {
-        const componentDir = path.join(outputPath, componentKey);
+        const componentDir = path.join(componentsDir, componentKey);
         const apiPath = path.join(componentDir, 'api.yaml');
 
         try {
@@ -93,6 +101,9 @@ export const Analyze = new Command('analyze')
               outputDir: componentDir,
               // The workspace root is the parent of the specs directory.
               workspaceDir: path.dirname(outputPath),
+              specsRoot: layout.root,
+              // Analysis is component-only — a composition declares nothing to analyse.
+              kind: 'component',
               componentKey,
               tokensFormat: config.settings.spec.tokens,
               outputFormat: config.settings.spec.format,

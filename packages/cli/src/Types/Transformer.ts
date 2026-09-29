@@ -1,5 +1,6 @@
 import type { ResolvedPlatformConventions, SpecsConventions } from '@directededges/specs-schema';
 import type { ProcessingStates } from '../transforms/states.js';
+import type { SpecKind } from '../utilities/specsLayout.js';
 
 export interface TransformerContext {
   /**
@@ -19,6 +20,20 @@ export interface TransformerContext {
   outputDir: string;
   /** Absolute path to the workspace root — the parent of `specs/`. */
   workspaceDir: string;
+  /**
+   * Absolute path to the `specs/` directory this run read from (ADR-096).
+   *
+   * Handed over rather than climbed to. An emitter used to find it by walking up a
+   * fixed number of levels from its own output directory, which is correct for
+   * exactly one output depth — and compositions emit at a second.
+   */
+  specsRoot: string;
+  /**
+   * What the spec being emitted describes (ADR-096): a reusable `component`, or a
+   * `composition` that arranges components. Decides the emitted directory, the
+   * Storybook nav group, and whether a sticker sheet is emitted at all.
+   */
+  kind: SpecKind;
   /** camelCase component folder name (e.g. `dsButton`). */
   componentKey: string;
   /** Token format from config.format.tokens. Drives CSS variable resolution. */

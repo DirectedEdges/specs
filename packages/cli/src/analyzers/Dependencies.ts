@@ -2,6 +2,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
 import type { Transformer, TransformerContext } from '../Types/Transformer.js';
+import { ANALYSIS_DIR } from '../utilities/specsLayout.js';
 
 type EdgeKind = 'instance' | 'slot' | 'example';
 
@@ -172,7 +173,7 @@ export class DependenciesAnalyzer implements Transformer {
   async finalize(outputDir: string, analysisDir?: string): Promise<void> {
     if (this._records.size === 0) return;
 
-    const outDir = analysisDir ?? path.join(outputDir, '_analysis');
+    const outDir = analysisDir ?? path.join(outputDir, ANALYSIS_DIR);
     await fs.ensureDir(outDir);
 
     const known = new Set(this._records.keys());

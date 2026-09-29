@@ -9,10 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`specs generate` produces composition specs.** Every row of the manifest's Compositions section is specced and written to `specs/compositions/<key>/`, with `metadata.source.nodeType: FRAME` as the in-spec marker — the contract for what the spec describes, independent of where it sits. `--component` narrows to a composition by name, id or key, the same as for a component. In the collapsing layouts (`--combine-as-library`, `--combine-concerns`) both kinds share one namespace, as everything already does there, and a key claimed by both is reported rather than silently resolved by whichever was written second.
 - **`specs scan` lists compositions — the frames a library marks ready for dev — in a third manifest section.** The `## Compositions` section carries no checkbox: the Figma marking is the decision, every row is specced, and the section is re-derived on every scan rather than merged with the prior manifest. A marked frame qualifies wherever it sits — on a page, in a section, inside any container — except inside another marked frame, where the outermost marking wins so one arrangement is never specced twice (ADR-095).
 - **A frame that cannot be named is reported rather than silently dropped.** A frame whose Figma name yields no spec key — one named with whitespace alone — would claim the compositions directory itself as its spec folder, so it is skipped with its node id and the two ways to resolve it.
 
 ### Breaking
+
+- **`specs/` now names what each folder holds: `components/`, `compositions/` and `analysis/`.** A spec run writes `specs/components/<key>/` and `specs/compositions/<key>/`, and the analysis reports lose the underscore that used to keep them from being read as a component. A component and a composition may now share a name with no consequence. One resolver owns the layout, replacing two divergent filters that answered the same question differently. The emitted trees mirror it: `<tree>/src/compositions/<Name>/` beside the existing components directory (ADR-096).
+
+- **A specs directory written before this release is read as legacy, and says so once per run.** Spec folders at its root are read as components, `_analysis/` is honoured, and nothing writes that shape again. Re-run `specs generate` to write the current layout — after which the root folders are leftovers the run names rather than deletes, since they are spec files it did not write. A directory holding both is not merged: `components/` wins outright, so a stale root folder cannot resurrect a component a rename retired.
 
 - **`specs scan` matches subcomponent patterns exactly**, every character outside `{C}` and `{S}` included — spaces and slashes among them. A library spelling the hidden-folder separator two ways (`/ _ /` and `/_ /`) now declares a pattern for each; scan previously dropped `_` segments before matching, so one pattern silently covered both spellings and a pattern containing `_` could never match. Patterns now mean the same thing here as they do when specs are generated (ADR-094).
 

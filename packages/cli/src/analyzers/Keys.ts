@@ -4,6 +4,7 @@ import yaml from 'yaml';
 import type { Transformer, TransformerContext } from '../Types/Transformer.js';
 import { RunMetadataReader } from '../Writers/RunMetadataFile.js';
 import { FIGMA_PLATFORM, platformOf } from '../Config/PlatformConventions.js';
+import { ANALYSIS_DIR } from '../utilities/specsLayout.js';
 
 /**
  * Reports Figma layer and property names that a formatted key cannot reconstruct
@@ -171,7 +172,7 @@ export class KeysAnalyzer implements Transformer {
       console.warn('Warning: no Figma naming convention declared — `analyze keys` has nothing to measure names against, so it reports zero divergence. Set `naming` in config/conventions/figma.yaml.');
     }
 
-    const outDir = analysisDir ?? path.join(outputDir, '_analysis');
+    const outDir = analysisDir ?? path.join(outputDir, ANALYSIS_DIR);
     await fs.ensureDir(outDir);
 
     const aggregate = this.buildAggregate();

@@ -7,20 +7,35 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'yaml';
 import type { AssembledComponent, ConcernDoc, LedgerRun } from './types.js';
+import { resolveSpecsLayout } from '../utilities/specsLayout.js';
 
-/** Spec folder names inside a specs/ directory (skips `_analysis` and dotfiles). */
+/**
+ * The directory a specs root keeps its component spec folders in (ADR-096) —
+ * `components/`, or the root itself for a directory that predates it, which is how
+ * a versioned snapshot cut before the layout change still reads.
+ *
+ * Versioning covers components only. A composition arranges components and declares
+ * no contract of its own, so there is nothing about it a consumer could depend on
+ * and nothing for a semver rule to grade.
+ */
+export function componentsDirOf(specsDir: string): string {
+  return resolveSpecsLayout(specsDir).dirFor('component');
+}
+
+/** Component spec folder names inside a specs/ directory. */
 export function componentNames(specsDir: string): string[] {
-  if (!fs.existsSync(specsDir)) return [];
-  return fs.readdirSync(specsDir)
+  const dir = componentsDirOf(specsDir);
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir)
     .filter(name => !name.startsWith('_') && !name.startsWith('.'))
-    .filter(name => fs.statSync(path.join(specsDir, name)).isDirectory())
-    .filter(name => fs.readdirSync(path.join(specsDir, name)).some(f => /\.ya?ml$/.test(f)))
+    .filter(name => fs.statSync(path.join(dir, name)).isDirectory())
+    .filter(name => fs.readdirSync(path.join(dir, name)).some(f => /\.ya?ml$/.test(f)))
     .sort();
 }
 
 /** Parse every concern file in the component's folder. */
 export function assemble(specsDir: string, name: string): AssembledComponent {
-  const dir = path.join(specsDir, name);
+  const dir = path.join(componentsDirOf(specsDir), name);
   const concerns: Record<string, ConcernDoc> = {};
   for (const file of fs.readdirSync(dir).sort()) {
     if (!/\.ya?ml$/.test(file)) continue;

@@ -59,7 +59,7 @@ const CARD = {
 };
 
 function makeContext(dir: string, componentKey: string, outputFormat: 'JSON' | 'YAML' = 'JSON') {
-  return { specDir: dir, outputDir: dir, workspaceDir: dir, componentKey, outputFormat, tokensFormat: 'DEFAULT' };
+  return { specDir: dir, outputDir: dir, workspaceDir: dir, specsRoot: dir, kind: 'component' as const, componentKey, outputFormat, tokensFormat: 'DEFAULT' };
 }
 
 describe('DependenciesAnalyzer', () => {
@@ -86,8 +86,8 @@ describe('DependenciesAnalyzer', () => {
     await analyzer.finalize!(outputDir);
     const ext = outputFormat === 'YAML' ? 'yaml' : 'json';
     const parse = outputFormat === 'YAML' ? (s: string) => yaml.parse(s) : (s: string) => JSON.parse(s);
-    const graph = parse(await fs.readFile(path.join(outputDir, '_analysis', `dependencies.graph.${ext}`), 'utf-8'));
-    const byComponent = parse(await fs.readFile(path.join(outputDir, '_analysis', `dependencies.byComponent.${ext}`), 'utf-8'));
+    const graph = parse(await fs.readFile(path.join(outputDir, 'analysis', `dependencies.graph.${ext}`), 'utf-8'));
+    const byComponent = parse(await fs.readFile(path.join(outputDir, 'analysis', `dependencies.byComponent.${ext}`), 'utf-8'));
     return { graph, byComponent };
   }
 
@@ -98,7 +98,7 @@ describe('DependenciesAnalyzer', () => {
   it('does nothing when no components were processed', async () => {
     const analyzer = new DependenciesAnalyzer();
     await analyzer.finalize!(outputDir);
-    expect(fs.existsSync(path.join(outputDir, '_analysis'))).toBe(false);
+    expect(fs.existsSync(path.join(outputDir, 'analysis'))).toBe(false);
   });
 
   describe('instance edges and blast radius', () => {
@@ -418,7 +418,7 @@ describe('DependenciesAnalyzer', () => {
       await analyzer.run(checkbox, makeContext(checkboxDir, 'dsCheckbox'));
       await analyzer.finalize!(outputDir);
       const byComponent = JSON.parse(
-        await fs.readFile(path.join(outputDir, '_analysis', 'dependencies.byComponent.json'), 'utf-8')
+        await fs.readFile(path.join(outputDir, 'analysis', 'dependencies.byComponent.json'), 'utf-8')
       );
       expect(byComponent.dsIcon.propUsage.size.configuredBy).toBe(1);
       expect(byComponent.dsIcon.propUsage.size.values).toEqual({ Small: ['dsCheckbox'] });
@@ -580,7 +580,7 @@ describe('DependenciesAnalyzer', () => {
       await analyzer.run(apiOnly, makeContext(buttonDir, 'dsButton'));
       await analyzer.finalize!(outputDir);
       const byComponent = JSON.parse(
-        await fs.readFile(path.join(outputDir, '_analysis', 'dependencies.byComponent.json'), 'utf-8')
+        await fs.readFile(path.join(outputDir, 'analysis', 'dependencies.byComponent.json'), 'utf-8')
       );
       expect(byComponent.dsIcon.propUsage.size.configuredBy).toBe(2);
     });
@@ -605,7 +605,7 @@ describe('DependenciesAnalyzer', () => {
       await analyzer.run({ anatomy: {}, default: { elements: {} } }, makeContext(dialogDir, 'dsDialog'));
       await analyzer.finalize!(outputDir);
       const graph = JSON.parse(
-        await fs.readFile(path.join(outputDir, '_analysis', 'dependencies.graph.json'), 'utf-8')
+        await fs.readFile(path.join(outputDir, 'analysis', 'dependencies.graph.json'), 'utf-8')
       );
       const edge = graph.edges.find((e: { kind: string }) => e.kind === 'example');
       expect(edge.from).toBe('dsDialog');
@@ -614,8 +614,8 @@ describe('DependenciesAnalyzer', () => {
 
     it('writes yaml files when outputFormat is YAML', async () => {
       await runAll({ dsIcon: ICON, dsButton: BUTTON }, 'YAML');
-      expect(fs.existsSync(path.join(outputDir, '_analysis', 'dependencies.graph.yaml'))).toBe(true);
-      expect(fs.existsSync(path.join(outputDir, '_analysis', 'dependencies.graph.json'))).toBe(false);
+      expect(fs.existsSync(path.join(outputDir, 'analysis', 'dependencies.graph.yaml'))).toBe(true);
+      expect(fs.existsSync(path.join(outputDir, 'analysis', 'dependencies.graph.json'))).toBe(false);
     });
 
     it('writes output to a custom analysisDir when provided', async () => {
@@ -633,14 +633,14 @@ describe('DependenciesAnalyzer', () => {
     it('produces identical output regardless of processing order', async () => {
       const specs = { dsIcon: ICON, dsButton: BUTTON, dsCard: CARD };
       const { graph: g1, byComponent: b1 } = await runAll(specs);
-      await fs.remove(path.join(outputDir, '_analysis'));
+      await fs.remove(path.join(outputDir, 'analysis'));
       const analyzer = new DependenciesAnalyzer();
       for (const key of ['dsCard', 'dsIcon', 'dsButton']) {
         await analyzer.run(specs[key as keyof typeof specs], makeContext(path.join(outputDir, key), key));
       }
       await analyzer.finalize!(outputDir);
-      const g2 = JSON.parse(await fs.readFile(path.join(outputDir, '_analysis', 'dependencies.graph.json'), 'utf-8'));
-      const b2 = JSON.parse(await fs.readFile(path.join(outputDir, '_analysis', 'dependencies.byComponent.json'), 'utf-8'));
+      const g2 = JSON.parse(await fs.readFile(path.join(outputDir, 'analysis', 'dependencies.graph.json'), 'utf-8'));
+      const b2 = JSON.parse(await fs.readFile(path.join(outputDir, 'analysis', 'dependencies.byComponent.json'), 'utf-8'));
       expect(JSON.stringify(g2)).toBe(JSON.stringify(g1));
       expect(JSON.stringify(b2)).toBe(JSON.stringify(b1));
     });
