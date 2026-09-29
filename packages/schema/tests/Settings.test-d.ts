@@ -19,6 +19,11 @@ const empty: Settings = {};
 
 const full: Settings = {
   author: 'Nathan Curtis',
+  curation: {
+    defaultSelection: 'ALL',
+    preserveManualSelections: true,
+    includeDependencies: false,
+  },
   data: {
     directory: './data',
     sources: {
@@ -76,7 +81,24 @@ const depth: 1 | 2 | 3 | 9999 = DEFAULT_SETTINGS.spec.variantDepth;
 // Consumer-supplied members stay optional after resolution
 const dir: string | undefined = DEFAULT_SETTINGS.spec.directory;
 
+// ─── Curation ─────────────────────────────────────────────────────────────────
+
+// Defaulted members are required — and present — on the resolved type
+const selection: 'READY_FOR_DEV' | 'ALL' = DEFAULT_SETTINGS.curation.defaultSelection;
+const deps: boolean = DEFAULT_SETTINGS.curation.includeDependencies;
+const manual: boolean = DEFAULT_SETTINGS.curation.preserveManualSelections;
+
+// @ts-expect-error — defaultSelection is a closed set
+const badSelection: Settings = { curation: { defaultSelection: 'MARKED' } };
+
+// @ts-expect-error — includeDependencies is a boolean, not a mode
+const badDeps: Settings = { curation: { includeDependencies: 'RETAIN' } };
+
+// @ts-expect-error — curation is a concern of its own, not a member of spec
+const curationInSpec: Settings = { spec: { includeDependencies: true } };
+
 export {
   empty, full, source, keylessSource, color, badColor, badDepth, conventionInSettings,
   defaults, format, depth, dir,
+  selection, deps, manual, badSelection, badDeps, curationInSpec,
 };

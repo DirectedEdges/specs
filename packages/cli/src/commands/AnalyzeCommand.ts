@@ -4,6 +4,7 @@ import path from 'path';
 import yaml from 'yaml';
 import { ConfigLoader } from '../Config/ConfigLoader.js';
 import { availableAnalyzerNames, resolveAnalyzers } from '../analyzers/index.js';
+import { platformOf } from '../Config/PlatformConventions.js';
 import { loadFoundations } from '../utilities/loadFoundations.js';
 import type { TransformerContext } from '../Types/Transformer.js';
 import type { ProcessingStates } from '../transforms/states.js';
@@ -97,6 +98,11 @@ export const Analyze = new Command('analyze')
               outputFormat: config.settings.spec.format,
               processingStates: config.conventions.specs?.states as ProcessingStates | undefined,
               specs: config.conventions.specs,
+              // The conventions of the platform this analyzer reads (ADR-073), the
+              // same way runEmitters hands them to a transformer.
+              platform: analyzer.platformId
+                ? platformOf(config.conventions, analyzer.platformId)
+                : undefined,
             };
             await analyzer.run(apiYaml, context);
           }

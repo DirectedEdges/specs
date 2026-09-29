@@ -117,6 +117,11 @@ spec.
 ```yaml
 author: Your Name
 
+curation:
+  # Which components of the library get a spec at all
+  defaultSelection: READY_FOR_DEV
+  includeDependencies: true
+
 data:
   # Where `specs fetch` writes payloads, and where `generate` loads them from
   directory: ./data

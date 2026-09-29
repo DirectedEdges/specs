@@ -12,34 +12,34 @@ function row(id: string, name: string, included: boolean, devStatus: 'READY_FOR_
 }
 
 describe('deriveDefaultInclusion', () => {
-  it('checks only READY_FOR_DEV when any component has it', () => {
+  it('READY_FOR_DEV checks only the components marked ready', () => {
     const components = [
       ci('1:1', 'A', 'COMPONENT_SET', 'READY_FOR_DEV'),
       ci('1:2', 'B', 'COMPONENT_SET', 'NONE'),
       ci('1:3', 'C', 'COMPONENT', 'NONE')
     ];
-    const result = deriveDefaultInclusion(components, false);
+    const result = deriveDefaultInclusion(components, 'READY_FOR_DEV');
     expect(result.get('1:1')).toBe(true);
     expect(result.get('1:2')).toBe(false);
     expect(result.get('1:3')).toBe(false);
   });
 
-  it('falls back to legacy heuristic (all included) when no devStatus signal exists', () => {
+  it('READY_FOR_DEV checks everything when the library marks nothing', () => {
     const components = [
       ci('1:1', 'A', 'COMPONENT_SET', 'NONE'),
       ci('1:2', 'B', 'COMPONENT', 'NONE')
     ];
-    const result = deriveDefaultInclusion(components, false);
+    const result = deriveDefaultInclusion(components, 'READY_FOR_DEV');
     expect(result.get('1:1')).toBe(true);
     expect(result.get('1:2')).toBe(true);
   });
 
-  it('--include-all forces every row checked regardless of devStatus', () => {
+  it('ALL checks every row regardless of devStatus', () => {
     const components = [
       ci('1:1', 'A', 'COMPONENT_SET', 'READY_FOR_DEV'),
       ci('1:2', 'B', 'COMPONENT_SET', 'NONE')
     ];
-    const result = deriveDefaultInclusion(components, true);
+    const result = deriveDefaultInclusion(components, 'ALL');
     expect(result.get('1:1')).toBe(true);
     expect(result.get('1:2')).toBe(true);
   });
