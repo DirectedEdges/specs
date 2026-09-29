@@ -1,0 +1,176 @@
+---
+title: "Figma Best Practices"
+description: "How to author components in Figma so the specs they generate are accurate, complete, and ready for code — without manual cleanup"
+---
+
+import { Badge } from '@astrojs/starlight/components';
+
+Specs reads any Figma file and generates a spec from whatever it finds. It works best on files authored the way a mature design system is authored anyway — tokens bound, layers named for their role, properties modeling one concern each. Nothing here is a Specs-specific convention; these are common design system practices that happen to be exactly what makes a generated spec accurate, complete, and ready for code without manual cleanup.
+
+Each practice below is marked by how much it matters:
+
+| Badge | Meaning |
+|---|---|
+| **Must** | Breaks or corrupts the generated spec |
+| **Should** | Substantially improves accuracy and code shape |
+| **Could** | Worth doing when the system is mature enough |
+| **Nice to have** | Real benefit, no cost to skipping |
+
+## File organization
+
+### Component pages
+
+<Badge text="Should" variant="caution" size="medium" /> give each component its own page alongside its subcomponents, since page scope is what Specs searches for subcomponents and ready-made examples.
+
+- **Do** — put `DS Table` on its own page alongside `DS Table / Row` and `DS Table / Cell`
+- **Don't** — pile a dozen unrelated components onto one page
+
+**Learn more:** [Subcomponent Scoping](/guides/subcomponent-scoping/) · [Subcomponents setting](/settings/subcomponents/)
+
+### Foundation pages
+
+<Badge text="Could" variant="note" size="medium" /> group pages into Foundations and Components so it is obvious which pages define tokens and glyphs and which consume them.
+
+- **Do** — group pages under a `— Foundations —` divider and a `— Components —` divider
+- **Don't** — interleave color, type, and icon pages among component pages
+
+**Learn more:** [Curation setting](/settings/curation/) · [scan](/cli/commands/scan/)
+
+## Foundations
+
+### Icon glyph naming
+
+<Badge text="Must" variant="danger" size="medium" /> name icon Figma assets with a pattern to match and distinguish them from other components.
+
+- **Do** — name glyphs `Icon/check`, or publish them from a dedicated icon library
+- **Don't** — name a glyph `check`, `Vector`, or `icon`
+
+**Learn more:** [Glyph Name Pattern](/guides/glyph-name-pattern/) · [glyphs setting](/settings/glyph-name-pattern/)
+
+### Variable binding
+
+<Badge text="Should" variant="caution" size="medium" /> bind color, spacing, and sizing to variables so the spec reports tokens rather than raw literals no consumer can interpret.
+
+- **Do** — bind fills, strokes, padding, gaps, corner radii, and sizes to variables, with Light and Dark modes where they apply
+- **Don't** — type `#1A73E8` or `12` directly onto a layer
+
+**Learn more:** [Styling section](/plugin/styling/) · [Tokens setting](/settings/tokens/)
+
+### Text and effect styles
+
+<Badge text="Should" variant="caution" size="medium" /> apply text and effect styles so each composite reports as one named thing instead of six loose attributes.
+
+- **Do** — apply a text style or effect style, or a consistent variable-per-property set
+- **Don't** — set font, size, line height, and shadow ad hoc on each layer
+
+**Learn more:** [Styling section](/plugin/styling/) · [Typography in the schema](/schema/typography/)
+
+## Components
+
+### Layer naming
+
+<Badge text="Must" variant="danger" size="medium" /> give every layer inside a component a unique, role-based name — Specs identifies elements by name and path, so duplicates are ambiguous.
+
+- **Do** — name each layer for its role: `Label`, `Supporting text`, `Leading icon`, `Trailing icon`
+- **Don't** — leave `Text`, `Text 1`, `Frame 427`, or use `Label` twice at any depth
+
+**Learn more:** [Anatomy section](/plugin/anatomy/) · [Anatomy in the schema](/schema/anatomy/)
+
+### Naming across variants
+
+<Badge text="Must" variant="danger" size="medium" /> keep a layer's name identical in every variant, or it reads as two elements appearing and disappearing rather than one element changing.
+
+- **Do** — rename a layer in every variant at once
+- **Don't** — let `Label` in the default variant be `Text` in the hover variant
+
+**Learn more:** [Variant Layering](/guides/variant-layering/) · [Variant Depth setting](/settings/variant-depth/)
+
+### Component naming
+
+<Badge text="Should" variant="caution" size="medium" /> prefix component names with a short system acronym so they survive being consumed in a file that has its own `Button`.
+
+- **Do** — prefix with a short system acronym: `DS Button`, `DS Card`
+- **Don't** — publish `Button`, `Card`, `Item`
+
+**Learn more:** [Subcomponent Scoping](/guides/subcomponent-scoping/) · [Subcomponents setting](/settings/subcomponents/)
+
+### Property granularity
+
+<Badge text="Should" variant="caution" size="medium" /> model state, disabled, selected, and loading as separate properties so code gets the shape it wants and invalid combinations stay expressible.
+
+- **Do** — `State: Rest / Hover / Active`, plus `Disabled`, `Selected`, `Loading` as booleans
+- **Don't** — `State: Rest / Hover / Active / Disabled / Selected / Loading`
+
+**Learn more:** [Prop Naming](/guides/prop-naming/) · [States setting](/settings/states/)
+
+### Optional elements
+
+<Badge text="Should" variant="caution" size="medium" /> pair every optional element's content prop with a visibility boolean so Specs collapses the two into one nullable prop.
+
+- **Do** — pair `Icon` (instance swap) with `Show icon` (boolean) bound to visibility
+- **Don't** — ship a `TEXT`, `INSTANCE_SWAP`, or `SLOT` prop whose element has no visibility toggle
+
+**Learn more:** [Consolidating Props](/guides/consolidating-props/) · [Props section](/plugin/props/)
+
+### Purpose-specific components
+
+<Badge text="Should" variant="caution" size="medium" /> publish purpose-specific components in their own right rather than as variants that bloat the base component's contract.
+
+- **Do** — publish `Favorite Button` and `Pagination Button` as their own components
+- **Don't** — add a `Purpose: Favorite / Pagination` variant to `Button`
+
+**Learn more:** [Invalid Variant Combinations](/guides/invalid-variant-combinations/) · [Invalid Combinations setting](/settings/invalid-combinations/)
+
+### Composition and slots
+
+<Badge text="Should" variant="caution" size="medium" /> use a Figma slot wherever consumers supply their own content, so it is reported as a composition point and not a concrete element.
+
+- **Do** — use a Figma slot wherever consumers supply their own content
+- **Don't** — leave a `Content goes here` frame or text layer standing in for a slot
+
+**Learn more:** [Slot Constraints](/guides/slot-constraints/) · [Default Slot Content](/guides/default-slot-content/)
+
+### Instance examples
+
+<Badge text="Should" variant="caution" size="medium" /> limit instance examples to the component itself — content composed into it belongs in slot content examples.
+
+- **Do** — show the component itself in a realistic configuration
+- **Don't** — mix whole page compositions into the component's own examples
+
+**Learn more:** [Instance (Ready-Made) Examples](/guides/instance-examples/) · [Instance Examples setting](/settings/instance-examples/)
+
+### Subcomponent naming
+
+<Badge text="Could" variant="note" size="medium" /> name mandatory internal parts inside the parent's namespace so the relationship is visible in the spec.
+
+- **Do** — name mandatory internal parts `DS Accordion / Item`, `DS Tabs / Tab`
+- **Don't** — publish `Accordion Item` as an unrelated top-level component
+
+**Learn more:** [Subcomponent Scoping](/guides/subcomponent-scoping/) · [Subcomponents setting](/settings/subcomponents/)
+
+### Slot content
+
+<Badge text="Could" variant="note" size="medium" /> fill slots with realistic default content and ready-made examples, the clearest signal a spec can carry about what the composition is for.
+
+- **Do** — place realistic default content in the slot and compose ready-made examples
+- **Don't** — leave every slot empty
+
+**Learn more:** [Default Slot Content](/guides/default-slot-content/) · [Instance (Ready-Made) Examples](/guides/instance-examples/)
+
+### Text components
+
+<Badge text="Could" variant="note" size="medium" /> publish the system's typography as components — one `Text` with a `style` prop, or several named for their role — so composed content records a component rather than a bare text layer wearing a token.
+
+- **Do** — publish `Text` with a `style` prop, or `Text`, `Eyebrow`, `Heading`, and `Display` as their own components
+- **Don't** — build examples from raw text layers with a typography style applied
+
+**Learn more:** [Promote Primitives setting](/settings/promote-primitives/) · [Figma Primitives setting](/settings/figma-primitives/)
+
+### Icon components
+
+<Badge text="Nice to have" variant="tip" size="medium" /> flow glyphs through an Icon component exposing `size` and `color`, giving Specs a single instance-swap target.
+
+- **Do** — expose `size` and `color` props on an `Icon` component that swaps the glyph
+- **Don't** — resize and recolor raw glyphs per instance
+
+**Learn more:** [Glyph Name Pattern](/guides/glyph-name-pattern/) · [Figma Primitives setting](/settings/figma-primitives/)

@@ -109,6 +109,7 @@ export default defineConfig({
           collapsed: true,
           items: [
             { label: 'Overview', slug: 'plugin' },
+            { label: 'Figma Best Practices', slug: 'plugin/best-practices' },
             {
               label: 'Sections',
               items: [
