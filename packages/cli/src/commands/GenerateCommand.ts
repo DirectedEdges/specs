@@ -183,10 +183,6 @@ async function writeGeneratedOutput(
     defaultFormat: resolvedFormat
   };
 
-  // Whether each kind gets its own directory under the specs root (ADR-096).
-  // The collapsing layouts have one namespace for everything, so there is nowhere
-  // to put a kind — see the output-layout note below.
-  const perKindDirectories = !!outputConfig.splitComponents;
 
   let outputPath: string;
   if (options.output) {
@@ -271,12 +267,12 @@ async function writeGeneratedOutput(
       }
 
       // How far a spec file sits below baseDir, which is where the images
-      // directory lives: one level for the kind directory (ADR-096), one more when
-      // components get their own folders (subfolders, or the component+concern
-      // combined layout). The prefix is derived from that depth rather than
-      // written out per case, so adding a level cannot leave it stale.
+      // directory lives: always one level for the kind directory (ADR-096), one more
+      // when components get their own folders (subfolders, or the component+concern
+      // combined layout). Derived from that depth rather than written out per case,
+      // so adding a level cannot leave it stale.
       const inComponentFolders = !!outputConfig.splitComponents && (!!outputConfig.useSubfolders || !!outputConfig.splitConcerns);
-      const depth = (perKindDirectories ? 1 : 0) + (inComponentFolders ? 1 : 0);
+      const depth = 1 + (inComponentFolders ? 1 : 0);
       const relativePrefix = `${'../'.repeat(depth)}${IMAGES_DIR_NAME}/`;
       const resolvedCount = ImageFillsResolver.applyResolvedSources(processedComponents, files, relativePrefix);
       const downloadedCount = options.getImages ? missing.size : 0;
@@ -329,14 +325,15 @@ async function writeGeneratedOutput(
 
   // -------------------------------------------------------------------
   // Output layout (ADR-096): each kind writes under its own directory —
-  // `specs/components/<key>/`, `specs/compositions/<key>/`.
+  // `specs/components/`, `specs/compositions/` — in every layout, including the
+  // collapsing ones.
   //
-  // Only when components get folders of their own. `--combine-as-library` and
-  // `--combine-concerns` collapse the whole catalogue into documents keyed by spec
-  // key, which is one namespace by construction — there is no directory to put a
-  // kind in. Those modes keep writing exactly what they wrote before, and a key
-  // shared between a component and a composition is reported rather than silently
-  // resolved by whichever was written second.
+  // `--combine-as-library` and `--combine-concerns` collapse a catalogue into
+  // documents keyed by spec key. They still do, but per kind: the collapsing happens
+  // *within* a kind, and each kind's documents land in its own directory. Sharing one
+  // namespace would let a composition and a component of the same name overwrite each
+  // other, with write order deciding which survived — and the whole point of the
+  // layout is that a shared name is a non-event.
   // -------------------------------------------------------------------
   const layout = writeLayout(baseDir);
 
@@ -350,37 +347,19 @@ async function writeGeneratedOutput(
 
   const writeResult: WriteResult = { filesWritten: [], warnings: [], errors: [] };
 
-  if (perKindDirectories) {
-    // Components first, so a run's output reads in the order the manifest lists it.
-    for (const kind of ['component', 'composition'] as SpecKind[]) {
-      const group = byKind.get(kind);
-      if (!group || group.length === 0) continue;
-      const kindDir = layout.dirFor(kind);
-      const result = await writer.write(
-        new FileManifest(group, outputConfig, kindDir, outputFileName, timestamp)
-      );
-      writeResult.filesWritten.push(...result.filesWritten);
-      writeResult.warnings.push(...result.warnings);
-      writeResult.errors.push(...result.errors);
-      if (kind === 'composition') {
-        console.log(`✓ Wrote ${group.length} composition spec(s) to ${dirNameFor(kind)}/`);
-      }
-    }
-  } else {
-    const collisions = sharedKeys(byKind, config.settings.spec.keys);
-    if (collisions.length > 0) {
-      console.log(
-        `Warning: ${collisions.length} key(s) name both a component and a composition, and this ` +
-        `layout has one namespace for both — the composition wins: ${collisions.join(', ')}`
-      );
-      console.log('  Drop --combine-as-library / --combine-concerns to write them to separate directories.');
-    }
+  // Components first, so a run's output reads in the order the manifest lists it.
+  for (const kind of ['component', 'composition'] as SpecKind[]) {
+    const group = byKind.get(kind);
+    if (!group || group.length === 0) continue;
     const result = await writer.write(
-      new FileManifest(processedComponents, outputConfig, baseDir, outputFileName, timestamp)
+      new FileManifest(group, outputConfig, layout.dirFor(kind), outputFileName, timestamp)
     );
     writeResult.filesWritten.push(...result.filesWritten);
     writeResult.warnings.push(...result.warnings);
     writeResult.errors.push(...result.errors);
+    if (kind === 'composition') {
+      console.log(`✓ Wrote ${group.length} composition spec(s) to ${dirNameFor(kind)}/`);
+    }
   }
 
   if (writeResult.warnings.length > 0) {
@@ -957,23 +936,6 @@ export const Generate = new Command('generate')
     }
   });
 
-
-/**
- * Spec keys claimed by more than one kind. Only the single-namespace layouts can
- * have any — the per-kind directories make a shared key a non-event.
- */
-function sharedKeys(
-  byKind: Map<SpecKind, Array<{ name: string }>>,
-  keyFormat: string
-): string[] {
-  const componentKeys = new Set(
-    (byKind.get('component') ?? []).map(c => formatKey(c.name, keyFormat))
-  );
-  return (byKind.get('composition') ?? [])
-    .map(c => formatKey(c.name, keyFormat))
-    .filter(key => componentKeys.has(key))
-    .sort();
-}
 
 /**
  * Name the spec folders that exist but this run did not write.

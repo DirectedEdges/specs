@@ -79,6 +79,8 @@ A composition has no variant properties and no prop surface, so its `variants.ya
 
 `-c` narrows to a single composition by name, node id, or spec key, exactly as it does for a component.
 
+`--combine-as-library` and `--combine-concerns` still collapse a catalogue into documents keyed by spec key — but per kind, so `components/` and `compositions/` each hold their own set. A composition and a component of the same name can never overwrite each other.
+
 A manifest run also writes `latest.metadata.yaml` at the root of the output directory. It holds the facts about the run — author, generator, schema version, conventions and settings — which are identical for every component, so each spec keeps only `metadata.source`. See [Run Metadata](/guides/run-metadata/). Single component and bridge mode are unaffected: each writes the full `metadata` block into its spec.
 
 ## Single Component Mode

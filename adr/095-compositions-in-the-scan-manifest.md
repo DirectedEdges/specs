@@ -139,16 +139,24 @@ A node is listed as a composition when **all** of the following hold:
 3. No ancestor of it also qualifies under 1 and 2.
 4. Its name is not an authoring aid under `conventions.figma.subcomponents.exclude` or
    the `codeOnlyProps` container name — the same exclusion components get.
-5. Its name yields a non-empty spec key.
+5. Its name yields a spec key.
 
 Rule 3 is *one frame, one spec*: a marked frame inside a marked frame is already
 captured as part of its ancestor's anatomy, and listing it would spec it twice under two
 keys. The outermost marking wins.
 
-Rule 5 is defensive, not hypothetical: a frame named with whitespace alone exists in
-real libraries, and a key derived from it is the empty string — which would claim the
-composition root directory as its own spec folder. Such a frame is skipped with a named
-warning rather than silently dropped.
+Rule 5 is defensive, not hypothetical: a frame named with whitespace alone exists in real
+libraries. Its name has no alphanumeric content, so it yields no key, and the writer's
+fallback would name its folder `component` — which the next such frame would collide with.
+Such a frame is skipped with a warning naming its node id rather than silently dropped.
+
+The key is derived by the **same function that names the folder**, not by an equivalent
+one. Two derivations were the original bug: the guard tested `formatKey` against the
+workspace's `keys` setting while the writer used its own camelCase reduction, so the two
+could disagree about any name and the guard would pass something the writer then mangled.
+Note this is independent of `settings.spec.keys`, which governs keys *inside* a spec and
+the formatted `instanceOf` values the bridge matches against raw Figma names — never the
+folder a spec is written to, which has always been camelCase.
 
 Nothing about *where* the frame sits qualifies or disqualifies it. A frame that is a
 direct child of a page, one nested in a `SECTION`, and one inside a plain container are

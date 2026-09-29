@@ -68,6 +68,9 @@ const CATEGORY_KEY: Record<StylingCategory, keyof StylingJson> = {
 
 export class StylingAnalyzer implements Transformer {
   readonly name = 'styling';
+  // A composition is the clearest dependency data a library has — a screen states
+  // which components it is built from — and it carries real styling of its own.
+  readonly readsKinds = ['component', 'composition'] as const;
   readonly perComponentOutput = 'styling';
 
   // Flat map: "componentKey" and "componentKey.subName" entries stored together.

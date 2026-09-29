@@ -6,9 +6,9 @@ import { ConfigLoader } from '../Config/ConfigLoader.js';
 import { availableAnalyzerNames, resolveAnalyzers } from '../analyzers/index.js';
 import { platformOf } from '../Config/PlatformConventions.js';
 import { loadFoundations } from '../utilities/loadFoundations.js';
-import type { TransformerContext } from '../Types/Transformer.js';
+import type { Transformer, TransformerContext } from '../Types/Transformer.js';
 import type { ProcessingStates } from '../transforms/states.js';
-import { resolveSpecsLayout, legacyLayoutNotice, specFolderNames } from '../utilities/specsLayout.js';
+import { resolveSpecsLayout, legacyLayoutNotice, specFolderNames, SPEC_KINDS, type SpecKind } from '../utilities/specsLayout.js';
 
 const ERROR_CODES = { SUCCESS: 0, INVALID_ARGS: 2, FILE_ERROR: 3, GENERAL_ERROR: 1 };
 
@@ -70,40 +70,57 @@ export const Analyze = new Command('analyze')
         console.log(`[analyze] analyzers: ${analyzers.map(a => a.name).join(', ')}`);
       }
 
-      // Analyzers report on the component contract, so compositions are out of
-      // scope: a composition declares no props, no variants and no styling of its
-      // own to analyse, and counting it would dilute every per-component figure.
+      // What each analyzer reads is the analyzer's own declaration (`readsKinds`).
+      // A composition composes components and carries styling, so the dependency and
+      // styling analyses take it in; it declares no props and no variants, so the
+      // prop and key analyses stay component-only rather than carrying rows that are
+      // empty by construction.
       const componentsDir = layout.dirFor('component');
-      const componentDirs = specFolderNames(componentsDir, 'yaml');
+      const specs: Array<{ kind: SpecKind; key: string; dir: string }> = SPEC_KINDS.flatMap(kind =>
+        specFolderNames(layout.dirFor(kind), 'yaml').map(key => ({
+          kind,
+          key,
+          dir: path.join(layout.dirFor(kind), key),
+        })),
+      );
+      const componentDirs = specs.filter(s => s.kind === 'component').map(s => s.key);
 
       if (componentDirs.length === 0) {
         console.error(`Error: no component directories with api.yaml found in ${componentsDir}`);
         process.exit(ERROR_CODES.FILE_ERROR);
       }
 
-      console.log(`⏳ Analyzing ${componentDirs.length} components (${analyzers.map(a => a.name).join(', ')})…`);
+      const reads = (analyzer: Transformer, kind: SpecKind): boolean =>
+        (analyzer.readsKinds ?? ['component']).includes(kind);
+
+      const compositionCount = specs.length - componentDirs.length;
+      const readsCompositions = analyzers.some(a => reads(a, 'composition'));
+      const scope = compositionCount > 0 && readsCompositions
+        ? `${componentDirs.length} components and ${compositionCount} composition${compositionCount === 1 ? '' : 's'}`
+        : `${componentDirs.length} components`;
+      console.log(`⏳ Analyzing ${scope} (${analyzers.map(a => a.name).join(', ')})…`);
       console.log('');
 
       let succeeded = 0;
       let failed = 0;
 
-      for (const componentKey of componentDirs) {
-        const componentDir = path.join(componentsDir, componentKey);
+      for (const { kind, key: componentKey, dir: componentDir } of specs) {
+        const forThisKind = analyzers.filter(a => reads(a, kind));
+        if (forThisKind.length === 0) continue;
         const apiPath = path.join(componentDir, 'api.yaml');
 
         try {
           const raw = await fs.readFile(apiPath, 'utf-8');
           const apiYaml = yaml.parse(raw) as Record<string, unknown>;
 
-          for (const analyzer of analyzers) {
+          for (const analyzer of forThisKind) {
             const context: TransformerContext = {
               specDir: componentDir,
               outputDir: componentDir,
               // The workspace root is the parent of the specs directory.
               workspaceDir: path.dirname(outputPath),
               specsRoot: layout.root,
-              // Analysis is component-only — a composition declares nothing to analyse.
-              kind: 'component',
+              kind,
               componentKey,
               tokensFormat: config.settings.spec.tokens,
               outputFormat: config.settings.spec.format,

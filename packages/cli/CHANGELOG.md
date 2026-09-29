@@ -7,16 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.32.0] - Unreleased
 
-### Added
+**The CLI now specs compositions — the frames your library marks ready for dev** — so a screen or a pattern becomes a spec and working code the same way a component does. Two other themes come with it:
 
-- **`specs react` and `specs webcomponents` emit compositions.** Each is written to `<tree>/src/compositions/<Name>/`, mirroring the spec layout, and presents as a single story in a `Compositions` nav group so screens browse separately from the component list. Compositions are Pro: on the free tier they are skipped and the run says so once, and components emit as normal (ADR-097).
-- **`specs generate` produces composition specs.** Every row of the manifest's Compositions section is specced and written to `specs/compositions/<key>/`, with `metadata.source.nodeType: FRAME` as the in-spec marker — the contract for what the spec describes, independent of where it sits. `--component` narrows to a composition by name, id or key, the same as for a component. In the collapsing layouts (`--combine-as-library`, `--combine-concerns`) both kinds share one namespace, as everything already does there, and a key claimed by both is reported rather than silently resolved by whichever was written second.
-- **`specs scan` lists compositions — the frames a library marks ready for dev — in a third manifest section.** The `## Compositions` section carries no checkbox: the Figma marking is the decision, every row is specced, and the section is re-derived on every scan rather than merged with the prior manifest. A marked frame qualifies wherever it sits — on a page, in a section, inside any container — except inside another marked frame, where the outermost marking wins so one arrangement is never specced twice (ADR-095).
-- **A frame that cannot be named is reported rather than silently dropped.** A frame whose Figma name yields no spec key — one named with whitespace alone — would claim the compositions directory itself as its spec folder, so it is skipped with its node id and the two ways to resolve it.
+- **`specs/` names what each folder holds**, with `components/`, `compositions/` and `analysis/` replacing a flat directory.
+- **`specs fetch` splits each payload by page**, so a file of any size flows through the pipeline.
 
 ### Breaking
 
 - **`specs/` now names what each folder holds: `components/`, `compositions/` and `analysis/`.** A spec run writes `specs/components/<key>/` and `specs/compositions/<key>/`, and the analysis reports lose the underscore that used to keep them from being read as a component. A component and a composition may now share a name with no consequence. One resolver owns the layout, replacing two divergent filters that answered the same question differently. The emitted trees mirror it: `<tree>/src/compositions/<Name>/` beside the existing components directory (ADR-096).
+
+- **`--combine-as-library` and `--combine-concerns` now collapse a catalogue per kind**, writing `components/` and `compositions/` each their own set of documents instead of one shared set at the specs root. A composition and a component of the same name can no longer overwrite each other.
 
 - **A specs directory written before this release is read as legacy, and says so once per run.** Spec folders at its root are read as components, `_analysis/` is honoured, and nothing writes that shape again. Re-run `specs generate` to write the current layout — after which the root folders are leftovers the run names rather than deletes, since they are spec files it did not write. A directory holding both is not merged: `components/` wins outright, so a stale root folder cannot resurrect a component a rename retired.
 
@@ -25,6 +25,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`specs fetch` writes each file payload as a page-split `<alias>.file/` directory** — `root.json` plus one JSON per Figma page — instead of a single `<alias>.file.json`. Payloads of any size now flow through the pipeline (a real 916MB community file previously could not be read at all), and `generate` loads only the pages your selected components need. Every command reads the new layout and still reads existing single-file payloads, so nothing breaks until you re-fetch; only your own scripts that open `<alias>.file.json` directly need to read the directory instead.
 
 ### Added
+
+- **`specs scan` lists compositions in a third manifest section.** `## Compositions` carries no checkbox — the Figma ready-for-dev marking is the decision, every row is specced, and the section is re-derived on every scan. A marked frame qualifies wherever it sits, except inside another marked frame, where the outermost wins so one arrangement is never specced twice (ADR-095).
+- **`specs generate` writes composition specs** to `specs/compositions/<key>/`, carrying `metadata.source.nodeType: FRAME` as the marker for what the spec describes. `-c` narrows to one by name, id or key, as it does for a component.
+- **`specs react` and `specs webcomponents` emit a composition as one story in a `Compositions` nav group**, at `<tree>/src/compositions/<Name>/`, so screens browse separately from the component list. Compositions are Pro; the free tier skips them with a note and emits components as normal (ADR-097).
+- **`specs analyze dependencies` and `specs analyze styling` read compositions**, so which components a screen is built from now shows in the blast radius. `props` and `keys` stay component-only — a composition declares no props.
+- **`specs version` tracks compositions, and every change to one is a patch.** A composition declares no contract, so nothing about it is breaking and it carries no version of its own; the cut report names what moved.
+- **A frame that cannot be named is skipped and reported with its node id.** A name with no letters or digits — whitespace alone, which real libraries contain — yields no spec key.
 
 - **`settings.curation` decides which components a scan selects**, with `defaultSelection` (`READY_FOR_DEV` or `ALL`), `preserveManualSelections` for whether your manifest edits outrank a changed Figma dev status, and `includeDependencies` for whether the components a selected one is built from are selected too. `--include-all` and `--keep-checks` override the first two for one run. Every default matches previous behaviour (ADR-093).
 
@@ -44,6 +51,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`specs fetch` says "glyphs" wherever it used to say "icons"**, matching `scan` and the `glyphs.match` convention. The `icons` fetch kind and the `assets/icons/` directory are unchanged.
 
 ### Fixed
+
+- **A spec whose Figma name has no letters or digits is refused rather than written to a folder named `component`**, where the next such spec would overwrite it. The check that rejects the name and the writer that names the folder now share one derivation, so a name that passes is a name the writer can use.
 
 - **A run that skips a kind no longer deletes that kind's emitted output.** Orphan pruning judges each kind's emitted directory only against that kind's specs, and only when the run actually emitted it — so a free-tier run following a Pro one leaves the composition output alone instead of removing it and reporting it as having no matching spec, when the spec was there and only the entitlement was missing. The same reasoning already covered `--components` and license-aborted runs.
 

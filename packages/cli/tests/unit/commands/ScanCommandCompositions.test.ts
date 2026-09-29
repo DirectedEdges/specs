@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { listableCompositions } from '../../../src/commands/ScanCommand.js';
 import { ManifestParserV2 } from '../../../src/utilities/ManifestParserV2.js';
 import { ComponentDiscovery, type ComponentInfo } from '../../../src/utilities/ComponentDiscovery.js';
+import { specFolderKey } from '../../../src/utilities/specFolderKey.js';
 
 function frame(id: string, name: string): ComponentInfo {
   return { id, name, type: 'FRAME', devStatus: 'READY_FOR_DEV' };
@@ -89,35 +90,37 @@ describe('composition discovery — the qualifying rule', () => {
 describe('listableCompositions', () => {
   it('sorts by name for stable diffs', () => {
     const { compositions } = listableCompositions(
-      [frame('3:0', 'Trips'), frame('1:0', 'Account'), frame('2:0', 'Home')],
-      'CAMEL'
+      [frame('3:0', 'Trips'), frame('1:0', 'Account'), frame('2:0', 'Home')]
     );
     expect(compositions.map(c => c.name)).toEqual(['Account', 'Home', 'Trips']);
   });
 
   it('drops a frame whose name yields no spec key, and reports it', () => {
     const { compositions, unnameable } = listableCompositions(
-      [frame('1:0', '  '), frame('2:0', 'Home')],
-      'CAMEL'
+      [frame('1:0', '  '), frame('2:0', 'Home')]
     );
     expect(compositions.map(c => c.id)).toEqual(['2:0']);
     expect(unnameable.map(c => c.id)).toEqual(['1:0']);
   });
 
-  it('drops an unnameable frame under every key format, SAFE included', () => {
-    // SAFE otherwise preserves the raw name, but a name with no words yields the
-    // empty key in every format — so the guard does not depend on the setting.
-    for (const format of ['SAFE', 'CAMEL', 'SNAKE', 'KEBAB', 'PASCAL', 'TRAIN']) {
-      const { compositions, unnameable } = listableCompositions([frame('1:0', ' ')], format);
-      expect(compositions, format).toHaveLength(0);
-      expect(unnameable, format).toHaveLength(1);
-    }
+  it('rejects exactly the names the writer could not have named', () => {
+    // The guard and the writer share one derivation, so a name the guard passes is a
+    // name the writer can use. Without that, a whitespace-named frame passed a
+    // formatKey check and the writer then put it in a folder called `component`.
+    expect(specFolderKey(' ')).toBeNull();
+    expect(specFolderKey('/ - /')).toBeNull();
+    expect(specFolderKey('Home / Large')).toBe('homeLarge');
+
+    const { compositions, unnameable } = listableCompositions([
+      frame('1:0', ' '), frame('2:0', '/ - /'), frame('3:0', 'Home / Large'),
+    ]);
+    expect(compositions.map(c => c.id)).toEqual(['3:0']);
+    expect(unnameable.map(c => c.id)).toEqual(['1:0', '2:0']);
   });
 
   it('drops an authoring-aid frame, and counts it separately from an unnameable one', () => {
     const { compositions, authoringAids } = listableCompositions(
       [frame('1:0', 'Examples / Home'), frame('2:0', 'Home')],
-      'CAMEL',
       { exclude: ['Examples / {S}'] }
     );
     expect(compositions.map(c => c.id)).toEqual(['2:0']);

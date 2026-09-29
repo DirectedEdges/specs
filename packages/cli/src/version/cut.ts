@@ -12,7 +12,7 @@
  */
 
 import * as fs from 'fs';
-import { assembleAll, readRunMetadata, type Workspace } from './assemble.js';
+import { assembleAll, assembleCompositions, readRunMetadata, type Workspace } from './assemble.js';
 import { assetManifest, diffAssets, referencedStrings } from './assets.js';
 import { diffComponent, diffRun } from './diff.js';
 import { captureGit, gitAuthor } from './gitInfo.js';
@@ -62,6 +62,13 @@ export interface CutPlan {
   libraryVersion: string;
   libraryBump: Bump;
   components: PlannedComponent[];
+  /**
+   * Compositions that moved (ADR-096/097). They carry no version of their own: a
+   * composition declares no contract, so there is nothing for a consumer to depend on
+   * and nothing for a semver rule to grade. Any change to one is patch-class for the
+   * library, and is listed here so the report shows what moved.
+   */
+  compositions: PlannedComposition[];
   assetEntries: DiffEntry[];
   runEntries: DiffEntry[];
   renames: RenameRecord[];
@@ -74,6 +81,14 @@ export interface CutPlan {
   git: LedgerGit;
   assets: Record<string, string>;
   override: LedgerOverride | null;
+}
+
+/** A composition that moved. No `from`/`to` — compositions are not versioned. */
+export interface PlannedComposition {
+  name: string;
+  title: string;
+  presence: 'added' | 'removed' | 'changed';
+  entries: DiffEntry[];
 }
 
 const nodeIdOf = (component: AssembledComponent | undefined): string | undefined => {
@@ -100,6 +115,7 @@ export function planCut(
     libraryVersion: '0.1.0',
     libraryBump: 'none',
     components: [],
+    compositions: [],
     assetEntries: [],
     runEntries: [],
     renames: [],
@@ -258,12 +274,54 @@ export function planCut(
     }
   }
 
+  // Compositions (ADR-096). Diffed with the same machinery, then every entry is set
+  // to patch impact — not re-graded. A composition has no contract, so a rule that
+  // says "a removed prop is breaking" has nothing to say about it, and leaving the
+  // graded impact in place would show a BREAKING entry contributing a patch bump. One
+  // impact, stated once, so the report and the roll-up cannot disagree.
+  {
+    const currentCompositions = assembleCompositions(workspace.specsDir);
+    const baseCompositions = assembleCompositions(baseSpecsDir);
+
+    const asPatch = (entries: DiffEntry[]): DiffEntry[] =>
+      entries.map(entry => ({ ...entry, impact: 'patch' as const }));
+
+    for (const [name, composition] of currentCompositions) {
+      const previous = baseCompositions.get(name);
+      if (!previous) {
+        plan.compositions.push({
+          name, title: composition.title, presence: 'added',
+          entries: [{ path: '', concernFile: 'component', operation: 'added', newValue: composition.title, impact: 'patch' }],
+        });
+        continue;
+      }
+      const { entries, warnings } = diffComponent(previous, composition, diffOptions);
+      plan.warnings.push(...warnings.map(w => `${composition.title}: ${w}`));
+      if (entries.length === 0) continue;
+      plan.compositions.push({
+        name, title: composition.title, presence: 'changed', entries: asPatch(entries),
+      });
+    }
+
+    for (const [name, composition] of baseCompositions) {
+      if (currentCompositions.has(name)) continue;
+      plan.compositions.push({
+        name, title: composition.title, presence: 'removed',
+        entries: [{ path: '', concernFile: 'component', operation: 'removed', oldValue: composition.title, impact: 'patch' }],
+      });
+    }
+  }
+
   for (const component of plan.components) plan.warnings.push(...component.warnings.map(w => `${component.title}: ${w}`));
 
   const changed = plan.components.filter(c => c.presence !== 'unchanged' && c.entries.length > 0);
   const componentBumps: Bump[] = changed.map(c =>
     c.changeType === 'removed' ? 'major' : c.changeType === 'initial' ? 'minor' : (c.changeType as Bump));
-  const computed = maxBump([...componentBumps, bumpOf(plan.assetEntries), bumpOf(plan.runEntries)]);
+  const compositionBump: Bump[] = plan.compositions.length > 0 ? ['patch'] : [];
+  const computed = maxBump([
+    ...componentBumps, ...compositionBump,
+    bumpOf(plan.assetEntries), bumpOf(plan.runEntries),
+  ]);
   plan.libraryBump = override && computed !== 'none' ? override.class : computed;
 
   if (plan.libraryBump === 'none') {

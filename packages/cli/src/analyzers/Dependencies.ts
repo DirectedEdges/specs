@@ -115,6 +115,9 @@ interface ByComponentEntry {
 
 export class DependenciesAnalyzer implements Transformer {
   readonly name = 'dependencies';
+  // A composition is the clearest dependency data a library has — a screen states
+  // which components it is built from — and it carries real styling of its own.
+  readonly readsKinds = ['component', 'composition'] as const;
 
   private readonly _records = new Map<string, SpecRecord>();
   private _outputFormat: 'JSON' | 'YAML' = 'JSON';

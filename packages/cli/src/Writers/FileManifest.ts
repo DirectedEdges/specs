@@ -2,6 +2,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import type { OutputConfig, OutputFormat } from '../Types/OutputConfig.js';
 import { sortComponentsByName, splitComponentByConcern, hasExampleData } from './DataTransformers.js';
+import { specFolderKey } from '../utilities/specFolderKey.js';
 
 /**
  * Metadata for a file manifest entry
@@ -298,18 +299,14 @@ export class FileManifest {
   /**
    * Convert name to camelCase key
    * Example: "DS Button" -> "dsButton"
+   *
+   * Delegates to the shared derivation so the writer and the callers that validate a
+   * name before it gets here cannot disagree. The `component` fallback stays for a
+   * name with no key, since by this point the spec exists and must be written
+   * somewhere — callers that can still refuse reject it earlier instead.
    */
   private toCamelCase(name: string): string {
-    // Ensure name is a string
-    const nameStr = String(name || 'component');
-    const cleaned = nameStr.replace(/[^a-zA-Z0-9\s]/g, '');
-    const words = cleaned.split(/\s+/).filter(w => w.length > 0);
-    
-    if (words.length === 0) return 'component';
-    
-    return words[0].toLowerCase() + words.slice(1).map(w => 
-      w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
-    ).join('');
+    return specFolderKey(name) ?? 'component';
   }
   
   /**

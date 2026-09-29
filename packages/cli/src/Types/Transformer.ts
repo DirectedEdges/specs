@@ -101,6 +101,18 @@ export interface Transformer {
    */
   readonly outputTree?: string;
   /**
+   * Which kinds of spec this reads (ADR-096). Absent means components only, which is
+   * the conservative default — a transform that has not considered compositions does
+   * not silently receive them.
+   *
+   * What a composition can contribute differs per analysis: it composes components
+   * and it carries styling, but it declares no props and no variants. So the two
+   * dependency and styling analyses read both kinds, and the prop and key analyses
+   * stay component-only rather than being padded with rows that are empty by
+   * construction.
+   */
+  readonly readsKinds?: readonly SpecKind[];
+  /**
    * Basename of the file this transformer writes into **each component's own
    * folder**, without extension — the extension follows the run's output format.
    *

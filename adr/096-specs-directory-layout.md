@@ -187,7 +187,65 @@ not write.
 
 Orphan pruning is authoritative per kind: a full run prunes
 `<tree>/src/components/` against its components and `<tree>/src/compositions/` against its
-compositions, never one against the other.
+compositions, never one against the other — and never a kind the run did not emit, which
+is the same rule a `--components` run and a license-aborted run already obey. Without it,
+a free-tier run deletes the composition output a Pro run wrote and reports it as having no
+matching spec, when the spec is present and only the entitlement was missing.
+
+### The collapsing layouts
+
+`--combine-as-library` and `--combine-concerns` collapse a catalogue into documents keyed
+by spec key. They still do — but per kind. The collapsing happens *within* a kind, and
+each kind's documents land in its own directory:
+
+```
+specs/
+  latest.metadata.yaml
+  components/
+    api.yaml
+    variants.yaml
+  compositions/
+    api.yaml
+    variants.yaml
+```
+
+The alternative was one shared namespace, since those layouts have no per-spec directory
+to put a kind in. It was rejected: a composition and a component of the same name would
+overwrite each other with write order deciding which survived, and a shared name being a
+non-event is the whole point of this ADR. A layout flag chooses how a kind's specs are
+grouped, not whether kinds are distinguished.
+
+### What reads which kind
+
+Not every consumer of the specs directory wants both kinds, and the difference is not
+about the layout — it is about what a composition is:
+
+| Consumer | Reads | Why |
+|---|---|---|
+| `react`, `webcomponents` | both | a composition is the thing being emitted |
+| `analyze dependencies` | both | which components a screen composes is the clearest blast-radius data a library has |
+| `analyze styling` | both | a composition carries real styling of its own |
+| `analyze props`, `analyze keys` | components only | a composition declares no props; padding the reports with rows empty by construction dilutes every per-component figure |
+| `version` | both, graded differently | see below |
+
+A transform declares this for itself (`readsKinds`), defaulting to components only — so a
+consumer that has not considered compositions does not silently receive them.
+
+### Versioning a composition
+
+Compositions enter the version ledger, and **every change to one is patch-class**.
+
+A composition declares no contract. There is nothing a consumer can depend on and nothing
+for a rule like "a removed prop is breaking" to grade, so the existing severity rules have
+no opinion about it. Rather than invent a parallel vocabulary, every composition entry is
+set to patch impact after diffing — not re-graded — so the report and the version roll-up
+cannot disagree, and a reader never sees an entry marked breaking that contributed a patch.
+
+Compositions carry **no version of their own**. They appear in the cut report with what
+moved (`added`, `removed`, `changed`) and no version transition, because a thing with no
+contract has no semver to carry. Their map is keyed separately from components', since a
+name shared between the two kinds is legal by design and one map would let them overwrite
+each other.
 
 ---
 
@@ -208,7 +266,8 @@ compositions, never one against the other.
 | `specs-cli` — generate | Writes the new layout | Route spec output by kind through the resolver |
 | `specs-cli` — react / webcomponents | Discovers specs, derives output paths, prunes orphans | Read through the resolver; pass `specsRoot` and `kind` |
 | `specs-cli` — analyze | Writes `analysis/` | Drop the underscore |
-| `specs-cli` — version | Assembles components from the specs directory | Read through the resolver instead of its own `_`/`.` filter |
+| `specs-cli` — version | Assembles both kinds; compositions graded patch-only and unversioned | Read through the resolver instead of its own `_`/`.` filter |
+| `specs-cli` — analyze | Dependencies and styling read both kinds | Declare `readsKinds` per analyzer |
 | `react-from-specs`, `webcomponents-from-specs` | Stop climbing to the specs root | Consume `specsRoot`; resolve siblings under `components/` |
 | Populated workspaces on the flat layout | Read as legacy, with a deprecation line | Re-run `specs generate`, then delete the reported leftovers |
 
@@ -239,3 +298,9 @@ existing workspaces working, which makes the change survivable, not additive.
   per run that it should be.
 - Any external tool reading `specs/<key>/api.yaml` breaks and must read
   `specs/components/<key>/api.yaml`.
+- The library version now moves — by a patch — when a composition changes. A workspace
+  that only edits screens will see patch releases it did not see before.
+- Dependency analysis gains the edges that matter most for blast radius: which components
+  each screen is built from.
+- `readsKinds` is a new thing every future transform must consider. Its default is the
+  conservative one, so forgetting it under-includes rather than silently mis-including.

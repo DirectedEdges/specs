@@ -12,7 +12,7 @@ import { SectionedFile, shadowIngestEnabled, shadowCompare } from '../utilities/
 import { ManifestParserV2, type ManifestRowV2 } from '../utilities/ManifestParserV2.js';
 import { isV1Manifest, migrateV1ToV2 } from '../utilities/ManifestMigrationV1ToV2.js';
 import { glyphPatternMatch } from '../utilities/glyphPatternMatch.js';
-import { formatKey } from '../utilities/formatKey.js';
+import { specFolderKey } from '../utilities/specFolderKey.js';
 import { ConfigLoader } from '../Config/ConfigLoader.js';
 import { figmaOf } from '../Config/PlatformConventions.js';
 
@@ -301,16 +301,15 @@ export function partitionByGlyphPattern(
  * marker (ADR-095). Two further exclusions, both shared with components in spirit:
  *
  * - an authoring aid is not a composition, for the same reason it is not a component
- * - a frame whose name yields an empty spec key cannot own a spec folder. A frame
- *   named with whitespace alone is real, not hypothetical, and its key would be the
- *   empty string — which would claim the compositions directory itself
+ * - a frame whose name yields no spec key cannot own a spec folder. A frame named with
+ *   whitespace alone is real, not hypothetical, and the writer would fall back to
+ *   naming its folder `component` — which the next such frame would then collide with
  *
  * Returns the listable rows and, separately, what was dropped and why, so the caller
  * can say so rather than leaving a marked frame silently missing.
  */
 export function listableCompositions(
   frames: ComponentInfo[],
-  keyFormat: string,
   aidConventions: { exclude?: string[]; codeOnlyProps?: string } = {}
 ): { compositions: ComponentInfo[]; authoringAids: number; unnameable: ComponentInfo[] } {
   const compositions: ComponentInfo[] = [];
@@ -322,7 +321,7 @@ export function listableCompositions(
       authoringAids += 1;
       continue;
     }
-    if (formatKey(frame.name, keyFormat) === '') {
+    if (specFolderKey(frame.name) === null) {
       unnameable.push(frame);
       continue;
     }
@@ -612,7 +611,6 @@ export const Scan = new Command('scan')
       // with a prior manifest — there is no checkbox to preserve.
       const { compositions, authoringAids: compositionAids, unnameable } = listableCompositions(
         discovery.findCompositions(),
-        config.settings.spec.keys,
         aidConventions
       );
       for (const frame of unnameable) {

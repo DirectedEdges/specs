@@ -7,7 +7,9 @@ description: "Run analysis passes over component specs and write aggregate repor
 
 Analyzers read component specs and produce aggregate snapshots for governance, auditing, and LLM-assisted analysis. Unlike transforms — which produce build artifacts your codebase consumes — analyzers produce one-time snapshots you read, diff, or hand to a language model.
 
-Output lands in `analysis/` alongside your component subfolders, or in a custom path via `--analysis`.
+Output lands in `specs/analysis/`, beside the `components/` and `compositions/` directories a spec run writes, or in a custom path via `--analysis`.
+
+Compositions are read by the analyzers that have something to say about them. `dependencies` includes them — which components a screen is built from is the clearest blast-radius data a library has — and so does `styling`, since a composition carries real styling. `props` and `keys` stay component-only: a composition declares no props, so rows for it would be empty by construction and would dilute every per-component figure.
 
 ## Invocation
 
