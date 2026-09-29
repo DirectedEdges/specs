@@ -1156,6 +1156,72 @@ describe('unresolved variables (DirectedEdges/specs#428)', () => {
   });
 });
 
+describe('captured raw value as a var() fallback (DirectedEdges/specs#570)', () => {
+  // `cssvars` emits no definition for a variable whose value aliases one outside
+  // the fetched payload, so the reference resolves to nothing and the property
+  // renders as if it were never declared. The extensions profiles carry what
+  // Figma last read, and `$type` says what unit that number is in — so the
+  // reference degrades to a real value instead of to nothing.
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'css-rawfallback-'));
+    drainNameWarnings();
+  });
+  afterEach(async () => {
+    await fs.remove(tmpDir);
+    drainNameWarnings();
+  });
+
+  const withStyles = (styles: Record<string, unknown>) => ({
+    default: { layout: ['root'], elements: { root: { styles } } },
+    variants: [],
+  });
+
+  const withRaw = (token: string, type: string, rawValue: unknown) => ({
+    $token: token,
+    $type: type,
+    $extensions: { 'com.figma': { id: 'VariableID:1:1', rawValue } },
+  });
+
+  it('a dimension falls back to the captured number as a length', async () => {
+    const css = await run(tmpDir, withStyles({ itemSpacing: withRaw('Spacing/space/100', 'dimension', 8) }));
+    expect(css).toContain('var(--spacing-space-100, 8px)');
+  });
+
+  it('a dimension of zero falls back to a unitless zero', async () => {
+    const css = await run(tmpDir, withStyles({ itemSpacing: withRaw('Spacing/space/0', 'dimension', 0) }));
+    expect(css).toContain('var(--spacing-space-0, 0)');
+  });
+
+  it('a number falls back without a unit', async () => {
+    const css = await run(tmpDir, withStyles({ opacity: withRaw('Effect/opacity/subtle', 'number', 36) }));
+    expect(css).toContain('var(--effect-opacity-subtle, 36)');
+    expect(css).not.toContain('36px');
+  });
+
+  it('a colour falls back to the captured hex', async () => {
+    const css = await run(
+      tmpDir,
+      withStyles({ backgroundColor: withRaw('Color/background/neutral', 'color', { colorSpace: 'srgb', hex: '#161a1d' }) }),
+    );
+    expect(css).toContain('var(--color-background-neutral, #161a1d)');
+  });
+
+  it('a raw value whose shape settles no unit contributes no fallback', async () => {
+    // Carried, never invented: a string where a length belongs says nothing
+    // about how many pixels it is, so the reference stays bare.
+    const css = await run(tmpDir, withStyles({ itemSpacing: withRaw('Spacing/space/100', 'dimension', 'medium') }));
+    expect(css).toContain('var(--spacing-space-100)');
+    expect(css).not.toContain('medium');
+  });
+
+  it('a reference carrying no raw value stays bare', async () => {
+    const css = await run(tmpDir, withStyles({ itemSpacing: tokenRef('Spacing/space/100', 'dimension') }));
+    expect(css).toContain('var(--spacing-space-100)');
+  });
+});
+
 describe('text truncation', () => {
   // Figma truncates a text layer by line count, optionally with an ellipsis.
   // The spec carries maxLines and textOverflow; neither reached the CSS before.
