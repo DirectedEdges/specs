@@ -11,7 +11,7 @@ specs scan [file] [options]
 
 ## Format
 
-The manifest is a markdown file with a metadata header, a Components table, and (when a `glyphs` convention is declared) a read-only Glyphs table:
+The manifest is a markdown file with a metadata header, a Components table, a Compositions table (when any frame is marked ready for dev), and a read-only Glyphs table (when a `glyphs` convention is declared):
 
 ```markdown
 # Component Manifest
@@ -34,6 +34,15 @@ The manifest is a markdown file with a metadata header, a Components table, and 
 | [ ] | DS Button Copy | 1234:5681 | COMPONENT | NONE |
 | [x] | DS Button | 1234:5682 | COMPONENT_SET | READY_FOR_DEV |
 
+## Compositions
+
+_Frames marked `READY_FOR_DEV` in Figma. Every row is specced by `specs generate` — this section is not curated, and is re-derived on every scan._
+
+| Name | ID | Type |
+|------|------|------|
+| Checkout / Small | 3070:1147 | FRAME |
+| Home / Large | 4240:0115 | FRAME |
+
 ## Glyphs
 
 _Detected via `glyphNamePattern`. Excluded from `specs generate`._
@@ -54,6 +63,11 @@ _Detected via `glyphNamePattern`. Excluded from `specs generate`._
 **Components row format:**
 - `[x]` / `[ ]` — checked / unchecked. Edit by hand to curate.
 - `Dev Status` — `READY_FOR_DEV` (designer-flagged in Figma Dev Mode) or `NONE` (unset). Read-only on each scan; changes drive the default merge behavior.
+
+**Compositions row format:**
+- No checkboxes — the Figma marking is the decision, so there is nothing here to curate. Every row is specced.
+- No `Dev Status` column — it would read `READY_FOR_DEV` on every row, because being marked is what puts a row here.
+- `Type` — always `FRAME`.
 
 **Glyphs row format:**
 - No checkboxes — glyphs are always excluded from `specs generate`. The section is purely informational so you can see what was detected.
@@ -110,6 +124,25 @@ Glyphs in the partitioned section are:
 
 If you remove the `glyphs` convention and rescan, previously-partitioned glyphs return to `## Components` and become curatable again.
 
+### Compositions
+
+A **composition** is a Figma frame that arranges components into a screen, a page, or a pattern. `scan` lists one when — and only when — it is marked **Ready for dev** in Figma Dev Mode. The marking is the whole of the rule:
+
+- **No marking, no row.** Unmarked frames never appear, not even unchecked. Libraries are full of frames a designer works inside; the marking is what separates a deliverable from a workspace.
+- **Position does not matter.** A frame on a page, a frame inside a section, a frame inside any other container — all equally eligible.
+- **The outermost marking wins.** A marked frame inside another marked frame is not listed separately. It is already captured as part of its ancestor, and listing it would spec the same arrangement twice under two keys.
+- **Authoring aids are excluded**, the same as they are for components — a frame matching `figma.subcomponents.exclude`, or sitting under the `codeOnlyProps` container, is not a composition.
+
+The section is **recorded, not curated**. It is rebuilt from the Figma payload on every scan, so:
+
+- `--include-all`, `--keep-checks` and `--reset-checks` have no effect on it. They widen or protect *curation*; qualification is the marking's job.
+- `curation.includeDependencies` does not apply. A composition retains nothing and is retained by nothing — the components it instances are curated on their own merits.
+- To take a composition out of a run, unmark the frame in Figma. That is deliberate: the library is where the decision belongs.
+
+Compositions are specced on either tier. **Emitting code** from one — `specs react`, `specs webcomponents` — requires Pro.
+
+A frame whose name yields no spec key (one named with whitespace alone, which real libraries contain) is skipped with a warning naming its node id, because its spec folder would have no name.
+
 ## Examples
 
 ### Basic scan
@@ -147,6 +180,7 @@ specs scan --verbose
 # Output:
 # ✓ Scanned library.file
 # ✓ Found 164 components (12 selected, 152 excluded)
+# ✓ Found 6 compositions (frames marked ready for dev)
 # ✓ Detected 48 glyphs (excluded from generate)
 #   Merge: 1 updated by devStatus, 163 preserved
 # ✓ Saved to /absolute/path/to/data/library.manifest.md

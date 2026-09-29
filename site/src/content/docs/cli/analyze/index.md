@@ -1,13 +1,13 @@
 ---
 title: "Analyze"
-description: "Run analysis passes over component specs and write aggregate reports to _analysis/"
+description: "Run analysis passes over component specs and write aggregate reports to analysis/"
 ---
 
 <script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
 
 Analyzers read component specs and produce aggregate snapshots for governance, auditing, and LLM-assisted analysis. Unlike transforms — which produce build artifacts your codebase consumes — analyzers produce one-time snapshots you read, diff, or hand to a language model.
 
-Output lands in `_analysis/` alongside your component subfolders, or in a custom path via `--analysis`.
+Output lands in `analysis/` alongside your component subfolders, or in a custom path via `--analysis`.
 
 ## Invocation
 
@@ -36,7 +36,7 @@ Naming an analyzer that does not exist is an error, and the message lists the on
 | Option | Description |
 |--------|-------------|
 | `-o, --output <path>` | Path to the specs directory (input). Defaults to `spec.directory` from `config/settings.yaml` or cwd. |
-| `--analysis <path>` | Where to write analysis output. Defaults to `<specs-dir>/_analysis/`. |
+| `--analysis <path>` | Where to write analysis output. Defaults to `<specs-dir>/analysis/`. |
 | `--config <path>` | Path to the `config/` directory. |
 | `--verbose` | Log each component as it is processed. |
 
@@ -44,16 +44,16 @@ Naming an analyzer that does not exist is an error, and the message lists the on
 
 | Analyzer | Output | What it produces |
 |----------|--------|-----------------|
-| [`props`](/cli/analyze/props/) | `_analysis/props.yaml` | Cross-library prop inventory — frequency, enum discordance, API surface, slots |
-| [`styling`](/cli/analyze/styling/) | `_analysis/styling.byComponent.json`, `_analysis/styling.byToken.json`, `_analysis/styling.unused.json` | Token usage indexed by component and by token name, plus tokens no spec references |
-| [`dependencies`](/cli/analyze/dependencies/) | `_analysis/dependencies.graph.json`, `_analysis/dependencies.byComponent.json` | Component dependency graph — blast radius of a change, and which props consumers configure |
-| [`keys`](/cli/analyze/keys/) | `_analysis/keys.yaml` | Figma names a formatted key cannot reconstruct, as a per-component checklist. Requires `figma.naming` |
+| [`props`](/cli/analyze/props/) | `analysis/props.yaml` | Cross-library prop inventory — frequency, enum discordance, API surface, slots |
+| [`styling`](/cli/analyze/styling/) | `analysis/styling.byComponent.json`, `analysis/styling.byToken.json`, `analysis/styling.unused.json` | Token usage indexed by component and by token name, plus tokens no spec references |
+| [`dependencies`](/cli/analyze/dependencies/) | `analysis/dependencies.graph.json`, `analysis/dependencies.byComponent.json` | Component dependency graph — blast radius of a change, and which props consumers configure |
+| [`keys`](/cli/analyze/keys/) | `analysis/keys.yaml` | Figma names a formatted key cannot reconstruct, as a per-component checklist. Requires `figma.naming` |
 
 ## Output Directory
 
 ```
 specs/
-  _analysis/
+  analysis/
     props.yaml                    # from specs analyze props
     styling.byComponent.json      # from specs analyze styling
     styling.byToken.json          # from specs analyze styling
@@ -68,7 +68,7 @@ specs/
     styling.yaml                  # from specs analyze styling — per component
 ```
 
-Most analyzers write only into `_analysis/`. `styling` also writes a `styling.yaml`
+Most analyzers write only into `analysis/`. `styling` also writes a `styling.yaml`
 into **each component's own folder**, holding that component's token-usage index;
 the completion output names it so the file is not a surprise.
 

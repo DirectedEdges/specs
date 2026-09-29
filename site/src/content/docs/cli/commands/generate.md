@@ -63,6 +63,22 @@ specs generate -o specs/
 
 Components that fail are reported individually and the rest still generate; the run exits non-zero if any failed.
 
+### Compositions
+
+If the manifest has a `## Compositions` section, every row in it is generated too — the section is not curated, so there is nothing to check. Composition specs are written to `specs/compositions/<key>/`, in the same concern files a component gets, and carry `metadata.source.nodeType: FRAME`. That marker is the contract for what the spec describes; the directory is navigation.
+
+```
+✓ Loaded manifest: 150 components (42 selected)
+✓ Loaded manifest: 6 compositions (all specced)
+⏳ Processing 48 components...
+...
+✓ Wrote 6 composition spec(s) to compositions/
+```
+
+A composition has no variant properties and no prop surface, so its `variants.yaml` carries a default and nothing else. Generating one works on either tier; [emitting code](/cli/commands/react/) from one requires Pro.
+
+`-c` narrows to a single composition by name, node id, or spec key, exactly as it does for a component.
+
 A manifest run also writes `latest.metadata.yaml` at the root of the output directory. It holds the facts about the run — author, generator, schema version, conventions and settings — which are identical for every component, so each spec keeps only `metadata.source`. See [Run Metadata](/guides/run-metadata/). Single component and bridge mode are unaffected: each writes the full `metadata` block into its spec.
 
 ## Single Component Mode
@@ -191,17 +207,27 @@ specs generate -o specs/
 
 ```
 specs/
-├── dsButton/
-│   ├── api.yaml
-│   └── variants.yaml
-├── dsAlert/
-│   ├── api.yaml
-│   ├── variants.yaml
-│   └── examples.yaml
-└── dsCard/
-    ├── api.yaml
-    └── variants.yaml
+├── latest.metadata.yaml
+├── components/
+│   ├── dsButton/
+│   │   ├── api.yaml
+│   │   └── variants.yaml
+│   ├── dsAlert/
+│   │   ├── api.yaml
+│   │   ├── variants.yaml
+│   │   └── examples.yaml
+│   └── dsCard/
+│       ├── api.yaml
+│       └── variants.yaml
+└── compositions/
+    └── checkoutSmall/
+        ├── api.yaml
+        └── variants.yaml
 ```
+
+`specs/` names what each folder holds. `components/` and `compositions/` are the two kinds of spec a run produces; `analysis/` holds the reports [`analyze`](/cli/commands/analyze/) writes. `latest.metadata.yaml` stays at the root, because the run's facts belong to the run rather than to either kind. A component and a composition may share a name with no consequence.
+
+A specs directory written before this layout existed — spec folders directly under `specs/` — is still read, as components, and the run says so once. Re-run `specs generate` to write the current layout; the old root folders are then reported as present but not generated, for you to delete. They are never merged with `components/`, so a stale folder cannot resurrect a component a rename retired.
 
 `examples.yaml` is written only when at least one component has example data, and components without examples are omitted from it. Example output is a [Pro feature](/settings/default-slot-content/) — on the free tier it's omitted entirely, so no `examples.yaml` is produced.
 
