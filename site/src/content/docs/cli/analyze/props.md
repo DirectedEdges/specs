@@ -36,7 +36,7 @@ specs/
 
 ## Example: Prop Entries
 
-`_analysis/props.yaml` contains all six aggregate sections (see below). The raw prop data underlying the aggregate uses this shape — one entry per prop per component scope, with subcomponents under dot-path keys (`dsButton.startVisual`):
+`_analysis/props.yaml` contains all seven aggregate sections (see below). The raw prop data underlying the aggregate uses this shape — one entry per prop per component scope, with subcomponents under dot-path keys (`dsButton.startVisual`):
 
 ```yaml
 # within propNameFrequency / apiSurface source data
@@ -77,7 +77,7 @@ Each prop entry has:
 
 ## Aggregate Structure
 
-`_analysis/props.yaml` has six sections.
+`_analysis/props.yaml` has seven sections.
 
 ### summary
 
@@ -118,15 +118,70 @@ propNameFrequency:
       # ...
     types:
       - string
+  - name: placeholder
+    occurrences: 4
+    components:
+      - dsTextfield
+      - dsSelect
+      # ...
+    types:
+      - string
+      - boolean
+    typeConflict: true
+```
+
+`typeConflict` appears only on a name whose components do not agree on the type. Every
+other row is unchanged, so a flagged row stands out when you scan the list.
+
+### typeDiscordance
+
+Props that share a name but are declared with different types across components. Each
+entry lists every type the name is spelled with and which components hold it.
+
+A prop whose meaning is inconsistent across components is the one you must not configure
+uniformly, and it is the easiest to miss — the frequency row above lists both types
+without saying they disagree. Read this section to tell a real divergence from two
+unrelated props that happen to share a name: a `placeholder` that is text on one
+component and a flag on another is the first; a `value` that is a string here and a
+number there may well be the second.
+
+This section reports only the **declared type**. A name every component declares as a
+string can still disagree about which values it accepts — that is `enumDiscordance`, below.
+
+```yaml
+typeDiscordance:
+  - propName: placeholder
+    typeSets:
+      - type: string
+        components:
+          - dsTextfield
+          - dsTextarea
+      - type: boolean
+        components:
+          - dsSelect
 ```
 
 ### enumDiscordance
 
-Props that share a name but have different enum value sets across components. Each entry lists the conflicting value sets and which components use each.
+Props that share a name and a declared type but disagree about which values they accept.
+Two things can disagree, and a name can do both at once:
+
+- **The closed sets hold different values.** Two or more components each enumerate the
+  values, and the lists differ.
+- **Some components close the set and others leave it open.** One component enumerates
+  its values; another declares the same type with no `enum` at all, so it accepts
+  anything. `openAndClosed: true` marks these, and the open declaration appears as a
+  value set with `open: true` instead of a value list.
+
+Value sets are compared **within one declared type**. A name that is a boolean on one
+component and a string on another is a type conflict, reported by `typeDiscordance`
+above — it is not restated here. `type` on each entry names the type the comparison ran
+within, so a name carrying enums under two different types produces one entry per type.
 
 ```yaml
 enumDiscordance:
   - propName: selected
+    type: string
     valueSets:
       - values:
           - unselected
@@ -139,7 +194,31 @@ enumDiscordance:
           - selected
         components:
           - dsTabs.tab
+  - propName: size
+    type: string
+    openAndClosed: true
+    valueSets:
+      - values:
+          - sm
+          - md
+          - lg
+        components:
+          - dsButton
+      - open: true
+        components:
+          - dsInput
 ```
+
+#### Telling the three findings apart
+
+| What disagrees | Where it is reported | How to spot it |
+|---|---|---|
+| The declared type — `boolean` on one component, `string` on another | `typeDiscordance` | `typeConflict: true` on the `propNameFrequency` row |
+| Which values a closed set holds — `[sm, md]` against `[xs, sm, md]` | `enumDiscordance` | two or more value sets with `values` |
+| Whether the set is closed at all — an `enum` on one component, bare `string` on another | `enumDiscordance` | `openAndClosed: true`, and a value set with `open: true` |
+
+A closed set promises every value the prop accepts; an open one promises nothing. Both
+are `string`, so only the last row of this table distinguishes them.
 
 ### booleanNamingPatterns
 
@@ -204,7 +283,7 @@ Follow the steps below, then save the report as `_analysis/props.report.YYYY-MM-
 
 ### Step 1 — send the data and ask for questions
 
-For small libraries (under ~80 components), paste the full `_analysis/props.yaml`. For larger libraries, paste sections in order — `summary` + `propNameFrequency` + `enumDiscordance` first, then `booleanNamingPatterns` + `apiSurface` + `slots` as a follow-up message. The LLM will ask if you haven't finished before proceeding.
+For small libraries (under ~80 components), paste the full `_analysis/props.yaml`. For larger libraries, paste sections in order — `summary` + `propNameFrequency` + `typeDiscordance` + `enumDiscordance` first, then `booleanNamingPatterns` + `apiSurface` + `slots` as a follow-up message. The LLM will ask if you haven't finished before proceeding.
 
 Before generating the report, the LLM will ask you up to 10 clarifying questions. Answering them takes one message and significantly reduces false findings — it stops the LLM from guessing at intent.
 
@@ -243,6 +322,7 @@ Attention, or Good.
 | Section | Signal | One-line verdict |
 |---|---|---|
 | Naming consistency | … | … |
+| Type consistency | … | … |
 | Enum governance | … | … |
 | Boolean naming | … | … |
 | API complexity | … | … |
@@ -257,16 +337,29 @@ Flag divergent names for the same concept (e.g. `label` vs `text` vs `title`).
 A tight list of specific changes, each on one line:
 - **[component.prop]** → `newName` — reason. Effort: S. Breaking: Y/N.
 
-## 2. Enum Governance
+## 2. Type Consistency
 
-Identify enum discordances (same prop name, different value sets). For each,
-recommend normalizing with a canonical set, or explain why the divergence is
-intentional.
+Identify props whose declaration diverges across components: names in
+`typeDiscordance`, where the declared type itself differs, and entries in
+`enumDiscordance` marked `openAndClosed`, where every component declares the same
+type but only some enumerate the values. For each, say whether this is one prop
+whose declaration drifted — unify it — or two unrelated props sharing a name —
+rename one.
+
+### Actions
+- **[propName]** on [components]: [unify as `<type>` | rename one]. Effort: S/M/L. Breaking: Y/N.
+
+## 3. Enum Governance
+
+Identify enum discordances (same prop name and declared type, different value
+sets). For each, recommend normalizing with a canonical set, or explain why the
+divergence is intentional. Names some components leave open belong in Type
+Consistency above, not here.
 
 ### Actions
 - **[propName]** on [components]: normalize to `[canonical set]`. Effort: S/M/L. Breaking: Y/N.
 
-## 3. Boolean Naming
+## 4. Boolean Naming
 
 Is the library consistent in `is`/`has`/`can` prefix use vs bare names?
 Recommend a convention if mixed.
@@ -274,7 +367,7 @@ Recommend a convention if mixed.
 ### Actions
 - (only if there are corrections to make — omit section if convention is clean)
 
-## 4. API Complexity
+## 5. API Complexity
 
 Flag components with unusually high prop counts or enum totals. Are these
 justified by the component's role, or does the component do too much?
@@ -282,7 +375,7 @@ justified by the component's role, or does the component do too much?
 ### Actions
 - (only if specific changes are recommended)
 
-## 5. Slot Inventory
+## 6. Slot Inventory
 
 Are slot constraints (`anyOf`, `minItems`, `maxItems`) used consistently?
 Identify slots that would benefit from tighter constraints.

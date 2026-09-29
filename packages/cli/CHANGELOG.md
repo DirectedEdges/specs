@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fetch validates config before downloading** (icons ↔ `glyphs.match`, `spec.directory`), and one source's failure no longer aborts the remaining sources — the run reports per-source results and exits non-zero on partial failure.
 - `specs scan` and `specs generate` accept a `<alias>.file` directory anywhere a payload path is accepted.
 - **`specs analyze` runs every analyzer when you name none**, and names the per-component `styling.yaml` it writes into each component folder alongside the aggregate reports.
+- **The props analysis flags a prop whose components disagree on its type**, with a `typeDiscordance` section naming which components hold which — so a name that means two things is not configured as one prop.
+- **`enumDiscordance` now also reports a name some components close with an `enum` while others leave open**, marked `openAndClosed`. Both declare the same type, so nothing flagged this before, yet one promises a fixed set of values and the other promises nothing.
 - **A full `specs generate` run names spec folders it found but did not write**, so a deselected component or a reverted convention leaves nothing for you to discover later. Nothing is deleted — the note says so.
 
 ### Changed

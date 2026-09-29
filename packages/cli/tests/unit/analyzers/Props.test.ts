@@ -7,8 +7,9 @@ import { PropsAnalyzer, propIsNullable } from '../../../src/analyzers/Props.js';
 
 type AggregateYaml = {
   summary: { totalProps: number; totalComponents: number; uniquePropNames: number; typeDistribution: Record<string, number> };
-  propNameFrequency: Array<{ name: string; occurrences: number; components: string[]; types: string[] }>;
-  enumDiscordance: Array<{ propName: string; valueSets: Array<{ values: string[]; components: string[] }> }>;
+  propNameFrequency: Array<{ name: string; occurrences: number; components: string[]; types: string[]; typeConflict?: true }>;
+  typeDiscordance: Array<{ propName: string; typeSets: Array<{ type: string; components: string[] }> }>;
+  enumDiscordance: Array<{ propName: string; type: string; valueSets: Array<{ values?: string[]; open?: true; components: string[] }>; openAndClosed?: true }>;
   booleanNamingPatterns: Record<string, number>;
   apiSurface: Array<{ component: string; props: number; enumValues: number; slots: number; booleans: number }>;
   slots: Array<{ component: string; name: string; anyOf: unknown; minItems: number | null; maxItems: number | null; nullable: boolean }>;
@@ -154,6 +155,50 @@ describe('PropsAnalyzer', () => {
     expect(sizeEntry?.components.sort()).toEqual(['compA', 'compB']);
   });
 
+  it('a prop whose components agree on the type carries no conflict flag', async () => {
+    const { propNameFrequency, typeDiscordance } = await runAnalyzer({
+      compA: { props: { size: { type: 'string' } } },
+      compB: { props: { size: { type: 'string' } } },
+    });
+    expect(propNameFrequency.find(p => p.name === 'size')).not.toHaveProperty('typeConflict');
+    expect(typeDiscordance.find(e => e.propName === 'size')).toBeUndefined();
+  });
+
+  it('flags the frequency row of a prop whose components disagree on the type', async () => {
+    const { propNameFrequency } = await runAnalyzer({
+      compA: { props: { placeholder: { type: 'string' } } },
+      compB: { props: { placeholder: { type: 'boolean' } } },
+    });
+    const entry = propNameFrequency.find(p => p.name === 'placeholder');
+    expect(entry?.typeConflict).toBe(true);
+    expect(entry?.types.sort()).toEqual(['boolean', 'string']);
+  });
+
+  it('typeDiscordance names which components hold which type', async () => {
+    const { typeDiscordance } = await runAnalyzer({
+      compA: { props: { placeholder: { type: 'string' } } },
+      compB: { props: { placeholder: { type: 'boolean' } } },
+      compC: { props: { placeholder: { type: 'string' } } },
+    });
+    const discord = typeDiscordance.find(e => e.propName === 'placeholder');
+    expect(discord?.typeSets).toHaveLength(2);
+    expect(discord?.typeSets.find(t => t.type === 'string')?.components.sort()).toEqual(['compA', 'compC']);
+    expect(discord?.typeSets.find(t => t.type === 'boolean')?.components).toEqual(['compB']);
+  });
+
+  it('a subcomponent scope is named as its own holder of a type', async () => {
+    // A name colliding between a component and a subcomponent is the case most
+    // likely to be two unrelated props, so the scope key has to appear as written.
+    const { typeDiscordance } = await runAnalyzer({
+      compA: {
+        props: { active: { type: 'boolean' } },
+        subcomponents: { item: { props: { active: { type: 'string' } } } },
+      },
+    });
+    const discord = typeDiscordance.find(e => e.propName === 'active');
+    expect(discord?.typeSets.find(t => t.type === 'string')?.components).toEqual(['compA.item']);
+  });
+
   it('enumDiscordance is empty when same-named enum props share identical value sets', async () => {
     const { enumDiscordance } = await runAnalyzer({
       compA: { props: { size: { type: 'string', enum: ['sm', 'md', 'lg'] } } },
@@ -169,7 +214,51 @@ describe('PropsAnalyzer', () => {
     });
     const discord = enumDiscordance.find(e => e.propName === 'size');
     expect(discord).toBeDefined();
+    expect(discord?.type).toBe('string');
     expect(discord?.valueSets).toHaveLength(2);
+    // Both sets are closed — nothing here is open, so the flag stays absent.
+    expect(discord).not.toHaveProperty('openAndClosed');
+  });
+
+  it('enumDiscordance reports a name some components close and others leave open', async () => {
+    const { enumDiscordance } = await runAnalyzer({
+      compA: { props: { size: { type: 'string', enum: ['sm', 'md'] } } },
+      compB: { props: { size: { type: 'string' } } },
+    });
+    const discord = enumDiscordance.find(e => e.propName === 'size');
+    expect(discord?.openAndClosed).toBe(true);
+    expect(discord?.valueSets.find(v => v.values)?.components).toEqual(['compA']);
+    expect(discord?.valueSets.find(v => v.open)?.components).toEqual(['compB']);
+  });
+
+  it('a name that both disagrees on values and is left open reports all three sets', async () => {
+    const { enumDiscordance } = await runAnalyzer({
+      compA: { props: { size: { type: 'string', enum: ['sm', 'md'] } } },
+      compB: { props: { size: { type: 'string', enum: ['xs', 'sm'] } } },
+      compC: { props: { size: { type: 'string' } } },
+    });
+    const discord = enumDiscordance.find(e => e.propName === 'size');
+    expect(discord?.valueSets).toHaveLength(3);
+    expect(discord?.openAndClosed).toBe(true);
+  });
+
+  it('a name no component closes reports nothing', async () => {
+    const { enumDiscordance } = await runAnalyzer({
+      compA: { props: { label: { type: 'string' } } },
+      compB: { props: { label: { type: 'string' } } },
+    });
+    expect(enumDiscordance.find(e => e.propName === 'label')).toBeUndefined();
+  });
+
+  it('a type conflict is not reported a second time as an enum divergence', async () => {
+    // compB's boolean has no enum, but pairing it against compA's closed set
+    // would restate the type conflict in the weaker of the two sections.
+    const { enumDiscordance, typeDiscordance } = await runAnalyzer({
+      compA: { props: { placeholder: { type: 'string', enum: ['sm', 'md'] } } },
+      compB: { props: { placeholder: { type: 'boolean' } } },
+    });
+    expect(typeDiscordance.find(e => e.propName === 'placeholder')).toBeDefined();
+    expect(enumDiscordance.find(e => e.propName === 'placeholder')).toBeUndefined();
   });
 
   it('booleanNamingPatterns counts prefixes and bare names', async () => {
