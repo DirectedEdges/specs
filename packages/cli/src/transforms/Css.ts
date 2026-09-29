@@ -8,6 +8,7 @@ import { layoutToCSS } from './css/layoutToCSS.js';
 import { toKebab, isGradient, isGradientToken, gradientValue, dimensionValue, resolveTokenVar, reportNameWarnings, withNameWarningsSuppressed } from './css/values.js';
 import { normalizeEnumValue } from './enumCase.js';
 import { subComponentKey } from './naming.js';
+import { dirNameFor } from '../utilities/specsLayout.js';
 import { attrNameFor } from './hostAttributes.js';
 import { CONCEPT_TABLE, buildStateLookup, conceptsClaimedByNestedRoles, COLLAPSING_ROLES } from './states.js';
 import { resolveRules } from './css/rules/index.js';
@@ -57,11 +58,13 @@ type RootForm = 'class' | 'host';
  * down, and five for a subcomponent. Stated as a depth rather than a literal so the
  * two cannot drift apart, and so a change to either tree moves both.
  */
+// A composition emits at `<tree>/src/compositions/<Name>/`, the same depth as a
+// component, so both kinds reach the assets at the same distance.
 const IMAGES_FROM_COMPONENT = '../'.repeat(4) + 'assets/images';
 const IMAGES_FROM_SUBCOMPONENT = '../'.repeat(5) + 'assets/images';
 
 function componentOutDir(context: TransformerContext, tree: string, prefix: string): string {
-  return path.join(context.workspaceDir, tree, 'src', 'components', prefix);
+  return path.join(context.workspaceDir, tree, 'src', dirNameFor(context.kind), prefix);
 }
 
 export class CssTransformer implements Transformer {

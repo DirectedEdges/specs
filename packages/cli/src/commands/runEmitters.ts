@@ -159,8 +159,15 @@ async function emitOnce(run: EmitRun, options: EmitOptions): Promise<EmitResult>
   // after a screen, which reads as a bug. Said once, because the entitlement is the
   // finding and the list is not.
   const compositionCount = specs.filter(s => s.kind === 'composition').length;
+  // A kind this run did not emit is a kind it is not authoritative over, so its
+  // emitted directory is left alone — the same rule a `--components` run and a
+  // license-aborted run already obey. Without this, a free run following a Pro one
+  // deletes the composition output the Pro run wrote and reports it as having no
+  // matching spec, when the spec is right there and only the entitlement was missing.
+  const skippedKinds = new Set<SpecKind>();
   if (compositionCount > 0 && !(await run.proEntitled?.())) {
     specs = specs.filter(s => s.kind !== 'composition');
+    skippedKinds.add('composition');
     console.log(
       `⚠ ${compositionCount} composition${compositionCount === 1 ? '' : 's'} skipped — Pro required. ` +
       `Components emitted as normal.`,
@@ -254,7 +261,7 @@ async function emitOnce(run: EmitRun, options: EmitOptions): Promise<EmitResult>
   // authoritative over anything either — pruning and derived output would be
   // rebuilt from a partial pass.
   if (!options.components?.length && !licenseAborted) {
-    await pruneOrphans(transformers, specs, workspaceDir);
+    await pruneOrphans(transformers, specs, workspaceDir, skippedKinds);
   }
 
   // Stylesheets and index output are derived from the whole set, so they are
@@ -286,6 +293,8 @@ async function pruneOrphans(
   transformers: Transformer[],
   specs: Array<{ kind: SpecKind; key: string }>,
   workspaceDir: string,
+  /** Kinds this run did not emit, and is therefore not authoritative over. */
+  skippedKinds: ReadonlySet<SpecKind> = new Set(),
 ): Promise<void> {
   const trees = new Set(
     transformers.map(t => t.outputTree).filter((t): t is string => Boolean(t)),
@@ -296,6 +305,7 @@ async function pruneOrphans(
   // orphaned component and delete it on the spot.
   for (const tree of trees) {
     for (const kind of SPEC_KINDS) {
+      if (skippedKinds.has(kind)) continue;
       const expected = new Set(
         specs.filter(s => s.kind === kind).map(s => toPascalCase(s.key)),
       );

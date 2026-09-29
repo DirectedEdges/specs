@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`specs react` and `specs webcomponents` emit compositions.** Each is written to `<tree>/src/compositions/<Name>/`, mirroring the spec layout, and presents as a single story in a `Compositions` nav group so screens browse separately from the component list. Compositions are Pro: on the free tier they are skipped and the run says so once, and components emit as normal (ADR-097).
 - **`specs generate` produces composition specs.** Every row of the manifest's Compositions section is specced and written to `specs/compositions/<key>/`, with `metadata.source.nodeType: FRAME` as the in-spec marker — the contract for what the spec describes, independent of where it sits. `--component` narrows to a composition by name, id or key, the same as for a component. In the collapsing layouts (`--combine-as-library`, `--combine-concerns`) both kinds share one namespace, as everything already does there, and a key claimed by both is reported rather than silently resolved by whichever was written second.
 - **`specs scan` lists compositions — the frames a library marks ready for dev — in a third manifest section.** The `## Compositions` section carries no checkbox: the Figma marking is the decision, every row is specced, and the section is re-derived on every scan rather than merged with the prior manifest. A marked frame qualifies wherever it sits — on a page, in a section, inside any container — except inside another marked frame, where the outermost marking wins so one arrangement is never specced twice (ADR-095).
 - **A frame that cannot be named is reported rather than silently dropped.** A frame whose Figma name yields no spec key — one named with whitespace alone — would claim the compositions directory itself as its spec folder, so it is skipped with its node id and the two ways to resolve it.
@@ -43,6 +44,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`specs fetch` says "glyphs" wherever it used to say "icons"**, matching `scan` and the `glyphs.match` convention. The `icons` fetch kind and the `assets/icons/` directory are unchanged.
 
 ### Fixed
+
+- **A run that skips a kind no longer deletes that kind's emitted output.** Orphan pruning judges each kind's emitted directory only against that kind's specs, and only when the run actually emitted it — so a free-tier run following a Pro one leaves the composition output alone instead of removing it and reporting it as having no matching spec, when the spec was there and only the entitlement was missing. The same reasoning already covered `--components` and license-aborted runs.
+
 
 - **A style referencing a variable your fetch did not reach falls back to the value Figma last read for it**, instead of rendering as though the property were never declared. Requires the `TOKEN_FIGMA_EXTENSIONS` or `CUSTOM` tokens format, which is what carries that value.
 - **A component you unchecked stays unchecked** when `curation.preserveManualSelections` is on. Dependency selection ran after prior manifest edits were merged forward and re-selected what a human had deselected, so no option preserved the edit (ADR-093).
