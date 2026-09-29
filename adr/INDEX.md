@@ -4,6 +4,9 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 097 | A Composition Emits One Story in Its Own Nav Group, and Only Under Pro | One `Default` story under a `Compositions` nav group in both targets; sticker sheet suppressed by kind; skipped on free with a note |
+| 096 | The `specs/` Directory Names What Kind of Thing Each Folder Is | `specs/components/`, `specs/compositions/`, `specs/analysis/`; one resolver owns the layout; `TransformerContext` gains `specsRoot` and `kind` |
+| 095 | Compositions Are a Recorded Section of the Manifest, Not a Curated One | A third `## Compositions` section — no checkbox, every row specced; `READY_FOR_DEV` on the outermost frame is the sole qualifier |
 | 093 | Composed Dependency Selection Is a Setting | |
 | 092 | `invalidPropCombinations` — Renamed and Relocated to the Api Concern | |
 | 082 | `Component.description` — The Authored Figma Description, Plain Text and Opt-In | (reserved, draft in PR #375) |
