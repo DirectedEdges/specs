@@ -5,9 +5,9 @@ description: "How to author components in Figma so the specs they generate are a
 
 import { Badge } from '@astrojs/starlight/components';
 
-Specs reads what is actually in the file. It does not guess at intent and never infers meaning from a label, so almost everything that makes a spec messy is an authoring decision that can be made differently.
+Specs reads any Figma file and generates a spec from whatever it finds. It works best on files authored the way a mature design system is authored anyway — tokens bound, layers named for their role, properties modeling one concern each. Nothing here is a Specs-specific convention; these are common design system practices that happen to be exactly what makes a generated spec accurate, complete, and ready for code without manual cleanup.
 
-This page collects those decisions, foundations first, each marked by how much it matters:
+Each practice below is marked by how much it matters:
 
 | Badge | Meaning |
 |---|---|
@@ -174,25 +174,3 @@ This page collects those decisions, foundations first, each marked by how much i
 - **Don't** — resize and recolor raw glyphs per instance
 
 **Learn more:** [Glyph Name Pattern](/guides/glyph-name-pattern/) · [Figma Primitives setting](/settings/figma-primitives/)
-
-## Checklist
-
-| Check | Area | Priority |
-|---|---|---|
-| One component per page, with its subcomponents | File organization | Should |
-| Foundation pages separated from component pages | File organization | Could |
-| Icon glyphs namespaced | Foundations | Must |
-| Color, spacing, sizing bound to variables | Foundations | Should |
-| Typography and effects applied as styles | Foundations | Should |
-| No repeated layer names anywhere inside a component | Components | Must |
-| Layer names stable across variants | Components | Must |
-| Component names namespaced | Components | Should |
-| State, disabled, selected, loading as separate properties | Components | Should |
-| Every optional element paired with a visibility boolean | Components | Should |
-| Purpose-specific components split out from base components | Components | Should |
-| Composition modeled with slots | Components | Should |
-| Instance examples limited to instances of this component | Components | Should |
-| Subcomponents named inside their parent's namespace | Components | Could |
-| Slots carry default content and ready-made examples | Components | Could |
-| Typography published as text components | Components | Could |
-| Icons flowed through an Icon component | Components | Nice to have |
