@@ -12,6 +12,7 @@ import { SectionedFile, shadowIngestEnabled, shadowCompare } from '../utilities/
 import { ManifestParserV2, type ManifestRowV2 } from '../utilities/ManifestParserV2.js';
 import { isV1Manifest, migrateV1ToV2 } from '../utilities/ManifestMigrationV1ToV2.js';
 import { glyphPatternMatch } from '../utilities/glyphPatternMatch.js';
+import { formatKey } from '../utilities/formatKey.js';
 import { ConfigLoader } from '../Config/ConfigLoader.js';
 import { figmaOf } from '../Config/PlatformConventions.js';
 
@@ -295,8 +296,46 @@ export function partitionByGlyphPattern(
   return { components: comps, glyphs };
 }
 
+/**
+ * The compositions a manifest may list, from the frames discovery qualified by the
+ * marker (ADR-095). Two further exclusions, both shared with components in spirit:
+ *
+ * - an authoring aid is not a composition, for the same reason it is not a component
+ * - a frame whose name yields an empty spec key cannot own a spec folder. A frame
+ *   named with whitespace alone is real, not hypothetical, and its key would be the
+ *   empty string — which would claim the compositions directory itself
+ *
+ * Returns the listable rows and, separately, what was dropped and why, so the caller
+ * can say so rather than leaving a marked frame silently missing.
+ */
+export function listableCompositions(
+  frames: ComponentInfo[],
+  keyFormat: string,
+  aidConventions: { exclude?: string[]; codeOnlyProps?: string } = {}
+): { compositions: ComponentInfo[]; authoringAids: number; unnameable: ComponentInfo[] } {
+  const compositions: ComponentInfo[] = [];
+  const unnameable: ComponentInfo[] = [];
+  let authoringAids = 0;
+
+  for (const frame of frames) {
+    if (isAuthoringAid(frame.name, aidConventions)) {
+      authoringAids += 1;
+      continue;
+    }
+    if (formatKey(frame.name, keyFormat) === '') {
+      unnameable.push(frame);
+      continue;
+    }
+    compositions.push(frame);
+  }
+
+  compositions.sort((a, b) => a.name.localeCompare(b.name));
+  return { compositions, authoringAids, unnameable };
+}
+
 function generateManifestV2(
   rows: ManifestRowV2[],
+  compositions: ComponentInfo[],
   glyphs: ComponentInfo[],
   sourceFile: string,
   fileLastModified: string | undefined,
@@ -322,6 +361,23 @@ function generateManifestV2(
     lines.push(
       `| ${checkbox} | ${escapeCell(row.name)} | ${row.id} | ${row.type} | ${row.devStatus} |`
     );
+  }
+
+  // Compositions (ADR-095) sit between the curated section and the excluded one,
+  // because that is what they are: recorded rather than curated, and specced
+  // rather than excluded. No checkbox column — the Figma marking is the decision,
+  // and no Dev Status column, because it would read READY_FOR_DEV on every row.
+  if (compositions.length > 0) {
+    lines.push('');
+    lines.push('## Compositions');
+    lines.push('');
+    lines.push('_Frames marked `READY_FOR_DEV` in Figma. Every row is specced by `specs generate` — this section is not curated, and is re-derived on every scan._');
+    lines.push('');
+    lines.push('| Name | ID | Type |');
+    lines.push('|------|------|------|');
+    for (const c of compositions) {
+      lines.push(`| ${escapeCell(c.name)} | ${c.id} | ${c.type} |`);
+    }
   }
 
   if (glyphs.length > 0) {
@@ -552,8 +608,29 @@ export const Scan = new Command('scan')
         }
       }
 
+      // Compositions (ADR-095): derived from the library on every scan, never merged
+      // with a prior manifest — there is no checkbox to preserve.
+      const { compositions, authoringAids: compositionAids, unnameable } = listableCompositions(
+        discovery.findCompositions(),
+        config.settings.spec.keys,
+        aidConventions
+      );
+      for (const frame of unnameable) {
+        console.warn(
+          `⚠ Composition skipped: frame ${frame.id} has no name that yields a spec key — ` +
+          `give it a name in Figma, or remove its ready-for-dev marking`
+        );
+      }
+      if (options.verbose) {
+        if (compositionAids > 0) {
+          console.error(`[CLI] Excluded ${compositionAids} authoring-aid frame(s) from compositions`);
+        }
+        console.error(`[CLI] Found ${compositions.length} composition(s) marked READY_FOR_DEV`);
+      }
+
       const manifest = generateManifestV2(
         rows,
+        compositions,
         glyphList,
         path.resolve(file),
         discovery.getFileLastModified(),
@@ -568,6 +645,9 @@ export const Scan = new Command('scan')
 
       console.log(`✓ Scanned ${path.basename(file)}`);
       console.log(`✓ Found ${rows.length} components (${includedCount} selected, ${excludedCount} excluded)`);
+      if (compositions.length > 0) {
+        console.log(`✓ Found ${compositions.length} compositions (frames marked ready for dev)`);
+      }
       if (glyphList.length > 0) {
         console.log(`✓ Detected ${glyphList.length} glyphs (excluded from generate)`);
       }

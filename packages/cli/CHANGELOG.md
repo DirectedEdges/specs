@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.32.0] - Unreleased
 
+### Added
+
+- **`specs scan` lists compositions — the frames a library marks ready for dev — in a third manifest section.** The `## Compositions` section carries no checkbox: the Figma marking is the decision, every row is specced, and the section is re-derived on every scan rather than merged with the prior manifest. A marked frame qualifies wherever it sits — on a page, in a section, inside any container — except inside another marked frame, where the outermost marking wins so one arrangement is never specced twice (ADR-095).
+- **A frame that cannot be named is reported rather than silently dropped.** A frame whose Figma name yields no spec key — one named with whitespace alone — would claim the compositions directory itself as its spec folder, so it is skipped with its node id and the two ways to resolve it.
+
 ### Breaking
 
 - **`specs scan` matches subcomponent patterns exactly**, every character outside `{C}` and `{S}` included — spaces and slashes among them. A library spelling the hidden-folder separator two ways (`/ _ /` and `/_ /`) now declares a pattern for each; scan previously dropped `_` segments before matching, so one pattern silently covered both spellings and a pattern containing `_` could never match. Patterns now mean the same thing here as they do when specs are generated (ADR-094).

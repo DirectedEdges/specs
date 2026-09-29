@@ -49,6 +49,14 @@ function readDevStatus(node: RestApiNode): DevStatus {
 }
 
 /**
+ * The composition qualifier (ADR-095): a FRAME the library marks ready for dev.
+ * Nothing about where the frame sits enters into it.
+ */
+function qualifiesAsComposition(node: RestApiNode): boolean {
+  return node.type === 'FRAME' && readDevStatus(node) === 'READY_FOR_DEV';
+}
+
+/**
  * Minimal structure for REST API file data
  */
 export interface RestApiFileData {
@@ -67,7 +75,7 @@ export interface ComponentInfo {
   id: string;
   /** Component name */
   name: string;
-  /** Node type (COMPONENT or COMPONENT_SET) */
+  /** Node type (COMPONENT, COMPONENT_SET, or FRAME for a composition) */
   type: string;
   /** Dev status from Figma, verbatim. 'NONE' when the property is absent on the node. */
   devStatus: DevStatus;
@@ -175,6 +183,48 @@ export class ComponentDiscovery {
   }
 
   /**
+   * The compositions in the file (ADR-095).
+   *
+   * A composition is a FRAME the library marks `READY_FOR_DEV`. The marker is the
+   * sole qualifier — a frame qualifies wherever it lives, whether a direct child of
+   * a page, nested in a SECTION, or inside a plain container.
+   *
+   * A qualifying frame inside another qualifying frame is **not** listed: it is
+   * already captured as part of its ancestor's anatomy, and listing it would spec
+   * the same arrangement twice under two keys. The outermost marking wins.
+   */
+  findCompositions(): ComponentInfo[] {
+    const compositions: ComponentInfo[] = [];
+
+    for (const node of this._nodeMap.values()) {
+      if (!qualifiesAsComposition(node)) continue;
+
+      // Walk to the document root looking for a qualifying ancestor.
+      let ancestorId = this._parentMap.get(node.id);
+      let nested = false;
+      while (ancestorId) {
+        const ancestor = this._nodeMap.get(ancestorId);
+        if (!ancestor) break;
+        if (qualifiesAsComposition(ancestor)) {
+          nested = true;
+          break;
+        }
+        ancestorId = this._parentMap.get(ancestorId);
+      }
+      if (nested) continue;
+
+      compositions.push({
+        id: node.id,
+        name: node.name,
+        type: node.type,
+        devStatus: readDevStatus(node)
+      });
+    }
+
+    return compositions;
+  }
+
+  /**
    * The listable components instanced anywhere inside the given components —
    * what those components compose, and what their composed pieces compose in
    * turn, to a fixpoint. A generated scaffold imports the output of everything
@@ -239,6 +289,7 @@ export class ComponentDiscovery {
  *  the page-streaming one below. */
 export interface DiscoverySource {
   findAllComponents(): ComponentInfo[];
+  findCompositions(): ComponentInfo[];
   composedComponentIds(rootIds: Iterable<string>): Set<string>;
   getFileName(): string;
   getFileLastModified(): string | undefined;
@@ -252,6 +303,7 @@ export interface DiscoverySource {
  */
 export class SectionedComponentDiscovery implements DiscoverySource {
   private rows: ComponentInfo[] = [];
+  private compositionRows: ComponentInfo[] = [];
   private variantToSet = new Map<string, string>();
   private knownComponentIds = new Set<string>();
   private instancedBy = new Map<string, Set<string>>();
@@ -270,7 +322,10 @@ export class SectionedComponentDiscovery implements DiscoverySource {
   }
 
   private indexPage(page: RestApiNode): void {
-    const walk = (node: RestApiNode, parent: RestApiNode | null): void => {
+    // `insideComposition` carries the outermost-wins rule (ADR-095) down the walk,
+    // so a marked frame nested in a marked frame is passed over without a second
+    // ancestor traversal — there is no parent table here to walk up.
+    const walk = (node: RestApiNode, parent: RestApiNode | null, insideComposition: boolean): void => {
       if (node.type === 'COMPONENT_SET' || node.type === 'COMPONENT') {
         this.knownComponentIds.add(node.id);
         const isVariant = node.type === 'COMPONENT' && parent?.type === 'COMPONENT_SET';
@@ -280,9 +335,18 @@ export class SectionedComponentDiscovery implements DiscoverySource {
           this.instancedBy.set(node.id, this.collectInstancedIds(node));
         }
       }
-      for (const child of node.children ?? []) walk(child, node);
+
+      let nowInside = insideComposition;
+      if (qualifiesAsComposition(node)) {
+        if (!insideComposition) {
+          this.compositionRows.push({ id: node.id, name: node.name, type: node.type, devStatus: readDevStatus(node) });
+        }
+        nowInside = true;
+      }
+
+      for (const child of node.children ?? []) walk(child, node, nowInside);
     };
-    walk(page, null);
+    walk(page, null, false);
   }
 
   private collectInstancedIds(root: RestApiNode): Set<string> {
@@ -298,6 +362,10 @@ export class SectionedComponentDiscovery implements DiscoverySource {
 
   findAllComponents(): ComponentInfo[] {
     return this.rows;
+  }
+
+  findCompositions(): ComponentInfo[] {
+    return this.compositionRows;
   }
 
   /** Same fixpoint as ComponentDiscovery.composedComponentIds, resolved through
