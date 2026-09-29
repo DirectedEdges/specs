@@ -85,6 +85,16 @@ export interface Transformer {
    * is: where a transformer's output belongs is a property of what it emits.
    */
   readonly outputTree?: string;
+  /**
+   * Basename of the file this transformer writes into **each component's own
+   * folder**, without extension — the extension follows the run's output format.
+   *
+   * Declared so the command can name these files in its completion output.
+   * A transformer whose only output is an aggregate report leaves this unset;
+   * one that writes beside every component sets it, because a file appearing in
+   * a component folder that no command mentioned reads as corruption.
+   */
+  readonly perComponentOutput?: string;
 
   run(apiYaml: Record<string, unknown>, context: TransformerContext): Promise<void>;
   /** Called once after all components have been processed. Use for cross-component aggregate output. */

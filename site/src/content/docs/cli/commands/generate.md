@@ -335,6 +335,45 @@ specs generate --config workspaces/mobile/config -o specs/mobile.yaml
 ### `--verbose`
 Enable detailed logging — resolved config path, source and mode detection, foundations loaded, and per-component progress.
 
+## Rebuilding the spec tree
+
+`generate` overwrites the files it produces and removes nothing else. A component
+you deselect in the manifest, rename in Figma, or rename by changing a naming
+convention keeps its old folder — the run has no way to tell a deliberately
+deselected component from a stale one, and the same spec directory may hold
+components generated from more than one source.
+
+A full run says which folders it found but did not write, so nothing is left for
+you to discover later:
+
+```
+Note: 2 spec folders are present but were not generated this run: table/oldPart, oldComponent
+  Expected if you deselected them or generate from more than one source. Otherwise they are stale — remove them yourself.
+```
+
+The note is a statement, not a warning: being present without being generated is
+normal in several workflows. Only a full run with no failures reports it — a
+`-c, --component` run knows nothing about the components it was not asked for.
+
+When you want the tree to reflect only what is generated now, rebuild it from
+empty:
+
+```bash
+rm -rf specs/ react/src webcomponents/src
+specs generate
+specs react
+specs webcomponents
+```
+
+Delete only directories you generate into. Anything you author or keep alongside
+them — analysis reports, notes, hand-written files — is yours, and no command
+removes it.
+
+If a Storybook is running against those trees, restart it afterwards. Its index
+holds the story ids it saw at startup, so components you removed keep appearing —
+and a snapshot run that walks the index will spend its time on stories that no
+longer exist.
+
 ---
 
 **See Also:**

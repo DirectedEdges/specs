@@ -49,12 +49,26 @@ Registered in `createProgram()` (`src/index.ts`); flat files in
 | `cache` | `CacheCommand.ts` | Render lookup caches |
 | `applyCustomTokens` | `ApplyCustomTokensCommand.ts` | Inject custom tokens into foundations |
 | `transform` | `TransformCommand.ts` | Project `api.yaml` → derived files |
-| `analyze` | `AnalyzeCommand.ts` | Dependency/prop/styling/key analyzers |
+| `analyze` | `AnalyzeCommand.ts` | Dependency/prop/styling/key analyzers. Naming none runs every analyzer |
 | `render` | `RenderCommand.ts` | Spec → Figma via bridge |
 | `bridge` | `BridgeCommand.ts` | start/stop/status for the daemon |
 | `version` | `VersionCommand.ts` | Spec workspace versioning: diff/history/bump/restore/premerge/report over `src/version/` (diff engine, rules-as-data classifier, ledgers, report renderer). Free tier |
 | `skills` | `SkillsCommand.ts` | Emits the canonical premerge/release orchestration skills into `.claude/skills/` |
 | `audit` | (inline alias) | Deprecated; rewrites argv to `scan` |
+
+- **Nothing removes a spec folder.** `generate` overwrites what it produces and
+  reports folders it found but did not write; a run cannot tell a component
+  deselected on purpose, or one generated from another source, from a stale one.
+  The platform trees are derived and *are* pruned — the full rule is in the
+  repo-root `ARCHITECTURE.md` under "What the tooling may delete".
+- `✓ Fetch complete` is checked against disk, not inferred from the absence of an
+  error: a requested kind missing on disk fails the run, a configured kind that
+  `--only` excluded warns. Counts printed by `reportCache()` are cache contents
+  across every source, not what the run downloaded.
+- A transformer that writes into each component's own folder declares
+  `perComponentOutput` (basename, extension follows the run's format) so the
+  command can name those files — output appearing unannounced in a spec folder
+  reads as corruption.
 
 ## Key nodes
 
@@ -65,7 +79,7 @@ Registered in `createProgram()` (`src/index.ts`); flat files in
 | `src/bridge/` | server, client (`postRender`, `postGenerateFromSelection`), connection pick (`resolveFileKey`), pidfile |
 | `src/utilities/LicenseStatus.ts` | Reads engine-stamped license state; the CLI validates nothing |
 | `src/transforms/` | Open counterparts of transform modules (see drift note below) |
-| `src/Writers/` | Output *strategy* writers: single / component / concern / combined file |
+| `src/Writers/` | Output *strategy* writers: single / component / concern / combined file. `WriteResult.filesWritten` documents itself as relative to the output directory and in fact holds **absolute** paths — re-base before comparing |
 | `src/version/` | Versioning internals: `assemble` (concern files → component) → `diff` → `rules` classifier (rules-as-data in `semverRules.ts`, `--rules` overrides) → `bump`/`ledger` (`versions/<libVersion>/` folders + `ledgers/*.json`, no snapshots) → `report` renderer (premerge canon). Skill markdown emitted by `skills.ts` |
 | `src/Writers/RunMetadataFile.ts` | `latest.metadata.<format>` — a manifest run's facts, stated once (ADR-089). `RunMetadataFile.separate()` lifts them out of every spec and reduces each block to `source`; `RunMetadataReader.find()` reads the document back, looking in the spec's own directory then one level up |
 | `src/Render/SpecLoader.ts` | Spec discovery + loading for render. Rehydrates a reduced spec's run metadata here, at the one place every render input is loaded, so no reader downstream has to know the spec was reduced |

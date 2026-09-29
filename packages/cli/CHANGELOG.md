@@ -23,17 +23,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **No ingest failure is silent.** The cache reports what every source contributed and fails loudly when a payload cannot be read (previously a zero-entry source still reported success); payload-size failures name the file, the ~512MB single-string limit, and remedies; fetch warns at download time when a kept payload exceeds that limit.
 - **Fetch validates config before downloading** (icons ↔ `glyphs.match`, `spec.directory`), and one source's failure no longer aborts the remaining sources — the run reports per-source results and exits non-zero on partial failure.
 - `specs scan` and `specs generate` accept a `<alias>.file` directory anywhere a payload path is accepted.
+- **`specs analyze` runs every analyzer when you name none**, and names the per-component `styling.yaml` it writes into each component folder alongside the aggregate reports.
+- **The props analysis flags a prop whose components disagree on its type**, with a `typeDiscordance` section naming which components hold which — so a name that means two things is not configured as one prop.
+- **`enumDiscordance` now also reports a name some components close with an `enum` while others leave open**, marked `openAndClosed`. Both declare the same type, so nothing flagged this before, yet one promises a fixed set of values and the other promises nothing.
+- **A full `specs generate` run names spec folders it found but did not write**, so a deselected component or a reverted convention leaves nothing for you to discover later. Nothing is deleted — the note says so.
 
 ### Changed
+
+- **`specs fetch` says "glyphs" wherever it used to say "icons"**, matching `scan` and the `glyphs.match` convention. The `icons` fetch kind and the `assets/icons/` directory are unchanged.
 
 ### Fixed
 
 - **A style referencing a variable your fetch did not reach falls back to the value Figma last read for it**, instead of rendering as though the property were never declared. Requires the `TOKEN_FIGMA_EXTENSIONS` or `CUSTOM` tokens format, which is what carries that value.
-
 - **A component you unchecked stays unchecked** when `curation.preserveManualSelections` is on. Dependency selection ran after prior manifest edits were merged forward and re-selected what a human had deselected, so no option preserved the edit (ADR-093).
-
 - **`specs analyze keys` finds divergent names again** — it looks for the declared Figma naming convention where a run now records it (the run document beside the specs) and in the workspace config, not only in the per-spec metadata that specs stopped carrying.
 - **A zero-divergence keys report says when nothing was measured** — a run that finds no declared naming convention warns, instead of reporting a clean result.
+- **A failed source's retry hint names every kind still missing**, not only the one that failed, so following it recovers the whole source in one run.
+- **`specs fetch` no longer reports success while a configured data kind is absent from disk**: a requested kind that did not land fails the run, and a kind excluded by `--only` is called out. Cache counts are labelled as cache contents, so they cannot read as this run's downloads.
 - **A run whose license key cannot be checked stops at the first component** instead of failing every one into the same rate limit, and a rate-limited check now says to wait it out rather than to check your network.
 
 ### Removed

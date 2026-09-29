@@ -336,6 +336,27 @@ async function writeGeneratedOutput(
     process.exit(ERROR_CODES.FILE_ERROR);
   }
 
+  // A component renamed in Figma, renamed by a convention change, or dropped from
+  // the library generates under a new folder and leaves the old one behind. Nothing
+  // removes it — deliberately, since the generator cannot tell a folder you meant to
+  // keep from one you forgot about, and the spec tree is authored against, not built
+  // into (specs#595).
+  //
+  // So it is reported instead. Naming what is present but not generated costs
+  // nothing and cannot lose work; what to do about it is the customer's call.
+  //
+  // Only a full run with no failures may judge: a `--component` run knows nothing
+  // about the components it was not asked for, and every one would look stale.
+  if (
+    isManifest &&
+    !options.component &&
+    errors.length === 0 &&
+    outputConfig.useSubfolders &&
+    !isSingleFileMode
+  ) {
+    await reportUngeneratedSpecs(baseDir, writeResult.filesWritten, resolvedFormat);
+  }
+
   process.exit(errors.length > 0 ? ERROR_CODES.GENERAL_ERROR : ERROR_CODES.SUCCESS);
 }
 
@@ -858,3 +879,65 @@ export const Generate = new Command('generate')
       process.exit(ERROR_CODES.GENERAL_ERROR);
     }
   });
+
+
+/**
+ * Name the spec folders that exist but this run did not write.
+ *
+ * Reports; never deletes. A folder can be absent from a run for reasons the run
+ * cannot distinguish — a component deselected in the manifest on purpose, or specs
+ * generated into this directory from another source — so the decision belongs to
+ * the customer, not to the generator.
+ *
+ * The folders this run is responsible for come from what the writer reports it
+ * wrote, rather than re-deriving names from components. Those paths carry their
+ * nesting, so a subcomponent folder is judged by the same rule as a top-level one.
+ */
+async function reportUngeneratedSpecs(
+  specsDir: string,
+  filesWritten: string[],
+  format: string,
+): Promise<void> {
+  if (!(await fs.pathExists(specsDir))) return;
+
+  // The writers report absolute paths despite what WriteResult says, so they are
+  // re-based here rather than trusted as relative.
+  const written = new Set<string>();
+  for (const file of filesWritten) {
+    const relative = path.relative(specsDir, path.resolve(file));
+    if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) continue;
+    const segments = relative.split(path.sep).slice(0, -1).filter(seg => seg && seg !== '.');
+    for (let i = 1; i <= segments.length; i++) written.add(segments.slice(0, i).join('/'));
+  }
+  // Recognising none of this run's output means no basis for judging anything else.
+  if (written.size === 0) return;
+
+  const ungenerated: string[] = [];
+
+  const walk = async (relative: string): Promise<void> => {
+    const absolute = relative ? path.join(specsDir, relative) : specsDir;
+    for (const entry of await fs.readdir(absolute, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const childRelative = relative ? `${relative}/${entry.name}` : entry.name;
+      if (written.has(childRelative)) {
+        // Kept, but a subcomponent inside it may not have been written.
+        await walk(childRelative);
+        continue;
+      }
+      // An api file is what makes a folder a component spec rather than something
+      // the customer keeps here.
+      if (await fs.pathExists(path.join(specsDir, childRelative, `api.${format}`))) {
+        ungenerated.push(childRelative);
+      }
+    }
+  };
+  await walk('');
+
+  if (ungenerated.length === 0) return;
+
+  console.log(
+    `Note: ${ungenerated.length} spec ${ungenerated.length === 1 ? 'folder is' : 'folders are'} ` +
+      `present but were not generated this run: ${ungenerated.join(', ')}`,
+  );
+  console.log('  Expected if you deselected them or generate from more than one source. Otherwise they are stale — remove them yourself.');
+}

@@ -17,7 +17,10 @@ specs analyze [analyzers...] [options]
 
 Analyzer names are passed as positional arguments. There is no config key — analyzers are run on demand.
 
+**Naming no analyzer runs all of them.** Reach for a named subset when you want one report quickly, or when a later analyzer is slow on a large catalogue.
+
 ```bash
+specs analyze                      # every analyzer
 specs analyze props
 specs analyze styling
 specs analyze dependencies
@@ -25,6 +28,8 @@ specs analyze keys
 specs analyze props styling dependencies
 specs analyze props --analysis ./reports
 ```
+
+Naming an analyzer that does not exist is an error, and the message lists the ones that do.
 
 ## Options
 
@@ -60,7 +65,12 @@ specs/
     api.yaml
     contract.ts
     styles.css
+    styling.yaml                  # from specs analyze styling — per component
 ```
+
+Most analyzers write only into `_analysis/`. `styling` also writes a `styling.yaml`
+into **each component's own folder**, holding that component's token-usage index;
+the completion output names it so the file is not a surprise.
 
 ## See Also
 

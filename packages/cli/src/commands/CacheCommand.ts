@@ -30,13 +30,22 @@ export function reportCache(report: CacheReport): boolean {
 
   // Per-source contribution, so a source contributing nothing is visible as itself
   // rather than hidden inside a merged total.
+  //
+  // These are what the cache read from disk, not what any one run downloaded — a
+  // source skipped or failed this run still contributes its previous payload. Said
+  // plainly, because a reader who has just watched a fetch will otherwise take
+  // these for that fetch's results (specs#572).
   const failedAliases = new Set(failures.map(f => f.alias));
-  for (const [alias, c] of Object.entries(aliasCounts)) {
+  const aliasEntries = Object.entries(aliasCounts);
+  if (aliasEntries.length > 0) {
+    console.log('  In the render cache (every source, not only this run):');
+  }
+  for (const [alias, c] of aliasEntries) {
     const line = `${c.components} components, ${c.styles} styles, ${c.variables} variables, ${c.icons} icons`;
     console.log(`    ${alias}: ${failedAliases.has(alias) ? `✗ FAILED — ${line}` : line}`);
   }
   console.log(
-    `  Entries: ${counts.components} components, ${counts.styles} styles, ` +
+    `  Cache entries: ${counts.components} components, ${counts.styles} styles, ` +
     `${counts.variables} variables, ${counts.icons} icons`
   );
 
