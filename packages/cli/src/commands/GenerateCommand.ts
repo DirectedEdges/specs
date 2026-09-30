@@ -564,9 +564,10 @@ export const Generate = new Command('generate')
           ? ManifestParserV2.parse(sourceContent)
           : ManifestParser.parse(sourceContent);
         const { components, metadata } = parsed;
-        // The Compositions section is not curated (ADR-095): being listed is being
-        // in the run, so there is nothing to filter and no empty-selection case.
-        const compositions = 'compositions' in parsed ? parsed.compositions : [];
+        // Compositions are curated exactly as components are (ADR-095) — the
+        // checkbox decides, and an unchecked one is skipped like an unchecked
+        // component.
+        const compositions = ('compositions' in parsed ? parsed.compositions : []).filter(c => c.included);
 
         for (const warning of ('warnings' in parsed ? parsed.warnings : [])) {
           console.warn(`⚠ ${warning}`);
@@ -585,8 +586,9 @@ export const Generate = new Command('generate')
         }
 
         console.log(`✓ Loaded manifest: ${components.length} components (${selectedComponents.length} selected)`);
-        if (compositions.length > 0) {
-          console.log(`✓ Loaded manifest: ${compositions.length} compositions (all specced)`);
+        const allCompositions = 'compositions' in parsed ? parsed.compositions : [];
+        if (allCompositions.length > 0) {
+          console.log(`✓ Loaded manifest: ${allCompositions.length} compositions (${compositions.length} selected)`);
         }
 
         // Determine source file. `<alias>.manifest.md` names the source it was

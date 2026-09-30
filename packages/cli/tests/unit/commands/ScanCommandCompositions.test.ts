@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { listableCompositions } from '../../../src/commands/ScanCommand.js';
+import { listableCompositions, deriveDefaultInclusion, mergeRows } from '../../../src/commands/ScanCommand.js';
 import { ManifestParserV2 } from '../../../src/utilities/ManifestParserV2.js';
 import { ComponentDiscovery, type ComponentInfo } from '../../../src/utilities/ComponentDiscovery.js';
 import { specFolderKey } from '../../../src/utilities/specFolderKey.js';
@@ -143,10 +143,10 @@ describe('the Compositions manifest section', () => {
     '',
     '_Frames marked `READY_FOR_DEV` in Figma._',
     '',
-    '| Name | ID | Type |',
-    '|------|------|------|',
-    '| Checkout \\| Small | 3:67 | FRAME |',
-    '| Home | 3:68 | FRAME |',
+    '| ✓ | Name | ID | Type | Dev Status |',
+    '|---|------|----|------|------------|',
+    '| [x] | Checkout \\| Small | 3:67 | FRAME | READY_FOR_DEV |',
+    '| [ ] | Home | 3:68 | FRAME | READY_FOR_DEV |',
     '',
     '## Glyphs',
     '',
@@ -155,7 +155,7 @@ describe('the Compositions manifest section', () => {
     '| Glyph / arrow | 9:1 | COMPONENT |',
   ].join('\n');
 
-  it('parses composition rows with constant included and devStatus', () => {
+  it('parses the checkbox, so a composition can be curated', () => {
     const { compositions } = ManifestParserV2.parse(manifest);
     expect(compositions).toHaveLength(2);
     expect(compositions[0]).toEqual({
@@ -165,6 +165,7 @@ describe('the Compositions manifest section', () => {
       included: true,
       devStatus: 'READY_FOR_DEV',
     });
+    expect(compositions[1].included).toBe(false);
   });
 
   it('keeps the Components section unaffected, and does not absorb Glyph rows', () => {
@@ -177,5 +178,51 @@ describe('the Compositions manifest section', () => {
   it('yields an empty compositions list when the section is absent', () => {
     const withoutSection = manifest.slice(0, manifest.indexOf('## Compositions'));
     expect(ManifestParserV2.parse(withoutSection).compositions).toEqual([]);
+  });
+});
+
+/**
+ * Compositions curate exactly as components do (ADR-095) — the same functions, so
+ * these pin that the shared machinery behaves for a set whose every member is marked.
+ */
+describe('composition curation', () => {
+  const marked = (id: string, name: string): ComponentInfo =>
+    ({ id, name, type: 'FRAME', devStatus: 'READY_FOR_DEV' });
+
+  it('checks every composition on a first scan, since eligibility is the marking', () => {
+    const defaults = deriveDefaultInclusion([marked('1:0', 'Home'), marked('2:0', 'Checkout')], 'READY_FOR_DEV');
+    expect([...defaults.values()]).toEqual([true, true]);
+  });
+
+  it('sustains a check recorded by a previous scan', () => {
+    const current = [marked('1:0', 'Home'), marked('2:0', 'Checkout')];
+    const prior = [
+      { id: '1:0', name: 'Home', type: 'FRAME' as const, included: true, devStatus: 'READY_FOR_DEV' },
+      { id: '2:0', name: 'Checkout', type: 'FRAME' as const, included: false, devStatus: 'READY_FOR_DEV' },
+    ];
+    const defaults = deriveDefaultInclusion(current, 'READY_FOR_DEV');
+    const { rows, stats } = mergeRows(current, prior, defaults, false);
+
+    // An eligible composition is always READY_FOR_DEV, so devStatus never changes and
+    // the recorded checkbox always wins — which is the whole of "sustain the check".
+    expect(rows.find(r => r.id === '1:0')!.included).toBe(true);
+    expect(rows.find(r => r.id === '2:0')!.included).toBe(false);
+    expect(stats.preserved).toBe(2);
+    expect(stats.flippedByFigma).toBe(0);
+  });
+
+  it('adds a newly marked frame checked, and drops one that lost its marking', () => {
+    const prior = [
+      { id: '1:0', name: 'Home', type: 'FRAME' as const, included: false, devStatus: 'READY_FOR_DEV' },
+      { id: '9:0', name: 'Retired', type: 'FRAME' as const, included: true, devStatus: 'READY_FOR_DEV' },
+    ];
+    const current = [marked('1:0', 'Home'), marked('2:0', 'Inbox')];
+    const { rows, stats } = mergeRows(current, prior, deriveDefaultInclusion(current, 'READY_FOR_DEV'), false);
+
+    expect(rows.map(r => r.id)).toEqual(['1:0', '2:0']);
+    expect(rows.find(r => r.id === '1:0')!.included).toBe(false); // hand-unchecked, kept
+    expect(rows.find(r => r.id === '2:0')!.included).toBe(true);  // newly marked
+    expect(stats.added).toBe(1);
+    expect(stats.removed).toBe(1);
   });
 });

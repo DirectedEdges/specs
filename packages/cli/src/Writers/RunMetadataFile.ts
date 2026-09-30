@@ -14,6 +14,9 @@ import type { OutputFormat } from '../Types/OutputConfig.js';
  */
 export const RUN_METADATA_BASENAME = 'latest.metadata';
 
+/** How far above a spec folder the run document is looked for. See `ancestorsOf`. */
+const SEARCH_DEPTH = 4;
+
 /** The `metadata` block of a spec, as it exists before the run's facts are lifted out. */
 type SpecMetadata = Metadata & Record<string, unknown>;
 
@@ -167,7 +170,11 @@ export class RunMetadataReader {
       ? specPath
       : path.dirname(specPath);
 
-    for (const dir of [start, path.dirname(start)]) {
+    // Up to the specs root, not a fixed two levels. Under the ADR-096 layout a spec
+    // sits at `specs/components/<key>/` and the run document at `specs/` — three
+    // levels apart for a subcomponent — so a fixed climb stopped one short and the
+    // run facts were silently lost. Bounded by the filesystem root.
+    for (const dir of this.ancestorsOf(start)) {
       for (const format of ['yaml', 'json'] as const) {
         const candidate = path.join(dir, `${RUN_METADATA_BASENAME}.${format}`);
         if (!fs.existsSync(candidate)) continue;
@@ -176,6 +183,28 @@ export class RunMetadataReader {
       }
     }
     return undefined;
+  }
+
+  /**
+   * `dir` and up to `SEARCH_DEPTH` ancestors, nearest first. The nearest run document
+   * wins, so a workspace keeping one beside its specs beats one further up.
+   *
+   * Bounded rather than walked to the filesystem root: an unbounded climb out of the
+   * workspace could adopt an unrelated document from a parent directory, which is a
+   * worse failure than finding none. The depth covers every real layout — a spec at
+   * `specs/components/<key>/`, a subcomponent one deeper, and a legacy flat
+   * `specs/<key>/` — with one level of headroom.
+   */
+  private static ancestorsOf(dir: string): string[] {
+    const chain: string[] = [];
+    let current = dir;
+    for (let level = 0; level <= SEARCH_DEPTH; level++) {
+      chain.push(current);
+      const parent = path.dirname(current);
+      if (parent === current) break;
+      current = parent;
+    }
+    return chain;
   }
 
   /** A malformed run document is skipped, not fatal — the caller still has the workspace config. */

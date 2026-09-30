@@ -128,8 +128,23 @@ specs/
     checkoutSmall/              api.yaml, variants.yaml, examples.yaml
 ```
 
-`latest.metadata.yaml` stays at the root because it is the *run's* facts, not any one
-kind's. A composition and a component produced by the same run share it.
+`latest.metadata.yaml` stays at the root, in **one copy**, because it is the *run's*
+facts — not any one kind's. A composition and a component produced by the same run share
+them.
+
+A copy inside each kind directory was considered, on the argument that the run document
+describes `components/` and `compositions/` but not `analysis/`, which a different command
+writes. Rejected: `analysis/` never reads the run document, so the root placement was
+never a claim about it, and two byte-identical copies can drift the moment anything writes
+one and not the other. ADR-089's point is that the run states its facts *once*.
+
+That placement did expose a real defect. `RunMetadataFile.find()` searched a spec's own
+directory and one level above it — enough when a spec sat at `specs/<key>/`, one level
+short once it sits at `specs/components/<key>/`, and two short for a subcomponent. Render
+silently lost the run facts. The reader now climbs a bounded number of levels, nearest
+document winning; bounded rather than walked to the filesystem root, because adopting an
+unrelated document from somewhere above the workspace is a worse failure than finding
+none.
 
 The concern split inside a spec folder is unchanged, and identical for both kinds. A
 composition's spec is a spec: `api.yaml` with `metadata.source.nodeType: FRAME`, and
@@ -266,6 +281,7 @@ each other.
 | `specs-cli` — generate | Writes the new layout | Route spec output by kind through the resolver |
 | `specs-cli` — react / webcomponents | Discovers specs, derives output paths, prunes orphans | Read through the resolver; pass `specsRoot` and `kind` |
 | `specs-cli` — analyze | Writes `analysis/` | Drop the underscore |
+| `specs-cli` — render | Reads the run document from a deeper spec folder | `RunMetadataFile.find()` climbs to the specs root instead of stopping one level up |
 | `specs-cli` — version | Assembles both kinds; compositions graded patch-only and unversioned | Read through the resolver instead of its own `_`/`.` filter |
 | `specs-cli` — analyze | Dependencies and styling read both kinds | Declare `readsKinds` per analyzer |
 | `react-from-specs`, `webcomponents-from-specs` | Stop climbing to the specs root | Consume `specsRoot`; resolve siblings under `components/` |
@@ -297,7 +313,8 @@ existing workspaces working, which makes the change survivable, not additive.
 - A workspace on the flat layout keeps emitting until it is regenerated, and is told once
   per run that it should be.
 - Any external tool reading `specs/<key>/api.yaml` breaks and must read
-  `specs/components/<key>/api.yaml`.
+  `specs/components/<key>/api.yaml`. Anything reading `latest.metadata.yaml` beside a
+  spec must look further up — it is still one copy, at the specs root.
 - The library version now moves — by a patch — when a composition changes. A workspace
   that only edits screens will see patch releases it did not see before.
 - Dependency analysis gains the edges that matter most for blast radius: which components

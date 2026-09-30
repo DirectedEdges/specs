@@ -36,12 +36,12 @@ The manifest is a markdown file with a metadata header, a Components table, a Co
 
 ## Compositions
 
-_Frames marked `READY_FOR_DEV` in Figma. Every row is specced by `specs generate` — this section is not curated, and is re-derived on every scan._
+_Frames marked `READY_FOR_DEV` in Figma — a frame with no marking gets no row. Check and uncheck to curate, exactly as above._
 
-| Name | ID | Type |
-|------|------|------|
-| Checkout / Small | 3070:1147 | FRAME |
-| Home / Large | 4240:0115 | FRAME |
+| ✓ | Name | ID | Type | Dev Status |
+|---|------|----|------|------------|
+| [x] | Checkout / Small | 3070:1147 | FRAME | READY_FOR_DEV |
+| [ ] | Home / Large | 4240:0115 | FRAME | READY_FOR_DEV |
 
 ## Glyphs
 
@@ -65,8 +65,8 @@ _Detected via `glyphNamePattern`. Excluded from `specs generate`._
 - `Dev Status` — `READY_FOR_DEV` (designer-flagged in Figma Dev Mode) or `NONE` (unset). Read-only on each scan; changes drive the default merge behavior.
 
 **Compositions row format:**
-- No checkboxes — the Figma marking is the decision, so there is nothing here to curate. Every row is specced.
-- No `Dev Status` column — it would read `READY_FOR_DEV` on every row, because being marked is what puts a row here.
+- The same five columns as Components, curated the same way: `[x]` / `[ ]`, edited by hand.
+- `Dev Status` reads `READY_FOR_DEV` on every row — that marking is what earned the row a place. A frame without it is not listed at all.
 - `Type` — always `FRAME`.
 
 **Glyphs row format:**
@@ -126,18 +126,29 @@ If you remove the `glyphs` convention and rescan, previously-partitioned glyphs 
 
 ### Compositions
 
-A **composition** is a Figma frame that arranges components into a screen, a page, or a pattern. `scan` lists one when — and only when — it is marked **Ready for dev** in Figma Dev Mode. The marking is the whole of the rule:
+A **composition** is a Figma frame that arranges components into a screen, a page, or a pattern. Compositions are curated exactly as components are — same columns, same checkbox, same rescan rules. What differs is only which frames are **eligible** for a row.
 
-- **No marking, no row.** Unmarked frames never appear, not even unchecked. Libraries are full of frames a designer works inside; the marking is what separates a deliverable from a workspace.
-- **Position does not matter.** A frame on a page, a frame inside a section, a frame inside any other container — all equally eligible.
-- **The outermost marking wins.** A marked frame inside another marked frame is not listed separately. It is already captured as part of its ancestor, and listing it would spec the same arrangement twice under two keys.
-- **Authoring aids are excluded**, the same as they are for components — a frame matching `figma.subcomponents.exclude`, or sitting under the `codeOnlyProps` container, is not a composition.
+**Eligibility: the frame must be marked Ready for dev in Figma.**
 
-The section is **recorded, not curated**. It is rebuilt from the Figma payload on every scan, so:
+- **No marking, no row.** An unmarked frame never appears, not even unchecked. This is what keeps the section usable: a real production library holds around 20,000 frames and marks about a dozen. A frame is a working container by default; the marking is what makes it a deliverable.
+- **Position does not matter.** A frame on a page, in a section, or inside any other container — all equally eligible.
+- **The outermost marking wins.** A marked frame inside another marked frame is not listed separately; it is already captured as part of its ancestor, and listing it would spec the same arrangement twice.
+- **Authoring aids are excluded**, the same as for components — a frame matching `figma.subcomponents.exclude`, or under the `codeOnlyProps` container, is not a composition.
 
-- `--include-all`, `--keep-checks` and `--reset-checks` have no effect on it. They widen or protect *curation*; qualification is the marking's job.
-- `curation.includeDependencies` does not apply. A composition retains nothing and is retained by nothing — the components it instances are curated on their own merits.
-- To take a composition out of a run, unmark the frame in Figma. That is deliberate: the library is where the decision belongs.
+**Curation: the checkbox decides what this run specs.**
+
+| | What happens |
+|---|---|
+| First scan | Every eligible composition starts checked |
+| You uncheck one, then rescan | It stays unchecked — no flag needed |
+| A frame gains the marking | It appears, checked |
+| A frame loses the marking | Its row is dropped, like a deleted component's |
+| `--include-all` | Checks every eligible composition. It widens curation, never eligibility |
+| `--reset-checks` | Re-derives every checkbox from scratch |
+
+Unchecking a row and unmarking the frame in Figma both remove a composition from the run, and the difference matters: unchecking is a decision about **this run**, recorded in the manifest and reversible there; unmarking says the frame is **not a deliverable**, and removes it from the manifest entirely.
+
+`curation.includeDependencies` does not apply to compositions. A checked composition does not pull in the components it composes — those stay curated on their own merits. If a composition composes a component you have not selected, the emitted scaffold imports output that was never generated, which `transform-verify-imports` reports as one line of error.
 
 Compositions are specced on either tier. **Emitting code** from one — `specs react`, `specs webcomponents` — requires Pro.
 
@@ -180,7 +191,7 @@ specs scan --verbose
 # Output:
 # ✓ Scanned library.file
 # ✓ Found 164 components (12 selected, 152 excluded)
-# ✓ Found 6 compositions (frames marked ready for dev)
+# ✓ Found 6 compositions (5 selected, 1 excluded)
 # ✓ Detected 48 glyphs (excluded from generate)
 #   Merge: 1 updated by devStatus, 163 preserved
 # ✓ Saved to /absolute/path/to/data/library.manifest.md

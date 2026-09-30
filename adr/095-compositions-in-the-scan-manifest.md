@@ -1,4 +1,4 @@
-# ADR: Compositions Are a Recorded Section of the Manifest, Not a Curated One
+# ADR: Compositions Are Curated Like Components, From a Smaller Eligible Set
 
 **Branch**: `feature/compositions-cli`
 **Created**: 2026-09-29
@@ -36,25 +36,46 @@ answers to the same question — *who decides what is in this run?*
 | `## Components` | the human, from a default the library's dev-status markings seed (ADR-093) | checkbox per row |
 | `## Glyphs` | the naming convention, absolutely | no checkbox; recorded and excluded |
 
-Compositions need a third answer, because neither existing one fits. Curating them is
-busywork: unlike a component library, where a library holds far more than a team
-consumes, a frame is only a composition *because someone marked it ready for dev*. The
-marking is already the curation. And unlike glyphs, a composition is the point of the
-run — recording it and then excluding it would record nothing anyone asked for.
+Glyphs are the one section that is genuinely output rather than input, and it stays that
+way — a glyph is never generated, so there is nothing to curate.
+
+Compositions take the **same** answer as components, which means separating two things
+the Components section conflates because for components they coincide:
+
+| Layer | Components | Compositions |
+|---|---|---|
+| What is **eligible** for a row | every component set and standalone component | only a frame the library marks ready for dev |
+| How a row is **curated** | checkbox, seeded from dev status, merged on rescan (ADR-093) | identical |
+
+Eligibility has to differ, and not as a matter of taste. The production library this was
+built against holds **19,950 frames**; 4,919 are direct children of a page or section;
+**11** are marked ready for dev. Listing frames the way components are listed would
+produce a manifest nobody can read, review, or diff. A frame is a working container by
+default — a designer's scratch space — and the marking is what distinguishes a
+deliverable from one.
+
+Curation must not differ. A team that ships eight of its ten marked screens has the same
+need a team shipping eighty of its hundred components has: uncheck the two, and have that
+survive the next scan. An earlier draft of this ADR made the section uncurated on the
+grounds that the marking was already the decision. That conflated the two layers: the
+marking decides *candidacy*, the checkbox decides *this run*, and a team needs both.
 
 ---
 
 ## Decision Drivers
 
-- **The marking is the decision.** A frame marked ready for dev has been declared
-  consumable by the person who marked it. A second, redundant decision in a checkbox
-  adds a step that can only ever disagree with the first by accident.
+- **The marking decides eligibility, not the run.** A frame marked ready for dev has
+  been declared a candidate. Which candidates this run specs is the manifest's job, the
+  same as for components.
+- **A manifest a human cannot read is not a curation surface.** Any rule that admits
+  thousands of unmarked frames fails, whatever its other merits.
 - **Wherever the frame lives.** Compositions sit on pages, in sections, inside other
   containers. No structural position rule may qualify or disqualify one.
 - **One frame, one spec.** A composition must not be specced twice, once on its own and
   once as part of something else.
-- **Rescan is idempotent and needs no merge.** A section with nothing a human can edit
-  has nothing to preserve across a rescan, which removes a whole class of merge rule.
+- **One set of curation rules, not two.** Whatever the manifest does for components on a
+  rescan it must do for compositions, using the same code — two implementations of
+  "preserve a hand edit" will diverge.
 - **The manifest stays human-readable.** A third section must read as obviously as the
   two that precede it, and a reader must be able to tell why a row is there.
 - **No format version bump.** A v2 parser that predates this ADR must read a manifest
@@ -64,91 +85,102 @@ run — recording it and then excluding it would record nothing anyone asked for
 
 ## Options Considered
 
-### Option A: A third section, recorded and always generated *(Selected)*
+The axis is not *whether* to have a Compositions section — that follows from compositions
+needing their own output directory (ADR-096). It is how a row gets into it, and what a
+reader may do to it once there.
 
-`## Compositions` lists every qualifying frame, with no checkbox, and `specs generate`
-processes every row in it. Membership is derived from the library on every scan; the
-section is output, never input.
+### Option A: Marked frames are eligible; curated like components *(Selected)*
 
 ```markdown
 ## Compositions
 
-_Frames marked `READY_FOR_DEV` in Figma. All are specced — this section is not curated._
+_Frames marked `READY_FOR_DEV` in Figma — a frame with no marking gets no row. Check and uncheck to curate, exactly as above._
 
-| Name | ID | Type |
-|------|------|------|
-| Checkout / Small | 30141:6435 | FRAME |
-| Home / Large | 44240:10115 | FRAME |
+| ✓ | Name | ID | Type | Dev Status |
+|---|------|----|------|------------|
+| [x] | Checkout / Small | 30141:6435 | FRAME | READY_FOR_DEV |
+| [ ] | Inbox / Small | 39989:35636 | FRAME | READY_FOR_DEV |
 ```
 
 **Pros**:
-- The marking is the only decision, stated once, in Figma, by the person who owns it.
-- Merge semantics collapse to nothing: a rescan rewrites the section wholesale, so
-  `--keep-checks`, `--reset-checks` and `settings.curation` have no composition
-  behaviour to define, and therefore no composition behaviour to get wrong.
-- Mirrors the `## Glyphs` precedent for a recorded, uncheckboxed section — the same
-  three columns, the same explanatory note under the heading — differing only in what
-  happens downstream, which the note says outright.
-- A pre-ADR parser reads the section's rows as unparseable and warns; it does not fail,
-  because its row regex requires a leading checkbox cell that these rows do not have.
+- One set of curation rules for the whole manifest. `deriveDefaultInclusion`,
+  `mergeRows`, `settings.curation` and the `--keep-checks` / `--reset-checks` /
+  `--include-all` flags all apply unchanged, because they are literally the same
+  functions — there is no second implementation to diverge.
+- A team can ship a subset of its marked screens and have that survive a rescan, which
+  is the ordinary case the uncurated draft had no answer for.
+- The eligible set stays small and meaningful: 11 rows against a library of 19,950 frames.
+- The two layers each sit where their authority belongs — candidacy in Figma, with the
+  person who marked the frame; this run in the manifest, with the person reviewing it.
 
 **Cons / Trade-offs**:
-- A team wanting one composition out of a marked set cannot express that in the
-  manifest; they must unmark the frame in Figma. This is the intended direction of
-  authority, not an oversight — but it is a real constraint, and `--compositions <name>`
-  on generate is the escape if one is ever needed.
-- The Components and Compositions sections now answer the curation question
-  differently, so "the manifest is a curation file" becomes "the manifest is a record of
-  the run, part of which is curated."
+- Two sections that look identical follow different eligibility rules, and nothing in the
+  table says so. The note under the heading carries that, and has to.
+- Unmarking a frame in Figma and unchecking its row are different acts with similar
+  effects, which is one more thing to understand.
 
 ---
 
-### Option B: A third section, checkbox-curated like Components *(Rejected)*
+### Option B: Marked frames are eligible; the section is not curated *(Rejected)*
 
-`## Compositions` with a checkbox per row, seeded checked from the marking, merged
-across rescans by the ADR-093 rules.
+The earlier draft: no checkbox, every listed frame specced, section re-derived wholesale
+on every scan.
 
-**Rejected because**: it duplicates a decision already made in Figma, and buys nothing
-for it. Every ADR-093 rule would need a composition answer — what `defaultSelection:
-ALL` means for an unmarked frame, whether `includeDependencies` pulls the components a
-composition composes into the *component* selection, what `preserveManualSelections`
-protects — and each answer is a new way for a scan to produce a manifest the author did
-not intend. Violates *the marking is the decision*.
+**Rejected because**: it leaves a team that wants eight of its ten marked screens with no
+way to say so except unmarking frames in Figma — editing the library to configure a run.
+It also splits the manifest into a curated half and an uncurated half for no benefit the
+curated form does not also have. Violates *one set of curation rules*.
 
 ---
 
-### Option C: Compositions as rows in the existing `## Components` section *(Rejected)*
+### Option C: Every frame is eligible, curation decides *(Rejected)*
 
-One section, with `Type` distinguishing `FRAME` rows from `COMPONENT`/`COMPONENT_SET`.
+The literal component rule: list all frames, let dev status seed the checkbox.
 
-**Rejected because**: the two row kinds would obey different curation rules inside one
-table — some rows' checkboxes meaningful, others' ignored — which is unreadable. It also
-forces a name collision to be resolvable, since a composition and a component may share
-a name, and a single table gives no room to disambiguate.
+**Rejected because**: 19,950 rows in the library this was built against. The manifest
+stops being reviewable, a rescan diff stops being readable, and the file's size alone
+makes it hostile. Violates *a manifest a human cannot read is not a curation surface*.
+
+---
+
+### Option D: Frames that are direct children of a page or section *(Rejected)*
+
+A structural eligibility rule instead of the marking.
+
+**Rejected because**: still 4,919 rows, and it reintroduces a position rule — a
+composition nested one container deeper silently stops being eligible, for a reason that
+has nothing to do with whether it is a deliverable.
 
 ---
 
 ## Decision
 
-### The qualifying rule
+### Eligibility — what earns a row
 
-A node is listed as a composition when **all** of the following hold:
+A node is **eligible** to be a composition row when all of the following hold:
 
 1. Its type is `FRAME`.
 2. Its `devStatus.type` is `READY_FOR_DEV`.
-3. No ancestor of it also qualifies under 1 and 2.
+3. No ancestor of it also satisfies 1 and 2.
 4. Its name is not an authoring aid under `conventions.figma.subcomponents.exclude` or
    the `codeOnlyProps` container name — the same exclusion components get.
 5. Its name yields a spec key.
 
-Rule 3 is *one frame, one spec*: a marked frame inside a marked frame is already
-captured as part of its ancestor's anatomy, and listing it would spec it twice under two
-keys. The outermost marking wins.
+**An unmarked frame is never listed** — not as an unchecked row, not at all. This is the
+rule that keeps the section finite, and it is not negotiable against any of the others.
+
+Nothing about *where* the frame sits enters into eligibility. A frame that is a direct
+child of a page, one nested in a `SECTION`, and one inside a plain container are equally
+eligible.
+
+Rule 3 is *one frame, one spec*: a marked frame inside a marked frame is already captured
+as part of its ancestor's anatomy, and listing it would spec the same arrangement twice
+under two keys. The outermost marking wins.
 
 Rule 5 is defensive, not hypothetical: a frame named with whitespace alone exists in real
 libraries. Its name has no alphanumeric content, so it yields no key, and the writer's
 fallback would name its folder `component` — which the next such frame would collide with.
-Such a frame is skipped with a warning naming its node id rather than silently dropped.
+Such a frame is skipped with a warning naming its node id.
 
 The key is derived by the **same function that names the folder**, not by an equivalent
 one. Two derivations were the original bug: the guard tested `formatKey` against the
@@ -158,9 +190,27 @@ Note this is independent of `settings.spec.keys`, which governs keys *inside* a 
 the formatted `instanceOf` values the bridge matches against raw Figma names — never the
 folder a spec is written to, which has always been camelCase.
 
-Nothing about *where* the frame sits qualifies or disqualifies it. A frame that is a
-direct child of a page, one nested in a `SECTION`, and one inside a plain container are
-all equally eligible.
+### Curation — what happens to an eligible row
+
+Identical to components (ADR-093), by using the same functions rather than by matching
+their behaviour:
+
+| Rule | Behaviour for a composition |
+|---|---|
+| First scan | `deriveDefaultInclusion` checks it. Every eligible composition is marked ready for dev by definition, so all start checked |
+| Rescan, untouched | The recorded checkbox is preserved |
+| Rescan, hand-edited | The hand edit wins. An eligible composition's dev status cannot change — it is `READY_FOR_DEV` or it is not eligible — so `mergeRows` never sees the flip that would override an edit. "Sustain the check" therefore holds unconditionally, without needing `--keep-checks` |
+| Marking removed in Figma | The frame leaves the eligible set; its row is dropped, like a deleted component's |
+| `--reset-checks` | Re-derives every checkbox, discarding the prior manifest |
+| `--include-all`, `defaultSelection: ALL` | Checks every **eligible** composition. It widens curation, never eligibility — an unmarked frame is still not a composition |
+| `curation.includeDependencies` | **Does not apply.** A checked composition does not retain the components it composes; those are curated on their own merits, exactly as today |
+
+`includeDependencies` is the one deliberate asymmetry. A composition's emitted scaffold
+imports the components it composes, so a selection omitting them produces imports that do
+not resolve — but retaining them silently would let checking one screen select dozens of
+components a team did not ask for, and `transform-verify-imports` already turns the
+missing-import case into one line of error rather than a mystery. Keeping selection
+predictable beats making one downstream failure impossible.
 
 ### The section
 
@@ -168,50 +218,26 @@ all equally eligible.
 |---|---|
 | Heading | `## Compositions` |
 | Position | after `## Components`, before `## Glyphs` |
-| Columns | `Name`, `ID`, `Type` — no checkbox column |
+| Columns | `✓`, `Name`, `ID`, `Type`, `Dev Status` — the same five as Components |
 | Row order | by name, ascending, for stable diffs |
-| Written when | at least one frame qualifies; omitted entirely otherwise |
-| Note under heading | states the marker rule and that every row is specced |
+| Written when | at least one frame is eligible; omitted entirely otherwise |
+| Note under heading | states that a marking earns the row and a checkbox curates it |
 
-`Dev Status` is deliberately **not** a column. It would be `READY_FOR_DEV` on every row,
-because being `READY_FOR_DEV` is what put the row there. The rule belongs in the note
-under the heading, stated once, rather than restated per row as though it varied.
-
-### Rescan
-
-The section is re-derived in full from the library on every scan. There is no prior-state
-merge, so:
-
-- `--keep-checks`, `--reset-checks` and `settings.curation.preserveManualSelections` have
-  no effect on it — there is no check to keep or reset.
-- `settings.curation.defaultSelection: ALL` and `--include-all` do **not** widen it.
-  They widen *curation*; qualification is the marker's job, and an unmarked frame is not
-  a composition.
-- `settings.curation.includeDependencies` does not apply. A composition is not retained
-  by anything and retains nothing: the components it instances are curated on their own
-  merits, exactly as they are today.
-- A composition that loses its marking, or is deleted, simply stops appearing.
-
-### Scan output
-
-One additional summary line, only when the section was written:
-
-```
-✓ Found 10 compositions (frames marked ready for dev)
-```
+`Dev Status` reads `READY_FOR_DEV` on every row, since that is what made the frame
+eligible. It is kept anyway: the columns matching Components exactly is what makes the
+two sections legible as the same kind of table, and it leaves room for a second qualifying
+status without a format change.
 
 ### Parser
 
 `ManifestRowV2.type` widens to `'COMPONENT' | 'COMPONENT_SET' | 'FRAME'`, and the parse
-result gains a `compositions: ManifestRowV2[]` member alongside `components`. Composition
-rows carry `included: true` and `devStatus: 'READY_FOR_DEV'` as constants, so a consumer
-iterating rows from either section reads the same shape.
+result gains `compositions: ManifestRowV2[]` alongside `components`. Both sections share
+one row grammar and one code path, differing only in which array a row lands in — so a
+row cannot parse differently depending on which heading precedes it.
 
-The scan format version stays **2**. The section is additive and the pre-existing row
-regex cannot match its rows, so an older v2 parser degrades to warnings on five lines
-rather than to a failure.
-
----
+The scan format version stays **2**. The section is additive; an older v2 parser reads its
+rows as component rows only if it ignores headings, which it does not, so it sees five
+lines it cannot place and warns rather than failing.
 
 ## Type ↔ Schema Impact
 
@@ -227,8 +253,8 @@ rather than to a failure.
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-cli` — scan | Discovers and writes the new section | Implement the qualifying rule in both discovery classes (monolithic and page-sectioned) |
-| `specs-cli` — generate | Reads `compositions` from the parse result | Process every row; route output per ADR-096 |
+| `specs-cli` — scan | Discovers eligible frames, then curates them with the component machinery | Implement eligibility in both discovery classes (monolithic and page-sectioned) |
+| `specs-cli` — generate | Reads checked `compositions` from the parse result | Process every checked row; route output per ADR-096 |
 | `specs-from-figma` | A frame ID must resolve through the REST lookup | Open the lookup gate for explicit IDs |
 | Older `specs-cli` releases | Five warning lines per manifest | None — degradation is intended and non-fatal |
 
@@ -249,12 +275,16 @@ directions.
 
 ## Consequences
 
-- A frame marked ready for dev is specced by the next `specs scan` + `specs generate`
-  with no manifest edit, which is the whole of the authoring loop for compositions.
-- Unmarking a frame in Figma is the only way to remove a composition from a run. This is
-  a deliberate concentration of authority in the library, and it means a stale marking
-  produces a spec nobody asked for until someone unmarks it.
-- The manifest is no longer uniformly a curation file. Its sections now differ in whether
-  they are input or output, and the note under each heading is what tells a reader which.
-- `settings.curation` remains entirely about components. Any future desire to curate
-  compositions is a new setting, not an extension of an existing one.
+- A frame marked ready for dev appears in the manifest checked, and is specced by the next
+  `specs generate` with no edit — the short path stays short.
+- A team can ship a subset of its marked screens by unchecking rows, and that survives
+  every rescan without a flag.
+- Two authorities, each where it belongs: Figma decides what is a candidate, the manifest
+  decides what this run produces. Unmarking removes a frame from consideration entirely;
+  unchecking keeps it listed and skips it.
+- The manifest stays one kind of document. Both curated sections obey one set of rules
+  because they run one implementation of them.
+- Two sections share a shape while differing in eligibility, and only the note under each
+  heading says so. That is a documentation load this ADR accepts rather than solves.
+- `settings.curation` now governs compositions too, except `includeDependencies`. Any
+  future curation setting must state which kinds it applies to.

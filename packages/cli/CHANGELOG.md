@@ -26,8 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`specs scan` lists compositions in a third manifest section.** `## Compositions` carries no checkbox — the Figma ready-for-dev marking is the decision, every row is specced, and the section is re-derived on every scan. A marked frame qualifies wherever it sits, except inside another marked frame, where the outermost wins so one arrangement is never specced twice (ADR-095).
-- **`specs generate` writes composition specs** to `specs/compositions/<key>/`, carrying `metadata.source.nodeType: FRAME` as the marker for what the spec describes. `-c` narrows to one by name, id or key, as it does for a component.
+- **`specs scan` lists compositions in a third manifest section, curated exactly as components are.** A frame earns a row by being marked ready for dev in Figma — an unmarked frame gets no row, which is what keeps the section readable in a library holding tens of thousands of frames. Within that set the checkbox decides what a run specs, and a row you uncheck stays unchecked across rescans without a flag. A marked frame qualifies wherever it sits, except inside another marked frame, where the outermost wins so one arrangement is never specced twice (ADR-095).
+- **`specs generate` writes checked composition specs** to `specs/compositions/<key>/`, carrying `metadata.source.nodeType: FRAME` as the marker for what the spec describes. `-c` narrows to one by name, id or key, as it does for a component.
 - **`specs react` and `specs webcomponents` emit a composition as one story in a `Compositions` nav group**, at `<tree>/src/compositions/<Name>/`, so screens browse separately from the component list. Compositions are Pro; the free tier skips them with a note and emits components as normal (ADR-097).
 - **`specs analyze dependencies` and `specs analyze styling` read compositions**, so which components a screen is built from now shows in the blast radius. `props` and `keys` stay component-only — a composition declares no props.
 - **`specs version` tracks compositions, and every change to one is a patch.** A composition declares no contract, so nothing about it is breaking and it carries no version of its own; the cut report names what moved.
@@ -51,6 +51,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`specs fetch` says "glyphs" wherever it used to say "icons"**, matching `scan` and the `glyphs.match` convention. The `icons` fetch kind and the `assets/icons/` directory are unchanged.
 
 ### Fixed
+
+- **A spec's run metadata is found again from a deeper spec folder.** The reader searched a spec's own directory and one level up, which stopped short once specs moved into `components/` — so `specs render` silently lost the run's author, generator and schema version. It now climbs to the specs root, nearest document winning, bounded so it cannot adopt an unrelated one from above the workspace.
+
+- **Composition stories appear in Storybook.** The workspace Storybook configurations indexed `components/` only, so an emitted composition was never picked up.
 
 - **A spec whose Figma name has no letters or digits is refused rather than written to a folder named `component`**, where the next such spec would overwrite it. The check that rejects the name and the writer that names the folder now share one derivation, so a name that passes is a name the writer can use.
 

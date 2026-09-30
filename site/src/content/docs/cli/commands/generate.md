@@ -65,14 +65,14 @@ Components that fail are reported individually and the rest still generate; the 
 
 ### Compositions
 
-If the manifest has a `## Compositions` section, every row in it is generated too — the section is not curated, so there is nothing to check. Composition specs are written to `specs/compositions/<key>/`, in the same concern files a component gets, and carry `metadata.source.nodeType: FRAME`. That marker is the contract for what the spec describes; the directory is navigation.
+If the manifest has a `## Compositions` section, every **checked** row in it is generated too, exactly as for components. Composition specs are written to `specs/compositions/<key>/`, in the same concern files a component gets, and carry `metadata.source.nodeType: FRAME`. That marker is the contract for what the spec describes; the directory is navigation.
 
 ```
 ✓ Loaded manifest: 150 components (42 selected)
-✓ Loaded manifest: 6 compositions (all specced)
-⏳ Processing 48 components...
+✓ Loaded manifest: 6 compositions (5 selected)
+⏳ Processing 47 components...
 ...
-✓ Wrote 6 composition spec(s) to compositions/
+✓ Wrote 5 composition spec(s) to compositions/
 ```
 
 A composition has no variant properties and no prop surface, so its `variants.yaml` carries a default and nothing else. Generating one works on either tier; [emitting code](/cli/commands/react/) from one requires Pro.

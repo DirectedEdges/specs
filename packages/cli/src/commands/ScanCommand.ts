@@ -254,19 +254,24 @@ export function mergeRows(
   return { rows, stats };
 }
 
-function readPriorManifest(outputPath: string): ManifestRowV2[] | null {
+interface PriorManifest {
+  components: ManifestRowV2[];
+  compositions: ManifestRowV2[];
+}
+
+function readPriorManifest(outputPath: string): PriorManifest | null {
   if (!fs.existsSync(outputPath)) return null;
   const content = fs.readFileSync(outputPath, 'utf-8');
 
   // ⬇️ ManifestMigrationV1ToV2 — DELETE WITH ManifestParser.ts when v1 is retired.
   if (isV1Manifest(content)) {
-    return migrateV1ToV2(content);
+    return { components: migrateV1ToV2(content), compositions: [] };
   }
 
   if (ManifestParserV2.isV2(content)) {
-    const { components, warnings } = ManifestParserV2.parse(content);
+    const { components, compositions, warnings } = ManifestParserV2.parse(content);
     for (const warning of warnings) console.warn(`⚠ ${warning}`);
-    return components;
+    return { components, compositions };
   }
   return null;
 }
@@ -332,9 +337,23 @@ export function listableCompositions(
   return { compositions, authoringAids, unnameable };
 }
 
+/**
+ * The one-line merge summary under a section's count. Empty when a merge produced
+ * nothing worth saying, so a first scan prints no line at all.
+ */
+function mergeSummary(stats: MergeStats | null): string | null {
+  if (!stats) return null;
+  const parts: string[] = [];
+  if (stats.added) parts.push(`${stats.added} added`);
+  if (stats.removed) parts.push(`${stats.removed} removed`);
+  if (stats.flippedByFigma) parts.push(`${stats.flippedByFigma} updated by devStatus`);
+  if (stats.preserved) parts.push(`${stats.preserved} preserved`);
+  return parts.length ? `  Merge: ${parts.join(', ')}` : null;
+}
+
 function generateManifestV2(
   rows: ManifestRowV2[],
-  compositions: ComponentInfo[],
+  compositions: ManifestRowV2[],
   glyphs: ComponentInfo[],
   sourceFile: string,
   fileLastModified: string | undefined,
@@ -362,20 +381,24 @@ function generateManifestV2(
     );
   }
 
-  // Compositions (ADR-095) sit between the curated section and the excluded one,
-  // because that is what they are: recorded rather than curated, and specced
-  // rather than excluded. No checkbox column — the Figma marking is the decision,
-  // and no Dev Status column, because it would read READY_FOR_DEV on every row.
+  // Compositions (ADR-095) are curated exactly as components are — same columns,
+  // same checkbox, same merge rules. What differs is only which nodes are eligible
+  // for a row: every component set and standalone component, versus only the frames
+  // the library marks ready for dev. The note says so, because a reader will
+  // otherwise wonder where the rest of the library's frames went.
   if (compositions.length > 0) {
     lines.push('');
     lines.push('## Compositions');
     lines.push('');
-    lines.push('_Frames marked `READY_FOR_DEV` in Figma. Every row is specced by `specs generate` — this section is not curated, and is re-derived on every scan._');
+    lines.push('_Frames marked `READY_FOR_DEV` in Figma — a frame with no marking gets no row. Check and uncheck to curate, exactly as above._');
     lines.push('');
-    lines.push('| Name | ID | Type |');
-    lines.push('|------|------|------|');
-    for (const c of compositions) {
-      lines.push(`| ${escapeCell(c.name)} | ${c.id} | ${c.type} |`);
+    lines.push('| ✓ | Name | ID | Type | Dev Status |');
+    lines.push('|------|------|------|------|------------|');
+    for (const row of compositions) {
+      const checkbox = row.included ? '[x]' : '[ ]';
+      lines.push(
+        `| ${checkbox} | ${escapeCell(row.name)} | ${row.id} | ${row.type} | ${row.devStatus} |`
+      );
     }
   }
 
@@ -567,12 +590,13 @@ export const Scan = new Command('scan')
 
       const outputPath = path.resolve(options.output!);
       const prior = options.resetChecks ? null : readPriorManifest(outputPath);
+      const priorComponents = prior?.components ?? null;
       const defaults = deriveDefaultInclusion(componentList, defaultSelection);
 
       let rows: ManifestRowV2[];
       let stats: MergeStats | null = null;
-      if (prior && defaultSelection !== 'ALL') {
-        const merged = mergeRows(componentList, prior, defaults, preserveManualSelections);
+      if (priorComponents && defaultSelection !== 'ALL') {
+        const merged = mergeRows(componentList, priorComponents, defaults, preserveManualSelections);
         rows = merged.rows;
         stats = merged.stats;
       } else {
@@ -588,8 +612,8 @@ export const Scan = new Command('scan')
       // Retention must not undo a deselection the manifest is the authority for:
       // it runs after the merge, so without this it re-checks exactly what a human
       // unchecked. Rows the prior manifest recorded as unchecked are protected.
-      const protectedIds = preserveManualSelections && prior
-        ? new Set(prior.filter(r => !r.included).map(r => r.id))
+      const protectedIds = preserveManualSelections && priorComponents
+        ? new Set(priorComponents.filter(r => !r.included).map(r => r.id))
         : new Set<string>();
 
       if (includeDependencies && defaultSelection !== 'ALL') {
@@ -607,9 +631,11 @@ export const Scan = new Command('scan')
         }
       }
 
-      // Compositions (ADR-095): derived from the library on every scan, never merged
-      // with a prior manifest — there is no checkbox to preserve.
-      const { compositions, authoringAids: compositionAids, unnameable } = listableCompositions(
+      // Compositions (ADR-095) are curated exactly as components are. Only the
+      // eligible set differs: a frame earns a row by being marked ready for dev in
+      // Figma, and an unmarked frame gets no row at all — the library holds tens of
+      // thousands of frames a designer merely works inside.
+      const { compositions: compositionList, authoringAids: compositionAids, unnameable } = listableCompositions(
         discovery.findCompositions(),
         aidConventions
       );
@@ -623,7 +649,31 @@ export const Scan = new Command('scan')
         if (compositionAids > 0) {
           console.error(`[CLI] Excluded ${compositionAids} authoring-aid frame(s) from compositions`);
         }
-        console.error(`[CLI] Found ${compositions.length} composition(s) marked READY_FOR_DEV`);
+        console.error(`[CLI] Found ${compositionList.length} composition(s) marked READY_FOR_DEV`);
+      }
+
+      // Every eligible composition is marked ready for dev by definition, so
+      // `deriveDefaultInclusion` checks them all on a first scan, and `mergeRows`
+      // never sees a devStatus change — which is precisely "a check already recorded
+      // survives the rescan". A frame that loses its marking leaves the eligible set
+      // and its row is dropped, the same as a deleted component's.
+      const compositionDefaults = deriveDefaultInclusion(compositionList, defaultSelection);
+      let compositions: ManifestRowV2[];
+      let compositionStats: MergeStats | null = null;
+      if (prior?.compositions.length && defaultSelection !== 'ALL') {
+        const merged = mergeRows(
+          compositionList, prior.compositions, compositionDefaults, preserveManualSelections
+        );
+        compositions = merged.rows;
+        compositionStats = merged.stats;
+      } else {
+        compositions = compositionList.map(c => ({
+          id: c.id,
+          name: c.name,
+          type: 'FRAME' as const,
+          included: compositionDefaults.get(c.id) ?? false,
+          devStatus: c.devStatus
+        }));
       }
 
       const manifest = generateManifestV2(
@@ -642,20 +692,26 @@ export const Scan = new Command('scan')
       const excludedCount = rows.length - includedCount;
 
       console.log(`✓ Scanned ${path.basename(file)}`);
+
+      // Each section's merge line sits directly under its own count. They used to be
+      // written at opposite ends of the summary, which read as though the components'
+      // merge described the glyphs.
       console.log(`✓ Found ${rows.length} components (${includedCount} selected, ${excludedCount} excluded)`);
+      const componentMerge = mergeSummary(stats);
+      if (componentMerge) console.log(componentMerge);
+
       if (compositions.length > 0) {
-        console.log(`✓ Found ${compositions.length} compositions (frames marked ready for dev)`);
+        const selected = compositions.filter(c => c.included).length;
+        console.log(
+          `✓ Found ${compositions.length} compositions (${selected} selected, ` +
+          `${compositions.length - selected} excluded)`
+        );
+        const compositionMerge = mergeSummary(compositionStats);
+        if (compositionMerge) console.log(compositionMerge);
       }
+
       if (glyphList.length > 0) {
         console.log(`✓ Detected ${glyphList.length} glyphs (excluded from generate)`);
-      }
-      if (stats) {
-        const parts: string[] = [];
-        if (stats.added) parts.push(`${stats.added} added`);
-        if (stats.removed) parts.push(`${stats.removed} removed`);
-        if (stats.flippedByFigma) parts.push(`${stats.flippedByFigma} updated by devStatus`);
-        if (stats.preserved) parts.push(`${stats.preserved} preserved`);
-        if (parts.length) console.log(`  Merge: ${parts.join(', ')}`);
       }
       console.log(`✓ Saved to ${outputPath}`);
       console.log('');
