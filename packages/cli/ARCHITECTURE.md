@@ -33,6 +33,20 @@ hook blocks it).
   runtime, which in dev are symlinks into sibling checkouts.
 - `src/figma-shim.ts` installs a stub `global.figma` so engine code written
   against the Plugin API runs in Node — imported first, by design.
+- **`src/utilities/specsLayout.ts` is the only thing that knows the `specs/`
+  layout** (ADR-096): which directory holds each kind, how a spec folder is
+  recognised, and how a pre-`components/` directory reads as legacy. Every reader
+  resolves through it. Two divergent filters preceded it — the emitter walk looked
+  for a child holding `api.yaml`, the version assembler skipped names starting `_`
+  or `.` — and a third kind had nowhere to go.
+- **`src/utilities/specFolderKey.ts` is the only derivation of the folder a spec is
+  written under.** Independent of `settings.spec.keys`, which governs keys *inside*
+  a spec and the formatted `instanceOf` values the bridge matches against raw Figma
+  names. Two derivations were a real defect: a guard rejected a name the writer
+  would have silently folded into a directory called `component`.
+- A transform declares which kinds it reads (`readsKinds`), defaulting to
+  components only — so one that has not considered compositions never receives
+  them. Dependencies and styling analysis read both; props and keys do not.
 
 ## Commands
 
@@ -79,8 +93,9 @@ Registered in `createProgram()` (`src/index.ts`); flat files in
 | `src/bridge/` | server, client (`postRender`, `postGenerateFromSelection`), connection pick (`resolveFileKey`), pidfile |
 | `src/utilities/LicenseStatus.ts` | Reads engine-stamped license state; the CLI validates nothing |
 | `src/transforms/` | Open counterparts of transform modules (see drift note below) |
+| `src/utilities/specsLayout.ts` | **The layout seam.** `resolveSpecsLayout` (reads, legacy-aware) / `writeLayout` (always current) / `specFolderNames` / `dirFor(kind)` / `analysisDir()`. Emitted trees mirror it: `<tree>/src/<kind-dir>/<Name>` |
 | `src/Writers/` | Output *strategy* writers: single / component / concern / combined file. `WriteResult.filesWritten` documents itself as relative to the output directory and in fact holds **absolute** paths — re-base before comparing |
-| `src/version/` | Versioning internals: `assemble` (concern files → component) → `diff` → `rules` classifier (rules-as-data in `semverRules.ts`, `--rules` overrides) → `bump`/`ledger` (`versions/<libVersion>/` folders + `ledgers/*.json`, no snapshots) → `report` renderer (premerge canon). Skill markdown emitted by `skills.ts` |
+| `src/version/` | Versioning internals: `assemble` (concern files → component; `assembleCompositions` for the other kind, keyed separately since a shared name is legal — every composition change is patch-class and compositions carry no version of their own) → `diff` → `rules` classifier (rules-as-data in `semverRules.ts`, `--rules` overrides) → `bump`/`ledger` (`versions/<libVersion>/` folders + `ledgers/*.json`, no snapshots) → `report` renderer (premerge canon). Skill markdown emitted by `skills.ts` |
 | `src/Writers/RunMetadataFile.ts` | `latest.metadata.<format>` — a manifest run's facts, stated once (ADR-089). `RunMetadataFile.separate()` lifts them out of every spec and reduces each block to `source`; `RunMetadataReader.find()` reads the document back, looking in the spec's own directory then one level up |
 | `src/Render/SpecLoader.ts` | Spec discovery + loading for render. Rehydrates a reduced spec's run metadata here, at the one place every render input is loaded, so no reader downstream has to know the spec was reduced |
 | `tests/unit/config/ConfigLoader.test.ts` | The config feature suite — temp `config/` trees on disk |
@@ -94,7 +109,10 @@ File/manifest path: `ConfigLoader.load()` → `loadFoundations` →
 **`Components.fromRestApi(ids, library, conventions, settings, {styles,
 variables, collections, author, generator}, onProgress, licenseInput)`**
 (batch, plural — not `Component.fromRestApi`) → `LicenseStatus.display()` →
-`RunMetadataFile.separate()` (manifest mode only) → strategy writer. Guards: all-error "not valid for this runtime" → AUTH_ERROR;
+`RunMetadataFile.separate()` (manifest mode only, written at the specs root) →
+strategy writer, once per kind into `writeLayout(...).dirFor(kind)` (ADR-096) —
+including the collapsing layouts, which collapse *within* a kind so a shared name
+cannot make two specs overwrite each other. Guards: all-error "not valid for this runtime" → AUTH_ERROR;
 with a key present, transient license statuses exit NETWORK_ERROR/RATE_LIMIT
 rather than silently emitting FREE output (specs#119).
 
@@ -123,13 +141,19 @@ a payload path is accepted; version premerge passes whichever exists.
 ## Data flow — transform
 
 `ConfigLoader.load()` → transformer names from positionals |
-`pipeline.transformers` | default `['contract']` → per component dir with
-`api.yaml`: `transformer.run(apiYaml, context)` — context carries
-`processingStates`/`propRoles` from `figmaOf(conventions)` and
+`pipeline.transformers` | default `['contract']` → `resolveSpecsLayout` → per spec
+folder of **each kind**: `transformer.run(apiYaml, context)` — context carries
+`processingStates`/`propRoles` from `figmaOf(conventions)`,
 `platform: platformOf(conventions, transformer.platformId)` (react and
-web-components are peer platform ids, ADR-073) → `transformer.finalize()` for
-catalog-level output. Unknown transformer names warn and skip; any component
-failure → non-zero exit.
+web-components are peer platform ids, ADR-073), and `specsRoot` + `kind` (ADR-096)
+→ `transformer.finalize()` for catalog-level output.
+
+`specsRoot` is handed over rather than derived: an emitter used to find it by
+walking up a fixed number of levels from its own output directory, correct for one
+output depth, and a composition emits at a second. Composition output is Pro
+(ADR-097) — a free run filters it out before the loop and reports the count once.
+
+Unknown transformer names warn and skip; any component failure → non-zero exit.
 
 ## Verification
 
@@ -137,7 +161,7 @@ Repo-root `npm test`; invoke the built CLI as `node
 packages/cli/dist/specs.js` (watcher keeps it fresh). License integration
 tests are placeholder-only (skipped without `ANOVA_TEST_KEY_*` env).
 
-## Known drift (as of 2026-09-22)
+## Known drift (as of 2026-09-29)
 
 - `packages/cli/CLAUDE.md` (May 11) is badly stale: claims an MCP server,
   directory-per-command layout, `Component.fromRestApi`, a working

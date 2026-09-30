@@ -12,8 +12,8 @@
 import { Command } from 'commander';
 import { CssTransformer } from '../transforms/Css.js';
 import { CssvarsTransformer } from '../transforms/Cssvars.js';
-import { ReactTransformer, StoriesTransformer } from '@directededges/react-from-specs';
-import { WebComponentsTransformer, WcStoriesTransformer } from '@directededges/webcomponents-from-specs';
+import { ReactTransformer, StoriesTransformer, proEntitled as reactProEntitled } from '@directededges/react-from-specs';
+import { WebComponentsTransformer, WcStoriesTransformer, proEntitled as wcProEntitled } from '@directededges/webcomponents-from-specs';
 import type { Transformer } from '../Types/Transformer.js';
 import { runEmitters, type EmitOptions } from './runEmitters.js';
 
@@ -49,7 +49,11 @@ function targetCommand(target: 'react' | 'webcomponents', description: string): 
     .option('--verbose', 'Enable detailed logging', false)
     .action(async (options: TargetOptions) => {
       await runEmitters(
-        { label: target, transformers: transformersFor(target, options.stories) },
+        {
+          label: target,
+          transformers: transformersFor(target, options.stories),
+          proEntitled: target === 'react' ? reactProEntitled : wcProEntitled,
+        },
         options,
       );
     });

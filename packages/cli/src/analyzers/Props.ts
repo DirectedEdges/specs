@@ -2,6 +2,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
 import type { Transformer, TransformerContext } from '../Types/Transformer.js';
+import { ANALYSIS_DIR } from '../utilities/specsLayout.js';
 
 interface PropEntry {
   component: string;
@@ -124,7 +125,7 @@ export class PropsAnalyzer implements Transformer {
   async finalize(outputDir: string, analysisDir?: string): Promise<void> {
     if (this._allProps.length === 0) return;
 
-    const outDir = analysisDir ?? path.join(outputDir, '_analysis');
+    const outDir = analysisDir ?? path.join(outputDir, ANALYSIS_DIR);
     await fs.ensureDir(outDir);
 
     const aggregate = buildAggregate(this._allProps);

@@ -2,6 +2,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
 import type { Transformer, TransformerContext } from '../Types/Transformer.js';
+import { ANALYSIS_DIR } from '../utilities/specsLayout.js';
 
 type EdgeKind = 'instance' | 'slot' | 'example';
 
@@ -114,6 +115,9 @@ interface ByComponentEntry {
 
 export class DependenciesAnalyzer implements Transformer {
   readonly name = 'dependencies';
+  // A composition is the clearest dependency data a library has — a screen states
+  // which components it is built from — and it carries real styling of its own.
+  readonly readsKinds = ['component', 'composition'] as const;
 
   private readonly _records = new Map<string, SpecRecord>();
   private _outputFormat: 'JSON' | 'YAML' = 'JSON';
@@ -172,7 +176,7 @@ export class DependenciesAnalyzer implements Transformer {
   async finalize(outputDir: string, analysisDir?: string): Promise<void> {
     if (this._records.size === 0) return;
 
-    const outDir = analysisDir ?? path.join(outputDir, '_analysis');
+    const outDir = analysisDir ?? path.join(outputDir, ANALYSIS_DIR);
     await fs.ensureDir(outDir);
 
     const known = new Set(this._records.keys());

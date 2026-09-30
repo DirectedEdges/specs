@@ -2,6 +2,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
 import type { AnalyzerFoundations, Transformer, TransformerContext } from '../Types/Transformer.js';
+import { ANALYSIS_DIR } from '../utilities/specsLayout.js';
 
 type StylingCategory = 'VARIABLES' | 'COLOR_STYLES' | 'TEXT_STYLES' | 'EFFECT_STYLES';
 type RawValue = string | number | boolean;
@@ -67,6 +68,9 @@ const CATEGORY_KEY: Record<StylingCategory, keyof StylingJson> = {
 
 export class StylingAnalyzer implements Transformer {
   readonly name = 'styling';
+  // A composition is the clearest dependency data a library has — a screen states
+  // which components it is built from — and it carries real styling of its own.
+  readonly readsKinds = ['component', 'composition'] as const;
   readonly perComponentOutput = 'styling';
 
   // Flat map: "componentKey" and "componentKey.subName" entries stored together.
@@ -121,7 +125,7 @@ export class StylingAnalyzer implements Transformer {
   async finalize(outputDir: string, analysisDir?: string, foundations?: AnalyzerFoundations): Promise<void> {
     if (this._componentData.size === 0) return;
 
-    const outDir = analysisDir ?? path.join(outputDir, '_analysis');
+    const outDir = analysisDir ?? path.join(outputDir, ANALYSIS_DIR);
     await fs.ensureDir(outDir);
 
     await this._writeByComponent(outDir);

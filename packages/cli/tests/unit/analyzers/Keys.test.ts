@@ -34,7 +34,7 @@ describe('KeysAnalyzer', () => {
 
   beforeEach(async () => {
     outputDir = await fs.mkdtemp(path.join(os.tmpdir(), 'keys-test-'));
-    analysisDir = path.join(outputDir, '_analysis');
+    analysisDir = path.join(outputDir, 'analysis');
   });
 
   afterEach(async () => {
@@ -56,7 +56,7 @@ describe('KeysAnalyzer', () => {
       const spec = figmaKeys
         ? { ...apiYaml, metadata: { config: { format: { keys: 'CAMEL', figmaKeys } } } }
         : apiYaml;
-      await a.run(spec, { specDir: compDir, outputDir: compDir, workspaceDir: compDir, componentKey, outputFormat: 'YAML', tokensFormat: 'TOKEN' });
+      await a.run(spec, { specDir: compDir, outputDir: compDir, workspaceDir: compDir, specsRoot: compDir, kind: 'component' as const, componentKey, outputFormat: 'YAML', tokensFormat: 'TOKEN' });
     }
     await a.finalize!(outputDir, analysisDir);
     const file = path.join(analysisDir, 'keys.yaml');
@@ -193,7 +193,7 @@ describe('KeysAnalyzer', () => {
         );
       }
       await a.run(spec, {
-        specDir: compDir, outputDir: compDir, workspaceDir: outputDir,
+        specDir: compDir, outputDir: compDir, workspaceDir: outputDir, specsRoot: outputDir, kind: 'component' as const,
         componentKey: 'dsButton', outputFormat: 'YAML', tokensFormat: 'TOKEN',
         platform: opts.workspace
           ? { naming: opts.workspace, slotConstraints: false, inferNumberProps: false }

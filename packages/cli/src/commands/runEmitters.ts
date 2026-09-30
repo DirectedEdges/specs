@@ -14,6 +14,9 @@ import { toPascalCase } from '../transforms/naming.js';
 import type { Transformer, TransformerContext } from '../Types/Transformer.js';
 import type { ProcessingStates } from '../transforms/states.js';
 import { platformOf } from '../Config/PlatformConventions.js';
+import {
+  resolveSpecsLayout, legacyLayoutNotice, dirNameFor, SPEC_KINDS, type SpecKind,
+} from '../utilities/specsLayout.js';
 
 export const ERROR_CODES = { SUCCESS: 0, INVALID_ARGS: 2, FILE_ERROR: 3, GENERAL_ERROR: 1 };
 
@@ -42,6 +45,17 @@ export interface EmitRun {
   transformers: Transformer[] | ((config: ReturnType<ConfigLoader['load']>) => Transformer[]);
   /** Per-transformer options, keyed by name. Only `transform` has any. */
   transformerOptions?: Map<string, Record<string, unknown>>;
+  /**
+   * Whether this run is entitled to Pro output, which decides whether
+   * compositions are emitted at all (ADR-097).
+   *
+   * Supplied by the caller rather than resolved here, so the answer comes from the
+   * emitter package's own already-bound entitlement: resolving it here would mean a
+   * second license call and a dev-tier warning labelled for the wrong transform.
+   * Absent means unentitled, which is the safe direction — a run that cannot say it
+   * is Pro is not.
+   */
+  proEntitled?: () => Promise<boolean>;
 }
 
 interface EmitResult {
@@ -110,37 +124,67 @@ async function emitOnce(run: EmitRun, options: EmitOptions): Promise<EmitResult>
   // siblings of it, so every transformer's output root derives from here.
   const workspaceDir = path.dirname(specsPath);
 
-  const entries = await fs.readdir(specsPath, { withFileTypes: true });
-  let componentDirs = entries
-    .filter(e => e.isDirectory())
-    .map(e => e.name)
-    .filter(name => fs.existsSync(path.join(specsPath, name, 'api.yaml')));
+  // Where each kind's specs live is the layout resolver's answer (ADR-096), which
+  // also reads a pre-`components/` directory as a flat set of components.
+  const layout = resolveSpecsLayout(specsPath);
+  const legacy = legacyLayoutNotice(layout);
+  if (legacy) console.log(legacy);
+
+  // One flat list of (kind, key) pairs: everything downstream — the emit loop,
+  // `--components`, pruning — treats a composition as a spec with a different
+  // output directory, not as a separate pass.
+  let specs: Array<{ kind: SpecKind; key: string }> = SPEC_KINDS.flatMap(kind =>
+    layout.folderNames(kind, 'yaml').map(key => ({ kind, key })),
+  );
 
   if (options.components && options.components.length > 0) {
     const requested = new Set(options.components);
-    for (const missing of options.components.filter(c => !componentDirs.includes(c))) {
+    const present = new Set(specs.map(s => s.key));
+    for (const missing of options.components.filter(c => !present.has(c))) {
       console.warn(`Warning: component "${missing}" not found in ${specsPath} — skipping`);
     }
-    componentDirs = componentDirs.filter(name => requested.has(name));
+    specs = specs.filter(s => requested.has(s.key));
   }
 
-  if (componentDirs.length === 0) {
+  if (specs.length === 0) {
     throw new EmitSetupError(
-      `no component directories with api.yaml found in ${specsPath}`,
+      `no component directories with api.yaml found in ${layout.dirFor('component')}`,
       ERROR_CODES.FILE_ERROR,
       'run `specs generate` first — it writes this layout by default',
     );
   }
 
-  console.log(`⏳ ${componentDirs.length} components (${transformers.map(t => t.name).join(', ')})…`);
+  // Compositions are Pro (ADR-097). On free they are skipped rather than degraded:
+  // a composition with its components stripped out is a styled empty box named
+  // after a screen, which reads as a bug. Said once, because the entitlement is the
+  // finding and the list is not.
+  const compositionCount = specs.filter(s => s.kind === 'composition').length;
+  // A kind this run did not emit is a kind it is not authoritative over, so its
+  // emitted directory is left alone — the same rule a `--components` run and a
+  // license-aborted run already obey. Without this, a free run following a Pro one
+  // deletes the composition output the Pro run wrote and reports it as having no
+  // matching spec, when the spec is right there and only the entitlement was missing.
+  const skippedKinds = new Set<SpecKind>();
+  if (compositionCount > 0 && !(await run.proEntitled?.())) {
+    specs = specs.filter(s => s.kind !== 'composition');
+    skippedKinds.add('composition');
+    console.log(
+      `⚠ ${compositionCount} composition${compositionCount === 1 ? '' : 's'} skipped — Pro required. ` +
+      `Components emitted as normal.`,
+    );
+  }
+
+  const componentDirs = specs.map(s => s.key);
+
+  console.log(`⏳ ${specs.length} components (${transformers.map(t => t.name).join(', ')})…`);
   console.log('');
 
   let succeeded = 0;
   let failed = 0;
   let licenseAborted = false;
 
-  for (const componentKey of componentDirs) {
-    const componentDir = path.join(specsPath, componentKey);
+  for (const { kind, key: componentKey } of specs) {
+    const componentDir = layout.folderFor(kind, componentKey);
 
     try {
       const apiYaml = yaml.parse(
@@ -151,13 +195,18 @@ async function emitOnce(run: EmitRun, options: EmitOptions): Promise<EmitResult>
         // Where a transformer writes is its own declaration (project 024). Absent
         // an `outputTree` it emits beside the spec.
         const outputDir = transformer.outputTree
-          ? path.join(workspaceDir, transformer.outputTree, 'src', 'components', toPascalCase(componentKey))
+          ? path.join(workspaceDir, transformer.outputTree, 'src', dirNameFor(kind), toPascalCase(componentKey))
           : componentDir;
 
         const context: TransformerContext = {
           specDir: componentDir,
           outputDir,
           workspaceDir,
+          // The specs root, handed over rather than climbed to (ADR-096): the old
+          // walk up a fixed number of levels was correct for one output depth,
+          // and compositions introduce a second.
+          specsRoot: layout.root,
+          kind,
           componentKey,
           tokensFormat: config.settings.spec.tokens,
           outputFormat: config.settings.spec.format,
@@ -212,7 +261,7 @@ async function emitOnce(run: EmitRun, options: EmitOptions): Promise<EmitResult>
   // authoritative over anything either — pruning and derived output would be
   // rebuilt from a partial pass.
   if (!options.components?.length && !licenseAborted) {
-    await pruneOrphans(transformers, componentDirs, workspaceDir);
+    await pruneOrphans(transformers, specs, workspaceDir, skippedKinds);
   }
 
   // Stylesheets and index output are derived from the whole set, so they are
@@ -242,32 +291,42 @@ async function emitOnce(run: EmitRun, options: EmitOptions): Promise<EmitResult>
  */
 async function pruneOrphans(
   transformers: Transformer[],
-  componentDirs: string[],
+  specs: Array<{ kind: SpecKind; key: string }>,
   workspaceDir: string,
+  /** Kinds this run did not emit, and is therefore not authoritative over. */
+  skippedKinds: ReadonlySet<SpecKind> = new Set(),
 ): Promise<void> {
-  const expected = new Set(componentDirs.map(toPascalCase));
   const trees = new Set(
     transformers.map(t => t.outputTree).filter((t): t is string => Boolean(t)),
   );
 
+  // Each kind's emitted directory is judged only against that kind's specs
+  // (ADR-096). Judging one against the other would report every composition as an
+  // orphaned component and delete it on the spot.
   for (const tree of trees) {
-    const componentsRoot = path.join(workspaceDir, tree, 'src', 'components');
-    if (!(await fs.pathExists(componentsRoot))) continue;
+    for (const kind of SPEC_KINDS) {
+      if (skippedKinds.has(kind)) continue;
+      const expected = new Set(
+        specs.filter(s => s.kind === kind).map(s => toPascalCase(s.key)),
+      );
+      const kindRoot = path.join(workspaceDir, tree, 'src', dirNameFor(kind));
+      if (!(await fs.pathExists(kindRoot))) continue;
 
-    const entries = await fs.readdir(componentsRoot, { withFileTypes: true });
-    const orphans = entries
-      .filter(e => e.isDirectory() && !expected.has(e.name))
-      .map(e => e.name);
+      const entries = await fs.readdir(kindRoot, { withFileTypes: true });
+      const orphans = entries
+        .filter(e => e.isDirectory() && !expected.has(e.name))
+        .map(e => e.name);
 
-    if (orphans.length === 0) continue;
+      if (orphans.length === 0) continue;
 
-    // One line, not one per directory: the list is the finding, and a rename
-    // that changes a convention can orphan the whole tree at once.
-    console.warn(
-      `⚠ removed ${orphans.length} emitted ${orphans.length === 1 ? 'directory' : 'directories'} ` +
-        `under ${tree}/src/components with no matching spec: ${orphans.join(', ')}`,
-    );
-    for (const orphan of orphans) await fs.remove(path.join(componentsRoot, orphan));
+      // One line, not one per directory: the list is the finding, and a rename
+      // that changes a convention can orphan the whole tree at once.
+      console.warn(
+        `⚠ removed ${orphans.length} emitted ${orphans.length === 1 ? 'directory' : 'directories'} ` +
+          `under ${tree}/src/${dirNameFor(kind)} with no matching spec: ${orphans.join(', ')}`,
+      );
+      for (const orphan of orphans) await fs.remove(path.join(kindRoot, orphan));
+    }
   }
 }
 

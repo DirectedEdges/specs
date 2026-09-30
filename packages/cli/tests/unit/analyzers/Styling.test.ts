@@ -8,7 +8,7 @@ import { StylingAnalyzer } from '../../../src/analyzers/Styling.js';
 const transformer = new StylingAnalyzer();
 
 function makeContext(dir: string, componentKey = 'dsButton', outputFormat: 'JSON' | 'YAML' = 'JSON') {
-  return { specDir: dir, outputDir: dir, workspaceDir: dir, componentKey, tokensFormat: 'TOKEN', outputFormat };
+  return { specDir: dir, outputDir: dir, workspaceDir: dir, specsRoot: dir, kind: 'component' as const, componentKey, tokensFormat: 'TOKEN', outputFormat };
 }
 
 async function run(dir: string, apiYaml: Record<string, unknown>, componentKey = 'dsButton') {
@@ -310,7 +310,7 @@ describe('StylingAnalyzer', () => {
     try {
       await t.run(
         { anatomy: { root: { type: 'container' } }, default: { elements: { root: { styles: { backgroundColor: { $token: 'DS Color.Primary', $type: 'color' } } } } } },
-        { specDir: dir, outputDir: dir, workspaceDir: dir, componentKey: 'dsButton', tokensFormat: 'TOKEN', outputFormat: 'YAML' },
+        { specDir: dir, outputDir: dir, workspaceDir: dir, specsRoot: dir, kind: 'component' as const, componentKey: 'dsButton', tokensFormat: 'TOKEN', outputFormat: 'YAML' },
       );
       expect(fs.existsSync(path.join(dir, 'styling.yaml'))).toBe(true);
       expect(fs.existsSync(path.join(dir, 'styling.json'))).toBe(false);
@@ -380,26 +380,26 @@ describe('StylingAnalyzer.finalize', () => {
 
   async function runFinalize(outputFormat: 'JSON' | 'YAML' = 'JSON') {
     const t = new StylingAnalyzer();
-    await t.run(COMP_A, { specDir: compDirA, outputDir: compDirA, workspaceDir: compDirA, componentKey: 'compA', tokensFormat: 'TOKEN', outputFormat });
-    await t.run(COMP_B, { specDir: compDirB, outputDir: compDirB, workspaceDir: compDirB, componentKey: 'compB', tokensFormat: 'TOKEN', outputFormat });
+    await t.run(COMP_A, { specDir: compDirA, outputDir: compDirA, workspaceDir: compDirA, specsRoot: compDirA, kind: 'component' as const, componentKey: 'compA', tokensFormat: 'TOKEN', outputFormat });
+    await t.run(COMP_B, { specDir: compDirB, outputDir: compDirB, workspaceDir: compDirB, specsRoot: compDirB, kind: 'component' as const, componentKey: 'compB', tokensFormat: 'TOKEN', outputFormat });
     await t.finalize!(outputDir);
     const ext = outputFormat === 'YAML' ? 'yaml' : 'json';
-    const byCompRaw = await fs.readFile(path.join(outputDir, '_analysis', `styling.byComponent.${ext}`), 'utf-8');
-    const byTokenRaw = await fs.readFile(path.join(outputDir, '_analysis', `styling.byToken.${ext}`), 'utf-8');
+    const byCompRaw = await fs.readFile(path.join(outputDir, 'analysis', `styling.byComponent.${ext}`), 'utf-8');
+    const byTokenRaw = await fs.readFile(path.join(outputDir, 'analysis', `styling.byToken.${ext}`), 'utf-8');
     const parse = outputFormat === 'YAML' ? (s: string) => yaml.parse(s) : (s: string) => JSON.parse(s);
     return { byComp: parse(byCompRaw), byToken: parse(byTokenRaw) };
   }
 
   it('creates _analysis folder with both .json files when outputFormat is JSON', async () => {
     await runFinalize('JSON');
-    expect(fs.existsSync(path.join(outputDir, '_analysis', 'styling.byComponent.json'))).toBe(true);
-    expect(fs.existsSync(path.join(outputDir, '_analysis', 'styling.byToken.json'))).toBe(true);
+    expect(fs.existsSync(path.join(outputDir, 'analysis', 'styling.byComponent.json'))).toBe(true);
+    expect(fs.existsSync(path.join(outputDir, 'analysis', 'styling.byToken.json'))).toBe(true);
   });
 
   it('creates _analysis folder with both .yaml files when outputFormat is YAML', async () => {
     await runFinalize('YAML');
-    expect(fs.existsSync(path.join(outputDir, '_analysis', 'styling.byComponent.yaml'))).toBe(true);
-    expect(fs.existsSync(path.join(outputDir, '_analysis', 'styling.byToken.yaml'))).toBe(true);
+    expect(fs.existsSync(path.join(outputDir, 'analysis', 'styling.byComponent.yaml'))).toBe(true);
+    expect(fs.existsSync(path.join(outputDir, 'analysis', 'styling.byToken.yaml'))).toBe(true);
   });
 
   it('byComponent keys match component names in alphabetical order', async () => {
@@ -423,9 +423,9 @@ describe('StylingAnalyzer.finalize', () => {
     };
     const compDir = path.join(outputDir, 'compRaw');
     await fs.ensureDir(compDir);
-    await t.run(withRaw, { specDir: compDir, outputDir: compDir, workspaceDir: compDir, componentKey: 'compRaw', tokensFormat: 'TOKEN', outputFormat: 'JSON' });
+    await t.run(withRaw, { specDir: compDir, outputDir: compDir, workspaceDir: compDir, specsRoot: compDir, kind: 'component' as const, componentKey: 'compRaw', tokensFormat: 'TOKEN', outputFormat: 'JSON' });
     await t.finalize!(outputDir);
-    const byComp = JSON.parse(await fs.readFile(path.join(outputDir, '_analysis', 'styling.byComponent.json'), 'utf-8'));
+    const byComp = JSON.parse(await fs.readFile(path.join(outputDir, 'analysis', 'styling.byComponent.json'), 'utf-8'));
     expect('rawValue' in byComp.compRaw.variables[0]).toBe(false);
   });
 
@@ -464,9 +464,9 @@ describe('StylingAnalyzer.finalize', () => {
     };
     const compDir = path.join(outputDir, 'compSub');
     await fs.ensureDir(compDir);
-    await t.run(withSub, { specDir: compDir, outputDir: compDir, workspaceDir: compDir, componentKey: 'compSub', tokensFormat: 'TOKEN', outputFormat: 'JSON' });
+    await t.run(withSub, { specDir: compDir, outputDir: compDir, workspaceDir: compDir, specsRoot: compDir, kind: 'component' as const, componentKey: 'compSub', tokensFormat: 'TOKEN', outputFormat: 'JSON' });
     await t.finalize!(outputDir);
-    const byToken = JSON.parse(await fs.readFile(path.join(outputDir, '_analysis', 'styling.byToken.json'), 'utf-8'));
+    const byToken = JSON.parse(await fs.readFile(path.join(outputDir, 'analysis', 'styling.byToken.json'), 'utf-8'));
     const entry = byToken.variables['Color/On surface'][0];
     expect(entry.component).toBe('compSub.item');
   });
@@ -474,7 +474,7 @@ describe('StylingAnalyzer.finalize', () => {
   it('does nothing when no components were processed', async () => {
     const t = new StylingAnalyzer();
     await t.finalize!(outputDir);
-    expect(fs.existsSync(path.join(outputDir, '_analysis'))).toBe(false);
+    expect(fs.existsSync(path.join(outputDir, 'analysis'))).toBe(false);
   });
 });
 
@@ -526,10 +526,10 @@ describe('StylingAnalyzer unused tokens', () => {
     const t = new StylingAnalyzer();
     const compDir = path.join(outputDir, 'comp');
     await fs.ensureDir(compDir);
-    await t.run(COMPONENT, { specDir: compDir, outputDir: compDir, workspaceDir: compDir, componentKey: 'comp', tokensFormat: 'TOKEN', outputFormat });
+    await t.run(COMPONENT, { specDir: compDir, outputDir: compDir, workspaceDir: compDir, specsRoot: compDir, kind: 'component' as const, componentKey: 'comp', tokensFormat: 'TOKEN', outputFormat });
     await t.finalize!(outputDir, undefined, foundations);
     const ext = outputFormat === 'YAML' ? 'yaml' : 'json';
-    const unusedPath = path.join(outputDir, '_analysis', `styling.unused.${ext}`);
+    const unusedPath = path.join(outputDir, 'analysis', `styling.unused.${ext}`);
     if (!fs.existsSync(unusedPath)) return null;
     const raw = await fs.readFile(unusedPath, 'utf-8');
     return outputFormat === 'YAML' ? yaml.parse(raw) : JSON.parse(raw);
@@ -614,6 +614,6 @@ describe('StylingAnalyzer unused tokens', () => {
     const out = await runUnused(makeFoundations(), 'YAML');
     expect(out).not.toBeNull();
     expect(out.variables).toEqual(['Color/Never used']);
-    expect(fs.existsSync(path.join(outputDir, '_analysis', 'styling.unused.json'))).toBe(false);
+    expect(fs.existsSync(path.join(outputDir, 'analysis', 'styling.unused.json'))).toBe(false);
   });
 });

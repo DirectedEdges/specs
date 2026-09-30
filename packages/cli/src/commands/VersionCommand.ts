@@ -248,6 +248,11 @@ const Cut = new Command('cut')
         for (const c of moved) {
           console.log(`  ${c.title}: ${c.from ?? 'new'} → ${c.to} (${c.changeType})`);
         }
+        // Compositions carry no version, so they are named and their movement stated
+        // rather than shown as a version transition (ADR-096).
+        for (const c of plan.compositions) {
+          console.log(`  ${c.title}: ${c.presence} (composition — patch)`);
+        }
       }
       console.log(`  versions/${plan.libraryVersion}/ written (report.md, changelog.md, specs/); latest/ refreshed.`);
       console.log(`  Tag it when ready: specs version tag ${plan.libraryVersion}`);

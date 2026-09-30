@@ -22,6 +22,7 @@ import { loadFoundations } from '../utilities/loadFoundations.js';
 import { resolveFileSourceAlias } from '../utilities/fileSourceAlias.js';
 import { ManifestParser } from '../utilities/ManifestParser.js';
 import { ManifestParserV2 } from '../utilities/ManifestParserV2.js';
+import { writeLayout, dirNameFor, type SpecKind } from '../utilities/specsLayout.js';
 import { assertPayloadReadable, readJsonPayload } from '../utilities/payloadRead.js';
 import { SectionedFile, shadowIngestEnabled, shadowCompare } from '../utilities/sectionedFile.js';
 import { LicenseStatus } from '../utilities/LicenseStatus.js';
@@ -132,7 +133,7 @@ function resolveImageFileKey(
  * once a spec exists as a plain object, output resolution/writing is identical.
  */
 async function writeGeneratedOutput(
-  processedComponents: Array<{ name: string; spec: Record<string, unknown> }>,
+  processedComponents: Array<{ name: string; spec: Record<string, unknown>; kind?: SpecKind }>,
   errors: Array<{ component: string; error: string }>,
   isManifest: boolean,
   options: GenerateOptions,
@@ -181,6 +182,7 @@ async function writeGeneratedOutput(
     useSubfolders: options.subfolders === false ? false : config.settings.spec.useSubfolders,
     defaultFormat: resolvedFormat
   };
+
 
   let outputPath: string;
   if (options.output) {
@@ -264,10 +266,14 @@ async function writeGeneratedOutput(
         for (const [hash, filename] of downloaded) files.set(hash, filename);
       }
 
-      // Spec files sit one level below baseDir when components get their own
-      // folders (subfolders, or the component+concern combined layout).
+      // How far a spec file sits below baseDir, which is where the images
+      // directory lives: always one level for the kind directory (ADR-096), one more
+      // when components get their own folders (subfolders, or the component+concern
+      // combined layout). Derived from that depth rather than written out per case,
+      // so adding a level cannot leave it stale.
       const inComponentFolders = !!outputConfig.splitComponents && (!!outputConfig.useSubfolders || !!outputConfig.splitConcerns);
-      const relativePrefix = inComponentFolders ? `../${IMAGES_DIR_NAME}/` : `${IMAGES_DIR_NAME}/`;
+      const depth = 1 + (inComponentFolders ? 1 : 0);
+      const relativePrefix = `${'../'.repeat(depth)}${IMAGES_DIR_NAME}/`;
       const resolvedCount = ImageFillsResolver.applyResolvedSources(processedComponents, files, relativePrefix);
       const downloadedCount = options.getImages ? missing.size : 0;
       const reused = hashes.size - downloadedCount;
@@ -303,10 +309,7 @@ async function writeGeneratedOutput(
   }
 
   const sourceTimestamp = sourceLastModified ? new Date(sourceLastModified) : undefined;
-  const manifest = new FileManifest(
-    processedComponents, outputConfig, baseDir, outputFileName,
-    sourceTimestamp && !isNaN(sourceTimestamp.getTime()) ? sourceTimestamp : undefined
-  );
+  const timestamp = sourceTimestamp && !isNaN(sourceTimestamp.getTime()) ? sourceTimestamp : undefined;
 
   // Select appropriate writer
   let writer: FileWriter;
@@ -320,7 +323,44 @@ async function writeGeneratedOutput(
     writer = new CombinedFileWriter();
   }
 
-  const writeResult: WriteResult = await writer.write(manifest);
+  // -------------------------------------------------------------------
+  // Output layout (ADR-096): each kind writes under its own directory —
+  // `specs/components/`, `specs/compositions/` — in every layout, including the
+  // collapsing ones.
+  //
+  // `--combine-as-library` and `--combine-concerns` collapse a catalogue into
+  // documents keyed by spec key. They still do, but per kind: the collapsing happens
+  // *within* a kind, and each kind's documents land in its own directory. Sharing one
+  // namespace would let a composition and a component of the same name overwrite each
+  // other, with write order deciding which survived — and the whole point of the
+  // layout is that a shared name is a non-event.
+  // -------------------------------------------------------------------
+  const layout = writeLayout(baseDir);
+
+  const byKind = new Map<SpecKind, typeof processedComponents>();
+  for (const item of processedComponents) {
+    const kind: SpecKind = item.kind ?? 'component';
+    const group = byKind.get(kind);
+    if (group) group.push(item);
+    else byKind.set(kind, [item]);
+  }
+
+  const writeResult: WriteResult = { filesWritten: [], warnings: [], errors: [] };
+
+  // Components first, so a run's output reads in the order the manifest lists it.
+  for (const kind of ['component', 'composition'] as SpecKind[]) {
+    const group = byKind.get(kind);
+    if (!group || group.length === 0) continue;
+    const result = await writer.write(
+      new FileManifest(group, outputConfig, layout.dirFor(kind), outputFileName, timestamp)
+    );
+    writeResult.filesWritten.push(...result.filesWritten);
+    writeResult.warnings.push(...result.warnings);
+    writeResult.errors.push(...result.errors);
+    if (kind === 'composition') {
+      console.log(`✓ Wrote ${group.length} composition spec(s) to ${dirNameFor(kind)}/`);
+    }
+  }
 
   if (writeResult.warnings.length > 0) {
     const isOverwriteWarning = (warning: string) => warning.includes('Overwriting existing file');
@@ -503,6 +543,9 @@ export const Generate = new Command('generate')
       // ---------------------------------------------------------------
       let componentIds: string[];
       let componentNames: Map<string, string>; // id → display name
+      // Which of those ids are compositions (ADR-095). The engine processes both
+      // through one call; the kind only decides where the spec is written.
+      let compositionIds = new Set<string>();
       let libraryJson: Record<string, any> | undefined;
       // Shadow mode only: the monolithic payload for a second engine run.
       let shadowJson: Record<string, any> | undefined;
@@ -521,24 +564,32 @@ export const Generate = new Command('generate')
           ? ManifestParserV2.parse(sourceContent)
           : ManifestParser.parse(sourceContent);
         const { components, metadata } = parsed;
+        // Compositions are curated exactly as components are (ADR-095) — the
+        // checkbox decides, and an unchecked one is skipped like an unchecked
+        // component.
+        const compositions = ('compositions' in parsed ? parsed.compositions : []).filter(c => c.included);
 
         for (const warning of ('warnings' in parsed ? parsed.warnings : [])) {
           console.warn(`⚠ ${warning}`);
         }
 
-        if (components.length === 0) {
+        if (components.length === 0 && compositions.length === 0) {
           console.error('Error: No components found in manifest');
           process.exit(ERROR_CODES.INVALID_ARGS);
         }
 
         const selectedComponents = components.filter(c => c.included);
 
-        if (selectedComponents.length === 0) {
+        if (selectedComponents.length === 0 && compositions.length === 0) {
           console.error('Error: No components selected in manifest (none have [x])');
           process.exit(ERROR_CODES.INVALID_ARGS);
         }
 
         console.log(`✓ Loaded manifest: ${components.length} components (${selectedComponents.length} selected)`);
+        const allCompositions = 'compositions' in parsed ? parsed.compositions : [];
+        if (allCompositions.length > 0) {
+          console.log(`✓ Loaded manifest: ${allCompositions.length} compositions (${compositions.length} selected)`);
+        }
 
         // Determine source file. `<alias>.manifest.md` names the source it was
         // scanned from, so with several fetched files the manifest's own payload
@@ -586,14 +637,16 @@ export const Generate = new Command('generate')
         // silently generated the whole catalogue — a slow surprise, and one that looks like
         // the flag worked. Match on the Figma name, the id, or the formatted key the output
         // is written under, since that is the name a caller has in front of them.
-        let chosen = selectedComponents;
+        // `--component` narrows either kind: a caller naming a composition means the
+        // composition, and refusing it would make the flag lie about its scope.
+        let chosen = [...selectedComponents, ...compositions];
         if (options.component) {
           const wanted = options.component;
-          chosen = selectedComponents.filter(c =>
+          chosen = chosen.filter(c =>
             c.id === wanted || c.name === wanted || formatKey(c.name, config.settings.spec.keys) === wanted);
           if (chosen.length === 0) {
             console.error(`Error: no component named "${wanted}" in the manifest.`);
-            const near = selectedComponents
+            const near = [...selectedComponents, ...compositions]
               .map(c => formatKey(c.name, config.settings.spec.keys))
               .filter(k => k.toLowerCase().includes(wanted.toLowerCase()))
               .slice(0, 5);
@@ -601,7 +654,7 @@ export const Generate = new Command('generate')
               console.error('Did you mean:');
               for (const k of near) console.error(`  ${k}`);
             } else {
-              console.error(`Tip: ${selectedComponents.length} components are available — omit --component to generate all of them.`);
+              console.error(`Tip: ${selectedComponents.length + compositions.length} components and compositions are available — omit --component to generate all of them.`);
             }
             process.exit(ERROR_CODES.INVALID_ARGS);
           }
@@ -609,6 +662,7 @@ export const Generate = new Command('generate')
 
         componentIds = chosen.map(c => c.id);
         componentNames = new Map(chosen.map(c => [c.id, c.name]));
+        compositionIds = new Set(chosen.filter(c => c.type === 'FRAME').map(c => c.id));
 
         if (options.verbose) {
           // The payload itself loads after component selection (sectioned path).
@@ -819,13 +873,17 @@ export const Generate = new Command('generate')
       // ---------------------------------------------------------------
       // Separate successes and errors
       // ---------------------------------------------------------------
-      const processedComponents: Array<{ name: string; spec: Record<string, unknown> }> = [];
+      const processedComponents: Array<{ name: string; spec: Record<string, unknown>; kind: SpecKind }> = [];
       const errors: Array<{ component: string; error: string }> = [];
 
       for (const result of results) {
         if ('component' in result) {
           const displayName = componentNames.get(result.name) || result.name;
-          processedComponents.push({ name: displayName, spec: result.component as Record<string, unknown> });
+          processedComponents.push({
+            name: displayName,
+            spec: result.component as Record<string, unknown>,
+            kind: compositionIds.has(result.name) ? 'composition' : 'component',
+          });
         } else {
           const displayName = componentNames.get(result.name) || result.name;
           errors.push({ component: displayName, error: result.error });
