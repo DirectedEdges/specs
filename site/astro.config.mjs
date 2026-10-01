@@ -204,6 +204,21 @@ export default defineConfig({
           ],
         },
         {
+          label: 'Storybook',
+          collapsed: true,
+          badge: experimental,
+          items: [
+            { label: 'Overview', slug: 'storybook' },
+            { label: 'Getting Started', slug: 'storybook/overview' },
+            { label: 'Foundations', slug: 'storybook/foundations' },
+            { label: 'Components', slug: 'storybook/components' },
+            { label: 'Analysis', slug: 'storybook/analysis' },
+            { label: 'Versioning', slug: 'storybook/versioning' },
+            { label: 'Customization', slug: 'storybook/customization' },
+            { label: 'Technical Details', slug: 'storybook/technical-details' },
+          ],
+        },
+        {
           label: 'Versioning',
           collapsed: true,
           badge: experimental,
