@@ -4,6 +4,9 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 097 | Composition Emission and Presentation | (reserved, draft in PR #629) |
+| 096 | Specs Directory Layout | (reserved, draft in PR #629) |
+| 095 | Compositions in the Scan Manifest | (reserved, draft in PR #629) |
 | 093 | Composed Dependency Selection Is a Setting | |
 | 092 | `invalidPropCombinations` — Renamed and Relocated to the Api Concern | |
 | 082 | `Component.description` — The Authored Figma Description, Plain Text and Opt-In | (reserved, draft in PR #375) |
