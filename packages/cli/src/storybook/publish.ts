@@ -1,0 +1,96 @@
+// `specs storybook publish` — rewrite the generated content tree, one concern
+// folder at a time, wholesale (ADR A decision 2). Never writes host config,
+// never writes content-overrides/.
+import fs from 'fs-extra';
+import path from 'path';
+import type { Workspace } from './workspace.js';
+import { registry, concernNames } from './concerns/registry.js';
+
+export interface PublishResult {
+  /** Concern → { written, changed, removed } file counts. */
+  concerns: Record<string, { written: number; changed: number; removed: number }>;
+  /** Override files currently shadowing generated pages, workspace-relative. */
+  overrides: string[];
+  /** Overrides whose concern's data files changed in this run — divergence to tell the customer about. */
+  divergedOverrides: string[];
+}
+
+function walkFiles(dir: string): string[] {
+  if (!fs.existsSync(dir)) return [];
+  const out: string[] = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...walkFiles(full));
+    else out.push(full);
+  }
+  return out;
+}
+
+function pruneEmptyDirs(dir: string): void {
+  if (!fs.existsSync(dir)) return;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory()) pruneEmptyDirs(path.join(dir, entry.name));
+  }
+  if (fs.readdirSync(dir).length === 0) fs.removeSync(dir);
+}
+
+export async function publish(ws: Workspace, concernName?: string): Promise<PublishResult> {
+  const selected = concernName ? registry.filter((c) => c.name === concernName) : registry;
+  if (concernName && selected.length === 0) {
+    throw new Error(`unknown concern "${concernName}" — concerns: ${concernNames().join(', ')}`);
+  }
+
+  const contentDir = path.join(ws.storybookDir, 'content');
+  const overridesDir = path.join(ws.storybookDir, 'content-overrides');
+  const result: PublishResult = { concerns: {}, overrides: [], divergedOverrides: [] };
+  const changedDataByConcern = new Map<string, boolean>();
+
+  for (const concern of selected) {
+    if (!concern.detect(ws)) {
+      // Nothing to build: the folder is removed so the section never appears stale.
+      fs.removeSync(path.join(contentDir, concern.name));
+      continue;
+    }
+    const files = await concern.build(ws);
+    const dir = path.join(contentDir, concern.name);
+    const wanted = new Map(files.map((f) => [path.join(dir, f.path), f.content]));
+
+    let changed = 0;
+    let dataChanged = false;
+    for (const [file, content] of wanted) {
+      const existing = fs.existsSync(file) ? fs.readFileSync(file, 'utf-8') : null;
+      if (existing !== content) {
+        fs.ensureDirSync(path.dirname(file));
+        fs.writeFileSync(file, content);
+        changed++;
+        if (file.includes(`${path.sep}data${path.sep}`)) dataChanged = true;
+      }
+    }
+
+    let removed = 0;
+    for (const existing of walkFiles(dir)) {
+      if (!wanted.has(existing)) {
+        fs.removeSync(existing);
+        removed++;
+      }
+    }
+    pruneEmptyDirs(dir);
+
+    changedDataByConcern.set(concern.name, dataChanged);
+    result.concerns[concern.name] = { written: wanted.size, changed, removed };
+  }
+
+  // Overrides: always rewritten generated pages mean an override is pinned to
+  // the data contract it forked from — say which exist, and which sit over a
+  // concern whose data moved this run (ADR A).
+  for (const file of walkFiles(overridesDir)) {
+    const rel = path.relative(overridesDir, file);
+    result.overrides.push(path.join('storybook', 'content-overrides', rel));
+    const concern = rel.split(path.sep)[0];
+    if (changedDataByConcern.get(concern)) {
+      result.divergedOverrides.push(path.join('storybook', 'content-overrides', rel));
+    }
+  }
+
+  return result;
+}
