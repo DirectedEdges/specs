@@ -45,10 +45,20 @@ file, keyed by concern. For colour:
 ```yaml
 # config/conventions/storybook.yaml
 color:
+  collections:         # which collections, in which order — same match/exclude
+    match:             # shape as figma.yaml's subcomponents and instanceExamples
+      - "Color"
+      - "Shadow"
+    exclude: []
   rowGroup:            # variable hierarchies that read as ramps — one shared row
     - "Palette"
   groupLeaves: true    # group every folder's values side by side
 ```
+
+Only a library's **own** collections render — the Figma payload also carries
+imported copies of subscribed collections, including earlier versions of the
+file's own, which would read as inexplicable duplicates. `match` is ordered and
+selects by name among those local collections; absence means all of them.
 
 Without the file, every colour is its own row with its full name visible — the
 generator asserts nothing about which values belong together until you do.

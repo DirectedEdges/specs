@@ -17,12 +17,12 @@ import { buildIconsData } from './icons.js';
  * never silently. Known colour features: `rowGroup` (string[] of hierarchy
  * names collapsing to one row) and `groupLeaves` (boolean: group all leaves).
  */
-function colorLayoutFromConventions(
+function colorOptionsFromConventions(
   color: Record<string, unknown> | undefined,
-): { default: 'stack' | 'row' | 'group'; overrides: Record<string, 'stack' | 'row' | 'group'> } | undefined {
+): import('./color.js').ColorOptions | undefined {
   if (!color) return undefined;
   const where = 'conventions/storybook.yaml color';
-  const known = ['rowGroup', 'groupLeaves'];
+  const known = ['rowGroup', 'groupLeaves', 'collections'];
   for (const feature of Object.keys(color)) {
     if (!known.includes(feature)) {
       console.warn(`⚠ ${where}: unknown feature "${feature}" ignored (known: ${known.join(', ')})`);
@@ -46,8 +46,35 @@ function colorLayoutFromConventions(
       console.warn(`⚠ ${where}.groupLeaves: expected a boolean. Ignoring.`);
     }
   }
-  if (def === 'stack' && Object.keys(overrides).length === 0) return undefined;
-  return { default: def, overrides };
+  // collections — the figma.yaml `match`/`exclude` block shape, by collection name
+  let collections: import('./color.js').CollectionSelection | undefined;
+  const rawCollections = color.collections;
+  if (rawCollections !== undefined) {
+    if (rawCollections && typeof rawCollections === 'object' && !Array.isArray(rawCollections)) {
+      const block = rawCollections as Record<string, unknown>;
+      for (const key of Object.keys(block)) {
+        if (!['match', 'exclude'].includes(key)) {
+          console.warn(`⚠ ${where}.collections: unknown key "${key}" ignored (known: match, exclude)`);
+        }
+      }
+      const list = (field: 'match' | 'exclude'): string[] | undefined => {
+        const value = block[field];
+        if (value === undefined) return undefined;
+        if (Array.isArray(value) && value.every((n) => typeof n === 'string')) return value as string[];
+        console.warn(`⚠ ${where}.collections.${field}: expected a list of collection names. Ignoring.`);
+        return undefined;
+      };
+      const match = list('match');
+      const exclude = list('exclude');
+      if (match || exclude) collections = { ...(match ? { match } : {}), ...(exclude ? { exclude } : {}) };
+    } else {
+      console.warn(`⚠ ${where}.collections: expected a mapping with match/exclude lists. Ignoring.`);
+    }
+  }
+
+  const layout = def === 'stack' && Object.keys(overrides).length === 0 ? undefined : { default: def, overrides };
+  if (!layout && !collections) return undefined;
+  return { ...(layout ? { layout } : {}), ...(collections ? { collections } : {}) };
 }
 
 interface FileSample {
@@ -141,7 +168,7 @@ export const foundations: Concern = {
     // (ADR-098). Every colour is its own row until declared otherwise:
     // `color.rowGroup` names variable-hierarchy levels that collapse into one
     // row; `color.groupLeaves: true` groups all leaves by their folder.
-    const colors = buildColorData(colorSources, colorLayoutFromConventions(ws.config.conventions.storybook?.color));
+    const colors = buildColorData(colorSources, colorOptionsFromConventions(ws.config.conventions.storybook?.color));
     if (colors) {
       out.push({ path: 'data/colors.json', content: JSON.stringify(colors, null, 2) + '\n' });
       out.push({ path: 'Color.stories.tsx', content: readTemplate('pages/Color.stories.tsx.tpl') });

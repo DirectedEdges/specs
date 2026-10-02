@@ -10,6 +10,8 @@ interface PayloadCollection {
   name: string;
   defaultModeId: string;
   modes: Array<{ modeId: string; name: string }>;
+  /** True for a collection imported from a subscribed library rather than defined in this file. */
+  remote?: boolean;
 }
 
 interface PayloadVariable {
@@ -111,20 +113,46 @@ function fillValue(fills: unknown[] | undefined): { value: string | null; unreso
 export type ColorLayout = ColorsJson['layout'];
 
 /**
+ * Which collections the page shows, and in what order — the same `match` /
+ * `exclude` block shape the figma.yaml conventions use for `subcomponents` and
+ * `instanceExamples`. `match` is ordered and selects by collection name;
+ * absence means every local collection. A `match` name selecting nothing warns
+ * by name (ADR-098).
+ */
+export interface CollectionSelection {
+  match?: string[];
+  exclude?: string[];
+}
+
+export interface ColorOptions {
+  layout?: Partial<ColorLayout>;
+  collections?: CollectionSelection;
+}
+
+/**
  * colors.json. Order everywhere is the payload's declared sequence — the
  * library's own order is the meaningful one (specs#609), so nothing here
  * sorts alphabetically.
  *
  * Layout defaults to `stack` — one colour per row, full name visible. Grouping
  * values into shared rows is a judgment about the library's intent, so it is
- * opt-in: the author sets `storybook.color.layout` in config/settings.yaml,
- * either a new default or per-`Collection` / `Collection/Group` overrides.
+ * opt-in via `color.rowGroup` / `color.groupLeaves` in
+ * config/conventions/storybook.yaml (ADR-098).
+ *
+ * Only a source's **local** collections render — the payload also carries
+ * imported copies of subscribed-library collections (`remote: true`), including
+ * earlier published versions of this file's own, which read as inexplicable
+ * duplicates. `color.collections.match` narrows and orders by name;
+ * `exclude` removes.
  */
-export function buildColorData(sources: ColorSourceInput[], layout?: Partial<ColorLayout>): ColorsJson | null {
+export function buildColorData(sources: ColorSourceInput[], options?: ColorOptions): ColorsJson | null {
+  const layout = options?.layout;
+  const selection = options?.collections;
   const out: ColorsJson = {
     layout: { default: layout?.default ?? 'stack', overrides: layout?.overrides ?? {} },
     sources: [],
   };
+  const matchedNames = new Set<string>();
 
   for (const src of sources) {
     const meta = (src.variablesPayload as { meta?: { variableCollections?: Record<string, PayloadCollection>; variables?: Record<string, PayloadVariable> } } | null)?.meta;
@@ -132,7 +160,23 @@ export function buildColorData(sources: ColorSourceInput[], layout?: Partial<Col
     const variables = meta?.variables ?? {};
 
     const collectionsOut: ColorsJson['sources'][number]['collections'] = [];
-    for (const collection of Object.values(collections)) {
+    const local = Object.values(collections).filter((c) => c.remote !== true);
+    let selected: PayloadCollection[];
+    if (selection?.match) {
+      // `match` order is display order; a name selects every local collection
+      // bearing it, in payload order within the name.
+      selected = selection.match.flatMap((name) => {
+        const hits = local.filter((c) => c.name === name);
+        if (hits.length) matchedNames.add(name);
+        return hits;
+      });
+    } else {
+      selected = local;
+    }
+    if (selection?.exclude) {
+      selected = selected.filter((c) => !selection.exclude!.includes(c.name));
+    }
+    for (const collection of selected) {
       const colors = Object.values(variables).filter(
         (v) => v.resolvedType === 'COLOR' && v.variableCollectionId === collection.id,
       );
@@ -173,5 +217,10 @@ export function buildColorData(sources: ColorSourceInput[], layout?: Partial<Col
     }
   }
 
+  for (const name of selection?.match ?? []) {
+    if (!matchedNames.has(name)) {
+      console.warn(`⚠ conventions/storybook.yaml color.collections.match: "${name}" matches no local collection in any source — ignored.`);
+    }
+  }
   return out.sources.length > 0 ? out : null;
 }
