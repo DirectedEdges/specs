@@ -4,7 +4,6 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 098 | Storybook Conventions — `config/conventions/storybook.yaml` | |
 | 097 | Composition Emission and Presentation | (reserved, draft in PR #629) |
 | 096 | Specs Directory Layout | (reserved, draft in PR #629) |
 | 095 | Compositions in the Scan Manifest | (reserved, draft in PR #629) |
@@ -21,6 +20,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 098 | Storybook Conventions — `config/conventions/storybook.yaml` | A `storybook` conventions member maps publish concerns to open feature settings, loaded from `conventions/storybook.yaml` beside `specs` and `figma.primitives` |
 | 094 | Subcomponent Pattern Matching Rules | Fixes how `{C}` and `{S}` match a name, so one `subcomponents` pattern means the same thing in every consumer (amends ADR-031) |
 | 093 | Curation Is a Settings Concern | `curation.defaultSelection`, `preserveManualSelections` and `includeDependencies` state which components a run specs |
 | 092 | `invalidPropCombinations` — Renamed and Relocated to the Api Concern | Renames `invalidVariantCombinations` and moves it to the api concern — legality of prop combinations is contract, not manifestation |
