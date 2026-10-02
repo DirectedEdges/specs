@@ -20,10 +20,15 @@ cp storybook/content/foundations/Color.stories.tsx \
    storybook/content-overrides/foundations/Color.stories.tsx
 ```
 
-From then on your page renders instead of the generated one, and regeneration
-can never destroy it — the command does not write into that tree. The generated
-original keeps being refreshed underneath, so diffing the two later shows you
-what you have diverged from.
+It takes effect immediately — with the server running, the override is indexed
+and the generated twin withdrawn within a second or two, and deleting the
+override brings the generated page back the same way. No restart in either
+direction. Regeneration can never destroy your copy; the command does not
+write into that tree.
+
+One consequence of taking a page over: its generated twin is withheld rather
+than refreshed underneath, so publish's override report is what tells you when
+the data your copy reads has moved.
 
 One thing to stay aware of: your copy still reads the generated data files
 under `content/`, and those move when the library and the toolkit move. If a

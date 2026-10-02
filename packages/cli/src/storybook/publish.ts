@@ -83,6 +83,17 @@ export async function publish(ws: Workspace, concernName?: string): Promise<Publ
     const dir = path.join(contentDir, concern.name);
     const wanted = new Map(files.map((f) => [path.join(dir, f.path), f.content]));
 
+    // Override resolution lives here, not in the host's globs: a generated page
+    // whose path is overridden is withheld, so the prune below removes any
+    // existing twin and the statically-globbed override is the only match.
+    // Both trees stay in the index the moment an override appears or vanishes —
+    // Storybook's own watcher does the rest, no restart.
+    for (const file of [...wanted.keys()]) {
+      if (!/\.stories\.[jt]sx?$/.test(file)) continue;
+      const override = path.join(overridesDir, path.relative(contentDir, file));
+      if (fs.existsSync(override)) wanted.delete(file);
+    }
+
     let changed = 0;
     let dataChanged = false;
     for (const [file, content] of wanted) {

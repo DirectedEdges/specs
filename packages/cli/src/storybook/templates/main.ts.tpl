@@ -26,26 +26,16 @@ function litAlias(): Record<string, string> {
 }
 
 /**
- * Generated pages with override resolution: for every *.stories.tsx under
- * content/, the file at the same relative path under content-overrides/ wins
- * when it exists. Taking control of a page is one copied file; a publish can
- * never destroy it because no command writes into content-overrides/.
+ * Both trees glob statically, so Storybook's own watcher picks up a new or
+ * deleted override live — no restart. Override resolution is publish's job,
+ * not a glob trick: publish withholds (and prunes) a generated page whose
+ * path is overridden, so the two trees never both carry it for more than the
+ * moment between an override appearing and the next publish pass. Taking
+ * control of a page is one copied file; a publish can never destroy it
+ * because no command writes into content-overrides/.
  */
 function contentStories(): string[] {
-  const out: string[] = [];
-  const walk = (dir: string) => {
-    if (!fs.existsSync(dir)) return;
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (/\.stories\.tsx?$/.test(entry.name)) {
-        const override = path.join(overridesDir, path.relative(contentDir, full));
-        out.push(fs.existsSync(override) ? override : full);
-      }
-    }
-  };
-  walk(contentDir);
-  return out;
+  return [`${contentDir}/**/*.stories.@(tsx|ts)`, `${overridesDir}/**/*.stories.@(tsx|ts)`];
 }
 
 /**
@@ -77,15 +67,25 @@ function specsPublishOnChange() {
       if (queued) { queued = false; run(); }
     });
   };
+  const overridesTree = path.join(root, 'storybook', 'content-overrides') + path.sep;
   const relevant = (file: string) =>
-    (file.startsWith(path.join(root, 'config') + path.sep) ||
+    // The override tree is a publish input: adding or removing an override
+    // decides which generated twin publish writes. Everything else under
+    // storybook/ is publish output and must not re-trigger it.
+    file.startsWith(overridesTree) ||
+    ((file.startsWith(path.join(root, 'config') + path.sep) ||
       file.startsWith(path.join(root, 'specs') + path.sep) ||
       file.startsWith(path.join(root, 'assets') + path.sep)) &&
-    !file.includes(`${path.sep}storybook${path.sep}`);
+      !file.includes(`${path.sep}storybook${path.sep}`));
   return {
     name: 'specs-publish-on-change',
     configureServer(server: { watcher: { add(p: string[]): void; on(e: string, cb: (file: string) => void): void } }) {
-      server.watcher.add([path.join(root, 'config'), path.join(root, 'specs'), path.join(root, 'assets')]);
+      server.watcher.add([
+        path.join(root, 'config'),
+        path.join(root, 'specs'),
+        path.join(root, 'assets'),
+        path.join(root, 'storybook', 'content-overrides'),
+      ]);
       server.watcher.on('all', ((_event: string, file: string) => {
         if (typeof file !== 'string' || !relevant(file)) return;
         clearTimeout(timer);
