@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Glyph slugs agree everywhere a digit follows a word.** `specs fetch` named a glyph from its raw Figma name ("Brightness 1" → `brightness-1.svg`) while specs and emitted code carry the camel key (`brightness1`), where that boundary no longer exists — so the scaffold requested a file fetch never wrote. A separator now never survives before a digit run, in fetch, in both emitters, and in the emitted runtime helper, so every derivation lands on the same file name. Existing workspaces rename affected files on their next `specs fetch`.
 
+- **`color.groupLeaves` accepts a list.** Collapse values into folder rows for just the named collections instead of everywhere; a layout key that names no collection or Collection/Group on the page now warns by name instead of silently doing nothing.
+
 - **Shipping polish:** analysis pages land on the Specs tab while their Report is a placeholder, and the Versions section exists only when `versions/` does — a shipped navigation carries no permanent "coming soon". A publish that removes a section's folder reports the removal rather than claiming nothing changed.
 
 - **Overrides take effect live, both directions.** Both content trees glob statically, so Storybook's own watcher indexes a new override (or drops a deleted one) without a restart; publish withholds and prunes a generated page whose path is overridden, and writes it back when the override goes. Override resolution is a data decision publish makes, no longer a startup-time glob trick.

@@ -225,5 +225,21 @@ export function buildColorData(sources: ColorSourceInput[], options?: ColorOptio
       console.warn(`⚠ conventions/storybook.yaml color.collections: "${name}" matches no local collection in any source — ignored.`);
     }
   }
+  // Layout keys must name something that rendered: a collection, or
+  // "Collection/Group" where Group is the FIRST level of the variable names.
+  // A key that matches nothing warns by name (ADR-098) — the failure mode
+  // this guards is a silent "nothing happened".
+  const legalKeys = new Set<string>();
+  for (const src of out.sources) {
+    for (const c of src.collections) {
+      legalKeys.add(c.name);
+      for (const g of c.groups) legalKeys.add(`${c.name}/${g.name}`);
+    }
+  }
+  for (const key of Object.keys(out.layout.overrides)) {
+    if (!legalKeys.has(key)) {
+      console.warn(`⚠ conventions/storybook.yaml color: layout key "${key}" names no collection or Collection/Group on the page — ignored. Keys are a collection name, or Collection/<first level of the variable names>.`);
+    }
+  }
   return out.sources.length > 0 ? out : null;
 }

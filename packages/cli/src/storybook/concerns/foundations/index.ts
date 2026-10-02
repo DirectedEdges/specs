@@ -42,8 +42,12 @@ function colorOptionsFromConventions(
   if (groupLeaves !== undefined) {
     if (typeof groupLeaves === 'boolean') {
       def = groupLeaves ? 'group' : 'stack';
+    } else if (Array.isArray(groupLeaves) && groupLeaves.every((n) => typeof n === 'string')) {
+      // List form: group the leaves of just these collections (or
+      // "Collection/Group" keys), leaving everything else stacked.
+      for (const name of groupLeaves as string[]) overrides[name] = 'group';
     } else {
-      console.warn(`⚠ ${where}.groupLeaves: expected a boolean. Ignoring.`);
+      console.warn(`⚠ ${where}.groupLeaves: expected true/false or a list of collection names. Ignoring.`);
     }
   }
   // collections — an ordered list of collection names
