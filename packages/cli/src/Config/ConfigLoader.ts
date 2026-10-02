@@ -682,7 +682,7 @@ export class ConfigLoader {
     // like `camel` — warns, names the valid values, and falls back to the
     // default. The author said something specific; discarding it without a
     // signal is worse than rejecting it.
-    const enumCheck = <K extends string>(
+    const enumCheck = <K extends string | number>(
       field: string, value: unknown, valid: readonly K[], fallback: K, optional = false,
     ): K => {
       if (optional && (value === undefined || value === null)) return value as K;

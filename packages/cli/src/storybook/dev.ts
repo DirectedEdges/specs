@@ -42,8 +42,10 @@ export async function dev(ws: Workspace): Promise<void> {
   await publish(ws);
 
   const children: ChildProcess[] = [];
-  const spawnChild = (label: string, command: string, args: string[], cwd: string) => {
-    const child = spawn(command, args, { cwd, stdio: 'inherit' });
+  const spawnChild = (label: string, command: string, args: string[], cwd: string, pipeOutput = false) => {
+    // Piped output still reaches the terminal verbatim (the log-trigger below
+    // writes it through); inherit keeps the transform watchers zero-overhead.
+    const child = spawn(command, args, { cwd, stdio: pipeOutput ? ['inherit', 'pipe', 'pipe'] : 'inherit' });
     child.on('exit', (code) => {
       if (code !== null && code !== 0) console.warn(`[specs dev] ${label} exited (${code}) — the rest keeps running.`);
     });
@@ -63,7 +65,7 @@ export async function dev(ws: Workspace): Promise<void> {
 
   // The customer's own Storybook, through the scaffolded npm script (their
   // port, their flags). --ci suppresses the prompts that hang a spawned run.
-  spawnChild('storybook', 'npm', ['run', 'storybook', '--', '--ci'], ws.storybookDir);
+  spawnChild('storybook', 'npm', ['run', 'storybook', '--', '--ci'], ws.storybookDir, true);
 
   // Health check for the one failure a designer cannot diagnose: Storybook's
   // indexer caches a per-file parse failure, so index.json 500s and STAYS 500
@@ -72,23 +74,8 @@ export async function dev(ws: Workspace): Promise<void> {
   // (touch re-triggers the parse); if the file is genuinely broken, name it
   // in one plain sentence instead of letting the UI fail mutely.
   const port = readScaffoldPort(ws);
-  if (port && typeof fetch === 'function') {
-    let everHealthy = false;
-    const touched = new Set<string>();
-    const check = async () => {
-      let res: Response;
-      try {
-        res = await fetch(`http://localhost:${port}/index.json`);
-      } catch {
-        return; // starting up, or stopped — the child exit handler covers death
-      }
-      if (res.ok) {
-        everHealthy = true;
-        touched.clear();
-        return;
-      }
-      if (!everHealthy || res.status !== 500) return;
-      const body = await res.text().catch(() => '');
+  const touched = new Set<string>();
+  const healFromErrorText = (body: string) => {
       // Any module path in the error body: the emitted trees name their files
       // bare `stories.tsx`, content pages `X.stories.tsx` — match by extension
       // and let the exists-under-workspace filter below do the narrowing.
@@ -109,8 +96,47 @@ export async function dev(ws: Workspace): Promise<void> {
         }
       }
       if (files.length === 0) {
-        console.warn('[specs dev] Storybook index is returning 500 — re-save the last story file you touched; do not restart.');
+        console.warn('[specs dev] Storybook index failed — re-save the last story file you touched; do not restart.');
       }
+  };
+
+  // Primary trigger: the server's own log line, the instant it prints —
+  // detection is immediate, the heal lands within a second or two. The
+  // slow poll below is only a backstop for failures that never log.
+  const storybookChild = children[children.length - 1];
+  for (const stream of [storybookChild.stdout, storybookChild.stderr]) {
+    if (!stream) continue;
+    let buffer = '';
+    stream.on('data', (chunk: Buffer) => {
+      const text = chunk.toString();
+      (stream === storybookChild.stderr ? process.stderr : process.stdout).write(text);
+      buffer = (buffer + text).slice(-8192);
+      // The live log says "Unable to index <path>:"; the HTTP body's aggregate
+      // says "Unable to index files:". Match the stem so both trigger.
+      if (/Unable to index/.test(buffer)) {
+        const slice = buffer;
+        buffer = '';
+        healFromErrorText(slice);
+      }
+    });
+  }
+
+  if (port && typeof fetch === 'function') {
+    let everHealthy = false;
+    const check = async () => {
+      let res: Response;
+      try {
+        res = await fetch(`http://localhost:${port}/index.json`);
+      } catch {
+        return; // starting up, or stopped — the child exit handler covers death
+      }
+      if (res.ok) {
+        everHealthy = true;
+        touched.clear();
+        return;
+      }
+      if (!everHealthy || res.status !== 500) return;
+      healFromErrorText(await res.text().catch(() => ''));
     };
     const healthTimer = setInterval(() => void check(), 15000);
     healthTimer.unref?.();
