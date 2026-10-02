@@ -48,41 +48,46 @@ that upgrades it. Nothing upgrades silently.
 
 ## Declaring presentation: `config/conventions/storybook.yaml`
 
-Choices that are taste rather than library data are declared in a conventions
-file, keyed by concern. For colour:
+Choices that are taste rather than library data, declared under the concern
+they belong to. For colour:
 
 ```yaml
-# config/conventions/storybook.yaml
 color:
-  collections:         # which collections render, in this order
+  collections:           # which collections render, in this order
     - "Color"
-    - "Shadow"
-  rowGroup:            # variable hierarchies that read as ramps — one shared row
+    - "Color Primitives"
+  groupLeaves:           # collapse values into one row per folder…
+    - "Color Primitives" #   …for just these collections (true = all of them)
+  rowGroup:              # a whole group as ONE row — for ramps
     - "Palette"
-  groupLeaves: true    # group every folder's values side by side
 modes:
-  collections:         # collections whose modes become toolbar controls
-    - "Brand"
+  collections:           # collections whose modes become toolbar controls
     - "Color"
 ```
 
-Only a library's **own** collections render — the Figma payload also carries
-imported copies of subscribed collections, including earlier versions of the
-file's own, which would read as inexplicable duplicates. `collections` is ordered and
-selects by name among those local collections; absence means all of them.
+| Feature | Value | Effect |
+|---|---|---|
+| `color.collections` | ordered list of collection names | Which collections render, and their order. Absent = every local collection |
+| `color.groupLeaves` | `true`/`false`, **or a list of keys** | One row per *folder* of variable names, side by side — for the listed collections, or everywhere with `true` |
+| `color.rowGroup` | list of keys | The whole group as a single row — for ramps, whose steps mean something next to each other |
+| `modes.collections` | list of collection names | Each becomes a toolbar dropdown switching the attribute the generated stylesheet carries |
 
-Without the file, every colour is its own row with its full name visible — the
-generator asserts nothing about which values belong together until you do.
-`rowGroup` names win over `groupLeaves`; very wide rows wrap rather than
-compressing into slivers.
+**What a layout key may name** — exactly two shapes, nothing deeper:
 
-Each listed `modes` collection becomes a toolbar dropdown in the running
-Storybook, switching the attribute the generated stylesheet already carries —
-every page and story re-renders in the selected mode.
+- A **collection name** (`Color Primitives`) — applies to all of it.
+- `Collection/Group`, where *Group* is the **first level** of the variable
+  names (`Color/color`, `Color/elevation`). A deeper path like `Color/Neutral`
+  names nothing — it is ignored **with a warning naming it** in the publish
+  output.
 
-Anything the file says that the tool does not understand — an unknown concern,
-an unknown feature, a wrong value shape — is ignored **with a warning naming
-it**, never silently. A typo tells you about itself.
+**When an edit seems to do nothing**, in order:
+
+1. Is `specs storybook dev` running? It republishes on save. If not, run
+   `specs storybook` yourself.
+2. Read the publish output. An unknown collection, feature, or layout key
+   warns by name — never silently.
+3. Silence plus "nothing changed" means the file genuinely matches what is
+   already published.
 
 ## What is still taste rather than declared
 
