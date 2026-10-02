@@ -3,14 +3,6 @@
 import * as React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 
-const ADDON_ID = 'specs/framework-tabs';
-const pageParameters = {
-  previewTabs: {
-    canvas: { title: 'Page' },
-    [`${ADDON_ID}/webcomponents`]: { hidden: true },
-    [`${ADDON_ID}/specs`]: { hidden: true },
-  },
-};
 
 const Versions = () => (
   <div style={{ maxWidth: 640, font: '16px/1.6 system-ui, sans-serif' }}>
@@ -25,7 +17,7 @@ const Versions = () => (
 const meta = {
   title: 'Versions/Overview',
   component: Versions,
-  parameters: { layout: 'padded', ...pageParameters },
+  parameters: { layout: 'padded' },
 } satisfies Meta<typeof Versions>;
 
 export default meta;

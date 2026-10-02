@@ -10,7 +10,7 @@ every emitted story.
 
 ## The framework tabs
 
-Across the top of a component's page:
+At the top of a component's page — ordinary tabs inside the page, the same treatment the Analysis pages use:
 
 | Tab | Shows | Present when |
 |---|---|---|

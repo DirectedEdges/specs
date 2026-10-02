@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Glyph slugs agree everywhere a digit follows a word.** `specs fetch` named a glyph from its raw Figma name ("Brightness 1" → `brightness-1.svg`) while specs and emitted code carry the camel key (`brightness1`), where that boundary no longer exists — so the scaffold requested a file fetch never wrote. A separator now never survives before a digit run, in fetch, in both emitters, and in the emitted runtime helper, so every derivation lands on the same file name. Existing workspaces rename affected files on their next `specs fetch`.
 
+- **The component framework tabs are in-page.** React / Web Components / Specs render as ordinary tabs inside the docs page — same treatment as the Analysis pages — and the Foundations colour swatches bind to the stylesheet's custom properties, so switching a mode restyles them live with live value captions. The scaffolded manager shrinks to one job (hiding the Web Components tree from the sidebar), feature-detected; no unstable tab APIs remain.
+
 - **Variable modes are switchable from the Storybook toolbar.** List collections under `modes.collections` in `conventions/storybook.yaml` and each becomes a toolbar dropdown driving the attribute the generated stylesheet switches on; the default mode clears it.
 
 - **Analyses get pages.** When `specs analyze` output exists in `specs/_analysis/`, publish adds an Analysis section with one page per analysis — a Report tab (dashboard to come) and a Specs tab reading the analysis YAML in place. No analyses, no section.

@@ -4,14 +4,6 @@
 import * as React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 
-const ADDON_ID = 'specs/framework-tabs';
-const pageParameters = {
-  previewTabs: {
-    canvas: { title: 'Page' },
-    [`${ADDON_ID}/webcomponents`]: { hidden: true },
-    [`${ADDON_ID}/specs`]: { hidden: true },
-  },
-};
 
 const GettingStarted = () => (
   <div style={{ maxWidth: 640, font: '16px/1.6 system-ui, sans-serif' }}>
@@ -36,7 +28,7 @@ const GettingStarted = () => (
 const meta = {
   title: 'Overview/Getting started',
   component: GettingStarted,
-  parameters: { layout: 'padded', ...pageParameters },
+  parameters: { layout: 'padded' },
 } satisfies Meta<typeof GettingStarted>;
 
 export default meta;

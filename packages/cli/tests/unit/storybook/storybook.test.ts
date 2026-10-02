@@ -164,7 +164,7 @@ describe('buildIconsData', () => {
 describe('templates', () => {
   it('ships every host template and page template', () => {
     const dir = templatesDir();
-    for (const file of ['package.json.tpl', 'tsconfig.json.tpl', 'main.ts.tpl', 'preview.tsx.tpl', 'manager.tsx.tpl', 'manager-head.html.tpl',
+    for (const file of ['package.json.tpl', 'tsconfig.json.tpl', 'main.ts.tpl', 'preview.tsx.tpl', 'manager.tsx.tpl', 'manager-head.html.tpl', 'ComponentDocs.tsx.tpl',
       'pages/Color.stories.tsx.tpl', 'pages/Typography.stories.tsx.tpl', 'pages/Icons.stories.tsx.tpl',
       'pages/GettingStarted.stories.tsx.tpl', 'pages/Analysis.stories.tsx.tpl', 'pages/VersionsStub.stories.tsx.tpl']) {
       expect(fs.existsSync(path.join(dir, file)), file).toBe(true);

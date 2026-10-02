@@ -153,7 +153,17 @@ export const foundations: Concern = {
     // (ADR-098). Every colour is its own row until declared otherwise:
     // `color.rowGroup` names variable-hierarchy levels that collapse into one
     // row; `color.groupLeaves: true` groups all leaves by their folder.
-    const colors = buildColorData(colorSources, colorOptionsFromConventions(ws.config.conventions.storybook?.color));
+    // The stylesheet's declared custom properties: swatches bind only to names
+    // it actually carries, so page and stylesheet cannot disagree on naming.
+    const cssvarsPath = path.join(ws.assetsDir, 'cssvars', 'cssvars.css');
+    const declaredProperties = new Set<string>();
+    if (fs.existsSync(cssvarsPath)) {
+      for (const m of fs.readFileSync(cssvarsPath, 'utf-8').matchAll(/^\s*(--[\w\u0080-\uFFFF-]+):/gmu)) {
+        declaredProperties.add(m[1]);
+      }
+    }
+    const colorOptions = colorOptionsFromConventions(ws.config.conventions.storybook?.color) ?? {};
+    const colors = buildColorData(colorSources, { ...colorOptions, declaredProperties });
     if (colors) {
       out.push({ path: 'data/colors.json', content: JSON.stringify(colors, null, 2) + '\n' });
       out.push({ path: 'Color.stories.tsx', content: readTemplate('pages/Color.stories.tsx.tpl') });

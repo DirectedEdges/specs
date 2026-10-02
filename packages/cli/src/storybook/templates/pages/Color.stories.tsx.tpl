@@ -6,20 +6,11 @@
 // parameters, so an MDX page cannot opt out of the component framework tabs.
 import * as React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { ColorPalette, ColorItem } from '@storybook/blocks';
 // Via the workspace-anchored path (not './data/…') so a copy of this file in
 // content-overrides/foundations/ keeps reading the published data.
 import data from '../../content/foundations/data/colors.json';
 
 // The framework tabs are views of one component; this page opts out.
-const ADDON_ID = 'specs/framework-tabs';
-const pageParameters = {
-  previewTabs: {
-    canvas: { title: 'Page' },
-    [`${ADDON_ID}/webcomponents`]: { hidden: true },
-    [`${ADDON_ID}/specs`]: { hidden: true },
-  },
-};
 
 interface Swatch {
   name: string;
@@ -91,20 +82,72 @@ function rowsFor(swatches: Swatch[], layout: Layout, group: string): Row[] {
 }
 
 /**
- * A row's swatches as the `colors` object ColorItem wants, label to value.
- *
- * Keys carry a zero-width space because a plain object reorders integer-like
- * string keys into ascending numeric order and leaves non-canonical ones like
- * `07` in insertion order at the end — which silently reorders a ramp whatever
- * the array sort says. A non-integer key preserves insertion order, and the
- * character does not render.
+ * Live swatch: the background binds to the stylesheet's custom property where
+ * one exists, so switching modes in the toolbar restyles it exactly as it
+ * restyles components; the caption reads the computed value and follows. A
+ * swatch with no property (a collection the stylesheet does not emit, a fill
+ * style) stays its published value.
  */
-function rowColors(swatches: Swatch[]): Record<string, string> {
-  const entries: Array<[string, string]> = [];
-  for (const s of swatches) {
-    if (s.value) entries.push([`\u200b${s.leaf}`, s.value]);
-  }
-  return Object.fromEntries(entries);
+function useLiveValue(cssProperty: string | null, published: string | null): string | null {
+  const [value, setValue] = React.useState(published);
+  React.useEffect(() => {
+    if (!cssProperty) return;
+    const read = () => {
+      const live = getComputedStyle(document.documentElement).getPropertyValue(cssProperty).trim();
+      setValue(live || published);
+    };
+    read();
+    const observer = new MutationObserver(read);
+    observer.observe(document.documentElement, { attributes: true });
+    return () => observer.disconnect();
+  }, [cssProperty, published]);
+  return value;
+}
+
+function SwatchCell({ swatch, label }: { swatch: Swatch; label: string }) {
+  const value = useLiveValue(swatch.cssProperty, swatch.value);
+  const background = swatch.cssProperty
+    ? `var(${swatch.cssProperty}, ${swatch.value ?? 'transparent'})`
+    : (swatch.value ?? 'transparent');
+  return (
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <div
+        title={swatch.name}
+        style={{
+          height: 44,
+          background,
+          borderRadius: 4,
+          boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.1)',
+        }}
+      />
+      <div style={{ fontFamily: 'monospace', fontSize: 11, opacity: 0.75, marginTop: 4, textAlign: 'center', overflowWrap: 'break-word' }}>
+        {label && <div>{label}</div>}
+        <div>{value ?? '—'}</div>
+      </div>
+    </div>
+  );
+}
+
+function SwatchRow({ row }: { row: Row }) {
+  const single = row.label === null;
+  const head = single ? row.swatches[0] : null;
+  return (
+    <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', padding: '10px 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+      <div style={{ width: 220, flexShrink: 0, paddingTop: 10 }}>
+        <strong style={{ overflowWrap: 'break-word' }}>{single ? head!.name : row.label}</strong>
+        <div style={{ fontSize: 12, opacity: 0.65 }}>
+          {single
+            ? (head!.via ?? head!.description)
+            : `${row.swatches.length} ${row.swatches.length === 1 ? 'value' : 'values'}`}
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 8, flex: 1, minWidth: 0 }}>
+        {row.swatches.map((s, i) => (
+          <SwatchCell key={`${i}-${s.name}`} swatch={s} label={single ? '' : s.leaf} />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function ColorPage() {
@@ -143,25 +186,11 @@ function ColorPage() {
                 return (
                   <div key={g.name}>
                     <h3>{g.name}</h3>
-                    <ColorPalette>
-                      {rows.map((row, i) =>
-                        row.label === null ? (
-                          <ColorItem
-                            key={`${i}-${row.swatches[0].name}`}
-                            title={row.swatches[0].name}
-                            subtitle={row.swatches[0].via ?? row.swatches[0].description}
-                            colors={row.swatches[0].value ? [row.swatches[0].value] : []}
-                          />
-                        ) : (
-                          <ColorItem
-                            key={`${i}-${row.label}`}
-                            title={row.label ?? ''}
-                            subtitle={`${row.swatches.length} ${row.swatches.length === 1 ? 'value' : 'values'}`}
-                            colors={rowColors(row.swatches)}
-                          />
-                        ),
-                      )}
-                    </ColorPalette>
+                    <div>
+                      {rows.map((row, i) => (
+                        <SwatchRow key={`${i}-${row.label ?? row.swatches[0].name}`} row={row} />
+                      ))}
+                    </div>
                     {unresolved.length > 0 && (
                       <div style={{ color: 'crimson' }}>
                         <p style={{ marginBottom: 4 }}>Unresolved — shown, never dropped:</p>
@@ -188,16 +217,25 @@ function ColorPage() {
                 Styles are a separate source from variables — listed in the order the library
                 declares them.
               </p>
-              <ColorPalette>
-                {src.styles.map((s) => (
-                  <ColorItem
-                    key={s.name}
-                    title={s.name}
-                    subtitle={s.unresolved ?? s.description}
-                    colors={s.value ? [s.value] : []}
+              <div>
+                {src.styles.map((style) => (
+                  <SwatchRow
+                    key={style.name}
+                    row={{
+                      label: null,
+                      swatches: [{
+                        name: style.name,
+                        leaf: style.name,
+                        value: style.value,
+                        via: null,
+                        description: style.unresolved ?? style.description,
+                        unresolved: style.unresolved,
+                        cssProperty: null,
+                      }],
+                    }}
                   />
                 ))}
-              </ColorPalette>
+              </div>
             </div>
           )}
         </div>
@@ -208,7 +246,7 @@ function ColorPage() {
 
 const meta = {
   title: 'Foundations/Color',
-  parameters: { ...pageParameters, docs: { page: ColorPage } },
+  parameters: { docs: { page: ColorPage } },
 } satisfies Meta;
 
 export default meta;

@@ -8,14 +8,6 @@ import { Typeset } from '@storybook/blocks';
 // content-overrides/foundations/ keeps reading the published data.
 import data from '../../content/foundations/data/typography.json';
 
-const ADDON_ID = 'specs/framework-tabs';
-const pageParameters = {
-  previewTabs: {
-    canvas: { title: 'Page' },
-    [`${ADDON_ID}/webcomponents`]: { hidden: true },
-    [`${ADDON_ID}/specs`]: { hidden: true },
-  },
-};
 
 interface TypeStyle {
   fontFamily: string;
@@ -174,7 +166,7 @@ function TypographyPage() {
 
 const meta = {
   title: 'Foundations/Typography',
-  parameters: { ...pageParameters, docs: { page: TypographyPage } },
+  parameters: { docs: { page: TypographyPage } },
 } satisfies Meta;
 
 export default meta;

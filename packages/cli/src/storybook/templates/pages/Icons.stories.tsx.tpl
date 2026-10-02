@@ -8,14 +8,6 @@ import { IconGallery, IconItem } from '@storybook/blocks';
 // content-overrides/foundations/ keeps reading the published data.
 import data from '../../content/foundations/data/icons.json';
 
-const ADDON_ID = 'specs/framework-tabs';
-const pageParameters = {
-  previewTabs: {
-    canvas: { title: 'Page' },
-    [`${ADDON_ID}/webcomponents`]: { hidden: true },
-    [`${ADDON_ID}/specs`]: { hidden: true },
-  },
-};
 
 const icons = data as {
   present: Array<{ name: string; referenced: boolean }>;
@@ -70,7 +62,7 @@ function IconsPage() {
 
 const meta = {
   title: 'Foundations/Icons',
-  parameters: { ...pageParameters, docs: { page: IconsPage } },
+  parameters: { docs: { page: IconsPage } },
 } satisfies Meta;
 
 export default meta;

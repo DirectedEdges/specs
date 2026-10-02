@@ -1,6 +1,7 @@
 // Colour foundations: the variables payload plus fill styles, resolved at
 // publish time (specs#609). Everything the page shows is in colors.json;
 // the page is a view of it.
+import { kebabizePath } from '../../../transforms/css/values.js';
 
 interface Rgba { r: number; g: number; b: number; a: number }
 type VarValue = Rgba | { type: 'VARIABLE_ALIAS'; id: string };
@@ -42,6 +43,13 @@ export interface SwatchJson {
   description: string;
   /** Why the swatch has no value; null when it resolved. */
   unresolved: string | null;
+  /**
+   * The custom property the generated stylesheet declares for this variable,
+   * when it does — the page binds swatch backgrounds to it so mode switches
+   * restyle them live. Derived with the emitter's own kebabizePath and then
+   * verified against the stylesheet's declared properties, never assumed.
+   */
+  cssProperty: string | null;
 }
 
 export interface ColorsJson {
@@ -114,6 +122,8 @@ export type ColorLayout = ColorsJson['layout'];
 
 export interface ColorOptions {
   layout?: Partial<ColorLayout>;
+  /** Custom properties the generated stylesheet declares; swatches bind only to members. */
+  declaredProperties?: Set<string>;
   /**
    * Which collections the page shows, and in what order: an ordered list of
    * collection names. A name selects every local collection bearing it;
@@ -180,6 +190,7 @@ export function buildColorData(sources: ColorSourceInput[], options?: ColorOptio
         const group = segments.length > 1 ? segments[0] : 'Ungrouped';
         const r = resolve(v, variables, collections);
         const list = groups.get(group) ?? [];
+        const candidate = `--${kebabizePath(`${collection.name}/${v.name}`)}`;
         list.push({
           name: v.name,
           leaf: segments[segments.length - 1],
@@ -187,6 +198,7 @@ export function buildColorData(sources: ColorSourceInput[], options?: ColorOptio
           via: r.via,
           description: v.description ?? '',
           unresolved: r.unresolved,
+          cssProperty: options?.declaredProperties?.has(candidate) ? candidate : null,
         });
         groups.set(group, list);
       }

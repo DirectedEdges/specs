@@ -1,6 +1,8 @@
 // Scaffolded by `specs storybook init`. Yours after that — publish never
 // touches it.
 import type { Preview } from '@storybook/react';
+import { addons } from 'storybook/internal/preview-api';
+import { ComponentDocs } from './ComponentDocs.js';
 {{CSSVARS_IMPORT}}
 // Mode toolbar controls (specs#636): published from conventions/storybook.yaml
 // `modes.collections`, driving the attributes the emitted stylesheet switches on.
@@ -34,14 +36,27 @@ for (const control of modeControls) {
 }
 
 /** Apply each selected mode as its attribute on <html>; the default clears it. */
-const withModes = (Story: any, context: { globals: Record<string, string> }) => {
+const applyModes = (globals: Record<string, string>) => {
   for (const control of modeControls) {
-    const value = context.globals[`mode_${control.attr}`];
+    const value = globals[`mode_${control.attr}`];
     const def = control.modes.find((m) => m.name === control.default)?.value;
     const root = document.documentElement;
     if (!value || value === def) root.removeAttribute(control.attr);
     else root.setAttribute(control.attr, value);
   }
+};
+
+// Globals reach a *story* through decorators, but a custom docs page (the
+// generated foundations and analysis pages) renders no story — so modes are
+// applied off the channel, which fires on every toolbar change regardless of
+// what the page shows.
+if (modeControls.length) {
+  applyModes(initialGlobals);
+  addons.getChannel().on('globalsUpdated', ({ globals }: { globals: Record<string, string> }) => applyModes(globals));
+}
+
+const withModes = (Story: any, context: { globals: Record<string, string> }) => {
+  applyModes(context.globals);
   return Story();
 };
 
@@ -61,6 +76,9 @@ const preview: Preview = {
     // serializer's tree structure without prettier re-splitting attributes
     // onto one line each.
     docs: {
+      // Component pages get React / Web Components / Specs as in-page tabs;
+      // every other page supplies its own docs.page and is untouched.
+      page: ComponentDocs,
       source: { format: 'dedent' },
       // Give every story on the Docs page the canvas toolbar, not just the primary.
       canvas: {

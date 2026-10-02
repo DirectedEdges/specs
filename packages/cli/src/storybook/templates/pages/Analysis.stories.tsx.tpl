@@ -5,14 +5,6 @@
 // (the analysis's own YAML, fetched from the statically served specs/ tree).
 import * as React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-const ADDON_ID = 'specs/framework-tabs';
-const pageParameters = {
-  previewTabs: {
-    canvas: { title: 'Page' },
-    [`${ADDON_ID}/webcomponents`]: { hidden: true },
-    [`${ADDON_ID}/specs`]: { hidden: true },
-  },
-};
 
 const FILES: string[] = {{ANALYSIS_FILES}};
 
@@ -87,7 +79,7 @@ function {{ANALYSIS_TITLE}}Page() {
 
 const meta = {
   title: 'Analysis/{{ANALYSIS_TITLE}}',
-  parameters: { ...pageParameters, docs: { page: {{ANALYSIS_TITLE}}Page } },
+  parameters: { docs: { page: {{ANALYSIS_TITLE}}Page } },
 } satisfies Meta;
 
 export default meta;
