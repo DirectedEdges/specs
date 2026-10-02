@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Settings.curation.defaultSelection` — `READY_FOR_DEV` or `ALL`; defaults to `READY_FOR_DEV`
 - `Settings.curation.preserveManualSelections` — hand edits outrank a changed Figma status; defaults to false
 - `Settings.curation.includeDependencies` — select what a component is built from; defaults to true
+- `PlatformConventions.slots.default.match` — naming patterns identifying a component's designated default slot (ADR-099)
+- `SlotProp.defaultSlot` — durable marker set at generation time when a slot prop matched `slots.default.match`, read by consumers with no dependency on `Conventions` (ADR-099)
 
 ### Changed
 

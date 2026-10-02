@@ -131,6 +131,20 @@ const width: PlatformConventions = { defaultFillWidth: 375 };
 // @ts-expect-error — a width is a number, not a CSS length string
 const stringWidth: PlatformConventions = { defaultFillWidth: '375px' };
 
+// ─── slots.default.match (ADR-099) ────────────────────────────────────────────
+
+// A library may name its default slot differently across component families
+const defaultSlot: PlatformConventions = { slots: { default: { match: ['children', 'items'] } } };
+
+// slots is optional; absence means no default-slot convention
+const noDefaultSlot: PlatformConventions = {};
+
+// @ts-expect-error — match is required when default is declared
+const defaultSlotNoMatch: PlatformConventions = { slots: { default: {} } };
+
+// @ts-expect-error — match is a string[], not a bare string (unlike codeOnlyProps.match)
+const defaultSlotBareString: PlatformConventions = { slots: { default: { match: 'children' } } };
+
 // ─── Resolution guarantees members inside a declared block ────────────────────
 
 declare const resolved: ResolvedConventions;
@@ -146,6 +160,9 @@ const constraints: boolean = platform.slotConstraints;
 const numbers: boolean = platform.inferNumberProps;
 const scope: 'NESTED' | 'PAGE' | undefined = platform.subcomponents?.scope;
 const sourceProps: string[] | undefined = platform.images?.sourceProps;
+
+// slots stays optional on a resolved platform entry, same as glyphs/subcomponents/images
+const slotsMatch: string[] | undefined = platform.slots?.default?.match;
 
 // stylesProp survives resolution as a platform member — promotion targets are named by the
 // spec, so there is no per-primitive block to fold it into (ADR-076)
@@ -229,6 +246,7 @@ export {
   oldShape, kinds, imageKind, promotion, platformPrimitives, entryWithoutKind, entryWithoutMap,
   entryBadKind, dottedSource, ruleWithoutSource, imageBoth,
   width, stringWidth, platformMayBeAbsent, naming, constraints, numbers, scope, sourceProps,
+  defaultSlot, noDefaultSlot, defaultSlotNoMatch, defaultSlotBareString, slotsMatch,
   platformStyles, resolvedEntry, underResolved, meta,
   metaWithoutPlatforms, defaults, defaultedPlatform, booleanState, enumState, noProp, badContract,
   specStates, specAccessibility, specValue, specValueOnly, specAll, specNone, specBareString,

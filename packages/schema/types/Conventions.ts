@@ -228,6 +228,14 @@ export interface PlatformConventions {
   };
   /** This platform authors slot constraints (anyOf, minChildren, maxChildren) as code-only props, to be consolidated into the slot property. Optional; defaults to false. @since 0.14.0 */
   slotConstraints?: boolean;
+  /** Slot-related naming conventions. Optional; absence means no such convention. @since 0.35.0 */
+  slots?: {
+    /** The component's designated default slot — the one slot always composed through. Optional; absence means no default-slot convention. */
+    default?: {
+      /** Naming patterns identifying the default slot prop. A library may name it differently across component families (e.g. `children`, `items`); any pattern matches. */
+      match: string[];
+    };
+  };
   /** This platform authors numeric props as Figma `TEXT` props whose default and examples parse as valid numbers, to be emitted as NumberProp rather than StringProp. Optional; defaults to false. */
   inferNumberProps?: boolean;
   /**
@@ -433,6 +441,13 @@ export interface ResolvedPlatformConventions {
   };
   /** Slot constraints are authored as code-only props. */
   slotConstraints: boolean;
+  /** Slot-related naming conventions. Optional; absence means no such convention. @since 0.35.0 */
+  slots?: {
+    /** The component's designated default slot. Optional; absence means no default-slot convention. */
+    default?: {
+      match: string[];
+    };
+  };
   /** Numeric props are authored as Figma `TEXT` props. */
   inferNumberProps: boolean;
   /** Prop that receives styling no promotion mapped. Optional; absence means unmapped styling is dropped. */

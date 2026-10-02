@@ -175,6 +175,30 @@
           "default": false,
           "description": "The library authors slot constraints as code-only props, to be consolidated into the slot property."
         },
+        "slots": {
+          "type": "object",
+          "description": "Slot-related naming conventions. Absence means no such convention. (ADR-099)",
+          "properties": {
+            "default": {
+              "type": "object",
+              "description": "The component's designated default slot \u2014 the one slot always composed through. Absence means no default-slot convention.",
+              "properties": {
+                "match": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Naming patterns identifying a component's designated default slot \u2014 the SlotProp this platform always composes further content through. A library may name this slot differently across component families (e.g. children in one, items in another); any pattern in the array matches. When a slot prop matches, specs-from-figma records defaultSlot: true on that SlotProp in the generated spec, and a filling instance may then be nested as a plain child element rather than through an explicit slot binding. Absence means no default slot is designated and every slot binds explicitly."
+                }
+              },
+              "required": [
+                "match"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
         "inferNumberProps": {
           "type": "boolean",
           "default": false,
