@@ -51,6 +51,10 @@ color:
   rowGroup:            # variable hierarchies that read as ramps — one shared row
     - "Palette"
   groupLeaves: true    # group every folder's values side by side
+modes:
+  collections:         # collections whose modes become toolbar controls
+    - "Brand"
+    - "Color"
 ```
 
 Only a library's **own** collections render — the Figma payload also carries
@@ -62,6 +66,10 @@ Without the file, every colour is its own row with its full name visible — the
 generator asserts nothing about which values belong together until you do.
 `rowGroup` names win over `groupLeaves`; very wide rows wrap rather than
 compressing into slivers.
+
+Each listed `modes` collection becomes a toolbar dropdown in the running
+Storybook, switching the attribute the generated stylesheet already carries —
+every page and story re-renders in the selected mode.
 
 Anything the file says that the tool does not understand — an unknown concern,
 an unknown feature, a wrong value shape — is ignored **with a warning naming

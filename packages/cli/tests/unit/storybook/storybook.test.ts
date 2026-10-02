@@ -166,7 +166,7 @@ describe('templates', () => {
     const dir = templatesDir();
     for (const file of ['package.json.tpl', 'tsconfig.json.tpl', 'main.ts.tpl', 'preview.tsx.tpl', 'manager.tsx.tpl', 'manager-head.html.tpl',
       'pages/Color.stories.tsx.tpl', 'pages/Typography.stories.tsx.tpl', 'pages/Icons.stories.tsx.tpl',
-      'pages/GettingStarted.stories.tsx.tpl', 'pages/AnalysisStub.stories.tsx.tpl', 'pages/VersionsStub.stories.tsx.tpl']) {
+      'pages/GettingStarted.stories.tsx.tpl', 'pages/Analysis.stories.tsx.tpl', 'pages/VersionsStub.stories.tsx.tpl']) {
       expect(fs.existsSync(path.join(dir, file)), file).toBe(true);
     }
   });
@@ -182,10 +182,13 @@ describe('publish semantics', () => {
     for (const concern of registry) {
       expect(concern.name).toMatch(/^[a-z]+$/);
     }
-    const alwaysOn = registry.filter(c => ['overview', 'components', 'analysis', 'versions'].includes(c.name));
+    const alwaysOn = registry.filter(c => ['overview', 'components', 'versions'].includes(c.name));
     for (const concern of alwaysOn) {
       expect(concern.detect({} as Workspace)).toBe(true);
     }
+    // analysis is data-driven: the section exists only when specs/_analysis does.
+    const analysisConcern = registry.find(c => c.name === 'analysis')!;
+    expect(analysisConcern.detect({ specsDir: '/nonexistent' } as Workspace)).toBe(false);
   });
 });
 

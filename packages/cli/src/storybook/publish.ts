@@ -40,7 +40,7 @@ export async function publish(ws: Workspace, concernName?: string): Promise<Publ
   // indistinguishable from a working one. (Concern pages may consume blocks
   // named after foundations pages too, so those keys are also legitimate.)
   const conventionKeys = Object.keys(ws.config.conventions.storybook ?? {});
-  const legitimate = new Set([...concernNames(), 'color', 'typography', 'icons']);
+  const legitimate = new Set([...concernNames(), 'color', 'typography', 'icons', 'modes']);
   for (const key of conventionKeys) {
     if (!legitimate.has(key)) {
       console.warn(`⚠ conventions/storybook.yaml: unknown concern "${key}" ignored (known: ${[...legitimate].join(', ')})`);

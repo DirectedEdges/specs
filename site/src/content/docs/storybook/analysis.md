@@ -1,18 +1,20 @@
 ---
 title: "Analysis"
-description: "Where the analysis reports will render. A placeholder today."
+description: "One page per analysis in your workspace, with the data viewable today and dashboards to come."
 ---
 
-:::note[Placeholder]
-The section exists in your Storybook today with a single page saying what will
-live there. The real pages land once the reports convention is settled.
-:::
+The section appears when your workspace has analyses — run any `specs analyze`
+command and its output lands in `specs/_analysis/`; the next `specs storybook`
+adds an **Analysis** section with one page per analysis found there. No
+analyses, no section.
 
-`specs analyze` already writes durable report files — props across the
-catalogue, styling, naming, dependencies. Those files stay the source of truth:
-diffable, readable in CI, greppable without a browser.
+Each page has two tabs:
 
-This section is where they will **render**: one generated page per analysis,
-reading the report file live, so the results surface in the tool you are
-already looking at instead of in terminal output. Regenerating a report
-refreshes its page; the page never computes anything of its own.
+| Tab | Shows |
+|---|---|
+| **Report** | The dashboard summarizing the analysis — *not built yet*; each report is its own piece of work |
+| **Specs** | The analysis's own YAML, one sub-tab per file (`byComponent`, `graph`, …), readable in place |
+
+The files stay the durable record: diffable, readable in CI, greppable without
+a browser. The page never computes anything — re-running the analysis and
+re-publishing refreshes what it shows.

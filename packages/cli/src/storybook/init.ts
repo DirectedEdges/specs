@@ -7,7 +7,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import type { Workspace } from './workspace.js';
 import { readTemplate, renderTemplate } from './templates.js';
-import { deriveTabs } from './concerns/components/index.js';
+import { deriveTabs, deriveModes } from './concerns/components/index.js';
 
 export interface InitOptions {
   force: boolean;
@@ -69,6 +69,13 @@ export function init(ws: Workspace, options: InitOptions): InitResult {
     fs.ensureDirSync(path.dirname(tabsFile));
     fs.writeFileSync(tabsFile, JSON.stringify(deriveTabs(ws), null, 2) + '\n');
     written.push(path.join('storybook', 'content', 'components', 'tabs.json'));
+  }
+
+  // Seed modes.json for the same reason: the scaffolded preview imports it.
+  const modesFile = path.join(ws.storybookDir, 'content', 'components', 'modes.json');
+  if (!fs.existsSync(modesFile)) {
+    fs.writeFileSync(modesFile, JSON.stringify(deriveModes(ws, ws.config.conventions.storybook?.modes), null, 2) + '\n');
+    written.push(path.join('storybook', 'content', 'components', 'modes.json'));
   }
 
   return { written, port: options.port };

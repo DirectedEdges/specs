@@ -2,8 +2,51 @@
 // touches it.
 import type { Preview } from '@storybook/react';
 {{CSSVARS_IMPORT}}
+// Mode toolbar controls (specs#636): published from conventions/storybook.yaml
+// `modes.collections`, driving the attributes the emitted stylesheet switches on.
+import modesJson from '../content/components/modes.json';
+
+interface ModeControl {
+  name: string;
+  attr: string;
+  modes: Array<{ name: string; value: string }>;
+  default: string;
+}
+const modeControls: ModeControl[] = (modesJson as { controls: ModeControl[] }).controls ?? [];
+
+const globalTypes: NonNullable<Preview['globalTypes']> = {};
+for (const control of modeControls) {
+  globalTypes[`mode_${control.attr}`] = {
+    description: `${control.name} mode`,
+    toolbar: {
+      title: control.name,
+      icon: 'paintbrush',
+      dynamicTitle: true,
+      items: control.modes.map((m) => ({ value: m.value, title: m.name })),
+    },
+  };
+}
+
+const initialGlobals: Record<string, string> = {};
+for (const control of modeControls) {
+  const def = control.modes.find((m) => m.name === control.default);
+  initialGlobals[`mode_${control.attr}`] = def?.value ?? control.modes[0].value;
+}
+
+/** Apply each selected mode as its attribute on <html>; the default clears it. */
+const withModes = (Story: any, context: { globals: Record<string, string> }) => {
+  for (const control of modeControls) {
+    const value = context.globals[`mode_${control.attr}`];
+    const def = control.modes.find((m) => m.name === control.default)?.value;
+    const root = document.documentElement;
+    if (!value || value === def) root.removeAttribute(control.attr);
+    else root.setAttribute(control.attr, value);
+  }
+  return Story();
+};
 
 const preview: Preview = {
+  ...(modeControls.length ? { globalTypes, initialGlobals, decorators: [withModes] } : {}),
   // Autodocs: a per-component Docs page listing every story, labeled.
   tags: ['autodocs'],
   parameters: {
