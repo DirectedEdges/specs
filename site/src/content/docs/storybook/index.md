@@ -43,8 +43,11 @@ specs webcomponents
 specs storybook
 ```
 
-A running Storybook picks the changes up without restarting. Re-running
-`specs storybook` when nothing changed writes nothing and says so.
+While Storybook is running you rarely type that: the dev server watches your
+workspace — `config/` (the conventions file included), `specs/`, and `assets/` —
+and republishes itself when anything changes; the open page refreshes on its
+own. Manual `specs storybook` is for when no server is up. Re-running it when
+nothing changed writes nothing and says so.
 
 ## What you can change
 

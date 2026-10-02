@@ -39,8 +39,10 @@ specs webcomponents
 specs storybook
 ```
 
-The running instance reloads as the files change. Skip `react` and
-`webcomponents` if you only want the foundations refreshed.
+With the server running you only need the first four — it watches the
+workspace and republishes its own pages as they land, and the open page
+refreshes itself. Editing `config/conventions/storybook.yaml` needs nothing at
+all: save, and the page follows.
 
 ## Code emission is optional
 

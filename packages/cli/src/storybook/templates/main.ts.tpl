@@ -48,6 +48,53 @@ function contentStories(): string[] {
   return out;
 }
 
+/**
+ * The running Storybook republishes itself: edit anything under config/ (the
+ * conventions file included) or specs/ and `specs storybook publish` re-runs,
+ * Vite picks up the rewritten content, and the open page refreshes. Publish is
+ * idempotent and diff-writing, so a change that affects nothing writes nothing
+ * and the loop goes quiet. Manual publish is only for when no server is up.
+ *
+ * assets/ is watched for the same reason — the modes manifest and the icons
+ * directory are publish inputs. The emitted react/ and webcomponents/ trees
+ * need nothing here: they are in Vite's own module graph via the story globs,
+ * so a transform run already hot-reloads them.
+ */
+function specsPublishOnChange() {
+  const root = path.resolve(__dirname, '../..');
+  let running = false;
+  let queued = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const run = () => {
+    if (running) { queued = true; return; }
+    running = true;
+    const { execFile } = require('node:child_process') as typeof import('node:child_process');
+    execFile('specs', ['storybook', 'publish'], { cwd: root }, (error: Error | null, stdout: string, stderr: string) => {
+      running = false;
+      const out = `${stdout ?? ''}${stderr ?? ''}`.trim();
+      if (out && !/nothing changed/i.test(out)) console.log(`[specs] ${out.split('\n').pop()}`);
+      if (error && !out) console.warn('[specs] publish-on-change unavailable — is the specs CLI installed? Edit → run `specs storybook` yourself.');
+      if (queued) { queued = false; run(); }
+    });
+  };
+  const relevant = (file: string) =>
+    (file.startsWith(path.join(root, 'config') + path.sep) ||
+      file.startsWith(path.join(root, 'specs') + path.sep) ||
+      file.startsWith(path.join(root, 'assets') + path.sep)) &&
+    !file.includes(`${path.sep}storybook${path.sep}`);
+  return {
+    name: 'specs-publish-on-change',
+    configureServer(server: { watcher: { add(p: string[]): void; on(e: string, cb: (file: string) => void): void } }) {
+      server.watcher.add([path.join(root, 'config'), path.join(root, 'specs'), path.join(root, 'assets')]);
+      server.watcher.on('all', ((_event: string, file: string) => {
+        if (typeof file !== 'string' || !relevant(file)) return;
+        clearTimeout(timer);
+        timer = setTimeout(run, 300);
+      }) as unknown as (file: string) => void);
+    },
+  };
+}
+
 const config: StorybookConfig = {
   stories: [
     ...contentStories(),
@@ -85,6 +132,7 @@ const config: StorybookConfig = {
     options: {},
   },
   async viteFinal(cfg) {
+    cfg.plugins = [...(cfg.plugins ?? []), specsPublishOnChange()];
     cfg.resolve = {
       ...cfg.resolve,
       alias: {
