@@ -67,15 +67,20 @@ slotConstraints: false
 `config/settings.yaml` declares run choices, grouped by concern:
 
 ```yaml
-# Choices about this run — sources, spec output, assets.
+# Choices about this run — curation, sources, spec output, assets.
 author: <Your Name Here>
+
+curation:
+  # defaultSelection: ALL
+  # preserveManualSelections: true
+  # includeDependencies: false
 
 data:
   directory: ./data
   sources:
     library:
       key: YOUR_FIGMA_FILE_KEY
-      fetch: [file, variables, styles]
+      fetch: [file, variables, styles, icons]
 
 assets:
   directory: ./assets
@@ -89,12 +94,20 @@ spec:
   color: HEXA
   variantDepth: 9999
   details: LAYERED
+  # roles: true
+  # roleValidation: error
   # collapsePrimitiveWrapper: true
+  # promotePrimitives: true
+  # invalidVariants: true
+  # invalidCombinations: false
+  # emptyVariants: true
   # defaultSlotContent: true
   # splitComponents: false
   # splitConcerns: false
-  # useSubfolders: true
+  # useSubfolders: false
 ```
+
+Every commented line is the opposite of its default, so uncommenting one always changes behaviour. Each carries a link to its reference page in the generated file. The full table is in [Settings](/schema/settings/).
 
 The scaffolded source is a placeholder: replace `YOUR_FIGMA_FILE_KEY` with your file's key before running `specs fetch`.
 
