@@ -92,6 +92,12 @@ the engine work to produce and consume that shape in `specs-from-figma` and
   absence means: the library declares no such convention, and the capability
   it enables does not apply. No existing conventions file should need to
   change to remain valid.
+- **Self-contained consumption**: a generated spec is the contract consumers
+  read — a downstream reader (the flattening rule itself, `figma-from-specs`
+  at render time, any other tool) must be able to tell which `SlotProp` is
+  the default slot by reading the spec alone. It must not need to fetch
+  `Conventions` and re-run `slots.default.match` against prop names just to
+  recover a fact the generation step already resolved once.
 
 ---
 
@@ -208,6 +214,51 @@ it, rather than a new mechanism.
 
 ---
 
+### Decision 4 — Where a generated spec records which slot is the default: re-derive from `Conventions`, or a durable marker on `SlotProp`
+
+#### Option A: No spec-side marker — every reader re-runs `slots.default.match` against prop names
+
+Leave `slots.default.match` as purely a `Conventions`-side fact. Any
+downstream reader that needs to know which slot is eligible for flattened
+nesting — the flattening rule itself, `figma-from-specs` reconstructing
+nested structure on render, any other tool — fetches the `Conventions` the
+spec was generated under (via `metadata.conventions.*`, ADR-071) and
+re-evaluates the pattern against the component's prop names.
+
+**Rejected because**: this turns a one-time, generation-time fact into a
+repeated cross-package dependency on conventions that the spec should not
+need. It also does not degrade gracefully — a reader with no access to the
+originating `Conventions` (or a future reader never designed to need them)
+cannot determine the default slot at all, even though the generated spec
+itself already encodes which `SlotProp` it is. This violates the
+self-contained-consumption driver above.
+
+#### Option B: A durable `defaultSlot` marker on `SlotProp`, set once at generation time *(Selected)*
+
+Add `defaultSlot?: boolean` to `SlotProp` (`types/Props.ts`). `specs-from-figma`
+consults `Conventions.platforms.figma.slots.default.match` only at
+spec-generation time, to decide which one `SlotProp` on a generated component
+gets `defaultSlot: true` in the output `props` block. Every downstream
+consumer of the generated spec then reads `props.<key>.defaultSlot === true`
+directly off the spec — it needs no access to `Conventions` at all to know
+which slot permits plain nested-children authoring instead of an explicit
+binding.
+
+**Selected because**: this is the same shape every other provenance-style
+fact in this schema already takes — a value resolved once, at generation
+time, from a convention, and then recorded durably on the spec so later
+readers do not have to re-derive it (`FigmaPropExtension.name`, ADR-066, is
+the direct precedent: a convention-driven fact resolved once and carried on
+the spec rather than re-computed by every reader). `slots.default.match`
+remains exactly as decided above — a generation-time input, authored once
+per platform in `config/conventions/<platform>.yaml` — while `defaultSlot`
+is the spec-time output of evaluating it. Neither fact is redundant: the
+convention is still required to *produce* a correctly marked spec; the
+marker is what lets every later stage consume one without the convention in
+hand.
+
+---
+
 ## Decision
 
 ### The convention: `slots.default.match`
@@ -224,12 +275,19 @@ platform.
 
 ### The composition mechanism: flattened instance nesting through the default slot
 
-When a slot prop on a component matches `slots.default.match`, an
-authored example may nest the filling instance **directly** as an ordinary
-`Element`, referenced through plain `children: string[]` in the composing
-element's own `children` array — an instance element whose `instanceOf`
-names the next component in the chain, placed as a normal child, with no
-`PropBinding`/`SlotContentRef` hop required for that nesting:
+`slots.default.match` is consulted **only at spec-generation time**, by
+`specs-from-figma`, against a component's actual Figma prop names, to decide
+which one `SlotProp` gets `defaultSlot: true` recorded on it in the
+generated spec (see Decision 4 and the discriminant subsection below). From
+that point on, every consumer of the generated spec — including the
+flattening rule itself — keys off `props.<key>.defaultSlot === true`, not
+off re-running `slots.default.match` against prop names. When a slot prop
+carries `defaultSlot: true`, an authored example may nest the filling
+instance **directly** as an ordinary `Element`, referenced through plain
+`children: string[]` in the composing element's own `children` array — an
+instance element whose `instanceOf` names the next component in the chain,
+placed as a normal child, with no `PropBinding`/`SlotContentRef` hop required
+for that nesting:
 
 ```yaml
 # Before — explicit binding at every layout level
@@ -280,12 +338,51 @@ single-default-slot, always-composed case that `collapsePrimitiveWrapper`
 (ADR-083) already recognizes at the anatomy level; it does not change how
 any other slot prop is filled.
 
+### The discriminant: `SlotProp.defaultSlot`
+
+`SlotProp` (`types/Props.ts`) gains an optional boolean field,
+`defaultSlot?: boolean`, mirrored into the `SlotProp` definition in
+`schema/component.schema.json`. This is the durable, spec-side marker
+Decision 4 selects — set once by `specs-from-figma` when it generates a
+component whose matched slot prop satisfies
+`Conventions.platforms.figma.slots.default.match`, and read thereafter by
+every consumer with no dependency on `Conventions`:
+
+```yaml
+props:
+  children:
+    type: slot
+    defaultSlot: true
+```
+
+Absence means exactly what absence means on every other optional `SlotProp`
+member: this slot is not the designated default slot (or the platform
+declares no default-slot convention at all), and any instance filling it
+must use an explicit `SlotContentRef`/`SlotBinding`, not plain nested
+`children`.
+
+**Invariant**: at most one `SlotProp` per component may have
+`defaultSlot: true`. This is a cross-property constraint over sibling
+entries in a component's `props` map, which JSON Schema cannot express
+without `additionalProperties: false`-breaking contortions at a level this
+schema does not otherwise reach into (validating one named prop's value
+against the shape of its siblings). Consistent with how this schema treats
+other cross-key invariants it states but does not mechanically validate
+(e.g. `ResolvedPlatformConventions`'s resolved-vs-absent distinction, or
+`subcomponents.match`/`exclude` precedence), the invariant is **documented
+as an authoring/generator contract, not JSON-Schema-enforced**:
+`specs-from-figma` is responsible for setting `defaultSlot: true` on at most
+one `SlotProp` per generated component, and any hand-authored spec that
+violates the invariant is malformed input a consumer may reject, not a
+shape the schema itself rules out.
+
 ### Type changes (`types/`)
 
 | File | Change | Bump |
 |------|--------|------|
 | `Conventions.ts` | Added `slots?: { default?: { match: string[] } }` to `PlatformConventions` | MINOR |
 | `Conventions.ts` | Added `slots?: { default?: { match: string[] } }` to `ResolvedPlatformConventions` | MINOR |
+| `Props.ts` | Added `defaultSlot?: boolean` to `SlotProp` | MINOR |
 | `Children.ts` | Doc-only: clarified that a plain `children: string[]` entry may name an element that is an instance of a different component, nested through its default slot — no type shape change | PATCH |
 
 **Example — new shape** (`types/Conventions.ts`):
@@ -315,11 +412,43 @@ slots:
       - "items"
 ```
 
+**Example — new shape** (`types/Props.ts`):
+```yaml
+# Before (SlotProp, excerpt)
+SlotProp:
+  type: 'slot'
+  default?: string | null
+  nullable?: boolean
+  minChildren?: number
+  maxChildren?: number
+  anyOf?: string[]
+
+# After
+SlotProp:
+  type: 'slot'
+  default?: string | null
+  nullable?: boolean
+  minChildren?: number
+  maxChildren?: number
+  anyOf?: string[]
+  defaultSlot?: boolean   # new — optional, MINOR
+```
+
+Emitted on a generated spec:
+```yaml
+# Generated component, excerpt
+props:
+  children:
+    type: slot
+    defaultSlot: true
+```
+
 ### Schema changes (`schema/`)
 
 | File | Change | Bump |
 |------|--------|------|
 | `conventions.schema.json` | Added `slots` object property to the `PlatformConventions` definition, with a nested `default` object carrying `match` | MINOR |
+| `component.schema.json` | Added `defaultSlot` boolean property to the `SlotProp` definition | MINOR |
 
 **Example — new shape** (`schema/conventions.schema.json`):
 ```yaml
@@ -340,13 +469,30 @@ slots:
             content through. A library may name this slot differently
             across component families (e.g. `children` in one, `items` in
             another); any pattern in the array matches. When a slot prop
-            matches, a filling instance may be nested as a plain child
-            element rather than through an explicit slot binding. Absence
-            means no default slot is designated and every slot binds
-            explicitly.
+            matches, specs-from-figma records `defaultSlot: true` on that
+            SlotProp in the generated spec, and a filling instance may then
+            be nested as a plain child element rather than through an
+            explicit slot binding. Absence means no default slot is
+            designated and every slot binds explicitly.
       required: [match]
       additionalProperties: false
   additionalProperties: false
+```
+
+**Example — new shape** (`schema/component.schema.json`, `SlotProp` definition):
+```yaml
+# New property under #/definitions/SlotProp/properties
+defaultSlot:
+  type: boolean
+  description: >
+    Whether this is the component's designated default slot — set by
+    specs-from-figma when the slot prop matched the originating platform's
+    slots.default.match convention at generation time. When true, an
+    authored example may nest a filling instance as a plain child element
+    instead of through an explicit SlotContentRef/SlotBinding. Absent means
+    false: this is not the default slot, or the platform declared no
+    default-slot convention. At most one SlotProp per component may be
+    true — an authoring/generator invariant, not schema-enforced.
 ```
 
 ### Notes
@@ -389,6 +535,10 @@ slots:
   definition, consistent with existing practice — `Resolved*` types are a
   TypeScript-only resolution-time shape; schema validates the authored
   (`PlatformConventions`) form, loaded from `config/conventions/<platform>.yaml`.
+- **Parity check**: `SlotProp.defaultSlot` (type, `types/Props.ts`) maps to
+  `#/definitions/SlotProp/properties/defaultSlot` (schema,
+  `schema/component.schema.json`) — both optional boolean, both
+  absent-means-false, no further resolution shape needed on either side.
 
 ---
 
@@ -396,10 +546,10 @@ slots:
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | Gains a new convention to read (`conventions.platforms.figma.slots.default.match`) and a schema-decided rule to implement: match a component's slot props against any pattern in the array, and where matched, emit a flattened, nested-children tree in generated example data instead of an explicit slot-content-reference binding at every layout level. | Engine implementation work to apply the rule this ADR defines — not a design decision, the rule itself is decided here. |
-| `figma-from-specs` | Reads `metadata.conventions.*` at render time to recover the conventions a spec was generated under, and must reconstruct the explicit nested slot-content-reference structure from a flattened children tree when rendering back to Figma. | Engine implementation work to recognize a flattened default-slot tree (once `specs-from-figma` emits one) and reconstruct the corresponding instance/slot structure on the canvas. |
-| `specs-cli` | None. | None — the CLI passes `Conventions` through to `specs-from-figma` unchanged; no CLI-side logic reads this field. |
-| `specs-plugin-2` | None at this ADR's scope. | Recompiles against the new optional field; no behavioral change until the engine (`specs-from-figma`, bundled from source) consumes it. |
+| `specs-from-figma` | Gains a new convention to read (`conventions.platforms.figma.slots.default.match`), consulted only at generation time, and a schema-decided rule to implement: match a component's slot props against any pattern in the array, record `defaultSlot: true` on the matched `SlotProp` in the generated spec, and where matched, emit a flattened, nested-children tree in generated example data instead of an explicit slot-content-reference binding at every layout level. | Engine implementation work to apply the rule this ADR defines — not a design decision, the rule itself is decided here. |
+| `figma-from-specs` | Reads `props.<key>.defaultSlot === true` directly off the spec at render time — no dependency on `metadata.conventions.*` to identify the default slot — and must reconstruct the explicit nested slot-content-reference structure from a flattened children tree when rendering back to Figma. | Engine implementation work to recognize a flattened default-slot tree (keyed off `defaultSlot`, once `specs-from-figma` emits one) and reconstruct the corresponding instance/slot structure on the canvas. |
+| `specs-cli` | None. | None — the CLI passes `Conventions` through to `specs-from-figma` unchanged; no CLI-side logic reads either field. |
+| `specs-plugin-2` | None at this ADR's scope. | Recompiles against the new optional fields; no behavioral change until the engine (`specs-from-figma`, bundled from source) consumes them. |
 
 ---
 
@@ -410,12 +560,12 @@ on the active release branch (`release/next`) this ADR merges into.
 
 **Change class**: `MINOR`.
 
-**Justification**: The change is a new optional field (`slots` on
-`PlatformConventions` and `ResolvedPlatformConventions`) with no removal,
-rename, or narrowing of any existing field — additive-only per Constitution
-Additional Constraints & Standards ("Versioning": MINOR for additive types or
-new optional fields). The `Children.ts` doc clarification carries no type
-shape change and is PATCH.
+**Justification**: The change is two new optional fields (`slots` on
+`PlatformConventions`/`ResolvedPlatformConventions`, and `defaultSlot` on
+`SlotProp`) with no removal, rename, or narrowing of any existing field —
+additive-only per Constitution Additional Constraints & Standards
+("Versioning": MINOR for additive types or new optional fields). The
+`Children.ts` doc clarification carries no type shape change and is PATCH.
 
 ---
 
@@ -424,26 +574,35 @@ shape change and is PATCH.
 - A library can declare which `SlotProp` on its layout components is the
   designated default slot, via `config/conventions/figma.yaml`
   (`slots.default.match`).
+- A generated spec carries that fact durably, on the spec itself:
+  `specs-from-figma` sets `defaultSlot: true` on the matched `SlotProp`
+  once, at generation time, and no downstream consumer needs `Conventions`
+  to rediscover it.
 - This ADR **decides** the flattened-nesting rule as the effective behavior
-  of the schema it amends: when a slot prop matches `slots.default.match`,
+  of the schema it amends: when a slot prop carries `defaultSlot: true`,
   the filling instance may be authored as a plain nested child
   (`children: string[]`, `instanceOf` on the child element) rather than
   through an explicit `PropBinding`/`SlotContentRef` at that level. The rule
   is schema-decided now; only the engine work to produce and consume it is
   follow-up.
+- At most one `SlotProp` per component may have `defaultSlot: true` — an
+  authoring/generator invariant this ADR states but does not encode in
+  `schema/`, consistent with how other cross-property invariants in this
+  schema are handled.
 - Where a slot is *not* the designated default slot, the existing
   `SlotContentRef`/`SlotBinding`/`$nested` binding mechanism remains
   required and unchanged — genuine multi-slot composition is unaffected.
 - **Follow-up implementation work in `specs-from-figma`**: identify, for a
   given component, whether a slot prop matches `slots.default.match`; where
-  it does, and the composed content is itself a layout component repeating
-  the pattern, emit the flat, nested tree this ADR defines in example data,
-  rather than a chain of explicit slot-content-reference bindings.
+  it does, record `defaultSlot: true` on that `SlotProp`, and where the
+  composed content is itself a layout component repeating the pattern, emit
+  the flat, nested tree this ADR defines in example data, rather than a
+  chain of explicit slot-content-reference bindings.
 - **Follow-up implementation work in `figma-from-specs`**: when rendering a
-  spec back onto the Figma canvas, reconstruct the explicit nested
-  structure from a flattened default-slot tree, consistent with its
-  existing responsibility to recover conventions from
-  `metadata.conventions.*` at render time.
+  spec back onto the Figma canvas, read `defaultSlot` off the spec to
+  identify a flattened default-slot tree and reconstruct the explicit
+  nested structure from it — no dependency on `metadata.conventions.*` for
+  this determination.
 - Both follow-ups are engine implementation work against a rule this ADR
   has already decided — they are not deferred design decisions and do not
   require a separate ADR unless they surface a schema-visible concept this
