@@ -56,7 +56,10 @@ function SpecsTab() {
 }
 
 function {{ANALYSIS_TITLE}}Page() {
-  const [tab, setTab] = React.useState<'report' | 'specs'>('report');
+  // Specs lands first while the Report is a placeholder (specs#653): the data
+  // a reader came for should not be one tab away behind a "not built yet".
+  // When a dashboard lands (specs#637–#640), flip the default back to report.
+  const [tab, setTab] = React.useState<'report' | 'specs'>('specs');
   return (
     <>
       <h1>{{ANALYSIS_TITLE}}</h1>

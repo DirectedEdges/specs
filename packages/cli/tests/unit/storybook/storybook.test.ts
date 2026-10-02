@@ -182,13 +182,16 @@ describe('publish semantics', () => {
     for (const concern of registry) {
       expect(concern.name).toMatch(/^[a-z]+$/);
     }
-    const alwaysOn = registry.filter(c => ['overview', 'components', 'versions'].includes(c.name));
+    const alwaysOn = registry.filter(c => ['overview', 'components'].includes(c.name));
     for (const concern of alwaysOn) {
       expect(concern.detect({} as Workspace)).toBe(true);
     }
-    // analysis is data-driven: the section exists only when specs/_analysis does.
+    // analysis and versions are data-driven: each section exists only when its
+    // folder does (specs/_analysis/ and versions/ respectively).
     const analysisConcern = registry.find(c => c.name === 'analysis')!;
     expect(analysisConcern.detect({ specsDir: '/nonexistent' } as Workspace)).toBe(false);
+    const versionsConcern = registry.find(c => c.name === 'versions')!;
+    expect(versionsConcern.detect({ root: '/nonexistent' } as Workspace)).toBe(false);
   });
 });
 

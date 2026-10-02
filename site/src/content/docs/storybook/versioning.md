@@ -4,8 +4,9 @@ description: "Where your release history will render. A placeholder today."
 ---
 
 :::note[Placeholder]
-The section exists in your Storybook today with a single page saying what will
-live there.
+The section appears when your workspace has a `versions/` folder — run your
+first `specs version cut` and the next publish adds it, carrying a single page
+saying what will live there.
 :::
 
 [Versioning](/versioning/) already records every release in your workspace's

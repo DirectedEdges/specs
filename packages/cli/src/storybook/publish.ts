@@ -75,8 +75,15 @@ export async function publish(ws: Workspace, concernName?: string): Promise<Publ
 
   for (const concern of selected) {
     if (!concern.detect(ws)) {
-      // Nothing to build: the folder is removed so the section never appears stale.
-      fs.removeSync(path.join(contentDir, concern.name));
+      // Nothing to build: the folder is removed so the section never appears
+      // stale — and the removal is SAID, so a run that deletes a directory
+      // never reports "nothing changed".
+      const dir = path.join(contentDir, concern.name);
+      if (fs.existsSync(dir)) {
+        const removedCount = [...walkFiles(dir)].length;
+        fs.removeSync(dir);
+        result.concerns[concern.name] = { written: 0, changed: 0, removed: removedCount };
+      }
       continue;
     }
     const files = await concern.build(ws);

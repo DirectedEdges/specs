@@ -12,8 +12,8 @@ Each page has two tabs:
 
 | Tab | Shows |
 |---|---|
-| **Report** | The dashboard summarizing the analysis — *not built yet*; each report is its own piece of work |
-| **Specs** | The analysis's own YAML, one sub-tab per file (`byComponent`, `graph`, …), readable in place |
+| **Specs** | The analysis's own YAML, one sub-tab per file (`byComponent`, `graph`, …), readable in place — the landing tab for now |
+| **Report** | The dashboard summarizing the analysis — *not built yet*; each report is its own piece of work, and becomes the landing tab when it lands |
 
 The files stay the durable record: diffable, readable in CI, greppable without
 a browser. The page never computes anything — re-running the analysis and
