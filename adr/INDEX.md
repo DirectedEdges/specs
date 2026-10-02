@@ -4,6 +4,10 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| # | Title | Highlights |
+|---|-------|------------|
+| 099 | `childrenNamePattern` — Naming the Designated Children Slot | |
+| 098 | Storybook Conventions — `config/conventions/storybook.yaml` | |
 | 097 | Composition Emission and Presentation | (reserved, draft in PR #629) |
 | 096 | Specs Directory Layout | (reserved, draft in PR #629) |
 | 095 | Compositions in the Scan Manifest | (reserved, draft in PR #629) |

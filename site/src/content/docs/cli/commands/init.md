@@ -72,21 +72,31 @@ author: <Your Name Here>
 
 data:
   directory: ./data
-  sources: {}
+  sources:
+    library:
+      key: YOUR_FIGMA_FILE_KEY
+      fetch: [file, variables, styles]
+
+assets:
+  directory: ./assets
 
 spec:
   directory: ./specs
-  format: JSON
-  keys: SAFE
+  format: YAML
+  keys: CAMEL
   layout: LAYOUT
   tokens: TOKEN
-  color: HEX
+  color: HEXA
   variantDepth: 9999
   details: LAYERED
-  # splitComponents: true
-  # splitConcerns: true
+  # collapsePrimitiveWrapper: true
+  # defaultSlotContent: true
+  # splitComponents: false
+  # splitConcerns: false
   # useSubfolders: true
 ```
+
+The scaffolded source is a placeholder: replace `YOUR_FIGMA_FILE_KEY` with your file's key before running `specs fetch`.
 
 Each section includes inline comments with references to the full documentation.
 

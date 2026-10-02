@@ -63,6 +63,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`specs fetch` says "glyphs" wherever it used to say "icons"**, matching `scan` and the `glyphs.match` convention. The `icons` fetch kind and the `assets/icons/` directory are unchanged.
 
+- **`specs init` scaffolds a settings file you can run**, with a Figma source to fill your file key into, YAML output, camelCase keys, HEXA colors, and an assets directory. Each commented setting now shows the value worth setting rather than restating its default.
+
 ### Fixed
 
 - **A style referencing a variable your fetch did not reach falls back to the value Figma last read for it**, instead of rendering as though the property were never declared. Requires the `TOKEN_FIGMA_EXTENSIONS` or `CUSTOM` tokens format, which is what carries that value.
