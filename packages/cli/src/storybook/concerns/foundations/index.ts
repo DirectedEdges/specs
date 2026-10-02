@@ -11,6 +11,45 @@ import { buildColorData, type ColorSourceInput } from './color.js';
 import { buildTypographyData, type TypographySourceInput } from './typography.js';
 import { buildIconsData } from './icons.js';
 
+/**
+ * ADR-098: the conventions contract fixes the file and concern keys; feature
+ * vocabulary is this implementation's to validate — and to WARN about by name,
+ * never silently. Known colour features: `rowGroup` (string[] of hierarchy
+ * names collapsing to one row) and `groupLeaves` (boolean: group all leaves).
+ */
+function colorLayoutFromConventions(
+  color: Record<string, unknown> | undefined,
+): { default: 'stack' | 'row' | 'group'; overrides: Record<string, 'stack' | 'row' | 'group'> } | undefined {
+  if (!color) return undefined;
+  const where = 'conventions/storybook.yaml color';
+  const known = ['rowGroup', 'groupLeaves'];
+  for (const feature of Object.keys(color)) {
+    if (!known.includes(feature)) {
+      console.warn(`⚠ ${where}: unknown feature "${feature}" ignored (known: ${known.join(', ')})`);
+    }
+  }
+  const overrides: Record<string, 'stack' | 'row' | 'group'> = {};
+  const rowGroup = color.rowGroup;
+  if (rowGroup !== undefined) {
+    if (Array.isArray(rowGroup) && rowGroup.every((n) => typeof n === 'string')) {
+      for (const name of rowGroup as string[]) overrides[name] = 'row';
+    } else {
+      console.warn(`⚠ ${where}.rowGroup: expected a list of hierarchy names. Ignoring.`);
+    }
+  }
+  const groupLeaves = color.groupLeaves;
+  let def: 'stack' | 'group' = 'stack';
+  if (groupLeaves !== undefined) {
+    if (typeof groupLeaves === 'boolean') {
+      def = groupLeaves ? 'group' : 'stack';
+    } else {
+      console.warn(`⚠ ${where}.groupLeaves: expected a boolean. Ignoring.`);
+    }
+  }
+  if (def === 'stack' && Object.keys(overrides).length === 0) return undefined;
+  return { default: def, overrides };
+}
+
 interface FileSample {
   styleMap: Record<string, { name: string; key: string; styleType: string; description?: string; remote?: boolean }>;
   /** style id → sampled node.style (text styles). */
@@ -98,11 +137,11 @@ export const foundations: Concern = {
         sampledFills: sample?.fills ?? {},
       });
     }
-    // Layout stays the stack default until ADR-098's conventions surface
-    // (config/conventions/storybook.yaml) is accepted and implemented — the
-    // author's grouping choice will arrive from there, never from settings.yaml,
-    // which is schema-governed and declares no storybook key.
-    const colors = buildColorData(colorSources);
+    // The author's grouping choice, from config/conventions/storybook.yaml
+    // (ADR-098). Every colour is its own row until declared otherwise:
+    // `color.rowGroup` names variable-hierarchy levels that collapse into one
+    // row; `color.groupLeaves: true` groups all leaves by their folder.
+    const colors = buildColorData(colorSources, colorLayoutFromConventions(ws.config.conventions.storybook?.color));
     if (colors) {
       out.push({ path: 'data/colors.json', content: JSON.stringify(colors, null, 2) + '\n' });
       out.push({ path: 'Color.stories.tsx', content: readTemplate('pages/Color.stories.tsx.tpl') });

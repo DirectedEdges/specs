@@ -37,11 +37,30 @@ Everything `init` wrote — the Storybook config, the theme, the port in
 `init` refuses so it cannot clobber your edits; `init --force` rewrites the
 host files deliberately, and still never touches `content-overrides/`.
 
-## What is taste rather than data
+## Declaring presentation: `config/conventions/storybook.yaml`
 
-A few of the pages' choices are judgment calls, not facts from your library —
-how colour groups are arranged (today: every colour on its own row; grouping
-means overriding the page), the order of the sidebar sections, how wide a
-colour row may grow before wrapping. These ship as defaults. A conventions
-surface for declaring them (`config/conventions/storybook.yaml`) is drafted as
-ADR-098 and will be documented here when it ships.
+Choices that are taste rather than library data are declared in a conventions
+file, keyed by concern. For colour:
+
+```yaml
+# config/conventions/storybook.yaml
+color:
+  rowGroup:            # variable hierarchies that read as ramps — one shared row
+    - "Palette"
+  groupLeaves: true    # group every folder's values side by side
+```
+
+Without the file, every colour is its own row with its full name visible — the
+generator asserts nothing about which values belong together until you do.
+`rowGroup` names win over `groupLeaves`; very wide rows wrap rather than
+compressing into slivers.
+
+Anything the file says that the tool does not understand — an unknown concern,
+an unknown feature, a wrong value shape — is ignored **with a warning naming
+it**, never silently. A typo tells you about itself.
+
+## What is still taste rather than declared
+
+The order of the sidebar sections, and how wide a colour row may grow before
+wrapping. These ship as defaults; they graduate to the conventions file the
+same way colour layout did if they earn it.

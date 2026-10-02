@@ -23,10 +23,9 @@ already has, not one we invent from naming patterns.
 - A variable that cannot be resolved — an alias into another library file, a
   broken chain — is **shown with the reason, never dropped**. The page claims
   no completeness it doesn't have.
-- Every colour is its own row, full name visible. Declaring that a collection
-  is a ramp or reads by folder is coming as a convention (ADR-098); until then,
-  grouping means overriding the page — see
-  [Customization](/storybook/customization/).
+- Every colour is its own row, full name visible, until you declare otherwise
+  in `config/conventions/storybook.yaml` — ramps as one shared row, or folders
+  grouped side by side. See [Customization](/storybook/customization/).
 
 ## Icons
 

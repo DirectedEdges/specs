@@ -326,6 +326,24 @@ spec:
       warn.mockRestore();
     });
 
+    it('loads conventions/storybook.yaml as a reserved basename, not a platform (ADR-098)', () => {
+      writeSplitFile('conventions/storybook.yaml', 'color:\n  rowGroup: [Palette]\n  groupLeaves: true');
+
+      const config = configLoader.load();
+      expect(config.conventions.storybook).toEqual({ color: { rowGroup: ['Palette'], groupLeaves: true } });
+      expect(config.conventions.platforms?.storybook).toBeUndefined();
+    });
+
+    it('drops a non-mapping storybook concern with a warning naming it', () => {
+      writeSplitFile('conventions/storybook.yaml', 'color: just-a-string\ntypography:\n  sample: ok');
+
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const config = configLoader.load();
+      expect(config.conventions.storybook).toEqual({ typography: { sample: 'ok' } });
+      expect(warn.mock.calls.some(c => String(c[0]).includes('"color"'))).toBe(true);
+      warn.mockRestore();
+    });
+
     it('warns on an unknown top-level settings key and ignores it', () => {
       writeSplitFile('settings.yaml', 'storybook:\n  color: {}\nspec:\n  keys: CAMEL');
 

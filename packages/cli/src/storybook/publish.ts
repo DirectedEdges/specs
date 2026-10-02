@@ -35,6 +35,18 @@ function pruneEmptyDirs(dir: string): void {
 }
 
 export async function publish(ws: Workspace, concernName?: string): Promise<PublishResult> {
+  // ADR-098: conventions/storybook.yaml is concern-keyed. A key naming no
+  // publish concern is ignored WITH a warning — a silently ignored block is
+  // indistinguishable from a working one. (Concern pages may consume blocks
+  // named after foundations pages too, so those keys are also legitimate.)
+  const conventionKeys = Object.keys(ws.config.conventions.storybook ?? {});
+  const legitimate = new Set([...concernNames(), 'color', 'typography', 'icons']);
+  for (const key of conventionKeys) {
+    if (!legitimate.has(key)) {
+      console.warn(`⚠ conventions/storybook.yaml: unknown concern "${key}" ignored (known: ${[...legitimate].join(', ')})`);
+    }
+  }
+
   const selected = concernName ? registry.filter((c) => c.name === concernName) : registry;
   if (concernName && selected.length === 0) {
     throw new Error(`unknown concern "${concernName}" — concerns: ${concernNames().join(', ')}`);

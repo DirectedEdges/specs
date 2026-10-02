@@ -2,8 +2,8 @@
 
 **Branch**: `098-storybook-conventions`
 **Created**: 2026-10-02
-**Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Status**: ACCEPTED
+**Summary**: A `storybook` conventions member maps publish concerns to open feature settings, loaded from `conventions/storybook.yaml` beside `specs` and `figma.primitives`.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Glyph slugs agree everywhere a digit follows a word.** `specs fetch` named a glyph from its raw Figma name ("Brightness 1" → `brightness-1.svg`) while specs and emitted code carry the camel key (`brightness1`), where that boundary no longer exists — so the scaffold requested a file fetch never wrote. A separator now never survives before a digit run, in fetch, in both emitters, and in the emitted runtime helper, so every derivation lands on the same file name. Existing workspaces rename affected files on their next `specs fetch`.
 
-- **The Storybook Color page lists every colour on its own row.** Grouping values into shared rows is the author's declaration, not an inference from names; the surface for declaring it is drafted as ADR-098 (`config/conventions/storybook.yaml`). Oversized rows wrap instead of compressing into slivers.
+- **The Storybook Color page lists every colour on its own row until you declare otherwise.** `config/conventions/storybook.yaml` (ADR-098) is the declaration surface: `color.rowGroup` names variable hierarchies that render as one shared row, `color.groupLeaves` groups every folder's values side by side. Unknown concerns, features, or wrong value shapes warn by name — never silently. Oversized rows wrap instead of compressing into slivers.
 
 - **settings.yaml rejects what the schema does not declare, out loud.** An unknown top-level key warns by name and is ignored; an invalid enum value — including a case variant like `camel` — warns with the valid list and uses the default. Nothing is silently transformed or substituted on a governed surface.
 
