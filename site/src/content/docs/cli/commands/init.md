@@ -38,19 +38,19 @@ config/
 
 ```yaml
 # Facts about the Figma library — every consumer of that library declares the same values.
-# naming: NONE
+# naming: SENTENCE
 
 # glyphs:
 #   match: 'DS Icon Glyph / {i}'
 
 subcomponents:
-  # scope: NESTED
+  # scope: PAGE
   match:
     - '{C} / _ / {S}'
   # exclude:
   #   - '{C} / Examples / {S}'
 
-slotConstraints: false
+# slotConstraints: true
 ```
 
 `config/conventions/specs.yaml` declares conventions about the spec itself — every member names a prop or enum value the spec declares:
