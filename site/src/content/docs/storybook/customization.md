@@ -37,29 +37,11 @@ Everything `init` wrote — the Storybook config, the theme, the port in
 `init` refuses so it cannot clobber your edits; `init --force` rewrites the
 host files deliberately, and still never touches `content-overrides/`.
 
-## Colour layout is a setting
-
-By default the Color page lists every colour on its own row, full name visible —
-the generator asserts nothing about which values belong side by side. Grouping
-is yours to declare, in `config/settings.yaml`:
-
-```yaml
-storybook:
-  color:
-    layout:
-      # default: group          # change the default for every collection…
-      overrides:                 # …or name collections / Collection/Group keys
-        "Palette": row           # a ramp: the whole group as one row
-        "Color": group           # one row per folder in the variable names
-```
-
-`row` suits ramps, whose steps mean something next to each other; `group` puts
-each folder of a collection side by side so parallel structure reads across.
-Very large rows wrap rather than compressing into slivers.
-
 ## What is taste rather than data
 
-A few remaining choices are judgment calls, not facts from your library — the
-order of the sidebar sections, how wide a colour row may grow before wrapping.
-These ship as defaults; the list is tracked with the toolkit's development
-notes, and the common ones graduate to settings like the colour layout did.
+A few of the pages' choices are judgment calls, not facts from your library —
+how colour groups are arranged (today: every colour on its own row; grouping
+means overriding the page), the order of the sidebar sections, how wide a
+colour row may grow before wrapping. These ship as defaults. A conventions
+surface for declaring them (`config/conventions/storybook.yaml`) is drafted as
+ADR-098 and will be documented here when it ships.

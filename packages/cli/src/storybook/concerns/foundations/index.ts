@@ -98,10 +98,11 @@ export const foundations: Concern = {
         sampledFills: sample?.fills ?? {},
       });
     }
-    // Author's layout choice, from settings — the one place that survives a
-    // publish (content/ is rewritten wholesale, so config cannot live there).
-    const storybookSettings = (ws.config.settings as { storybook?: { color?: { layout?: { default?: 'stack' | 'row' | 'group'; overrides?: Record<string, 'stack' | 'row' | 'group'> } } } }).storybook;
-    const colors = buildColorData(colorSources, storybookSettings?.color?.layout);
+    // Layout stays the stack default until ADR-098's conventions surface
+    // (config/conventions/storybook.yaml) is accepted and implemented — the
+    // author's grouping choice will arrive from there, never from settings.yaml,
+    // which is schema-governed and declares no storybook key.
+    const colors = buildColorData(colorSources);
     if (colors) {
       out.push({ path: 'data/colors.json', content: JSON.stringify(colors, null, 2) + '\n' });
       out.push({ path: 'Color.stories.tsx', content: readTemplate('pages/Color.stories.tsx.tpl') });

@@ -589,6 +589,19 @@ export class ConfigLoader {
    * correct, replacing invalid enum values with defaults.
    */
   private resolveSettings(parsed: unknown): ResolvedSettings {
+    // settings.yaml is a governed surface (schema Settings). A key the schema
+    // does not declare is ignored WITH a warning naming it — never silently:
+    // a silent pass-through is indistinguishable from a typo doing nothing,
+    // and is how an undeclared surface once grew without an ADR.
+    if (parsed && typeof parsed === 'object') {
+      const KNOWN_SETTINGS_KEYS = ['author', 'curation', 'data', 'spec', 'assets'];
+      for (const key of Object.keys(parsed as Record<string, unknown>)) {
+        if (!KNOWN_SETTINGS_KEYS.includes(key)) {
+          console.warn(`⚠ settings.yaml: unknown setting "${key}" ignored (known: ${KNOWN_SETTINGS_KEYS.join(', ')})`);
+          delete (parsed as Record<string, unknown>)[key];
+        }
+      }
+    }
     const merged = parsed
       ? this.deepMerge(DEFAULT_SETTINGS, parsed as Partial<Settings>)
       : DEFAULT_SETTINGS;
@@ -597,9 +610,15 @@ export class ConfigLoader {
     // Guard against null/undefined nested objects from YAML parsing
     // (YAML parsing of keys with only comments produces null instead of empty object)
     if (!corrected.spec || typeof corrected.spec !== 'object') {
+      if ((merged as Record<string, unknown>).spec !== undefined) {
+        console.warn('⚠ settings.yaml: `spec` is not a mapping (a section holding only comments parses as null). Using defaults for the whole section.');
+      }
       corrected.spec = JSON.parse(JSON.stringify(DEFAULT_SETTINGS.spec));
     }
     if (!corrected.curation || typeof corrected.curation !== 'object') {
+      if ((merged as Record<string, unknown>).curation !== undefined) {
+        console.warn('⚠ settings.yaml: `curation` is not a mapping. Using defaults for the whole section.');
+      }
       corrected.curation = JSON.parse(JSON.stringify(DEFAULT_SETTINGS.curation));
     }
     if (corrected.data !== undefined && (corrected.data === null || typeof corrected.data !== 'object')) {
@@ -620,39 +639,28 @@ export class ConfigLoader {
     const validVariantDepths = [1, 2, 3, 9999];
     const validDetails = ['FULL', 'LAYERED'];
 
-    // Normalize serialization values to uppercase before validation
-    // (YAML configs commonly use lowercase; schema constants are uppercase)
-    spec.keys = (spec.keys?.toUpperCase() ?? '') as typeof spec.keys;
-    spec.format = (spec.format?.toUpperCase() ?? '') as typeof spec.format;
-    spec.layout = (spec.layout?.toUpperCase() ?? '') as typeof spec.layout;
-    if (spec.tokens) {
-      spec.tokens = spec.tokens.toUpperCase() as typeof spec.tokens;
-    }
-    if (spec.color) {
-      spec.color = spec.color.toUpperCase() as typeof spec.color;
-    }
-
-    if (!validKeys.includes(spec.keys)) {
-      spec.keys = DEFAULT_SETTINGS.spec.keys;
-    }
-    if (!validFormats.includes(spec.format)) {
-      spec.format = DEFAULT_SETTINGS.spec.format;
-    }
-    if (!validLayouts.includes(spec.layout)) {
-      spec.layout = DEFAULT_SETTINGS.spec.layout;
-    }
-    if (spec.tokens && !validTokens.includes(spec.tokens)) {
-      spec.tokens = DEFAULT_SETTINGS.spec.tokens;
-    }
-    if (!validColors.includes(spec.color)) {
-      spec.color = DEFAULT_SETTINGS.spec.color;
-    }
-    if (!validVariantDepths.includes(spec.variantDepth)) {
-      spec.variantDepth = DEFAULT_SETTINGS.spec.variantDepth;
-    }
-    if (!validDetails.includes(spec.details)) {
-      spec.details = DEFAULT_SETTINGS.spec.details;
-    }
+    // No silent transformation and no silent substitution on a governed
+    // surface: a value the schema does not declare — including a case variant
+    // like `camel` — warns, names the valid values, and falls back to the
+    // default. The author said something specific; discarding it without a
+    // signal is worse than rejecting it.
+    const enumCheck = <K extends string>(
+      field: string, value: unknown, valid: readonly K[], fallback: K, optional = false,
+    ): K => {
+      if (optional && (value === undefined || value === null)) return value as K;
+      if (valid.includes(value as K)) return value as K;
+      if (value !== undefined && value !== null && value !== '') {
+        console.warn(`⚠ settings.spec.${field}: "${String(value)}" is not a valid value (valid: ${valid.join(', ')}). Using default: ${fallback}`);
+      }
+      return fallback;
+    };
+    spec.keys = enumCheck('keys', spec.keys, validKeys as readonly typeof spec.keys[], DEFAULT_SETTINGS.spec.keys);
+    spec.format = enumCheck('format', spec.format, validFormats as readonly typeof spec.format[], DEFAULT_SETTINGS.spec.format);
+    spec.layout = enumCheck('layout', spec.layout, validLayouts as readonly typeof spec.layout[], DEFAULT_SETTINGS.spec.layout);
+    spec.tokens = enumCheck('tokens', spec.tokens, validTokens as readonly NonNullable<typeof spec.tokens>[], DEFAULT_SETTINGS.spec.tokens, true);
+    spec.color = enumCheck('color', spec.color, validColors as readonly typeof spec.color[], DEFAULT_SETTINGS.spec.color);
+    spec.variantDepth = enumCheck('variantDepth', spec.variantDepth, validVariantDepths as readonly typeof spec.variantDepth[], DEFAULT_SETTINGS.spec.variantDepth);
+    spec.details = enumCheck('details', spec.details, validDetails as readonly typeof spec.details[], DEFAULT_SETTINGS.spec.details);
     if (typeof spec.collapsePrimitiveWrapper !== 'boolean') {
       spec.collapsePrimitiveWrapper = false;
     }
