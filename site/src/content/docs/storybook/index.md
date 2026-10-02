@@ -12,7 +12,7 @@ Two commands produce it, and you own everything they write:
 
 ```bash
 specs storybook init        # once: scaffold the host
-specs storybook             # after every change: regenerate what it shows
+specs storybook dev         # the one process you run: Storybook + everything watching
 ```
 
 We never ship or install Storybook itself. `init` writes a `package.json` that

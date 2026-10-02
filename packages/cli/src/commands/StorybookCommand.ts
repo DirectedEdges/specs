@@ -11,6 +11,7 @@ import { Command } from 'commander';
 import { resolveWorkspace } from '../storybook/workspace.js';
 import { init } from '../storybook/init.js';
 import { publish } from '../storybook/publish.js';
+import { dev } from '../storybook/dev.js';
 import { concernNames } from '../storybook/concerns/registry.js';
 
 const ERROR_CODES = { SUCCESS: 0, GENERAL_ERROR: 1, INVALID_ARGS: 2 };
@@ -90,6 +91,20 @@ const InitCommand = new Command('init')
     }
   });
 
+const DevCommand = new Command('dev')
+  .description('Run Storybook with the whole workspace watching — transforms re-emit on spec changes, pages republish on config and asset changes. Fetch, generate, and render stay yours')
+  .option('--config <path>', 'Path to a config/ directory or legacy specs.config.yaml')
+  .action(async (options: SharedOptions) => {
+    try {
+      const ws = resolveWorkspace(options.config);
+      await dev(ws);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Error: ${message}`);
+      process.exit(ERROR_CODES.GENERAL_ERROR);
+    }
+  });
+
 const PublishCommand = new Command('publish')
   .description(`Rewrite generated Storybook content. Concerns: ${concernNames().join(', ')} — omit to publish all`)
   .argument('[concern]', 'One concern to rebuild (default: all)')
@@ -102,6 +117,7 @@ export const Storybook = new Command('storybook')
   .description('Scaffold and publish the workspace Storybook — init writes the host, publish writes what it shows')
   .option('--config <path>', 'Path to a config/ directory or legacy specs.config.yaml')
   .addCommand(InitCommand)
+  .addCommand(DevCommand)
   .addCommand(PublishCommand)
   .action(async (options: SharedOptions) => {
     // Bare `specs storybook` = publish all concerns (specs#642).

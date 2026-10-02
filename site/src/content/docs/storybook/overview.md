@@ -17,9 +17,8 @@ specs webcomponents         # emit Web Components (optional)
 
 specs storybook init        # scaffold the host, once
 cd storybook && npm install && cd ..
-specs storybook             # generate everything the host shows
 
-cd storybook && npm run storybook
+specs storybook dev
 ```
 
 That last command opens a Storybook with your components under **Components**,
@@ -29,20 +28,20 @@ again.
 
 ## The loop after the first run
 
-When the library changes in Figma:
+`specs storybook dev` is the one process you keep running. It starts Storybook
+and everything that reacts: edit a spec and the transforms re-emit it, edit
+`config/conventions/storybook.yaml` or anything the pages read and they
+republish — the open page refreshes itself either way. What stays yours to run,
+when the library changes in Figma:
 
 ```bash
 specs fetch
 specs generate
-specs react
-specs webcomponents
-specs storybook
 ```
 
-With the server running you only need the first four — it watches the
-workspace and republishes its own pages as they land, and the open page
-refreshes itself. Editing `config/conventions/storybook.yaml` needs nothing at
-all: save, and the page follows.
+Everything downstream of those follows on its own. One Ctrl-C stops the whole
+thing. (`specs storybook` without `dev` is the publish-once form, for scripts
+and CI.)
 
 ## Code emission is optional
 
