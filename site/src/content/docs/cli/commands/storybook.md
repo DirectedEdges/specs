@@ -62,7 +62,47 @@ specs storybook publish              # every concern
 specs storybook publish foundations # just one
 ```
 
-Concerns: `overview`, `foundations`, `components`, `analysis`, `versions`. Each writes `storybook/content/<concern>/` wholesale and prunes what no longer belongs; an unknown concern name errors with the list.
+Each concern writes `storybook/content/<concern>/` wholesale and prunes what no longer belongs; an unknown concern name errors with the list.
+
+### `overview`
+
+The Getting Started page: the refresh loop and where to go next, so the
+sidebar's first entry answers "what do I do with this" without leaving the
+instance. Always publishes.
+
+### `foundations`
+
+The generated [Color, Icons, and Typography pages](/storybook/foundations/)
+and the data files they read (`data/colors.json`, `icons.json`,
+`typography.json`). Reads the fetched library payloads — variables, the style
+map, the glyph directory — plus the specs for glyph references, and applies
+the author's [`conventions/storybook.yaml`](/storybook/customization/)
+choices. Publishes when the workspace has the data; a workspace that never
+ran `fetch` gets no Foundations section rather than empty pages.
+
+### `components`
+
+Not the component stories — those come from
+[`react`](/cli/commands/react/) and
+[`webcomponents`](/cli/commands/webcomponents/). This concern writes the
+navigation contract the host reads at build time: `tabs.json` (which
+framework tabs exist, derived from which trees you emitted — Specs is always
+present) and `modes.json` (which variable collections get toolbar mode
+controls, from `conventions/storybook.yaml`). Always publishes, because the
+scaffolded host cannot compile without them.
+
+### `analysis`
+
+One page per analysis found in `specs/_analysis/` — a Report tab (dashboards
+land per-analysis) and a Specs tab reading the analysis YAML in place. The
+section exists only when at least one analysis does: running your first
+`specs analyze` is what creates it.
+
+### `versions`
+
+A placeholder holding the section's place in the navigation until the
+releases index lands — your `versions/` folder (reports, changelogs,
+per-version specs) rendered in the instance.
 
 Publishing is deterministic and diff-aware: unchanged input writes nothing and says so. The run also reports any overrides in effect, warns when their underlying data changed, warns on unknown keys in [`conventions/storybook.yaml`](/storybook/customization/) by name, and announces a host scaffolded by an older CLI.
 
