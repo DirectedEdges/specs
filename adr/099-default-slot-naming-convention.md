@@ -134,38 +134,36 @@ second, inconsistent idiom for the same kind of fact.
 
 ### Decision 2 — `match` cardinality: single string vs. `string[]`
 
-#### Option A: `match: string[]` (array), mirroring `subcomponents.match`
-
-Allow multiple co-existing naming patterns for the default slot prop, the
-same way `subcomponents.match`/`exclude` allow several subcomponent naming
-schemes to coexist in one library.
-
-**Rejected because**: `subcomponents.match` is an array because different
-component families in the same library legitimately use different naming
-schemes for the same underlying concept (a subcomponent), and a library can
-be mid-migration between them. A default slot prop name is a narrower fact:
-one platform's component-generation convention for "what is the children
-prop called", analogous to `codeOnlyProps.match` naming "what is the
-code-only-props container called" — a single, library-wide fact with no
-precedent for legitimately needing several coexisting alternatives. An array
-here would accept ambiguity the convention doesn't need and that no sibling
-single-fact convention (`codeOnlyProps`) allows.
-
-#### Option B: `match: string` (single pattern), mirroring `codeOnlyProps.match` *(Selected)*
+#### Option A: `match: string` (single pattern), mirroring `codeOnlyProps.match`
 
 One pattern per platform entry, following `codeOnlyProps.match` exactly.
 
-**Selected because**: a design system typically names its default
-children-holding prop consistently across its layout components (`children`,
-`content`, `slot` — one word, used everywhere), the same way it names its
-code-only-props container consistently (one literal name, used everywhere).
-`codeOnlyProps.match` is the closer precedent than `subcomponents.match`:
-both name a single, platform-wide container/prop by one pattern, not a set
-of component-family-specific alternatives. Choosing singular over array
-also keeps the fact minimal — Constitution III — with no speculative
-support for a scenario (multiple legitimate default-slot prop names in one
-library) that has no stated need and no precedent among the single-fact
-conventions.
+**Rejected because**: a single pattern cannot express a library that names
+its default/children slot differently across component families — e.g. one
+component's default slot prop is `children`, another's is `items`, within
+the *same* library. This is not a hypothetical: real libraries already do
+this. `codeOnlyProps.match` is the wrong precedent here precisely because a
+code-only-props container name is a single, platform-wide convention with
+no observed per-family variation; a default-slot prop name does not share
+that property. Restricting to one pattern would leave the convention unable
+to state a fact that libraries actually exhibit.
+
+#### Option B: `match: string[]` (array), mirroring `subcomponents.match` *(Selected)*
+
+Allow multiple co-existing naming patterns for the default slot prop, the
+same way `subcomponents.match` allows several subcomponent naming schemes to
+coexist in one library.
+
+**Selected because**: `subcomponents.match` is the closer precedent, not
+`codeOnlyProps.match` — both state a fact about naming *variation across
+component families in one library*, not a single platform-wide literal.
+Different components may legitimately name their default-filling prop
+`children` in one family and `items` in another, within the same platform
+and the same library, and the convention must be able to say "either of
+these names the default slot" rather than forcing a choice of one. `string[]`
+is required to express this, not merely preferred stylistically — a
+singular `match` would make the convention unable to recognize a default
+slot under its second name.
 
 ---
 
@@ -215,10 +213,14 @@ it, rather than a new mechanism.
 ### The convention: `slots.default.match`
 
 `PlatformConventions` gains a `slots` object with one sub-key, `default`,
-shaped like `codeOnlyProps`: a single pattern naming which `SlotProp` on a
-component is this platform's designated default slot — the one slot a
-layout component composes through, and the one through which an instance
-may be nested as a plain child rather than through an explicit binding.
+shaped as an object wrapper (Decision 1) carrying `match: string[]`
+(Decision 2) — one or more patterns naming which `SlotProp` on a component
+is this platform's designated default slot — the one slot a layout
+component composes through, and the one through which an instance may be
+nested as a plain child rather than through an explicit binding. The array
+form allows a library to name this slot differently across component
+families (e.g. `children` in one, `items` in another) within the same
+platform.
 
 ### The composition mechanism: flattened instance nesting through the default slot
 
@@ -282,8 +284,8 @@ any other slot prop is filled.
 
 | File | Change | Bump |
 |------|--------|------|
-| `Conventions.ts` | Added `slots?: { default?: { match: string } }` to `PlatformConventions` | MINOR |
-| `Conventions.ts` | Added `slots?: { default?: { match: string } }` to `ResolvedPlatformConventions` | MINOR |
+| `Conventions.ts` | Added `slots?: { default?: { match: string[] } }` to `PlatformConventions` | MINOR |
+| `Conventions.ts` | Added `slots?: { default?: { match: string[] } }` to `ResolvedPlatformConventions` | MINOR |
 | `Children.ts` | Doc-only: clarified that a plain `children: string[]` entry may name an element that is an instance of a different component, nested through its default slot — no type shape change | PATCH |
 
 **Example — new shape** (`types/Conventions.ts`):
@@ -300,7 +302,7 @@ PlatformConventions:
   glyphs?: { match: string }
   codeOnlyProps?: { match: string }
   slots?:
-    default?: { match: string }   # new — optional, MINOR
+    default?: { match: string[] }   # new — optional, MINOR
 ```
 
 Authored in `config/conventions/figma.yaml`:
@@ -308,7 +310,9 @@ Authored in `config/conventions/figma.yaml`:
 # config/conventions/figma.yaml
 slots:
   default:
-    match: "children"
+    match:
+      - "children"
+      - "items"
 ```
 
 ### Schema changes (`schema/`)
@@ -327,14 +331,19 @@ slots:
       type: object
       properties:
         match:
-          type: string
+          type: array
+          items:
+            type: string
           description: >
-            Naming pattern identifying a component's designated default
+            Naming patterns identifying a component's designated default
             slot — the SlotProp this platform always composes further
-            content through. When a slot prop matches, a filling instance
-            may be nested as a plain child element rather than through an
-            explicit slot binding. Absence means no default slot is
-            designated and every slot binds explicitly.
+            content through. A library may name this slot differently
+            across component families (e.g. `children` in one, `items` in
+            another); any pattern in the array matches. When a slot prop
+            matches, a filling instance may be nested as a plain child
+            element rather than through an explicit slot binding. Absence
+            means no default slot is designated and every slot binds
+            explicitly.
       required: [match]
       additionalProperties: false
   additionalProperties: false
@@ -342,6 +351,15 @@ slots:
 
 ### Notes
 
+- No `exclude` member is added alongside `match`, unlike `subcomponents`.
+  `subcomponents.exclude` exists to carve out names that would otherwise
+  false-positive-match a broad subcomponent pattern (e.g. a layer that looks
+  like a subcomponent but isn't). A default-slot prop name has no analogous
+  false-positive risk identified here — `match` is tested against a small,
+  already-captured set of `SlotProp` names on one component, not against a
+  broad layer-naming surface, so there is no concrete scenario requiring an
+  exclusion list. Adding `exclude` now would be speculative; it can be added
+  later, additively, if a real case emerges.
 - `slots.default.match` is optional, with no default — absence states that
   this platform declares no default-slot convention, matching how `glyphs`
   and `codeOnlyProps` absence is read (Constitution-consistent with
@@ -378,7 +396,7 @@ slots:
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | Gains a new convention to read (`conventions.platforms.figma.slots.default.match`) and a schema-decided rule to implement: match a component's slot props against the pattern, and where matched, emit a flattened, nested-children tree in generated example data instead of an explicit slot-content-reference binding at every layout level. | Engine implementation work to apply the rule this ADR defines — not a design decision, the rule itself is decided here. |
+| `specs-from-figma` | Gains a new convention to read (`conventions.platforms.figma.slots.default.match`) and a schema-decided rule to implement: match a component's slot props against any pattern in the array, and where matched, emit a flattened, nested-children tree in generated example data instead of an explicit slot-content-reference binding at every layout level. | Engine implementation work to apply the rule this ADR defines — not a design decision, the rule itself is decided here. |
 | `figma-from-specs` | Reads `metadata.conventions.*` at render time to recover the conventions a spec was generated under, and must reconstruct the explicit nested slot-content-reference structure from a flattened children tree when rendering back to Figma. | Engine implementation work to recognize a flattened default-slot tree (once `specs-from-figma` emits one) and reconstruct the corresponding instance/slot structure on the canvas. |
 | `specs-cli` | None. | None — the CLI passes `Conventions` through to `specs-from-figma` unchanged; no CLI-side logic reads this field. |
 | `specs-plugin-2` | None at this ADR's scope. | Recompiles against the new optional field; no behavioral change until the engine (`specs-from-figma`, bundled from source) consumes it. |
