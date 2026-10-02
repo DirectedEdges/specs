@@ -138,12 +138,23 @@ describe('ConfigTemplates', () => {
       expect(template).toContain('defaultSlotContent');
     });
 
+    it('declares the scaffolded serialization defaults', () => {
+      const parsed = yaml.parse(generateSettingsTemplate());
+      expect(parsed.spec.format).toBe('YAML');
+      expect(parsed.spec.keys).toBe('CAMEL');
+      expect(parsed.spec.color).toBe('HEXA');
+    });
+
     it('should have valid structure with top-level keys', () => {
       const parsed = yaml.parse(generateSettingsTemplate());
       expect(Object.keys(parsed)).toContain('author');
       expect(Object.keys(parsed)).toContain('data');
       expect(Object.keys(parsed)).toContain('spec');
-      expect(parsed.data.sources).toEqual({});
+      expect(Object.keys(parsed)).toContain('assets');
+      expect(parsed.data.sources).toEqual({
+        library: { key: 'YOUR_FIGMA_FILE_KEY', fetch: ['file', 'variables', 'styles'] },
+      });
+      expect(parsed.assets.directory).toBe('./assets');
     });
 
     it('should mention defaults in comments', () => {

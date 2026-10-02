@@ -241,12 +241,14 @@ data:
   directory: ${CONFIG_DEFAULTS.dataDirectory}
 
   # Figma file sources to fetch and process, keyed by source name.
-  # Example:
-  # sources:
-  #   library:
-  #     key: YOUR_FIGMA_FILE_KEY
-  #     fetch: [file, variables, styles]
-  sources: {}
+  sources:
+    library:
+      key: YOUR_FIGMA_FILE_KEY
+      fetch: [file, variables, styles]
+
+# Shared resources every code output points at: icons, images, generated CSS, fonts.
+assets:
+  directory: ./assets
 
 # The generated spec: where it lands, how it is split, what it contains,
 # and how values are serialized.
@@ -255,11 +257,11 @@ spec:
   directory: ${CONFIG_DEFAULTS.outputDirectory}
 
   # Serialization format: JSON or YAML
-  format: JSON
+  format: YAML
 
   # Key name transformation: SAFE, CAMEL, SNAKE, KEBAB, PASCAL, TRAIN
   # See: https://www.specsplugin.com/guides/key-formatting/
-  keys: SAFE
+  keys: CAMEL
 
   # Layout representation: LAYOUT, PARENT_CHILDREN, or BOTH
   # See: https://www.specsplugin.com/guides/data-layout/
@@ -273,7 +275,7 @@ spec:
 
   # Color value format: HEX, HEXA, RGB, RGBA, HSLA, HSB, OKLCH, OKLAB, or OBJECT
   # See: https://www.specsplugin.com/settings/color/
-  color: HEX
+  color: HEXA
 
   # Maximum variant property depth to process: 1, 2, 3, or 9999 (unlimited)
   # See: https://www.specsplugin.com/guides/variant-depth/
@@ -287,7 +289,7 @@ spec:
   # container wrapping a single text or glyph element (no meaningful container
   # styles, no slot bindings) is collapsed — the wrapper is stripped and the
   # leaf becomes the spec root. All-or-nothing across variants. (default: false)
-  # collapsePrimitiveWrapper: false
+  # collapsePrimitiveWrapper: true
 
   # Include invalid variant data in output (default: false)
   # invalidVariants: false
@@ -301,20 +303,18 @@ spec:
 
   # Emit the component's default slot content as examples (Pro; default: false)
   # See: https://www.specsplugin.com/guides/default-slot-content/
-  # defaultSlotContent: false
+  # defaultSlotContent: true
 
-  # Write one file per component instead of a single library file (default: true)
-  # splitComponents: true
+  # Combine every component into one library file instead of writing a file per
+  # component (default: true, a file per component)
+  # splitComponents: false
 
-  # Split output into separate api, variants, and examples files (default: true)
-  # splitConcerns: true
+  # Combine each component's api, variants, and examples into one file instead
+  # of a file per concern (default: true, a file per concern)
+  # splitConcerns: false
 
   # When splitComponents is true, nest each file in a subfolder (default: true)
   # useSubfolders: true
-
-# Shared resources every code output points at: icons, images, generated CSS, fonts.
-# assets:
-#   directory: ./assets
 `;
 }
 
