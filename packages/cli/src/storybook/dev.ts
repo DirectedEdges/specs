@@ -18,6 +18,18 @@ import path from 'path';
 import type { Workspace } from './workspace.js';
 import { publish } from './publish.js';
 
+/** The dev-server port from the scaffolded npm script, as storybook-up infers it. */
+function readScaffoldPort(ws: Workspace): string | null {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(ws.storybookDir, 'package.json'), 'utf-8')) as {
+      scripts?: { storybook?: string };
+    };
+    return pkg.scripts?.storybook?.match(/-p\s+(\d+)/)?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function dev(ws: Workspace): Promise<void> {
   if (!ws.scaffolded) {
     throw new Error(
@@ -52,6 +64,54 @@ export async function dev(ws: Workspace): Promise<void> {
   // The customer's own Storybook, through the scaffolded npm script (their
   // port, their flags). --ci suppresses the prompts that hang a spawned run.
   spawnChild('storybook', 'npm', ['run', 'storybook', '--', '--ci'], ws.storybookDir);
+
+  // Health check for the one failure a designer cannot diagnose: Storybook's
+  // indexer caches a per-file parse failure, so index.json 500s and STAYS 500
+  // after the file is fine again — it reads as the server dying, and restarts
+  // teach nothing. Re-saving the file is the cure. First try it ourselves
+  // (touch re-triggers the parse); if the file is genuinely broken, name it
+  // in one plain sentence instead of letting the UI fail mutely.
+  const port = readScaffoldPort(ws);
+  if (port && typeof fetch === 'function') {
+    let everHealthy = false;
+    const touched = new Set<string>();
+    const check = async () => {
+      let res: Response;
+      try {
+        res = await fetch(`http://localhost:${port}/index.json`);
+      } catch {
+        return; // starting up, or stopped — the child exit handler covers death
+      }
+      if (res.ok) {
+        everHealthy = true;
+        touched.clear();
+        return;
+      }
+      if (!everHealthy || res.status !== 500) return;
+      const body = await res.text().catch(() => '');
+      const files = [...body.matchAll(/[^\s"'`()]+\.(?:stories\.[jt]sx?|mdx)/g)]
+        .map((m) => (path.isAbsolute(m[0]) ? m[0] : path.join(ws.storybookDir, m[0])))
+        .filter((f) => f.startsWith(ws.root) && fs.existsSync(f));
+      for (const file of files) {
+        if (touched.has(file)) {
+          console.warn(
+            `[specs dev] Storybook's index is failing on ${path.relative(ws.root, file)} — the file has a real error. ` +
+              'Fix and re-save it; the index recovers on its own. Do not restart Storybook.',
+          );
+        } else {
+          touched.add(file);
+          const now = new Date();
+          fs.utimesSync(file, now, now); // a re-save clears the cached parse failure
+          console.warn(`[specs dev] Storybook index failed on ${path.relative(ws.root, file)} — re-triggered its parse.`);
+        }
+      }
+      if (files.length === 0) {
+        console.warn('[specs dev] Storybook index is returning 500 — re-save the last story file you touched; do not restart.');
+      }
+    };
+    const healthTimer = setInterval(() => void check(), 15000);
+    healthTimer.unref?.();
+  }
 
   const stop = () => {
     for (const child of children) child.kill('SIGINT');

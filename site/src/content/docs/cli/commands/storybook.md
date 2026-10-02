@@ -53,6 +53,13 @@ The one process a designer runs. Publishes once, then starts everything that rea
 
 `fetch`, `generate`, and `render` stay yours to run; everything downstream of them follows. One interrupt stops all children.
 
+`dev` also watches the instance's health. Storybook caches a per-file parse
+failure — a half-saved story file can leave its index returning 500 after the
+file is fine again, which reads as the server dying. `dev` detects it, names
+the file, re-triggers the parse itself, and if the file has a real error says
+so in one sentence. Never restart Storybook for this; fix and re-save the
+named file and the index recovers on its own.
+
 ## `specs storybook publish [concern]`
 
 Regenerates the content tree, once — the form for scripts and CI, and the default when no subcommand is given (`specs storybook` alone publishes everything). While `dev` runs you never type this; the server runs it for you.
