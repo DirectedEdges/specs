@@ -89,7 +89,10 @@ export async function dev(ws: Workspace): Promise<void> {
       }
       if (!everHealthy || res.status !== 500) return;
       const body = await res.text().catch(() => '');
-      const files = [...body.matchAll(/[^\s"'`()]+\.(?:stories\.[jt]sx?|mdx)/g)]
+      // Any module path in the error body: the emitted trees name their files
+      // bare `stories.tsx`, content pages `X.stories.tsx` — match by extension
+      // and let the exists-under-workspace filter below do the narrowing.
+      const files = [...body.matchAll(/[^\s"'`()]+\.(?:[jt]sx?|mdx)/g)]
         .map((m) => (path.isAbsolute(m[0]) ? m[0] : path.join(ws.storybookDir, m[0])))
         .filter((f) => f.startsWith(ws.root) && fs.existsSync(f));
       for (const file of files) {
