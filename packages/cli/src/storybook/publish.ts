@@ -89,7 +89,13 @@ export async function publish(ws: Workspace, concernName?: string): Promise<Publ
       const existing = fs.existsSync(file) ? fs.readFileSync(file, 'utf-8') : null;
       if (existing !== content) {
         fs.ensureDirSync(path.dirname(file));
-        fs.writeFileSync(file, content);
+        // Atomic: temp + rename, like every emitted file. Storybook indexes
+        // these pages the moment its watcher fires, and a torn read poisons
+        // its per-file index cache — a 500 that survives the file being fine
+        // again. Never give a watcher a half-written file.
+        const tmp = `${file}.tmp-${process.pid}`;
+        fs.writeFileSync(tmp, content);
+        fs.renameSync(tmp, file);
         changed++;
         if (file.includes(`${path.sep}data${path.sep}`)) dataChanged = true;
       }
