@@ -112,21 +112,15 @@ function fillValue(fills: unknown[] | undefined): { value: string | null; unreso
 
 export type ColorLayout = ColorsJson['layout'];
 
-/**
- * Which collections the page shows, and in what order — the same `match` /
- * `exclude` block shape the figma.yaml conventions use for `subcomponents` and
- * `instanceExamples`. `match` is ordered and selects by collection name;
- * absence means every local collection. A `match` name selecting nothing warns
- * by name (ADR-098).
- */
-export interface CollectionSelection {
-  match?: string[];
-  exclude?: string[];
-}
-
 export interface ColorOptions {
   layout?: Partial<ColorLayout>;
-  collections?: CollectionSelection;
+  /**
+   * Which collections the page shows, and in what order: an ordered list of
+   * collection names. A name selects every local collection bearing it;
+   * absence means every local collection; a name selecting nothing warns by
+   * name (ADR-098).
+   */
+  collections?: string[];
 }
 
 /**
@@ -142,8 +136,8 @@ export interface ColorOptions {
  * Only a source's **local** collections render — the payload also carries
  * imported copies of subscribed-library collections (`remote: true`), including
  * earlier published versions of this file's own, which read as inexplicable
- * duplicates. `color.collections.match` narrows and orders by name;
- * `exclude` removes.
+ * duplicates. `color.collections` — an ordered list of names — narrows and
+ * orders what renders.
  */
 export function buildColorData(sources: ColorSourceInput[], options?: ColorOptions): ColorsJson | null {
   const layout = options?.layout;
@@ -162,19 +156,16 @@ export function buildColorData(sources: ColorSourceInput[], options?: ColorOptio
     const collectionsOut: ColorsJson['sources'][number]['collections'] = [];
     const local = Object.values(collections).filter((c) => c.remote !== true);
     let selected: PayloadCollection[];
-    if (selection?.match) {
-      // `match` order is display order; a name selects every local collection
+    if (selection) {
+      // List order is display order; a name selects every local collection
       // bearing it, in payload order within the name.
-      selected = selection.match.flatMap((name) => {
+      selected = selection.flatMap((name) => {
         const hits = local.filter((c) => c.name === name);
         if (hits.length) matchedNames.add(name);
         return hits;
       });
     } else {
       selected = local;
-    }
-    if (selection?.exclude) {
-      selected = selected.filter((c) => !selection.exclude!.includes(c.name));
     }
     for (const collection of selected) {
       const colors = Object.values(variables).filter(
@@ -217,9 +208,9 @@ export function buildColorData(sources: ColorSourceInput[], options?: ColorOptio
     }
   }
 
-  for (const name of selection?.match ?? []) {
+  for (const name of selection ?? []) {
     if (!matchedNames.has(name)) {
-      console.warn(`⚠ conventions/storybook.yaml color.collections.match: "${name}" matches no local collection in any source — ignored.`);
+      console.warn(`⚠ conventions/storybook.yaml color.collections: "${name}" matches no local collection in any source — ignored.`);
     }
   }
   return out.sources.length > 0 ? out : null;

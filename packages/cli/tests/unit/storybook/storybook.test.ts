@@ -192,7 +192,7 @@ describe('publish semantics', () => {
 describe('storybook conventions (ADR-098)', () => {
   it('maps rowGroup and groupLeaves to the colour layout', async () => {
     const { buildColorData } = await import('../../../src/storybook/concerns/foundations/color.js');
-    const out = buildColorData([], { layout: { default: 'group', overrides: { Palette: 'row' } }, collections: { match: ['Color'] } });
+    const out = buildColorData([], { layout: { default: 'group', overrides: { Palette: 'row' } }, collections: ['Color'] });
     // No sources → null regardless; the mapping itself is covered through publish,
     // but the layout parameter shape is pinned here.
     expect(out).toBeNull();

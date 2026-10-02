@@ -46,29 +46,14 @@ function colorOptionsFromConventions(
       console.warn(`⚠ ${where}.groupLeaves: expected a boolean. Ignoring.`);
     }
   }
-  // collections — the figma.yaml `match`/`exclude` block shape, by collection name
-  let collections: import('./color.js').CollectionSelection | undefined;
+  // collections — an ordered list of collection names
+  let collections: string[] | undefined;
   const rawCollections = color.collections;
   if (rawCollections !== undefined) {
-    if (rawCollections && typeof rawCollections === 'object' && !Array.isArray(rawCollections)) {
-      const block = rawCollections as Record<string, unknown>;
-      for (const key of Object.keys(block)) {
-        if (!['match', 'exclude'].includes(key)) {
-          console.warn(`⚠ ${where}.collections: unknown key "${key}" ignored (known: match, exclude)`);
-        }
-      }
-      const list = (field: 'match' | 'exclude'): string[] | undefined => {
-        const value = block[field];
-        if (value === undefined) return undefined;
-        if (Array.isArray(value) && value.every((n) => typeof n === 'string')) return value as string[];
-        console.warn(`⚠ ${where}.collections.${field}: expected a list of collection names. Ignoring.`);
-        return undefined;
-      };
-      const match = list('match');
-      const exclude = list('exclude');
-      if (match || exclude) collections = { ...(match ? { match } : {}), ...(exclude ? { exclude } : {}) };
+    if (Array.isArray(rawCollections) && rawCollections.every((n) => typeof n === 'string')) {
+      collections = rawCollections as string[];
     } else {
-      console.warn(`⚠ ${where}.collections: expected a mapping with match/exclude lists. Ignoring.`);
+      console.warn(`⚠ ${where}.collections: expected an ordered list of collection names. Ignoring.`);
     }
   }
 
