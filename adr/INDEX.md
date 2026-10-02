@@ -20,6 +20,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 099 | `slots.default.match` — Naming the Default Slot, and Flattened Instance Nesting | Adds `PlatformConventions.slots.default.match` and `SlotProp.defaultSlot`, naming a component's always-composed slot so a filling instance can nest as a plain child instead of an explicit slot binding |
 | 094 | Subcomponent Pattern Matching Rules | Fixes how `{C}` and `{S}` match a name, so one `subcomponents` pattern means the same thing in every consumer (amends ADR-031) |
 | 093 | Curation Is a Settings Concern | `curation.defaultSelection`, `preserveManualSelections` and `includeDependencies` state which components a run specs |
 | 092 | `invalidPropCombinations` — Renamed and Relocated to the Api Concern | Renames `invalidVariantCombinations` and moves it to the api concern — legality of prop combinations is contract, not manifestation |

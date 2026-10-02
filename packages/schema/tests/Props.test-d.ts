@@ -246,3 +246,23 @@ const enumNullable: EnumProp = { type: 'string', default: 'sm', enum: ['sm', 'lg
 // NumberProp is assignable to AnyProp
 const anyFromNumber: AnyProp = { type: 'number' } satisfies NumberProp;
 const anyFromNumberFull: AnyProp = { type: 'number', default: 10, examples: [10, 20] } satisfies NumberProp;
+
+// ─── SlotProp.defaultSlot (ADR 099) ───────────────────────────────────────────
+
+// defaultSlot is optional
+const slotDefaultSlot: SlotProp = { type: 'slot', defaultSlot: true };
+const slotNoDefaultSlot: SlotProp = { type: 'slot' };
+
+// defaultSlot composes with existing constraints
+const slotDefaultSlotWithConstraints: SlotProp = {
+  type: 'slot',
+  defaultSlot: true,
+  minChildren: 1,
+  anyOf: ['Avatar'],
+};
+
+// @ts-expect-error: defaultSlot must be boolean, not string
+const _slotBadDefaultSlot: SlotProp = { type: 'slot', defaultSlot: 'true' };
+
+// defaultSlot assignable to AnyProp
+const anyFromDefaultSlot: AnyProp = slotDefaultSlot;
