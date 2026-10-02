@@ -60,9 +60,26 @@ function orderRow(swatches: Swatch[]): Swatch[] {
   return numeric ? [...swatches].sort((a, b) => Number(a.leaf) - Number(b.leaf)) : swatches;
 }
 
+// Past this many swatches a single row renders as unreadable slivers, so a
+// larger folder wraps into successive rows of this width. A 1,000-variable
+// palette dump stays scannable; a 4-member semantic folder is untouched.
+const MAX_ROW = 16;
+
+function chunked(label: string, swatches: Swatch[]): Row[] {
+  if (swatches.length <= MAX_ROW) return [{ label, swatches }];
+  const rows: Row[] = [];
+  for (let i = 0; i < swatches.length; i += MAX_ROW) {
+    rows.push({
+      label: i === 0 ? `${label} (${swatches.length})` : '',
+      swatches: swatches.slice(i, i + MAX_ROW),
+    });
+  }
+  return rows;
+}
+
 function rowsFor(swatches: Swatch[], layout: Layout, group: string): Row[] {
   if (layout === 'stack') return swatches.map((s) => ({ label: null, swatches: [s] }));
-  if (layout === 'row') return [{ label: group, swatches: orderRow(swatches) }];
+  if (layout === 'row') return chunked(group, orderRow(swatches));
 
   // One row per lowest-level folder, in the order the payload declares them.
   const byFolder = new Map<string, Swatch[]>();
@@ -70,7 +87,7 @@ function rowsFor(swatches: Swatch[], layout: Layout, group: string): Row[] {
     const key = folder(s.name);
     byFolder.set(key, [...(byFolder.get(key) ?? []), s]);
   }
-  return [...byFolder.entries()].map(([label, list]) => ({ label, swatches: orderRow(list) }));
+  return [...byFolder.entries()].flatMap(([label, list]) => chunked(label, orderRow(list)));
 }
 
 /**
@@ -138,7 +155,7 @@ function ColorPage() {
                         ) : (
                           <ColorItem
                             key={`${i}-${row.label}`}
-                            title={row.label}
+                            title={row.label ?? ''}
                             subtitle={`${row.swatches.length} ${row.swatches.length === 1 ? 'value' : 'values'}`}
                             colors={rowColors(row.swatches)}
                           />

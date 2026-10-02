@@ -15,7 +15,7 @@ export interface IconsJson {
  * glyph slug rule so the diff compares like with like.
  */
 function slugify(name: string): string {
-  return name.trim().replace(/([a-z0-9])([A-Z])/g, '$1-$2').replace(/[\s_]+/g, '-').replace(/-+/g, '-').toLowerCase();
+  return name.trim().replace(/([a-z0-9])([A-Z])/g, '$1-$2').replace(/[\s_]+/g, '-').replace(/-+/g, '-').replace(/-(?=\d)/g, '').toLowerCase();
 }
 
 /** Element keys whose anatomy type renders as a glyph, subcomponents included. */

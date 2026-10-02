@@ -43,10 +43,27 @@ interface Group {
   styles: Array<Entry & { leaf: string }>;
 }
 
-/** Grouped by the first level of the name path, the same rule the colour page uses. */
-function styleGroups(): Group[] {
-  const groups = new Map<string, Group['styles']>();
+/**
+ * One section per source payload: a workspace fetching the same library twice
+ * (a production and a test copy, say) declares every style twice, and flattening
+ * them reads as inexplicable duplicates. Within a source, duplicate names are
+ * still shown — a file can declare one name under several ids, and hiding that
+ * hides library state (#632: never merge by value or by name).
+ */
+function bySource(): Array<{ source: string; styles: Entry[] }> {
+  const order: string[] = [];
+  const map = new Map<string, Entry[]>();
   for (const s of styles) {
+    if (!map.has(s.source)) { map.set(s.source, []); order.push(s.source); }
+    map.get(s.source)!.push(s);
+  }
+  return order.map((source) => ({ source, styles: map.get(source)! }));
+}
+
+/** Grouped by the first level of the name path, the same rule the colour page uses. */
+function styleGroups(list: Entry[]): Group[] {
+  const groups = new Map<string, Group['styles']>();
+  for (const s of list) {
     const segments = s.name.split('/');
     const group = segments.length > 1 ? segments[0] : 'Ungrouped';
     const list = groups.get(group) ?? [];
@@ -85,7 +102,10 @@ function TypographyPage() {
         <strong>Families</strong> — {families().join(' · ')}
       </p>
 
-      {styleGroups().map((group) => {
+      {bySource().map(({ source, styles: sourceStyles }) => (
+        <div key={source}>
+          {bySource().length > 1 && <h2>Source: {source}</h2>}
+          {styleGroups(sourceStyles).map((group) => {
         const resolved = group.styles.filter((s) => s.style);
         return (
           <div key={group.name}>
@@ -144,8 +164,10 @@ function TypographyPage() {
               </tbody>
             </table>
           </div>
-        );
-      })}
+          );
+          })}
+        </div>
+      ))}
     </>
   );
 }

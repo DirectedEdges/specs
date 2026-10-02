@@ -1,9 +1,18 @@
 ---
 title: "Analysis"
-description: Props, styling, naming and dependency analyses, rendered from the reports the CLI writes.
+description: "Where the analysis reports will render. A placeholder today."
 ---
 
-:::caution[Not built yet]
-Placeholder. This page will be written once `specs storybook` produces what it
-describes. See the [Storybook overview](/storybook/) for where this fits.
+:::note[Placeholder]
+The section exists in your Storybook today with a single page saying what will
+live there. The real pages land once the reports convention is settled.
 :::
+
+`specs analyze` already writes durable report files — props across the
+catalogue, styling, naming, dependencies. Those files stay the source of truth:
+diffable, readable in CI, greppable without a browser.
+
+This section is where they will **render**: one generated page per analysis,
+reading the report file live, so the results surface in the tool you are
+already looking at instead of in terminal output. Regenerating a report
+refreshes its page; the page never computes anything of its own.

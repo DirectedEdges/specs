@@ -1,39 +1,57 @@
 ---
 title: "Storybook Overview"
-description: "See your emitted components, foundations, and analyses in one Storybook, built from your workspace."
+description: "See your components, foundations, and analyses in one Storybook, generated from your workspace."
 ---
-
-:::caution[Not built yet]
-This section describes work in progress. The `specs storybook` command does not
-exist yet, and the pages below describe what it will produce. Only
-[Technical Details](/storybook/technical-details/) documents something you can
-use today.
-:::
 
 Everything the toolkit produces — components in every platform you emit, the
 foundations they are built from, the analyses that describe them — is viewable in
-one place. Not one Storybook per framework, but one for the workspace, organised
-the way the design system is organised.
+one place. Not one Storybook per framework: one for the workspace, organised the
+way your design system is organised.
+
+Two commands produce it, and you own everything they write:
+
+```bash
+specs storybook init        # once: scaffold the host
+specs storybook             # after every change: regenerate what it shows
+```
+
+We never ship or install Storybook itself. `init` writes a `package.json` that
+declares it; you (or an agent helping you) run `npm install` in `storybook/`
+once, and Storybook arrives from npm under its own MIT licence. Everything
+`specs storybook` does is free — no Pro licence involved.
 
 ## What you get
 
 | Section | Holds |
 |---|---|
-| [Overview](/storybook/overview/) | Where to start: component status, and the visual report |
-| [Foundations](/storybook/foundations/) | Icons, colour, typography, and the rest — generated from your library, never hand-written |
-| [Components](/storybook/components/) | One entry per component, with each platform as a view of it rather than a separate branch |
-| [Analysis](/storybook/analysis/) | Props, styling, naming and dependency analyses, rendered from the reports the CLI already writes |
-| [Versioning](/storybook/versioning/) | Every release, with its report, changelog, and specs |
+| [Getting Started](/storybook/overview/) | Where to begin, and the refresh loop |
+| [Foundations](/storybook/foundations/) | Color, Icons, Typography — generated from your library, never hand-written |
+| [Components](/storybook/components/) | One entry per component, with each platform as a tab rather than a separate list |
+| [Analysis](/storybook/analysis/) | Placeholder today; the analysis reports will render here |
+| [Versioning](/storybook/versioning/) | Placeholder today; your release history will render here |
 
 ## How it stays current
 
-The pages are generated from your workspace, so they move when your library does.
-Re-run the command after regenerating and every page reflects the new state —
-there is nothing to edit by hand, and nothing to forget to update.
+Every page is generated from your workspace, so the loop after a library change
+is the same pipeline you already run, plus one command:
+
+```bash
+specs fetch
+specs generate
+specs react
+specs webcomponents
+specs storybook
+```
+
+A running Storybook picks the changes up without restarting. Re-running
+`specs storybook` when nothing changed writes nothing and says so.
 
 ## What you can change
 
-Some of what the Storybook does is your choice rather than a property of your
-library: which sections exist, how colour groups are laid out, what a page shows.
-[Customization](/storybook/customization/) covers what is adjustable, and what
-survives a rebuild.
+The host files `init` writes are yours to edit — `specs storybook` never touches
+them again. Generated pages live under `storybook/content/`, which is rewritten
+on every run; to take control of one, copy it into `storybook/content-overrides/`
+at the same path. [Customization](/storybook/customization/) covers the rules.
+
+For the wiring underneath — what the host config does and why — see
+[Technical Details](/storybook/technical-details/). You should not need it.

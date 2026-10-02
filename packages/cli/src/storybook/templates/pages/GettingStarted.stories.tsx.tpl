@@ -23,7 +23,7 @@ const GettingStarted = () => (
     </p>
     <p>The loop after a library change:</p>
     <pre style={{ background: 'rgba(128,128,128,0.1)', padding: 12, borderRadius: 4 }}>
-      {'specs fetch && specs generate\nspecs react           # and/or specs webcomponents\nspecs storybook       # refresh foundations, tabs, nav'}
+      {'specs fetch\nspecs generate\nspecs react\nspecs webcomponents\nspecs storybook       # refresh foundations, tabs, nav'}
     </pre>
     <p>
       Want your own version of a generated page? Copy it from <code>content/</code> to the same

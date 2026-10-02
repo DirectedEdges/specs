@@ -1,9 +1,19 @@
 ---
 title: "Versioning"
-description: Every release in your workspace, with its report, changelog, and specs.
+description: "Where your release history will render. A placeholder today."
 ---
 
-:::caution[Not built yet]
-Placeholder. This page will be written once `specs storybook` produces what it
-describes. See the [Storybook overview](/storybook/) for where this fits.
+:::note[Placeholder]
+The section exists in your Storybook today with a single page saying what will
+live there.
 :::
+
+[Versioning](/versioning/) already records every release in your workspace's
+`versions/` folder — report, changelog, and that version's specs, with
+`latest/` mirroring the newest. Those files are the record.
+
+This section is where they will render: an index of releases, newest first,
+with each report and changelog readable in place and each version's specs
+browsable the same way a component's Specs tab works. A workspace that has
+never cut a version will get an explanation of how to start rather than an
+empty page.

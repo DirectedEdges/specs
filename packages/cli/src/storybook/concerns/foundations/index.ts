@@ -98,7 +98,10 @@ export const foundations: Concern = {
         sampledFills: sample?.fills ?? {},
       });
     }
-    const colors = buildColorData(colorSources);
+    // Author's layout choice, from settings — the one place that survives a
+    // publish (content/ is rewritten wholesale, so config cannot live there).
+    const storybookSettings = (ws.config.settings as { storybook?: { color?: { layout?: { default?: 'stack' | 'row' | 'group'; overrides?: Record<string, 'stack' | 'row' | 'group'> } } } }).storybook;
+    const colors = buildColorData(colorSources, storybookSettings?.color?.layout);
     if (colors) {
       out.push({ path: 'data/colors.json', content: JSON.stringify(colors, null, 2) + '\n' });
       out.push({ path: 'Color.stories.tsx', content: readTemplate('pages/Color.stories.tsx.tpl') });

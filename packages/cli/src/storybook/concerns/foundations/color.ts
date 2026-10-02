@@ -108,13 +108,23 @@ function fillValue(fills: unknown[] | undefined): { value: string | null; unreso
   return { value: hex({ r: c.r, g: c.g, b: c.b, a: (c.a ?? 1) * opacity }), unresolved: null };
 }
 
+export type ColorLayout = ColorsJson['layout'];
+
 /**
  * colors.json. Order everywhere is the payload's declared sequence — the
  * library's own order is the meaningful one (specs#609), so nothing here
  * sorts alphabetically.
+ *
+ * Layout defaults to `stack` — one colour per row, full name visible. Grouping
+ * values into shared rows is a judgment about the library's intent, so it is
+ * opt-in: the author sets `storybook.color.layout` in config/settings.yaml,
+ * either a new default or per-`Collection` / `Collection/Group` overrides.
  */
-export function buildColorData(sources: ColorSourceInput[]): ColorsJson | null {
-  const out: ColorsJson = { layout: { default: 'group', overrides: {} }, sources: [] };
+export function buildColorData(sources: ColorSourceInput[], layout?: Partial<ColorLayout>): ColorsJson | null {
+  const out: ColorsJson = {
+    layout: { default: layout?.default ?? 'stack', overrides: layout?.overrides ?? {} },
+    sources: [],
+  };
 
   for (const src of sources) {
     const meta = (src.variablesPayload as { meta?: { variableCollections?: Record<string, PayloadCollection>; variables?: Record<string, PayloadVariable> } } | null)?.meta;
