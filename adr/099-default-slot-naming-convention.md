@@ -2,7 +2,7 @@
 
 **Branch**: `adr/children-slot-convention`
 **Created**: 2026-10-02
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Summary**: A `slots.default.match` convention and `SlotProp.defaultSlot` marker name a component's one always-composed slot, enabling flattened child nesting.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
