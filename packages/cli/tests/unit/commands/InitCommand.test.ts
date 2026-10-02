@@ -38,7 +38,7 @@ describe('InitCommand', () => {
       const settings = generateConfigTemplates()['config/settings.yaml'];
       expect(settings).toContain('directory: ./data');
       expect(settings).toContain('directory: ./specs');
-      expect(settings).toContain('sources: {}');
+      expect(settings).toContain('directory: ./assets');
     });
 
     it('conventions template carries the figma conventions structure', () => {
@@ -157,6 +157,7 @@ describe('InitCommand', () => {
       expect(topLevelKeys).toContain('author');
       expect(topLevelKeys).toContain('data');
       expect(topLevelKeys).toContain('spec');
+      expect(topLevelKeys).toContain('assets');
 
       // directories and sources are nested under data/spec, not top-level
       expect(settings).toContain('directory:');
@@ -217,8 +218,8 @@ describe('InitCommand', () => {
       // Default spec directory
       expect(settings).toContain('directory: ./specs');
 
-      // Empty sources initially
-      expect(settings).toContain('sources: {}');
+      // One example source, ready to have its key replaced
+      expect(settings).toContain('key: YOUR_FIGMA_FILE_KEY');
     });
   });
 });
