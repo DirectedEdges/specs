@@ -150,6 +150,7 @@ export default defineConfig({
             { label: 'migrate', slug: 'cli/commands/migrate' },
             { label: 'version', slug: 'cli/commands/version' },
             { label: 'skills', slug: 'cli/commands/skills' },
+            { label: 'storybook', slug: 'cli/commands/storybook', badge: experimental },
             {
               label: 'Analyze',
               collapsed: true,

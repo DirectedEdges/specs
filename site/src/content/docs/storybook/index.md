@@ -56,5 +56,7 @@ them again. Generated pages live under `storybook/content/`, which is rewritten
 on every run; to take control of one, copy it into `storybook/content-overrides/`
 at the same path. [Customization](/storybook/customization/) covers the rules.
 
-For the wiring underneath — what the host config does and why — see
-[Technical Details](/storybook/technical-details/). You should not need it.
+Flags and subcommand details live on the
+[command reference](/cli/commands/storybook/). For the wiring underneath — what
+the host config does and why — see
+[Technical Details](/storybook/technical-details/); you should not need it.
