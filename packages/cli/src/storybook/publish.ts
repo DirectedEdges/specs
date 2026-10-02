@@ -5,6 +5,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import type { Workspace } from './workspace.js';
 import { registry, concernNames } from './concerns/registry.js';
+import { templatesHash } from './templates.js';
 
 export interface PublishResult {
   /** Concern → { written, changed, removed } file counts. */
@@ -44,6 +45,21 @@ export async function publish(ws: Workspace, concernName?: string): Promise<Publ
   for (const key of conventionKeys) {
     if (!legitimate.has(key)) {
       console.warn(`⚠ conventions/storybook.yaml: unknown concern "${key}" ignored (known: ${[...legitimate].join(', ')})`);
+    }
+  }
+
+  // Announce a host left behind by a CLI upgrade — publish never rewrites host
+  // files (ADR A), so staleness must at least be said out loud. `init --force`
+  // is the upgrade, and it never touches content-overrides/.
+  const stampPath = path.join(ws.storybookDir, '.storybook', 'scaffold.json');
+  if (fs.existsSync(stampPath)) {
+    try {
+      const stamp = JSON.parse(fs.readFileSync(stampPath, 'utf-8')) as { templates?: string };
+      if (stamp.templates && stamp.templates !== templatesHash()) {
+        console.warn('⚠ The Storybook host was scaffolded by an older CLI — run `specs storybook init --force` (host files only; content-overrides/ is never touched), then restart the server.');
+      }
+    } catch {
+      // An unreadable stamp is not worth failing a publish over.
     }
   }
 

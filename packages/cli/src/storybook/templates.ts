@@ -1,6 +1,7 @@
 // Template access. Templates are inert text files the CLI never imports —
 // init and publish read them from disk and write parameterized copies into
 // the customer's workspace (ADR A).
+import crypto from 'node:crypto';
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -35,4 +36,28 @@ export function renderTemplate(template: string, vars: Record<string, string>): 
     return vars[key];
   });
   return rendered;
+}
+
+
+/**
+ * One hash over every template this CLI ships. Stamped into the scaffold at
+ * init and compared at publish, so a host left behind by a CLI upgrade is
+ * *announced* rather than silently stale — publish still never touches it
+ * (ADR A); upgrading stays the customer's explicit `init --force`.
+ */
+export function templatesHash(): string {
+  const dir = templatesDir();
+  const hash = crypto.createHash('sha256');
+  const walk = (d: string): void => {
+    for (const entry of fs.readdirSync(d).sort()) {
+      const full = path.join(d, entry);
+      if (fs.statSync(full).isDirectory()) walk(full);
+      else {
+        hash.update(path.relative(dir, full));
+        hash.update(fs.readFileSync(full));
+      }
+    }
+  };
+  walk(dir);
+  return hash.digest('hex').slice(0, 16);
 }

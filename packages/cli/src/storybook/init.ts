@@ -6,8 +6,10 @@
 import fs from 'fs-extra';
 import path from 'path';
 import type { Workspace } from './workspace.js';
-import { readTemplate, renderTemplate } from './templates.js';
+import { readTemplate, renderTemplate, templatesHash } from './templates.js';
 import { deriveTabs, deriveModes } from './concerns/components/index.js';
+
+declare const __SPECS_CLI_VERSION__: string;
 
 export interface InitOptions {
   force: boolean;
@@ -59,6 +61,14 @@ export function init(ws: Workspace, options: InitOptions): InitResult {
     fs.writeFileSync(out, renderTemplate(readTemplate(file.template), vars));
     written.push(path.join('storybook', file.out));
   }
+
+  // The scaffold stamp: which CLI templates built this host. Publish compares
+  // it so a host left behind by an upgrade is announced, never silently stale.
+  fs.writeFileSync(
+    path.join(dotStorybook, 'scaffold.json'),
+    JSON.stringify({ templates: templatesHash(), cli: typeof __SPECS_CLI_VERSION__ !== 'undefined' ? __SPECS_CLI_VERSION__ : 'dev' }, null, 2) + '\n',
+  );
+  written.push(path.join('storybook', '.storybook', 'scaffold.json'));
 
   // The override tree: the customer's, from the start. No command writes into it.
   fs.ensureDirSync(path.join(ws.storybookDir, 'content-overrides'));

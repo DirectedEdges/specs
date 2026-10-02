@@ -37,6 +37,10 @@ Everything `init` wrote — the Storybook config, the theme, the port in
 `init` refuses so it cannot clobber your edits; `init --force` rewrites the
 host files deliberately, and still never touches `content-overrides/`.
 
+When a CLI upgrade ships newer host files, the next `specs storybook` run tells
+you — the host is stamped at `init`, and a stale stamp prints the one command
+that upgrades it. Nothing upgrades silently.
+
 ## Declaring presentation: `config/conventions/storybook.yaml`
 
 Choices that are taste rather than library data are declared in a conventions

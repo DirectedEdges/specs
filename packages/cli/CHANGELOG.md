@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Glyph slugs agree everywhere a digit follows a word.** `specs fetch` named a glyph from its raw Figma name ("Brightness 1" → `brightness-1.svg`) while specs and emitted code carry the camel key (`brightness1`), where that boundary no longer exists — so the scaffold requested a file fetch never wrote. A separator now never survives before a digit run, in fetch, in both emitters, and in the emitted runtime helper, so every derivation lands on the same file name. Existing workspaces rename affected files on their next `specs fetch`.
 
+- **A stale host announces itself.** `init` stamps the scaffold with a hash of the templates that built it; when a newer CLI's `publish` sees an older stamp it says so and names the upgrade (`specs storybook init --force` — host files only, `content-overrides/` never touched). Publish still never rewrites host files.
+
 - **A running Storybook republishes itself.** The scaffolded host watches `config/`, `specs/`, and `assets/` and re-runs `specs storybook publish` when anything changes — edit the conventions file and the open page follows, no commands. Publish being idempotent and diff-writing is what makes it a safe watch target.
 
 - **The component framework tabs are in-page.** React / Web Components / Specs render as ordinary tabs inside the docs page — same treatment as the Analysis pages — and the Foundations colour swatches bind to the stylesheet's custom properties, so switching a mode restyles them live with live value captions. The scaffolded manager shrinks to one job (hiding the Web Components tree from the sidebar), feature-detected; no unstable tab APIs remain.
