@@ -72,6 +72,7 @@ The shape is deliberately permissive: nothing stops a code platform declaring `i
 | [`subcomponents`](/guides/subcomponent-scoping/) | `object` | — | Subcomponent organization and naming. Absent = no subcomponent convention |
 | [`instanceExamples`](/guides/instance-examples/) | `object` | — | **Pro.** Instance example organization and naming. Absent = no such convention |
 | [`images`](/guides/images/) | `object` | — | How the library expresses images. Absent = no image convention |
+| [`slots`](#slots) | `object` | — | **Pro.** Which slot the platform treats as a component's default. Absent = no default slot is designated |
 | [`slotConstraints`](/guides/slot-constraints/) | `boolean` | `false` | The library authors slot constraints as code-only props |
 | [`inferNumberProps`](/guides/number-inference/) | `boolean` | `false` | The library authors numeric props as Figma `TEXT` props with numeric defaults |
 | [`stylesProp`](#stylesprop) | `string` | — | *Vocabulary.* Prop receiving styling no promotion mapped. Absent = unmapped styling is dropped |
@@ -114,6 +115,30 @@ The shape is deliberately permissive: nothing stops a code platform declaring `i
 | `match` | `string` | — | *Vocabulary.* Figma name of the designated image component (e.g. `DS Image`). Requires a non-empty `sourceProps` |
 | `component` | `string` | — | *Vocabulary.* The same component's name on this platform (e.g. `DsImage`) — the translation target for a `match` declared by whichever platform produced the spec |
 | `sourceProps` | `string[]` | — | Code-only prop names carrying image sources; the first is the designated component's own source prop |
+
+### `slots`
+
+Which slot prop this platform treats as a component's **default slot** — the one slot a layout component always composes further content through.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `default` | `object` | — | The default-slot convention. Absent = no default slot is designated |
+| `default.match` | `string[]` | *(required)* | Naming patterns identifying the default slot prop. `*` is the one wildcard; matching is case-insensitive |
+
+`match` is an array because one library may name this slot differently across component families — `children` on a page row, `items` on a list. Any pattern matches.
+
+```yaml
+# config/conventions/figma.yaml
+slots:
+  default:
+    match:
+      - children
+      - items
+```
+
+The convention is read **once, at generation time**, against a component's actual prop names, and the slot prop it matches carries [`defaultSlot: true`](/schema/props/#slotprop) in the generated spec. Nothing downstream re-evaluates the pattern: a reader asks the spec which slot is the default, not the conventions the spec was generated under.
+
+What the marker then permits is a second shape for filling that slot. An instance filling a default slot may be nested as a plain child — an ordinary entry in its parent's [`children`](/schema/children/) array — instead of through a [`SlotContentRef`](/schema/slot-content-ref/). A **non**-default slot is unchanged: an explicit reference is the only shape that can say *which* of several slots a fill belongs to, and both shapes coexist in one spec. See [`slots.default`](/settings/default-slot/) for the worked before and after.
 
 ### `stylesProp`
 
@@ -280,7 +305,7 @@ Neither failure raises an error. Where the constraint does not hold, declare no 
 
 A resolver produces a complete entry for any platform it is asked about, **declared or not** — so a consumer reading `figma` gets `naming: NONE` whether or not a `figma.yaml` exists.
 
-What no default can supply is a convention *block*: `glyphs`, `subcomponents`, `images`. Their absence is a statement about the library, and inventing one would fabricate a fact nobody declared. `DEFAULT_CONVENTIONS` is an empty object for the same reason a map has no fixed key to populate — not because the defaults went away.
+What no default can supply is a convention *block*: `glyphs`, `subcomponents`, `images`, `slots`. Their absence is a statement about the library, and inventing one would fabricate a fact nobody declared. `DEFAULT_CONVENTIONS` is an empty object for the same reason a map has no fixed key to populate — not because the defaults went away.
 
 ## In a spec's metadata
 

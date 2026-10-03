@@ -25,6 +25,10 @@ instanceExamples:
         $slotContent: "#/components/dsAlert/slotContentExamples/dsAlert__children"
 ```
 
+An example's own slot props are always references, including a slot your library designates as the [default](/settings/default-slot/) one. An `InstanceExample` is `title` plus `propConfigurations` and nothing else, so there is nowhere in it to nest a child — a pointer is the only thing a prop value can be.
+
+Everything *below* that first hop is a different matter. Inside the entry the pointer resolves to, a nested instance filling its default slot is captured as that instance's children rather than as another entry. So an example of a card inside a list inside an alert is one reference and then a tree, not three references chained together.
+
 ## How to Author It
 
 1. Build representative instances of the component in Figma.
@@ -68,5 +72,6 @@ Instance examples require a [Pro license](/overview/licensing/). On the free tie
 
 - [`figma.instanceExamples`](/settings/instance-examples/) — convention reference
 - [Default Slot Content](/guides/default-slot-content/) — the sibling feature
+- [`slots.default`](/settings/default-slot/) — why an example's content collapses into one entry rather than a chain
 - [`subcomponents`](/settings/subcomponents/) — the presence-driven detection model this mirrors
 - [Schema: Component](/schema/component/) — the `instanceExamples` registry shape

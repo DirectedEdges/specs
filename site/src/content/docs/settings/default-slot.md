@@ -74,3 +74,10 @@ Composed content is a Pro feature, so flattened nesting follows the same gates a
 ## Path
 
 `slots.default.match` in `config/conventions/figma.yaml`
+
+## See Also
+
+- [`defaultSlotContent`](/settings/default-slot-content/) — the run choice that decides whether composed slot content is recorded at all; the two names are close and mean different things
+- [Schema: Conventions](/schema/conventions/#slots) — the `slots` member's shape
+- [Schema: Props](/schema/props/#slotprop) — the `defaultSlot` marker this convention produces
+- [Schema: Children](/schema/children/) — the nested shape it permits
