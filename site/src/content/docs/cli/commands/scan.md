@@ -62,7 +62,7 @@ _Detected via `glyphNamePattern`. Excluded from `specs generate`._
 
 **Components row format:**
 - `[x]` / `[ ]` — checked / unchecked. Edit by hand to curate.
-- `Dev Status` — `READY_FOR_DEV` (designer-flagged in Figma Dev Mode) or `NONE` (unset). Read-only on each scan; changes drive the default merge behavior.
+- `Dev Status` — `READY_FOR_DEV` (designer-flagged in Figma Dev Mode) or `NONE` (unset). Read-only on each scan; changes drive the default merge behavior. A marking on a node nested inside a frame may read as `NONE` here even though Figma shows it set — see [Markings scan may not see](#markings-scan-may-not-see).
 
 **Compositions row format:**
 - The same five columns as Components, curated the same way: `[x]` / `[ ]`, edited by hand.
@@ -131,7 +131,7 @@ A **composition** is a Figma frame that arranges components into a screen, a pag
 **Eligibility: the frame must be marked Ready for dev in Figma.**
 
 - **No marking, no row.** An unmarked frame never appears, not even unchecked. This is what keeps the section usable: a real production library holds around 20,000 frames and marks about a dozen. A frame is a working container by default; the marking is what makes it a deliverable.
-- **Position does not matter.** A frame on a page, in a section, or inside any other container — all equally eligible.
+- **Position does not matter to eligibility.** A frame on a page, in a section, or inside any other container is equally eligible. Position does affect whether `scan` can *see* the marking, though — see [Markings scan may not see](#markings-scan-may-not-see) below.
 - **The outermost marking wins.** A marked frame inside another marked frame is not listed separately; it is already captured as part of its ancestor, and listing it would spec the same arrangement twice.
 - **Authoring aids are excluded**, the same as for components — a frame matching `figma.subcomponents.exclude`, or under the `codeOnlyProps` container, is not a composition.
 
@@ -153,6 +153,16 @@ Unchecking a row and unmarking the frame in Figma both remove a composition from
 Compositions are specced on either tier. **Emitting code** from one — `specs react`, `specs webcomponents` — requires Pro.
 
 A frame whose name yields no spec key (one named with whitespace alone, which real libraries contain) is skipped with a warning naming its node id, because its spec folder would have no name.
+
+### Markings scan may not see
+
+Frames and components nested inside other frames and marked `READY_FOR_DEV` may not be recognized by `scan`. The marking exists in Figma, but the REST payload `scan` reads does not always carry it, so the row is absent and nothing warns.
+
+Observed: a frame that is a direct child of a page, and a frame inside a section, both carry their marking through. A frame nested inside another frame, or inside a plain group, does not.
+
+This is an authoring consideration rather than something to work around. Mark the frame you mean to deliver at a position the payload reports — a page child, or inside a section — and the row appears. If a marked frame you expect is missing from the manifest, its nesting is the first thing to check.
+
+The outermost-marking rule above is unaffected in outcome: a marked frame inside a marked ancestor is still listed once, under the ancestor.
 
 ## Examples
 
