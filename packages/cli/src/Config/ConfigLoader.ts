@@ -511,6 +511,31 @@ export class ConfigLoader {
       };
     }
 
+    // slots.default (ADR-099) — the naming patterns identifying a component's one
+    // designated default slot. A non-empty array of non-empty strings, else the block
+    // is dropped: a convention that names nothing would flatten nothing, and a reader
+    // would have no way to tell that from "not configured".
+    if (raw.slots !== undefined && raw.slots !== null) {
+      if (typeof raw.slots !== 'object') {
+        console.warn(`Invalid ${where} slots: expected an object. Removing slots convention.`);
+      } else {
+        const def = (raw.slots as Record<string, unknown>).default;
+        if (def !== undefined) {
+          const match = def !== null && typeof def === 'object'
+            ? (def as Record<string, unknown>).match
+            : undefined;
+          const patterns = Array.isArray(match)
+            ? (match as unknown[]).filter((v): v is string => typeof v === 'string' && v.trim() !== '').map(v => v.trim())
+            : [];
+          if (patterns.length === 0) {
+            console.warn(`Invalid ${where} slots.default.match: expected a non-empty array of strings. Removing slots convention.`);
+          } else {
+            platform.slots = { default: { match: patterns } };
+          }
+        }
+      }
+    }
+
     // images (ADR-063, ADR-077). Presence of the block is the on-switch; each member
     // is an independent trigger. `component` is this platform's name for the same
     // component `match` names in Figma.

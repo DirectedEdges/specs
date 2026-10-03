@@ -730,6 +730,53 @@ instanceExamples:
     });
   });
 
+  describe('conventions.figma.slots.default validation (ADR-099)', () => {
+    it('reads the default-slot patterns, trimmed', () => {
+      writeSplitFile('conventions/figma.yaml', `
+slots:
+  default:
+    match:
+      - ' children '
+      - items
+`);
+
+      const config = configLoader.load();
+      expect(config.conventions.platforms!.figma.slots).toEqual({ default: { match: ['children', 'items'] } });
+    });
+
+    it('is absent by default (presence is the on-switch)', () => {
+      writeSplitFile('conventions/figma.yaml', 'naming: NONE');
+
+      const config = configLoader.load();
+      expect(config.conventions.platforms!.figma.slots).toBeUndefined();
+    });
+
+    it('drops an empty match — a convention that names nothing flattens nothing', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      writeSplitFile('conventions/figma.json', JSON.stringify({ slots: { default: { match: [] } } }));
+
+      const config = configLoader.load();
+      expect(config.conventions.platforms!.figma.slots).toBeUndefined();
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('slots.default.match'));
+    });
+
+    it('drops a match that is not an array of strings', () => {
+      writeSplitFile('conventions/figma.json', JSON.stringify({ slots: { default: { match: 'children' } } }));
+
+      const config = configLoader.load();
+      expect(config.conventions.platforms!.figma.slots).toBeUndefined();
+    });
+
+    it('drops a non-object slots block', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      writeSplitFile('conventions/figma.json', JSON.stringify({ slots: 'children' }));
+
+      const config = configLoader.load();
+      expect(config.conventions.platforms!.figma.slots).toBeUndefined();
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('slots'));
+    });
+  });
+
   describe('Merging with defaults', () => {
     it('should merge partial settings with defaults', () => {
       writeSplitFile('settings.yaml', 'spec:\n  variantDepth: 2');
