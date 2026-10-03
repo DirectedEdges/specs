@@ -22,6 +22,8 @@ import { loadFoundations } from '../utilities/loadFoundations.js';
 import { resolveFileSourceAlias } from '../utilities/fileSourceAlias.js';
 import { ManifestParser } from '../utilities/ManifestParser.js';
 import { ManifestParserV2 } from '../utilities/ManifestParserV2.js';
+import { assertPayloadReadable, readJsonPayload } from '../utilities/payloadRead.js';
+import { SectionedFile, shadowIngestEnabled, shadowCompare } from '../utilities/sectionedFile.js';
 import { LicenseStatus } from '../utilities/LicenseStatus.js';
 import { TRANSIENT_FAILURES, transientFailureLines } from '../utilities/licenseGuidance.js';
 import { FileManifest } from '../Writers/FileManifest.js';
@@ -98,7 +100,9 @@ function resolveImageFileKey(
 ): { key: string } | { error: string } {
   const alias = payloadPath && payloadPath.endsWith('.file.json')
     ? path.basename(payloadPath, '.file.json')
-    : resolveFileSourceAlias(config.settings.data?.sources);
+    : payloadPath && payloadPath.endsWith('.file')
+      ? path.basename(payloadPath, '.file')
+      : resolveFileSourceAlias(config.settings.data?.sources);
 
   if (!alias) {
     return { error: 'Error: --get-images requires a configured source file key (data.sources.<alias>.key in the workspace settings)' };
@@ -134,7 +138,10 @@ async function writeGeneratedOutput(
   options: GenerateOptions,
   config: CLIConfig,
   /** The `<alias>.file.json` these specs were generated from, when there was one. */
-  payloadPath?: string
+  payloadPath?: string,
+  /** The source payload's lastModified — stamps metadata.lastUpdated so an
+   *  unchanged design regenerates to unchanged files (specs#568). */
+  sourceLastModified?: string
 ): Promise<void> {
   // -------------------------------------------------------------------
   // File mode stdout (no -o)
@@ -295,7 +302,11 @@ async function writeGeneratedOutput(
     }
   }
 
-  const manifest = new FileManifest(processedComponents, outputConfig, baseDir, outputFileName);
+  const sourceTimestamp = sourceLastModified ? new Date(sourceLastModified) : undefined;
+  const manifest = new FileManifest(
+    processedComponents, outputConfig, baseDir, outputFileName,
+    sourceTimestamp && !isNaN(sourceTimestamp.getTime()) ? sourceTimestamp : undefined
+  );
 
   // Select appropriate writer
   let writer: FileWriter;
@@ -323,6 +334,27 @@ async function writeGeneratedOutput(
   if (writeResult.errors.length > 0) {
     writeResult.errors.forEach(error => console.error(`Error: ${error}`));
     process.exit(ERROR_CODES.FILE_ERROR);
+  }
+
+  // A component renamed in Figma, renamed by a convention change, or dropped from
+  // the library generates under a new folder and leaves the old one behind. Nothing
+  // removes it — deliberately, since the generator cannot tell a folder you meant to
+  // keep from one you forgot about, and the spec tree is authored against, not built
+  // into (specs#595).
+  //
+  // So it is reported instead. Naming what is present but not generated costs
+  // nothing and cannot lose work; what to do about it is the customer's call.
+  //
+  // Only a full run with no failures may judge: a `--component` run knows nothing
+  // about the components it was not asked for, and every one would look stale.
+  if (
+    isManifest &&
+    !options.component &&
+    errors.length === 0 &&
+    outputConfig.useSubfolders &&
+    !isSingleFileMode
+  ) {
+    await reportUngeneratedSpecs(baseDir, writeResult.filesWritten, resolvedFormat);
   }
 
   process.exit(errors.length > 0 ? ERROR_CODES.GENERAL_ERROR : ERROR_CODES.SUCCESS);
@@ -447,6 +479,9 @@ export const Generate = new Command('generate')
       // - v2 manifest: markdown table emitted by `specs scan` (declares **Scan format version:** 2)
       // - v1 manifest: checkbox bullet list emitted by `specs audit`
       // - JSON: raw Figma file (file mode)
+      // A JSON payload argument can exceed the single-string read limit; fail it
+      // with the file named rather than V8's bare message. (Manifests are tiny.)
+      assertPayloadReadable(sourcePath);
       const sourceContent = await fs.readFile(sourcePath, 'utf-8');
       const trimmed = sourceContent.trimStart();
       const isV2Manifest = ManifestParserV2.isV2(sourceContent);
@@ -468,7 +503,9 @@ export const Generate = new Command('generate')
       // ---------------------------------------------------------------
       let componentIds: string[];
       let componentNames: Map<string, string>; // id → display name
-      let libraryJson: Record<string, any>;
+      let libraryJson: Record<string, any> | undefined;
+      // Shadow mode only: the monolithic payload for a second engine run.
+      let shadowJson: Record<string, any> | undefined;
       // The Figma payload these specs come from — carried to --get-images so images are
       // pulled from that file, which for an ad-hoc source is not the configured one.
       let payloadPath: string | undefined;
@@ -507,14 +544,22 @@ export const Generate = new Command('generate')
         // scanned from, so with several fetched files the manifest's own payload
         // beats the first configured source.
         const manifestAlias = path.basename(sourcePath).replace(/\.manifest\.md$/, '');
-        const manifestPayload = manifestAlias !== path.basename(sourcePath)
-          ? path.join(sourceDir, `${manifestAlias}.file.json`)
-          : undefined;
         const componentSourceAlias = resolveFileSourceAlias(config.settings.data?.sources);
+        // An alias's payload on disk: the monolithic file, or the split
+        // directory when only that exists (post-flip fetches).
+        const payloadFor = (alias: string): string | undefined => {
+          const monolithic = path.join(sourceDir, `${alias}.file.json`);
+          if (fs.existsSync(monolithic)) return monolithic;
+          const split = path.join(sourceDir, `${alias}.file`);
+          return fs.existsSync(path.join(split, 'manifest.json')) ? split : undefined;
+        };
 
-        const sourceFile = metadata.file
-          || (manifestPayload && fs.existsSync(manifestPayload) ? manifestPayload : undefined)
-          || (componentSourceAlias ? path.join(sourceDir, `${componentSourceAlias}.file.json`) : undefined);
+        // metadata.file may predate the payload's current shape (a manifest
+        // scanned before a re-fetch switched monolithic ↔ split) — trust it
+        // only when it still exists, then fall through to what's on disk.
+        const sourceFile = (metadata.file && fs.existsSync(metadata.file) ? metadata.file : undefined)
+          || (manifestAlias !== path.basename(sourcePath) ? payloadFor(manifestAlias) : undefined)
+          || (componentSourceAlias ? payloadFor(componentSourceAlias) ?? path.join(sourceDir, `${componentSourceAlias}.file.json`) : undefined);
 
         if (!sourceFile) {
           console.error('Error: No component source file specified');
@@ -533,7 +578,9 @@ export const Generate = new Command('generate')
         }
 
         payloadPath = sourceFile;
-        libraryJson = await fs.readJSON(sourceFile);
+        // Deferred: the payload loads after component selection, so the
+        // sectioned path can assemble a pruned document from just the pages
+        // the selected components need (specs#562).
 
         // `--component` used to apply only in file mode, so asking for one component here
         // silently generated the whole catalogue — a slow surprise, and one that looks like
@@ -564,7 +611,8 @@ export const Generate = new Command('generate')
         componentNames = new Map(chosen.map(c => [c.id, c.name]));
 
         if (options.verbose) {
-          console.log(`[CLI] File loaded: ${libraryJson.name || path.basename(sourceFile)}`);
+          // The payload itself loads after component selection (sectioned path).
+          console.log(`[CLI] Payload source: ${path.basename(sourceFile)}`);
         }
       } else {
         // FILE MODE
@@ -575,7 +623,7 @@ export const Generate = new Command('generate')
         }
 
         payloadPath = sourcePath;
-        libraryJson = JSON.parse(sourceContent);
+        libraryJson = JSON.parse(sourceContent) as Record<string, any>;
         componentIds = [options.component];
         const resolvedName =
           libraryJson.componentSets?.[options.component]?.name ||
@@ -586,6 +634,57 @@ export const Generate = new Command('generate')
         if (options.verbose) {
           console.log(`[CLI] File loaded: ${libraryJson.name || path.basename(sourcePath)}`);
         }
+      }
+
+      // ---------------------------------------------------------------
+      // Load the payload (manifest mode deferred it): sectioned first —
+      // a pruned document assembled from the selected components' pages plus
+      // automatic cross-page fault-in — monolithic as the fallback (specs#562).
+      // ---------------------------------------------------------------
+      if (libraryJson === undefined && payloadPath) {
+        const payloadDir = path.dirname(payloadPath);
+        const base = path.basename(payloadPath);
+        const payloadAlias = base.endsWith('.file.json') ? base.replace(/\.file\.json$/, '')
+          : base.endsWith('.file') ? base.replace(/\.file$/, '')
+          : null;
+        const sectioned = payloadPath.endsWith('.file')
+          ? SectionedFile.openDir(payloadPath)
+          : payloadAlias ? SectionedFile.open(payloadDir, payloadAlias) : null;
+        if (sectioned) {
+          const located = sectioned.locatePagesOfNodeIds(componentIds);
+          const unlocated = componentIds.filter(id => !located.has(id));
+          if (unlocated.length > 0) {
+            // A manifest-selected component missing from the split artifact
+            // means it is stale relative to the manifest.
+            const detail = `${payloadAlias}.file/ does not contain ${unlocated.length} selected component(s) (${unlocated.slice(0, 3).join(', ')}${unlocated.length > 3 ? ', …' : ''})`;
+            const monolithicExists = !payloadPath.endsWith('.file') && fs.existsSync(payloadPath);
+            if (!monolithicExists) {
+              console.error(`Error: ${detail} and no single-file payload exists to fall back to.`);
+              console.error('Tip: re-run `specs fetch`, then `specs scan`, so the payload and manifest agree.');
+              process.exit(ERROR_CODES.FILE_ERROR);
+            }
+            console.warn(`⚠ ${detail} — falling back to the single-file payload. Re-run \`specs fetch\` to refresh the split artifact.`);
+          } else {
+            const seedIds = [...new Set([...located.values()].map(e => e.id))];
+            const assembled = sectioned.assembleDocument(seedIds, options.verbose
+              ? f => console.log(`[CLI] fault-in: page "${f.pageName}" (needed for ${f.causedBy})`)
+              : undefined);
+            libraryJson = assembled.json;
+            const { stats } = assembled;
+            console.log(`✓ Sectioned read: ${stats.pagesLoaded.length}/${stats.pagesTotal} pages (${seedIds.length} seeded, ${stats.faults.length} faulted in, ${stats.remoteIds.length} remote refs)`);
+            if (shadowIngestEnabled() && fs.existsSync(payloadPath)) {
+              shadowJson = readJsonPayload(payloadPath);
+            }
+          }
+        }
+        if (libraryJson === undefined) {
+          libraryJson = readJsonPayload(payloadPath);
+        }
+      }
+      if (libraryJson === undefined) {
+        console.error('Error: no payload loaded'); // unreachable: every mode sets or defers
+        process.exit(ERROR_CODES.FILE_ERROR);
+        return;
       }
 
       // ---------------------------------------------------------------
@@ -674,6 +773,22 @@ export const Generate = new Command('generate')
         licenseInput,
       );
 
+      // Shadow mode: rerun the engine on the monolithic payload and diff the
+      // emitted specs against the sectioned-path results. Dev-only; deleted at
+      // the dual-write flip. (Validates the license a second time.)
+      if (shadowJson) {
+        const shadowResults = await Components.fromRestApi(
+          componentIds, shadowJson, config.conventions, config.settings,
+          { styles, variables, collections, author: config.settings.author, generator: CLI_GENERATOR },
+          () => {}, licenseInput,
+        );
+        // metadata.lastUpdated is wall-clock — the one legitimately volatile
+        // field (the perf harness normalizes it the same way).
+        const stripClock = (value: unknown): unknown =>
+          JSON.parse(JSON.stringify(value, (key, v) => (key === 'lastUpdated' ? undefined : v)));
+        shadowCompare('generate:results', stripClock(shadowResults), stripClock(results));
+      }
+
       // ---------------------------------------------------------------
       // Hard-fail: wrong-runtime license key → AUTH_ERROR
       // ---------------------------------------------------------------
@@ -750,7 +865,10 @@ export const Generate = new Command('generate')
         process.exit(ERROR_CODES.GENERAL_ERROR);
       }
 
-      await writeGeneratedOutput(processedComponents, errors, isManifest, options, config, payloadPath);
+      await writeGeneratedOutput(
+        processedComponents, errors, isManifest, options, config, payloadPath,
+        typeof libraryJson.lastModified === 'string' ? libraryJson.lastModified : undefined
+      );
 
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -761,3 +879,65 @@ export const Generate = new Command('generate')
       process.exit(ERROR_CODES.GENERAL_ERROR);
     }
   });
+
+
+/**
+ * Name the spec folders that exist but this run did not write.
+ *
+ * Reports; never deletes. A folder can be absent from a run for reasons the run
+ * cannot distinguish — a component deselected in the manifest on purpose, or specs
+ * generated into this directory from another source — so the decision belongs to
+ * the customer, not to the generator.
+ *
+ * The folders this run is responsible for come from what the writer reports it
+ * wrote, rather than re-deriving names from components. Those paths carry their
+ * nesting, so a subcomponent folder is judged by the same rule as a top-level one.
+ */
+async function reportUngeneratedSpecs(
+  specsDir: string,
+  filesWritten: string[],
+  format: string,
+): Promise<void> {
+  if (!(await fs.pathExists(specsDir))) return;
+
+  // The writers report absolute paths despite what WriteResult says, so they are
+  // re-based here rather than trusted as relative.
+  const written = new Set<string>();
+  for (const file of filesWritten) {
+    const relative = path.relative(specsDir, path.resolve(file));
+    if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) continue;
+    const segments = relative.split(path.sep).slice(0, -1).filter(seg => seg && seg !== '.');
+    for (let i = 1; i <= segments.length; i++) written.add(segments.slice(0, i).join('/'));
+  }
+  // Recognising none of this run's output means no basis for judging anything else.
+  if (written.size === 0) return;
+
+  const ungenerated: string[] = [];
+
+  const walk = async (relative: string): Promise<void> => {
+    const absolute = relative ? path.join(specsDir, relative) : specsDir;
+    for (const entry of await fs.readdir(absolute, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const childRelative = relative ? `${relative}/${entry.name}` : entry.name;
+      if (written.has(childRelative)) {
+        // Kept, but a subcomponent inside it may not have been written.
+        await walk(childRelative);
+        continue;
+      }
+      // An api file is what makes a folder a component spec rather than something
+      // the customer keeps here.
+      if (await fs.pathExists(path.join(specsDir, childRelative, `api.${format}`))) {
+        ungenerated.push(childRelative);
+      }
+    }
+  };
+  await walk('');
+
+  if (ungenerated.length === 0) return;
+
+  console.log(
+    `Note: ${ungenerated.length} spec ${ungenerated.length === 1 ? 'folder is' : 'folders are'} ` +
+      `present but were not generated this run: ${ungenerated.join(', ')}`,
+  );
+  console.log('  Expected if you deselected them or generate from more than one source. Otherwise they are stale — remove them yourself.');
+}

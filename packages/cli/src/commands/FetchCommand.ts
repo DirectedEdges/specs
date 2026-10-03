@@ -29,6 +29,9 @@ const ERROR_CODES = {
 
 import type { SourceEntry } from '@directededges/specs-schema';
 import { figmaOf } from '../Config/PlatformConventions.js';
+import { MAX_JSON_STRING_BYTES, readJsonPayload } from '../utilities/payloadRead.js';
+import { PayloadSplitter, splitDirFor } from '../utilities/payloadSplit.js';
+import { SectionedFile } from '../utilities/sectionedFile.js';
 import { resolveFigmaFileKey, slugifyBranchName, FigmaKeyError } from '../utilities/figmaFileKey.js';
 import { postGetVariables } from '../bridge/client.js';
 import { resolveFileKey } from '../bridge/pickConnection.js';
@@ -548,6 +551,32 @@ export const Fetch = new Command('fetch')
 
       const wants = (kind: FetchKind): boolean => onlyKinds.length === 0 || onlyKinds.includes(kind);
 
+      // -------------------------------------------------------------------
+      // Validate config for every selected source BEFORE the first byte
+      // downloads. A config error surfacing after minutes of downloading
+      // wastes the download — and used to abort the remaining sources too.
+      // -------------------------------------------------------------------
+      for (const entry of selected) {
+        if (entry.fetch.includes('icons') && wants('icons')) {
+          if (!figmaOf(config.conventions).glyphs?.match) {
+            console.error(`Error: ${entry.origin === 'adhoc' ? `source "${entry.alias}"` : `data.sources.${entry.alias}.fetch`} includes "icons" but glyphs.match is not set in config/conventions/figma.yaml`);
+            process.exit(ERROR_CODES.INVALID_ARGS);
+          }
+          if (!config.settings.spec.directory) {
+            console.error(`Error: ${entry.origin === 'adhoc' ? `source "${entry.alias}"` : `data.sources.${entry.alias}.fetch`} includes "icons" but spec.directory is not set in the workspace settings`);
+            process.exit(ERROR_CODES.INVALID_ARGS);
+          }
+        }
+      }
+
+      // One source's download failure is recorded and reported; the remaining
+      // sources still fetch. Auth and rate-limit failures stay fatal — they are
+      // token-wide or API-wide, and retrying other sources cannot succeed.
+      const sourceFailures: Array<{ alias: string; code: number; outstanding: string[] }> = [];
+      class SourceFetchError extends Error {
+        constructor(readonly code: number) { super('source fetch failed'); }
+      }
+
       await fs.ensureDir(outDir);
 
       if (options.verbose) {
@@ -557,7 +586,16 @@ export const Fetch = new Command('fetch')
       }
 
       for (const entry of selected) {
+        // Which step was in flight when a transport error threw — transport
+        // failures carry no request context of their own (specs#569).
+        let activeKind: string = 'file';
+        // A whole source dies on the first failing kind, so the kinds after it were
+        // never attempted. The retry hint has to name those too, or following it
+        // recovers one kind and leaves the rest missing (specs#572).
+        const completedKinds = new Set<string>();
+        try {
         for (const kind of entry.fetch.filter(k => k !== 'icons' && wants(k))) {
+          activeKind = kind;
           const url =
             kind === 'file'
               ? `https://api.figma.com/v1/files/${entry.key}${options.geometry ? '?geometry=paths' : ''}`
@@ -593,10 +631,22 @@ export const Fetch = new Command('fetch')
             } else {
               console.error(`Error: HTTP ${status} while fetching ${entry.alias}.${kind}`);
             }
-            process.exit(ERROR_CODES.NETWORK_ERROR);
+            throw new SourceFetchError(ERROR_CODES.NETWORK_ERROR);
           }
 
           const outputPath = path.join(outDir, `${entry.alias}.${kind}.json`);
+          // File payloads dual-write a page-split directory while streaming
+          // (specs#559): the sectioned artifact every consumer will migrate to.
+          // Additive — a split failure warns and cleans up, never fails the fetch.
+          let splitter = kind === 'file' ? new PayloadSplitter(splitDirFor(outDir, entry.alias)) : null;
+          const feedSplitter = (bytes: Uint8Array) => {
+            if (!splitter) return;
+            try { splitter.write(Buffer.from(bytes)); } catch (e) {
+              console.warn(`⚠ ${entry.alias}.file/ page split failed (${e instanceof Error ? e.message : e}) — the single-file payload is unaffected.`);
+              splitter.abort();
+              splitter = null;
+            }
+          };
           if (stream) {
             const tmpPath = `${outputPath}.tmp`;
             try {
@@ -606,6 +656,7 @@ export const Fetch = new Command('fetch')
                 const pump = () =>
                   reader.read().then(({ done, value }) => {
                     if (done) { writeStream.end(); return; }
+                    feedSplitter(value);
                     writeStream.write(value, (err) => { if (err) reject(err); else pump(); });
                   }).catch(reject);
                 writeStream.on('finish', resolve);
@@ -615,13 +666,45 @@ export const Fetch = new Command('fetch')
               await fs.rename(tmpPath, outputPath);
             } catch (err) {
               await fs.remove(tmpPath).catch(() => {});
+              splitter?.abort();
+              splitter = null;
               throw err;
             }
           } else {
+            if (body) feedSplitter(Buffer.from(body, 'utf-8'));
             await fs.writeFile(outputPath, body, 'utf-8');
+          }
+          // The flip (specs#563): the page-split directory IS the file
+          // artifact. The monolithic file exists only transiently during the
+          // download, and survives only as a rescue when the split fails.
+          let monolithicKept = true;
+          if (splitter) {
+            try {
+              const split = await splitter.finish();
+              console.log(`✓ Split: ${entry.alias}.file/ (${split.pages.length} pages, root ${Math.round(fs.statSync(path.join(splitDirFor(outDir, entry.alias), 'root.json')).size / 1048576)}MB)`);
+              await fs.remove(outputPath);
+              monolithicKept = false;
+            } catch (e) {
+              console.warn(`⚠ ${entry.alias}.file/ page split failed (${e instanceof Error ? e.message : e}) — keeping the single-file payload instead.`);
+              splitter.abort();
+            }
           }
 
           console.log(`✓ Downloaded: ${entry.alias} ${kind} (${elapsed})`);
+          completedKinds.add(kind);
+
+          // Warn at download time when a kept payload is over the
+          // single-string read limit — otherwise the next command's failure is
+          // the first sign. (A split payload has no such limit.)
+          if (monolithicKept) {
+            const written = await fs.stat(outputPath);
+            if (written.size >= MAX_JSON_STRING_BYTES) {
+              console.warn(`⚠ ${entry.alias}.${kind}.json is ${Math.round(written.size / 1048576)}MB — over the ~${Math.round(MAX_JSON_STRING_BYTES / 1048576)}MB limit Node can read as a single JSON string. Downstream commands (cache, scan, generate) will refuse it.`);
+              console.warn(options.geometry
+                ? `  Remedy: re-fetch with --no-geometry (roughly halves the payload).`
+                : `  Already fetched without geometry — the file itself is too large; remove or split pages in Figma.`);
+            }
+          }
 
           if (options.verbose) {
             const relativeOut = path.relative(process.cwd(), outputPath);
@@ -633,6 +716,7 @@ export const Fetch = new Command('fetch')
         // the saved file payload, so `file` must be present (fetched this run
         // or a previous one) before icons can resolve.
         if (entry.fetch.includes('icons') && wants('icons')) {
+          activeKind = 'icons';
           const pattern = figmaOf(config.conventions).glyphs?.match;
           if (!pattern) {
             console.error(`Error: ${entry.origin === 'adhoc' ? `source "${entry.alias}"` : `data.sources.${entry.alias}.fetch`} includes "icons" but glyphs.match is not set in config/conventions/figma.yaml`);
@@ -646,14 +730,20 @@ export const Fetch = new Command('fetch')
             process.exit(ERROR_CODES.INVALID_ARGS);
           }
           const filePath = path.join(outDir, `${entry.alias}.file.json`);
-          if (!fs.existsSync(filePath)) {
-            console.error(`Error: icons require the file payload — fetch "file" for ${entry.alias} first (${filePath} not found)`);
-            process.exit(ERROR_CODES.FILE_ERROR);
+          const iconsSectioned = SectionedFile.open(outDir, entry.alias);
+          if (!iconsSectioned && !fs.existsSync(filePath)) {
+            console.error(`Error: glyphs require the file payload — fetch "file" for ${entry.alias} first (${filePath} not found)`);
+            throw new SourceFetchError(ERROR_CODES.FILE_ERROR);
           }
 
-          const stopSpinner = startSpinner(`Downloading: ${entry.alias} icons`);
-          const fileJson = JSON.parse(await fs.readFile(filePath, 'utf-8')) as { document?: unknown };
-          const glyphs = collectGlyphComponents(fileJson.document, pattern);
+          const stopSpinner = startSpinner(`Downloading: ${entry.alias} glyphs`);
+          // Page-split payloads collect glyphs from a page-assembled document;
+          // slug dedupe must see every page at once, so pages load together here
+          // (parsed size is what the old whole-file parse cost anyway).
+          const glyphSource = iconsSectioned
+            ? { children: iconsSectioned.pageEntries().map(e => iconsSectioned.loadPage(e)) }
+            : (readJsonPayload(filePath) as { document?: unknown }).document;
+          const glyphs = collectGlyphComponents(glyphSource, pattern);
           // Assets are a sibling of specs/, not a `_`-prefixed pseudo-component
           // inside it: an SVG is consumed by every target and produced by none
           // (project 024). An ad-hoc source's glyphs are a second version of the
@@ -677,21 +767,21 @@ export const Fetch = new Command('fetch')
               stopSpinner();
               const classification = classifyHttpStatus(result.status);
               if (classification === 'auth') {
-                console.error(formatAuthError(result.status, entry.alias, 'icons', configPath));
+                console.error(formatAuthError(result.status, entry.alias, 'glyphs', configPath));
                 process.exit(ERROR_CODES.AUTH_ERROR);
               }
               if (classification === 'rate') {
-                console.error(formatRateLimitError(entry.alias, 'icons', result.headers));
+                console.error(formatRateLimitError(entry.alias, 'glyphs', result.headers));
                 process.exit(ERROR_CODES.RATE_LIMIT);
               }
-              console.error(`Error: HTTP ${result.status} while exporting ${entry.alias} icons`);
-              process.exit(ERROR_CODES.NETWORK_ERROR);
+              console.error(`Error: HTTP ${result.status} while exporting ${entry.alias} glyphs`);
+              throw new SourceFetchError(ERROR_CODES.NETWORK_ERROR);
             }
             const payload = JSON.parse(await streamToString(result.stream)) as { err?: string; images: Record<string, string | null> };
             if (payload.err) {
               stopSpinner();
-              console.error(`Error: images API error while exporting ${entry.alias} icons: ${payload.err}`);
-              process.exit(ERROR_CODES.NETWORK_ERROR);
+              console.error(`Error: images API error while exporting ${entry.alias} glyphs: ${payload.err}`);
+              throw new SourceFetchError(ERROR_CODES.NETWORK_ERROR);
             }
             for (const glyph of chunk) {
               const imageUrl = payload.images[glyph.id];
@@ -703,7 +793,38 @@ export const Fetch = new Command('fetch')
             }
           }
           const elapsed = stopSpinner();
-          console.log(`✓ Downloaded: ${entry.alias} icons (${downloaded}/${glyphs.length} glyphs, ${elapsed})`);
+          console.log(`✓ Downloaded: ${entry.alias} glyphs (${downloaded}/${glyphs.length}, ${elapsed})`);
+          completedKinds.add('icons');
+        }
+        } catch (error) {
+          clearInlineStatus();
+          const code = error instanceof SourceFetchError ? error.code : ERROR_CODES.GENERAL_ERROR;
+          if (!(error instanceof SourceFetchError)) {
+            // A transport-level throw (connection reset, DNS, TLS) says only
+            // "fetch failed" — the real reason rides the cause chain, and the
+            // request context lives here, not on the error (specs#569).
+            const causes: string[] = [];
+            for (let e: unknown = error; e instanceof Error; e = e.cause) {
+              causes.push(e.message);
+              if (causes.length >= 4) break;
+            }
+            console.error(`  ${causes.join(' — caused by: ') || String(error)}`);
+          }
+          // Everything this source was asked for that did not land — the kind that
+          // threw, plus every kind the loop never reached.
+          const outstanding = entry.fetch.filter(k => wants(k) && !completedKinds.has(k));
+          sourceFailures.push({ alias: entry.alias, code, outstanding });
+          console.error(`✗ ${entry.alias}: fetch failed while downloading "${activeKind}" — continuing with remaining sources`);
+          // Naming every outstanding kind matters more than brevity: a hint that
+          // names only the kind that threw recovers it and silently leaves the
+          // rest missing (specs#572).
+          const retryTarget = outstanding.length === entry.fetch.filter(wants).length
+            ? entry.alias
+            : `${entry.alias},${outstanding.join(',')}`;
+          console.error(`  Retry just this work: specs fetch --only ${retryTarget}`);
+          if (outstanding.length > 1) {
+            console.error(`  Still missing for ${entry.alias}: ${outstanding.join(', ')}`);
+          }
         }
       }
 
@@ -736,6 +857,7 @@ export const Fetch = new Command('fetch')
       // run, plus any fetched previously. A source with no payload yet is skipped: not
       // having fetched it is a normal state, and only render treats it as an error.
       const dataDirectory = config.settings.data?.directory;
+      let cacheOk = true;
       if (dataDirectory) {
         const dataDir = path.resolve(configDir, dataDirectory);
         const report = refreshCache({
@@ -746,9 +868,60 @@ export const Fetch = new Command('fetch')
           aliases: [...adHoc.map(s => s.alias), ...Object.keys(config.settings.data?.sources ?? {})],
           glyphNamePattern: figmaOf(config.conventions).glyphs?.match,
         });
-        reportCache(report);
+        cacheOk = reportCache(report);
       }
 
+      if (sourceFailures.length > 0) {
+        console.error(`✗ Fetch incomplete: ${sourceFailures.length} of ${selected.length} sources failed (${sourceFailures.map(f => f.alias).join(', ')})`);
+        for (const failure of sourceFailures.filter(f => f.outstanding.length > 0)) {
+          console.error(`  ${failure.alias}: still missing ${failure.outstanding.join(', ')}`);
+        }
+        process.exit(sourceFailures[0].code);
+      }
+
+      // Nothing above proves the payloads exist, and "✓ Fetch complete" is a claim
+      // about disk. So it is checked against disk rather than inferred from the
+      // absence of an error (specs#572).
+      //
+      // Two different situations, and conflating them would be wrong in both
+      // directions. A kind this run asked for and did not land is a failure. A kind
+      // the config declares but `--only` excluded is not — narrowing is the whole
+      // point of the flag — yet leaving it unsaid is how a scoped retry reports
+      // success while the source is still incomplete, which is the case that filed
+      // this issue.
+      const onDisk = (alias: string, kind: string): boolean =>
+        fs.existsSync(path.join(outDir, `${alias}.${kind}.json`)) ||
+        (kind === 'file' && fs.existsSync(splitDirFor(outDir, alias)));
+      // Glyph assets are files under the spec directory rather than a payload here,
+      // and the cache report already counts them.
+      const payloadKinds = (kinds: readonly FetchKind[]): FetchKind[] => kinds.filter(k => k !== 'icons');
+
+      const requestedMissing: string[] = [];
+      const unrequestedMissing = new Map<string, string[]>();
+      for (const entry of selected) {
+        for (const kind of payloadKinds(entry.fetch)) {
+          if (onDisk(entry.alias, kind)) continue;
+          if (wants(kind)) {
+            requestedMissing.push(`${entry.alias}.${kind}`);
+          } else {
+            unrequestedMissing.set(entry.alias, [...(unrequestedMissing.get(entry.alias) ?? []), kind]);
+          }
+        }
+      }
+
+      if (requestedMissing.length > 0) {
+        console.error(`✗ Fetch did not complete: ${requestedMissing.length} requested ${requestedMissing.length === 1 ? 'kind is' : 'kinds are'} missing on disk — ${requestedMissing.join(', ')}`);
+        process.exit(ERROR_CODES.GENERAL_ERROR);
+      }
+
+      for (const [alias, kinds] of unrequestedMissing) {
+        console.warn(`⚠ ${alias}: configured ${kinds.length === 1 ? 'kind' : 'kinds'} not on disk and not fetched this run — ${kinds.join(', ')}`);
+        console.warn(`  Fetch ${kinds.length === 1 ? 'it' : 'them'}: specs fetch --only ${alias},${kinds.join(',')}`);
+      }
+      if (!cacheOk) {
+        console.error('✗ Fetch downloaded, but the cache could not read every payload (see above).');
+        process.exit(ERROR_CODES.GENERAL_ERROR);
+      }
       console.log('✓ Fetch complete');
       process.exit(ERROR_CODES.SUCCESS);
     } catch (error) {

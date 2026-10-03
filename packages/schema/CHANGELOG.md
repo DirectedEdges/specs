@@ -5,6 +5,20 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.35.0] - Unreleased
+
+### Added
+
+- `Settings.curation` — which components of a library a run specs, defaulting to today's behaviour
+- `Settings.curation.defaultSelection` — `READY_FOR_DEV` or `ALL`; defaults to `READY_FOR_DEV`
+- `Settings.curation.preserveManualSelections` — hand edits outrank a changed Figma status; defaults to false
+- `Settings.curation.includeDependencies` — select what a component is built from; defaults to true
+
+### Changed
+
+### Removed
+
+
 ## [0.34.0] - 2026-09-23
 
 **A component's disallowed prop combinations now live with its API.** `invalidPropCombinations` renames `invalidVariantCombinations` and travels in the api concern document, so the constraint sits beside the props it constrains rather than with variant data. The schema also now states plainly that an element carrying positioning offsets always declares `position: ABSOLUTE`, so a spec's placement reads on its own, without consulting the parent's layout mode.

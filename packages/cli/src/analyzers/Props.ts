@@ -27,16 +27,46 @@ interface PropNameEntry {
   occurrences: number;
   components: string[];
   types: string[];
+  /**
+   * Present, and only present, on a name whose components do not agree on the
+   * type. A row carrying it is the row that must not be configured uniformly —
+   * absent on every other row so a consistent prop reads exactly as before.
+   */
+  typeConflict?: true;
 }
 
-interface EnumValueSet {
-  values: string[];
+interface TypeSet {
+  type: string;
   components: string[];
 }
 
+interface TypeDiscordanceEntry {
+  propName: string;
+  typeSets: TypeSet[];
+}
+
+/**
+ * One way a name's value set is declared: a closed list, or left open.
+ *
+ * A union rather than an optional `values`, because an open declaration has no
+ * value list to report — not an empty one.
+ */
+type EnumValueSet =
+  | { values: string[]; components: string[] }
+  | { open: true; components: string[] };
+
 interface EnumDiscordanceEntry {
   propName: string;
+  /** The declared type these value sets were compared within. */
+  type: string;
   valueSets: EnumValueSet[];
+  /**
+   * Present, and only present, when some components close the value set for this
+   * name and others leave it open. A closed set promises the reader every value
+   * the prop accepts; an open one promises nothing — so the two cannot be
+   * configured as one prop, even though both are the same declared type.
+   */
+  openAndClosed?: true;
 }
 
 interface ApiSurfaceEntry {
@@ -64,6 +94,7 @@ interface PropsAggregate {
     typeDistribution: Record<string, number>;
   };
   propNameFrequency: PropNameEntry[];
+  typeDiscordance: TypeDiscordanceEntry[];
   enumDiscordance: EnumDiscordanceEntry[];
   booleanNamingPatterns: Record<string, number>;
   apiSurface: ApiSurfaceEntry[];
@@ -166,29 +197,77 @@ function buildAggregate(results: PropEntry[]): PropsAggregate {
 
   const propNameFrequency: PropNameEntry[] = [...nameIndex.entries()]
     .sort((a, b) => b[1].length - a[1].length)
-    .map(([name, entries]) => ({
-      name,
-      occurrences: entries.length,
-      components: entries.map(e => e.component),
-      types: [...new Set(entries.map(e => e.type))],
-    }));
+    .map(([name, entries]) => {
+      const types = [...new Set(entries.map(e => e.type))];
+      return {
+        name,
+        occurrences: entries.length,
+        components: entries.map(e => e.component),
+        types,
+        ...(types.length > 1 ? { typeConflict: true as const } : {}),
+      };
+    });
 
+  // A name two components spell with different types is read as one prop and is
+  // not one: a `placeholder` that is text here and a flag there cannot be
+  // configured once. The frequency row already carried both types and said
+  // nothing about the disagreement, so states, accessibility and slot decisions
+  // were made from a row that looked like every other. Which component holds
+  // which type is what separates a real divergence from two unrelated props that
+  // happen to share a name.
+  const typeDiscordance: TypeDiscordanceEntry[] = [];
+  for (const [name, entries] of nameIndex.entries()) {
+    const byType = new Map<string, TypeSet>();
+    for (const e of entries) {
+      const existing = byType.get(e.type);
+      if (existing) existing.components.push(e.component);
+      else byType.set(e.type, { type: e.type, components: [e.component] });
+    }
+    if (byType.size > 1) typeDiscordance.push({ propName: name, typeSets: [...byType.values()] });
+  }
+
+  // Value sets are compared within one declared type, never across two. A name
+  // that is a boolean here and a string there is a type conflict, reported above;
+  // pairing its boolean against the other's enum would report the same divergence
+  // twice and in the weaker of the two places. Within a type, two things can
+  // disagree — which values the closed sets hold, and whether the set is closed
+  // at all — and a name can do both at once, so neither is a mode of the other.
   const enumDiscordance: EnumDiscordanceEntry[] = [];
   for (const [name, entries] of nameIndex.entries()) {
-    const enumEntries = entries.filter(e => e.hasEnum && e.enumValues);
-    if (enumEntries.length < 2) continue;
-    const valueSets = new Map<string, EnumValueSet>();
-    for (const e of enumEntries) {
-      const key = [...(e.enumValues ?? [])].sort().join('|');
-      const existing = valueSets.get(key);
-      if (existing) {
-        existing.components.push(e.component);
-      } else {
-        valueSets.set(key, { values: e.enumValues!, components: [e.component] });
-      }
+    const byType = new Map<string, PropEntry[]>();
+    for (const e of entries) {
+      const group = byType.get(e.type) ?? [];
+      group.push(e);
+      byType.set(e.type, group);
     }
-    if (valueSets.size > 1) {
-      enumDiscordance.push({ propName: name, valueSets: [...valueSets.values()] });
+
+    for (const [type, group] of byType.entries()) {
+      const closed = new Map<string, { values: string[]; components: string[] }>();
+      const open: string[] = [];
+      for (const e of group) {
+        if (!e.hasEnum || !e.enumValues) {
+          open.push(e.component);
+          continue;
+        }
+        const key = [...e.enumValues].sort().join('|');
+        const existing = closed.get(key);
+        if (existing) existing.components.push(e.component);
+        else closed.set(key, { values: e.enumValues, components: [e.component] });
+      }
+
+      // Nothing to report where no component closed the set, or where the one
+      // closed set is the only declaration there is.
+      const openAndClosed = closed.size >= 1 && open.length > 0;
+      if (closed.size < 2 && !openAndClosed) continue;
+
+      const valueSets: EnumValueSet[] = [...closed.values()];
+      if (open.length > 0) valueSets.push({ open: true, components: open });
+      enumDiscordance.push({
+        propName: name,
+        type,
+        valueSets,
+        ...(openAndClosed ? { openAndClosed: true as const } : {}),
+      });
     }
   }
 
@@ -225,6 +304,7 @@ function buildAggregate(results: PropEntry[]): PropsAggregate {
   return {
     summary: { totalProps: results.length, totalComponents, uniquePropNames: nameIndex.size, typeDistribution: typeDist },
     propNameFrequency,
+    typeDiscordance,
     enumDiscordance,
     booleanNamingPatterns: boolPatterns,
     apiSurface,

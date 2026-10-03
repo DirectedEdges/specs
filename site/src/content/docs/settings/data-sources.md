@@ -35,7 +35,7 @@ data:
 
 The alias (e.g. `library`, `foundations`) is a name you assign to each source. It determines the filenames the CLI writes to `data.directory`:
 
-- `${alias}.file.json` (only if `fetch` includes `file`)
+- `${alias}.file/` — the page-split file payload: `root.json` plus one JSON per Figma page (only if `fetch` includes `file`)
 - `${alias}.variables.json` (only if `fetch` includes `variables`)
 - `${alias}.styles.json` (only if `fetch` includes `styles`)
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
@@ -164,6 +164,76 @@ describe('KeysAnalyzer', () => {
       },
     });
     expect(result!.byComponent['dsList.item'].divergent).toBe(1);
+  });
+
+  /**
+   * Since ADR-089 a generated spec keeps only `metadata.source`, so the convention has
+   * to be found beside it. Reading only the per-spec block reported zero divergence for
+   * every current catalogue (issue #613).
+   */
+  describe('convention resolution', () => {
+    const reduced = {
+      metadata: { source: { fileKey: 'abc', nodeId: '1:2' } },
+      props: { a11yLabel: withName('string', 'A11y label') },
+    };
+
+    /** Runs one spec that states no convention of its own. */
+    async function runReduced(
+      spec: Record<string, unknown>,
+      opts: { run?: string; workspace?: string } = {},
+    ) {
+      const a = new KeysAnalyzer();
+      const compDir = path.join(outputDir, 'dsButton');
+      await fs.ensureDir(compDir);
+      if (opts.run) {
+        await fs.writeFile(
+          path.join(outputDir, 'latest.metadata.yaml'),
+          yaml.stringify({ conventions: { platforms: { figma: { naming: opts.run } } } }),
+          'utf-8',
+        );
+      }
+      await a.run(spec, {
+        specDir: compDir, outputDir: compDir, workspaceDir: outputDir,
+        componentKey: 'dsButton', outputFormat: 'YAML', tokensFormat: 'TOKEN',
+        platform: opts.workspace
+          ? { naming: opts.workspace, slotConstraints: false, inferNumberProps: false }
+          : undefined,
+      } as never);
+      await a.finalize!(outputDir, analysisDir);
+      const file = path.join(analysisDir, 'keys.yaml');
+      if (!await fs.pathExists(file)) return null;
+      return yaml.parse(await fs.readFile(file, 'utf-8')) as KeysYaml;
+    }
+
+    it('reads the convention from the run document beside a reduced spec', async () => {
+      const result = await runReduced(reduced, { run: 'SENTENCE' });
+      expect(result!.summary.divergentNames).toBe(1);
+      expect(result!.byComponent.dsButton.props).toEqual([
+        { key: 'a11yLabel', figmaName: 'A11y label', cause: 'mixed-letter-digit' },
+      ]);
+    });
+
+    it('falls back to the workspace conventions when no run document exists', async () => {
+      const result = await runReduced(reduced, { workspace: 'SENTENCE' });
+      expect(result!.summary.divergentNames).toBe(1);
+    });
+
+    it("prefers the spec's own record over the run document", async () => {
+      // TITLE accepts 'Start Icon'; SENTENCE does not. The spec's record must win.
+      const result = await runReduced({
+        metadata: { conventions: { figma: { naming: 'TITLE' } } },
+        anatomy: { startIcon: withName('glyph', 'Start Icon') },
+      }, { run: 'SENTENCE' });
+      expect(result!.summary.divergentNames).toBe(0);
+    });
+
+    it('reports zero and warns when nothing declares a convention', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const result = await runReduced(reduced);
+      expect(result!.summary.divergentNames).toBe(0);
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('no Figma naming convention declared'));
+      warn.mockRestore();
+    });
   });
 
   describe('cause classification', () => {

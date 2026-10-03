@@ -84,7 +84,10 @@ Example (with `data.directory: ./data` in `config/settings.yaml`):
 
 ```
 data/
-├── library.file.json
+├── library.file/            # page-split file payload
+│   ├── manifest.json        #   page index
+│   ├── root.json            #   component/style tables
+│   └── page-000.json …      #   one file per Figma page
 ├── library.variables.json
 ├── library.styles.json
 ├── foundations.variables.json

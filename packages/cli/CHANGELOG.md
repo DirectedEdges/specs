@@ -5,6 +5,49 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.32.0] - Unreleased
+
+### Breaking
+
+- **`specs scan` matches subcomponent patterns exactly**, every character outside `{C}` and `{S}` included — spaces and slashes among them. A library spelling the hidden-folder separator two ways (`/ _ /` and `/_ /`) now declares a pattern for each; scan previously dropped `_` segments before matching, so one pattern silently covered both spellings and a pattern containing `_` could never match. Patterns now mean the same thing here as they do when specs are generated (ADR-094).
+
+- **`specs fetch` writes each file payload as a page-split `<alias>.file/` directory** — `root.json` plus one JSON per Figma page — instead of a single `<alias>.file.json`. Payloads of any size now flow through the pipeline (a real 916MB community file previously could not be read at all), and `generate` loads only the pages your selected components need. Every command reads the new layout and still reads existing single-file payloads, so nothing breaks until you re-fetch; only your own scripts that open `<alias>.file.json` directly need to read the directory instead.
+
+### Added
+
+- **`settings.curation` decides which components a scan selects**, with `defaultSelection` (`READY_FOR_DEV` or `ALL`), `preserveManualSelections` for whether your manifest edits outrank a changed Figma dev status, and `includeDependencies` for whether the components a selected one is built from are selected too. `--include-all` and `--keep-checks` override the first two for one run. Every default matches previous behaviour (ADR-093).
+
+- **Regenerating an unchanged design produces unchanged files**: each spec's `metadata.lastUpdated` now carries the Figma file's `lastModified` instead of the run's wall clock, so spec diffs show real changes only.
+- Transport-level fetch failures (connection reset, DNS) now name the source, the data kind, the underlying cause chain, and the exact `--only` retry command — previously a bare "fetch failed".
+
+- **No ingest failure is silent.** The cache reports what every source contributed and fails loudly when a payload cannot be read (previously a zero-entry source still reported success); payload-size failures name the file, the ~512MB single-string limit, and remedies; fetch warns at download time when a kept payload exceeds that limit.
+- **Fetch validates config before downloading** (icons ↔ `glyphs.match`, `spec.directory`), and one source's failure no longer aborts the remaining sources — the run reports per-source results and exits non-zero on partial failure.
+- `specs scan` and `specs generate` accept a `<alias>.file` directory anywhere a payload path is accepted.
+- **`specs analyze` runs every analyzer when you name none**, and names the per-component `styling.yaml` it writes into each component folder alongside the aggregate reports.
+- **The props analysis flags a prop whose components disagree on its type**, with a `typeDiscordance` section naming which components hold which — so a name that means two things is not configured as one prop.
+- **`enumDiscordance` now also reports a name some components close with an `enum` while others leave open**, marked `openAndClosed`. Both declare the same type, so nothing flagged this before, yet one promises a fixed set of values and the other promises nothing.
+- **A full `specs generate` run names spec folders it found but did not write**, so a deselected component or a reverted convention leaves nothing for you to discover later. Nothing is deleted — the note says so.
+
+### Changed
+
+- **`specs fetch` says "glyphs" wherever it used to say "icons"**, matching `scan` and the `glyphs.match` convention. The `icons` fetch kind and the `assets/icons/` directory are unchanged.
+
+- **`specs init` scaffolds a settings file you can run**, with a Figma source to fill your file key into, YAML output, camelCase keys, HEXA colors, and an assets directory. Every setting exists in it, and each commented line is the opposite of its default, so uncommenting one always changes something — in the conventions files too.
+
+### Fixed
+
+- **The documentation links `specs init` and config errors print now reach a live page.** The domain they named stopped answering.
+- **A style referencing a variable your fetch did not reach falls back to the value Figma last read for it**, instead of rendering as though the property were never declared. Requires the `TOKEN_FIGMA_EXTENSIONS` or `CUSTOM` tokens format, which is what carries that value.
+- **A component you unchecked stays unchecked** when `curation.preserveManualSelections` is on. Dependency selection ran after prior manifest edits were merged forward and re-selected what a human had deselected, so no option preserved the edit (ADR-093).
+- **`specs analyze keys` finds divergent names again** — it looks for the declared Figma naming convention where a run now records it (the run document beside the specs) and in the workspace config, not only in the per-spec metadata that specs stopped carrying.
+- **A zero-divergence keys report says when nothing was measured** — a run that finds no declared naming convention warns, instead of reporting a clean result.
+- **A failed source's retry hint names every kind still missing**, not only the one that failed, so following it recovers the whole source in one run.
+- **`specs fetch` no longer reports success while a configured data kind is absent from disk**: a requested kind that did not land fails the run, and a kind excluded by `--only` is called out. Cache counts are labelled as cache contents, so they cannot read as this run's downloads.
+- **A run whose license key cannot be checked stops at the first component** instead of failing every one into the same rate limit, and a rate-limited check now says to wait it out rather than to check your network.
+
+### Removed
+
+
 ## [0.31.0] - 2026-09-23
 
 **The spec workspace now versions itself.** `specs version` grades every change, keeps full history under `versions/`, and generates the release report and changelog — all in the free tier.

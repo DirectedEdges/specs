@@ -3,7 +3,8 @@ import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
 import { ConfigLoader } from '../Config/ConfigLoader.js';
-import { resolveAnalyzers } from '../analyzers/index.js';
+import { availableAnalyzerNames, resolveAnalyzers } from '../analyzers/index.js';
+import { platformOf } from '../Config/PlatformConventions.js';
 import { loadFoundations } from '../utilities/loadFoundations.js';
 import type { TransformerContext } from '../Types/Transformer.js';
 import type { ProcessingStates } from '../transforms/states.js';
@@ -18,8 +19,8 @@ interface AnalyzeOptions {
 }
 
 export const Analyze = new Command('analyze')
-  .description('Run analysis passes over component specs and write aggregate reports to _analysis/')
-  .argument('[analyzers...]', 'Analyzer names to run (props, styling, dependencies, keys)')
+  .description('Run analysis passes over component specs and write aggregate reports to _analysis/. With no analyzer named, every analyzer runs.')
+  .argument('[analyzers...]', 'Analyzer names to run (props, styling, dependencies, keys). Omit to run all of them.')
   .option('-o, --output <path>', 'Path to the specs directory (input)')
   .option('--analysis <path>', 'Path to write analysis output (default: <specs-dir>/_analysis)')
   .option('--config <path>', 'Path to a config/ directory or legacy specs.config.yaml')
@@ -44,15 +45,15 @@ export const Analyze = new Command('analyze')
         ? path.resolve(options.analysis)
         : path.join(outputPath, '_analysis');
 
-      if (analyzerNames.length === 0) {
-        console.error('Error: specify at least one analyzer (e.g. specs analyze props)');
-        process.exit(ERROR_CODES.INVALID_ARGS);
-      }
-
+      // No names given runs every analyzer: the whole report set is the useful
+      // default, and refusing to act was only ever a way of asking again.
       const analyzers = resolveAnalyzers(analyzerNames);
       if (analyzers.length === 0) {
-        console.error('Error: no valid analyzers to run');
+        console.error(`Error: no valid analyzers to run — available: ${availableAnalyzerNames().join(', ')}`);
         process.exit(ERROR_CODES.INVALID_ARGS);
+      }
+      if (analyzerNames.length === 0) {
+        console.log(`[analyze] no analyzer named — running all: ${analyzers.map(a => a.name).join(', ')}`);
       }
 
       if (options.verbose) {
@@ -97,6 +98,11 @@ export const Analyze = new Command('analyze')
               outputFormat: config.settings.spec.format,
               processingStates: config.conventions.specs?.states as ProcessingStates | undefined,
               specs: config.conventions.specs,
+              // The conventions of the platform this analyzer reads (ADR-073), the
+              // same way runEmitters hands them to a transformer.
+              platform: analyzer.platformId
+                ? platformOf(config.conventions, analyzer.platformId)
+                : undefined,
             };
             await analyzer.run(apiYaml, context);
           }
@@ -144,6 +150,20 @@ export const Analyze = new Command('analyze')
 
       console.log('');
       console.log(`✓ Analysis complete → ${path.relative(process.cwd(), analysisDir)}/`);
+
+      // Analyzers that also write beside every component name those files here.
+      // Without this the files appear unannounced in each spec folder and read
+      // as leftovers from some earlier run.
+      const ext = config.settings.spec.format === 'YAML' ? 'yaml' : 'json';
+      const perComponent = analyzers
+        .map(a => a.perComponentOutput)
+        .filter((b): b is string => Boolean(b))
+        .map(b => `${b}.${ext}`);
+      if (perComponent.length > 0) {
+        const specDirLabel = path.relative(process.cwd(), outputPath) || '.';
+        console.log(`  also wrote ${perComponent.join(', ')} into each component folder under ${specDirLabel}/`);
+      }
+
       console.log(`  ${succeeded} succeeded${failed > 0 ? `, ${failed} failed` : ''}`);
 
       process.exit(failed > 0 ? ERROR_CODES.GENERAL_ERROR : ERROR_CODES.SUCCESS);

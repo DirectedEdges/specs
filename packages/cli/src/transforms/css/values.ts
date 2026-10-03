@@ -158,15 +158,32 @@ function cssVar(name: string, fallback?: string): string {
  * spec carries what Figma last read for that token, so the reference degrades
  * to it rather than to nothing.
  *
- * Only colour-shaped raw values are used. A bare number cannot be rendered
- * without knowing whether it is a length, an opacity or a font weight, and
- * guessing would emit `opacity: var(--x, 0.5px)`. Colours are unambiguous.
+ * A bare number needs a unit, and the reference already declares one: `$type`
+ * says whether the token is a length or a bare quantity. Read it rather than
+ * inferring from the number, which cannot distinguish `8` the length from `8`
+ * the font weight. A `$type` that settles no unit contributes no fallback —
+ * the value is carried, not invented.
  */
 function rawValueFallback(v: unknown): string | undefined {
   if (typeof v !== 'object' || v === null) return undefined;
-  const raw = ((v as Record<string, any>).$extensions?.['com.figma'])?.rawValue;
-  const hex = raw && typeof raw === 'object' ? (raw as Record<string, unknown>).hex : undefined;
-  return typeof hex === 'string' ? hex : undefined;
+  const raw = extensionsRawValue(v);
+  if (raw === undefined || raw === null) return undefined;
+
+  // A colour is unambiguous whatever the reference declares.
+  if (typeof raw === 'object') {
+    const hex = (raw as Record<string, unknown>).hex;
+    return typeof hex === 'string' ? hex : undefined;
+  }
+  if (typeof raw !== 'number') return undefined;
+
+  switch ((v as Record<string, unknown>).$type) {
+    case 'dimension':
+      return raw === 0 ? '0' : `${raw}px`;
+    case 'number':
+      return String(raw);
+    default:
+      return undefined;
+  }
 }
 
 /**

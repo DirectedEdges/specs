@@ -245,7 +245,13 @@ export async function runFigmaPremerge(options: FigmaPremergeOptions): Promise<F
     // payload carries. The empty document is what `generate` reads in place of
     // a download it was not asked to make.
     fs.writeFileSync(path.join(data, `${side}.styles.json`), '{"meta":{"styles":[]}}\n');
-    await step(`${side}: scan`, () => steps.scan(side, path.join(data, `${side}.file.json`), manifest));
+    // Fetch writes the page-split `<side>.file/` directory (specs#563); older
+    // payloads on disk are the monolithic file. Scan accepts either path.
+    const splitDir = path.join(data, `${side}.file`);
+    const payload = fs.existsSync(path.join(splitDir, 'manifest.json'))
+      ? splitDir
+      : path.join(data, `${side}.file.json`);
+    await step(`${side}: scan`, () => steps.scan(side, payload, manifest));
     await step(`${side}: generate`, () => steps.generate(
       side,
       manifest,

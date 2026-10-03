@@ -67,6 +67,7 @@ const CATEGORY_KEY: Record<StylingCategory, keyof StylingJson> = {
 
 export class StylingAnalyzer implements Transformer {
   readonly name = 'styling';
+  readonly perComponentOutput = 'styling';
 
   // Flat map: "componentKey" and "componentKey.subName" entries stored together.
   private readonly _componentData = new Map<string, StylingJson>();

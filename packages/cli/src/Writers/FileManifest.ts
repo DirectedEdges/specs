@@ -53,23 +53,33 @@ export class FileManifest {
   /** File extension derived from format */
   private ext: string;
 
+  /** Timestamp written as each file's metadata.lastUpdated. Derived from the
+   *  source (the Figma file's lastModified) so regenerating an unchanged
+   *  design produces unchanged files — a wall-clock stamp restamped every
+   *  file on every run, drowning real diffs in churn (specs#568). Falls back
+   *  to the run clock when the payload carries no lastModified. */
+  private timestamp: Date;
+
   /**
    * Build file manifest from components and configuration
    * @param components Array of component entries with names and data to process
    * @param config Output configuration
    * @param baseDir Base output directory
    * @param outputFileName Optional filename for single-file mode
+   * @param sourceTimestamp The source payload's lastModified, when known
    */
   constructor(
     components: Array<{ name: string; spec?: Record<string, unknown> }>,
     config: OutputConfig,
     baseDir: string,
-    outputFileName?: string
+    outputFileName?: string,
+    sourceTimestamp?: Date
   ) {
     this.baseDir = baseDir;
     this.outputFileName = outputFileName;
     this.format = config.defaultFormat;
     this.ext = this.format === 'json' ? '.json' : '.yaml';
+    this.timestamp = sourceTimestamp ?? new Date();
     
     // Sort components for deterministic output
     const sortedComponents = sortComponentsByName(components);
@@ -111,7 +121,7 @@ export class FileManifest {
       path: this.outputFileName || `library${this.ext}`,
       content: { components: componentsData },
       metadata: {
-        timestamp: new Date()
+        timestamp: this.timestamp
       }
     });
   }
@@ -136,7 +146,7 @@ export class FileManifest {
         content: item.spec,
         metadata: {
           component: camelName,
-          timestamp: new Date()
+          timestamp: this.timestamp
         }
       });
     }
@@ -165,7 +175,7 @@ export class FileManifest {
     }
 
     // Create timestamp for metadata
-    const timestamp = new Date();
+    const timestamp = this.timestamp;
 
     // Add api file entry
     this.entries.push({
@@ -219,7 +229,7 @@ export class FileManifest {
    * Output: Button/api.yaml, Button/variants.yaml, etc.
    */
   private buildCombinedManifest(components: Array<{ name: string; spec?: Record<string, unknown> }>): void {
-    const timestamp = new Date();
+    const timestamp = this.timestamp;
 
     for (const item of components) {
       if (!item.spec) continue;
