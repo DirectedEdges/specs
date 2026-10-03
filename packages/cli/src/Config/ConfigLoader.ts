@@ -264,7 +264,7 @@ export class ConfigLoader {
     throw new Error(
       `${file} is no longer read (ADR-071).\n` +
       `${remedy}\n` +
-      `  Docs: https://specs.directededges.com/settings/`
+      `  Docs: https://www.specsplugin.com/settings/`
     );
   }
 
@@ -304,7 +304,7 @@ export class ConfigLoader {
           `  Conventions are one file per platform in config/${CONVENTIONS_DIR}/ — move each\n` +
           `  platform's block into config/${CONVENTIONS_DIR}/<platform>.yaml, with the platform\n` +
           `  key becoming the filename and its body de-indented to the root.\n` +
-          `  Docs: https://specs.directededges.com/schema/conventions/`
+          `  Docs: https://www.specsplugin.com/schema/conventions/`
         );
       }
     }
@@ -334,7 +334,7 @@ export class ConfigLoader {
           `${file} is no longer read (ADR-073 Decision 5).\n` +
           `  The promotion table is Figma-scoped — its sources and token names describe the\n` +
           `  design tool — so rename the file to config/${CONVENTIONS_DIR}/${PRIMITIVES_FILE}.${ext}.\n` +
-          `  Docs: https://specs.directededges.com/schema/conventions/`
+          `  Docs: https://www.specsplugin.com/schema/conventions/`
         );
       }
       if (id === SPECS_FILE) {

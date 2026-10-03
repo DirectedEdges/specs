@@ -45,7 +45,7 @@ describe('InitCommand', () => {
       const conventions = generateConfigTemplates()['config/conventions/figma.yaml'];
       // The filename is the platform id, so the body has no wrapping key (ADR-078).
       expect(conventions).not.toContain('\nfigma:');
-      expect(conventions).toContain('# naming: NONE');
+      expect(conventions).toContain('# naming: SENTENCE');
       expect(conventions).toContain('subcomponents:');
       expect(conventions).toContain('match:');
     });
@@ -58,9 +58,9 @@ describe('InitCommand', () => {
       expect(settings).toContain('www.specsplugin.com/settings/');
     });
 
-    it('should mention defaults in comments', () => {
+    it('states the commenting contract', () => {
       const settings = generateConfigTemplates()['config/settings.yaml'];
-      expect(settings).toContain('Default');
+      expect(settings).toContain('Every commented line is the opposite of the default');
     });
 
     it('should have consistent YAML indentation', () => {

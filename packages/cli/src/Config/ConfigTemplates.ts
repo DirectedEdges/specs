@@ -21,82 +21,68 @@ export function generateFigmaConventionsTemplate(): string {
 #
 # One file per platform: this file's name IS the platform id, so its contents start
 # at the entry body with no wrapping key.
-# See: https://www.specsplugin.com/settings/
+# Every commented line is the opposite of the default: uncomment it to change
+# behaviour. A commented block is off until uncommented.
+# Reference: https://www.specsplugin.com/schema/conventions/
 
-# Naming convention your Figma file uses for layer and property names, and the
-# target a spec reverses into when rendered back to Figma: NONE, SENTENCE, or TITLE.
-# NONE declares no convention — names are not checked and none are preserved.
-# Declaring one records the Figma name wherever a key cannot reconstruct it.
-# See: https://www.specsplugin.com/settings/figma-keys/
-# naming: NONE
+# Layer and property naming the library follows, and the target a spec reverses
+# into: NONE, SENTENCE, or TITLE (default: NONE, no convention declared)
+# https://www.specsplugin.com/settings/figma-keys/
+# naming: SENTENCE
 
-# Naming pattern identifying icon glyph instances. Use {i} as the placeholder
-# for the glyph name (e.g. 'DS Icon Glyph / {i}' matches
-# 'DS Icon Glyph / arrow-down' and extracts 'arrow-down').
+# Icon glyph instances; {i} is the glyph name
+# https://www.specsplugin.com/settings/glyph-name-pattern/
 # glyphs:
 #   match: 'DS Icon Glyph / {i}'
 
-# Literal layer name of the code-only props container layer.
-# Presence enables code-only prop extraction from matching layers.
+# Layer holding code-only props — https://www.specsplugin.com/settings/code-only-props-pattern/
 # codeOnlyProps:
 #   match: 'Code only props'
 
-# Subcomponent organization and naming.
-# Presence of this block enables subcomponent detection; remove to disable.
-# See: https://www.specsplugin.com/guides/subcomponent-scoping/
+# Subcomponents; the block's presence is the on-switch
+# https://www.specsplugin.com/guides/subcomponent-scoping/
 subcomponents:
-  # Where the library keeps subcomponents: NESTED (component anatomy only)
-  # or PAGE (also search the Figma page)
-  # scope: NESTED
+  # Also search the Figma page, not component anatomy alone (default: NESTED)
+  # scope: PAGE
 
-  # Template patterns defining which assets are subcomponents.
-  # Uses {C} (component name) and {S} (subcomponent name) placeholders.
+  # Which assets are subcomponents; {C} = component, {S} = subcomponent
   match:
     - '{C} / _ / {S}'
 
-  # Template patterns to exclude from matches (optional).
+  # Patterns to exclude from those matches
   # exclude:
   #   - '{C} / Examples / {S}'
 
-# Instance example organization and naming (Pro). Presence of this block is
-# the on-switch.
-# See: https://www.specsplugin.com/guides/instance-examples/
+# Instance examples (Pro); the block's presence is the on-switch
+# https://www.specsplugin.com/guides/instance-examples/
 # instanceExamples:
-#   # Where the library keeps instance examples: PAGE or FILE (default: PAGE)
+#   # PAGE (default) or FILE, which searches every page
 #   scope: PAGE
-#   # Optional name filter; {C} = component name. Omit to match every
-#   # in-scope instance of the component.
+#   # Name filter; omit to match every in-scope instance
 #   match:
 #     - '{C} Example'
-#   # A candidate's immediate parent frame or section must match one of these.
+#   # A candidate's immediate parent frame or section must match one of these
 #   parentNames:
 #     - Examples
 
-# How the library expresses images: presence of this block is the on-switch;
-# each member is an independent representation trigger.
-# See: https://www.specsplugin.com/guides/images/
+# How the library expresses images; each member is an independent trigger
+# https://www.specsplugin.com/guides/images/
 # images:
-#   # The library expresses images as container fills, emitted as
-#   # backgroundImage; also the fallback for fills outside the designated
-#   # component.
+#   # Container fills emit as backgroundImage
 #   backgroundImage: true
-#   # The library's designated image component; instances route their image
-#   # through the first source prop below. Requires sourceProps.
+#   # The library's image component; requires sourceProps
 #   match: DS Image
-#   # Code-only prop names (exact Figma names) typed as images; the first
-#   # is the image component's own source prop.
+#   # Image-typed code-only props; the first is the image component's own
 #   sourceProps:
 #     - imageSource
 
-# The library authors slot constraints (anyOf, minItems, maxItems) as
-# code-only props, consolidated into the slot property.
-# Requires codeOnlyProps to be set. (default: false)
-slotConstraints: false
+# Slot constraints authored as code-only props (requires codeOnlyProps)
+# https://www.specsplugin.com/settings/slot-constraints/
+# slotConstraints: true
 
-# The library authors numeric props as TEXT code-only props whose values
-# parse as valid numbers, emitted as NumberProp instead of StringProp.
-# (default: false)
-# inferNumberProps: false
+# TEXT props whose values parse as numbers emit as NumberProp
+# https://www.specsplugin.com/settings/infer-number-props/
+# inferNumberProps: true
 `;
 }
 
@@ -112,11 +98,11 @@ export function generateSpecsConventionsTemplate(): string {
   return `# Conventions about the spec itself — not about Figma or any code platform.
 # Every member here names a prop (or an enum value) the spec declares, so a
 # transform reading only the spec can apply it.
-# See: https://www.specsplugin.com/settings/
+# Each block is off until uncommented.
+# Reference: https://www.specsplugin.com/schema/conventions/
 
-# Semantic states: classify variant props as state concepts, keyed by
-# concept name. Absence means all variant props emit as data-* selectors.
-# See: https://www.specsplugin.com/settings/states/
+# Variant props that are state concepts; absence emits them as data-* selectors
+# https://www.specsplugin.com/settings/states/
 # states:
 #   hover:
 #     prop: state
@@ -124,19 +110,17 @@ export function generateSpecsConventionsTemplate(): string {
 #   disabled:
 #     prop: disabled   # boolean prop — value defaults to "true"
 
-# Props carrying accessibility semantics no element expresses.
-# label: the prop supplying an accessible name for a control with no text of
-# its own (an icon-only button, typically). An element carrying the name wins
-# over the prop.
+# The prop naming a control with no text of its own; an element carrying the
+# name wins over the prop — https://www.specsplugin.com/settings/accessibility/
 # accessibility:
 #   label:
 #     prop: a11yLabel
 
-# The props describing a control's value where no element represents it — a
-# progress bar draws its progress rather than writing it.
+# The prop carrying a control's value where no element represents it
+# https://www.specsplugin.com/settings/value/
 # value:
 #   prop: progress
-#   # A boolean prop forcing the indeterminate presentation regardless of the value.
+#   # Boolean prop forcing the indeterminate presentation
 #   indeterminate: isLoading
 `;
 }
@@ -227,94 +211,102 @@ export function generateWebComponentsConventionsTemplate(): string {
  * Generate the `config/settings.yaml` template with inline comments.
  */
 export function generateSettingsTemplate(): string {
-  return `# Choices about this run — sources, spec output, assets.
+  return `# Choices about this run — curation, sources, spec output, assets.
 # A different team reading the same library could set any of these differently
-# and still be correct.
-# See: https://www.specsplugin.com/settings/
+# and still be correct. Every commented line is the opposite of the default:
+# uncomment it to change behaviour.
+# Reference: https://www.specsplugin.com/schema/settings/
 
-# Author name for generated specs (optional, defaults to "Unknown").
 author: <Your Name Here>
 
-# Source acquisition: what to fetch, and where fetched artifacts land.
-data:
-  # Where fetch writes payloads, and where generate/scan read from.
-  directory: ${CONFIG_DEFAULTS.dataDirectory}
+# Which components get a spec — https://www.specsplugin.com/settings/curation/
+curation:
+  # Spec every component, not only those marked Ready for dev
+  # defaultSelection: ALL
 
-  # Figma file sources to fetch and process, keyed by source name.
+  # Hand-edited selections survive a changed Figma signal
+  # preserveManualSelections: true
+
+  # Do not follow what selected components are built from
+  # includeDependencies: false
+
+# What to fetch, and where it lands — https://www.specsplugin.com/settings/data-sources/
+data:
+  directory: ${CONFIG_DEFAULTS.dataDirectory}
   sources:
     library:
       key: YOUR_FIGMA_FILE_KEY
-      fetch: [file, variables, styles]
+      fetch: [file, variables, styles, icons]
 
-# Shared resources every code output points at: icons, images, generated CSS, fonts.
+# Icons, images, generated CSS, fonts — https://www.specsplugin.com/settings/folders/
 assets:
   directory: ./assets
 
-# The generated spec: where it lands, how it is split, what it contains,
-# and how values are serialized.
 spec:
-  # Default location for generated spec files (can override with -o flag).
+  # Overridable with -o — https://www.specsplugin.com/settings/folders/
   directory: ${CONFIG_DEFAULTS.outputDirectory}
 
-  # Serialization format: JSON or YAML
+  # JSON or YAML — https://www.specsplugin.com/settings/output-format/
   format: YAML
 
-  # Key name transformation: SAFE, CAMEL, SNAKE, KEBAB, PASCAL, TRAIN
-  # See: https://www.specsplugin.com/guides/key-formatting/
+  # SAFE, CAMEL, SNAKE, KEBAB, PASCAL, TRAIN — https://www.specsplugin.com/settings/keys/
   keys: CAMEL
 
-  # Layout representation: LAYOUT, PARENT_CHILDREN, or BOTH
-  # See: https://www.specsplugin.com/guides/data-layout/
+  # LAYOUT, PARENT_CHILDREN, BOTH — https://www.specsplugin.com/settings/layout/
   layout: LAYOUT
 
-  # Token reference format: TOKEN, TOKEN_NAME, TOKEN_FIGMA_EXTENSIONS, FIGMA_NAME, CUSTOM,
-  # FIGMA_SYNTAX_WEB, FIGMA_SYNTAX_IOS, or FIGMA_SYNTAX_ANDROID
-  # See: https://www.specsplugin.com/settings/tokens/
-  # Requires a license key to resolve token references in output.
+  # TOKEN, TOKEN_NAME, TOKEN_FIGMA_EXTENSIONS, FIGMA_NAME, CUSTOM,
+  # FIGMA_SYNTAX_WEB, FIGMA_SYNTAX_IOS, FIGMA_SYNTAX_ANDROID
+  # Pro — https://www.specsplugin.com/settings/tokens/
   tokens: TOKEN
 
-  # Color value format: HEX, HEXA, RGB, RGBA, HSLA, HSB, OKLCH, OKLAB, or OBJECT
-  # See: https://www.specsplugin.com/settings/color/
+  # HEX, HEXA, RGB, RGBA, HSLA, HSB, OKLCH, OKLAB, OBJECT
+  # https://www.specsplugin.com/settings/color/
   color: HEXA
 
-  # Maximum variant property depth to process: 1, 2, 3, or 9999 (unlimited)
-  # See: https://www.specsplugin.com/guides/variant-depth/
+  # 1, 2, 3, or 9999 — https://www.specsplugin.com/settings/variant-depth/
   variantDepth: 9999
 
-  # Detail level for variant data: FULL or LAYERED
-  # See: https://www.specsplugin.com/guides/variant-layering/
+  # FULL or LAYERED — https://www.specsplugin.com/settings/details/
   details: LAYERED
 
-  # Collapse primitive wrappers: when true, a component whose root is a plain
-  # container wrapping a single text or glyph element (no meaningful container
-  # styles, no slot bindings) is collapsed — the wrapper is stripped and the
-  # leaf becomes the spec root. All-or-nothing across variants. (default: false)
+  # Read Dev Mode annotations into anatomy roles — https://www.specsplugin.com/roles/
+  # roles: true
+
+  # Fail rather than warn on an unmet role obligation (needs roles: true)
+  # roleValidation: error
+
+  # Strip a root container that only wraps one child
+  # https://www.specsplugin.com/settings/collapse-primitive-wrapper/
   # collapsePrimitiveWrapper: true
 
-  # Include invalid variant data in output (default: false)
-  # invalidVariants: false
+  # Promote primitive layers in composed examples to component instances
+  # https://www.specsplugin.com/settings/promote-primitives/
+  # promotePrimitives: true
 
-  # Calculate and include invalid property combinations (default: true)
-  # Requires a license key to compute combinations in output.
-  # invalidCombinations: true
+  # Include variants marked invalid — https://www.specsplugin.com/settings/invalid-variants/
+  # invalidVariants: true
 
-  # Include layered variants that contain no elements (default: false)
-  # emptyVariants: false
+  # Omit the invalid-combinations list (Pro)
+  # https://www.specsplugin.com/settings/invalid-combinations/
+  # invalidCombinations: false
 
-  # Emit the component's default slot content as examples (Pro; default: false)
-  # See: https://www.specsplugin.com/guides/default-slot-content/
+  # Include layered variants with no elements — https://www.specsplugin.com/settings/empty-variants/
+  # emptyVariants: true
+
+  # Emit default slot content as examples (Pro)
+  # https://www.specsplugin.com/settings/default-slot-content/
   # defaultSlotContent: true
 
-  # Combine every component into one library file instead of writing a file per
-  # component (default: true, a file per component)
+  # File layout — https://www.specsplugin.com/settings/output/
+  # One library file instead of a file per component
   # splitComponents: false
 
-  # Combine each component's api, variants, and examples into one file instead
-  # of a file per concern (default: true, a file per concern)
+  # One file per component instead of a file per concern
   # splitConcerns: false
 
-  # When splitComponents is true, nest each file in a subfolder (default: true)
-  # useSubfolders: true
+  # Component files side by side instead of each in its own subfolder
+  # useSubfolders: false
 `;
 }
 

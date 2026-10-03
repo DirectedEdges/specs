@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import yaml from 'yaml';
+import { DEFAULT_SETTINGS } from '@directededges/specs-schema';
 import {
   generateFigmaConventionsTemplate,
   generateSpecsConventionsTemplate,
@@ -57,8 +58,10 @@ describe('ConfigTemplates', () => {
       const template = generateFigmaConventionsTemplate();
       // The filename is the platform id, so the body has no wrapping key (ADR-078).
       expect(template).not.toContain('\nfigma:');
-      expect(template).toContain('# naming: NONE');
-      expect(template).toContain('naming:');
+      // A commented line is the opposite of the default, so uncommenting it
+      // always changes behaviour — NONE, the default, would be inert.
+      expect(template).toContain('# naming: SENTENCE');
+      expect(template).not.toContain('# naming: NONE');
       expect(template).toContain('subcomponents:');
       expect(template).toContain('match:');
       expect(template).toContain('slotConstraints:');
@@ -102,13 +105,13 @@ describe('ConfigTemplates', () => {
     it('should include data.directory with default value', () => {
       const template = generateSettingsTemplate();
       expect(template).toContain('directory: ./data');
-      expect(template).toContain('Where fetch writes payloads');
+      expect(template).toContain('www.specsplugin.com/settings/data-sources/');
     });
 
     it('should include spec.directory with default value', () => {
       const template = generateSettingsTemplate();
       expect(template).toContain('directory: ./specs');
-      expect(template).toContain('Default location for generated spec files');
+      expect(template).toContain('www.specsplugin.com/settings/folders/');
     });
 
     it('should include inline documentation comments', () => {
@@ -120,7 +123,7 @@ describe('ConfigTemplates', () => {
     it('should include Figma sources section', () => {
       const template = generateSettingsTemplate();
       expect(template).toContain('sources:');
-      expect(template).toContain('Figma file sources');
+      expect(template).toContain('What to fetch');
       expect(template).toContain('FIGMA_FILE_KEY');
     });
 
@@ -152,15 +155,44 @@ describe('ConfigTemplates', () => {
       expect(Object.keys(parsed)).toContain('spec');
       expect(Object.keys(parsed)).toContain('assets');
       expect(parsed.data.sources).toEqual({
-        library: { key: 'YOUR_FIGMA_FILE_KEY', fetch: ['file', 'variables', 'styles'] },
+        library: { key: 'YOUR_FIGMA_FILE_KEY', fetch: ['file', 'variables', 'styles', 'icons'] },
       });
       expect(parsed.assets.directory).toBe('./assets');
+      // curation is a mapping of commented members, so it parses to null rather
+      // than being absent — the key itself must still be there to be found.
+      expect(Object.keys(parsed)).toContain('curation');
     });
 
-    it('should mention defaults in comments', () => {
+    it('states the commenting contract rather than annotating each default', () => {
       const template = generateSettingsTemplate();
-      expect(template).toContain('Default');
-      expect(template).toContain('default');
+      expect(template).toContain('Every commented line is the opposite of the default');
+    });
+
+    /**
+     * A commented member whose value equals its default is inert: uncommenting it
+     * changes nothing, which makes the template read as a list of switches that do
+     * not work. Every default lives in DEFAULT_SETTINGS, so this is checkable.
+     */
+    it('never shows a commented spec setting at its default value', () => {
+      const template = generateSettingsTemplate();
+      for (const [key, value] of Object.entries(DEFAULT_SETTINGS.spec)) {
+        if (typeof value === 'object') continue;
+        expect(template).not.toContain(`# ${key}: ${String(value)}`);
+      }
+      for (const [key, value] of Object.entries(DEFAULT_SETTINGS.curation)) {
+        expect(template).not.toContain(`# ${key}: ${String(value)}`);
+      }
+    });
+
+    /** Every setting the schema defines is offered, so none is discoverable only in docs. */
+    it('offers every spec and curation setting the schema defines', () => {
+      const template = generateSettingsTemplate();
+      for (const key of Object.keys(DEFAULT_SETTINGS.spec)) {
+        expect(template).toContain(`${key}:`);
+      }
+      for (const key of Object.keys(DEFAULT_SETTINGS.curation)) {
+        expect(template).toContain(`${key}:`);
+      }
     });
   });
 
