@@ -5,6 +5,9 @@ description: "From an empty folder to a browsable Storybook, and the loop that k
 
 ## The whole sequence
 
+Requires **Node.js 20.19+** (Node 22 LTS recommended) — Storybook refuses to
+start on anything older.
+
 ```bash
 npm install -g @directededges/specs-cli
 

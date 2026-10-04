@@ -6,7 +6,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import type { Workspace } from './workspace.js';
-import { readTemplate, renderTemplate, templatesHash } from './templates.js';
+import { readTemplate, renderTemplate, templatesHash, STORYBOOK_VERSION, STORYBOOK_MAJOR } from './templates.js';
 import { deriveTabs, deriveModes } from './concerns/components/index.js';
 
 declare const __SPECS_CLI_VERSION__: string;
@@ -19,6 +19,14 @@ export interface InitOptions {
 export interface InitResult {
   written: string[];
   port: string;
+  /**
+   * Declared deps the existing storybook/node_modules does not satisfy —
+   * missing packages or a different major. Non-empty only when an install
+   * already exists (the --force upgrade path): a rewritten package.json
+   * changes nothing on disk until the customer reinstalls, and the new
+   * main.ts imports packages the old install never held.
+   */
+  staleInstall: string[];
 }
 
 /** Files init owns. `--force` rewrites exactly these — never content/ or content-overrides/. */
@@ -47,6 +55,8 @@ export function init(ws: Workspace, options: InitOptions): InitResult {
   const vars: Record<string, string> = {
     WORKSPACE_NAME: workspaceName,
     PORT: options.port,
+    STORYBOOK_VERSION,
+    STORYBOOK_MAJOR,
     // Only asset kinds present produce config entries (specs#610): a workspace
     // that never emitted a platform gets the import commented, not broken.
     CSSVARS_IMPORT: fs.existsSync(cssvarsPath)
@@ -55,10 +65,13 @@ export function init(ws: Workspace, options: InitOptions): InitResult {
   };
 
   const written: string[] = [];
+  let packageJson = '';
   for (const file of HOST_FILES) {
     const out = path.join(ws.storybookDir, file.out);
+    const content = renderTemplate(readTemplate(file.template), vars);
+    if (file.out === 'package.json') packageJson = content;
     fs.ensureDirSync(path.dirname(out));
-    fs.writeFileSync(out, renderTemplate(readTemplate(file.template), vars));
+    fs.writeFileSync(out, content);
     written.push(path.join('storybook', file.out));
   }
 
@@ -66,7 +79,14 @@ export function init(ws: Workspace, options: InitOptions): InitResult {
   // it so a host left behind by an upgrade is announced, never silently stale.
   fs.writeFileSync(
     path.join(dotStorybook, 'scaffold.json'),
-    JSON.stringify({ templates: templatesHash(), cli: typeof __SPECS_CLI_VERSION__ !== 'undefined' ? __SPECS_CLI_VERSION__ : 'dev' }, null, 2) + '\n',
+    JSON.stringify({
+      templates: templatesHash(),
+      cli: typeof __SPECS_CLI_VERSION__ !== 'undefined' ? __SPECS_CLI_VERSION__ : 'dev',
+      // The Storybook release the templates were tested against (ADR A):
+      // the declaration half of the range report; main.ts carries the
+      // runtime half.
+      storybook: STORYBOOK_VERSION,
+    }, null, 2) + '\n',
   );
   written.push(path.join('storybook', '.storybook', 'scaffold.json'));
 
@@ -89,5 +109,38 @@ export function init(ws: Workspace, options: InitOptions): InitResult {
     written.push(path.join('storybook', 'content', 'components', 'modes.json'));
   }
 
-  return { written, port: options.port };
+  return { written, port: options.port, staleInstall: staleInstall(ws, packageJson) };
+}
+
+/**
+ * Declared deps the existing install does not satisfy. Writing package.json
+ * changes nothing in node_modules/ — a --force from an older scaffold leaves
+ * an install the new host files cannot run on, and Storybook fails (or
+ * worse, degrades) only at startup. Majors are compared because every range
+ * the template declares is a caret range.
+ */
+function staleInstall(ws: Workspace, packageJson: string): string[] {
+  const nodeModules = path.join(ws.storybookDir, 'node_modules');
+  if (!packageJson || !fs.existsSync(nodeModules)) return [];
+  const declared = JSON.parse(packageJson) as { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
+  const stale: string[] = [];
+  for (const [name, range] of Object.entries({ ...declared.dependencies, ...declared.devDependencies })) {
+    const installedManifest = path.join(nodeModules, name, 'package.json');
+    if (!fs.existsSync(installedManifest)) {
+      stale.push(`${name} (${range}) is not installed`);
+      continue;
+    }
+    let installed = '';
+    try {
+      installed = (JSON.parse(fs.readFileSync(installedManifest, 'utf-8')) as { version?: string }).version ?? '';
+    } catch {
+      continue;
+    }
+    const declaredMajor = /\d+/.exec(range)?.[0];
+    const installedMajor = /\d+/.exec(installed)?.[0];
+    if (declaredMajor && installedMajor && declaredMajor !== installedMajor) {
+      stale.push(`${name}: declares ${range}, installed ${installed}`);
+    }
+  }
+  return stale;
 }

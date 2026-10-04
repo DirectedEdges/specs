@@ -6,19 +6,41 @@ import type { StorybookConfig } from '@storybook/react-vite';
 import path from 'node:path';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 
-const require = createRequire(import.meta.url);
+// Storybook 10 loads this file as native ESM: no __dirname, and a top-level
+// `const require` collides with the compat shim its fallback transform
+// injects — hence the explicit names.
+const here = path.dirname(fileURLToPath(import.meta.url));
+const req = createRequire(import.meta.url);
 
-const workspaceRoot = path.resolve(__dirname, '../..');
-const contentDir = path.resolve(__dirname, '../content');
-const overridesDir = path.resolve(__dirname, '../content-overrides');
-const baselinesDir = path.resolve(__dirname, '../visualtesting/baselines');
+// The Storybook major this scaffold was tested against (ADR A). Outside it,
+// the failure modes are silent — a blank Web Components tab, component pages
+// quietly losing their tabs — so the host says so out loud instead.
+const TESTED_STORYBOOK_MAJOR = '{{STORYBOOK_MAJOR}}';
+try {
+  const { version } = req('storybook/package.json') as { version: string };
+  if (version.split('.')[0] !== TESTED_STORYBOOK_MAJOR) {
+    console.warn(
+      `[specs] This host was scaffolded for Storybook ${TESTED_STORYBOOK_MAJOR}.x but is running ${version}. ` +
+      `Component-page tabs and the sidebar filter may degrade without errors. ` +
+      `Upgrade the host with \`specs storybook init --force\`, then reinstall in storybook/.`,
+    );
+  }
+} catch {
+  // The installed version is unreadable — make no claim rather than a wrong one.
+}
+
+const workspaceRoot = path.resolve(here, '../..');
+const contentDir = path.resolve(here, '../content');
+const overridesDir = path.resolve(here, '../content-overrides');
+const baselinesDir = path.resolve(here, '../visualtesting/baselines');
 
 // Generated elements under ../../webcomponents/ import 'lit' from outside this
 // project root, where node resolution finds no node_modules — pin it here.
 function litAlias(): Record<string, string> {
   try {
-    const litDir = path.dirname(require.resolve('lit'));
+    const litDir = path.dirname(req.resolve('lit'));
     return { 'lit/': `${litDir}/`, lit: litDir };
   } catch {
     return {};
@@ -51,14 +73,14 @@ function contentStories(): string[] {
  * so a transform run already hot-reloads them.
  */
 function specsPublishOnChange() {
-  const root = path.resolve(__dirname, '../..');
+  const root = path.resolve(here, '../..');
   let running = false;
   let queued = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const run = () => {
     if (running) { queued = true; return; }
     running = true;
-    const { execFile } = require('node:child_process') as typeof import('node:child_process');
+    const { execFile } = req('node:child_process') as typeof import('node:child_process');
     execFile('specs', ['storybook', 'publish'], { cwd: root }, (error: Error | null, stdout: string, stderr: string) => {
       running = false;
       const out = `${stdout ?? ''}${stderr ?? ''}`.trim();
@@ -106,9 +128,9 @@ const config: StorybookConfig = {
       ? ['../../webcomponents/src/components/**/stories.ts', '../../webcomponents/src/compositions/**/stories.ts']
       : []),
   ],
-  // Controls (props panel), Actions, Docs — argTypes come from react-docgen
-  // over the generated scaffolds' prop interfaces.
-  addons: ['@storybook/addon-essentials'],
+  // Docs pages — controls and actions are Storybook core since 9; argTypes
+  // come from react-docgen over the generated scaffolds' prop interfaces.
+  addons: ['@storybook/addon-docs'],
   // The sidebar shows only the Docs entry per component, so the component name
   // is the link rather than a parent with an indented Docs child.
   docs: {

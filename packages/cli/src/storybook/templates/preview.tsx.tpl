@@ -1,7 +1,7 @@
 // Scaffolded by `specs storybook init`. Yours after that — publish never
 // touches it.
 import type { Preview } from '@storybook/react';
-import { addons } from 'storybook/internal/preview-api';
+import { addons } from 'storybook/preview-api';
 import { ComponentDocs } from './ComponentDocs.js';
 {{CSSVARS_IMPORT}}
 // Mode toolbar controls (specs#636): published from conventions/storybook.yaml

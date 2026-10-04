@@ -24,7 +24,7 @@ Writes the host, once:
 
 ```
 storybook/
-├── package.json          declares Storybook; you run `npm install`
+├── package.json          declares Storybook (Node 20.19+); you run `npm install`
 ├── tsconfig.json
 ├── .storybook/           main.ts, preview.tsx, manager.tsx, scaffold.json
 ├── content/components/   tabs.json + modes.json, seeded so the host compiles

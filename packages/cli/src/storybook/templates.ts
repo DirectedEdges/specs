@@ -7,6 +7,14 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 /**
+ * The Storybook release these templates were built and tested against (ADR A
+ * decision 3). Substituted into the scaffolded package.json and into the
+ * host's own outside-tested-range report in main.ts.
+ */
+export const STORYBOOK_VERSION = '10.6.1';
+export const STORYBOOK_MAJOR = STORYBOOK_VERSION.split('.')[0];
+
+/**
  * Where the template files live. The published package carries them at
  * dist/storybook-templates/ (the build copies them beside the bundle);
  * running from a repo checkout finds them in src/.

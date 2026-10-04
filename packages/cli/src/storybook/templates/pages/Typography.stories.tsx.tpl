@@ -3,7 +3,7 @@
 // and edit the copy; it then always wins and publish never touches it.
 import * as React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { Typeset } from '@storybook/blocks';
+import { Typeset } from '@storybook/addon-docs/blocks';
 // Via the workspace-anchored path (not './data/…') so a copy of this file in
 // content-overrides/foundations/ keeps reading the published data.
 import data from '../../content/foundations/data/typography.json';

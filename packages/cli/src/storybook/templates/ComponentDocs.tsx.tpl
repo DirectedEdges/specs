@@ -7,7 +7,7 @@
 // involved. Every other kind of page supplies its own docs.page and never
 // sees this component.
 import * as React from 'react';
-import { DocsContext, DocsPage } from '@storybook/blocks';
+import { DocsContext, DocsPage } from '@storybook/addon-docs/blocks';
 import tabsJson from '../content/components/tabs.json';
 
 type TabId = 'react' | 'webcomponents' | 'specs';

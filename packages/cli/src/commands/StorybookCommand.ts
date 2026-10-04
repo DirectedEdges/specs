@@ -79,6 +79,14 @@ const InitCommand = new Command('init')
       console.log('✓ Storybook host scaffolded:');
       for (const file of result.written) console.log(`    ${file}`);
       console.log('');
+      if (result.staleInstall.length > 0) {
+        console.log('  ⚠ storybook/package.json changed, but the existing install no longer matches it:');
+        for (const line of result.staleInstall) console.log(`      ${line}`);
+        console.log('  Storybook will not start until you reinstall. The old lockfile pins');
+        console.log('  packages the new host no longer declares, so clear both first:');
+        console.log('    cd storybook && rm -rf node_modules package-lock.json && npm install');
+        console.log('');
+      }
       console.log('  Next:');
       console.log('    cd storybook && npm install   # installs Storybook in your workspace — we never ship it');
       console.log('    cd .. && specs storybook      # generate what the host shows');
