@@ -87,7 +87,7 @@ const InitCommand = new Command('init')
         console.log('    cd storybook && rm -rf node_modules package-lock.json && npm install');
         console.log('');
       }
-      console.log('  Next:');
+      console.log('  Next (needs Node 20.19+ — check with `node --version`):');
       console.log('    cd storybook && npm install   # installs Storybook in your workspace — we never ship it');
       console.log('    cd .. && specs storybook      # generate what the host shows');
       console.log(`    (cd storybook && npm run storybook)   # http://localhost:${result.port}`);
