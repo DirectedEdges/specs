@@ -92,7 +92,9 @@ const preview: Preview = {
             title: 'Open full screen',
             onClick: (e: any) => {
               const anchor = (e.currentTarget as HTMLElement).closest('[id^="anchor--"]');
-              const id = anchor?.id.replace('anchor--', '');
+              // The primary story's canvas is anchored as `anchor--primary--<id>`
+              // (Storybook 10); every other story as `anchor--<id>`.
+              const id = anchor?.id.replace(/^anchor--(?:primary--)?/, '');
               if (id) {
                 window.parent.location.href = `${window.parent.location.origin}/?path=/story/${id}&full=1`;
               }
