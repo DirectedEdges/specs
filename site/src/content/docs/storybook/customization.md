@@ -26,6 +26,12 @@ override brings the generated page back the same way. No restart in either
 direction. Regeneration can never destroy your copy; the command does not
 write into that tree.
 
+For a moment after the copy lands, both files carry the same title and
+Storybook logs an indexing error (`Unable to index …`). This heals itself as
+soon as the next publish pass withdraws the twin — seconds. Don't restart,
+don't re-save anything; if it persists past a publish, the two files have
+*different* titles and both are being kept.
+
 One consequence of taking a page over: its generated twin is withheld rather
 than refreshed underneath, so publish's override report is what tells you when
 the data your copy reads has moved.
@@ -34,6 +40,41 @@ One thing to stay aware of: your copy still reads the generated data files
 under `content/`, and those move when the library and the toolkit move. If a
 page you forked stops matching its data, the publish output names the overrides
 it found so the divergence is visible rather than a surprise.
+
+## Adding, changing, and removing pages
+
+All three happen in `content-overrides/`, and none needs a restart:
+
+- **Add** — drop any `*.stories.tsx` anywhere under `content-overrides/` with
+  a `title` nothing else uses. It is globbed and appears in the sidebar within
+  seconds. A title that duplicates an existing page is an indexing error, not
+  a quiet shadowing — pick a new one.
+- **Change** — edit the file; Vite hot-reloads the open page on save.
+- **Remove** — delete the file. If it was an override of a generated page, the
+  generated twin returns on the next publish pass: expect up to ~20 seconds
+  with `specs storybook dev` running (debounce, publish, reload), or run
+  `specs storybook` to force it now.
+
+## Which pages bend, which resist
+
+Not every page is a file you can copy. How a page is built decides how you
+customize it:
+
+| Page | Built from | To customize |
+|---|---|---|
+| Overview, Foundations, Analysis, Versions | A `.stories.tsx` under `content/` | Copy to `content-overrides/` — the mechanism above |
+| **Component pages** | No file at all — autodocs entries rendered by `.storybook/ComponentDocs.tsx` | Edit that host file; it changes **every** component page at once. There is no per-component override |
+| Mode toolbar | `.storybook/preview.tsx` + generated `content/components/modes.json` | Behavior in the host file; which controls exist via `modes.collections` in the conventions file |
+
+Two consequences worth knowing before you fork:
+
+- A forked foundations page keeps reading the generated data under
+  `content/…/data/` — live data is the point, but it means you cannot freeze a
+  page's content by forking it, and a data-shape change lands in your fork too.
+  The publish output's override report is the early warning.
+- Host-file edits (`ComponentDocs.tsx`, `preview.tsx`) are yours until the next
+  `init --force`, which rewrites host files wholesale. Re-apply after an
+  upgrade; `content-overrides/` is the only tree no command ever writes.
 
 ## Editing the host
 
