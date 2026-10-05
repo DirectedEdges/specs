@@ -1,6 +1,7 @@
 import fs from 'fs-extra';
 import type { FileManifest } from './FileManifest.js';
 import { FileWriter, WriteResult } from './FileWriter.js';
+import { reconcileStaleConcerns, staleWarnings } from './StaleConcerns.js';
 
 /**
  * Writer for combined mode: creates component/api and component/variants files
@@ -45,6 +46,11 @@ export class CombinedFileWriter extends FileWriter {
         await fs.writeFile(filePath, content, 'utf-8');
         result.filesWritten.push(filePath);
       }
+
+      // A concern this run stopped emitting leaves its previous file behind, in a folder
+      // the run did write — so the orphaned-folder note never covers it. Renamed rather
+      // than left, and cleared again if the concern returns.
+      result.warnings.push(...staleWarnings(await reconcileStaleConcerns(result.filesWritten)));
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       result.errors.push(`Failed to write combined files: ${errorMessage}`);

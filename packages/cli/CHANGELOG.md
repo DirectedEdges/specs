@@ -94,6 +94,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A concern a run stops generating is renamed rather than left to contradict the files beside it.** Which concerns a component produces depends on what its spec holds — declaring a default-slot convention moves slot content into the component's own anatomy, so there is no examples concern left to write — and the previous file used to stay on disk with nothing saying it was out of date. It is renamed to `examples.yaml.stale`, which stops it matching a `*.yaml` glob so nothing walking the folder can load it, and the run names every file it renamed. Nothing is deleted. A later run that generates the concern again writes it and clears the renamed file, so reverting a convention cannot leave both forms in one folder.
+
 - **`specs generate <alias>.file/ -c "Button"` works against a page-split payload.** Naming one component with a payload argument failed outright once `fetch` started writing a directory — the source was read as text to tell a manifest from a payload. A directory is now recognised as a payload, the component resolves by name or node id, and only the pages it needs are assembled.
 
 - **A batch `specs render` reaches a grouped component again.** The scan looks through two levels of your own folders, and `components/` had started consuming one of them — so a run pointed at the specs root rendered `components/deButton/` but silently skipped `components/forms/deInput/`. The kind directory no longer counts against that depth, so the specs root reaches as deep as `components/` does.

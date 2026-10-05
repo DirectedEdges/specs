@@ -1,6 +1,7 @@
 import fs from 'fs-extra';
 import type { FileManifest } from './FileManifest.js';
 import { FileWriter, WriteResult } from './FileWriter.js';
+import { reconcileStaleConcerns, staleWarnings } from './StaleConcerns.js';
 
 /**
  * Writer for per-concern mode: creates api and variants files
@@ -35,6 +36,11 @@ export class ConcernFileWriter extends FileWriter {
         await fs.writeFile(filePath, content, 'utf-8');
         result.filesWritten.push(filePath);
       }
+
+      // Same reconciliation as the per-component layout: a catalogue that stops carrying
+      // example data stops emitting this concern, and the previous file would otherwise
+      // stay beside the current ones.
+      result.warnings.push(...staleWarnings(await reconcileStaleConcerns(result.filesWritten)));
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       result.errors.push(`Failed to write concern files: ${errorMessage}`);
