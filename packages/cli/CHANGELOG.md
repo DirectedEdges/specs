@@ -84,6 +84,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The props analysis flags a prop whose components disagree on its type**, with a `typeDiscordance` section naming which components hold which — so a name that means two things is not configured as one prop.
 - **`enumDiscordance` now also reports a name some components close with an `enum` while others leave open**, marked `openAndClosed`. Both declare the same type, so nothing flagged this before, yet one promises a fixed set of values and the other promises nothing.
 - **A full `specs generate` run names spec folders it found but did not write**, so a deselected component or a reverted convention leaves nothing for you to discover later. Nothing is deleted — the note says so.
+- **`match` in `conventions/figma.primitives.yaml` names the layers that promote to a component**, for a layout family whose members share one set of styles and so cannot be told apart by them. An entry declaring none is chosen by its styles, as before, and a misspelled `match` is now reported rather than ignored (ADR-100).
 
 ### Changed
 

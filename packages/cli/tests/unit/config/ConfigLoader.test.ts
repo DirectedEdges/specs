@@ -619,6 +619,61 @@ dsIcon:
       // successfully and silently wrong.
       expect(() => configLoader.load()).toThrow(/ADR-073 Decision 5/);
     });
+
+    it('passes match through to the resolved entry (ADR-100)', () => {
+      writeSplitFile('conventions/figma.primitives.yaml', `
+dsSection:
+  elementType: container
+  match:
+    - DS Section
+    - Section
+  map: []
+`);
+
+      expect(configLoader.load().conventions.primitives).toEqual({
+        dsSection: { elementType: 'container', match: ['DS Section', 'Section'], map: [] },
+      });
+    });
+
+    it('omits match entirely when the entry declares none', () => {
+      writeSplitFile('conventions/figma.primitives.yaml', 'dsIcon:\n  elementType: glyph\n  map: []\n');
+
+      const entry = configLoader.load().conventions.primitives!.dsIcon;
+      expect('match' in entry).toBe(false);
+    });
+
+    it.each([
+      ['an empty array', 'match: []'],
+      ['a bare string', 'match: Section'],
+    ])('drops match declared as %s, naming the entry', (_label, declaration) => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      writeSplitFile('conventions/figma.primitives.yaml', `
+dsSection:
+  elementType: container
+  ${declaration}
+  map: []
+`);
+
+      const entry = configLoader.load().conventions.primitives!.dsSection;
+      expect('match' in entry).toBe(false);
+      expect(warn.mock.calls.some(call => String(call[0]).includes('dsSection'))).toBe(true);
+    });
+
+    it('keeps the usable prefixes when only some entries are strings', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      writeSplitFile('conventions/figma.primitives.yaml', `
+dsSection:
+  elementType: container
+  match:
+    - Section
+    - 7
+    - ""
+  map: []
+`);
+
+      expect(configLoader.load().conventions.primitives!.dsSection.match).toEqual(['Section']);
+      expect(warn.mock.calls.some(call => String(call[0]).includes('2 dropped'))).toBe(true);
+    });
   });
 
   describe('conventions/figma.yaml instanceExamples validation (ADR-050)', () => {

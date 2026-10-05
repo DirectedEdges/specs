@@ -389,19 +389,54 @@ export class ConfigLoader {
    * An entry needs an `elementType` and a `map`; one missing either is dropped with a
    * warning rather than failing the run, so a half-written table promotes what it
    * describes and leaves the rest as it is.
+   *
+   * `match` is optional and carries the layer-name prefixes selecting the entry
+   * (ADR-100). A malformed one is dropped and named rather than passed on: a name match
+   * short-circuits scoring, so a value the engine cannot read turns into a selection
+   * made by styling alone, which looks like the table being wrong rather than the file.
    */
   private resolvePrimitives(parsed: unknown): Record<string, PrimitiveEntry> | undefined {
     if (!parsed || typeof parsed !== 'object') return undefined;
+    const where = `conventions/${PRIMITIVES_FILE}.yaml`;
     const entries: Record<string, PrimitiveEntry> = {};
     for (const [name, body] of Object.entries(parsed as Record<string, unknown>)) {
       const entry = body as Partial<PrimitiveEntry> | null;
       if (!entry || typeof entry !== 'object' || !entry.elementType || !Array.isArray(entry.map)) {
-        console.warn(`conventions/${PRIMITIVES_FILE}.yaml: '${name}' needs an elementType and a map — entry ignored.`);
+        console.warn(`${where}: '${name}' needs an elementType and a map — entry ignored.`);
         continue;
       }
-      entries[name] = { elementType: entry.elementType, map: entry.map };
+      entries[name] = {
+        elementType: entry.elementType,
+        ...(this.resolvePrimitiveMatch(entry.match, name, where) ?? {}),
+        map: entry.map,
+      };
     }
     return Object.keys(entries).length ? entries : undefined;
+  }
+
+  /**
+   * The `match` member of one promotion entry, or nothing when it is absent or unusable.
+   *
+   * Absence is a statement — the entry is selected by score — so it warns about nothing.
+   * A declared value that is not a non-empty array of non-empty strings is named,
+   * because the author meant to select by name and would otherwise see scoring's answer
+   * with no indication why.
+   */
+  private resolvePrimitiveMatch(
+    match: unknown,
+    name: string,
+    where: string
+  ): { match: string[] } | undefined {
+    if (match === undefined || match === null) return undefined;
+    if (!Array.isArray(match) || !match.length) {
+      console.warn(`${where}: '${name}' match must be a non-empty array of layer-name prefixes — ignored, so '${name}' is selected by score.`);
+      return undefined;
+    }
+    const prefixes = match.filter((prefix): prefix is string => typeof prefix === 'string' && prefix.length > 0);
+    if (prefixes.length !== match.length) {
+      console.warn(`${where}: '${name}' match must hold only non-empty strings — ${match.length - prefixes.length} dropped.`);
+    }
+    return prefixes.length ? { match: prefixes } : undefined;
   }
 
   /**
