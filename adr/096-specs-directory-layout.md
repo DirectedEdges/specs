@@ -188,7 +188,7 @@ A reader resolves the layout once, from the directory itself:
 | Condition | Resolution |
 |---|---|
 | `specs/components/` exists | **Current layout.** `components/` and `compositions/` are the authority. Spec folders at the root are ignored entirely — not merged |
-| `specs/components/` absent, spec folders at the root | **Legacy layout.** Root folders are read as components; `_analysis` is honoured; no compositions exist. One deprecation line per run |
+| `specs/components/` absent, spec folders at the root | **Legacy layout.** Root folders are read as components; no compositions exist; analysis reads and writes `analysis/` — `_analysis/` is retired, not honoured. One deprecation line per run |
 | Neither | Empty — the existing "run `specs generate` first" error |
 
 Root folders are *ignored*, not merged, in the current layout. A workspace mid-migration

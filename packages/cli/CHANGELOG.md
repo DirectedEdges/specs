@@ -62,7 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Variable modes are switchable from the Storybook toolbar.** List collections under `modes.collections` in `conventions/storybook.yaml` and each becomes a toolbar dropdown driving the attribute the generated stylesheet switches on; the default mode clears it.
 
-- **Analyses get pages.** When `specs analyze` output exists in `specs/_analysis/`, publish adds an Analysis section with one page per analysis — a Report tab (dashboard to come) and a Specs tab reading the analysis YAML in place. No analyses, no section.
+- **Analyses get pages.** When `specs analyze` output exists in `specs/analysis/`, publish adds an Analysis section with one page per analysis — a Report tab (dashboard to come) and a Specs tab reading the analysis YAML in place. No analyses, no section.
 
 - **The Storybook Color page shows only a library's own variable collections** — the payload's imported copies of subscribed collections (including earlier versions of the file's own) no longer render as duplicates. `color.collections` in `conventions/storybook.yaml` — an ordered list of names — narrows and orders what renders.
 
