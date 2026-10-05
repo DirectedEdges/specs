@@ -128,6 +128,29 @@ function resolveImageFileKey(
 }
 
 /**
+ * Resolve a `-c` argument against a split payload's root maps, by node id first
+ * and then by name. A set outranks a bare component: a variant's set is the thing
+ * a person names, and it is what the monolithic path reports too.
+ */
+export function resolveComponentInSplitRoot(
+  root: Record<string, unknown>,
+  component: string
+): { id: string; name: string } | null {
+  const maps = [root.componentSets, root.components]
+    .filter((m): m is Record<string, { name?: string }> => Boolean(m) && typeof m === 'object');
+  for (const map of maps) {
+    const byId = map[component];
+    if (byId) return { id: component, name: byId.name ?? component };
+  }
+  for (const map of maps) {
+    for (const [id, value] of Object.entries(map)) {
+      if (value?.name === component) return { id, name: value.name };
+    }
+  }
+  return null;
+}
+
+/**
  * Write processed components to stdout or via the config-driven output writers.
  * Shared by file/manifest mode (REST-sourced) and selection mode (bridge-sourced) —
  * once a spec exists as a plain object, output resolution/writing is identical.
@@ -519,14 +542,20 @@ export const Generate = new Command('generate')
       // - v2 manifest: markdown table emitted by `specs scan` (declares **Scan format version:** 2)
       // - v1 manifest: checkbox bullet list emitted by `specs audit`
       // - JSON: raw Figma file (file mode)
+      // - a directory: a page-split payload (`<alias>.file/`), which is file mode
+      //   too — there is nothing to sniff, and reading it as text is an EISDIR.
       // A JSON payload argument can exceed the single-string read limit; fail it
       // with the file named rather than V8's bare message. (Manifests are tiny.)
-      assertPayloadReadable(sourcePath);
-      const sourceContent = await fs.readFile(sourcePath, 'utf-8');
+      const sourceIsSplitDir = fs.statSync(sourcePath).isDirectory();
+      let sourceContent = '';
+      if (!sourceIsSplitDir) {
+        assertPayloadReadable(sourcePath);
+        sourceContent = await fs.readFile(sourcePath, 'utf-8');
+      }
       const trimmed = sourceContent.trimStart();
-      const isV2Manifest = ManifestParserV2.isV2(sourceContent);
-      const isV1Manifest = trimmed.includes('- [');
-      const isJson = trimmed.startsWith('{');
+      const isV2Manifest = !sourceIsSplitDir && ManifestParserV2.isV2(sourceContent);
+      const isV1Manifest = !sourceIsSplitDir && trimmed.includes('- [');
+      const isJson = sourceIsSplitDir || trimmed.startsWith('{');
       const isManifest = isV2Manifest || isV1Manifest;
 
       if (!isManifest && !isJson) {
@@ -677,16 +706,41 @@ export const Generate = new Command('generate')
         }
 
         payloadPath = sourcePath;
-        libraryJson = JSON.parse(sourceContent) as Record<string, any>;
-        componentIds = [options.component];
-        const resolvedName =
-          libraryJson.componentSets?.[options.component]?.name ||
-          libraryJson.components?.[options.component]?.name ||
-          options.component;
-        componentNames = new Map([[options.component, resolvedName]]);
 
-        if (options.verbose) {
-          console.log(`[CLI] File loaded: ${libraryJson.name || path.basename(sourcePath)}`);
+        if (sourceIsSplitDir) {
+          // A page-split payload: its root carries the component maps, which is all
+          // `-c` resolution needs. Leaving `libraryJson` unset hands the document to
+          // the shared sectioned loader below, which assembles only the pages this
+          // component needs — the reason the split layout exists.
+          const sectioned = SectionedFile.openDir(sourcePath);
+          if (!sectioned) {
+            console.error(`Error: ${path.basename(sourcePath)} is a directory but not a page-split payload (no manifest.json).`);
+            console.error('Tip: pass a `<alias>.file/` directory written by `specs fetch`, or a single JSON payload.');
+            process.exit(ERROR_CODES.FILE_ERROR);
+          }
+          const resolved = resolveComponentInSplitRoot(sectioned.root(), options.component);
+          if (!resolved) {
+            console.error(`Error: no component named or keyed "${options.component}" in ${path.basename(sourcePath)}.`);
+            console.error('Tip: `specs scan` lists what the payload holds, with each component\'s node id.');
+            process.exit(ERROR_CODES.INVALID_ARGS);
+          }
+          componentIds = [resolved.id];
+          componentNames = new Map([[resolved.id, resolved.name]]);
+          if (options.verbose) {
+            console.log(`[CLI] Split payload: ${path.basename(sourcePath)} — ${resolved.name} (${resolved.id})`);
+          }
+        } else {
+          libraryJson = JSON.parse(sourceContent) as Record<string, any>;
+          componentIds = [options.component];
+          const resolvedName =
+            libraryJson.componentSets?.[options.component]?.name ||
+            libraryJson.components?.[options.component]?.name ||
+            options.component;
+          componentNames = new Map([[options.component, resolvedName]]);
+
+          if (options.verbose) {
+            console.log(`[CLI] File loaded: ${libraryJson.name || path.basename(sourcePath)}`);
+          }
         }
       }
 
@@ -701,7 +755,10 @@ export const Generate = new Command('generate')
         const payloadAlias = base.endsWith('.file.json') ? base.replace(/\.file\.json$/, '')
           : base.endsWith('.file') ? base.replace(/\.file$/, '')
           : null;
-        const sectioned = payloadPath.endsWith('.file')
+        // A directory payload is a split artifact whatever it is named; a file
+        // payload may still have one beside it, found by alias.
+        const payloadIsDir = fs.existsSync(payloadPath) && fs.statSync(payloadPath).isDirectory();
+        const sectioned = payloadIsDir
           ? SectionedFile.openDir(payloadPath)
           : payloadAlias ? SectionedFile.open(payloadDir, payloadAlias) : null;
         if (sectioned) {
@@ -711,7 +768,7 @@ export const Generate = new Command('generate')
             // A manifest-selected component missing from the split artifact
             // means it is stale relative to the manifest.
             const detail = `${payloadAlias}.file/ does not contain ${unlocated.length} selected component(s) (${unlocated.slice(0, 3).join(', ')}${unlocated.length > 3 ? ', …' : ''})`;
-            const monolithicExists = !payloadPath.endsWith('.file') && fs.existsSync(payloadPath);
+            const monolithicExists = !payloadIsDir && fs.existsSync(payloadPath);
             if (!monolithicExists) {
               console.error(`Error: ${detail} and no single-file payload exists to fall back to.`);
               console.error('Tip: re-run `specs fetch`, then `specs scan`, so the payload and manifest agree.');
