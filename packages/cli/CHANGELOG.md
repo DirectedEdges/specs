@@ -91,6 +91,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`specs generate <alias>.file/ -c "Button"` works against a page-split payload.** Naming one component with a payload argument failed outright once `fetch` started writing a directory — the source was read as text to tell a manifest from a payload. A directory is now recognised as a payload, the component resolves by name or node id, and only the pages it needs are assembled.
+
 - **A batch `specs render` reaches a grouped component again.** The scan looks through two levels of your own folders, and `components/` had started consuming one of them — so a run pointed at the specs root rendered `components/deButton/` but silently skipped `components/forms/deInput/`. The kind directory no longer counts against that depth, so the specs root reaches as deep as `components/` does.
 
 - **A spec's run metadata is found again from a deeper spec folder.** The reader searched a spec's own directory and one level up, which stopped short once specs moved into `components/` — so `specs render` silently lost the run's author, generator and schema version. It now climbs to the specs root, nearest document winning, bounded so it cannot adopt an unrelated one from above the workspace.
