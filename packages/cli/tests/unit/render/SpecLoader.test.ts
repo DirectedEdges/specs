@@ -186,6 +186,31 @@ describe('findComponentFolders', () => {
     expect(findComponentFolders(dir)).toEqual([]);
   });
 
+  // ADR-096: pointing a batch at the specs root must reach as deep as pointing it
+  // at `components/` — the kind directory is the layout's, not a level of grouping,
+  // so it cannot spend the budget a grouped component needs.
+  it('reaches a grouped component from the specs root, past the kind directory', () => {
+    const dir = makeTmpDir();
+    const button = makeComponent(dir, path.join('components', 'deButton'));
+    const input = makeComponent(dir, path.join('components', 'forms', 'deInput'));
+
+    expect(findComponentFolders(dir)).toEqual([button, input].sort());
+  });
+
+  it('finds compositions from the specs root too', () => {
+    const dir = makeTmpDir();
+    const checkout = makeComponent(dir, path.join('compositions', 'checkout'));
+
+    expect(findComponentFolders(dir)).toEqual([checkout]);
+  });
+
+  it('spends the budget on a folder that only looks like a kind directory deeper down', () => {
+    const dir = makeTmpDir();
+    makeComponent(dir, path.join('components', 'forms', 'components', 'deTooBuried'));
+
+    expect(findComponentFolders(dir)).toEqual([]);
+  });
+
   it('does not descend into a component folder', () => {
     const dir = makeTmpDir();
     const button = makeComponent(dir, 'deButton');

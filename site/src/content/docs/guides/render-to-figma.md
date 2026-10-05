@@ -151,8 +151,8 @@ Bridge running (pid 12345). 1 plugin connected:
 ### One component
 
 ```bash
-specs render specs/deButton.yaml     # a spec file
-specs render specs/deButton/         # a component folder (api.* + variants.*)
+specs render specs/components/deButton.yaml     # a spec file
+specs render specs/components/deButton/         # a component folder (api.* + variants.*)
 ```
 
 A spinner holds the line while Figma works, then the outcome replaces it:
@@ -169,7 +169,7 @@ Point `render` at a directory of component folders, or omit the path entirely to
 
 ```bash
 specs render specs/       # every component beneath specs/
-specs render specs/forms/ # one group
+specs render specs/components/forms/ # one group
 specs render              # resolved from config
 ```
 
@@ -204,7 +204,7 @@ An incomplete render is a success, not a failure — the component is in Figma, 
 
 ```bash
 specs generate --from-bridge -o specs/roundtrip/deButton.yaml
-diff specs/deButton.yaml specs/roundtrip/deButton.yaml
+diff specs/components/deButton.yaml specs/roundtrip/deButton.yaml
 ```
 
 That round trip is the real check. Because render is under active development, treat every render as something to look at in Figma too, rather than a guaranteed match to the source spec.
@@ -214,7 +214,7 @@ That round trip is the real check. Because render is under active development, t
 While working on one spec, let the watcher re-render on every save:
 
 ```bash
-specs render specs/deButton/ --watch
+specs render specs/components/deButton/ --watch
 ```
 
 `--watch` implies `--overwrite`, since each pass replaces the component the last one produced. It requires an explicit path, debounces changes (300ms), defers rather than overlaps when a render is in flight, and keeps going after a failed render — the next save may fix it. Ctrl+C to stop.

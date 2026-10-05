@@ -133,9 +133,9 @@ Since bridge mode reads the live document, it closes the loop on [`render`](/cli
 
 ```bash
 specs bridge start
-specs render specs/dsButton.yaml
+specs render specs/components/dsButton.yaml
 specs generate --from-bridge -o specs/roundtrip/dsButton.yaml
-diff specs/dsButton.yaml specs/roundtrip/dsButton.yaml
+diff specs/components/dsButton.yaml specs/roundtrip/dsButton.yaml
 ```
 
 Common failures:
@@ -162,9 +162,11 @@ Component name or Figma node ID. Required in single component mode; ignored in b
 ### `-o, --output <path>`
 Output file or directory path.
 
-- **File path**: writes all output to a single file (e.g. `-o specs/library.yaml`).
+- **File path**: writes all output to a single file (e.g. `-o specs/library.yaml`), in single-file mode only — see the layout note below.
 - **Directory path**: writes output files into the directory (e.g. `-o specs/`).
 - **Not provided**: falls back to `spec.directory` from `config/settings.yaml` (default `./specs`). Required in manifest mode if that isn't configured; single component and bridge mode write to stdout instead.
+
+**The kind directory is always inserted** (ADR-096). Whatever path you give names the specs root, not the final location: the run writes `components/` and `compositions/` beneath it. A directory `-o specs/` writes `specs/components/<key>/`, and in single-file mode `-o specs/library.yaml` writes `specs/components/library.yaml` — the filename you choose is honoured, its directory is the kind's. Because the split layout is the default ([ADR-071](/settings/output/)), a path ending in `.yaml` is read as a directory name unless `--combine-as-library` or `--combine-concerns` turns a split off.
 
 ### `-f, --format <format>`
 Output format: `yaml` or `json`. Defaults to `spec.format` from `config/settings.yaml` (or JSON with no config); the flag takes precedence.

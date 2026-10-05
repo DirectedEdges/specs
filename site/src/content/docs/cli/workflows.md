@@ -186,7 +186,7 @@ specs bridge start
 
 ```bash
 # Render one component
-specs render specs/deButton.yaml
+specs render specs/components/deButton.yaml
 
 # Or render every component in a directory
 specs render specs/
@@ -220,9 +220,9 @@ With 2+ files connected and no `--file`, an interactive terminal prompts you to 
 Pair it with `render` to round-trip a spec and diff the result:
 
 ```bash
-specs render specs/dsButton.yaml
+specs render specs/components/dsButton.yaml
 specs generate --from-bridge -o specs/roundtrip/dsButton.yaml
-diff specs/dsButton.yaml specs/roundtrip/dsButton.yaml
+diff specs/components/dsButton.yaml specs/roundtrip/dsButton.yaml
 ```
 
 ---

@@ -17,6 +17,7 @@ import fs from 'fs';
 import path from 'path';
 import { parse as parseYaml } from 'yaml';
 import { RunMetadataReader } from '../Writers/RunMetadataFile.js';
+import { COMPONENTS_DIR, COMPOSITIONS_DIR } from '../utilities/specsLayout.js';
 
 export interface LoadedSpec {
   spec: Record<string, unknown>;
@@ -106,10 +107,10 @@ export function isComponentFolder(dir: string): boolean {
 }
 
 /**
- * How far below a parent directory component folders are looked for. 1 covers
- * the flat `specs/deButton/` layout; 2 also covers one level of grouping,
- * `specs/forms/deInput/`. Deeper nesting is intentionally not scanned — a batch
- * render should stay predictable about what it will touch.
+ * How many levels of *your own* folders a batch render looks through. 1 covers
+ * `components/deButton/`; 2 also covers one level of grouping,
+ * `components/forms/deInput/`. Deeper nesting is intentionally not scanned — a
+ * batch render should stay predictable about what it will touch.
  */
 const MAX_SCAN_DEPTH = 2;
 
@@ -125,7 +126,13 @@ export function findComponentFolders(dir: string, maxDepth = MAX_SCAN_DEPTH): st
   const found: string[] = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     if (!entry.isDirectory() || entry.name.startsWith('.')) continue;
-    found.push(...findComponentFolders(path.join(dir, entry.name), maxDepth - 1));
+    // A kind directory is the layout's, not a level of grouping you chose
+    // (ADR-096), so it must not spend the budget your own folders need: pointing
+    // a batch at the specs root has to reach as deep as pointing it at
+    // `components/` does.
+    const isKindDir = maxDepth === MAX_SCAN_DEPTH
+      && (entry.name === COMPONENTS_DIR || entry.name === COMPOSITIONS_DIR);
+    found.push(...findComponentFolders(path.join(dir, entry.name), isKindDir ? maxDepth : maxDepth - 1));
   }
   return found.sort();
 }
