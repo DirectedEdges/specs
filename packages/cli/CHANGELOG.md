@@ -91,6 +91,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A batch `specs render` reaches a grouped component again.** The scan looks through two levels of your own folders, and `components/` had started consuming one of them — so a run pointed at the specs root rendered `components/deButton/` but silently skipped `components/forms/deInput/`. The kind directory no longer counts against that depth, so the specs root reaches as deep as `components/` does.
+
 - **A spec's run metadata is found again from a deeper spec folder.** The reader searched a spec's own directory and one level up, which stopped short once specs moved into `components/` — so `specs render` silently lost the run's author, generator and schema version. It now climbs to the specs root, nearest document winning, bounded so it cannot adopt an unrelated one from above the workspace.
 
 - **Composition stories appear in Storybook.** The workspace Storybook configurations indexed `components/` only, so an emitted composition was never picked up.
