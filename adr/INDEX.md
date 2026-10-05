@@ -6,6 +6,7 @@
 |---|-------|------------|
 | # | Title | Highlights |
 |---|-------|------------|
+| 100 | `PrimitiveEntry.match` — Promoting a Layer by Its Name, Short-Circuiting Style Scoring | (reserved, draft on `100-primitive-layer-name-match`) |
 | 099 | `childrenNamePattern` — Naming the Designated Children Slot | |
 | 098 | Storybook Conventions — `config/conventions/storybook.yaml` | |
 | 097 | Composition Emission and Presentation | (reserved, draft in PR #629) |
