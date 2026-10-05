@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Settings.curation.includeDependencies` — select what a component is built from; defaults to true
 - `PlatformConventions.slots.default.match` — naming patterns identifying a component's designated default slot (ADR-099)
 - `SlotProp.defaultSlot` — durable marker set at generation time when a slot prop matched `slots.default.match`, read by consumers with no dependency on `Conventions` (ADR-099)
+- `PrimitiveEntry.match` — layer-name prefixes selecting a promotion entry, ahead of style scoring; longest prefix wins (ADR-100)
 
 ### Changed
 

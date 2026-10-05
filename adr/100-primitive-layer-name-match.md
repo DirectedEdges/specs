@@ -2,8 +2,8 @@
 
 **Branch**: `100-primitive-layer-name-match`
 **Created**: 2026-10-05
-**Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Status**: ACCEPTED
+**Summary**: A `match` member names the layer-name prefixes selecting a promotion entry, taking precedence over `elementType` scoring.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none — amends ADR-075's selection rule)*
 

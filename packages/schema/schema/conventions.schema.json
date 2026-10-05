@@ -303,15 +303,23 @@
     },
     "PrimitiveEntry": {
       "type": "object",
-      "description": "One component a captured primitive layer can be promoted to, and how its styles become that component's props. Promotion runs during capture, over composed example content only. Several entries may share a kind; selection between them is by how many rules resolve, and at least one must. (ADR-074, ADR-075)",
+      "description": "One component a captured primitive layer can be promoted to, and how its styles become that component's props. Promotion runs during capture, over composed example content only. Several entries may share a kind; a declared match selects by name and takes precedence, and otherwise selection is by how many rules resolve, where at least one must. (ADR-074, ADR-075, ADR-100)",
       "properties": {
         "elementType": {
           "$ref": "#/definitions/PrimitiveKind",
           "description": "The anatomy element type this component can be promoted from. Named for ElementType, the superset it draws from."
         },
+        "match": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          },
+          "description": "Layer-name prefixes selecting this entry, within the entries whose elementType matches. A name matches when the captured layer's name starts with one of these strings — exact, case-sensitive, no normalisation, and nothing read out of the name. A resolved match selects the entry immediately: no score is computed and no rule in map need resolve. Where several entries match, the longest matching prefix wins, so selection never depends on authored key order. Absence means this entry is selected by score. (ADR-100)"
+        },
         "map": {
           "type": "array",
-          "description": "Rules turning the layer's styles into this component's props, in precedence order. When two rules write the same prop, the first that resolves wins.",
+          "description": "Rules turning the layer's styles into this component's props, in precedence order. When two rules write the same prop, the first that resolves wins. May be empty for an entry selected by match whose every prop is a default.",
           "items": {
             "$ref": "#/definitions/PrimitiveRule"
           }
