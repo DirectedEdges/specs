@@ -3,7 +3,9 @@ title: "slots.default"
 description: "Naming patterns identifying the one slot a layout component composes through"
 ---
 
-Naming patterns identifying a component's **default slot** — the one slot it always composes further content through. A library fact, declared in `config/conventions/figma.yaml`. Absence means the library designates no default slot, and every slot fill binds explicitly.
+Naming patterns identifying a component's **default slot** — the one slot it always composes further content through. A library fact, declared in `config/conventions/specs.yaml`. Absence means the library designates no default slot, and every slot fill binds explicitly.
+
+It sits with the spec conventions rather than under a platform because what it names is a slot prop the spec declares, not a Figma layer. There is one answer per library, and every platform reads it.
 
 Declaring it changes how composed content is captured. Content a host places in a nested instance's default slot becomes that instance's **children** — anatomy, elements and layout together — instead of a `slotContentExamples` entry addressed by a `$slotContent` reference. A hierarchy of layout components then reads as one tree rather than a chain of one-level-deep registry entries.
 
@@ -63,6 +65,8 @@ props:
 
 Every later reader — the transforms, `specs render`, any other tool — reads that marker off the spec rather than re-evaluating the pattern, so a consumer needs no access to the conventions the spec was generated under. At most one slot prop per component is marked; when several patterns match one component, the earlier pattern wins and the conflict is reported.
 
+The patterns themselves are also recorded, under `metadata.conventions.specs`, for the one question the marker cannot answer. When `specs render` meets nested children under an instance, the slot it has to fill belongs to *that instance's* component — a different component, whose spec and marker the render does not hold — so it matches the patterns against the instance's slot names instead.
+
 ## Options
 
 - **Type**: block with a single `match` array of strings
@@ -73,7 +77,7 @@ Composed content is a Pro feature, so flattened nesting follows the same gates a
 
 ## Path
 
-`slots.default.match` in `config/conventions/figma.yaml`
+`slots.default.match` in `config/conventions/specs.yaml`
 
 ## See Also
 

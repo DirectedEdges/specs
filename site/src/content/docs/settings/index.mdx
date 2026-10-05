@@ -161,18 +161,18 @@ codeOnlyProps:
 subcomponents:
   match:
     - '{C} / _ / {S}'
-
-slots:
-  default:
-    match: ['children']
 ```
 
 ### `conventions/specs.yaml`
 
-Facts about the spec's own props: which variant props are states, and which props
-carry an accessible name or a value.
+Facts about the spec's own props: which slot is the default, which variant props are
+states, and which props carry an accessible name or a value.
 
 ```yaml
+slots:
+  default:
+    match: ['children']
+
 states:
   hover:
     prop: state

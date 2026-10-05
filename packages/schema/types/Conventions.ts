@@ -256,14 +256,6 @@ export interface PlatformConventions {
   };
   /** This platform authors slot constraints (anyOf, minChildren, maxChildren) as code-only props, to be consolidated into the slot property. Optional; defaults to false. @since 0.14.0 */
   slotConstraints?: boolean;
-  /** Slot-related naming conventions. Optional; absence means no such convention. @since 0.35.0 */
-  slots?: {
-    /** The component's designated default slot — the one slot always composed through. Optional; absence means no default-slot convention. */
-    default?: {
-      /** Naming patterns identifying the default slot prop. A library may name it differently across component families (e.g. `children`, `items`); any pattern matches. */
-      match: string[];
-    };
-  };
   /** This platform authors numeric props as Figma `TEXT` props whose default and examples parse as valid numbers, to be emitted as NumberProp rather than StringProp. Optional; defaults to false. */
   inferNumberProps?: boolean;
   /**
@@ -334,6 +326,22 @@ export interface SpecsConventions {
    * contracts.
    */
   states?: Record<string, VariantStateEntry>;
+  /**
+   * Slot-related naming conventions. Optional; absence means no such convention.
+   *
+   * A spec convention rather than a platform one: the thing named is a `SlotProp` the
+   * spec declares, so a reader holding only the spec can apply it, and every platform
+   * reads the same answer — the same reason `states` sits here.
+   *
+   * @since 0.35.0
+   */
+  slots?: {
+    /** The component's designated default slot — the one slot always composed through. Optional; absence means no default-slot convention. */
+    default?: {
+      /** Naming patterns identifying the default slot prop. A library may name it differently across component families (e.g. `children`, `items`); any pattern matches. */
+      match: string[];
+    };
+  };
   /** Props carrying accessibility semantics no element expresses. */
   accessibility?: {
     /**
@@ -493,13 +501,6 @@ export interface ResolvedPlatformConventions {
   };
   /** Slot constraints are authored as code-only props. */
   slotConstraints: boolean;
-  /** Slot-related naming conventions. Optional; absence means no such convention. @since 0.35.0 */
-  slots?: {
-    /** The component's designated default slot. Optional; absence means no default-slot convention. */
-    default?: {
-      match: string[];
-    };
-  };
   /** Numeric props are authored as Figma `TEXT` props. */
   inferNumberProps: boolean;
   /** Prop that receives styling no promotion mapped. Optional; absence means unmapped styling is dropped. */
@@ -528,20 +529,38 @@ export interface ResolvedConventions {
 
 /**
  * The conventions a spec records in its metadata: the **one** platform entry that
- * produced it.
+ * produced it, and the spec conventions it was produced under.
  *
- * Structurally identical to {@link ResolvedConventions}, and constrained to a single
- * key, but absence means something different here. In a workspace's conventions, a
- * missing platform declares no conventions for that platform. In a spec's metadata, a
- * missing platform did not produce this spec — so recording every platform a workspace
- * happens to configure would both leak vocabulary the spec has no bearing on and make a
- * drift check fire on unrelated changes.
+ * Structurally a subset of {@link ResolvedConventions}, with `platforms` constrained to
+ * a single key, but absence means something different here. In a workspace's
+ * conventions, a missing platform declares no conventions for that platform. In a
+ * spec's metadata, a missing platform did not produce this spec — so recording every
+ * platform a workspace happens to configure would both leak vocabulary the spec has no
+ * bearing on and make a drift check fire on unrelated changes.
+ *
+ * `primitives` and `storybook` are deliberately absent: the promotion table is already
+ * spent by the time a spec exists, and Storybook presentation bears on no reader of one.
  *
  * @since 0.32.0
  */
 export interface MetadataConventions {
   /** Exactly one entry: the platform this spec was produced from. */
   platforms: Record<string, ResolvedPlatformConventions>;
+  /**
+   * Conventions about the spec itself, as the producing run resolved them.
+   *
+   * Recorded for the same reason the platform entry is: a consumer reading the spec
+   * back has to recover the facts it was produced under, and a spec convention is
+   * no more re-derivable from the spec's contents than a platform one. `slots.default`
+   * is the field that requires it — a render resolving a nested instance's default
+   * slot needs the patterns, and the instance's own component spec is not in hand.
+   *
+   * Optional, unlike `platforms`: a run that declared no spec conventions records
+   * none, and absence states exactly that.
+   *
+   * @since 0.35.0
+   */
+  specs?: SpecsConventions;
 }
 
 /**

@@ -148,16 +148,19 @@ const stringWidth: PlatformConventions = { defaultFillWidth: '375px' };
 // ─── slots.default.match (ADR-099) ────────────────────────────────────────────
 
 // A library may name its default slot differently across component families
-const defaultSlot: PlatformConventions = { slots: { default: { match: ['children', 'items'] } } };
+const defaultSlot: SpecsConventions = { slots: { default: { match: ['children', 'items'] } } };
 
 // slots is optional; absence means no default-slot convention
-const noDefaultSlot: PlatformConventions = {};
+const noDefaultSlot: SpecsConventions = {};
 
 // @ts-expect-error — match is required when default is declared
-const defaultSlotNoMatch: PlatformConventions = { slots: { default: {} } };
+const defaultSlotNoMatch: SpecsConventions = { slots: { default: {} } };
 
 // @ts-expect-error — match is a string[], not a bare string (unlike codeOnlyProps.match)
-const defaultSlotBareString: PlatformConventions = { slots: { default: { match: 'children' } } };
+const defaultSlotBareString: SpecsConventions = { slots: { default: { match: 'children' } } };
+
+// @ts-expect-error — the default slot names a prop the spec declares, not a platform fact
+const platformDefaultSlot: PlatformConventions = { slots: { default: { match: ['children'] } } };
 
 // ─── Resolution guarantees members inside a declared block ────────────────────
 
@@ -175,8 +178,8 @@ const numbers: boolean = platform.inferNumberProps;
 const scope: 'NESTED' | 'PAGE' | undefined = platform.subcomponents?.scope;
 const sourceProps: string[] | undefined = platform.images?.sourceProps;
 
-// slots stays optional on a resolved platform entry, same as glyphs/subcomponents/images
-const slotsMatch: string[] | undefined = platform.slots?.default?.match;
+// slots resolves at the root beside platforms — the prop it names is the spec's, not a platform's
+const slotsMatch: string[] | undefined = resolved.specs?.slots?.default?.match;
 
 // stylesProp survives resolution as a platform member — promotion targets are named by the
 // spec, so there is no per-primitive block to fold it into (ADR-076)
@@ -195,8 +198,17 @@ declare const producing: NonNullable<ResolvedConventions['platforms']>[string];
 
 const meta: MetadataConventions = { platforms: { figma: producing } };
 
+// Spec conventions ride along, so a render can read back a fact it cannot re-derive (ADR-099)
+const metaWithSpecs: MetadataConventions = {
+  platforms: { figma: producing },
+  specs: { slots: { default: { match: ['children'] } } },
+};
+
 // @ts-expect-error — platforms is required in metadata; absence is not expressible
 const metaWithoutPlatforms: MetadataConventions = {};
+
+// @ts-expect-error — the promotion table is spent by the time a spec exists
+const metaWithPrimitives: MetadataConventions = { platforms: { figma: producing }, primitives: {} };
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
@@ -260,9 +272,10 @@ export {
   oldShape, kinds, imageKind, promotion, platformPrimitives, entryWithoutKind, entryWithoutMap,
   entryBadKind, namedEntry, namedEntryNoRules, matchAsString, dottedSource, ruleWithoutSource, imageBoth,
   width, stringWidth, platformMayBeAbsent, naming, constraints, numbers, scope, sourceProps,
-  defaultSlot, noDefaultSlot, defaultSlotNoMatch, defaultSlotBareString, slotsMatch,
-  platformStyles, resolvedEntry, underResolved, meta,
-  metaWithoutPlatforms, defaults, defaultedPlatform, booleanState, enumState, noProp, badContract,
+  defaultSlot, noDefaultSlot, defaultSlotNoMatch, defaultSlotBareString, platformDefaultSlot,
+  slotsMatch, platformStyles, resolvedEntry, underResolved, meta, metaWithSpecs,
+  metaWithoutPlatforms, metaWithPrimitives,
+  defaults, defaultedPlatform, booleanState, enumState, noProp, badContract,
   specStates, specAccessibility, specValue, specValueOnly, specAll, specNone, specBareString,
   specValueNoProp, platformStates,
 };

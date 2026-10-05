@@ -65,8 +65,9 @@ const PRIMITIVES_FILE_RETIRED = 'primitives';
 
 /**
  * Reserved basename in `config/conventions/` for conventions about the spec itself
- * (ADR-073 Decision 4): the states classification and the prop conventions role
- * emission consumes. Shares the directory because these are conventions a library
+ * (ADR-073 Decision 4): the states classification, the prop conventions role emission
+ * consumes, and the default-slot naming convention (ADR-099). Shares the directory
+ * because these are conventions a library
  * states once, but the spec is the hub every platform converts to or from, so it
  * is a sibling of the platform files and no platform may take this id.
  */
@@ -432,15 +433,41 @@ export class ConfigLoader {
 
   /**
    * Resolve `config/conventions/specs.yaml` — conventions about the spec itself
-   * (ADR-073 Decision 4): the states classification, the accessible-name prop
-   * convention, and the value prop convention. A malformed member is dropped with
-   * a warning rather than failing the run, so the rest of the file still applies.
+   * (ADR-073 Decision 4): the default-slot naming convention, the states
+   * classification, the accessible-name prop convention, and the value prop
+   * convention. A malformed member is dropped with a warning rather than failing the
+   * run, so the rest of the file still applies.
    */
   private resolveSpecs(parsed: unknown): SpecsConventions | undefined {
     if (!parsed || typeof parsed !== 'object') return undefined;
     const where = `conventions/${SPECS_FILE}.yaml`;
     const raw = parsed as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
     const specs: SpecsConventions = {};
+
+    // slots.default (ADR-099) — the naming patterns identifying a component's one
+    // designated default slot. A non-empty array of non-empty strings, else the block
+    // is dropped: a convention that names nothing would flatten nothing, and a reader
+    // would have no way to tell that from "not configured".
+    if (raw.slots !== undefined && raw.slots !== null) {
+      if (typeof raw.slots !== 'object') {
+        console.warn(`Invalid ${where} slots: expected an object. Removing slots convention.`);
+      } else {
+        const def = (raw.slots as Record<string, unknown>).default;
+        if (def !== undefined) {
+          const match = def !== null && typeof def === 'object'
+            ? (def as Record<string, unknown>).match
+            : undefined;
+          const patterns = Array.isArray(match)
+            ? (match as unknown[]).filter((v): v is string => typeof v === 'string' && v.trim() !== '').map(v => v.trim())
+            : [];
+          if (patterns.length === 0) {
+            console.warn(`Invalid ${where} slots.default.match: expected a non-empty array of strings. Removing slots convention.`);
+          } else {
+            specs.slots = { default: { match: patterns } };
+          }
+        }
+      }
+    }
 
     // states — concept-keyed map, passed through when it is an object
     if (raw.states !== undefined && raw.states !== null) {
@@ -549,31 +576,6 @@ export class ConfigLoader {
       };
     }
 
-    // slots.default (ADR-099) — the naming patterns identifying a component's one
-    // designated default slot. A non-empty array of non-empty strings, else the block
-    // is dropped: a convention that names nothing would flatten nothing, and a reader
-    // would have no way to tell that from "not configured".
-    if (raw.slots !== undefined && raw.slots !== null) {
-      if (typeof raw.slots !== 'object') {
-        console.warn(`Invalid ${where} slots: expected an object. Removing slots convention.`);
-      } else {
-        const def = (raw.slots as Record<string, unknown>).default;
-        if (def !== undefined) {
-          const match = def !== null && typeof def === 'object'
-            ? (def as Record<string, unknown>).match
-            : undefined;
-          const patterns = Array.isArray(match)
-            ? (match as unknown[]).filter((v): v is string => typeof v === 'string' && v.trim() !== '').map(v => v.trim())
-            : [];
-          if (patterns.length === 0) {
-            console.warn(`Invalid ${where} slots.default.match: expected a non-empty array of strings. Removing slots convention.`);
-          } else {
-            platform.slots = { default: { match: patterns } };
-          }
-        }
-      }
-    }
-
     // images (ADR-063, ADR-077). Presence of the block is the on-switch; each member
     // is an independent trigger. `component` is this platform's name for the same
     // component `match` names in Figma.
@@ -626,6 +628,9 @@ export class ConfigLoader {
     }
     if (raw.roleValidation !== undefined) {
       console.warn(`${where} roleValidation: moved to settings.yaml spec.roleValidation (ADR-067). Ignoring it here.`);
+    }
+    if (raw.slots !== undefined) {
+      console.warn(`${where} slots: moved to conventions/${SPECS_FILE}.yaml (ADR-099) — the default slot names a prop the spec declares, not a platform fact. Ignoring it here.`);
     }
 
     // defaultFillWidth (ADR-081) — a positive number, else ignored

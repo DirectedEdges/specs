@@ -766,9 +766,9 @@ instanceExamples:
     });
   });
 
-  describe('conventions.figma.slots.default validation (ADR-099)', () => {
+  describe('conventions.specs.slots.default validation (ADR-099)', () => {
     it('reads the default-slot patterns, trimmed', () => {
-      writeSplitFile('conventions/figma.yaml', `
+      writeSplitFile('conventions/specs.yaml', `
 slots:
   default:
     match:
@@ -777,39 +777,50 @@ slots:
 `);
 
       const config = configLoader.load();
-      expect(config.conventions.platforms!.figma.slots).toEqual({ default: { match: ['children', 'items'] } });
+      expect(config.conventions.specs!.slots).toEqual({ default: { match: ['children', 'items'] } });
     });
 
     it('is absent by default (presence is the on-switch)', () => {
-      writeSplitFile('conventions/figma.yaml', 'naming: NONE');
+      writeSplitFile('conventions/specs.yaml', 'value:\n  prop: progress');
 
       const config = configLoader.load();
-      expect(config.conventions.platforms!.figma.slots).toBeUndefined();
+      expect(config.conventions.specs!.slots).toBeUndefined();
     });
 
     it('drops an empty match — a convention that names nothing flattens nothing', () => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      writeSplitFile('conventions/figma.json', JSON.stringify({ slots: { default: { match: [] } } }));
+      writeSplitFile('conventions/specs.json', JSON.stringify({ slots: { default: { match: [] } } }));
 
       const config = configLoader.load();
-      expect(config.conventions.platforms!.figma.slots).toBeUndefined();
+      expect(config.conventions.specs?.slots).toBeUndefined();
       expect(warn).toHaveBeenCalledWith(expect.stringContaining('slots.default.match'));
     });
 
     it('drops a match that is not an array of strings', () => {
-      writeSplitFile('conventions/figma.json', JSON.stringify({ slots: { default: { match: 'children' } } }));
+      writeSplitFile('conventions/specs.json', JSON.stringify({ slots: { default: { match: 'children' } } }));
 
       const config = configLoader.load();
-      expect(config.conventions.platforms!.figma.slots).toBeUndefined();
+      expect(config.conventions.specs?.slots).toBeUndefined();
     });
 
     it('drops a non-object slots block', () => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      writeSplitFile('conventions/figma.json', JSON.stringify({ slots: 'children' }));
+      writeSplitFile('conventions/specs.json', JSON.stringify({ slots: 'children' }));
 
       const config = configLoader.load();
-      expect(config.conventions.platforms!.figma.slots).toBeUndefined();
+      expect(config.conventions.specs?.slots).toBeUndefined();
       expect(warn).toHaveBeenCalledWith(expect.stringContaining('slots'));
+    });
+
+    // The platform file built from an allowlist would otherwise drop the key in
+    // silence, and the workspace would lose its default-slot convention without a word.
+    it('names the new home when slots is still declared on a platform', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      writeSplitFile('conventions/figma.json', JSON.stringify({ slots: { default: { match: ['children'] } } }));
+
+      const config = configLoader.load();
+      expect(config.conventions.specs?.slots).toBeUndefined();
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('conventions/specs.yaml'));
     });
   });
 

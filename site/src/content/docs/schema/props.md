@@ -69,7 +69,7 @@ Inferred from Figma variant values when [`conventions.platforms.figma.inferNumbe
 
 Slot constraint properties (`minChildren`, `maxChildren`, `anyOf`) are emitted when [`conventions.platforms.figma.slotConstraints`](/schema/conventions/#platform-members) is declared.
 
-`defaultSlot` marks the one slot a layout component always composes through. It is set at generation time, when the prop's name matched the originating platform's [`slots.default.match`](/schema/conventions/#slots) convention, and is read off the spec thereafter — a consumer needs no access to those conventions to know which slot it is:
+`defaultSlot` marks the one slot a layout component always composes through. It is set at generation time, when the prop's name matched the library's [`specs.slots.default.match`](/schema/conventions/#slots) convention, and is read off the spec thereafter — a consumer needs no access to those conventions to know which slot it is:
 
 ```yaml
 props:

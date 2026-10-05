@@ -101,6 +101,15 @@ export function generateSpecsConventionsTemplate(): string {
 # Each block is off until uncommented.
 # Reference: https://www.specsplugin.com/schema/conventions/
 
+# The slot every layout component composes through; a matching slot prop is marked
+# defaultSlot in the spec, and content filling it nests as plain children
+# https://www.specsplugin.com/settings/default-slot/
+# slots:
+#   default:
+#     match:
+#       - children
+#       - items
+
 # Variant props that are state concepts; absence emits them as data-* selectors
 # https://www.specsplugin.com/settings/states/
 # states:

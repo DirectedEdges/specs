@@ -160,10 +160,10 @@ export interface SlotProp {
   anyOf?: string[];
   /**
    * Whether this is the component's designated default slot, resolved from
-   * `slots.default.match` at generation time. When true, an authored example may
-   * nest a filling instance as a plain child element instead of through an explicit
-   * `SlotContentRef`/`SlotBinding`. Absent means false: this is not the default slot,
-   * or the platform declared no default-slot convention. At most one `SlotProp` per
+   * `SpecsConventions.slots.default.match` at generation time. When true, an authored
+   * example may nest a filling instance as a plain child element instead of through an
+   * explicit `SlotContentRef`/`SlotBinding`. Absent means false: this is not the default
+   * slot, or the library declared no default-slot convention. At most one `SlotProp` per
    * component may be true — an authoring/generator invariant, not schema-enforced.
    * @since 0.35.0
    */

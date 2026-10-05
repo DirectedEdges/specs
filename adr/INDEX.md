@@ -22,7 +22,7 @@
 | # | Title | Highlights |
 |---|-------|------------|
 | 100 | `PrimitiveEntry.match` — Promoting a Layer by Its Name, Short-Circuiting Style Scoring | Adds `PrimitiveEntry.match` — layer-name prefixes selecting a promotion entry ahead of style scoring; longest prefix wins |
-| 099 | `slots.default.match` — Naming the Default Slot, and Flattened Instance Nesting | Adds `PlatformConventions.slots.default.match` and `SlotProp.defaultSlot`, naming a component's always-composed slot so a filling instance can nest as a plain child instead of an explicit slot binding |
+| 099 | `slots.default.match` — Naming the Default Slot, and Flattened Instance Nesting | Adds `SpecsConventions.slots.default.match`, `MetadataConventions.specs` and `SlotProp.defaultSlot`, naming a component's always-composed slot so a filling instance can nest as a plain child instead of an explicit slot binding |
 | 098 | Storybook Conventions — `config/conventions/storybook.yaml` | A `storybook` conventions member maps publish concerns to open feature settings, loaded from `conventions/storybook.yaml` beside `specs` and `figma.primitives` |
 | 094 | Subcomponent Pattern Matching Rules | Fixes how `{C}` and `{S}` match a name, so one `subcomponents` pattern means the same thing in every consumer (amends ADR-031) |
 | 093 | Curation Is a Settings Concern | `curation.defaultSelection`, `preserveManualSelections` and `includeDependencies` state which components a run specs |
