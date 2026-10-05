@@ -22,6 +22,7 @@ import path from 'path';
 import { writeAtomic } from './writeAtomic.js';
 import type { Transformer, TransformerContext } from '../Types/Transformer.js';
 import { kebabizePath, reportNameWarnings } from './css/values.js';
+import { recordExternalWrite } from './externalWrites.js';
 import { loadFoundations, type FoundationsData } from '../utilities/loadFoundations.js';
 import { SectionedFile } from '../utilities/sectionedFile.js';
 
@@ -292,6 +293,16 @@ ${modeBlocks.join('\n\n')}
     await fs.ensureDir(cssvarsDir);
     await writeAtomic(path.join(cssvarsDir, 'cssvars.css'), css);
     await writeAtomic(path.join(cssvarsDir, 'modes.json'), JSON.stringify(modesManifest, null, 2) + '\n');
+    recordExternalWrite('cssvars', {
+      path: 'assets/cssvars/cssvars.css',
+      note:
+        'Every emitted stylesheet reads these custom properties. Load it once, globally — ' +
+        'without it components render unstyled.',
+    });
+    recordExternalWrite('cssvars', {
+      path: 'assets/cssvars/modes.json',
+      note: 'The collections and modes the stylesheet defines, for whatever switches between them.',
+    });
 
     const skippedAliases = skipped.length;
     if (skippedAliases) {

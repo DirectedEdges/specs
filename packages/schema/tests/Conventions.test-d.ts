@@ -6,6 +6,7 @@
 import type {
   Conventions,
   ResolvedConventions,
+  StorybookConventions,
   MetadataConventions,
   PlatformConventions,
   SpecsConventions,
@@ -252,3 +253,23 @@ export {
   specStates, specAccessibility, specValue, specValueOnly, specAll, specNone, specBareString,
   specValueNoProp, platformStates,
 };
+
+
+// ─── Storybook presentation conventions (ADR-098) ────────────────────────────
+
+// Both levels open: any concern key, any feature key, any value shape.
+const storybook: StorybookConventions = {
+  color: { rowGroup: ['Palette'], groupLeaves: false },
+  someFutureConcern: { anything: { nested: [1, 2, 3] } },
+};
+
+// Optional member on both Conventions and ResolvedConventions; absence is fine.
+const withStorybook: Conventions = { storybook };
+const resolvedWithStorybook: ResolvedConventions = { storybook };
+const withoutStorybook: Conventions = {};
+
+// Feature values arrive as `unknown` — a concern implementation must narrow
+// before use; direct use as a specific type must not compile.
+const narrowing = storybook.color.rowGroup;
+// @ts-expect-error unknown is not string[] until the concern validates it
+const asArray: string[] = storybook.color.rowGroup;

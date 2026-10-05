@@ -38,14 +38,14 @@ describe('InitCommand', () => {
       const settings = generateConfigTemplates()['config/settings.yaml'];
       expect(settings).toContain('directory: ./data');
       expect(settings).toContain('directory: ./specs');
-      expect(settings).toContain('sources: {}');
+      expect(settings).toContain('directory: ./assets');
     });
 
     it('conventions template carries the figma conventions structure', () => {
       const conventions = generateConfigTemplates()['config/conventions/figma.yaml'];
       // The filename is the platform id, so the body has no wrapping key (ADR-078).
       expect(conventions).not.toContain('\nfigma:');
-      expect(conventions).toContain('# naming: NONE');
+      expect(conventions).toContain('# naming: SENTENCE');
       expect(conventions).toContain('subcomponents:');
       expect(conventions).toContain('match:');
     });
@@ -58,9 +58,9 @@ describe('InitCommand', () => {
       expect(settings).toContain('www.specsplugin.com/settings/');
     });
 
-    it('should mention defaults in comments', () => {
+    it('states the commenting contract', () => {
       const settings = generateConfigTemplates()['config/settings.yaml'];
-      expect(settings).toContain('Default');
+      expect(settings).toContain('Every commented line is the opposite of the default');
     });
 
     it('should have consistent YAML indentation', () => {
@@ -157,6 +157,7 @@ describe('InitCommand', () => {
       expect(topLevelKeys).toContain('author');
       expect(topLevelKeys).toContain('data');
       expect(topLevelKeys).toContain('spec');
+      expect(topLevelKeys).toContain('assets');
 
       // directories and sources are nested under data/spec, not top-level
       expect(settings).toContain('directory:');
@@ -217,8 +218,8 @@ describe('InitCommand', () => {
       // Default spec directory
       expect(settings).toContain('directory: ./specs');
 
-      // Empty sources initially
-      expect(settings).toContain('sources: {}');
+      // One example source, ready to have its key replaced
+      expect(settings).toContain('key: YOUR_FIGMA_FILE_KEY');
     });
   });
 });

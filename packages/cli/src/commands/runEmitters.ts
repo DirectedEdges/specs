@@ -7,6 +7,7 @@
 // What differs between the callers is only *which* transformers run and what the
 // run is called in its output — which is the whole of the difference between them.
 import fs from 'fs-extra';
+import { reportExternalWrites } from '../transforms/externalWrites.js';
 import path from 'path';
 import yaml from 'yaml';
 import { ConfigLoader } from '../Config/ConfigLoader.js';
@@ -274,6 +275,9 @@ async function emitOnce(run: EmitRun, options: EmitOptions): Promise<EmitResult>
   }
 
   console.log('');
+  // Anything a transform wrote beside the emitted package, named once, so a
+  // customer is not left to discover it from an import path.
+  await reportExternalWrites();
   console.log(`✓ ${run.label} complete`);
   console.log(`  ${succeeded} succeeded${failed > 0 ? `, ${failed} failed` : ''}`);
 

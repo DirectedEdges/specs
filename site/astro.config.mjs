@@ -150,6 +150,7 @@ export default defineConfig({
             { label: 'migrate', slug: 'cli/commands/migrate' },
             { label: 'version', slug: 'cli/commands/version' },
             { label: 'skills', slug: 'cli/commands/skills' },
+            { label: 'storybook', slug: 'cli/commands/storybook', badge: experimental },
             {
               label: 'Analyze',
               collapsed: true,
@@ -201,6 +202,21 @@ export default defineConfig({
               ],
             },
             { label: 'Prop Naming', slug: 'guides/prop-naming' },
+          ],
+        },
+        {
+          label: 'Storybook',
+          collapsed: true,
+          badge: experimental,
+          items: [
+            { label: 'Overview', slug: 'storybook' },
+            { label: 'Getting Started', slug: 'storybook/overview' },
+            { label: 'Foundations', slug: 'storybook/foundations' },
+            { label: 'Components', slug: 'storybook/components' },
+            { label: 'Analysis', slug: 'storybook/analysis' },
+            { label: 'Versioning', slug: 'storybook/versioning' },
+            { label: 'Customization', slug: 'storybook/customization' },
+            { label: 'Technical Details', slug: 'storybook/technical-details' },
           ],
         },
         {

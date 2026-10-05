@@ -352,6 +352,23 @@ export interface ValueConvention {
 }
 
 /**
+ * Presentation conventions for the workspace Storybook (`specs storybook publish`),
+ * keyed by publish concern (`color`, `typography`, `icons`, …), each holding
+ * per-feature settings.
+ *
+ * Both levels are deliberately open (ADR-098): storybook page presentation
+ * vocabulary is unstable while concerns gain pages, so this contract fixes only
+ * the file, the concern keying, and the openness. A concern implementation
+ * validates its own feature values, and ignores an unknown concern or feature
+ * only with a warning naming it — never silently.
+ *
+ * @since 0.35.0
+ */
+export interface StorybookConventions {
+  [concern: string]: { [feature: string]: unknown };
+}
+
+/**
  * Facts about the libraries a spec was generated from and is generated for, keyed by
  * platform.
  *
@@ -390,6 +407,13 @@ export interface Conventions {
    * Loaded from `conventions/specs.yaml`. @since 0.32.0
    */
   specs?: SpecsConventions;
+  /**
+   * Workspace Storybook presentation conventions.
+   * Loaded from `conventions/storybook.yaml` — the third reserved basename,
+   * after `figma.primitives` and `specs`; no platform may take the id.
+   * Optional; absence means none are declared. @since 0.35.0
+   */
+  storybook?: StorybookConventions;
 }
 
 /**
@@ -470,6 +494,8 @@ export interface ResolvedConventions {
   specs?: SpecsConventions;
   /** Component-keyed promotion entries. Optional; absence means nothing is promoted. @since 0.32.0 */
   primitives?: Record<string, PrimitiveEntry>;
+  /** Workspace Storybook presentation conventions. Optional; absence means none are declared. @since 0.35.0 */
+  storybook?: StorybookConventions;
 }
 
 /**

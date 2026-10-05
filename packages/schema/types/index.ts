@@ -36,6 +36,7 @@ export type { PropConfigurations, PropConfigurationValue, NestedPropConfiguratio
 export type {
   Conventions,
   ResolvedConventions,
+  StorybookConventions,
   MetadataConventions,
   PlatformConventions,
   ResolvedPlatformConventions,

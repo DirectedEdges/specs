@@ -25,7 +25,7 @@ Claude will handle install, config, token setup, fetch, and your first generate 
 
 ## Step 1: Install
 
-Specs CLI requires **[Node.js 18+](https://nodejs.org/)** (LTS recommended). Install it if you haven't already, then install Specs CLI globally:
+Specs CLI requires **[Node.js 20.19+](https://nodejs.org/)** (Node 22 LTS recommended — the Storybook host `specs storybook init` scaffolds will not start on anything older). Install it if you haven't already, then install Specs CLI globally:
 
 ```bash
 npm install -g @directededges/specs-cli
@@ -184,7 +184,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '22'
 
       - run: npm install -g @directededges/specs-cli
 

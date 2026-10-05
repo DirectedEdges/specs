@@ -15,7 +15,7 @@
     "docs"
   ],
   "scripts": {
-    "build": "esbuild src/bin/specs.ts --bundle --platform=node --target=node18 --format=esm --packages=external --define:__SPECS_CLI_VERSION__=\\\"$npm_package_version\\\" --outfile=dist/specs.js --banner:js='#!/usr/bin/env node' && chmod +x dist/specs.js && npm run build:bridge-server",
+    "build": "esbuild src/bin/specs.ts --bundle --platform=node --target=node18 --format=esm --packages=external --define:__SPECS_CLI_VERSION__=\\\"$npm_package_version\\\" --outfile=dist/specs.js --banner:js='#!/usr/bin/env node' && chmod +x dist/specs.js && rm -rf dist/storybook-templates && cp -R src/storybook/templates dist/storybook-templates && npm run build:bridge-server",
     "build:bridge-server": "esbuild src/bridge/server.ts --bundle --platform=node --target=node18 --format=esm --packages=external --outfile=dist/bridge-server.js && chmod +x dist/bridge-server.js",
     "watch": "esbuild src/bin/specs.ts --bundle --platform=node --target=node18 --format=esm --packages=external --define:__SPECS_CLI_VERSION__=\\\"$npm_package_version\\\" --outfile=dist/specs.js --watch",
     "test": "cd ../.. && vitest -c vitest.config.ts packages/cli/tests"

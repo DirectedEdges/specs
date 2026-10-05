@@ -237,6 +237,10 @@
         "specs": {
           "$ref": "#/definitions/SpecsConventions",
           "description": "Conventions about the spec itself, loaded from conventions/specs.yaml."
+        },
+        "storybook": {
+          "$ref": "#/definitions/StorybookConventions",
+          "description": "Workspace Storybook presentation conventions, loaded from conventions/storybook.yaml \u2014 a reserved basename, not a platform."
         }
       },
       "additionalProperties": false
@@ -387,6 +391,15 @@
           "type": "string",
           "description": "A boolean prop that forces the indeterminate presentation regardless of the value."
         }
+      }
+    },
+    "StorybookConventions": {
+      "type": "object",
+      "description": "Workspace Storybook presentation conventions, keyed by publish concern, each holding per-feature settings. Both levels are open (ADR-098): feature vocabulary is validated by the concern implementation, which warns by name on anything unknown.",
+      "additionalProperties": {
+        "type": "object",
+        "description": "One concern's feature settings. Values are deliberately unconstrained here.",
+        "additionalProperties": true
       }
     }
   }

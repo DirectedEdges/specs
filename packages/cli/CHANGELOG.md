@@ -35,6 +35,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`conventions/figma.yaml` can name your library's default slot, and a nested hierarchy then reads as one tree.** Declare `slots.default.match` — an array, because one library may call it `children` on a page row and `items` on a list — and the slot prop it names carries `defaultSlot: true` in the generated spec. Content you place in a nested instance's default slot is then captured as that instance's **children**, in the spec's own anatomy, elements and layout, instead of a `slotContentExamples` entry pointed at from a `$slotContent` reference. A screen built from four nested layout components used to read as a chain of one-level-deep registry entries; it now reads as the tree it is, and the emitted React and Web Components nest the same way. A **non**-default slot is unchanged — an explicit reference is the only shape that can say which of several slots a fill belongs to, and both shapes sit side by side in one spec. Absence means your library designates no default slot and nothing changes (ADR-099).
 
+- **`specs storybook` scaffolds and publishes a workspace Storybook.** `specs storybook init` writes the host once — `storybook/{package.json, tsconfig.json, .storybook/}` — and prints the one install you run yourself; the CLI never ships or vendors Storybook, and takes on no Storybook, Vite, or browser-automation dependency. A bare `specs storybook` (or `publish [concern]`) rewrites the generated content under `storybook/content/`, a folder per concern: `overview`, `foundations`, `components`, `analysis`, `versions`. Publishing is deterministic and idempotent — unchanged input writes nothing and says so.
+- **Foundations pages are generated from your library's data, joined at publish time.** Color reads the variables payload in its declared order, resolves alias chains, shows fill styles as their own section, and names a reason for every unresolved entry. Typography joins the file's style map with sampled node properties, so letter spacing, line-height unit, case and decoration survive. Icons diffs the glyphs your specs reference against what `specs fetch` wrote, and renders what is missing as the failure it is.
+- **One navigation entry per component, with React · Web Components · Specs tabs** derived from the trees your workspace actually emitted (`content/components/tabs.json`). Specs is always present; a platform you did not emit gets no tab. Every Storybook-internal API the host uses is confined to the scaffolded `manager.tsx` and feature-detected, so a Storybook major degrades navigation instead of breaking the instance.
+- **Your pages win.** Copy any generated page to the same path under `storybook/content-overrides/` and it is used instead, forever — no command writes there, and publish reports which overrides are in effect and when the data beneath one changed.
+
+- **Glyph slugs agree everywhere a digit follows a word.** `specs fetch` named a glyph from its raw Figma name ("Brightness 1" → `brightness-1.svg`) while specs and emitted code carry the camel key (`brightness1`), where that boundary no longer exists — so the scaffold requested a file fetch never wrote. A separator now never survives before a digit run, in fetch, in both emitters, and in the emitted runtime helper, so every derivation lands on the same file name. Existing workspaces rename affected files on their next `specs fetch`.
+
+- **`color.groupLeaves` accepts a list.** Collapse values into folder rows for just the named collections instead of everywhere; a layout key that names no collection or Collection/Group on the page now warns by name instead of silently doing nothing.
+
+- **Shipping polish:** analysis pages land on the Specs tab while their Report is a placeholder, and the Versions section exists only when `versions/` does — a shipped navigation carries no permanent "coming soon". A publish that removes a section's folder reports the removal rather than claiming nothing changed.
+
+- **Overrides take effect live, both directions.** Both content trees glob statically, so Storybook's own watcher indexes a new override (or drops a deleted one) without a restart; publish withholds and prunes a generated page whose path is overridden, and writes it back when the override goes. Override resolution is a data decision publish makes, no longer a startup-time glob trick.
+
+- **`dev` watches Storybook's own health.** A half-saved story file can poison Storybook's per-file index cache — index.json 500s and stays 500 after the file is fine, which reads as the server dying. `dev` detects the 500, names the failing file, re-triggers its parse, and when the file has a real error says so in one sentence instead of letting the UI fail mutely. Publish also writes atomically now, so its own output can never be the torn file.
+
+- **`specs storybook dev` is the one process a designer runs.** It publishes once, then owns everything that reacts: `specs react --watch` and `specs webcomponents --watch` re-emit components as specs change, the Storybook server hot-reloads their output, and its host plugin republishes pages when config or assets move. Fetch, generate, and render stay yours; one Ctrl-C stops it all.
+
+- **A stale host announces itself.** `init` stamps the scaffold with a hash of the templates that built it; when a newer CLI's `publish` sees an older stamp it says so and names the upgrade (`specs storybook init --force` — host files only, `content-overrides/` never touched). Publish still never rewrites host files.
+
+- **A running Storybook republishes itself.** The scaffolded host watches `config/`, `specs/`, and `assets/` and re-runs `specs storybook publish` when anything changes — edit the conventions file and the open page follows, no commands. Publish being idempotent and diff-writing is what makes it a safe watch target.
+
+- **The component framework tabs are in-page.** React / Web Components / Specs render as ordinary tabs inside the docs page — same treatment as the Analysis pages — and the Foundations colour swatches bind to the stylesheet's custom properties, so switching a mode restyles them live with live value captions. The scaffolded manager shrinks to one job (hiding the Web Components tree from the sidebar), feature-detected; no unstable tab APIs remain.
+
+- **Variable modes are switchable from the Storybook toolbar.** List collections under `modes.collections` in `conventions/storybook.yaml` and each becomes a toolbar dropdown driving the attribute the generated stylesheet switches on; the default mode clears it.
+
+- **Analyses get pages.** When `specs analyze` output exists in `specs/_analysis/`, publish adds an Analysis section with one page per analysis — a Report tab (dashboard to come) and a Specs tab reading the analysis YAML in place. No analyses, no section.
+
+- **The Storybook Color page shows only a library's own variable collections** — the payload's imported copies of subscribed collections (including earlier versions of the file's own) no longer render as duplicates. `color.collections` in `conventions/storybook.yaml` — an ordered list of names — narrows and orders what renders.
+
+- **The Storybook Color page lists every colour on its own row until you declare otherwise.** `config/conventions/storybook.yaml` (ADR-098) is the declaration surface: `color.rowGroup` names variable hierarchies that render as one shared row, `color.groupLeaves` groups every folder's values side by side. Unknown concerns, features, or wrong value shapes warn by name — never silently. Oversized rows wrap instead of compressing into slivers.
+
+- **settings.yaml rejects what the schema does not declare, out loud.** An unknown top-level key warns by name and is ignored; an invalid enum value — including a case variant like `camel` — warns with the valid list and uses the default. Nothing is silently transformed or substituted on a governed surface.
+
 - **`settings.curation` decides which components a scan selects**, with `defaultSelection` (`READY_FOR_DEV` or `ALL`), `preserveManualSelections` for whether your manifest edits outrank a changed Figma dev status, and `includeDependencies` for whether the components a selected one is built from are selected too. `--include-all` and `--keep-checks` override the first two for one run. Every default matches previous behaviour (ADR-093).
 
 - **Regenerating an unchanged design produces unchanged files**: each spec's `metadata.lastUpdated` now carries the Figma file's `lastModified` instead of the run's wall clock, so spec diffs show real changes only.
@@ -52,6 +85,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`specs fetch` says "glyphs" wherever it used to say "icons"**, matching `scan` and the `glyphs.match` convention. The `icons` fetch kind and the `assets/icons/` directory are unchanged.
 
+- **`specs init` scaffolds a settings file you can run**, with a Figma source to fill your file key into, YAML output, camelCase keys, HEXA colors, and an assets directory. Every setting exists in it, and each commented line is the opposite of its default, so uncommenting one always changes something — in the conventions files too.
+
 ### Fixed
 
 - **A spec's run metadata is found again from a deeper spec folder.** The reader searched a spec's own directory and one level up, which stopped short once specs moved into `components/` — so `specs render` silently lost the run's author, generator and schema version. It now climbs to the specs root, nearest document winning, bounded so it cannot adopt an unrelated one from above the workspace.
@@ -63,6 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A run that skips a kind no longer deletes that kind's emitted output.** Orphan pruning judges each kind's emitted directory only against that kind's specs, and only when the run actually emitted it — so a free-tier run following a Pro one leaves the composition output alone instead of removing it and reporting it as having no matching spec, when the spec was there and only the entitlement was missing. The same reasoning already covered `--components` and license-aborted runs.
 
 
+- **The documentation links `specs init` and config errors print now reach a live page.** The domain they named stopped answering.
 - **A style referencing a variable your fetch did not reach falls back to the value Figma last read for it**, instead of rendering as though the property were never declared. Requires the `TOKEN_FIGMA_EXTENSIONS` or `CUSTOM` tokens format, which is what carries that value.
 - **A component you unchecked stays unchecked** when `curation.preserveManualSelections` is on. Dependency selection ran after prior manifest edits were merged forward and re-selected what a human had deselected, so no option preserved the edit (ADR-093).
 - **`specs analyze keys` finds divergent names again** — it looks for the declared Figma naming convention where a run now records it (the run document beside the specs) and in the workspace config, not only in the per-spec metadata that specs stopped carrying.
