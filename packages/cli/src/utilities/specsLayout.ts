@@ -19,9 +19,6 @@ export const COMPONENTS_DIR = 'components';
 export const COMPOSITIONS_DIR = 'compositions';
 export const ANALYSIS_DIR = 'analysis';
 
-/** The analysis directory before ADR-096. Read, never written. */
-export const LEGACY_ANALYSIS_DIR = '_analysis';
-
 export const SPEC_KINDS: readonly SpecKind[] = ['component', 'composition'];
 
 /** The directory name a kind's specs live under, relative to the specs root. */
@@ -39,7 +36,7 @@ export interface SpecsLayout {
   legacy: boolean;
   /** Absolute directory holding this kind's spec folders. */
   dirFor(kind: SpecKind): string;
-  /** Absolute analysis directory — `analysis/`, or `_analysis/` when legacy. */
+  /** Absolute analysis directory — always `analysis/` (ADR-096). */
   analysisDir(): string;
   /**
    * Spec folder names for a kind, each a directory containing an api document.
@@ -59,7 +56,7 @@ function makeLayout(root: string, legacy: boolean): SpecsLayout {
       return legacy ? root : path.join(root, dirNameFor(kind));
     },
     analysisDir() {
-      return path.join(root, legacy ? LEGACY_ANALYSIS_DIR : ANALYSIS_DIR);
+      return path.join(root, ANALYSIS_DIR);
     },
     folderNames(kind, format) {
       if (legacy && kind === 'composition') return [];

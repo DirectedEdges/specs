@@ -46,13 +46,13 @@ describe('PropsAnalyzer', () => {
     expect(new PropsAnalyzer().name).toBe('props');
   });
 
-  it('writes _analysis/props.yaml when outputFormat is YAML', async () => {
+  it('writes analysis/props.yaml when outputFormat is YAML', async () => {
     await runAnalyzer({ compA: { props: { label: { type: 'string' } } } }, 'YAML');
     expect(fs.existsSync(path.join(analysisDir, 'props.yaml'))).toBe(true);
     expect(fs.existsSync(path.join(analysisDir, 'props.json'))).toBe(false);
   });
 
-  it('writes _analysis/props.json when outputFormat is JSON', async () => {
+  it('writes analysis/props.json when outputFormat is JSON', async () => {
     await runAnalyzer({ compA: { props: { label: { type: 'string' } } } }, 'JSON');
     expect(fs.existsSync(path.join(analysisDir, 'props.json'))).toBe(true);
     expect(fs.existsSync(path.join(analysisDir, 'props.yaml'))).toBe(false);

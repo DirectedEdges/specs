@@ -100,7 +100,7 @@ scaffolded host cannot compile without them.
 
 ### `analysis`
 
-One page per analysis found in `specs/_analysis/` — a Report tab (dashboards
+One page per analysis found in `specs/analysis/` — a Report tab (dashboards
 land per-analysis) and a Specs tab reading the analysis YAML in place. The
 section exists only when at least one analysis does: running your first
 `specs analyze` is what creates it.

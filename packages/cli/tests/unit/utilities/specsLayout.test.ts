@@ -4,7 +4,7 @@ import path from 'path';
 import os from 'os';
 import {
   resolveSpecsLayout, writeLayout, legacyLayoutNotice, specFolderNames,
-  COMPONENTS_DIR, COMPOSITIONS_DIR, ANALYSIS_DIR, LEGACY_ANALYSIS_DIR, dirNameFor,
+  COMPONENTS_DIR, COMPOSITIONS_DIR, ANALYSIS_DIR, dirNameFor,
 } from '../../../src/utilities/specsLayout.js';
 
 /** ADR-096: one resolver owns where each kind lives and how a legacy directory reads. */
@@ -62,14 +62,14 @@ describe('specsLayout', () => {
   });
 
   describe('a legacy flat layout', () => {
-    it('reads root folders as components and keeps _analysis', () => {
+    it('reads root folders as components; analysis stays at analysis/', () => {
       spec('button');
       spec('card');
       const layout = resolveSpecsLayout(root);
       expect(layout.legacy).toBe(true);
       expect(layout.dirFor('component')).toBe(root);
       expect(layout.folderNames('component')).toEqual(['button', 'card']);
-      expect(layout.analysisDir()).toBe(path.join(root, LEGACY_ANALYSIS_DIR));
+      expect(layout.analysisDir()).toBe(path.join(root, ANALYSIS_DIR));
     });
 
     it('has no compositions — the layout could not hold one', () => {

@@ -1,8 +1,8 @@
-// The analysis concern: one page per analysis found in the workspace's analysis
-// directory (`specs/analysis/`, or `specs/_analysis/` pre-ADR-096), each a
-// Report tab (the dashboard, per-analysis subissues) and a Specs tab viewing
-// the analysis's own YAML. The section exists only when at least one analysis
-// does — `specs analyze` writing its first file is what creates it.
+// The analysis concern: one page per analysis found in `specs/analysis/`
+// (ADR-096), each a Report tab (the dashboard, per-analysis subissues) and a
+// Specs tab viewing the analysis's own YAML. The section exists only when at
+// least one analysis does — `specs analyze` writing its first file is what
+// creates it.
 import fs from 'fs-extra';
 import path from 'path';
 import type { Concern, BuiltFile } from '../types.js';
@@ -18,7 +18,7 @@ interface AnalysisEntry {
   files: string[];
 }
 
-/** The analysis directory's name under the specs root — both spellings answered. */
+/** The analysis directory's name under the specs root. */
 export function analysisDirName(ws: Workspace): string {
   return path.basename(resolveSpecsLayout(ws.specsDir).analysisDir());
 }

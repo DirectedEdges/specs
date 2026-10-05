@@ -390,13 +390,13 @@ describe('StylingAnalyzer.finalize', () => {
     return { byComp: parse(byCompRaw), byToken: parse(byTokenRaw) };
   }
 
-  it('creates _analysis folder with both .json files when outputFormat is JSON', async () => {
+  it('creates the analysis folder with both .json files when outputFormat is JSON', async () => {
     await runFinalize('JSON');
     expect(fs.existsSync(path.join(outputDir, 'analysis', 'styling.byComponent.json'))).toBe(true);
     expect(fs.existsSync(path.join(outputDir, 'analysis', 'styling.byToken.json'))).toBe(true);
   });
 
-  it('creates _analysis folder with both .yaml files when outputFormat is YAML', async () => {
+  it('creates the analysis folder with both .yaml files when outputFormat is YAML', async () => {
     await runFinalize('YAML');
     expect(fs.existsSync(path.join(outputDir, 'analysis', 'styling.byComponent.yaml'))).toBe(true);
     expect(fs.existsSync(path.join(outputDir, 'analysis', 'styling.byToken.yaml'))).toBe(true);

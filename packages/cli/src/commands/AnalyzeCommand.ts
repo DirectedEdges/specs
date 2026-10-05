@@ -20,10 +20,10 @@ interface AnalyzeOptions {
 }
 
 export const Analyze = new Command('analyze')
-  .description('Run analysis passes over component specs and write aggregate reports to _analysis/. With no analyzer named, every analyzer runs.')
+  .description('Run analysis passes over component specs and write aggregate reports to analysis/. With no analyzer named, every analyzer runs.')
   .argument('[analyzers...]', 'Analyzer names to run (props, styling, dependencies, keys). Omit to run all of them.')
   .option('-o, --output <path>', 'Path to the specs directory (input)')
-  .option('--analysis <path>', 'Path to write analysis output (default: <specs-dir>/_analysis)')
+  .option('--analysis <path>', 'Path to write analysis output (default: <specs-dir>/analysis)')
   .option('--config <path>', 'Path to a config/ directory or legacy specs.config.yaml')
   .option('--verbose', 'Enable detailed logging', false)
   .action(async (analyzerNames: string[], options: AnalyzeOptions) => {
@@ -42,9 +42,8 @@ export const Analyze = new Command('analyze')
         process.exit(ERROR_CODES.INVALID_ARGS);
       }
 
-      // The layout (ADR-096) decides where specs are read from and where analysis
-      // is written — including for a pre-`components/` directory, which keeps its
-      // `_analysis/` so a re-analysis does not scatter reports across two folders.
+      // The layout (ADR-096) decides where specs are read from; analysis is
+      // always written to `analysis/`.
       const layout = resolveSpecsLayout(outputPath);
       const notice = legacyLayoutNotice(layout);
       if (notice) console.log(notice);

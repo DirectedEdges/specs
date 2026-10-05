@@ -187,7 +187,7 @@ describe('publish semantics', () => {
       expect(concern.detect({} as Workspace)).toBe(true);
     }
     // analysis and versions are data-driven: each section exists only when its
-    // folder does (specs/_analysis/ and versions/ respectively).
+    // folder does (specs/analysis/ and versions/ respectively).
     const analysisConcern = registry.find(c => c.name === 'analysis')!;
     expect(analysisConcern.detect({ specsDir: '/nonexistent' } as Workspace)).toBe(false);
     const versionsConcern = registry.find(c => c.name === 'versions')!;

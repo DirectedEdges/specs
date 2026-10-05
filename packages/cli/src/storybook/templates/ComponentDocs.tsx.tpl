@@ -40,7 +40,7 @@ function SpecFile({ slug, file }: { slug: string; file: string }) {
     let live = true;
     (async () => {
       for (const dir of specDirCandidates(slug)) {
-        const res = await fetch(`/specs/${dir}/${file}.yaml`).catch(() => null);
+        const res = await fetch(`/specs/components/${dir}/${file}.yaml`).catch(() => null);
         if (!live) return;
         if (res?.ok) return setText(await res.text());
       }
