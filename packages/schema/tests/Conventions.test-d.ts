@@ -112,6 +112,19 @@ const entryWithoutMap: PrimitiveEntry = { elementType: 'text' };
 // @ts-expect-error — elementType is closed
 const entryBadKind: PrimitiveEntry = { elementType: 'image', map: [] };
 
+// A layout family indistinguishable by styling is selected by name, and a named entry
+// whose every prop is a default carries no rules at all (ADR-100)
+const namedEntry: PrimitiveEntry = {
+  elementType: 'container',
+  match: ['DS Section', 'Section'],
+  map: [{ source: 'layoutMode', values: { VERTICAL: { direction: 'column' } } }],
+};
+
+const namedEntryNoRules: PrimitiveEntry = { elementType: 'container', match: ['Block'], map: [] };
+
+// @ts-expect-error — match is an array of names, never a single string
+const matchAsString: PrimitiveEntry = { elementType: 'container', match: 'Section', map: [] };
+
 // source is a plain string — the honoured set is documented and implemented, not validated
 // here, so renaming a Styles member never churns a conventions file (ADR-075)
 const dottedSource: PrimitiveRule = { source: 'typography.fontStyle', values: { Bold: { weight: 'Bold' } } };
@@ -245,7 +258,7 @@ const platformStates: PlatformConventions = { states: { disabled: { prop: 'disab
 export {
   none, noPlatforms, emptyPlatform, figmaEncoding, codePlatforms, permissive, figmaVocabulary,
   oldShape, kinds, imageKind, promotion, platformPrimitives, entryWithoutKind, entryWithoutMap,
-  entryBadKind, dottedSource, ruleWithoutSource, imageBoth,
+  entryBadKind, namedEntry, namedEntryNoRules, matchAsString, dottedSource, ruleWithoutSource, imageBoth,
   width, stringWidth, platformMayBeAbsent, naming, constraints, numbers, scope, sourceProps,
   defaultSlot, noDefaultSlot, defaultSlotNoMatch, defaultSlotBareString, slotsMatch,
   platformStyles, resolvedEntry, underResolved, meta,

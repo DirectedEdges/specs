@@ -109,9 +109,12 @@ export interface PrimitiveRule {
  *
  * Promotion runs during capture, over composed example content only (ADR-074). Several
  * entries may share an `elementType`: a design system with a text, a heading and a body
- * component is three entries, and selection between them is by score — how many of an
- * entry's rules resolve against the element. At least one rule must resolve, so
- * `elementType` alone never promotes.
+ * component is three entries, and selection between them is by one of two rules.
+ *
+ * A declared `match` selects by **name** and takes precedence: where it resolves, that
+ * entry is selected immediately, no score is computed, and no rule in `map` need resolve
+ * (ADR-100). Otherwise selection is by **score** — how many of an entry's rules resolve
+ * against the element — and at least one must, so `elementType` alone never promotes.
  *
  * The target need not itself be a primitive. `elementType` describes the layer shape a
  * promotion starts *from*, not the component it lands on: a component with its own
@@ -128,8 +131,33 @@ export interface PrimitiveEntry {
    */
   elementType: PrimitiveKind;
   /**
+   * Layer-name prefixes selecting this entry, within the entries whose `elementType`
+   * matches the element.
+   *
+   * A name matches when the captured layer's name **starts with** one of these strings —
+   * exact and case-sensitive, with no trimming or normalisation, and nothing read out of
+   * the name. A prefix rather than a whole name because composed content holds many layers
+   * of one kind distinguished by suffix: `Section 1`, `Section 2`, `Section 3` are all a
+   * `Section`.
+   *
+   * An array so a library mid-rename can name both of its conventions (`DS Section` and
+   * `Section`). Where several entries match, the **longest** matching prefix wins — so a
+   * `Section Header` entry outranks a `Section` one — and selection never depends on the
+   * authored order of a keyed map. Two entries declaring the same string is a table defect,
+   * resolved to the first in authored order with a warning naming both components.
+   *
+   * Optional; absence means this entry is selected by score (ADR-100).
+   *
+   * @since 0.35.0
+   */
+  match?: string[];
+  /**
    * The rules turning the layer's styles into this component's props, in precedence
    * order. When two rules write the same prop, the first that resolves wins.
+   *
+   * May be empty for an entry selected by `match` whose every prop is a default: the
+   * entry still promotes, and styling no rule mapped reaches output through the
+   * platform's `stylesProp` as it otherwise would.
    */
   map: PrimitiveRule[];
 }

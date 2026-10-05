@@ -219,6 +219,7 @@ Each key is one of the design system's own component names. When [`promotePrimit
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `elementType` | `'text' \| 'glyph' \| 'container'` | *(required)* | The anatomy element type this component can be promoted from |
+| `match` | `string[]` | *(absent)* | Layer-name prefixes selecting this entry, ahead of any scoring |
 | `map` | `array` | *(required)* | Rules turning the layer's styles into this component's props, in precedence order |
 
 Several entries may share an `elementType` — a design system with a text, a heading and a body component is three entries. `elementType` names the same vocabulary `anatomy` uses, and describes the layer shape a promotion starts *from*, not the component it lands on: a component with its own internal anatomy is a legitimate target for a single drawn layer.
@@ -287,9 +288,26 @@ A value writes **one or more props**, so one typography token can set `size` and
 
 ### Selection
 
-When several entries share an `elementType`, the one whose rules resolve most often wins; ties break by declaration order. At least one rule must resolve, so `elementType` alone never promotes — a layer is only this component if something about it says so.
+Entries sharing an `elementType` are selected between by name where `match` is declared, and by score otherwise.
 
-When more than one entry resolved, the promoted element records `multipleMatches: true` in its [capture provenance](/settings/promote-primitives/#what-is-recorded-and-why) — a durable note that the mapping was contested, rather than a warning that scrolls past.
+**By name.** `match` holds layer-name prefixes: a name matches when the captured layer's name starts with one of them, exactly and case-sensitively. A resolved match selects the entry immediately — no score is computed, and no rule in `map` need resolve, so an entry whose every prop is a default can carry a name and an empty `map`. Where several entries match, the **longest** matching prefix wins, so selection never depends on the order the table happens to be written in.
+
+```yaml
+Section:
+  elementType: container
+  match: ['DS Section', 'Section']   # 'Section 1', 'Section 2', 'DS Section/Footer'
+  map:
+    - source: layoutMode
+      values: { VERTICAL: { direction: column } }
+```
+
+A prefix rather than a whole name because composed content holds many layers of one kind, distinguished by suffix. The array lets a library mid-rename name both of its conventions. Name matching is what distinguishes a layout family — `Section`, `Block`, `Container` — whose prop signatures are too alike for styling to tell apart.
+
+**By score.** With no `match` declared, the entry whose rules resolve most often wins; ties break by declaration order. At least one rule must resolve, so `elementType` alone never promotes — a layer is only this component if something about it says so.
+
+`elementType` gates both: a `text` layer never promotes to a `container` entry, whatever it is named.
+
+When more than one entry resolved by score, the promoted element records `multipleMatches: true` in its [capture provenance](/settings/promote-primitives/#what-is-recorded-and-why) — a durable note that the mapping was contested, rather than a warning that scrolls past.
 
 A source with no matching row does not resolve. It stays in `styles` and reaches output as passed styling, so a component's narrower prop enum constrains without a separate mechanism.
 
