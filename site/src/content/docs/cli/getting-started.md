@@ -150,7 +150,7 @@ Alternatively, generate a spec for one component directly from fetched data — 
 ```bash
 specs generate data/library.file \
   -c "Button" \
-  -o specs/button.yaml
+  -o specs/
 ```
 
 `-c` takes a single component. To generate a small subset without editing the manifest, run the command once per component.

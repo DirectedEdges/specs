@@ -22,7 +22,7 @@ import { loadFoundations } from '../utilities/loadFoundations.js';
 import { resolveFileSourceAlias } from '../utilities/fileSourceAlias.js';
 import { ManifestParser } from '../utilities/ManifestParser.js';
 import { ManifestParserV2 } from '../utilities/ManifestParserV2.js';
-import { writeLayout, dirNameFor, type SpecKind } from '../utilities/specsLayout.js';
+import { writeLayout, type SpecKind } from '../utilities/specsLayout.js';
 import { assertPayloadReadable, readJsonPayload } from '../utilities/payloadRead.js';
 import { SectionedFile, shadowIngestEnabled, shadowCompare } from '../utilities/sectionedFile.js';
 import { LicenseStatus } from '../utilities/LicenseStatus.js';
@@ -127,6 +127,30 @@ function resolveImageFileKey(
   };
 }
 
+/** Extensions a spec document can carry — what `-o` must not end in on a split run. */
+const SPEC_EXTENSIONS = ['.yaml', '.yml', '.json'];
+
+/**
+ * A split run writes a tree, so `-o` names a directory. A path ending in a spec
+ * extension is an authoring mistake rather than an instruction: honouring it
+ * literally produced a *directory* named `button.yaml` holding the tree. Refused
+ * before anything is generated, naming both ways out — a run that spent minutes on
+ * a catalogue before rejecting its own argument is the worse version of this.
+ */
+export function assertOutputPathShape(options: GenerateOptions, config: CLIConfig): void {
+  if (!options.output) return;
+  const singleFile =
+    (options.combineAsLibrary ? false : config.settings.spec.splitComponents) === false &&
+    (options.combineConcerns ? false : config.settings.spec.splitConcerns) === false;
+  if (singleFile) return;
+  const ext = path.extname(options.output).toLowerCase();
+  if (!SPEC_EXTENSIONS.includes(ext)) return;
+  console.error(`Error: --output names a directory, but "${options.output}" ends in ${ext}.`);
+  console.error(`  This run writes a spec per component, so give it a directory: -o ${path.dirname(options.output)}/`);
+  console.error('  To write one document instead, add --combine-as-library --combine-concerns, which makes the filename meaningful.');
+  process.exit(ERROR_CODES.INVALID_ARGS);
+}
+
 /**
  * Resolve a `-c` argument against a split payload's root maps, by node id first
  * and then by name. A set outranks a bare component: a variant's set is the thing
@@ -218,9 +242,10 @@ async function writeGeneratedOutput(
     return;
   }
 
+  const isSingleFileMode = !outputConfig.splitComponents && !outputConfig.splitConcerns;
+
   // When in single-file mode and outputPath is an existing directory,
   // append a default filename so we don't try to open a directory as a file
-  const isSingleFileMode = !outputConfig.splitComponents && !outputConfig.splitConcerns;
   if (isSingleFileMode && fs.existsSync(outputPath) && fs.statSync(outputPath).isDirectory()) {
     outputPath = path.join(outputPath, `library.${resolvedFormat}`);
   }
@@ -380,9 +405,13 @@ async function writeGeneratedOutput(
     writeResult.filesWritten.push(...result.filesWritten);
     writeResult.warnings.push(...result.warnings);
     writeResult.errors.push(...result.errors);
-    if (kind === 'composition') {
-      console.log(`✓ Wrote ${group.length} composition spec(s) to ${dirNameFor(kind)}/`);
-    }
+    // Say where it landed. `-o` names the specs root and the run appends the kind
+    // directory beneath it (ADR-096), so the path written is never the path typed —
+    // echoing it is what keeps that from being a thing to deduce.
+    console.log(
+      `✓ Wrote ${group.length} ${kind} spec(s) to ` +
+      `${path.relative(process.cwd(), layout.dirFor(kind)) || '.'}/`
+    );
   }
 
   if (writeResult.warnings.length > 0) {
@@ -452,6 +481,8 @@ export const Generate = new Command('generate')
       if (options.verbose && options.config) {
         console.log(`[CLI] Using config from: ${options.config}`);
       }
+
+      assertOutputPathShape(options, config);
 
       // ---------------------------------------------------------------
       // BRIDGE MODE (--from-bridge): bypass REST fetch entirely —

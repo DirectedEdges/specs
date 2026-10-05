@@ -39,7 +39,7 @@ specs generate
 With no arguments, step 4 uses the default manifest (`{data.directory}/{alias}.manifest.md`) and writes to `spec.directory` from `config/settings.yaml`. Pass either explicitly to override:
 
 ```bash
-specs generate components.md -o specs/library.yaml
+specs generate components.md -o specs/
 ```
 
 Manifest mode requires an output destination — `-o` or `spec.directory` — since it can produce many files. By default it writes the full split layout: one folder per component, holding one file per concern. Turn parts of that off with [`--combine-as-library`](#--combine-as-library), [`--combine-concerns`](#--combine-concerns), and [`--no-subfolders`](#--no-subfolders):
@@ -89,13 +89,13 @@ Pass a Figma JSON file directly and name one component with `-c`, by name or nod
 
 ```bash
 specs fetch
-specs generate data/library.file -c "DS Button" -o specs/button.yaml
+specs generate data/library.file -c "DS Button" -o specs/
 ```
 
 The component is resolved against the JSON file's components and component sets. Node IDs work equally well, and are the reliable choice when a name contains special characters or is duplicated:
 
 ```bash
-specs generate data/library.file -c "1234:5678" -o specs/button.yaml
+specs generate data/library.file -c "1234:5678" -o specs/
 ```
 
 Without `-o` (and with no configured `spec.directory`), the spec goes to stdout — handy for piping:
@@ -112,12 +112,12 @@ Generate from whatever is selected right now in a connected Figma file — no `s
 
 ```bash
 specs bridge start
-specs generate --from-bridge -o specs/button.yaml
+specs generate --from-bridge -o specs/
 ```
 
 ```
 ✓ Generated from selection: DS Button
-✓ Saved to specs/button.yaml
+✓ Wrote 1 component spec(s) to specs/components/
 ```
 
 Because the plugin does the generating, bridge mode behaves differently from the other two in ways worth knowing:
@@ -133,9 +133,9 @@ Since bridge mode reads the live document, it closes the loop on [`render`](/cli
 
 ```bash
 specs bridge start
-specs render specs/components/dsButton.yaml
-specs generate --from-bridge -o specs/roundtrip/dsButton.yaml
-diff specs/components/dsButton.yaml specs/roundtrip/dsButton.yaml
+specs render specs/components/dsButton/
+specs generate --from-bridge -o roundtrip/
+diff specs/components/dsButton/api.yaml roundtrip/components/dsButton/api.yaml
 ```
 
 Common failures:
@@ -162,11 +162,16 @@ Component name or Figma node ID. Required in single component mode; ignored in b
 ### `-o, --output <path>`
 Output file or directory path.
 
-- **File path**: writes all output to a single file (e.g. `-o specs/library.yaml`), in single-file mode only — see the layout note below.
-- **Directory path**: writes output files into the directory (e.g. `-o specs/`).
-- **Not provided**: falls back to `spec.directory` from `config/settings.yaml` (default `./specs`). Required in manifest mode if that isn't configured; single component and bridge mode write to stdout instead.
+**`-o` names the specs root — a directory.** The run writes `components/` and `compositions/` beneath it (ADR-096) and reports where each kind landed, so the path you pass is never the full path you get:
 
-**The kind directory is always inserted** (ADR-096). Whatever path you give names the specs root, not the final location: the run writes `components/` and `compositions/` beneath it. A directory `-o specs/` writes `specs/components/<key>/`, and in single-file mode `-o specs/library.yaml` writes `specs/components/library.yaml` — the filename you choose is honoured, its directory is the kind's. Because the split layout is the default ([ADR-071](/settings/output/)), a path ending in `.yaml` is read as a directory name unless `--combine-as-library` or `--combine-concerns` turns a split off.
+```
+✓ Wrote 1 component spec(s) to specs/components/
+```
+
+- **Directory path** (`-o specs/`): one folder per component under `specs/components/<key>/`. This is the default layout ([ADR-071](/settings/output/)).
+- **A path ending in `.yaml`, `.yml` or `.json`**: rejected, unless both splits are off. A split run writes a tree, so a filename cannot be what you meant — the error names the directory to pass instead.
+- **Single-file mode only** (`--combine-as-library --combine-concerns`): the filename becomes meaningful, and the kind directory still applies — `-o specs/library.yaml` writes `specs/components/library.yaml`. Pointing at a directory instead names the document `library` for you.
+- **Not provided**: falls back to `spec.directory` from `config/settings.yaml` (default `./specs`). Required in manifest mode if that isn't configured; single component and bridge mode write to stdout instead.
 
 ### `-f, --format <format>`
 Output format: `yaml` or `json`. Defaults to `spec.format` from `config/settings.yaml` (or JSON with no config); the flag takes precedence.
@@ -359,7 +364,7 @@ Delete the node once its spec has been read (bridge mode only) — for round-tri
 Path to a `config/` directory, when it isn't the `config/` directory in the working directory.
 
 ```bash
-specs generate --config workspaces/mobile/config -o specs/mobile.yaml
+specs generate --config workspaces/mobile/config -o workspaces/mobile/specs/
 ```
 
 ### `--verbose`

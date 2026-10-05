@@ -203,8 +203,8 @@ An incomplete render is a success, not a failure — the component is in Figma, 
 `render` reports success and a node id — nothing about fidelity. To read back what actually exists in Figma, select the rendered component and run generation through the same bridge:
 
 ```bash
-specs generate --from-bridge -o specs/roundtrip/deButton.yaml
-diff specs/components/deButton.yaml specs/roundtrip/deButton.yaml
+specs generate --from-bridge -o roundtrip/
+diff specs/components/deButton/api.yaml roundtrip/components/deButton/api.yaml
 ```
 
 That round trip is the real check. Because render is under active development, treat every render as something to look at in Figma too, rather than a guaranteed match to the source spec.
