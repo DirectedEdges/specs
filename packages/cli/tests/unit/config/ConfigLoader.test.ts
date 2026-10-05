@@ -286,11 +286,16 @@ spec:
       });
     });
 
-    it('should normalize lowercase spec.tokens to uppercase', () => {
+    it('warns on a case-variant spec.tokens and uses the default — no silent folding', () => {
       writeSplitFile('settings.yaml', 'spec:\n  tokens: figma_syntax_ios');
 
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const config = configLoader.load();
-      expect(config.settings.spec.tokens).toBe('FIGMA_SYNTAX_IOS');
+      // Governed surface: the value is not transformed behind the author's
+      // back. It warns, names the valid values, and falls back.
+      expect(config.settings.spec.tokens).toBe(DEFAULT_SETTINGS.spec.tokens);
+      expect(warn.mock.calls.some(c => String(c[0]).includes('figma_syntax_ios'))).toBe(true);
+      warn.mockRestore();
     });
 
     it('should validate spec.color and use default for invalid values', () => {
@@ -311,11 +316,42 @@ spec:
       });
     });
 
-    it('should normalize lowercase spec.color to uppercase', () => {
+    it('warns on a case-variant spec.color and uses the default — no silent folding', () => {
       writeSplitFile('settings.yaml', 'spec:\n  color: oklch');
 
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const config = configLoader.load();
-      expect(config.settings.spec.color).toBe('OKLCH');
+      expect(config.settings.spec.color).toBe('HEX');
+      expect(warn.mock.calls.some(c => String(c[0]).includes('oklch'))).toBe(true);
+      warn.mockRestore();
+    });
+
+    it('loads conventions/storybook.yaml as a reserved basename, not a platform (ADR-098)', () => {
+      writeSplitFile('conventions/storybook.yaml', 'color:\n  rowGroup: [Palette]\n  groupLeaves: true');
+
+      const config = configLoader.load();
+      expect(config.conventions.storybook).toEqual({ color: { rowGroup: ['Palette'], groupLeaves: true } });
+      expect(config.conventions.platforms?.storybook).toBeUndefined();
+    });
+
+    it('drops a non-mapping storybook concern with a warning naming it', () => {
+      writeSplitFile('conventions/storybook.yaml', 'color: just-a-string\ntypography:\n  sample: ok');
+
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const config = configLoader.load();
+      expect(config.conventions.storybook).toEqual({ typography: { sample: 'ok' } });
+      expect(warn.mock.calls.some(c => String(c[0]).includes('"color"'))).toBe(true);
+      warn.mockRestore();
+    });
+
+    it('warns on an unknown top-level settings key and ignores it', () => {
+      writeSplitFile('settings.yaml', 'storybook:\n  color: {}\nspec:\n  keys: CAMEL');
+
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const config = configLoader.load();
+      expect((config.settings as Record<string, unknown>).storybook).toBeUndefined();
+      expect(warn.mock.calls.some(c => String(c[0]).includes('"storybook"'))).toBe(true);
+      warn.mockRestore();
     });
 
     it('should accept all valid variantDepth values', () => {

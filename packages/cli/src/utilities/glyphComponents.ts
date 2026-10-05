@@ -31,12 +31,16 @@ export function collectGlyphComponents(document: unknown, pattern: string): Arra
 
   const seen = new Set<string>();
   for (const glyph of found) {
-    // Kebabize camelCase too, matching the scaffold's glyphUrl slugging.
+    // Kebabize camelCase too, matching the scaffold's glyphUrl slugging. A
+    // separator never survives before a digit run: the spec stores the camel
+    // key, which cannot carry one ("Brightness 1" → brightness1), so the file
+    // on disk must not either — or fetch and emit name different files.
     const base = glyph.name
       .trim()
       .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
       .replace(/[\s_]+/g, '-')
       .replace(/-+/g, '-')
+      .replace(/-(?=\d)/g, '')
       .toLowerCase();
     glyph.slug = seen.has(base) ? `${base}-${glyph.id.replace(':', '-')}` : base;
     seen.add(base);

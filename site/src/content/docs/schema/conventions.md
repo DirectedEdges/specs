@@ -53,7 +53,7 @@ glyphs:
 
 Because the filename is the platform id, two files cannot declare the same key and there is no merge rule. Absence of a member means that platform declares no such convention, and the capability it enables does not apply — there is no separate on-switch.
 
-Two basenames in the directory are reserved and are not platforms: `specs.yaml` (conventions about [the spec itself](#specs)) and `figma.primitives.yaml` (the [promotion table](#primitives)).
+Three basenames in the directory are reserved and are not platforms: `specs.yaml` (conventions about [the spec itself](#specs)), `figma.primitives.yaml` (the [promotion table](#primitives)), and `storybook.yaml` ([workspace Storybook presentation](#storybook)).
 
 ## Platform members
 
@@ -273,6 +273,28 @@ A promoted container's children become the target's slot content, so **that comp
 
 Neither failure raises an error. Where the constraint does not hold, declare no `container` entry; `text` and `glyph` are unaffected.
 :::
+
+## `storybook`
+
+Presentation conventions for the workspace Storybook (`specs storybook`).
+Authored at `config/conventions/storybook.yaml` — a reserved basename beside
+the platform files. Top-level keys are publish concerns (`color`, `typography`,
+`icons`, …), each holding that concern's feature settings:
+
+```yaml
+# config/conventions/storybook.yaml
+color:
+  rowGroup: []        # names of variable hierarchy levels to collapse into one row
+  groupLeaves: false  # group all the leaves
+```
+
+Both levels are deliberately open (ADR-098): the vocabulary inside each concern
+is unstable while pages take shape, so the contract fixes only the file, the
+concern keying, and one behavioural rule — a consumer ignores an unknown
+concern or feature **only with a warning naming it**. The concern
+implementation validates its own feature values under the same rule, and the
+feature vocabulary is documented with the [Storybook pages](/storybook/) rather
+than here.
 
 ## Resolution
 
