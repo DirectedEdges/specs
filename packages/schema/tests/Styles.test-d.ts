@@ -9,7 +9,7 @@ import type {
   AngularGradient, GradientValue, AspectRatioValue, AspectRatioStyle,
   Sides, Corners, ItemSpacing, LayoutMode, WrapAlignment,
   MainAxisAlignment, CrossAxisAlignment, Position, PositionOffset,
-  StrokeDashPattern, TextAlignHorizontal, TextOverflow,
+  StrokeDashPattern, TextAlignHorizontal, TextOverflow, ContentStyles,
 } from '../types/index.js';
 
 // ─── ColorStyle ────────────────────────────────────────────────────────────
@@ -965,3 +965,75 @@ const withMaxLinesToken: Styles = {
 
 // @ts-expect-error: boolean-only object is not a valid Style for maxLines
 const _mlBadObject: Styles = { maxLines: { value: 2 } };
+
+// ─── ContentStyles — the closed content-formatting set (ADR-102) ──────────────
+
+// All six members, each typed as its Styles counterpart
+const contentFull: ContentStyles = {
+  textColor: { $token: 'DS Color.Text.OnPrimary', $type: 'color' },
+  typography: { $token: 'DS Type.Label.Medium', $type: 'typography' },
+  textAlignHorizontal: 'CENTER',
+  textAlignVertical: 'CENTER',
+  textOverflow: 'ELLIPSIS',
+  maxLines: 1,
+};
+
+// Every member is optional — a per-variant override carries only what changes
+const contentPartial: ContentStyles = { textColor: '#FFFFFF' };
+const contentEmpty: ContentStyles = {};
+
+// typography carries the composite, so its own members travel inside it
+const contentInlineTypography: ContentStyles = {
+  typography: { fontSize: 14, fontFamily: 'Inter', lineHeight: '150%', textCase: 'UPPER' },
+};
+
+// Prop binding and conditionals work wherever the underlying type is Style
+const contentBound: ContentStyles = { maxLines: { $binding: '#/props/lines' } };
+const contentConditional: ContentStyles = {
+  maxLines: {
+    if: {
+      condition: { operation: 'equals', args: { value: { $binding: '#/props/dense' }, compareTo: true } },
+      then: 1,
+      else: null,
+    },
+  },
+};
+
+// textColor is ColorStyle, which carries no Conditional arm — inherited verbatim from
+// Styles.textColor, so a conditional is as invalid here as it is there
+declare const aConditional: { if: { condition: { operation: string; args: { value: { $binding: string } } }; then: string; else: string } };
+// @ts-expect-error: a conditional is not a ColorStyle
+const _cConditionalColor: ContentStyles = { textColor: aConditional };
+
+// A value valid in styles is valid here — same ColorStyle arms
+const contentColorObject: ContentStyles = {
+  textColor: { colorSpace: 'srgb', components: [1, 1, 1], alpha: 1, hex: '#FFFFFF' },
+};
+
+// The set is closed — layout, surface and sizing cannot enter the content record
+// @ts-expect-error: padding is not a content-formatting property
+const _cPadding: ContentStyles = { padding: 8 };
+
+// @ts-expect-error: backgroundColor is not a content-formatting property
+const _cBackground: ContentStyles = { backgroundColor: '#FF0000' };
+
+// @ts-expect-error: layoutMode is not a content-formatting property
+const _cLayout: ContentStyles = { layoutMode: 'VERTICAL' };
+
+// @ts-expect-error: width is not a content-formatting property
+const _cWidth: ContentStyles = { width: 100 };
+
+// @ts-expect-error: fillColor arrives only when a glyph kind joins SlotContentKind
+const _cFill: ContentStyles = { fillColor: '#FF0000' };
+
+// @ts-expect-error: CENTRE is not a TextAlignHorizontal value
+const _cBadAlign: ContentStyles = { textAlignHorizontal: 'CENTRE' };
+
+// @ts-expect-error: TRUNCATE is not a TextOverflow value
+const _cBadOverflow: ContentStyles = { textOverflow: 'TRUNCATE' };
+
+// A Styles value is structurally assignable to ContentStyles — every shared member has the
+// same type, and excess-property checking does not apply outside an object literal. The
+// narrowing is enforced where it matters: on the literals a generator actually writes.
+declare const someStyles: Styles;
+const _fromStyles: ContentStyles = someStyles;

@@ -3,7 +3,7 @@
 **Branch**: `102-default-text-slots`
 **Created**: 2026-10-06
 **Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Summary**: `SlotProp.accepts`, `Element.contentStyles` and `inferComposableSlots` let a slot take string content and format it per variant.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 
@@ -691,7 +691,13 @@ own entry in `anatomy` or `elements`.
 | `Styles.ts` | Added `ContentStyles` exported type — a `Partial` over `textColor`, `typography`, `textAlignHorizontal`, `textAlignVertical`, `textOverflow`, `maxLines` | MINOR |
 | `Element.ts` | Added `contentStyles?: ContentStyles` to `Element` | MINOR |
 | `Conventions.ts` | Added `inferComposableSlots?: boolean` to `PlatformConventions` | MINOR |
-| `Conventions.ts` | Added required `inferComposableSlots: boolean` to `ResolvedPlatformConventions`, and a `false` entry to `DEFAULT_CONVENTIONS` | MINOR |
+| `Conventions.ts` | Added required `inferComposableSlots: boolean` to `ResolvedPlatformConventions` | MINOR |
+| `index.ts` | Exported `SlotContentKind` and `ContentStyles` from the barrel | MINOR |
+
+`DEFAULT_CONVENTIONS` gains nothing. It carries no members at all — a platform-keyed
+map has no fixed key to populate — so the `false` default is supplied by whoever
+resolves a platform, exactly as `inferNumberProps`' and `slotConstraints`' are. Only
+the doc comment naming those defaulted members is updated.
 
 ### Schema changes (`schema/`)
 
@@ -699,11 +705,16 @@ own entry in `anatomy` or `elements`.
 |------|--------|------|
 | `component.schema.json` | Added `SlotContentKind` definition (string enum: `component`, `string`) | MINOR |
 | `component.schema.json` | Added `accepts` array property to `SlotProp`, items `$ref`-ing `SlotContentKind` | MINOR |
-| `component.schema.json` | Added `ContentStyles` definition beside `Styles`, with only the six content-formatting properties and `additionalProperties: false` | MINOR |
+| `styles.schema.json` | Added the `ContentStyles` definition beside `Styles` — the six content-formatting properties, each `$ref`-ing the value-type definition its `Styles` counterpart uses, with `additionalProperties: false` | MINOR |
+| `component.schema.json` | Added a `ContentStyles` stub `$ref`-ing `styles.schema.json#/definitions/ContentStyles`, mirroring how `Styles` is already referenced | MINOR |
 | `component.schema.json` | Added `contentStyles` property to `Element`, `$ref`-ing `ContentStyles` | MINOR |
-| `styles.schema.json` | Mirrored the `ContentStyles` definition, which also defines `Styles` and must stay consistent with `component.schema.json` (Constitution IV) | MINOR |
 | `component.schema.json` | Doc-only: `SlotProp.anyOf` description updated to match the type doc | PATCH |
-| `conventions.schema.json` | Added `inferComposableSlots` boolean to the `PlatformConventions` and `ResolvedPlatformConventions` definitions; added to the latter's `required[]` | MINOR |
+| `conventions.schema.json` | Added `inferComposableSlots` boolean (`default: false`) to the `PlatformConventions` definition | MINOR |
+
+No `ResolvedPlatformConventions` counterpart is added to `schema/`, because the schema
+defines no `Resolved*` shape at all — it validates authored documents, and the resolved
+shapes exist only in `types/`. That is a pre-existing, justified asymmetry this ADR
+inherits rather than introduces.
 
 **Example — new shape** (`schema/component.schema.json`):
 ```yaml
@@ -813,12 +824,16 @@ contentStyles:
 - **Parity check**: `Element.contentStyles` maps to
   `#/definitions/Element/properties/contentStyles`, which `$ref`s
   `ContentStyles` — optional on both sides, absent from `required[]`.
-- **Parity check**: `PlatformConventions.inferComposableSlots` (optional) and
-  `ResolvedPlatformConventions.inferComposableSlots` (required) map to the
-  matching definitions in `conventions.schema.json`, with the resolved form in
-  `required[]` — the same authored/resolved asymmetry `inferNumberProps` and
-  `slotConstraints` already have, and justified the same way: resolution supplies
-  the default, so the resolved shape can promise what the authored one cannot.
+- **Parity check**: `PlatformConventions.inferComposableSlots` (optional,
+  defaults to false) maps to
+  `#/definitions/PlatformConventions/properties/inferComposableSlots` with
+  `default: false`.
+- **Justified asymmetry**: `ResolvedPlatformConventions.inferComposableSlots` is
+  required in `types/` and has no schema counterpart, because `schema/` defines no
+  `Resolved*` shape — it validates authored documents, and resolved shapes are
+  in-memory only. `inferNumberProps` and `slotConstraints` sit the same way. The
+  required-on-resolved form is what lets a consumer read a boolean without a null
+  check, and resolution is what supplies it.
 - **No unjustified asymmetry.** The constraints this ADR states but does not
   encode — `contentStyles` being meaningful only on a slot element, and a
   component fill discarding it — are expressed in descriptions on both sides and

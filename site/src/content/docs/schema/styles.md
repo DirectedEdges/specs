@@ -72,3 +72,24 @@ The `Styles` object holds visual properties for an element. Every property is op
 | [`wrapAlignment`](/schema/styles/wrap-alignment/) | `WrapAlignment` | `counterAxisAlignContent` <small>[ADR 039](https://github.com/DirectedEdges/specs/blob/main/adr/039-wrap-alignment.md)</small> |
 
 Element-type applicability (`container`/`text`/`glyph`/`vectors`/`line`) moves to per-property pages once those exist.
+
+## ContentStyles
+
+A second, narrower style type, carried by [`Element.contentStyles`](/schema/elements/#styles-vs-content-styles). `Styles` describes an element's own appearance; `ContentStyles` describes the appearance of content *filling* it — on a slot element whose prop [`accepts`](/schema/props/#slotcontentkind) a string, the formatting that string takes on.
+
+It holds six properties and nothing else:
+
+| Property | Type |
+|----------|------|
+| [`textColor`](/schema/styles/text-color/) | `ColorStyle` |
+| [`typography`](/schema/typography/) | `TokenReference`<br>`Typography` |
+| [`textAlignHorizontal`](/schema/styles/text-align-horizontal/) | `TextAlignHorizontal` |
+| [`textAlignVertical`](/schema/styles/text-align-vertical/) | `Style` |
+| [`textOverflow`](/schema/styles/text-overflow/) | `TextOverflow` |
+| [`maxLines`](/schema/styles/max-lines/) | `Style` |
+
+Each property is typed identically to its `Styles` counterpart, so a value valid in `styles` is valid here — token references, prop bindings and conditionals included, wherever the underlying type is `Style`. `typography` carries the composite, so its own members (`fontSize`, `fontFamily`, `lineHeight` and the rest) travel inside it rather than being listed again.
+
+The set is closed. A property outside it — a container's `padding`, `backgroundColor`, or `layoutMode` — is invalid in `contentStyles` rather than ignored, so a generator cannot record an element's own layout as content formatting.
+
+The set widens only when another content kind is added to [`SlotContentKind`](/schema/props/#slotcontentkind). A glyph kind would bring `fillColor`, `width` and `height`.

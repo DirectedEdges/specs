@@ -498,7 +498,14 @@
           "items": {
             "type": "string"
           },
-          "description": "Component type names permitted in this slot"
+          "description": "Component type names permitted in this slot — narrowing which components, within the kinds `accepts` admits. Absent means any component."
+        },
+        "accepts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SlotContentKind"
+          },
+          "description": "The kinds of content this slot permits. Absent means [\"component\"] — a slot admitting component instances only, which is how every slot without this property behaves. \"string\" is recorded when the slot's default content was a single text layer and the platform declared inferComposableSlots; the formatting applied to a string fill is then in the slot element's contentStyles, per variant via variants[].elements. Orthogonal to anyOf, which narrows which components are permitted rather than which kinds, and to defaultSlot, which states whether this is the default slot. (ADR-102)"
         },
         "defaultSlot": {
           "type": "boolean",
@@ -765,6 +772,10 @@
         "styles": {
           "$ref": "#/definitions/Styles"
         },
+        "contentStyles": {
+          "$ref": "#/definitions/ContentStyles",
+          "description": "Styles applied to content filling this element, as distinct from `styles`, which are the element's own. On a slot element this is the formatting a string fill takes on — captured from the single text layer in the slot's default content — overridden per variant through `variants[].elements` exactly as `styles` is. A component fill is formatted by the component it instantiates, so a consumer rendering one applies `styles` and discards `contentStyles`. Meaningful only on a slot element; that constraint is an authoring/generator contract, not schema-enforced. (ADR-102)"
+        },
         "propConfigurations": {
           "$ref": "#/definitions/PropConfigurations"
         },
@@ -933,6 +944,14 @@
     },
     "Styles": {
       "$ref": "styles.schema.json#/definitions/Styles"
+    },
+    "ContentStyles": {
+      "$ref": "styles.schema.json#/definitions/ContentStyles"
+    },
+    "SlotContentKind": {
+      "type": "string",
+      "enum": ["component", "string"],
+      "description": "A kind of content a slot permits. `component` admits a component instance, narrowed by the slot's `anyOf` when present. `string` admits plain string content, whose formatting is read from the slot element's `contentStyles`. Orthogonal to `defaultSlot`: a slot may be string-composable without being the default slot, or the default slot without accepting a string. (ADR-102)"
     },
     "Metadata": {
       "type": "object",

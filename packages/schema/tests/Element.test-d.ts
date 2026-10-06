@@ -79,3 +79,47 @@ const unknownNamespace: Element = { $extensions: { 'com.example': { promotedPrim
 
 // @ts-expect-error — the figma extension is closed to its two members
 const unknownMember: Element = { $extensions: { 'com.figma': { promotedFrom: 'text' } } };
+
+// ─── Element.contentStyles — formatting for a slot's content (ADR-102) ────────
+
+// A slot element carries its own styles and, separately, the formatting its content takes on
+const slotWithContentStyles: Element = {
+  styles: { padding: 8, mainAxisAlignment: 'CENTER' },
+  contentStyles: {
+    typography: { $token: 'DS Type.Label.Medium', $type: 'typography' },
+    textColor: { $token: 'DS Color.Text.OnPrimary', $type: 'color' },
+  },
+};
+
+// Every member of the set is accepted
+const allContentStyles: Element = {
+  contentStyles: {
+    textColor: '#FFFFFF',
+    typography: { fontSize: 14, fontFamily: 'Inter' },
+    textAlignHorizontal: 'CENTER',
+    textAlignVertical: 'CENTER',
+    textOverflow: 'ELLIPSIS',
+    maxLines: 1,
+  },
+};
+
+// contentStyles is optional, and an empty block is valid
+const emptyContentStyles: Element = { contentStyles: {} };
+
+// A per-variant override carries only what changes
+const variantOverride: Element = {
+  contentStyles: { textColor: { $token: 'DS Color.Text.Subtle', $type: 'color' } },
+};
+
+// The set is closed — a container's own styling cannot be recorded as content formatting
+// @ts-expect-error: padding is not a content-formatting property
+const paddingInContent: Element = { contentStyles: { padding: 8 } };
+
+// @ts-expect-error: backgroundColor is not a content-formatting property
+const backgroundInContent: Element = { contentStyles: { backgroundColor: '#FF0000' } };
+
+// @ts-expect-error: layoutMode is not a content-formatting property
+const layoutInContent: Element = { contentStyles: { layoutMode: 'VERTICAL' } };
+
+// @ts-expect-error: fillColor arrives only when a glyph kind is added to SlotContentKind
+const fillInContent: Element = { contentStyles: { fillColor: '#FF0000' } };

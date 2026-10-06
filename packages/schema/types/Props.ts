@@ -140,6 +140,22 @@ export interface NumberProp {
 }
 
 /**
+ * A kind of content a slot permits (ADR-102).
+ *
+ * - `'component'` admits a component instance, narrowed by the slot's `anyOf` when
+ *   present.
+ * - `'string'` admits plain string content. Recorded when the slot's default content was
+ *   a single text layer and the platform declared `inferComposableSlots`; the formatting
+ *   applied to a string fill is then on the slot element's `contentStyles`.
+ *
+ * Orthogonal to `defaultSlot`, which states whether a slot is the component's default
+ * one. A slot may be string-composable without being the default — an Alert's
+ * `description` — or the default without accepting a string.
+ * @since 0.35.0
+ */
+export type SlotContentKind = 'component' | 'string';
+
+/**
  * Slot/nested content property definition
  */
 export interface SlotProp {
@@ -156,8 +172,25 @@ export interface SlotProp {
   minChildren?: number;
   /** Maximum number of children this slot accepts. @since 0.25.0 */
   maxChildren?: number;
-  /** Component type names permitted in this slot. @since 0.14.0 */
+  /**
+   * Component type names permitted in this slot — narrowing *which* components, within
+   * the kinds `accepts` admits. Absent means any component. @since 0.14.0
+   */
   anyOf?: string[];
+  /**
+   * The kinds of content this slot permits.
+   *
+   * Absent means `['component']` — a slot admitting component instances only, which is
+   * how every slot without this member behaves. `'string'` is recorded when the slot's
+   * default content was a single text layer and the platform declared
+   * `inferComposableSlots`; the formatting a string fill takes on is then on the slot
+   * element's `contentStyles`, per variant via `variants[].elements`.
+   *
+   * Orthogonal to `anyOf`, which narrows which components are permitted rather than which
+   * kinds, and to `defaultSlot`, which states whether this is the default slot (ADR-102).
+   * @since 0.35.0
+   */
+  accepts?: SlotContentKind[];
   /**
    * Whether this is the component's designated default slot, resolved from
    * `SpecsConventions.slots.default.match` at generation time. When true, an authored

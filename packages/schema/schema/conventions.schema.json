@@ -180,6 +180,11 @@
           "default": false,
           "description": "The library authors numeric props as Figma TEXT props whose values parse as numbers, to be emitted as NumberProp."
         },
+        "inferComposableSlots": {
+          "type": "boolean",
+          "default": false,
+          "description": "The library authors string-composable content as a slot whose default content is a single text layer, to be emitted as a SlotProp carrying \"string\" in accepts, with that layer's formatting captured into the slot element's contentStyles rather than emitted as its own anatomy element. Absent, slots are emitted exactly as they are today. The distinction it reads is authored: a slot holding a lone text layer is the composable case, a TEXT prop on a text layer is the plain-string one. (ADR-102)"
+        },
         "stylesProp": {
           "type": "string",
           "description": "Prop that receives styling no promotion mapped, for every promoted component on this platform (e.g. sx, style, modifier). A name only \u2014 what is placed in it is the generator's decision. Absence means unmapped styling is dropped. (ADR-076)"

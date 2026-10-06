@@ -170,7 +170,7 @@ export interface PrimitiveEntry {
  *
  * - **Encoding** — `naming`, `glyphs`, `codeOnlyProps`, `subcomponents`,
  *   `instanceExamples`, `images.backgroundImage`, `images.sourceProps`,
- *   `slotConstraints`, `inferNumberProps`. These say how this platform
+ *   `slotConstraints`, `inferNumberProps`, `inferComposableSlots`. These say how this platform
  *   expresses something the spec models explicitly. A Figma library has no first-class
  *   notion of a subcomponent, so it encodes one in a layer-name pattern.
  * - **Vocabulary** — `stylesProp`, `images.match`, `images.component`. These say which of
@@ -258,6 +258,18 @@ export interface PlatformConventions {
   slotConstraints?: boolean;
   /** This platform authors numeric props as Figma `TEXT` props whose default and examples parse as valid numbers, to be emitted as NumberProp rather than StringProp. Optional; defaults to false. */
   inferNumberProps?: boolean;
+  /**
+   * This platform authors string-composable content as a slot whose default content is a
+   * single text layer, to be emitted as a `SlotProp` carrying `'string'` in `accepts`,
+   * with that layer's formatting captured into the slot element's `contentStyles` rather
+   * than emitted as its own anatomy element.
+   *
+   * Optional; defaults to false — absent, slots are emitted exactly as they are today. The
+   * distinction it reads is authored: a slot holding a lone text layer is the composable
+   * case, a `TEXT` prop on a text layer is the plain-string one (ADR-102).
+   * @since 0.35.0
+   */
+  inferComposableSlots?: boolean;
   /**
    * Prop that receives styling no promotion mapped, for every promoted component on this
    * platform (e.g. `sx`, `style`, `modifier`). A **name only** — what is placed in it is
@@ -462,7 +474,8 @@ export interface Conventions {
  * within it.
  *
  * **A resolver produces one of these for any platform it is asked about, declared or
- * not.** `naming`, `slotConstraints` and `inferNumberProps` are required here for that
+ * not.** `naming`, `slotConstraints`, `inferNumberProps` and `inferComposableSlots` are
+ * required here for that
  * reason: a consumer reading `figma` gets `NONE` whether or not a `figma.yaml` exists,
  * which is the guarantee ADR-071 gave when `figma` was a required key (ADR-073).
  *
@@ -503,6 +516,8 @@ export interface ResolvedPlatformConventions {
   slotConstraints: boolean;
   /** Numeric props are authored as Figma `TEXT` props. */
   inferNumberProps: boolean;
+  /** String-composable content is authored as a slot whose default content is a single text layer. @since 0.35.0 */
+  inferComposableSlots: boolean;
   /** Prop that receives styling no promotion mapped. Optional; absence means unmapped styling is dropped. */
   stylesProp?: string;
   /** Width of the container a fill-width root is placed in. Optional; no default — absence means the tool falls back to its own value. */
@@ -569,8 +584,9 @@ export interface MetadataConventions {
  * A workspace that declares nothing.
  *
  * This constant carries no members, because a platform-keyed map has no fixed key to
- * populate. That does **not** mean the defaults are gone: `naming`, `slotConstraints`
- * and `inferNumberProps` are still defaulted, by whoever resolves a platform, and
+ * populate. That does **not** mean the defaults are gone: `naming`, `slotConstraints`,
+ * `inferNumberProps` and `inferComposableSlots` are still defaulted, by whoever resolves a
+ * platform, and
  * {@link ResolvedPlatformConventions} requires them for exactly that reason.
  *
  * What no default can supply is a convention *block* — `glyphs`, `subcomponents`,

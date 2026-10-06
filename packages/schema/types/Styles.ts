@@ -77,6 +77,38 @@ export type Styles = Partial<{
 }>;
 
 /**
+ * The styles applied to content filling an element, as distinct from the element's own.
+ *
+ * Deliberately narrower than {@link Styles}: only properties that format content appear,
+ * so a container's layout or surface styling cannot enter the content record. Each member
+ * is typed identically to its `Styles` counterpart, so a value valid in `styles` is valid
+ * here — token references, prop bindings and conditionals included, wherever the
+ * underlying type is `Style`.
+ *
+ * `typography` is listed once, as the composite: its own members (`fontSize`,
+ * `fontFamily`, `lineHeight`, `letterSpacing`, `textCase`, `textDecoration` and the rest)
+ * travel inside {@link Typography} rather than being enumerated again here.
+ *
+ * The set widens when another kind joins `SlotContentKind` — a glyph would bring
+ * `fillColor`, `width` and `height` — and not before (ADR-102).
+ * @since 0.35.0
+ */
+export type ContentStyles = Partial<{
+  /** Text color of the content. */
+  textColor: ColorStyle;
+  /** Typography of the content, as a composite or a type-token reference. */
+  typography: TokenReference | Typography;
+  /** Horizontal text alignment, using logical inline-axis directions (`START`/`END`). */
+  textAlignHorizontal: TextAlignHorizontal | null;
+  /** Vertical text alignment. */
+  textAlignVertical: Style;
+  /** How overflowing content is handled — `CLIP` or `ELLIPSIS`. */
+  textOverflow: TextOverflow | null;
+  /** Maximum number of lines before `ELLIPSIS` overflow applies; `null` means no limit. */
+  maxLines: Style;
+}>;
+
+/**
  * Platform-neutral token reference. Uses `$token` and `$type` as the
  * complete platform-facing API surface; `$extensions["com.figma"]` carries
  * Figma extraction provenance only and is not required by platform consumers.

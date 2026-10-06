@@ -63,11 +63,37 @@ Inferred from Figma variant values when [`conventions.platforms.figma.inferNumbe
 | `nullable` | `boolean` | No | Whether `null` is a valid value — absent means `true` |
 | `minChildren` | `number` | No | Minimum number of children the slot accepts (since 0.25.0) |
 | `maxChildren` | `number` | No | Maximum number of children the slot accepts (since 0.25.0) |
-| `anyOf` | `string[]` | No | Permitted component type names (since 0.14.0) |
+| `anyOf` | `string[]` | No | Permitted component type names — which components, within the kinds `accepts` admits (since 0.14.0) |
 | `defaultSlot` | `boolean` | No | Whether this is the component's designated default slot. Absent means `false` |
+| `accepts` | `SlotContentKind[]` | No | Kinds of content the slot permits. Absent means `['component']` (since 0.35.0) |
 | `$extensions` | `PropExtensions` | No | Vendor extensions |
 
 Slot constraint properties (`minChildren`, `maxChildren`, `anyOf`) are emitted when [`conventions.platforms.figma.slotConstraints`](/schema/conventions/#platform-members) is declared.
+
+#### SlotContentKind
+
+| Value | Meaning |
+|-------|---------|
+| `component` | A component instance, narrowed by `anyOf` when present |
+| `string` | Plain string content, formatted by the slot element's [`contentStyles`](/schema/elements/) |
+
+`accepts` answers *what kind* of content a slot takes; `anyOf` answers *which components*. They narrow independently, so `accepts: ['string']` with no `anyOf` is a text-only slot, while `accepts: ['string', 'component']` with `anyOf: ['badge']` takes a label string or a Badge.
+
+```yaml
+props:
+  children:
+    type: slot
+    defaultSlot: true
+    accepts: [string, component]
+    anyOf: [badge, icon]
+  description:
+    type: slot
+    accepts: [string, component]   # composable, but not the default slot
+```
+
+`'string'` is recorded when the slot's default content in Figma was a single text layer and [`inferComposableSlots`](/settings/infer-composable-slots/) is declared. That text layer is not emitted as an anatomy element — the slot is — and its formatting travels on the slot element's `contentStyles`, per variant.
+
+`accepts` and `defaultSlot` are orthogonal. A Button's `children` is both string-composable and the default slot; an Alert's `description` is string-composable and *not* the default; a multi-slot layout component's slots are default-eligible and take components only.
 
 `defaultSlot` marks the one slot a layout component always composes through. It is set at generation time, when the prop's name matched the library's [`specs.slots.default.match`](/schema/conventions/#slots) convention, and is read off the spec thereafter — a consumer needs no access to those conventions to know which slot it is:
 
