@@ -17,6 +17,7 @@ interface CommandOptions {
   skip?: string[];
   components?: string[];
   render?: boolean;
+  file?: string;
   dryRun?: boolean;
   verbose?: boolean;
 }
@@ -28,6 +29,7 @@ function toDriveOptions(options: CommandOptions): DriveOptions {
     skip: options.skip,
     components: options.components,
     render: options.render,
+    fileKey: options.file,
     dryRun: options.dryRun,
     verbose: options.verbose ?? false,
   };
@@ -41,6 +43,7 @@ function withSharedOptions(command: Command): Command {
     .option('--skip <steps...>', 'Run everything except these steps')
     .option('--components <keys...>', 'Limit the run to these component folders')
     .option('--render', 'Also render each spec into the connected Figma file — needs a running bridge. Overwrites existing components under `run`, not under `build`')
+    .option('--file <fileKey>', 'With --render: which connected Figma file to render into, when more than one is open')
     .option('--dry-run', 'Print what would run, and run nothing')
     .option('--verbose', 'Enable detailed logging', false);
 }

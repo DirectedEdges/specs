@@ -641,6 +641,22 @@ changed.
   `--components` warns and skips a name it cannot find, matching the emitters.
   When *no* name matches, the run fails: otherwise a typo in a CI invocation
   passes green having rendered nothing.
+- **Having nowhere to render to is a skip, not a failure.** No bridge, no
+  connected file, or more than one connected file with nothing saying which —
+  each is a fact about the environment rather than a fault in the workspace.
+  The step reports why and the run carries on, so closing Figma does not end a
+  watch session and does not fail a build whose every other step wrote what it
+  should. A render that was *attempted* and failed still fails, including a
+  `--file` naming something that is not connected. A step may therefore end in
+  three states, not two: ran, skipped, or failed — and only the last decides an
+  exit code.
+- **The chain never prompts.** `resolveFileKey` asks a person to pick when two
+  or more files are connected and the terminal is interactive. Reached from
+  `specs run`, that prompt can arrive in the middle of a pass with nobody
+  watching, and the loop looks hung with nothing on screen explaining it. The
+  target is resolved once, before any spec is read, and passed down explicitly.
+  `--file` is accepted by both commands so the advice in the skip message works
+  on the command that printed it.
 - `--only` and `--skip` name steps, not commands, and cannot be combined.
 - The step names are the first column of the table above: `scan`, `generate`,
   `react`, `webcomponents`, `storybook`, `render`.

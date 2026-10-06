@@ -12,7 +12,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { createInterface } from 'readline';
 import { ConfigLoader } from '../Config/ConfigLoader.js';
-import { postRender, type RenderResponse } from '../bridge/client.js';
+import { postRender, getBridgeStatus, type RenderResponse } from '../bridge/client.js';
 import { resolveFileKey } from '../bridge/pickConnection.js';
 import { findComponentFolders, isComponentFolder, loadSpec } from '../Render/SpecLoader.js';
 import { startSpinner } from '../utilities/spinner.js';
@@ -132,6 +132,47 @@ export const Render = new Command('render')
   });
 
 /**
+ * Which Figma file the chain's render step should target, or why it cannot.
+ *
+ * Three ways there is no answer, and none of them is a fault in the workspace:
+ * the bridge is not running, it is running with nothing connected, or two or
+ * more files are connected and nothing says which was meant. Each returns a
+ * reason to report rather than an error to fail on.
+ *
+ * The ambiguous case is the one that must not reach `resolveFileKey`: in an
+ * interactive terminal it prompts on stdin, so a watch loop would stop dead
+ * waiting for a keystroke — and under `specs run` the prompt can arrive in the
+ * middle of a pass, long after anyone is looking.
+ */
+export async function bridgeTarget(
+  explicit: string | undefined,
+  getStatus: typeof getBridgeStatus = getBridgeStatus,
+): Promise<{ fileKey?: string } | { skip: string }> {
+  if (explicit) return { fileKey: explicit };
+
+  let status: Awaited<ReturnType<typeof getBridgeStatus>>;
+  try {
+    status = await getStatus();
+  } catch {
+    return { skip: 'the bridge is not running — start it with `specs bridge start`, then open the plugin' };
+  }
+
+  const connections = status.connections ?? [];
+  if (connections.length === 0) {
+    return { skip: 'no Figma file is connected — open the plugin in the file you want to render into' };
+  }
+  if (connections.length > 1) {
+    const names = connections.map(c => `${c.fileName ?? c.fileKey} (${c.fileKey})`).join(', ');
+    return {
+      skip: `${connections.length} Figma files are connected, so it is not clear which to render into — ` +
+        `pass --file <fileKey> to choose. Connected: ${names}`,
+    };
+  }
+
+  return { fileKey: connections[0].fileKey };
+}
+
+/**
  * Render specs into the connected Figma file, without exiting the process.
  *
  * The chain's `render` step (ADR-101). Reuses the same two paths the command
@@ -150,7 +191,13 @@ export async function runRender(options: {
   page?: string;
   overwrite?: boolean;
   strict?: boolean;
-}): Promise<{ rendered: number }> {
+}): Promise<{ rendered: number; skipped?: string }> {
+  // Before reading a single spec: rendering needs something on the other end,
+  // and not having it is a fact about the environment rather than a fault in
+  // the workspace. Reported and skipped, never thrown — see `bridgeTarget`.
+  const target = await bridgeTarget(options.file);
+  if ('skip' in target) return { rendered: 0, skipped: target.skip };
+
   const config = new ConfigLoader().load(options.config);
   const specDirectory = config.settings.spec.directory;
   if (!specDirectory) {
@@ -169,6 +216,11 @@ export async function runRender(options: {
   // the Dev Mode status index, read once for the whole run.
   const withConfig = {
     ...options,
+    // Resolved once, above, and passed down explicitly. `resolveFileKey` lets
+    // an explicit key through untouched, which is what keeps the interactive
+    // picker out of a chain: a `specs run` watch loop stopping on a readline
+    // prompt looks like a hang, with nothing on screen saying why.
+    file: target.fileKey,
     workspaceConventions: config.conventions,
     workspaceSettings: config.settings,
     devStatusByNodeId: loadDevStatusByNodeId(config),

@@ -48,6 +48,32 @@ It does **not** overwrite. Overwriting deletes an existing same-titled page comp
 
 With `--components`, a name that matches no spec folder is reported and skipped. If *none* of them match, the run fails rather than reporting a success that rendered nothing.
 
+#### When there is nowhere to render to
+
+Not having a Figma session open is a fact about your environment, not a fault in the workspace. Rendering is **skipped with a warning** and the rest of the run is unaffected — a build whose every other step wrote what it should still passes:
+
+```
+  ⚠ render skipped — the bridge is not running — start it with `specs bridge start`, then open the plugin
+
+✓ build complete — 4 steps, 1 skipped
+```
+
+Three cases skip rather than fail:
+
+| Situation | What it says |
+|---|---|
+| Bridge not running | How to start it |
+| Bridge up, no file connected | Open the plugin in the file you want |
+| More than one file connected | Names them, and tells you to pass `--file` |
+
+That last one matters more than it looks. `specs render` on its own prompts you to pick a file; a chain must never do that, because under [`run`](/cli/commands/run/) the prompt could arrive mid-pass with nobody watching, and the loop would sit there looking hung.
+
+A render that was actually *attempted* and failed is a real failure and does fail the run — a title collision, a bad spec, or a `--file` naming something that isn't connected.
+
+### `--file <fileKey>`
+
+Which connected Figma file to render into, when more than one is open. Only meaningful with `--render`.
+
 ### What is not in the chain
 
 **`specs fetch`** is not a step. Everything above runs because a file it watches changed, and fetch's input is the Figma file — which the CLI cannot watch. It is something you run when you mean to, and what it writes into `data/` is picked up from `scan` onward. In a script, say so plainly:
@@ -64,6 +90,7 @@ specs fetch && specs build
 | `--skip <steps...>` | Run everything except these steps |
 | `--components <keys...>` | Limit the run to these component folders |
 | `--render` | Add the `render` step at the end — writes to the connected Figma file |
+| `--file <fileKey>` | With `--render`: which connected Figma file to render into |
 | `--dry-run` | Print the steps that would run, and run nothing |
 | `--config <path>` | A workspace whose `config/` is not in the current directory |
 | `--verbose` | Per-step detail |
@@ -76,8 +103,10 @@ specs fetch && specs build
 
 | Code | Meaning |
 |---|---|
-| `0` | Every step succeeded |
+| `0` | Every step succeeded, or was skipped for a reason outside the workspace |
 | non-zero | A step failed — the code is the one that step's own command would have returned |
+
+A skipped step never decides the exit code. The only step that can skip is `render`, and only when there is no Figma session to render into.
 
 ## The license is checked once
 

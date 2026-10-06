@@ -28,11 +28,15 @@ export interface DriveOptions extends PlanOptions {
   configPath?: string;
   verbose?: boolean;
   dryRun?: boolean;
+  /** `--file`, passed through to the render step. */
+  fileKey?: string;
 }
 
 export interface PassResult {
   ran: number;
   failed: number;
+  /** Steps that could not run for a reason outside the workspace. Not failures. */
+  skipped: number;
 }
 
 function describe(steps: Step[]): string {
@@ -47,11 +51,17 @@ async function runSteps(
 ): Promise<PassResult> {
   let ran = 0;
   let failed = 0;
+  let skipped = 0;
 
   for (const step of steps) {
     const started = Date.now();
     try {
       const outcome = await step.run(context);
+      if (outcome.skipped) {
+        skipped++;
+        console.warn(`${prefix}  ⚠ ${step.label} skipped — ${outcome.detail ?? 'not available'}`);
+        continue;
+      }
       ran++;
       const detail = outcome.detail ? ` — ${outcome.detail}` : '';
       console.log(`${prefix}  ✓ ${step.label}${detail} (${((Date.now() - started) / 1000).toFixed(1)}s)`);
@@ -71,7 +81,7 @@ async function runSteps(
     }
   }
 
-  return { ran, failed };
+  return { ran, failed, skipped };
 }
 
 /** `specs build` — one pass, then exit. */
@@ -93,16 +103,19 @@ export async function build(workspace: Workspace, options: DriveOptions = {}): P
   console.log('');
   const result = await runSteps(
     plan.steps,
-    { workspace, components, configPath: options.configPath, verbose: options.verbose ?? false, watching: false },
+    { workspace, components, configPath: options.configPath, verbose: options.verbose ?? false, watching: false, fileKey: options.fileKey },
     '',
   );
 
   console.log('');
   if (result.failed > 0) {
-    console.error(`✗ build failed at step ${result.ran + 1} of ${plan.steps.length}`);
+    console.error(`✗ build failed at step ${result.ran + result.skipped + 1} of ${plan.steps.length}`);
     return 1;
   }
-  console.log(`✓ build complete — ${result.ran} step${result.ran === 1 ? '' : 's'}`);
+  // A skip is named in the summary as well as where it happened: "build
+  // complete" on its own would read as though everything asked for was done.
+  const skipNote = result.skipped > 0 ? `, ${result.skipped} skipped` : '';
+  console.log(`✓ build complete — ${result.ran} step${result.ran === 1 ? '' : 's'}${skipNote}`);
   return 0;
 }
 
@@ -116,6 +129,7 @@ export async function run(workspace: Workspace, options: DriveOptions = {}): Pro
     configPath: options.configPath,
     verbose: options.verbose ?? false,
     watching: true,
+    fileKey: options.fileKey,
   };
 
   console.log(`[specs run] ${describe(plan.steps)}`);

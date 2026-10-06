@@ -11,7 +11,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs-extra';
 import os from 'os';
 import path from 'path';
-import { runRender } from '../../../src/commands/RenderCommand.js';
+import { runRender, bridgeTarget } from '../../../src/commands/RenderCommand.js';
 import { StepError } from '../../../src/pipeline/StepError.js';
 
 let root: string;
@@ -66,5 +66,61 @@ describe('runRender — scoping by component', () => {
   it('stops when there is no specs directory to render from', async () => {
     fs.removeSync(path.join(root, 'specs'));
     await expect(runRender({ components: ['dsButton'] })).rejects.toThrow(/specs directory not found/);
+  });
+});
+
+/**
+ * Not having somewhere to render *to* is a fact about the environment, not a
+ * fault in the workspace. It is reported and skipped, so a build whose every
+ * other step wrote what it should still passes — and so a watch loop does not
+ * die the moment Figma is closed.
+ */
+describe('bridgeTarget — when rendering cannot happen', () => {
+  const status = (connections: Array<{ fileKey: string; fileName?: string }>) =>
+    (async () => ({ connections })) as never;
+
+  it('skips when the bridge is not running, and says how to start it', async () => {
+    const unreachable = (async () => { throw new Error('ECONNREFUSED'); }) as never;
+    const result = await bridgeTarget(undefined, unreachable);
+    expect(result).toHaveProperty('skip');
+    expect((result as { skip: string }).skip).toMatch(/bridge is not running/);
+    expect((result as { skip: string }).skip).toContain('specs bridge start');
+  });
+
+  it('skips when the bridge is up but no file is connected', async () => {
+    const result = await bridgeTarget(undefined, status([]));
+    expect((result as { skip: string }).skip).toMatch(/no Figma file is connected/);
+  });
+
+  it('skips when more than one file is connected, naming them and the way out', async () => {
+    const result = await bridgeTarget(undefined, status([
+      { fileKey: 'aaa', fileName: 'Library' },
+      { fileKey: 'bbb', fileName: 'Testing' },
+    ]));
+    const skip = (result as { skip: string }).skip;
+    expect(skip).toMatch(/2 Figma files are connected/);
+    expect(skip).toContain('--file');
+    expect(skip).toContain('Library');
+    expect(skip).toContain('Testing');
+  });
+
+  it('never prompts on an ambiguous bridge — a watch loop would stop dead waiting for a keystroke', async () => {
+    // The picker reads stdin. Reaching it from a chain is the bug; the skip
+    // above is what prevents it, so there is nothing here to answer.
+    const result = await bridgeTarget(undefined, status([
+      { fileKey: 'aaa' },
+      { fileKey: 'bbb' },
+    ]));
+    expect(result).not.toHaveProperty('fileKey');
+  });
+
+  it('takes the sole connection when there is exactly one', async () => {
+    const result = await bridgeTarget(undefined, status([{ fileKey: 'only', fileName: 'Testing' }]));
+    expect(result).toEqual({ fileKey: 'only' });
+  });
+
+  it('passes an explicit --file straight through without asking the bridge', async () => {
+    const neverCalled = (async () => { throw new Error('should not be consulted'); }) as never;
+    expect(await bridgeTarget('chosen', neverCalled)).toEqual({ fileKey: 'chosen' });
   });
 });

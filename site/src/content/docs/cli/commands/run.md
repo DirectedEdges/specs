@@ -72,6 +72,7 @@ One consequence worth knowing: a session holds the answer until you quit it. If 
 | `--skip <steps...>` | Everything except these steps |
 | `--components <keys...>` | Limit every pass to these component folders |
 | `--render` | Also render each changed spec into the connected Figma file |
+| `--file <fileKey>` | With `--render`: which connected Figma file to render into |
 | `--dry-run` | Print the plan and the paths it would watch, then stop |
 | `--config <path>` | A workspace whose `config/` is not in the current directory |
 | `--verbose` | Per-step detail |
@@ -85,6 +86,19 @@ Renders each changed spec back into the connected Figma file as the last step of
 Unlike [`specs build --render`](/cli/commands/build/#--render), this **overwrites**: it deletes the existing same-titled page component before re-rendering. In a watch loop that is the whole point — you edit a spec, the component in Figma is replaced. It is also why the flag is off by default, and why the one-shot `build` refuses instead.
 
 Scoping applies here too. A spec edit is already narrowed to the component it is inside, so a pass renders that one component rather than the catalogue.
+
+**Closing Figma does not end your session.** If the bridge stops, or no file is connected, rendering is skipped with a warning and the rest of the pass carries on as normal. Reopen the plugin and the next pass renders again — there is nothing to restart.
+
+```
+  ✓ react — 1 component (0.4s)
+  ⚠ render skipped — no Figma file is connected — open the plugin in the file you want to render into
+```
+
+If more than one Figma file is connected, rendering is skipped too, naming them and asking for `--file <fileKey>`. It is never a prompt: `specs render` on its own asks you to pick, but a watch loop that stopped on a keystroke — possibly mid-pass, hours later — would just look hung.
+
+### `--file <fileKey>`
+
+Which connected Figma file `--render` targets, when more than one is open.
 
 ## `run` and `specs storybook dev`
 

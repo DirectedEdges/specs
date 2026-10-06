@@ -177,7 +177,9 @@ const render: Step = {
       config: context.configPath,
       components: context.components.length > 0 ? context.components : undefined,
       overwrite: context.watching,
+      file: context.fileKey,
     });
+    if (result.skipped) return { skipped: true, detail: result.skipped };
     return { detail: `${result.rendered} component${result.rendered === 1 ? '' : 's'}` };
   },
 };

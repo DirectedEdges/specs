@@ -52,11 +52,24 @@ export interface StepContext {
    * loop and a destructive surprise in a one-shot build.
    */
   watching: boolean;
+  /** `--file`: which connected Figma file `render` targets. Only `render` reads it. */
+  fileKey?: string;
 }
 
 export interface StepOutcome {
   /** A short line for the run summary — "12 components", "4 files changed". */
   detail?: string;
+  /**
+   * The step did not run, and that is not a failure.
+   *
+   * For conditions outside the workspace that mean the work cannot happen
+   * rather than that something is wrong: no bridge for `render` to talk to,
+   * more than one Figma file connected with no way to tell which was meant.
+   * Reported loudly, counted separately, and never allowed to decide an exit
+   * code — a missing Figma session should not fail a build whose every other
+   * step wrote what it was supposed to.
+   */
+  skipped?: boolean;
 }
 
 export interface Step {
