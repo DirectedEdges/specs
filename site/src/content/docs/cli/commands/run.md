@@ -109,23 +109,31 @@ If more than one Figma file is connected, rendering is skipped too, naming them 
 
 Which connected Figma file `--render` targets, when more than one is open.
 
-## `run` and `specs storybook dev`
+## Storybook
 
-**`specs run` does not serve Storybook.** It runs the publish step, so the content Storybook shows stays correct; serving it is still [`specs storybook dev`](/cli/commands/storybook/#specs-storybook-dev)'s job, along with the index-recovery handling that comes with running the server.
+`specs run` starts Storybook for you, once the content it serves is current, and prints where:
 
-| | Watches | Serves Storybook |
-|---|---|---|
-| [`specs storybook dev`](/cli/commands/storybook/#specs-storybook-dev) | `specs/`, `config/`, `assets/` | Yes |
-| `specs run` | All of that, plus `data/`, the manifest, and `storybook/content-overrides/` | No |
-
-They are made to run side by side — `run` keeps everything up to date, `dev` shows it:
-
-```bash
-specs run                 # one terminal
-specs storybook dev       # another
+```
+  ✓ storybook publish — already current (0.1s)
+[specs run] Storybook starting — http://localhost:6006
 ```
 
-`specs storybook dev` on its own is still the right choice when Storybook is what you are working on and you generate your specs yourself.
+It uses the Storybook your workspace installed, through the script [`specs storybook init`](/cli/commands/storybook/#specs-storybook-init) scaffolded — your port, your flags. The CLI never ships or installs Storybook itself.
+
+If Storybook exits — it needs Node 20.19+, and will say so — the message names it and **everything else keeps running.** The chain does not depend on the server.
+
+`--skip storybook` skips the server too, not just the publish step. A server showing content nothing is maintaining would be worse than no server.
+
+### `run` and `specs storybook dev`
+
+Both serve Storybook, and they share one implementation of it — the server and its index recovery live in one place, so they cannot drift.
+
+| | Starts at | Serves Storybook |
+|---|---|---|
+| [`specs storybook dev`](/cli/commands/storybook/#specs-storybook-dev) | `specs/` — you generate yourself | Yes |
+| `specs run` | `data/` — the whole chain | Yes |
+
+`specs storybook dev` remains the right choice when Storybook is what you're working on and you'd rather run `generate` by hand. `specs run` is the one command for everything.
 
 ## See Also
 

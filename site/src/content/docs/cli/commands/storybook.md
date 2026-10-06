@@ -53,8 +53,8 @@ Publishes once, then starts everything that reacts and keeps running until Ctrl-
 
 `fetch`, `generate`, and `render` stay yours to run; everything downstream of them follows. One interrupt stops all children.
 
-:::note[Or watch the whole workspace]
-`dev` starts at `specs/` — you generate your specs yourself. [`specs run`](/cli/commands/run/) *(experimental)* watches the same things **and** `data/` and the curation manifest, so a fresh fetch or a ticked checkbox flows all the way through to Storybook without a second command. `dev` is unchanged and still the right choice when Storybook is what you are working on.
+:::note[Or run the whole workspace]
+`dev` starts at `specs/` — you generate your specs yourself. [`specs run`](/cli/commands/run/) *(experimental)* starts at `data/` and serves Storybook as well, so a fresh fetch or a ticked checkbox flows all the way through without a second command. Both share one implementation of the server and its index recovery. `dev` is unchanged and still the right choice when Storybook is what you're working on.
 :::
 
 `dev` also watches the instance's health. Storybook caches a per-file parse

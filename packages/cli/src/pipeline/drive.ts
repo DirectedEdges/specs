@@ -12,6 +12,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { resolveWorkspace, type Workspace } from '../storybook/workspace.js';
+import { serveStorybook } from '../storybook/serve.js';
 import type { Step, StepContext } from './types.js';
 import { StepError } from './types.js';
 import { entryFor, fromEntry, resolvePlan, watchPaths, writtenBy, type PlanOptions } from './plan.js';
@@ -155,6 +156,22 @@ export async function run(workspace: Workspace, options: DriveOptions = {}): Pro
   console.log('');
   await runSteps(plan.steps, context, '');
 
+  // Storybook comes up once the content it serves is current, so it never
+  // starts against a half-written tree. Skipping the storybook step skips the
+  // server with it — asking not to publish and getting a server anyway would be
+  // a server showing content nothing is maintaining.
+  const storybookChild = plan.steps.some(step => step.id === 'storybook')
+    ? serveStorybook(workspace, 'specs run')
+    : null;
+  if (storybookChild) {
+    const stop = () => {
+      storybookChild.kill('SIGINT');
+      process.exit(0);
+    };
+    process.on('SIGINT', stop);
+    process.on('SIGTERM', stop);
+  }
+
   const watched = watchPaths(plan, workspace);
   console.log('');
   console.log(`[specs run] watching ${watched.map(p => path.relative(workspace.root, p) || '.').join(', ')} — Ctrl-C to stop`);
@@ -192,10 +209,21 @@ export async function run(workspace: Workspace, options: DriveOptions = {}): Pro
       console.error(`[specs run] ${error instanceof Error ? error.message : String(error)}`);
       return;
     }
-    const after = currentPlan.steps.map(s => s.id).join(',');
-    if (before !== after) {
+    // Name what joined or left, not the whole new list. Printing the full chain
+    // here reads as though those steps just ran — it is the line directly above
+    // the one that says what *is* running, in the same format.
+    const afterIds: string[] = currentPlan.steps.map(s => s.id);
+    const beforeIds: string[] = before ? before.split(',') : [];
+    const dropped = beforeIds.filter(id => !afterIds.includes(id));
+    const added = afterIds.filter(id => !beforeIds.includes(id));
+    if (dropped.length > 0 || added.length > 0) {
       console.log('');
-      console.log(`[specs run] the workspace changed shape — now: ${describe(currentPlan.steps)}`);
+      if (dropped.length > 0) {
+        console.log(`[specs run] ${dropped.join(' and ')} ${dropped.length === 1 ? 'is' : 'are'} no longer in this workspace — dropped from the chain`);
+      }
+      if (added.length > 0) {
+        console.log(`[specs run] ${added.join(' and ')} ${added.length === 1 ? 'is' : 'are'} back — added to the chain`);
+      }
     }
 
     // Earliest entry among everything that changed, and the union of what it

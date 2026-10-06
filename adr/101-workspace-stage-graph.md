@@ -531,11 +531,15 @@ Shared options:
 There is no `--fetch`. Fetching is `specs fetch`, which a person runs when they
 mean to; what it writes into `data/` is picked up from `scan` onward.
 
-`run` does **not** start the Storybook dev server. It runs the publish step —
-writing what Storybook shows — and leaves serving to `specs storybook dev`,
-which already owns the server and the index-recovery handling that goes with it.
-Duplicating that would mean two copies of the subtlest code in the workspace.
-The two run side by side: `run` keeps the content correct, `dev` serves it.
+`run` starts the Storybook dev server once the publish step has made its content
+current, when the workspace has a Storybook host. One command covers the whole
+workspace, which is the point of having it at all.
+
+The server and its index-recovery handling are shared with `specs storybook dev`
+rather than reimplemented — one function both commands call. That code is the
+subtlest in the package and the least likely to survive being kept in step
+twice. `--skip storybook` skips the server along with the publish: a server
+showing content nothing maintains is worse than no server.
 
 ### The chain
 
@@ -606,7 +610,7 @@ specs/Alert/api.yaml changed
 |---|---|---|
 | Traversal | Once | Once at startup, then per change |
 | Stage failure | Stop; exit non-zero | Report the stage; keep watching |
-| Last step | `storybook publish`, then the process exits | `storybook publish`, then back to waiting. Serving Storybook stays `specs storybook dev`'s job |
+| Last step | `storybook publish`, then the process exits | `storybook publish`, then back to waiting, with the Storybook server up alongside |
 | Which steps run | Decided once | Re-derived per pass — a workspace changes shape while a session is open |
 | Concurrency | Independent stages may run in parallel | Same, plus in-flight runs are cancelled by a newer change |
 | Entitlement | Resolved once, before the first stage | Resolved once, at startup, for the session |
