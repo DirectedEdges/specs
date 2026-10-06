@@ -166,6 +166,19 @@ specs webcomponents    # Lit custom elements into webcomponents/
 
 No arguments — the target is the command. Both read the default file layout `generate` writes (the split flags at their `true` defaults), and both write the same platform-neutral `assets/cssvars/` tree, so running both is not a conflict. See [`react`](/cli/commands/react/) and [`webcomponents`](/cli/commands/webcomponents/) for what each file carries.
 
+## Once you have done it the long way
+
+Steps 4 to 6 are the same chain every time: scan, generate, emit each platform, publish Storybook. Two experimental commands do all of it in order, working out what your workspace has from what is on disk:
+
+```bash
+specs build    # run the chain once
+specs run      # run it, then watch and redo whatever a change affects
+```
+
+`specs fetch` stays separate on purpose — it is the step that spends an API call, so you decide when. Everything after it follows from what lands in `data/`.
+
+Learning the individual commands first is worth it: they are what the chain runs, and what you reach for when only one of them needs to happen. See [`build`](/cli/commands/build/) and [`run`](/cli/commands/run/).
+
 ##  Operationalize: CI/CD pipeline
 
 To operationalize spec generation, teams use a github action script that runs at a specific cadence.

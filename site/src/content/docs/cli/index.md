@@ -6,8 +6,12 @@ The Specs command-line interface (CLI) generates design system specifications fr
 
 ## Commands
 
+Most commands below do one job. Two do all of them in order.
+
 | Command | Purpose | Output |
 |---------|---------|--------|
+| [`build`](/cli/commands/build/) *(experimental)* | Run every step below, in order, once | Everything the individual steps write |
+| [`run`](/cli/commands/run/) *(experimental)* | The same, then watch and redo what a change affects | As above, kept current until Ctrl-C |
 | [`init`](/cli/commands/init/) | Initialize config files with defaults | `config/conventions/` (one file per platform), `config/settings.yaml` |
 | [`fetch`](/cli/commands/fetch/) | Download raw REST payloads from Figma | JSON files in `data.directory` |
 | [`scan`](/cli/commands/scan/) | List all components in file | Markdown manifest |
@@ -27,7 +31,20 @@ The Specs command-line interface (CLI) generates design system specifications fr
 
 - `--help` - Show command help (all commands)
 - `--version` - Show CLI version
-- `--verbose` - Enable detailed logging (fetch, scan, generate, react, webcomponents, analyze, render)
+- `--verbose` - Enable detailed logging (build, run, fetch, scan, generate, react, webcomponents, analyze, render)
+
+### The chain `build` and `run` perform
+
+Each step reads what the one before it wrote:
+
+```
+data/ ──► data/<alias>.manifest.md ──► specs/ ──┬──► react/src/
+  ▲              ▲                               ├──► webcomponents/src/
+  │              │                               └──► storybook/content/
+specs fetch    you tick the boxes
+```
+
+`specs fetch` is not part of it — its input is the Figma file, which the CLI cannot watch, so it is something you run when you mean to. `specs render` is not part of it either: it writes to a live Figma file. Both stay commands of their own.
 
 ## Free vs. Pro
 

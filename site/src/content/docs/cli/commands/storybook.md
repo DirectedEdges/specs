@@ -43,7 +43,7 @@ The dev-server port written into the scaffolded `package.json` (default `6006`).
 
 ## `specs storybook dev`
 
-The one process a designer runs. Publishes once, then starts everything that reacts and keeps running until Ctrl-C:
+Publishes once, then starts everything that reacts and keeps running until Ctrl-C:
 
 | Child | Job |
 |---|---|
@@ -52,6 +52,10 @@ The one process a designer runs. Publishes once, then starts everything that rea
 | The workspace's own Storybook | Serves, hot-reloads emitted output, and republishes generated pages when `config/`, `specs/`, or `assets/` change |
 
 `fetch`, `generate`, and `render` stay yours to run; everything downstream of them follows. One interrupt stops all children.
+
+:::note[Or watch the whole workspace]
+`dev` starts at `specs/` — you generate your specs yourself. [`specs run`](/cli/commands/run/) *(experimental)* watches the same things **and** `data/` and the curation manifest, so a fresh fetch or a ticked checkbox flows all the way through to Storybook without a second command. `dev` is unchanged and still the right choice when Storybook is what you are working on.
+:::
 
 `dev` also watches the instance's health. Storybook caches a per-file parse
 failure — a half-saved story file can leave its index returning 500 after the

@@ -11,6 +11,17 @@ Three ways to generate specs, depending on how many components you need:
 
 There's also a reverse direction — turning a spec back into a live Figma component with [`render`](#render-to-figma). Unlike the workflows above, it's inherently interactive (it needs an open Figma session) and isn't a fit for CI/CD.
 
+## Or let one command do it
+
+The workflows below type each step. [`specs build`](/cli/commands/build/) *(experimental)* runs all of them in order instead, and [`specs run`](/cli/commands/run/) *(experimental)* keeps doing it as you work:
+
+```bash
+specs fetch     # you choose when to spend an API call
+specs build     # scan → generate → react, webcomponents → storybook
+```
+
+Both work out what your workspace has from what is on disk, so there is nothing to configure. They are worth reading first if you keep forgetting which command comes next — that is the problem they exist to remove. The steps below are still the reference for what each one does, and still what you reach for when you want to run just one.
+
 ## Single Component
 
 Generate a spec for one component:
@@ -156,6 +167,17 @@ jobs:
 **Secrets Required:**
 - `FIGMA_TOKEN` - Figma Personal Access Token
 - `SPECS_LICENSE_KEY` - Specs license key (optional, for Pro features)
+
+To bring the emitted platform trees and Storybook up to date in the same run, replace the generate step with [`specs build`](/cli/commands/build/) *(experimental)*. It runs generate and everything downstream of it, and exits non-zero at the first step that fails:
+
+```yaml
+      - name: Build the workspace
+        run: specs build
+        env:
+          SPECS_LICENSE_KEY: ${{ secrets.SPECS_LICENSE_KEY }}
+```
+
+Keep the fetch as its own step either way. `build` is deliberately local — it needs no `FIGMA_TOKEN` and cannot reach a live Figma file, which is what makes the network call visible in the log rather than buried inside a longer command.
 
 ### Shell Script for Daily Sync
 

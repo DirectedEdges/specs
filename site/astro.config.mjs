@@ -139,6 +139,10 @@ export default defineConfig({
           items: [
             { label: 'Overview', slug: 'cli' },
             { label: 'Workflows', slug: 'cli/workflows' },
+            // The whole-workspace commands lead: they are what most people
+            // want, and the rest are the steps they run.
+            { label: 'build', slug: 'cli/commands/build', badge: experimental },
+            { label: 'run', slug: 'cli/commands/run', badge: experimental },
             { label: 'init', slug: 'cli/commands/init' },
             { label: 'fetch', slug: 'cli/commands/fetch' },
             { label: 'scan', slug: 'cli/commands/scan' },
