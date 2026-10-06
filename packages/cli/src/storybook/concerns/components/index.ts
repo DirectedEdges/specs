@@ -7,6 +7,7 @@ import yaml from 'yaml';
 import type { Concern, BuiltFile } from '../types.js';
 import type { Workspace } from '../../workspace.js';
 import { resolveSpecsLayout } from '../../../utilities/specsLayout.js';
+import { kebabizePath } from '../../../transforms/css/values.js';
 
 export type TabId = 'react' | 'webcomponents' | 'specs';
 
@@ -39,9 +40,22 @@ export interface ModesJson {
   controls: ModeControl[];
 }
 
-/** Matches the cssvars emitters' kebabization of mode names into attr values. */
+/**
+ * A mode name as the attribute value the stylesheet selects on.
+ *
+ * This calls the cssvars emitter's own kebabization rather than restating it.
+ * The two must agree exactly: cssvars writes the rule as
+ * `:root[data-<collection>="<kebabizePath(mode)>"]`, and this value is what the
+ * toolbar stamps onto the root — so a disagreement produces a control that sets
+ * an attribute no selector matches, and the mode silently never switches.
+ *
+ * It was a hand-written copy held in step by a comment, and it had drifted: the
+ * copy split camelCase (`darkMode` → `dark-mode`) and left `/` alone, where this
+ * strips the case boundary (`darkmode`) and turns `/` into `-`. Any camelCase or
+ * slashed mode name was a dead toolbar entry (specs#689).
+ */
 function kebabMode(name: string): string {
-  return name.trim().replace(/([a-z0-9])([A-Z])/g, '$1-$2').replace(/[\s_]+/g, '-').replace(/-+/g, '-').toLowerCase();
+  return kebabizePath(name.trim());
 }
 
 /**

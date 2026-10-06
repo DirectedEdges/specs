@@ -314,21 +314,35 @@ describe('PropsAnalyzer', () => {
     expect(slot?.nullable).toBe(true);
   });
 
-  it('applies the per-type default ADR-065 documents for an absent nullable', () => {
-    // Open value sets accept null; a closed one already enumerates every value
-    // it accepts. Testing for an explicit `true` reported the opposite of the
-    // documented default for essentially every non-enum prop.
-    expect(propIsNullable({ type: 'string' })).toBe(true);
-    expect(propIsNullable({ type: 'number' })).toBe(true);
-    expect(propIsNullable({ type: 'image' })).toBe(true);
-    expect(propIsNullable({ type: 'slot' })).toBe(true);
-    expect(propIsNullable({ type: 'string', enum: ['sm', 'md'] })).toBe(false);
-    expect(propIsNullable({ type: 'boolean' })).toBe(false);
-  });
+  /**
+   * MIRROR PIN (specs#689). `propIsNullable` exists twice — here and in
+   * `packages/from-specs/src/contract.ts` in the specs-from-figma repo — because
+   * the CLI cannot import the closed core. The two must agree exactly: this one
+   * decides what the analysis reports, that one decides what the emitted contract
+   * declares, and a disagreement makes a spec's analysis and its contract state
+   * different things about the same prop.
+   *
+   * This table is duplicated verbatim in that repo's
+   * `packages/from-specs/tests/contract.test.ts`. Keep them diffable: change both,
+   * or neither.
+   */
+  const NULLABILITY_TABLE: Array<[label: string, prop: Record<string, unknown>, nullable: boolean]> = [
+    // Absent `nullable`: the per-type default ADR-065 documents. Open value sets
+    // accept null; a closed one already enumerates every value it accepts.
+    ['an open string', { type: 'string' }, true],
+    ['a number', { type: 'number' }, true],
+    ['an image', { type: 'image' }, true],
+    ['a slot', { type: 'slot' }, true],
+    ['an enum', { type: 'string', enum: ['sm', 'md'] }, false],
+    ['a boolean', { type: 'boolean' }, false],
+    // An explicit `nullable` always wins over the default, in both directions.
+    ['an open string pinned false', { type: 'string', nullable: false }, false],
+    ['an enum pinned true', { type: 'string', enum: ['sm', 'md'], nullable: true }, true],
+    ['a boolean pinned true', { type: 'boolean', nullable: true }, true],
+  ];
 
-  it('an explicit nullable always wins over the default', () => {
-    expect(propIsNullable({ type: 'string', nullable: false })).toBe(false);
-    expect(propIsNullable({ type: 'string', enum: ['sm', 'md'], nullable: true })).toBe(true);
+  it.each(NULLABILITY_TABLE)('treats %s as nullable=%j', (_label, prop, expected) => {
+    expect(propIsNullable(prop)).toBe(expected);
   });
 
   it('reports a slot prop with no declared nullable as nullable', async () => {

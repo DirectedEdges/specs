@@ -5,7 +5,8 @@ import os from 'os';
 import { fileURLToPath } from 'url';
 import { Storybook } from '../../../src/commands/StorybookCommand.js';
 import { registry, concernNames } from '../../../src/storybook/concerns/registry.js';
-import { deriveTabs, deriveCompositions } from '../../../src/storybook/concerns/components/index.js';
+import { deriveTabs, deriveCompositions, deriveModes } from '../../../src/storybook/concerns/components/index.js';
+import { kebabizePath } from '../../../src/transforms/css/values.js';
 import { buildColorData } from '../../../src/storybook/concerns/foundations/color.js';
 import { buildIconsData } from '../../../src/storybook/concerns/foundations/icons.js';
 import { buildTypographyData } from '../../../src/storybook/concerns/foundations/typography.js';
@@ -67,6 +68,52 @@ describe('deriveTabs', () => {
     expect(deriveTabs(ws(true, false))).toEqual({ tabs: ['react', 'specs'], canvas: 'react' });
     expect(deriveTabs(ws(false, true))).toEqual({ tabs: ['webcomponents', 'specs'], canvas: 'webcomponents' });
     expect(deriveTabs(ws(false, false))).toEqual({ tabs: ['specs'], canvas: 'specs' });
+  });
+});
+
+/**
+ * The mode toolbar's attribute VALUE and the stylesheet's attribute selector are
+ * one contract across two emitters: cssvars writes
+ * `:root[data-<collection>="<kebabizePath(mode)>"]`, and the toolbar stamps
+ * whatever `deriveModes` puts in `modes.json`. A disagreement is invisible —
+ * the control sets an attribute no selector matches and the mode never switches
+ * — so the agreement is pinned here rather than left to a comment (specs#689).
+ *
+ * `deriveModes` now calls `kebabizePath` instead of restating it; this fails if
+ * anyone reintroduces a local copy that drifts.
+ */
+describe('mode names kebabize identically for the toolbar and the stylesheet', () => {
+  const modesWorkspace = (dir: string) => ({ assetsDir: dir } as Workspace);
+
+  const derive = (modeNames: string[]): Array<{ name: string; value: string }> => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modes-'));
+    fs.ensureDirSync(path.join(dir, 'cssvars'));
+    fs.writeJsonSync(path.join(dir, 'cssvars', 'modes.json'), {
+      Theme: { attr: 'data-theme', modes: modeNames, default: modeNames[0] },
+    });
+    const { controls } = deriveModes(modesWorkspace(dir), { collections: ['Theme'] });
+    fs.removeSync(dir);
+    return controls[0].modes;
+  };
+
+  it.each([
+    ['a space-separated name', 'High Contrast', 'high-contrast'],
+    ['a camelCase name', 'darkMode', 'darkmode'],
+    ['an underscored name', 'dark_mode', 'dark-mode'],
+    ['a slashed name', 'Brand/Alt', 'brand-alt'],
+    ['a plain name', 'Dark', 'dark'],
+  ])('%s resolves to the selector the stylesheet writes', (_label, modeName, expected) => {
+    // The stylesheet's side of the contract, called the same way Cssvars.ts does.
+    expect(kebabizePath(modeName)).toBe(expected);
+    // The toolbar's side, which must land on the same string.
+    expect(derive([modeName, 'Other'])[0]).toEqual({ name: modeName, value: expected });
+  });
+
+  it('keeps the raw name for display and the kebab form for the attribute', () => {
+    expect(derive(['Dark Mode', 'Light Mode'])).toEqual([
+      { name: 'Dark Mode', value: 'dark-mode' },
+      { name: 'Light Mode', value: 'light-mode' },
+    ]);
   });
 });
 
