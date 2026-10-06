@@ -14,6 +14,7 @@ import { isV1Manifest, migrateV1ToV2 } from '../utilities/ManifestMigrationV1ToV
 import { glyphPatternMatch } from '../utilities/glyphPatternMatch.js';
 import { specFolderKey } from '../utilities/specFolderKey.js';
 import { ConfigLoader } from '../Config/ConfigLoader.js';
+import { StepError } from '../pipeline/StepError.js';
 import { figmaOf } from '../Config/PlatformConventions.js';
 
 const SCAN_FORMAT_VERSION = 2;
@@ -35,6 +36,14 @@ interface ScanOptions {
   resetChecks: boolean;
   variables?: string;
   verbose: boolean;
+}
+
+export interface ScanResult {
+  /** Where the manifest was written. */
+  manifestPath: string;
+  components: number;
+  compositions: number;
+  selected: number;
 }
 
 /**
@@ -418,23 +427,20 @@ function generateManifestV2(
   return lines.join('\n') + '\n';
 }
 
-export const Scan = new Command('scan')
-  .description('Scan Figma file and generate component manifest for curation')
-  .argument('[file]', 'Path to Figma JSON file (default: resolved from a configured source in the workspace settings)')
-  .option('--source <alias>', 'Configured source alias to scan (required when multiple sources exist)')
-  .option('-o, --output <path>', 'Output manifest file path (default: {data.directory}/{alias}.manifest.md)')
-  .option('--data-dir <dir>', 'Override data directory for default manifest output path')
-  .option('--config <path>', 'Path to a config/ directory or legacy specs.config.yaml')
-  .option('--include-all', 'Select every component for this run — overrides settings.curation.defaultSelection', false)
-  .option('--keep-checks', 'Prior checkbox state wins over a changed devStatus for this run — overrides settings.curation.preserveManualSelections', false)
-  .option('--reset-checks', 'Ignore the prior manifest and re-derive every checkbox from settings.curation', false)
-  .option('-v, --variables <path>', 'Variables file path (for reference in manifest)')
-  .option('--verbose', 'Enable detailed logging', false)
-  .action(async (fileArg: string | undefined, options: ScanOptions) => {
-    try {
+/**
+ * Scan one Figma payload and write its curation manifest.
+ *
+ * Returns rather than exiting, so `specs build` and `specs run` can call it as
+ * one step of a chain (ADR-101). A condition that stops the scan throws
+ * `StepError` carrying the exit code the command would have used; the command
+ * body below turns that back into an exit.
+ */
+export async function runScan(
+  fileArg: string | undefined,
+  options: ScanOptions,
+): Promise<ScanResult> {
       if (options.keepChecks && options.resetChecks) {
-        console.error('Error: --keep-checks and --reset-checks are mutually exclusive');
-        process.exit(ERROR_CODES.INVALID_ARGS);
+        throw new StepError('--keep-checks and --reset-checks are mutually exclusive', ERROR_CODES.INVALID_ARGS);
       }
 
       const config = new ConfigLoader().load(options.config);
@@ -446,8 +452,7 @@ export const Scan = new Command('scan')
       let scanAlias: string | null = null;
       if (fileArg) {
         if (options.source) {
-          console.error('Error: Pass either a <file> argument or --source, not both');
-          process.exit(ERROR_CODES.INVALID_ARGS);
+          throw new StepError('Pass either a <file> argument or --source, not both', ERROR_CODES.INVALID_ARGS);
         }
         file = fileArg;
       } else {
@@ -460,9 +465,11 @@ export const Scan = new Command('scan')
         const fetchedOnDisk = (alias: string) => fs.existsSync(path.join(resolvedDir, `${alias}.file.json`));
 
         if (fileSources.length === 0 && !(options.source && fetchedOnDisk(options.source))) {
-          console.error('Error: No <file> argument provided and no sources configured in the workspace settings');
-          console.error('Tip: run `specs fetch` first, or pass a file path explicitly (e.g., `specs scan data/library.file.json`)');
-          process.exit(ERROR_CODES.INVALID_ARGS);
+          throw new StepError(
+            'No <file> argument provided and no sources configured in the workspace settings',
+            ERROR_CODES.INVALID_ARGS,
+            'Tip: run `specs fetch` first, or pass a file path explicitly (e.g., `specs scan data/library.file.json`)',
+          );
         }
 
         let alias: string;
@@ -470,19 +477,21 @@ export const Scan = new Command('scan')
           const match = fileSources.find(([name]) => name === options.source);
           if (!match && !fetchedOnDisk(options.source)) {
             const available = fileSources.map(([name]) => name).join(', ');
-            console.error(`Error: --source "${options.source}" did not match a configured source with file data`);
-            console.error(`Available: ${available || '(none)'}`);
-            console.error(`Tip: an unconfigured source needs its payload fetched first — \`specs fetch --source ${options.source}=<url>\``);
-            process.exit(ERROR_CODES.INVALID_ARGS);
+            throw new StepError(
+              `--source "${options.source}" did not match a configured source with file data\nAvailable: ${available || '(none)'}`,
+              ERROR_CODES.INVALID_ARGS,
+              `Tip: an unconfigured source needs its payload fetched first — \`specs fetch --source ${options.source}=<url>\``,
+            );
           }
           alias = match ? match[0] : options.source;
         } else if (fileSources.length === 1) {
           alias = fileSources[0][0];
         } else {
           const available = fileSources.map(([name]) => name).join(', ');
-          console.error('Error: Multiple sources configured. Specify one with --source <alias>.');
-          console.error(`Available: ${available}`);
-          process.exit(ERROR_CODES.INVALID_ARGS);
+          throw new StepError(
+            `Multiple sources configured. Specify one with --source <alias>.\nAvailable: ${available}`,
+            ERROR_CODES.INVALID_ARGS,
+          );
         }
 
         file = path.join(resolvedDir, `${alias}.file.json`);
@@ -514,17 +523,19 @@ export const Scan = new Command('scan')
       } else if (fileArg && fs.existsSync(file) && fs.statSync(file).isDirectory()) {
         sectioned = SectionedFile.openDir(file);
         if (!sectioned) {
-          console.error(`Error: ${file} is a directory but not a split payload (no manifest.json)`);
-          process.exit(ERROR_CODES.INVALID_ARGS);
+          throw new StepError(
+            `${file} is a directory but not a split payload (no manifest.json)`,
+            ERROR_CODES.INVALID_ARGS,
+          );
         }
       }
 
       if (!sectioned && !fs.existsSync(file)) {
-        console.error(`Error: File not found: ${file}`);
-        if (!fileArg) {
-          console.error('Tip: run `specs fetch` to download source data');
-        }
-        process.exit(ERROR_CODES.FILE_ERROR);
+        throw new StepError(
+          `File not found: ${file}`,
+          ERROR_CODES.FILE_ERROR,
+          fileArg ? undefined : 'Tip: run `specs fetch` to download source data',
+        );
       }
 
       const discovery: DiscoverySource = sectioned
@@ -718,13 +729,37 @@ export const Scan = new Command('scan')
       console.log(`Next: Edit ${path.basename(outputPath)} to adjust selections, then run:`);
       console.log(`  specs generate`);
 
+      return {
+        manifestPath: outputPath,
+        components: rows.length,
+        compositions: compositions.length,
+        selected: includedCount,
+      };
+}
+
+export const Scan = new Command('scan')
+  .description('Scan Figma file and generate component manifest for curation')
+  .argument('[file]', 'Path to Figma JSON file (default: resolved from a configured source in the workspace settings)')
+  .option('--source <alias>', 'Configured source alias to scan (required when multiple sources exist)')
+  .option('-o, --output <path>', 'Output manifest file path (default: {data.directory}/{alias}.manifest.md)')
+  .option('--data-dir <dir>', 'Override data directory for default manifest output path')
+  .option('--config <path>', 'Path to a config/ directory or legacy specs.config.yaml')
+  .option('--include-all', 'Select every component for this run — overrides settings.curation.defaultSelection', false)
+  .option('--keep-checks', 'Prior checkbox state wins over a changed devStatus for this run — overrides settings.curation.preserveManualSelections', false)
+  .option('--reset-checks', 'Ignore the prior manifest and re-derive every checkbox from settings.curation', false)
+  .option('-v, --variables <path>', 'Variables file path (for reference in manifest)')
+  .option('--verbose', 'Enable detailed logging', false)
+  .action(async (fileArg: string | undefined, options: ScanOptions) => {
+    try {
+      await runScan(fileArg, options);
       process.exit(ERROR_CODES.SUCCESS);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error(`Error: ${message}`);
+      if (error instanceof StepError && error.tip) console.error(error.tip);
       if (options.verbose && error instanceof Error && error.stack) {
         console.error(error.stack);
       }
-      process.exit(ERROR_CODES.GENERAL_ERROR);
+      process.exit(error instanceof StepError ? error.code : ERROR_CODES.GENERAL_ERROR);
     }
   });

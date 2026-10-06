@@ -15,7 +15,7 @@ import { CssvarsTransformer } from '../transforms/Cssvars.js';
 import { ReactTransformer, StoriesTransformer, proEntitled as reactProEntitled } from '@directededges/react-from-specs';
 import { WebComponentsTransformer, WcStoriesTransformer, proEntitled as wcProEntitled } from '@directededges/webcomponents-from-specs';
 import type { Transformer } from '../Types/Transformer.js';
-import { runEmitters, type EmitOptions } from './runEmitters.js';
+import { runEmitters, emitOnce, type EmitOptions, type EmitResult } from './runEmitters.js';
 
 interface TargetOptions extends EmitOptions {
   /** Commander sets this false when `--no-stories` is passed. */
@@ -59,6 +59,27 @@ function targetCommand(target: 'react' | 'webcomponents', description: string): 
         options,
       );
     });
+}
+
+/**
+ * Emit one target, without exiting the process (ADR-101).
+ *
+ * The command bodies above exit when they finish; `specs build` and `specs run`
+ * need the same work as a call that returns, so the chain can go on to the next
+ * step or report which one failed.
+ */
+export async function emitTarget(
+  target: 'react' | 'webcomponents',
+  options: EmitOptions & { stories?: boolean } = {},
+): Promise<EmitResult> {
+  return emitOnce(
+    {
+      label: target,
+      transformers: transformersFor(target, options.stories !== false),
+      proEntitled: target === 'react' ? reactProEntitled : wcProEntitled,
+    },
+    options,
+  );
 }
 
 export const React = targetCommand(

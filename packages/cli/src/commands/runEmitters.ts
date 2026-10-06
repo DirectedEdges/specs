@@ -60,7 +60,7 @@ export interface EmitRun {
   proEntitled?: () => Promise<boolean>;
 }
 
-interface EmitResult {
+export interface EmitResult {
   /** The resolved specs directory this run read from. */
   specsPath: string;
   /** The `config/` directory this run read conventions from, if there was one. */
@@ -92,7 +92,7 @@ class EmitSetupError extends Error {
  * are resolved here rather than by the caller, so a watch-triggered re-run picks
  * up a component directory added since the last one.
  */
-async function emitOnce(run: EmitRun, options: EmitOptions): Promise<EmitResult> {
+export async function emitOnce(run: EmitRun, options: EmitOptions): Promise<EmitResult> {
   const configLoader = new ConfigLoader();
   const config = configLoader.load(options.config);
 

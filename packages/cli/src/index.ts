@@ -35,17 +35,20 @@ import { Bridge } from './commands/BridgeCommand.js';
 import { Version } from './commands/VersionCommand.js';
 import { Skills } from './commands/SkillsCommand.js';
 import { Storybook } from './commands/StorybookCommand.js';
+import { Build, Run } from './commands/BuildRunCommands.js';
 
 declare const __SPECS_CLI_VERSION__: string;
 
 // Backward compatibility: export Scan also as Audit
 export const Audit = Scan;
 
-export { Generate, Scan, Fetch, Init, Migrate, ApplyCustomTokens, React, WebComponents, Analyze, Render, Bridge, Version, Skills, Storybook };
+export { Generate, Scan, Fetch, Init, Migrate, ApplyCustomTokens, React, WebComponents, Analyze, Render, Bridge, Version, Skills, Storybook, Build, Run };
 
 export const commands = {
   Init,
   Migrate,
+  Build,
+  Run,
   Generate,
   Scan,
   Fetch,
@@ -70,6 +73,10 @@ export function createProgram(): Command {
 
   program.addCommand(Init);
   program.addCommand(Migrate);
+  // The whole-workspace commands come before the individual steps they run:
+  // `specs --help` should lead with the one command most people want.
+  program.addCommand(Build);
+  program.addCommand(Run);
   program.addCommand(Generate);
   program.addCommand(Scan);
   program.addCommand(Fetch);

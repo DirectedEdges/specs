@@ -4,6 +4,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { DEFAULT_SETTINGS } from '@directededges/specs-schema';
 import { assertOutputPathShape } from '../../../src/commands/GenerateCommand.js';
+import { StepError } from '../../../src/pipeline/StepError.js';
 import type { CLIConfig } from '../../../src/Types/CLIConfig.js';
 
 /** A config whose split flags are the shipped defaults: both splits on. */
@@ -15,19 +16,22 @@ function configWith(overrides: Partial<typeof DEFAULT_SETTINGS.spec> = {}): CLIC
 
 afterEach(() => vi.restoreAllMocks());
 
-/** Run the guard, reporting whether it exited and what it said. */
+/**
+ * Run the guard, reporting whether it stopped the run and what it said.
+ *
+ * Stopping is a thrown `StepError` rather than a `process.exit`, so generate
+ * can be one step of `specs build` / `specs run` (ADR-101). The question the
+ * tests ask is unchanged: did this input stop the run?
+ */
 function guard(options: Record<string, unknown>, config: CLIConfig): { exited: boolean; output: string } {
   const lines: string[] = [];
   vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => void lines.push(args.join(' ')));
   let exited = false;
-  vi.spyOn(process, 'exit').mockImplementation(((): never => {
-    exited = true;
-    throw new Error('exit');
-  }) as never);
   try {
     assertOutputPathShape(options as never, config);
   } catch (e) {
-    if (!exited) throw e;
+    if (!(e instanceof StepError)) throw e;
+    exited = true;
   }
   return { exited, output: lines.join('\n') };
 }

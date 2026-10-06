@@ -27,6 +27,7 @@ import { resolveKindScope, describeKindScope, KindScopeConflict } from '../utili
 import { assertPayloadReadable, readJsonPayload } from '../utilities/payloadRead.js';
 import { SectionedFile, shadowIngestEnabled, shadowCompare } from '../utilities/sectionedFile.js';
 import { LicenseStatus } from '../utilities/LicenseStatus.js';
+import { StepError } from '../pipeline/StepError.js';
 import { TRANSIENT_FAILURES, transientFailureLines } from '../utilities/licenseGuidance.js';
 import { FileManifest } from '../Writers/FileManifest.js';
 import { RunMetadataFile } from '../Writers/RunMetadataFile.js';
@@ -158,6 +159,18 @@ const SPEC_EXTENSIONS = ['.yaml', '.yml', '.json'];
  * before anything is generated, naming both ways out — a run that spent minutes on
  * a catalogue before rejecting its own argument is the worse version of this.
  */
+/**
+ * Stop the run with the exit code this command has always used.
+ *
+ * Throws rather than exiting, so `specs build` and `specs run` can call
+ * generate as one step of a chain and carry on reporting (ADR-101). Every call
+ * site has already written its own explanation to stderr, so the error carries
+ * only the code and is marked as reported — the chain prints no second version.
+ */
+function stop(code: number): never {
+  throw new StepError('', code, undefined, true);
+}
+
 export function assertOutputPathShape(options: GenerateOptions, config: CLIConfig): void {
   if (!options.output) return;
   const singleFile =
@@ -169,7 +182,7 @@ export function assertOutputPathShape(options: GenerateOptions, config: CLIConfi
   console.error(`Error: --output names a directory, but "${options.output}" ends in ${ext}.`);
   console.error(`  This run writes a spec per component, so give it a directory: -o ${path.dirname(options.output)}/`);
   console.error('  To write one document instead, add --combine-as-library --combine-concerns, which makes the filename meaningful.');
-  process.exit(ERROR_CODES.INVALID_ARGS);
+  stop(ERROR_CODES.INVALID_ARGS);
 }
 
 /**
@@ -218,7 +231,7 @@ async function writeGeneratedOutput(
   if (!isManifest && !options.output && !config.settings.spec.directory) {
     if (options.getImages) {
       console.error('Error: --get-images requires an output directory (set spec.directory in the workspace settings or pass -o) so image files have somewhere to be written');
-      process.exit(ERROR_CODES.INVALID_ARGS);
+      stop(ERROR_CODES.INVALID_ARGS);
     }
     const componentData = processedComponents[0].spec;
     const outputFormat = options.format
@@ -230,7 +243,8 @@ async function writeGeneratedOutput(
       : JSON.stringify(componentData, null, 2);
 
     console.log(formattedOutput);
-    process.exit(ERROR_CODES.SUCCESS);
+    // Nothing further to write: the spec went to stdout. Returns rather than
+    // exiting so a chained run can go on to the next step (ADR-101).
     return;
   }
 
@@ -259,7 +273,7 @@ async function writeGeneratedOutput(
     outputPath = path.resolve(config.settings.spec.directory);
   } else {
     // Should not reach here — handled above for file mode stdout
-    process.exit(ERROR_CODES.INVALID_ARGS);
+    stop(ERROR_CODES.INVALID_ARGS);
     return;
   }
 
@@ -311,7 +325,7 @@ async function writeGeneratedOutput(
         const token = process.env.FIGMA_TOKEN;
         if (!token) {
           console.error('Error: --get-images requires the FIGMA_TOKEN environment variable (same token as `specs fetch`)');
-          process.exit(ERROR_CODES.INVALID_ARGS);
+          stop(ERROR_CODES.INVALID_ARGS);
         }
         const sourceDir = options.dataDir
           ? path.resolve(options.dataDir)
@@ -321,7 +335,7 @@ async function writeGeneratedOutput(
         const resolved = resolveImageFileKey(config, sourceDir, payloadPath);
         if ('error' in resolved) {
           console.error(resolved.error);
-          process.exit(ERROR_CODES.INVALID_ARGS);
+          stop(ERROR_CODES.INVALID_ARGS);
         }
         const fileKey = resolved.key;
 
@@ -452,7 +466,7 @@ async function writeGeneratedOutput(
 
   if (writeResult.errors.length > 0) {
     writeResult.errors.forEach(error => console.error(`Error: ${error}`));
-    process.exit(ERROR_CODES.FILE_ERROR);
+    stop(ERROR_CODES.FILE_ERROR);
   }
 
   // A component renamed in Figma, renamed by a convention change, or dropped from
@@ -484,7 +498,36 @@ async function writeGeneratedOutput(
     await reportUngeneratedSpecs(baseDir, writeResult.filesWritten, resolvedFormat);
   }
 
-  process.exit(errors.length > 0 ? ERROR_CODES.GENERAL_ERROR : ERROR_CODES.SUCCESS);
+  if (errors.length > 0) stop(ERROR_CODES.GENERAL_ERROR);
+}
+
+export interface GenerateResult {
+  /** A short line for a chained run's summary. */
+  detail?: string;
+}
+
+/**
+ * Generate specs, without exiting the process.
+ *
+ * The same work `specs generate` does, as a call that returns — so `specs build`
+ * and `specs run` can run it as one step and then go on to the next (ADR-101).
+ * Failures throw `StepError` carrying the exit code the command has always used.
+ */
+export async function runGenerate(
+  source: string | undefined,
+  options: GenerateOptions,
+): Promise<GenerateResult> {
+  // Before anything is read: a run asked to both include and exclude a kind has no
+  // defensible interpretation, and failing after a catalogue load wastes the wait.
+  try {
+    resolveKindScope();
+  } catch (error) {
+    if (!(error instanceof KindScopeConflict)) throw error;
+    console.error(error.message);
+    stop(ERROR_CODES.INVALID_ARGS);
+  }
+  await generateBody(source, options);
+  return {};
 }
 
 export const Generate = new Command('generate')
@@ -510,15 +553,19 @@ export const Generate = new Command('generate')
   .option('--remove', 'With --from-bridge: delete the node once its spec has been read (round-trip testing — leaves the Figma page as it was found)')
   .option('--verbose', 'Enable detailed logging', false)
   .action(async (source: string | undefined, options: GenerateOptions) => {
-    // Before anything is read: a run asked to both include and exclude a kind has no
-    // defensible interpretation, and failing after a catalogue load wastes the wait.
     try {
-      resolveKindScope();
+      await runGenerate(source, options);
+      process.exit(ERROR_CODES.SUCCESS);
     } catch (error) {
-      if (!(error instanceof KindScopeConflict)) throw error;
-      console.error(error.message);
-      process.exit(ERROR_CODES.INVALID_ARGS);
+      if (error instanceof StepError) process.exit(error.code);
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Error: ${message}`);
+      process.exit(ERROR_CODES.GENERAL_ERROR);
     }
+  });
+
+/** The body of `specs generate`, shared by the command and `runGenerate`. */
+async function generateBody(source: string | undefined, options: GenerateOptions): Promise<void> {
     try {
       // Load configuration (needed to resolve default source path)
       const configLoader = new ConfigLoader();
@@ -538,7 +585,7 @@ export const Generate = new Command('generate')
       if (options.fromBridge) {
         if (source) {
           console.error('Error: --from-bridge does not take a source argument (it reads the current Figma selection).');
-          process.exit(ERROR_CODES.INVALID_ARGS);
+          stop(ERROR_CODES.INVALID_ARGS);
         }
 
         let result;
@@ -554,18 +601,18 @@ export const Generate = new Command('generate')
           } else {
             console.error(`Error: ${err.message}`);
           }
-          process.exit(ERROR_CODES.GENERAL_ERROR);
+          stop(ERROR_CODES.GENERAL_ERROR);
         }
 
         if (!result.success) {
           const msg = typeof result.error === 'string' ? result.error : JSON.stringify(result.error);
           console.error(`Error: ${msg}`);
-          process.exit(ERROR_CODES.GENERAL_ERROR);
+          stop(ERROR_CODES.GENERAL_ERROR);
         }
 
         if (!result.specData) {
           console.error('Error: Bridge returned success but no spec data.');
-          process.exit(ERROR_CODES.GENERAL_ERROR);
+          stop(ERROR_CODES.GENERAL_ERROR);
         }
 
         console.log(`✓ Generated from selection: ${result.name ?? result.nodeId}`);
@@ -595,7 +642,7 @@ export const Generate = new Command('generate')
         if (!defaultAlias) {
           console.error('Error: No source argument provided and no default manifest could be resolved');
           console.error('Tip: run `specs scan` to generate a manifest, or configure a source with `fetch: [file]` in the workspace settings');
-          process.exit(ERROR_CODES.INVALID_ARGS);
+          stop(ERROR_CODES.INVALID_ARGS);
         }
 
         source = path.join(sourceDir, `${defaultAlias}.manifest.md`);
@@ -617,7 +664,7 @@ export const Generate = new Command('generate')
         if (source.endsWith('.manifest.md')) {
           console.error('Tip: run `specs scan` to generate the manifest');
         }
-        process.exit(ERROR_CODES.FILE_ERROR);
+        stop(ERROR_CODES.FILE_ERROR);
       }
 
       // Auto-detect mode by content.
@@ -642,7 +689,7 @@ export const Generate = new Command('generate')
 
       if (!isManifest && !isJson) {
         console.error('Error: Unrecognized source format. Expected JSON file or markdown manifest.');
-        process.exit(ERROR_CODES.INVALID_ARGS);
+        stop(ERROR_CODES.INVALID_ARGS);
       }
 
       if (options.verbose) {
@@ -668,7 +715,7 @@ export const Generate = new Command('generate')
         // MANIFEST MODE
         if (!options.output && !config.settings.spec.directory) {
           console.error('Error: Specify --output or set spec.directory in the workspace settings');
-          process.exit(ERROR_CODES.INVALID_ARGS);
+          stop(ERROR_CODES.INVALID_ARGS);
         }
 
         const parsed = isV2Manifest
@@ -686,14 +733,14 @@ export const Generate = new Command('generate')
 
         if (components.length === 0 && compositions.length === 0) {
           console.error('Error: No components found in manifest');
-          process.exit(ERROR_CODES.INVALID_ARGS);
+          stop(ERROR_CODES.INVALID_ARGS);
         }
 
         const selectedComponents = components.filter(c => c.included);
 
         if (selectedComponents.length === 0 && compositions.length === 0) {
           console.error('Error: No components selected in manifest (none have [x])');
-          process.exit(ERROR_CODES.INVALID_ARGS);
+          stop(ERROR_CODES.INVALID_ARGS);
         }
 
         console.log(`✓ Loaded manifest: ${components.length} components (${selectedComponents.length} selected)`);
@@ -726,7 +773,7 @@ export const Generate = new Command('generate')
         if (!sourceFile) {
           console.error('Error: No component source file specified');
           console.error('Include **File:** in the manifest header (from `specs audit`) or configure a source alias with `fetch: [file]` in the workspace settings');
-          process.exit(ERROR_CODES.INVALID_ARGS);
+          stop(ERROR_CODES.INVALID_ARGS);
         }
 
         if (!fs.existsSync(sourceFile)) {
@@ -736,7 +783,7 @@ export const Generate = new Command('generate')
           } else {
             console.error('Tip: run `specs fetch` to download the source file, or check sources.<alias>.key in your config');
           }
-          process.exit(ERROR_CODES.FILE_ERROR);
+          stop(ERROR_CODES.FILE_ERROR);
         }
 
         payloadPath = sourceFile;
@@ -767,7 +814,7 @@ export const Generate = new Command('generate')
             } else {
               console.error(`Tip: ${selectedComponents.length + compositions.length} components and compositions are available — omit --component to generate all of them.`);
             }
-            process.exit(ERROR_CODES.INVALID_ARGS);
+            stop(ERROR_CODES.INVALID_ARGS);
           }
         }
 
@@ -784,7 +831,7 @@ export const Generate = new Command('generate')
         if (!options.component) {
           console.error('Error: --component is required when source is a JSON file');
           console.error('Usage: specs generate <file.json> -c <component-name|id>');
-          process.exit(ERROR_CODES.INVALID_ARGS);
+          stop(ERROR_CODES.INVALID_ARGS);
         }
 
         payloadPath = sourcePath;
@@ -798,13 +845,13 @@ export const Generate = new Command('generate')
           if (!sectioned) {
             console.error(`Error: ${path.basename(sourcePath)} is a directory but not a page-split payload (no manifest.json).`);
             console.error('Tip: pass a `<alias>.file/` directory written by `specs fetch`, or a single JSON payload.');
-            process.exit(ERROR_CODES.FILE_ERROR);
+            stop(ERROR_CODES.FILE_ERROR);
           }
           const resolved = resolveComponentInSplitRoot(sectioned.root(), options.component);
           if (!resolved) {
             console.error(`Error: no component named or keyed "${options.component}" in ${path.basename(sourcePath)}.`);
             console.error('Tip: `specs scan` lists what the payload holds, with each component\'s node id.');
-            process.exit(ERROR_CODES.INVALID_ARGS);
+            stop(ERROR_CODES.INVALID_ARGS);
           }
           componentIds = [resolved.id];
           componentNames = new Map([[resolved.id, resolved.name]]);
@@ -854,7 +901,7 @@ export const Generate = new Command('generate')
             if (!monolithicExists) {
               console.error(`Error: ${detail} and no single-file payload exists to fall back to.`);
               console.error('Tip: re-run `specs fetch`, then `specs scan`, so the payload and manifest agree.');
-              process.exit(ERROR_CODES.FILE_ERROR);
+              stop(ERROR_CODES.FILE_ERROR);
             }
             console.warn(`⚠ ${detail} — falling back to the single-file payload. Re-run \`specs fetch\` to refresh the split artifact.`);
           } else {
@@ -876,7 +923,7 @@ export const Generate = new Command('generate')
       }
       if (libraryJson === undefined) {
         console.error('Error: no payload loaded'); // unreachable: every mode sets or defers
-        process.exit(ERROR_CODES.FILE_ERROR);
+        stop(ERROR_CODES.FILE_ERROR);
         return;
       }
 
@@ -989,7 +1036,7 @@ export const Generate = new Command('generate')
         const firstError = (results[0] as { name: string; error: string }).error;
         if (firstError.includes('not valid for this runtime')) {
           console.error(`Error: ${firstError}`);
-          process.exit(ERROR_CODES.AUTH_ERROR);
+          stop(ERROR_CODES.AUTH_ERROR);
         }
       }
 
@@ -1005,7 +1052,7 @@ export const Generate = new Command('generate')
         const license = LicenseStatus.resolve(results);
         if (license?.status && TRANSIENT_FAILURES.has(license.status)) {
           for (const line of transientFailureLines(license.status)) console.error(line);
-          process.exit(license.status === 'rate-limited' ? ERROR_CODES.RATE_LIMIT : ERROR_CODES.NETWORK_ERROR);
+          stop(license.status === 'rate-limited' ? ERROR_CODES.RATE_LIMIT : ERROR_CODES.NETWORK_ERROR);
         }
       }
 
@@ -1052,15 +1099,15 @@ export const Generate = new Command('generate')
         if (msg.includes('Component not found') || msg.includes('not found')) {
           console.error(`Error: ${msg}`);
           console.error(`Tip: Use a component name like "DS Alert" or component ID like "123:456"`);
-          process.exit(ERROR_CODES.COMPONENT_NOT_FOUND);
+          stop(ERROR_CODES.COMPONENT_NOT_FOUND);
         }
         console.error(`Error: ${msg}`);
-        process.exit(ERROR_CODES.GENERAL_ERROR);
+        stop(ERROR_CODES.GENERAL_ERROR);
       }
 
       if (processedComponents.length === 0) {
         console.error('Error: No components were successfully processed');
-        process.exit(ERROR_CODES.GENERAL_ERROR);
+        stop(ERROR_CODES.GENERAL_ERROR);
       }
 
       await writeGeneratedOutput(
@@ -1069,14 +1116,17 @@ export const Generate = new Command('generate')
       );
 
     } catch (error) {
+      // A step that already stopped deliberately keeps its own code and its
+      // own message — re-reporting it here would print a blank second error.
+      if (error instanceof StepError) throw error;
       const message = error instanceof Error ? error.message : String(error);
       console.error(`Error: ${message}`);
       if (options.verbose && error instanceof Error && error.stack) {
         console.error(error.stack);
       }
-      process.exit(ERROR_CODES.GENERAL_ERROR);
+      stop(ERROR_CODES.GENERAL_ERROR);
     }
-  });
+}
 
 
 /**
