@@ -128,6 +128,26 @@ function resolveImageFileKey(
   };
 }
 
+/**
+ * Which kind a produced spec is, and so which directory it belongs in (ADR-096).
+ *
+ * The manifest classifies a selection by node type and is the answer whenever the run came
+ * from one. A bridge run given an explicit node has no manifest row to consult, so the
+ * spec's own `metadata.source.nodeType` answers instead — the marker that states what a
+ * spec describes, independent of where its file sits. Without this a composition
+ * round-tripped through the bridge was written as a component, which is the kind being lost
+ * at the other end of the same trip.
+ */
+function kindOf(
+  name: string,
+  spec: Record<string, unknown>,
+  compositionIds: Set<string>
+): SpecKind {
+  if (compositionIds.has(name)) return 'composition';
+  const source = (spec.metadata as { source?: { nodeType?: unknown } } | undefined)?.source;
+  return source?.nodeType === 'FRAME' ? 'composition' : 'component';
+}
+
 /** Extensions a spec document can carry — what `-o` must not end in on a split run. */
 const SPEC_EXTENSIONS = ['.yaml', '.yml', '.json'];
 
@@ -542,7 +562,12 @@ export const Generate = new Command('generate')
 
         console.log(`✓ Generated from selection: ${result.name ?? result.nodeId}`);
 
-        const processedComponents = [{ name: result.name ?? String(result.nodeId), spec: result.specData as Record<string, unknown> }];
+        // A bridge run has no manifest row to classify the node by, so the spec's own
+        // `metadata.source.nodeType` says which kind it is — otherwise a composition
+        // captured this way is written as a component and the kind is lost on the way back.
+        const spec = result.specData as Record<string, unknown>;
+        const name = result.name ?? String(result.nodeId);
+        const processedComponents = [{ name, spec, kind: kindOf(name, spec, new Set<string>()) }];
         await writeGeneratedOutput(processedComponents, [], false, options, config);
         return;
       }
@@ -985,10 +1010,11 @@ export const Generate = new Command('generate')
       for (const result of results) {
         if ('component' in result) {
           const displayName = componentNames.get(result.name) || result.name;
+          const spec = result.component as Record<string, unknown>;
           processedComponents.push({
             name: displayName,
-            spec: result.component as Record<string, unknown>,
-            kind: compositionIds.has(result.name) ? 'composition' : 'component',
+            spec,
+            kind: kindOf(result.name, spec, compositionIds),
           });
         } else {
           const displayName = componentNames.get(result.name) || result.name;
