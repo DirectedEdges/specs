@@ -144,11 +144,20 @@ const storybook: Step = {
   id: 'storybook',
   label: 'storybook publish',
   active: ws => ws.scaffolded,
-  inputs: ws => [
-    { path: ws.specsDir, scope: () => null },
-    ...configInput(ws),
-    ...(fs.existsSync(ws.assetsDir) ? [{ path: ws.assetsDir, scope: () => null }] : []),
-  ],
+  inputs: ws => {
+    // `content-overrides/` is an input, not just somewhere a person keeps
+    // files. Publish decides whether to write a generated page by whether an
+    // override shadows it, so adding one has to re-run publish — otherwise the
+    // page it replaces sits there stale until something else happens to
+    // trigger a pass.
+    const overrides = path.join(ws.storybookDir, 'content-overrides');
+    return [
+      { path: ws.specsDir, scope: () => null },
+      ...configInput(ws),
+      ...(fs.existsSync(ws.assetsDir) ? [{ path: ws.assetsDir, scope: () => null }] : []),
+      ...(fs.existsSync(overrides) ? [{ path: overrides, scope: () => null }] : []),
+    ];
+  },
   outputs: ws => [path.join(ws.storybookDir, 'content')],
   async run(context) {
     const { publish } = await import('../storybook/publish.js');

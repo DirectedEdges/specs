@@ -11,7 +11,7 @@
 // process per step throws that away every time.
 import fs from 'fs-extra';
 import path from 'path';
-import type { Workspace } from '../storybook/workspace.js';
+import { resolveWorkspace, type Workspace } from '../storybook/workspace.js';
 import type { Step, StepContext } from './types.js';
 import { StepError } from './types.js';
 import { entryFor, fromEntry, resolvePlan, watchPaths, writtenBy, type PlanOptions } from './plan.js';
@@ -161,26 +161,70 @@ export async function run(workspace: Workspace, options: DriveOptions = {}): Pro
 
   // One pass at a time. A change arriving mid-pass is remembered and folded
   // into the next, rather than starting a second pass over the same files.
+  //
+  // The paths are what is remembered, not the step they resolved to. A
+  // workspace changes shape while a session is open — a platform tree deleted,
+  // a Storybook scaffolded — and a plan fixed at startup keeps running steps
+  // the workspace no longer has. It did exactly that: with `react/` renamed
+  // away mid-session, the next pass emitted into it and recreated the whole
+  // tree, `package.json` and all. So the plan is re-derived per pass, and the
+  // entry step is decided against the plan that is true now.
+  let currentWorkspace = workspace;
+  let currentPlan = plan;
   let runningSteps: Step[] | null = null;
-  let pendingEntry: { step: Step; components: Set<string> } | null = null;
+  let pendingPaths = new Set<string>();
   let timer: NodeJS.Timeout | undefined;
 
   const drain = async () => {
-    if (runningSteps || !pendingEntry) return;
-    const { step, components: keys } = pendingEntry;
-    pendingEntry = null;
+    if (runningSteps || pendingPaths.size === 0) return;
+    const changed = [...pendingPaths];
+    pendingPaths = new Set();
 
-    const steps = fromEntry(plan, { step, components: [...keys] });
+    // Re-read the workspace, then the plan. A step whose tree has gone is gone
+    // with it; one whose tree has appeared joins in.
+    const before = currentPlan.steps.map(s => s.id).join(',');
+    try {
+      currentWorkspace = resolveWorkspace(options.configPath);
+      currentPlan = resolvePlan(currentWorkspace, options);
+    } catch (error) {
+      // The workspace stopped being one — config deleted, specs directory
+      // gone. Say so and keep watching; the next save may put it back.
+      console.error(`[specs run] ${error instanceof Error ? error.message : String(error)}`);
+      return;
+    }
+    const after = currentPlan.steps.map(s => s.id).join(',');
+    if (before !== after) {
+      console.log('');
+      console.log(`[specs run] the workspace changed shape — now: ${describe(currentPlan.steps)}`);
+    }
+
+    // Earliest entry among everything that changed, and the union of what it
+    // scopes to. An unscoped change widens the pass to every component, which
+    // is what an empty set means.
+    let entryStep: Step | null = null;
+    let scope: Set<string> | null = new Set();
+    for (const file of changed) {
+      const entry = entryFor(currentPlan, currentWorkspace, file);
+      if (!entry) continue;
+      if (!entryStep || currentPlan.steps.indexOf(entry.step) < currentPlan.steps.indexOf(entryStep)) {
+        entryStep = entry.step;
+      }
+      if (entry.components.length === 0) scope = null;
+      else if (scope) for (const key of entry.components) scope.add(key);
+    }
+    if (!entryStep) return;
+
+    const steps = fromEntry(currentPlan, { step: entryStep, components: [] });
     runningSteps = steps;
-    const scope = [...keys];
-    const scopeLabel = scope.length > 0 ? ` (${scope.join(', ')})` : '';
+    const keys = scope ? [...scope] : [];
+    const scopeLabel = keys.length > 0 ? ` (${keys.join(', ')})` : '';
     console.log('');
     console.log(`[specs run] ${describe(steps)}${scopeLabel}`);
     try {
-      await runSteps(steps, { ...context, components: scope }, '');
+      await runSteps(steps, { ...context, workspace: currentWorkspace, components: keys }, '');
     } finally {
       runningSteps = null;
-      if (pendingEntry) void drain();
+      if (pendingPaths.size > 0) void drain();
     }
   };
 
@@ -210,42 +254,52 @@ export async function run(workspace: Workspace, options: DriveOptions = {}): Pro
     // run the targets a second time for one change. Only the steps actually
     // running are consulted, so a spec someone edits while an unrelated pass is
     // in flight is still picked up.
-    if (runningSteps && writtenBy(runningSteps, workspace, changed)) return;
+    if (runningSteps && writtenBy(runningSteps, currentWorkspace, changed)) return;
 
-    const entry = entryFor(plan, workspace, changed);
-    if (!entry) return;
-
-    if (!pendingEntry) {
-      pendingEntry = { step: entry.step, components: new Set(entry.components) };
-    } else {
-      // Two changes in one burst: start at whichever is earlier in the chain,
-      // and run the union of what they touched. An unscoped change widens the
-      // pass to everything, which is what an empty set means.
-      const earlier =
-        plan.steps.indexOf(entry.step) < plan.steps.indexOf(pendingEntry.step)
-          ? entry.step
-          : pendingEntry.step;
-      const widened =
-        entry.components.length === 0 || pendingEntry.components.size === 0
-          ? new Set<string>()
-          : new Set([...pendingEntry.components, ...entry.components]);
-      pendingEntry = { step: earlier, components: widened };
-    }
+    // Which step this becomes is decided at drain time, against the plan that
+    // is true then — not here, against the one that was true at startup.
+    pendingPaths.add(changed);
 
     clearTimeout(timer);
     timer = setTimeout(() => void drain(), DEBOUNCE_MS);
   };
 
+  // Never watch a file directly, even when a file is what a step declares.
+  //
+  // `fs.watch` on a file follows the inode, and a great many editors save by
+  // writing a temp file and renaming it over the target — VS Code among them.
+  // That replaces the inode, so the watch fires once and is then attached to
+  // something nothing will ever write again. The manifest proved it: ticking a
+  // checkbox worked, and every edit after it was invisible.
+  //
+  // So a file input is watched through its directory, filtered to that one
+  // name. Directory watches survive the rename.
+  const directories = watched.filter(p => fs.existsSync(p) && fs.statSync(p).isDirectory());
+  const fileNamesByDirectory = new Map<string, Set<string>>();
   for (const target of watched) {
-    if (!fs.existsSync(target)) continue;
-    const isDirectory = fs.statSync(target).isDirectory();
-    fs.watch(target, { recursive: isDirectory }, (_event, filename) => {
-      // `filename` is relative to the watched directory — but when the target
-      // is a file, it is that file's own name, and joining it produces
-      // `…/manifest.md/manifest.md`. Nothing is there to stat, so the repeat
-      // check silently passed everything through while the prefix match still
-      // matched. A file target reports itself.
-      onChange(isDirectory && filename ? path.join(target, filename.toString()) : target);
+    if (directories.includes(target)) continue;
+    const parent = path.dirname(target);
+    // A recursive watch above it already sees this file.
+    if (directories.some(dir => parent === dir || parent.startsWith(dir + path.sep))) continue;
+    const names = fileNamesByDirectory.get(parent) ?? new Set<string>();
+    names.add(path.basename(target));
+    fileNamesByDirectory.set(parent, names);
+  }
+
+  for (const dir of directories) {
+    fs.watch(dir, { recursive: true }, (_event, filename) => {
+      if (filename) onChange(path.join(dir, filename.toString()));
+    });
+  }
+
+  for (const [dir, names] of fileNamesByDirectory) {
+    if (!fs.existsSync(dir)) continue;
+    fs.watch(dir, { recursive: false }, (_event, filename) => {
+      // Only the declared files. The directory holds other things — fetched
+      // payloads, caches — and a change to one of those is not this input's.
+      if (filename && names.has(path.basename(filename.toString()))) {
+        onChange(path.join(dir, path.basename(filename.toString())));
+      }
     });
   }
 

@@ -26,8 +26,17 @@ The point of the chain is that a change enters at one step and everything after 
 | `data/<alias>.manifest.md` — you ticked a checkbox | `generate` | generate → react, webcomponents → storybook |
 | `specs/components/Alert/api.yaml` | `react` | react, webcomponents → storybook, **for Alert only** |
 | `config/` — a convention or setting | `react` | react, webcomponents → storybook, for everything |
+| `storybook/content-overrides/` | `storybook` | storybook publish |
 
-A spec change is narrowed to the component it is inside. A `config/` change is not: one file there decides the shape of every component's output.
+A spec change is narrowed to the component it is inside. A `config/` change is not: one file there decides the shape of every component's output. Deleting a spec folder is not narrowed either — a pass limited to one component never prunes, and the stale emitted directory is exactly what needs removing.
+
+### The chain re-reads your workspace each time
+
+Which steps run is worked out per pass, not once at startup. Delete `react/` mid-session and the react step stops — it will not recreate the tree you just removed. Add it back and the step returns:
+
+```
+[specs run] the workspace changed shape — now: scan → generate → storybook publish
+```
 
 Every pass prints what it decided before it does it:
 
@@ -102,14 +111,21 @@ Which connected Figma file `--render` targets, when more than one is open.
 
 ## `run` and `specs storybook dev`
 
-Both watch. They differ in where they start.
+**`specs run` does not serve Storybook.** It runs the publish step, so the content Storybook shows stays correct; serving it is still [`specs storybook dev`](/cli/commands/storybook/#specs-storybook-dev)'s job, along with the index-recovery handling that comes with running the server.
 
-| | Watches | Use it when |
+| | Watches | Serves Storybook |
 |---|---|---|
-| [`specs storybook dev`](/cli/commands/storybook/#specs-storybook-dev) | `specs/`, `config/`, `assets/` — and serves Storybook | You are working on Storybook, and generate your specs yourself |
-| `specs run` | All of that, plus `data/` and the manifest | You want one command for the whole workspace |
+| [`specs storybook dev`](/cli/commands/storybook/#specs-storybook-dev) | `specs/`, `config/`, `assets/` | Yes |
+| `specs run` | All of that, plus `data/`, the manifest, and `storybook/content-overrides/` | No |
 
-`specs storybook dev` keeps working exactly as before.
+They are made to run side by side — `run` keeps everything up to date, `dev` shows it:
+
+```bash
+specs run                 # one terminal
+specs storybook dev       # another
+```
+
+`specs storybook dev` on its own is still the right choice when Storybook is what you are working on and you generate your specs yourself.
 
 ## See Also
 
