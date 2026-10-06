@@ -305,7 +305,7 @@ async function emitOnce(run: EmitRun, options: EmitOptions): Promise<EmitResult>
  * still exists is not visible from here, because what a transformer writes
  * inside its `outputDir` is the transformer's own business.
  */
-async function pruneOrphans(
+export async function pruneOrphans(
   transformers: Transformer[],
   specs: Array<{ kind: SpecKind; key: string }>,
   workspaceDir: string,
