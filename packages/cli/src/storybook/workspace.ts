@@ -3,6 +3,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { ConfigLoader } from '../Config/ConfigLoader.js';
+import { resolveSpecsLayout } from '../utilities/specsLayout.js';
 import type { CLIConfig } from '../Types/CLIConfig.js';
 
 export interface DataSource {
@@ -25,9 +26,17 @@ export interface Workspace {
   hasReact: boolean;
   hasWebComponents: boolean;
   hasSpecs: boolean;
+  /**
+   * Spec folder keys per kind, read through the layout resolver rather than from a
+   * literal directory name — a legacy layout keeps components at the specs root and
+   * cannot hold compositions at all (ADR-096).
+   */
+  componentKeys: string[];
+  compositionKeys: string[];
   /** storybook/.storybook/ exists — init has run. */
   scaffolded: boolean;
 }
+
 
 export function resolveWorkspace(configPath?: string): Workspace {
   const loader = new ConfigLoader();
@@ -51,6 +60,7 @@ export function resolveWorkspace(configPath?: string): Workspace {
     .map(([alias, s]) => ({ alias, fetch: Array.isArray((s as { fetch?: string[] }).fetch) ? (s as { fetch: string[] }).fetch : [] }));
 
   const storybookDir = path.join(root, 'storybook');
+  const layout = resolveSpecsLayout(specsDir);
 
   return {
     root,
@@ -63,6 +73,8 @@ export function resolveWorkspace(configPath?: string): Workspace {
     hasReact: fs.existsSync(path.join(root, 'react', 'src')),
     hasWebComponents: fs.existsSync(path.join(root, 'webcomponents', 'src')),
     hasSpecs: fs.existsSync(specsDir),
+    componentKeys: layout.folderNames('component'),
+    compositionKeys: layout.folderNames('composition'),
     scaffolded: fs.existsSync(path.join(storybookDir, '.storybook')),
   };
 }

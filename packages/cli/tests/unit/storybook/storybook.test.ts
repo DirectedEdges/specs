@@ -5,7 +5,7 @@ import os from 'os';
 import { fileURLToPath } from 'url';
 import { Storybook } from '../../../src/commands/StorybookCommand.js';
 import { registry, concernNames } from '../../../src/storybook/concerns/registry.js';
-import { deriveTabs } from '../../../src/storybook/concerns/components/index.js';
+import { deriveTabs, deriveCompositions } from '../../../src/storybook/concerns/components/index.js';
 import { buildColorData } from '../../../src/storybook/concerns/foundations/color.js';
 import { buildIconsData } from '../../../src/storybook/concerns/foundations/icons.js';
 import { buildTypographyData } from '../../../src/storybook/concerns/foundations/typography.js';
@@ -202,5 +202,99 @@ describe('storybook conventions (ADR-098)', () => {
     // No sources → null regardless; the mapping itself is covered through publish,
     // but the layout parameter shape is pinned here.
     expect(out).toBeNull();
+  });
+});
+
+/**
+ * The compositions half of the navigation contract (specs#662). A composition states what
+ * it is built from, which is the question a screen raises and a component page has no
+ * equivalent of.
+ */
+describe('deriveCompositions', () => {
+  function workspace(
+    specs: Record<string, Record<string, string>>,
+    componentKeys: string[],
+    compositionKeys: string[],
+  ): Workspace {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-compositions-'));
+    for (const [rel, files] of Object.entries(specs)) {
+      const dir = path.join(root, 'specs', rel);
+      fs.ensureDirSync(dir);
+      for (const [name, body] of Object.entries(files)) fs.writeFileSync(path.join(dir, name), body, 'utf-8');
+    }
+    // components/ must exist or the layout reads as legacy, where compositions cannot be.
+    fs.ensureDirSync(path.join(root, 'specs', 'components'));
+    return { specsDir: path.join(root, 'specs'), componentKeys, compositionKeys } as Workspace;
+  }
+
+  it('names each composition and the components it instances, sorted and deduplicated', () => {
+    const ws = workspace(
+      {
+        'compositions/homeScreen': {
+          'api.yaml': 'title: Home Screen\nanatomy:\n  root:\n    type: container\n  card:\n    type: instance\n    instanceOf: dsCard\n',
+          'variants.yaml': 'default:\n  elements:\n    card:\n      instanceOf: dsCard\n    button:\n      instanceOf: dsButton\n',
+        },
+      },
+      ['dsButton', 'dsCard'],
+      ['homeScreen'],
+    );
+
+    expect(deriveCompositions(ws)).toEqual({
+      compositions: [{ key: 'homeScreen', title: 'Home Screen', composes: ['dsButton', 'dsCard'] }],
+    });
+  });
+
+  it('omits a reference this workspace holds no component for', () => {
+    const ws = workspace(
+      {
+        'compositions/screen': {
+          'api.yaml': 'title: Screen\nanatomy:\n  a:\n    type: instance\n    instanceOf: dsCard\n  b:\n    type: instance\n    instanceOf: fromAnotherLibrary\n',
+        },
+      },
+      ['dsCard'],
+      ['screen'],
+    );
+
+    // An unresolved reference would be a dead link on the page, so it is left out.
+    expect(deriveCompositions(ws).compositions[0].composes).toEqual(['dsCard']);
+  });
+
+  it('ignores a subcomponent reference, which is not a separate component', () => {
+    const ws = workspace(
+      {
+        'compositions/screen': {
+          'api.yaml': 'title: Screen\nanatomy:\n  a:\n    type: instance\n    instanceOf:\n      $ref: "#/subcomponents/part"\n  b:\n    type: instance\n    instanceOf: dsCard\n',
+        },
+      },
+      ['dsCard'],
+      ['screen'],
+    );
+
+    expect(deriveCompositions(ws).compositions[0].composes).toEqual(['dsCard']);
+  });
+
+  it('falls back to the key when a composition states no title', () => {
+    const ws = workspace(
+      { 'compositions/screen': { 'variants.yaml': 'default:\n  elements: {}\n' } },
+      [],
+      ['screen'],
+    );
+
+    expect(deriveCompositions(ws).compositions[0]).toEqual({ key: 'screen', title: 'screen', composes: [] });
+  });
+
+  it('is an empty list in a workspace with no compositions', () => {
+    const ws = workspace({}, ['dsCard'], []);
+    expect(deriveCompositions(ws)).toEqual({ compositions: [] });
+  });
+
+  it('still lists a composition whose spec does not parse', () => {
+    const ws = workspace(
+      { 'compositions/broken': { 'api.yaml': 'title: [unclosed\n  nope: :\n' } },
+      [],
+      ['broken'],
+    );
+    // The malformed document is the generator's problem; the nav contract still has a row.
+    expect(deriveCompositions(ws).compositions.map((c) => c.key)).toEqual(['broken']);
   });
 });

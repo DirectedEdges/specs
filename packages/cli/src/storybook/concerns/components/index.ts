@@ -3,8 +3,10 @@
 // Specs is always present — it is the one view that needs no transform.
 import fs from 'fs-extra';
 import path from 'path';
+import yaml from 'yaml';
 import type { Concern, BuiltFile } from '../types.js';
 import type { Workspace } from '../../workspace.js';
+import { resolveSpecsLayout } from '../../../utilities/specsLayout.js';
 
 export type TabId = 'react' | 'webcomponents' | 'specs';
 
@@ -81,6 +83,94 @@ export function deriveModes(ws: Workspace, modesConventions: Record<string, unkn
   return { controls };
 }
 
+/** One composition, and the components it is built from. */
+export interface CompositionEntry {
+  /** Spec folder key — the same key the emitted story directory is named for. */
+  key: string;
+  /** `title` from the spec, which is what the sidebar shows. */
+  title: string;
+  /** Component keys this composition instances, sorted, deduplicated. */
+  composes: string[];
+}
+
+export interface CompositionsJson {
+  compositions: CompositionEntry[];
+}
+
+/** Every `instanceOf` value in a spec document, however deeply nested. */
+function instanceRefs(node: unknown, into: Set<string>): void {
+  if (Array.isArray(node)) {
+    for (const item of node) instanceRefs(item, into);
+    return;
+  }
+  if (!node || typeof node !== 'object') return;
+  for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+    if (key === 'instanceOf') {
+      // A string names a component; a `$ref` points at a subcomponent of this same
+      // spec, which is not a separate component and is not what "composes" means.
+      if (typeof value === 'string') into.add(value);
+      continue;
+    }
+    instanceRefs(value, into);
+  }
+}
+
+/**
+ * The compositions contract: which compositions exist and what each is built from.
+ *
+ * Lives beside `tabs.json` rather than in a concern of its own, so the navigation
+ * contract between what a workspace emitted and what the manager registers stays in one
+ * place. A workspace with no compositions writes an empty list, which is what lets the
+ * scaffolded pages treat their absence as ordinary rather than as a missing file.
+ *
+ * "What it composes" is read from the spec's own `instanceOf` references, which is the
+ * question a screen actually raises — and the one thing the composition pipeline produces
+ * that a component page has no equivalent of.
+ */
+export function deriveCompositions(ws: Workspace): CompositionsJson {
+  const layout = resolveSpecsLayout(ws.specsDir);
+  const components = new Set(ws.componentKeys);
+  const compositions: CompositionEntry[] = [];
+
+  for (const key of ws.compositionKeys) {
+    const folder = layout.folderFor('composition', key);
+    const refs = new Set<string>();
+    let title = key;
+    for (const concern of ['api', 'variants', 'examples']) {
+      const doc = readSpecDoc(folder, concern);
+      if (!doc) continue;
+      if (concern === 'api' && typeof doc.title === 'string') title = doc.title;
+      instanceRefs(doc, refs);
+    }
+    compositions.push({
+      key,
+      title,
+      // Only references that resolve to a component in this workspace: an unresolved
+      // one is a library component the workspace does not hold, and listing it as
+      // something the reader can navigate to would be a dead end.
+      composes: [...refs].filter((r) => components.has(r)).sort(),
+    });
+  }
+  return { compositions };
+}
+
+/** One concern document of a spec folder, parsed, or undefined when absent. */
+function readSpecDoc(folder: string, concern: string): Record<string, unknown> | undefined {
+  for (const ext of ['yaml', 'yml', 'json'] as const) {
+    const file = path.join(folder, `${concern}.${ext}`);
+    if (!fs.existsSync(file)) continue;
+    const raw = fs.readFileSync(file, 'utf-8');
+    try {
+      return ext === 'json' ? JSON.parse(raw) : (yaml.parse(raw) as Record<string, unknown>);
+    } catch {
+      // A spec that does not parse is the generator's problem, not the nav contract's —
+      // the composition still gets a row, with whatever the other concerns yielded.
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
 export const components: Concern = {
   name: 'components',
 
@@ -97,6 +187,9 @@ export const components: Concern = {
         path: 'modes.json',
         content: JSON.stringify(deriveModes(ws, ws.config.conventions.storybook?.modes), null, 2) + '\n',
       },
+      // Always written, empty list included: the scaffolded docs page imports it at
+      // build time, exactly as it does tabs.json.
+      { path: 'compositions.json', content: JSON.stringify(deriveCompositions(ws), null, 2) + '\n' },
     ];
   },
 };
