@@ -95,7 +95,7 @@ describe('resolvePlan — which steps this workspace has', () => {
     const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, storybook: true });
     const plan = resolvePlan(ws, { only: ['react'] });
     expect(plan.steps.map(s => s.id)).toEqual(['react']);
-    expect(plan.excluded.map(s => s.id)).toEqual(['scan', 'generate', 'storybook']);
+    expect(plan.excluded.map(s => s.id)).toEqual(['scan', 'generate', 'storybook', 'render']);
   });
 
   it('--skip drops a step and keeps the rest in order', () => {
@@ -114,10 +114,22 @@ describe('resolvePlan — which steps this workspace has', () => {
     expect(() => resolvePlan(ws, { only: ['reactt'] })).toThrow(StepError);
   });
 
-  it('explains that render is not in the chain instead of quietly not rendering', () => {
+  it('leaves render out unless it is asked for — it writes to a live Figma file', () => {
     const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true });
-    expect(() => resolvePlan(ws, { render: true })).toThrow(/render is not part of the chain/);
-    expect(() => resolvePlan(ws, { only: ['render'] })).toThrow(/render is not part of the chain/);
+    const plan = resolvePlan(ws);
+    expect(plan.steps.map(s => s.id)).not.toContain('render');
+    expect(plan.excluded.map(s => s.id)).toContain('render');
+  });
+
+  it('adds render on --render, last, after everything that writes to disk', () => {
+    const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, storybook: true });
+    const plan = resolvePlan(ws, { render: true });
+    expect(plan.steps.map(s => s.id)).toEqual(['scan', 'generate', 'react', 'storybook', 'render']);
+  });
+
+  it('accepts render named in --only, which is as explicit as the flag', () => {
+    const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true });
+    expect(resolvePlan(ws, { only: ['render'] }).steps.map(s => s.id)).toEqual(['render']);
   });
 
   it('says there is nothing to do rather than reporting an empty success', () => {

@@ -45,15 +45,6 @@ export function resolvePlan(workspace: Workspace, options: PlanOptions = {}): Pl
   if (options.only?.length) assertKnown(options.only, '--only');
   if (options.skip?.length) assertKnown(options.skip, '--skip');
 
-  // Named rather than ignored: asking for render and getting a run that quietly
-  // did not render is worse than being told why.
-  if (options.render || options.only?.includes('render')) {
-    throw new StepError(
-      'render is not part of the chain yet',
-      2,
-      'It writes to a live Figma file, so it is still a thing you run deliberately: `specs render`.',
-    );
-  }
 
   const only = options.only?.length ? new Set(options.only) : null;
   const skip = new Set(options.skip ?? []);
@@ -64,9 +55,11 @@ export function resolvePlan(workspace: Workspace, options: PlanOptions = {}): Pl
   for (const step of STEPS) {
     if (!step.active(workspace)) continue;
 
-    // `--only` names exactly what runs, opt-in steps included: naming a step is
-    // as explicit as its flag.
-    const wanted = only ? only.has(step.id) : !skip.has(step.id) && !OPT_IN.has(step.id);
+    // `--only` names exactly what runs, opt-in steps included: naming `render`
+    // is as explicit as `--render`.
+    const wanted = only
+      ? only.has(step.id)
+      : !skip.has(step.id) && (!OPT_IN.has(step.id) || options.render === true);
 
     (wanted ? steps : excluded).push(step);
   }

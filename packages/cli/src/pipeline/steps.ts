@@ -152,26 +152,48 @@ const storybook: Step = {
 };
 
 /**
- * Every step, in dependency order.
+ * Rendering specs back into the connected Figma file.
  *
- * `render` is named in ADR-101 as an opt-in final step and is deliberately not
- * here yet. It is the one step that writes to a live Figma file rather than to
- * disk, and the only way to exercise it is to run it against a connected file —
- * which is a real mutation of someone's work, not a test. Until it can be
- * verified without that, `specs render` stays the way to do it, run by a person
- * who means to. `--render` is accepted and refused with that explanation rather
- * than silently doing nothing.
+ * The only step that writes somewhere other than disk, which is why it is off
+ * unless asked for. Two consequences follow from that, and both are deliberate:
+ *
+ *  - It is last. Nothing reads what it writes, so nothing depends on it.
+ *  - It does not overwrite in a one-shot build. Overwriting deletes an existing
+ *    same-titled page component first, which is the normal case when a watch
+ *    loop re-renders the component you just edited, and a destructive surprise
+ *    in a build someone ran once. `specs render --overwrite` is still there for
+ *    doing it on purpose.
  */
+const render: Step = {
+  id: 'render',
+  label: 'render',
+  active: ws => ws.hasSpecs,
+  inputs: ws => [{ path: ws.specsDir, scope: changed => specScope(ws.specsDir, changed) }],
+  // Writes to Figma, not to disk. Nothing local to suppress.
+  outputs: () => [],
+  async run(context) {
+    const { runRender } = await import('../commands/RenderCommand.js');
+    const result = await runRender({
+      config: context.configPath,
+      components: context.components.length > 0 ? context.components : undefined,
+      overwrite: context.watching,
+    });
+    return { detail: `${result.rendered} component${result.rendered === 1 ? '' : 's'}` };
+  },
+};
+
+/** Every step, in dependency order. */
 export const STEPS: readonly Step[] = [
   scan,
   generate,
   targetStep('react', 'react'),
   targetStep('webcomponents', 'webcomponents'),
   storybook,
+  render,
 ];
 
-/** The steps off unless asked for by name. */
-export const OPT_IN: ReadonlySet<string> = new Set<string>();
+/** The steps off unless asked for by name — see `render` above. */
+export const OPT_IN: ReadonlySet<string> = new Set<string>(['render']);
 
 export function stepById(id: string): Step | undefined {
   return STEPS.find(step => step.id === id);

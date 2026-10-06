@@ -629,14 +629,18 @@ changed.
 
 ### Notes
 
-- **`render` is decided here but not shipped in the first implementation.** It
-  is the one step that writes to a live Figma file rather than to disk, and the
-  only way to exercise it is to run it against a connected file — which is a
-  real mutation of someone's work, not a test. Shipping an unverified mutating
-  path is worse than not shipping it, so `specs render` stays the way to do it.
-  `--render` is accepted and refused with that explanation rather than silently
-  doing nothing. Nothing above changes when it lands; it is the last step in a
-  chain that already orders itself.
+- **`render` overwrites under `run` and not under `build`.** Overwriting deletes
+  an existing same-titled page component before re-rendering. That is the normal
+  case when a watch loop re-renders the component you just edited, and a
+  destructive surprise in a build someone ran once — so `specs run --render`
+  overwrites and `specs build --render` does not, where a title collision is an
+  error. This follows the rule `specs render --watch` already set for itself.
+  Overwriting in a one-shot run stays `specs render --overwrite`, done on
+  purpose.
+- **A scoped render that matches nothing is an error, not an empty success.**
+  `--components` warns and skips a name it cannot find, matching the emitters.
+  When *no* name matches, the run fails: otherwise a typo in a CI invocation
+  passes green having rendered nothing.
 - `--only` and `--skip` name steps, not commands, and cannot be combined.
 - The step names are the first column of the table above: `scan`, `generate`,
   `react`, `webcomponents`, `storybook`, `render`.

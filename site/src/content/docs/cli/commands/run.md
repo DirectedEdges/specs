@@ -71,11 +71,20 @@ One consequence worth knowing: a session holds the answer until you quit it. If 
 | `--only <steps...>` | Watch and run these steps and nothing else |
 | `--skip <steps...>` | Everything except these steps |
 | `--components <keys...>` | Limit every pass to these component folders |
+| `--render` | Also render each changed spec into the connected Figma file |
 | `--dry-run` | Print the plan and the paths it would watch, then stop |
 | `--config <path>` | A workspace whose `config/` is not in the current directory |
 | `--verbose` | Per-step detail |
 
-`--only` and `--skip` name steps — `scan`, `generate`, `react`, `webcomponents`, `storybook` — and cannot be combined. `specs fetch` and `specs render` are not steps; [`build`](/cli/commands/build/#what-is-not-in-the-chain) explains why.
+`--only` and `--skip` name steps — `scan`, `generate`, `react`, `webcomponents`, `storybook`, `render` — and cannot be combined. `specs fetch` is not a step; [`build`](/cli/commands/build/#what-is-not-in-the-chain) explains why.
+
+### `--render`
+
+Renders each changed spec back into the connected Figma file as the last step of every pass. Needs a running bridge and an open Figma session — see the [Render to Figma guide](/guides/render-to-figma/).
+
+Unlike [`specs build --render`](/cli/commands/build/#--render), this **overwrites**: it deletes the existing same-titled page component before re-rendering. In a watch loop that is the whole point — you edit a spec, the component in Figma is replaced. It is also why the flag is off by default, and why the one-shot `build` refuses instead.
+
+Scoping applies here too. A spec edit is already narrowed to the component it is inside, so a pass renders that one component rather than the catalogue.
 
 ## `run` and `specs storybook dev`
 

@@ -44,7 +44,7 @@ data/ ──► data/<alias>.manifest.md ──► specs/ ──┬──► rea
 specs fetch    you tick the boxes
 ```
 
-`specs fetch` is not part of it — its input is the Figma file, which the CLI cannot watch, so it is something you run when you mean to. `specs render` is not part of it either: it writes to a live Figma file. Both stay commands of their own.
+`specs fetch` is not part of it — its input is the Figma file, which the CLI cannot watch, so it is something you run when you mean to. `specs render` joins the end of the chain only on `--render`, because it writes to a live Figma file rather than to disk.
 
 ## Free vs. Pro
 

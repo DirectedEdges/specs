@@ -93,7 +93,7 @@ export async function build(workspace: Workspace, options: DriveOptions = {}): P
   console.log('');
   const result = await runSteps(
     plan.steps,
-    { workspace, components, configPath: options.configPath, verbose: options.verbose ?? false },
+    { workspace, components, configPath: options.configPath, verbose: options.verbose ?? false, watching: false },
     '',
   );
 
@@ -115,6 +115,7 @@ export async function run(workspace: Workspace, options: DriveOptions = {}): Pro
     components,
     configPath: options.configPath,
     verbose: options.verbose ?? false,
+    watching: true,
   };
 
   console.log(`[specs run] ${describe(plan.steps)}`);

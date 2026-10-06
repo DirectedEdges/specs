@@ -46,6 +46,12 @@ export interface StepContext {
   /** The `--config` path as given, passed through to each command's own loader. */
   configPath?: string;
   verbose: boolean;
+  /**
+   * True under `specs run`. Only `render` reads it, and only to decide whether
+   * to overwrite: re-rendering the same component is the normal case in a watch
+   * loop and a destructive surprise in a one-shot build.
+   */
+  watching: boolean;
 }
 
 export interface StepOutcome {

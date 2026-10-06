@@ -31,6 +31,22 @@ Each step reads what the one before it wrote. A step runs only when the workspac
 | `react` | `specs/`, `config/` | `react/src/` | `react/src/` exists |
 | `webcomponents` | `specs/`, `config/` | `webcomponents/src/` | `webcomponents/src/` exists |
 | `storybook` | `specs/`, `config/`, `assets/` | `storybook/content/` | `storybook/.storybook/` exists |
+| `render` | `specs/` | **the connected Figma file** | Only with `--render` |
+
+### `--render`
+
+The one step that writes somewhere other than disk, so it is off unless you ask. It needs a running bridge and an open Figma session — see the [Render to Figma guide](/guides/render-to-figma/).
+
+It does **not** overwrite. Overwriting deletes an existing same-titled page component first, which is fine when a watch loop re-renders what you just edited and a bad surprise in a build you ran once. A title collision is therefore an error here:
+
+```
+✗ render: Render failed: A component named "DS Button" already exists on this page.
+          Pass --overwrite to replace it.
+```
+
+[`specs run --render`](/cli/commands/run/#--render) does overwrite, because re-rendering is the point of a watch loop. To overwrite in a one-shot run, use [`specs render --overwrite`](/cli/commands/render/) deliberately.
+
+With `--components`, a name that matches no spec folder is reported and skipped. If *none* of them match, the run fails rather than reporting a success that rendered nothing.
 
 ### What is not in the chain
 
@@ -40,8 +56,6 @@ Each step reads what the one before it wrote. A step runs only when the workspac
 specs fetch && specs build
 ```
 
-**`specs render`** is not in the chain yet. It writes to a live Figma file rather than to disk, so it stays a deliberate act — see [`render`](/cli/commands/render/). Passing `--render` is refused with that explanation rather than quietly doing nothing.
-
 ## Options
 
 | Option | Effect |
@@ -49,11 +63,12 @@ specs fetch && specs build
 | `--only <steps...>` | Run these steps and nothing else |
 | `--skip <steps...>` | Run everything except these steps |
 | `--components <keys...>` | Limit the run to these component folders |
+| `--render` | Add the `render` step at the end — writes to the connected Figma file |
 | `--dry-run` | Print the steps that would run, and run nothing |
 | `--config <path>` | A workspace whose `config/` is not in the current directory |
 | `--verbose` | Per-step detail |
 
-`--only` and `--skip` name steps — `scan`, `generate`, `react`, `webcomponents`, `storybook` — and cannot be combined.
+`--only` and `--skip` name steps — `scan`, `generate`, `react`, `webcomponents`, `storybook`, `render` — and cannot be combined. Naming `render` in `--only` is as explicit as `--render`, so it needs no second flag.
 
 ## Exit codes
 
@@ -72,7 +87,7 @@ It matters more than it sounds. The license proxy is rate limited, and a throttl
 
 ## In CI
 
-`build` needs no `FIGMA_TOKEN` and cannot reach a live Figma file — every step in the chain is local. Fetch separately, in a step that makes the network call visible:
+Left alone, `build` needs no `FIGMA_TOKEN` and reaches no live Figma file — every step in the default chain is local, and `--render` is the only way out of that. Fetch separately, in a step that makes the network call visible:
 
 ```yaml
 - run: specs fetch

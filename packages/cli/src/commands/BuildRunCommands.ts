@@ -40,7 +40,7 @@ function withSharedOptions(command: Command): Command {
     .option('--only <steps...>', 'Run these steps and nothing else')
     .option('--skip <steps...>', 'Run everything except these steps')
     .option('--components <keys...>', 'Limit the run to these component folders')
-    .option('--render', 'Also render into the connected Figma file (not available yet — use `specs render`)')
+    .option('--render', 'Also render each spec into the connected Figma file — needs a running bridge. Overwrites existing components under `run`, not under `build`')
     .option('--dry-run', 'Print what would run, and run nothing')
     .option('--verbose', 'Enable detailed logging', false);
 }

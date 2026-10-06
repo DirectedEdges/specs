@@ -20,6 +20,7 @@ import { refreshCache } from '../Cache/Cache.js';
 import { reportCache } from './CacheCommand.js';
 import { figmaOf } from '../Config/PlatformConventions.js';
 import { loadDevStatusByNodeId, devStatusForSpec, type WritableDevStatus } from '../utilities/ManifestDevStatus.js';
+import { StepError } from '../pipeline/StepError.js';
 
 const ERROR_CODES = {
   SUCCESS: 0,
@@ -129,6 +130,80 @@ export const Render = new Command('render')
       process.exit(ERROR_CODES.GENERAL_ERROR);
     }
   });
+
+/**
+ * Render specs into the connected Figma file, without exiting the process.
+ *
+ * The chain's `render` step (ADR-101). Reuses the same two paths the command
+ * body uses, so there is one implementation of what rendering means — the only
+ * differences are that this never prompts and never exits.
+ *
+ * `overwrite` is the caller's to decide and is deliberately not defaulted here:
+ * it deletes an existing same-titled page component before re-rendering, which
+ * is right for a watch loop and wrong for a one-shot build.
+ */
+export async function runRender(options: {
+  config?: string;
+  /** Component folder keys to render. Empty or absent renders the whole specs directory. */
+  components?: string[];
+  file?: string;
+  page?: string;
+  overwrite?: boolean;
+  strict?: boolean;
+}): Promise<{ rendered: number }> {
+  const config = new ConfigLoader().load(options.config);
+  const specDirectory = config.settings.spec.directory;
+  if (!specDirectory) {
+    throw new StepError(
+      'no spec.directory in the workspace settings, so there is nothing to render',
+      ERROR_CODES.INVALID_ARGS,
+    );
+  }
+  const specsRoot = path.resolve(specDirectory);
+  if (!fs.existsSync(specsRoot)) {
+    throw new StepError(`specs directory not found: ${specsRoot}`, ERROR_CODES.INVALID_ARGS);
+  }
+
+  // A spec carries the conventions it was produced under and render reverses
+  // that record; this is the fallback for one carrying none. Same load supplies
+  // the Dev Mode status index, read once for the whole run.
+  const withConfig = {
+    ...options,
+    workspaceConventions: config.conventions,
+    workspaceSettings: config.settings,
+    devStatusByNodeId: loadDevStatusByNodeId(config),
+  };
+
+  const wanted = new Set(options.components ?? []);
+  if (wanted.size > 0) {
+    // Scoped: render exactly the named folders. Going through
+    // `findComponentFolders` rather than joining paths keeps one definition of
+    // what counts as a component folder.
+    const folders = findComponentFolders(specsRoot).filter(folder => wanted.has(path.basename(folder)));
+    const missing = [...wanted].filter(key => !folders.some(f => path.basename(f) === key));
+    for (const key of missing) console.warn(`Warning: no spec folder named "${key}" — skipping`);
+
+    // Every name missed. Reporting success here would mean a typo in a CI
+    // invocation passes green having rendered nothing, which is the one outcome
+    // a scoped run must not produce.
+    if (folders.length === 0) {
+      throw new StepError(
+        `none of the named components exist in ${path.relative(process.cwd(), specsRoot) || '.'}: ${[...wanted].join(', ')}`,
+        ERROR_CODES.INVALID_ARGS,
+      );
+    }
+
+    for (const folder of folders) await renderSpecPath(folder, withConfig);
+    return { rendered: folders.length };
+  }
+
+  const folders = findComponentFolders(specsRoot);
+  if (folders.length === 0) {
+    throw new StepError(`no component folders found in ${specsRoot}`, ERROR_CODES.INVALID_ARGS);
+  }
+  await renderBatchDirectory(specsRoot, withConfig, { watch: true }); // never prompts, never exits
+  return { rendered: folders.length };
+}
 
 // Shared by the one-shot render path and each watch-triggered re-render.
 // Throws on failure; caller decides whether that's fatal (one-shot) or just
