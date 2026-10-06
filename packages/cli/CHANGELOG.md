@@ -30,6 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`specs build` and `specs run` — two experimental commands that run your whole workspace, in order.** A workspace is a chain: data produces a manifest, the manifest produces specs, specs produce each platform's code, and that code is what Storybook shows. Until now that order lived in the order you typed the commands, and skipping one left Storybook showing the previous emission with nothing to say so. `specs build` performs the whole chain once and exits non-zero at the first failure, which is what makes it usable in CI. `specs run` performs it once and then watches, redoing only the part a change affects — a spec edit re-emits that one component, and does not re-scan your Figma data. Which steps a workspace has is read from what is on disk, so there is nothing to configure (ADR-101).
+
+- **Editing the curation manifest now regenerates what you selected.** `data/<alias>.manifest.md` is written by `scan` and read by `generate`, which makes it an ordinary link in the chain: under `specs run`, ticking a checkbox runs generate and everything downstream of it, with no rescan. `specs run` also says once at startup when `settings.curation.preserveManualSelections` is off, since new data can then re-tick the boxes from Figma's dev status. The setting behaves exactly as before; it is no longer silent.
+
 - **`specs scan` lists compositions in a third manifest section, curated exactly as components are.** A frame earns a row by being marked ready for dev in Figma — an unmarked frame gets no row, which is what keeps the section readable in a library holding tens of thousands of frames. Within that set the checkbox decides what a run specs, and a row you uncheck stays unchecked across rescans without a flag. A marked frame qualifies wherever it sits, except inside another marked frame, where the outermost wins so one arrangement is never specced twice (ADR-095).
 - **`specs generate` writes checked composition specs** to `specs/compositions/<key>/`, carrying `metadata.source.nodeType: FRAME` as the marker for what the spec describes. `-c` narrows to one by name, id or key, as it does for a component.
 - **`specs react` and `specs webcomponents` emit a composition as one story in a `Compositions` nav group**, at `<tree>/src/compositions/<Name>/`, so screens browse separately from the component list. Compositions are Pro; the free tier skips them with a note and emits components as normal (ADR-097).
@@ -97,6 +101,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`match` in `conventions/figma.primitives.yaml` names the layers that promote to a component**, for a layout family whose members share one set of styles and so cannot be told apart by them. An entry declaring none is chosen by its styles, as before, and a misspelled `match` is now reported rather than ignored (ADR-100).
 
 ### Changed
+
+- **`specs scan` and `specs generate` stop the run by returning rather than by exiting the process.** Every message, exit code and behaviour is unchanged when you run them yourself. The difference is that `specs build` and `specs run` can now call them as one step of a chain and carry on, or say which step stopped it — and that the two of them are directly testable for the first time.
 
 - **`specs fetch` says "glyphs" wherever it used to say "icons"**, matching `scan` and the `glyphs.match` convention. The `icons` fetch kind and the `assets/icons/` directory are unchanged.
 
