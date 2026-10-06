@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { listableCompositions, deriveDefaultInclusion, mergeRows } from '../../../src/commands/ScanCommand.js';
 import { ManifestParserV2 } from '../../../src/utilities/ManifestParserV2.js';
-import { ComponentDiscovery, type ComponentInfo } from '../../../src/utilities/ComponentDiscovery.js';
+import {
+  ComponentDiscovery, SectionedComponentDiscovery, type ComponentInfo,
+} from '../../../src/utilities/ComponentDiscovery.js';
 import { specFolderKey } from '../../../src/utilities/specFolderKey.js';
 
 function frame(id: string, name: string): ComponentInfo {
@@ -224,5 +226,119 @@ describe('composition curation', () => {
     expect(rows.find(r => r.id === '2:0')!.included).toBe(true);  // newly marked
     expect(stats.added).toBe(1);
     expect(stats.removed).toBe(1);
+  });
+});
+
+/**
+ * The two payload shapes must discover the same compositions from the same file
+ * (specs#657). They are separate walks: the whole-graph class holds a parent table and
+ * walks up to apply outermost-wins, while the page-split class carries that rule down
+ * because it has no parent table — one page at a time, released as it goes. A rule
+ * implemented twice is a rule that can diverge, and only the split path had ever run on a
+ * real library.
+ */
+describe('discovery parity — monolithic and page-split', () => {
+  const ready = { type: 'READY_FOR_DEV' };
+
+  /** The pages a document holds, as the two classes each want them. */
+  function pages(...pageChildren: any[][]): any[] {
+    return pageChildren.map((children, i) => ({
+      id: `1:${i}`, name: `Page ${i + 1}`, type: 'PAGE', children,
+    }));
+  }
+
+  /** A SectionedFile over the same pages, loading one at a time as the real one does. */
+  function sectioned(docPages: any[]): any {
+    return {
+      root: () => ({ name: 'Fixture', lastModified: '2026-01-01T00:00:00Z' }),
+      pageEntries: () => docPages.map((p, index) => ({
+        index, id: p.id, name: p.name, file: `page-${index}.json`, bytes: 0, sha256: '',
+      })),
+      loadPage: (entry: { id: string }) => docPages.find(p => p.id === entry.id),
+      releasePage: () => undefined,
+    };
+  }
+
+  /** Every case worth comparing, exercised through both walks over identical input. */
+  const cases: Array<{ name: string; pages: any[][]; compositions: string[] }> = [
+    {
+      name: 'a marked frame on a page',
+      pages: [[{ id: '2:0', name: 'Checkout', type: 'FRAME', devStatus: ready }]],
+      compositions: ['2:0'],
+    },
+    {
+      name: 'an unmarked frame',
+      pages: [[{ id: '2:0', name: 'Scratch', type: 'FRAME' }]],
+      compositions: [],
+    },
+    {
+      name: 'a marked frame inside a SECTION',
+      pages: [[{
+        id: '2:0', name: 'Group', type: 'SECTION',
+        children: [{ id: '3:0', name: 'Home', type: 'FRAME', devStatus: ready }],
+      }]],
+      compositions: ['3:0'],
+    },
+    {
+      name: 'a marked frame inside another marked frame — outermost wins',
+      pages: [[{
+        id: '2:0', name: 'Outer', type: 'FRAME', devStatus: ready,
+        children: [{ id: '3:0', name: 'Inner', type: 'FRAME', devStatus: ready }],
+      }]],
+      compositions: ['2:0'],
+    },
+    {
+      name: 'a marked frame whose marked ancestor chain is broken by an unmarked frame',
+      pages: [[{
+        id: '2:0', name: 'Unmarked', type: 'FRAME',
+        children: [{ id: '3:0', name: 'Inner', type: 'FRAME', devStatus: ready }],
+      }]],
+      compositions: ['3:0'],
+    },
+    {
+      name: 'a marked COMPONENT, which is never a composition',
+      pages: [[{ id: '2:0', name: 'Button', type: 'COMPONENT', devStatus: ready }]],
+      compositions: [],
+    },
+    {
+      name: 'marked frames spread across several pages',
+      pages: [
+        [{ id: '2:0', name: 'Home', type: 'FRAME', devStatus: ready }],
+        [{ id: '2:1', name: 'Checkout', type: 'FRAME', devStatus: ready }],
+      ],
+      compositions: ['2:0', '2:1'],
+    },
+  ];
+
+  for (const testCase of cases) {
+    it(`agrees on ${testCase.name}`, () => {
+      const docPages = pages(...testCase.pages);
+      const whole = new ComponentDiscovery({
+        document: { id: '0:0', name: 'Document', type: 'DOCUMENT', children: docPages },
+      } as any);
+      const split = new SectionedComponentDiscovery(sectioned(docPages) as any);
+
+      const wholeIds = whole.findCompositions().map(c => c.id).sort();
+      const splitIds = split.findCompositions().map(c => c.id).sort();
+
+      expect(wholeIds).toEqual(testCase.compositions.slice().sort());
+      // The parity claim itself, stated separately so a failure says which half moved.
+      expect(splitIds).toEqual(wholeIds);
+    });
+  }
+
+  it('agrees on components too, not only compositions', () => {
+    const docPages = pages(
+      [{ id: '2:0', name: 'Button', type: 'COMPONENT' }],
+      [{ id: '2:1', name: 'Card', type: 'COMPONENT', devStatus: ready }],
+    );
+    const whole = new ComponentDiscovery({
+      document: { id: '0:0', name: 'Document', type: 'DOCUMENT', children: docPages },
+    } as any);
+    const split = new SectionedComponentDiscovery(sectioned(docPages) as any);
+
+    // `findAllComponents` is the name both share through `DiscoverySource`.
+    expect(split.findAllComponents().map(c => c.id).sort())
+      .toEqual(whole.findAllComponents().map(c => c.id).sort());
   });
 });

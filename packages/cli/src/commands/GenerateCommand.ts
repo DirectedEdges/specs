@@ -466,11 +466,19 @@ async function writeGeneratedOutput(
   //
   // Only a full run with no failures may judge: a `--component` run knows nothing
   // about the components it was not asked for, and every one would look stale.
+  //
+  // The shape it needs is a folder per spec holding an `api` document, which is what
+  // `useSubfolders` OR `--split-concerns` produces — the same condition the image prefix
+  // derives its depth from. Keying on `useSubfolders` alone silently excluded every
+  // workspace that splits concerns without subfolders, which is where the report is most
+  // useful: that is the layout a legacy directory migrates into, and its leftovers are
+  // exactly what needs naming.
   if (
     isManifest &&
     !options.component &&
     errors.length === 0 &&
-    outputConfig.useSubfolders &&
+    !!outputConfig.splitComponents &&
+    (!!outputConfig.useSubfolders || !!outputConfig.splitConcerns) &&
     !isSingleFileMode
   ) {
     await reportUngeneratedSpecs(baseDir, writeResult.filesWritten, resolvedFormat);
