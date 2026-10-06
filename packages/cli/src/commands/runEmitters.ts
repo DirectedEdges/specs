@@ -18,6 +18,7 @@ import { platformOf } from '../Config/PlatformConventions.js';
 import {
   resolveSpecsLayout, legacyLayoutNotice, dirNameFor, SPEC_KINDS, type SpecKind,
 } from '../utilities/specsLayout.js';
+import { resolveKindScope, describeKindScope, KindScopeConflict } from '../utilities/kindScope.js';
 
 export const ERROR_CODES = { SUCCESS: 0, INVALID_ARGS: 2, FILE_ERROR: 3, GENERAL_ERROR: 1 };
 
@@ -134,9 +135,13 @@ async function emitOnce(run: EmitRun, options: EmitOptions): Promise<EmitResult>
   // One flat list of (kind, key) pairs: everything downstream — the emit loop,
   // `--components`, pruning — treats a composition as a spec with a different
   // output directory, not as a separate pass.
-  let specs: Array<{ kind: SpecKind; key: string }> = SPEC_KINDS.flatMap(kind =>
-    layout.folderNames(kind, 'yaml').map(key => ({ kind, key })),
-  );
+  // `--compositions` / `--no-compositions` narrow the run to one kind. Resolved before
+  // discovery so an excluded kind is never walked, and recorded so pruning knows this run
+  // is not authoritative over it.
+  const kindScope = resolveKindScope();
+  let specs: Array<{ kind: SpecKind; key: string }> = SPEC_KINDS
+    .filter(kind => kindScope.kinds.includes(kind))
+    .flatMap(kind => layout.folderNames(kind, 'yaml').map(key => ({ kind, key })));
 
   if (options.components && options.components.length > 0) {
     const requested = new Set(options.components);
@@ -148,12 +153,19 @@ async function emitOnce(run: EmitRun, options: EmitOptions): Promise<EmitResult>
   }
 
   if (specs.length === 0) {
+    // Name the kind that was asked for, not "component": a `--compositions` run against a
+    // workspace with none would otherwise be told to look in the components directory.
+    const asked = kindScope.kinds;
     throw new EmitSetupError(
-      `no component directories with api.yaml found in ${layout.dirFor('component')}`,
+      `no ${asked.join(' or ')} directories with api.yaml found in ${asked.map(k => layout.dirFor(k)).join(' or ')}`,
       ERROR_CODES.FILE_ERROR,
       'run `specs generate` first — it writes this layout by default',
     );
   }
+
+  // A narrowed run must not read as a full one.
+  const scopeNotice = describeKindScope(kindScope);
+  if (scopeNotice) console.log(scopeNotice);
 
   // Compositions are Pro (ADR-097). On free they are skipped rather than degraded:
   // a composition with its components stripped out is a styled empty box named
@@ -165,7 +177,7 @@ async function emitOnce(run: EmitRun, options: EmitOptions): Promise<EmitResult>
   // license-aborted run already obey. Without this, a free run following a Pro one
   // deletes the composition output the Pro run wrote and reports it as having no
   // matching spec, when the spec is right there and only the entitlement was missing.
-  const skippedKinds = new Set<SpecKind>();
+  const skippedKinds = new Set<SpecKind>(kindScope.excluded);
   if (compositionCount > 0 && !(await run.proEntitled?.())) {
     specs = specs.filter(s => s.kind !== 'composition');
     skippedKinds.add('composition');
@@ -335,6 +347,12 @@ async function pruneOrphans(
 }
 
 function reportSetupError(error: unknown): void {
+  // Already a complete, actionable message naming both flags — printing it through the
+  // generic path would prefix a second "Error:".
+  if (error instanceof KindScopeConflict) {
+    console.error(error.message);
+    return;
+  }
   if (error instanceof EmitSetupError) {
     console.error(`Error: ${error.message}`);
     if (error.tip) console.error(`Tip: ${error.tip}`);

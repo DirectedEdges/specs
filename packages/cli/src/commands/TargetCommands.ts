@@ -44,6 +44,8 @@ function targetCommand(target: 'react' | 'webcomponents', description: string): 
     .option('-o, --output <path>', 'Path to the specs directory (input)')
     .option('--config <path>', 'Path to a config/ directory or legacy specs.config.yaml')
     .option('--components <keys...>', 'Only emit these component folders (default: all)')
+    .option('--compositions', 'Emit compositions only, no components')
+    .option('--no-compositions', 'Emit components only, skipping compositions')
     .option('--no-stories', 'Emit components without Storybook stories')
     .option('--watch', 'Watch the specs directory and config/ and re-emit on every change')
     .option('--verbose', 'Enable detailed logging', false)

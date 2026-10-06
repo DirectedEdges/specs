@@ -23,6 +23,7 @@ import { resolveFileSourceAlias } from '../utilities/fileSourceAlias.js';
 import { ManifestParser } from '../utilities/ManifestParser.js';
 import { ManifestParserV2 } from '../utilities/ManifestParserV2.js';
 import { writeLayout, type SpecKind } from '../utilities/specsLayout.js';
+import { resolveKindScope, describeKindScope, KindScopeConflict } from '../utilities/kindScope.js';
 import { assertPayloadReadable, readJsonPayload } from '../utilities/payloadRead.js';
 import { SectionedFile, shadowIngestEnabled, shadowCompare } from '../utilities/sectionedFile.js';
 import { LicenseStatus } from '../utilities/LicenseStatus.js';
@@ -385,6 +386,10 @@ async function writeGeneratedOutput(
   // -------------------------------------------------------------------
   const layout = writeLayout(baseDir);
 
+  const kindScope = resolveKindScope();
+  const scopeNotice = describeKindScope(kindScope);
+  if (scopeNotice) console.log(scopeNotice);
+
   const byKind = new Map<SpecKind, typeof processedComponents>();
   for (const item of processedComponents) {
     const kind: SpecKind = item.kind ?? 'component';
@@ -395,8 +400,10 @@ async function writeGeneratedOutput(
 
   const writeResult: WriteResult = { filesWritten: [], warnings: [], errors: [] };
 
-  // Components first, so a run's output reads in the order the manifest lists it.
-  for (const kind of ['component', 'composition'] as SpecKind[]) {
+  // Components first, so a run's output reads in the order the manifest lists it. A
+  // `--compositions` / `--no-compositions` run covers one kind, and the kind it excluded
+  // is one it is not authoritative over — so nothing of that kind's is written or removed.
+  for (const kind of kindScope.kinds) {
     const group = byKind.get(kind);
     if (!group || group.length === 0) continue;
     const result = await writer.write(
@@ -456,6 +463,8 @@ export const Generate = new Command('generate')
   .description('Generate component specifications from Figma data or manifest')
   .argument('[source]', 'Path to Figma JSON file or markdown manifest (default: {data.directory}/{alias}.manifest.md from config)')
   .option('-c, --component <name|id>', 'Component name or ID (required for file mode)')
+  .option('--compositions', 'Generate compositions only, no components')
+  .option('--no-compositions', 'Generate components only, skipping compositions')
   .option('-l, --license <key>', 'License key for premium features (or set SPECS_LICENSE_KEY)')
   .option('-f, --format <format>', 'Output format (yaml or json) - overrides config')
   .option('-o, --output <path>', 'Output file or directory path')
@@ -473,6 +482,15 @@ export const Generate = new Command('generate')
   .option('--remove', 'With --from-bridge: delete the node once its spec has been read (round-trip testing — leaves the Figma page as it was found)')
   .option('--verbose', 'Enable detailed logging', false)
   .action(async (source: string | undefined, options: GenerateOptions) => {
+    // Before anything is read: a run asked to both include and exclude a kind has no
+    // defensible interpretation, and failing after a catalogue load wastes the wait.
+    try {
+      resolveKindScope();
+    } catch (error) {
+      if (!(error instanceof KindScopeConflict)) throw error;
+      console.error(error.message);
+      process.exit(ERROR_CODES.INVALID_ARGS);
+    }
     try {
       // Load configuration (needed to resolve default source path)
       const configLoader = new ConfigLoader();
