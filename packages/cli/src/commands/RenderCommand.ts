@@ -168,7 +168,11 @@ async function renderSpecPath(
   // (see the sub-issues of #281) and by degradations a user cannot act on, so printing a
   // wall of them per render buries the outcome rather than informing it. The INCOMPLETE
   // count below still reports the one case that means content is actually missing.
-  const SHOW_RENDER_WARNINGS = false;
+  // `SPECS_RENDER_WARNINGS=1` prints them anyway. Withheld by default for the reason
+  // above, but a render that silently did nothing is otherwise impossible to tell from one
+  // that worked — so verifying a render-side fix needed an escape rather than a rebuild
+  // with the constant flipped.
+  const SHOW_RENDER_WARNINGS = process.env.SPECS_RENDER_WARNINGS === '1';
   if (SHOW_RENDER_WARNINGS) for (const w of result.warnings ?? []) console.warn(`  ⚠ ${w}`);
 
   // A render that could not place an instance produced a component missing
