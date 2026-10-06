@@ -6,6 +6,7 @@
 |---|-------|------------|
 | # | Title | Highlights |
 |---|-------|------------|
+| 101 | The Workspace Stage Graph | (reserved, draft on `feature/compositions-cli`) |
 | 100 | `PrimitiveEntry.match` — Promoting a Layer by Its Name, Short-Circuiting Style Scoring | (reserved, draft on `100-primitive-layer-name-match`) |
 | 099 | `childrenNamePattern` — Naming the Designated Children Slot | |
 | 098 | Storybook Conventions — `config/conventions/storybook.yaml` | |
