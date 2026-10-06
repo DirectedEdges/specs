@@ -56,9 +56,16 @@ function filePayloads(ws: Workspace): Array<{ alias: string; input: string; mani
     .filter(entry => fs.existsSync(entry.input));
 }
 
-/** `config/`, watched by every step that reads conventions or settings. */
+/**
+ * `config/`, watched by every step that reads conventions or settings.
+ *
+ * `ws.configDir`, never `ws.config.configDir` — the latter is the directory
+ * *containing* config/, which is the workspace root. Watching that put every
+ * emitted tree under the watcher, so hand-editing a generated file kicked off
+ * a full re-emit that overwrote it.
+ */
 function configInput(ws: Workspace): StepInput[] {
-  const dir = ws.config.configDir;
+  const dir = ws.configDir;
   // A config change decides the shape of every component's output, so it is
   // never scoped to one of them.
   return dir && fs.existsSync(dir) ? [{ path: dir, scope: () => null }] : [];

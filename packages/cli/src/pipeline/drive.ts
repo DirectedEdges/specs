@@ -184,7 +184,27 @@ export async function run(workspace: Workspace, options: DriveOptions = {}): Pro
     }
   };
 
+  // One save, several events. macOS reports a single write more than once, and
+  // the copies arrive far enough apart to land either side of the debounce —
+  // one `touch` of the manifest produced two full passes. Modification time
+  // tells them apart: duplicates of one write carry the same stamp, while a
+  // genuine second edit carries a later one.
+  const lastSeen = new Map<string, number>();
+  const isRepeat = (file: string): boolean => {
+    let mtime: number;
+    try {
+      mtime = fs.statSync(file).mtimeMs;
+    } catch {
+      return false; // deleted, or gone before we looked — treat as real
+    }
+    if (lastSeen.get(file) === mtime) return true;
+    lastSeen.set(file, mtime);
+    return false;
+  };
+
   const onChange = (changed: string) => {
+    if (isRepeat(changed)) return;
+
     // A step writing its own output mid-pass is the pass talking to itself —
     // `generate` rewrites `specs/`, which the targets watch. Queueing that would
     // run the targets a second time for one change. Only the steps actually
@@ -218,9 +238,14 @@ export async function run(workspace: Workspace, options: DriveOptions = {}): Pro
 
   for (const target of watched) {
     if (!fs.existsSync(target)) continue;
-    const recursive = fs.statSync(target).isDirectory();
-    fs.watch(target, { recursive }, (_event, filename) => {
-      onChange(filename ? path.join(target, filename.toString()) : target);
+    const isDirectory = fs.statSync(target).isDirectory();
+    fs.watch(target, { recursive: isDirectory }, (_event, filename) => {
+      // `filename` is relative to the watched directory — but when the target
+      // is a file, it is that file's own name, and joining it produces
+      // `…/manifest.md/manifest.md`. Nothing is there to stat, so the repeat
+      // check silently passed everything through while the prefix match still
+      // matched. A file target reports itself.
+      onChange(isDirectory && filename ? path.join(target, filename.toString()) : target);
     });
   }
 

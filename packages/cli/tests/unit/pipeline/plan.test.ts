@@ -52,8 +52,13 @@ function workspace(parts: {
 
   return {
     root,
+    // The real config directory. `config.configDir` below is deliberately the
+    // workspace root, because that is what the loader puts there — the two are
+    // different values and conflating them is what made the watcher cover the
+    // whole tree.
+    configDir: parts.config ? configDir : null,
     config: {
-      configDir: parts.config ? configDir : undefined,
+      configDir: root,
       settings: {
         curation: { preserveManualSelections: parts.preserveManualSelections ?? false },
         data: { sources: {} },
@@ -243,5 +248,42 @@ describe('watchPaths', () => {
     expect(new Set(paths).size).toBe(paths.length);
     expect(paths).toContain(ws.specsDir);
     expect(paths).toContain(path.join(root, 'config'));
+  });
+
+  it('never watches the workspace root', () => {
+    // It once did: `config.configDir` holds the directory *containing*
+    // config/, so reading it as the config directory put node_modules, .git
+    // and every emitted tree under the watcher. Hand-editing a generated file
+    // then kicked off a full re-emit that overwrote the edit.
+    const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, webcomponents: true, storybook: true, config: true });
+    expect(watchPaths(resolvePlan(ws), ws)).not.toContain(root);
+  });
+
+  it('never watches an emitted tree — nothing in the chain reads one', () => {
+    const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, webcomponents: true, storybook: true, config: true });
+    const paths = watchPaths(resolvePlan(ws), ws);
+    for (const emitted of ['react', 'webcomponents', 'storybook']) {
+      expect(paths.some(p => p === path.join(root, emitted) || p.startsWith(path.join(root, emitted) + path.sep))).toBe(false);
+    }
+  });
+
+  it('watches the manifest as a file, not as a directory to join names onto', () => {
+    // The watcher callback gives a name relative to the watched directory. For a
+    // file target that name is the file itself, so joining produced
+    // `…/manifest.md/manifest.md` — a path nothing could stat, which disabled
+    // duplicate-event detection while still matching by prefix. One edit then
+    // ran the whole chain twice.
+    const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true });
+    const manifest = path.join(ws.dataDir, 'ds.manifest.md');
+    expect(watchPaths(resolvePlan(ws), ws)).toContain(manifest);
+    expect(fs.statSync(manifest).isFile()).toBe(true);
+    expect(entryFor(resolvePlan(ws), ws, path.join(manifest, 'ds.manifest.md'))?.step.id).toBe('generate');
+  });
+
+  it('does not treat a change in emitted output as something to act on', () => {
+    const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, storybook: true, config: true });
+    const plan = resolvePlan(ws);
+    expect(entryFor(plan, ws, path.join(root, 'react', 'src', 'components', 'DsButton', 'scaffold.tsx'))).toBeNull();
+    expect(entryFor(plan, ws, path.join(root, 'storybook', 'content', 'components', 'tabs.json'))).toBeNull();
   });
 });
