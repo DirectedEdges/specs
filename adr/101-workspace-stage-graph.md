@@ -82,10 +82,14 @@ continuously.
 - **A change enters at one node.** Editing `specs/Alert/api.yaml` must not
   re-scan `data/`. Entry-node resolution is the correctness property that
   distinguishes a stage graph from "run everything again".
+- **Every step must have an input the CLI can watch.** This is what decides
+  membership. A step whose input lives somewhere the CLI cannot see has no event
+  that could start it, so it is not part of the chain — it is something a person
+  does, which then produces an input the chain reacts to.
 - **Nothing in the default path may touch the network or the Figma file.**
-  `specs fetch` costs an API budget and a `FIGMA_TOKEN`. `specs render` mutates
-  the connected Figma file and can destroy user content with `--overwrite`. An
-  orchestrator that reaches either by default is unsafe.
+  `specs render` writes to the connected Figma file and can destroy a person's
+  work with `--overwrite`. It stays an explicit act, never a side effect of
+  saving a spec.
 - **The curation manifest is human-authored.** `data/{alias}.manifest.md`
   carries checkboxes a person ticks. Any automatic re-scan risks rewriting a
   human decision; `settings.curation.preserveManualSelections` already governs
@@ -187,7 +191,7 @@ were to follow.
 
 ---
 
-## Options Considered — How the graph is declared
+## Options Considered — How the chain is worked out
 
 ### Option A: Derived from workspace detection *(Selected)*
 
@@ -222,7 +226,7 @@ exists → the publish stage is active; a configured source with `fetch: [file]`
 
 ---
 
-### Option B: An authored stage list in settings *(Rejected)*
+### Option B: The list of steps is written out in settings *(Rejected)*
 
 A new `settings.build.stages` naming the stages and their order.
 
@@ -234,19 +238,19 @@ directory layout the declaration of what a workspace contains.
 
 ---
 
-### Option C: Detection, plus settings for the opt-in stages only *(Rejected for now)*
+### Option C: Read the layout, but let settings add the optional steps *(Rejected for now)*
 
-Detection for the local stages; a `settings.build` key to let a workspace opt
-`fetch` or `render` into the default graph permanently.
+Detection for the local steps; a `settings.build` key to let a workspace make
+`render` a permanent part of its chain.
 
-**Rejected because**: a persistent setting that makes a mutating Figma write part
-of a routine build is a footgun with no undo, and nothing yet shows a workspace
+**Rejected because**: a setting that writes to a live Figma file on every
+routine build is dangerous and has no undo, and nothing yet shows a workspace
 wants it. Recorded here as the shape to adopt *if* that need appears, so the
-next author does not have to re-derive it.
+next author does not have to work it out again.
 
 ---
 
-## Options Considered — How a stage is executed
+## Options Considered — How a step is run, and how often the license is checked
 
 The current composition, `specs storybook dev`, spawns this same CLI binary as a
 child process per watcher, and says why: *"spawns this same CLI binary for the
@@ -266,77 +270,98 @@ Our own testing notes put the validate endpoint at roughly three requests per
 thirty-two seconds. A single startup traversal exceeds that, and the first
 file-save re-traversal lands in `rate-limited`.
 
-### Option A: Stages run in-process, with entitlement hoisted into the driver *(Selected)*
+### Option A: Steps run inside one process, and the engine remembers its own answer *(Selected)*
 
-Each stage is a callable function the driver invokes directly. The driver
-resolves entitlement **once**, before the first stage, and injects the resolved
-value into every stage that needs it.
+Each step is a function the chain calls directly. Nothing is injected and no new
+way to supply a license answer is created. The only change is that `resolve()`
+remembers what the proxy told it, for the life of the process, the same way the
+emitter packages already do.
 
-The seam for this already exists and was built for exactly this reason —
-`EmitRun.proEntitled` is a caller-supplied callback, documented as:
-
-> Supplied by the caller rather than resolved here, so the answer comes from the
-> emitter package's own already-bound entitlement: resolving it here would mean a
-> second license call […]
-
-The driver becomes that caller: it resolves once and passes
-`proEntitled: () => Promise.resolve(resolved)` to every target stage, so no
-closed package changes and no test hook is used in production.
+One process therefore asks once, and every step after the first reuses it.
 
 **Pros**:
-- Satisfies *entitlement is resolved once per invocation* — one call per
-  `build`, one per `run` session, regardless of stage count or traversal count.
-- Removes the rate-limit failure mode rather than pacing around it, which is
-  the posture this workspace already takes toward dev affordances.
-- Process startup disappears from every re-traversal, which is most of the
-  latency in a scoped single-component re-emit.
-- Entitlement becomes a property of the *run*, so a mixed result — Pro
-  components and free compositions in one traversal — is no longer reachable.
+- One call per `build`, one per `run` session, however many steps run and
+  however many times they re-run.
+- Removes the rate-limit failure instead of working around it.
+- Adds no new way to claim Pro. The proxy still produces every verdict, and the
+  engine is still the only thing that asks.
+- Fixes the double check inside `specs generate` for everyone, not only for runs
+  that go through `build` or `run`.
+- Process startup disappears from every re-run, which is most of the wait when
+  re-emitting a single component.
 
 **Cons / Trade-offs**:
-- Stage bodies must be callable, not just registered. `runEmitters()` and the
-  Storybook `publish()`/`init()` functions already are; `ScanCommand` and
-  `GenerateCommand` keep their logic inside Commander action handlers that call
-  `process.exit()`. Extracting those is the bulk of the implementation.
-- One stage can crash the driver. Each stage call is therefore wrapped, and a
-  thrown stage is reported as a failed stage rather than a dead process.
+- Step bodies have to be callable functions. `runEmitters()` and the Storybook
+  `publish()`/`init()` functions already are; `ScanCommand` and
+  `GenerateCommand` keep their work inside their command handlers and call
+  `process.exit()` at the end. Pulling those apart is the bulk of the work.
+- One step crashing could take down the whole process. Each call is wrapped, so
+  a failed step is reported as a failed step.
 
 ---
 
-### Option B: Stages run as spawned CLI child processes *(Rejected)*
+### Option B: Each step runs as a separate `specs …` command *(Rejected)*
 
-Extend what `specs storybook dev` does today: the driver shells out to
-`specs scan`, `specs generate`, `specs react --components …` in order.
+Extend what `specs storybook dev` does today — shell out to `specs scan`,
+`specs generate`, `specs react --components …` in order.
 
-**Rejected because**: it violates *entitlement is resolved once per invocation*
-at four calls per traversal, and the failure it produces is the dangerous kind —
-`rate-limited` resolving to `FREE` inside `generate` means specs written at the
-wrong tier with a successful exit code. It also forfeits scoping precision
-(every re-run pays full process startup) and makes cancelling an in-flight
-traversal a matter of killing processes mid-write.
-
----
-
-### Option C: Spawn, with an entitlement token passed to children *(Rejected)*
-
-Keep spawning, but have the driver resolve once and pass the verdict to each
-child through an environment variable.
-
-**Rejected because**: an environment variable that tells a child process it is
-Pro is an entitlement bypass with a published name. The existing local-resolution
-path (`SPECS_DEV_TIER`) is compiled out of release bundles precisely so no such
-path ships; re-introducing one as the production mechanism inverts that
-decision.
+**Rejected because**: four license calls every time anything changes, and the
+failure it produces is the dangerous kind. A throttled check inside `generate`
+comes back as free, so specs get written at the wrong tier and the run still
+reports success. It also makes stopping a half-finished run a matter of killing
+processes mid-write.
 
 ---
 
-## Options Considered — Which stages are in the default graph
+### Option C: Keep separate processes, pass the answer down in an environment variable *(Rejected)*
 
-### Option A: Local, deterministic stages only; network and mutation opt in *(Selected)*
+**Rejected because**: an environment variable that tells a process it is Pro is
+a published way to skip paying. `SPECS_DEV_TIER` is deliberately compiled out of
+released builds so that no such path exists; adding one back as the production
+mechanism undoes that on purpose.
+
+---
+
+### Option D: The engine accepts an already-decided answer from its caller *(Rejected)*
+
+An earlier draft of this ADR proposed this: let the CLI resolve the license once
+and hand the result to `@directededges/specs-from-figma` instead of letting it
+check for itself.
+
+**Rejected because**: that package is published. An optional parameter taking a
+decided answer means `fromRestApi(data, { level: 'PRO', status: 'active' })`
+works for anybody — not a patched copy, but the supported interface. It is the
+same bypass as Option C wearing different clothes, and it is worse, because it
+is documented. Remembering the answer requires no such parameter: the engine
+keeps deciding for itself and simply stops asking the same question four times.
+
+A note on what is and is not being claimed. None of this stops a determined
+person — the CLI runs on their machine and the code can be edited. The line this
+ADR holds is narrower and worth stating: **nothing outside the engine may supply
+a verdict, and nothing is written to disk.** What is remembered lives in memory
+and dies with the process, so there is no file to edit and no flag to set.
+Against someone who would edit the installed code, this changes nothing — they
+could already do that. Against everyone else, it adds no new door.
+
+---
+
+## Options Considered — Which steps belong in the chain
+
+### Option A: Only steps with a watchable input; `render` opts in *(Selected)*
+
+`specs fetch` is **not a step in the chain and gets no flag.** Its input is the
+Figma file, which the CLI cannot watch, so nothing could ever trigger it. It is
+something a person runs; what it writes into `data/` is then an input the chain
+reacts to. A person fetches when they mean to, and a running `specs run` picks
+up the result from `scan` onward.
+
+`specs render` *does* have a watchable input — `specs/` — so it could be in the
+chain. It is kept out because it writes to a live Figma file and can destroy
+someone's work. It joins only on `--render`.
+
 
 | Stage | Reads | Writes | Default |
 |-------|-------|--------|---------|
-| `fetch` | Figma REST API | `data/` | **No** — `--fetch` |
 | `scan` | `data/{alias}.file/` | `data/{alias}.manifest.md` | Yes |
 | `generate` | `data/{alias}.manifest.md`, `data/{alias}.file/` | `specs/` | Yes |
 | `react` | `specs/`, `config/` | `react/src/` | When `react/src/` exists |
@@ -345,22 +370,22 @@ decision.
 | `render` | `specs/` | **the connected Figma file** | **No** — `--render` |
 
 **Pros**:
-- Satisfies *nothing in the default path may touch the network or the Figma
-  file*. `specs build` in CI needs no `FIGMA_TOKEN` and cannot reach a live file.
-- Every default stage is deterministic in the sense the workspace already
-  commits to — same input, identical output — so a `build` that changes nothing
-  is a build that *reports* nothing changed.
-- `render` stays where the existing safety rules put it: an explicit act against
-  a live file, never a side effect of saving a spec.
+- Every step in the chain has something the CLI can watch, so every step has a
+  reason to run. Nothing sits in the list waiting for a flag that is really just
+  a person deciding.
+- `specs build` in CI needs no `FIGMA_TOKEN` and cannot reach a live Figma file.
+- Fetching stays a deliberate act, which is where the API budget is spent — but
+  it needs no flag here to stay that way. Leaving it out is what keeps it
+  deliberate.
 
 **Cons / Trade-offs**:
-- A designer who fetched fresh data still types `specs fetch` first, or
-  `specs run --fetch`. This is intentional: the fetch boundary is where an API
-  budget is spent.
+- Someone wanting one command that fetches and then rebuilds everything writes
+  `specs fetch && specs build`. That is two words longer and says plainly that a
+  network call happened.
 
 ---
 
-### Option B: Every stage by default, with `--no-*` opt-outs *(Rejected)*
+### Option B: Everything in by default, with `--no-*` to opt out *(Rejected)*
 
 **Rejected because**: the default would render into a live Figma file. The
 blast radius of getting that wrong — `--overwrite` deleting a page component —
@@ -369,7 +394,7 @@ it.
 
 ---
 
-### Option C: Stop the default graph at `specs/`, leaving the targets opt-in *(Rejected)*
+### Option C: Stop at `specs/` and leave React and Web Components opt-in *(Rejected)*
 
 **Rejected because**: it reproduces the exact staleness this ADR exists to
 remove. `specs/` current and `react/src/` two revisions behind is the failure
@@ -377,9 +402,22 @@ mode, not an acceptable default.
 
 ---
 
-## Options Considered — Whether the curation manifest is a graph node
+### Option D: `fetch` in the chain, off by default, reachable with a flag *(Rejected)*
 
-### Option A: The manifest is a node; `data/` and the manifest are separate entry points *(Selected)*
+The first draft of this ADR took this position.
+
+**Rejected because**: a flag is the wrong shape for it. Every other step runs
+because something it watches changed; `fetch` would only ever run because a
+person asked, which is `specs fetch` — a command that already exists and says
+what it does. Putting it behind a flag on `run` and `build` adds a second way to
+do one thing, and quietly moves a network call into a command whose whole claim
+is that it stays local.
+
+---
+
+## Options Considered — Whether the curation manifest is a step of its own
+
+### Option A: The manifest is its own step, and editing it starts the chain *(Selected)*
 
 `scan` writes `data/{alias}.manifest.md`; `generate` reads it. The manifest is
 therefore an ordinary edge in the graph, which means a **human edit to the
@@ -411,7 +449,7 @@ everything downstream, with no re-scan.
 
 ---
 
-### Option B: `data/` is the only upstream entry; the manifest is an intermediate *(Rejected)*
+### Option B: Only `data/` starts the chain; the manifest is invisible *(Rejected)*
 
 **Rejected because**: it makes a human's curation edit invisible to the loop.
 The person ticks a box and nothing happens, which is indistinguishable from the
@@ -428,9 +466,9 @@ manual intervention, which is the stated problem.
 
 ---
 
-## Options Considered — Invalidation granularity
+## Options Considered — How precisely a change is matched to work
 
-### Option A: Declared per input path, with key scoping where a stage supports it *(Selected)*
+### Option A: Match by the exact path that changed, down to one component *(Selected)*
 
 A stage declares its inputs as paths, not as directories-by-convention. Within
 `config/`, that is per *file* — the layout ADR-098 established already splits
@@ -473,9 +511,9 @@ running the watcher.
 Two new top-level commands on `specs`:
 
 ```
-specs build [options]     Traverse the stage graph once, in order, then exit.
-specs run   [options]     Traverse once, then watch and re-traverse from the
-                          entry node on every change. Runs until Ctrl-C.
+specs build [options]     Run every step once, in order, then exit.
+specs run   [options]     Run every step once, then watch and re-run from
+                          whichever step the change belongs to. Runs until Ctrl-C.
 ```
 
 Shared options:
@@ -483,48 +521,63 @@ Shared options:
 | Option | Effect |
 |--------|--------|
 | `--config <path>` | Workspace config directory, as every other command |
-| `--only <stage...>` | Run these stages and nothing else |
-| `--skip <stage...>` | Run the graph without these stages |
-| `--components <keys...>` | Scope the traversal to these component folders |
-| `--fetch` | Add the `fetch` stage at the head of the graph |
-| `--render` | Add the `render` stage as a leaf — writes to the connected Figma file |
-| `--dry-run` | Print the resolved plan and exit without running a stage |
-| `--verbose` | Per-stage detail, as every other command |
+| `--only <step...>` | Run these steps and nothing else |
+| `--skip <step...>` | Run everything except these steps |
+| `--components <keys...>` | Limit the run to these component folders |
+| `--render` | Add the `render` step at the end — writes to the connected Figma file |
+| `--dry-run` | Print what would run, and run nothing |
+| `--verbose` | Per-step detail, as every other command |
 
-`run` additionally starts the Storybook dev server as a sink when
-`storybook/.storybook/` exists, which is what `specs storybook dev` does today.
+There is no `--fetch`. Fetching is `specs fetch`, which a person runs when they
+mean to; what it writes into `data/` is picked up from `scan` onward.
 
-### The graph
+`run` also starts the Storybook dev server when `storybook/.storybook/` exists,
+which is what `specs storybook dev` does today.
 
-Stages, inputs, and outputs are as given in the stage table above. The default
-set is every active local stage; `fetch` and `render` join only on their flags.
+### The chain
 
-### Execution and entitlement
+Steps, what each reads, and what each writes are as given in the table above.
+Every step a workspace actually has runs by default; `render` joins only on its
+flag.
 
-Stages run **in-process**. The driver owns one entitlement resolution and hands
-the result to every stage:
+### How steps run, and how the license is checked
 
-| | Resolved | Scope |
+Steps run **inside one process**, as ordinary function calls. They are not
+started as separate `specs …` commands.
+
+That single change is what fixes the license cost, because the license answer is
+already remembered for the life of a process — it just was not being remembered
+in the one place every step passes through. `resolve()` in
+`LicenseManager` makes a fresh network call every time it is asked. Giving it
+the same remember-the-answer behaviour the emitter packages already have means
+one process asks once:
+
+| | Today | With the answer remembered |
 |---|---|---|
-| `specs build` | Once, before the first stage | The whole traversal |
-| `specs run` | Once, at startup | The whole session — every re-traversal reuses it |
+| `generate` (including the dual-write re-check) | 2 calls | 1 |
+| `react` | 1 | 0 — reuses the answer |
+| `webcomponents` | 1 | 0 — reuses the answer |
+| **A whole `specs run` session** | **4, every time anything changes** | **1, ever** |
 
 Rules:
 
-- **One resolution, injected.** The driver resolves entitlement, then supplies
-  each target stage with `proEntitled: () => Promise.resolve(resolved)` through
-  the existing `EmitRun.proEntitled` seam. No stage resolves for itself.
-- **A transient failure aborts the traversal.** `error`, `network-error` and
-  `rate-limited` are not verdicts. A key that was provided and could not be
-  checked stops the run before the first stage, with the guidance
-  `transientFailureGuidance()` already produces. It is never retried per stage —
-  retrying is what saturates the window that caused it.
-- **`run` does not re-resolve on its own.** A session that started free stays
-  free until restarted. The startup line says which tier the session is running
-  at, so this is visible rather than inferred.
-- **The tier is stated once per session, not once per stage.** Today each
-  package's binding prints its own dev-tier warning; under one resolution there
-  is one line.
+- **Nothing outside the engine may supply the answer.** No parameter, no
+  environment variable, no file on disk. The license proxy is the only thing
+  that produces a verdict, and the engine is the only thing that asks. What is
+  remembered lives in memory for the life of the process and disappears when it
+  exits.
+- **A check that did not complete is not an answer.** `error`, `network-error`
+  and `rate-limited` mean the question went unanswered, not that the answer is
+  free. A key that was given and could not be checked stops the run before the
+  first step, using the wording `transientFailureGuidance()` already produces.
+  It is never retried per step — retrying is what exhausted the limit in the
+  first place.
+- **One answer per session, held until you quit.** `specs run` asks once at
+  startup and never again. If a key is revoked while a session is open, that
+  session keeps working until it is restarted; the next one will not. This is
+  deliberate — re-checking on a timer would put the repeated calls back.
+- **The tier is stated once.** The startup line says free or Pro, so which one
+  a session is running at is visible rather than guessed.
 
 ### Plan output
 
@@ -568,33 +621,32 @@ for someone who wants the server and the target watchers and nothing upstream.
 so. No deprecation: the composition moving up a level does not make the scoped
 command wrong.
 
-Its *implementation* does change. It is re-expressed as the same driver scoped
-to the target and publish stages, rather than as its own process-spawning
-watcher. Left as it is, it would be the one path still paying two license calls
-per session and still unable to scope an emit to the component that changed. One
-driver, two entry points.
+What changes is how it is built. It becomes the same machinery as `specs run`,
+limited to the target and publish steps, instead of its own thing that starts
+separate commands. Left as it is, it would be the one path still making two
+license calls a session, and still unable to re-emit only the component that
+changed.
 
 ### Notes
 
-- The `fetch` stage, when enabled, is never scoped by `--components`; a partial
-  fetch is `specs fetch --only`, which remains its own command.
-- `--only` and `--skip` name stages, not commands, and are mutually exclusive.
-- Stage names in both flags are the table's first column (`fetch`, `scan`,
-  `generate`, `react`, `webcomponents`, `storybook`, `render`).
-- `--dry-run` resolves no license. Printing a plan is not running one, and a
-  dry run that spent a validate call against a rate-limited window would make
-  the debugging tool part of the problem it is used to diagnose.
+- `--only` and `--skip` name steps, not commands, and cannot be combined.
+- The step names are the first column of the table above: `scan`, `generate`,
+  `react`, `webcomponents`, `storybook`, `render`.
+- `--dry-run` makes no license call. Printing what would happen is not doing it,
+  and a dry run that spent a license call would make the tool you reach for when
+  something is wrong part of what is wrong.
 
 ---
 
 ## Type ↔ Schema Impact
 
-- **Symmetric**: N/A — no type and no schema change. `packages/schema/` is
-  untouched by this ADR.
-- **Parity check**: Not engaged. The graph is derived from workspace detection
-  (`resolveWorkspace()`), deliberately adding no `Settings` key. If a later need
-  forces one, it is the shape recorded as the rejected Option C under *How the
-  graph is declared*, and it needs its own ADR.
+**None.** This ADR adds no type and changes no schema. `packages/schema/` is
+untouched, so the constitution's parity gates are not engaged.
+
+What a workspace contains is read from the directory layout, the way
+`resolveWorkspace()` already reads it, so no setting was added either. If a
+later need forces one, the shape is recorded as the rejected Option C under
+*How the chain is worked out*, and it would need its own ADR.
 
 ---
 
@@ -602,64 +654,60 @@ driver, two entry points.
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-cli` | Implements both commands and the graph | New `src/pipeline/` module; `index.ts` registers `Build` and `Run`; stage bodies extracted from `ScanCommand` and `GenerateCommand` so they are callable without `process.exit()`; `storybook/dev.ts` reduced to the Storybook sink the graph drives |
-| `specs-schema` | None | None — no types, no schema properties |
-| `specs-from-figma` | Needs one additive seam for a pre-resolved license | Accept an already-resolved `LicenseResult` where the capture path currently takes a raw `LicenseInput` and calls `resolve()` itself. Additive and optional — the existing signature keeps working for direct `specs generate`. Removes the second validate the dual-write flip performs today |
-| `specs-plugin-2` | None | None — `render` reaches the plugin through the existing bridge, unchanged |
+| `specs-cli` | Implements both commands and the chain | New `src/pipeline/` module; `index.ts` registers `Build` and `Run`; the work inside `ScanCommand` and `GenerateCommand` pulled out into functions that return instead of calling `process.exit()`; `storybook/dev.ts` rebuilt on the same machinery |
+| `specs-schema` | None | None |
+| `specs-from-figma` | One internal change | `LicenseManager.resolve()` remembers the proxy's answer for the life of the process, keyed by license key, and remembers only completed checks. No change to any exported signature, and nothing new that a caller can pass in |
+| `specs-plugin-2` | None | None — `render` reaches the plugin over the existing bridge, unchanged |
 | `specs-testing` | None required | May replace scripted command sequences with `specs build` |
 
 ---
 
-## Semver Decision
+## Release Impact
 
-**Target version**: `0.32.0` — `packages/cli/package.json` on `release/next`.
+**No version is proposed.** This ADR changes no schema, so there is no schema
+version to state. The CLI change is additive — two new commands, no existing
+command, flag, or output behaving differently — so it lands in whatever release
+it merges into, as an addition in that release's CHANGELOG.
 
-**Change class**: `MINOR` — two new commands and a new module; no existing
-command, flag, or output changes behaviour. `specs storybook dev` is retained
-with its current surface.
-
-**Justification**: Purely additive to the CLI's public surface. The schema
-package is untouched, so no constitution gate applies and no schema version
-moves.
+The one behaviour change anywhere is the license check happening once per
+process instead of once per call. That is a fix, visible only as fewer network
+calls and the removal of a failure that produced free-tier output under a paid
+key.
 
 ---
 
 ## Consequences
 
-- A workspace has one command that brings every derived artifact current, and
-  one that keeps them current. Staleness stops being a sequencing error a person
-  can make.
-- The dependency order is written down in one place for the first time. Adding a
-  platform target becomes a stage declaration rather than a new entry in a
-  remembered sequence.
-- CI and release verification gain a single command with a meaningful exit code.
-- Curation becomes reactive: ticking a checkbox in the manifest regenerates what
-  it selected.
+- A workspace gets one command that brings everything up to date, and one that
+  keeps it up to date. Forgetting a step stops being possible.
+- The order these things depend on each other is written down in one place for
+  the first time. Adding a new platform becomes a line in that list rather than
+  something everyone has to remember.
+- CI and the release checks get a single command that fails properly when
+  something is wrong.
+- Curation starts working both ways: ticking a checkbox in the manifest
+  regenerates what it selected.
 - A workspace running `specs run` with
-  `settings.curation.preserveManualSelections: false` is warned once at startup
-  that a `data/` change can re-derive its checkboxes. The setting's behaviour is
-  unchanged; only its visibility is.
-- `specs storybook dev` becomes the scoped case of a general mechanism. Its
-  header comment — "fetch, generate, and renders stay yours" — stops being a
-  limitation of the tooling and becomes an accurate description of that
-  command's scope.
-- **One license call per invocation, down from four per traversal.** A
-  `specs run` session validates once at startup and never again; `specs build`
-  validates once. The rate-limit failure that produced silent free-tier output
-  mid-run is removed by construction rather than paced around.
-- The double validation inside `specs generate` — present today, and labelled in
-  its own source — is resolved as a consequence of hoisting, for the orchestrated
-  path immediately and for the direct path once the seam lands.
-- Entitlement becomes a property of a run rather than of a package binding. A
-  traversal cannot emit Pro components alongside free compositions because two
-  bindings disagreed.
-- Stages become callable functions, which makes them directly testable for the
-  first time. `ScanCommand` and `GenerateCommand` currently end in
-  `process.exit()`, so they can only be tested through a spawned process.
-- A new risk is introduced: the orchestrator can invalidate wrongly, and a wrong
-  invalidation looks like a transform bug. The printed plan and `--dry-run` are
-  the mitigation, and they are load-bearing rather than conveniences.
-- A second new risk: in-process execution means one stage's uncaught throw can
-  end the driver, where a spawned child could only end itself. Each stage call
-  is wrapped for this reason, and `run` reports a failed stage and keeps
-  watching.
+  `settings.curation.preserveManualSelections: false` is told once at startup
+  that new data can re-tick its checkboxes. The setting behaves exactly as
+  before; it is just no longer silent.
+- `specs storybook dev` becomes the small version of a general thing. Its own
+  comment — "fetch, generate, and renders stay yours" — stops describing a limit
+  of the tooling and starts describing that command's job.
+- **One license call per run, down from four every time anything changes.** The
+  failure where a throttled check quietly produced free-tier output under a paid
+  key is gone, because the question is only asked once.
+- The double check inside `specs generate` goes away for everyone, including
+  people running `specs generate` on its own.
+- Steps become plain functions, which makes them testable directly. `scan` and
+  `generate` currently end by exiting the process, so today they can only be
+  tested by running the CLI.
+- A new risk: the chain can decide wrongly what needs rebuilding, and a wrong
+  decision looks exactly like a broken transform. Printing what it decided, and
+  `--dry-run`, are how that stays diagnosable — they are not conveniences.
+- A second new risk: with everything in one process, one step crashing could
+  take down the whole thing. Every step call is wrapped, and `run` reports the
+  failure and keeps watching.
+- A session holds its license answer until you quit it. A key revoked mid-session
+  keeps working until the next restart. Accepted deliberately: re-checking on a
+  timer would bring back the repeated calls this decision exists to remove.
