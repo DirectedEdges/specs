@@ -2,8 +2,8 @@
 
 **Branch**: `feature/compositions-cli`
 **Created**: 2026-09-29
-**Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Status**: ACCEPTED
+**Summary**: A composition emits exactly one `Default` story under its own `Compositions` nav group in both targets, with the sticker sheet suppressed by kind and the whole kind skipped on free tier rather than degraded.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 
@@ -65,9 +65,8 @@ description today, which is the entitlement this ADR spends.
 
 ### Option A: One story, own nav group, skipped on free *(Selected)*
 
-`React/Compositions/<Name>` and `Web Components/Compositions/<Name>`, one `Default`
-story, no sticker sheet. On the free tier the composition is not emitted at all, and the
-run says so.
+A `Compositions` nav group of its own in each target, one `Default` story, no sticker
+sheet. On the free tier the composition is not emitted at all, and the run says so.
 
 **Pros**:
 - The single story is what the existing emission already yields for a spec with no axes —
@@ -112,7 +111,7 @@ saying "not emitted, Pro required" carries strictly more information.
 
 | Aspect | Decision |
 |---|---|
-| Nav title | `React/Compositions/<Name>` — `Web Components/Compositions/<Name>` for the sibling |
+| Nav title | `Compositions/<Name>` in React, `Web Components/Compositions/<Name>` in the sibling — each target's own root, not a new one |
 | Story count | exactly one, `Default` |
 | Per-axis stories | none — a frame declares no variant props, so none are generated |
 | Sticker sheet | suppressed by kind, not by emptiness |
@@ -120,6 +119,14 @@ saying "not emitted, Pro required" carries strictly more information.
 The sticker sheet is suppressed because the spec is a composition, not because the variant
 matrix came out with one cell. A guard on the kind states the rule; a guard on the count
 would silently start emitting a sheet the moment anything gave a frame an axis.
+
+React's group sits at the top level rather than under a `React/` prefix, because React has
+no such prefix — its components are titled `Components/<Name>`. The Web Components tree
+does prefix its own root, so its compositions sit inside it. Each target gives the group
+the same position relative to its own components, which is what keeps the two in lockstep;
+titling React's group `React/Compositions/<Name>` would have nested screens one level
+deeper than its components rather than beside them. The scaffolded `storySort` order lists
+`Compositions` after `Components` so the sidebar reads in that order.
 
 ### Emitted location
 
