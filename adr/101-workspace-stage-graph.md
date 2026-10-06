@@ -629,6 +629,14 @@ changed.
 
 ### Notes
 
+- **`render` is decided here but not shipped in the first implementation.** It
+  is the one step that writes to a live Figma file rather than to disk, and the
+  only way to exercise it is to run it against a connected file — which is a
+  real mutation of someone's work, not a test. Shipping an unverified mutating
+  path is worse than not shipping it, so `specs render` stays the way to do it.
+  `--render` is accepted and refused with that explanation rather than silently
+  doing nothing. Nothing above changes when it lands; it is the last step in a
+  chain that already orders itself.
 - `--only` and `--skip` name steps, not commands, and cannot be combined.
 - The step names are the first column of the table above: `scan`, `generate`,
   `react`, `webcomponents`, `storybook`, `render`.
