@@ -6,6 +6,7 @@
 |---|-------|------------|
 | # | Title | Highlights |
 |---|-------|------------|
+| 101 | The Workspace Stage Graph | (reserved, draft on `feature/compositions-cli`) |
 | 099 | `childrenNamePattern` — Naming the Designated Children Slot | |
 | 098 | Storybook Conventions — `config/conventions/storybook.yaml` | |
 | 097 | Composition Emission and Presentation | (reserved, draft in PR #629) |
