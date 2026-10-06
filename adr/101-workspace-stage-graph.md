@@ -96,6 +96,17 @@ continuously.
 - **Silent invalidation is undebuggable.** When an orchestrator decides what to
   re-run, a wrong decision is indistinguishable from a transform bug. The plan
   must be printed, not inferred.
+- **Entitlement is resolved once per invocation.** One license resolution per
+  `specs build`, and one per `specs run` *session* — not once per stage, and
+  not once per traversal. Today entitlement is memoised in a process-local
+  closure (`createEntitlement`) and bound per package, so every stage that runs
+  in its own process pays its own validate call. The license proxy is rate
+  limited, and a throttled check is not a verdict: `rate-limited` is a
+  `TRANSIENT_STATE`, which the target emitters raise as
+  `LICENSE_NOT_VALIDATED` but which `LicenseManager.resolve()` maps to `FREE`.
+  An orchestrator that multiplies license calls therefore does not merely waste
+  requests — it manufactures silent free-tier output under a valid key. This
+  driver constrains the execution model, not just a cache.
 
 ---
 
@@ -232,6 +243,90 @@ Detection for the local stages; a `settings.build` key to let a workspace opt
 of a routine build is a footgun with no undo, and nothing yet shows a workspace
 wants it. Recorded here as the shape to adopt *if* that need appears, so the
 next author does not have to re-derive it.
+
+---
+
+## Options Considered — How a stage is executed
+
+The current composition, `specs storybook dev`, spawns this same CLI binary as a
+child process per watcher, and says why: *"spawns this same CLI binary for the
+watchers, so no PATH assumptions."* That reasoning is sound for two long-lived
+watchers. It does not survive a graph that re-traverses on every file save.
+
+Measured against today's code, one spawn-based traversal costs:
+
+| Stage | Proxy calls | Why |
+|-------|-------------|-----|
+| `generate` | 2 | `LicenseManager.resolve()` is uncached, and the dual-write flip validates a second time — noted in `GenerateCommand.ts` as "(Validates the license a second time.)" |
+| `react` | 1 | `createEntitlement('react')` — memoised, but only within its own process |
+| `webcomponents` | 1 | `createEntitlement('webcomponents')` — a separate binding, so a separate call |
+| **Total** | **4** | per traversal, every traversal |
+
+Our own testing notes put the validate endpoint at roughly three requests per
+thirty-two seconds. A single startup traversal exceeds that, and the first
+file-save re-traversal lands in `rate-limited`.
+
+### Option A: Stages run in-process, with entitlement hoisted into the driver *(Selected)*
+
+Each stage is a callable function the driver invokes directly. The driver
+resolves entitlement **once**, before the first stage, and injects the resolved
+value into every stage that needs it.
+
+The seam for this already exists and was built for exactly this reason —
+`EmitRun.proEntitled` is a caller-supplied callback, documented as:
+
+> Supplied by the caller rather than resolved here, so the answer comes from the
+> emitter package's own already-bound entitlement: resolving it here would mean a
+> second license call […]
+
+The driver becomes that caller: it resolves once and passes
+`proEntitled: () => Promise.resolve(resolved)` to every target stage, so no
+closed package changes and no test hook is used in production.
+
+**Pros**:
+- Satisfies *entitlement is resolved once per invocation* — one call per
+  `build`, one per `run` session, regardless of stage count or traversal count.
+- Removes the rate-limit failure mode rather than pacing around it, which is
+  the posture this workspace already takes toward dev affordances.
+- Process startup disappears from every re-traversal, which is most of the
+  latency in a scoped single-component re-emit.
+- Entitlement becomes a property of the *run*, so a mixed result — Pro
+  components and free compositions in one traversal — is no longer reachable.
+
+**Cons / Trade-offs**:
+- Stage bodies must be callable, not just registered. `runEmitters()` and the
+  Storybook `publish()`/`init()` functions already are; `ScanCommand` and
+  `GenerateCommand` keep their logic inside Commander action handlers that call
+  `process.exit()`. Extracting those is the bulk of the implementation.
+- One stage can crash the driver. Each stage call is therefore wrapped, and a
+  thrown stage is reported as a failed stage rather than a dead process.
+
+---
+
+### Option B: Stages run as spawned CLI child processes *(Rejected)*
+
+Extend what `specs storybook dev` does today: the driver shells out to
+`specs scan`, `specs generate`, `specs react --components …` in order.
+
+**Rejected because**: it violates *entitlement is resolved once per invocation*
+at four calls per traversal, and the failure it produces is the dangerous kind —
+`rate-limited` resolving to `FREE` inside `generate` means specs written at the
+wrong tier with a successful exit code. It also forfeits scoping precision
+(every re-run pays full process startup) and makes cancelling an in-flight
+traversal a matter of killing processes mid-write.
+
+---
+
+### Option C: Spawn, with an entitlement token passed to children *(Rejected)*
+
+Keep spawning, but have the driver resolve once and pass the verdict to each
+child through an environment variable.
+
+**Rejected because**: an environment variable that tells a child process it is
+Pro is an entitlement bypass with a published name. The existing local-resolution
+path (`SPECS_DEV_TIER`) is compiled out of release bundles precisely so no such
+path ships; re-introducing one as the production mechanism inverts that
+decision.
 
 ---
 
@@ -404,6 +499,33 @@ Shared options:
 Stages, inputs, and outputs are as given in the stage table above. The default
 set is every active local stage; `fetch` and `render` join only on their flags.
 
+### Execution and entitlement
+
+Stages run **in-process**. The driver owns one entitlement resolution and hands
+the result to every stage:
+
+| | Resolved | Scope |
+|---|---|---|
+| `specs build` | Once, before the first stage | The whole traversal |
+| `specs run` | Once, at startup | The whole session — every re-traversal reuses it |
+
+Rules:
+
+- **One resolution, injected.** The driver resolves entitlement, then supplies
+  each target stage with `proEntitled: () => Promise.resolve(resolved)` through
+  the existing `EmitRun.proEntitled` seam. No stage resolves for itself.
+- **A transient failure aborts the traversal.** `error`, `network-error` and
+  `rate-limited` are not verdicts. A key that was provided and could not be
+  checked stops the run before the first stage, with the guidance
+  `transientFailureGuidance()` already produces. It is never retried per stage —
+  retrying is what saturates the window that caused it.
+- **`run` does not re-resolve on its own.** A session that started free stays
+  free until restarted. The startup line says which tier the session is running
+  at, so this is visible rather than inferred.
+- **The tier is stated once per session, not once per stage.** Today each
+  package's binding prints its own dev-tier warning; under one resolution there
+  is one line.
+
 ### Plan output
 
 Every traversal prints what it resolved, in both drivers. Without this the
@@ -413,6 +535,7 @@ once with a stale `dist/bridge-server.js`.
 
 ```
 $ specs run
+[specs run] license: PRO (active) — resolved once for this session
 [specs run] plan: scan → generate → react, webcomponents → storybook publish
 [specs run] watching data/, specs/, config/, assets/
 
@@ -429,6 +552,7 @@ specs/Alert/api.yaml changed
 | Stage failure | Stop; exit non-zero | Report the stage; keep watching |
 | Terminal node | `storybook publish` writes, process exits | Storybook dev server stays up and hot-reloads |
 | Concurrency | Independent stages may run in parallel | Same, plus in-flight runs are cancelled by a newer change |
+| Entitlement | Resolved once, before the first stage | Resolved once, at startup, for the session |
 | Exit | `0` all stages succeeded, non-zero otherwise | Only on Ctrl-C |
 
 A burst of file events — what a `specs fetch` or a multi-file save produces — is
@@ -438,11 +562,17 @@ complete and unaffected are not re-run.
 
 ### Relationship to `specs storybook dev`
 
-`specs storybook dev` is retained unchanged as the Storybook-scoped primitive —
-the command for someone who wants the server and the target watchers and nothing
-upstream. `specs run` supersedes it for whole-workspace watching, and its docs
-page says so. No deprecation: the composition moving up a level does not make
-the scoped command wrong.
+`specs storybook dev` keeps its name, its flags and its behaviour — the command
+for someone who wants the server and the target watchers and nothing upstream.
+`specs run` supersedes it for whole-workspace watching, and its docs page says
+so. No deprecation: the composition moving up a level does not make the scoped
+command wrong.
+
+Its *implementation* does change. It is re-expressed as the same driver scoped
+to the target and publish stages, rather than as its own process-spawning
+watcher. Left as it is, it would be the one path still paying two license calls
+per session and still unable to scope an emit to the component that changed. One
+driver, two entry points.
 
 ### Notes
 
@@ -451,6 +581,9 @@ the scoped command wrong.
 - `--only` and `--skip` name stages, not commands, and are mutually exclusive.
 - Stage names in both flags are the table's first column (`fetch`, `scan`,
   `generate`, `react`, `webcomponents`, `storybook`, `render`).
+- `--dry-run` resolves no license. Printing a plan is not running one, and a
+  dry run that spent a validate call against a rate-limited window would make
+  the debugging tool part of the problem it is used to diagnose.
 
 ---
 
@@ -469,9 +602,9 @@ the scoped command wrong.
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-cli` | Implements both commands and the graph | New `src/pipeline/` module; `index.ts` registers `Build` and `Run`; `storybook/dev.ts` reduced to the Storybook sink the graph drives |
+| `specs-cli` | Implements both commands and the graph | New `src/pipeline/` module; `index.ts` registers `Build` and `Run`; stage bodies extracted from `ScanCommand` and `GenerateCommand` so they are callable without `process.exit()`; `storybook/dev.ts` reduced to the Storybook sink the graph drives |
 | `specs-schema` | None | None — no types, no schema properties |
-| `specs-from-figma` | None | None — invoked through the existing stage commands |
+| `specs-from-figma` | Needs one additive seam for a pre-resolved license | Accept an already-resolved `LicenseResult` where the capture path currently takes a raw `LicenseInput` and calls `resolve()` itself. Additive and optional — the existing signature keeps working for direct `specs generate`. Removes the second validate the dual-write flip performs today |
 | `specs-plugin-2` | None | None — `render` reaches the plugin through the existing bridge, unchanged |
 | `specs-testing` | None required | May replace scripted command sequences with `specs build` |
 
@@ -510,6 +643,23 @@ moves.
   header comment — "fetch, generate, and renders stay yours" — stops being a
   limitation of the tooling and becomes an accurate description of that
   command's scope.
+- **One license call per invocation, down from four per traversal.** A
+  `specs run` session validates once at startup and never again; `specs build`
+  validates once. The rate-limit failure that produced silent free-tier output
+  mid-run is removed by construction rather than paced around.
+- The double validation inside `specs generate` — present today, and labelled in
+  its own source — is resolved as a consequence of hoisting, for the orchestrated
+  path immediately and for the direct path once the seam lands.
+- Entitlement becomes a property of a run rather than of a package binding. A
+  traversal cannot emit Pro components alongside free compositions because two
+  bindings disagreed.
+- Stages become callable functions, which makes them directly testable for the
+  first time. `ScanCommand` and `GenerateCommand` currently end in
+  `process.exit()`, so they can only be tested through a spawned process.
 - A new risk is introduced: the orchestrator can invalidate wrongly, and a wrong
   invalidation looks like a transform bug. The printed plan and `--dry-run` are
   the mitigation, and they are load-bearing rather than conveniences.
+- A second new risk: in-process execution means one stage's uncaught throw can
+  end the driver, where a spawned child could only end itself. Each stage call
+  is wrapped for this reason, and `run` reports a failed stage and keeps
+  watching.
