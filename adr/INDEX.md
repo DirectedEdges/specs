@@ -4,7 +4,6 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 101 | The Workspace Stage Graph | (reserved, draft on `feature/compositions-cli`) |
 | 093 | Composed Dependency Selection Is a Setting | |
 | 092 | `invalidPropCombinations` — Renamed and Relocated to the Api Concern | |
 | 082 | `Component.description` — The Authored Figma Description, Plain Text and Opt-In | (reserved, draft in PR #375) |
@@ -18,6 +17,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 101 | The Workspace Stage Graph | `specs build` runs the chain once; `specs run` watches and re-runs from what changed. One process, so one license check per run, not four |
 | 100 | `PrimitiveEntry.match` — Promoting a Layer by Its Name, Short-Circuiting Style Scoring | Adds `PrimitiveEntry.match` — layer-name prefixes selecting a promotion entry ahead of style scoring; longest prefix wins |
 | 099 | `slots.default.match` — Naming the Default Slot, and Flattened Instance Nesting | Adds `SpecsConventions.slots.default.match`, `MetadataConventions.specs` and `SlotProp.defaultSlot`, naming a component's always-composed slot so a filling instance can nest as a plain child instead of an explicit slot binding |
 | 098 | Storybook Conventions — `config/conventions/storybook.yaml` | A `storybook` conventions member maps publish concerns to open feature settings, loaded from `conventions/storybook.yaml` beside `specs` and `figma.primitives` |
