@@ -180,6 +180,11 @@
           "default": false,
           "description": "The library authors numeric props as Figma TEXT props whose values parse as numbers, to be emitted as NumberProp."
         },
+        "inferComposableSlots": {
+          "type": "boolean",
+          "default": false,
+          "description": "The library authors composable content as a slot holding primitives in its default content. When declared, a slot whose default content includes a top-level primitive of a given kind — in at least one variant — is emitted with the matching PrimitiveSlotContent marker in its anyOf ($text, $glyph), and the first top-level primitive of that kind supplies that kind's entry in the slot element's contentStyles; those primitives are not emitted as anatomy elements. Absent, slots are emitted exactly as they are today. The distinction it reads is authored: a slot holding a primitive is the composable case, a TEXT prop on a text layer is the plain-string one. (ADR-102)"
+        },
         "stylesProp": {
           "type": "string",
           "description": "Prop that receives styling no promotion mapped, for every promoted component on this platform (e.g. sx, style, modifier). A name only \u2014 what is placed in it is the generator's decision. Absence means unmapped styling is dropped. (ADR-076)"

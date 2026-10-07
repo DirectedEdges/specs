@@ -57,6 +57,12 @@ const codePlatforms: Conventions = {
 // The shape is deliberately permissive — a code platform may declare an encoding member
 const permissive: PlatformConventions = { inferNumberProps: true, stylesProp: 'sx' };
 
+// inferComposableSlots is optional on the authored shape, defaulting to false (ADR-102)
+const composable: PlatformConventions = { inferComposableSlots: true };
+const noComposable: PlatformConventions = {};
+// @ts-expect-error: inferComposableSlots is a boolean, not a pattern list
+const _badComposable: PlatformConventions = { inferComposableSlots: ['children'] };
+
 // Figma may take a vocabulary member — the reason it is not special-cased
 const figmaVocabulary: PlatformConventions = { images: { match: 'DS Image' } };
 
@@ -175,6 +181,8 @@ declare const platform: NonNullable<ResolvedConventions['platforms']>[string];
 const naming: 'NONE' | 'SENTENCE' | 'TITLE' = platform.naming;
 const constraints: boolean = platform.slotConstraints;
 const numbers: boolean = platform.inferNumberProps;
+// inferComposableSlots is required on the resolved shape for the same reason (ADR-102)
+const composableSlots: boolean = platform.inferComposableSlots;
 const scope: 'NESTED' | 'PAGE' | undefined = platform.subcomponents?.scope;
 const sourceProps: string[] | undefined = platform.images?.sourceProps;
 
