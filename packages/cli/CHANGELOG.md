@@ -110,6 +110,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The CSS transformer is readable, and the part of it that fails silently is now tested directly.** It was one 1,241-line file whose core function ran to 620 lines, fusing role resets, the default-block loop, state-selector expansion, the variant loop, structural display handling and cursor affordances. Each of those now has its own named module under `transforms/css/`, and `Css.ts` is 333 lines of transformer and ordering. The selector expansion — where a wrong result means a state silently has no rule at all, renders as the default, and still looks supported because the prop reaches the contract and the stories — is a pure function with 20 tests of its own. Every generated stylesheet is byte-identical: verified across 601 files in a 192-component workspace (specs#691).
+
+- **`transforms/css/values.ts` is now five files named for what they hold** — tokens, dimensions, colours, gradients and sides — with the name-warning collector its own module beside them. `toKebab` moves to `naming.ts` to sit with the other name shaping, next to a `capitalize` that spent a long time inside `Css.ts` called `toPascalCase` while doing something different.
+
 - **`specs scan` and `specs generate` stop the run by returning rather than by exiting the process.** Every message, exit code and behaviour is unchanged when you run them yourself. The difference is that `specs build` and `specs run` can now call them as one step of a chain and carry on, or say which step stopped it — and that the two of them are directly testable for the first time.
 
 - **`specs fetch` says "glyphs" wherever it used to say "icons"**, matching `scan` and the `glyphs.match` convention. The `icons` fetch kind and the `assets/icons/` directory are unchanged.
@@ -117,6 +121,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`specs init` scaffolds a settings file you can run**, with a Figma source to fill your file key into, YAML output, camelCase keys, HEXA colors, and an assets directory. Every setting exists in it, and each commented line is the opposite of its default, so uncommenting one always changes something — in the conventions files too.
 
 ### Fixed
+
+- **A long-standing type error in the per-side property table is gone.** The two-value shorthand names (`padding-block`, `padding-inline`) were declared as required and the physical fallback — which has no logical shorthand — cast over the gap. The fields are now optional, which is what the code already assumed when it checked for them, so the compiler stops objecting and the fallback stops pretending. No behaviour change: the all-four-sides branch tested for those names before using them and still does.
 
 - **A mode toolbar entry whose name is camelCased or contains a `/` now actually switches the mode.** The toolbar's attribute value and the stylesheet's attribute selector are one contract, and two different kebabizations were producing it: the storybook concern split camelCase and kept `/` (`darkMode` → `dark-mode`, `Brand/Alt` → `brand/alt`) where the emitted CSS strips the case boundary and converts the slash (`darkmode`, `brand-alt`). The control set an attribute no `:root[data-…]` rule matched, so choosing that mode changed nothing on screen and reported no error. The concern now calls the emitter's own `kebabizePath` instead of restating it, and both sides are pinned together by test. Mode names made only of spaces, underscores or a single word were unaffected.
 

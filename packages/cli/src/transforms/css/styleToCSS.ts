@@ -3,7 +3,11 @@
 // wrapAlignment, itemSpacing, layoutSizingHorizontal, layoutSizingVertical)
 // are handled by layoutToCSS — they require cross-key context and are skipped here.
 
-import { isTokenRef, resolveTokenVar, dimensionValue, dimensionValueOrUnset, colorValue, sidesValue, isGradient, isGradientToken, gradientValue } from './values.js';
+import { isTokenRef, resolveTokenVar } from './tokens.js';
+import { dimensionValue, dimensionValueOrUnset } from './dimensions.js';
+import { colorValue } from './colors.js';
+import { sidesValue } from './sides.js';
+import { isGradient, isGradientToken, gradientValue } from './gradients.js';
 
 // ADR-064 logical directions — the transform speaks only the current schema.
 const TEXT_ALIGN_MAP: Record<string, string> = {

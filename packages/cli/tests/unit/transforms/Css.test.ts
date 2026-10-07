@@ -4,7 +4,7 @@ import path from 'path';
 import os from 'os';
 import yaml from 'yaml';
 import { CssTransformer } from '../../../src/transforms/Css.js';
-import { drainNameWarnings } from '../../../src/transforms/css/values.js';
+import { drainNameWarnings } from '../../../src/transforms/css/nameWarnings.js';
 
 const transformer = new CssTransformer();
 
