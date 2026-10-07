@@ -13,17 +13,16 @@ Four directories, each a stage of one pipeline. Nothing reads back up it.
 `types.ts` holds the two shapes every stage needs — which element is the root,
 and where images resolve from.
 
-## Where does a new file go?
+## Adding a file
 
-Ask what it answers, not what it is about. A helper that turns `{ $token }` into
-`var(--x)` is a *value*; one that decides which selector a state needs is a
-*sheet* concern, even though both mention tokens.
+Place it by what it answers, not what it is about. A helper that turns
+`{ $token }` into `var(--x)` is a *value*; one that decides which selector a
+state needs is a *sheet* concern, even though both mention tokens.
 
-The one rule worth stating: a module may import from a stage above it and never
-from one below. `values/` knows nothing about selectors; `sheet/` may use
-anything.
+One rule: a module may import from a stage above it and never from one below.
+`values/` knows nothing about selectors; `sheet/` may use anything.
 
-## What is deliberately not here
+## Outside css/
 
 `states.ts` and `naming.ts` stay in `transforms/` — commands and the other
 transformer use them, so they are not the stylesheet's to own. `Css.ts` itself

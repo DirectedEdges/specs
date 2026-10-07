@@ -10,13 +10,12 @@ per-key table.
 Read it when the CSS is not what you expected and you want to know whether the
 mapping or the spec is responsible.
 
-:::note[Keeping this honest]
-Each section below corresponds to exactly one module in the transformer, named
-beside it. That is deliberate: when a mapping changes, there is one file to check
-this page against. An earlier version of this reference lived beside the code and
-drifted silently for months — documenting a gradient-stroke mechanism, a
-`FILL` translation, and a `text-align` vocabulary the transformer had all
-stopped using.
+:::note[One module per section]
+Each section below names the single transformer module that owns it. When a
+mapping changes there is one file to check this page against. An earlier version
+of this reference lived beside the code and drifted silently for months —
+documenting a gradient-stroke mechanism, a `FILL` translation and a `text-align`
+vocabulary the transformer had all stopped using.
 :::
 
 ## Element class naming
@@ -368,7 +367,7 @@ canvas noise.
 
 **A negative `itemSpacing` emits no `gap`.** Figma expresses overlapping children
 that way and `gap` cannot be negative; the overlap becomes a negative margin on
-every child after the first (see [Rules beyond declarations](#rules-beyond-declarations)).
+every child after the first (see [Additional rules](#additional-rules)).
 
 ### Sizing within the parent
 
@@ -392,7 +391,7 @@ max-width'd body sat against its padding edge where the design centres it. The t
 are identical while the child does fill, which is most of the time and why it went
 unseen.
 
-## Rules beyond declarations
+## Additional rules
 
 Some spec facts produce whole rules rather than declarations on the element.
 

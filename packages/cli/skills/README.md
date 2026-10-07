@@ -4,7 +4,7 @@ Procedures a customer's agent runs, as against the reference pages that document
 what each setting accepts. A page says what a knob takes; a skill says how to
 read the library's evidence and decide what to put in it.
 
-## What is here now
+## Contents
 
 | Skill | Status |
 |---|---|
@@ -16,7 +16,7 @@ has nothing to do with. Moved here rather than deleted because
 precedent for the shipped skill collection — "the right instinct", per the sealed
 first-customer run.
 
-## What #592 changes
+## Pending #592
 
 That issue makes skills canonical and ships them with the CLI package, under a
 shared template with its own naming and reporting rules. This directory is a
