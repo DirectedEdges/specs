@@ -62,7 +62,7 @@ function reportFailure(error: unknown): never {
 
 export const Build = withSharedOptions(
   new Command('build').description(
-    'Bring the whole workspace up to date once — scan, generate, emit each platform, publish Storybook — then exit',
+    'Bring the whole workspace up to date once — scan, generate, analyze, emit each platform, publish Storybook — then exit',
   ),
 ).action(async (options: CommandOptions) => {
   try {

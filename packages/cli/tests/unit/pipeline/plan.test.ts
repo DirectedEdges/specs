@@ -33,6 +33,8 @@ function workspace(parts: {
   webcomponents?: boolean;
   storybook?: boolean;
   config?: boolean;
+  /** Sources also fetch variables and styles — the token universe analyze reads. */
+  foundations?: boolean;
   preserveManualSelections?: boolean;
 } = {}): Workspace {
   const dataDir = path.join(root, 'data');
@@ -68,7 +70,10 @@ function workspace(parts: {
     dataDir,
     assetsDir: path.join(root, 'assets'),
     storybookDir: path.join(root, 'storybook'),
-    sources: (parts.data ?? []).map(alias => ({ alias, fetch: ['file'] })),
+    sources: (parts.data ?? []).map(alias => ({
+      alias,
+      fetch: parts.foundations ? ['file', 'variables', 'styles'] : ['file'],
+    })),
     hasReact: !!parts.react,
     hasWebComponents: !!parts.webcomponents,
     hasSpecs: !!parts.specs,
@@ -81,31 +86,44 @@ function workspace(parts: {
 describe('resolvePlan — which steps this workspace has', () => {
   it('includes only the platform trees that exist', () => {
     const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, storybook: true });
-    expect(resolvePlan(ws).steps.map(s => s.id)).toEqual(['scan', 'generate', 'react', 'storybook']);
+    expect(resolvePlan(ws).steps.map(s => s.id)).toEqual(['scan', 'generate', 'analyze', 'react', 'storybook']);
   });
 
   it('leaves out generate until a manifest exists — scan writes it first', () => {
     const ws = workspace({ data: ['ds'], specs: true, react: true });
-    expect(resolvePlan(ws).steps.map(s => s.id)).toEqual(['scan', 'react']);
+    expect(resolvePlan(ws).steps.map(s => s.id)).toEqual(['scan', 'analyze', 'react']);
   });
 
   it('keeps dependency order regardless of which steps are present', () => {
     const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, webcomponents: true, storybook: true });
     expect(resolvePlan(ws).steps.map(s => s.id)).toEqual([
-      'scan', 'generate', 'react', 'webcomponents', 'storybook',
+      'scan', 'generate', 'analyze', 'react', 'webcomponents', 'storybook',
     ]);
+  });
+
+  it('puts analyze after generate and before the targets — storybook publishes its reports', () => {
+    const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, storybook: true });
+    const ids = resolvePlan(ws).steps.map(s => s.id);
+    expect(ids.indexOf('analyze')).toBeGreaterThan(ids.indexOf('generate'));
+    expect(ids.indexOf('analyze')).toBeLessThan(ids.indexOf('react'));
+    expect(ids.indexOf('analyze')).toBeLessThan(ids.indexOf('storybook'));
   });
 
   it('--only runs exactly what it names', () => {
     const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, storybook: true });
     const plan = resolvePlan(ws, { only: ['react'] });
     expect(plan.steps.map(s => s.id)).toEqual(['react']);
-    expect(plan.excluded.map(s => s.id)).toEqual(['scan', 'generate', 'storybook', 'render']);
+    expect(plan.excluded.map(s => s.id)).toEqual(['scan', 'generate', 'analyze', 'storybook', 'render']);
   });
 
   it('--skip drops a step and keeps the rest in order', () => {
     const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, storybook: true });
-    expect(resolvePlan(ws, { skip: ['scan'] }).steps.map(s => s.id)).toEqual(['generate', 'react', 'storybook']);
+    expect(resolvePlan(ws, { skip: ['scan'] }).steps.map(s => s.id)).toEqual(['generate', 'analyze', 'react', 'storybook']);
+  });
+
+  it('--skip analyze leaves the chain otherwise intact — the targets read no report', () => {
+    const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, storybook: true });
+    expect(resolvePlan(ws, { skip: ['analyze'] }).steps.map(s => s.id)).toEqual(['scan', 'generate', 'react', 'storybook']);
   });
 
   it('refuses --only and --skip together rather than picking one', () => {
@@ -129,7 +147,7 @@ describe('resolvePlan — which steps this workspace has', () => {
   it('adds render on --render, last, after everything that writes to disk', () => {
     const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, storybook: true });
     const plan = resolvePlan(ws, { render: true });
-    expect(plan.steps.map(s => s.id)).toEqual(['scan', 'generate', 'react', 'storybook', 'render']);
+    expect(plan.steps.map(s => s.id)).toEqual(['scan', 'generate', 'analyze', 'react', 'storybook', 'render']);
   });
 
   it('accepts render named in --only, which is as explicit as the flag', () => {
@@ -157,11 +175,11 @@ describe('entryFor — which step a changed file belongs to', () => {
     expect(entry?.step.id).toBe('generate');
   });
 
-  it('starts at the first target for a spec change, not at the publish that also watches specs', () => {
+  it('starts at the first step that reads specs, not at the publish that also watches them', () => {
     const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, storybook: true });
     const plan = resolvePlan(ws);
     const entry = entryFor(plan, ws, path.join(ws.specsDir, 'components', 'Alert', 'api.yaml'));
-    expect(entry?.step.id).toBe('react');
+    expect(entry?.step.id).toBe('analyze');
   });
 
   it('narrows a spec change to the one component it is inside', () => {
@@ -171,11 +189,32 @@ describe('entryFor — which step a changed file belongs to', () => {
     expect(entry?.components).toEqual(['Alert']);
   });
 
+  it('still narrows a spec change now that analyze is the entry — the targets need the key', () => {
+    // analyze ignores the scope and always runs whole, but it is the step a spec
+    // change lands on. Declaring its specs input unscoped would widen every spec
+    // edit into a full re-emit of both platform trees.
+    const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, webcomponents: true });
+    const plan = resolvePlan(ws);
+    const entry = entryFor(plan, ws, path.join(ws.specsDir, 'components', 'Alert', 'api.yaml'))!;
+    expect(entry.step.id).toBe('analyze');
+    expect(entry.components).toEqual(['Alert']);
+  });
+
+  it('enters at analyze when fetched variables change — the unused-token report reads them', () => {
+    const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, foundations: true });
+    const variables = path.join(ws.dataDir, 'ds.variables.json');
+    fs.writeJsonSync(variables, {});
+    const plan = resolvePlan(ws);
+    const entry = entryFor(plan, ws, variables);
+    expect(entry?.step.id).toBe('analyze');
+    expect(entry?.components).toEqual([]);
+  });
+
   it('does not narrow a config change — one file there decides every component\'s output', () => {
     const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, config: true });
     const plan = resolvePlan(ws);
     const entry = entryFor(plan, ws, path.join(root, 'config', 'conventions', 'figma.yaml'));
-    expect(entry?.step.id).toBe('react');
+    expect(entry?.step.id).toBe('analyze');
     expect(entry?.components).toEqual([]);
   });
 
@@ -191,7 +230,7 @@ describe('entryFor — which step a changed file belongs to', () => {
     // targets' input, so a spec edit would emit nothing at all.
     const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true });
     const plan = resolvePlan(ws);
-    expect(entryFor(plan, ws, path.join(ws.specsDir, 'components', 'Alert', 'api.yaml'))?.step.id).toBe('react');
+    expect(entryFor(plan, ws, path.join(ws.specsDir, 'components', 'Alert', 'api.yaml'))?.step.id).toBe('analyze');
   });
 
   it('ignores a change nothing watches', () => {
@@ -206,14 +245,14 @@ describe('fromEntry — what runs after the entry step', () => {
     const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, webcomponents: true, storybook: true });
     const plan = resolvePlan(ws);
     const entry = entryFor(plan, ws, path.join(ws.specsDir, 'components', 'Alert', 'api.yaml'))!;
-    expect(fromEntry(plan, entry).map(s => s.id)).toEqual(['react', 'webcomponents', 'storybook']);
+    expect(fromEntry(plan, entry).map(s => s.id)).toEqual(['analyze', 'react', 'webcomponents', 'storybook']);
   });
 
   it('runs the whole chain when the change lands at the head of it', () => {
     const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, storybook: true });
     const plan = resolvePlan(ws);
     const entry = entryFor(plan, ws, path.join(ws.dataDir, 'ds.file', 'root.json'))!;
-    expect(fromEntry(plan, entry).map(s => s.id)).toEqual(['scan', 'generate', 'react', 'storybook']);
+    expect(fromEntry(plan, entry).map(s => s.id)).toEqual(['scan', 'generate', 'analyze', 'react', 'storybook']);
   });
 });
 

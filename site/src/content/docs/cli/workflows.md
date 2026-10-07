@@ -17,7 +17,7 @@ The workflows below type each step. [`specs build`](/cli/commands/build/) *(expe
 
 ```bash
 specs fetch     # you choose when to spend an API call
-specs build     # scan → generate → react, webcomponents → storybook
+specs build     # scan → generate → analyze → react, webcomponents → storybook
 ```
 
 Both work out what your workspace has from what is on disk, so there is nothing to configure. They are worth reading first if you keep forgetting which command comes next — that is the problem they exist to remove. The steps below are still the reference for what each one does, and still what you reach for when you want to run just one.

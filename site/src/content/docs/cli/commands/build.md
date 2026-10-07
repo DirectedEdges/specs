@@ -6,7 +6,7 @@ title: "build"
 
 Brings every derived part of a workspace up to date, in order, then exits.
 
-A workspace is a chain: data produces a manifest, the manifest produces specs, specs produce each platform's code, and that code is what Storybook shows. Running those commands by hand means remembering the order and never skipping one — and nothing tells you when you did. `build` performs the whole chain, says what it ran, and fails with a non-zero exit code when a step fails, which is what makes it usable in CI.
+A workspace is a chain: data produces a manifest, the manifest produces specs, specs produce the analysis reports and each platform's code, and all of that is what Storybook shows. Running those commands by hand means remembering the order and never skipping one — and nothing tells you when you did. `build` performs the whole chain, says what it ran, and fails with a non-zero exit code when a step fails, which is what makes it usable in CI.
 
 [`specs run`](/cli/commands/run/) is the same chain, watching.
 
@@ -17,6 +17,7 @@ specs build                          # everything this workspace has
 specs build --components Alert       # just one component, through every step
 specs build --only react             # one step
 specs build --skip storybook         # everything but one step
+specs build --skip analyze           # skip the analysis reports
 specs build --dry-run                # print what would run, run nothing
 ```
 
@@ -28,10 +29,21 @@ Each step reads what the one before it wrote. A step runs only when the workspac
 |---|---|---|---|
 | `scan` | `data/<alias>.file/` | `data/<alias>.manifest.md` | A fetched file payload is on disk |
 | `generate` | `data/<alias>.manifest.md` | `specs/` | A manifest exists |
+| `analyze` | `specs/`, `config/`, fetched variables and styles | `specs/analysis/`, `styling.yaml` per spec | `specs/` exists |
 | `react` | `specs/`, `config/` | `react/src/` | `react/src/` exists |
 | `webcomponents` | `specs/`, `config/` | `webcomponents/src/` | `webcomponents/src/` exists |
-| `storybook` | `specs/`, `config/`, `assets/` | `storybook/content/` | `storybook/.storybook/` exists |
+| `storybook` | `specs/`, `specs/analysis/`, `config/`, `assets/` | `storybook/content/` | `storybook/.storybook/` exists |
 | `render` | `specs/` | **the connected Figma file** | Only with `--render` |
+
+### `analyze`
+
+Where it sits is a real dependency, not a convention. It reads `specs/`, so it cannot come before `generate`; `storybook` publishes a page per analysis report, so it cannot come after the step that consumes what it writes. It is the only step whose output another local step reads — everything else reads `specs/` or `data/` directly.
+
+Being ahead of `react` and `webcomponents` is not a dependency: neither reads an analysis. It still matters, because the styling analyzer writes a `styling.yaml` into each spec folder, and the spec folder is what the platform steps read. Running first means everything a pass will write into a spec folder is already there by the time a platform step looks, so one change settles in one pass instead of two.
+
+**`--components` does not narrow it.** Each analyzer writes one aggregate report per concern — `analysis/props.yaml`, `analysis/dependencies.graph.yaml`, `analysis/styling.byToken.yaml` and the rest — built from the specs that pass read. Analysing a subset would replace a catalogue-wide report with a one-component one and report success, so `analyze` always reads the whole catalogue even when the rest of the pass is scoped to one component.
+
+Skipping it is safe. `--skip analyze` leaves the reports as they were and nothing downstream breaks: the platform steps do not need a `styling.yaml`, and Storybook simply publishes the analysis pages it already had. See [Analyze](/cli/analyze/) for what each analyzer measures.
 
 ### `--render`
 
@@ -95,7 +107,9 @@ specs fetch && specs build
 | `--config <path>` | A workspace whose `config/` is not in the current directory |
 | `--verbose` | Per-step detail |
 
-`--only` and `--skip` name steps — `scan`, `generate`, `react`, `webcomponents`, `storybook`, `render` — and cannot be combined. Naming `render` in `--only` is as explicit as `--render`, so it needs no second flag.
+`--only` and `--skip` name steps — `scan`, `generate`, `analyze`, `react`, `webcomponents`, `storybook`, `render` — and cannot be combined. Naming `render` in `--only` is as explicit as `--render`, so it needs no second flag.
+
+`--components` narrows every step except `analyze`, whose reports are catalogue-wide by construction.
 
 ## Exit codes
 
@@ -131,4 +145,5 @@ Left alone, `build` needs no `FIGMA_TOKEN` and reaches no live Figma file — ev
 
 - [`run`](/cli/commands/run/) — the same chain, watching
 - [`storybook`](/cli/commands/storybook/) — the Storybook-only version of the watch loop
+- [Analyze](/cli/analyze/) — what the `analyze` step measures
 - [Workflows](/cli/workflows/) — where these fit in day-to-day use

@@ -13,6 +13,7 @@ It is [`specs build`](/cli/commands/build/) — the same chain, the same steps, 
 ```bash
 specs run                        # the whole workspace
 specs run --skip storybook       # watch, but leave Storybook out
+specs run --skip analyze         # watch, without re-running the analysis reports
 specs run --dry-run              # print the plan and what it would watch
 ```
 
@@ -22,31 +23,36 @@ The point of the chain is that a change enters at one step and everything after 
 
 | You change | It starts at | So this runs |
 |---|---|---|
-| `data/<alias>.file/` — you ran `specs fetch` | `scan` | scan → generate → react, webcomponents → storybook |
-| `data/<alias>.manifest.md` — you ticked a checkbox | `generate` | generate → react, webcomponents → storybook |
-| `specs/components/Alert/api.yaml` | `react` | react, webcomponents → storybook, **for Alert only** |
-| `config/` — a convention or setting | `react` | react, webcomponents → storybook, for everything |
+| `data/<alias>.file/` — you ran `specs fetch` | `scan` | scan → generate → analyze → react, webcomponents → storybook |
+| `data/<alias>.manifest.md` — you ticked a checkbox | `generate` | generate → analyze → react, webcomponents → storybook |
+| `data/<alias>.variables.json`, `<alias>.styles.json` | `analyze` | analyze → react, webcomponents → storybook |
+| `specs/components/Alert/api.yaml` | `analyze` | analyze → react, webcomponents → storybook, **for Alert only** |
+| `config/` — a convention or setting | `analyze` | analyze → react, webcomponents → storybook, for everything |
 | `storybook/content-overrides/` | `storybook` | storybook publish |
 
 A spec change is narrowed to the component it is inside. A `config/` change is not: one file there decides the shape of every component's output. Deleting a spec folder is not narrowed either — a pass limited to one component never prunes, and the stale emitted directory is exactly what needs removing.
 
+`analyze` is where a spec edit now lands, because it is the first step that reads `specs/`. The narrowing still happens there — the pass knows it was Alert, and passes that to the platform steps — but `analyze` itself ignores it and reads the whole catalogue, because its reports are catalogue-wide. Fetched variables and styles enter here too: refreshing them changes what the unused-token report should say with no spec having changed at all.
+
 ### The chain re-reads your workspace each time
 
-Which steps run is worked out per pass, not once at startup. Delete `react/` mid-session and the react step stops — it will not recreate the tree you just removed. Add it back and the step returns:
+Which steps run is worked out per pass, not once at startup. Delete `react/` mid-session and the react step stops — it will not recreate the tree you just removed. Add it back and the step returns. Either way it names only what moved, not the whole chain:
 
 ```
-[specs run] the workspace changed shape — now: scan → generate → storybook publish
+[specs run] react is no longer in this workspace — dropped from the chain
 ```
 
 Every pass prints what it decided before it does it:
 
 ```
-specs/components/Alert/api.yaml changed
-[specs run] react → webcomponents → storybook publish (Alert)
+[specs run] analyze → react → webcomponents → storybook publish (Alert)
+  ✓ analyze — 73 specs (0.8s)
   ✓ react — 1 component (0.4s)
   ✓ webcomponents — 1 component (0.3s)
   ✓ storybook publish — 2 files changed (0.2s)
 ```
+
+Note the asymmetry on that pass: `analyze` reads all 73 specs while the platform steps emit the one component that changed. That is the scoping rule, not a bug — the analysis reports describe the catalogue, so a partial one would be wrong.
 
 That line is worth reading when something looks stale. A chain that decided wrongly what to rebuild looks exactly like a broken transform, and the printed plan is the difference between the two.
 
@@ -86,7 +92,9 @@ One consequence worth knowing: a session holds the answer until you quit it. If 
 | `--config <path>` | A workspace whose `config/` is not in the current directory |
 | `--verbose` | Per-step detail |
 
-`--only` and `--skip` name steps — `scan`, `generate`, `react`, `webcomponents`, `storybook`, `render` — and cannot be combined. `specs fetch` is not a step; [`build`](/cli/commands/build/#what-is-not-in-the-chain) explains why.
+`--only` and `--skip` name steps — `scan`, `generate`, `analyze`, `react`, `webcomponents`, `storybook`, `render` — and cannot be combined. `specs fetch` is not a step; [`build`](/cli/commands/build/#what-is-not-in-the-chain) explains why.
+
+`--components` limits every pass except `analyze`, which always reads the whole catalogue — [`build`](/cli/commands/build/#analyze) explains why.
 
 ### `--render`
 
@@ -139,4 +147,5 @@ Both serve Storybook, and they share one implementation of it — the server and
 
 - [`build`](/cli/commands/build/) — the same chain, once, for CI
 - [`storybook`](/cli/commands/storybook/) — the Storybook-scoped watch loop
+- [Analyze](/cli/analyze/) — what the `analyze` step measures
 - [Curation](/settings/curation/) — what `preserveManualSelections` does

@@ -33,6 +33,17 @@ specs analyze props --analysis ./reports
 
 Naming an analyzer that does not exist is an error, and the message lists the ones that do.
 
+### As a step of the chain
+
+[`specs build`](/cli/commands/build/) and [`specs run`](/cli/commands/run/) include `analyze` as a step, between `generate` and the platform steps, so the reports stay current without being asked for. The chain always runs every analyzer: naming a subset is a thing you do at the command line when you want one report quickly, not a thing a workspace configures.
+
+Two differences from running it yourself are worth knowing:
+
+- **It is never narrowed.** `--components Alert` limits the rest of the pass to Alert and still analyses the whole catalogue, because every report here aggregates across it. A one-component report would overwrite a catalogue-wide one.
+- **A fetch is an input.** Refreshing variables or styles changes what `styling.unused` should say with no spec having changed, so `specs run` re-analyses when `data/<alias>.variables.json` or `<alias>.styles.json` moves.
+
+`--skip analyze` leaves the reports as they are. Nothing downstream requires them — the platform code does not read an analysis, and Storybook publishes whatever reports are on disk.
+
 ## Options
 
 | Option | Description |

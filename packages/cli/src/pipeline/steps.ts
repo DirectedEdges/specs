@@ -114,6 +114,66 @@ const generate: Step = {
   },
 };
 
+/**
+ * The analyzers, writing their reports into `specs/analysis/`.
+ *
+ * Sits between `generate` and the target stages, which is where both its edges
+ * put it: it reads `specs/`, so it cannot precede `generate`, and
+ * `storybook publish` publishes a page per report, so it cannot follow the step
+ * that consumes what it writes. That makes it the only edge in the chain between
+ * two local steps — everything else reads `specs/` or `data/` directly.
+ *
+ * Being ahead of `react` and `webcomponents` is not a dependency — neither reads
+ * an analysis — but it is not arbitrary either. The styling analyzer writes a
+ * `styling.*` document into each spec folder, and the spec folder is what the
+ * targets watch. Running first means everything this pass will write into a spec
+ * folder is already there by the time a target reads it, so one change settles in
+ * one pass.
+ */
+const analyze: Step = {
+  id: 'analyze',
+  label: 'analyze',
+  active: ws => ws.hasSpecs,
+  inputs: ws => [
+    // Scoped the same way the targets are, even though this step ignores the
+    // scope. `analyze` is now the earliest step a spec change enters, and the
+    // entry is where the pass learns which component changed — declaring this
+    // unscoped would widen every spec edit to a full re-emit of both platform
+    // trees. So the keys are resolved here and passed down; what this step does
+    // with them is its own business, and what it does is ignore them.
+    { path: ws.specsDir, scope: changed => specScope(ws.specsDir, changed) },
+    ...configInput(ws),
+    // Variables and styles are the token universe the unused-token report needs.
+    // A fetch that refreshes them changes what the report should say, with no
+    // spec having changed at all.
+    ...ws.sources.flatMap(source =>
+      (['variables', 'styles'] as const)
+        .filter(kind => source.fetch.includes(kind))
+        .map(kind => path.join(ws.dataDir, `${source.alias}.${kind}.json`))
+        .filter(file => fs.existsSync(file))
+        .map(file => ({ path: file, scope: () => null })),
+    ),
+  ],
+  // Both of its writes land under `specs/`: the reports in `analysis/`, and a
+  // `styling.*` document in each spec folder. Declaring the specs directory
+  // covers both, and is what stops the pass from re-triggering itself on its own
+  // output mid-flight.
+  outputs: ws => [ws.specsDir],
+  async run(context) {
+    const { runAnalyze } = await import('../commands/AnalyzeCommand.js');
+    // `context.components` is deliberately not passed on. Each analyzer's
+    // `finalize()` aggregates only the specs it visited, so a scoped analyze
+    // would overwrite a catalogue-wide report with a one-component one and
+    // report success. The reports are shared output even though the input is read
+    // per spec, which is the same reason `config/` never scopes a target.
+    const result = await runAnalyze([], {
+      config: context.configPath,
+      verbose: context.verbose,
+    });
+    return { detail: result.detail };
+  },
+};
+
 /** `react` and `webcomponents` differ only in which tree they emit into. */
 function targetStep(id: 'react' | 'webcomponents', tree: string): Step {
   return {
@@ -204,6 +264,7 @@ const render: Step = {
 export const STEPS: readonly Step[] = [
   scan,
   generate,
+  analyze,
   targetStep('react', 'react'),
   targetStep('webcomponents', 'webcomponents'),
   storybook,

@@ -16,6 +16,7 @@ import type { Workspace } from '../storybook/workspace.js';
 export const STEP_IDS = [
   'scan',
   'generate',
+  'analyze',
   'react',
   'webcomponents',
   'storybook',
