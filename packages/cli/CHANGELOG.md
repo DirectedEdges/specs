@@ -71,6 +71,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`specs fetch` gives up on a source after waiting 4 minutes for Figma to start sending.** The deadline covers that wait only; a download already underway is never cut off, however slow it runs.
 
+- **A source's `key` accepts a Figma URL pasted from the browser**, not only a bare file key — the same thing `--source` has always accepted. A branch URL resolves to the branch.
+
 ### Fixed
 
 - **The documentation links `specs init` and config errors print now reach a live page.** The domain they named stopped answering.
@@ -82,6 +84,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`specs fetch` no longer reports success while a configured data kind is absent from disk**: a requested kind that did not land fails the run, and a kind excluded by `--only` is called out. Cache counts are labelled as cache contents, so they cannot read as this run's downloads.
 - **A run whose license key cannot be checked stops at the first component** instead of failing every one into the same rate limit, and a rate-limited check now says to wait it out rather than to check your network.
 - **A file payload that arrives incomplete fails the fetch instead of being saved as though it were whole.** Figma sends no length to check against, so a body that stopped early was written and reported as downloaded, surfacing only later when another command could not read it.
+- **A source with no key fails immediately, naming the source and the field**, instead of asking Figma for a file called `undefined` and blaming a key for being stale. Every unusable key in your settings is reported in one run.
+- **A source that failed to download is no longer called "skipped"** in the cache report, which read as though it had never been tried.
 
 ### Removed
 

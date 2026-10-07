@@ -41,7 +41,12 @@ The alias (e.g. `library`, `foundations`) is a name you assign to each source. I
 
 ## `key`
 
-The Figma file key for this source. Found in the file URL: `figma.com/design/<KEY>/...`.
+The Figma file key for this source, or the file's URL pasted straight from the
+browser — `figma.com/design/<KEY>/...`, with the key read out of it for you. A
+branch URL resolves to the branch rather than the file it branches from.
+
+A source whose key is missing or unusable fails before anything is downloaded,
+naming the source and what it found there.
 
 - **Type**: string
 - **Required**: yes

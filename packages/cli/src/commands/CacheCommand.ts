@@ -20,13 +20,21 @@ const ERROR_CODES = {
 
 /** Shared by this command and every command that refreshes the cache as a final step.
  *  Returns false when any payload failed to read — callers decide the exit code, but
- *  the failure is printed here so no caller can lose it. */
-export function reportCache(report: CacheReport): boolean {
+ *  the failure is printed here so no caller can lose it.
+ *
+ *  `attempted` names sources the caller tried and could not get this run. The cache
+ *  sees only that they have no payload, which is exactly what it sees for a source
+ *  nobody asked for — so calling both "skipped" told a reader nothing had been
+ *  tried, on the line directly below the one reporting the failure (specs#708). */
+export function reportCache(report: CacheReport, attempted: readonly string[] = []): boolean {
   const { rebuilt, current, unfetched, counts, aliasCounts, failures } = report;
   if (rebuilt.length > 0) console.log(`  Cache rebuilt: ${rebuilt.join(', ')}`);
   if (current.length > 0) console.log(`  Cache current: ${current.join(', ')}`);
   // Not an error here — only render is in a position to insist a source be fetched.
-  if (unfetched.length > 0) console.log(`  Not fetched, skipped: ${unfetched.join(', ')}`);
+  // An attempted source is left out entirely: its failure is already reported, in
+  // more detail than this line could carry.
+  const skipped = unfetched.filter(alias => !attempted.includes(alias));
+  if (skipped.length > 0) console.log(`  Not fetched, skipped: ${skipped.join(', ')}`);
 
   // Per-source contribution, so a source contributing nothing is visible as itself
   // rather than hidden inside a merged total.

@@ -85,15 +85,76 @@ function splitOnly(value?: string): string[] {
     .filter(Boolean);
 }
 
-function normalizeSources(sources?: Record<string, SourceEntry>): FetchSource[] {
-  if (!sources) return [];
+/** One configured source whose `key` cannot address a Figma file. */
+export interface SourceKeyProblem {
+  alias: string;
+  /** What the config holds, rendered for display — `(empty)` when there is nothing. */
+  found: string;
+  reason: string;
+}
 
-  return Object.entries(sources).map(([alias, entry]) => ({
-    alias,
-    key: entry.key,
-    fetch: (entry.fetch ?? []).filter(isFetchKind),
-    origin: 'config' as const
-  }));
+/**
+ * Configured sources, with every `key` resolved the same way `--source` resolves
+ * one: a bare key passes through, a pasted Figma URL becomes its key.
+ *
+ * An unusable key is collected rather than thrown, so one run names every source
+ * that needs fixing instead of failing at the first and hiding the rest. `fetch`
+ * is the only consumer of a source's file key — the bridge and Storybook read
+ * aliases only — so this is the right place for the check, and it has to happen
+ * before any request: an absent key reaches the API as the literal string
+ * "undefined" and comes back a 404 that reads as a stale key (specs#706).
+ */
+export function normalizeSources(
+  sources?: Record<string, SourceEntry>
+): { entries: FetchSource[]; problems: SourceKeyProblem[] } {
+  if (!sources) return { entries: [], problems: [] };
+
+  const entries: FetchSource[] = [];
+  const problems: SourceKeyProblem[] = [];
+
+  for (const [alias, entry] of Object.entries(sources)) {
+    const raw: unknown = entry?.key;
+    const fetch = (entry?.fetch ?? []).filter(isFetchKind);
+
+    // A YAML `key:` with nothing after it parses as null, not as a missing field —
+    // which is how an absent key reached the API as the string "undefined".
+    const absent = raw === undefined || raw === null || (typeof raw === 'string' && raw.trim() === '');
+    if (absent || typeof raw !== 'string') {
+      problems.push({
+        alias,
+        found: absent ? '(empty)' : String(raw),
+        reason: absent ? 'no key is set' : `expected a file key, found ${typeof raw}`
+      });
+      continue;
+    }
+
+    try {
+      entries.push({ alias, key: resolveFigmaFileKey(raw), fetch, origin: 'config' });
+    } catch (error) {
+      problems.push({
+        alias,
+        found: raw.trim(),
+        reason: error instanceof FigmaKeyError ? error.message.split('\n')[0] : String(error)
+      });
+    }
+  }
+
+  return { entries, problems };
+}
+
+/** Every unusable key, named with the field to edit and what to put there. */
+export function formatSourceKeyProblems(problems: SourceKeyProblem[], configPath: string | null): string {
+  const lines = [
+    `Error: ${problems.length === 1 ? 'A configured source cannot' : `${problems.length} configured sources cannot`} address a Figma file.`
+  ];
+  for (const problem of problems) {
+    lines.push(`  data.sources.${problem.alias}.key — ${problem.reason} (found: ${problem.found})`);
+  }
+  lines.push(
+    `  Set each to a file key, or paste the file's Figma URL and it will be read from that.`,
+    `  Check: ${configReference(configPath)}`
+  );
+  return lines.join('\n');
 }
 
 /** One `--source` value: `<url|key>`, or `<alias>=<url|key>` to name it yourself. */
@@ -374,7 +435,14 @@ export const Fetch = new Command('fetch')
       const outDirValue = options.dataDir || options.outDir || config.settings.data?.directory || 'data';
       const outDir = path.resolve(configDir, outDirValue);
 
-      const fileEntries = normalizeSources(config.settings.data?.sources);
+      const normalized = normalizeSources(config.settings.data?.sources);
+      const fileEntries = normalized.entries;
+      // Before anything else: a key that cannot address a file is a config error,
+      // and no amount of network work will turn it into one.
+      if (normalized.problems.length > 0) {
+        console.error(formatSourceKeyProblems(normalized.problems, configPath));
+        process.exit(ERROR_CODES.INVALID_ARGS);
+      }
       const adHocValues = options.source ?? [];
       if (fileEntries.length === 0 && adHocValues.length === 0) {
         console.error('Error: No sources configured');
@@ -933,7 +1001,7 @@ export const Fetch = new Command('fetch')
           aliases: [...adHoc.map(s => s.alias), ...Object.keys(config.settings.data?.sources ?? {})],
           glyphNamePattern: figmaOf(config.conventions).glyphs?.match,
         });
-        cacheOk = reportCache(report);
+        cacheOk = reportCache(report, sourceFailures.map(f => f.alias));
       }
 
       if (sourceFailures.length > 0) {
