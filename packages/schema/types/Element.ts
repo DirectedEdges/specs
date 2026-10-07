@@ -18,19 +18,21 @@ export type Element = {
   parent?: string | null;
   styles?: Styles;
   /**
-   * Styles applied to content filling this element, as distinct from `styles`, which are
-   * the element's own.
+   * Styles applied to primitive content filling this element, as distinct from `styles`,
+   * which are the element's own.
    *
-   * On a slot element this is the formatting a string fill takes on, captured from the
-   * single text layer in the slot's default content. It is overridden per variant through
-   * `variants[].elements` exactly as `styles` is.
+   * Keyed by primitive (`$text`, `$glyph`) using the same reserved markers this slot's
+   * `anyOf` carries, because default content may hold more than one kind. Each entry is
+   * captured from the first top-level primitive of that kind in the slot's default
+   * content, per variant, and is overridden per variant through `variants[].elements`
+   * exactly as `styles` is.
    *
    * A component fill is formatted by the component it instantiates, so a consumer
    * rendering one applies `styles` and discards `contentStyles` rather than cascading it
    * onto the instance.
    *
-   * Meaningful only on a slot element — an authoring/generator contract, not
-   * schema-enforced (ADR-102).
+   * Meaningful only on a slot element, and its keys should agree with that slot's `anyOf`
+   * markers — both authoring/generator contracts, neither schema-enforced (ADR-102).
    * @since 0.35.0
    */
   contentStyles?: ContentStyles;

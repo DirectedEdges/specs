@@ -75,9 +75,18 @@ Element-type applicability (`container`/`text`/`glyph`/`vectors`/`line`) moves t
 
 ## ContentStyles
 
-A second, narrower style type, carried by [`Element.contentStyles`](/schema/elements/#styles-vs-content-styles). `Styles` describes an element's own appearance; `ContentStyles` describes the appearance of content *filling* it — on a slot element whose prop [`accepts`](/schema/props/#slotcontentkind) a string, the formatting that string takes on.
+A second style type, carried by [`Element.contentStyles`](/schema/elements/#styles-vs-content-styles). `Styles` describes an element's own appearance; `ContentStyles` describes the appearance of primitive content *filling* it.
 
-It holds six properties and nothing else:
+It is a map keyed by the [primitive markers](/schema/props/#primitiveslotcontent) a slot's `anyOf` carries, because default slot content may hold more than one primitive and each is formatted by a different set:
+
+| Key | Type |
+|-----|------|
+| `$text` | `TextContentStyles` |
+| `$glyph` | `GlyphContentStyles` |
+
+### TextContentStyles
+
+Six properties and nothing else:
 
 | Property | Type |
 |----------|------|
@@ -88,8 +97,22 @@ It holds six properties and nothing else:
 | [`textOverflow`](/schema/styles/text-overflow/) | `TextOverflow` |
 | [`maxLines`](/schema/styles/max-lines/) | `Style` |
 
-Each property is typed identically to its `Styles` counterpart, so a value valid in `styles` is valid here — token references, prop bindings and conditionals included, wherever the underlying type is `Style`. `typography` carries the composite, so its own members (`fontSize`, `fontFamily`, `lineHeight` and the rest) travel inside it rather than being listed again.
+`typography` carries the composite, so its own members (`fontSize`, `fontFamily`, `lineHeight` and the rest) travel inside it rather than being listed again.
 
-The set is closed. A property outside it — a container's `padding`, `backgroundColor`, or `layoutMode` — is invalid in `contentStyles` rather than ignored, so a generator cannot record an element's own layout as content formatting.
+### GlyphContentStyles
 
-The set widens only when another content kind is added to [`SlotContentKind`](/schema/props/#slotcontentkind). A glyph kind would bring `fillColor`, `width` and `height`.
+One property:
+
+| Property | Type |
+|----------|------|
+| [`fillColor`](/schema/styles/fill-color/) | `ColorStyle` |
+
+A glyph's size inside a slot is the slot's business, not the fill's, so no dimension members are included. Adding them later is additive.
+
+### Both sets are closed
+
+Each property is typed identically to its `Styles` counterpart, so a value valid in `styles` is valid here — token references, prop bindings and conditionals included, wherever the underlying type is `Style`.
+
+Nothing outside a set may appear in it. A container's `padding`, `backgroundColor` or `layoutMode` is invalid under either key, so a generator cannot record an element's own layout as content formatting. The sets do not leak into each other either: `typography` under `$glyph` is invalid, as is `fillColor` under `$text`.
+
+A new key — an `$image`, say — would arrive with its own property set, touching neither existing kind.

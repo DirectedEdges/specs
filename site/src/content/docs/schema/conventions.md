@@ -74,7 +74,7 @@ The shape is deliberately permissive: nothing stops a code platform declaring `i
 | [`images`](/guides/images/) | `object` | — | How the library expresses images. Absent = no image convention |
 | [`slotConstraints`](/guides/slot-constraints/) | `boolean` | `false` | The library authors slot constraints as code-only props |
 | [`inferNumberProps`](/guides/number-inference/) | `boolean` | `false` | The library authors numeric props as Figma `TEXT` props with numeric defaults |
-| [`inferComposableSlots`](/settings/infer-composable-slots/) | `boolean` | `false` | The library authors string-composable content as a slot whose default content is a single text layer |
+| [`inferComposableSlots`](/settings/infer-composable-slots/) | `boolean` | `false` | The library authors composable content as a slot holding primitives in its default content |
 | [`stylesProp`](#stylesprop) | `string` | — | *Vocabulary.* Prop receiving styling no promotion mapped. Absent = unmapped styling is dropped |
 | [`defaultFillWidth`](#defaultfillwidth) | `number` | — | Container width for a fill-width root. Absent = the rendering tool uses its own fallback |
 

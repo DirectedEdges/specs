@@ -140,20 +140,28 @@ export interface NumberProp {
 }
 
 /**
- * A kind of content a slot permits (ADR-102).
+ * A primitive kind a slot may accept, written as a reserved value inside
+ * {@link SlotProp.anyOf} (ADR-102).
  *
- * - `'component'` admits a component instance, narrowed by the slot's `anyOf` when
- *   present.
- * - `'string'` admits plain string content. Recorded when the slot's default content was
- *   a single text layer and the platform declared `inferComposableSlots`; the formatting
- *   applied to a string fill is then on the slot element's `contentStyles`.
+ * - `'$text'` admits a text primitive — a plain string fill.
+ * - `'$glyph'` admits a glyph primitive — an icon fill.
  *
- * Orthogonal to `defaultSlot`, which states whether a slot is the component's default
- * one. A slot may be string-composable without being the default — an Alert's
- * `description` — or the default without accepting a string.
+ * The names are `ElementType`'s, so one word covers the primitive wherever it appears —
+ * `type: text` on an anatomy item and `$text` in `anyOf` are the same thing. The `$`
+ * prefix marks the value as reserved by the contract rather than supplied by the library,
+ * matching how `$token`, `$binding` and `$slotContent` mark reserved *keys*. A component
+ * key can never shadow a marker: the safe key grammar (ADR-066) admits no leading `$`.
+ *
+ * A marker is recorded when the slot's default content held a top-level primitive of that
+ * kind in at least one variant, and the platform declared `inferComposableSlots`. The
+ * formatting applied to such a fill lives under the matching key of the slot element's
+ * `contentStyles`.
+ *
+ * Orthogonal to `defaultSlot`: a slot may accept a primitive without being the default
+ * slot — an Alert's `description` — or be the default slot and take components only.
  * @since 0.35.0
  */
-export type SlotContentKind = 'component' | 'string';
+export type PrimitiveSlotContent = '$text' | '$glyph';
 
 /**
  * Slot/nested content property definition
@@ -173,24 +181,25 @@ export interface SlotProp {
   /** Maximum number of children this slot accepts. @since 0.25.0 */
   maxChildren?: number;
   /**
-   * Component type names permitted in this slot — narrowing *which* components, within
-   * the kinds `accepts` admits. Absent means any component. @since 0.14.0
+   * What this slot permits — the one list of its accepted content.
+   *
+   * Entries are either a component type name from the library's own namespace, or a
+   * reserved {@link PrimitiveSlotContent} marker naming a primitive kind (`'$text'`,
+   * `'$glyph'`). The two populations cannot collide: the safe key grammar (ADR-066)
+   * admits no leading `$` in a component key. Absent means any component and no
+   * primitive — the behaviour of every slot without markers.
+   *
+   * ```yaml
+   * anyOf: [$glyph, $text, badge]   # a glyph, a label, or a composed Badge
+   * anyOf: [$text]                  # text only — no component permitted
+   * anyOf: [badge]                  # a Badge only — no primitive permitted
+   * ```
+   *
+   * The type stays `string[]` rather than narrowing to a union, because the array holds
+   * arbitrary component names alongside the reserved markers (ADR-102).
+   * @since 0.14.0
    */
   anyOf?: string[];
-  /**
-   * The kinds of content this slot permits.
-   *
-   * Absent means `['component']` — a slot admitting component instances only, which is
-   * how every slot without this member behaves. `'string'` is recorded when the slot's
-   * default content was a single text layer and the platform declared
-   * `inferComposableSlots`; the formatting a string fill takes on is then on the slot
-   * element's `contentStyles`, per variant via `variants[].elements`.
-   *
-   * Orthogonal to `anyOf`, which narrows which components are permitted rather than which
-   * kinds, and to `defaultSlot`, which states whether this is the default slot (ADR-102).
-   * @since 0.35.0
-   */
-  accepts?: SlotContentKind[];
   /**
    * Whether this is the component's designated default slot, resolved from
    * `SpecsConventions.slots.default.match` at generation time. When true, an authored

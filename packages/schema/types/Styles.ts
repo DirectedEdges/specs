@@ -77,23 +77,20 @@ export type Styles = Partial<{
 }>;
 
 /**
- * The styles applied to content filling an element, as distinct from the element's own.
+ * The formatting a **text** primitive takes on when it fills a slot (ADR-102).
  *
- * Deliberately narrower than {@link Styles}: only properties that format content appear,
- * so a container's layout or surface styling cannot enter the content record. Each member
- * is typed identically to its `Styles` counterpart, so a value valid in `styles` is valid
+ * Deliberately narrower than {@link Styles}: only properties that format text appear, so
+ * a container's layout or surface styling cannot enter the content record. Each member is
+ * typed identically to its `Styles` counterpart, so a value valid in `styles` is valid
  * here — token references, prop bindings and conditionals included, wherever the
  * underlying type is `Style`.
  *
  * `typography` is listed once, as the composite: its own members (`fontSize`,
  * `fontFamily`, `lineHeight`, `letterSpacing`, `textCase`, `textDecoration` and the rest)
  * travel inside {@link Typography} rather than being enumerated again here.
- *
- * The set widens when another kind joins `SlotContentKind` — a glyph would bring
- * `fillColor`, `width` and `height` — and not before (ADR-102).
  * @since 0.35.0
  */
-export type ContentStyles = Partial<{
+export type TextContentStyles = Partial<{
   /** Text color of the content. */
   textColor: ColorStyle;
   /** Typography of the content, as a composite or a type-token reference. */
@@ -106,6 +103,45 @@ export type ContentStyles = Partial<{
   textOverflow: TextOverflow | null;
   /** Maximum number of lines before `ELLIPSIS` overflow applies; `null` means no limit. */
   maxLines: Style;
+}>;
+
+/**
+ * The formatting a **glyph** primitive takes on when it fills a slot (ADR-102).
+ *
+ * `fillColor` only. A glyph's size inside a slot is the slot's business, not the fill's,
+ * so no dimension members are included; adding them later is additive.
+ * @since 0.35.0
+ */
+export type GlyphContentStyles = Partial<{
+  /** Fill color of the glyph. */
+  fillColor: ColorStyle;
+}>;
+
+/**
+ * The styles applied to primitive content filling an element, as distinct from the
+ * element's own {@link Styles} (ADR-102).
+ *
+ * Keyed by primitive, using the same reserved markers `SlotProp.anyOf` carries, because a
+ * slot's default content may hold more than one kind — a glyph and a label — and each
+ * kind is formatted by a disjoint property set. A flat block could not attribute which
+ * styles belonged to which primitive.
+ *
+ * On a slot element each entry is the formatting that kind of fill takes on, captured from
+ * the first top-level primitive of that kind in the slot's default content, per variant. It
+ * is overridden per variant through `variants[].elements` exactly as `styles` is.
+ *
+ * A component fill is formatted by the component it instantiates, so a consumer rendering
+ * one applies `styles` and discards `contentStyles`.
+ *
+ * Meaningful only on a slot element, and its keys should agree with that slot's `anyOf`
+ * markers — both authoring/generator contracts, neither schema-enforced.
+ * @since 0.35.0
+ */
+export type ContentStyles = Partial<{
+  /** Formatting for a text primitive filling this slot. */
+  $text: TextContentStyles;
+  /** Formatting for a glyph primitive filling this slot. */
+  $glyph: GlyphContentStyles;
 }>;
 
 /**

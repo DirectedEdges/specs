@@ -5,7 +5,7 @@
  * These files are intentionally never executed — they are compiled with tsc
  * to assert that the type shape is correct.
  */
-import type { StringProp, BooleanProp, EnumProp, SlotProp, SlotContentKind, NumberProp, AnyProp, FigmaCodeOnlySource, FigmaPropExtension, PropExtensions } from '../types/index.js';
+import type { StringProp, BooleanProp, EnumProp, SlotProp, PrimitiveSlotContent, NumberProp, AnyProp, FigmaCodeOnlySource, FigmaPropExtension, PropExtensions } from '../types/index.js';
 
 // ─── StringProp — examples field ──────────────────────────────────────────────
 
@@ -267,52 +267,48 @@ const _slotBadDefaultSlot: SlotProp = { type: 'slot', defaultSlot: 'true' };
 // defaultSlot assignable to AnyProp
 const anyFromDefaultSlot: AnyProp = slotDefaultSlot;
 
-// ─── SlotProp.accepts (ADR 102) ───────────────────────────────────────────────
+// ─── anyOf carries reserved primitive markers (ADR 102) ───────────────────────
 
-// accepts is optional — absence means ['component']
-const slotNoAccepts: SlotProp = { type: 'slot' };
+// anyOf is still optional — absence means any component and no primitive
+const slotNoAnyOf: SlotProp = { type: 'slot' };
 
-// A string-only slot: a Badge whose children are text
-const slotStringOnly: SlotProp = { type: 'slot', accepts: ['string'] };
+// Text-only: a Badge whose children are a string, with no component permitted
+const slotTextOnly: SlotProp = { type: 'slot', anyOf: ['$text'] };
 
-// A slot taking either a string or a narrowed set of components
-const slotStringOrComponent: SlotProp = {
-  type: 'slot',
-  accepts: ['string', 'component'],
-  anyOf: ['badge', 'icon'],
-};
+// A glyph and a label, or a composed Badge — one list, three permitted things
+const slotGlyphTextOrComponent: SlotProp = { type: 'slot', anyOf: ['$glyph', '$text', 'badge'] };
 
-// Order is immaterial — accepts is a set expressed as an array
-const slotKindsReversed: SlotProp = { type: 'slot', accepts: ['component', 'string'] };
+// Component-only is unchanged from today — no marker, no primitive
+const slotComponentOnly: SlotProp = { type: 'slot', anyOf: ['badge'] };
 
-// accepts and defaultSlot are orthogonal: composable and default
-const slotComposableDefault: SlotProp = {
-  type: 'slot',
-  defaultSlot: true,
-  accepts: ['string', 'component'],
-};
+// Markers and defaultSlot are orthogonal: a primitive-accepting default slot
+const slotPrimitiveDefault: SlotProp = { type: 'slot', defaultSlot: true, anyOf: ['$text', 'badge'] };
 
-// ...composable but NOT default — an Alert's description
-const slotComposableNotDefault: SlotProp = { type: 'slot', accepts: ['string', 'component'] };
+// ...primitive-accepting but NOT the default slot — an Alert's description
+const slotPrimitiveNotDefault: SlotProp = { type: 'slot', anyOf: ['$text', 'link'] };
 
-// ...default but component-only — a multi-slot layout component
-const slotDefaultComponentOnly: SlotProp = { type: 'slot', defaultSlot: true };
+// ...the default slot, taking components only — a layout component
+const slotDefaultComponentOnly: SlotProp = { type: 'slot', defaultSlot: true, anyOf: ['card'] };
 
-// @ts-expect-error: 'text' is not a SlotContentKind — the kind is 'string'
-const _slotBadKind: SlotProp = { type: 'slot', accepts: ['text'] };
+// The marker vocabulary
+const markerText: PrimitiveSlotContent = '$text';
+const markerGlyph: PrimitiveSlotContent = '$glyph';
 
-// @ts-expect-error: accepts is an array of kinds, not a bare kind
-const _slotBareKind: SlotProp = { type: 'slot', accepts: 'string' };
+// @ts-expect-error: the vocabulary is closed to the two primitives
+const _markerImage: PrimitiveSlotContent = '$image';
 
-// @ts-expect-error: a component name is not a kind — that is what anyOf is for
-const _slotComponentNameAsKind: SlotProp = { type: 'slot', accepts: ['badge'] };
+// @ts-expect-error: the sigil is part of the value — a bare primitive name is not a marker
+const _markerBare: PrimitiveSlotContent = 'text';
 
-// The kind union itself
-const kindComponent: SlotContentKind = 'component';
-const kindString: SlotContentKind = 'string';
+// @ts-expect-error: `string` is not the vocabulary — the primitive is named `text` (ADR 102, Decision 4)
+const _markerString: PrimitiveSlotContent = '$string';
 
-// @ts-expect-error: the union is closed to the two kinds
-const _kindNumber: SlotContentKind = 'number';
+// anyOf stays string[], so a marker and a component name coexist without a cast
+const anyOfMixed: string[] = ['$glyph', '$text', 'badge'];
+const slotFromMixed: SlotProp = { type: 'slot', anyOf: anyOfMixed };
 
-// accepts assignable to AnyProp
-const anyFromAccepts: AnyProp = slotStringOrComponent;
+// A marker is assignable into anyOf precisely because the array is string[]
+const slotFromMarkerConst: SlotProp = { type: 'slot', anyOf: [markerText, 'badge'] };
+
+// Still assignable to AnyProp
+const anyFromMarkers: AnyProp = slotGlyphTextOrComponent;

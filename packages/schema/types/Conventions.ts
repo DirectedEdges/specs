@@ -259,14 +259,16 @@ export interface PlatformConventions {
   /** This platform authors numeric props as Figma `TEXT` props whose default and examples parse as valid numbers, to be emitted as NumberProp rather than StringProp. Optional; defaults to false. */
   inferNumberProps?: boolean;
   /**
-   * This platform authors string-composable content as a slot whose default content is a
-   * single text layer, to be emitted as a `SlotProp` carrying `'string'` in `accepts`,
-   * with that layer's formatting captured into the slot element's `contentStyles` rather
-   * than emitted as its own anatomy element.
+   * This platform authors composable content as a slot holding primitives in its default
+   * content. When declared, a slot whose default content includes a top-level primitive of
+   * a given kind — in at least one variant — is emitted with the matching
+   * `PrimitiveSlotContent` marker in its `anyOf` (`'$text'`, `'$glyph'`), and the first
+   * top-level primitive of that kind supplies that kind's entry in the slot element's
+   * `contentStyles`. Those primitives are not emitted as anatomy elements.
    *
    * Optional; defaults to false — absent, slots are emitted exactly as they are today. The
-   * distinction it reads is authored: a slot holding a lone text layer is the composable
-   * case, a `TEXT` prop on a text layer is the plain-string one (ADR-102).
+   * distinction it reads is authored: a slot holding a primitive is the composable case, a
+   * `TEXT` prop on a text layer is the plain-string one (ADR-102).
    * @since 0.35.0
    */
   inferComposableSlots?: boolean;
@@ -516,7 +518,7 @@ export interface ResolvedPlatformConventions {
   slotConstraints: boolean;
   /** Numeric props are authored as Figma `TEXT` props. */
   inferNumberProps: boolean;
-  /** String-composable content is authored as a slot whose default content is a single text layer. @since 0.35.0 */
+  /** Composable content is authored as a slot holding primitives in its default content. @since 0.35.0 */
   inferComposableSlots: boolean;
   /** Prop that receives styling no promotion mapped. Optional; absence means unmapped styling is dropped. */
   stylesProp?: string;

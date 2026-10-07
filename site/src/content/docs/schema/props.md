@@ -63,37 +63,39 @@ Inferred from Figma variant values when [`conventions.platforms.figma.inferNumbe
 | `nullable` | `boolean` | No | Whether `null` is a valid value — absent means `true` |
 | `minChildren` | `number` | No | Minimum number of children the slot accepts (since 0.25.0) |
 | `maxChildren` | `number` | No | Maximum number of children the slot accepts (since 0.25.0) |
-| `anyOf` | `string[]` | No | Permitted component type names — which components, within the kinds `accepts` admits (since 0.14.0) |
+| `anyOf` | `string[]` | No | Everything the slot permits — component type names and reserved primitive markers (since 0.14.0) |
 | `defaultSlot` | `boolean` | No | Whether this is the component's designated default slot. Absent means `false` |
-| `accepts` | `SlotContentKind[]` | No | Kinds of content the slot permits. Absent means `['component']` (since 0.35.0) |
 | `$extensions` | `PropExtensions` | No | Vendor extensions |
 
 Slot constraint properties (`minChildren`, `maxChildren`, `anyOf`) are emitted when [`conventions.platforms.figma.slotConstraints`](/schema/conventions/#platform-members) is declared.
 
-#### SlotContentKind
+#### PrimitiveSlotContent
 
-| Value | Meaning |
-|-------|---------|
-| `component` | A component instance, narrowed by `anyOf` when present |
-| `string` | Plain string content, formatted by the slot element's [`contentStyles`](/schema/elements/) |
+`anyOf` is the one list of what a slot accepts. Alongside component names it carries reserved markers naming a **primitive** kind:
 
-`accepts` answers *what kind* of content a slot takes; `anyOf` answers *which components*. They narrow independently, so `accepts: ['string']` with no `anyOf` is a text-only slot, while `accepts: ['string', 'component']` with `anyOf: ['badge']` takes a label string or a Badge.
+| Marker | Admits |
+|--------|--------|
+| `$text` | A text primitive — a plain string fill |
+| `$glyph` | A glyph primitive — an icon fill |
 
 ```yaml
 props:
   children:
     type: slot
     defaultSlot: true
-    accepts: [string, component]
-    anyOf: [badge, icon]
+    anyOf: [$glyph, $text, badge]   # a glyph, a label, or a composed Badge
   description:
     type: slot
-    accepts: [string, component]   # composable, but not the default slot
+    anyOf: [$text, link]            # accepts a primitive, and is not the default slot
 ```
 
-`'string'` is recorded when the slot's default content in Figma was a single text layer and [`inferComposableSlots`](/settings/infer-composable-slots/) is declared. That text layer is not emitted as an anatomy element — the slot is — and its formatting travels on the slot element's `contentStyles`, per variant.
+`anyOf: [$text]` is a text-only slot — no component permitted. `anyOf: [badge]` is Badge-only — no primitive permitted. Absent means any component and no primitive, which is what every slot without markers means today.
 
-`accepts` and `defaultSlot` are orthogonal. A Button's `children` is both string-composable and the default slot; an Alert's `description` is string-composable and *not* the default; a multi-slot layout component's slots are default-eligible and take components only.
+The names are the ones [`anatomy`](/schema/anatomy/) items already use, so `type: text` on an element and `$text` here are the same primitive. The `$` prefix marks a value the contract reserves rather than one the library supplies — the same role it plays in `$token`, `$binding` and `$slotContent`, extended from keys to values. A component key can never shadow a marker, because the safe key grammar admits no leading `$`.
+
+A marker is recorded when the slot's default content in Figma held a top-level primitive of that kind, in at least one variant, and [`inferComposableSlots`](/settings/infer-composable-slots/) is declared. Those primitives are not emitted as anatomy elements — the slot is — and their formatting travels on the slot element's [`contentStyles`](/schema/elements/#styles-vs-content-styles), keyed by the same markers.
+
+Markers and `defaultSlot` are orthogonal. A Button's `children` accepts primitives *and* is the default slot; an Alert's `description` accepts a primitive and is *not* the default; a layout component's slots are default-eligible and take components only.
 
 `defaultSlot` marks the one slot a layout component always composes through. It is set at generation time, when the prop's name matched the library's [`specs.slots.default.match`](/schema/conventions/#slots) convention, and is read off the spec thereafter — a consumer needs no access to those conventions to know which slot it is:
 

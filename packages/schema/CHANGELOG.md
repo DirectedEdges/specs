@@ -18,9 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `MetadataConventions.specs` — the spec conventions a run was performed under, recorded beside the one platform entry. Required by a reader that cannot re-derive one from the spec it holds: a render resolving a nested instance's default slot does not hold that instance's own component spec (ADR-099)
 - `SlotProp.defaultSlot` — durable marker set at generation time when a slot prop matched `specs.slots.default.match`, read by consumers with no dependency on `Conventions` (ADR-099)
 - `PrimitiveEntry.match` — layer-name prefixes selecting a promotion entry, ahead of style scoring; longest prefix wins (ADR-100)
-- `SlotProp.accepts` — typed as `SlotContentKind[]` (`'component' | 'string'`); which kinds of content a slot permits, absent meaning `['component']`. Orthogonal to `anyOf`, which narrows which components, and to `defaultSlot` (ADR-102)
-- `Element.contentStyles` — typed as `ContentStyles`, a closed set of `textColor`, `typography`, `textAlignHorizontal`, `textAlignVertical`, `textOverflow` and `maxLines`; the formatting content filling an element takes on, distinct from the element's own `styles`, and varied per variant through `variants[].elements` (ADR-102)
-- `PlatformConventions.inferComposableSlots` — the library authors string-composable content as a slot whose default content is a single text layer; defaults to false, also required on `ResolvedPlatformConventions` (ADR-102)
+- `PrimitiveSlotContent` — reserved `anyOf` values naming a primitive a slot accepts: `$text` and `$glyph`. Named from `ElementType`, so one word covers the primitive wherever it appears; the `$` prefix marks a contract-reserved value, which no component key can shadow under the safe key grammar (ADR-102)
+- `SlotProp.anyOf` — now carries `PrimitiveSlotContent` markers alongside component names, so one list states everything a slot permits. Type and absence semantics unchanged (ADR-102)
+- `Element.contentStyles` — typed as `ContentStyles`; the formatting primitive content filling an element takes on, distinct from the element's own `styles`, varied per variant through `variants[].elements`. Keyed by primitive, because default content may hold a glyph and a label (ADR-102)
+- `ContentStyles`, `TextContentStyles`, `GlyphContentStyles` — a `$text`/`$glyph` map over two closed property sets: text takes `textColor`, `typography`, `textAlignHorizontal`, `textAlignVertical`, `textOverflow` and `maxLines`; a glyph takes `fillColor` alone (ADR-102)
+- `PlatformConventions.inferComposableSlots` — the library authors composable content as a slot holding primitives in its default content; defaults to false, also required on `ResolvedPlatformConventions` (ADR-102)
 
 ### Changed
 

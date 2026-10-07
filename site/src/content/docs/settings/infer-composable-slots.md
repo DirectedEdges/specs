@@ -1,23 +1,32 @@
 ---
 title: "Infer Composable Slots"
-description: "Read a slot whose default content is a single text layer as accepting string content"
+description: "Read a slot's primitive default content as the primitives that slot accepts"
 ---
 
-When enabled, a Figma slot whose default content is exactly one text layer is read as string-composable: the prop is emitted with `'string'` among its [`accepts`](/schema/props/#slotcontentkind) kinds, and that text layer's formatting is captured onto the slot element's [`contentStyles`](/schema/elements/#styles-vs-content-styles) instead of being emitted as its own anatomy element.
+When enabled, a Figma slot's default content is inspected for primitives. Every primitive kind present as a **top-level child**, in at least one variant, is recorded as a [reserved marker](/schema/props/#primitiveslotcontent) in that slot's `anyOf` — `$text` for a text layer, `$glyph` for a glyph. The primitives themselves are not emitted as anatomy elements; their formatting is captured onto the slot element's [`contentStyles`](/schema/elements/#styles-vs-content-styles), keyed by the same markers.
 
-A library fact, declared in `config/conventions/figma.yaml`. It states that this library expresses composable content the way Figma already lets it: a designer who wants a label that can also hold a Badge authors a **slot with a text layer inside**, while a designer who wants a plain string authors a **`TEXT` property on a text layer**. Nothing names the prop and nothing annotates it — the two shapes already differ, and the difference is the intent.
+A library fact, declared in `config/conventions/figma.yaml`. It states that this library expresses composable content the way Figma already lets it: a designer who wants a label that can also hold a Badge authors a **slot with a primitive inside**, while a designer who wants a plain string authors a **`TEXT` property on a text layer**. Nothing names the prop and nothing annotates it — the two shapes already differ, and the difference is the intent.
 
-That is why this works per component rather than per catalogue. An Alert's `description` is composable because *that* slot has text in it; a Tooltip's `message` is a plain string because it is a `TEXT` prop. Neither needs an entry anywhere.
+That is why this works per component rather than per catalogue. An Alert's `description` is composable because *that* slot has a text layer in it; a Tooltip's `message` is a plain string because it is a `TEXT` prop. Neither needs an entry anywhere.
 
 ## Configuration
 
 ```yaml
-inferComposableSlots: true  # Read a text-only slot as accepting string content
+inferComposableSlots: true  # Read a slot's primitive default content as what it accepts
 ```
+
+## The rule
+
+| | |
+|---|---|
+| **Which primitives count** | Top-level children of the slot only. A text layer nested inside a composed instance belongs to that instance's component, not to this slot. |
+| **How many** | Any number, of any kinds. Each kind is evaluated independently, so a glyph-plus-label fill makes the slot accept both. |
+| **Across variants** | A kind counts if it appears in at least one variant. |
+| **Which one supplies formatting** | The first top-level primitive of that kind, in child order, evaluated per variant. |
 
 ## Result
 
-**Without** the reading (`false`), a slot holding a text layer is emitted as it is today — components only, and the text layer is its own anatomy element:
+**Without** the reading (`false`), a slot holding a glyph and a label is emitted as it is today — components only, with both primitives as their own anatomy elements:
 
 ```json
 {
@@ -26,17 +35,18 @@ inferComposableSlots: true  # Read a text-only slot as accepting string content
   },
   "anatomy": [
     { "key": "children", "type": "slot" },
+    { "key": "buttonIcon", "type": "glyph" },
     { "key": "buttonLabel", "type": "text" }
   ]
 }
 ```
 
-**With** the reading (`true`), the slot states that it accepts a string, the text layer leaves anatomy, and its formatting moves onto the slot element:
+**With** the reading (`true`), the slot states what it accepts, the primitives leave anatomy, and their formatting moves onto the slot element — attributed per kind:
 
 ```json
 {
   "props": {
-    "children": { "type": "slot", "accepts": ["string", "component"] }
+    "children": { "type": "slot", "anyOf": ["$glyph", "$text", "badge"] }
   },
   "anatomy": [
     { "key": "children", "type": "slot" }
@@ -52,33 +62,36 @@ default:
       styles:
         padding: { $token: "DS Space.200", $type: dimension }
       contentStyles:
-        typography: { $token: "DS Type.Label.Medium", $type: typography }
-        textColor: { $token: "DS Color.Text.OnPrimary", $type: color }
+        $text:
+          typography: { $token: "DS Type.Label.Medium", $type: typography }
+          textColor: { $token: "DS Color.Text.OnPrimary", $type: color }
+        $glyph:
+          fillColor: { $token: "DS Color.Icon.OnPrimary", $type: color }
 ```
 
-A slot whose default content is a text layer *plus* another child is unaffected — two children are a composed arrangement, not a string. So is any prop authored as a Figma `TEXT` property.
+Any prop authored as a Figma `TEXT` property is unaffected, declared or not.
 
 ## Independent of the default slot
 
-Whether a slot accepts a string and whether it is the component's [default slot](/schema/props/) are separate questions, recorded separately:
+Whether a slot accepts primitives and whether it is the component's [default slot](/schema/props/) are separate questions, recorded separately:
 
-| Component | Prop | `accepts` | `defaultSlot` |
-|-----------|------|-----------|---------------|
-| Button | `children` | `[string, component]` | `true` |
-| Alert | `description` | `[string, component]` | — |
-| Layout | `children` | — | `true` |
+| Component | Prop | `anyOf` | `defaultSlot` |
+|-----------|------|---------|---------------|
+| Button | `children` | `[$glyph, $text, badge]` | `true` |
+| Alert | `description` | `[$text, link]` | — |
+| Layout | `children` | `[card]` | `true` |
 
-## A note on placeholder slots
+## Two things to know before enabling
 
-A slot holding a lone text layer purely as placeholder scaffolding, with no intent that a string ever fill it, reads as composable too. The failure mode is a content set wider than intended, not a wrong one — a consumer permits a string fill the design never meant to offer.
+**Placeholder slots read as composable.** A slot holding a primitive purely as placeholder scaffolding, with no intent that a primitive ever fill it, gets a marker too. The failure mode is a content set wider than intended, not a wrong one — a consumer permits a fill the design never meant to offer. This is why the reading is opt-in rather than on by default. Either author such slots without the placeholder, or leave this off.
 
-This is the reason the reading is opt-in rather than on by default. If a library has such slots, either author them without a lone text layer, or leave this off.
+**Two primitives of one kind record only the first.** A default fill holding a label and a trailing counter records the label's formatting for `$text`; the counter's is not captured unless it is a component.
 
 ## Options
 
 - **Type**: boolean
 - **Default**: `false`
-- **Effect**: When `true`, a slot whose default content is a single text layer is emitted with `'string'` in `accepts`, that layer's formatting is captured into the slot element's `contentStyles` per variant, and the layer is not emitted as an anatomy element. When `false`, slots are emitted exactly as they are today.
+- **Effect**: When `true`, each primitive kind present as a top-level child of a slot's default content is recorded as a marker in `anyOf`, the first primitive of each kind supplies that kind's entry in the slot element's `contentStyles` per variant, and those primitives are not emitted as anatomy elements. When `false`, slots are emitted exactly as they are today.
 
 ## Path
 
