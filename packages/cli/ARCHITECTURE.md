@@ -46,7 +46,12 @@ hook blocks it).
   `clearTimeout` would silently start killing slow downloads. Giving up also
   discards the build — Figma starts over on the next request — so nothing here
   retries, and the failure says so rather than implying a cheap retry.
-- `src/utilities/fetchEstimate.ts` predicts the wait from the **previous** fetch
+- `src/fetch/` holds what only `fetch` uses — `estimate.ts`, `fileKey.ts`. Anything
+  a second caller reads stays in `utilities/`, which is why the payload split and
+  its reader do not live here: `sectionedFile.ts` imports `payloadSplit.ts` and
+  shares its format version, so they are the two halves of one on-disk format and
+  belong together.
+- `src/fetch/estimate.ts` predicts the wait from the **previous** fetch
   of the same source (`manifest.json`'s `sourceBytes`, else the monolithic
   payload's size on disk), and deliberately answers in bands rather than
   figures — the measured rate spans a wide enough range that a number would

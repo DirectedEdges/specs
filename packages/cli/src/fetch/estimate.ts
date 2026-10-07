@@ -17,7 +17,7 @@
 
 import fs from 'fs-extra';
 import path from 'path';
-import { splitDirFor } from './payloadSplit.js';
+import { splitDirFor } from '../utilities/payloadSplit.js';
 
 /** Seconds of build time per MB of payload, low and high ends of what was measured. */
 const SECONDS_PER_MB_LOW = 0.10;

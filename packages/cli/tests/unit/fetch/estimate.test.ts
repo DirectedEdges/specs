@@ -7,11 +7,11 @@ import {
   estimateWaitBand,
   formatPayloadSize,
   preparingMessage,
-} from '../../../src/utilities/fetchEstimate.js';
+} from '../../../src/fetch/estimate.js';
 
 const MB = 1048576;
 
-describe('fetchEstimate', () => {
+describe('fetch estimate', () => {
   let dir: string;
 
   beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'specs-estimate-')); });
