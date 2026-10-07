@@ -517,12 +517,36 @@ TextContentStyles:
 
 GlyphContentStyles:
   fillColor: ColorStyle
+  width: Style
+  height: Style
 ```
+
+The two sets are not a text set and a subset of it. They overlap in nothing, and
+each contains a member the other must not have — `width` and `height` are glyph
+members precisely because they are *not* text members:
+
+| | Text | Glyph |
+|---|---|---|
+| Colour | `textColor` | `fillColor` |
+| Size | *(none — the run is measured by its container)* | `width`, `height` |
+| Typography, alignment, overflow, line clamp | yes | no |
+
+A glyph is **sized**, not laid out. Its box is the icon's own, set on the layer,
+and a slot's layout does not derive it the way a text run's measure is derived
+from the container. So a glyph fill recorded without its dimensions has lost them
+outright, with nothing for a render to restore — where a text fill without a width
+has lost nothing, because its width was never the fill's to state. That asymmetry
+is the reason the per-kind sets must be separate types rather than one bag with
+documented applicability.
 
 **Pros**:
 - It is the only shape that expresses a slot accepting both kinds, which Decision
-  1 explicitly permits. A glyph-plus-label default fill records a `fillColor` for
-  the glyph and a typography for the text, unambiguously attributed.
+  1 explicitly permits. A glyph-plus-label default fill records a `fillColor` and
+  dimensions for the glyph and a typography for the text, unambiguously attributed.
+- It is the only shape that can give the two kinds *different* members for the
+  same concern. `width` is valid under `$glyph` and invalid under `$text`; a flat
+  block cannot state that at all, because one property cannot be simultaneously
+  permitted and forbidden.
 - Each kind's property set is stated in its own type, so what is valid for a glyph
   is not a documented subset of a wider bag — it is the type. A `typography` under
   `$glyph` does not compile and does not validate.
@@ -545,18 +569,19 @@ GlyphContentStyles:
 
 #### Option B: A flat block whose valid members depend on the kind
 
-One `ContentStyles` holding all seven properties — the six text ones plus
-`fillColor` — with per-kind applicability documented rather than typed.
+One `ContentStyles` holding all nine properties — the six text ones plus
+`fillColor`, `width` and `height` — with per-kind applicability documented rather
+than typed.
 
 **Rejected because**: it cannot attribute styles when a slot accepts both kinds,
 which Decision 1 permits and real default content exhibits. A flat block carrying
 `typography` and `fillColor` does not say that the typography is the label's and
-the fill is the glyph's; it merely happens that the sets are disjoint today, and
-that coincidence is the only thing making it readable. The moment two kinds share
-a property — a future `$image` with its own `fillColor`, or an opacity that
-applies to both — the shape becomes ambiguous with no migration available.
-Per-kind applicability as prose also means a transform must hold a table the type
-could have held.
+the fill is the glyph's. Worse, `width` makes the shape outright
+self-contradictory: it is a required member of the glyph set and must be *absent*
+from the text set, and a flat block can only permit it for both or neither. The
+sets being otherwise disjoint was a coincidence that made a flat block look
+readable; `width` and `height` remove even that. Per-kind applicability as prose
+also means a transform must hold a table the type could have held.
 
 ---
 
@@ -683,15 +708,26 @@ TextContentStyles:
 
 GlyphContentStyles:
   fillColor: ColorStyle
+  width: Style
+  height: Style
 ```
 
 Each property is typed identically to its `Styles` counterpart, so a value valid
-in `styles` is valid here. `typography` carries the composite, so its own members
-travel inside it. Both maps are closed: nothing else may appear in either.
+in `styles` is valid here — `width` and `height` are `Style`, so they token-bind,
+prop-bind and take conditionals exactly as `Styles.width` does. `typography`
+carries the composite, so its own members travel inside it. Both maps are closed:
+nothing else may appear in either.
 
-`$glyph` supports `fillColor` only. A glyph's size in a slot is the slot's
-business, not the fill's, so no dimension members are included; adding them later
-is additive.
+`$glyph` supports `fillColor`, `width` and `height`. The dimensions are the
+fill's because a glyph is **sized** rather than laid out: its box is the icon's
+own, set on the layer, and the slot's layout does not derive it the way a text
+run's measure is derived from its container. A glyph fill recorded without its
+dimensions has lost them, and a render has nothing to restore. No text member
+carries a dimension for the mirror-image reason — a text run's width was never
+the fill's to state.
+
+Layout and surface stay out of both maps. `padding`, `minWidth`, `backgroundColor`
+and the rest belong to the element, not to what fills it.
 
 Per-variant formatting uses the existing mechanism, with no new addressing:
 `default.elements[key].contentStyles` carries the default, and
@@ -853,8 +889,14 @@ unreleased `0.35.0` that introduced them — so no released version carries them
 - Detection matches real default content. A glyph-plus-label fill makes the slot
   accept both, where an exactly-one-child rule would have made it accept neither.
 - Formatting is attributed per primitive. `contentStyles.$text` and
-  `contentStyles.$glyph` each carry their own closed property set, and a glyph's set
-  is `fillColor` alone.
+  `contentStyles.$glyph` each carry their own closed property set: text takes
+  colour, typography, alignment, overflow and line clamp; a glyph takes
+  `fillColor`, `width` and `height`.
+- The two sets overlap in nothing, and each holds a member the other must not. A
+  glyph carries its own dimensions because it is sized rather than laid out; a text
+  run carries none, because its measure was never the fill's to state. Only the
+  keyed shape can say that — a flat block would have to permit `width` for both
+  kinds or neither.
 - Where a default fill holds two primitives of one kind, the first supplies that
   kind's formatting. The second's styling is not recorded unless it is a component.
 - A library opts in per platform via `inferComposableSlots`, defaulting to `false`.

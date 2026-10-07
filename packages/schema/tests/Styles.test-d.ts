@@ -1027,20 +1027,45 @@ const _tcBadAlign: TextContentStyles = { textAlignHorizontal: 'CENTRE' };
 // @ts-expect-error: TRUNCATE is not a TextOverflow value
 const _tcBadOverflow: TextContentStyles = { textOverflow: 'TRUNCATE' };
 
-// ─── GlyphContentStyles — fillColor alone (ADR-102) ───────────────────────────
+// ─── GlyphContentStyles — fillColor and the two dimensions (ADR-102) ──────────
 
+const glyphContentFull: GlyphContentStyles = {
+  fillColor: { $token: 'DS Color.Icon.OnPrimary', $type: 'color' },
+  width: 16,
+  height: 16,
+};
+
+// Every member is optional
 const glyphContentToken: GlyphContentStyles = {
   fillColor: { $token: 'DS Color.Icon.OnPrimary', $type: 'color' },
 };
 const glyphContentLiteral: GlyphContentStyles = { fillColor: '#FFFFFF' };
+const glyphContentSizeOnly: GlyphContentStyles = { width: 24, height: 24 };
 const glyphContentEmpty: GlyphContentStyles = {};
 
-// A glyph's size inside a slot is the slot's business, not the fill's
-// @ts-expect-error: width is not a glyph content-formatting property
-const _gcWidth: GlyphContentStyles = { width: 16 };
+// Dimensions are `Style`, so they token-bind, prop-bind and take conditionals — the same
+// arms Styles.width has
+const glyphContentSizeToken: GlyphContentStyles = {
+  width: { $token: 'DS Size.Icon.Small', $type: 'dimension' },
+  height: { $token: 'DS Size.Icon.Small', $type: 'dimension' },
+};
+const glyphContentSizeBound: GlyphContentStyles = { width: { $binding: '#/props/iconSize' } };
+const glyphContentSizeConditional: GlyphContentStyles = {
+  height: {
+    if: {
+      condition: { operation: 'equals', args: { value: { $binding: '#/props/dense' }, compareTo: true } },
+      then: 16,
+      else: 24,
+    },
+  },
+};
 
-// @ts-expect-error: height is not a glyph content-formatting property
-const _gcHeight: GlyphContentStyles = { height: 16 };
+// Layout and surface still cannot enter — a glyph is sized, not laid out
+// @ts-expect-error: padding is not a glyph content-formatting property
+const _gcPadding: GlyphContentStyles = { padding: 4 };
+
+// @ts-expect-error: minWidth is not a glyph content-formatting property
+const _gcMinWidth: GlyphContentStyles = { minWidth: 16 };
 
 // Text properties do not format a glyph
 // @ts-expect-error: typography is not a glyph content-formatting property

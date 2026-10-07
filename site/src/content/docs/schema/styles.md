@@ -101,18 +101,28 @@ Six properties and nothing else:
 
 ### GlyphContentStyles
 
-One property:
+Three properties:
 
 | Property | Type |
 |----------|------|
 | [`fillColor`](/schema/styles/fill-color/) | `ColorStyle` |
+| [`width`](/schema/styles/width/) | `Style` |
+| [`height`](/schema/styles/height/) | `Style` |
 
-A glyph's size inside a slot is the slot's business, not the fill's, so no dimension members are included. Adding them later is additive.
+A glyph is **sized**, not laid out. Its box is the icon's own, set on the layer, and a slot's layout does not derive it the way a text run's measure is derived from its container — so a glyph fill recorded without its dimensions has lost them, with nothing for a render to restore.
+
+That is why `width` and `height` are glyph members and not text members. The two sets overlap in nothing, and each holds a member the other must not:
+
+| | `$text` | `$glyph` |
+|---|---|---|
+| Colour | `textColor` | `fillColor` |
+| Size | — the run is measured by its container | `width`, `height` |
+| Typography, alignment, overflow, line clamp | yes | no |
 
 ### Both sets are closed
 
 Each property is typed identically to its `Styles` counterpart, so a value valid in `styles` is valid here — token references, prop bindings and conditionals included, wherever the underlying type is `Style`.
 
-Nothing outside a set may appear in it. A container's `padding`, `backgroundColor` or `layoutMode` is invalid under either key, so a generator cannot record an element's own layout as content formatting. The sets do not leak into each other either: `typography` under `$glyph` is invalid, as is `fillColor` under `$text`.
+Nothing outside a set may appear in it. A container's `padding`, `backgroundColor`, `minWidth` or `layoutMode` is invalid under either key, so a generator cannot record an element's own layout as content formatting. The sets do not leak into each other either: `typography` under `$glyph` is invalid, as is `fillColor` or `width` under `$text`.
 
 A new key — an `$image`, say — would arrive with its own property set, touching neither existing kind.

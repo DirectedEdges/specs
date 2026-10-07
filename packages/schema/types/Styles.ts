@@ -108,13 +108,20 @@ export type TextContentStyles = Partial<{
 /**
  * The formatting a **glyph** primitive takes on when it fills a slot (ADR-102).
  *
- * `fillColor` only. A glyph's size inside a slot is the slot's business, not the fill's,
- * so no dimension members are included; adding them later is additive.
+ * `fillColor` plus the two dimensions. A glyph is sized rather than laid out: its box is
+ * the icon's own, set on the layer and not derived from the slot's layout the way a text
+ * run's measure is. So a glyph fill that does not carry its dimensions loses them, and a
+ * render has nothing to restore — which is why `width` and `height` belong to the fill
+ * here even though no text member does.
  * @since 0.35.0
  */
 export type GlyphContentStyles = Partial<{
   /** Fill color of the glyph. */
   fillColor: ColorStyle;
+  /** Width of the glyph box, in pixels. */
+  width: Style;
+  /** Height of the glyph box, in pixels. */
+  height: Style;
 }>;
 
 /**
