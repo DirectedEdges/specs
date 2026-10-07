@@ -1,10 +1,10 @@
 // The cursors a component needs, which Figma has no concept of (specs#691).
-import { normalizeEnumValue } from '../enumCase.js';
-import { attrNameFor } from '../hostAttributes.js';
-import { declaresState } from './readApi.js';
+import { normalizeEnumValue } from '../values/enumCase.js';
+import { attrNameFor } from './hostAttributes.js';
+import { declaresState } from '../analysis/readApi.js';
 import { disabledSelectorFor, rootSelector } from './selectors.js';
-import type { RootForm } from './types.js';
-import type { TransformerContext } from '../../Types/Transformer.js';
+import type { RootForm } from '../types.js';
+import type { TransformerContext } from '../../../Types/Transformer.js';
 
 export interface CursorInput {
   componentClass: string;

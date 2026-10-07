@@ -4,9 +4,9 @@
 // `<input>`. The spec's declarations were authored against the plain box, so the
 // user-agent styling the new tag carries has to go first — and the rules that do
 // that must land before any spec declaration.
-import { toKebab } from '../naming.js';
+import { toKebab } from '../../naming.js';
 import { rootSelector } from './selectors.js';
-import type { RootForm } from './types.js';
+import type { RootForm } from '../types.js';
 
 /**
  * Roles whose emitted element carries user-agent styling a `div` never had.

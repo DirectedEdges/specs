@@ -1,7 +1,7 @@
 // Padding, uniform or per-side (specs#691).
-import { isTokenRef } from '../tokens.js';
-import { dimensionValue } from '../dimensions.js';
-import { sidesValue } from '../sides.js';
+import { isTokenRef } from '../values/tokens.js';
+import { dimensionValue } from '../values/dimensions.js';
+import { sidesValue } from '../values/sides.js';
 
 export function paddingDecls(styles: Record<string, unknown>, tokensFormat: string): string[] {
   if (!('padding' in styles) || styles.padding === undefined) return [];

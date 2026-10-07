@@ -1,5 +1,5 @@
 // Absolute placement and inset offsets (specs#691).
-import { dimensionValue } from '../dimensions.js';
+import { dimensionValue } from '../values/dimensions.js';
 
 /** True when any inset coordinate (top/bottom/start/end) is present and non-null. */
 export function hasInsets(styles: Record<string, unknown>): boolean {

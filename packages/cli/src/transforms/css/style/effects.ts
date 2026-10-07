@@ -1,7 +1,7 @@
 // Shadows and blurs (specs#691).
-import { isTokenRef, resolveTokenVar } from '../tokens.js';
-import { dimensionValue } from '../dimensions.js';
-import { colorValue } from '../colors.js';
+import { isTokenRef, resolveTokenVar } from '../values/tokens.js';
+import { dimensionValue } from '../values/dimensions.js';
+import { colorValue } from '../values/colors.js';
 
 /**
  * Inline Effects object → CSS declarations.

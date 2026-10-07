@@ -1,6 +1,6 @@
 // Corner radius, uniform or per-corner (specs#691).
-import { isTokenRef, resolveTokenVar } from '../tokens.js';
-import { dimensionValue, dimensionValueOrUnset } from '../dimensions.js';
+import { isTokenRef, resolveTokenVar } from '../values/tokens.js';
+import { dimensionValue, dimensionValueOrUnset } from '../values/dimensions.js';
 
 export function cornerRadiusDecls(styles: Record<string, unknown>, tokensFormat: string): string[] {
   if (!('cornerRadius' in styles) || styles.cornerRadius === undefined) return [];

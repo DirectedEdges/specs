@@ -21,11 +21,11 @@
 // one thing an outline cannot express is a per-side weight, which keeps the
 // border mapping — the design strokes some sides and not others, and four
 // widths need four properties.
-import { isTokenRef } from '../tokens.js';
-import { dimensionValue } from '../dimensions.js';
-import { colorValue } from '../colors.js';
-import { sidesValue } from '../sides.js';
-import { isGradient, isGradientToken } from '../gradients.js';
+import { isTokenRef } from '../values/tokens.js';
+import { dimensionValue } from '../values/dimensions.js';
+import { colorValue } from '../values/colors.js';
+import { sidesValue } from '../values/sides.js';
+import { isGradient, isGradientToken } from '../values/gradients.js';
 import type { StyleToCSSOptions } from './options.js';
 
 /**

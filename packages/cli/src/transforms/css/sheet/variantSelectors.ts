@@ -11,7 +11,7 @@
 // needs is an argument, and everything it finds comes back in the result —
 // including the values it could not name, which the caller reports because
 // de-duplication and the resting-value exemption are the caller's business.
-import { normalizeEnumValue } from '../enumCase.js';
+import { normalizeEnumValue } from '../values/enumCase.js';
 
 /** A classified prop value a concept should have named, but none does. */
 export interface UnnamedValue {

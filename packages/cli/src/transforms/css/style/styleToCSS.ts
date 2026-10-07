@@ -11,26 +11,26 @@
 // Layout-group keys (layoutMode, mainAxisAlignment, crossAxisAlignment, wrap,
 // wrapAlignment, itemSpacing, layoutSizingHorizontal, layoutSizingVertical) are
 // handled by layoutToCSS — they require cross-key context and are skipped here.
-import { fillDecls } from './style/fills.js';
-import { opacityDecls } from './style/opacity.js';
-import { borderDecls } from './style/border.js';
-import { cornerRadiusDecls } from './style/cornerRadius.js';
-import { effectDecls } from './style/effects.js';
-import { sizeDecls } from './style/size.js';
-import { paddingDecls } from './style/padding.js';
-import { typographyDecls } from './style/typography.js';
-import { textAlignDecls } from './style/textAlign.js';
-import { truncationDecls } from './style/truncation.js';
-import { aspectRatioDecls } from './style/aspectRatio.js';
-import { visibilityDecls } from './style/visibility.js';
-import { overflowDecls } from './style/overflow.js';
-import { transformDecls } from './style/transform.js';
-import { rawCssDecls } from './style/rawCss.js';
-import { positionDecls } from './style/position.js';
-import type { StyleToCSSOptions } from './style/options.js';
+import { fillDecls } from './fills.js';
+import { opacityDecls } from './opacity.js';
+import { borderDecls } from './border.js';
+import { cornerRadiusDecls } from './cornerRadius.js';
+import { effectDecls } from './effects.js';
+import { sizeDecls } from './size.js';
+import { paddingDecls } from './padding.js';
+import { typographyDecls } from './typography.js';
+import { textAlignDecls } from './textAlign.js';
+import { truncationDecls } from './truncation.js';
+import { aspectRatioDecls } from './aspectRatio.js';
+import { visibilityDecls } from './visibility.js';
+import { overflowDecls } from './overflow.js';
+import { transformDecls } from './transform.js';
+import { rawCssDecls } from './rawCss.js';
+import { positionDecls } from './position.js';
+import type { StyleToCSSOptions } from './options.js';
 
 export type { StyleToCSSOptions };
-export { hasInsets, impliesAbsolute } from './style/position.js';
+export { hasInsets, impliesAbsolute } from './position.js';
 
 export function styleToCSS(
   styles: Record<string, unknown>,

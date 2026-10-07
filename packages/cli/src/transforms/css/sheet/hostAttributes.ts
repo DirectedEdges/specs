@@ -5,7 +5,7 @@
 // import the transform packages' source, and both halves need the same answer.
 // A change there must land here too, or a rule selects an attribute the element
 // never writes and the variant silently loses its styling.
-import { toKebab } from './naming.js';
+import { toKebab } from '../../naming.js';
 
 /**
  * Attribute names a custom element must not take over.

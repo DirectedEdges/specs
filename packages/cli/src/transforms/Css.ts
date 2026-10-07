@@ -18,19 +18,19 @@ import { writeAtomic } from './writeAtomic.js';
 import path from 'path';
 import yaml from 'yaml';
 import type { Transformer, TransformerContext } from '../Types/Transformer.js';
-import { reportNameWarnings, withNameWarningsSuppressed } from './css/nameWarnings.js';
+import { reportNameWarnings, withNameWarningsSuppressed } from './css/values/nameWarnings.js';
 import { capitalize, subComponentKey, toKebab } from './naming.js';
 import { dirNameFor } from '../utilities/specsLayout.js';
 import { CONCEPT_TABLE, buildStateLookup, conceptsClaimedByNestedRoles } from './states.js';
 import { resolveRules } from './css/rules/index.js';
 import { loadExamples } from './examples.js';
-import { analyzeSpec } from './css/analyzeSpec.js';
-import { anatomyRoles, anatomyTypes, apiPropsOf } from './css/readApi.js';
-import { disabledSelectorFor, focusSelectorFor, rootSelector } from './css/selectors.js';
-import { roleResetLines } from './css/roleResets.js';
-import { defaultBlockLines } from './css/defaultBlock.js';
-import { variantBlockLines } from './css/variantBlock.js';
-import { cursorLines } from './css/cursors.js';
+import { analyzeSpec } from './css/analysis/analyzeSpec.js';
+import { anatomyRoles, anatomyTypes, apiPropsOf } from './css/analysis/readApi.js';
+import { disabledSelectorFor, focusSelectorFor, rootSelector } from './css/sheet/selectors.js';
+import { roleResetLines } from './css/sheet/roleResets.js';
+import { defaultBlockLines } from './css/sheet/defaultBlock.js';
+import { variantBlockLines } from './css/sheet/variantBlock.js';
+import { cursorLines } from './css/sheet/cursors.js';
 import type { ImagesCssContext, RootForm } from './css/types.js';
 // The filenames come from the packages that emit the scaffolds importing them,
 // so a stylesheet can never be written under a name no scaffold reaches for.

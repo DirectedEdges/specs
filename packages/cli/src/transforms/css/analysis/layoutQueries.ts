@@ -2,8 +2,8 @@
 //
 // Walks over the parsed layout, kept apart from the rules that consume them:
 // each answers one question about structure and none of them emits CSS.
-import { impliesAbsolute } from './styleToCSS.js';
-import type { LayoutNode } from './layoutTree.js';
+import { impliesAbsolute } from '../style/styleToCSS.js';
+import type { LayoutNode } from '../style/layoutTree.js';
 
 /** Every element key the tree mentions, at any depth. */
 export function collectLayoutKeys(nodes: LayoutNode[], into: Set<string>): void {

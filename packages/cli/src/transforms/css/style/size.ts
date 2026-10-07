@@ -1,5 +1,5 @@
 // Width, height and their min/max bounds (specs#691).
-import { dimensionValueOrUnset } from '../dimensions.js';
+import { dimensionValueOrUnset } from '../values/dimensions.js';
 import { hasAspectRatio } from './aspectRatio.js';
 
 const DIMENSION_KEYS: Array<[string, string]> = [

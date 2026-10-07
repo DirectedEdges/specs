@@ -1,5 +1,5 @@
 // Opacity (specs#691).
-import { resolveTokenVar } from '../tokens.js';
+import { resolveTokenVar } from '../values/tokens.js';
 
 /**
  * An unbound opacity arrives as the ratio Figma stores (0.36). An opacity

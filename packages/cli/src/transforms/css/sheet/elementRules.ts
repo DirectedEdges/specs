@@ -1,10 +1,10 @@
 // Declarations and rules that belong to one element, independent of whether it
 // came from the default block or a variant (specs#691).
 import path from 'path';
-import { isGradient, isGradientToken, gradientValue } from './gradients.js';
-import { dimensionValue } from './dimensions.js';
-import { resolveTokenVar } from './tokens.js';
-import type { ImagesCssContext } from './types.js';
+import { isGradient, isGradientToken, gradientValue } from '../values/gradients.js';
+import { dimensionValue } from '../values/dimensions.js';
+import { resolveTokenVar } from '../values/tokens.js';
+import type { ImagesCssContext } from '../types.js';
 
 /**
  * backgroundImage style ({ $image, objectFit? } | null) → CSS declarations.

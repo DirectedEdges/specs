@@ -3,7 +3,7 @@
 // Figma encodes weight and slant together in one `fontStyle` name
 // ("SemiBold Italic"), so the mapping has to split what the design treats as a
 // single choice into the two CSS properties that carry it.
-import { isTokenRef, resolveTokenVar } from '../tokens.js';
+import { isTokenRef, resolveTokenVar } from '../values/tokens.js';
 
 const TEXT_CASE_MAP: Record<string, string> = {
   UPPER: 'uppercase', LOWER: 'lowercase', TITLE: 'capitalize', ORIGINAL: 'none',

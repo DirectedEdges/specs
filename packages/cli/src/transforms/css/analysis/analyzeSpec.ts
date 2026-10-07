@@ -6,11 +6,11 @@
 // `position: relative` so stacking follows layout order. Neither can be known
 // from the default layout alone. Working them out here once is what lets the
 // default block and the variant loop be separate functions at all.
-import { impliesAbsolute } from './styleToCSS.js';
-import { isGradient, isGradientToken } from './gradients.js';
-import { parseLayout } from './layoutTree.js';
+import { impliesAbsolute } from '../style/styleToCSS.js';
+import { isGradient, isGradientToken } from '../values/gradients.js';
+import { parseLayout } from '../style/layoutTree.js';
 import { collectLayoutKeys, collectParents, collectStackingFixes } from './layoutQueries.js';
-import { COLLAPSING_ROLES } from '../states.js';
+import { COLLAPSING_ROLES } from '../../states.js';
 
 export interface SpecAnalysis {
   defaultBlock: Record<string, unknown> | undefined;

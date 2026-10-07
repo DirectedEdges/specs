@@ -2,8 +2,8 @@
 // Each key is emitted when present — variant layering mirrors CSS cascading,
 // so if a key appears in a variant it means it changed and should be emitted.
 
-import { isTokenRef, resolveTokenVar } from './tokens.js';
-import { dimensionValue } from './dimensions.js';
+import { isTokenRef, resolveTokenVar } from '../values/tokens.js';
+import { dimensionValue } from '../values/dimensions.js';
 
 const MAIN_AXIS_MAP: Record<string, string> = {
   START: 'flex-start',

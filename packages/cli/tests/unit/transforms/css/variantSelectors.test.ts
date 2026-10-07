@@ -6,7 +6,7 @@
 // Until this was pulled out of `buildCssLines` the only way to reach it was to
 // generate a whole stylesheet and read it.
 import { describe, it, expect } from 'vitest';
-import { expandVariantSelectors, type VariantSelectorInput } from '../../../../src/transforms/css/variantSelectors.js';
+import { expandVariantSelectors, type VariantSelectorInput } from '../../../../src/transforms/css/sheet/variantSelectors.js';
 
 /** Concept selectors as the real table supplies them, including the multi-part ones. */
 const SELECTORS: Record<string, string> = {

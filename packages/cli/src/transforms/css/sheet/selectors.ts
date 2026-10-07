@@ -4,8 +4,8 @@
 // Emitting all of them produces rules that can never match — and worse, `:not()`
 // guards built from them that always pass. Narrowing happens here, in one place,
 // because getting it wrong is invisible: the rule is simply never selected.
-import { toKebab } from '../naming.js';
-import type { RootForm } from './types.js';
+import { toKebab } from '../../naming.js';
+import type { RootForm } from '../types.js';
 
 /** Roles whose emitted element carries a real `disabled` property. */
 const NATIVE_DISABLED_ROLES = new Set(['button', 'togglebutton', 'disclosure']);

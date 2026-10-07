@@ -1,5 +1,5 @@
 // Rotation (specs#691).
-import { resolveTokenVar } from '../tokens.js';
+import { resolveTokenVar } from '../values/tokens.js';
 
 export function transformDecls(styles: Record<string, unknown>, tokensFormat: string): string[] {
   if (!('rotation' in styles) || styles.rotation === undefined) return [];

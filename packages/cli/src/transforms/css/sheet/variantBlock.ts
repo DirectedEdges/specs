@@ -2,17 +2,17 @@
 //
 // variants.yaml order is intentional: single-prop variants before multi-prop
 // compound ones, matching the layering cascade. Nothing here reorders them.
-import { styleToCSS } from './styleToCSS.js';
-import { layoutToCSS } from './layoutToCSS.js';
-import { parseLayout } from './layoutTree.js';
-import { childOrder, collectLayoutKeys } from './layoutQueries.js';
+import { styleToCSS } from '../style/styleToCSS.js';
+import { layoutToCSS } from '../style/layoutToCSS.js';
+import { parseLayout } from '../style/layoutTree.js';
+import { childOrder, collectLayoutKeys } from '../analysis/layoutQueries.js';
 import { elemSelector, rootSelector } from './selectors.js';
 import { expandVariantSelectors } from './variantSelectors.js';
 import { backgroundImageDecls, gradientRingRule, inlineBlockIfBoxed, overlapRule } from './elementRules.js';
-import { attrNameFor } from '../hostAttributes.js';
-import type { ImagesCssContext, RootForm } from './types.js';
-import type { SpecAnalysis } from './analyzeSpec.js';
-import type { TransformerContext } from '../../Types/Transformer.js';
+import { attrNameFor } from './hostAttributes.js';
+import type { ImagesCssContext, RootForm } from '../types.js';
+import type { SpecAnalysis } from '../analysis/analyzeSpec.js';
+import type { TransformerContext } from '../../../Types/Transformer.js';
 
 /**
  * The spec configuration a rule block came from, as a CSS comment body.

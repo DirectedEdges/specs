@@ -1,13 +1,13 @@
 // The base rules: what every element looks like before any variant (specs#691).
-import { styleToCSS } from './styleToCSS.js';
-import { layoutToCSS } from './layoutToCSS.js';
-import { coversParent } from './layoutQueries.js';
+import { styleToCSS } from '../style/styleToCSS.js';
+import { layoutToCSS } from '../style/layoutToCSS.js';
+import { coversParent } from '../analysis/layoutQueries.js';
 import { elemSelector, rootSelector } from './selectors.js';
 import {
   TEXT_PROPERTIES, backgroundImageDecls, gradientRingRule, inlineBlockIfBoxed, instanceFitRule, isGlyphLike, overlapRule,
 } from './elementRules.js';
-import type { ImagesCssContext, RootForm } from './types.js';
-import type { SpecAnalysis } from './analyzeSpec.js';
+import type { ImagesCssContext, RootForm } from '../types.js';
+import type { SpecAnalysis } from '../analysis/analyzeSpec.js';
 
 export interface DefaultBlockInput {
   componentClass: string;

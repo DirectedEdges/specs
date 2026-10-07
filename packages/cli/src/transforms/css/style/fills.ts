@@ -3,8 +3,8 @@
 // One spec key can land on different CSS properties depending on what the
 // element is: a glyph tints through a mask, a shape paints a background, and an
 // untyped element keeps the legacy SVG `fill`.
-import { colorValue } from '../colors.js';
-import { gradientValue } from '../gradients.js';
+import { colorValue } from '../values/colors.js';
+import { gradientValue } from '../values/gradients.js';
 
 export function fillDecls(
   styles: Record<string, unknown>,
