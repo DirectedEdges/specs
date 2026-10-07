@@ -146,7 +146,7 @@ How it works:
 - Filenames are stable kebab-case slugs of the captured icon name, including camelCase splitting: `expandMore` → `expand-more.svg`, `Arrow Left` → `arrow-left.svg`.
 - Two icons that slug identically keep the first as-is; later duplicates are suffixed with their node id so nothing is silently dropped.
 
-### What gets exported
+### Glyph export limits
 
 Each glyph is exported through Figma's images API, which renders the component **as it currently appears**:
 
@@ -199,7 +199,7 @@ Paste the branch's URL as it appears in Figma, or pass a bare file key. The flag
 repeatable, and naming any `--source` means only those sources are fetched — the
 configured library is not re-downloaded unless `--only <alias>` asks for it.
 
-### What it resolves
+### Payload names and data kinds
 
 Before downloading anything, `fetch` reads the file's name and, for a branch, the file it
 branches from — one small request that also fails on a bad key or token before the large
@@ -220,7 +220,7 @@ one starts. It reports what it found:
 A `<alias>.source.json` sidecar records the key and where it came from, since config has
 no record of them.
 
-### Using what you fetched
+### Scanning and generating from a branch
 
 The alias behaves like any other from here:
 
@@ -236,7 +236,7 @@ Ad-hoc payloads contribute to the render cache only where the configured sources
 nothing, so fetching a branch never changes how the library itself resolves. Icons, if
 inherited, are written to `assets/icons-<alias>/` rather than over `assets/icons/`.
 
-### Cleaning up
+### Removing a fetched branch
 
 Everything an ad-hoc source wrote is named after its alias, so a finished branch is
 removed with:
@@ -246,7 +246,7 @@ rm data/library-new-nav-tokens.*
 specs cache --force
 ```
 
-### How to find a branch key
+### Finding a branch key
 
 Open the branch in Figma — the URL contains the key: `figma.com/design/<KEY>/...`
 
