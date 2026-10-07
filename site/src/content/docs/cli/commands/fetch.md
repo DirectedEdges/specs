@@ -24,7 +24,7 @@ command reads it, and a single-file `{alias}.file.json` from an earlier CLI
 keeps working everywhere until your next fetch replaces it. Only scripts of your
 own that open `{alias}.file.json` directly need to read the directory instead.
 
-## How long a fetch takes
+## Stages and timing
 
 A fetch is two stages, and on a large library the first one dominates. Figma
 builds the whole file payload before sending any of it, and repeats that work
