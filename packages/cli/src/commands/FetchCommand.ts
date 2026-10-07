@@ -31,8 +31,9 @@ import type { SourceEntry } from '@directededges/specs-schema';
 import { figmaOf } from '../Config/PlatformConventions.js';
 import { MAX_JSON_STRING_BYTES, readJsonPayload } from '../utilities/payloadRead.js';
 import { PayloadSplitter, splitDirFor } from '../utilities/payloadSplit.js';
+import { lastFetchedBytes, preparingMessage, formatPayloadSize } from '../fetch/estimate.js';
 import { SectionedFile } from '../utilities/sectionedFile.js';
-import { resolveFigmaFileKey, slugifyBranchName, FigmaKeyError } from '../utilities/figmaFileKey.js';
+import { resolveFigmaFileKey, slugifyBranchName, FigmaKeyError } from '../fetch/fileKey.js';
 import { postGetVariables } from '../bridge/client.js';
 import { resolveFileKey } from '../bridge/pickConnection.js';
 
@@ -136,12 +137,44 @@ async function probeFile(key: string, token: string): Promise<{ status: number; 
   return { status: response.status, headers: response.headers, data: JSON.parse(body) as BranchProbe };
 }
 
-async function figmaFetch(url: string, token: string): Promise<{ status: number; body: string; headers: Headers; stream: ReadableStream<Uint8Array> | null }> {
-  const response = await fetch(url, {
-    headers: {
-      'X-Figma-Token': token
-    }
-  });
+/**
+ * Figma builds a file payload before it sends any of it, so a request can sit
+ * silent for minutes with nothing wrong. Only that silence is deadlined: once
+ * the first byte arrives the transfer runs unbounded, because a download already
+ * in flight is making progress and a partial payload is worth nothing.
+ */
+const FIRST_BYTE_TIMEOUT_MS = 4 * 60 * 1000;
+
+/** Figma never started sending — distinct from a transfer that began and broke. */
+export class FirstByteTimeoutError extends Error {
+  constructor(readonly waitedMs: number) {
+    super(`Figma did not start sending within ${Math.round(waitedMs / 1000)} seconds`);
+    this.name = 'FirstByteTimeoutError';
+  }
+}
+
+export async function figmaFetch(
+  url: string,
+  token: string,
+  firstByteTimeoutMs: number = FIRST_BYTE_TIMEOUT_MS
+): Promise<{ status: number; body: string; headers: Headers; stream: ReadableStream<Uint8Array> | null }> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), firstByteTimeoutMs);
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        'X-Figma-Token': token
+      },
+      signal: controller.signal
+    });
+  } catch (error) {
+    if (controller.signal.aborted) throw new FirstByteTimeoutError(firstByteTimeoutMs);
+    throw error;
+  } finally {
+    // The deadline covers the wait, not the body that follows it.
+    clearTimeout(timer);
+  }
 
   if (response.status !== 200) {
     const body = await response.text();
@@ -607,11 +640,25 @@ export const Fetch = new Command('fetch')
             console.log(`[CLI] GET ${kind}: ${url}`);
           }
 
-          const stopSpinner = startSpinner(`Downloading: ${entry.alias} ${kind}`);
+          // Two stages, reported as two, because they have different causes and
+          // wildly different durations: Figma builds the payload (silence, minutes
+          // for a large file) and only then sends it (seconds). One spinner across
+          // both is what made a normal wait read as a hang, and made the elapsed
+          // figure describe neither stage (specs#707).
+          const lastBytes = kind === 'file' ? lastFetchedBytes(outDir, entry.alias) : null;
+          const abortHint = isInteractive() ? ' CTRL-C to abort.' : '';
+          console.log(`${preparingMessage(entry.alias, kind, lastBytes)}${abortHint}`);
 
-          const result = await figmaFetch(url, token);
+          const stopWaiting = startSpinner(`Waiting for ${entry.alias} ${kind}`);
+          let result: Awaited<ReturnType<typeof figmaFetch>>;
+          try {
+            result = await figmaFetch(url, token);
+          } catch (error) {
+            stopWaiting();
+            throw error;
+          }
+          const waited = stopWaiting();
           const { status, body, headers, stream } = result;
-          const elapsed = stopSpinner();
 
           const classification = classifyHttpStatus(status);
 
@@ -633,6 +680,9 @@ export const Fetch = new Command('fetch')
             }
             throw new SourceFetchError(ERROR_CODES.NETWORK_ERROR);
           }
+
+          console.log(`✓ Ready: ${entry.alias} ${kind} — Figma took ${waited} to prepare it`);
+          const stopDownload = startSpinner(`Downloading: ${entry.alias} ${kind}`);
 
           const outputPath = path.join(outDir, `${entry.alias}.${kind}.json`);
           // File payloads dual-write a page-split directory while streaming
@@ -665,6 +715,7 @@ export const Fetch = new Command('fetch')
               });
               await fs.rename(tmpPath, outputPath);
             } catch (err) {
+              stopDownload();
               await fs.remove(tmpPath).catch(() => {});
               splitter?.abort();
               splitter = null;
@@ -674,6 +725,8 @@ export const Fetch = new Command('fetch')
             if (body) feedSplitter(Buffer.from(body, 'utf-8'));
             await fs.writeFile(outputPath, body, 'utf-8');
           }
+          // Elapsed now covers the transfer alone — the wait was reported above.
+          const transferred = stopDownload();
           // The flip (specs#563): the page-split directory IS the file
           // artifact. The monolithic file exists only transiently during the
           // download, and survives only as a rescue when the split fails.
@@ -690,7 +743,7 @@ export const Fetch = new Command('fetch')
             }
           }
 
-          console.log(`✓ Downloaded: ${entry.alias} ${kind} (${elapsed})`);
+          console.log(`✓ Downloaded: ${entry.alias} ${kind} (${transferred})`);
           completedKinds.add(kind);
 
           // Warn at download time when a kept payload is over the
@@ -798,8 +851,18 @@ export const Fetch = new Command('fetch')
         }
         } catch (error) {
           clearInlineStatus();
-          const code = error instanceof SourceFetchError ? error.code : ERROR_CODES.GENERAL_ERROR;
-          if (!(error instanceof SourceFetchError)) {
+          const timedOut = error instanceof FirstByteTimeoutError;
+          const code = error instanceof SourceFetchError
+            ? error.code
+            : timedOut ? ERROR_CODES.NETWORK_ERROR : ERROR_CODES.GENERAL_ERROR;
+          if (timedOut) {
+            const lastBytes = lastFetchedBytes(outDir, entry.alias);
+            console.error(`Error: Figma did not start sending ${entry.alias}.${activeKind} within ${formatElapsed(error.waitedMs)}.`);
+            if (lastBytes !== null) {
+              console.error(`  The last fetch of this source was ${formatPayloadSize(lastBytes)}.`);
+            }
+            console.error(`  Figma prepares a file only when it has changed, and discards that work when a request gives up — a retry starts the preparation over.`);
+          } else if (!(error instanceof SourceFetchError)) {
             // A transport-level throw (connection reset, DNS, TLS) says only
             // "fetch failed" — the real reason rides the cause chain, and the
             // request context lives here, not on the error (specs#569).
@@ -814,7 +877,9 @@ export const Fetch = new Command('fetch')
           // threw, plus every kind the loop never reached.
           const outstanding = entry.fetch.filter(k => wants(k) && !completedKinds.has(k));
           sourceFailures.push({ alias: entry.alias, code, outstanding });
-          console.error(`✗ ${entry.alias}: fetch failed while downloading "${activeKind}" — continuing with remaining sources`);
+          console.error(timedOut
+            ? `✗ ${entry.alias}: fetch gave up waiting for "${activeKind}" — continuing with remaining sources`
+            : `✗ ${entry.alias}: fetch failed while downloading "${activeKind}" — continuing with remaining sources`);
           // Naming every outstanding kind matters more than brevity: a hint that
           // names only the kind that threw recovers it and silently leaves the
           // rest missing (specs#572).

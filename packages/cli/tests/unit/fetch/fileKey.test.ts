@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveFigmaFileKey, slugifyBranchName, FigmaKeyError } from '../../../src/utilities/figmaFileKey.js';
+import { resolveFigmaFileKey, slugifyBranchName, FigmaKeyError } from '../../../src/fetch/fileKey.js';
 
 /**
  * The input here is whatever a person pasted out of Figma, so the cases that matter

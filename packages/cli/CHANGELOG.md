@@ -124,6 +124,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`specs init` scaffolds a settings file you can run**, with a Figma source to fill your file key into, YAML output, camelCase keys, HEXA colors, and an assets directory. Every setting exists in it, and each commented line is the opposite of its default, so uncommenting one always changes something — in the conventions files too.
 
+- **`specs fetch` reports preparing and downloading as two stages, each with its own elapsed time**, and estimates the preparing wait as a range from your previous fetch of that source. Figma builds the whole payload before sending any of it — roughly 100 seconds of silence for a 700MB library, and only when the file changed since last time.
+
+- **`specs fetch` gives up on a source after waiting 4 minutes for Figma to start sending.** The deadline covers that wait only; a download already underway is never cut off, however slow it runs.
+
 ### Fixed
 
 - **A long-standing type error in the per-side property table is gone.** The two-value shorthand names (`padding-block`, `padding-inline`) were declared as required and the physical fallback — which has no logical shorthand — cast over the gap. The fields are now optional, which is what the code already assumed when it checked for them, so the compiler stops objecting and the fallback stops pretending. No behaviour change: the all-four-sides branch tested for those names before using them and still does.
@@ -153,6 +157,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A failed source's retry hint names every kind still missing**, not only the one that failed, so following it recovers the whole source in one run.
 - **`specs fetch` no longer reports success while a configured data kind is absent from disk**: a requested kind that did not land fails the run, and a kind excluded by `--only` is called out. Cache counts are labelled as cache contents, so they cannot read as this run's downloads.
 - **A run whose license key cannot be checked stops at the first component** instead of failing every one into the same rate limit, and a rate-limited check now says to wait it out rather than to check your network.
+- **A file payload that arrives incomplete fails the fetch instead of being saved as though it were whole.** Figma sends no length to check against, so a body that stopped early was written and reported as downloaded, surfacing only later when another command could not read it.
 
 ### Removed
 
