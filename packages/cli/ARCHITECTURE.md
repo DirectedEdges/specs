@@ -33,6 +33,29 @@ hook blocks it).
   runtime, which in dev are symlinks into sibling checkouts.
 - `src/figma-shim.ts` installs a stub `global.figma` so engine code written
   against the Plugin API runs in Node — imported first, by design.
+- **A file payload is built before any of it is sent, and a fetch is two stages,
+  not one.** Figma serializes the whole document before the first byte leaves,
+  and only repeats that work when the file changed since the last fetch:
+  measured at 10–18 seconds per 100MB against a transfer that runs near 75MB/s,
+  so a 700MB fetch is ~100 seconds of silence then ~10 seconds of download. Treating the two as one is what made a healthy wait look like a hang
+  and made the elapsed figure describe neither stage (specs#707).
+- **The first-byte deadline covers the wait only — never the body.**
+  `figmaFetch` aborts if no headers arrive within `FIRST_BYTE_TIMEOUT_MS`
+  (4 minutes) and clears the timer the moment they do: a transfer already in
+  flight is making progress, and a partial payload is worth nothing. Moving that
+  `clearTimeout` would silently start killing slow downloads. Giving up also
+  discards the build — Figma starts over on the next request — so nothing here
+  retries, and the failure says so rather than implying a cheap retry.
+- `src/fetch/` holds what only `fetch` uses — `estimate.ts`, `fileKey.ts`. Anything
+  a second caller reads stays in `utilities/`, which is why the payload split and
+  its reader do not live here: `sectionedFile.ts` imports `payloadSplit.ts` and
+  shares its format version, so they are the two halves of one on-disk format and
+  belong together.
+- `src/fetch/estimate.ts` predicts the wait from the **previous** fetch
+  of the same source (`manifest.json`'s `sourceBytes`, else the monolithic
+  payload's size on disk), and deliberately answers in bands rather than
+  figures — the measured rate spans a wide enough range that a number would
+  claim precision the data does not support.
 
 ## Commands
 
@@ -108,7 +131,11 @@ components/componentSets/styles maps), and one raw `page-NNN.json` per page.
 `fetch` streams the download through the splitter
 (`utilities/payloadSplit.ts`, byte-level JSON state machine; 769MB in ~13s)
 and removes the transient monolithic file on success; a split failure keeps
-`<alias>.file.json` as the rescue. Reassembly is byte-perfect:
+`<alias>.file.json` as the rescue. `finish()` refuses a payload that did not end
+on a structural boundary — balanced depth, no open string, non-empty: the
+response is chunked with no `content-length`, so a body that stops early without
+a transport error is otherwise indistinguishable from a complete one and would be
+written as a real artifact. Reassembly is byte-perfect:
 `root[0..prefixBytes) + sep_i + page_i … + root[prefixBytes..)`, verifiable
 against `sourceSha256` (harness/dev check only).
 
