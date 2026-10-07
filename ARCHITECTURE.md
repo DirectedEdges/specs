@@ -77,6 +77,24 @@ the reason `/specs.consistency-check` exists:
 - `site/src/content/docs/schema/*.md` (hand-written; `docs/adr/` mirrors
   automatically at site build)
 
+### The stylesheet sync set
+
+A second, smaller one, and the reason it is written down: it has no ADR to
+anchor it. A refactor that changes what the CSS transformer emits is not a
+schema change, so nothing above fires — which is how the published style mapping
+came to describe a gradient-stroke mechanism, a `FILL` translation and a
+`text-align` vocabulary the transformer had all stopped using (specs#691).
+
+- `packages/cli/src/transforms/css/**` — a module's emitted declarations
+- `site/src/content/docs/code/style-mapping.md` — the appendix section that
+  **names that module**, which is what makes the pair checkable
+- `site/src/content/docs/code/styles.mdx` — the *Mapping Specs to CSS* table,
+  when a style key is added or removed
+
+Changing a module's output without the appendix is drift. The appendix names its
+owning module in every section, so the changed file identifies the section to
+re-verify.
+
 ## Consumers
 
 `specs-schema → specs-from-figma (engine) → specs-cli / specs-plugin-2`, with
