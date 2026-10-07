@@ -24,6 +24,38 @@ command reads it, and a single-file `{alias}.file.json` from an earlier CLI
 keeps working everywhere until your next fetch replaces it. Only scripts of your
 own that open `{alias}.file.json` directly need to read the directory instead.
 
+## How long a fetch takes
+
+A fetch is two stages, and on a large library the first one dominates. Figma
+builds the whole file payload before sending any of it, and repeats that work
+only when the file changed since your last fetch.
+
+| Stage | What is happening | A 700MB library |
+|---|---|---|
+| Preparing | Figma serializes the file. Nothing is transferring and the connection sits idle | ~100 seconds after an edit, under a second without one |
+| Downloading | The payload transfers and splits to disk | ~10 seconds |
+
+Each stage reports its own elapsed time, and the preparing stage estimates itself
+from the size of your previous fetch of that source — as a range, since the rate
+varies too much to quote a figure:
+
+```
+Figma is preparing core file for download. Last fetch was 704MB,
+so this may take more than 90 seconds. CTRL-C to abort.
+⠹ Waiting for core file (1m 24s)
+✓ Ready: core file — Figma took 1m 24s to prepare it
+⠼ Downloading: core file (9s)
+✓ Downloaded: core file (9s)
+```
+
+A first fetch of a source has no previous size to work from and says so instead
+of guessing.
+
+`fetch` waits up to **4 minutes** for Figma to start sending, then fails that
+source. The deadline covers the wait only — a download already underway is never
+cut off, however slow it runs. Figma discards its preparation when a request
+gives up, so a retry starts that work over rather than picking it up.
+
 ## Requirements
 
 - `FIGMA_TOKEN` must be set in your environment (not needed with `--from-bridge`).
