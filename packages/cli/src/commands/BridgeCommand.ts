@@ -21,11 +21,7 @@ import {
   BRIDGE_LOG_FILE,
 } from '../bridge/pidfile.js';
 import { getBridgeStatus } from '../bridge/client.js';
-
-const ERROR_CODES = {
-  SUCCESS: 0,
-  GENERAL_ERROR: 1,
-};
+import { ERROR_CODES } from '../utilities/errorCodes.js';
 
 function resolveBridgeServerScript(): string {
   // dist/specs.js and dist/bridge-server.js are sibling build outputs.

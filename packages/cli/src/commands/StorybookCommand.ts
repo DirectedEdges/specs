@@ -13,8 +13,7 @@ import { init } from '../storybook/init.js';
 import { publish } from '../storybook/publish.js';
 import { dev } from '../storybook/dev.js';
 import { concernNames } from '../storybook/concerns/registry.js';
-
-const ERROR_CODES = { SUCCESS: 0, GENERAL_ERROR: 1, INVALID_ARGS: 2 };
+import { ERROR_CODES } from '../utilities/errorCodes.js';
 
 interface SharedOptions {
   config?: string;

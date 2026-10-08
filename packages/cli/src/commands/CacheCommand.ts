@@ -11,12 +11,7 @@ import { Command } from 'commander';
 import { ConfigLoader } from '../config/ConfigLoader.js';
 import { refreshCache, type CacheReport } from '../cache/cache.js';
 import { figmaOf } from '../config/PlatformConventions.js';
-
-const ERROR_CODES = {
-  SUCCESS: 0,
-  GENERAL_ERROR: 1,
-  INVALID_ARGS: 2,
-};
+import { ERROR_CODES } from '../utilities/errorCodes.js';
 
 /** Shared by this command and every command that refreshes the cache as a final step.
  *  Returns false when any payload failed to read — callers decide the exit code, but

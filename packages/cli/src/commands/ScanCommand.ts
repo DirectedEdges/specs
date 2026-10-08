@@ -16,15 +16,9 @@ import { specFolderKey } from '../utilities/specFolderKey.js';
 import { ConfigLoader } from '../config/ConfigLoader.js';
 import { StepError } from '../pipeline/StepError.js';
 import { figmaOf } from '../config/PlatformConventions.js';
+import { ERROR_CODES } from '../utilities/errorCodes.js';
 
 const SCAN_FORMAT_VERSION = 2;
-
-const ERROR_CODES = {
-  SUCCESS: 0,
-  GENERAL_ERROR: 1,
-  INVALID_ARGS: 2,
-  FILE_ERROR: 3
-};
 
 interface ScanOptions {
   output?: string;

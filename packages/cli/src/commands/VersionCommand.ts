@@ -46,12 +46,7 @@ import { ConfigLoader } from '../config/ConfigLoader.js';
 import { loadRules, type RuleSet } from '../version/rules.js';
 import { gradeOf, renderChangelog, renderReport } from '../version/report.js';
 import type { ComponentLedger, LedgerOverride } from '../version/types.js';
-
-const ERROR_CODES = {
-  SUCCESS: 0,
-  GENERAL_ERROR: 1,
-  INVALID_ARGS: 2,
-};
+import { ERROR_CODES } from '../utilities/errorCodes.js';
 
 const fail = (message: string, code: number = ERROR_CODES.GENERAL_ERROR): never => {
   console.error(`Error: ${message}`);

@@ -42,6 +42,7 @@ import { postGenerateFromSelection } from '../bridge/client.js';
 import { formatKey } from '../utilities/formatKey.js';
 import { resolveFileKey } from '../bridge/pickConnection.js';
 import { figmaOf } from '../config/PlatformConventions.js';
+import { ERROR_CODES } from '../utilities/errorCodes.js';
 
 declare const __SPECS_CLI_VERSION__: string;
 
@@ -55,18 +56,6 @@ const CLI_GENERATOR = {
 export { ManifestParser } from '../utilities/ManifestParser.js';
 export type { ManifestComponent, ManifestMetadata } from '../utilities/ManifestParser.js';
 export { LicenseStatus } from '../utilities/LicenseStatus.js';
-
-// Error codes from contracts/error-codes.md
-const ERROR_CODES = {
-  SUCCESS: 0,
-  GENERAL_ERROR: 1,
-  INVALID_ARGS: 2,
-  FILE_ERROR: 3,
-  NETWORK_ERROR: 4,
-  AUTH_ERROR: 5,
-  RATE_LIMIT: 6,
-  COMPONENT_NOT_FOUND: 7
-};
 
 interface GenerateOptions {
   component?: string;

@@ -21,12 +21,7 @@ import { reportCache } from './CacheCommand.js';
 import { figmaOf } from '../config/PlatformConventions.js';
 import { loadDevStatusByNodeId, devStatusForSpec, type WritableDevStatus } from '../utilities/ManifestDevStatus.js';
 import { StepError } from '../pipeline/StepError.js';
-
-const ERROR_CODES = {
-  SUCCESS: 0,
-  GENERAL_ERROR: 1,
-  INVALID_ARGS: 2,
-};
+import { ERROR_CODES } from '../utilities/errorCodes.js';
 
 export const Render = new Command('render')
   .description('Render a spec into Figma via the local CLI bridge')

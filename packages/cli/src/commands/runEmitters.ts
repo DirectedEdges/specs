@@ -19,8 +19,7 @@ import {
   resolveSpecsLayout, legacyLayoutNotice, dirNameFor, SPEC_KINDS, type SpecKind,
 } from '../utilities/specsLayout.js';
 import { resolveKindScope, describeKindScope, KindScopeConflict } from '../utilities/kindScope.js';
-
-export const ERROR_CODES = { SUCCESS: 0, INVALID_ARGS: 2, FILE_ERROR: 3, GENERAL_ERROR: 1 };
+import { ERROR_CODES } from '../utilities/errorCodes.js';
 
 // Editors commonly write a file two or three times per save, and a config edit
 // re-emits the whole catalogue — so a short debounce turns one Cmd-S into

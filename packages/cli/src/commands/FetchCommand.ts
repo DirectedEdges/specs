@@ -16,16 +16,7 @@ import { startSpinner, clearInlineStatus, renderInlineStatus, isInteractive, for
 import { refreshCache } from '../cache/cache.js';
 import { reportCache } from './CacheCommand.js';
 import { ConfigLoader } from '../config/ConfigLoader.js';
-
-const ERROR_CODES = {
-  SUCCESS: 0,
-  GENERAL_ERROR: 1,
-  INVALID_ARGS: 2,
-  FILE_ERROR: 3,
-  NETWORK_ERROR: 4,
-  AUTH_ERROR: 5,
-  RATE_LIMIT: 6
-};
+import { ERROR_CODES } from '../utilities/errorCodes.js';
 
 import type { SourceEntry } from '@directededges/specs-schema';
 import { figmaOf } from '../config/PlatformConventions.js';

@@ -20,8 +20,7 @@ import fs from 'fs-extra';
 import { resolveVisual } from '../testing/visual/paths.js';
 import { readJson } from '../testing/visual/paths.js';
 import path from 'path';
-
-const ERROR_CODES = { SUCCESS: 0, GENERAL_ERROR: 1, INVALID_ARGS: 2 };
+import { ERROR_CODES } from '../utilities/errorCodes.js';
 
 interface SharedOptions {
   config?: string;

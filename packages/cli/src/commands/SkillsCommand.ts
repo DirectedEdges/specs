@@ -12,11 +12,7 @@ import { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
 import { SKILL_ASSETS } from '../version/skills.js';
-
-const ERROR_CODES = {
-  SUCCESS: 0,
-  GENERAL_ERROR: 1,
-};
+import { ERROR_CODES } from '../utilities/errorCodes.js';
 
 const install = new Command('install')
   .description('Emit the canonical premerge and release skills into .claude/skills/, overwriting existing copies')

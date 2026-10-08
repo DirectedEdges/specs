@@ -20,9 +20,7 @@ import {
   generateWebComponentsConventionsTemplate,
 } from '../config/ConfigTemplates.js';
 import { migrateConfigV1 } from '../config/migrations/configV1.js';
-const ERROR_CODES = {
-  INVALID_ARGS: 2,
-};
+import { ERROR_CODES } from '../utilities/errorCodes.js';
 
 interface MigrationResult {
   /** Files written, relative to the workspace root. */

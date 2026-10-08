@@ -10,8 +10,7 @@ import type { Transformer, TransformerContext } from '../types/Transformer.js';
 import type { ProcessingStates } from '../transforms/states.js';
 import { resolveSpecsLayout, legacyLayoutNotice, specFolderNames, SPEC_KINDS, type SpecKind } from '../utilities/specsLayout.js';
 import { StepError } from '../pipeline/StepError.js';
-
-const ERROR_CODES = { SUCCESS: 0, INVALID_ARGS: 2, FILE_ERROR: 3, GENERAL_ERROR: 1 };
+import { ERROR_CODES } from '../utilities/errorCodes.js';
 
 export interface AnalyzeOptions {
   output?: string;

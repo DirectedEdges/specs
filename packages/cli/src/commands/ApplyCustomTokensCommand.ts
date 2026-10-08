@@ -16,13 +16,7 @@ import { reportCache } from './CacheCommand.js';
 import { ConfigLoader } from '../config/ConfigLoader.js';
 import type { CLIConfig } from '../types/CLIConfig.js';
 import { figmaOf } from '../config/PlatformConventions.js';
-
-const ERROR_CODES = {
-  SUCCESS: 0,
-  GENERAL_ERROR: 1,
-  INVALID_ARGS: 2,
-  FILE_ERROR: 3,
-};
+import { ERROR_CODES } from '../utilities/errorCodes.js';
 
 type MappingEntry = Record<string, unknown>;
 type MappingFile = Record<string, MappingEntry>;
