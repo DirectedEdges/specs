@@ -155,6 +155,7 @@ export default defineConfig({
             { label: 'version', slug: 'cli/commands/version' },
             { label: 'skills', slug: 'cli/commands/skills' },
             { label: 'storybook', slug: 'cli/commands/storybook', badge: experimental },
+            { label: 'testing visual', slug: 'cli/commands/testing', badge: experimental },
             {
               label: 'Analyze',
               collapsed: true,
@@ -186,6 +187,14 @@ export default defineConfig({
                 { label: 'Scaffold', slug: 'code/scaffold' },
                 { label: 'Stories', slug: 'code/stories' },
                 { label: 'Styles', slug: 'code/styles' },
+              ],
+            },
+            {
+              label: 'Testing',
+              collapsed: true,
+              items: [
+                { label: 'Overview', slug: 'testing', badge: experimental },
+                { label: 'Getting Started', slug: 'testing/getting-started', badge: experimental },
               ],
             },
             {

@@ -35,6 +35,7 @@ import { Bridge } from './commands/BridgeCommand.js';
 import { Version } from './commands/VersionCommand.js';
 import { Skills } from './commands/SkillsCommand.js';
 import { Storybook } from './commands/StorybookCommand.js';
+import { Testing } from './commands/TestingCommand.js';
 import { Build, Run } from './commands/BuildRunCommands.js';
 
 declare const __SPECS_CLI_VERSION__: string;
@@ -90,6 +91,7 @@ export function createProgram(): Command {
   program.addCommand(Version);
   program.addCommand(Skills);
   program.addCommand(Storybook);
+  program.addCommand(Testing);
 
   // Deprecated alias: 'audit' → 'scan'
   const auditAlias = new Command('audit')

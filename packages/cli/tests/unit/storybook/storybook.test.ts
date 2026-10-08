@@ -21,7 +21,7 @@ describe('StorybookCommand', () => {
     const subs = Storybook.commands.map(c => c.name());
     expect(subs).toContain('init');
     expect(subs).toContain('publish');
-    expect(concernNames()).toEqual(['overview', 'foundations', 'components', 'analysis', 'versions']);
+    expect(concernNames()).toEqual(['overview', 'foundations', 'components', 'analysis', 'visualtesting', 'versions']);
   });
 });
 
