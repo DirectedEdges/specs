@@ -171,10 +171,26 @@ export interface PlatformConventions {
    * undefined. Optional; defaults to NONE inside a declared platform entry.
    */
   naming?: 'NONE' | 'SENTENCE' | 'TITLE';
-  /** Glyph content assets. Optional; absence means no glyph naming convention and glyphs are not detected. */
+  /**
+   * Glyph content assets. Optional; absence means no glyph convention and glyphs are not
+   * detected. A declared block must carry at least one form — `match`, `structure`, or
+   * both; membership is the union (a component matching either form is a glyph).
+   */
   glyphs?: {
-    /** Naming pattern identifying glyph assets, using the `{i}` icon-name placeholder (e.g. `"DS Icon Glyph / {i}"`). */
-    match: string;
+    /**
+     * Name form — membership and naming in one pattern over the component name, using the
+     * `{i}` icon-name placeholder (e.g. `"DS Icon Glyph / {i}"`). Optional since 0.35.0;
+     * a library may declare `structure` alone (ADR-103).
+     */
+    match?: string;
+    /**
+     * Structural form — membership from the component's child structure, naming from the
+     * component name (ADR-103). For libraries whose glyph components are plainly named
+     * and carry no name pattern.
+     *
+     * @since 0.35.0
+     */
+    structure?: GlyphStructure;
   };
   /** The code-only props container layer. Optional; absence means no such convention and code-only props are not extracted. */
   codeOnlyProps?: {
@@ -255,6 +271,61 @@ export interface PlatformConventions {
    * @since 0.32.0
    */
   defaultFillWidth?: number;
+}
+
+/**
+ * The structural form of the `glyphs` convention (ADR-103).
+ *
+ * Declares the child structure a glyph component has in this library, splitting
+ * membership (the structure) from naming (the component name). A component is a glyph
+ * under this form when every one of its children matches some entry in `children` —
+ * set-cover, exhaustive: a component containing anything besides the declared shapes
+ * is not a glyph. When `fill` is declared, every leaf node matched by the structure
+ * must carry a solid fill that is one of the listed values.
+ *
+ * ```yaml
+ * glyphs:
+ *   structure:
+ *     fill: ['#161616']
+ *     children:
+ *       - type: VECTOR
+ *         name: 'Vector'
+ * ```
+ *
+ * @since 0.35.0
+ */
+export interface GlyphStructure {
+  /**
+   * Naming rule applied to the component name, using the `{i}` placeholder
+   * (e.g. `"{i}Icon"`). Optional; defaults to `"{i}"` — the whole component name is
+   * the glyph name.
+   */
+  name?: string;
+  /**
+   * Accepted leaf fills: a raw color (`"#RRGGBB"`) or a token/variable/style name.
+   * Optional; absence means fills are not tested.
+   */
+  fill?: string[];
+  /** Node matchers covering the component's children. */
+  children: GlyphStructureNode[];
+}
+
+/**
+ * One node matcher within a {@link GlyphStructure}.
+ *
+ * `type` is an open string carrying a Figma node type (e.g. `'VECTOR'`,
+ * `'BOOLEAN_OPERATION'`), not a closed enum — an unknown type never matches, and the
+ * schema does not chase Figma's node-type catalog (Constitution VI rule 3).
+ *
+ * @since 0.35.0
+ */
+export interface GlyphStructureNode {
+  /** Figma node type this entry matches. */
+  type: string;
+  /** Layer name, literal with `*` wildcard. Optional; absence means any name. */
+  name?: string;
+  /** Matchers covering this node's own children, same set-cover semantics. Optional; absence means children are not tested. */
+  children?: GlyphStructureNode[];
 }
 
 /**
@@ -427,9 +498,12 @@ export interface Conventions {
 export interface ResolvedPlatformConventions {
   /** Naming convention this platform uses. Defaulted to NONE inside a declared entry. */
   naming: 'NONE' | 'SENTENCE' | 'TITLE';
-  /** Glyph content assets. Optional; absence means no glyph convention. */
+  /** Glyph content assets. Optional; absence means no glyph convention. At least one of `match` / `structure` is declared. */
   glyphs?: {
-    match: string;
+    /** Name form — membership and `{i}` naming capture. Optional since 0.35.0 (ADR-103). */
+    match?: string;
+    /** Structural form — membership from child structure, naming from the component name. @since 0.35.0 */
+    structure?: GlyphStructure;
   };
   /** The code-only props container layer. Optional; absence means no such convention. */
   codeOnlyProps?: {

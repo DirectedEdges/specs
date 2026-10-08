@@ -1,9 +1,16 @@
 ---
 title: "glyphs"
-description: "Naming pattern used to detect glyph content assets"
+description: "Conventions used to detect glyph content assets"
 ---
 
-Naming pattern used to detect glyph content assets (e.g. icon glyphs). A library fact, declared in `config/conventions/figma.yaml`: every consumer reading the same library must declare the same pattern — a wrong or missing one leaves icon assets undetected. Absence means the library has no glyph naming convention, and no glyph detection is performed.
+Conventions used to detect glyph content assets (e.g. icon glyphs). A library fact, declared in `config/conventions/figma.yaml`: every consumer reading the same library must declare the same conventions — a wrong or missing declaration leaves icon assets undetected. Absence means the library has no glyph convention, and no glyph detection is performed.
+
+A declared block carries at least one of two forms; a component matching either is a glyph:
+
+| Form | Membership | Glyph name |
+|------|------------|------------|
+| `match` | component name matches the pattern | the `{i}` capture |
+| `structure` | component's children match the declared structure | the component name (through `structure.name`) |
 
 :::tip[Guide]
 See [Icon Glyphs](/guides/glyph-name-pattern/) for naming strategies and worked examples.
@@ -12,8 +19,20 @@ See [Icon Glyphs](/guides/glyph-name-pattern/) for naming strategies and worked 
 ## Configuration
 
 ```yaml
+# Name form — the library names its glyph components by a pattern
 glyphs:
   match: 'DS Icon Glyph / {i}'
+```
+
+```yaml
+# Structural form — glyph components are plainly named ("Cross", "Chevron down")
+# but share a consistent child structure
+glyphs:
+  structure:
+    fill: ['#161616']
+    children:
+      - type: VECTOR
+        name: 'Vector'
 ```
 
 ## Result
@@ -44,14 +63,39 @@ Without a `glyphs` block, the layer is treated as an ordinary element and no `co
 
 ## Options
 
-- **Type**: block with a single `match` string
+- **Type**: block with `match` (string) and/or `structure` (object) — at least one
 - **Default**: absent (no glyph convention)
-- **Effect**: When declared, layers whose names match the pattern are detected as glyph assets. When absent, glyph detection is skipped entirely.
+- **Effect**: When declared, components matching either form are detected as glyph assets. When absent, glyph detection is skipped entirely.
 
-The `match` pattern must include the `{i}` placeholder, which marks where the glyph name appears in the component name. Internally `{i}` becomes a `(.+)` capture group and the matched text is used as the glyph's `content` value. See [Icon Glyphs](/guides/glyph-name-pattern/) for the full pattern syntax.
+### `match`
+
+The pattern must include the `{i}` placeholder, which marks where the glyph name appears in the component name. Internally `{i}` becomes a `(.+)` capture group and the matched text is used as the glyph's `content` value. See [Icon Glyphs](/guides/glyph-name-pattern/) for the full pattern syntax.
+
+### `structure`
+
+Declares the child structure a glyph component has in this library, for libraries whose glyph components are plainly named (`Cross`, `Chevron down`) and carry no name pattern.
+
+| Member | Type | Meaning |
+|--------|------|---------|
+| `children` | list of node matchers | Required. A component is a glyph when every one of its children matches some entry — exhaustive: a component containing anything besides the declared shapes is not a glyph |
+| `name` | string | Naming rule applied to the component name, using `{i}` (e.g. `'{i}Icon'`). Defaults to `'{i}'` — the whole component name is the glyph name |
+| `fill` | list of strings | Accepted leaf fills: a raw color (`'#161616'`) or a token/variable/style name. When declared, every matched leaf must carry one of them. Absent, fills are not tested |
+
+Each node matcher carries a required `type` (Figma node type, e.g. `VECTOR`, `BOOLEAN_OPERATION`), an optional `name` (literal with `*` wildcard), and optional nested `children` with the same exhaustive semantics:
+
+```yaml
+# One level deeper: component → BOOLEAN_OPERATION → vectors
+glyphs:
+  structure:
+    children:
+      - type: BOOLEAN_OPERATION
+        children:
+          - type: VECTOR
+            name: 'Glyph - *'
+```
 
 ## Path
 
-`glyphs.match` in `config/conventions/figma.yaml`
+`glyphs.match` and `glyphs.structure` in `config/conventions/figma.yaml`
 
 **Legacy name**: in the pre-split `specs.config.yaml`, this option was the scalar `config.processing.glyphNamePattern`. That file is no longer read — [`specs migrate config`](/cli/commands/migrate/) converts it, moving that member to `figma.glyphs.match`.

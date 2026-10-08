@@ -40,6 +40,8 @@ export type {
   MetadataConventions,
   PlatformConventions,
   ResolvedPlatformConventions,
+  GlyphStructure,
+  GlyphStructureNode,
   PrimitiveKind,
   PrimitiveEntry,
   PrimitiveRule,

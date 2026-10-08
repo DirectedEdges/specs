@@ -46,15 +46,27 @@
         },
         "glyphs": {
           "type": "object",
-          "description": "Glyph content assets. Absence means the library has no glyph naming convention.",
+          "description": "Glyph content assets. Absence means the library has no glyph convention. A declared block carries at least one form — match, structure, or both; membership is the union.",
           "properties": {
             "match": {
               "type": "string",
-              "description": "Naming pattern identifying glyph assets, using the {i} icon-name placeholder."
+              "description": "Name form — membership and naming in one pattern over the component name, using the {i} icon-name placeholder."
+            },
+            "structure": {
+              "$ref": "#/definitions/GlyphStructure"
             }
           },
-          "required": [
-            "match"
+          "anyOf": [
+            {
+              "required": [
+                "match"
+              ]
+            },
+            {
+              "required": [
+                "structure"
+              ]
+            }
           ],
           "additionalProperties": false
         },
@@ -190,6 +202,60 @@
           "description": "Width in pixels of the container this platform places a component in when the component's root resizes to fill its parent. Applies only when the root's layoutSizingHorizontal is FILL; fixed and hugging roots are unaffected. Absence means the platform declares no width and the rendering tool uses its own fallback. (ADR-081)"
         }
       },
+      "additionalProperties": false
+    },
+    "GlyphStructure": {
+      "type": "object",
+      "description": "Structural form of the glyphs convention (ADR-103): membership from child structure, naming from the component name. A component is a glyph when every child matches some entry in children (set-cover, exhaustive); when fill is declared, every matched leaf must carry one of the listed fills.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Naming rule applied to the component name, using the {i} placeholder. Defaults to '{i}' — the whole component name is the glyph name."
+        },
+        "fill": {
+          "type": "array",
+          "description": "Accepted leaf fills: a raw color ('#RRGGBB') or a token/variable/style name. Absence means fills are not tested.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "children": {
+          "type": "array",
+          "description": "Node matchers covering the component's children.",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/GlyphStructureNode"
+          }
+        }
+      },
+      "required": [
+        "children"
+      ],
+      "additionalProperties": false
+    },
+    "GlyphStructureNode": {
+      "type": "object",
+      "description": "One node matcher within a GlyphStructure. type is an open string carrying a Figma node type (e.g. 'VECTOR', 'BOOLEAN_OPERATION'); an unknown type never matches.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Figma node type this entry matches."
+        },
+        "name": {
+          "type": "string",
+          "description": "Layer name, literal with '*' wildcard. Absence means any name."
+        },
+        "children": {
+          "type": "array",
+          "description": "Matchers covering this node's own children, same set-cover semantics. Absence means children are not tested.",
+          "items": {
+            "$ref": "#/definitions/GlyphStructureNode"
+          }
+        }
+      },
+      "required": [
+        "type"
+      ],
       "additionalProperties": false
     },
     "Conventions": {

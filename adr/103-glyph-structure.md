@@ -3,7 +3,7 @@
 **Branch**: `103-glyph-structure`
 **Created**: 2026-10-08
 **Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Summary**: A `glyphs.structure` form identifies glyph components by child structure and fill, joining `match` with naming from the component name.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none — extends the `glyphs` block introduced with `glyphNamePattern`'s migration to `conventions`)*
 
@@ -26,7 +26,7 @@ Those same libraries do carry a strong *structural* signal. Their glyph componen
 | IBM UI Kit | component → single `VECTOR` named `Vector` | component name |
 | GitHub Primer | component → single `VECTOR` named `Icon` | component name |
 | Atlassian | component → single `VECTOR` named `Vector` | `{i}Icon` capture of component name |
-| EG (ignoring its name convention) | component → `BOOLEAN_OPERATION` → `VECTOR`s named `Glyph - …` | component name |
+| DS (ignoring its name convention) | component → `BOOLEAN_OPERATION` → `VECTOR`s named `Glyph - …` | component name |
 
 A further discriminant: glyph assets in a library are typically stored with one shared fill — the same raw color or the same token — across the whole set. Declaring that expected fill sharply reduces false positives from non-glyph vector-only components (logos, dividers, illustrations).
 
@@ -90,7 +90,7 @@ structure:
     - type: VECTOR
       name: 'Vector'
 
-# EG, one level deeper
+# DS, one level deeper
 structure:
   children:
     - type: BOOLEAN_OPERATION
@@ -129,7 +129,7 @@ structure:
       name: 'Vector'
 ```
 
-Absent, the whole component name is the glyph name (`name: '{i}'`) — the common case for Carbon, IBM, Primer, EG.
+Absent, the whole component name is the glyph name (`name: '{i}'`) — the common case for Carbon, IBM, Primer, DS.
 
 **Pros**:
 - Reuses the established `{i}` grammar — no second naming syntax.
@@ -263,7 +263,7 @@ anyOf:
 ### Notes
 
 - `structure.children` is required within `structure` — a structure declaration with no shape declares nothing.
-- `fill` is an array even for the single-value common case, so the EG two-variant case (two vectors, two declared fills) needs no shape change later.
+- `fill` is an array even for the single-value common case, so the DS two-variant case (two vectors, two declared fills) needs no shape change later.
 - Node `type` is an open string, not an enum of Figma node types: the schema does not chase Figma's node-type catalog, and an unknown type simply never matches (Constitution VI rule 3 — Figma vocabulary, data-faithful).
 - The detect/propose/curate mechanism, glyph manifest, and reconcile semantics of #579 are explicitly out of scope; this ADR only gives them a convention surface to propose *into*.
 
