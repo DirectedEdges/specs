@@ -41,18 +41,21 @@ The alias (e.g. `library`, `foundations`) is a name you assign to each source. I
 
 ## `key`
 
-The Figma file key for this source — the key alone, not a URL. `settings.yaml`
-does no URL parsing: whatever you write here goes straight into the Figma API
-request, so a pasted URL fails as an opaque API error rather than a config
-error. (The [`--source`](/cli/commands/fetch/#fetching-figma-branches) flag is the
-opposite — it accepts a pasted URL and pulls the key out for you.)
+The Figma file key for this source, or the file's URL pasted straight from the
+browser — the key is read out of it for you, the same way
+[`--source`](/cli/commands/fetch/#fetching-figma-branches) reads one. A branch
+URL resolves to the branch rather than the file it branches from.
 
-Read the key out of the URL Figma shows while the file is open:
+The key is the segment after `/design/` in the URL Figma shows while the file is
+open, if you would rather write it out:
 
 ```
 https://www.figma.com/design/PnIKd8F7Y7kaFOTcyaYGuF/Design-System?node-id=0-1
                              └──────── key ────────┘
 ```
+
+A source whose key is missing or unusable fails before anything is downloaded,
+naming the source and what it found there.
 
 - **Type**: string
 - **Required**: yes

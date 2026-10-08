@@ -86,7 +86,7 @@ Narrow the fetch by source alias, by data kind, or both, comma-separated. Aliase
 ### `--source <[alias=]url|key>`
 Fetch a file or branch that is not in `data.sources` — see [Fetching Figma Branches](#fetching-figma-branches). Repeatable.
 
-Takes a Figma URL pasted straight from the browser, or a bare file key. Given a branch URL — which names both the main file and the branch — it uses the **branch** key, so you never have to pick the right one out of the URL yourself. This is the one place a URL is accepted; the `key` field in [`data.sources`](/settings/data-sources/#key) needs the bare key.
+Takes a Figma URL pasted straight from the browser, or a bare file key. Given a branch URL — which names both the main file and the branch — it uses the **branch** key, so you never have to pick the right one out of the URL yourself. The `key` field in [`data.sources`](/settings/data-sources/#key) accepts the same two forms.
 
 ### `--from-bridge`
 Fetch variables from the connected Figma file through the [CLI bridge](/cli/commands/bridge/) instead of the REST API — see [Fetching Variables via the Bridge](#fetching-variables-via-the-bridge). Requires `--only variables`; no `FIGMA_TOKEN` or Enterprise plan needed.
