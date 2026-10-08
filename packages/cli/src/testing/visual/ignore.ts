@@ -33,11 +33,16 @@ export function loadIgnore(ignorePath: string): IgnoreFile {
   const raw = YAML.parse(fs.readFileSync(ignorePath, 'utf8')) ?? {};
   const out = { ...empty, defaults: raw.$defaults ?? {} };
 
+  // Only keys that SUPPRESS signal demand a justification. driveInteractions
+  // adds coverage (hover/press poses) rather than hiding anything, so an
+  // entry carrying only it has nothing to justify.
+  const SUPPRESSING = ['skip', 'skipVariants', 'passPct', 'dimTolerancePx', 'threshold', 'sampleVariants', 'pinWidth'];
+
   const absorb = (kind: SpecKind, entries: Record<string, any>, prefix: string) => {
     for (const [key, value] of Object.entries(entries)) {
       if (!value || typeof value !== 'object') continue;
       out.byKind[kind][key] = value;
-      if (!value.note) out.noteless.push(`${prefix}${key}`);
+      if (!value.note && SUPPRESSING.some((k) => k in value)) out.noteless.push(`${prefix}${key}`);
     }
   };
 
