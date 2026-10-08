@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
 import yaml from 'yaml';
-import { StylingAnalyzer } from '../../../src/analyzers/Styling.js';
+import { StylingAnalyzer } from '../../../src/analyze/Styling.js';
 
 const transformer = new StylingAnalyzer();
 

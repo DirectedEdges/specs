@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
 import yaml from 'yaml';
-import { DependenciesAnalyzer } from '../../../src/analyzers/Dependencies.js';
+import { DependenciesAnalyzer } from '../../../src/analyze/Dependencies.js';
 
 // Fixture library: dsIcon (leaf) ← dsButton ← dsCard (chain), so a change to
 // dsIcon impacts dsButton directly and dsCard at depth 2.

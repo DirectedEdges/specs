@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
 import yaml from 'yaml';
-import { KeysAnalyzer } from '../../../src/analyzers/Keys.js';
+import { KeysAnalyzer } from '../../../src/analyze/Keys.js';
 
 type KeysYaml = {
   summary: {

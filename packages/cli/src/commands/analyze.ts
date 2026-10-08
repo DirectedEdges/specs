@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
 import { ConfigLoader } from '../config/ConfigLoader.js';
-import { availableAnalyzerNames, resolveAnalyzers } from '../analyzers/index.js';
+import { availableAnalyzerNames, resolveAnalyzers } from '../analyze/index.js';
 import { platformOf } from '../config/PlatformConventions.js';
 import { loadFoundations } from '../utilities/loadFoundations.js';
 import type { Transformer, TransformerContext } from '../transforms/transformer.js';

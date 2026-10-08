@@ -10,10 +10,12 @@ hook blocks it).
 ## Invariants & gotchas
 
 - **Every `src/` directory is lowercase, and names a feature or a stage** —
-  `cache/`, `emit/`, `fetch/`, `render/`, `storybook/`, `testing/visual/`,
-  `transforms/css/values/`. `src/commands/` holds one file per command, named for
-  the command; anything a command needs beyond registration and argument parsing
-  lives in the feature folder it belongs to.
+  `analyze/`, `cache/`, `emit/`, `fetch/`, `generate/`, `render/`, `scan/`,
+  `storybook/`, `testing/visual/`, `transforms/css/values/`. A feature folder is
+  named for its command, not for the plural of what it holds — `analyze/`, not
+  `analyzers/`. `src/commands/` holds one file per command, named for the command;
+  anything a command needs beyond registration and argument parsing lives in the
+  feature folder it belongs to. `tests/unit/` mirrors the same names.
 - **Commands import feature folders; nothing in a feature folder imports a
   command.** One-way, and checkable in one grep — `grep -rn "from '.*commands/"
   src --include=*.ts` should match `src/index.ts` and nothing else. It did not
@@ -161,6 +163,7 @@ the work lives in the feature folder.
 | `src/bridge/` | server, client (`postRender`, `postGenerateFromSelection`), connection pick (`resolveFileKey`), pidfile |
 | `src/generate/licenseStatus.ts` | Reads engine-stamped license state; the CLI validates nothing |
 | `src/cache/` | `cache.ts` builds the render lookup caches under `{data.directory}/cache/`; `report.ts` prints a refresh result, shared by `specs cache` and by every command that refreshes as its last step |
+| `src/analyze/` | The four analyzers behind `specs analyze` — `Props`, `Styling`, `Dependencies`, `Keys` — and `index.ts`, the registry that resolves names to them and answers what a run with no names does. Named for the command, like every other feature folder; it was `analyzers/`, named for the plural of its contents |
 | `src/generate/` | What only `specs generate` uses: `manifestParser.ts` (the v1 manifest), `fileSourceAlias.ts` (which configured source carries the component file), `imageFills.ts` (ADR-063 phase two), `licenseStatus.ts` + `licenseGuidance.ts` (display and the transient-failure wording) |
 | `src/scan/` | What only `specs scan` uses: `discovery.ts` (component and composition discovery over a REST payload, monolithic or sectioned), `glyphPatternMatch.ts`, `manifestMigrationV1ToV2.ts` |
 | `src/utilities/` | The 15 modules more than one feature imports — the layout seam, the payload format (`sectionedFile` + `payloadSplit` + `payloadRead`, one on-disk format in three files), the key derivations, the exit-code contract, the watch loop, the dev-status vocabulary. Entry rule above; it is not a catch-all |

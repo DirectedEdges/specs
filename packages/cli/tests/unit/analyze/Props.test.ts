@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
 import yaml from 'yaml';
-import { PropsAnalyzer, propIsNullable } from '../../../src/analyzers/Props.js';
+import { PropsAnalyzer, propIsNullable } from '../../../src/analyze/Props.js';
 
 type AggregateYaml = {
   summary: { totalProps: number; totalComponents: number; uniquePropNames: number; typeDistribution: Record<string, number> };
