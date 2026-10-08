@@ -214,7 +214,7 @@
         },
         "fill": {
           "type": "array",
-          "description": "Accepted leaf fills: a raw color ('#RRGGBB') or a token/variable/style name. Absence means fills are not tested.",
+          "description": "Accepted leaf fills: a raw color ('#RRGGBB') or a token/variable/style name. Tested only on a component's stored structure — an instance mirror is contextually recolored, so fill is skipped there. Absence means fills are not tested.",
           "items": {
             "type": "string"
           }

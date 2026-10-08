@@ -154,6 +154,8 @@ Absent, the whole component name is the glyph name (`name: '{i}'`) — the commo
 
 An optional list of accepted fills. When declared, every leaf node matched by the structure must carry a solid fill that is one of the listed values — a raw color (`'#161616'`) or a token/variable/style name (`'DS Color/Icon/Default'`).
 
+The fill describes how the library **stores** its glyphs, so it is tested only on a component's own structure. A placed instance is recolored by its context — a themed button re-fills the glyph — so when membership is read from an instance mirror, the fill constraint is skipped and structure/name carry the evidence alone.
+
 ```yaml
 structure:
   fill: ['#161616']
@@ -229,7 +231,7 @@ glyphs?:                   # at least one of match / structure (documented; enfo
         children?: [...]   # recursive
 ```
 
-Membership semantics (recorded here, evaluated downstream): a component is a glyph when it matches **any** declared form. Under `structure`, the component's children must be covered by the `children` matchers (set-cover, exhaustive), and when `fill` is declared every matched leaf must carry one of the listed fills. The glyph's name comes from the form that matched; a component matched by both takes `match`'s capture.
+Membership semantics (recorded here, evaluated downstream): a component is a glyph when it matches **any** declared form. Under `structure`, the component's children must be covered by the `children` matchers (set-cover, exhaustive), and when `fill` is declared every matched leaf must carry one of the listed fills — on the component's **stored** structure only; an instance mirror is contextually recolored, so fill is not tested there. The glyph's name comes from the form that matched; a component matched by both takes `match`'s capture.
 
 ### Schema changes (`schema/`)
 

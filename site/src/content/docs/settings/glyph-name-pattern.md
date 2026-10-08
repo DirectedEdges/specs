@@ -79,7 +79,7 @@ Declares the child structure a glyph component has in this library, for librarie
 |--------|------|---------|
 | `children` | list of node matchers | Required. A component is a glyph when every one of its children matches some entry — exhaustive: a component containing anything besides the declared shapes is not a glyph |
 | `name` | string | Naming rule applied to the component name, using `{i}` (e.g. `'{i}Icon'`). Defaults to `'{i}'` — the whole component name is the glyph name |
-| `fill` | list of strings | Accepted leaf fills: a raw color (`'#161616'`) or a token/variable/style name. When declared, every matched leaf must carry one of them. Absent, fills are not tested |
+| `fill` | list of strings | Accepted leaf fills: a raw color (`'#161616'`) or a token/variable/style name. When declared, every matched leaf of the component's **stored** structure must carry one of them; a placed instance is recolored by context, so the fill test is skipped on instance mirrors. Absent, fills are not tested |
 
 Each node matcher carries a required `type` (Figma node type, e.g. `VECTOR`, `BOOLEAN_OPERATION`), an optional `name` (literal with `*` wildcard), and optional nested `children` with the same exhaustive semantics:
 

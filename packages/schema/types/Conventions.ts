@@ -303,7 +303,10 @@ export interface GlyphStructure {
   name?: string;
   /**
    * Accepted leaf fills: a raw color (`"#RRGGBB"`) or a token/variable/style name.
-   * Optional; absence means fills are not tested.
+   * Describes how the library **stores** its glyphs, so it is tested only on a
+   * component's own structure — a placed instance is recolored by its context, and
+   * membership read from an instance mirror skips the fill test. Optional; absence
+   * means fills are not tested.
    */
   fill?: string[];
   /** Node matchers covering the component's children. */
