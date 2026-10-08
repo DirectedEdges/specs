@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { reportCache } from '../../../src/commands/CacheCommand.js';
+import { reportCache } from '../../../src/cache/report.js';
 import type { CacheReport } from '../../../src/cache/cache.js';
 
 /**

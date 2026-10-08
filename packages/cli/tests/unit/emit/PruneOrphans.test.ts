@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
-import { pruneOrphans } from '../../../src/commands/runEmitters.js';
+import { pruneOrphans } from '../../../src/emit/prune.js';
 import type { Transformer } from '../../../src/types/Transformer.js';
 
 /**

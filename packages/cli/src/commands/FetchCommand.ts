@@ -14,7 +14,7 @@ import readline from 'readline';
 import { collectGlyphComponents } from '../utilities/glyphComponents.js';
 import { startSpinner, clearInlineStatus, renderInlineStatus, isInteractive, formatElapsed } from '../utilities/spinner.js';
 import { refreshCache } from '../cache/cache.js';
-import { reportCache } from './CacheCommand.js';
+import { reportCache } from '../cache/report.js';
 import { ConfigLoader } from '../config/ConfigLoader.js';
 import { ERROR_CODES } from '../utilities/errorCodes.js';
 

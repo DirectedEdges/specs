@@ -12,7 +12,7 @@ import { Command } from 'commander';
 import fs from 'fs-extra';
 import path from 'path';
 import { refreshCache } from '../cache/cache.js';
-import { reportCache } from './CacheCommand.js';
+import { reportCache } from '../cache/report.js';
 import { ConfigLoader } from '../config/ConfigLoader.js';
 import type { CLIConfig } from '../types/CLIConfig.js';
 import { figmaOf } from '../config/PlatformConventions.js';

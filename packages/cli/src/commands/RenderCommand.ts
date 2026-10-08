@@ -17,7 +17,7 @@ import { resolveFileKey } from '../bridge/pickConnection.js';
 import { findComponentFolders, isComponentFolder, loadSpec } from '../render/SpecLoader.js';
 import { startSpinner } from '../utilities/spinner.js';
 import { refreshCache } from '../cache/cache.js';
-import { reportCache } from './CacheCommand.js';
+import { reportCache } from '../cache/report.js';
 import { figmaOf } from '../config/PlatformConventions.js';
 import { loadDevStatusByNodeId, devStatusForSpec, type WritableDevStatus } from '../utilities/ManifestDevStatus.js';
 import { StepError } from '../pipeline/StepError.js';
