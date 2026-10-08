@@ -11,7 +11,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs-extra';
 import os from 'os';
 import path from 'path';
-import { runRender, bridgeTarget } from '../../../src/commands/RenderCommand.js';
+import { runRender, bridgeTarget } from '../../../src/commands/render.js';
 import { StepError } from '../../../src/pipeline/StepError.js';
 
 let root: string;

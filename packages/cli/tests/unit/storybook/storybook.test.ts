@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
 import { fileURLToPath } from 'url';
-import { Storybook } from '../../../src/commands/StorybookCommand.js';
+import { Storybook } from '../../../src/commands/storybook.js';
 import { registry, concernNames } from '../../../src/storybook/concerns/registry.js';
 import { deriveTabs, deriveCompositions, deriveModes } from '../../../src/storybook/concerns/components/index.js';
 import { kebabizePath } from '../../../src/transforms/css/values/tokens.js';

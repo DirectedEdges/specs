@@ -7,51 +7,11 @@ description: "Run analysis passes over component specs and write aggregate repor
 
 Analyzers read component specs and produce aggregate snapshots for governance, auditing, and LLM-assisted analysis. Unlike transforms — which produce build artifacts your codebase consumes — analyzers produce one-time snapshots you read, diff, or hand to a language model.
 
+This section is what each report contains. How to run them — arguments, options, exit codes — is the [`analyze` command reference](/cli/commands/analyze/).
+
 Output lands in `specs/analysis/`, beside the `components/` and `compositions/` directories a spec run writes, or in a custom path via `--analysis`.
 
 Compositions are read by the analyzers that have something to say about them. `dependencies` includes them — which components a screen is built from is the clearest blast-radius data a library has — and so does `styling`, since a composition carries real styling. `props` and `keys` stay component-only: a composition declares no props, so rows for it would be empty by construction and would dilute every per-component figure.
-
-## Invocation
-
-```bash
-specs analyze [analyzers...] [options]
-```
-
-Analyzer names are passed as positional arguments. There is no config key — analyzers are run on demand.
-
-**Naming no analyzer runs all of them.** Reach for a named subset when you want one report quickly, or when a later analyzer is slow on a large catalogue.
-
-```bash
-specs analyze                      # every analyzer
-specs analyze props
-specs analyze styling
-specs analyze dependencies
-specs analyze keys
-specs analyze props styling dependencies
-specs analyze props --analysis ./reports
-```
-
-Naming an analyzer that does not exist is an error, and the message lists the ones that do.
-
-### As a step of the chain
-
-[`specs build`](/cli/commands/build/) and [`specs run`](/cli/commands/run/) include `analyze` as a step, between `generate` and the platform steps, so the reports stay current without being asked for. The chain always runs every analyzer: naming a subset is a thing you do at the command line when you want one report quickly, not a thing a workspace configures.
-
-Two differences from running it yourself are worth knowing:
-
-- **It is never narrowed.** `--components Alert` limits the rest of the pass to Alert and still analyses the whole catalogue, because every report here aggregates across it. A one-component report would overwrite a catalogue-wide one.
-- **A fetch is an input.** Refreshing variables or styles changes what `styling.unused` should say with no spec having changed, so `specs run` re-analyses when `data/<alias>.variables.json` or `<alias>.styles.json` moves.
-
-`--skip analyze` leaves the reports as they are. Nothing downstream requires them — the platform code does not read an analysis, and Storybook publishes whatever reports are on disk.
-
-## Options
-
-| Option | Description |
-|--------|-------------|
-| `-o, --output <path>` | Path to the specs directory (input). Defaults to `spec.directory` from `config/settings.yaml` or cwd. |
-| `--analysis <path>` | Where to write analysis output. Defaults to `<specs-dir>/analysis/`. |
-| `--config <path>` | Path to the `config/` directory. |
-| `--verbose` | Log each component as it is processed. |
 
 ## Available Analyzers
 
@@ -87,5 +47,6 @@ the completion output names it so the file is not a surprise.
 
 ## See Also
 
+- [`analyze`](/cli/commands/analyze/) — the command reference: arguments, options, exit codes
 - [`react`](/cli/commands/react/) and [`webcomponents`](/cli/commands/webcomponents/) — the sibling commands that emit code artifacts
 - [What gets emitted](/code/) — the files `specs react` and `specs webcomponents` write

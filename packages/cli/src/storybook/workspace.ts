@@ -2,9 +2,9 @@
 // every concern. Detection only — nothing here writes.
 import fs from 'fs-extra';
 import path from 'path';
-import { ConfigLoader } from '../Config/ConfigLoader.js';
+import { ConfigLoader } from '../config/ConfigLoader.js';
 import { resolveSpecsLayout } from '../utilities/specsLayout.js';
-import type { CLIConfig } from '../Types/CLIConfig.js';
+import type { CLIConfig } from '../config/types.js';
 
 export interface DataSource {
   /** The alias data files are named by: `<alias>.variables.json`, `<alias>.file/`. */

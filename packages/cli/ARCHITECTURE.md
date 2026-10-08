@@ -9,6 +9,33 @@ hook blocks it).
 
 ## Invariants & gotchas
 
+- **Every `src/` directory is lowercase, and names a feature or a stage** —
+  `analyze/`, `cache/`, `emit/`, `fetch/`, `generate/`, `render/`, `scan/`,
+  `storybook/`, `testing/visual/`, `transforms/css/values/`. A feature folder is
+  named for its command, not for the plural of what it holds — `analyze/`, not
+  `analyzers/`. `src/commands/` holds one file per command, named for the command;
+  anything a command needs beyond registration and argument parsing lives in the
+  feature folder it belongs to. `tests/unit/` mirrors the same names.
+- **Commands import feature folders; nothing in a feature folder imports a
+  command.** One-way, and checkable in one grep — `grep -rn "from '.*commands/"
+  src --include=*.ts` should match `src/index.ts` and nothing else. It did not
+  hold before: `pipeline/steps.ts` reached into a command file for `emitTarget`,
+  and three commands reached into another command's file for the cache report
+  (specs#697).
+- **`src/utilities/` has an entry rule, and it is the whole reason it stays
+  small: a file belongs to a feature folder when exactly one feature imports it,
+  and lives here only when more than one does.** Nothing is filed here because no
+  other folder suggested itself. The rule is read off the imports, not judged —
+  `grep -rl "utilities/<name>.js" src --include=*.ts` names the consumers, and one
+  consumer means the file is in the wrong place. It reached 25 files without it,
+  and most of those turned out to be the private code of `generate` and `scan`,
+  the two largest commands and the only substantial ones that had no folder.
+- **Nothing in `utilities/` imports a feature folder** — `grep -rn "from '\.\./"
+  src/utilities` is empty. A shared module that reaches into one feature is not
+  shared, it is misfiled: the dev-status vocabulary sat in scan's discovery module
+  while the manifest parser imported it from there, which is why `devStatus.ts`
+  is its own file.
+
 - **There is no MCP server.** The persistent local process is the *bridge*
   (`src/bridge/server.ts`): WebSocket 9001 for plugin connections keyed by
   `fileKey`, HTTP 9002 control (`POST /render`, `POST /generate`,
@@ -23,7 +50,7 @@ hook blocks it).
 - `SPECS_DEV_TIER` is an **engine** seam, not a CLI one — it lives in
   from-specs' `entitlement.ts` (dev builds only). The CLI just displays the
   license level the engine stamped into `component.metadata.generator.license`
-  via `src/utilities/LicenseStatus.ts`.
+  via `src/generate/licenseStatus.ts`.
 - Version is compile-time (`__SPECS_CLI_VERSION__` esbuild define) — not
   readable from package.json at runtime.
 - Tests run from the **repo root** (`vitest -c vitest.config.ts
@@ -61,11 +88,12 @@ hook blocks it).
   `clearTimeout` would silently start killing slow downloads. Giving up also
   discards the build — Figma starts over on the next request — so nothing here
   retries, and the failure says so rather than implying a cheap retry.
-- `src/fetch/` holds what only `fetch` uses — `estimate.ts`, `fileKey.ts`. Anything
-  a second caller reads stays in `utilities/`, which is why the payload split and
-  its reader do not live here: `sectionedFile.ts` imports `payloadSplit.ts` and
-  shares its format version, so they are the two halves of one on-disk format and
-  belong together.
+- `src/fetch/` holds what only `fetch` uses — `estimate.ts`, `fileKey.ts`. A second
+  caller moves it out, by the entry rule above — to the one feature that imports it,
+  or to `utilities/` when several do. That is why the payload split and its reader do
+  not live here: `sectionedFile.ts` imports `payloadSplit.ts` and shares its format
+  version, so the three are one on-disk format and move as one, and `sectionedFile`
+  alone has six consumers.
 - `src/fetch/estimate.ts` predicts the wait from the **previous** fetch
   of the same source (`manifest.json`'s `sourceBytes`, else the monolithic
   payload's size on disk), and deliberately answers in bands rather than
@@ -82,27 +110,31 @@ hook blocks it).
 
 ## Commands
 
-Registered in `createProgram()` (`src/index.ts`); flat files in
-`src/commands/*Command.ts`:
+Registered in `createProgram()` (`src/index.ts`). **One flat file per command,
+named for the command** — `src/commands/<command>.ts`, so `ls src/commands/`
+is the command list and there is nothing to translate between a command name
+and the file to open. Each file is registration, flags and argument parsing;
+the work lives in the feature folder.
 
-| Command | File | Role |
-|---|---|---|
-| `init` | `InitCommand.ts` | Scaffold split `config/` |
-| `migrate` | `MigrateCommand.ts` | Legacy config → split layout; manifest v1→v2 |
-| `generate` | `GenerateCommand.ts` | Figma file / manifest / bridge → specs |
-| `scan` | `ScanCommand.ts` | Discover components → `<alias>.manifest.md` |
-| `fetch` | `FetchCommand.ts` | Figma REST download (file, variables, styles, icons); `--from-bridge` reads variables through the plugin instead (non-Enterprise path) |
-| `cache` | `CacheCommand.ts` | Render lookup caches |
-| `applyCustomTokens` | `ApplyCustomTokensCommand.ts` | Inject custom tokens into foundations |
-| `transform` | `TransformCommand.ts` | Project `api.yaml` → derived files |
-| `analyze` | `AnalyzeCommand.ts` | Dependency/prop/styling/key analyzers. Naming none runs every analyzer |
-| `build`, `run` | `BuildRunCommands.ts` | The whole chain over `src/pipeline/` — `build` once then exits, `run` once then watches (ADR-101) |
-| `render` | `RenderCommand.ts` | Spec → Figma via bridge |
-| `bridge` | `BridgeCommand.ts` | start/stop/status for the daemon |
-| `testing visual` | `TestingCommand.ts` | Visual testing over the emitted Storybook (`src/testing/visual/`): manifest → baseline/shoot → diff → report, fidelity (vs Figma exports) or regression (vs accepted renders). Kind-aware keying throughout; compositions advisory. Playwright/pixelmatch/pngjs are the customer's install in `testing/visual/` (`init` scaffolds it), never CLI deps. Baseline capture only runs when named — no trigger, no staleness model, provenance only |
-| `version` | `VersionCommand.ts` | Spec workspace versioning: diff/history/bump/restore/premerge/report over `src/version/` (diff engine, rules-as-data classifier, ledgers, report renderer). Free tier |
-| `skills` | `SkillsCommand.ts` | Emits the canonical premerge/release orchestration skills into `.claude/skills/` |
-| `audit` | (inline alias) | Deprecated; rewrites argv to `scan` |
+| Command | Role |
+|---|---|
+| `init` | Scaffold split `config/` |
+| `migrate` | Legacy config → split layout; manifest v1→v2 |
+| `build`, `run` | The whole chain over `src/pipeline/` — `build` once then exits, `run` once then watches. What they share as commands is `pipeline/chainCommand.ts` (ADR-101) |
+| `generate` | Figma file / manifest / bridge → specs |
+| `scan` | Discover components → `<alias>.manifest.md` |
+| `fetch` | Figma REST download (file, variables, styles, icons); `--from-bridge` reads variables through the plugin instead (non-Enterprise path) |
+| `cache` | Render lookup caches |
+| `applyCustomTokens` | Inject custom tokens into foundations |
+| `react`, `webcomponents` | Emit one platform target whole — component, contract, stylesheet, stories. Both are four lines over `emit/targets.ts`, which also holds the `emitTarget()` the chain calls in-process |
+| `analyze` | Dependency/prop/styling/key analyzers. Naming none runs every analyzer |
+| `render` | Spec → Figma via bridge |
+| `bridge` | start/stop/status for the daemon |
+| `version` | Spec workspace versioning: diff/history/bump/restore/premerge/report over `src/version/`. Free tier |
+| `skills` | Emits the canonical premerge/release orchestration skills into `.claude/skills/` |
+| `storybook` | Scaffold the host (`init`) and rewrite what it shows (`publish`, `dev`) over `src/storybook/` |
+| `testing visual` | Visual testing over the emitted Storybook (`src/testing/visual/`): manifest → baseline/shoot → diff → report, fidelity (vs Figma exports) or regression (vs accepted renders). Kind-aware keying throughout; compositions advisory. Playwright/pixelmatch/pngjs are the customer's install in `testing/visual/` (`init` scaffolds it), never CLI deps. Baseline capture only runs when named — no trigger, no staleness model, provenance only |
+| `audit` | Deprecated; an inline alias in `index.ts` that rewrites argv to `scan`. The one command with no file of its own |
 
 - **Nothing removes a spec folder.** `generate` overwrites what it produces and
   reports folders it found but did not write; a run cannot tell a component
@@ -126,20 +158,28 @@ Registered in `createProgram()` (`src/index.ts`); flat files in
 
 | Node | Role |
 |---|---|
-| `src/Config/ConfigLoader.ts` | **The config seam.** Precedence: CLI flags > file > defaults. Discovery: `./config/` → legacy files (refused) → `~/.specs/config.yaml`. Conventions are a *directory*, one file per platform; `conventions/primitives.yaml` reserved (ADR-075). Relative directories resolve against the parent of `config/`, not cwd |
-| `src/Config/PlatformConventions.ts` | `figmaOf()` / `platformOf()` — every conventions consumer goes through these |
+| `src/config/ConfigLoader.ts` | **The config seam.** Precedence: CLI flags > file > defaults. Discovery: `./config/` → legacy files (refused) → `~/.specs/config.yaml`. Conventions are a *directory*, one file per platform; `conventions/primitives.yaml` reserved (ADR-075). Relative directories resolve against the parent of `config/`, not cwd |
+| `src/config/PlatformConventions.ts` | `figmaOf()` / `platformOf()` — every conventions consumer goes through these |
 | `src/bridge/` | server, client (`postRender`, `postGenerateFromSelection`), connection pick (`resolveFileKey`), pidfile |
-| `src/utilities/LicenseStatus.ts` | Reads engine-stamped license state; the CLI validates nothing |
+| `src/generate/licenseStatus.ts` | Reads engine-stamped license state; the CLI validates nothing |
+| `src/cache/` | `cache.ts` builds the render lookup caches under `{data.directory}/cache/`; `report.ts` prints a refresh result, shared by `specs cache` and by every command that refreshes as its last step |
+| `src/analyze/` | The four analyzers behind `specs analyze` — `Props`, `Styling`, `Dependencies`, `Keys` — and `index.ts`, the registry that resolves names to them and answers what a run with no names does. Named for the command, like every other feature folder; it was `analyzers/`, named for the plural of its contents |
+| `src/generate/` | What only `specs generate` uses: `manifestParser.ts` (the v1 manifest), `fileSourceAlias.ts` (which configured source carries the component file), `imageFills.ts` (ADR-063 phase two), `licenseStatus.ts` + `licenseGuidance.ts` (display and the transient-failure wording) |
+| `src/scan/` | What only `specs scan` uses: `discovery.ts` (component and composition discovery over a REST payload, monolithic or sectioned), `glyphPatternMatch.ts`, `manifestMigrationV1ToV2.ts` |
+| `src/utilities/` | The 15 modules more than one feature imports — the layout seam, the payload format (`sectionedFile` + `payloadSplit` + `payloadRead`, one on-disk format in three files), the key derivations, the exit-code contract, the watch loop, the dev-status vocabulary. Entry rule above; it is not a catch-all |
 | `src/transforms/` | Open counterparts of transform modules (see drift note below). Root holds what more than one transformer or a command uses — `states.ts`, `naming.ts`, `writeAtomic.ts`, `examples.ts`, `externalWrites.ts`, the registry; everything only the stylesheet needs is under `css/` |
 | `src/transforms/css/` | The stylesheet transformer, in four stages: `values/` (spec value → CSS value), `style/` (spec style key → declarations, one module per property family), `analysis/` (what the spec says about its elements), `sheet/` (declarations → a stylesheet). A module imports from a stage above it, never below. `css/README.md` is the map (specs#691) |
 | `skills/` | Procedures a customer's agent runs. Holding place until #592 makes skills canonical and ships them from the CLI package; `skills/README.md` says what is provisional |
-| `src/pipeline/` | **The chain seam** (ADR-101). `steps.ts` is the single place the order lives — each step declares `inputs`, `outputs`, `active` and a `run` that calls a command's `runX()` function in-process, never a subprocess, which is what holds the license to one check per run. `plan.ts` answers which steps a workspace has and which step a changed file enters at; `drive.ts` is the two drivers. A step runs whole or scoped by `--components`, except `analyze`, which always reads the whole catalogue because every analyzer's `finalize()` writes a catalogue-wide report |
+| `src/pipeline/` | **The chain seam** (ADR-101). `steps.ts` is the single place the order lives — each step declares `inputs`, `outputs`, `active` and a `run` that calls a command's `runX()` function in-process, never a subprocess, which is what holds the license to one check per run. `plan.ts` answers which steps a workspace has and which step a changed file enters at; `drive.ts` is the two drivers; `chainCommand.ts` is the flags, option mapping and failure report `build` and `run` share, so the pair cannot drift on what they accept. A step runs whole or scoped by `--components`, except `analyze`, which always reads the whole catalogue because every analyzer's `finalize()` writes a catalogue-wide report |
 | `src/utilities/specsLayout.ts` | **The layout seam.** `resolveSpecsLayout` (reads, legacy-aware) / `writeLayout` (always current) / `specFolderNames` / `dirFor(kind)` / `analysisDir()`. Emitted trees mirror it: `<tree>/src/<kind-dir>/<Name>` |
-| `src/Writers/` | Output *strategy* writers: single / component / concern / combined file. `WriteResult.filesWritten` documents itself as relative to the output directory and in fact holds **absolute** paths — re-base before comparing |
-| `src/version/` | Versioning internals: `assemble` (concern files → component; `assembleCompositions` for the other kind, keyed separately since a shared name is legal — every composition change is patch-class and compositions carry no version of their own) → `diff` → `rules` classifier (rules-as-data in `semverRules.ts`, `--rules` overrides) → `bump`/`ledger` (`versions/<libVersion>/` folders + `ledgers/*.json`, no snapshots) → `report` renderer (premerge canon). Skill markdown emitted by `skills.ts` |
+| `src/writers/` | Output *strategy* writers: single / component / concern / combined file. `WriteResult.filesWritten` documents itself as relative to the output directory and in fact holds **absolute** paths — re-base before comparing |
+| `src/version/` | Versioning internals, one folder per pipeline stage: `assemble.ts` (concern files → component; `assembleCompositions` for the other kind, keyed separately since a shared name is legal — every composition change is patch-class and compositions carry no version of their own) → `diff/` (`compare.ts`, `renames.ts`) → `rules/` (`grade.ts` matches and grades, reading the rules-as-data in `semver.ts`; `--rules` overrides) → `ledger/` (`store.ts` for `versions/<libVersion>/` folders + `ledgers/*.json` with no snapshots, `cut.ts` the cut engine, `assets.ts`, `git.ts`) → `report/` (`dataset.ts` builds, `render.ts` renders the premerge canon). A module imports from a stage above it, never below. `figmaPremerge.ts` is the whole pipeline as one command; `skills.ts` is the skill markdown `specs skills install` emits, here with the versioning it orchestrates until #592 |
+| `src/emit/` | The transform run shared by `specs react` and `specs webcomponents` — `run.ts` (discovery, `--components` narrowing, per-component failure reporting, `finalize`, `--watch`), `targets.ts` (which transformers a target runs, its flags, and `emitTarget()` for the chain's in-process call), and `prune.ts`, the only thing here that deletes |
+| `src/utilities/errorCodes.ts` | **The exit-code contract.** The whole set, documented, imported by every command. The values are a public interface — an existing code's number never changes |
+| `src/utilities/watchLoop.ts` | The `--watch` loop: debounce a save burst into one run, never overlap two, run once more if a change arrived mid-run. Debounce stays per caller (800ms re-emitting a catalogue, 300ms rendering one spec into Figma); `runOnStart` is false for the emitters, which must run before they know what to watch |
 | `src/testing/visual/` | Visual testing internals: `specIndex` (discovery through the layout seam — never a flat read), `manifest` (payloads via `SectionedFile`, variant↔story join inputs, kind-aware pin rules), `storyJoin` (exact/overlay/no-story resolution), `baseline` (REST images capture, overt only), `shoot` (Playwright pool, width pin + composition height pin, pseudo-state poses), `diff` (white-union flatten, pixelmatch, `visual-ignore.yaml` scoring, advisory compositions, report JSON+md), `accept` (regression baseline promotion), `deps` (customer-install resolution from `testing/visual/` — Node ≥22 require()s ESM without throwing, so every load unwraps a default export), `init` (scaffold). State: `<workspace>/testing/visual/{figma,render,diff,accepted}/<kind>/<key>/` |
-| `src/Writers/RunMetadataFile.ts` | `latest.metadata.<format>` — a manifest run's facts, stated once (ADR-089). `RunMetadataFile.separate()` lifts them out of every spec and reduces each block to `source`; `RunMetadataReader.find()` reads the document back, looking in the spec's own directory then one level up |
-| `src/Render/SpecLoader.ts` | Spec discovery + loading for render. Rehydrates a reduced spec's run metadata here, at the one place every render input is loaded, so no reader downstream has to know the spec was reduced |
+| `src/writers/RunMetadataFile.ts` | `latest.metadata.<format>` — a manifest run's facts, stated once (ADR-089). `RunMetadataFile.separate()` lifts them out of every spec and reduces each block to `source`; `RunMetadataReader.find()` reads the document back, looking in the spec's own directory then one level up |
+| `src/render/SpecLoader.ts` | Spec discovery + loading for render. Rehydrates a reduced spec's run metadata here, at the one place every render input is loaded, so no reader downstream has to know the spec was reduced |
 | `tests/unit/config/ConfigLoader.test.ts` | The config feature suite — temp `config/` trees on disk |
 | `tests/integration/cli.integration.test.ts` | In-process runner (spied exit/console, no subprocess) |
 

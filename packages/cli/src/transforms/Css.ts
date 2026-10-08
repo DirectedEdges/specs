@@ -17,7 +17,7 @@ import fs from 'fs-extra';
 import { writeAtomic } from './writeAtomic.js';
 import path from 'path';
 import yaml from 'yaml';
-import type { Transformer, TransformerContext } from '../Types/Transformer.js';
+import type { Transformer, TransformerContext } from '../transforms/transformer.js';
 import { reportNameWarnings, withNameWarningsSuppressed } from './css/values/nameWarnings.js';
 import { capitalize, subComponentKey, toKebab } from './naming.js';
 import { dirNameFor } from '../utilities/specsLayout.js';

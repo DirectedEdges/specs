@@ -148,6 +148,7 @@ export default defineConfig({
             { label: 'scan', slug: 'cli/commands/scan' },
             { label: 'applyCustomTokens', slug: 'cli/commands/apply-custom-tokens' },
             { label: 'generate', slug: 'cli/commands/generate' },
+            { label: 'analyze', slug: 'cli/commands/analyze', badge: experimental },
             { label: 'bridge', slug: 'cli/commands/bridge', badge: experimental },
             { label: 'cache', slug: 'cli/commands/cache', badge: experimental },
             { label: 'render', slug: 'cli/commands/render', badge: experimental },
@@ -157,7 +158,9 @@ export default defineConfig({
             { label: 'storybook', slug: 'cli/commands/storybook', badge: experimental },
             { label: 'testing visual', slug: 'cli/commands/testing', badge: experimental },
             {
-              label: 'Analyze',
+              // The command itself is a flat entry above, with the other
+              // commands; this group is one page per report it writes.
+              label: 'Analyze reports',
               collapsed: true,
               badge: experimental,
               items: [

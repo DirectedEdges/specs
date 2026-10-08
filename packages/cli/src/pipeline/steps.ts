@@ -81,7 +81,7 @@ const scan: Step = {
   // regenerate what it selected.
   outputs: ws => filePayloads(ws).map(p => p.manifest),
   async run(context) {
-    const { runScan } = await import('../commands/ScanCommand.js');
+    const { runScan } = await import('../commands/scan.js');
     const payloads = filePayloads(context.workspace);
     for (const payload of payloads) {
       await runScan(undefined, {
@@ -104,7 +104,7 @@ const generate: Step = {
   inputs: ws => filePayloads(ws).map(p => ({ path: p.manifest, scope: () => null })),
   outputs: ws => [ws.specsDir],
   async run(context) {
-    const { runGenerate } = await import('../commands/GenerateCommand.js');
+    const { runGenerate } = await import('../commands/generate.js');
     const result = await runGenerate(undefined, {
       config: context.configPath,
       verbose: context.verbose,
@@ -160,7 +160,7 @@ const analyze: Step = {
   // output mid-flight.
   outputs: ws => [ws.specsDir],
   async run(context) {
-    const { runAnalyze } = await import('../commands/AnalyzeCommand.js');
+    const { runAnalyze } = await import('../commands/analyze.js');
     // `context.components` is deliberately not passed on. Each analyzer's
     // `finalize()` aggregates only the specs it visited, so a scoped analyze
     // would overwrite a catalogue-wide report with a one-component one and
@@ -186,7 +186,7 @@ function targetStep(id: 'react' | 'webcomponents', tree: string): Step {
     ],
     outputs: ws => [path.join(ws.root, tree, 'src')],
     async run(context) {
-      const { emitTarget } = await import('../commands/TargetCommands.js');
+      const { emitTarget } = await import('../emit/targets.js');
       const result = await emitTarget(id, {
         config: context.configPath,
         components: context.components.length > 0 ? context.components : undefined,
@@ -248,7 +248,7 @@ const render: Step = {
   // Writes to Figma, not to disk. Nothing local to suppress.
   outputs: () => [],
   async run(context) {
-    const { runRender } = await import('../commands/RenderCommand.js');
+    const { runRender } = await import('../commands/render.js');
     const result = await runRender({
       config: context.configPath,
       components: context.components.length > 0 ? context.components : undefined,

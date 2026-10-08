@@ -44,13 +44,15 @@ packages/
 ├── cli/                         # @directededges/specs-cli
 │   └── src/
 │       ├── index.ts             # Entry: command registry, createProgram(), runCli()
-│       ├── bin/                  # CLI binary entry point
-│       ├── commands/            # Command implementations (Generate, Audit, Batch, Fetch, Init)
-│       ├── Config/              # CLI configuration
-│       ├── Types/               # TypeScript types
-│       ├── Writers/             # Output writers
-│       ├── utilities/           # Shared helpers
-│       └── figma-shim.ts       # Figma API shim for Node.js context
+│       ├── bin/                 # CLI binary entry point
+│       ├── commands/            # One file per command, named for the command
+│       ├── config/              # CLI configuration
+│       ├── types/               # TypeScript types
+│       ├── writers/             # Output writers
+│       ├── utilities/           # Shared helpers, owned by no one feature
+│       ├── <feature>/           # cache, emit, fetch, pipeline, render, storybook,
+│       │                        #   testing, transforms, version — a command's work
+│       └── figma-shim.ts        # Figma API shim for Node.js context
 adr/                             # Architecture Decision Records
 ```
 

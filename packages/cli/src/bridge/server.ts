@@ -59,10 +59,11 @@ import { RequestTracker } from './requestTracker.js';
 import type { RenderRequestBody } from './client.js';
 import { countUnpublished, type VariablesIndex } from '../utilities/variablesIndex.js';
 import { formatKey } from '../utilities/formatKey.js';
+import { specFolderKey } from '../utilities/specFolderKey.js';
 import {
   readCacheFile, validateCache, describeProblems,
   type ComponentsEntry, type StylesEntry, type VariablesEntry, type IconsEntry,
-} from '../Cache/Cache.js';
+} from '../cache/cache.js';
 
 /** The Dev Mode status a render request may carry — the bridge relays it, it does not
  *  derive it. `RenderCommand` reads it from the workspace scan manifest. */
@@ -368,7 +369,7 @@ http.on('error', (e: NodeJS.ErrnoException) => {
 // ── Manifest builders ─────────────────────────────────────────────────────────
 //
 // Every library-side lookup a render needs is read from the caches under
-// {dataDir}/cache/ (see src/Cache/Cache.ts). They are built by `specs fetch` and
+// {dataDir}/cache/ (see src/cache/cache.ts). They are built by `specs fetch` and
 // `specs cache` from the fetched payloads, so no payload is parsed here — a file
 // payload can be hundreds of megabytes and used to be parsed three times per render.
 // Only the spec-side half of the instance manifest is derived at render time, since
@@ -403,6 +404,12 @@ function buildManifest(spec: Record<string, unknown>, specsDir: string, dataDir:
   }
 
   // Layer 2: alias subcomponent ref keys from the current spec.
+  //
+  // A subcomponent with no node id of its own is matched by title against the keys
+  // layer 1 collected, which are spec folder names — so the title goes through
+  // `specFolderKey`, the one derivation of those names. Not `formatKey`: that answers
+  // what `settings.spec.keys` asks for, and a folder name has always been camelCase
+  // regardless of the setting.
   const specTyped = spec as {
     subcomponents?: Record<string, { source?: { nodeId?: string }; title?: string }>;
     components?: Record<string, { subcomponents?: Record<string, { source?: { nodeId?: string }; title?: string }> }>;
@@ -413,8 +420,8 @@ function buildManifest(spec: Record<string, unknown>, specsDir: string, dataDir:
       if (sub.source?.nodeId) {
         manifest[refKey] = entryFor(sub.source.nodeId);
       } else if (sub.title) {
-        const titleKey = toCamelCase(sub.title);
-        if (manifest[titleKey]) manifest[refKey] = manifest[titleKey];
+        const titleKey = specFolderKey(sub.title);
+        if (titleKey && manifest[titleKey]) manifest[refKey] = manifest[titleKey];
       }
     }
   }
@@ -565,16 +572,6 @@ function collectSpecFiles(specsDir: string): Array<{ key: string; path: string }
   }
 
   return files;
-}
-
-
-function toCamelCase(str: string): string {
-  return str
-    .replace(/[^a-zA-Z0-9 ]/g, '')
-    .split(' ')
-    .filter(Boolean)
-    .map((w, i) => i === 0 ? w.toLowerCase() : w[0].toUpperCase() + w.slice(1).toLowerCase())
-    .join('');
 }
 
 // ── Workspace config resolution ───────────────────────────────────────────────
