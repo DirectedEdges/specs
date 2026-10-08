@@ -822,7 +822,7 @@ export const Fetch = new Command('fetch')
             if (written.size >= MAX_JSON_STRING_BYTES) {
               console.warn(`⚠ ${entry.alias}.${kind}.json is ${Math.round(written.size / 1048576)}MB — over the ~${Math.round(MAX_JSON_STRING_BYTES / 1048576)}MB limit Node can read as a single JSON string. Downstream commands (cache, scan, generate) will refuse it.`);
               console.warn(options.geometry
-                ? `  Remedy: re-fetch with --no-geometry (roughly halves the payload).`
+                ? `  Remedy: re-fetch with --no-geometry (around a third smaller).`
                 : `  Already fetched without geometry — the file itself is too large; remove or split pages in Figma.`);
             }
           }
