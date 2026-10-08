@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { collectGlyphComponents } from '../../../src/commands/FetchCommand.js';
+import { collectGlyphComponents } from '../../../src/commands/fetch.js';
 
 const PATTERN = 'DS Icon asset / {i}';
 

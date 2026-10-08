@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Scan } from '../../../src/commands/ScanCommand.js';
+import { Scan } from '../../../src/commands/scan.js';
 
 describe('ScanCommand', () => {
   it('registers name and description', () => {

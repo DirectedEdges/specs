@@ -3,7 +3,7 @@ import {
   isAuthoringAid,
   retainComposedDependencies,
   subcomponentParentOf,
-} from '../../../src/commands/ScanCommand.js';
+} from '../../../src/commands/scan.js';
 
 // Two spellings of the hidden-folder separator, because the fixtures use both and
 // ADR-094 rule 4 matches every character exactly.

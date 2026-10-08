@@ -3,7 +3,7 @@
 // produced a directory named `button.yaml`. Refused before anything is generated.
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { DEFAULT_SETTINGS } from '@directededges/specs-schema';
-import { assertOutputPathShape } from '../../../src/commands/GenerateCommand.js';
+import { assertOutputPathShape } from '../../../src/commands/generate.js';
 import { StepError } from '../../../src/pipeline/StepError.js';
 import type { CLIConfig } from '../../../src/types/CLIConfig.js';
 

@@ -1,21 +1,24 @@
-// `specs react` and `specs webcomponents` — one command per emitted target.
+// What `specs react` and `specs webcomponents` are: one emitted target each.
 //
-// A target is emitted whole: the component, its contract, its stylesheet and its
-// stories, because everything a component needs is decided together. A role
+// A target is emitted whole — the component, its contract, its stylesheet and its
+// stories — because everything a component needs is decided together. A role
 // annotated in Figma changes the element the scaffold emits, the props its contract
 // declares, and the user-agent styling its CSS resets. Those were once separate
 // transformers a user had to name in the right order.
 //
-// The transformers behind each are unchanged — only the surface is. See
-// `/cli/commands/react/` and `/cli/commands/webcomponents/`, which are the spec
-// these were written from.
+// The two command files are four lines each, calling `targetCommand` here. The
+// flags live in one place so the pair cannot drift on what they accept, and
+// `emitTarget` is here rather than in a command file so `pipeline/steps.ts` can
+// call it without importing a command.
 import { Command } from 'commander';
 import { CssTransformer } from '../transforms/Css.js';
 import { CssvarsTransformer } from '../transforms/Cssvars.js';
 import { ReactTransformer, StoriesTransformer, proEntitled as reactProEntitled } from '@directededges/react-from-specs';
 import { WebComponentsTransformer, WcStoriesTransformer, proEntitled as wcProEntitled } from '@directededges/webcomponents-from-specs';
 import type { Transformer } from '../types/Transformer.js';
-import { runEmitters, emitOnce, type EmitOptions, type EmitResult } from '../emit/run.js';
+import { runEmitters, emitOnce, type EmitOptions, type EmitResult } from './run.js';
+
+export type TargetId = 'react' | 'webcomponents';
 
 interface TargetOptions extends EmitOptions {
   /** Commander sets this false when `--no-stories` is passed. */
@@ -30,7 +33,7 @@ interface TargetOptions extends EmitOptions {
  * behind it. `cssvars` is library-level and platform-neutral — whichever target
  * runs produces the same file, which is why it has no command of its own.
  */
-function transformersFor(target: 'react' | 'webcomponents', stories: boolean): Transformer[] {
+function transformersFor(target: TargetId, stories: boolean): Transformer[] {
   const emit: Transformer[] =
     target === 'react'
       ? [new ReactTransformer(), ...(stories ? [new StoriesTransformer()] : [])]
@@ -38,7 +41,8 @@ function transformersFor(target: 'react' | 'webcomponents', stories: boolean): T
   return [new CssTransformer(target), new CssvarsTransformer(), ...emit];
 }
 
-function targetCommand(target: 'react' | 'webcomponents', description: string): Command {
+/** The command surface a target presents. Shared, so the two cannot drift. */
+export function targetCommand(target: TargetId, description: string): Command {
   return new Command(target)
     .description(description)
     .option('-o, --output <path>', 'Path to the specs directory (input)')
@@ -64,12 +68,12 @@ function targetCommand(target: 'react' | 'webcomponents', description: string): 
 /**
  * Emit one target, without exiting the process (ADR-101).
  *
- * The command bodies above exit when they finish; `specs build` and `specs run`
- * need the same work as a call that returns, so the chain can go on to the next
- * step or report which one failed.
+ * The command bodies exit when they finish; `specs build` and `specs run` need the
+ * same work as a call that returns, so the chain can go on to the next step or
+ * report which one failed.
  */
 export async function emitTarget(
-  target: 'react' | 'webcomponents',
+  target: TargetId,
   options: EmitOptions & { stories?: boolean } = {},
 ): Promise<EmitResult> {
   return emitOnce(
@@ -81,13 +85,3 @@ export async function emitTarget(
     options,
   );
 }
-
-export const React = targetCommand(
-  'react',
-  'Emit the React target — components, contracts, stylesheets and stories — into react/',
-);
-
-export const WebComponents = targetCommand(
-  'webcomponents',
-  'Emit the Web Components target — elements, contracts, stylesheets and stories — into webcomponents/',
-);

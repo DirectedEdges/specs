@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { listableCompositions, deriveDefaultInclusion, mergeRows } from '../../../src/commands/ScanCommand.js';
+import { listableCompositions, deriveDefaultInclusion, mergeRows } from '../../../src/commands/scan.js';
 import { ManifestParserV2 } from '../../../src/utilities/ManifestParserV2.js';
 import {
   ComponentDiscovery, SectionedComponentDiscovery, type ComponentInfo,

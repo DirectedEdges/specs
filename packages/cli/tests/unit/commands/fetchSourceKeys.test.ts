@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { SourceEntry } from '@directededges/specs-schema';
-import { normalizeSources, formatSourceKeyProblems } from '../../../src/commands/FetchCommand.js';
+import { normalizeSources, formatSourceKeyProblems } from '../../../src/commands/fetch.js';
 
 const KEY = '4iGnY8NOUerW8APiPI2UJr';
 const BRANCH = 'Rfll7JjUgOp3DwoMnUXcxE';

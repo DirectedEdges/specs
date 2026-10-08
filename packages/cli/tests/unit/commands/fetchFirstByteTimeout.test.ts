@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { createServer, type Server } from 'http';
 import { once } from 'events';
-import { figmaFetch, FirstByteTimeoutError } from '../../../src/commands/FetchCommand.js';
+import { figmaFetch, FirstByteTimeoutError } from '../../../src/commands/fetch.js';
 
 /**
  * Figma builds a file payload before sending any of it, so a healthy request can

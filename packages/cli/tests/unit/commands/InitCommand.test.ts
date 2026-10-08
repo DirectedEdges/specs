@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { generateConfigTemplates } from '../../../src/config/ConfigTemplates.js';
-import { Init } from '../../../src/commands/InitCommand.js';
+import { Init } from '../../../src/commands/init.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const testDir = path.join(__dirname, '../../tmp/test-init-' + Date.now());

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Fetch, formatDuration, formatRateLimitError, formatNotFoundError, formatAuthError, parseAdHocSource, matchBridgeSource } from '../../../src/commands/FetchCommand.js';
+import { Fetch, formatDuration, formatRateLimitError, formatNotFoundError, formatAuthError, parseAdHocSource, matchBridgeSource } from '../../../src/commands/fetch.js';
 
 describe('FetchCommand', () => {
   it('registers name and description', () => {

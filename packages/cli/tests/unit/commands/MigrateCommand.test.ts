@@ -13,7 +13,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
-import { Migrate } from '../../../src/commands/MigrateCommand.js';
+import { Migrate } from '../../../src/commands/migrate.js';
 import { migrateConfigV1 } from '../../../src/config/migrations/configV1.js';
 import { ConfigLoader } from '../../../src/config/ConfigLoader.js';
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { deriveDefaultInclusion, mergeRows } from '../../../src/commands/ScanCommand.js';
+import { deriveDefaultInclusion, mergeRows } from '../../../src/commands/scan.js';
 import type { ComponentInfo } from '../../../src/utilities/ComponentDiscovery.js';
 import type { ManifestRowV2 } from '../../../src/utilities/ManifestParserV2.js';
 

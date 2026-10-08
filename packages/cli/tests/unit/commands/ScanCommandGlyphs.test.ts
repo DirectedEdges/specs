@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { partitionByGlyphPattern } from '../../../src/commands/ScanCommand.js';
+import { partitionByGlyphPattern } from '../../../src/commands/scan.js';
 import { ManifestParserV2 } from '../../../src/utilities/ManifestParserV2.js';
 import type { ComponentInfo } from '../../../src/utilities/ComponentDiscovery.js';
 
