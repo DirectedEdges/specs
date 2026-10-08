@@ -386,10 +386,10 @@ export function writeMarkdown(vw: VisualWorkspace, report: any): void {
 
   if (report.compositionRanking?.length) {
     lines.push('');
-    lines.push('## Compositions (advisory)');
+    lines.push('## Compositions (informational)');
     lines.push('');
     lines.push(
-      'Reported, never counted toward the exit status: a composition diff is dominated by the components inside it — fix leaves first.',
+      "These results don't fail a run. A page is built from components, so when a component is off, every page using it looks off too — fix the components first.",
     );
     table(report.compositionRanking, report.compositions);
   }

@@ -308,8 +308,8 @@ function VisualReport() {
       />
       {report.compositionRanking && report.compositionRanking.length > 0 && report.compositions ? (
         <Section
-          title="Compositions (advisory)"
-          note="Reported, never counted toward the run's result: a composition diff is dominated by the components inside it — fix leaves first."
+          title="Compositions (informational)"
+          note="These results don't fail a run. A page is built from components, so when a component is off, every page using it looks off too — fix the components above first."
           ranking={report.compositionRanking}
           entries={report.compositions}
           defaultPassPct={report.settings.passPct}
@@ -324,7 +324,7 @@ function VisualReport() {
 }
 
 export default {
-  title: 'Analysis/Visual Report',
+  title: 'Testing/Visual Differences',
   parameters: {
     previewTabs: {
       canvas: { title: 'Page' },
