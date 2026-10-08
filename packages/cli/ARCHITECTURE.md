@@ -56,6 +56,14 @@ hook blocks it).
   payload's size on disk), and deliberately answers in bands rather than
   figures — the measured rate spans a wide enough range that a number would
   claim precision the data does not support.
+- **`fetch` is the only consumer of a source's file key**, which is why
+  `normalizeSources` validates and resolves every `data.sources.*.key` instead of
+  `ConfigLoader` doing it: the bridge and Storybook read aliases and `fetch`
+  lists, never keys. It takes a key or a pasted URL — the same resolution
+  `--source` uses — and collects every unusable key so one run names them all
+  rather than failing at the first. The check precedes the first request because
+  an absent key reached the API as the literal string `undefined` and came back a
+  404 that read as a stale key (specs#706).
 
 ## Commands
 
@@ -87,7 +95,11 @@ Registered in `createProgram()` (`src/index.ts`); flat files in
 - `✓ Fetch complete` is checked against disk, not inferred from the absence of an
   error: a requested kind missing on disk fails the run, a configured kind that
   `--only` excluded warns. Counts printed by `reportCache()` are cache contents
-  across every source, not what the run downloaded.
+  across every source, not what the run downloaded. `reportCache` also takes the
+  aliases the caller **attempted** and failed, because the cache cannot tell those
+  from a source nobody asked for — both simply have no payload — and describing a
+  failed source as "skipped" put "nothing was tried" one line under its failure
+  (specs#708).
 - A transformer that writes into each component's own folder declares
   `perComponentOutput` (basename, extension follows the run's format) so the
   command can name those files — output appearing unannounced in a spec folder
