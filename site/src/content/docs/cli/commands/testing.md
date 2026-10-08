@@ -62,7 +62,9 @@ Build entries for these spec folders only.
 
 ## `specs testing visual status`
 
-Present or missing, per shootable baseline. There is no staleness model — capture is overt, so there is nothing to compute; what the report does carry is each capture's own timestamps, so you can see a baseline predates a design change.
+Current, changed, or missing, per shootable baseline. "Changed" compares a fingerprint of the spec's Figma node (recorded at capture) against the same fingerprint in your fetched data — offline, exact per spec, and unmoved by edits elsewhere in the file. It scopes the overt `baseline` command; it never triggers one.
+
+Status only knows what has been fetched: it states the payload's own fetch time rather than claiming knowledge of Figma edits since. Baselines captured before fingerprints existed report as not comparable and are treated as current.
 
 ### `--json`
 
@@ -72,7 +74,7 @@ The worklist as machine-readable JSON.
 
 Captures Figma exports for shootable variants over the REST images API — 50 nodes per request, PNG at scale 2, `Retry-After` backoff. Needs `FIGMA_TOKEN` in the environment or the workspace `.env`.
 
-**Never implicit.** Not part of the bare command, never triggered by a watcher, never invoked by [`specs build` or `specs run`](/cli/commands/build/) — it is slow, rate-limited, and spends your API quota. Without `--components` it captures everything missing. Each capture records when it happened and when the payload it read was fetched.
+**Never implicit.** Not part of the bare command, never triggered by a watcher, never invoked by [`specs build` or `specs run`](/cli/commands/build/) — it is slow, rate-limited, and spends your API quota. Without `--components` it captures everything missing or changed — on an 80-component library where three designs moved, that is three recaptures, not eighty. Each capture records when it happened, what it was a picture of (the node fingerprint `status` compares), and when the payload it read was fetched.
 
 ### `--components <keys...>`
 

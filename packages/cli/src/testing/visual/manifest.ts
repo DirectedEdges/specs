@@ -8,6 +8,7 @@
 // payloads keep working as the fallback they are everywhere else.
 //
 // Deterministic: same inputs, byte-identical manifest. No timestamps.
+import { createHash } from 'node:crypto';
 import fs from 'fs-extra';
 import path from 'path';
 import YAML from 'yaml';
@@ -470,6 +471,9 @@ function buildEntry(ctx: {
     kind,
     source: source.alias,
     fileKey: source.fileKey,
+    // The subtree as fetched, hashed whole: instance subtrees are inlined in
+    // REST payloads, so a leaf edit reaches every spec that contains it.
+    nodeHash: createHash('sha256').update(JSON.stringify(node)).digest('hex'),
     setNodeId: spec.nodeId,
     nodeType: node.type ?? 'FRAME',
     pageId: spec.pageId,

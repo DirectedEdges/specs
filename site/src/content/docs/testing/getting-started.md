@@ -45,7 +45,7 @@ Needs `FIGMA_TOKEN` in your environment or workspace `.env` — the same token [
 
 ```bash
 specs testing visual status          # what would be captured
-specs testing visual baseline       # capture everything missing
+specs testing visual baseline       # capture everything missing or changed
 ```
 
 Capture is deliberate and scoped: start with a few components (`--components button badge`) if you want to see the loop work before spending quota on the whole catalog. Baselines are durable — captured once, they stay until you `--force` a recapture.

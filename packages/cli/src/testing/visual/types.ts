@@ -51,6 +51,14 @@ export interface ManifestEntry {
   kind: SpecKind;
   source: string;
   fileKey: string;
+  /**
+   * sha256 of the spec's Figma node subtree as fetched. REST payloads inline
+   * every instance's subtree, so a change inside a leaf component changes the
+   * hash of every spec containing it — the correct propagation for a visual
+   * baseline. Lets `baseline` self-scope: capture what changed, not the
+   * catalogue (specs#719). Never a trigger — capture stays overt.
+   */
+  nodeHash: string;
   setNodeId: string;
   nodeType: string;
   pageId: string | null;
