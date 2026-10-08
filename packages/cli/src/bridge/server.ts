@@ -59,6 +59,7 @@ import { RequestTracker } from './requestTracker.js';
 import type { RenderRequestBody } from './client.js';
 import { countUnpublished, type VariablesIndex } from '../utilities/variablesIndex.js';
 import { formatKey } from '../utilities/formatKey.js';
+import type { GlyphsConvention } from '../utilities/glyphConvention.js';
 import {
   readCacheFile, validateCache, describeProblems,
   type ComponentsEntry, type StylesEntry, type VariablesEntry, type IconsEntry,
@@ -127,7 +128,7 @@ const envDataDir = process.env.DATA_DIR ?? null;
  * Resolve the specs and data directories for a given spec or manifest path.
  * Precedence: explicit env overrides → startup workspace → per-request derivation.
  */
-function resolveDirs(fromPath: string): { specsDir: string; dataDir: string; aliases: string[]; glyphNamePattern?: string } {
+function resolveDirs(fromPath: string): { specsDir: string; dataDir: string; aliases: string[]; glyphs?: GlyphsConvention } {
   const workspaceDir = startupWorkspaceDir ?? resolveWorkspaceDir(fromPath);
   if (!workspaceDir && (!envSpecsDir || !envDataDir)) {
     throw new Error(
@@ -139,8 +140,8 @@ function resolveDirs(fromPath: string): { specsDir: string; dataDir: string; ali
   const dataDir = envDataDir ?? pathResolve(workspaceDir as string, 'data');
   // Data files are named {sourceAlias}.manifest.md, {sourceAlias}.file.json, etc.
   // The source alias comes from the first key under `data.sources` in the workspace settings.
-  const { aliases, glyphNamePattern } = resolveSources(workspaceDir as string);
-  return { specsDir, dataDir, aliases, glyphNamePattern };
+  const { aliases, glyphs } = resolveSources(workspaceDir as string);
+  return { specsDir, dataDir, aliases, glyphs };
 }
 
 console.log(`\nSpecs 2 — CLI bridge`);
@@ -483,7 +484,7 @@ function collectComponentNames(node: unknown, acc = new Set<string>()): Set<stri
 
 /**
  * Glyph name → component entry, straight from the icons cache. The cache is built by
- * matching the configured glyphNamePattern against the fetched file, so render depends
+ * matching the configured glyphs convention against the fetched file, so render depends
  * on no scan output: a scan manifest is generated and then authored, which makes it a
  * poor thing to resolve against.
  */
@@ -601,33 +602,33 @@ function toCamelCase(str: string): string {
  * loudly: the pattern comes back undefined, the two signatures disagree forever, and every
  * render refuses on a permanently "stale" icons.yaml.
  */
-function readGlyphNamePattern(workspaceDir: string): string | undefined {
+function readGlyphsConvention(workspaceDir: string): GlyphsConvention | undefined {
   try {
     const figma = parse(readFileSync(pathResolve(workspaceDir, 'config', 'conventions', 'figma.yaml'), 'utf8')) as {
-      glyphs?: { match?: string };
+      glyphs?: GlyphsConvention;
     };
-    if (figma?.glyphs?.match) return figma.glyphs.match;
+    if (figma?.glyphs) return figma.glyphs;
   } catch {
     // No per-platform conventions file — try the single-file layout below.
   }
   try {
     const conventions = parse(readFileSync(pathResolve(workspaceDir, 'config', 'conventions.yaml'), 'utf8')) as {
-      figma?: { glyphs?: { match?: string } };
+      figma?: { glyphs?: GlyphsConvention };
     };
-    return conventions?.figma?.glyphs?.match;
+    return conventions?.figma?.glyphs;
   } catch {
-    return undefined; // No conventions file — no glyph pattern.
+    return undefined; // No conventions file — no glyphs convention.
   }
 }
 
-function resolveSources(workspaceDir: string): { aliases: string[]; glyphNamePattern?: string } {
+function resolveSources(workspaceDir: string): { aliases: string[]; glyphs?: GlyphsConvention } {
   try {
     const settings = parse(readFileSync(pathResolve(workspaceDir, 'config', 'settings.yaml'), 'utf8')) as {
       data?: { sources?: Record<string, unknown> };
     };
     const sources = settings?.data?.sources;
     const aliases = sources && typeof sources === 'object' ? Object.keys(sources) : [];
-    return { aliases, glyphNamePattern: readGlyphNamePattern(workspaceDir) };
+    return { aliases, glyphs: readGlyphsConvention(workspaceDir) };
   } catch {
     // No split config — fall through to the legacy single-file shape.
   }
@@ -639,7 +640,8 @@ function resolveSources(workspaceDir: string): { aliases: string[]; glyphNamePat
     };
     const sources = config?.sources;
     const aliases = sources && typeof sources === 'object' ? Object.keys(sources) : [];
-    return { aliases, glyphNamePattern: config?.config?.processing?.glyphNamePattern };
+    const legacyPattern = config?.config?.processing?.glyphNamePattern;
+    return { aliases, glyphs: legacyPattern ? { match: legacyPattern } : undefined };
   } catch {
     // No config or unreadable — no aliases, which render reports as an unusable cache
     return { aliases: [] };
@@ -706,13 +708,13 @@ async function sendRender(specPath: string, rawPageId: string | null, fileKey?: 
   }
 
   const dirs = resolveDirs(specPath);
-  const { specsDir, dataDir, aliases, glyphNamePattern } = dirs;
+  const { specsDir, dataDir, aliases, glyphs } = dirs;
 
   // Render resolves against the caches only. A missing or stale cache is fatal rather
   // than rebuilt here: rebuilding parses every fetched payload, which is exactly the
   // per-render cost the caches exist to remove — and silently rendering against data
   // that no longer matches what was fetched binds specs to the wrong variables.
-  const problems = validateCache({ dataDir, aliases, glyphNamePattern });
+  const problems = validateCache({ dataDir, aliases, glyphs });
   if (problems.length > 0) throw new Error(describeProblems(problems));
 
   const bridgeTimings: Array<{ label: string; ms: number }> = [];

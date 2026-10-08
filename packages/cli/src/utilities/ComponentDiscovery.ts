@@ -15,6 +15,7 @@
 
 import { readJsonPayload } from './payloadRead.js';
 import type { SectionedFile } from './sectionedFile.js';
+import { glyphConventionName, type GlyphsConvention, type RawNodeLike } from './glyphConvention.js';
 
 /**
  * Minimal node structure from REST API
@@ -129,11 +130,30 @@ export class ComponentDiscovery {
   }
 
   /**
+   * Ids of the listable components the `glyphs` convention identifies (ADR-103).
+   * A set is evaluated through its set name and first variant's structure; the
+   * returned id is the listable row's (the set's), matching `findAllComponents`.
+   */
+  glyphComponentIds(glyphs: GlyphsConvention | undefined): Set<string> {
+    const ids = new Set<string>();
+    if (!glyphs) return ids;
+    for (const row of this.findAllComponents()) {
+      const node = this._nodeMap.get(row.id) as RawNodeLike | undefined;
+      if (!node) continue;
+      const structureNode = row.type === 'COMPONENT_SET'
+        ? (node.children ?? []).find((child) => child.type === 'COMPONENT') ?? null
+        : node;
+      if (glyphConventionName(row.name, structureNode, glyphs)) ids.add(row.id);
+    }
+    return ids;
+  }
+
+  /**
    * Find all components in the file
-   * 
+   *
    * Excludes variant children (COMPONENTs inside COMPONENT_SETs) to prevent
    * duplicates in audit listings, since we show COMPONENT_SETs as the main entry.
-   * 
+   *
    * @returns Array of component metadata
    */
   findAllComponents(): ComponentInfo[] {
@@ -240,6 +260,8 @@ export class ComponentDiscovery {
 export interface DiscoverySource {
   findAllComponents(): ComponentInfo[];
   composedComponentIds(rootIds: Iterable<string>): Set<string>;
+  /** Ids of listable components the `glyphs` convention identifies (ADR-103). */
+  glyphComponentIds(glyphs: GlyphsConvention | undefined): Set<string>;
   getFileName(): string;
   getFileLastModified(): string | undefined;
 }
@@ -255,13 +277,21 @@ export class SectionedComponentDiscovery implements DiscoverySource {
   private variantToSet = new Map<string, string>();
   private knownComponentIds = new Set<string>();
   private instancedBy = new Map<string, Set<string>>();
+  private glyphIds = new Set<string>();
+  private glyphs: GlyphsConvention | undefined;
   private fileName: string;
   private fileLastModified: string | undefined;
 
-  constructor(sectioned: SectionedFile) {
+  /**
+   * `glyphs` is taken at construction because pages are released as they are
+   * indexed — the structural form (ADR-103) must be evaluated while each node
+   * is still resident. `glyphComponentIds` then answers from the stored set.
+   */
+  constructor(sectioned: SectionedFile, glyphs?: GlyphsConvention) {
     const root = sectioned.root() as { name?: string; lastModified?: string };
     this.fileName = root.name || 'Untitled';
     this.fileLastModified = root.lastModified;
+    this.glyphs = glyphs;
 
     for (const entry of sectioned.pageEntries()) {
       this.indexPage(sectioned.loadPage(entry) as unknown as RestApiNode);
@@ -278,6 +308,12 @@ export class SectionedComponentDiscovery implements DiscoverySource {
         if (!isVariant) {
           this.rows.push({ id: node.id, name: node.name, type: node.type, devStatus: readDevStatus(node) });
           this.instancedBy.set(node.id, this.collectInstancedIds(node));
+          if (this.glyphs) {
+            const structureNode = (node.type === 'COMPONENT_SET'
+              ? (node.children ?? []).find((child) => child.type === 'COMPONENT') ?? null
+              : node) as RawNodeLike | null;
+            if (glyphConventionName(node.name, structureNode, this.glyphs)) this.glyphIds.add(node.id);
+          }
         }
       }
       for (const child of node.children ?? []) walk(child, node);
@@ -298,6 +334,11 @@ export class SectionedComponentDiscovery implements DiscoverySource {
 
   findAllComponents(): ComponentInfo[] {
     return this.rows;
+  }
+
+  /** Answers from the set computed at construction; the argument is the same convention the constructor received. */
+  glyphComponentIds(_glyphs: GlyphsConvention | undefined): Set<string> {
+    return this.glyphIds;
   }
 
   /** Same fixpoint as ComponentDiscovery.composedComponentIds, resolved through

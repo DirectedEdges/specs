@@ -12,6 +12,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import readline from 'readline';
 import { collectGlyphComponents } from '../utilities/glyphComponents.js';
+import { hasGlyphConvention } from '../utilities/glyphConvention.js';
 import { startSpinner, clearInlineStatus, renderInlineStatus, isInteractive, formatElapsed } from '../utilities/spinner.js';
 import { refreshCache } from '../Cache/Cache.js';
 import { reportCache } from './CacheCommand.js';
@@ -542,7 +543,7 @@ export const Fetch = new Command('fetch')
           const report = refreshCache({
             dataDir,
             aliases: Object.keys(config.settings.data?.sources ?? {}),
-            glyphNamePattern: figmaOf(config.conventions).glyphs?.match,
+            glyphs: figmaOf(config.conventions).glyphs,
           });
           reportCache(report);
         }
@@ -659,8 +660,8 @@ export const Fetch = new Command('fetch')
       // -------------------------------------------------------------------
       for (const entry of selected) {
         if (entry.fetch.includes('icons') && wants('icons')) {
-          if (!figmaOf(config.conventions).glyphs?.match) {
-            console.error(`Error: ${entry.origin === 'adhoc' ? `source "${entry.alias}"` : `data.sources.${entry.alias}.fetch`} includes "icons" but glyphs.match is not set in config/conventions/figma.yaml`);
+          if (!hasGlyphConvention(figmaOf(config.conventions).glyphs)) {
+            console.error(`Error: ${entry.origin === 'adhoc' ? `source "${entry.alias}"` : `data.sources.${entry.alias}.fetch`} includes "icons" but no glyphs convention (match or structure) is declared in config/conventions/figma.yaml`);
             process.exit(ERROR_CODES.INVALID_ARGS);
           }
           if (!config.settings.spec.directory) {
@@ -838,9 +839,9 @@ export const Fetch = new Command('fetch')
         // or a previous one) before icons can resolve.
         if (entry.fetch.includes('icons') && wants('icons')) {
           activeKind = 'icons';
-          const pattern = figmaOf(config.conventions).glyphs?.match;
-          if (!pattern) {
-            console.error(`Error: ${entry.origin === 'adhoc' ? `source "${entry.alias}"` : `data.sources.${entry.alias}.fetch`} includes "icons" but glyphs.match is not set in config/conventions/figma.yaml`);
+          const glyphsConvention = figmaOf(config.conventions).glyphs;
+          if (!hasGlyphConvention(glyphsConvention)) {
+            console.error(`Error: ${entry.origin === 'adhoc' ? `source "${entry.alias}"` : `data.sources.${entry.alias}.fetch`} includes "icons" but no glyphs convention (match or structure) is declared in config/conventions/figma.yaml`);
             process.exit(ERROR_CODES.INVALID_ARGS);
           }
           // Icons are consumed by generated component output, so they live in
@@ -864,7 +865,7 @@ export const Fetch = new Command('fetch')
           const glyphSource = iconsSectioned
             ? { children: iconsSectioned.pageEntries().map(e => iconsSectioned.loadPage(e)) }
             : (readJsonPayload(filePath) as { document?: unknown }).document;
-          const glyphs = collectGlyphComponents(glyphSource, pattern);
+          const glyphs = collectGlyphComponents(glyphSource, glyphsConvention);
           // Assets are a sibling of specs/, not a `_`-prefixed pseudo-component
           // inside it: an SVG is consumed by every target and produced by none
           // (project 024). An ad-hoc source's glyphs are a second version of the
@@ -999,7 +1000,7 @@ export const Fetch = new Command('fetch')
           // win, so a branch contributes only what the configured sources don't already
           // define. A branch fetch must not change how the durable library resolves.
           aliases: [...adHoc.map(s => s.alias), ...Object.keys(config.settings.data?.sources ?? {})],
-          glyphNamePattern: figmaOf(config.conventions).glyphs?.match,
+          glyphs: figmaOf(config.conventions).glyphs,
         });
         cacheOk = reportCache(report, sourceFailures.map(f => f.alias));
       }

@@ -30,10 +30,17 @@ export function generateFigmaConventionsTemplate(): string {
 # https://www.specsplugin.com/settings/figma-keys/
 # naming: SENTENCE
 
-# Icon glyph instances; {i} is the glyph name
+# Icon glyph components, by name pattern ({i} is the glyph name) and/or by
+# child structure for libraries whose glyphs are plainly named (ADR-103)
 # https://www.specsplugin.com/settings/glyph-name-pattern/
 # glyphs:
 #   match: 'DS Icon Glyph / {i}'
+#   structure:
+#     name: '{i}'          # naming rule over the component name (default '{i}')
+#     fill: ['#161616']    # accepted leaf fills (optional)
+#     children:
+#       - type: VECTOR
+#         name: 'Vector'
 
 # Layer holding code-only props — https://www.specsplugin.com/settings/code-only-props-pattern/
 # codeOnlyProps:

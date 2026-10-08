@@ -62,7 +62,7 @@ gives up, so a retry starts that work over rather than picking it up.
 - `config/settings.yaml` must include `data.directory` and `data.sources`.
 - Fetching `variables` over REST requires your Figma organization to be on an **Enterprise** plan — Figma restricts the variables REST endpoints regardless of your Specs license. On any other plan, fetch variables through the plugin instead with [`--from-bridge`](#fetching-variables-via-the-bridge). `file`, `styles`, and `icons` data work over REST on any plan. See [CLI Requirements](/cli/#requirements).
 - Fetching `icons` additionally requires:
-  - `figma.glyphs.match` set in `config/conventions/figma.yaml` (see [Glyph Name Pattern](/guides/glyph-name-pattern/))
+  - a `figma.glyphs` convention — `match` and/or `structure` — in `config/conventions/figma.yaml` (see [Glyph Name Pattern](/guides/glyph-name-pattern/))
   - `spec.directory` set in `config/settings.yaml` — icon assets are written to the spec workspace, not the data directory
   - the source's `file` payload — listed before `icons` in the same `fetch` array, or fetched in a previous run
 
@@ -141,7 +141,7 @@ data:
 
 How it works:
 
-- Glyph components are **derived from the file payload** — every `COMPONENT` node whose name matches the `figma.glyphs.match` convention (with `{i}` capturing the icon name). No `scan` step is involved.
+- Glyph components are **derived from the file payload** — every component the `figma.glyphs` convention identifies, by name pattern (`match`, with `{i}` capturing the icon name) and/or by child structure (`structure`, named from the component name). A component set is evaluated through its set name and first variant. No `scan` step is involved.
 - SVGs are exported through the Figma images API in batches and written to `assets/icons/` — a sibling of `specs/`, beside `assets/images/`, not into the regenerable data cache. An icon is consumed by every target and produced by none, so it sits outside the spec tree rather than inside it.
 - Filenames are stable kebab-case slugs of the captured icon name, including camelCase splitting: `expandMore` → `expand-more.svg`, `Arrow Left` → `arrow-left.svg`.
 - Two icons that slug identically keep the first as-is; later duplicates are suffixed with their node id so nothing is silently dropped.

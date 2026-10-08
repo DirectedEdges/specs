@@ -35,6 +35,7 @@ import { join } from 'path';
 import { parse, stringify } from 'yaml';
 import { buildVariablesIndex } from '../utilities/variablesIndex.js';
 import { collectGlyphComponents } from '../utilities/glyphComponents.js';
+import { glyphConventionSignature, hasGlyphConvention, type GlyphsConvention } from '../utilities/glyphConvention.js';
 import { readJsonPayload } from '../utilities/payloadRead.js';
 import { SectionedFile, shadowIngestEnabled, shadowCompare } from '../utilities/sectionedFile.js';
 
@@ -48,9 +49,10 @@ export interface CacheSource {
   from: string;
   bytes: number;
   mtime: string;
-  /** icons.yaml only: the pattern glyph names were extracted with. A config edit to the
-   *  pattern changes what the entries mean, with no change to any fetched file. */
-  glyphNamePattern?: string;
+  /** icons.yaml only: signature of the `glyphs` convention the names were extracted
+   *  with (ADR-103). A config edit to either form changes what the entries mean, with
+   *  no change to any fetched file. */
+  glyphConvention?: string;
 }
 
 export interface CacheFile<E> {
@@ -89,7 +91,8 @@ export interface CacheOptions {
   dataDir: string;
   /** Aliases declared in config, in declaration order. */
   aliases: string[];
-  glyphNamePattern?: string;
+  /** The library's `glyphs` convention — both forms drive icon extraction (ADR-103). */
+  glyphs?: GlyphsConvention;
   /** Rebuild every alias, whether or not its provenance still matches. */
   force?: boolean;
 }
@@ -153,7 +156,7 @@ function writeCacheFile<E>(dataDir: string, concern: CacheConcern, data: CacheFi
 
 // ── Provenance ────────────────────────────────────────────────────────────────
 
-function sourceOf(dataDir: string, fileName: string, glyphNamePattern?: string): CacheSource | null {
+function sourceOf(dataDir: string, fileName: string, glyphSignature?: string): CacheSource | null {
   const path = join(dataDir, fileName);
   if (!existsSync(path)) return null;
   const stat = statSync(path);
@@ -161,7 +164,7 @@ function sourceOf(dataDir: string, fileName: string, glyphNamePattern?: string):
     from: fileName,
     bytes: stat.size,
     mtime: stat.mtime.toISOString(),
-    ...(glyphNamePattern ? { glyphNamePattern } : {}),
+    ...(glyphSignature ? { glyphConvention: glyphSignature } : {}),
   };
 }
 
@@ -169,8 +172,8 @@ function sourceOf(dataDir: string, fileName: string, glyphNamePattern?: string):
  *  else the split artifact (post-flip fetches write only the split — its
  *  manifest carries the original payload's byte count, and the manifest file's
  *  mtime marks the fetch). */
-function fileSourceOf(dataDir: string, alias: string, glyphNamePattern?: string): CacheSource | null {
-  const monolithic = sourceOf(dataDir, `${alias}.file.json`, glyphNamePattern);
+function fileSourceOf(dataDir: string, alias: string, glyphSignature?: string): CacheSource | null {
+  const monolithic = sourceOf(dataDir, `${alias}.file.json`, glyphSignature);
   if (monolithic) return monolithic;
   const manifestPath = join(dataDir, `${alias}.file`, 'manifest.json');
   if (!existsSync(manifestPath)) return null;
@@ -183,18 +186,18 @@ function fileSourceOf(dataDir: string, alias: string, glyphNamePattern?: string)
     from: `${alias}.file/`,
     bytes,
     mtime: stat.mtime.toISOString(),
-    ...(glyphNamePattern ? { glyphNamePattern } : {}),
+    ...(glyphSignature ? { glyphConvention: glyphSignature } : {}),
   };
 }
 
 /** True when a recorded source still describes the file on disk. A payload that has been
- *  re-fetched, or a glyph pattern that has been edited in config, fails this. */
+ *  re-fetched, or a glyphs convention that has been edited in config, fails this. */
 function matches(recorded: CacheSource | undefined, current: CacheSource | null): boolean {
   if (!recorded || !current) return false;
   return recorded.from === current.from
     && recorded.bytes === current.bytes
     && recorded.mtime === current.mtime
-    && recorded.glyphNamePattern === current.glyphNamePattern;
+    && recorded.glyphConvention === current.glyphConvention;
 }
 
 // ── Builders ──────────────────────────────────────────────────────────────────
@@ -216,9 +219,10 @@ function readJson(path: string): { data?: Record<string, unknown>; error?: strin
 function buildAliasSlice(
   alias: string,
   dataDir: string,
-  glyphNamePattern: string | undefined,
+  glyphs: GlyphsConvention | undefined,
   failures: CacheFailure[],
 ): AliasSlice {
+  const glyphSignature = glyphConventionSignature(glyphs);
   const empty: AliasSlice = {
     components: { source: null, entries: {} },
     styles: { source: null, entries: {} },
@@ -242,11 +246,11 @@ function buildAliasSlice(
 
   if (sectioned && fileSource) {
     const data = sectioned.root();
-    buildFileConcerns(alias, data, empty, glyphNamePattern, fileSource, dataDir);
-    if (glyphNamePattern) {
+    buildFileConcerns(alias, data, empty, glyphSignature, fileSource, dataDir);
+    if (hasGlyphConvention(glyphs)) {
       for (const entry of sectioned.pageEntries()) {
         const page = sectioned.loadPage(entry);
-        collectGlyphsInto(alias, page, glyphNamePattern, empty);
+        collectGlyphsInto(alias, page, glyphs, empty);
         sectioned.releasePage(entry.id);
       }
     }
@@ -254,8 +258,8 @@ function buildAliasSlice(
       const { data: monoData } = readJson(join(dataDir, fileName));
       if (monoData) {
         const shadow: AliasSlice = { components: { source: null, entries: {} }, styles: { source: null, entries: {} }, variables: { source: null, entries: {} }, icons: { source: null, entries: {} } };
-        buildFileConcerns(alias, monoData, shadow, glyphNamePattern, fileSource, dataDir);
-        collectGlyphsInto(alias, (monoData as { document?: unknown }).document, glyphNamePattern, shadow);
+        buildFileConcerns(alias, monoData, shadow, glyphSignature, fileSource, dataDir);
+        collectGlyphsInto(alias, (monoData as { document?: unknown }).document, glyphs, shadow);
         shadowCompare(`cache:${alias}:components`, shadow.components.entries, empty.components.entries);
         shadowCompare(`cache:${alias}:styles`, shadow.styles.entries, empty.styles.entries);
         shadowCompare(`cache:${alias}:icons`, shadow.icons.entries, empty.icons.entries);
@@ -265,8 +269,8 @@ function buildAliasSlice(
     const { data, error } = readJson(join(dataDir, fileName));
     if (error) failures.push({ alias, file: fileName, reason: error });
     if (data) {
-      buildFileConcerns(alias, data, empty, glyphNamePattern, fileSource, dataDir);
-      collectGlyphsInto(alias, (data as { document?: unknown }).document, glyphNamePattern, empty);
+      buildFileConcerns(alias, data, empty, glyphSignature, fileSource, dataDir);
+      collectGlyphsInto(alias, (data as { document?: unknown }).document, glyphs, empty);
     }
   }
 
@@ -293,7 +297,7 @@ function buildFileConcerns(
   alias: string,
   data: Record<string, unknown>,
   slice: AliasSlice,
-  glyphNamePattern: string | undefined,
+  glyphSignature: string | undefined,
   fileSource: CacheSource,
   dataDir: string,
 ): void {
@@ -315,10 +319,10 @@ function buildFileConcerns(
   }
   slice.styles.source = fileSource;
 
-  // An unset pattern means this workspace has no glyph convention — the cache is
-  // written empty rather than skipped, so "no glyphs" stays distinguishable from
+  // An undeclared convention means this workspace has no glyph convention — the cache
+  // is written empty rather than skipped, so "no glyphs" stays distinguishable from
   // "never built".
-  slice.icons.source = fileSourceOf(dataDir, alias, glyphNamePattern);
+  slice.icons.source = fileSourceOf(dataDir, alias, glyphSignature);
 }
 
 /** Record glyph components found under one document or page node. First
@@ -326,11 +330,11 @@ function buildFileConcerns(
 function collectGlyphsInto(
   alias: string,
   docOrPage: unknown,
-  glyphNamePattern: string | undefined,
+  glyphs: GlyphsConvention | undefined,
   slice: AliasSlice,
 ): void {
-  if (!glyphNamePattern || !docOrPage) return;
-  for (const glyph of collectGlyphComponents(docOrPage, glyphNamePattern)) {
+  if (!hasGlyphConvention(glyphs) || !docOrPage) return;
+  for (const glyph of collectGlyphComponents(docOrPage, glyphs)) {
     if (slice.icons.entries[glyph.name]) continue; // first occurrence wins, as scan does
     const key = slice.components.entries[glyph.id]?.key;
     slice.icons.entries[glyph.name] = key ? { id: glyph.id, key, file: alias } : { id: glyph.id, file: alias };
@@ -349,7 +353,8 @@ function collectGlyphsInto(
  * position to call it a problem.
  */
 export function refreshCache(options: CacheOptions): CacheReport {
-  const { dataDir, aliases, glyphNamePattern, force } = options;
+  const { dataDir, aliases, glyphs, force } = options;
+  const glyphSignature = glyphConventionSignature(glyphs);
 
   const existing = {
     components: readCacheFile<ComponentsEntry>(dataDir, 'components'),
@@ -386,7 +391,7 @@ export function refreshCache(options: CacheOptions): CacheReport {
       components: fileSource,
       styles: fileSource,
       variables: sourceOf(dataDir, `${alias}.variables.json`),
-      icons: fileSourceOf(dataDir, alias, glyphNamePattern),
+      icons: fileSourceOf(dataDir, alias, glyphSignature),
     };
 
     const stale = force || CACHE_CONCERNS.some(concern => {
@@ -413,7 +418,7 @@ export function refreshCache(options: CacheOptions): CacheReport {
       continue;
     }
 
-    const slice = buildAliasSlice(alias, dataDir, glyphNamePattern, report.failures);
+    const slice = buildAliasSlice(alias, dataDir, glyphs, report.failures);
     for (const concern of CACHE_CONCERNS) {
       const built = slice[concern];
       report.aliasCounts[alias][concern] = Object.keys(built.entries).length;
@@ -447,7 +452,8 @@ export interface CacheProblem {
  * wrong variable or drops an instance, which surfaces far from its cause.
  */
 export function validateCache(options: Omit<CacheOptions, 'force'>): CacheProblem[] {
-  const { dataDir, aliases, glyphNamePattern } = options;
+  const { dataDir, aliases, glyphs } = options;
+  const glyphSignature = glyphConventionSignature(glyphs);
   const problems: CacheProblem[] = [];
 
   const files = {
@@ -463,7 +469,7 @@ export function validateCache(options: Omit<CacheOptions, 'force'>): CacheProble
       components: fileSource,
       styles: fileSource,
       variables: sourceOf(dataDir, `${alias}.variables.json`),
-      icons: fileSourceOf(dataDir, alias, glyphNamePattern),
+      icons: fileSourceOf(dataDir, alias, glyphSignature),
     };
 
     for (const concern of CACHE_CONCERNS) {
