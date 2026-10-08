@@ -4,6 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 103 | Structural Glyph Membership — `glyphs.structure` Convention | (reserved, draft on `103-glyph-structure`) |
 | 102 | A Default Slot That Accepts a String — Figma TEXT Properties as Composable Children | (reserved, draft on `102-default-text-slots`) |
 | 101 | The Workspace Stage Graph | (reserved, draft on `feature/compositions-cli`) |
 | 099 | `childrenNamePattern` — Naming the Designated Children Slot | |
