@@ -12,10 +12,10 @@
  */
 
 import * as fs from 'fs';
-import { assembleAll, assembleCompositions, readRunMetadata, type Workspace } from './assemble.js';
+import { assembleAll, assembleCompositions, readRunMetadata, type Workspace } from '../assemble.js';
 import { assetManifest, diffAssets, referencedStrings } from './assets.js';
-import { diffComponent, diffRun } from './diff.js';
-import { captureGit, gitAuthor } from './gitInfo.js';
+import { diffComponent, diffRun } from '../diff/compare.js';
+import { captureGit, gitAuthor } from './git.js';
 import {
   latestFolder,
   latestLibraryVersion,
@@ -26,10 +26,10 @@ import {
   writeComponentLedger,
   writeLibraryLedger,
   writeVersionFolder,
-} from './ledger.js';
-import { componentRename, loadRenames } from './renames.js';
-import { applyBump, bumpOf, grade, maxBump, type RuleSet } from './rules.js';
-import type { RenameRecord } from './report.js';
+} from './store.js';
+import { componentRename, loadRenames } from '../diff/renames.js';
+import { applyBump, bumpOf, grade, maxBump, type RuleSet } from '../rules/grade.js';
+import type { RenameRecord } from '../report/render.js';
 import type {
   AssembledComponent,
   Bump,
@@ -39,7 +39,7 @@ import type {
   LedgerOverride,
   LedgerRun,
   RenameMap,
-} from './types.js';
+} from '../types.js';
 import * as path from 'path';
 
 export interface PlannedComponent {

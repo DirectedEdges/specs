@@ -9,8 +9,8 @@
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import { grade, type RuleSet } from './rules.js';
-import type { AssembledComponent, DiffEntry } from './types.js';
+import { grade, type RuleSet } from '../rules/grade.js';
+import type { AssembledComponent, DiffEntry } from '../types.js';
 
 /** Relative path → content hash for every file under an assets directory. */
 export function assetManifest(assetsDir: string): Record<string, string> {

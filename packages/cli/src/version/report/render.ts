@@ -9,9 +9,9 @@
  * it would restate the impact table in prose.
  */
 
-import { concernCategory } from './rules.js';
-import { genuinelyMoved } from './diff.js';
-import type { DiffEntry, Impact } from './types.js';
+import { concernCategory } from '../rules/grade.js';
+import { genuinelyMoved } from '../diff/compare.js';
+import type { DiffEntry, Impact } from '../types.js';
 
 const code = (v: unknown) => `\`${v}\``;
 

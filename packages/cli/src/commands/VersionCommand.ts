@@ -13,23 +13,23 @@ import { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
 import { assemble, resolveWorkspace, slugify, type Workspace } from '../version/assemble.js';
-import { commitCut, planCut } from '../version/cut.js';
+import { commitCut, planCut } from '../version/ledger/cut.js';
 import {
   buildCutChangelog,
   buildCutDataset,
   buildLedgerReport,
   buildPremergeDataset,
-} from '../version/datasets.js';
-import { diffComponent } from '../version/diff.js';
-import { createAnnotatedTag, tagExists } from '../version/gitInfo.js';
+} from '../version/report/dataset.js';
+import { diffComponent } from '../version/diff/compare.js';
+import { createAnnotatedTag, tagExists } from '../version/ledger/git.js';
 import {
   ledgeredComponents,
   readComponentLedger,
   readLibraryLedger,
   specPathAtVersion,
   tagMessageFor,
-} from '../version/ledger.js';
-import { loadRenames } from '../version/renames.js';
+} from '../version/ledger/store.js';
+import { loadRenames } from '../version/diff/renames.js';
 import {
   cleanupRun,
   formatBytes,
@@ -43,8 +43,8 @@ import { execFile } from 'child_process';
 import { formatElapsed, isInteractive, startSpinner } from '../utilities/spinner.js';
 import { chooseOption } from '../utilities/chooseOption.js';
 import { ConfigLoader } from '../config/ConfigLoader.js';
-import { loadRules, type RuleSet } from '../version/rules.js';
-import { gradeOf, renderChangelog, renderReport } from '../version/report.js';
+import { loadRules, type RuleSet } from '../version/rules/grade.js';
+import { gradeOf, renderChangelog, renderReport } from '../version/report/render.js';
 import type { ComponentLedger, LedgerOverride } from '../version/types.js';
 import { ERROR_CODES } from '../utilities/errorCodes.js';
 

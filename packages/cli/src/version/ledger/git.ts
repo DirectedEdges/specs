@@ -5,7 +5,7 @@
  */
 
 import { execFileSync } from 'child_process';
-import type { LedgerGit } from './types.js';
+import type { LedgerGit } from '../types.js';
 
 function git(cwd: string, args: string[]): string | null {
   try {

@@ -6,18 +6,18 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { assembleAll, resolveWorkspace, slugify } from './assemble.js';
-import type { CutPlan } from './cut.js';
-import { diffComponent } from './diff.js';
+import { assembleAll, resolveWorkspace, slugify } from '../assemble.js';
+import type { CutPlan } from '../ledger/cut.js';
+import { diffComponent } from '../diff/compare.js';
 import {
   ledgeredComponents,
   readComponentLedger,
   readLibraryLedger,
-} from './ledger.js';
-import { componentRename, emptyRenameMap, loadRenames } from './renames.js';
-import { grade, type RuleSet } from './rules.js';
-import type { ChangeDataset, ChangelogRelease, ComponentChange, RenameRecord } from './report.js';
-import type { AssembledComponent, DiffEntry, RenameMap } from './types.js';
+} from '../ledger/store.js';
+import { componentRename, emptyRenameMap, loadRenames } from '../diff/renames.js';
+import { grade, type RuleSet } from '../rules/grade.js';
+import type { ChangeDataset, ChangelogRelease, ComponentChange, RenameRecord } from './render.js';
+import type { AssembledComponent, DiffEntry, RenameMap } from '../types.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 

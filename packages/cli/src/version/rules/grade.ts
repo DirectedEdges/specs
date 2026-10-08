@@ -8,8 +8,8 @@
 
 import * as fs from 'fs';
 import * as yaml from 'yaml';
-import { SEMVER_RULES_YAML } from './semverRules.js';
-import type { Bump, DiffEntry, Impact } from './types.js';
+import { SEMVER_RULES_YAML } from './semver.js';
+import type { Bump, DiffEntry, Impact } from '../types.js';
 
 export interface Rule {
   id: string;

@@ -9,8 +9,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'yaml';
-import { slugify } from './assemble.js';
-import type { RenameEvent, RenameMap } from './types.js';
+import { slugify } from '../assemble.js';
+import type { RenameEvent, RenameMap } from '../types.js';
 
 export function emptyRenameMap(): RenameMap {
   return { components: [], props: new Map(), enums: new Map(), events: [] };

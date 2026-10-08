@@ -10,9 +10,9 @@
  * what lets MINOR/PATCH ledger entries be diff-only.
  */
 
-import { grade, type RuleSet } from './rules.js';
+import { grade, type RuleSet } from '../rules/grade.js';
 import { componentRename, enumRenames, propRenames } from './renames.js';
-import type { AssembledComponent, ConcernDoc, DiffEntry, Operation, RenameMap } from './types.js';
+import type { AssembledComponent, ConcernDoc, DiffEntry, Operation, RenameMap } from '../types.js';
 
 const isObject = (v: unknown): v is Record<string, unknown> =>
   v !== null && typeof v === 'object' && !Array.isArray(v);

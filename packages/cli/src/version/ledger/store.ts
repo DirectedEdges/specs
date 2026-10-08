@@ -19,13 +19,13 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { compareVersions } from './rules.js';
+import { compareVersions } from '../rules/grade.js';
 import type {
   ComponentLedger,
   ComponentLedgerEntry,
   LibraryLedger,
   LibraryLedgerEntry,
-} from './types.js';
+} from '../types.js';
 
 // ---------------------------------------------------------------- paths
 
