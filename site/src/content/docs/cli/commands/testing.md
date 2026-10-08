@@ -4,114 +4,135 @@ title: "testing visual"
 
 <script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
 
-Visual testing over your emitted Storybook, against two baselines. **Fidelity** diffs every variant's render against a Figma export of the same node — does the code match the design? **Regression** diffs against the renders you last accepted — did this regeneration change anything? Both components and compositions are covered, stored separately so a shared name cannot collide.
+Pixel-diffs your emitted Storybook against Figma exports (fidelity) or against the renders you last accepted (regression). [The Testing section](/testing/) covers what you get and how the stages fit together; this page is the command reference.
 
-The CLI never ships or installs a browser: `init` writes a `package.json` that declares Playwright, pixelmatch and pngjs, and you run the one install in your own workspace.
+The CLI never ships a browser: `init` writes a `package.json` declaring Playwright, pixelmatch and pngjs, and you run the one install in your own workspace.
 
 ## Usage
 
 ```bash
-specs testing visual init                      # scaffold testing/visual/, once
-specs testing visual manifest [--check]        # payloads + specs + contracts → manifest
-specs testing visual status                    # which baselines exist
-specs testing visual baseline                  # capture Figma exports — only when you ask
-specs testing visual shoot                     # screenshot the running Storybook
-specs testing visual diff [--against accepted] # score pairs, write the report
-specs testing visual accept --components …     # promote renders into the regression baseline
-specs testing visual                           # = shoot → diff
+specs testing visual init                        # scaffold testing/visual/, once
+specs testing visual manifest [--check]          # payloads + specs + contracts → manifest
+specs testing visual status                      # which baselines exist
+specs testing visual baseline                    # capture Figma exports — only when you ask
+specs testing visual shoot                       # screenshot the running Storybook
+specs testing visual diff [--against accepted]   # score pairs, write the report
+specs testing visual report                      # regenerate report views
+specs testing visual accept --components <k...>  # promote renders into the regression baseline
+specs testing visual                             # = shoot → diff
 ```
 
-Every form accepts `--config <path>`, and the per-spec stages accept `--components <keys...>`.
+Every form accepts `--config <path>` for a workspace whose `config/` is not in the current directory, and the per-spec stages accept `--components <keys...>`.
 
-## Stages and what they cost
+## Output
 
-Each stage is its own subcommand because each has a different cost — tuning a tolerance must cost seconds, not a browser run:
+```
+testing/visual/
+├── package.json              your install: playwright, pixelmatch, pngjs
+├── manifest.json
+├── visual-ignore.yaml        yours — scoring judgments, each with its note
+├── figma/<kind>/<key>/       Figma exports + .capture.json    (durable, local)
+├── accepted/<kind>/<key>/    renders you promoted             (regression baseline)
+├── render/<kind>/<key>/      this run                         (rebuilt on demand)
+├── diff/<kind>/<key>/        masks + triptych composites      (rebuilt on demand)
+└── report/                   fidelity.{json,md}, regression.{json,md}
+```
 
-| Stage | Cost | Needs network | Needs browser |
-|---|---|---|---|
-| `init` | instant | — | — |
-| `manifest` | seconds | — | — |
-| `status` | instant | — | — |
-| `baseline` | slow, rate-limited | **Figma REST** | — |
-| `shoot` | minutes | — | **Playwright** |
-| `diff` | seconds | — | — |
-| `report` | instant | — | — |
-| `accept` | instant | — | — |
+`<kind>` is `components` or `compositions` — the two may share a name, and the kind directory keeps their baselines apart.
 
 ## `specs testing visual init`
 
-Writes `testing/visual/package.json` declaring the dependencies and prints the install:
+Writes `testing/visual/package.json` and a `.gitignore`, then prints the install to run rather than running it. Everything except `shoot` works with nothing installed.
 
-```bash
-cd testing/visual && npm install && npx playwright install chromium
-```
+### `--force`
 
-`--force` rewrites the scaffold's own files only — it never touches `visual-ignore.yaml` or anything else you keep beside them. Everything except `shoot` works with nothing installed.
+Rewrite the scaffold's own files. Never touches `visual-ignore.yaml` or anything else kept beside them.
 
 ## `specs testing visual manifest`
 
-For every spec carrying a Figma source node, locates the node in your fetched payload, enumerates its variant children, and precomputes which story answers for each variant. A component yields one pair per variant; a composition is a single frame and yields exactly one.
-
-Prop mapping is declared, never guessed. A Figma prop maps through the spec's declared Figma name, else its camelCase form when that key exists — anything else lands in a reported unmapped list.
+For every spec of both kinds carrying a Figma source node, locates the node in the fetched payload, enumerates its variant children, and precomputes which story answers for each variant. A component yields one pair per variant; a composition yields exactly one. Deterministic — same inputs, byte-identical output.
 
 ### `--check`
 
-Dry run: report mapping problems and write nothing. **Drive this to zero before trusting a library's numbers** — an unmapped prop defers every variant that uses it.
+Dry run: report unmapped Figma props and variant-name problems, write nothing. An unmapped prop defers every variant that uses it, so drive this to zero before trusting a workspace's numbers.
+
+### `--components <keys...>`
+
+Build entries for these spec folders only.
+
+## `specs testing visual status`
+
+Present or missing, per shootable baseline. There is no staleness model — capture is overt, so there is nothing to compute; what the report does carry is each capture's own timestamps, so you can see a baseline predates a design change.
+
+### `--json`
+
+The worklist as machine-readable JSON.
 
 ## `specs testing visual baseline`
 
-Captures Figma exports for shootable variants over the REST images API, 50 nodes per request, PNG at scale 2. Needs `FIGMA_TOKEN` in the environment or the workspace `.env`.
+Captures Figma exports for shootable variants over the REST images API — 50 nodes per request, PNG at scale 2, `Retry-After` backoff. Needs `FIGMA_TOKEN` in the environment or the workspace `.env`.
 
-**Capture never runs implicitly.** It is not part of the bare command, no watcher triggers it, and `specs build` / `specs run` never invoke it — it is slow, rate-limited, and spends your API quota, so it runs only when you name it. Without `--components` it captures everything missing; `--force` recaptures its scope. There is no mode that guesses what changed.
+**Never implicit.** Not part of the bare command, never triggered by a watcher, never invoked by [`specs build` or `specs run`](/cli/commands/build/) — it is slow, rate-limited, and spends your API quota. Without `--components` it captures everything missing. Each capture records when it happened and when the payload it read was fetched.
 
-Each capture records when it happened and when the payload it read was fetched, so a report can show that a baseline predates the design — provenance you can read, never a trigger.
+### `--components <keys...>`
+
+Capture these spec folders only.
+
+### `--force`
+
+Recapture the scope even where baselines exist — the recapture path after a design change.
 
 ## `specs testing visual shoot`
 
-Screenshots the running Storybook for every shootable variant on a pool of parallel pages. Needs the Storybook up ([`specs storybook dev`](/cli/commands/storybook/)) and the customer-installed Playwright.
+Screenshots the Storybook render for every shootable variant on a pool of parallel browser pages, recording exactly how each pair was produced (story, URL, join kind). Needs the Storybook running ([`specs storybook dev`](/cli/commands/storybook/)) and the customer-installed Playwright.
 
-Renders are pinned to each variant's authored width — Figma constrains a fill root by the frame it sits in, and Storybook has no equivalent. Compositions pin height too when the frame's vertical sizing is fixed. The [measurement guide](/guides/visual-testing-measurement/) explains both rules and why the obvious alternatives measure worse.
+Renders are pinned to each variant's authored width — Figma constrains a fill root by the frame it sits in, and Storybook has no equivalent, so an unpinned render measures the viewport instead of the component. Compositions also pin height when the frame's vertical sizing is fixed. If the running Storybook's index doesn't match the manifest, the shoot warns — a stale server measures old code and would read as a pass.
 
-| Flag | Effect |
-|---|---|
-| `--workers <n>` | Parallel pages (default 8) |
-| `--port <port>` | Storybook port (default: read from the scaffolded npm script) |
-| `--target react\|webcomponents` | Which emitted tree's stories to shoot (default react) |
+### `--components <keys...>`
 
-If the running Storybook's index doesn't match the manifest, the shoot says so — a stale server measures the old code and would read as a pass.
+Shoot these spec folders only.
+
+### `--workers <n>`
+
+Parallel pages (default 8).
+
+### `--port <port>`
+
+The Storybook port. Default: read from the scaffolded `package.json`'s npm script, the same way `specs storybook dev` serves it.
+
+### `--target <react|webcomponents>`
+
+Which emitted tree's stories to shoot (default `react`).
 
 ## `specs testing visual diff`
 
-Scores every baseline/render pair and writes the report. Both images are flattened onto a shared opaque canvas before comparison, then pixel-diffed. A pair passes when its dimensions match within tolerance **and** its pixel difference is at or under the pass threshold — dimension deltas are reported separately as first-class signal.
+Scores every baseline/render pair and writes the report. Both images are flattened onto a shared opaque canvas, then pixel-diffed; a pair passes when its dimensions match within tolerance **and** its pixel difference is at or under the pass threshold. Dimension deltas are reported separately — a render two pixels wide of the design fails even at a low pixel diff. Every failing pair gets a baseline | render | diff composite.
 
-| Flag | Effect |
-|---|---|
-| `--against figma` | Fidelity: diff against Figma exports (default) → `report/fidelity.{json,md}` |
-| `--against accepted` | Regression: diff against the renders you accepted → `report/regression.{json,md}` |
+The only stage that reads `visual-ignore.yaml`, so a tolerance edit re-scores in seconds with no browser. Scoped runs merge into the stored report: only the named specs' rows are replaced, and each row keeps its prior summary for the delta column.
 
-Each mode keeps its own report, so running one never overwrites the other, and each chains its improvement deltas against its own history. Scoped runs merge: only the named specs' rows are replaced, and each row keeps its prior summary for the delta column.
+Composition rows are informational — full pixel counts, never the exit status. Components decide it: any component failure exits non-zero.
 
-**Composition results are informational.** A page is built from components, so when a component is off, every page using it looks off too — composition rows report with full pixel counts but never decide the exit status. Fix the components first.
+### `--against <figma|accepted>`
 
-This is the only stage that reads `visual-ignore.yaml`, so a tolerance edit re-scores in seconds with no browser.
+Which baseline to score against. `figma` (default) writes `report/fidelity.{json,md}`; `accepted` writes `report/regression.{json,md}`. Each mode keeps its own report and its own improvement history — running one never overwrites the other.
+
+### `--components <keys...>`
+
+Diff these spec folders only, merging into the stored report.
 
 ### `visual-ignore.yaml`
 
-The one place a workspace states what its own fixtures cannot settle:
+Scoring judgments, per kind — flat top-level keys (the earlier shape) still work and read as components:
 
 ```yaml
 $defaults:
-  passPct: 3            # Chrome and Figma never rasterize identically
+  passPct: 3
   dimTolerancePx: 4
 
 components:
-  button:
-    passPct: 6
+  badge:
+    passPct: 8
     note: letterform-only noise until licensed fonts land
-  card:
-    skipVariants:
-      - Elevated: "True"
-    note: Figma exports include shadow bounds; the crop doesn't
 
 compositions:
   homeSmall:
@@ -119,47 +140,60 @@ compositions:
     note: awaiting image fixtures
 ```
 
-Flat top-level keys (the pre-kind shape) still work and apply to components.
-
 | Key | Read by | Effect |
 |---|---|---|
 | `passPct` | diff | Pixel-diff percentage at or under which a pair passes |
 | `dimTolerancePx` | diff | Allowed width/height delta, in baseline (2×) pixels |
 | `threshold` | diff | Per-pixel colour threshold — rarely touched |
 | `skip: true` | diff | Not scored at all; pairs report ignored, neither pass nor fail |
-| `skipVariants` | diff | Figma configurations to skip, matched exactly |
-| `note` | diff | **Required** on every entry — see below |
+| `skipVariants` | diff | Figma configurations to skip, matched exactly against `Prop: "Value"` |
+| `note` | diff | **Required** on every entry — the diff warns when it is missing |
 | `sampleVariants: N` | **manifest** | Cap a spec at N variants on an even stride |
 | `pinWidth: false` | **manifest** | Opt out of the render width pin |
 
-Which stage reads a key matters: the scoring keys take effect on a re-diff alone; the manifest keys need a rebuild and a re-shoot before they mean anything.
+The scoring keys take effect on a re-diff alone; the two manifest keys need a manifest rebuild and a re-shoot before they mean anything.
 
-Every entry needs a `note:` saying why — these entries suppress real signal, and the note is what separates a permanent measurement fact from a temporary allowance. An entry without one earns a warning, because it is indistinguishable from a bug someone hid.
+## `specs testing visual report`
+
+Regenerates the markdown views from the stored JSON for every mode present — never re-scores.
+
+### `--format <md|json>`
+
+`md` (default) rewrites the markdown files; `json` prints every stored report to stdout.
 
 ## `specs testing visual accept`
 
-Promotes the current run's renders into `accepted/` — the regression baseline. Scope is explicit (`--components <keys...>` or `--all`); promoting everything silently would bless renders nobody reviewed.
+Promotes the current run's renders into `accepted/` — the regression baseline — recording which run they came from. Scope is explicit; promoting everything silently would bless renders nobody reviewed.
 
-There is no accepting in fidelity mode, by construction: the Figma export *is* the design, and a render that disagrees with it is wrong by definition. `accept` writes only the accepted tree and can never touch a Figma baseline.
+There is no accepting in fidelity mode, by construction: the Figma export *is* the design, and `accept` writes only the accepted tree — it can never touch a Figma baseline.
 
-## Reports and the Storybook pages
+### `--components <keys...>`
 
-`diff` writes machine-readable JSON and a ranked markdown view per mode under `testing/visual/report/`. When a report exists, [`specs storybook`](/cli/commands/storybook/) publishes its page — **Testing → Fidelity to Figma** and **Testing → Changes vs Accepted** — each reading its report live, so a re-diff updates the open page on reload. Every failing pair carries a baseline | render | diff composite image, the unit of diagnosis.
+Promote these spec folders only.
 
-Ranking comes from [`specs analyze dependencies`](/cli/commands/build/): graph leaves first, because fixing a leaf shrinks every diff downstream of it. Without the analysis the report still works; every spec just ranks at unknown depth.
+### `--all`
 
-## On disk
+Promote every spec with renders.
 
+## Examples
+
+```bash
+# First run, scoped to prove the loop before spending API quota
+specs testing visual manifest --check
+specs testing visual baseline --components button badge
+specs testing visual shoot --components button badge
+specs testing visual diff --components button badge
+
+# Everyday regression check after a regeneration
+specs testing visual
+specs testing visual diff --against accepted
+
+# Re-score after loosening a tolerance — seconds, no browser
+specs testing visual diff --components badge
 ```
-testing/visual/
-├── package.json          your install: playwright, pixelmatch, pngjs
-├── manifest.json
-├── visual-ignore.yaml    yours — scoring judgments, each with its note
-├── figma/<kind>/<key>/   Figma exports + .capture.json   (durable, local)
-├── accepted/<kind>/<key>/  renders you promoted           (regression baseline)
-├── render/<kind>/<key>/  this run                        (rebuilt on demand)
-├── diff/<kind>/<key>/    masks + composites              (rebuilt on demand)
-└── report/               fidelity.{json,md}, regression.{json,md}
-```
 
-`<kind>` is `components` or `compositions` — a component and a composition may share a name, and the kind directory is what keeps their baselines apart.
+## See Also
+
+- [Testing Overview](/testing/) — the two questions, the stages, and the report pages
+- [Testing Getting Started](/testing/getting-started/) — the first run, step by step
+- [`specs storybook`](/cli/commands/storybook/) — the host the shoot runs against, and where the report pages publish

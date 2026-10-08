@@ -292,7 +292,7 @@ function VisualReport() {
 
   return (
     <div style={{ font: '13px system-ui', padding: 16, maxWidth: 1100 }}>
-      <h1 style={{ fontSize: 18, margin: '0 0 4px' }}>{{PAGE_HEADING}}</h1>
+      {/* No heading — the sidebar entry already names the page. */}
       <p style={{ color: '#666', margin: '0 0 16px' }}>
         {new Date(report.generatedAt).toLocaleString()} · baseline: {{BASELINE_LABEL}} · scale{' '}
         {report.settings.scale} · default passPct {report.settings.passPct}% · {totals.diffed}/

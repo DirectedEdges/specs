@@ -22,7 +22,6 @@ interface ModePage {
   name: string;
   file: string;
   title: string;
-  heading: string;
   baselineLabel: string;
   /** The diff flag that produces this report, for the empty-state hint. */
   diffFlag: string;
@@ -33,7 +32,6 @@ const PAGES: ModePage[] = [
     name: 'fidelity',
     file: 'FidelityToFigma.stories.tsx',
     title: 'Fidelity to Figma',
-    heading: 'Fidelity to Figma',
     baselineLabel: 'Figma exports',
     diffFlag: '',
   },
@@ -41,7 +39,6 @@ const PAGES: ModePage[] = [
     name: 'regression',
     file: 'ChangesVsAccepted.stories.tsx',
     title: 'Changes vs Accepted',
-    heading: 'Changes vs accepted renders',
     baselineLabel: 'last accepted renders',
     diffFlag: ' --against accepted',
   },
@@ -69,7 +66,6 @@ export const visualtesting: Concern = {
       content: renderTemplate(template, {
         REPORT_NAME: p.name,
         PAGE_TITLE: p.title,
-        PAGE_HEADING: p.heading,
         BASELINE_LABEL: p.baselineLabel,
         DIFF_FLAG: p.diffFlag,
       }),

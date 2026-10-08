@@ -190,6 +190,14 @@ export default defineConfig({
               ],
             },
             {
+              label: 'Testing',
+              collapsed: true,
+              items: [
+                { label: 'Overview', slug: 'testing', badge: experimental },
+                { label: 'Getting Started', slug: 'testing/getting-started', badge: experimental },
+              ],
+            },
+            {
               label: 'Roles',
               collapsed: true,
               items: [
@@ -259,7 +267,6 @@ export default defineConfig({
             { label: 'Slot Constraints', slug: 'guides/slot-constraints', badge: pro },
             { label: 'Subcomponents', slug: 'guides/subcomponent-scoping', badge: pro },
             { label: 'Variant Depth', slug: 'guides/variant-depth' },
-            { label: 'Visual Testing Measurement', slug: 'guides/visual-testing-measurement', badge: experimental },
             { label: 'Variant Layering', slug: 'guides/variant-layering' },
           ],
         },
