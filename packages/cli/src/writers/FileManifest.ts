@@ -1,6 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
-import type { OutputConfig, OutputFormat } from '../Types/OutputConfig.js';
+import type { OutputConfig, OutputFormat } from '../types/OutputConfig.js';
 import { sortComponentsByName, splitComponentByConcern, hasExampleData } from './DataTransformers.js';
 import { specFolderKey } from '../utilities/specFolderKey.js';
 

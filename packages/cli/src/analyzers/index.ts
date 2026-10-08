@@ -1,4 +1,4 @@
-import type { Transformer } from '../Types/Transformer.js';
+import type { Transformer } from '../types/Transformer.js';
 import { DependenciesAnalyzer } from './Dependencies.js';
 import { KeysAnalyzer } from './Keys.js';
 import { PropsAnalyzer } from './Props.js';

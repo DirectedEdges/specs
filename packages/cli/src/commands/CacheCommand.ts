@@ -4,13 +4,13 @@
  * Builds the render lookup caches under `{data.directory}/cache/` from the fetched
  * Figma payloads. `fetch` and `apply-custom-tokens` run this themselves, so it is
  * needed by hand only when the caches are missing or something outside those
- * commands changed the data. See src/Cache/Cache.ts for what the files contain.
+ * commands changed the data. See src/cache/cache.ts for what the files contain.
  */
 
 import { Command } from 'commander';
-import { ConfigLoader } from '../Config/ConfigLoader.js';
-import { refreshCache, type CacheReport } from '../Cache/Cache.js';
-import { figmaOf } from '../Config/PlatformConventions.js';
+import { ConfigLoader } from '../config/ConfigLoader.js';
+import { refreshCache, type CacheReport } from '../cache/cache.js';
+import { figmaOf } from '../config/PlatformConventions.js';
 
 const ERROR_CODES = {
   SUCCESS: 0,

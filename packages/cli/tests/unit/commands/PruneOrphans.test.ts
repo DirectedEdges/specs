@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
 import { pruneOrphans } from '../../../src/commands/runEmitters.js';
-import type { Transformer } from '../../../src/Types/Transformer.js';
+import type { Transformer } from '../../../src/types/Transformer.js';
 
 /**
  * Pruning is the destructive path, and compositions gave it a second kind to judge

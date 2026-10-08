@@ -15,7 +15,7 @@
 
 import fs from 'fs-extra';
 import path from 'path';
-import type { CLIConfig } from '../Types/CLIConfig.js';
+import type { CLIConfig } from '../types/CLIConfig.js';
 import { resolveFileSourceAlias } from './fileSourceAlias.js';
 import { ManifestParserV2 } from './ManifestParserV2.js';
 

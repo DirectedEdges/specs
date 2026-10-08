@@ -5,7 +5,7 @@
  * These apply when config file is not present or fields are omitted.
  */
 
-import { DEFAULT_OUTPUT_CONFIG } from '../Types/OutputConfig.js';
+import { DEFAULT_OUTPUT_CONFIG } from '../types/OutputConfig.js';
 
 export const CONFIG_DEFAULTS = {
   /** Default location where fetch writes payloads and where generate/scan read from */

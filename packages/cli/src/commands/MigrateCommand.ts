@@ -18,8 +18,8 @@ import yaml from 'yaml';
 import {
   generateReactConventionsTemplate,
   generateWebComponentsConventionsTemplate,
-} from '../Config/ConfigTemplates.js';
-import { migrateConfigV1 } from '../Config/migrations/configV1.js';
+} from '../config/ConfigTemplates.js';
+import { migrateConfigV1 } from '../config/migrations/configV1.js';
 const ERROR_CODES = {
   INVALID_ARGS: 2,
 };

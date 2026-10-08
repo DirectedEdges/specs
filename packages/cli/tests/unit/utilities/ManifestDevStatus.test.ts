@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import os from 'os';
 import path from 'path';
 import { loadDevStatusByNodeId, devStatusForSpec, type WritableDevStatus } from '../../../src/utilities/ManifestDevStatus.js';
-import type { CLIConfig } from '../../../src/Types/CLIConfig.js';
+import type { CLIConfig } from '../../../src/types/CLIConfig.js';
 
 const MANIFEST = `# Component Manifest
 

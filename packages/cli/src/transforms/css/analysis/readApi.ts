@@ -2,7 +2,7 @@
 //
 // Each one narrows an untyped document to the one shape a rule asks about, so no
 // rule has to know the document's layout.
-import type { TransformerContext } from '../../../Types/Transformer.js';
+import type { TransformerContext } from '../../../types/Transformer.js';
 
 /** api.yaml anatomy → element key → type ("container" | "rectangle" | "ellipse" | "vector" | "text" | …). */
 export function anatomyTypes(apiYaml: Record<string, unknown>): Record<string, string> {

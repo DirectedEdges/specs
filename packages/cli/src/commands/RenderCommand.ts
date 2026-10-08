@@ -11,14 +11,14 @@ import { Command } from 'commander';
 import fs from 'fs-extra';
 import path from 'path';
 import { createInterface } from 'readline';
-import { ConfigLoader } from '../Config/ConfigLoader.js';
+import { ConfigLoader } from '../config/ConfigLoader.js';
 import { postRender, getBridgeStatus, type RenderResponse } from '../bridge/client.js';
 import { resolveFileKey } from '../bridge/pickConnection.js';
-import { findComponentFolders, isComponentFolder, loadSpec } from '../Render/SpecLoader.js';
+import { findComponentFolders, isComponentFolder, loadSpec } from '../render/SpecLoader.js';
 import { startSpinner } from '../utilities/spinner.js';
-import { refreshCache } from '../Cache/Cache.js';
+import { refreshCache } from '../cache/cache.js';
 import { reportCache } from './CacheCommand.js';
-import { figmaOf } from '../Config/PlatformConventions.js';
+import { figmaOf } from '../config/PlatformConventions.js';
 import { loadDevStatusByNodeId, devStatusForSpec, type WritableDevStatus } from '../utilities/ManifestDevStatus.js';
 import { StepError } from '../pipeline/StepError.js';
 

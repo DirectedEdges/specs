@@ -13,9 +13,9 @@ import { ManifestParserV2, type ManifestRowV2 } from '../utilities/ManifestParse
 import { isV1Manifest, migrateV1ToV2 } from '../utilities/ManifestMigrationV1ToV2.js';
 import { glyphPatternMatch } from '../utilities/glyphPatternMatch.js';
 import { specFolderKey } from '../utilities/specFolderKey.js';
-import { ConfigLoader } from '../Config/ConfigLoader.js';
+import { ConfigLoader } from '../config/ConfigLoader.js';
 import { StepError } from '../pipeline/StepError.js';
-import { figmaOf } from '../Config/PlatformConventions.js';
+import { figmaOf } from '../config/PlatformConventions.js';
 
 const SCAN_FORMAT_VERSION = 2;
 

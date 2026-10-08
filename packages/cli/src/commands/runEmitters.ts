@@ -10,11 +10,11 @@ import fs from 'fs-extra';
 import { reportExternalWrites } from '../transforms/externalWrites.js';
 import path from 'path';
 import yaml from 'yaml';
-import { ConfigLoader } from '../Config/ConfigLoader.js';
+import { ConfigLoader } from '../config/ConfigLoader.js';
 import { toPascalCase } from '../transforms/naming.js';
-import type { Transformer, TransformerContext } from '../Types/Transformer.js';
+import type { Transformer, TransformerContext } from '../types/Transformer.js';
 import type { ProcessingStates } from '../transforms/states.js';
-import { platformOf } from '../Config/PlatformConventions.js';
+import { platformOf } from '../config/PlatformConventions.js';
 import {
   resolveSpecsLayout, legacyLayoutNotice, dirNameFor, SPEC_KINDS, type SpecKind,
 } from '../utilities/specsLayout.js';

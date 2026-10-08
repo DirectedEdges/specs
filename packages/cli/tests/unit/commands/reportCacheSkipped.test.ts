@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { reportCache } from '../../../src/commands/CacheCommand.js';
-import type { CacheReport } from '../../../src/Cache/Cache.js';
+import type { CacheReport } from '../../../src/cache/cache.js';
 
 /**
  * The cache can only see that a source has no payload. That is true both of a

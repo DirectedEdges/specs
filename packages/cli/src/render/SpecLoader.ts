@@ -16,7 +16,7 @@
 import fs from 'fs';
 import path from 'path';
 import { parse as parseYaml } from 'yaml';
-import { RunMetadataReader } from '../Writers/RunMetadataFile.js';
+import { RunMetadataReader } from '../writers/RunMetadataFile.js';
 import { COMPONENTS_DIR, COMPOSITIONS_DIR } from '../utilities/specsLayout.js';
 
 export interface LoadedSpec {

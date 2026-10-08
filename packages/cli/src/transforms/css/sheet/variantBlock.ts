@@ -12,7 +12,7 @@ import { backgroundImageDecls, gradientRingRule, inlineBlockIfBoxed, overlapRule
 import { attrNameFor } from './hostAttributes.js';
 import type { ImagesCssContext, RootForm } from '../types.js';
 import type { SpecAnalysis } from '../analysis/analyzeSpec.js';
-import type { TransformerContext } from '../../../Types/Transformer.js';
+import type { TransformerContext } from '../../../types/Transformer.js';
 
 /**
  * The spec configuration a rule block came from, as a CSS comment body.

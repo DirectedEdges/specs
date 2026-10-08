@@ -13,9 +13,9 @@ import path from 'path';
 import readline from 'readline';
 import { collectGlyphComponents } from '../utilities/glyphComponents.js';
 import { startSpinner, clearInlineStatus, renderInlineStatus, isInteractive, formatElapsed } from '../utilities/spinner.js';
-import { refreshCache } from '../Cache/Cache.js';
+import { refreshCache } from '../cache/cache.js';
 import { reportCache } from './CacheCommand.js';
-import { ConfigLoader } from '../Config/ConfigLoader.js';
+import { ConfigLoader } from '../config/ConfigLoader.js';
 
 const ERROR_CODES = {
   SUCCESS: 0,
@@ -28,7 +28,7 @@ const ERROR_CODES = {
 };
 
 import type { SourceEntry } from '@directededges/specs-schema';
-import { figmaOf } from '../Config/PlatformConventions.js';
+import { figmaOf } from '../config/PlatformConventions.js';
 import { MAX_JSON_STRING_BYTES, readJsonPayload } from '../utilities/payloadRead.js';
 import { PayloadSplitter, splitDirFor } from '../utilities/payloadSplit.js';
 import { lastFetchedBytes, preparingMessage, formatPayloadSize } from '../fetch/estimate.js';

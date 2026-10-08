@@ -11,11 +11,11 @@
 import { Command } from 'commander';
 import fs from 'fs-extra';
 import path from 'path';
-import { refreshCache } from '../Cache/Cache.js';
+import { refreshCache } from '../cache/cache.js';
 import { reportCache } from './CacheCommand.js';
-import { ConfigLoader } from '../Config/ConfigLoader.js';
-import type { CLIConfig } from '../Types/CLIConfig.js';
-import { figmaOf } from '../Config/PlatformConventions.js';
+import { ConfigLoader } from '../config/ConfigLoader.js';
+import type { CLIConfig } from '../types/CLIConfig.js';
+import { figmaOf } from '../config/PlatformConventions.js';
 
 const ERROR_CODES = {
   SUCCESS: 0,

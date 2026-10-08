@@ -6,7 +6,7 @@ import { parse } from 'yaml';
 import {
   refreshCache, validateCache, readCacheFile, cachePath, describeProblems,
   type ComponentsEntry, type StylesEntry, type VariablesEntry, type IconsEntry,
-} from '../../../src/Cache/Cache.js';
+} from '../../../src/cache/cache.js';
 
 const PATTERN = 'Icon / {i}';
 

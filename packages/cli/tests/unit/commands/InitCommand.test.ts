@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { generateConfigTemplates } from '../../../src/Config/ConfigTemplates.js';
+import { generateConfigTemplates } from '../../../src/config/ConfigTemplates.js';
 import { Init } from '../../../src/commands/InitCommand.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

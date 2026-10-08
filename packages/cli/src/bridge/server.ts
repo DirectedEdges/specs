@@ -62,7 +62,7 @@ import { formatKey } from '../utilities/formatKey.js';
 import {
   readCacheFile, validateCache, describeProblems,
   type ComponentsEntry, type StylesEntry, type VariablesEntry, type IconsEntry,
-} from '../Cache/Cache.js';
+} from '../cache/cache.js';
 
 /** The Dev Mode status a render request may carry — the bridge relays it, it does not
  *  derive it. `RenderCommand` reads it from the workspace scan manifest. */
@@ -368,7 +368,7 @@ http.on('error', (e: NodeJS.ErrnoException) => {
 // ── Manifest builders ─────────────────────────────────────────────────────────
 //
 // Every library-side lookup a render needs is read from the caches under
-// {dataDir}/cache/ (see src/Cache/Cache.ts). They are built by `specs fetch` and
+// {dataDir}/cache/ (see src/cache/cache.ts). They are built by `specs fetch` and
 // `specs cache` from the fetched payloads, so no payload is parsed here — a file
 // payload can be hundreds of megabytes and used to be parsed three times per render.
 // Only the spec-side half of the instance manifest is derived at render time, since

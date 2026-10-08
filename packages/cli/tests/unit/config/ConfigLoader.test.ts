@@ -11,7 +11,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs-extra';
 import path from 'path';
-import { ConfigLoader } from '../../../src/Config/ConfigLoader.js';
+import { ConfigLoader } from '../../../src/config/ConfigLoader.js';
 import { DEFAULT_SETTINGS } from '@directededges/specs-schema';
 
 describe('ConfigLoader', () => {

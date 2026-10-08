@@ -42,7 +42,7 @@ import {
 import { execFile } from 'child_process';
 import { formatElapsed, isInteractive, startSpinner } from '../utilities/spinner.js';
 import { chooseOption } from '../utilities/chooseOption.js';
-import { ConfigLoader } from '../Config/ConfigLoader.js';
+import { ConfigLoader } from '../config/ConfigLoader.js';
 import { loadRules, type RuleSet } from '../version/rules.js';
 import { gradeOf, renderChangelog, renderReport } from '../version/report.js';
 import type { ComponentLedger, LedgerOverride } from '../version/types.js';

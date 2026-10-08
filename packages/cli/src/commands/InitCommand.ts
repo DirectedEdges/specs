@@ -10,7 +10,7 @@ import { Command } from 'commander';
 import fs from 'fs-extra';
 import path from 'path';
 import readline from 'readline';
-import { generateConfigTemplates } from '../Config/ConfigTemplates.js';
+import { generateConfigTemplates } from '../config/ConfigTemplates.js';
 
 export const Init = new Command('init')
   .description('Initialize config/conventions/<platform>.yaml and config/settings.yaml with production defaults')
