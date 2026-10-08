@@ -20,6 +20,7 @@ import {
 } from '../utilities/specsLayout.js';
 import { resolveKindScope, describeKindScope, KindScopeConflict } from '../utilities/kindScope.js';
 import { ERROR_CODES } from '../utilities/errorCodes.js';
+import { watchLoop } from '../utilities/watchLoop.js';
 
 // Editors commonly write a file two or three times per save, and a config edit
 // re-emits the whole catalogue — so a short debounce turns one Cmd-S into
@@ -386,45 +387,22 @@ async function watchAndEmit(run: EmitRun, options: EmitOptions): Promise<never> 
     process.exit(error instanceof EmitSetupError ? error.code : ERROR_CODES.GENERAL_ERROR);
   }
 
-  let emitting = false;
-  let pending = false;
-  let debounceTimer: NodeJS.Timeout | undefined;
-
-  const runEmit = async () => {
-    if (emitting) {
-      pending = true;
-      return;
-    }
-    emitting = true;
-    try {
-      await emitOnce(run, options);
-    } catch (error) {
-      reportSetupError(error);
-    } finally {
-      emitting = false;
-      if (pending) {
-        pending = false;
-        void runEmit();
-      }
-    }
-  };
-
-  const scheduleEmit = () => {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(runEmit, WATCH_DEBOUNCE_MS);
-  };
-
-  // Both watchers share one debounce, so a config edit and a spec edit are the
-  // same event as far as the re-emit is concerned.
-  const watched = [first.specsPath, ...(first.configPath ? [first.configPath] : [])];
-  const label = watched.map(p => path.relative(process.cwd(), p) || '.').join(' and ');
-
   console.log('');
-  console.log(`Watching ${label} for changes...`);
-  for (const target of watched) fs.watch(target, { recursive: true }, scheduleEmit);
 
-  await new Promise(() => {}); // keep the process alive until Ctrl+C
-  throw new Error('unreachable');
+  // The spec watcher and the config watcher share one debounce, so a config edit
+  // and a spec edit are the same event as far as the re-emit is concerned.
+  return watchLoop({
+    targets: [first.specsPath, ...(first.configPath ? [first.configPath] : [])],
+    debounceMs: WATCH_DEBOUNCE_MS,
+    runOnStart: false, // the first pass above already emitted — and named the targets
+    run: async () => {
+      try {
+        await emitOnce(run, options);
+      } catch (error) {
+        reportSetupError(error);
+      }
+    },
+  });
 }
 
 /**

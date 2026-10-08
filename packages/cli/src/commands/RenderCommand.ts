@@ -22,6 +22,7 @@ import { figmaOf } from '../config/PlatformConventions.js';
 import { loadDevStatusByNodeId, devStatusForSpec, type WritableDevStatus } from '../utilities/ManifestDevStatus.js';
 import { StepError } from '../pipeline/StepError.js';
 import { ERROR_CODES } from '../utilities/errorCodes.js';
+import { watchLoop } from '../utilities/watchLoop.js';
 
 export const Render = new Command('render')
   .description('Render a spec into Figma via the local CLI bridge')
@@ -433,6 +434,9 @@ async function renderBatchDirectory(
   if (failures.length > 0 && !watch) process.exit(ERROR_CODES.GENERAL_ERROR);
 }
 
+// Shorter than the emitters' debounce because a render is one spec's round trip
+// to Figma, not a re-emit of the whole catalogue — the save burst to coalesce is
+// a single file's, and a longer wait is felt as lag in the Figma canvas.
 const WATCH_DEBOUNCE_MS = 300;
 
 async function watchAndRender(
@@ -459,41 +463,16 @@ async function watchAndRender(
   }
   const watchOptions = { ...options, devStatusByNodeId, overwrite: true };
 
-  let rendering = false;
-  let pending = false;
-  let debounceTimer: NodeJS.Timeout | undefined;
-
-  const runRender = async () => {
-    if (rendering) {
-      pending = true;
-      return;
-    }
-    rendering = true;
-    try {
+  await watchLoop({
+    targets: [watchTarget],
+    debounceMs: WATCH_DEBOUNCE_MS,
+    runOnStart: true,
+    run: async () => {
       if (isBatchDir) {
         await renderBatchDirectory(absSpecPath, watchOptions, { watch: true });
       } else {
         await renderSpecPath(absSpecPath, watchOptions);
       }
-    } catch (e) {
-      console.error(`✗ ${(e as Error).message}`);
-    } finally {
-      rendering = false;
-      if (pending) {
-        pending = false;
-        void runRender();
-      }
-    }
-  };
-
-  const scheduleRender = () => {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(runRender, WATCH_DEBOUNCE_MS);
-  };
-
-  console.log(`Watching ${path.relative(process.cwd(), watchTarget) || '.'} for changes...`);
-  fs.watch(watchTarget, { recursive: true }, scheduleRender);
-
-  await runRender();
-  await new Promise(() => {}); // keep the process alive until Ctrl+C
+    },
+  });
 }
