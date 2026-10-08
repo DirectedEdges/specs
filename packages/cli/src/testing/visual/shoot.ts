@@ -21,8 +21,17 @@ import { manifestEntries, type Manifest, type SpecKind } from './types.js';
 
 const SETTLE_MS = 150;
 const WORKERS = 8;
+// Scrollbars are hidden as well as motion frozen: once content exceeds the
+// viewport, headless Chromium's classic scrollbar steals layout width and a
+// 1900px-wide page measures 1892 — a dw the design never had (specs#718).
+// Besides motion, this pins the page itself: scrollbars steal layout width
+// once content exceeds the viewport, and Storybook's preview padding
+// re-centers the root every time the viewport grows — both put the element
+// somewhere the just-measured clip no longer covers (specs#718).
 const FREEZE_CSS =
-  '*{transition:none!important;animation:none!important;caret-color:transparent!important}';
+  '*{transition:none!important;animation:none!important;caret-color:transparent!important}' +
+  'html,body{scrollbar-width:none}::-webkit-scrollbar{width:0;height:0;display:none}' +
+  'html,body{margin:0!important;padding:0!important}#storybook-root{margin:0!important;padding:0!important}';
 
 /** The platform prefixes a target's stories carry, in lookup order. */
 function titleCandidates(target: 'react' | 'webcomponents', kind: SpecKind, titlePath: string): string[] {
@@ -109,20 +118,20 @@ async function shootOne(page: any, task: ShootTask): Promise<void> {
   // A clip beyond the viewport is silently truncated to it — a pinned
   // 876px composition came back 784px tall (the viewport minus the body
   // margin) with the pin correctly applied. Grow the viewport to fit the
-  // measured box, then re-measure: width is pinned so the reflow risk a
-  // resize usually carries does not apply here.
-  if (box) {
+  // measured box and re-measure — in a loop, because the first resize can
+  // move the element (Storybook re-centers in the wider viewport, x 16 →
+  // 24) and a box sized to the old position still hangs past the edge.
+  for (let round = 0; box && round < 3; round++) {
     const vp = page.viewportSize();
     const needW = Math.ceil(box.x + box.width);
     const needH = Math.ceil(box.y + box.height);
-    if (vp && (needW > vp.width || needH > vp.height)) {
-      await page.setViewportSize({
-        width: Math.max(vp.width, needW),
-        height: Math.max(vp.height, needH),
-      });
-      await page.waitForTimeout(SETTLE_MS);
-      box = (await el.boundingBox({ timeout: 2000 }).catch(() => null)) ?? box;
-    }
+    if (!vp || (needW <= vp.width && needH <= vp.height)) break;
+    await page.setViewportSize({
+      width: Math.max(vp.width, needW),
+      height: Math.max(vp.height, needH),
+    });
+    await page.waitForTimeout(SETTLE_MS);
+    box = (await el.boundingBox({ timeout: 2000 }).catch(() => null)) ?? box;
   }
   // omitBackground: Figma exports carry alpha; without it every
   // transparent-background component diffs on the page background.
