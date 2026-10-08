@@ -25,6 +25,11 @@ import {
   type SpecKind,
 } from './types.js';
 
+/** The report basename a mode owns: fidelity (vs Figma) or regression (vs accepted). */
+export function reportNameFor(mode: DiffMode): string {
+  return mode === 'accepted' ? 'regression' : 'fidelity';
+}
+
 interface Ranking {
   depthOf(key: string): number;
   leaves: Set<string>;
@@ -119,23 +124,29 @@ export async function runDiff(
   const kit = createPngKit(PNG);
 
   const scale = manifest.$meta?.scale ?? 2;
-  const reportPath = path.join(vw.reportDir, 'visual-report.json');
-  const previousReport: any = fs.existsSync(reportPath) ? readJson(reportPath) : null;
+  // Each mode keeps its own report: fidelity and regression answer different
+  // questions, and one file meant running `--against accepted` silently
+  // replaced the fidelity results. Both now coexist, and each mode's
+  // `previous` deltas chain against its own history.
+  const reportPath = path.join(vw.reportDir, `${reportNameFor(mode)}.json`);
+  // A pre-split report (visual-report.json) feeds the first same-mode run's
+  // deltas, then stops being read.
+  const legacyPath = path.join(vw.reportDir, 'visual-report.json');
+  const previousReport: any = fs.existsSync(reportPath)
+    ? readJson(reportPath)
+    : fs.existsSync(legacyPath) && ((readJson<any>(legacyPath).mode ?? 'figma') === (mode === 'accepted' ? 'accepted' : 'figma'))
+      ? readJson(legacyPath)
+      : null;
 
   // Carry prior results forward for scoped runs, but only for specs the
-  // manifest still knows — pruned spec dirs must not linger as stale rows —
-  // and only within one mode: a figma-mode row carried into an accepted-mode
-  // report would mix two different questions in one total and fail the run
-  // on numbers this diff never produced.
+  // manifest still knows — pruned spec dirs must not linger as stale rows.
   const sections: Record<'components' | 'compositions', Record<string, any>> = {
     components: {},
     compositions: {},
   };
-  if ((previousReport?.mode ?? 'figma') === mode) {
-    for (const section of ['components', 'compositions'] as const) {
-      for (const [k, v] of Object.entries(previousReport?.[section] ?? {})) {
-        if (k in (manifest[section] ?? {})) sections[section][k] = v;
-      }
+  for (const section of ['components', 'compositions'] as const) {
+    for (const [k, v] of Object.entries(previousReport?.[section] ?? {})) {
+      if (k in (manifest[section] ?? {})) sections[section][k] = v;
     }
   }
 
@@ -350,10 +361,11 @@ export function writeMarkdown(vw: VisualWorkspace, report: any): void {
     const m = key.match(/^[a-z0-9]+(?=[A-Z])/);
     return m ? key.slice(m[0].length) : key;
   };
-  lines.push('# Visual report');
+  const regression = (report.mode ?? 'figma') === 'accepted';
+  lines.push(regression ? '# Changes vs accepted renders' : '# Fidelity to Figma');
   lines.push('');
   lines.push(
-    `Generated ${report.generatedAt} · mode ${report.mode ?? 'figma'} · scale ${report.settings.scale} · ` +
+    `Generated ${report.generatedAt} · baseline: ${regression ? 'last accepted renders' : 'Figma exports'} · scale ${report.settings.scale} · ` +
       `default threshold ${report.settings.threshold} · default passPct ${report.settings.passPct}%`,
   );
   if (report.analysis?.warning) lines.push(`\n> ⚠ ${report.analysis.warning}`);
@@ -442,5 +454,8 @@ export function writeMarkdown(vw: VisualWorkspace, report: any): void {
     }
   }
   fs.mkdirSync(vw.reportDir, { recursive: true });
-  fs.writeFileSync(path.join(vw.reportDir, 'visual-report.md'), lines.join('\n') + '\n');
+  fs.writeFileSync(
+    path.join(vw.reportDir, `${reportNameFor((report.mode ?? 'figma') === 'accepted' ? 'accepted' : 'figma')}.md`),
+    lines.join('\n') + '\n',
+  );
 }

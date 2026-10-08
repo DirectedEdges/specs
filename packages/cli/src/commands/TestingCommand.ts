@@ -164,17 +164,27 @@ Visual.command('report')
     try {
       const { writeMarkdown } = await import('../testing/visual/diff.js');
       const vw = resolveVisual(options.config);
-      const reportPath = path.join(vw.reportDir, 'visual-report.json');
-      if (!fs.existsSync(reportPath)) {
+      // One report per mode: fidelity (vs Figma) and regression (vs accepted).
+      const present = ['fidelity', 'regression']
+        .map((name) => ({ name, file: path.join(vw.reportDir, `${name}.json`) }))
+        .filter(({ file }) => fs.existsSync(file));
+      if (!present.length) {
         console.error('✗ No report yet — run `specs testing visual diff` first.');
         process.exit(ERROR_CODES.GENERAL_ERROR);
       }
-      const report = readJson(reportPath);
       if (options.format === 'json') {
-        console.log(JSON.stringify(report, null, 2));
+        console.log(
+          JSON.stringify(
+            Object.fromEntries(present.map(({ name, file }) => [name, readJson(file)])),
+            null,
+            2,
+          ),
+        );
       } else {
-        writeMarkdown(vw, report);
-        console.log(`✓ report → ${path.join(vw.reportDir, 'visual-report.md')}`);
+        for (const { name, file } of present) {
+          writeMarkdown(vw, readJson(file));
+          console.log(`✓ ${name} → ${path.join(vw.reportDir, `${name}.md`)}`);
+        }
       }
     } catch (err) {
       fail(err);

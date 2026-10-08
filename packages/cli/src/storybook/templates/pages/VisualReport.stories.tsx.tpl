@@ -267,12 +267,12 @@ function VisualReport() {
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    fetch('/baselines/report/visual-report.json')
+    fetch('/baselines/report/{{REPORT_NAME}}.json')
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`${r.status}`))))
       .then(setReport)
       .catch(() =>
         setError(
-          'No report found at /baselines/report/visual-report.json — run `specs testing visual diff`, then reload.',
+          'No report found at /baselines/report/{{REPORT_NAME}}.json — run `specs testing visual diff{{DIFF_FLAG}}`, then reload.',
         ),
       );
   }, []);
@@ -292,9 +292,9 @@ function VisualReport() {
 
   return (
     <div style={{ font: '13px system-ui', padding: 16, maxWidth: 1100 }}>
-      <h1 style={{ fontSize: 18, margin: '0 0 4px' }}>Visual report</h1>
+      <h1 style={{ fontSize: 18, margin: '0 0 4px' }}>{{PAGE_HEADING}}</h1>
       <p style={{ color: '#666', margin: '0 0 16px' }}>
-        {new Date(report.generatedAt).toLocaleString()} · mode {report.mode ?? 'figma'} · scale{' '}
+        {new Date(report.generatedAt).toLocaleString()} · baseline: {{BASELINE_LABEL}} · scale{' '}
         {report.settings.scale} · default passPct {report.settings.passPct}% · {totals.diffed}/
         {totals.variants} variants diffed ·{' '}
         <b style={{ color: '#2e9960' }}>{totals.pass} pass</b> ·{' '}
@@ -324,7 +324,7 @@ function VisualReport() {
 }
 
 export default {
-  title: 'Testing/Visual Differences',
+  title: 'Testing/{{PAGE_TITLE}}',
   parameters: {
     previewTabs: {
       canvas: { title: 'Page' },
