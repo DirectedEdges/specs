@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs-extra';
 import path from 'path';
-import { ImageFillsResolver, IMAGES_DIR_NAME } from '../../../src/utilities/ImageFillsResolver.js';
+import { ImageFillsResolver, IMAGES_DIR_NAME } from '../../../src/generate/imageFills.js';
 
 type Entry = { src?: string; $extensions?: { 'com.figma'?: { imageHash: string } } };
 

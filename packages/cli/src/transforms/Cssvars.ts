@@ -20,7 +20,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { writeAtomic } from './writeAtomic.js';
-import type { Transformer, TransformerContext } from '../types/Transformer.js';
+import type { Transformer, TransformerContext } from '../transforms/transformer.js';
 import { kebabizePath } from './css/values/tokens.js';
 import { reportNameWarnings } from './css/values/nameWarnings.js';
 import { recordExternalWrite } from './externalWrites.js';

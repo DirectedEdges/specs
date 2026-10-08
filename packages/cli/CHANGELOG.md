@@ -116,7 +116,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **The CLI's internals now follow one layout**, with one source file per command named for the command, every other directory named for the feature or pipeline stage it holds, and shared helpers lifted out of the command files that happened to hold them. A script reaching into package internals, never a supported entry point, needs its paths updated.
+- **The CLI's internals now follow one layout**, with one source file per command named for the command, every other directory named for the feature or pipeline stage it holds, and each shared helper filed with the feature that imports it rather than in a catch-all. A script reaching into package internals, never a supported entry point, needs its paths updated.
 
 - **A subcomponent matched by title now resolves through the one derivation of spec folder names**, instead of the bridge's own copy, which was free to drift from the names it searched.
 

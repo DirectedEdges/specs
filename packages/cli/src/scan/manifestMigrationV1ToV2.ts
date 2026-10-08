@@ -11,8 +11,8 @@
  * No other code path imports from here. Keep it that way.
  */
 
-import { ManifestParser } from './ManifestParser.js';
-import type { ManifestRowV2 } from './ManifestParserV2.js';
+import { ManifestParser } from '../generate/manifestParser.js';
+import type { ManifestRowV2 } from '../utilities/manifestParserV2.js';
 
 /** True if the content looks like a v1 manifest (checkbox-list, no scan format version header). */
 export function isV1Manifest(content: string): boolean {

@@ -2,8 +2,8 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import fs from 'fs-extra';
 import os from 'os';
 import path from 'path';
-import { loadDevStatusByNodeId, devStatusForSpec, type WritableDevStatus } from '../../../src/utilities/ManifestDevStatus.js';
-import type { CLIConfig } from '../../../src/types/CLIConfig.js';
+import { loadDevStatusByNodeId, devStatusForSpec, type WritableDevStatus } from '../../../src/render/manifestDevStatus.js';
+import type { CLIConfig } from '../../../src/config/types.js';
 
 const MANIFEST = `# Component Manifest
 

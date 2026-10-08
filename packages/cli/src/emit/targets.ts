@@ -15,7 +15,7 @@ import { CssTransformer } from '../transforms/Css.js';
 import { CssvarsTransformer } from '../transforms/Cssvars.js';
 import { ReactTransformer, StoriesTransformer, proEntitled as reactProEntitled } from '@directededges/react-from-specs';
 import { WebComponentsTransformer, WcStoriesTransformer, proEntitled as wcProEntitled } from '@directededges/webcomponents-from-specs';
-import type { Transformer } from '../types/Transformer.js';
+import type { Transformer } from '../transforms/transformer.js';
 import { runEmitters, emitOnce, type EmitOptions, type EmitResult } from './run.js';
 
 export type TargetId = 'react' | 'webcomponents';

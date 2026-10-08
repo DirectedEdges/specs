@@ -3,7 +3,7 @@ import path from 'path';
 import yaml from 'yaml';
 import type { Metadata, RunMetadata as SchemaRunMetadata } from '@directededges/specs-schema';
 import { FileWriter } from './FileWriter.js';
-import type { OutputFormat } from '../types/OutputConfig.js';
+import type { OutputFormat } from '../writers/outputConfig.js';
 
 /**
  * The base name of the document a run writes its own facts to (ADR-089).

@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
-import type { Transformer, TransformerContext } from '../types/Transformer.js';
+import type { Transformer, TransformerContext } from '../transforms/transformer.js';
 import { ANALYSIS_DIR } from '../utilities/specsLayout.js';
 
 type EdgeKind = 'instance' | 'slot' | 'example';

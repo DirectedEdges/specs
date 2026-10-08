@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { deriveDefaultInclusion, mergeRows } from '../../../src/commands/scan.js';
-import type { ComponentInfo } from '../../../src/utilities/ComponentDiscovery.js';
-import type { ManifestRowV2 } from '../../../src/utilities/ManifestParserV2.js';
+import type { ComponentInfo } from '../../../src/scan/discovery.js';
+import type { ManifestRowV2 } from '../../../src/utilities/manifestParserV2.js';
 
 function ci(id: string, name: string, type: 'COMPONENT' | 'COMPONENT_SET', devStatus: 'READY_FOR_DEV' | 'NONE'): ComponentInfo {
   return { id, name, type, devStatus };

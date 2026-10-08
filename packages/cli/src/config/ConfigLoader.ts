@@ -29,7 +29,7 @@ import {
   type SourceEntry,
 } from '@directededges/specs-schema';
 import { CONFIG_DEFAULTS } from './ConfigDefaults.js';
-import type { CLIConfig } from '../types/CLIConfig.js';
+import type { CLIConfig } from '../config/types.js';
 
 /**
  * Base names of the split-configuration files inside `config/`.

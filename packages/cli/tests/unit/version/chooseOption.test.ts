@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { chooseOption } from '../../../src/utilities/chooseOption.js';
+import { chooseOption } from '../../../src/version/chooseOption.js';
 
 describe('chooseOption', () => {
   it('returns the first (safe) option without prompting outside a TTY', async () => {

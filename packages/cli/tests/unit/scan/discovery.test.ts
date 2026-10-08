@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'fs-extra';
 import path from 'path';
-import { ComponentDiscovery } from '../../../src/utilities/ComponentDiscovery.js';
+import { ComponentDiscovery } from '../../../src/scan/discovery.js';
 
 describe('ComponentDiscovery', () => {
   let testDir: string;

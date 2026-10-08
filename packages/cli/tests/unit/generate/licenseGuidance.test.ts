@@ -1,7 +1,7 @@
 // Two problems hide under "the license check failed", and their remedies have
 // nothing in common (specs#518).
 import { describe, it, expect } from 'vitest';
-import { TRANSIENT_FAILURES, transientFailureLines } from '../../../src/utilities/licenseGuidance.js';
+import { TRANSIENT_FAILURES, transientFailureLines } from '../../../src/generate/licenseGuidance.js';
 
 describe('transientFailureLines', () => {
   it('sends an unreachable server to the network, not to a retry', () => {

@@ -4,7 +4,7 @@ import { attrNameFor } from './hostAttributes.js';
 import { declaresState } from '../analysis/readApi.js';
 import { disabledSelectorFor, rootSelector } from './selectors.js';
 import type { RootForm } from '../types.js';
-import type { TransformerContext } from '../../../types/Transformer.js';
+import type { TransformerContext } from '../../../transforms/transformer.js';
 
 export interface CursorInput {
   componentClass: string;

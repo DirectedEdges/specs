@@ -6,7 +6,7 @@ import { ConfigLoader } from '../config/ConfigLoader.js';
 import { availableAnalyzerNames, resolveAnalyzers } from '../analyzers/index.js';
 import { platformOf } from '../config/PlatformConventions.js';
 import { loadFoundations } from '../utilities/loadFoundations.js';
-import type { Transformer, TransformerContext } from '../types/Transformer.js';
+import type { Transformer, TransformerContext } from '../transforms/transformer.js';
 import type { ProcessingStates } from '../transforms/states.js';
 import { resolveSpecsLayout, legacyLayoutNotice, specFolderNames, SPEC_KINDS, type SpecKind } from '../utilities/specsLayout.js';
 import { StepError } from '../pipeline/StepError.js';

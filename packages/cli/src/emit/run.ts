@@ -12,7 +12,7 @@ import path from 'path';
 import yaml from 'yaml';
 import { ConfigLoader } from '../config/ConfigLoader.js';
 import { toPascalCase } from '../transforms/naming.js';
-import type { Transformer, TransformerContext } from '../types/Transformer.js';
+import type { Transformer, TransformerContext } from '../transforms/transformer.js';
 import type { ProcessingStates } from '../transforms/states.js';
 import { platformOf } from '../config/PlatformConventions.js';
 import {

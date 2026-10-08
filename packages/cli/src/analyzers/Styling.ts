@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
-import type { AnalyzerFoundations, Transformer, TransformerContext } from '../types/Transformer.js';
+import type { AnalyzerFoundations, Transformer, TransformerContext } from '../transforms/transformer.js';
 import { ANALYSIS_DIR } from '../utilities/specsLayout.js';
 
 type StylingCategory = 'VARIABLES' | 'COLOR_STYLES' | 'TEXT_STYLES' | 'EFFECT_STYLES';

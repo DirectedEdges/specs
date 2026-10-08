@@ -14,7 +14,7 @@ import path from 'path';
 import { refreshCache } from '../cache/cache.js';
 import { reportCache } from '../cache/report.js';
 import { ConfigLoader } from '../config/ConfigLoader.js';
-import type { CLIConfig } from '../types/CLIConfig.js';
+import type { CLIConfig } from '../config/types.js';
 import { figmaOf } from '../config/PlatformConventions.js';
 import { ERROR_CODES } from '../utilities/errorCodes.js';
 

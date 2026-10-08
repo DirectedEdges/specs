@@ -20,6 +20,19 @@ hook blocks it).
   hold before: `pipeline/steps.ts` reached into a command file for `emitTarget`,
   and three commands reached into another command's file for the cache report
   (specs#697).
+- **`src/utilities/` has an entry rule, and it is the whole reason it stays
+  small: a file belongs to a feature folder when exactly one feature imports it,
+  and lives here only when more than one does.** Nothing is filed here because no
+  other folder suggested itself. The rule is read off the imports, not judged —
+  `grep -rl "utilities/<name>.js" src --include=*.ts` names the consumers, and one
+  consumer means the file is in the wrong place. It reached 25 files without it,
+  and most of those turned out to be the private code of `generate` and `scan`,
+  the two largest commands and the only substantial ones that had no folder.
+- **Nothing in `utilities/` imports a feature folder** — `grep -rn "from '\.\./"
+  src/utilities` is empty. A shared module that reaches into one feature is not
+  shared, it is misfiled: the dev-status vocabulary sat in scan's discovery module
+  while the manifest parser imported it from there, which is why `devStatus.ts`
+  is its own file.
 
 - **There is no MCP server.** The persistent local process is the *bridge*
   (`src/bridge/server.ts`): WebSocket 9001 for plugin connections keyed by
@@ -35,7 +48,7 @@ hook blocks it).
 - `SPECS_DEV_TIER` is an **engine** seam, not a CLI one — it lives in
   from-specs' `entitlement.ts` (dev builds only). The CLI just displays the
   license level the engine stamped into `component.metadata.generator.license`
-  via `src/utilities/LicenseStatus.ts`.
+  via `src/generate/licenseStatus.ts`.
 - Version is compile-time (`__SPECS_CLI_VERSION__` esbuild define) — not
   readable from package.json at runtime.
 - Tests run from the **repo root** (`vitest -c vitest.config.ts
@@ -74,12 +87,11 @@ hook blocks it).
   discards the build — Figma starts over on the next request — so nothing here
   retries, and the failure says so rather than implying a cheap retry.
 - `src/fetch/` holds what only `fetch` uses — `estimate.ts`, `fileKey.ts`. A second
-  caller moves something out, either to the feature folder that owns it (which is how
-  `cache/report.ts` came to hold what three commands print after a refresh) or to
-  `utilities/` when it belongs to no one feature. That is why the payload split and
-  its reader do not live here: `sectionedFile.ts` imports `payloadSplit.ts` and
-  shares its format version, so they are the two halves of one on-disk format and
-  belong together.
+  caller moves it out, by the entry rule above — to the one feature that imports it,
+  or to `utilities/` when several do. That is why the payload split and its reader do
+  not live here: `sectionedFile.ts` imports `payloadSplit.ts` and shares its format
+  version, so the three are one on-disk format and move as one, and `sectionedFile`
+  alone has six consumers.
 - `src/fetch/estimate.ts` predicts the wait from the **previous** fetch
   of the same source (`manifest.json`'s `sourceBytes`, else the monolithic
   payload's size on disk), and deliberately answers in bands rather than
@@ -147,8 +159,11 @@ the work lives in the feature folder.
 | `src/config/ConfigLoader.ts` | **The config seam.** Precedence: CLI flags > file > defaults. Discovery: `./config/` → legacy files (refused) → `~/.specs/config.yaml`. Conventions are a *directory*, one file per platform; `conventions/primitives.yaml` reserved (ADR-075). Relative directories resolve against the parent of `config/`, not cwd |
 | `src/config/PlatformConventions.ts` | `figmaOf()` / `platformOf()` — every conventions consumer goes through these |
 | `src/bridge/` | server, client (`postRender`, `postGenerateFromSelection`), connection pick (`resolveFileKey`), pidfile |
-| `src/utilities/LicenseStatus.ts` | Reads engine-stamped license state; the CLI validates nothing |
+| `src/generate/licenseStatus.ts` | Reads engine-stamped license state; the CLI validates nothing |
 | `src/cache/` | `cache.ts` builds the render lookup caches under `{data.directory}/cache/`; `report.ts` prints a refresh result, shared by `specs cache` and by every command that refreshes as its last step |
+| `src/generate/` | What only `specs generate` uses: `manifestParser.ts` (the v1 manifest), `fileSourceAlias.ts` (which configured source carries the component file), `imageFills.ts` (ADR-063 phase two), `licenseStatus.ts` + `licenseGuidance.ts` (display and the transient-failure wording) |
+| `src/scan/` | What only `specs scan` uses: `discovery.ts` (component and composition discovery over a REST payload, monolithic or sectioned), `glyphPatternMatch.ts`, `manifestMigrationV1ToV2.ts` |
+| `src/utilities/` | The 15 modules more than one feature imports — the layout seam, the payload format (`sectionedFile` + `payloadSplit` + `payloadRead`, one on-disk format in three files), the key derivations, the exit-code contract, the watch loop, the dev-status vocabulary. Entry rule above; it is not a catch-all |
 | `src/transforms/` | Open counterparts of transform modules (see drift note below). Root holds what more than one transformer or a command uses — `states.ts`, `naming.ts`, `writeAtomic.ts`, `examples.ts`, `externalWrites.ts`, the registry; everything only the stylesheet needs is under `css/` |
 | `src/transforms/css/` | The stylesheet transformer, in four stages: `values/` (spec value → CSS value), `style/` (spec style key → declarations, one module per property family), `analysis/` (what the spec says about its elements), `sheet/` (declarations → a stylesheet). A module imports from a stage above it, never below. `css/README.md` is the map (specs#691) |
 | `skills/` | Procedures a customer's agent runs. Holding place until #592 makes skills canonical and ships them from the CLI package; `skills/README.md` says what is provisional |

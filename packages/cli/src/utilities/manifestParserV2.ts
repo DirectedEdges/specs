@@ -24,7 +24,7 @@
  * marks ready for dev.
  */
 
-import { isKnownDevStatus, type DevStatus } from './ComponentDiscovery.js';
+import { isKnownDevStatus, type DevStatus } from './devStatus.js';
 
 export interface ManifestRowV2 {
   id: string;

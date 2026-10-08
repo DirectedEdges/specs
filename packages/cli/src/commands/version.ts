@@ -41,7 +41,7 @@ import {
 } from '../version/figmaPremerge.js';
 import { execFile } from 'child_process';
 import { formatElapsed, isInteractive, startSpinner } from '../utilities/spinner.js';
-import { chooseOption } from '../utilities/chooseOption.js';
+import { chooseOption } from '../version/chooseOption.js';
 import { ConfigLoader } from '../config/ConfigLoader.js';
 import { loadRules, type RuleSet } from '../version/rules/grade.js';
 import { gradeOf, renderChangelog, renderReport } from '../version/report/render.js';

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isV1Manifest, migrateV1ToV2 } from '../../../src/utilities/ManifestMigrationV1ToV2.js';
+import { isV1Manifest, migrateV1ToV2 } from '../../../src/scan/manifestMigrationV1ToV2.js';
 
 const V1 = `# Component Manifest
 

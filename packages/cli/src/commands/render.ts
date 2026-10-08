@@ -19,7 +19,7 @@ import { startSpinner } from '../utilities/spinner.js';
 import { refreshCache } from '../cache/cache.js';
 import { reportCache } from '../cache/report.js';
 import { figmaOf } from '../config/PlatformConventions.js';
-import { loadDevStatusByNodeId, devStatusForSpec, type WritableDevStatus } from '../utilities/ManifestDevStatus.js';
+import { loadDevStatusByNodeId, devStatusForSpec, type WritableDevStatus } from '../render/manifestDevStatus.js';
 import { StepError } from '../pipeline/StepError.js';
 import { ERROR_CODES } from '../utilities/errorCodes.js';
 import { watchLoop } from '../utilities/watchLoop.js';

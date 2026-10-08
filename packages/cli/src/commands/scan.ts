@@ -7,11 +7,12 @@
 import { Command } from 'commander';
 import fs from 'fs-extra';
 import path from 'path';
-import { ComponentDiscovery, SectionedComponentDiscovery, type DiscoverySource, type ComponentInfo, type DevStatus } from '../utilities/ComponentDiscovery.js';
+import { ComponentDiscovery, SectionedComponentDiscovery, type DiscoverySource, type ComponentInfo } from '../scan/discovery.js';
+import type { DevStatus } from '../utilities/devStatus.js';
 import { SectionedFile, shadowIngestEnabled, shadowCompare } from '../utilities/sectionedFile.js';
-import { ManifestParserV2, type ManifestRowV2 } from '../utilities/ManifestParserV2.js';
-import { isV1Manifest, migrateV1ToV2 } from '../utilities/ManifestMigrationV1ToV2.js';
-import { glyphPatternMatch } from '../utilities/glyphPatternMatch.js';
+import { ManifestParserV2, type ManifestRowV2 } from '../utilities/manifestParserV2.js';
+import { isV1Manifest, migrateV1ToV2 } from '../scan/manifestMigrationV1ToV2.js';
+import { glyphPatternMatch } from '../scan/glyphPatternMatch.js';
 import { specFolderKey } from '../utilities/specFolderKey.js';
 import { ConfigLoader } from '../config/ConfigLoader.js';
 import { StepError } from '../pipeline/StepError.js';

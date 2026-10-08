@@ -6,7 +6,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { toPascalCase } from '../transforms/naming.js';
-import type { Transformer } from '../types/Transformer.js';
+import type { Transformer } from '../transforms/transformer.js';
 import { dirNameFor, SPEC_KINDS, type SpecKind } from '../utilities/specsLayout.js';
 
 /**

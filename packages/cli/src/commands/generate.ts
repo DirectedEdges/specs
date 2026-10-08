@@ -17,18 +17,18 @@ import yaml from 'yaml';
 import { Components } from '@directededges/specs-from-figma';
 import type { ProgressEvent, RestLicenseInput } from '@directededges/specs-from-figma';
 import { ConfigLoader } from '../config/ConfigLoader.js';
-import type { CLIConfig } from '../types/CLIConfig.js';
+import type { CLIConfig } from '../config/types.js';
 import { loadFoundations } from '../utilities/loadFoundations.js';
-import { resolveFileSourceAlias } from '../utilities/fileSourceAlias.js';
-import { ManifestParser } from '../utilities/ManifestParser.js';
-import { ManifestParserV2 } from '../utilities/ManifestParserV2.js';
+import { resolveFileSourceAlias } from '../generate/fileSourceAlias.js';
+import { ManifestParser } from '../generate/manifestParser.js';
+import { ManifestParserV2 } from '../utilities/manifestParserV2.js';
 import { writeLayout, type SpecKind } from '../utilities/specsLayout.js';
 import { resolveKindScope, describeKindScope, KindScopeConflict } from '../utilities/kindScope.js';
 import { assertPayloadReadable, readJsonPayload } from '../utilities/payloadRead.js';
 import { SectionedFile, shadowIngestEnabled, shadowCompare } from '../utilities/sectionedFile.js';
-import { LicenseStatus } from '../utilities/LicenseStatus.js';
+import { LicenseStatus } from '../generate/licenseStatus.js';
 import { StepError } from '../pipeline/StepError.js';
-import { TRANSIENT_FAILURES, transientFailureLines } from '../utilities/licenseGuidance.js';
+import { TRANSIENT_FAILURES, transientFailureLines } from '../generate/licenseGuidance.js';
 import { FileManifest } from '../writers/FileManifest.js';
 import { RunMetadataFile } from '../writers/RunMetadataFile.js';
 import { SingleFileWriter } from '../writers/SingleFileWriter.js';
@@ -36,8 +36,8 @@ import { ComponentFileWriter } from '../writers/ComponentFileWriter.js';
 import { ConcernFileWriter } from '../writers/ConcernFileWriter.js';
 import { CombinedFileWriter } from '../writers/CombinedFileWriter.js';
 import type { FileWriter, WriteResult } from '../writers/FileWriter.js';
-import type { OutputFormat } from '../types/OutputConfig.js';
-import { ImageFillsResolver, IMAGES_DIR_NAME } from '../utilities/ImageFillsResolver.js';
+import type { OutputFormat } from '../writers/outputConfig.js';
+import { ImageFillsResolver, IMAGES_DIR_NAME } from '../generate/imageFills.js';
 import { postGenerateFromSelection } from '../bridge/client.js';
 import { formatKey } from '../utilities/formatKey.js';
 import { resolveFileKey } from '../bridge/pickConnection.js';
@@ -53,9 +53,9 @@ const CLI_GENERATOR = {
 };
 
 // Re-export for backward compatibility
-export { ManifestParser } from '../utilities/ManifestParser.js';
-export type { ManifestComponent, ManifestMetadata } from '../utilities/ManifestParser.js';
-export { LicenseStatus } from '../utilities/LicenseStatus.js';
+export { ManifestParser } from '../generate/manifestParser.js';
+export type { ManifestComponent, ManifestMetadata } from '../generate/manifestParser.js';
+export { LicenseStatus } from '../generate/licenseStatus.js';
 
 interface GenerateOptions {
   component?: string;

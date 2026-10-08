@@ -1,5 +1,5 @@
 import yaml from 'yaml';
-import type { OutputFormat } from '../types/OutputConfig.js';
+import type { OutputFormat } from '../writers/outputConfig.js';
 
 /**
  * Result of a file writing operation

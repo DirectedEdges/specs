@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ManifestParserV2 } from '../../../src/utilities/ManifestParserV2.js';
+import { ManifestParserV2 } from '../../../src/utilities/manifestParserV2.js';
 
 const V2_FIXTURE = `# Component Manifest
 

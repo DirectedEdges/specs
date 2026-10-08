@@ -15,9 +15,9 @@
 
 import fs from 'fs-extra';
 import path from 'path';
-import type { CLIConfig } from '../types/CLIConfig.js';
-import { resolveFileSourceAlias } from './fileSourceAlias.js';
-import { ManifestParserV2 } from './ManifestParserV2.js';
+import type { CLIConfig } from '../config/types.js';
+import { resolveFileSourceAlias } from '../generate/fileSourceAlias.js';
+import { ManifestParserV2 } from '../utilities/manifestParserV2.js';
 
 /** The statuses Figma's `devStatus` property accepts — `NONE` is the absence of one. */
 export type WritableDevStatus = 'READY_FOR_DEV' | 'COMPLETED';

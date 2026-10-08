@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SectionedComponentDiscovery } from '../../../src/utilities/ComponentDiscovery.js';
+import { SectionedComponentDiscovery } from '../../../src/scan/discovery.js';
 import type { SectionedFile } from '../../../src/utilities/sectionedFile.js';
 
 /**
