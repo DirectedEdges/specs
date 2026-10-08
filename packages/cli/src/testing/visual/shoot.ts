@@ -106,6 +106,24 @@ async function shootOne(page: any, task: ShootTask): Promise<void> {
     });
     box = await el.boundingBox({ timeout: 2000 }).catch(() => null);
   }
+  // A clip beyond the viewport is silently truncated to it — a pinned
+  // 876px composition came back 784px tall (the viewport minus the body
+  // margin) with the pin correctly applied. Grow the viewport to fit the
+  // measured box, then re-measure: width is pinned so the reflow risk a
+  // resize usually carries does not apply here.
+  if (box) {
+    const vp = page.viewportSize();
+    const needW = Math.ceil(box.x + box.width);
+    const needH = Math.ceil(box.y + box.height);
+    if (vp && (needW > vp.width || needH > vp.height)) {
+      await page.setViewportSize({
+        width: Math.max(vp.width, needW),
+        height: Math.max(vp.height, needH),
+      });
+      await page.waitForTimeout(SETTLE_MS);
+      box = (await el.boundingBox({ timeout: 2000 }).catch(() => null)) ?? box;
+    }
+  }
   // omitBackground: Figma exports carry alpha; without it every
   // transparent-background component diffs on the page background.
   try {
