@@ -13,11 +13,11 @@ import { glyphConventionName, type GlyphsConvention, type RawNodeLike } from './
 /**
  * Walk the file document for components the `glyphs` convention identifies (ADR-103) —
  * by name pattern (`match`, `{i}` captures the icon name) and/or by child structure
- * (`structure`, named from the component name). A component set is evaluated through
- * its set name and first variant's structure; the variant's node id is recorded so the
- * SVG export renders a concrete component. Neither a matched component's internals nor
- * a set's variants are descended into. Duplicate slugs keep the first occurrence and
- * suffix later ones with the node id so nothing is silently dropped.
+ * (`structure`, named from the component name). A glyph cannot have properties, so a
+ * component set — property-bearing by construction — is never a glyph and is not
+ * descended into; a matched component's internals are not descended into either.
+ * Duplicate slugs keep the first occurrence and suffix later ones with the node id so
+ * nothing is silently dropped.
  */
 export function collectGlyphComponents(document: unknown, glyphs: GlyphsConvention | undefined): Array<{ id: string; name: string; slug: string }> {
   const found: Array<{ id: string; name: string; slug: string }> = [];
@@ -29,11 +29,8 @@ export function collectGlyphComponents(document: unknown, glyphs: GlyphsConventi
       if (glyphName) found.push({ id: n.id, name: glyphName, slug: '' });
       return; // a component's internals hold no further glyph components
     }
-    if (n.type === 'COMPONENT_SET' && typeof n.name === 'string' && typeof n.id === 'string') {
-      const variant = (n.children ?? []).find((child) => child.type === 'COMPONENT') as (RawNodeLike & { id?: string }) | undefined;
-      const glyphName = glyphConventionName(n.name, variant ?? null, glyphs);
-      if (glyphName && variant?.id) found.push({ id: variant.id, name: glyphName, slug: '' });
-      return; // variants are the set's faces, not independent glyphs
+    if (n.type === 'COMPONENT_SET') {
+      return; // a glyph cannot have properties; a set's variants are not independent glyphs
     }
     for (const child of n.children ?? []) walk(child);
   };

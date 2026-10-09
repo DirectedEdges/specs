@@ -118,16 +118,23 @@ describe('collectGlyphComponents — structural form (ADR-103)', () => {
     expect(collectGlyphComponents(doc, glyphs).map(g => g.name)).toEqual(['Add']);
   });
 
-  it('evaluates a component set through its set name and first variant, recording the variant id', () => {
+  it('a glyph cannot have properties — a component set and its variants are never glyphs', () => {
     const doc = {
       children: [{
         id: '4:0', name: 'Add', type: 'COMPONENT_SET',
         children: [component('4:1', 'Size=16', [vector()]), component('4:2', 'Size=24', [vector()])],
       }],
     };
-    expect(collectGlyphComponents(doc, { structure })).toEqual([
-      { id: '4:1', name: 'Add', slug: 'add' },
-    ]);
+    expect(collectGlyphComponents(doc, { structure })).toEqual([]);
+  });
+
+  it('a component declaring properties is a configurable component, not a glyph', () => {
+    const configurable = {
+      ...component('6:1', 'Pointer', [vector()]),
+      componentPropertyDefinitions: { direction: { type: 'VARIANT' } },
+    };
+    const doc = { children: [configurable, component('6:2', 'Add', [vector()])] };
+    expect(collectGlyphComponents(doc, { structure }).map(g => g.name)).toEqual(['Add']);
   });
 
   it('membership is the union of forms', () => {

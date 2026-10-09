@@ -75,6 +75,8 @@ The pattern must include the `{i}` placeholder, which marks where the glyph name
 
 Declares the child structure a glyph component has in this library, for libraries whose glyph components are plainly named (`Cross`, `Chevron down`) and carry no name pattern.
 
+A glyph cannot have properties: a component declaring component properties — variants, text, swaps — is a configurable component, and the structural form never claims it. A component set and its variants are property-bearing by construction and are never structural glyphs.
+
 | Member | Type | Meaning |
 |--------|------|---------|
 | `children` | list of node matchers | Required. A component is a glyph when every one of its children matches some entry — exhaustive: a component containing anything besides the declared shapes is not a glyph |

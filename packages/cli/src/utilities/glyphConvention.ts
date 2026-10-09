@@ -18,6 +18,17 @@ export interface RawNodeLike {
   name?: string;
   children?: RawNodeLike[];
   fills?: Array<{ type?: string; visible?: boolean; color?: { r: number; g: number; b: number } }>;
+  componentPropertyDefinitions?: Record<string, unknown>;
+}
+
+/**
+ * A glyph is a static asset: a component that declares properties — variants, text,
+ * swaps — is a configurable component, never a glyph (ADR-103). Sets and their
+ * variants are property-bearing by construction.
+ */
+export function isPropertyBearing(node: RawNodeLike): boolean {
+  if (node.type === 'COMPONENT_SET') return true;
+  return Object.keys(node.componentPropertyDefinitions ?? {}).length > 0;
 }
 
 /** True when either form of the convention is declared — the icons capability on-switch. */
@@ -54,7 +65,9 @@ export function glyphConventionName(
     if (fromName) return fromName;
   }
 
-  if (glyphs.structure && structureNode && matchesGlyphStructure(structureNode, glyphs.structure)) {
+  if (glyphs.structure && structureNode
+      && !isPropertyBearing(structureNode)
+      && matchesGlyphStructure(structureNode, glyphs.structure)) {
     return nameFormMatch(name, glyphs.structure.name ?? '{i}');
   }
 

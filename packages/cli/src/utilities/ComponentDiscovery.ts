@@ -131,8 +131,8 @@ export class ComponentDiscovery {
 
   /**
    * Ids of the listable components the `glyphs` convention identifies (ADR-103).
-   * A set is evaluated through its set name and first variant's structure; the
-   * returned id is the listable row's (the set's), matching `findAllComponents`.
+   * A glyph cannot have properties, so a set — property-bearing by construction —
+   * is tested by name form only, never structurally.
    */
   glyphComponentIds(glyphs: GlyphsConvention | undefined): Set<string> {
     const ids = new Set<string>();
@@ -140,10 +140,7 @@ export class ComponentDiscovery {
     for (const row of this.findAllComponents()) {
       const node = this._nodeMap.get(row.id) as RawNodeLike | undefined;
       if (!node) continue;
-      const structureNode = row.type === 'COMPONENT_SET'
-        ? (node.children ?? []).find((child) => child.type === 'COMPONENT') ?? null
-        : node;
-      if (glyphConventionName(row.name, structureNode, glyphs)) ids.add(row.id);
+      if (glyphConventionName(row.name, node, glyphs)) ids.add(row.id);
     }
     return ids;
   }
@@ -308,11 +305,8 @@ export class SectionedComponentDiscovery implements DiscoverySource {
         if (!isVariant) {
           this.rows.push({ id: node.id, name: node.name, type: node.type, devStatus: readDevStatus(node) });
           this.instancedBy.set(node.id, this.collectInstancedIds(node));
-          if (this.glyphs) {
-            const structureNode = (node.type === 'COMPONENT_SET'
-              ? (node.children ?? []).find((child) => child.type === 'COMPONENT') ?? null
-              : node) as RawNodeLike | null;
-            if (glyphConventionName(node.name, structureNode, this.glyphs)) this.glyphIds.add(node.id);
+          if (this.glyphs && glyphConventionName(node.name, node as RawNodeLike, this.glyphs)) {
+            this.glyphIds.add(node.id);
           }
         }
       }

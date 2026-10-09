@@ -231,7 +231,7 @@ glyphs?:                   # at least one of match / structure (documented; enfo
         children?: [...]   # recursive
 ```
 
-Membership semantics (recorded here, evaluated downstream): a component is a glyph when it matches **any** declared form. Under `structure`, the component's children must be covered by the `children` matchers (set-cover, exhaustive), and when `fill` is declared every matched leaf must carry one of the listed fills — on the component's **stored** structure only; an instance mirror is contextually recolored, so fill is not tested there. The glyph's name comes from the form that matched; a component matched by both takes `match`'s capture.
+Membership semantics (recorded here, evaluated downstream): a component is a glyph when it matches **any** declared form. Under `structure`, the component's children must be covered by the `children` matchers (set-cover, exhaustive), and when `fill` is declared every matched leaf must carry one of the listed fills — on the component's **stored** structure only; an instance mirror is contextually recolored, so fill is not tested there. **A glyph cannot have properties**: a component declaring component properties — variants, text, swaps — is a configurable component, and the structural form never claims it; a component set and its variants are property-bearing by construction. This is a semantic rule, not a schema member — the shape above does not grow for it. The glyph's name comes from the form that matched; a component matched by both takes `match`'s capture.
 
 ### Schema changes (`schema/`)
 
@@ -305,6 +305,7 @@ anyOf:
 - A library with plainly named glyph components (Carbon, IBM UI Kit, Primer, Atlassian community files) can declare glyph detection without renaming anything in Figma — the first acceptance criterion of #579 becomes expressible.
 - Membership and naming are now separate declarations; #579's detector/manifest work can propose `structure` blocks instead of being limited to name patterns.
 - The declared fill discriminant gives vector-only false positives (logos, dividers) a deterministic exclusion without geometry heuristics.
+- A property-bearing component is never structurally claimed as a glyph — a configurable icon button that happens to be vector-only stays a component.
 - Consumers reading `glyphs.match` must handle its absence; every read becomes "which forms are declared", not "what is the pattern".
 - `glyphs` documentation (settings page, guide) must be retitled from "naming pattern" to "glyph conventions" with both forms.
 - The structural form reads child trees at evaluation time; runtimes that resolve membership from a name alone (instance-swap resolution) need structure access, which downstream packages must provide.
