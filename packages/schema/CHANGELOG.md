@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `Conventions.storybook` — typed as `StorybookConventions`, an open concern-keyed map of feature settings loaded from `conventions/storybook.yaml`; also on `ResolvedConventions`
+- `Conventions.storybook` — typed as `StorybookConventions`, an open concern-keyed map of feature settings loaded from `conventions/storybook.yaml`; also on `ResolvedConventions`. Most concerns name how a Storybook page presents; `host` names where the Storybook serves. Adding a concern needs no change to this type or its schema, which is what the openness is for — the description no longer says "presentation", since the member covers both.
 - `Settings.curation` — which components of a library a run specs, defaulting to today's behaviour
 - `Settings.curation.defaultSelection` — `READY_FOR_DEV` or `ALL`; defaults to `READY_FOR_DEV`
 - `Settings.curation.preserveManualSelections` — hand edits outrank a changed Figma status; defaults to false

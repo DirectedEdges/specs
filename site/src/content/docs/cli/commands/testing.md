@@ -118,7 +118,7 @@ Parallel pages (default 8).
 
 ### `--port <port>`
 
-The Storybook port. Default: read from the scaffolded `package.json`'s npm script, the same way `specs storybook dev` serves it.
+The Storybook port, for this run. Default: [`host.port` in `conventions/storybook.yaml`](/schema/conventions/#host), else the scaffolded npm script, else `6006` — the same resolution `specs storybook dev` serves on.
 
 ### `--target <react|webcomponents>`
 

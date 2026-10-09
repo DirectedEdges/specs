@@ -39,7 +39,16 @@ Rewrite the host files deliberately — the upgrade path when a newer CLI ships 
 
 ### `--port <port>`
 
-The dev-server port written into the scaffolded `package.json` (default `6006`).
+The dev-server port written into the scaffolded `package.json`.
+
+Normally you declare it instead, once, in [`conventions/storybook.yaml`](/schema/conventions/#host):
+
+```yaml
+host:
+  port: 6101
+```
+
+A declared port gives the workspace a localhost that stays put, and survives a `--force` rewrite. Without one, `init` keeps whatever port the existing scaffold already serves, falling back to `6006` for a fresh workspace. The flag overrides both, for that one run.
 
 ## `specs storybook dev`
 

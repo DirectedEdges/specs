@@ -72,15 +72,6 @@ export function writeJson(file: string, value: unknown): void {
   fs.writeFileSync(file, JSON.stringify(value, null, 2) + '\n');
 }
 
-/** The dev-server port from the scaffolded npm script, as serve.ts infers it. */
-export function scaffoldPort(ws: Workspace): number | null {
-  try {
-    const pkg = JSON.parse(
-      fs.readFileSync(path.join(ws.storybookDir, 'package.json'), 'utf-8'),
-    ) as { scripts?: { storybook?: string } };
-    const m = pkg.scripts?.storybook?.match(/-p\s+(\d+)/);
-    return m ? Number(m[1]) : null;
-  } catch {
-    return null;
-  }
-}
+// The Storybook port lives in ../../storybook/port.ts, resolved once for every
+// command that needs it. This file used to carry a second copy of the regex
+// that reads it out of the scaffolded npm script.

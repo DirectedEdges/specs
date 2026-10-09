@@ -282,7 +282,7 @@
         },
         "storybook": {
           "$ref": "#/definitions/StorybookConventions",
-          "description": "Workspace Storybook presentation conventions, loaded from conventions/storybook.yaml \u2014 a reserved basename, not a platform."
+          "description": "Workspace Storybook conventions \u2014 how its pages present, and where it serves. Loaded from conventions/storybook.yaml \u2014 a reserved basename, not a platform."
         }
       },
       "additionalProperties": false
@@ -473,7 +473,7 @@
     },
     "StorybookConventions": {
       "type": "object",
-      "description": "Workspace Storybook presentation conventions, keyed by publish concern, each holding per-feature settings. Both levels are open (ADR-098): feature vocabulary is validated by the concern implementation, which warns by name on anything unknown.",
+      "description": "Workspace Storybook conventions, keyed by concern, each holding per-feature settings. Most concerns are publish concerns naming how a page presents; `host` names where the Storybook serves. Both levels are open (ADR-098): feature vocabulary is validated by the concern implementation, which warns by name on anything unknown.",
       "additionalProperties": {
         "type": "object",
         "description": "One concern's feature settings. Values are deliberately unconstrained here.",

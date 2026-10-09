@@ -53,7 +53,7 @@ glyphs:
 
 Because the filename is the platform id, two files cannot declare the same key and there is no merge rule. Absence of a member means that platform declares no such convention, and the capability it enables does not apply — there is no separate on-switch.
 
-Three basenames in the directory are reserved and are not platforms: `specs.yaml` (conventions about [the spec itself](#specs)), `figma.primitives.yaml` (the [promotion table](#primitives)), and `storybook.yaml` ([workspace Storybook presentation](#storybook)).
+Three basenames in the directory are reserved and are not platforms: `specs.yaml` (conventions about [the spec itself](#specs)), `figma.primitives.yaml` (the [promotion table](#primitives)), and `storybook.yaml` ([the workspace Storybook's presentation and host](#storybook)).
 
 ## Platform members
 
@@ -315,13 +315,16 @@ Neither failure raises an error. Where the constraint does not hold, declare no 
 
 ## `storybook`
 
-Presentation conventions for the workspace Storybook (`specs storybook`).
-Authored at `config/conventions/storybook.yaml` — a reserved basename beside
-the platform files. Top-level keys are publish concerns (`color`, `typography`,
-`icons`, …), each holding that concern's feature settings:
+Conventions for the workspace Storybook (`specs storybook`) — how its pages
+present, and where it serves. Authored at `config/conventions/storybook.yaml` —
+a reserved basename beside the platform files. Top-level keys are concerns,
+mostly publish concerns (`color`, `typography`, `icons`, …), each holding that
+concern's feature settings:
 
 ```yaml
 # config/conventions/storybook.yaml
+host:
+  port: 6101          # the address this workspace's Storybook answers at
 color:
   rowGroup: []        # names of variable hierarchy levels to collapse into one row
   groupLeaves: false  # group all the leaves
@@ -334,6 +337,29 @@ concern or feature **only with a warning naming it**. The concern
 implementation validates its own feature values under the same rule, and the
 feature vocabulary is documented with the [Storybook pages](/storybook/) rather
 than here.
+
+### `host`
+
+The one concern about serving the Storybook rather than about what a page
+shows. `host.port` is the port this workspace's Storybook runs on, and the
+reason to declare it is that it stops moving: someone maintaining several
+workspaces gets a localhost per workspace that is the same every day and can
+be bookmarked.
+
+It is read by every command that needs the address — `specs storybook init`
+writes it into the generated npm script, `specs storybook dev` and `specs run`
+serve on it, and [`specs testing visual shoot`](/cli/commands/testing/) points
+the browser at it. Resolution runs most-explicit-first:
+
+1. a `--port` flag, which answers for that one run
+2. `host.port` here — the workspace's own answer
+3. the port already in the scaffolded `storybook/package.json` script
+4. `6006`
+
+The declaration outranks the scaffolded script deliberately. The script is a
+generated file that `specs storybook init --force` rewrites, so before the port
+could be declared, a rewrite silently moved a workspace off its address — and
+took the screenshot runner with it, since that read the same script.
 
 ## Resolution
 

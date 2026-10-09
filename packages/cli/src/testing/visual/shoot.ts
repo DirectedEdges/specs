@@ -11,7 +11,8 @@
 import fs from 'fs-extra';
 import path from 'path';
 import type { VisualWorkspace } from './paths.js';
-import { readJson, writeJson, sanitizeNodeId, scaffoldPort } from './paths.js';
+import { readJson, writeJson, sanitizeNodeId } from './paths.js';
+import { resolveStorybookPort } from '../../storybook/port.js';
 import { loadPlaywright } from './deps.js';
 import {
   loadStoriesForTitle,
@@ -179,12 +180,7 @@ export async function runShoot(
   const only = opts.components?.length ? new Set(opts.components) : null;
   const workers = Math.max(1, Number(opts.workers ?? WORKERS));
   const target = opts.target ?? DEFAULT_TARGET;
-  const port = opts.port ?? scaffoldPort(vw.ws);
-  if (!port) {
-    console.error('✗ No Storybook port — pass --port or scaffold the host (`specs storybook init`).');
-    process.exitCode = 1;
-    return null;
-  }
+  const { port } = resolveStorybookPort(vw.ws, opts.port);
   const host = `http://localhost:${port}`;
 
   let index: { entries: Record<string, IndexEntry> };

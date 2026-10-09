@@ -462,15 +462,17 @@ export interface ValueConvention {
 }
 
 /**
- * Presentation conventions for the workspace Storybook (`specs storybook publish`),
- * keyed by publish concern (`color`, `typography`, `icons`, …), each holding
- * per-feature settings.
+ * Conventions for the workspace Storybook, keyed by concern, each holding
+ * per-feature settings. Most concerns are publish concerns — `color`,
+ * `typography`, `icons`, … — naming how a page presents. `host` is the
+ * exception, and names where the Storybook serves rather than what it shows.
  *
- * Both levels are deliberately open (ADR-098): storybook page presentation
- * vocabulary is unstable while concerns gain pages, so this contract fixes only
- * the file, the concern keying, and the openness. A concern implementation
- * validates its own feature values, and ignores an unknown concern or feature
- * only with a warning naming it — never silently.
+ * Both levels are deliberately open (ADR-098): the vocabulary is unstable while
+ * concerns gain pages, so this contract fixes only the file, the concern
+ * keying, and the openness. A concern implementation validates its own feature
+ * values, and ignores an unknown concern or feature only with a warning naming
+ * it — never silently. Adding a concern therefore needs no change here, which
+ * is what the openness is for.
  *
  * @since 0.35.0
  */
@@ -518,7 +520,7 @@ export interface Conventions {
    */
   specs?: SpecsConventions;
   /**
-   * Workspace Storybook presentation conventions.
+   * Workspace Storybook conventions — how its pages present, and where it serves.
    * Loaded from `conventions/storybook.yaml` — the third reserved basename,
    * after `figma.primitives` and `specs`; no platform may take the id.
    * Optional; absence means none are declared. @since 0.35.0
