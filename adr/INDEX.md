@@ -4,7 +4,6 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 103 | Structural Glyph Membership — `glyphs.structure` Convention | (reserved, draft on `103-glyph-structure`) |
 | 102 | A Default Slot That Accepts a String — Figma TEXT Properties as Composable Children | (reserved, draft on `102-default-text-slots`) |
 | 101 | The Workspace Stage Graph | (reserved, draft on `feature/compositions-cli`) |
 | 099 | `childrenNamePattern` — Naming the Designated Children Slot | |
@@ -25,6 +24,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 103 | Structural Glyph Membership — `glyphs.structure` Convention | `glyphs` gains a structural membership form — child shapes + stored fill, named from the component name; a glyph cannot have properties |
 | 098 | Storybook Conventions — `config/conventions/storybook.yaml` | A `storybook` conventions member maps publish concerns to open feature settings, loaded from `conventions/storybook.yaml` beside `specs` and `figma.primitives` |
 | 094 | Subcomponent Pattern Matching Rules | Fixes how `{C}` and `{S}` match a name, so one `subcomponents` pattern means the same thing in every consumer (amends ADR-031) |
 | 093 | Curation Is a Settings Concern | `curation.defaultSelection`, `preserveManualSelections` and `includeDependencies` state which components a run specs |

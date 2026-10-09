@@ -2,7 +2,7 @@
 
 **Branch**: `103-glyph-structure`
 **Created**: 2026-10-08
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Summary**: A `glyphs.structure` form identifies glyph components by child structure and fill, joining `match` with naming from the component name.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none — extends the `glyphs` block introduced with `glyphNamePattern`'s migration to `conventions`)*
