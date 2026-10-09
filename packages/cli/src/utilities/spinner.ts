@@ -33,6 +33,27 @@ export function clearInlineStatus(): void {
   readline.cursorTo(process.stdout, 0);
 }
 
+/**
+ * Erase a line already committed with `console.log`, so the line that supersedes it
+ * can be printed in its place. The caller hands over the exact text it printed
+ * because a long line occupies more than one row once the terminal wraps it, and
+ * erasing one row leaves the rest of the text on screen.
+ *
+ * Only correct while the cursor still sits at the start of the row directly below
+ * that line — nothing may have been printed since, except an inline status that has
+ * cleared itself. Outside a TTY there is no cursor to move, so both lines stand.
+ */
+export function erasePrintedLine(text: string): void {
+  if (!isInteractive()) return;
+  const width = process.stdout.columns || 80;
+  const rows = Math.max(1, Math.ceil(text.length / width));
+  for (let row = 0; row < rows; row++) {
+    readline.moveCursor(process.stdout, 0, -1);
+    readline.clearLine(process.stdout, 0);
+  }
+  readline.cursorTo(process.stdout, 0);
+}
+
 export function formatElapsed(ms: number): string {
   const seconds = Math.floor(ms / 1000);
   if (seconds < 60) return `${seconds}s`;

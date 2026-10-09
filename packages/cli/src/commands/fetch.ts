@@ -13,7 +13,7 @@ import path from 'path';
 import readline from 'readline';
 import { collectGlyphComponents } from '../utilities/glyphComponents.js';
 import { hasGlyphConvention } from '../utilities/glyphConvention.js';
-import { startSpinner, clearInlineStatus, renderInlineStatus, isInteractive, formatElapsed } from '../utilities/spinner.js';
+import { startSpinner, clearInlineStatus, renderInlineStatus, isInteractive, formatElapsed, erasePrintedLine } from '../utilities/spinner.js';
 import { refreshCache } from '../cache/cache.js';
 import { reportCache } from '../cache/report.js';
 import { ConfigLoader } from '../config/ConfigLoader.js';
@@ -707,7 +707,8 @@ export const Fetch = new Command('fetch')
           // figure describe neither stage (specs#707).
           const lastBytes = kind === 'file' ? lastFetchedBytes(outDir, entry.alias) : null;
           const abortHint = isInteractive() ? ' CTRL-C to abort.' : '';
-          console.log(`${preparingMessage(entry.alias, kind, lastBytes)}${abortHint}`);
+          const preparing = `${preparingMessage(entry.alias, kind, lastBytes)}${abortHint}`;
+          console.log(preparing);
 
           const stopWaiting = startSpinner(`Waiting for ${entry.alias} ${kind}`);
           let result: Awaited<ReturnType<typeof figmaFetch>>;
@@ -741,7 +742,13 @@ export const Fetch = new Command('fetch')
             throw new SourceFetchError(ERROR_CODES.NETWORK_ERROR);
           }
 
-          console.log(`✓ Ready: ${entry.alias} ${kind} — Figma took ${waited} to prepare it`);
+          // Each stage's line is superseded by the next one's, so only the last
+          // survives: the estimate stops being worth screen space once the wait it
+          // predicted is over, and the wait stops mattering once the bytes arrived.
+          // Failures erase nothing — there, the stage that was in flight is context.
+          const ready = `✓ Ready: ${entry.alias} ${kind} — Figma took ${waited} to prepare it`;
+          erasePrintedLine(preparing);
+          console.log(ready);
           const stopDownload = startSpinner(`Downloading: ${entry.alias} ${kind}`);
 
           const outputPath = path.join(outDir, `${entry.alias}.${kind}.json`);
@@ -787,6 +794,7 @@ export const Fetch = new Command('fetch')
           }
           // Elapsed now covers the transfer alone — the wait was reported above.
           const transferred = stopDownload();
+          erasePrintedLine(ready);
           // The flip (specs#563): the page-split directory IS the file
           // artifact. The monolithic file exists only transiently during the
           // download, and survives only as a rescue when the split fails.

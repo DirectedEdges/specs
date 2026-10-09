@@ -80,7 +80,13 @@ hook blocks it).
   measured at 10–18 seconds per 100MB against a transfer that runs near 75MB/s,
   so a 700MB fetch is ~100 seconds of silence then ~10 seconds of download.
   Treating the two as one is what made a healthy wait look like a hang, and made
-  the elapsed figure describe neither stage (specs#707).
+  the elapsed figure describe neither stage (specs#707). Each stage's line is
+  erased by the next (`utilities/spinner.ts`'s `erasePrintedLine`), so a finished
+  kind leaves one `✓ Downloaded:` line and the estimate and the wait are gone:
+  live progress while it matters, no transcript of it afterwards. That erase
+  reads the cursor's position, so nothing may print between a stage's line and
+  the spinner below it, and the caller hands over the text it printed because a
+  wrapped line occupies more than one row.
 - **The first-byte deadline covers the wait only — never the body.**
   `figmaFetch` aborts if no headers arrive within `FIRST_BYTE_TIMEOUT_MS`
   (4 minutes) and clears the timer the moment they do: a transfer already in
