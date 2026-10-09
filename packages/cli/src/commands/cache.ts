@@ -38,7 +38,7 @@ export const Cache = new Command('cache')
       const report = refreshCache({
         dataDir: dataDirectory,
         aliases,
-        glyphNamePattern: figmaOf(config.conventions).glyphs?.match,
+        glyphs: figmaOf(config.conventions).glyphs,
         force: options.force,
       });
 

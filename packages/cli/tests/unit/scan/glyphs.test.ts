@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { partitionByGlyphPattern } from '../../../src/commands/scan.js';
+import { partitionByGlyphConvention } from '../../../src/commands/scan.js';
 import { ManifestParserV2 } from '../../../src/utilities/manifestParserV2.js';
 import type { ComponentInfo } from '../../../src/scan/discovery.js';
 
@@ -12,41 +12,27 @@ function ci(
   return { id, name, type, devStatus };
 }
 
-describe('partitionByGlyphPattern', () => {
-  it('returns all components when pattern is undefined', () => {
+describe('partitionByGlyphConvention', () => {
+  it('returns all components when no ids are identified', () => {
     const all = [ci('1:1', 'Button'), ci('1:2', 'DS Icon Glyph / arrow')];
-    const { components, glyphs } = partitionByGlyphPattern(all, undefined);
+    const { components, glyphs } = partitionByGlyphConvention(all, new Set());
     expect(components).toHaveLength(2);
     expect(glyphs).toHaveLength(0);
   });
 
-  it('returns all components when pattern is empty string', () => {
-    const all = [ci('1:1', 'Button')];
-    const { components, glyphs } = partitionByGlyphPattern(all, '');
-    expect(components).toHaveLength(1);
-    expect(glyphs).toHaveLength(0);
-  });
-
-  it('splits components and glyphs using {i} placeholder', () => {
+  it('splits components and glyphs by identified ids', () => {
     const all = [
       ci('1:1', 'Button'),
       ci('1:2', 'DS Icon Glyph / arrow-down'),
       ci('1:3', 'Card'),
       ci('1:4', 'DS Icon Glyph / close')
     ];
-    const { components, glyphs } = partitionByGlyphPattern(all, 'DS Icon Glyph / {i}');
+    const { components, glyphs } = partitionByGlyphConvention(all, new Set(['1:2', '1:4']));
     expect(components.map(c => c.name)).toEqual(['Button', 'Card']);
     expect(glyphs.map(g => g.name)).toEqual([
       'DS Icon Glyph / arrow-down',
       'DS Icon Glyph / close'
     ]);
-  });
-
-  it('returns empty glyphs when pattern matches nothing', () => {
-    const all = [ci('1:1', 'Button'), ci('1:2', 'Card')];
-    const { components, glyphs } = partitionByGlyphPattern(all, 'DS Icon Glyph / {i}');
-    expect(components).toHaveLength(2);
-    expect(glyphs).toHaveLength(0);
   });
 });
 

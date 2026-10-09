@@ -48,7 +48,7 @@ export const Render = new Command('render')
       reportCache(refreshCache({
         dataDir: dataDirectory,
         aliases: Object.keys(config.settings.data?.sources ?? {}),
-        glyphNamePattern: figmaOf(config.conventions).glyphs?.match,
+        glyphs: figmaOf(config.conventions).glyphs,
       }));
     }
     if (options.watch) {

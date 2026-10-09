@@ -562,11 +562,21 @@ export class ConfigLoader {
       platform.naming = naming as ResolvedPlatformConventions['naming'];
     }
 
-    // glyphs — a non-empty match string, else the block is dropped
-    if (raw.glyphs !== undefined && raw.glyphs !== null) {
-      const match = typeof raw.glyphs === 'object' ? raw.glyphs.match : undefined;
+    // glyphs — at least one declared form survives (ADR-103): a non-empty match
+    // string, and/or a structure whose children is a non-empty array. A block
+    // carrying neither is dropped.
+    if (raw.glyphs !== undefined && raw.glyphs !== null && typeof raw.glyphs === 'object') {
+      const match = raw.glyphs.match;
+      const structure = raw.glyphs.structure as { children?: unknown[] } | undefined;
+      const glyphs: NonNullable<ResolvedPlatformConventions['glyphs']> = {};
       if (typeof match === 'string' && match.trim() !== '') {
-        platform.glyphs = { match };
+        glyphs.match = match;
+      }
+      if (structure && typeof structure === 'object' && Array.isArray(structure.children) && structure.children.length > 0) {
+        glyphs.structure = structure as NonNullable<ResolvedPlatformConventions['glyphs']>['structure'];
+      }
+      if (glyphs.match || glyphs.structure) {
+        platform.glyphs = glyphs;
       }
     }
 

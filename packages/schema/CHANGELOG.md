@@ -18,10 +18,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `MetadataConventions.specs` — the spec conventions a run was performed under, recorded beside the one platform entry. Required by a reader that cannot re-derive one from the spec it holds: a render resolving a nested instance's default slot does not hold that instance's own component spec (ADR-099)
 - `SlotProp.defaultSlot` — durable marker set at generation time when a slot prop matched `specs.slots.default.match`, read by consumers with no dependency on `Conventions` (ADR-099)
 - `PrimitiveEntry.match` — layer-name prefixes selecting a promotion entry, ahead of style scoring; longest prefix wins (ADR-100)
+- `PlatformConventions.glyphs.structure` — typed as `GlyphStructure`: glyph membership from child structure and fill, naming from the component name (ADR-103)
 
 ### Changed
 
+- `PlatformConventions.glyphs.match` — now optional; a declared `glyphs` block requires at least one of `match` / `structure` (ADR-103)
+
 ### Removed
+
+### Migration
+
+- `glyphs.match` → `glyphs.match` or `glyphs.structure`: existing declarations stay valid; code reading `glyphs.match` must handle its absence when only `structure` is declared
 
 
 ## [0.34.0] - 2026-09-23

@@ -12,7 +12,6 @@ import type { DevStatus } from '../utilities/devStatus.js';
 import { SectionedFile, shadowIngestEnabled, shadowCompare } from '../utilities/sectionedFile.js';
 import { ManifestParserV2, type ManifestRowV2 } from '../utilities/manifestParserV2.js';
 import { isV1Manifest, migrateV1ToV2 } from '../scan/manifestMigrationV1ToV2.js';
-import { glyphPatternMatch } from '../scan/glyphPatternMatch.js';
 import { specFolderKey } from '../utilities/specFolderKey.js';
 import { ConfigLoader } from '../config/ConfigLoader.js';
 import { StepError } from '../pipeline/StepError.js';
@@ -285,18 +284,19 @@ function escapeCell(value: string): string {
 }
 
 /**
- * Partition components by the glyph naming convention. When the pattern is falsy, all
- * components stay in the components list and glyphs is empty.
+ * Partition components by the glyphs convention (ADR-103) — membership computed by the
+ * discovery source over both forms (name pattern and/or structure). With no convention
+ * declared, all components stay in the components list and glyphs is empty.
  */
-export function partitionByGlyphPattern(
+export function partitionByGlyphConvention(
   components: ComponentInfo[],
-  glyphPattern: string | undefined
+  glyphIds: Set<string>
 ): { components: ComponentInfo[]; glyphs: ComponentInfo[] } {
-  if (!glyphPattern) return { components, glyphs: [] };
+  if (glyphIds.size === 0) return { components, glyphs: [] };
   const comps: ComponentInfo[] = [];
   const glyphs: ComponentInfo[] = [];
   for (const c of components) {
-    if (glyphPatternMatch(c.name, glyphPattern)) {
+    if (glyphIds.has(c.id)) {
       glyphs.push(c);
     } else {
       comps.push(c);
@@ -410,7 +410,7 @@ function generateManifestV2(
     lines.push('');
     lines.push('## Glyphs');
     lines.push('');
-    lines.push('_Detected via `glyphs.match` in `config/conventions/figma.yaml`. Excluded from `specs generate`._');
+    lines.push('_Detected via the `glyphs` convention in `config/conventions/figma.yaml`. Excluded from `specs generate`._');
     lines.push('');
     lines.push('| Name | ID | Type |');
     lines.push('|------|------|------|');
@@ -533,8 +533,9 @@ export async function runScan(
         );
       }
 
+      const glyphsConvention = figmaOf(config.conventions).glyphs;
       const discovery: DiscoverySource = sectioned
-        ? new SectionedComponentDiscovery(sectioned)
+        ? new SectionedComponentDiscovery(sectioned, glyphsConvention)
         : await ComponentDiscovery.fromFile(file);
 
       if (sectioned && shadowIngestEnabled() && fs.existsSync(file)) {
@@ -570,14 +571,13 @@ export async function runScan(
         console.error(`[CLI] Excluded ${componentInfoList.length - listable.length} authoring-aid component(s)`);
       }
 
-      const glyphPattern = figmaConventions.glyphs?.match;
-      const { components: componentList, glyphs: glyphList } = partitionByGlyphPattern(
+      const { components: componentList, glyphs: glyphList } = partitionByGlyphConvention(
         listable,
-        glyphPattern
+        discovery.glyphComponentIds(glyphsConvention)
       );
 
-      if (options.verbose && glyphPattern) {
-        console.error(`[CLI] Glyph pattern "${glyphPattern}" matched ${glyphList.length} components`);
+      if (options.verbose && glyphsConvention) {
+        console.error(`[CLI] Glyphs convention matched ${glyphList.length} components`);
       }
 
       // Curation settings (ADR-093), each overridable for one run by its flag.

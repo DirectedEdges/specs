@@ -8,7 +8,7 @@ description: "Configure which Figma files to fetch and process"
 - `file` — the full Figma document (components, frames, nodes). This is typically your component library file. Required for `generate`.
 - `variables` — Figma variable collections and their values. Used for token resolution during `generate`.
 - `styles` — Figma styles (color, text, effect). Used for style resolution during `generate`.
-- `icons` — the glyph assets matched by [`figma.glyphs.match`](/settings/glyph-name-pattern/), extracted as SVG files. Requires that convention to be declared and the `file` payload to be fetched.
+- `icons` — the glyph assets matched by [`figma.glyphs.match`](/settings/glyphs/), extracted as SVG files. Requires that convention to be declared and the `file` payload to be fetched.
 
 Most projects have one source. You'd add a second when your design system spans more than one Figma file:
 

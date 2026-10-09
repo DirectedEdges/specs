@@ -251,7 +251,7 @@ export const ApplyCustomTokens = new Command('applyCustomTokens')
         const report = refreshCache({
           dataDir: path.resolve(configDir, dataDirectory),
           aliases: Object.keys(config.settings.data?.sources ?? {}),
-          glyphNamePattern: figmaOf(config.conventions).glyphs?.match,
+          glyphs: figmaOf(config.conventions).glyphs,
         });
         reportCache(report);
       }

@@ -7,6 +7,10 @@ const experimental = { text: 'Experimental', variant: 'default' };
 export default defineConfig({
   site: 'https://www.specsplugin.com',
   server: { port: 4323 },
+  redirects: {
+    // Page renamed when the glyphs convention outgrew the single name pattern (ADR-103)
+    '/settings/glyph-name-pattern/': '/settings/glyphs/',
+  },
   integrations: [
     starlight({
       title: 'Specs',
@@ -315,7 +319,7 @@ export default defineConfig({
               collapsed: true,
               items: [
                 { label: 'naming', slug: 'settings/figma-keys' },
-                { label: 'glyphs', slug: 'settings/glyph-name-pattern' },
+                { label: 'glyphs', slug: 'settings/glyphs' },
                 { label: 'codeOnlyProps', slug: 'settings/code-only-props-pattern' },
                 { label: 'subcomponents', slug: 'settings/subcomponents' },
                 { label: 'instanceExamples', slug: 'settings/instance-examples', badge: pro },
