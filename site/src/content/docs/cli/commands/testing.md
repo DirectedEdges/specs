@@ -60,9 +60,11 @@ testing/visual/
 
 Writes `testing/visual/package.json` and a `.gitignore`, then prints the install to run rather than running it. Everything except `shoot` works with nothing installed.
 
+It also seeds `visual-ignore.yaml` — the diff's own defaults written out, with the note rule stated — but only when the file is absent.
+
 ### `--force`
 
-Rewrite the scaffold's own files. Never touches `visual-ignore.yaml` or anything else kept beside them.
+Rewrite the scaffold's own files. Never touches `visual-ignore.yaml` or anything else kept beside them: every line in that file is a judgment, and `--force` has no business discarding one.
 
 ## `specs testing visual manifest`
 
