@@ -15,7 +15,7 @@ import YAML from 'yaml';
 import { SectionedFile } from '../../utilities/sectionedFile.js';
 import type { VisualWorkspace } from './paths.js';
 import { writeJson } from './paths.js';
-import { loadSpecIndex, loadContract, emittedDirFor, camelize, type SpecRef, type Contract } from './specIndex.js';
+import { loadSpecIndex, loadContract, emittedDirFor, camelize, type SpecRef, type Contract, type UnsourcedSpec } from './specIndex.js';
 import { loadIgnore, manifestKeysFor } from './ignore.js';
 import type { Manifest, ManifestEntry, ManifestVariant, PropMapping, SpecKind, VariantStatus } from './types.js';
 
@@ -254,9 +254,16 @@ export function buildManifest(
 ): ManifestResult {
   const ws = vw.ws;
   const browserDrivenStates = loadBrowserDrivenStates(vw);
-  const specIndex = loadSpecIndex(ws.specsDir);
+  // The index reports what it could not carry: an unsourced spec is a mapping
+  // problem, not an absence. Kept out of `problems` until the scope is known,
+  // so a run on one component never reports another's.
+  const unsourced: UnsourcedSpec[] = [];
+  const specIndex = loadSpecIndex(ws.specsDir, unsourced);
   const only = opts.components?.length ? new Set(opts.components) : null;
   const kinds: SpecKind[] = opts.kinds ?? ['component', 'composition'];
+  const problems = unsourced
+    .filter((u) => kinds.includes(u.kind) && (!only || only.has(u.key)))
+    .map((u) => `${u.kind}/${u.key}: ${u.reason}`);
   const ignore = loadIgnore(vw.ignorePath);
 
   const declaredMarker = ignore.defaults.invalidMarker;
@@ -299,7 +306,6 @@ export function buildManifest(
     components: {},
     compositions: {},
   };
-  const problems: string[] = [];
   const totals = { specs: 0, variants: 0, shootable: 0, deferred: 0, unsupported: 0 };
 
   for (const kind of kinds) {

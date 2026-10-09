@@ -602,7 +602,7 @@ export interface ResolvedConventions {
   specs?: SpecsConventions;
   /** Component-keyed promotion entries. Optional; absence means nothing is promoted. @since 0.32.0 */
   primitives?: Record<string, PrimitiveEntry>;
-  /** Workspace Storybook presentation conventions. Optional; absence means none are declared. @since 0.35.0 */
+  /** Workspace Storybook conventions — how its pages present, and where it serves. Optional; absence means none are declared. @since 0.35.0 */
   storybook?: StorybookConventions;
 }
 

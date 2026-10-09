@@ -18,8 +18,28 @@ export interface SpecRef {
   dir: string;
 }
 
-/** Every spec of both kinds carrying a source nodeId, keyed kind-first. */
-export function loadSpecIndex(specsDir: string): Map<SpecKind, Map<string, SpecRef>> {
+/** A spec folder on disk the index could not carry, and why. */
+export interface UnsourcedSpec {
+  kind: SpecKind;
+  key: string;
+  reason: string;
+}
+
+/**
+ * Every spec of both kinds carrying a source nodeId, keyed kind-first.
+ *
+ * `skipped` collects the specs on disk this index cannot carry, in the same
+ * out-collector style as the manifest's `problems`. A spec whose api declares
+ * no `metadata.source.nodeId` has no Figma node to shoot against and cannot
+ * enter the manifest — but dropping it in silence makes a whole kind look
+ * unsupported rather than unsourced, which is how four hand-authored
+ * compositions disappeared from a workspace's manifest with "no mapping
+ * problems" reported.
+ */
+export function loadSpecIndex(
+  specsDir: string,
+  skipped?: UnsourcedSpec[],
+): Map<SpecKind, Map<string, SpecRef>> {
   const layout = resolveSpecsLayout(specsDir);
   const index = new Map<SpecKind, Map<string, SpecRef>>();
   for (const kind of SPEC_KINDS) {
@@ -30,12 +50,21 @@ export function loadSpecIndex(specsDir: string): Map<SpecKind, Map<string, SpecR
       const apiPath = ['yaml', 'yml', 'json']
         .map((ext) => path.join(dir, `api.${ext}`))
         .find((p) => fs.existsSync(p));
+      // Not reported: the layout seam only names folders that hold an `api.*`,
+      // so reaching here means the file vanished mid-run.
       if (!apiPath) continue;
       const api = apiPath.endsWith('.json')
         ? JSON.parse(fs.readFileSync(apiPath, 'utf8'))
         : YAML.parse(fs.readFileSync(apiPath, 'utf8'));
       const source = api?.metadata?.source;
-      if (!source?.nodeId) continue;
+      if (!source?.nodeId) {
+        skipped?.push({
+          kind,
+          key,
+          reason: 'api.yaml declares no metadata.source.nodeId — no Figma node to shoot against',
+        });
+        continue;
+      }
       byKey.set(key, {
         kind,
         key,
