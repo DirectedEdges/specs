@@ -22,7 +22,7 @@ specs testing visual accept --components <k...>  # promote renders into the regr
 specs testing visual                             # = shoot → diff
 ```
 
-Every form accepts `--config <path>` for a workspace whose `config/` is not in the current directory, and the per-spec stages accept `--components <keys...>`.
+Every form accepts `--config <path>` for a workspace whose `config/` is not in the current directory, and the per-spec stages accept `--components <keys...>`. The bare command runs shoot then diff, and takes what both need: `--components`, `--target`, `--port` and `--against`.
 
 ## Platforms
 
@@ -134,11 +134,15 @@ Composition rows are informational — full pixel counts, never the exit status.
 
 ### `--against <figma|accepted>`
 
-Which baseline to score against. `figma` (default) writes `report/fidelity.{json,md}`; `accepted` writes `report/regression.{json,md}`. Each mode keeps its own report and its own improvement history — running one never overwrites the other.
+Which baseline to score against. `figma` (default) writes `report/fidelity.<target>.{json,md}`; `accepted` writes `report/regression.<target>.{json,md}`. Each mode and platform keeps its own report and its own improvement history — running one never overwrites another.
 
 ### `--components <keys...>`
 
 Diff these spec folders only, merging into the stored report.
+
+### `--target <react|webcomponents>`
+
+Which platform's renders to score, and which report to write (default `react`).
 
 ### `visual-ignore.yaml`
 
@@ -195,6 +199,10 @@ Promote these spec folders only.
 
 Promote every spec with renders.
 
+### `--target <react|webcomponents>`
+
+Which platform's renders to promote (default `react`). One platform per call: promoting both at once would bless whichever renders were on disk, including a platform nobody had just shot.
+
 ## Examples
 
 ```bash
@@ -203,6 +211,12 @@ specs testing visual manifest --check
 specs testing visual baseline --components button badge
 specs testing visual shoot --components button badge
 specs testing visual diff --components button badge
+
+# Both platforms against the same Figma baseline
+specs testing visual shoot --target react
+specs testing visual diff  --target react
+specs testing visual shoot --target webcomponents
+specs testing visual diff  --target webcomponents
 
 # Everyday regression check after a regeneration
 specs testing visual

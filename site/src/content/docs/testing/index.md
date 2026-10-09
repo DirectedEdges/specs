@@ -34,7 +34,7 @@ A pair passes when its dimensions match and its pixel difference is under the th
 
 Components and compositions are both covered. A component yields one pair per variant; a composition — a full page or pattern — is a single frame and yields one pair. **Composition results are informational**: a page is built from components, so when a component is off, every page using it looks off too. Their rows carry full pixel counts but never fail a run — fix the components first.
 
-Each emitted platform is measured separately. One Figma export is the design for all of them, but React and Web Components each get their own screenshots, diffs and report, so `shoot`, `diff` and `accept` take `--target <react|webcomponents>`.
+Each emitted platform is measured separately. One Figma export is the design for all of them, but React and Web Components each get their own screenshots, diffs and report, so `shoot`, `diff`, `accept` and the bare command take `--target <react|webcomponents>` — defaulting to `react`. One Storybook serves every platform's stories, so the target picks which stories to shoot rather than which server to talk to. No stage does both platforms at once: one that did would overwrite one platform's screenshots with the other's.
 
 ## Where you see results
 
@@ -55,8 +55,10 @@ Rendering engines never agree perfectly — Chrome and Figma rasterize the same 
 
 Every entry requires a `note:` saying why. These entries suppress real signal, and the note is what lets the next person tell a permanent measurement fact from a temporary allowance — an entry without one is indistinguishable from a bug someone hid.
 
+`init` seeds the file with the diff's own defaults and those rules, so your first judgment is an edit rather than a blank page. It is seeded only when absent, and `--force` never touches it: every line in it is a decision.
+
 ## What it costs you
 
-The CLI ships no browser and no image library. `specs testing visual init` writes a small `package.json` into `testing/visual/` declaring Playwright, pixelmatch and pngjs; you run one install there, the same way the [Storybook host](/storybook/) works. Everything except `shoot` runs with nothing installed.
+The CLI ships no browser and no image library. `specs testing visual init` writes a small `package.json` into `testing/visual/` declaring Playwright, pixelmatch and pngjs, alongside the seeded `visual-ignore.yaml`; you run one install there, the same way the [Storybook host](/storybook/) works. Everything except `shoot` runs with nothing installed.
 
 Baseline capture is the one stage that spends something of yours — Figma API quota — which is why it never runs implicitly: not from the bare command, not from a watcher, not from [`specs build` or `specs run`](/cli/commands/build/). It runs when you type it, and it scopes itself: `status` compares a per-spec fingerprint of your fetched Figma data against what each baseline was captured from, so after a refetch, `baseline` recaptures the three designs that changed rather than the whole catalog.
