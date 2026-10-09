@@ -36,7 +36,7 @@ The manifest is a markdown file with a metadata header, a Components table, and 
 
 ## Glyphs
 
-_Detected via `glyphNamePattern`. Excluded from `specs generate`._
+_Detected via the `glyphs` convention in `config/conventions/figma.yaml`. Excluded from `specs generate`._
 
 | Name | ID | Type |
 |------|------|------|
@@ -94,7 +94,7 @@ A summary line is printed after each merge, e.g. `Merge: 2 added, 1 removed, 5 u
 
 ### Glyph partitioning
 
-When a `figma.glyphs` convention is declared in `config/conventions/figma.yaml`, top-level components it identifies are routed to a separate `## Glyphs` section in the manifest instead of `## Components`. Both forms partition: `match` uses `{i}` as the glyph-name placeholder — `'DS Icon Glyph / {i}'` matches `DS Icon Glyph / arrow-down` and extracts `arrow-down` — and `structure` identifies plainly named glyph components by their child shapes ([glyphs](/settings/glyph-name-pattern/)). These are the same conventions the processing engine evaluates for glyph detection inside component instances, so what `scan` partitions matches what `generate` treats as a glyph at processing time.
+When a `figma.glyphs` convention is declared in `config/conventions/figma.yaml`, top-level components it identifies are routed to a separate `## Glyphs` section in the manifest instead of `## Components`. Both forms partition: `match` uses `{i}` as the glyph-name placeholder — `'DS Icon Glyph / {i}'` matches `DS Icon Glyph / arrow-down` and extracts `arrow-down` — and `structure` identifies plainly named glyph components by their child shapes ([glyphs](/settings/glyphs/)). These are the same conventions the processing engine evaluates for glyph detection inside component instances, so what `scan` partitions matches what `generate` treats as a glyph at processing time.
 
 ```yaml
 # config/conventions/figma.yaml
@@ -245,5 +245,5 @@ Manifests produced by older versions of `scan` (checkbox-list format like `- [x]
 **See Also:**
 - [Generate Command](/cli/commands/generate/) - Generate specs from manifest or single component
 - [Render Command](/cli/commands/render/) - Uses scan data to bind glyphs, styles, and variables when rendering in Figma
-- [figma.glyphs](/settings/glyph-name-pattern/) - The conventions (name pattern and structure) that drive Glyphs-section partitioning
+- [figma.glyphs](/settings/glyphs/) - The conventions (name pattern and structure) that drive Glyphs-section partitioning
 - [Configuration Reference](/settings/) - Format and config options

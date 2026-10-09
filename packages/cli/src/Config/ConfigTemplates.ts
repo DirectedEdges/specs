@@ -32,7 +32,7 @@ export function generateFigmaConventionsTemplate(): string {
 
 # Icon glyph components, by name pattern ({i} is the glyph name) and/or by
 # child structure for libraries whose glyphs are plainly named (ADR-103)
-# https://www.specsplugin.com/settings/glyph-name-pattern/
+# https://www.specsplugin.com/settings/glyphs/
 # glyphs:
 #   match: 'DS Icon Glyph / {i}'
 #   structure:
