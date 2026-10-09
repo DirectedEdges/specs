@@ -5,6 +5,7 @@ import { coversParent } from '../analysis/layoutQueries.js';
 import { elemSelector, rootSelector } from './selectors.js';
 import {
   TEXT_PROPERTIES, backgroundImageDecls, gradientRingRule, inlineBlockIfBoxed, instanceFitRule, isGlyphLike, overlapRule,
+  preserveLineBreaks,
 } from './elementRules.js';
 import type { ImagesCssContext, RootForm } from '../types.js';
 import type { SpecAnalysis } from '../analysis/analyzeSpec.js';
@@ -17,6 +18,8 @@ export interface DefaultBlockInput {
   elemRoles: Record<string, string>;
   images: ImagesCssContext | undefined;
   facts: SpecAnalysis;
+  /** api.yaml's props, for an element whose content binds to one. */
+  apiProps: Record<string, Record<string, unknown>>;
 }
 
 export interface DefaultBlockResult {
@@ -32,7 +35,7 @@ export interface DefaultBlockResult {
 }
 
 export function defaultBlockLines(input: DefaultBlockInput): DefaultBlockResult {
-  const { componentClass, rootAs, tokensFormat, elemTypes, elemRoles, images, facts } = input;
+  const { componentClass, rootAs, tokensFormat, elemTypes, elemRoles, images, facts, apiProps } = input;
   const rootSel = rootSelector(componentClass, rootAs);
   const { defaultElements, parentOf, needsRelative, structuralKeys, consumedByCollapse, collapseControl } = facts;
 
@@ -66,6 +69,7 @@ export function defaultBlockLines(input: DefaultBlockInput): DefaultBlockResult 
     // meaning from a prop name and painted a solid `currentColor` box wherever
     // composition resolved the instance instead.
     inlineBlockIfBoxed(elemTypes[elemKey], decls);
+    preserveLineBreaks(elemTypes[elemKey], elem.content, apiProps, decls);
     if (decls.some(d => d.startsWith('display:'))) displayedInDefault.add(elemKey);
     if (isGlyphLike(elemTypes[elemKey])) {
       decls.push('mask: var(--glyph, none) no-repeat center / contain');

@@ -9,11 +9,11 @@ import fs from 'fs-extra';
 import path from 'path';
 import type { VisualWorkspace } from './paths.js';
 import { readJson, writeJson } from './paths.js';
-import { manifestEntries, type Manifest } from './types.js';
+import { manifestEntries, DEFAULT_TARGET, type Manifest, type Target } from './types.js';
 
 export function runAccept(
   vw: VisualWorkspace,
-  opts: { components?: string[]; all?: boolean },
+  opts: { components?: string[]; all?: boolean; target?: Target },
 ): { promoted: number } | null {
   if (!opts.all && !opts.components?.length) {
     console.error(
@@ -25,12 +25,15 @@ export function runAccept(
   }
   const manifest = readJson<Manifest>(vw.manifestPath);
   const only = opts.components?.length ? new Set(opts.components) : null;
+  // One platform at a time. Promoting both from one call would bless whichever
+  // renders happened to be on disk, including a platform nobody just shot.
+  const target: Target = opts.target ?? DEFAULT_TARGET;
 
   let promoted = 0;
   for (const [kind, key] of manifestEntries(manifest, only)) {
-    const renderDir = vw.dirFor('render', kind, key);
+    const renderDir = vw.dirFor('render', kind, key, target);
     if (!fs.existsSync(renderDir)) continue;
-    const acceptedDir = vw.dirFor('accepted', kind, key);
+    const acceptedDir = vw.dirFor('accepted', kind, key, target);
     const files = fs.readdirSync(renderDir).filter((f) => f.endsWith('.png'));
     if (!files.length) continue;
     fs.mkdirSync(acceptedDir, { recursive: true });
@@ -47,10 +50,13 @@ export function runAccept(
   }
 
   if (!promoted) {
-    console.error('✗ nothing to promote — no renders in scope. Shoot first.');
+    console.error(
+      `✗ nothing to promote — no ${target} renders in scope. ` +
+        `Shoot first: \`specs testing visual shoot --target ${target}\`.`,
+    );
     process.exitCode = 1;
     return null;
   }
-  console.log(`✓ accepted ${promoted} render(s) → testing/visual/accepted/`);
+  console.log(`✓ accepted ${promoted} ${target} render(s) → testing/visual/accepted/${target}/`);
   return { promoted };
 }

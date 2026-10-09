@@ -15,38 +15,56 @@ specs testing visual init                        # scaffold testing/visual/, onc
 specs testing visual manifest [--check]          # payloads + specs + contracts → manifest
 specs testing visual status                      # which baselines exist
 specs testing visual baseline                    # capture Figma exports — only when you ask
-specs testing visual shoot                       # screenshot the running Storybook
+specs testing visual shoot [--target <t>]        # screenshot the running Storybook
 specs testing visual diff [--against accepted]   # score pairs, write the report
 specs testing visual report                      # regenerate report views
 specs testing visual accept --components <k...>  # promote renders into the regression baseline
 specs testing visual                             # = shoot → diff
 ```
 
-Every form accepts `--config <path>` for a workspace whose `config/` is not in the current directory, and the per-spec stages accept `--components <keys...>`.
+Every form accepts `--config <path>` for a workspace whose `config/` is not in the current directory, and the per-spec stages accept `--components <keys...>`. The bare command runs shoot then diff, and takes what both need: `--components`, `--target`, `--port` and `--against`.
+
+## Platforms
+
+`shoot`, `diff`, `accept` and the bare command take `--target <react|webcomponents>`, defaulting to `react`. One Storybook serves both platforms' stories, so the target picks a story-title prefix rather than a server — but each platform keeps its own renders, diffs, accepted baselines and report.
+
+A stage never does both platforms at once. Measuring both means two calls:
+
+```bash
+specs testing visual shoot --target react
+specs testing visual diff  --target react
+specs testing visual shoot --target webcomponents
+specs testing visual diff  --target webcomponents
+```
+
+The Figma baseline is the exception: one export is the design for every platform, so `baseline` has no target.
 
 ## Output
 
 ```
 testing/visual/
-├── package.json              your install: playwright, pixelmatch, pngjs
+├── package.json                        your install: playwright, pixelmatch, pngjs
 ├── manifest.json
-├── visual-ignore.yaml        yours — scoring judgments, each with its note
-├── figma/<kind>/<key>/       Figma exports + .capture.json    (durable, local)
-├── accepted/<kind>/<key>/    renders you promoted             (regression baseline)
-├── render/<kind>/<key>/      this run                         (rebuilt on demand)
-├── diff/<kind>/<key>/        masks + triptych composites      (rebuilt on demand)
-└── report/                   fidelity.{json,md}, regression.{json,md}
+├── visual-ignore.yaml                  yours — scoring judgments, each with its note
+├── figma/<kind>/<key>/                 Figma exports + .capture.json  (durable, local)
+├── accepted/<target>/<kind>/<key>/     renders you promoted           (regression baseline)
+├── render/<target>/<kind>/<key>/        this run                      (rebuilt on demand)
+├── diff/<target>/<kind>/<key>/          masks + triptych composites   (rebuilt on demand)
+└── report/                             fidelity.<target>.{json,md}
+                                        regression.<target>.{json,md}
 ```
 
-`<kind>` is `components` or `compositions` — the two may share a name, and the kind directory keeps their baselines apart.
+`<kind>` is `components` or `compositions` — the two may share a name, and the kind directory keeps their baselines apart. `<target>` is `react` or `webcomponents`, for the same reason one level up: without it, shooting one platform overwrote the other's renders, and one report held both platforms' rows with nothing to say which was which.
 
 ## `specs testing visual init`
 
 Writes `testing/visual/package.json` and a `.gitignore`, then prints the install to run rather than running it. Everything except `shoot` works with nothing installed.
 
+It also seeds `visual-ignore.yaml` — the diff's own defaults written out, with the note rule stated — but only when the file is absent.
+
 ### `--force`
 
-Rewrite the scaffold's own files. Never touches `visual-ignore.yaml` or anything else kept beside them.
+Rewrite the scaffold's own files. Never touches `visual-ignore.yaml` or anything else kept beside them: every line in that file is a judgment, and `--force` has no business discarding one.
 
 ## `specs testing visual manifest`
 
@@ -100,7 +118,7 @@ Parallel pages (default 8).
 
 ### `--port <port>`
 
-The Storybook port. Default: read from the scaffolded `package.json`'s npm script, the same way `specs storybook dev` serves it.
+The Storybook port, for this run. Default: [`host.port` in `conventions/storybook.yaml`](/schema/conventions/#host), else the scaffolded npm script, else `6006` — the same resolution `specs storybook dev` serves on.
 
 ### `--target <react|webcomponents>`
 
@@ -116,11 +134,15 @@ Composition rows are informational — full pixel counts, never the exit status.
 
 ### `--against <figma|accepted>`
 
-Which baseline to score against. `figma` (default) writes `report/fidelity.{json,md}`; `accepted` writes `report/regression.{json,md}`. Each mode keeps its own report and its own improvement history — running one never overwrites the other.
+Which baseline to score against. `figma` (default) writes `report/fidelity.<target>.{json,md}`; `accepted` writes `report/regression.<target>.{json,md}`. Each mode and platform keeps its own report and its own improvement history — running one never overwrites another.
 
 ### `--components <keys...>`
 
 Diff these spec folders only, merging into the stored report.
+
+### `--target <react|webcomponents>`
+
+Which platform's renders to score, and which report to write (default `react`).
 
 ### `visual-ignore.yaml`
 
@@ -177,6 +199,10 @@ Promote these spec folders only.
 
 Promote every spec with renders.
 
+### `--target <react|webcomponents>`
+
+Which platform's renders to promote (default `react`). One platform per call: promoting both at once would bless whichever renders were on disk, including a platform nobody had just shot.
+
 ## Examples
 
 ```bash
@@ -185,6 +211,12 @@ specs testing visual manifest --check
 specs testing visual baseline --components button badge
 specs testing visual shoot --components button badge
 specs testing visual diff --components button badge
+
+# Both platforms against the same Figma baseline
+specs testing visual shoot --target react
+specs testing visual diff  --target react
+specs testing visual shoot --target webcomponents
+specs testing visual diff  --target webcomponents
 
 # Everyday regression check after a regeneration
 specs testing visual

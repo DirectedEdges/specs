@@ -97,6 +97,55 @@ export function inlineBlockIfBoxed(elemType: string | undefined, decls: string[]
 }
 
 /**
+ * A text element whose content carries a line break preserves it.
+ *
+ * A design file's text is literal — a break in it is a break the designer put
+ * there — while HTML collapses one into a space. Nothing emitted a
+ * whitespace-preserving value, so a two-line paragraph rendered as one line:
+ * the character survived the spec and the emitted code intact and was lost in
+ * the browser, costing exactly one line height.
+ *
+ * Deliberately NOT applied to every text element. `pre-wrap` on a button label
+ * or a heading preserves whitespace that was never meant as content, and most
+ * web text should collapse. The declaration goes only where the content shows
+ * an authored break.
+ *
+ * Content may be literal or bound to a prop, and a bound one is the common
+ * case — the break then lives in that prop's examples or default, which is
+ * where the design file's own text landed.
+ */
+export function preserveLineBreaks(
+  elemType: string | undefined,
+  content: unknown,
+  apiProps: Record<string, Record<string, unknown>>,
+  decls: string[],
+): void {
+  if (elemType !== 'text') return;
+  if (decls.some(d => d.startsWith('white-space:'))) return;
+  if (!contentHasLineBreak(content, apiProps)) return;
+  decls.push('white-space: pre-wrap');
+}
+
+/** Does this element's content — literal, or the prop it binds to — carry a newline? */
+function contentHasLineBreak(
+  content: unknown,
+  apiProps: Record<string, Record<string, unknown>>,
+): boolean {
+  if (typeof content === 'string') return content.includes('\n');
+  if (!content || typeof content !== 'object') return false;
+  const binding = (content as { $binding?: unknown }).$binding;
+  if (typeof binding !== 'string') return false;
+  const propKey = binding.match(/^#\/props\/(.+)$/)?.[1];
+  const prop = propKey ? apiProps[propKey] : undefined;
+  if (!prop) return false;
+  const candidates = [
+    ...(Array.isArray(prop.examples) ? prop.examples : []),
+    prop.default,
+  ];
+  return candidates.some(v => typeof v === 'string' && v.includes('\n'));
+}
+
+/**
  * A composed instance fills the slot its parent gave it.
  *
  * The wrapper element carries the size of the instance *node* — what the design

@@ -11,18 +11,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import fs from 'fs-extra';
 import path from 'path';
 import type { Workspace } from './workspace.js';
-
-/** The dev-server port from the scaffolded npm script, as storybook-up infers it. */
-function readScaffoldPort(ws: Workspace): string | null {
-  try {
-    const pkg = JSON.parse(fs.readFileSync(path.join(ws.storybookDir, 'package.json'), 'utf-8')) as {
-      scripts?: { storybook?: string };
-    };
-    return pkg.scripts?.storybook?.match(/-p\s+(\d+)/)?.[1] ?? null;
-  } catch {
-    return null;
-  }
-}
+import { resolveStorybookPort, scaffoldedPort } from './port.js';
 
 /**
  * Start Storybook and watch its health. Returns the child, or null when the
@@ -32,6 +21,20 @@ function readScaffoldPort(ws: Workspace): string | null {
  */
 export function serveStorybook(ws: Workspace, label = 'specs run'): ChildProcess | null {
   if (!ws.scaffolded) return null;
+
+  // The scaffolded npm script carries the port Storybook will actually listen
+  // on, so a declaration added after scaffolding disagrees with the running
+  // server until `init` rewrites the script. Say so rather than probing an
+  // address nothing answers at — a health check against the wrong port reads
+  // exactly like Storybook failing to start.
+  const resolved = resolveStorybookPort(ws);
+  const serving = scaffoldedPort(ws);
+  if (resolved.source === 'declared' && serving !== null && serving !== resolved.port) {
+    console.warn(
+      `[${label}] conventions/storybook.yaml declares port ${resolved.port}, but the scaffolded script serves ${serving}.\n` +
+        `[${label}] Run \`specs storybook init --force\` to move the host onto the declared port.`,
+    );
+  }
 
   // Piped output still reaches the terminal verbatim — the log trigger below
   // writes it through. --ci suppresses the prompts that hang a spawned run.
@@ -50,7 +53,9 @@ export function serveStorybook(ws: Workspace, label = 'specs run'): ChildProcess
   // fine again. It reads as the server dying, and restarting teaches nothing —
   // re-saving the file is the cure. Try that first; if the file is genuinely
   // broken, name it in one plain sentence rather than failing mutely.
-  const port = readScaffoldPort(ws);
+  // What it is listening on, which is the script's port — not necessarily the
+  // declared one, per the warning above.
+  const port = serving ?? resolved.port;
   const touched = new Set<string>();
   const healFromErrorText = (body: string) => {
     // Any module path in the error body: emitted trees name their files bare

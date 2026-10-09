@@ -68,9 +68,13 @@ async function runPublish(concern: string | undefined, options: SharedOptions): 
 const InitCommand = new Command('init')
   .description('Scaffold the Storybook host: package.json, tsconfig.json, .storybook/ — once')
   .option('--force', 'Rewrite host config even if it exists (never touches content-overrides/)', false)
-  .option('--port <port>', 'Dev-server port the scaffolded package.json uses', '6006')
+  // No default: absence means "resolve it" — the declaration in
+  // conventions/storybook.yaml, else the existing scaffold's port, else 6006.
+  // A default of '6006' here is what made `init --force` move a workspace off
+  // its own address.
+  .option('--port <port>', 'Dev-server port (default: conventions/storybook.yaml host.port, else the existing scaffold, else 6006)')
   .option('--config <path>', 'Path to a config/ directory or legacy specs.config.yaml')
-  .action((options: SharedOptions & { force: boolean; port: string }) => {
+  .action((options: SharedOptions & { force: boolean; port?: string }) => {
     try {
       const ws = resolveWorkspace(options.config);
       const result = init(ws, { force: options.force, port: options.port });
@@ -78,6 +82,10 @@ const InitCommand = new Command('init')
       console.log('✓ Storybook host scaffolded:');
       for (const file of result.written) console.log(`    ${file}`);
       console.log('');
+      if (result.portSource === 'declared') {
+        console.log(`  Port ${result.port}, from conventions/storybook.yaml (host.port).`);
+        console.log('');
+      }
       if (result.staleInstall.length > 0) {
         console.log('  ⚠ storybook/package.json changed, but the existing install no longer matches it:');
         for (const line of result.staleInstall) console.log(`      ${line}`);

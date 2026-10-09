@@ -76,6 +76,26 @@ describe('spec discovery through the layout seam', () => {
     expect([...index.get('component')!.keys()]).toEqual(['button']);
     expect(index.get('composition')!.size).toBe(0);
   });
+
+  /**
+   * A spec with no source node cannot be shot, but dropping it in silence makes
+   * a whole kind read as unsupported rather than unsourced — which is how four
+   * hand-authored compositions left a manifest reporting "no mapping problems".
+   */
+  it('names a spec it cannot carry instead of dropping it silently', () => {
+    writeSpec(path.join(root, 'components', 'button'), '1:1');
+    const unsourced = path.join(root, 'compositions', 'articleDetail');
+    fs.mkdirSync(unsourced, { recursive: true });
+    fs.writeFileSync(path.join(unsourced, 'api.yaml'), 'title: Article detail\nprops: {}\n');
+
+    const skipped: { kind: string; key: string; reason: string }[] = [];
+    const index = loadSpecIndex(root, skipped);
+
+    expect([...index.get('component')!.keys()]).toEqual(['button']);
+    expect([...index.get('composition')!.keys()]).toEqual([]);
+    expect(skipped.map((s) => `${s.kind}/${s.key}`)).toEqual(['composition/articleDetail']);
+    expect(skipped[0].reason).toMatch(/metadata\.source\.nodeId/);
+  });
 });
 
 describe('visual-ignore kind sections', () => {

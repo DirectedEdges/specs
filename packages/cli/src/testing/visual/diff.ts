@@ -19,16 +19,16 @@ import { createPngKit, type PngKit } from './png.js';
 import { loadIgnore, scoringFor, SCORING_DEFAULTS } from './ignore.js';
 import {
   manifestEntries,
+  reportNameFor,
+  DEFAULT_TARGET,
   type DiffMode,
   type Manifest,
   type ManifestVariant,
   type SpecKind,
+  type Target,
 } from './types.js';
 
-/** The report basename a mode owns: fidelity (vs Figma) or regression (vs accepted). */
-export function reportNameFor(mode: DiffMode): string {
-  return mode === 'accepted' ? 'regression' : 'fidelity';
-}
+export { reportNameFor };
 
 interface Ranking {
   depthOf(key: string): number;
@@ -95,19 +95,20 @@ function nodeOverflow(
 
 export async function runDiff(
   vw: VisualWorkspace,
-  opts: { components?: string[]; against?: DiffMode },
+  opts: { components?: string[]; against?: DiffMode; target?: Target },
 ): Promise<any> {
   const manifest = readJson<Manifest>(vw.manifestPath);
   const ignore = loadIgnore(vw.ignorePath);
   const ranking = loadRanking(vw);
   const only = opts.components?.length ? new Set(opts.components) : null;
   const mode: DiffMode = opts.against ?? 'figma';
+  const target: Target = opts.target ?? DEFAULT_TARGET;
   const baselineTree = mode === 'accepted' ? 'accepted' : 'figma';
 
-  if (mode === 'accepted' && !fs.existsSync(path.join(vw.root, 'accepted'))) {
+  if (mode === 'accepted' && !fs.existsSync(path.join(vw.root, 'accepted', target))) {
     console.error(
-      '✗ No accepted renders yet — regression mode diffs against renders you promoted.\n' +
-        '  Shoot first, review, then `specs testing visual accept --all` (or --components …).',
+      `✗ No accepted ${target} renders yet — regression mode diffs against renders you promoted.\n` +
+        `  Shoot first, review, then \`specs testing visual accept --target ${target} --all\` (or --components …).`,
     );
     process.exitCode = 1;
     return null;
@@ -128,14 +129,25 @@ export async function runDiff(
   // questions, and one file meant running `--against accepted` silently
   // replaced the fidelity results. Both now coexist, and each mode's
   // `previous` deltas chain against its own history.
-  const reportPath = path.join(vw.reportDir, `${reportNameFor(mode)}.json`);
-  // A pre-split report (visual-report.json) feeds the first same-mode run's
-  // deltas, then stops being read.
-  const legacyPath = path.join(vw.reportDir, 'visual-report.json');
+  const reportPath = path.join(vw.reportDir, `${reportNameFor(mode, target)}.json`);
+  // Earlier report spellings feed the first run's deltas, then stop being
+  // read: visual-report.json predates the mode split, and <mode>.json
+  // predates the target split. Both held React results, so only the React
+  // run inherits from them.
+  const legacyPaths =
+    target === DEFAULT_TARGET
+      ? [
+          path.join(vw.reportDir, `${mode === 'accepted' ? 'regression' : 'fidelity'}.json`),
+          path.join(vw.reportDir, 'visual-report.json'),
+        ]
+      : [];
+  const sameMode = (file: string) =>
+    (readJson<any>(file).mode ?? 'figma') === (mode === 'accepted' ? 'accepted' : 'figma');
+  const inherited = legacyPaths.find((p) => fs.existsSync(p) && sameMode(p));
   const previousReport: any = fs.existsSync(reportPath)
     ? readJson(reportPath)
-    : fs.existsSync(legacyPath) && ((readJson<any>(legacyPath).mode ?? 'figma') === (mode === 'accepted' ? 'accepted' : 'figma'))
-      ? readJson(legacyPath)
+    : inherited
+      ? readJson(inherited)
       : null;
 
   // Carry prior results forward for scoped runs, but only for specs the
@@ -152,9 +164,12 @@ export async function runDiff(
 
   for (const [kind, key, entry] of manifestEntries(manifest, only)) {
     const section = kind === 'composition' ? 'compositions' : 'components';
-    const renderDir = vw.dirFor('render', kind, key);
-    const baselineDir = vw.dirFor(baselineTree, kind, key);
-    const diffDir = vw.dirFor('diff', kind, key);
+    const renderDir = vw.dirFor('render', kind, key, target);
+    const baselineDir =
+      baselineTree === 'figma'
+        ? vw.dirFor('figma', kind, key)
+        : vw.dirFor('accepted', kind, key, target);
+    const diffDir = vw.dirFor('diff', kind, key, target);
 
     const shotsPath = path.join(renderDir, '.shots.json');
     const shotIndex = new Map<string, any>(
@@ -322,6 +337,7 @@ export async function runDiff(
     generatedAt: new Date().toISOString(),
     workspace: manifest.$meta.workspace,
     mode,
+    target,
     settings: { ...SCORING_DEFAULTS, scale, includeAA: false },
     analysis: ranking
       ? { cycles: ranking.cycles }
@@ -333,6 +349,7 @@ export async function runDiff(
   };
   writeJson(reportPath, report);
   writeMarkdown(vw, report);
+  await publishReportPage(vw, mode, target);
 
   const tally = (rows: any[]) =>
     rows.reduce(
@@ -342,7 +359,7 @@ export async function runDiff(
   const comp = tally(report.ranking);
   const compn = tally(report.compositionRanking);
   console.log(
-    `✓ diff (${mode}): components ${comp.pass} pass, ${comp.fail} fail` +
+    `✓ diff (${target} vs ${mode}): components ${comp.pass} pass, ${comp.fail} fail` +
       (report.compositionRanking.length
         ? ` · compositions ${compn.pass} pass, ${compn.fail} fail (advisory)`
         : '') +
@@ -353,8 +370,47 @@ export async function runDiff(
   return report;
 }
 
-/** Regenerate the markdown view from the stored JSON — never re-scores. */
-export function writeMarkdown(vw: VisualWorkspace, report: any): void {
+/**
+ * Write the Storybook page for the report this diff just produced.
+ *
+ * The page is a shell that fetches the report JSON at view time, so it needs
+ * writing once and is then always current — but nothing wrote it, because the
+ * only command that publishes Storybook content is `specs storybook`, and in
+ * the documented setup order that runs before the first report exists. The
+ * concern correctly detected nothing, wrote nothing, and a workspace whose
+ * numbers were entirely scored had no page to read them on.
+ *
+ * Scoped to the one concern on purpose: a wholesale publish races Storybook's
+ * story indexer, and this runs at the end of every diff.
+ *
+ * A workspace with no scaffolded host has nowhere to put a page, which is not
+ * a failure. Neither is a publish that throws — the report is already written,
+ * and losing it to a Storybook problem would be the worse outcome.
+ */
+async function publishReportPage(vw: VisualWorkspace, mode: DiffMode, target: Target): Promise<void> {
+  if (!vw.ws.scaffolded) return;
+  try {
+    const { publish } = await import('../../storybook/publish.js');
+    const result = await publish(vw.ws, 'visualtesting');
+    const written = result.concerns.visualtesting;
+    if (written?.changed) {
+      console.log(
+        `✓ Storybook page for the ${target} ${mode === 'accepted' ? 'regression' : 'fidelity'} report → storybook/content/visualtesting/`,
+      );
+    }
+  } catch (err) {
+    console.warn(
+      `⚠ The report is written, but its Storybook page could not be published: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+/**
+ * Regenerate the markdown view from the stored JSON — never re-scores.
+ * Returns the file written, since the name comes from the report's own mode
+ * and target rather than from the caller.
+ */
+export function writeMarkdown(vw: VisualWorkspace, report: any): string {
   const lines: string[] = [];
   // Display-only namespace strip; keys everywhere else keep the full spelling.
   const displayName = (key: string) => {
@@ -362,10 +418,18 @@ export function writeMarkdown(vw: VisualWorkspace, report: any): void {
     return m ? key.slice(m[0].length) : key;
   };
   const regression = (report.mode ?? 'figma') === 'accepted';
-  lines.push(regression ? '# Changes vs accepted renders' : '# Fidelity to Figma');
+  // A report written before the target split carries no target; it held React
+  // results, so name it as such rather than leaving the heading ambiguous.
+  const target: Target = report.target ?? DEFAULT_TARGET;
+  const platform = target === 'webcomponents' ? 'Web Components' : 'React';
+  lines.push(
+    regression
+      ? `# ${platform}: changes vs accepted renders`
+      : `# ${platform}: fidelity to Figma`,
+  );
   lines.push('');
   lines.push(
-    `Generated ${report.generatedAt} · baseline: ${regression ? 'last accepted renders' : 'Figma exports'} · scale ${report.settings.scale} · ` +
+    `Generated ${report.generatedAt} · platform: ${platform} · baseline: ${regression ? 'last accepted renders' : 'Figma exports'} · scale ${report.settings.scale} · ` +
       `default threshold ${report.settings.threshold} · default passPct ${report.settings.passPct}%`,
   );
   if (report.analysis?.warning) lines.push(`\n> ⚠ ${report.analysis.warning}`);
@@ -454,8 +518,10 @@ export function writeMarkdown(vw: VisualWorkspace, report: any): void {
     }
   }
   fs.mkdirSync(vw.reportDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(vw.reportDir, `${reportNameFor((report.mode ?? 'figma') === 'accepted' ? 'accepted' : 'figma')}.md`),
-    lines.join('\n') + '\n',
+  const file = path.join(
+    vw.reportDir,
+    `${reportNameFor(regression ? 'accepted' : 'figma', target)}.md`,
   );
+  fs.writeFileSync(file, lines.join('\n') + '\n');
+  return file;
 }
