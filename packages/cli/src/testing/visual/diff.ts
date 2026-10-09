@@ -349,6 +349,7 @@ export async function runDiff(
   };
   writeJson(reportPath, report);
   writeMarkdown(vw, report);
+  await publishReportPage(vw, mode, target);
 
   const tally = (rows: any[]) =>
     rows.reduce(
@@ -367,6 +368,41 @@ export async function runDiff(
   // Components decide the exit status; compositions never do.
   if (comp.fail > 0) process.exitCode = 1;
   return report;
+}
+
+/**
+ * Write the Storybook page for the report this diff just produced.
+ *
+ * The page is a shell that fetches the report JSON at view time, so it needs
+ * writing once and is then always current — but nothing wrote it, because the
+ * only command that publishes Storybook content is `specs storybook`, and in
+ * the documented setup order that runs before the first report exists. The
+ * concern correctly detected nothing, wrote nothing, and a workspace whose
+ * numbers were entirely scored had no page to read them on.
+ *
+ * Scoped to the one concern on purpose: a wholesale publish races Storybook's
+ * story indexer, and this runs at the end of every diff.
+ *
+ * A workspace with no scaffolded host has nowhere to put a page, which is not
+ * a failure. Neither is a publish that throws — the report is already written,
+ * and losing it to a Storybook problem would be the worse outcome.
+ */
+async function publishReportPage(vw: VisualWorkspace, mode: DiffMode, target: Target): Promise<void> {
+  if (!vw.ws.scaffolded) return;
+  try {
+    const { publish } = await import('../../storybook/publish.js');
+    const result = await publish(vw.ws, 'visualtesting');
+    const written = result.concerns.visualtesting;
+    if (written?.changed) {
+      console.log(
+        `✓ Storybook page for the ${target} ${mode === 'accepted' ? 'regression' : 'fidelity'} report → storybook/content/visualtesting/`,
+      );
+    }
+  } catch (err) {
+    console.warn(
+      `⚠ The report is written, but its Storybook page could not be published: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
 }
 
 /**
