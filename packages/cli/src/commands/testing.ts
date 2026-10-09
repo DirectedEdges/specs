@@ -13,6 +13,12 @@
 //   specs testing visual accept      promote renders → accepted/ (regression)
 //   specs testing visual             shoot → diff (baseline capture NEVER implied)
 //
+// Every stage past the Figma baseline is per-platform and takes `--target`:
+// one Storybook serves both platforms' stories, but their renders, diffs,
+// accepted baselines and reports are separate. A missing `--target` means
+// React, never both — a stage that quietly did both would overwrite one
+// platform's results with the other's.
+//
 // Free and unobfuscated. Playwright, pixelmatch and pngjs are the customer's
 // own install in testing/visual/ — the CLI ships no browser (ADR A).
 import { Command } from 'commander';
@@ -21,10 +27,23 @@ import { resolveVisual } from '../testing/visual/paths.js';
 import { readJson } from '../testing/visual/paths.js';
 import path from 'path';
 import { ERROR_CODES } from '../utilities/errorCodes.js';
+import { isTarget, reportNameFor, TARGETS, type DiffMode, type Target } from '../testing/visual/types.js';
 
 interface SharedOptions {
   config?: string;
   components?: string[];
+}
+
+/**
+ * Every stage below figma/ is per-platform, so a bad `--target` must stop the
+ * run rather than resolve to a path nobody meant.
+ */
+function requireTarget(value: string): Target {
+  if (!isTarget(value)) {
+    console.error(`✗ Unknown --target "${value}" — expected ${TARGETS.join(' or ')}.`);
+    process.exit(ERROR_CODES.INVALID_ARGS);
+  }
+  return value;
 }
 
 function fail(err: unknown): never {
@@ -123,13 +142,14 @@ Visual.command('shoot')
   .option('--workers <n>', 'Parallel pages (default 8)')
   .option('--port <port>', 'Storybook port (default: the scaffolded npm script\'s)')
   .option('--target <target>', 'react | webcomponents', 'react')
-  .action(async (options: SharedOptions & { workers?: string; port?: string; target: 'react' | 'webcomponents' }) => {
+  .action(async (options: SharedOptions & { workers?: string; port?: string; target: string }) => {
     try {
       const { runShoot } = await import('../testing/visual/shoot.js');
       const vw = resolveVisual(options.config);
       requireManifest(vw);
       await runShoot(vw, {
         ...options,
+        target: requireTarget(options.target),
         workers: options.workers ? Number(options.workers) : undefined,
         port: options.port ? Number(options.port) : undefined,
       });
@@ -143,12 +163,13 @@ Visual.command('diff')
   .option('--config <path>', 'Path to a config/ directory')
   .option('--components <keys...>', 'Only these spec folders (merges into the stored report)')
   .option('--against <baseline>', 'figma (fidelity, default) | accepted (regression)', 'figma')
-  .action(async (options: SharedOptions & { against: 'figma' | 'accepted' }) => {
+  .option('--target <target>', 'react | webcomponents', 'react')
+  .action(async (options: SharedOptions & { against: DiffMode; target: string }) => {
     try {
       const { runDiff } = await import('../testing/visual/diff.js');
       const vw = resolveVisual(options.config);
       requireManifest(vw);
-      await runDiff(vw, options);
+      await runDiff(vw, { ...options, target: requireTarget(options.target) });
       process.exit(process.exitCode ?? ERROR_CODES.SUCCESS);
     } catch (err) {
       fail(err);
@@ -163,8 +184,17 @@ Visual.command('report')
     try {
       const { writeMarkdown } = await import('../testing/visual/diff.js');
       const vw = resolveVisual(options.config);
-      // One report per mode: fidelity (vs Figma) and regression (vs accepted).
-      const present = ['fidelity', 'regression']
+      // One report per mode and platform: fidelity (vs Figma) or regression
+      // (vs accepted), for React or Web Components. Pre-split spellings are
+      // still regenerated so an older workspace's report does not vanish.
+      const names = [
+        ...(['figma', 'accepted'] as DiffMode[]).flatMap((mode) =>
+          TARGETS.map((t) => reportNameFor(mode, t)),
+        ),
+        'fidelity',
+        'regression',
+      ];
+      const present = names
         .map((name) => ({ name, file: path.join(vw.reportDir, `${name}.json`) }))
         .filter(({ file }) => fs.existsSync(file));
       if (!present.length) {
@@ -181,8 +211,7 @@ Visual.command('report')
         );
       } else {
         for (const { name, file } of present) {
-          writeMarkdown(vw, readJson(file));
-          console.log(`✓ ${name} → ${path.join(vw.reportDir, `${name}.md`)}`);
+          console.log(`✓ ${name} → ${writeMarkdown(vw, readJson(file))}`);
         }
       }
     } catch (err) {
@@ -195,12 +224,13 @@ Visual.command('accept')
   .option('--config <path>', 'Path to a config/ directory')
   .option('--components <keys...>', 'Promote only these spec folders')
   .option('--all', 'Promote every spec with renders', false)
-  .action(async (options: SharedOptions & { all: boolean }) => {
+  .option('--target <target>', 'react | webcomponents', 'react')
+  .action(async (options: SharedOptions & { all: boolean; target: string }) => {
     try {
       const { runAccept } = await import('../testing/visual/accept.js');
       const vw = resolveVisual(options.config);
       requireManifest(vw);
-      runAccept(vw, options);
+      runAccept(vw, { ...options, target: requireTarget(options.target) });
       process.exit(process.exitCode ?? ERROR_CODES.SUCCESS);
     } catch (err) {
       fail(err);
@@ -217,15 +247,19 @@ Visual.command('run', { isDefault: true, hidden: true })
   .option('--config <path>', 'Path to a config/ directory')
   .option('--components <keys...>', 'Only these spec folders')
   .option('--against <baseline>', 'figma (default) | accepted', 'figma')
-  .action(async (options: SharedOptions & { against: 'figma' | 'accepted' }) => {
+  .option('--target <target>', 'react | webcomponents', 'react')
+  .option('--port <port>', 'Storybook port (default: the scaffolded npm script\'s)')
+  .action(async (options: SharedOptions & { against: DiffMode; target: string; port?: string }) => {
     try {
       const vw = resolveVisual(options.config);
       requireManifest(vw);
+      const target = requireTarget(options.target);
+      const port = options.port ? Number(options.port) : undefined;
       const { runShoot } = await import('../testing/visual/shoot.js');
-      const shot = await runShoot(vw, { components: options.components });
+      const shot = await runShoot(vw, { components: options.components, target, port });
       if (!shot) process.exit(ERROR_CODES.GENERAL_ERROR);
       const { runDiff } = await import('../testing/visual/diff.js');
-      await runDiff(vw, options);
+      await runDiff(vw, { ...options, target });
       process.exit(process.exitCode ?? ERROR_CODES.SUCCESS);
     } catch (err) {
       fail(err);

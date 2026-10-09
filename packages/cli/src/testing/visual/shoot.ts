@@ -1,7 +1,10 @@
 // `specs testing visual shoot` — screenshot the Storybook render for every
 // shootable manifest variant, on a pool of parallel pages. Writes
-// render/<kind>/<key>/<nodeId>.png and a per-spec .shots.json describing
-// exactly how each pair was produced (story id, URL, join kind).
+// render/<target>/<kind>/<key>/<nodeId>.png and a per-spec .shots.json
+// describing exactly how each pair was produced (story id, URL, join kind).
+//
+// One Storybook instance serves every platform's stories, so the target
+// selects a story-title prefix, not a server.
 //
 // Playwright is the customer's, resolved from testing/visual/ (deps.ts) —
 // the CLI ships no browser.
@@ -17,7 +20,13 @@ import {
   serializeArgs,
   type IndexEntry,
 } from './storyJoin.js';
-import { manifestEntries, type Manifest, type SpecKind } from './types.js';
+import {
+  manifestEntries,
+  DEFAULT_TARGET,
+  type Manifest,
+  type SpecKind,
+  type Target,
+} from './types.js';
 
 const SETTLE_MS = 150;
 const WORKERS = 8;
@@ -34,15 +43,22 @@ const FREEZE_CSS =
   'html,body{margin:0!important;padding:0!important}#storybook-root{margin:0!important;padding:0!important}';
 
 /** The platform prefixes a target's stories carry, in lookup order. */
-function titleCandidates(target: 'react' | 'webcomponents', kind: SpecKind, titlePath: string): string[] {
+export function titleCandidates(target: Target, kind: SpecKind, titlePath: string): string[] {
   if (target === 'react') {
     return kind === 'composition' ? [`Compositions/${titlePath}`] : [`Components/${titlePath}`];
   }
-  // Web Components stories title under one platform root; compositions may
-  // nest under it or under their own — try both and use whichever the live
-  // index actually has.
+  // Web Components stories title under one platform root. A composition's
+  // title is already group-prefixed before the emitter adds that root, so the
+  // real title nests both — `Web Components/Compositions/Card`. Listing only
+  // the other two spellings is why every Web Components composition reported
+  // as no-story. The sidebar hides stories by matching the `Web Components/`
+  // prefix, so the title is the emitter's to keep and this list's to match.
   return kind === 'composition'
-    ? [`Web Components/${titlePath}`, `Web Components Compositions/${titlePath}`]
+    ? [
+        `Web Components/Compositions/${titlePath}`,
+        `Web Components/${titlePath}`,
+        `Web Components Compositions/${titlePath}`,
+      ]
     : [`Web Components/${titlePath}`];
 }
 
@@ -156,13 +172,13 @@ export async function runShoot(
     components?: string[];
     workers?: number;
     port?: number;
-    target?: 'react' | 'webcomponents';
+    target?: Target;
   },
 ): Promise<Record<string, number> | null> {
   const manifest = readJson<Manifest>(vw.manifestPath);
   const only = opts.components?.length ? new Set(opts.components) : null;
   const workers = Math.max(1, Number(opts.workers ?? WORKERS));
-  const target = opts.target ?? 'react';
+  const target = opts.target ?? DEFAULT_TARGET;
   const port = opts.port ?? scaffoldPort(vw.ws);
   if (!port) {
     console.error('✗ No Storybook port — pass --port or scaffold the host (`specs storybook init`).');
@@ -260,7 +276,10 @@ export async function runShoot(
         height: variant.size?.[1],
         pinHeight: variant.pinHeight,
         interaction: variant.interaction,
-        dest: path.join(vw.dirFor('render', kind, key), `${sanitizeNodeId(variant.nodeId)}.png`),
+        dest: path.join(
+          vw.dirFor('render', kind, key, target),
+          `${sanitizeNodeId(variant.nodeId)}.png`,
+        ),
         record: {
           nodeId: variant.nodeId,
           status: 'shot',
@@ -311,7 +330,7 @@ export async function runShoot(
 
   for (const [pair, { kind, total, shots }] of shotsByKey) {
     const key = pair.split('/')[1];
-    writeJson(path.join(vw.dirFor('render', kind, key), '.shots.json'), {
+    writeJson(path.join(vw.dirFor('render', kind, key, target), '.shots.json'), {
       shotAt: new Date().toISOString(),
       target,
       shots,
@@ -326,7 +345,7 @@ export async function runShoot(
     );
   }
   console.log(
-    `✓ shoot: ${stats.shot} shot (${stats.exact} exact join, ${stats.overlay} overlay), ` +
+    `✓ shoot (${target}): ${stats.shot} shot (${stats.exact} exact join, ${stats.overlay} overlay), ` +
       `${stats.noStory} no-story, ${stats.failed} failed [${workers} workers]`,
   );
   return stats;

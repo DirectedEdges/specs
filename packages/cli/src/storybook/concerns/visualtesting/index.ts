@@ -1,10 +1,11 @@
 // The visualtesting concern: the visual reports as generated Storybook pages
-// (specs#716). Each diff mode keeps its own report and gets its own page —
+// (specs#716). Each report gets its own page, one per diff mode and platform.
 // "Fidelity to Figma" (vs Figma exports) and "Changes vs Accepted" (vs the
 // renders you promoted) answer different questions, and one page with a mode
-// flag read as always-fidelity. A page publishes only when its report
-// exists, so a regression-only workspace never sees a half-empty fidelity
-// page.
+// flag read as always-fidelity; React and Web Components are two different
+// answers to the same question, so they are two pages rather than one with a
+// platform column. A page publishes only when its report exists, so a
+// React-only workspace never sees an empty Web Components page.
 //
 // This replaces the three hand edits to .storybook/main.ts that used to
 // mount the page: `init --force` owns that file now, so a hand edit is an
@@ -16,6 +17,7 @@ import path from 'path';
 import type { Concern, BuiltFile } from '../types.js';
 import type { Workspace } from '../../workspace.js';
 import { readTemplate, renderTemplate } from '../../templates.js';
+import { reportNameFor } from '../../../testing/visual/types.js';
 
 interface ModePage {
   /** Report basename, also the fetched file: report/<name>.json. */
@@ -23,33 +25,58 @@ interface ModePage {
   file: string;
   title: string;
   baselineLabel: string;
-  /** The diff flag that produces this report, for the empty-state hint. */
+  /** The diff flags that produce this report, for the empty-state hint. */
   diffFlag: string;
 }
 
-const PAGES: ModePage[] = [
+const MODES = [
+  { mode: 'figma' as const, slug: 'fidelity', label: 'Fidelity to Figma', baseline: 'Figma exports', flag: '' },
   {
-    name: 'fidelity',
-    file: 'FidelityToFigma.stories.tsx',
-    title: 'Fidelity to Figma',
-    baselineLabel: 'Figma exports',
-    diffFlag: '',
-  },
-  {
-    name: 'regression',
-    file: 'ChangesVsAccepted.stories.tsx',
-    title: 'Changes vs Accepted',
-    baselineLabel: 'last accepted renders',
-    diffFlag: ' --against accepted',
+    mode: 'accepted' as const,
+    slug: 'regression',
+    label: 'Changes vs Accepted',
+    baseline: 'last accepted renders',
+    flag: ' --against accepted',
   },
 ];
+
+const PLATFORMS = [
+  { target: 'react' as const, label: 'React', file: 'React' },
+  { target: 'webcomponents' as const, label: 'Web Components', file: 'WebComponents' },
+];
+
+const PAGES: ModePage[] = MODES.flatMap((m) =>
+  PLATFORMS.map((p) => ({
+    name: reportNameFor(m.mode, p.target),
+    file: `${m.slug === 'fidelity' ? 'FidelityToFigma' : 'ChangesVsAccepted'}${p.file}.stories.tsx`,
+    title: `${p.label}: ${m.label}`,
+    baselineLabel: m.baseline,
+    diffFlag: `${m.flag} --target ${p.target}`,
+  })),
+);
+
+/**
+ * Reports written before the platform split carry no target and held React
+ * results. They publish under the React title, but only while that mode has
+ * no split report yet — otherwise one workspace shows the same results twice.
+ */
+const LEGACY_PAGES: ModePage[] = MODES.map((m) => ({
+  name: m.slug,
+  file: `${m.slug === 'fidelity' ? 'FidelityToFigma' : 'ChangesVsAccepted'}React.stories.tsx`,
+  title: `React: ${m.label}`,
+  baselineLabel: m.baseline,
+  diffFlag: `${m.flag} --target react`,
+}));
 
 function reportDir(ws: Workspace): string {
   return path.join(ws.root, 'testing', 'visual', 'report');
 }
 
 function present(ws: Workspace): ModePage[] {
-  return PAGES.filter((p) => fs.existsSync(path.join(reportDir(ws), `${p.name}.json`)));
+  const has = (name: string) => fs.existsSync(path.join(reportDir(ws), `${name}.json`));
+  const pages = PAGES.filter((p) => has(p.name));
+  const claimed = new Set(pages.map((p) => p.file));
+  return [...pages, ...LEGACY_PAGES.filter((p) => has(p.name) && !claimed.has(p.file))];
 }
 
 export const visualtesting: Concern = {

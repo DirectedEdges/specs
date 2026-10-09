@@ -67,7 +67,7 @@ specs testing visual
 
 ## Step 5: Read the report
 
-Open your Storybook's **Testing → Fidelity to Figma** page. Results are ranked with dependency-graph leaves first — fix a leaf and every component built on it improves for free. Click a failing row: its worst variants expand as **baseline | render | diff** composites.
+Open your Storybook's **Testing → React: Fidelity to Figma** page. Results are ranked with dependency-graph leaves first — fix a leaf and every component built on it improves for free. Click a failing row: its worst variants expand as **baseline | render | diff** composites.
 
 Reading a failure from its numbers:
 
@@ -111,14 +111,16 @@ Two rules keep the file honest: every entry needs a `note:` saying why (the diff
 Once fidelity results look right, promote the renders you reviewed:
 
 ```bash
-specs testing visual accept --all
+specs testing visual accept --all --target react
 ```
 
 From then on, after any regeneration:
 
 ```bash
-specs testing visual shoot
-specs testing visual diff --against accepted
+specs testing visual shoot --target react
+specs testing visual diff --against accepted --target react
 ```
 
-No Figma access, no token, no tolerance tuning — emitted output is deterministic, so an unchanged component diffs at **exactly zero pixels**, and anything nonzero is a real change to review on **Testing → Changes vs Accepted**. Accept the changes you meant; investigate the ones you didn't.
+No Figma access, no token, no tolerance tuning — emitted output is deterministic, so an unchanged component diffs at **exactly zero pixels**, and anything nonzero is a real change to review on **Testing → React: Changes vs Accepted**. Accept the changes you meant; investigate the ones you didn't.
+
+Each platform keeps its own accepted baseline, so repeat both commands with `--target webcomponents` to cover the Web Components tree too.

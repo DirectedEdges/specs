@@ -13,6 +13,17 @@ export function kindDir(kind: SpecKind): string {
   return kind === 'composition' ? 'compositions' : 'components';
 }
 
+/** A platform whose emitted Storybook stories can be shot. */
+export type Target = 'react' | 'webcomponents';
+
+export const TARGETS: readonly Target[] = ['react', 'webcomponents'];
+
+export const DEFAULT_TARGET: Target = 'react';
+
+export function isTarget(value: string): value is Target {
+  return (TARGETS as readonly string[]).includes(value);
+}
+
 /** How a variant left the manifest stage. */
 export type VariantStatus =
   | 'shootable'
@@ -117,3 +128,14 @@ export interface ScoringKeys {
 
 /** Which baseline the diff scores against. */
 export type DiffMode = 'figma' | 'accepted';
+
+/**
+ * The report basename a mode and target own: fidelity (vs Figma) or
+ * regression (vs accepted), per platform. One file per pair, because a row
+ * carries no platform of its own — a shared file silently mixed React and
+ * Web Components results, and a scoped run on one platform left the other's
+ * rows standing as if they were current.
+ */
+export function reportNameFor(mode: DiffMode, target: Target): string {
+  return `${mode === 'accepted' ? 'regression' : 'fidelity'}.${target}`;
+}

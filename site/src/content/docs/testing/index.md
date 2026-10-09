@@ -34,12 +34,18 @@ A pair passes when its dimensions match and its pixel difference is under the th
 
 Components and compositions are both covered. A component yields one pair per variant; a composition — a full page or pattern — is a single frame and yields one pair. **Composition results are informational**: a page is built from components, so when a component is off, every page using it looks off too. Their rows carry full pixel counts but never fail a run — fix the components first.
 
+Each emitted platform is measured separately. One Figma export is the design for all of them, but React and Web Components each get their own screenshots, diffs and report, so `shoot`, `diff` and `accept` take `--target <react|webcomponents>`.
+
 ## Where you see results
 
-Each mode writes its own report, and your [workspace Storybook](/storybook/) publishes a page per report:
+Each mode and platform writes its own report, and your [workspace Storybook](/storybook/) publishes a page per report:
 
-- **Testing → Fidelity to Figma**
-- **Testing → Changes vs Accepted**
+- **Testing → React: Fidelity to Figma**
+- **Testing → React: Changes vs Accepted**
+- **Testing → Web Components: Fidelity to Figma**
+- **Testing → Web Components: Changes vs Accepted**
+
+A page appears only once its report exists, so a React-only workspace never sees an empty Web Components page.
 
 Sortable per-component results, ranked so dependency-graph leaves come first — fixing a leaf shrinks every diff downstream of it. Click a row and its worst failures expand as **baseline | render | diff** composites, the picture that diagnoses most failures in one glance. The pages read the report live: re-run `diff`, reload, done.
 

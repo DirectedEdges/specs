@@ -15,7 +15,7 @@ specs testing visual init                        # scaffold testing/visual/, onc
 specs testing visual manifest [--check]          # payloads + specs + contracts → manifest
 specs testing visual status                      # which baselines exist
 specs testing visual baseline                    # capture Figma exports — only when you ask
-specs testing visual shoot                       # screenshot the running Storybook
+specs testing visual shoot [--target <t>]        # screenshot the running Storybook
 specs testing visual diff [--against accepted]   # score pairs, write the report
 specs testing visual report                      # regenerate report views
 specs testing visual accept --components <k...>  # promote renders into the regression baseline
@@ -24,21 +24,37 @@ specs testing visual                             # = shoot → diff
 
 Every form accepts `--config <path>` for a workspace whose `config/` is not in the current directory, and the per-spec stages accept `--components <keys...>`.
 
+## Platforms
+
+`shoot`, `diff`, `accept` and the bare command take `--target <react|webcomponents>`, defaulting to `react`. One Storybook serves both platforms' stories, so the target picks a story-title prefix rather than a server — but each platform keeps its own renders, diffs, accepted baselines and report.
+
+A stage never does both platforms at once. Measuring both means two calls:
+
+```bash
+specs testing visual shoot --target react
+specs testing visual diff  --target react
+specs testing visual shoot --target webcomponents
+specs testing visual diff  --target webcomponents
+```
+
+The Figma baseline is the exception: one export is the design for every platform, so `baseline` has no target.
+
 ## Output
 
 ```
 testing/visual/
-├── package.json              your install: playwright, pixelmatch, pngjs
+├── package.json                        your install: playwright, pixelmatch, pngjs
 ├── manifest.json
-├── visual-ignore.yaml        yours — scoring judgments, each with its note
-├── figma/<kind>/<key>/       Figma exports + .capture.json    (durable, local)
-├── accepted/<kind>/<key>/    renders you promoted             (regression baseline)
-├── render/<kind>/<key>/      this run                         (rebuilt on demand)
-├── diff/<kind>/<key>/        masks + triptych composites      (rebuilt on demand)
-└── report/                   fidelity.{json,md}, regression.{json,md}
+├── visual-ignore.yaml                  yours — scoring judgments, each with its note
+├── figma/<kind>/<key>/                 Figma exports + .capture.json  (durable, local)
+├── accepted/<target>/<kind>/<key>/     renders you promoted           (regression baseline)
+├── render/<target>/<kind>/<key>/        this run                      (rebuilt on demand)
+├── diff/<target>/<kind>/<key>/          masks + triptych composites   (rebuilt on demand)
+└── report/                             fidelity.<target>.{json,md}
+                                        regression.<target>.{json,md}
 ```
 
-`<kind>` is `components` or `compositions` — the two may share a name, and the kind directory keeps their baselines apart.
+`<kind>` is `components` or `compositions` — the two may share a name, and the kind directory keeps their baselines apart. `<target>` is `react` or `webcomponents`, for the same reason one level up: without it, shooting one platform overwrote the other's renders, and one report held both platforms' rows with nothing to say which was which.
 
 ## `specs testing visual init`
 
