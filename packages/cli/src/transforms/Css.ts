@@ -253,7 +253,7 @@ function buildCssLines(input: SheetInput): string[] {
 
   const facts = analyzeSpec(variantsYaml, elemRoles);
 
-  const base = defaultBlockLines({ componentClass, rootAs, tokensFormat, elemTypes, elemRoles, images, facts });
+  const base = defaultBlockLines({ componentClass, rootAs, tokensFormat, elemTypes, elemRoles, images, facts, apiProps });
   lines.push(...base.lines);
 
   // ── Which selector carries which state ─────────────────────────────────────
