@@ -14,10 +14,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Settings.curation.defaultSelection` — `READY_FOR_DEV` or `ALL`; defaults to `READY_FOR_DEV`
 - `Settings.curation.preserveManualSelections` — hand edits outrank a changed Figma status; defaults to false
 - `Settings.curation.includeDependencies` — select what a component is built from; defaults to true
+- `PlatformConventions.glyphs.structure` — typed as `GlyphStructure`: glyph membership from child structure and fill, naming from the component name (ADR-103)
 
 ### Changed
 
+- `PlatformConventions.glyphs.match` — now optional; a declared `glyphs` block requires at least one of `match` / `structure` (ADR-103)
+
 ### Removed
+
+### Migration
+
+- `glyphs.match` → `glyphs.match` or `glyphs.structure`: existing declarations stay valid; code reading `glyphs.match` must handle its absence when only `structure` is declared
 
 
 ## [0.34.0] - 2026-09-23

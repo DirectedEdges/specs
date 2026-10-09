@@ -9,6 +9,8 @@ import type {
   StorybookConventions,
   MetadataConventions,
   PlatformConventions,
+  GlyphStructure,
+  GlyphStructureNode,
   SpecsConventions,
   PrimitiveKind,
   PrimitiveEntry,
@@ -255,3 +257,52 @@ const withoutStorybook: Conventions = {};
 const narrowing = storybook.color.rowGroup;
 // @ts-expect-error unknown is not string[] until the concern validates it
 const asArray: string[] = storybook.color.rowGroup;
+
+// ─── Structural glyph membership (ADR-103) ───────────────────────────────────
+
+// The name form alone — today's declaration, unchanged
+const glyphNameForm: PlatformConventions = {
+  glyphs: { match: 'DS Icon Glyph / {i}' },
+};
+
+// The structural form alone — a plainly named library (Carbon, Primer)
+const glyphStructureForm: PlatformConventions = {
+  glyphs: {
+    structure: {
+      children: [{ type: 'VECTOR', name: 'Vector' }],
+    },
+  },
+};
+
+// Both forms coexist; membership is the union
+const glyphBothForms: PlatformConventions = {
+  glyphs: {
+    match: 'DS Icon Glyph / {i}',
+    structure: { children: [{ type: 'VECTOR' }] },
+  },
+};
+
+// Naming rule over the component name, fill discriminant, and nested matchers
+const glyphFull: GlyphStructure = {
+  name: '{i}Icon',
+  fill: ['#161616', 'DS Color/Icon/Default'],
+  children: [
+    { type: 'BOOLEAN_OPERATION', children: [{ type: 'VECTOR', name: 'Glyph - *' }] },
+  ],
+};
+
+// A node matcher needs only its type; name and children stay optional
+const glyphBareNode: GlyphStructureNode = { type: 'VECTOR' };
+
+// @ts-expect-error — a structure declares its shape; children is required
+const glyphNoChildren: GlyphStructure = { name: '{i}' };
+
+// @ts-expect-error — type is required on a node matcher
+const glyphNodeNoType: GlyphStructureNode = { name: 'Vector' };
+
+// @ts-expect-error — fill is a list, even for a single value
+const glyphScalarFill: GlyphStructure = { fill: '#161616', children: [{ type: 'VECTOR' }] };
+
+// The resolved shape mirrors the declared one, both forms optional
+const resolvedGlyphStructure: GlyphStructure | undefined = platform.glyphs?.structure;
+const resolvedGlyphMatch: string | undefined = platform.glyphs?.match;

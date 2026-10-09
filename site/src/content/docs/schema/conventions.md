@@ -67,7 +67,7 @@ The shape is deliberately permissive: nothing stops a code platform declaring `i
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | [`naming`](/settings/figma-keys/) | `'NONE' \| 'SENTENCE' \| 'TITLE'` | `'NONE'` | Naming convention the Figma file uses — the reversal target for [`settings.spec.keys`](/schema/settings/) |
-| [`glyphs`](/guides/glyph-name-pattern/) | `object` | — | Glyph asset naming. Absent = no glyph convention |
+| [`glyphs`](/guides/glyph-name-pattern/) | `object` | — | Glyph asset detection, by name pattern or child structure. Absent = no glyph convention |
 | [`codeOnlyProps`](/guides/code-only-props/) | `object` | — | Code-only props container naming. Absent = no such convention |
 | [`subcomponents`](/guides/subcomponent-scoping/) | `object` | — | Subcomponent organization and naming. Absent = no subcomponent convention |
 | [`instanceExamples`](/guides/instance-examples/) | `object` | — | **Pro.** Instance example organization and naming. Absent = no such convention |
@@ -79,9 +79,12 @@ The shape is deliberately permissive: nothing stops a code platform declaring `i
 
 ### `glyphs`
 
+At least one of the two forms is declared; a component matching either is a glyph (ADR-103).
+
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `match` | `string` | *(required)* | Naming pattern identifying glyph assets. `{i}` = icon name (e.g. `'DS Icon Glyph / {i}'`) |
+| `match` | `string` | — | Naming pattern identifying glyph assets. `{i}` = icon name (e.g. `'DS Icon Glyph / {i}'`) |
+| `structure` | `object` | — | Structural membership: `children` (required node matchers — `type`, optional `name` with `*` wildcard, optional nested `children`; every actual child must match some entry), `name` (`{i}` rule over the component name, default `'{i}'`), `fill` (accepted leaf fills — raw color or token/style name) |
 
 ### `codeOnlyProps`
 
