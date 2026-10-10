@@ -4,6 +4,14 @@
  * The spinner occupies one line and is erased when it stops, so the caller prints the
  * outcome over it rather than under it: one line per unit of work, start to finish.
  *
+ * A unit of work may be *reported* as several stages while being *timed* as one — a
+ * fetch waits for Figma to build a payload, then downloads it, and the two have
+ * different causes and wildly different durations. Each stage gets its own spinner
+ * and its own message, so the text always says what is happening now, and every
+ * spinner after the first is handed the unit's origin via `since`: a stage boundary
+ * must not restart the figure the user is watching, and the figure that survives
+ * describes the unit rather than its last stage.
+ *
  * Outside a TTY (a pipe, CI, a log file) there is no cursor to move, so the text prints
  * once and the elapsed time is still returned. Nothing writes escape codes into a file.
  *
@@ -55,6 +63,9 @@ export function erasePrintedLine(text: string): void {
 }
 
 export function formatElapsed(ms: number): string {
+  // Truncating to whole seconds reported a tenth of a second as `0s`, which reads as
+  // "nothing happened" rather than "faster than this figure can say".
+  if (ms < 1000) return '<1s';
   const seconds = Math.floor(ms / 1000);
   if (seconds < 60) return `${seconds}s`;
   const minutes = Math.floor(seconds / 60);
@@ -62,9 +73,14 @@ export function formatElapsed(ms: number): string {
   return `${minutes}m ${remaining}s`;
 }
 
-/** Start spinning, and return a stop function that erases the line and reports elapsed time. */
-export function startSpinner(text: string): () => string {
-  const start = Date.now();
+/**
+ * Start spinning, and return a stop function that erases the line and reports elapsed time.
+ *
+ * `since` continues an already-running clock instead of starting a new one, for a
+ * later stage of a unit of work whose earlier stage was already being timed.
+ */
+export function startSpinner(text: string, since?: number): () => string {
+  const start = since ?? Date.now();
   if (!isInteractive()) {
     console.log(text);
     return () => formatElapsed(Date.now() - start);

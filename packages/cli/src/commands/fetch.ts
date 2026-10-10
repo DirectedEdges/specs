@@ -689,6 +689,10 @@ export const Fetch = new Command('fetch')
         try {
         for (const kind of entry.fetch.filter(k => k !== 'icons' && wants(k))) {
           activeKind = kind;
+          // One clock for the kind, read by both stages below. What a caller waited
+          // for is "variables", not "the transfer of variables after Figma finished
+          // building it" — so the figure that survives on screen spans the whole kind.
+          const kindStart = Date.now();
           const url =
             kind === 'file'
               ? `https://api.figma.com/v1/files/${entry.key}${options.geometry ? '?geometry=paths' : ''}`
@@ -700,17 +704,23 @@ export const Fetch = new Command('fetch')
             console.log(`[CLI] GET ${kind}: ${url}`);
           }
 
-          // Two stages, reported as two, because they have different causes and
-          // wildly different durations: Figma builds the payload (silence, minutes
-          // for a large file) and only then sends it (seconds). One spinner across
-          // both is what made a normal wait read as a hang, and made the elapsed
-          // figure describe neither stage (specs#707).
+          // Two stages, reported as two but timed as one, because they have different
+          // causes and wildly different durations: Figma builds the payload (silence,
+          // minutes for a large file) and only then sends it (seconds). One spinner
+          // across both is what made a normal wait read as a hang (specs#707); a clock
+          // per stage is what then made a two-minute wait finish as "(0s)", since the
+          // only figure left on screen was the transfer's.
           const lastBytes = kind === 'file' ? lastFetchedBytes(outDir, entry.alias) : null;
           const abortHint = isInteractive() ? ' CTRL-C to abort.' : '';
           const preparing = `${preparingMessage(entry.alias, kind, lastBytes)}${abortHint}`;
           console.log(preparing);
 
-          const stopWaiting = startSpinner(`Waiting for ${entry.alias} ${kind}`);
+          // "Waiting for" named our posture where every other line names the work, and
+          // a spaced alias and kind read as "the file called testlibrary". The dotted
+          // form is this command's spelling for the artifact everywhere else — its error
+          // paths and the name on disk — and `Preparing:` is parallel to `Downloading:`,
+          // so the three lines read as one unit of work in three states.
+          const stopWaiting = startSpinner(`Preparing: ${entry.alias}.${kind}`, kindStart);
           let result: Awaited<ReturnType<typeof figmaFetch>>;
           try {
             result = await figmaFetch(url, token);
@@ -746,10 +756,12 @@ export const Fetch = new Command('fetch')
           // survives: the estimate stops being worth screen space once the wait it
           // predicted is over, and the wait stops mattering once the bytes arrived.
           // Failures erase nothing — there, the stage that was in flight is context.
-          const ready = `✓ Ready: ${entry.alias} ${kind} — Figma took ${waited} to prepare it`;
+          // `waited` is the cumulative figure read at the end of the first stage, which
+          // is the prepare duration — the clock started with the kind, not with a stage.
+          const ready = `✓ Ready: ${entry.alias}.${kind} — Figma took ${waited} to prepare it`;
           erasePrintedLine(preparing);
           console.log(ready);
-          const stopDownload = startSpinner(`Downloading: ${entry.alias} ${kind}`);
+          const stopDownload = startSpinner(`Downloading: ${entry.alias}.${kind}`, kindStart);
 
           const outputPath = path.join(outDir, `${entry.alias}.${kind}.json`);
           // File payloads dual-write a page-split directory while streaming
@@ -792,8 +804,11 @@ export const Fetch = new Command('fetch')
             if (body) feedSplitter(Buffer.from(body, 'utf-8'));
             await fs.writeFile(outputPath, body, 'utf-8');
           }
-          // Elapsed now covers the transfer alone — the wait was reported above.
-          const transferred = stopDownload();
+          // Stopped here, but not read here: the spinner has to clear its inline status
+          // before the `✓ Split:` line prints, because `erasePrintedLine` only works
+          // while the cursor sits directly below the line it erases. The kind's total is
+          // read at the end instead, so the split is inside it.
+          stopDownload();
           erasePrintedLine(ready);
           // The flip (specs#563): the page-split directory IS the file
           // artifact. The monolithic file exists only transiently during the
@@ -811,7 +826,7 @@ export const Fetch = new Command('fetch')
             }
           }
 
-          console.log(`✓ Downloaded: ${entry.alias} ${kind} (${transferred})`);
+          console.log(`✓ Downloaded: ${entry.alias}.${kind} (${formatElapsed(Date.now() - kindStart)})`);
           completedKinds.add(kind);
 
           // Warn at download time when a kept payload is over the
@@ -857,7 +872,7 @@ export const Fetch = new Command('fetch')
             throw new SourceFetchError(ERROR_CODES.FILE_ERROR);
           }
 
-          const stopSpinner = startSpinner(`Downloading: ${entry.alias} glyphs`);
+          const stopSpinner = startSpinner(`Downloading: ${entry.alias}.glyphs`);
           // Page-split payloads collect glyphs from a page-assembled document;
           // slug dedupe must see every page at once, so pages load together here
           // (parsed size is what the old whole-file parse cost anyway).
@@ -914,7 +929,7 @@ export const Fetch = new Command('fetch')
             }
           }
           const elapsed = stopSpinner();
-          console.log(`✓ Downloaded: ${entry.alias} glyphs (${downloaded}/${glyphs.length}, ${elapsed})`);
+          console.log(`✓ Downloaded: ${entry.alias}.glyphs (${downloaded}/${glyphs.length}, ${elapsed})`);
           completedKinds.add('icons');
         }
         } catch (error) {

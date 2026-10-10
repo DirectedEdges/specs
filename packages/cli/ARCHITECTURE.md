@@ -87,6 +87,20 @@ hook blocks it).
   reads the cursor's position, so nothing may print between a stage's line and
   the spinner below it, and the caller hands over the text it printed because a
   wrapped line occupies more than one row.
+- **Every progress line names the kind as `<alias>.<kind>`**, the spelling the
+  error paths and the on-disk artifacts already use — `testlibrary file` reads as
+  "the file called testlibrary". The stage labels are `Preparing:` and
+  `Downloading:`, parallel verbs naming the work; `Waiting for` named the CLI's
+  posture instead, and was the only line in the sequence that did.
+- **The two stages are reported as two and timed as one.** One `kindStart` per
+  loop iteration is handed to both spinners as `startSpinner`'s `since`, so the
+  live counter does not restart at the stage boundary, and `✓ Downloaded:` reports
+  the kind's total — read at print time, after the split, not from the download
+  spinner's return. A clock per stage is why a two-minute wait used to finish as
+  `(0s)`: the wait's figure was on the line the download line erased, so the only
+  number that survived described a transfer of a few hundred milliseconds. The
+  `✓ Ready:` line still names the prepare duration, which is what a cumulative
+  clock reads at the end of the first stage.
 - **The first-byte deadline covers the wait only — never the body.**
   `figmaFetch` aborts if no headers arrive within `FIRST_BYTE_TIMEOUT_MS`
   (4 minutes) and clears the timer the moment they do: a transfer already in
