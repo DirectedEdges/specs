@@ -37,6 +37,12 @@ react/
 │               ├── scaffold.tsx
 │               ├── styles.css
 │               └── stories.tsx
+│   └── compositions/
+│       └── CheckoutSmall/          a composition, emitted as a component is
+│           ├── contract.ts
+│           ├── scaffold.tsx
+│           ├── styles.css
+│           └── stories.tsx
 └── …
 
 assets/
@@ -114,13 +120,27 @@ Report each component as it is emitted.
 
 | From | For |
 |---|---|
-| `specs/<component>/api.yaml` | props, anatomy, roles, actions, subcomponents |
-| `specs/<component>/variants.yaml` | the layout tree and per-variant styling |
-| `specs/<component>/examples.yaml` | instance and slot-content examples, for stories |
+| `specs/components/<component>/api.yaml` | props, anatomy, roles, actions, subcomponents |
+| `specs/components/<component>/variants.yaml` | the layout tree and per-variant styling |
+| `specs/components/<component>/examples.yaml` | instance and slot-content examples, for stories |
 | `config/conventions/react.yaml` | this platform's conventions |
 | `config/conventions/specs.yaml` | state classification, accessibility and value props |
 
 A component with no `variants.yaml` is skipped with a warning rather than emitted empty.
+
+## Compositions
+
+A **composition** is a spec whose Figma source is a frame — a screen or a pattern that arranges components rather than a component itself. `specs/compositions/<key>/` emits to `react/src/compositions/<Name>/`, mirroring the spec layout, and the components it composes are imported across that boundary from `../../components/<Name>`.
+
+A composition presents as **one story**, in its own nav group:
+
+```
+React/Compositions/Checkout/Small
+```
+
+so screens browse separately from the component list. A frame declares no variant properties, so there is one `Default` story and no sticker sheet.
+
+Compositions are **Pro**. On the free tier they are skipped — the run says so once and emits the components as normal — rather than emitted as a frame with its contents stripped out, which would be a styled empty box named after a screen.
 
 ## Free and Pro
 

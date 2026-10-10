@@ -3,9 +3,10 @@ import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
 import { fileURLToPath } from 'url';
-import { Storybook } from '../../../src/commands/StorybookCommand.js';
+import { Storybook } from '../../../src/commands/storybook.js';
 import { registry, concernNames } from '../../../src/storybook/concerns/registry.js';
-import { deriveTabs } from '../../../src/storybook/concerns/components/index.js';
+import { deriveTabs, deriveCompositions, deriveModes } from '../../../src/storybook/concerns/components/index.js';
+import { kebabizePath } from '../../../src/transforms/css/values/tokens.js';
 import { buildColorData } from '../../../src/storybook/concerns/foundations/color.js';
 import { buildIconsData } from '../../../src/storybook/concerns/foundations/icons.js';
 import { buildTypographyData } from '../../../src/storybook/concerns/foundations/typography.js';
@@ -20,7 +21,7 @@ describe('StorybookCommand', () => {
     const subs = Storybook.commands.map(c => c.name());
     expect(subs).toContain('init');
     expect(subs).toContain('publish');
-    expect(concernNames()).toEqual(['overview', 'foundations', 'components', 'analysis', 'versions']);
+    expect(concernNames()).toEqual(['overview', 'foundations', 'components', 'analysis', 'visualtesting', 'versions']);
   });
 });
 
@@ -67,6 +68,52 @@ describe('deriveTabs', () => {
     expect(deriveTabs(ws(true, false))).toEqual({ tabs: ['react', 'specs'], canvas: 'react' });
     expect(deriveTabs(ws(false, true))).toEqual({ tabs: ['webcomponents', 'specs'], canvas: 'webcomponents' });
     expect(deriveTabs(ws(false, false))).toEqual({ tabs: ['specs'], canvas: 'specs' });
+  });
+});
+
+/**
+ * The mode toolbar's attribute VALUE and the stylesheet's attribute selector are
+ * one contract across two emitters: cssvars writes
+ * `:root[data-<collection>="<kebabizePath(mode)>"]`, and the toolbar stamps
+ * whatever `deriveModes` puts in `modes.json`. A disagreement is invisible —
+ * the control sets an attribute no selector matches and the mode never switches
+ * — so the agreement is pinned here rather than left to a comment (specs#689).
+ *
+ * `deriveModes` now calls `kebabizePath` instead of restating it; this fails if
+ * anyone reintroduces a local copy that drifts.
+ */
+describe('mode names kebabize identically for the toolbar and the stylesheet', () => {
+  const modesWorkspace = (dir: string) => ({ assetsDir: dir } as Workspace);
+
+  const derive = (modeNames: string[]): Array<{ name: string; value: string }> => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modes-'));
+    fs.ensureDirSync(path.join(dir, 'cssvars'));
+    fs.writeJsonSync(path.join(dir, 'cssvars', 'modes.json'), {
+      Theme: { attr: 'data-theme', modes: modeNames, default: modeNames[0] },
+    });
+    const { controls } = deriveModes(modesWorkspace(dir), { collections: ['Theme'] });
+    fs.removeSync(dir);
+    return controls[0].modes;
+  };
+
+  it.each([
+    ['a space-separated name', 'High Contrast', 'high-contrast'],
+    ['a camelCase name', 'darkMode', 'darkmode'],
+    ['an underscored name', 'dark_mode', 'dark-mode'],
+    ['a slashed name', 'Brand/Alt', 'brand-alt'],
+    ['a plain name', 'Dark', 'dark'],
+  ])('%s resolves to the selector the stylesheet writes', (_label, modeName, expected) => {
+    // The stylesheet's side of the contract, called the same way Cssvars.ts does.
+    expect(kebabizePath(modeName)).toBe(expected);
+    // The toolbar's side, which must land on the same string.
+    expect(derive([modeName, 'Other'])[0]).toEqual({ name: modeName, value: expected });
+  });
+
+  it('keeps the raw name for display and the kebab form for the attribute', () => {
+    expect(derive(['Dark Mode', 'Light Mode'])).toEqual([
+      { name: 'Dark Mode', value: 'dark-mode' },
+      { name: 'Light Mode', value: 'light-mode' },
+    ]);
   });
 });
 
@@ -187,7 +234,7 @@ describe('publish semantics', () => {
       expect(concern.detect({} as Workspace)).toBe(true);
     }
     // analysis and versions are data-driven: each section exists only when its
-    // folder does (specs/_analysis/ and versions/ respectively).
+    // folder does (specs/analysis/ and versions/ respectively).
     const analysisConcern = registry.find(c => c.name === 'analysis')!;
     expect(analysisConcern.detect({ specsDir: '/nonexistent' } as Workspace)).toBe(false);
     const versionsConcern = registry.find(c => c.name === 'versions')!;
@@ -202,5 +249,99 @@ describe('storybook conventions (ADR-098)', () => {
     // No sources → null regardless; the mapping itself is covered through publish,
     // but the layout parameter shape is pinned here.
     expect(out).toBeNull();
+  });
+});
+
+/**
+ * The compositions half of the navigation contract (specs#662). A composition states what
+ * it is built from, which is the question a screen raises and a component page has no
+ * equivalent of.
+ */
+describe('deriveCompositions', () => {
+  function workspace(
+    specs: Record<string, Record<string, string>>,
+    componentKeys: string[],
+    compositionKeys: string[],
+  ): Workspace {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-compositions-'));
+    for (const [rel, files] of Object.entries(specs)) {
+      const dir = path.join(root, 'specs', rel);
+      fs.ensureDirSync(dir);
+      for (const [name, body] of Object.entries(files)) fs.writeFileSync(path.join(dir, name), body, 'utf-8');
+    }
+    // components/ must exist or the layout reads as legacy, where compositions cannot be.
+    fs.ensureDirSync(path.join(root, 'specs', 'components'));
+    return { specsDir: path.join(root, 'specs'), componentKeys, compositionKeys } as Workspace;
+  }
+
+  it('names each composition and the components it instances, sorted and deduplicated', () => {
+    const ws = workspace(
+      {
+        'compositions/homeScreen': {
+          'api.yaml': 'title: Home Screen\nanatomy:\n  root:\n    type: container\n  card:\n    type: instance\n    instanceOf: dsCard\n',
+          'variants.yaml': 'default:\n  elements:\n    card:\n      instanceOf: dsCard\n    button:\n      instanceOf: dsButton\n',
+        },
+      },
+      ['dsButton', 'dsCard'],
+      ['homeScreen'],
+    );
+
+    expect(deriveCompositions(ws)).toEqual({
+      compositions: [{ key: 'homeScreen', title: 'Home Screen', composes: ['dsButton', 'dsCard'] }],
+    });
+  });
+
+  it('omits a reference this workspace holds no component for', () => {
+    const ws = workspace(
+      {
+        'compositions/screen': {
+          'api.yaml': 'title: Screen\nanatomy:\n  a:\n    type: instance\n    instanceOf: dsCard\n  b:\n    type: instance\n    instanceOf: fromAnotherLibrary\n',
+        },
+      },
+      ['dsCard'],
+      ['screen'],
+    );
+
+    // An unresolved reference would be a dead link on the page, so it is left out.
+    expect(deriveCompositions(ws).compositions[0].composes).toEqual(['dsCard']);
+  });
+
+  it('ignores a subcomponent reference, which is not a separate component', () => {
+    const ws = workspace(
+      {
+        'compositions/screen': {
+          'api.yaml': 'title: Screen\nanatomy:\n  a:\n    type: instance\n    instanceOf:\n      $ref: "#/subcomponents/part"\n  b:\n    type: instance\n    instanceOf: dsCard\n',
+        },
+      },
+      ['dsCard'],
+      ['screen'],
+    );
+
+    expect(deriveCompositions(ws).compositions[0].composes).toEqual(['dsCard']);
+  });
+
+  it('falls back to the key when a composition states no title', () => {
+    const ws = workspace(
+      { 'compositions/screen': { 'variants.yaml': 'default:\n  elements: {}\n' } },
+      [],
+      ['screen'],
+    );
+
+    expect(deriveCompositions(ws).compositions[0]).toEqual({ key: 'screen', title: 'screen', composes: [] });
+  });
+
+  it('is an empty list in a workspace with no compositions', () => {
+    const ws = workspace({}, ['dsCard'], []);
+    expect(deriveCompositions(ws)).toEqual({ compositions: [] });
+  });
+
+  it('still lists a composition whose spec does not parse', () => {
+    const ws = workspace(
+      { 'compositions/broken': { 'api.yaml': 'title: [unclosed\n  nope: :\n' } },
+      [],
+      ['broken'],
+    );
+    // The malformed document is the generator's problem; the nav contract still has a row.
+    expect(deriveCompositions(ws).compositions.map((c) => c.key)).toEqual(['broken']);
   });
 });

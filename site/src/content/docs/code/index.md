@@ -72,9 +72,9 @@ The seam is a sibling: an authored `component.tsx` (React) or `component.ts` (We
 
 | Read from | Decides |
 |---|---|
-| `specs/<component>/api.yaml` | props, enums, anatomy, roles, actions, subcomponents |
-| `specs/<component>/variants.yaml` | the layout tree, per-variant styling, slot visibility |
-| `specs/<component>/examples.yaml` | instance and slot-content examples, for stories |
+| `specs/components/<component>/api.yaml` | props, enums, anatomy, roles, actions, subcomponents |
+| `specs/components/<component>/variants.yaml` | the layout tree, per-variant styling, slot visibility |
+| `specs/components/<component>/examples.yaml` | instance and slot-content examples, for stories |
 | `config/conventions/<platform>.yaml` | naming and emission conventions for that target |
 | `config/conventions/specs.yaml` | state classification, accessibility and value props |
 

@@ -41,7 +41,7 @@ From the workspace root:
 node <path-to>/specs.js analyze dependencies
 ```
 
-Then read both aggregates from `_analysis/` (extension follows the workspace's `format.output` — `.json` or `.yaml`):
+Then read both aggregates from `analysis/` (extension follows the workspace's `format.output` — `.json` or `.yaml`):
 
 - `dependencies.graph.{json,yaml}`
 - `dependencies.byComponent.{json,yaml}`
@@ -115,4 +115,4 @@ consumer configures.
 
 ### 7. Offer to save
 
-After replying, offer to save a dated copy to `<specs-dir>/_analysis/dependencies.report.{YYYY-MM-DD}.md`. Write the file only if the user accepts.
+After replying, offer to save a dated copy to `<specs-dir>/analysis/dependencies.report.{YYYY-MM-DD}.md`. Write the file only if the user accepts.

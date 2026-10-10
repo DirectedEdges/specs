@@ -77,6 +77,24 @@ the reason `/specs.consistency-check` exists:
 - `site/src/content/docs/schema/*.md` (hand-written; `docs/adr/` mirrors
   automatically at site build)
 
+### The stylesheet sync set
+
+A second, smaller one, and the reason it is written down: it has no ADR to
+anchor it. A refactor that changes what the CSS transformer emits is not a
+schema change, so nothing above fires — which is how the published style mapping
+came to describe a gradient-stroke mechanism, a `FILL` translation and a
+`text-align` vocabulary the transformer had all stopped using (specs#691).
+
+- `packages/cli/src/transforms/css/**` — a module's emitted declarations
+- `site/src/content/docs/code/style-mapping.md` — the appendix section that
+  **names that module**, which is what makes the pair checkable
+- `site/src/content/docs/code/styles.mdx` — the *Mapping Specs to CSS* table,
+  when a style key is added or removed
+
+Changing a module's output without the appendix is drift. The appendix names its
+owning module in every section, so the changed file identifies the section to
+re-verify.
+
 ## Consumers
 
 `specs-schema → specs-from-figma (engine) → specs-cli / specs-plugin-2`, with
@@ -91,7 +109,10 @@ package.json files usually mean mid-release-cycle, not breakage.
 The spec tree and the platform trees are not alike, and commands treat them
 differently on purpose.
 
-`specs/` is the **authored hub**. No command removes anything from it. A folder
+`specs/` is the **authored hub**, and it names what each folder holds:
+`components/<key>/`, `compositions/<key>/`, and `analysis/` for analyzer reports
+(ADR-096). A component and a composition may share a name. No command removes
+anything from it. A folder
 can be absent from a run for reasons the run cannot distinguish — a component
 deselected in the manifest on purpose, or specs generated into the directory from
 another source — so `generate` overwrites what it produces, reports folders it
@@ -106,6 +127,13 @@ a tree holding components from several sources orphans none of them, because emi
 reads the whole spec tree. Directories only disappear when their spec genuinely
 no longer exists — a rename or a removal — which is what keeps Storybook from
 carrying components whose imports no longer resolve (specs#614).
+
+Pruning is per **kind** and only over kinds the run emitted (ADR-096). A full emit
+prunes `<tree>/src/components/` against the components it read and
+`<tree>/src/compositions/` against the compositions, never one against the other —
+and never a kind it skipped. A free-tier run skips compositions, so it leaves that
+directory alone rather than deleting output a Pro run wrote and calling it orphaned;
+the same reasoning already covered `--components` and license-aborted runs.
 
 The rule, if the two ever seem to disagree: derived output tracks the hub; the hub
 tracks nothing and is never deleted from.

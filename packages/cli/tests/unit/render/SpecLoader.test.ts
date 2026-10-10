@@ -4,8 +4,8 @@ import os from 'os';
 import path from 'path';
 import { stringify } from 'yaml';
 import * as yaml from 'yaml';
-import { findComponentFolders, loadSpec } from '../../../src/Render/SpecLoader';
-import { splitComponentByConcern } from '../../../src/Writers/DataTransformers';
+import { findComponentFolders, loadSpec } from '../../../src/render/SpecLoader';
+import { splitComponentByConcern } from '../../../src/writers/DataTransformers';
 
 const tmpDirs: string[] = [];
 
@@ -182,6 +182,31 @@ describe('findComponentFolders', () => {
   it('does not descend past two levels', () => {
     const dir = makeTmpDir();
     makeComponent(dir, path.join('a', 'b', 'deTooBuried'));
+
+    expect(findComponentFolders(dir)).toEqual([]);
+  });
+
+  // ADR-096: pointing a batch at the specs root must reach as deep as pointing it
+  // at `components/` — the kind directory is the layout's, not a level of grouping,
+  // so it cannot spend the budget a grouped component needs.
+  it('reaches a grouped component from the specs root, past the kind directory', () => {
+    const dir = makeTmpDir();
+    const button = makeComponent(dir, path.join('components', 'deButton'));
+    const input = makeComponent(dir, path.join('components', 'forms', 'deInput'));
+
+    expect(findComponentFolders(dir)).toEqual([button, input].sort());
+  });
+
+  it('finds compositions from the specs root too', () => {
+    const dir = makeTmpDir();
+    const checkout = makeComponent(dir, path.join('compositions', 'checkout'));
+
+    expect(findComponentFolders(dir)).toEqual([checkout]);
+  });
+
+  it('spends the budget on a folder that only looks like a kind directory deeper down', () => {
+    const dir = makeTmpDir();
+    makeComponent(dir, path.join('components', 'forms', 'components', 'deTooBuried'));
 
     expect(findComponentFolders(dir)).toEqual([]);
   });

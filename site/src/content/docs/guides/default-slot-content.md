@@ -34,6 +34,32 @@ slotContentExamples:
 
 Identical fills across variants and components de-duplicate to a single entry, keyed by the host and slot.
 
+## Two shapes, and which one you get
+
+Everything above describes a component's **own** slot layer. The reference shape is the only one available there, and nothing about it changed: the component declares the slot, so content inside it is that slot's authored default.
+
+The other shape appears when the content includes a **nested instance** whose own slot is filled — a card inside the slot, with content inside the card. If your library declares [`slots.default.match`](/settings/default-slot/), and the card's filled slot is the one it names, that content is captured as the card's **children** rather than as a second registry entry:
+
+```yaml
+slotContentExamples:
+  dsAlert__children__default:
+    anatomy:
+      text: { type: container }
+      title: { type: text }
+      card: { type: instance, instanceOf: dsCard }
+      label: { type: text }
+    layout:
+      - text:
+          - title
+      # `card`'s default slot is filled by nesting, inside this same entry
+      - card:
+          - label
+```
+
+Without the convention, `card`'s fill would be its own entry — `dsAlert__dsCard__children` — pointed at from a `$slotContent` on the `card` element. One level is easy to read either way; four levels of nested layout components is the difference between one tree and a chain of four entries you have to follow by hand.
+
+A **non**-default slot on that card keeps the reference shape, so a card with both a `children` and a `header` slot shows both in one entry. See [`slots.default`](/settings/default-slot/) for the convention, and note that the `defaultSlotContent` flag on this page is what decides whether a component records any of this in the first place.
+
 ## How to Author It
 
 1. Place real default content inside the component's slot layer in Figma (e.g. a heading + description inside an Alert's content slot).
@@ -64,5 +90,6 @@ These are two different things, often confused:
 ## Further Reading
 
 - [`defaultSlotContent`](/settings/default-slot-content/) — config reference
+- [`slots.default`](/settings/default-slot/) — naming the library's default slot, which decides the nested shape above
 - [Instance (Ready-Made) Examples](/guides/instance-examples/) — the sibling feature
 - [Schema: Component](/schema/component/) — the `slotContentExamples` registry shape

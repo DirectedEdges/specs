@@ -33,7 +33,17 @@ text:
 ```
 
 Each entry names the `elementType` it promotes *from* — one of `text`, `glyph` or
-`container` — and a `map` of rules, in precedence order.
+`container` — a `map` of rules, in precedence order, and optionally the layer names that
+select it:
+
+```yaml
+Section:
+  elementType: container
+  match: ['DS Section', 'Section']
+  map:
+    - source: layoutMode
+      values: { VERTICAL: { direction: column } }
+```
 
 A rule names one `source` and then either:
 
@@ -64,9 +74,36 @@ how one entry serves either authoring style.
 ## Selecting between entries
 
 Several entries may share an `elementType`. A design system with a text, a heading and a
-body component is three entries, and the one selected is the one with the most rules
-resolving against the element. At least one rule must resolve, so `elementType` alone
-never promotes.
+body component is three entries, and which one is selected depends on whether the entry
+declares `match`:
+
+| | Rule |
+|---|---|
+| `match` declared and resolving | Selected immediately — the layer's name starts with one of the prefixes |
+| No `match`, or none resolving | Selected by score — the most rules resolving against the element wins, and at least one must |
+
+`elementType` gates both. A `text` layer never promotes to a `container` entry, whatever
+it is named.
+
+## Matching on the layer name
+
+`match` holds **prefixes**, not whole names: a name matches when the layer's name starts
+with one of them, exactly and case-sensitively. Composed content holds many layers of one
+kind distinguished by suffix, so `Section 1`, `Section 2` and `Section 3` are all matched
+by `Section`. The array lets a library mid-rename name both of its conventions, as
+`['DS Section', 'Section']` does.
+
+A resolved match short-circuits everything else. No score is computed, and no rule in
+`map` need resolve — an entry whose every prop is a default can declare a name and an
+empty `map`, and its styling still reaches output through the platform's `stylesProp`.
+
+Where two entries both match, the **longest** matching prefix wins: a `Section Header`
+entry outranks a `Section` one for a layer named `Section Header 2`. Selection therefore
+never depends on the order the table is written in.
+
+This is what a layout family needs. `Section`, `Block` and `Container` map the same closed
+container vocabulary and score identically against any frame, so styling cannot tell them
+apart; the layer name can.
 
 The target need not itself be a primitive: `elementType` describes the layer shape a
 promotion starts from, not the component it lands on.

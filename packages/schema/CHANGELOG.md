@@ -9,11 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `Conventions.storybook` — typed as `StorybookConventions`, an open concern-keyed map of feature settings loaded from `conventions/storybook.yaml`; also on `ResolvedConventions`
+- `Conventions.storybook` — typed as `StorybookConventions`, an open concern-keyed map of feature settings loaded from `conventions/storybook.yaml`; also on `ResolvedConventions`. Most concerns name how a Storybook page presents; `host` names where the Storybook serves. Adding a concern needs no change to this type or its schema, which is what the openness is for — the description no longer says "presentation", since the member covers both.
 - `Settings.curation` — which components of a library a run specs, defaulting to today's behaviour
 - `Settings.curation.defaultSelection` — `READY_FOR_DEV` or `ALL`; defaults to `READY_FOR_DEV`
 - `Settings.curation.preserveManualSelections` — hand edits outrank a changed Figma status; defaults to false
 - `Settings.curation.includeDependencies` — select what a component is built from; defaults to true
+- `SpecsConventions.slots.default.match` — naming patterns identifying a component's designated default slot, authored in `conventions/specs.yaml`. A spec convention, not a platform one: what it names is a `SlotProp` the spec declares, so every platform reads the same answer (ADR-099)
+- `MetadataConventions.specs` — the spec conventions a run was performed under, recorded beside the one platform entry. Required by a reader that cannot re-derive one from the spec it holds: a render resolving a nested instance's default slot does not hold that instance's own component spec (ADR-099)
+- `SlotProp.defaultSlot` — durable marker set at generation time when a slot prop matched `specs.slots.default.match`, read by consumers with no dependency on `Conventions` (ADR-099)
+- `PrimitiveEntry.match` — layer-name prefixes selecting a promotion entry, ahead of style scoring; longest prefix wins (ADR-100)
 - `PlatformConventions.glyphs.structure` — typed as `GlyphStructure`: glyph membership from child structure and fill, naming from the component name (ADR-103)
 
 ### Changed

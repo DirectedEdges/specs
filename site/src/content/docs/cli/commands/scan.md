@@ -11,7 +11,7 @@ specs scan [file] [options]
 
 ## Format
 
-The manifest is a markdown file with a metadata header, a Components table, and (when a `glyphs` convention is declared) a read-only Glyphs table:
+The manifest is a markdown file with a metadata header, a Components table, a Compositions table (when any frame is marked ready for dev), and a read-only Glyphs table (when a `glyphs` convention is declared):
 
 ```markdown
 # Component Manifest
@@ -34,6 +34,15 @@ The manifest is a markdown file with a metadata header, a Components table, and 
 | [ ] | DS Button Copy | 1234:5681 | COMPONENT | NONE |
 | [x] | DS Button | 1234:5682 | COMPONENT_SET | READY_FOR_DEV |
 
+## Compositions
+
+_Frames marked `READY_FOR_DEV` in Figma — a frame with no marking gets no row. Check and uncheck to curate, exactly as above._
+
+| ✓ | Name | ID | Type | Dev Status |
+|---|------|----|------|------------|
+| [x] | Checkout / Small | 3070:1147 | FRAME | READY_FOR_DEV |
+| [ ] | Home / Large | 4240:0115 | FRAME | READY_FOR_DEV |
+
 ## Glyphs
 
 _Detected via the `glyphs` convention in `config/conventions/figma.yaml`. Excluded from `specs generate`._
@@ -53,7 +62,12 @@ _Detected via the `glyphs` convention in `config/conventions/figma.yaml`. Exclud
 
 **Components row format:**
 - `[x]` / `[ ]` — checked / unchecked. Edit by hand to curate.
-- `Dev Status` — `READY_FOR_DEV` (designer-flagged in Figma Dev Mode) or `NONE` (unset). Read-only on each scan; changes drive the default merge behavior.
+- `Dev Status` — `READY_FOR_DEV` (designer-flagged in Figma Dev Mode) or `NONE` (unset). Read-only on each scan; changes drive the default merge behavior. A marking on a node nested inside a frame may read as `NONE` here even though Figma shows it set — see [Markings scan may not see](#markings-scan-may-not-see).
+
+**Compositions row format:**
+- The same five columns as Components, curated the same way: `[x]` / `[ ]`, edited by hand.
+- `Dev Status` reads `READY_FOR_DEV` on every row — that marking is what earned the row a place. A frame without it is not listed at all.
+- `Type` — always `FRAME`.
 
 **Glyphs row format:**
 - No checkboxes — glyphs are always excluded from `specs generate`. The section is purely informational so you can see what was detected.
@@ -115,6 +129,46 @@ Glyphs in the partitioned section are:
 
 If you remove the `glyphs` convention and rescan, previously-partitioned glyphs return to `## Components` and become curatable again.
 
+### Compositions
+
+A **composition** is a Figma frame that arranges components into a screen, a page, or a pattern. Compositions are curated exactly as components are — same columns, same checkbox, same rescan rules. What differs is only which frames are **eligible** for a row.
+
+**Eligibility: the frame must be marked Ready for dev in Figma.**
+
+- **No marking, no row.** An unmarked frame never appears, not even unchecked. This is what keeps the section usable: a real production library holds around 20,000 frames and marks about a dozen. A frame is a working container by default; the marking is what makes it a deliverable.
+- **Position does not matter to eligibility.** A frame on a page, in a section, or inside any other container is equally eligible. Position does affect whether `scan` can *see* the marking, though — see [Markings scan may not see](#markings-scan-may-not-see) below.
+- **The outermost marking wins.** A marked frame inside another marked frame is not listed separately; it is already captured as part of its ancestor, and listing it would spec the same arrangement twice.
+- **Authoring aids are excluded**, the same as for components — a frame matching `figma.subcomponents.exclude`, or under the `codeOnlyProps` container, is not a composition.
+
+**Curation: the checkbox decides what this run specs.**
+
+| | What happens |
+|---|---|
+| First scan | Every eligible composition starts checked |
+| You uncheck one, then rescan | It stays unchecked — no flag needed |
+| A frame gains the marking | It appears, checked |
+| A frame loses the marking | Its row is dropped, like a deleted component's |
+| `--include-all` | Checks every eligible composition. It widens curation, never eligibility |
+| `--reset-checks` | Re-derives every checkbox from scratch |
+
+Unchecking a row and unmarking the frame in Figma both remove a composition from the run, and the difference matters: unchecking is a decision about **this run**, recorded in the manifest and reversible there; unmarking says the frame is **not a deliverable**, and removes it from the manifest entirely.
+
+`curation.includeDependencies` does not apply to compositions. A checked composition does not pull in the components it composes — those stay curated on their own merits. If a composition composes a component you have not selected, the emitted scaffold imports output that was never generated, which `transform-verify-imports` reports as one line of error.
+
+Compositions are specced on either tier. **Emitting code** from one — `specs react`, `specs webcomponents` — requires Pro.
+
+A frame whose name yields no spec key (one named with whitespace alone, which real libraries contain) is skipped with a warning naming its node id, because its spec folder would have no name.
+
+### Markings scan may not see
+
+Frames and components nested inside other frames and marked `READY_FOR_DEV` may not be recognized by `scan`. The marking exists in Figma, but the REST payload `scan` reads does not always carry it, so the row is absent and nothing warns.
+
+Observed: a frame that is a direct child of a page, and a frame inside a section, both carry their marking through. A frame nested inside another frame, or inside a plain group, does not.
+
+This is an authoring consideration rather than something to work around. Mark the frame you mean to deliver at a position the payload reports — a page child, or inside a section — and the row appears. If a marked frame you expect is missing from the manifest, its nesting is the first thing to check.
+
+The outermost-marking rule above is unaffected in outcome: a marked frame inside a marked ancestor is still listed once, under the ancestor.
+
 ## Examples
 
 ### Basic scan
@@ -152,6 +206,7 @@ specs scan --verbose
 # Output:
 # ✓ Scanned library.file
 # ✓ Found 164 components (12 selected, 152 excluded)
+# ✓ Found 6 compositions (5 selected, 1 excluded)
 # ✓ Detected 48 glyphs (excluded from generate)
 #   Merge: 1 updated by devStatus, 163 preserved
 # ✓ Saved to /absolute/path/to/data/library.manifest.md

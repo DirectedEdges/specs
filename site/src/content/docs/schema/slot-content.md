@@ -33,6 +33,14 @@ interface SlotContent {
 
 specs-from-figma de-duplicates entries by structural equality across variants and slots — identical fills share a single registry entry.
 
+## When no entry exists
+
+A registry entry is how a **non**-default slot is filled. A fill into a slot marked [`defaultSlot: true`](/schema/props/#slotprop) produces no entry at all: the filling instance is nested as a plain [child](/schema/children/) of the element it fills, in whatever anatomy, elements and layout that element already lives in.
+
+So the registry holds what the structure cannot say on its own, and nothing more. A screen built from four nested layout components used to contribute an entry per level, each pointed at once from the level above; it now contributes none, and the entries that remain are its genuinely multi-slot fills.
+
+The same collapse applies *inside* an entry. A non-default slot's fill is still an entry, but a default-slot chain beneath it nests within that one entry rather than spawning another per level.
+
 ## Further Reading
 
 - [Component Examples as Data](https://nathanacurtis.substack.com/p/component-examples-as-data) — the thinking behind examples in the spec

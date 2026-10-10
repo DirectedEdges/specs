@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { FileManifest } from '../../../src/Writers/FileManifest.js';
-import type { OutputConfig } from '../../../src/Types/OutputConfig.js';
+import { FileManifest } from '../../../src/writers/FileManifest.js';
+import type { OutputConfig } from '../../../src/writers/outputConfig.js';
 
 describe('FileManifest', () => {
   const mockComponents = [

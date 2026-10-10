@@ -69,7 +69,7 @@ const preview: Preview = {
     options: {
       storySort: {
         method: 'alphabetical',
-        order: ['Overview', 'Foundations', 'Components', 'Analysis', 'Versions'],
+        order: ['Overview', 'Foundations', 'Components', 'Compositions', 'Analysis', 'Versions'],
       },
     },
     // Composed slot content is one long JSX expression; dedent preserves the

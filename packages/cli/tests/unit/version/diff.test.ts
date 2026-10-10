@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import path from 'path';
 import { assemble } from '../../../src/version/assemble.js';
-import { diffComponent, diffRun, findOrphans } from '../../../src/version/diff.js';
-import { buildRenameMap, emptyRenameMap } from '../../../src/version/renames.js';
-import { loadRules, bumpOf } from '../../../src/version/rules.js';
+import { diffComponent, diffRun, findOrphans } from '../../../src/version/diff/compare.js';
+import { buildRenameMap, emptyRenameMap } from '../../../src/version/diff/renames.js';
+import { loadRules, bumpOf } from '../../../src/version/rules/grade.js';
 import { makeWorkspace, removeWorkspace, editYaml } from './helpers.js';
 import type { DiffEntry } from '../../../src/version/types.js';
 

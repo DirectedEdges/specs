@@ -165,10 +165,14 @@ subcomponents:
 
 ### `conventions/specs.yaml`
 
-Facts about the spec's own props: which variant props are states, and which props
-carry an accessible name or a value.
+Facts about the spec's own props: which slot is the default, which variant props are
+states, and which props carry an accessible name or a value.
 
 ```yaml
+slots:
+  default:
+    match: ['children']
+
 states:
   hover:
     prop: state
@@ -258,7 +262,7 @@ points at a different directory entirely:
 specs generate data/library.file \
   -c "Button" \
   --config ./configs/mobile \
-  -o specs/mobile/button.yaml
+  -o specs/mobile/
 ```
 
 With nothing configured and no flags given, the CLI falls back to conventional

@@ -64,9 +64,23 @@ Inferred from Figma variant values when [`conventions.platforms.figma.inferNumbe
 | `minChildren` | `number` | No | Minimum number of children the slot accepts (since 0.25.0) |
 | `maxChildren` | `number` | No | Maximum number of children the slot accepts (since 0.25.0) |
 | `anyOf` | `string[]` | No | Permitted component type names (since 0.14.0) |
+| `defaultSlot` | `boolean` | No | Whether this is the component's designated default slot. Absent means `false` |
 | `$extensions` | `PropExtensions` | No | Vendor extensions |
 
 Slot constraint properties (`minChildren`, `maxChildren`, `anyOf`) are emitted when [`conventions.platforms.figma.slotConstraints`](/schema/conventions/#platform-members) is declared.
+
+`defaultSlot` marks the one slot a layout component always composes through. It is set at generation time, when the prop's name matched the library's [`specs.slots.default.match`](/schema/conventions/#slots) convention, and is read off the spec thereafter — a consumer needs no access to those conventions to know which slot it is:
+
+```yaml
+props:
+  children:
+    type: slot
+    defaultSlot: true
+```
+
+An instance filling a `defaultSlot` prop may be nested as a plain [child](/schema/children/) rather than through a [`SlotContentRef`](/schema/slot-content-ref/). Every other slot binds explicitly, which is the only shape that can say *which* of several slots a fill belongs to.
+
+**At most one `SlotProp` per component may be `true`.** This is a constraint over sibling entries in one `props` map, which JSON Schema cannot express without reaching into a named prop's value to compare it against its siblings. It is therefore an authoring and generator contract, not schema-validated: `specs generate` marks at most one and reports a component whose declared convention matches several, and a hand-authored spec that breaks the invariant is malformed input a consumer may reject.
 
 ### ImageProp
 

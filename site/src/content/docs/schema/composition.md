@@ -34,6 +34,34 @@ type Compositions = Record<string, Composition>;
 
 `slotContent` is an authoring convenience, not a scope boundary — fills there may reference entries in other compositions via [`SlotContentRef`](/schema/slot-content-ref/).
 
+## Nested instance hierarchies
+
+A composition is usually a hierarchy of layout components nested in one another, each filling the next one's slot. When those slots are marked [`defaultSlot: true`](/schema/props/#slotprop), the hierarchy lives in the composition's **own** triplet as nested [children](/schema/children/) — the instances are anatomy elements of the composition, and the layout is the tree:
+
+```yaml
+title: Search results / Small
+anatomy:
+  root: { type: container }
+  pageRow: { type: instance, instanceOf: dsPageRow }
+  section: { type: instance, instanceOf: dsSection }
+  container: { type: instance, instanceOf: dsContainer }
+  card1: { type: instance, instanceOf: dsCard }
+  card2: { type: instance, instanceOf: dsCard }
+elements:
+  card1:
+    propConfigurations:
+      header: { $slotContent: "#/compositions/searchResultsSmall/slotContent/cardHeader" }
+layout:
+  - root:
+      - pageRow:
+          - section:
+              - container:
+                  - card1
+                  - card2
+```
+
+Both shapes are visible there, and the difference is which slot each fills. The layout nesting *is* the fill for every `defaultSlot` in the chain, so nothing points from one level to the next. `card1`'s `header` is a second slot on the same component, so it binds explicitly and its fill is a `slotContent` entry — which is what `slotContent` holds once default-slot chains stop contributing an entry per level.
+
 ## Registry and references
 
 `Compositions` (`Record<string, Composition>`) is the registry shape used by external composition files, keyed `compositions:` (system-scoped).

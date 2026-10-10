@@ -92,7 +92,7 @@ specs cache
 specs cache --force
 
 # Rebuild as part of a render, without a separate command
-specs render specs/deButton/ --refresh-cache
+specs render specs/components/deButton/ --refresh-cache
 ```
 
 ## Related

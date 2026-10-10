@@ -11,6 +11,17 @@ Three ways to generate specs, depending on how many components you need:
 
 There's also a reverse direction — turning a spec back into a live Figma component with [`render`](#render-to-figma). Unlike the workflows above, it's inherently interactive (it needs an open Figma session) and isn't a fit for CI/CD.
 
+## Or let one command do it
+
+The workflows below type each step. [`specs build`](/cli/commands/build/) *(experimental)* runs all of them in order instead, and [`specs run`](/cli/commands/run/) *(experimental)* keeps doing it as you work:
+
+```bash
+specs fetch     # you choose when to spend an API call
+specs build     # scan → generate → analyze → react, webcomponents → storybook
+```
+
+Both work out what your workspace has from what is on disk, so there is nothing to configure. They are worth reading first if you keep forgetting which command comes next — that is the problem they exist to remove. The steps below are still the reference for what each one does, and still what you reach for when you want to run just one.
+
 ## Single Component
 
 Generate a spec for one component:
@@ -20,7 +31,7 @@ specs fetch --verbose
 
 specs generate data/library.file \
   -c "DS Alert" \
-  -o specs/alert.yaml \
+  -o specs/ \
   --verbose
 ```
 
@@ -37,7 +48,7 @@ specs scan -o manifest.md
 # Generate by ID
 specs generate data/library.file \
   -c "5507:123" \
-  -o specs/button-icon.yaml
+  -o specs/
 ```
 
 Use `--format json` to output JSON instead of YAML. See [Output configuration](/settings/output/) for all output modes and format options.
@@ -93,7 +104,7 @@ specs generate --verbose
 
 # Or with explicit paths:
 specs generate components.md \
-  -o specs/design-system.yaml \
+  -o specs/ \
   --verbose
 ```
 
@@ -157,6 +168,17 @@ jobs:
 - `FIGMA_TOKEN` - Figma Personal Access Token
 - `SPECS_LICENSE_KEY` - Specs license key (optional, for Pro features)
 
+To bring the emitted platform trees and Storybook up to date in the same run, replace the generate step with [`specs build`](/cli/commands/build/) *(experimental)*. It runs generate and everything downstream of it, and exits non-zero at the first step that fails:
+
+```yaml
+      - name: Build the workspace
+        run: specs build
+        env:
+          SPECS_LICENSE_KEY: ${{ secrets.SPECS_LICENSE_KEY }}
+```
+
+Keep the fetch as its own step either way. `build` is deliberately local — it needs no `FIGMA_TOKEN` and cannot reach a live Figma file, which is what makes the network call visible in the log rather than buried inside a longer command.
+
 ### Shell Script for Daily Sync
 
 ```bash
@@ -186,7 +208,7 @@ specs bridge start
 
 ```bash
 # Render one component
-specs render specs/deButton.yaml
+specs render specs/components/deButton.yaml
 
 # Or render every component in a directory
 specs render specs/
@@ -201,18 +223,18 @@ When the component you want is already open in Figma, skip the fetch entirely an
 ```bash
 # Bridge running, Specs 2 plugin open with CLI Bridge enabled,
 # and the component selected in Figma.
-specs generate --from-bridge -o specs/dsButton.yaml
+specs generate --from-bridge -o specs/
 ```
 
 The spec reflects the document as it stands right now, including unsaved edits — useful while iterating on a component rather than after a fetch.
 
 ```bash
 # Pin the node instead of relying on a manual selection
-specs generate --from-bridge --node 5507:123 -o specs/dsButton.yaml
+specs generate --from-bridge --node 5507:123 -o specs/
 
 # Pick a file when several are connected to one bridge
 specs bridge status
-specs generate --from-bridge --file abc123XYZ -o specs/dsButton.yaml
+specs generate --from-bridge --file abc123XYZ -o specs/
 ```
 
 With 2+ files connected and no `--file`, an interactive terminal prompts you to choose; scripts and CI fail with the ambiguity error instead of hanging.
@@ -220,9 +242,9 @@ With 2+ files connected and no `--file`, an interactive terminal prompts you to 
 Pair it with `render` to round-trip a spec and diff the result:
 
 ```bash
-specs render specs/dsButton.yaml
-specs generate --from-bridge -o specs/roundtrip/dsButton.yaml
-diff specs/dsButton.yaml specs/roundtrip/dsButton.yaml
+specs render specs/components/dsButton/
+specs generate --from-bridge -o roundtrip/
+diff specs/components/dsButton/api.yaml roundtrip/components/dsButton/api.yaml
 ```
 
 ---
@@ -251,7 +273,7 @@ specs generate lib.json -c "Button" | yq '.metadata'
 specs generate data/library.json \
   -c "DS Button" \
   --verbose \
-  -o specs/button.yaml 2>&1 | tee debug.log
+  -o specs/ 2>&1 | tee debug.log
 ```
 
 ### Check Manifest Before Generating

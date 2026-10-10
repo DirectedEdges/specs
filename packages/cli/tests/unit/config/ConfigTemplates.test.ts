@@ -6,7 +6,7 @@ import {
   generateSpecsConventionsTemplate,
   generateSettingsTemplate,
   generateConfigTemplates,
-} from '../../../src/Config/ConfigTemplates.js';
+} from '../../../src/config/ConfigTemplates.js';
 
 describe('ConfigTemplates', () => {
   describe('generateConfigTemplates', () => {
