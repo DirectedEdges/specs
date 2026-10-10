@@ -58,5 +58,50 @@ export function positionDecls(
     }
   }
 
+  decls.push(...centerDecls(styles, tokensFormat));
+
+  return decls;
+}
+
+/**
+ * A centre constraint, which pins the element's own centre to its parent's
+ * rather than anchoring an edge.
+ *
+ * The spec records it as an offset from that centre — `centerVerticalOffset: 0`
+ * is "stay vertically centred". Nothing translated it, so an element the design
+ * centres got no block-axis placement at all and fell to `top: auto`, which
+ * resolves to its static position: the top of the parent. A 4px slider track
+ * inside a 20px control rendered 8px high of where the design draws it.
+ *
+ * `inset-*-start: 50%` puts the element's leading edge at the parent's centre
+ * and the half-size `translate` pulls it back by its own measure, so this holds
+ * whatever the element's size is — including a size given as a token, where
+ * arithmetic on it is not available here.
+ *
+ * `translate` rather than `transform`: it is an independent property, so it
+ * composes with whatever `transformDecls` emitted instead of replacing it.
+ */
+function centerDecls(styles: Record<string, unknown>, tokensFormat: string): string[] {
+  const offset = (key: string): string | null => {
+    if (!(key in styles) || styles[key] === null || styles[key] === undefined) return null;
+    const raw = styles[key];
+    if (raw === 0) return '50%';
+    const d = dimensionValue(raw, tokensFormat);
+    return d ? `calc(50% + ${d})` : '50%';
+  };
+
+  // An edge anchor on the same axis wins: the two are mutually exclusive in a
+  // design file, and emitting both would put two values on one property.
+  const anchored = (...keys: string[]) =>
+    keys.some(k => k in styles && styles[k] !== null && styles[k] !== undefined);
+
+  const vertical = anchored('top', 'bottom') ? null : offset('centerVerticalOffset');
+  const horizontal = anchored('start', 'end') ? null : offset('centerHorizontalOffset');
+  if (!vertical && !horizontal) return [];
+
+  const decls: string[] = [];
+  if (horizontal) decls.push(`inset-inline-start: ${horizontal}`);
+  if (vertical) decls.push(`inset-block-start: ${vertical}`);
+  decls.push(`translate: ${horizontal ? '-50%' : '0'} ${vertical ? '-50%' : '0'}`);
   return decls;
 }
