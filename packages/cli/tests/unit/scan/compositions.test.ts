@@ -120,10 +120,22 @@ describe('listableCompositions', () => {
     expect(unnameable.map(c => c.id)).toEqual(['1:0', '2:0']);
   });
 
-  it('drops an authoring-aid frame, and counts it separately from an unnameable one', () => {
+  it('keeps a frame whose name matches a subcomponent exclude pattern', () => {
+    // Those patterns describe how a component's parts are named. A composition is a
+    // frame, so they say nothing about it — and a dropped frame has no unticked row
+    // to recover it from.
     const { compositions, authoringAids } = listableCompositions(
-      [frame('1:0', 'Examples / Home'), frame('2:0', 'Home')],
-      { exclude: ['Examples / {S}'] }
+      [frame('1:0', 'Compositions / Examples / Lockup'), frame('2:0', 'Home')],
+      { exclude: ['{C} / Examples / {S}'] }
+    );
+    expect(compositions.map(c => c.id)).toEqual(['1:0', '2:0']);
+    expect(authoringAids).toBe(0);
+  });
+
+  it('drops a code-only-props frame, and counts it separately from an unnameable one', () => {
+    const { compositions, authoringAids } = listableCompositions(
+      [frame('1:0', 'Code only props / Home'), frame('2:0', 'Home')],
+      { codeOnlyProps: 'Code only props' }
     );
     expect(compositions.map(c => c.id)).toEqual(['2:0']);
     expect(authoringAids).toBe(1);

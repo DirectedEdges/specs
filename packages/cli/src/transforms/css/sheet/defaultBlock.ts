@@ -2,9 +2,9 @@
 import { styleToCSS } from '../style/styleToCSS.js';
 import { layoutToCSS } from '../style/layoutToCSS.js';
 import { coversParent } from '../analysis/layoutQueries.js';
-import { elemSelector, rootSelector } from './selectors.js';
+import { composedSelector, elemSelector, rootSelector } from './selectors.js';
 import {
-  TEXT_PROPERTIES, backgroundImageDecls, gradientRingRule, inlineBlockIfBoxed, instanceFitRule, isGlyphLike, overlapRule,
+  TEXT_PROPERTIES, backgroundImageDecls, gradientRingRule, inlineBlockIfBoxed, isGlyphLike, overlapRule,
   preserveLineBreaks,
 } from './elementRules.js';
 import type { ImagesCssContext, RootForm } from '../types.js';
@@ -44,10 +44,12 @@ export function defaultBlockLines(input: DefaultBlockInput): DefaultBlockResult 
   const foldedText = new Map<'value' | 'placeholder', string[]>();
 
   for (const [elemKey, elem] of Object.entries(defaultElements)) {
-    const selector = elemKey === 'root' ? rootSel() : elemSelector(componentClass, elemKey);
+    const selector = elemKey === 'root'
+      ? rootSel()
+      : composedSelector(elemSelector(componentClass, elemKey), elemTypes[elemKey]);
     const styles = (elem.styles ?? {}) as Record<string, unknown>;
     const decls = [
-      ...layoutToCSS(styles, tokensFormat, facts.parentLayoutMode(elemKey)),
+      ...layoutToCSS(styles, tokensFormat, facts.parentLayoutMode(elemKey), true, facts.parentCrossAxisAlignment(elemKey)),
       ...styleToCSS(styles, tokensFormat, elemTypes[elemKey], { ...facts.styleOptions(elemKey), isDefaultBlock: true }),
     ];
     if ('backgroundImage' in styles) decls.push(...backgroundImageDecls(styles.backgroundImage, images));
@@ -106,7 +108,10 @@ export function defaultBlockLines(input: DefaultBlockInput): DefaultBlockResult 
       lines.push('}');
       lines.push('');
     }
-    lines.push(...instanceFitRule(selector, elemTypes[elemKey], styles));
+    // No `instanceFitRule` here any more. It pushed the instance node's size onto
+    // a child of the wrapper that carried this class; the emitters now put the
+    // class on the composed component's own root, so the size is already on the
+    // element that needs it and `composedSelector` is what makes it win.
     lines.push(...overlapRule(selector, styles));
     lines.push(...gradientRingRule(selector, styles, tokensFormat));
 

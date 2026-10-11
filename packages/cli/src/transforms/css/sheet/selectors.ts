@@ -83,3 +83,26 @@ export function elemSelector(componentClass: string, elemKey: string): string {
     : `.${componentClass}__${toKebab(elemKey)}`;
 }
 
+/**
+ * An element's rule, written so it wins against the component it composes.
+ *
+ * A composed instance has no wrapper: the emitters put this class on the
+ * composed component's own root element, which already carries that component's
+ * single-class root rule. Two single-class rules on one element are decided by
+ * the order two independently generated stylesheets happen to load in, which is
+ * not something either file can state. Doubling the class settles it by
+ * specificity instead.
+ *
+ * Doubling the *last* class is what makes this work inside a variant's
+ * descendant selector, where the element's class is the right-hand part and the
+ * variant's qualifiers sit on the root to its left.
+ *
+ * For the custom-element build the composed component's size lives in a `:host`
+ * rule, which an outer-tree class already outranks; the doubling is harmless.
+ */
+export function composedSelector(selector: string, elemType: string | undefined): string {
+  if (elemType !== 'instance') return selector;
+  const own = selector.split(' ').pop() ?? selector;
+  return `${selector}${own}`;
+}
+

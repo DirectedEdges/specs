@@ -145,50 +145,16 @@ function contentHasLineBreak(
   return candidates.some(v => typeof v === 'string' && v.includes('\n'));
 }
 
-/**
- * A composed instance fills the slot its parent gave it.
- *
- * The wrapper element carries the size of the instance *node* — what the design
- * resized this particular instance to. The component it composes carries the
- * size of its own master, which is a different number whenever the instance was
- * resized. Without this the child paints at its master's size: a 73x73 image
- * component dropped into a 13x13 slot covered the whole parent.
- *
- * Only dimensions the slot states definitely are passed on. A slot that HUGs is
- * sized *by* its child, so forcing the child to fill it would be circular.
- *
- * An absolutely positioned slot states its size a third way: opposing insets.
- * `start` and `end` together say the slot spans its container's width, and
- * `top` with `bottom` says the same vertically — a dialog's blanket pinned to
- * all four edges names no width at all, yet is exactly as wide as the dialog.
- * Without this the child painted at its master's size inside a slot that had
- * stretched around it.
- *
- * The selector doubles the class to outrank the child's own root rule, which is
- * a single class and would otherwise win or lose on stylesheet order alone. For
- * the custom-element build the child's size lives in a `:host` rule, and an
- * outer-tree declaration already beats that.
- */
-export function instanceFitRule(
-  selector: string,
-  elemType: string | undefined,
-  styles: Record<string, unknown>,
-): string[] {
-  if (elemType !== 'instance') return [];
-  const stated = (a: string, b: string) =>
-    styles.position === 'ABSOLUTE' && styles[a] !== undefined && styles[a] !== null
-      && styles[b] !== undefined && styles[b] !== null;
-  const decls: string[] = [];
-  if ('width' in styles || styles.layoutSizingHorizontal === 'FILL' || stated('start', 'end')) {
-    decls.push('width: 100%');
-  }
-  if ('height' in styles || styles.layoutSizingVertical === 'FILL' || stated('top', 'bottom')) {
-    decls.push('height: 100%');
-  }
-  if (!decls.length) return [];
-  const own = selector.split(' ').pop() ?? selector;
-  return [`${selector}${own} > * {`, ...decls.map(d => `  ${d};`), '}', ''];
-}
+// `instanceFitRule` used to live here: a composed instance was emitted inside a
+// wrapper that carried the instance node's own size, and this rule pushed that
+// size down onto the wrapper's single child so the composed component filled it
+// rather than painting at its master's size.
+//
+// The emitters no longer wrap. The composition's class goes on the composed
+// component's own root, so the instance node's size is already on the element
+// that needs it, and `composedSelector` in ./selectors.ts is what makes that
+// rule win against the component's own root rule. One wrapper per composed
+// instance, and this indirection with it, stopped being emitted.
 
 /**
  * The ring that paints a gradient stroke, as a `::before` on the element.

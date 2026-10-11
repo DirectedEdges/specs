@@ -28,6 +28,8 @@ export interface SpecAnalysis {
   gradientStrokeKeys: Set<string>;
   /** The parent's flex direction, for FILL sizing translation. */
   parentLayoutMode(elemKey: string): string | null;
+  /** The parent's cross-axis alignment, which decides whether a flex child stretches. */
+  parentCrossAxisAlignment(elemKey: string): string | null;
   /** Per-element flags `styleToCSS` needs. */
   styleOptions(elemKey: string): { inferAbsolute: boolean; resetBorderImage: boolean; gradientStroke: boolean };
   /**
@@ -77,8 +79,29 @@ export function analyzeSpec(
   const parentLayoutMode = (elemKey: string): string | null => {
     const parent = parentOf.get(elemKey);
     if (!parent) return null;
-    const styles = (defaultElements[parent]?.styles ?? {}) as Record<string, unknown>;
-    return (styles.layoutMode as string | undefined) ?? null;
+    const element = (defaultElements[parent] ?? {}) as Record<string, unknown>;
+    const styles = (element.styles ?? {}) as Record<string, unknown>;
+    if (typeof styles.layoutMode === 'string') return styles.layoutMode;
+    // A promoted container states its direction as a prop, and the style the
+    // promotion read moves to the provenance record (ADR-084) so the reading
+    // reverses. The children's own sizing still depends on which axis the parent
+    // lays out along, so read it back rather than treating the parent as unlaid —
+    // which silently drops every main-axis declaration those children need.
+    const consumed = ((element.$extensions as Record<string, Record<string, unknown>> | undefined)
+      ?.['com.figma']?.styles ?? {}) as Record<string, unknown>;
+    return typeof consumed.layoutMode === 'string' ? consumed.layoutMode : null;
+  };
+  const parentCrossAxisAlignment = (elemKey: string): string | null => {
+    const parent = parentOf.get(elemKey);
+    if (!parent) return null;
+    const element = (defaultElements[parent] ?? {}) as Record<string, unknown>;
+    const styles = (element.styles ?? {}) as Record<string, unknown>;
+    if (typeof styles.crossAxisAlignment === 'string') return styles.crossAxisAlignment;
+    // Same provenance read as the layout mode above: a promoted container's
+    // alignment moved into the record when the promotion consumed it.
+    const consumed = ((element.$extensions as Record<string, Record<string, unknown>> | undefined)
+      ?.['com.figma']?.styles ?? {}) as Record<string, unknown>;
+    return typeof consumed.crossAxisAlignment === 'string' ? consumed.crossAxisAlignment : null;
   };
   const parentIsAutoLayout = (elemKey: string): boolean => {
     const mode = parentLayoutMode(elemKey);
@@ -144,6 +167,7 @@ export function analyzeSpec(
     parentOf,
     gradientStrokeKeys,
     parentLayoutMode,
+    parentCrossAxisAlignment,
     styleOptions,
     collapseControl,
     consumedByCollapse,

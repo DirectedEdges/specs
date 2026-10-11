@@ -307,9 +307,14 @@ export function partitionByGlyphConvention(
 
 /**
  * The compositions a manifest may list, from the frames discovery qualified by the
- * marker (ADR-095). Two further exclusions, both shared with components in spirit:
+ * marker (ADR-095). Two further exclusions:
  *
- * - an authoring aid is not a composition, for the same reason it is not a component
+ * - a frame carrying the code-only-props surface is not a composition, for the same
+ *   reason it is not a component. `subcomponents.exclude` does NOT apply here: those
+ *   patterns describe how this library names a component's parts, and a composition
+ *   is a frame, not a component. A frame named `Compositions / Examples / Lockup`
+ *   is a composition whose author happened to use the word, and dropping it would
+ *   leave a marked frame missing with no row to recover it from
  * - a frame whose name yields no spec key cannot own a spec folder. A frame named with
  *   whitespace alone is real, not hypothetical, and the writer would fall back to
  *   naming its folder `component` — which the next such frame would then collide with
@@ -326,7 +331,7 @@ export function listableCompositions(
   let authoringAids = 0;
 
   for (const frame of frames) {
-    if (isAuthoringAid(frame.name, aidConventions)) {
+    if (isAuthoringAid(frame.name, { codeOnlyProps: aidConventions.codeOnlyProps })) {
       authoringAids += 1;
       continue;
     }

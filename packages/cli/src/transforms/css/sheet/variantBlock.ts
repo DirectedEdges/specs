@@ -6,7 +6,7 @@ import { styleToCSS } from '../style/styleToCSS.js';
 import { layoutToCSS } from '../style/layoutToCSS.js';
 import { parseLayout } from '../style/layoutTree.js';
 import { childOrder, collectLayoutKeys } from '../analysis/layoutQueries.js';
-import { elemSelector, rootSelector } from './selectors.js';
+import { composedSelector, elemSelector, rootSelector } from './selectors.js';
 import { expandVariantSelectors } from './variantSelectors.js';
 import { backgroundImageDecls, gradientRingRule, inlineBlockIfBoxed, overlapRule } from './elementRules.js';
 import { attrNameFor } from './hostAttributes.js';
@@ -131,7 +131,13 @@ export function variantBlockLines(input: VariantBlockInput): string[] {
 
     const elemKeys = new Set([...Object.keys(variantElements), ...displayDecls.keys(), ...reverseDecls.keys()]);
     for (const elemKey of elemKeys) {
-      const elemSuffix = elemKey === 'root' ? '' : ` ${elemSelector(componentClass, elemKey)}`;
+      // A composed instance's delta lands on the component's own root, beside
+      // that component's rules, so it needs the same specificity the element's
+      // base rule uses. The root's own deltas carry the variant's qualifiers and
+      // already outrank a bare class.
+      const elemSuffix = elemKey === 'root'
+        ? ''
+        : ` ${composedSelector(elemSelector(componentClass, elemKey), elemTypes[elemKey])}`;
       const selector = rootSelectors.map(s => `${s}${elemSuffix}`).join(',\n');
 
       const styles = (variantElements[elemKey]?.styles ?? {}) as Record<string, unknown>;
@@ -153,7 +159,7 @@ export function variantBlockLines(input: VariantBlockInput): string[] {
       }
       const decls = [
         ...revealDecls,
-        ...layoutToCSS(styles, tokensFormat, facts.parentLayoutMode(elemKey)),
+        ...layoutToCSS(styles, tokensFormat, facts.parentLayoutMode(elemKey), false, facts.parentCrossAxisAlignment(elemKey)),
         ...styleToCSS(styles, tokensFormat, elemTypes[elemKey], facts.styleOptions(elemKey)),
       ];
       if ('backgroundImage' in styles) decls.push(...backgroundImageDecls(styles.backgroundImage, images));

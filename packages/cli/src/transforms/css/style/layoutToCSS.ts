@@ -29,6 +29,8 @@ export function layoutToCSS(
   styles: Record<string, unknown>,
   tokensFormat = 'TOKEN',
   parentLayoutMode?: string | null,
+  isDefaultBlock = false,
+  parentCrossAxisAlignment?: string | null,
 ): string[] {
   const decls: string[] = [];
 
@@ -106,22 +108,58 @@ export function layoutToCSS(
   // This mapping is duplicated in the React and Web Components emitters
   // (`Emit/styles.ts` in each, for composed content's inline styles). The three
   // copies must move together.
+  // A flex child already behaves two of these four ways without being told, and
+  // saying so again is noise that buries the declarations that carry information.
+  //
+  // - HUG on the parent's MAIN axis: a flex item does not grow, so its main size is
+  //   its content size. `fit-content` restates the default.
+  // - FILL on the parent's CROSS axis: the default `align-self: stretch` already
+  //   fills it — but only while the parent's cross alignment is stretch. Under
+  //   CENTER or END the child does not stretch, and `100%` is then the only thing
+  //   making it fill, so it has to be said.
+  //
+  // The other two carry information either way: main-axis FILL is `flex: 1 0 0`,
+  // and cross-axis HUG is what stops a child stretching to its tallest sibling.
+  const crossStretches = parentCrossAxisAlignment == null || parentCrossAxisAlignment === 'STRETCH';
+  const mainIsHorizontal = parentLayoutMode === 'HORIZONTAL';
+  const mainIsVertical = parentLayoutMode === 'VERTICAL';
+
   if ('layoutSizingHorizontal' in styles) {
     const v = styles.layoutSizingHorizontal as string | undefined;
-    if (v === 'HUG') decls.push('width: fit-content');
-    else if (v === 'FILL') {
-      if (parentLayoutMode === 'HORIZONTAL') decls.push('flex: 1 0 0');
-      else decls.push('width: 100%');
+    if (v === 'HUG') {
+      if (!mainIsHorizontal) decls.push('width: fit-content');
+    } else if (v === 'FILL') {
+      if (mainIsHorizontal) decls.push('flex: 1 0 0');
+      else if (!(mainIsVertical && crossStretches)) decls.push('width: 100%');
     }
   }
 
   if ('layoutSizingVertical' in styles) {
     const v = styles.layoutSizingVertical as string | undefined;
-    if (v === 'HUG') decls.push('height: fit-content');
-    else if (v === 'FILL') {
-      if (parentLayoutMode === 'VERTICAL') decls.push('flex: 1 0 0');
-      else decls.push('height: 100%');
+    if (v === 'HUG') {
+      if (!mainIsVertical) decls.push('height: fit-content');
+    } else if (v === 'FILL') {
+      if (mainIsVertical) decls.push('flex: 1 0 0');
+      else if (!(mainIsHorizontal && crossStretches)) decls.push('height: 100%');
     }
+  }
+
+  // Only FILL asks for the parent's free space. A spec that declares HUG, or that
+  // declares a dimension and no sizing at all, has stated the child's size — and a
+  // stated size is not a starting point to negotiate down from. CSS disagrees by
+  // default: every flex item shrinks. Four cards each declaring `width: 320` came
+  // out 69px in a row the spec sizes at 325.
+  //
+  // `flex: 1 0 0` above already pins shrink for main-axis FILL, so only the other
+  // two need saying. In a variant delta the declaration is emitted only when the
+  // delta itself touches main-axis sizing: a rule whose job is a colour change must
+  // not restate layout, and the default rule has already said this.
+  if (parentLayoutMode === 'HORIZONTAL' || parentLayoutMode === 'VERTICAL') {
+    const horizontal = parentLayoutMode === 'HORIZONTAL';
+    const axisKey = horizontal ? 'layoutSizingHorizontal' : 'layoutSizingVertical';
+    const dimensionKey = horizontal ? 'width' : 'height';
+    const stated = isDefaultBlock || axisKey in styles || dimensionKey in styles;
+    if (stated && styles[axisKey] !== 'FILL') decls.push('flex-shrink: 0');
   }
 
   return decls;
