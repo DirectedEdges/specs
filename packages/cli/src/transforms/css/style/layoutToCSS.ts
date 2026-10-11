@@ -31,6 +31,8 @@ export function layoutToCSS(
   parentLayoutMode?: string | null,
   isDefaultBlock = false,
   parentCrossAxisAlignment?: string | null,
+  /** True for a composed instance, which brings sizing of its own to override. */
+  isInstance = false,
 ): string[] {
   const decls: string[] = [];
 
@@ -120,14 +122,28 @@ export function layoutToCSS(
   //
   // The other two carry information either way: main-axis FILL is `flex: 1 0 0`,
   // and cross-axis HUG is what stops a child stretching to its tallest sibling.
-  const crossStretches = parentCrossAxisAlignment == null || parentCrossAxisAlignment === 'STRETCH';
+  // Never for a composed instance. The suppression assumes the element has nothing
+  // of its own to override, which is true of a plain box and false of a component:
+  // `align-self: stretch` loses to the `width: 320px` that component's own
+  // stylesheet puts on its root, so a card told to FILL came out 320 instead of
+  // filling. The declaration is what overrides it, and it has to be said.
+  const crossStretches =
+    !isInstance && (parentCrossAxisAlignment == null || parentCrossAxisAlignment === 'STRETCH');
+  // Main-axis HUG is only a no-op while content floors the item. A flex item whose
+  // `overflow` is not `visible` has an automatic minimum size of zero instead, so
+  // `per night` — clipped to one line — came out 0px wide without it.
+  // Nor on a composed instance, for the same reason: the component's own root need
+  // not be content-sized, and suppressing `fit-content` let a promoted EgdsText fill
+  // its row, leaving the sibling that was meant to fill it 0px wide.
+  const mainHugs =
+    !isInstance && styles.clipsContent !== true && styles.maxLines === undefined;
   const mainIsHorizontal = parentLayoutMode === 'HORIZONTAL';
   const mainIsVertical = parentLayoutMode === 'VERTICAL';
 
   if ('layoutSizingHorizontal' in styles) {
     const v = styles.layoutSizingHorizontal as string | undefined;
     if (v === 'HUG') {
-      if (!mainIsHorizontal) decls.push('width: fit-content');
+      if (!(mainIsHorizontal && mainHugs)) decls.push('width: fit-content');
     } else if (v === 'FILL') {
       if (mainIsHorizontal) decls.push('flex: 1 0 0');
       else if (!(mainIsVertical && crossStretches)) decls.push('width: 100%');
@@ -137,7 +153,7 @@ export function layoutToCSS(
   if ('layoutSizingVertical' in styles) {
     const v = styles.layoutSizingVertical as string | undefined;
     if (v === 'HUG') {
-      if (!mainIsVertical) decls.push('height: fit-content');
+      if (!(mainIsVertical && mainHugs)) decls.push('height: fit-content');
     } else if (v === 'FILL') {
       if (mainIsVertical) decls.push('flex: 1 0 0');
       else if (!(mainIsHorizontal && crossStretches)) decls.push('height: 100%');

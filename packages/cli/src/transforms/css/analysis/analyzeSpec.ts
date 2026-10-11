@@ -8,6 +8,7 @@
 // default block and the variant loop be separate functions at all.
 import { impliesAbsolute } from '../style/styleToCSS.js';
 import { isGradient, isGradientToken } from '../values/gradients.js';
+import { NO_SLOT_DIRECTION, type SlotDirection, type SlotDirectionResolver } from './slotDirection.js';
 import { parseLayout } from '../style/layoutTree.js';
 import { collectLayoutKeys, collectParents, collectStackingFixes } from './layoutQueries.js';
 import { COLLAPSING_ROLES } from '../../states.js';
@@ -46,6 +47,8 @@ export interface SpecAnalysis {
 export function analyzeSpec(
   variantsYaml: Record<string, unknown>,
   elemRoles: Record<string, string>,
+  /** How a composed instance lays its default-slot content out. */
+  slotDirection: SlotDirectionResolver = NO_SLOT_DIRECTION,
 ): SpecAnalysis {
   const defaultBlock = variantsYaml.default as Record<string, unknown> | undefined;
   const defaultElements = (defaultBlock?.elements ?? {}) as Record<string, Record<string, unknown>>;
@@ -76,33 +79,39 @@ export function analyzeSpec(
     }
   }
 
-  const parentLayoutMode = (elemKey: string): string | null => {
+  /**
+   * How the element's parent lays out, from the three places that can say so.
+   *
+   * The parent's own styles answer it outright. A promoted container states its
+   * direction as a prop instead, with the style the promotion read moved to the
+   * provenance record (ADR-084) so the reading reverses — treating such a parent as
+   * unlaid-out silently drops every main-axis declaration its children need. And a
+   * parent that is a composed instance keeps its direction in its own spec, where
+   * the slot element declares it (see ./slotDirection.ts).
+   */
+  const parentAxes = (elemKey: string): SlotDirection => {
     const parent = parentOf.get(elemKey);
-    if (!parent) return null;
+    if (!parent) return {};
     const element = (defaultElements[parent] ?? {}) as Record<string, unknown>;
     const styles = (element.styles ?? {}) as Record<string, unknown>;
-    if (typeof styles.layoutMode === 'string') return styles.layoutMode;
-    // A promoted container states its direction as a prop, and the style the
-    // promotion read moves to the provenance record (ADR-084) so the reading
-    // reverses. The children's own sizing still depends on which axis the parent
-    // lays out along, so read it back rather than treating the parent as unlaid —
-    // which silently drops every main-axis declaration those children need.
     const consumed = ((element.$extensions as Record<string, Record<string, unknown>> | undefined)
       ?.['com.figma']?.styles ?? {}) as Record<string, unknown>;
-    return typeof consumed.layoutMode === 'string' ? consumed.layoutMode : null;
+    const own = (key: 'layoutMode' | 'crossAxisAlignment'): string | undefined => {
+      if (typeof styles[key] === 'string') return styles[key] as string;
+      return typeof consumed[key] === 'string' ? (consumed[key] as string) : undefined;
+    };
+    const layoutMode = own('layoutMode');
+    if (layoutMode) return { layoutMode, crossAxisAlignment: own('crossAxisAlignment') };
+
+    const instanceOf = element.instanceOf;
+    if (typeof instanceOf !== 'string') return {};
+    return (
+      slotDirection(instanceOf, (element.propConfigurations ?? {}) as Record<string, unknown>) ?? {}
+    );
   };
-  const parentCrossAxisAlignment = (elemKey: string): string | null => {
-    const parent = parentOf.get(elemKey);
-    if (!parent) return null;
-    const element = (defaultElements[parent] ?? {}) as Record<string, unknown>;
-    const styles = (element.styles ?? {}) as Record<string, unknown>;
-    if (typeof styles.crossAxisAlignment === 'string') return styles.crossAxisAlignment;
-    // Same provenance read as the layout mode above: a promoted container's
-    // alignment moved into the record when the promotion consumed it.
-    const consumed = ((element.$extensions as Record<string, Record<string, unknown>> | undefined)
-      ?.['com.figma']?.styles ?? {}) as Record<string, unknown>;
-    return typeof consumed.crossAxisAlignment === 'string' ? consumed.crossAxisAlignment : null;
-  };
+  const parentLayoutMode = (elemKey: string): string | null => parentAxes(elemKey).layoutMode ?? null;
+  const parentCrossAxisAlignment = (elemKey: string): string | null =>
+    parentAxes(elemKey).crossAxisAlignment ?? null;
   const parentIsAutoLayout = (elemKey: string): boolean => {
     const mode = parentLayoutMode(elemKey);
     return mode === 'HORIZONTAL' || mode === 'VERTICAL';

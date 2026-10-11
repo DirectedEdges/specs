@@ -159,7 +159,7 @@ export function variantBlockLines(input: VariantBlockInput): string[] {
       }
       const decls = [
         ...revealDecls,
-        ...layoutToCSS(styles, tokensFormat, facts.parentLayoutMode(elemKey), false, facts.parentCrossAxisAlignment(elemKey)),
+        ...layoutToCSS(styles, tokensFormat, facts.parentLayoutMode(elemKey), false, facts.parentCrossAxisAlignment(elemKey), elemTypes[elemKey] === 'instance'),
         ...styleToCSS(styles, tokensFormat, elemTypes[elemKey], facts.styleOptions(elemKey)),
       ];
       if ('backgroundImage' in styles) decls.push(...backgroundImageDecls(styles.backgroundImage, images));

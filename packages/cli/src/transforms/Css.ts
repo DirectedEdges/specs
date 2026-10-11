@@ -25,6 +25,8 @@ import { CONCEPT_TABLE, buildStateLookup, conceptsClaimedByNestedRoles } from '.
 import { resolveRules } from './css/rules/index.js';
 import { loadExamples } from './examples.js';
 import { analyzeSpec } from './css/analysis/analyzeSpec.js';
+import { slotDirectionResolver } from './css/analysis/slotDirection.js';
+import { resolveSpecsLayout } from '../utilities/specsLayout.js';
 import { anatomyRoles, anatomyTypes, apiPropsOf } from './css/analysis/readApi.js';
 import { disabledSelectorFor, focusSelectorFor, rootSelector } from './css/sheet/selectors.js';
 import { roleResetLines } from './css/sheet/roleResets.js';
@@ -251,7 +253,16 @@ function buildCssLines(input: SheetInput): string[] {
   // box, so what the new tag brings has to be neutralized before any of them.
   lines.push(...roleResetLines(componentClass, rootAs, elemRoles));
 
-  const facts = analyzeSpec(variantsYaml, elemRoles);
+  // Built per component rather than cached for the process: `specs run` keeps a
+  // watcher alive across edits, and a resolver that outlived one would answer from
+  // the spec a component had before it was regenerated. Each resolver caches within
+  // its own component, which is where the repetition actually is — one composition
+  // asks about the same few layout components for every element it holds.
+  const facts = analyzeSpec(
+    variantsYaml,
+    elemRoles,
+    slotDirectionResolver(resolveSpecsLayout(input.context.specsRoot).dirFor('component')),
+  );
 
   const base = defaultBlockLines({ componentClass, rootAs, tokensFormat, elemTypes, elemRoles, images, facts, apiProps });
   lines.push(...base.lines);

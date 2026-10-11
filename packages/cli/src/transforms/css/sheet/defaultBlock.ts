@@ -49,7 +49,7 @@ export function defaultBlockLines(input: DefaultBlockInput): DefaultBlockResult 
       : composedSelector(elemSelector(componentClass, elemKey), elemTypes[elemKey]);
     const styles = (elem.styles ?? {}) as Record<string, unknown>;
     const decls = [
-      ...layoutToCSS(styles, tokensFormat, facts.parentLayoutMode(elemKey), true, facts.parentCrossAxisAlignment(elemKey)),
+      ...layoutToCSS(styles, tokensFormat, facts.parentLayoutMode(elemKey), true, facts.parentCrossAxisAlignment(elemKey), elemTypes[elemKey] === 'instance'),
       ...styleToCSS(styles, tokensFormat, elemTypes[elemKey], { ...facts.styleOptions(elemKey), isDefaultBlock: true }),
     ];
     if ('backgroundImage' in styles) decls.push(...backgroundImageDecls(styles.backgroundImage, images));
