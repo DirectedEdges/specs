@@ -74,6 +74,14 @@ Behavior worth knowing:
 - An **asset removed while specs still reference it** also stops the cut — a broken reference is a defect, not a version. A `--force-*` flag proceeds anyway, downgrading these stops to recorded warnings.
 - Components with no changes never move, even under `--force-*`.
 
+### Compositions
+
+Compositions are tracked, and **every change to one is patch-class** for the library — added, removed, or edited.
+
+A composition declares no contract, so there is nothing a consumer can depend on and nothing for a rule like *a removed prop is breaking* to grade. Rather than invent a second severity vocabulary, every composition change is recorded at patch impact, so the report and the version roll-up always agree and you never see an entry marked breaking that moved the version by a patch.
+
+Compositions carry **no version of their own**. The cut report names what moved — `added`, `removed`, `changed` — with no version transition, because a thing with no contract has no semver to carry.
+
 ## `specs version tag`
 
 Creates the annotated library git tag `v<version>` for a cut version, with the per-component roll-up as the tag message — from the ledger's recorded data, so it works at cut time or any time after, without re-running `cut`. Never pushed; pushing the tag is always your call.

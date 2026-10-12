@@ -86,6 +86,8 @@ Narrow the fetch by source alias, by data kind, or both, comma-separated. Aliase
 ### `--source <[alias=]url|key>`
 Fetch a file or branch that is not in `data.sources` — see [Fetching Figma Branches](#fetching-figma-branches). Repeatable.
 
+Takes a Figma URL pasted straight from the browser, or a bare file key. Given a branch URL — which names both the main file and the branch — it uses the **branch** key, so you never have to pick the right one out of the URL yourself. The `key` field in [`data.sources`](/settings/data-sources/#key) accepts the same two forms.
+
 ### `--from-bridge`
 Fetch variables from the connected Figma file through the [CLI bridge](/cli/commands/bridge/) instead of the REST API — see [Fetching Variables via the Bridge](#fetching-variables-via-the-bridge). Requires `--only variables`; no `FIGMA_TOKEN` or Enterprise plan needed.
 
@@ -93,7 +95,7 @@ Fetch variables from the connected Figma file through the [CLI bridge](/cli/comm
 Target a specific connected Figma file with `--from-bridge`. Prompts to choose when more than one is connected in an interactive terminal; required otherwise.
 
 ### `--no-geometry`
-Omit geometry data from file payloads. By default, `fetch` requests `?geometry=paths` from the Figma API, which includes `fillGeometry`, `strokeGeometry`, `size`, and `relativeTransform` on every node. This roughly doubles the payload size.
+Omit geometry data from file payloads. By default, `fetch` requests `?geometry=paths` from the Figma API, which includes `fillGeometry`, `strokeGeometry`, `size`, and `relativeTransform` on every node. Geometry adds roughly 60% to the payload — measured at 685MB with it against 426MB without, on the same library.
 
 Use `--no-geometry` when you don't need vector path data. Width and height will fall back to `absoluteBoundingBox` during processing, which is accurate for non-rotated nodes.
 
@@ -192,10 +194,12 @@ from, which is not worth an edit to `config/settings.yaml`. `--source` fetches a
 that is not in config:
 
 ```bash
-specs fetch --source "https://www.figma.com/design/BRANCH_KEY/Design-System?node-id=0-1"
+specs fetch --source "https://www.figma.com/design/MAIN_KEY/branch/BRANCH_KEY/Design-System?node-id=0-1"
 ```
 
-Paste the branch's URL as it appears in Figma, or pass a bare file key. The flag is
+Paste the branch's URL as it appears in Figma — quoted, because it contains `?` and `&`.
+A branch URL carries both the main file's key and the branch's own key, and `fetch` uses
+the branch's; you can also pass a bare key if you have one. The flag is
 repeatable, and naming any `--source` means only those sources are fetched — the
 configured library is not re-downloaded unless `--only <alias>` asks for it.
 
@@ -248,7 +252,20 @@ specs cache --force
 
 ### Finding a branch key
 
-Open the branch in Figma — the URL contains the key: `figma.com/design/<KEY>/...`
+Easiest is not to: open the branch in Figma, copy the URL, and pass it whole to
+`--source`. A branch URL names two files and `fetch` takes the right one.
+
+When you do need the key itself — for a `data.sources` entry, which takes a bare
+key and not a URL — it is the segment after `/branch/`, not the leading one:
+
+```
+https://www.figma.com/design/PnIKd8F7Y7kaFOTcyaYGuF/branch/QkOXz5n9ugqromA9I87yWF/Design-System?node-id=0-1
+                             └──── main file key ───┘        └──── branch key ────┘
+```
+
+The leading key is the file the branch came from. Using it resolves a branch
+link to main, fetches the wrong document, and reports success — so take the
+second.
 
 ### Data implications
 
@@ -265,16 +282,19 @@ If you use `applyCustomTokens` with branch-fetched data, be aware that Figma var
 ### Keeping a branch in config
 
 A branch you fetch repeatedly over a long life is still worth a config entry — give it
-its own alias so the library keeps its own:
+its own alias so the library keeps its own. `key` takes the bare branch key, the segment
+after `/branch/`:
 
 ```yaml
 # config/settings.yaml
 data:
   sources:
     library-redesign:
-      key: BRANCH_FILE_KEY
+      key: QkOXz5n9ugqromA9I87yWF   # the branch key, not the URL and not main's key
       fetch: ['file', 'variables', 'styles']
 ```
+
+See [`data.sources` → Branch Keys](/settings/data-sources/#branch-keys).
 
 ---
 

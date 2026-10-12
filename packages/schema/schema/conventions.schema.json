@@ -282,14 +282,14 @@
         },
         "storybook": {
           "$ref": "#/definitions/StorybookConventions",
-          "description": "Workspace Storybook presentation conventions, loaded from conventions/storybook.yaml \u2014 a reserved basename, not a platform."
+          "description": "Workspace Storybook conventions \u2014 how its pages present, and where it serves. Loaded from conventions/storybook.yaml \u2014 a reserved basename, not a platform."
         }
       },
       "additionalProperties": false
     },
     "MetadataConventions": {
       "type": "object",
-      "description": "The conventions a spec records in its metadata: the one platform entry that produced it. Same shape as Conventions and the same PlatformConventions definition, so a platform entry validates identically wherever it appears \u2014 but absence means something different. Here a missing platform did not produce this spec. (ADR-079)",
+      "description": "The conventions a spec records in its metadata: the one platform entry that produced it, and the spec conventions it was produced under. A subset of Conventions reusing the same definitions, so an entry validates identically wherever it appears \u2014 but absence means something different. Here a missing platform did not produce this spec. primitives and storybook are deliberately absent: the promotion table is spent by the time a spec exists, and Storybook presentation bears on no reader of one. (ADR-079, ADR-099)",
       "properties": {
         "platforms": {
           "type": "object",
@@ -299,6 +299,10 @@
           "additionalProperties": {
             "$ref": "#/definitions/PlatformConventions"
           }
+        },
+        "specs": {
+          "$ref": "#/definitions/SpecsConventions",
+          "description": "Conventions about the spec itself, as the producing run resolved them. Optional, unlike platforms: a run that declared none records none. Required by a consumer that has to recover a spec convention it cannot re-derive from the spec \u2014 slots.default is the case, since a render resolving a nested instance's default slot does not hold that instance's own component spec."
         }
       },
       "required": [
@@ -345,15 +349,23 @@
     },
     "PrimitiveEntry": {
       "type": "object",
-      "description": "One component a captured primitive layer can be promoted to, and how its styles become that component's props. Promotion runs during capture, over composed example content only. Several entries may share a kind; selection between them is by how many rules resolve, and at least one must. (ADR-074, ADR-075)",
+      "description": "One component a captured primitive layer can be promoted to, and how its styles become that component's props. Promotion runs during capture, over composed example content only. Several entries may share a kind; a declared match selects by name and takes precedence, and otherwise selection is by how many rules resolve, where at least one must. (ADR-074, ADR-075, ADR-100)",
       "properties": {
         "elementType": {
           "$ref": "#/definitions/PrimitiveKind",
           "description": "The anatomy element type this component can be promoted from. Named for ElementType, the superset it draws from."
         },
+        "match": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          },
+          "description": "Layer-name prefixes selecting this entry, within the entries whose elementType matches. A name matches when the captured layer's name starts with one of these strings — exact, case-sensitive, no normalisation, and nothing read out of the name. A resolved match selects the entry immediately: no score is computed and no rule in map need resolve. Where several entries match, the longest matching prefix wins, so selection never depends on authored key order. Absence means this entry is selected by score. (ADR-100)"
+        },
         "map": {
           "type": "array",
-          "description": "Rules turning the layer's styles into this component's props, in precedence order. When two rules write the same prop, the first that resolves wins.",
+          "description": "Rules turning the layer's styles into this component's props, in precedence order. When two rules write the same prop, the first that resolves wins. May be empty for an entry selected by match whose every prop is a default.",
           "items": {
             "$ref": "#/definitions/PrimitiveRule"
           }
@@ -393,6 +405,30 @@
       "additionalProperties": false,
       "description": "Conventions about the spec itself rather than about any platform. A sibling of `platforms` for the same reason `primitives` is: `states` names a prop and an enum value that exist in api.yaml, and a transform reading only the spec can apply it. Library-wide; the per-component equivalent is an annotation, and the annotation wins.",
       "properties": {
+        "slots": {
+          "type": "object",
+          "description": "Slot-related naming conventions. Absence means no such convention. A spec convention rather than a platform one: what is named is a SlotProp the spec declares, so every platform reads the same answer. (ADR-099)",
+          "properties": {
+            "default": {
+              "type": "object",
+              "description": "The component's designated default slot — the one slot always composed through. Absence means no default-slot convention.",
+              "properties": {
+                "match": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Naming patterns identifying a component's designated default slot — the SlotProp further content is always composed through. A library may name this slot differently across component families (e.g. children in one, items in another); any pattern in the array matches. When a slot prop matches, specs-from-figma records defaultSlot: true on that SlotProp in the generated spec, and a filling instance may then be nested as a plain child element rather than through an explicit slot binding. Absence means no default slot is designated and every slot binds explicitly."
+                }
+              },
+              "required": [
+                "match"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
         "states": {
           "type": "object",
           "description": "Concept-keyed map classifying Figma variant props as semantic states.",
@@ -437,7 +473,7 @@
     },
     "StorybookConventions": {
       "type": "object",
-      "description": "Workspace Storybook presentation conventions, keyed by publish concern, each holding per-feature settings. Both levels are open (ADR-098): feature vocabulary is validated by the concern implementation, which warns by name on anything unknown.",
+      "description": "Workspace Storybook conventions, keyed by concern, each holding per-feature settings. Most concerns are publish concerns naming how a page presents; `host` names where the Storybook serves. Both levels are open (ADR-098): feature vocabulary is validated by the concern implementation, which warns by name on anything unknown.",
       "additionalProperties": {
         "type": "object",
         "description": "One concern's feature settings. Values are deliberately unconstrained here.",

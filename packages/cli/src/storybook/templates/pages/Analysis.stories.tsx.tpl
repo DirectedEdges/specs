@@ -23,7 +23,7 @@ function YamlFile({ file }: { file: string }) {
   const [text, setText] = React.useState<string | null>(null);
   React.useEffect(() => {
     let live = true;
-    fetch(`/specs/_analysis/${file}`)
+    fetch(`/specs/{{ANALYSIS_DIR}}/${file}`)
       .then((r) => (r.ok ? r.text() : `# ${r.status} — could not load ${file}`))
       .then((t) => live && setText(t))
       .catch((e) => live && setText(`# ${String(e)}`));
@@ -71,7 +71,7 @@ function {{ANALYSIS_TITLE}}Page() {
         <p style={{ opacity: 0.7 }}>
           The {{ANALYSIS_TITLE}} report dashboard is not built yet. The analysis data it
           will summarize is on the Specs tab, and stays a durable file under{' '}
-          <code>specs/_analysis/</code> either way.
+          <code>specs/{{ANALYSIS_DIR}}/</code> either way.
         </p>
       ) : (
         <SpecsTab />

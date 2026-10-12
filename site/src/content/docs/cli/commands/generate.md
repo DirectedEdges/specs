@@ -39,7 +39,7 @@ specs generate
 With no arguments, step 4 uses the default manifest (`{data.directory}/{alias}.manifest.md`) and writes to `spec.directory` from `config/settings.yaml`. Pass either explicitly to override:
 
 ```bash
-specs generate components.md -o specs/library.yaml
+specs generate components.md -o specs/
 ```
 
 Manifest mode requires an output destination — `-o` or `spec.directory` — since it can produce many files. By default it writes the full split layout: one folder per component, holding one file per concern. Turn parts of that off with [`--combine-as-library`](#--combine-as-library), [`--combine-concerns`](#--combine-concerns), and [`--no-subfolders`](#--no-subfolders):
@@ -63,6 +63,24 @@ specs generate -o specs/
 
 Components that fail are reported individually and the rest still generate; the run exits non-zero if any failed.
 
+### Compositions
+
+If the manifest has a `## Compositions` section, every **checked** row in it is generated too, exactly as for components. Composition specs are written to `specs/compositions/<key>/`, in the same concern files a component gets, and carry `metadata.source.nodeType: FRAME`. That marker is the contract for what the spec describes; the directory is navigation.
+
+```
+✓ Loaded manifest: 150 components (42 selected)
+✓ Loaded manifest: 6 compositions (5 selected)
+⏳ Processing 47 components...
+...
+✓ Wrote 5 composition spec(s) to compositions/
+```
+
+A composition has no variant properties and no prop surface, so its `variants.yaml` carries a default and nothing else. Generating one works on either tier; [emitting code](/cli/commands/react/) from one requires Pro.
+
+`-c` narrows to a single composition by name, node id, or spec key, exactly as it does for a component.
+
+`--combine-as-library` and `--combine-concerns` still collapse a catalogue into documents keyed by spec key — but per kind, so `components/` and `compositions/` each hold their own set. A composition and a component of the same name can never overwrite each other.
+
 A manifest run also writes `latest.metadata.yaml` at the root of the output directory. It holds the facts about the run — author, generator, schema version, conventions and settings — which are identical for every component, so each spec keeps only `metadata.source`. See [Run Metadata](/guides/run-metadata/). Single component and bridge mode are unaffected: each writes the full `metadata` block into its spec.
 
 ## Single Component Mode
@@ -71,13 +89,13 @@ Pass a Figma JSON file directly and name one component with `-c`, by name or nod
 
 ```bash
 specs fetch
-specs generate data/library.file -c "DS Button" -o specs/button.yaml
+specs generate data/library.file -c "DS Button" -o specs/
 ```
 
 The component is resolved against the JSON file's components and component sets. Node IDs work equally well, and are the reliable choice when a name contains special characters or is duplicated:
 
 ```bash
-specs generate data/library.file -c "1234:5678" -o specs/button.yaml
+specs generate data/library.file -c "1234:5678" -o specs/
 ```
 
 Without `-o` (and with no configured `spec.directory`), the spec goes to stdout — handy for piping:
@@ -94,12 +112,12 @@ Generate from whatever is selected right now in a connected Figma file — no `s
 
 ```bash
 specs bridge start
-specs generate --from-bridge -o specs/button.yaml
+specs generate --from-bridge -o specs/
 ```
 
 ```
 ✓ Generated from selection: DS Button
-✓ Saved to specs/button.yaml
+✓ Wrote 1 component spec(s) to specs/components/
 ```
 
 Because the plugin does the generating, bridge mode behaves differently from the other two in ways worth knowing:
@@ -115,9 +133,9 @@ Since bridge mode reads the live document, it closes the loop on [`render`](/cli
 
 ```bash
 specs bridge start
-specs render specs/dsButton.yaml
-specs generate --from-bridge -o specs/roundtrip/dsButton.yaml
-diff specs/dsButton.yaml specs/roundtrip/dsButton.yaml
+specs render specs/components/dsButton/
+specs generate --from-bridge -o roundtrip/
+diff specs/components/dsButton/api.yaml roundtrip/components/dsButton/api.yaml
 ```
 
 Common failures:
@@ -144,8 +162,15 @@ Component name or Figma node ID. Required in single component mode; ignored in b
 ### `-o, --output <path>`
 Output file or directory path.
 
-- **File path**: writes all output to a single file (e.g. `-o specs/library.yaml`).
-- **Directory path**: writes output files into the directory (e.g. `-o specs/`).
+**`-o` names the specs root — a directory.** The run writes `components/` and `compositions/` beneath it (ADR-096) and reports where each kind landed, so the path you pass is never the full path you get:
+
+```
+✓ Wrote 1 component spec(s) to specs/components/
+```
+
+- **Directory path** (`-o specs/`): one folder per component under `specs/components/<key>/`. This is the default layout ([ADR-071](/settings/output/)).
+- **A path ending in `.yaml`, `.yml` or `.json`**: rejected, unless both splits are off. A split run writes a tree, so a filename cannot be what you meant — the error names the directory to pass instead.
+- **Single-file mode only** (`--combine-as-library --combine-concerns`): the filename becomes meaningful, and the kind directory still applies — `-o specs/library.yaml` writes `specs/components/library.yaml`. Pointing at a directory instead names the document `library` for you.
 - **Not provided**: falls back to `spec.directory` from `config/settings.yaml` (default `./specs`). Required in manifest mode if that isn't configured; single component and bridge mode write to stdout instead.
 
 ### `-f, --format <format>`
@@ -191,17 +216,27 @@ specs generate -o specs/
 
 ```
 specs/
-├── dsButton/
-│   ├── api.yaml
-│   └── variants.yaml
-├── dsAlert/
-│   ├── api.yaml
-│   ├── variants.yaml
-│   └── examples.yaml
-└── dsCard/
-    ├── api.yaml
-    └── variants.yaml
+├── latest.metadata.yaml
+├── components/
+│   ├── dsButton/
+│   │   ├── api.yaml
+│   │   └── variants.yaml
+│   ├── dsAlert/
+│   │   ├── api.yaml
+│   │   ├── variants.yaml
+│   │   └── examples.yaml
+│   └── dsCard/
+│       ├── api.yaml
+│       └── variants.yaml
+└── compositions/
+    └── checkoutSmall/
+        ├── api.yaml
+        └── variants.yaml
 ```
+
+`specs/` names what each folder holds. `components/` and `compositions/` are the two kinds of spec a run produces; `analysis/` holds the reports [`analyze`](/cli/commands/analyze/) writes. `latest.metadata.yaml` stays at the root, because the run's facts belong to the run rather than to either kind. A component and a composition may share a name with no consequence.
+
+A specs directory written before this layout existed — spec folders directly under `specs/` — is still read, as components, and the run says so once. Re-run `specs generate` to write the current layout; the old root folders are then reported as present but not generated, for you to delete. They are never merged with `components/`, so a stale folder cannot resurrect a component a rename retired.
 
 `examples.yaml` is written only when at least one component has example data, and components without examples are omitted from it. Example output is a [Pro feature](/settings/default-slot-content/) — on the free tier it's omitted entirely, so no `examples.yaml` is produced.
 
@@ -329,7 +364,7 @@ Delete the node once its spec has been read (bridge mode only) — for round-tri
 Path to a `config/` directory, when it isn't the `config/` directory in the working directory.
 
 ```bash
-specs generate --config workspaces/mobile/config -o specs/mobile.yaml
+specs generate --config workspaces/mobile/config -o workspaces/mobile/specs/
 ```
 
 ### `--verbose`

@@ -70,7 +70,7 @@ export function estimateWaitBand(bytes: number): string {
  * expected, since a first fetch has nothing to predict from.
  */
 export function preparingMessage(alias: string, kind: string, lastBytes: number | null): string {
-  const subject = `Figma is preparing ${alias} ${kind} for download`;
+  const subject = `Figma is preparing ${alias}.${kind} for download`;
   if (lastBytes === null) {
     return `${subject}. For large files this can take 60 to 120 seconds.`;
   }

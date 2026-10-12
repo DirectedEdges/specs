@@ -2,8 +2,9 @@
 // every concern. Detection only — nothing here writes.
 import fs from 'fs-extra';
 import path from 'path';
-import { ConfigLoader } from '../Config/ConfigLoader.js';
-import type { CLIConfig } from '../Types/CLIConfig.js';
+import { ConfigLoader } from '../config/ConfigLoader.js';
+import { resolveSpecsLayout } from '../utilities/specsLayout.js';
+import type { CLIConfig } from '../config/types.js';
 
 export interface DataSource {
   /** The alias data files are named by: `<alias>.variables.json`, `<alias>.file/`. */
@@ -16,6 +17,16 @@ export interface Workspace {
   /** Workspace root: the directory holding config/, data/, specs/, storybook/. */
   root: string;
   config: CLIConfig;
+  /**
+   * The `config/` directory itself, or null when the workspace has none.
+   *
+   * Not the same thing as `config.configDir`, which holds the directory
+   * *containing* config/ — that is, the workspace root — because it exists to
+   * resolve relative settings paths against. Reading it as the config
+   * directory makes anything derived from it a workspace-wide path, which is
+   * how `specs run` came to watch the whole tree, emitted output included.
+   */
+  configDir: string | null;
   specsDir: string;
   dataDir: string;
   assetsDir: string;
@@ -25,9 +36,17 @@ export interface Workspace {
   hasReact: boolean;
   hasWebComponents: boolean;
   hasSpecs: boolean;
+  /**
+   * Spec folder keys per kind, read through the layout resolver rather than from a
+   * literal directory name — a legacy layout keeps components at the specs root and
+   * cannot hold compositions at all (ADR-096).
+   */
+  componentKeys: string[];
+  compositionKeys: string[];
   /** storybook/.storybook/ exists — init has run. */
   scaffolded: boolean;
 }
+
 
 export function resolveWorkspace(configPath?: string): Workspace {
   const loader = new ConfigLoader();
@@ -51,10 +70,12 @@ export function resolveWorkspace(configPath?: string): Workspace {
     .map(([alias, s]) => ({ alias, fetch: Array.isArray((s as { fetch?: string[] }).fetch) ? (s as { fetch: string[] }).fetch : [] }));
 
   const storybookDir = path.join(root, 'storybook');
+  const layout = resolveSpecsLayout(specsDir);
 
   return {
     root,
     config,
+    configDir,
     specsDir,
     dataDir,
     assetsDir,
@@ -63,6 +84,8 @@ export function resolveWorkspace(configPath?: string): Workspace {
     hasReact: fs.existsSync(path.join(root, 'react', 'src')),
     hasWebComponents: fs.existsSync(path.join(root, 'webcomponents', 'src')),
     hasSpecs: fs.existsSync(specsDir),
+    componentKeys: layout.folderNames('component'),
+    compositionKeys: layout.folderNames('composition'),
     scaffolded: fs.existsSync(path.join(storybookDir, '.storybook')),
   };
 }

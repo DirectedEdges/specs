@@ -4,6 +4,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import yaml from 'yaml';
+import { resolveSpecsLayout } from '../../../utilities/specsLayout.js';
 
 export interface IconsJson {
   present: Array<{ name: string; referenced: boolean }>;
@@ -69,12 +70,10 @@ export function buildIconsData(specsDir: string, iconsDir: string): IconsJson | 
   // slug → component keys referencing it
   const referenced = new Map<string, Set<string>>();
   if (fs.existsSync(specsDir)) {
-    const componentDirs = fs.readdirSync(specsDir, { withFileTypes: true })
-      .filter((e) => e.isDirectory() && !e.name.startsWith('_'))
-      .map((e) => e.name)
-      .sort();
-    for (const componentKey of componentDirs) {
-      const dir = path.join(specsDir, componentKey);
+    // Spec folders live where the layout says they do (ADR-096).
+    const layout = resolveSpecsLayout(specsDir);
+    for (const componentKey of layout.folderNames('component')) {
+      const dir = layout.folderFor('component', componentKey);
       const apiPath = path.join(dir, 'api.yaml');
       if (!fs.existsSync(apiPath)) continue;
       let api: Record<string, unknown>;

@@ -5,7 +5,7 @@ description: "List the Figma layer and property names a formatted key cannot rec
 
 <script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
 
-Reads every component's `api.yaml` and produces `_analysis/keys.yaml`: every Figma layer and property name that falls outside the [safe key grammar](/guides/key-formatting/), grouped by component so it reads as a checklist, then by cause and by frequency.
+Reads every component's `api.yaml` and produces `analysis/keys.yaml`: every Figma layer and property name that falls outside the [safe key grammar](/guides/key-formatting/), grouped by component so it reads as a checklist, then by cause and by frequency.
 
 ## Requires a declared convention
 
@@ -33,11 +33,11 @@ specs analyze keys
 
 ## Output
 
-Writes a single file to `_analysis/` after all components are processed.
+Writes a single file to `analysis/` after all components are processed.
 
 ```
 specs/
-  _analysis/
+  analysis/
     keys.yaml   # cross-library aggregate
   ds-button/
     api.yaml
