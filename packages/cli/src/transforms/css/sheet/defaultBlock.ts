@@ -71,7 +71,7 @@ export function defaultBlockLines(input: DefaultBlockInput): DefaultBlockResult 
     // meaning from a prop name and painted a solid `currentColor` box wherever
     // composition resolved the instance instead.
     inlineBlockIfBoxed(elemTypes[elemKey], decls);
-    preserveLineBreaks(elemTypes[elemKey], elem.content, apiProps, decls);
+    preserveLineBreaks(elem as Record<string, unknown>, apiProps, decls);
     if (decls.some(d => d.startsWith('display:'))) displayedInDefault.add(elemKey);
     if (isGlyphLike(elemTypes[elemKey])) {
       decls.push('mask: var(--glyph, none) no-repeat center / contain');

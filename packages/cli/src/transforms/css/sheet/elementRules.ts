@@ -115,18 +115,46 @@ export function inlineBlockIfBoxed(elemType: string | undefined, decls: string[]
  * where the design file's own text landed.
  */
 export function preserveLineBreaks(
-  elemType: string | undefined,
-  content: unknown,
+  element: Record<string, unknown>,
   apiProps: Record<string, Record<string, unknown>>,
   decls: string[],
 ): void {
-  if (elemType !== 'text') return;
   if (decls.some(d => d.startsWith('white-space:'))) return;
-  if (!contentHasLineBreak(content, apiProps)) return;
+  if (!hasAuthoredBreak(element, apiProps)) return;
   decls.push('white-space: pre-wrap');
 }
 
-/** Does this element's content — literal, or the prop it binds to — carry a newline? */
+/**
+ * The element's text, wherever the spec now keeps it.
+ *
+ * Not gated on the element being a `text` type any more. A text layer the
+ * promotion recognised as a design system component is an `instance`, and its
+ * text has moved into the component's `text` prop — so the old gate closed on
+ * exactly the elements most likely to carry an authored break. The three text
+ * components all collapse to a text root, so the class this rule writes against
+ * lands on the element that renders the string, not on a box around it.
+ *
+ * An element with no text reaches the end and matches nothing, which is why the
+ * type gate is not needed to protect anything.
+ */
+function hasAuthoredBreak(
+  element: Record<string, unknown>,
+  apiProps: Record<string, Record<string, unknown>>,
+): boolean {
+  if (contentHasLineBreak(element.content, apiProps)) return true;
+
+  // What the promotion consumed, recorded so the reading reverses (ADR-084).
+  const consumed = (element.$extensions as Record<string, Record<string, unknown>> | undefined)
+    ?.['com.figma']?.content;
+  if (typeof consumed === 'string' && consumed.includes('\n')) return true;
+
+  // A string the spec configured on an instance — the promoted text's new home,
+  // and equally a break an author typed into any component's text prop.
+  const configured = (element.propConfigurations ?? {}) as Record<string, unknown>;
+  return Object.values(configured).some(v => typeof v === 'string' && v.includes('\n'));
+}
+
+/** Does this content — literal, or the prop it binds to — carry a newline? */
 function contentHasLineBreak(
   content: unknown,
   apiProps: Record<string, Record<string, unknown>>,
