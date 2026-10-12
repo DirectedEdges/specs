@@ -138,6 +138,8 @@ const Diff = new Command('diff')
         components: [{
           name, title: currentComponent.title, presence: 'changed' as const, entries, warnings,
         }],
+        // One component's own diff; a composition is never its subject.
+        compositions: [],
         assetEntries: [],
         runEntries: [],
         renames: [],

@@ -204,6 +204,9 @@ export function buildPremergeDataset(options: PremergeOptions): ChangeDataset {
     target: { label: options.targetLabel ?? path.basename(path.resolve(baseDir)) },
     source: { label: options.sourceLabel ?? path.basename(path.resolve(currentDir)) },
     components,
+    // Premerge compares two spec trees for contract impact. A composition has no
+    // contract, so there is nothing here for this report to weigh.
+    compositions: [],
     assetEntries: [],
     runEntries: [],
     renames: renameRecords,
@@ -242,6 +245,9 @@ export function buildCutDataset(plan: CutPlan, rulesLabel: string): ChangeDatase
     target: { label: plan.libraryFrom ? `v${plan.libraryFrom}` : 'unversioned' },
     source: { label: `v${plan.libraryVersion}` },
     components,
+    compositions: plan.compositions.map(c => ({
+      name: c.name, title: c.title, presence: c.presence, entries: c.entries,
+    })),
     assetEntries: plan.assetEntries,
     runEntries: plan.runEntries,
     renames: plan.renames,
@@ -266,6 +272,9 @@ export function buildCutChangelog(plan: CutPlan): ChangelogRelease[] {
         name: c.name, title: c.title, previousTitle: c.previousTitle, presence: c.presence,
         entries: c.entries, warnings: c.warnings, from: c.from, to: c.to,
       })),
+    compositions: plan.compositions.map(c => ({
+      name: c.name, title: c.title, presence: c.presence, entries: c.entries,
+    })),
     assetEntries: plan.assetEntries,
     runEntries: plan.runEntries,
   }];
@@ -311,6 +320,10 @@ export function buildLedgerReport(options: LedgerReportOptions): LedgerReport {
   const releases: ChangelogRelease[] = included.map(release => ({
     libraryVersion: release.version,
     components: [],
+    // Rebuilt from ledgers, and compositions are not ledgered — they have no
+    // version to record an entry against. The cut's own report and changelog are
+    // where a composition's movement is written down.
+    compositions: [],
     assetEntries: release.assetDiff ?? [],
     runEntries: release.runDiff ?? [],
   }));
@@ -360,6 +373,7 @@ export function buildLedgerReport(options: LedgerReportOptions): LedgerReport {
     target: { label: since ? `v${since}` : 'unversioned' },
     source: { label: `v${latest}` },
     components: [...cumulative.values()].sort((a, b) => a.title.localeCompare(b.title)),
+    compositions: [],
     assetEntries,
     runEntries,
     renames: [],

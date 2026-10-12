@@ -30,6 +30,19 @@ export interface ComponentChange {
   to?: string | null;
 }
 
+/**
+ * A composition that moved. Structurally a `ComponentChange` minus the version
+ * movement: a composition declares no contract, so nothing depends on it and
+ * there is no version for it to move between (ADR-096). It is reported by name
+ * and by what changed inside it.
+ */
+export interface CompositionChange {
+  name: string;
+  title: string;
+  presence: 'added' | 'removed' | 'changed';
+  entries: DiffEntry[];
+}
+
 export interface RenameRecord {
   from: string;
   to: string;
@@ -49,6 +62,8 @@ export interface ChangeDataset {
   /** Who ran it, from the workspace's settings. Omitted when unset. */
   author?: string;
   components: ComponentChange[];
+  /** Compositions that moved. Reported separately: they are not components. */
+  compositions: CompositionChange[];
   assetEntries: DiffEntry[];
   runEntries: DiffEntry[];
   renames: RenameRecord[];
@@ -139,8 +154,12 @@ function variantStyles(variant: unknown): string[] {
   return pairs;
 }
 
-/** One factual sentence (possibly with sub-bullets) for one change. */
-export function bulletFor(component: ComponentChange, entry: DiffEntry): string {
+/**
+ * One factual sentence (possibly with sub-bullets) for one change. The subject
+ * is only ever read for its title, so a composition is as valid a subject as a
+ * component — the diff reads the same either way.
+ */
+export function bulletFor(component: { title: string }, entry: DiffEntry): string {
   const title = `**${component.title}**`;
   const where = withinText(entry.path);
   const shortPath = entry.path.replace(/^subcomponents\.[^.[]+\./, '');
@@ -312,6 +331,36 @@ function unprefix(bullet: string, subject: string): string {
   return stripped.replace(/^ — /, '').replace(/^ /, '');
 }
 
+// ---------------------------------------------------------------- compositions
+
+/**
+ * What moved in one composition.
+ *
+ * A composition appearing or disappearing is stated in those words. `bulletFor`
+ * would say "new component" for it, which is the one thing a composition is
+ * not. A composition that merely changed is itemized by the same bullets a
+ * component's changes get — the diff is read the same way; only the grading
+ * differs.
+ */
+function compositionBullets(composition: CompositionChange): string[] {
+  if (composition.presence === 'added') return ['added to the library.'];
+  if (composition.presence === 'removed') return ['no longer in the library.'];
+  return composition.entries.map(e => bulletFor(composition, e));
+}
+
+/** `1 composition added, 2 changed.` — appended to the impact sentence. */
+function compositionTally(compositions: CompositionChange[]): string {
+  if (compositions.length === 0) return '';
+  const order: Array<CompositionChange['presence']> = ['added', 'changed', 'removed'];
+  const parts = order
+    .map(presence => ({ presence, n: compositions.filter(c => c.presence === presence).length }))
+    .filter(({ n }) => n > 0)
+    .map(({ presence, n }, index) => index === 0
+      ? `${n} ${n === 1 ? 'composition' : 'compositions'} ${presence}`
+      : `${n} ${presence}`);
+  return ` ${parts.join(', ')}.`;
+}
+
 // ---------------------------------------------------------------- the report
 
 type Grade = 'breaking' | 'minor' | 'patch' | 'examples' | 'reordered' | 'ignored' | 'review';
@@ -385,6 +434,7 @@ export function renderReport(dataset: ChangeDataset): string {
   }
   lines.push('');
   lines.push(`${withCounts.length} of ${dataset.components.length} components changed.`
+    + compositionTally(dataset.compositions)
     + (totals.reordered ? ` ${totals.reordered} variant ${totals.reordered === 1 ? 'set' : 'sets'} moved position.` : '')
     + (totals.review ? ` ${totals.review} changes need review.` : ''));
   lines.push('');
@@ -424,6 +474,21 @@ export function renderReport(dataset: ChangeDataset): string {
       `${code(entry.path)}: ${code(entry.oldValue)} → ${code(entry.newValue)}.${entry.flags?.includes('schemaMajor') ? ' The spec now speaks a different schema dialect.' : ''}`);
     if (run.length > 0) groups.push({ subject: 'run', bullets: run });
     lines.push(...sectionBody(groups));
+  }
+
+  // Compositions, when any moved. Their own section rather than rows in the
+  // impact table: that table grades a contract by severity, and a composition
+  // has no contract to grade — every change to one is patch-class for the
+  // library, so counting them by severity would say nothing.
+  if (dataset.compositions.length > 0) {
+    lines.push('## Compositions');
+    lines.push('');
+    lines.push('A composition carries no version of its own. Any change to one is patch-class for the library.');
+    lines.push('');
+    lines.push(...sectionBody(dataset.compositions.map(c => ({
+      subject: c.title,
+      bullets: compositionBullets(c),
+    }))));
   }
 
   // Conditional sections: only when they have something in them.
@@ -481,6 +546,7 @@ export function renderReport(dataset: ChangeDataset): string {
 export interface ChangelogRelease {
   libraryVersion: string;
   components: ComponentChange[];
+  compositions: CompositionChange[];
   assetEntries: DiffEntry[];
   runEntries: DiffEntry[];
 }
@@ -535,6 +601,17 @@ export function renderChangelog(releases: ChangelogRelease[]): string {
         }
         lines.push('');
       }
+    }
+    // No `from → to` on the heading and no severity sub-headings: a composition
+    // is not versioned and every change to one is patch-class, so the itemized
+    // lines are the whole of what there is to say about it.
+    for (const composition of release.compositions) {
+      lines.push(`### ${composition.title}`);
+      lines.push('');
+      for (const b of compositionBullets(composition)) {
+        lines.push(`- ${unprefix(b, composition.title)}`);
+      }
+      lines.push('');
     }
     for (const entry of release.assetEntries) {
       lines.push(`- assets: ${entry.operation} ${code(entry.path)}`);
