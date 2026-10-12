@@ -41,9 +41,15 @@ If they choose migration, continue to Step 1 to install the CLI, then run `specs
 
 A leftover `config/conventions.yaml` (flat file) or `config/pipeline.yaml` is also pre-split residue: the conventions file makes the CLI refuse; the pipeline file is ignored with a warning (its transformers became `specs react` / `specs webcomponents`, and `specs analyze` takes its analyzers as arguments). `specs migrate config` cleans both up.
 
-If the directory has any of: `config/`, `.env`, `data/`, `specs/` — assume a previous setup exists:
+If the directory has any of: `config/`, `data/`, `specs/` — assume a previous setup exists:
 
 > "This directory already has `<files>`. Should I (a) overwrite, (b) merge/resume, or (c) stop so you can pick a different directory?"
+
+A `.env` on its own, with no `config/`, is **not** a previous setup. Pre-provisioning the Figma token before anyone runs the CLI is a normal enterprise pattern, so treat the directory as fresh and say what you found instead of asking the overwrite question:
+
+> "You already have a `.env` here, so I'll read the Figma token from it rather than asking you for one. Nothing else is set up yet, so we're starting fresh."
+
+When you reach Step 6a, confirm the file carries a populated `FIGMA_TOKEN=` line without printing its value, and skip the token walkthrough.
 
 If the directory has unrelated files (e.g., a `package.json` for another project), confirm:
 
@@ -161,6 +167,10 @@ Ask:
 
 Repeat 4a–4b for each additional source. Every source gets the full `fetch` list — we always fetch `file`, `variables`, and `styles`. It's marginally more bandwidth on files that don't need `file`, but it keeps the flow simple and nothing downstream complains.
 
+**If there is more than one source, name the one holding the components `library`.** `specs generate` picks the components source by looking for the alias `library` first; with no `library`, it falls back to the first source that fetches `file`, which depends on the order of keys in the file. Naming it `library` is what makes a bare `specs generate` in Step 10 land on the right source every time. Tell the user this as you write the block:
+
+> "I'll name your components file `library` and your foundations file `foundations`. The `library` name isn't cosmetic — it's what lets `specs generate` run with no arguments."
+
 Typical result (in `config/settings.yaml`):
 
 ```yaml
@@ -175,7 +185,7 @@ data:
       fetch: [file, variables, styles]
 ```
 
-Write the full `data.sources:` block to `config/settings.yaml` now, replacing the empty `sources: {}` stub `specs init` wrote. Show the user what you wrote.
+Write the full `data.sources:` block to `config/settings.yaml` now, replacing the placeholder `library:` entry `specs init` wrote. Drop the `icons` fetch kind from the placeholder's list: fetching icons requires a `glyphs` convention in `config/conventions/figma.yaml`, which onboarding leaves commented out, and `specs fetch` refuses to start without it. Show the user what you wrote.
 
 ---
 
@@ -238,9 +248,11 @@ spec:
   # splitConcerns: true                # ASKED-5c
   # useSubfolders: true                # ASKED-5c
 
-# assets:                              # OMITTED — opt-in shared-assets location
-#   directory: ./assets
+assets:                                # DEFAULT — set by `specs init`, not opt-in
+  directory: ./assets
 ```
+
+`assets:` is scaffolded set, not commented out, so an `assets/` directory at the workspace root is expected from the first run that writes icons, generated CSS, or fonts. If the user asks why it appeared, that's the answer — it isn't a stray directory.
 
 If the user later wants to enable anything marked **OMITTED**, point them at the [Settings Reference](https://www.specsplugin.com/settings/) — those features are opt-in because either (a) a convention that isn't declared isn't processed — absence *is* the off-switch (`glyphs`, `codeOnlyProps`, `images`, `instanceExamples`, `states`, the platform bindings), or (b) they're advanced tuning knobs rarely needed in a first setup (`slotConstraints`, `inferNumberProps`, `collapsePrimitiveWrapper`, `emptyVariants`).
 
@@ -421,6 +433,18 @@ Ask:
 
 ## Step 7. Fetch Figma data
 
+Set expectations before you start it. A large enterprise library is a large download — a ~950MB components file takes around four minutes, most of it silent while Figma builds the payload before sending a byte. Tell the user:
+
+> "This first fetch can take several minutes on a big library, and most of that time looks like nothing happening while Figma assembles the file. A transient disconnect partway through is normal — I'll re-run the part that failed."
+
+If the download fails mid-transfer, re-run it following the retry hint `fetch` prints: the hint names the source and every data kind still missing, so one `--only` run recovers the source without re-downloading the ones that already succeeded. Repeated failures or a payload too large to read are the case for `--no-geometry`, which drops `fillGeometry`, `strokeGeometry`, `size`, and `relativeTransform` and makes the payload around a third smaller:
+
+```
+specs fetch --no-geometry
+```
+
+It is safe whenever the user doesn't need vector path data. Width and height fall back to `absoluteBoundingBox`, which is accurate for every non-rotated node — so the only specs it degrades are ones with rotated layers. Offer it as the remedy for size, not as the default.
+
 Run `specs fetch`. Verify:
 
 1. Command exits 0.
@@ -435,16 +459,17 @@ If `fetch` 404s, the file key is wrong or the token's user doesn't have access t
 
 ## Step 8. Scan for components
 
-If only one source is configured, run:
+With exactly one source configured, run:
 
 ```
 specs scan
 ```
 
-For each additional source, use `--source <alias>`:
+**With more than one source, run `scan` once per source and name each one with `--source <alias>` — including the first.** A bare `specs scan` fails when it has more than one source to choose between; it will not silently pick the first:
 
 ```
-specs scan --source <alias>
+specs scan --source library
+specs scan --source foundations
 ```
 
 No `-o` flag needed. `scan` writes the manifest to `data/<alias>.manifest.md` by default (`data.directory` from `config/settings.yaml`). Let the default do its work — downstream commands and the checkpoint below both assume it.
@@ -465,6 +490,15 @@ Tell the user:
 >
 > Let me know when you've saved the manifest and I'll run the generator."
 
+A first-time manifest from a real library is long, so give the user the naming patterns to sort it by rather than leaving them to read every line. Read the manifest yourself and point at whichever of these it actually shows:
+
+- **A shared prefix marks the published set.** The component sets a team publishes to its consumers usually share one prefix; everything without it is internal. Offer to select by that prefix.
+- **A leading `.` or `_` marks a private component.** Figma's own convention for a component the library does not publish.
+- **A sigil such as `❖` is decoration, not meaning.** Teams use it to mark component sets in layer names; it says nothing about whether the component should get a spec.
+- **A helper path prefix marks a utility.** Names under a path segment like `Helpers /`, `Internal /`, or `Slots /` are scaffolding for other components rather than components a consumer uses.
+
+State these as heuristics the user confirms, not as exclusions you apply. Their library may deliberately publish something that looks internal.
+
 Wait for explicit confirmation. If the user says "just generate everything," still wait for their confirmation that they've looked at the list.
 
 ---
@@ -477,7 +511,7 @@ Run:
 specs generate
 ```
 
-No arguments needed — `generate` reads the default manifest (`data/<alias>.manifest.md`, `library` alias preferred) and writes output to `spec.directory` from `config/settings.yaml` (default `./specs`). If the user has multiple sources with components, run it once per source by passing the explicit manifest path: `specs generate data/<otherSource>.manifest.md`.
+No arguments needed — `generate` reads the default manifest (`data/<alias>.manifest.md`, resolved to the `library` alias as described in 4c) and writes output to `spec.directory` from `config/settings.yaml` (default `./specs`). If the user has multiple sources with components, run it once per source by passing the explicit manifest path: `specs generate data/<otherSource>.manifest.md`.
 
 Verify:
 

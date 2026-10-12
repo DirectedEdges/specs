@@ -141,6 +141,18 @@ A workspace is now a documented, tested library, and screens are first-class in 
 
 - **The documentation links `specs init` and config errors print now reach a live page.** The domain they named stopped answering.
 
+- **A directory holding only a pre-provisioned `.env` is treated as a fresh setup during onboarding**, rather than prompting as though a previous setup were being overwritten.
+
+- **The onboarding walkthrough says to name your components source `library`**, which is what lets `specs generate` run with no arguments once a second source exists.
+
+- **The onboarding walkthrough names every source when scanning more than one**, including the first, because a bare scan refuses to choose between them.
+
+- **Onboarding sets expectations for a large first download** — minutes of silence while Figma assembles the file, and a transient disconnect as normal — and says when omitting geometry is safe.
+
+- **Onboarding explains the `assets/` directory at the workspace root** instead of describing it as an opt-in that was never switched on.
+
+- **Onboarding offers naming heuristics for curating a long first manifest** — a shared published prefix, a leading `.` or `_`, a helper path segment — rather than leaving the whole list to be read line by line.
+
 
 ## [0.31.0] - 2026-09-23
 
