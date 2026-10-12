@@ -60,7 +60,7 @@ settings:
 And each spec keeps only what is its own:
 
 ```yaml
-# specs/button/api.yaml — after
+# specs/components/button/api.yaml — after
 title: Button
 anatomy: { ... }
 props: { ... }
@@ -81,14 +81,17 @@ The output directory looks like this:
 ```
 specs/
 ├── latest.metadata.yaml
-├── button/
-│   ├── api.yaml
-│   ├── variants.yaml
-│   └── examples.yaml
-└── card/
-    ├── api.yaml
-    └── variants.yaml
+└── components/
+    ├── button/
+    │   ├── api.yaml
+    │   ├── variants.yaml
+    │   └── examples.yaml
+    └── card/
+        ├── api.yaml
+        └── variants.yaml
 ```
+
+`latest.metadata.yaml` sits at the specs root rather than inside a kind directory: the run's facts belong to the run, and every kind it wrote shares them.
 
 On two real components, a small `api.yaml` roughly halves — 3,274 bytes to 1,643, and 2,584 to 953. Six files gave back 9,786 bytes of repeated metadata in exchange for one 1,513-byte document.
 
@@ -120,10 +123,10 @@ This happens when an output directory mixes results from separate runs. Regenera
 
 [`render`](/cli/commands/render/) reverses the record a spec was generated under — it needs the conventions and settings to reverse key formatting, find code-only props, and resolve image source props.
 
-A reduced spec did not lose that record; it moved next door. `render` reads `latest.metadata.yaml` back automatically, looking in the spec's own directory and then one level up, so a component folder finds the document at the root of the output directory beside it:
+A reduced spec did not lose that record; it moved next door. `render` reads `latest.metadata.yaml` back automatically, climbing from the spec's own directory to the specs root and taking the nearest document it finds, so a component folder any depth down still reaches the one written beside its siblings:
 
 ```bash
-specs render specs/button/        # finds specs/latest.metadata.yaml
+specs render specs/components/button/     # finds specs/latest.metadata.yaml
 ```
 
 You do not need to pass anything. Two things to know:

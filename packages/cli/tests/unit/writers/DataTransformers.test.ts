@@ -4,7 +4,7 @@ import {
   extractApiFromSubcomponents,
   extractExamplesFromSubcomponents,
   hasExampleData,
-} from '../../../src/Writers/DataTransformers';
+} from '../../../src/writers/DataTransformers';
 
 describe('splitComponentByConcern', () => {
   it('defaults missing props to {} (regression #84)', () => {

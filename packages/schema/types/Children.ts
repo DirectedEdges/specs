@@ -28,5 +28,10 @@ export interface SlotBinding extends PropBinding {
  * Data output for children. Either an array of child element names or a
  * `SlotBinding` when bound to a slot prop. Because `SlotBinding extends
  * PropBinding`, existing `{ $binding }` values still validate.
+ *
+ * A plain `string[]` entry may name an element that is an instance of a
+ * *different* component, nested as an ordinary child rather than through an
+ * explicit `SlotBinding` — this is how an instance is composed through a
+ * `SlotProp.defaultSlot` (ADR-099), with no shape change required here.
  */
 export type Children = string[] | SlotBinding;

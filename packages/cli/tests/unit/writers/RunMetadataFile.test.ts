@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import fs from 'fs';
+import fs from 'fs-extra';
 import os from 'os';
 import path from 'path';
 import yaml from 'yaml';
 import { DEFAULT_SETTINGS, type RunMetadata as SchemaRunMetadata } from '@directededges/specs-schema';
-import { RunMetadataFile, RunMetadataReader, RUN_METADATA_BASENAME } from '../../../src/Writers/RunMetadataFile.js';
+import { RunMetadataFile, RunMetadataReader, RUN_METADATA_BASENAME } from '../../../src/writers/RunMetadataFile.js';
 
 const run = (): SchemaRunMetadata => ({
   author: 'Design Systems Team',
@@ -129,5 +129,62 @@ describe('RunMetadataFile.write and RunMetadataReader.find', () => {
   it('skips a malformed document rather than throwing', () => {
     fs.writeFileSync(path.join(dir, `${RUN_METADATA_BASENAME}.yaml`), '{{{ not yaml');
     expect(RunMetadataReader.find(dir)).toBeUndefined();
+  });
+});
+
+/**
+ * ADR-096 moved specs a level deeper, into `specs/components/<key>/`. The reader searched
+ * a spec's own directory and one level up — enough at the old depth, one short at the new
+ * one, two short for a subcomponent — so render silently lost the run facts.
+ */
+describe('RunMetadataReader.find — depth', () => {
+  let root: string;
+
+  beforeEach(() => {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), 'run-meta-depth-'));
+    fs.writeFileSync(
+      path.join(root, 'latest.metadata.yaml'),
+      'author: Someone\ngenerator:\n  name: specs-cli\n',
+    );
+  });
+  afterEach(() => fs.removeSync(root));
+
+  const specDir = (...segments: string[]) => {
+    const dir = path.join(root, ...segments);
+    fs.ensureDirSync(dir);
+    return dir;
+  };
+
+  it('finds the run document from a component spec two levels below it', () => {
+    const found = RunMetadataReader.find(specDir('components', 'dsButton'));
+    expect(found?.author).toBe('Someone');
+  });
+
+  it('finds it from a subcomponent three levels below it', () => {
+    const found = RunMetadataReader.find(specDir('components', 'dsCard', 'Reviews'));
+    expect(found?.author).toBe('Someone');
+  });
+
+  it('finds it from a composition spec', () => {
+    const found = RunMetadataReader.find(specDir('compositions', 'checkoutSmall'));
+    expect(found?.author).toBe('Someone');
+  });
+
+  it('still finds it beside a spec in a pre-ADR-096 flat directory', () => {
+    const found = RunMetadataReader.find(specDir('dsButton'));
+    expect(found?.author).toBe('Someone');
+  });
+
+  it('prefers the nearest document when more than one is in the chain', () => {
+    const dir = specDir('components', 'dsButton');
+    fs.writeFileSync(path.join(dir, 'latest.metadata.yaml'), 'author: Nearer\n');
+    expect(RunMetadataReader.find(dir)?.author).toBe('Nearer');
+  });
+
+  it('does not climb out of the workspace indefinitely', () => {
+    // Bounded: adopting an unrelated document from somewhere above is a worse failure
+    // than finding none.
+    const deep = specDir('a', 'b', 'c', 'd', 'e', 'f');
+    expect(RunMetadataReader.find(deep)).toBeUndefined();
   });
 });

@@ -38,7 +38,7 @@ In addition to the aggregate reports below, each component folder receives its o
 
 ## Outputs
 
-Three aggregate files are written to `_analysis/` after all components are processed. The extension follows `spec.format` in `config/settings.yaml` — `.json` shown here, `.yaml` when configured.
+Three aggregate files are written to `analysis/` after all components are processed. The extension follows `spec.format` in `config/settings.yaml` — `.json` shown here, `.yaml` when configured.
 
 | File | Answers |
 |------|---------|

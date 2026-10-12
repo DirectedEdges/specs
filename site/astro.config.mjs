@@ -143,11 +143,16 @@ export default defineConfig({
           items: [
             { label: 'Overview', slug: 'cli' },
             { label: 'Workflows', slug: 'cli/workflows' },
+            // The whole-workspace commands lead: they are what most people
+            // want, and the rest are the steps they run.
+            { label: 'build', slug: 'cli/commands/build', badge: experimental },
+            { label: 'run', slug: 'cli/commands/run', badge: experimental },
             { label: 'init', slug: 'cli/commands/init' },
             { label: 'fetch', slug: 'cli/commands/fetch' },
             { label: 'scan', slug: 'cli/commands/scan' },
             { label: 'applyCustomTokens', slug: 'cli/commands/apply-custom-tokens' },
             { label: 'generate', slug: 'cli/commands/generate' },
+            { label: 'analyze', slug: 'cli/commands/analyze', badge: experimental },
             { label: 'bridge', slug: 'cli/commands/bridge', badge: experimental },
             { label: 'cache', slug: 'cli/commands/cache', badge: experimental },
             { label: 'render', slug: 'cli/commands/render', badge: experimental },
@@ -155,8 +160,11 @@ export default defineConfig({
             { label: 'version', slug: 'cli/commands/version' },
             { label: 'skills', slug: 'cli/commands/skills' },
             { label: 'storybook', slug: 'cli/commands/storybook', badge: experimental },
+            { label: 'testing visual', slug: 'cli/commands/testing', badge: experimental },
             {
-              label: 'Analyze',
+              // The command itself is a flat entry above, with the other
+              // commands; this group is one page per report it writes.
+              label: 'Analyze reports',
               collapsed: true,
               badge: experimental,
               items: [
@@ -186,6 +194,14 @@ export default defineConfig({
                 { label: 'Scaffold', slug: 'code/scaffold' },
                 { label: 'Stories', slug: 'code/stories' },
                 { label: 'Styles', slug: 'code/styles' },
+              ],
+            },
+            {
+              label: 'Testing',
+              collapsed: true,
+              items: [
+                { label: 'Overview', slug: 'testing', badge: experimental },
+                { label: 'Getting Started', slug: 'testing/getting-started', badge: experimental },
               ],
             },
             {
@@ -308,6 +324,7 @@ export default defineConfig({
                 { label: 'subcomponents', slug: 'settings/subcomponents' },
                 { label: 'instanceExamples', slug: 'settings/instance-examples', badge: pro },
                 { label: 'images', slug: 'settings/images' },
+                { label: 'slots.default', slug: 'settings/default-slot', badge: pro },
                 { label: 'slotConstraints', slug: 'settings/slot-constraints', badge: pro },
                 { label: 'inferNumberProps', slug: 'settings/infer-number-props' },
                 { label: 'Promotion table', slug: 'settings/figma-primitives' },

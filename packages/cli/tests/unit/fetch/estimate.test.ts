@@ -88,14 +88,14 @@ describe('fetch estimate', () => {
   describe('preparingMessage', () => {
     it('names the source, the last size, and the band', () => {
       const message = preparingMessage('core', 'file', 738 * MB);
-      expect(message).toContain('preparing core file');
+      expect(message).toContain('preparing core.file');
       expect(message).toContain('738MB');
       expect(message).toContain('more than 90 seconds');
     });
 
     it('quotes no size for a first fetch, having nothing to predict from', () => {
       const message = preparingMessage('core', 'file', null);
-      expect(message).toContain('preparing core file');
+      expect(message).toContain('preparing core.file');
       expect(message).not.toMatch(/\d+MB/);
       expect(message).toContain('60 to 120 seconds');
     });

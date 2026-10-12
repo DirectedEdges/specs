@@ -4,7 +4,7 @@ description: "One page per analysis in your workspace, with the data viewable to
 ---
 
 The section appears when your workspace has analyses — run any `specs analyze`
-command and its output lands in `specs/_analysis/`; the next `specs storybook`
+command and its output lands in `specs/analysis/`; the next `specs storybook`
 adds an **Analysis** section with one page per analysis found there. No
 analyses, no section.
 

@@ -500,6 +500,10 @@
           },
           "description": "Component type names permitted in this slot"
         },
+        "defaultSlot": {
+          "type": "boolean",
+          "description": "Whether this is the component's designated default slot \u2014 set by specs-from-figma when the slot prop matched the library's specs.slots.default.match convention at generation time. When true, an authored example may nest a filling instance as a plain child element instead of through an explicit SlotContentRef/SlotBinding. Absent means false: this is not the default slot, or the library declared no default-slot convention. At most one SlotProp per component may be true \u2014 an authoring/generator invariant, not schema-enforced. (ADR-099)"
+        },
         "$extensions": {
           "$ref": "#/definitions/PropExtensions"
         }
