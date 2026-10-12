@@ -173,6 +173,7 @@ export default defineConfig({
                 { label: 'styling', slug: 'cli/analyze/styling' },
                 { label: 'dependencies', slug: 'cli/analyze/dependencies' },
                 { label: 'keys', slug: 'cli/analyze/keys' },
+                { label: 'roles', slug: 'cli/analyze/roles' },
               ],
             },
           ],
