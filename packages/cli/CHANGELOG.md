@@ -141,6 +141,8 @@ A workspace is now a documented, tested library, and screens are first-class in 
 
 - **The documentation links `specs init` and config errors print now reach a live page.** The domain they named stopped answering.
 
+- **A scaffolded workspace fetches successfully on the first try.** `specs init` no longer asks for icons in the source it writes, which made `specs fetch` refuse to start until a glyphs convention was declared; a comment says to add it once one is.
+
 - **A directory holding only a pre-provisioned `.env` is treated as a fresh setup during onboarding**, rather than prompting as though a previous setup were being overwritten.
 
 - **The onboarding walkthrough says to name your components source `library`**, which is what lets `specs generate` run with no arguments once a second source exists.

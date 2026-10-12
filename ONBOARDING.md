@@ -185,7 +185,7 @@ data:
       fetch: [file, variables, styles]
 ```
 
-Write the full `data.sources:` block to `config/settings.yaml` now, replacing the placeholder `library:` entry `specs init` wrote. Drop the `icons` fetch kind from the placeholder's list: fetching icons requires a `glyphs` convention in `config/conventions/figma.yaml`, which onboarding leaves commented out, and `specs fetch` refuses to start without it. Show the user what you wrote.
+Write the full `data.sources:` block to `config/settings.yaml` now, replacing the placeholder `library:` entry `specs init` wrote. Leave the `icons` fetch kind out, as the placeholder does: fetching icons requires a `glyphs` convention in `config/conventions/figma.yaml`, which onboarding leaves commented out, and `specs fetch` refuses to start without it. Show the user what you wrote.
 
 ---
 
