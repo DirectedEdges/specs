@@ -196,3 +196,77 @@ export async function postInspect(body: InspectRequestBody): Promise<InspectResp
   });
   return (await res.json()) as InspectResponse;
 }
+
+/** One element to annotate, named by anatomy key rather than by node id. */
+export interface AnnotateElement {
+  /** The anatomy key, as `/inspect` reports it and as the spec carries it. */
+  key: string;
+  /** Signal lines, already formatted by the shared `annotationLines` grammar. */
+  lines: string[];
+}
+
+export interface AnnotateComponent {
+  /** From the spec's `metadata.source.nodeId`. */
+  nodeId: string;
+  /** The component's spec key, for reporting. */
+  title: string;
+  elements: AnnotateElement[];
+}
+
+/**
+ * A request to add role annotations to components on one page.
+ *
+ * One page per call, because a page is the unit a reviewer can watch and stop at — and
+ * because the plugin loads a page to address its subtree, so batching across pages would
+ * load the whole file to no purpose.
+ *
+ * Elements are named by key, never by node id. The plugin resolves each key against the
+ * component as it stands at write time, so nothing depends on an id recorded earlier and
+ * there is no stale-snapshot failure mode to detect.
+ */
+export interface AnnotateRequestBody {
+  fileKey?: string;
+  pageId: string;
+  components: AnnotateComponent[];
+  conventions?: unknown;
+  settings?: unknown;
+}
+
+export type AnnotateElementStatus =
+  /** The annotation was appended. */
+  | 'applied'
+  /** The element already carries a role, on this variant or another. Left alone. */
+  | 'conflict'
+  /** No element in the live component keys to this name. */
+  | 'unresolved'
+  /** The element resolved to a node that cannot hold an annotation. */
+  | 'unsupported';
+
+export interface AnnotateElementResult {
+  key: string;
+  /** The node written to, where one resolved. */
+  nodeId?: string;
+  status: AnnotateElementStatus;
+  detail?: string;
+}
+
+export interface AnnotateComponentResult {
+  title: string;
+  elements: AnnotateElementResult[];
+}
+
+export interface AnnotateResponse {
+  success: boolean;
+  fileKey?: string;
+  components?: AnnotateComponentResult[];
+  error?: unknown;
+}
+
+export async function postAnnotate(body: AnnotateRequestBody): Promise<AnnotateResponse> {
+  const res = await fetch(`http://localhost:${HTTP_PORT}/annotate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  return (await res.json()) as AnnotateResponse;
+}
