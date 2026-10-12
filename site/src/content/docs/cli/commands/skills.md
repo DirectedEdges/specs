@@ -20,6 +20,10 @@ Two skills are emitted:
 |-------|--------------|
 | `specs-cli.premerge` | [`specs version figmapremerge`](/cli/commands/version/#specs-version-figmapremerge) fetches, generates, and reports → human reviews the report → merge proceeds or not |
 | `specs-cli.release` | [`specs version report`](/cli/commands/version/#specs-version-report) → human review → [`specs version cut`](/cli/commands/version/#specs-version-cut) → [`specs version tag`](/cli/commands/version/#specs-version-tag) → publish |
+| `specs-cli.roles.propose` | [`specs analyze`](/cli/commands/analyze/) → read the live components over the bridge → write `analysis/roles.proposed.md` → human marks up the Decision column |
+| `specs-cli.roles.apply` | Parse the approved decisions → annotate the Figma file one page at a time → human confirms in Dev Mode → [`fetch`](/cli/commands/fetch/), [`generate`](/cli/commands/generate/), [`analyze roles`](/cli/analyze/roles/) to prove the round trip |
+
+`roles.propose` is the one skill here that **authors** its report rather than only sequencing commands. Which [role](/roles/) an element takes is a judgment — the discriminator between `checkbox`, `switch` and `togglebutton` is what the control does when operated, which no prop records. A rule reading `checked` and `indeterminate` would be right about `checkbox` and wrong about `toggle`, `switch` and `togglegroup`. So the report carries a confidence column, the evidence behind each row, and a human gate before anything reaches a Figma file.
 
 The emitted files are **canonical and overwritten on every install** — re-running after a CLI upgrade refreshes them to match the commands they orchestrate. Keep local customization in your own separate skills rather than editing the emitted ones.
 
