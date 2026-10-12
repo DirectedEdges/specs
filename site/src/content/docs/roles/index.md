@@ -205,6 +205,10 @@ Every concept, what it declares, and whether anything emits for it yet, is on th
 [Inventory](/roles/inventory/). The two tables below name the split the inventory
 groups by.
 
+Where two roles both look right for the same element — a two-state control that could be a
+checkbox, a switch or a togglebutton; a piece of text that could be a description or an error
+message — [Choosing a role](/roles/choosing/) gives the question that separates them.
+
 ## Control role vocabulary
 
 | Role | Declares | Page |
@@ -335,6 +339,7 @@ to is not a change, and does not snap the control back.
 
 ## See also
 
+- [Choosing a role](/roles/choosing/) — the question that separates each role from the ones it is confused with
 - [Precedence](/roles/precedence/) — how role, states and action resolve when more than one applies
 - [Actions overview](/actions/) — what activating an element *does*, the other annotation key
 - The [`states` convention](/settings/states/) — state concept classification the roles bridge
