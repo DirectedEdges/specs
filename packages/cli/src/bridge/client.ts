@@ -138,3 +138,61 @@ export async function postGetVariables(body: GetVariablesRequestBody = {}): Prom
   });
   return (await res.json()) as GetVariablesResponse;
 }
+
+export interface InspectRequestBody {
+  fileKey?: string;
+  /** The page holding the component, from the spec's `metadata.source.pageId`. */
+  pageId: string;
+  /** The component or component set, from the spec's `metadata.source.nodeId`. */
+  nodeId: string;
+  /** Needed to key elements the way the spec keys them — see `InspectedElement.key`. */
+  conventions?: unknown;
+  settings?: unknown;
+}
+
+/** One variant's copy of an element, and the annotations standing on it. */
+export interface InspectedVariantNode {
+  /** The variant's Figma name, e.g. `checked=true, disabled=false`. Absent for a lone component. */
+  variant?: string;
+  nodeId: string;
+  /** Annotation labels exactly as they stand, so a caller can see what a write must preserve. */
+  annotations: string[];
+}
+
+/**
+ * An anatomy element as the live component holds it.
+ *
+ * `key` is produced by the same `getAnatomyElementName` + `KeyGrammar.emit` pair the
+ * reader uses, so it matches the key the spec carries — which is what lets a caller name
+ * elements by key rather than by node id. `figmaName` is the layer name behind that key,
+ * available here whether or not the workspace preserves it in `$extensions`.
+ */
+export interface InspectedElement {
+  key: string;
+  figmaName: string;
+  /** The Figma node type, e.g. `FRAME`, `TEXT`, `INSTANCE`. */
+  type: string;
+  /** Every variant carrying this element, in variant order. */
+  nodes: InspectedVariantNode[];
+  /** Signals parsed from the annotations above: the roles and actions already authored. */
+  signals: { role?: string[]; action?: string[] };
+}
+
+export interface InspectResponse {
+  success: boolean;
+  fileKey?: string;
+  /** The component set's own name. */
+  name?: string;
+  /** Element keys in traversal order. */
+  elements?: InspectedElement[];
+  error?: unknown;
+}
+
+export async function postInspect(body: InspectRequestBody): Promise<InspectResponse> {
+  const res = await fetch(`http://localhost:${HTTP_PORT}/inspect`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  return (await res.json()) as InspectResponse;
+}

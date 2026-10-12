@@ -25,6 +25,15 @@
 //   Reads the connected file's variables via the Plugin API, shaped like the REST
 //   variables/local response's meta — no REST call, no Enterprise plan needed.
 //   Response: { "success": true, "fileKey": "...", "meta": { "variableCollections": {...}, "variables": {...} } }
+//   POST http://localhost:9002/inspect
+//   Body: { "pageId": "42:2", "nodeId": "43:2", "fileKey": "...", "conventions": {...}, "settings": {...} }
+//   Describes a live component's anatomy elements, keyed the way the spec keys them, with
+//   the annotations already standing on each. Read-only. pageId and nodeId come from the
+//   spec's metadata.source; conventions/settings are needed for key derivation.
+//   Response: { "success": true, "name": "Checkbox", "elements": [
+//     { "key": "fieldLabel", "figmaName": "Field.Label", "type": "TEXT",
+//       "nodes": [{ "variant": "checked=false, …", "nodeId": "42:6", "annotations": ["role:label"] }],
+//       "signals": { "role": ["label"] } } ] }
 //   GET  http://localhost:9002/status
 //   Response: { "connections": [{ "fileKey": "...", "fileName": "...", "connected": true }] }
 //
@@ -106,6 +115,22 @@ interface VariablesResult {
   error?: string;
 }
 
+/** A live component's anatomy elements, keyed as the spec keys them —
+ *  see bridge/client.ts InspectResponse for the shape and why each field is there. */
+interface InspectResult {
+  success: boolean;
+  fileKey?: string;
+  name?: string;
+  elements?: Array<{
+    key: string;
+    figmaName: string;
+    type: string;
+    nodes: Array<{ variant?: string; nodeId: string; annotations: string[] }>;
+    signals: { role?: string[]; action?: string[] };
+  }>;
+  error?: string;
+}
+
 // ── Startup workspace (optional) ──────────────────────────────────────────────
 // If set, all requests use this workspace. If not set, workspace is derived per-request.
 
@@ -159,7 +184,7 @@ const registry = new ConnectionRegistry<WebSocket>();
 
 // Pending requests keyed by a generated requestId, so responses route to the
 // right caller regardless of which connection they came from.
-const requests = new RequestTracker<string | RenderResult | GenerateResult | VariablesResult>();
+const requests = new RequestTracker<string | RenderResult | GenerateResult | VariablesResult | InspectResult>();
 
 wss.on('connection', (ws: WebSocket) => {
   // This connection's fileKey isn't known until its 'hello' message arrives.
@@ -178,12 +203,25 @@ wss.on('connection', (ws: WebSocket) => {
       return;
     }
 
-    if (msg.type === 'pageId-result' || msg.type === 'renderComponent-result' || msg.type === 'generateFromSelection-result' || msg.type === 'removeNode-result' || msg.type === 'getVariables-result') {
+    if (msg.type === 'pageId-result' || msg.type === 'renderComponent-result' || msg.type === 'generateFromSelection-result' || msg.type === 'removeNode-result' || msg.type === 'getVariables-result' || msg.type === 'inspectComponent-result') {
       const requestId = msg.requestId as string | undefined;
       if (!requestId) return; // no way to route this response
 
       if (msg.type === 'pageId-result') {
         requests.resolve(requestId, msg.pageId as string);
+        return;
+      }
+
+      if (msg.type === 'inspectComponent-result') {
+        if (msg.success) {
+          const elements = msg.elements as InspectResult['elements'];
+          const annotated = (elements ?? []).filter((e) => (e.signals.role?.length ?? 0) > 0).length;
+          console.log(`✓ Inspected ${msg.name ?? 'component'} — ${elements?.length ?? 0} elements, ${annotated} already carrying a role`);
+          requests.resolve(requestId, { success: true, name: msg.name as string, elements });
+        } else {
+          console.error(`✗ Inspect failed: ${msg.error}`);
+          requests.resolve(requestId, { success: false, error: msg.error as string });
+        }
         return;
       }
 
@@ -314,9 +352,39 @@ const http = createServer((req, res) => {
     return;
   }
 
+  if (req.method === 'POST' && req.url === '/inspect') {
+    let inspectBody = '';
+    req.on('data', (chunk) => { inspectBody += chunk; });
+    req.on('end', () => {
+      let params: { fileKey?: string; pageId?: string; nodeId?: string; conventions?: ResolvedConventions; settings?: ResolvedSettings };
+      try { params = inspectBody ? JSON.parse(inspectBody) : {}; } catch {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Invalid JSON body.' }));
+        return;
+      }
+
+      if (!params.pageId || !params.nodeId) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'pageId and nodeId are required — both come from the spec\'s metadata.source.' }));
+        return;
+      }
+
+      sendInspectComponent(params.fileKey, params.pageId, params.nodeId, params.conventions, params.settings)
+        .then((result) => {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(result));
+        })
+        .catch((err) => {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: errorMessage(err) }));
+        });
+    });
+    return;
+  }
+
   if (req.method !== 'POST' || req.url !== '/render') {
     res.writeHead(405);
-    res.end(JSON.stringify({ error: 'Only POST /render, POST /generate, POST /variables, or GET /status is supported.' }));
+    res.end(JSON.stringify({ error: 'Only POST /render, POST /generate, POST /variables, POST /inspect, or GET /status is supported.' }));
     return;
   }
 
@@ -669,6 +737,33 @@ async function sendRemoveNode(nodeId: string, fileKey?: string): Promise<{ succe
   const { requestId, promise } = requests.create(30000, 'Timed out waiting for removeNode-result.');
   conn.ws.send(JSON.stringify({ type: 'removeNode', requestId, nodeId }));
   return promise as Promise<{ success: boolean; error?: string }>;
+}
+
+/**
+ * Ask a connection's plugin to describe a live component's anatomy elements.
+ *
+ * Read-only, and the companion to annotating by anatomy key rather than by node id: the
+ * plugin traverses the component set and keys every element the way the reader does, so a
+ * caller can name `control` instead of a node id that a layer rebuild would invalidate.
+ * The annotations already standing on each element come back with it, which is what tells
+ * a caller a role is authored here already.
+ *
+ * `conventions`/`settings` travel with the request because key derivation depends on them
+ * — the same reason `generateFromSelection` carries them. The plugin must not adopt them
+ * as its own settings.
+ */
+async function sendInspectComponent(
+  fileKey: string | undefined,
+  pageId: string,
+  nodeId: string,
+  conventions?: ResolvedConventions,
+  settings?: ResolvedSettings,
+): Promise<InspectResult> {
+  const conn = registry.resolve(fileKey);
+  const { requestId, promise } = requests.create(60000, 'Timed out waiting for inspectComponent-result.');
+  conn.ws.send(JSON.stringify({ type: 'inspectComponent', requestId, pageId, nodeId, conventions, settings }));
+  const result = await (promise as Promise<InspectResult>);
+  return { ...result, fileKey: conn.fileKey };
 }
 
 /** Ask a connection's plugin for the file's variables, shaped like the REST payload's meta. */
