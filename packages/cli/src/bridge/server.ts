@@ -70,17 +70,20 @@ import type { ResolvedConventions, ResolvedSettings } from '@directededges/specs
 import { WebSocketServer, type WebSocket } from 'ws';
 import { createServer } from 'http';
 import { readFileSync } from 'fs';
-import { resolve as pathResolve, isAbsolute } from 'path';
+import { isAbsolute } from 'path';
 import { parse } from 'yaml';
-import { WS_PORT, HTTP_PORT, DEFAULT_PAGE_ID, resolveWorkspaceDir } from './config.js';
+import { WS_PORT, HTTP_PORT, DEFAULT_PAGE_ID } from './config.js';
 import { ConnectionRegistry, type Connection } from './connections.js';
 import { RequestTracker } from './requestTracker.js';
 import {
   buildManifest, buildGlyphManifest, buildStylesManifest, buildVariablesManifest,
   type Manifest, type GlyphManifest, type VariablesManifest,
 } from './manifests.js';
+import {
+  resolveDirs as resolveWorkspaceDirs,
+  type WorkspaceOverrides,
+} from './workspace.js';
 import type { RenderRequestBody } from './client.js';
-import type { GlyphsConvention } from '../utilities/glyphConvention.js';
 import { validateCache, describeProblems } from '../cache/cache.js';
 
 /** The Dev Mode status a render request may carry — the bridge relays it, it does not
@@ -159,29 +162,19 @@ if (startupWorkspaceDir) {
   console.log(`  Workspace : (derived per-request from spec path)`);
 }
 
-// SPECS_DIR / DATA_DIR env vars override workspace derivation for non-standard layouts.
-const envSpecsDir = process.env.SPECS_DIR ?? null;
-const envDataDir = process.env.DATA_DIR ?? null;
-
 /**
- * Resolve the specs and data directories for a given spec or manifest path.
- * Precedence: explicit env overrides → startup workspace → per-request derivation.
+ * The startup answers every request resolves against: the pinned workspace above, and
+ * the SPECS_DIR / DATA_DIR overrides for a layout that does not put `specs/` and `data/`
+ * side by side. Read once here, because they are a property of how this process was
+ * started rather than of any one request.
  */
-function resolveDirs(fromPath: string): { specsDir: string; dataDir: string; aliases: string[]; glyphs?: GlyphsConvention } {
-  const workspaceDir = startupWorkspaceDir ?? resolveWorkspaceDir(fromPath);
-  if (!workspaceDir && (!envSpecsDir || !envDataDir)) {
-    throw new Error(
-      `Cannot determine workspace for "${fromPath}". ` +
-      `Pass --workspace <dir>, set WORKSPACE_DIR, or ensure the path is inside a directory containing specs/ and data/.`
-    );
-  }
-  const specsDir = envSpecsDir ?? pathResolve(workspaceDir as string, 'specs');
-  const dataDir = envDataDir ?? pathResolve(workspaceDir as string, 'data');
-  // Data files are named {sourceAlias}.manifest.md, {sourceAlias}.file.json, etc.
-  // The source alias comes from the first key under `data.sources` in the workspace settings.
-  const { aliases, glyphs } = resolveSources(workspaceDir as string);
-  return { specsDir, dataDir, aliases, glyphs };
-}
+const workspaceOverrides: WorkspaceOverrides = {
+  startupWorkspaceDir,
+  envSpecsDir: process.env.SPECS_DIR ?? null,
+  envDataDir: process.env.DATA_DIR ?? null,
+};
+
+const resolveDirs = (fromPath: string) => resolveWorkspaceDirs(fromPath, workspaceOverrides);
 
 console.log(`\nSpecs 2 — CLI bridge`);
 console.log(`  WebSocket : ws://localhost:${WS_PORT}  (plugin)`);
@@ -493,76 +486,6 @@ http.on('error', (e: NodeJS.ErrnoException) => {
   process.exit(1);
 });
 
-
-// ── Workspace config resolution ───────────────────────────────────────────────
-
-/**
- * Every source alias declared in the workspace config, in declaration order, plus the
- * glyph naming pattern. Render resolves against all of them: a component can instance a
- * component, bind a token, or place a glyph from any library the workspace declares.
- *
- * The workspace authors config/settings.yaml and config/conventions.yaml (ADR-071);
- * a pre-split workspace still carries a single specs.config.yaml, so that shape is
- * read as a fallback to keep older workspaces rendering.
- */
-/**
- * The glyph name pattern this workspace declares, from whichever conventions layout it uses.
- *
- * `config/conventions/figma.yaml` is the only layout ADR-078 leaves standing, and its
- * contents are that platform's conventions directly — the filename is the platform id, so
- * there is no `figma:` wrapper inside. The single-file `config/conventions.yaml` is read
- * second, for a workspace that has not been migrated.
- *
- * This value is part of the icons cache signature, and `specs cache` derives it from the
- * loaded config. Reading it from a different place than the cache writer does not fail
- * loudly: the pattern comes back undefined, the two signatures disagree forever, and every
- * render refuses on a permanently "stale" icons.yaml.
- */
-function readGlyphsConvention(workspaceDir: string): GlyphsConvention | undefined {
-  try {
-    const figma = parse(readFileSync(pathResolve(workspaceDir, 'config', 'conventions', 'figma.yaml'), 'utf8')) as {
-      glyphs?: GlyphsConvention;
-    };
-    if (figma?.glyphs) return figma.glyphs;
-  } catch {
-    // No per-platform conventions file — try the single-file layout below.
-  }
-  try {
-    const conventions = parse(readFileSync(pathResolve(workspaceDir, 'config', 'conventions.yaml'), 'utf8')) as {
-      figma?: { glyphs?: GlyphsConvention };
-    };
-    return conventions?.figma?.glyphs;
-  } catch {
-    return undefined; // No conventions file — no glyphs convention.
-  }
-}
-
-function resolveSources(workspaceDir: string): { aliases: string[]; glyphs?: GlyphsConvention } {
-  try {
-    const settings = parse(readFileSync(pathResolve(workspaceDir, 'config', 'settings.yaml'), 'utf8')) as {
-      data?: { sources?: Record<string, unknown> };
-    };
-    const sources = settings?.data?.sources;
-    const aliases = sources && typeof sources === 'object' ? Object.keys(sources) : [];
-    return { aliases, glyphs: readGlyphsConvention(workspaceDir) };
-  } catch {
-    // No split config — fall through to the legacy single-file shape.
-  }
-  const configPath = pathResolve(workspaceDir, 'specs.config.yaml');
-  try {
-    const config = parse(readFileSync(configPath, 'utf8')) as {
-      sources?: Record<string, unknown>;
-      config?: { processing?: { glyphNamePattern?: string } };
-    };
-    const sources = config?.sources;
-    const aliases = sources && typeof sources === 'object' ? Object.keys(sources) : [];
-    const legacyPattern = config?.config?.processing?.glyphNamePattern;
-    return { aliases, glyphs: legacyPattern ? { match: legacyPattern } : undefined };
-  } catch {
-    // No config or unreadable — no aliases, which render reports as an unusable cache
-    return { aliases: [] };
-  }
-}
 
 // ── Shared render logic ───────────────────────────────────────────────────────
 
