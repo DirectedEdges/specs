@@ -129,6 +129,10 @@ A workspace is now a documented, tested library, and screens are first-class in 
 
 - **Figma node ids in a written spec are quoted, so a YAML 1.1 parser reads `42:2` as an id rather than the integer 2522.** Colon-separated digits are base-60 numbers in that version of the format, and a consumer on it received a plausible wrong value with no error. Nothing on the 1.2 spec, this CLI included, was affected.
 
+- **A component swapped onto a nested instance renders.** A swap set two instances deep — an icon on a button inside a dialog's action row — was left out of what the plugin was told to look for, so the component arrived without it and nothing reported the omission.
+
+- **`specs render` works with `SPECS_DIR` and `DATA_DIR` set and no workspace around the spec.** That pairing is the documented override for a layout that keeps specs and data apart, and it failed with a type error about a path argument instead of rendering.
+
 - **Glyph slugs agree everywhere a digit follows a word.** `specs fetch` named a glyph from its raw Figma name (`brightness-1.svg`) while specs and emitted code carry the camel key (`brightness1`), so the scaffold requested a file fetch never wrote. Existing workspaces rename affected files on their next fetch.
 
 - **A spec whose Figma name has no letters or digits is refused rather than written to a folder named `component`**, where the next such spec would overwrite it. The check that rejects the name and the writer that names the folder now share one derivation.

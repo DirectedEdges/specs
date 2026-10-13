@@ -47,7 +47,13 @@ hook blocks it).
   mutating endpoint besides `/render`, and it appends — it never assigns over an
   annotation already on a layer.
 - `npm run watch` rebuilds only `dist/specs.js` — **bridge/server changes need
-  an explicit `npm run build`** to refresh `dist/bridge-server.js`.
+  an explicit `npm run build`** to refresh `dist/bridge-server.js`. That applies
+  to every module `server.ts` imports, not only the file itself.
+- **`server.ts` is the only module in `src/bridge/` that opens a port**, and
+  keeping it that way is what makes the rest testable. Importing it to call a
+  function starts a listener on 9001, so anything another module could own —
+  the operations, the manifest builders, workspace resolution — belongs there
+  instead.
 - Legacy single-file configs (`specs.config.yaml`) are **refused with an
   error, never read** — `specs migrate config` is the only path to the split
   `config/` layout (ADR-071/078).
@@ -186,7 +192,7 @@ the work lives in the feature folder.
 |---|---|
 | `src/config/ConfigLoader.ts` | **The config seam.** Precedence: CLI flags > file > defaults. Discovery: `./config/` → legacy files (refused) → `~/.specs/config.yaml`. Conventions are a *directory*, one file per platform; `conventions/primitives.yaml` reserved (ADR-075). Relative directories resolve against the parent of `config/`, not cwd |
 | `src/config/PlatformConventions.ts` | `figmaOf()` / `platformOf()` — every conventions consumer goes through these |
-| `src/bridge/` | server, client (`postRender`, `postGenerateFromSelection`, `postInspect`, `postAnnotate`), connection pick (`resolveFileKey`), pidfile |
+| `src/bridge/` | `server.ts` is the two listeners and the HTTP router, and nothing else: the sockets, result routing by `requestId`, and `withJsonBody`, which holds the read-parse-respond envelope every endpoint shares. `operations.ts` is one method per message the plugin answers, taking the registry, the request tracker and the bound workspace resolver as arguments so it can run against a fake socket. `manifests.ts` and `workspace.ts` are pure — what a render payload needs from the caches, and where a render reads from. Also `client.ts` (`postRender`, `postGenerateFromSelection`, `postInspect`, `postAnnotate`), connection pick (`resolveFileKey`), pidfile. **Only `server.ts` opens a port**, which is what lets everything else be tested |
 | `src/generate/licenseStatus.ts` | Reads engine-stamped license state; the CLI validates nothing |
 | `src/cache/` | `cache.ts` builds the render lookup caches under `{data.directory}/cache/`; `report.ts` prints a refresh result, shared by `specs cache` and by every command that refreshes as its last step |
 | `src/analyze/` | The five analyzers behind `specs analyze` — `Props`, `Styling`, `Dependencies`, `Keys`, `Roles` — and `index.ts`, the registry that resolves names to them and answers what a run with no names does. Named for the command, like every other feature folder; it was `analyzers/`, named for the plural of its contents. `roleVocabulary.ts` sits beside them: the one machine-readable copy of the documented role concepts and their emission status, because the schema types a role as an open string and a coverage report needs to tell a typo from a concept |
