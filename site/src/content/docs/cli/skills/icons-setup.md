@@ -9,7 +9,7 @@ A skill that establishes the [`glyphs`](/settings/glyphs/) convention for your l
 
 Installed by [`specs skills install`](/cli/commands/skills/) as `.claude/skills/specs-cli.icons.setup/`, then invoked in Claude Code.
 
-## When you need it
+## Scope
 
 Only when the name form is not obvious. Many libraries name their glyph components by a pattern — `DS Icon Glyph / search` — and a single line of config covers them:
 
@@ -20,7 +20,7 @@ glyphs:
 
 If reading your icons manifest shows a pattern like that, write it and move on. This skill is for the case where it does not: glyphs named plainly as the icon itself (`Cross`, `Chevron down`), or several generations of naming that no single pattern spans. There, membership has to come from what each component *contains*, and that is the [structural form](/settings/glyphs/#structure).
 
-## Why this is a skill and not a command
+## Rationale
 
 The shape of the evidence is mechanical — a name pattern or a child structure can be read off the file. What cannot be derived is **which components in the file are icons at all.**
 
@@ -28,7 +28,7 @@ An icon file usually holds more than icons: illustrations, logos, device frames,
 
 That is also the one question the skill brings back to you. It proves what structure a population shares; you say whether a population is an icon set. Everything else it decides and shows its working for.
 
-## It costs a refetch, and the order is fixed
+## Order and refetch
 
 The `icons` fetch kind cannot run before the convention exists — [`specs fetch`](/cli/commands/fetch/) refuses to start without it. So:
 
@@ -39,7 +39,7 @@ The `icons` fetch kind cannot run before the convention exists — [`specs fetch
 
 On a large icon file step 4 is the slowest single step in a setup. The skill says so before starting rather than after.
 
-## Names suggest, structure decides, the regenerate proves
+## Procedure
 
 That sequence is the whole skill, and it exists because the cheap artifact cannot answer the question. `data/<alias>.manifest.md` states a component's name, id, node type and dev status — and **no parentage, no children, no size, no properties.** A `/` in a layer name is a naming convention, not containment.
 
@@ -53,7 +53,7 @@ So the skill takes candidates from names and then goes to the fetched payload, w
 6. **Confirms membership with you, once, after the proof** — never the pattern syntax or the matcher, which are derivable.
 7. Writes the convention, refetches only that source's glyphs, and runs [`specs generate`](/cli/commands/generate/), reporting the population size, the glyphs resolved, and the elements now typed `glyph` with a name — side by side.
 
-## Four semantics it gets right
+## Structural-form semantics
 
 The structural form reads more simply than it behaves, and each of these is a way to be confidently wrong.
 
@@ -65,7 +65,7 @@ The structural form reads more simply than it behaves, and each of these is a wa
 
 **`fill` tests leaves only** — the childless nodes that matched — and is skipped on placed instances, which context recolours. It constrains the stored component alone, and it is the member most likely to narrow a match to zero.
 
-## Verifying it landed
+## Verification
 
 A convention that matches nothing fails exactly like one that was never written: no error, no warning, and specs that look complete.
 

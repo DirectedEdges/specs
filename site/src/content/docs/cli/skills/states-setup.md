@@ -9,19 +9,19 @@ A skill that proposes the [`states`](/settings/states/) block for your `config/c
 
 Installed by [`specs skills install`](/cli/commands/skills/) as `.claude/skills/specs-cli.states.setup/`, then invoked in Claude Code.
 
-## Why this is a skill and not a command
+## Rationale
 
 Deciding whether a boolean variant prop is a state is a judgment, and the data does not contain it. A library can carry `filled`, `segmented`, `showChevron` and `highlighted` — four booleans on variant props, indistinguishable by name, type or frequency. One of them is a state concept, two are presentation, and one toggles whether a layer renders.
 
 A command would have to guess. The skill reasons, shows you the evidence per row, and stops before anything is written.
 
-## What it asks of you
+## Your input
 
 One decision per row, and nothing else. Every proposed row arrives checked; you clear the ones you disagree with, then paste the block.
 
 It never edits your config.
 
-## What it does
+## Procedure
 
 1. Reads `analysis/props.yaml` from [`specs analyze props`](/cli/analyze/props/) — every prop name with its types, the components carrying it, and where one name means two things.
 2. Reads an existing `states` block, if you have one, and treats the run as an audit: what is newly present, what no longer matches any prop, and nothing else touched.
@@ -31,7 +31,7 @@ It never edits your config.
 6. Matches each state to a concept from the [table](/settings/states/), reading the activating value out of the prop's own `enum`.
 7. Writes a report: the proposed block, a table of what was rejected and why, and any interaction state your library has that no concept covers.
 
-## Three things it gets right that a naive match does not
+## Matching rules
 
 These come from reading what real libraries declare, and each one is a way the obvious approach is wrong.
 
@@ -41,14 +41,14 @@ These come from reading what real libraries declare, and each one is a way the o
 
 **A boolean can map the absence of a condition.** A `filled` prop that is true when a field has content is [`placeholder-shown`](/settings/states/) at `value: "false"`.
 
-## What it reports rather than resolves
+## Unresolved cases
 
 Two cases it will not decide for you, because the config cannot express either:
 
 - **Two props competing for one concept.** It picks one, says why, and names what the other falls back to.
 - **One enum spelling a value several ways** — `Read-only` against `Read only`. Case and whitespace differences are forgiven, but a different separator is a different value, and a concept takes only one. The spellings that lose are a finding about the library rather than something the config absorbs.
 
-## Verifying it landed
+## Verification
 
 A classification that emits nothing looks exactly like one that was never made. After pasting the block, run [`specs react`](/cli/commands/react/) and look for the concept's documented selector in the emitted stylesheet — `:disabled`, `[aria-expanded="true"]` — where `[data-*]` used to be.
 

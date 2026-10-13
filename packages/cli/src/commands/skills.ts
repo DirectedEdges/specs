@@ -11,7 +11,7 @@
 import { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
-import { SKILL_ASSETS } from '../version/skills.js';
+import { SKILL_ASSETS } from '../skills/index.js';
 import { ERROR_CODES } from '../utilities/errorCodes.js';
 
 const install = new Command('install')

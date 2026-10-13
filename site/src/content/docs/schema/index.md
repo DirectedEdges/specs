@@ -1,80 +1,134 @@
 ---
 title: "Overview"
-description: "Overview of the Specs component schema"
+description: "How the parts of the Specs schema relate — components and compositions, the files a spec is written as, variants and styles, slots, content, references, conventions, and the reports derived from them"
 ---
 
-The `@directededges/specs-schema` package defines the TypeScript types and JSON Schema for a **component spec** — a structured, platform-agnostic description of a design-system component.
+`specs-schema` offers a schema for describing components and composition formally and precisely as TypeScript types and JSON Schema. 
 
-## Spec Architecture
+## Components and compositions
 
-Every generated spec follows this tree — from a single-element icon to a complex composite with dozens of variants.
+The schema organizes two kinds of spec — **`components`** and **`compositions`** — into a graph.
 
-<pre style="line-height:1.6">
-components:
-└─ {component name}                        → <a href="/schema/component/">Component</a>
-  ├─ <a href="/schema/anatomy/">anatomy</a>:
-  │ └─ {element name}: { type, slot }
-  ├─ <a href="/schema/props/">props</a>:
-  │ └─ {prop name}: { type, default, … }
-  ├─ default:                              → <a href="/schema/variants/">Variant</a>
-  │ ├─ <a href="/schema/layout/">layout</a>:
-  │ │ └─ - {parent}:
-  │ │   └─ - {child}
-  │ └─ <a href="/schema/elements/">elements</a>:
-  │   └─ {element name}:
-  │     ├─ content                         → <a href="/schema/prop-binding/">PropBinding</a>
-  │     ├─ <a href="/schema/children/">children</a>                        → <a href="/schema/children/">Children</a> (nested instance, or slot fill → <a href="/schema/slot-content-ref/">SlotContentRef</a>)
-  │     └─ <a href="/schema/styles/">styles</a>:                      (48 properties)
-  │       ├─ color                         → <a href="/schema/token-reference/">TokenReference</a>, <a href="/schema/gradient-value/">GradientValue</a>
-  │       ├─ spacing, size                 → <a href="/schema/token-reference/">TokenReference</a>, <a href="/schema/conditional/">Conditional</a>
-  │       ├─ layout                        → <a href="/schema/token-reference/">TokenReference</a>, <a href="/schema/conditional/">Conditional</a>
-  │       ├─ <a href="/schema/typography/">typography</a>                  → <a href="/schema/token-reference/">TokenReference</a>
-  │       ├─ <a href="/schema/effects/">effects</a>                     → <a href="/schema/token-reference/">TokenReference</a>
-  │       ├─ cornerRadius                  → <a href="/schema/corners/">Corners</a>
-  │       ├─ padding, strokeWeight         → <a href="/schema/sides/">Sides</a>
-  │       ├─ visibility                    → <a href="/schema/prop-binding/">PropBinding</a>
-  │       └─ …                             <a href="/schema/styles/">see full list</a>
-  ├─ variants:                             → <a href="/schema/variants/">Variant</a>[]
-  │ └─ - <a href="/schema/prop-configurations/">configuration</a>:
-  │     <a href="/schema/layout/">layout</a>:
-  │     <a href="/schema/elements/">elements</a>:                      (layered styling and binding changes)
-  ├─ invalidPropCombinations:              → <a href="/schema/prop-configurations/">PropConfigurations</a>[]
-  ├─ <a href="/schema/subcomponents/">subcomponents</a>:
-  │ └─ {name}: { …same shape as above }
-  ├─ <a href="/schema/metadata/">metadata</a>:
-  │ ├─ source:                             (required — the Figma node captured)
-  │ ├─ <a href="/schema/conventions/">conventions</a>:                        (run fact — may live in RunMetadata)
-  │ └─ <a href="/schema/settings/">settings</a>:                           (run fact — may live in RunMetadata)
-  ├─ <a href="/schema/instance-examples/">instanceExamples</a>:                   → <a href="/schema/instance-examples/">InstanceExample</a>  <span class="sl-badge pro-badge">Pro</span>
-  │ └─ {name}: { title, propConfigurations }
-  └─ <a href="/schema/slot-content/">slotContentExamples</a>:                → <a href="/schema/slot-content/">SlotContent</a>  <span class="sl-badge pro-badge">Pro</span>
-    └─ {name}: { <a href="/schema/anatomy/">anatomy</a>, <a href="/schema/elements/">elements</a>, <a href="/schema/layout/">layout</a> }
-</pre>
+[Components](/schema/component/) are reusable, and arranged inside other components as well as inside [compositions](/schema/composition/) — a page type, template, pattern, or other scaffold.
 
-**Start at `default`.** The default variant is the complete baseline — every element fully described with styles, content, and layout. This is the component at rest.
+Two kinds of nesting put one spec inside another:
 
-**Variants are deltas.** Each entry in `variants` carries a [`configuration`](/schema/prop-configurations/) (which prop values activate it) and only the properties that *change*. Consumers resolve the final state by merging applicable overrides onto the default, in order. See [Variants](/schema/variants/) and the [Variant Layering](/guides/variant-layering/) guide.
+- An element that is an **instance** names another component in the catalogue. The element is a routing site, not a definition — the component it names has its own spec folder.
+- A **subcomponent** is a component a parent owns and ships with, written inside the parent's own files rather than beside them, and nested to any depth.
 
-**A slot is filled one of two ways.** An instance filling a component's designated [default slot](/schema/props/#slotprop) is nested as a plain [child](/schema/children/) — the nesting *is* the fill, and nothing points from one level to the next. Every other slot binds explicitly through a [`SlotContentRef`](/schema/slot-content-ref/) into [`slotContentExamples`](/schema/slot-content/), which is the only shape that can say *which* of several slots a fill belongs to. Both appear in one spec.
+## The files of a spec
 
-**Style values can be rich.** Any style property might be a raw literal, a [`TokenReference`](/schema/token-reference/) pointing to a design token, a [`PropBinding`](/schema/prop-binding/) driven by a prop, or a [`Conditional`](/schema/conditional/) that switches on prop state. Composite values like [`Typography`](/schema/typography/), [`Effects`](/schema/effects/), [`GradientValue`](/schema/gradient-value/), [`Corners`](/schema/corners/), and [`Sides`](/schema/sides/) have their own shapes.
+A spec is written as two or three files, one per subject:
 
-### Conventions
+| File | Holds |
+|---|---|
+| `api.yaml` | what the component *is* and what it takes — its [anatomy](/schema/anatomy/), its [props](/schema/props/), and the prop combinations that are invalid |
+| `variants.yaml` | how it looks — the default arrangement, and every variant as a change against it |
+| `examples.yaml` | example content — what fills its slots, and example configurations of it |
 
-- **`Style`** — A value that can be a literal (`string | number | boolean | null`), a [`TokenReference`](/schema/token-reference/), a [`PropBinding`](/schema/prop-binding/), or a [`Conditional`](/schema/conditional/).
-- **`Record<string, T>`** — An object keyed by user-defined names (element names, prop names, etc.) with values of type `T`.
-- **`$ref`** — A JSON Pointer or URI reference linking to another part of the spec or an external definition.
-- **`$binding`** — A JSON Pointer to a prop (e.g. `#/props/label`), creating a dynamic link between a prop value and a style or element property.
+**Two files or three.** `examples.yaml` is written only when a component has example content to carry, so a component with no slot content and no instance examples has just the first two. Its absence is not an omission.
 
-## Package Exports
+The split is deliberate rather than cosmetic: each file holds one subject and **cannot hold another's**. A `variants.yaml` cannot carry an anatomy, and an `api.yaml` cannot carry the default arrangement. Each file names its own subject in `metadata.concern`, which is how a reader and a validator both know which of the three they have.
 
-The package exports TypeScript types for every node in the schema, plus two runtime values:
+A `styling.yaml` may sit beside them. It is **not part of the spec** — it is a report of which design tokens this component applies, as what, and to which elements. Read it with the analysis files at the end of this page.
 
-```ts
-import type { Component } from '@directededges/specs-schema';
-import { DEFAULT_SETTINGS, DEFAULT_PIPELINE } from '@directededges/specs-schema';
-```
+## Variants and styles
 
-`DEFAULT_SETTINGS` and `DEFAULT_PIPELINE` are the only runtime exports. All other exports are type-only.
+The nesting is **variant → elements → styles per element**, and most of a catalogue's volume is at the bottom of it.
 
-There is no defaults export for [Conventions](/schema/conventions/): a convention's absence means the library declares no such convention, and nothing can supply that.
+**Start at `default`.** The default variant is the complete baseline: every element fully described, with styles, content and layout. Every entry in `variants` is a *delta* — a [`configuration`](/schema/prop-configurations/) saying which prop values activate it, plus only the properties that change. The resolved state is the applicable overrides merged onto the default, in order ([Variant Layering](/guides/variant-layering/)).
+
+Styles are not one shape. They are three at once, which is why a reader expecting uniformity gets lost:
+
+- **Flat and wide** — dozens of sibling properties on an element, most of them scalars.
+- **Deep** — [`typography`](/schema/typography/) gathers the text properties under one node; [`effects`](/schema/effects/) and [`GradientValue`](/schema/gradient-value/) have shapes of their own.
+- **Side- and corner-shaped** — `padding` and `strokeWeight` are [`Sides`](/schema/sides/); `cornerRadius` is [`Corners`](/schema/corners/). One property, several addressable parts.
+
+And any style value may be a literal, a [`TokenReference`](/schema/token-reference/), a [`PropBinding`](/schema/prop-binding/), or a [`Conditional`](/schema/conditional/) — **at any level of that hierarchy.** A token can be bound to a whole `typography` node or to one side of a `padding`. There is no depth at which values stop being rich.
+
+## Compositions, layout trees, and slots
+
+Layout is a tree, and there is one per component, per composition, and per instance. [`layout`](/schema/layout/) in a variant is where it lives.
+
+Slots are what make those trees combine. A slot is a prop a component exposes for content it does not define, and a fill arrives one of two ways:
+
+- **Into a default slot** — an instance filling a component's designated default slot is nested as a plain [child](/schema/children/). **The nesting is the fill**, and nothing points from one level to the next.
+- **Into a named slot** — every other fill binds explicitly through a [`SlotContentRef`](/schema/slot-content-ref/) into [`slotContentExamples`](/schema/slot-content/), which is the only shape that can say *which* of several slots a fill belongs to.
+
+Both appear in one spec, so both have to be read. Because many slots are default slots, their fills merge into **consolidated layout trees** — a composition's tree is not the concatenation of its components' trees but the result of those fills resolving into place.
+
+**Following a slot crosses all three files.** The slot prop is declared in `api.yaml`, its example content lives in `examples.yaml`, and the binding that places it is in `variants.yaml`. That traversal is the part of the schema most worth understanding before reading a catalogue, because no single file shows it.
+
+## Content
+
+Content is mostly two things. **Text** is strings, reaching an element through `content` as a literal or a `$binding`. **Glyphs** are icon vectors, typed `glyph` in the anatomy when a [`glyphs` convention](/settings/glyphs/) recognises the component, with the resolved icon name as the element's `content`.
+
+**Images** flow through both as `backgroundImage` properties on elements, and are declared in `examples.yaml`.
+
+The wrinkle that catches readers: all of these — and the containers that scaffold layout — **are frequently offered as components themselves.** An icon is a glyph in one spec and a component in another; a text block is content here and a component there. Whether something is content or a component is a property of how the library authored it, not of what kind of thing it is.
+
+## References
+
+A spec points at things rather than repeating them, with five references. Each is stored as a value in one file and resolved somewhere else — so these are the paths to follow when reading a catalogue.
+
+**`instanceOf`** — an element is an instance of another component<br/>
+Found in `api.yaml` at `anatomy.<element>.instanceOf`<br/>
+Value: a component key, as a plain string<br/>
+Resolves to that component's own spec folder
+
+**[`$ref`](/schema/subcomponents/)** — an element is an instance of a subcomponent<br/>
+Found in `api.yaml` and `variants.yaml` at `anatomy.<element>.instanceOf`<br/>
+Value: `"#/subcomponents/<name>"`<br/>
+Resolves to `subcomponents.<name>` in the same file
+
+**[`$binding`](/schema/prop-binding/)** — a prop drives this element<br/>
+Found in `variants.yaml` at `default.elements.<element>.<property>`, and the same path under each entry of `variants`<br/>
+Value: `"#/props/<prop>"`<br/>
+Resolves to `props.<prop>` in `api.yaml`
+
+**[`$slotContent`](/schema/slot-content-ref/)** — this is what fills the slot<br/>
+Found in `variants.yaml` at `default.elements.<element>.examples`, and in `examples.yaml` at `instanceExamples.<name>.propConfigurations.<slotProp>`<br/>
+Value: `"#/components/<component>/slotContentExamples/<name>"`<br/>
+Resolves to `slotContentExamples.<name>` in `examples.yaml`
+
+**[`$token`](/schema/token-reference/)** — this style value is a design token<br/>
+Found in `variants.yaml` and `examples.yaml` at `default.elements.<element>.styles.<property>`<br/>
+Value: a token name, alongside a `$type`<br/>
+Resolves outside the spec, to a token in the source library
+
+`<property>` on a binding is most often `children`, `content`, `visible` or `value`.
+
+## Conventions
+
+[Conventions](/schema/conventions/) are the layer most easily mistaken for cosmetic. They are declared per platform in `config/conventions/`, and they change the *shape* of the spec rather than its formatting — **the same Figma file produces different specs under different conventions:**
+
+| Convention | What it changes |
+|---|---|
+| [`glyphs`](/settings/glyphs/) | whether a component is typed `glyph` with a resolved name, or an ordinary element |
+| [`subcomponents`](/settings/subcomponents/) | whether one component becomes a parent with nested subcomponents, or stays flat |
+| [`codeOnlyProps`](/settings/code-only-props-pattern/) | whether a prop reaches the spec at all |
+| [`naming`](/settings/figma-keys/) | whether a key can be reversed back to its original layer name |
+| [`states`](/settings/states/) | whether a variant prop emits a CSS pseudo-class or a `data-*` attribute |
+
+There is no defaults export for conventions, and that is deliberate: a convention's absence means the library declares no such convention, and nothing can supply that on its behalf.
+
+## Analysis reports
+
+[`specs analyze`](/cli/analyze/) writes summaries across the whole catalogue, into `analysis/`. These answer questions **no single spec can** — which components share a prop, which token is used nowhere, where one name means two things:
+
+| Report | Summarizes |
+|---|---|
+| `props.yaml` | every prop name, its types, which components carry it, and where one name means two things |
+| `styling.byToken.yaml`, `styling.byComponent.yaml`, `styling.unused.yaml` | token usage from both directions, and tokens nothing references |
+| `dependencies.graph.yaml`, `dependencies.byComponent.yaml` | the `instanceOf` graph, so a change's blast radius is visible before it is made |
+| `keys.yaml` | names the chosen key format cannot reconstruct — the list to fix in the source |
+| `roles.yaml` | which anatomy elements declare a [role](/roles/), and which concepts the library has never used |
+
+They are **indexes, and lossy by design.** `props.yaml` says which components share a prop; it does not carry that prop's enum values. An analysis report tells you where to look. The spec and the schema tell you what is true.
+
+## See Also
+
+- [Document map](/schema/document-map/) — one spec document, node by node, with a link to every type
+- [Component](/schema/component/) and [Composition](/schema/composition/) — the two spec kinds
+- [Conventions](/schema/conventions/) and [Settings](/schema/settings/) — the declarations that shape a run
+- The guides — how to express a particular thing correctly in data, a page per topic: [variant layering](/guides/variant-layering/), [slot constraints](/guides/slot-constraints/), [consolidating props](/guides/consolidating-props/), [data layout](/guides/data-layout/), [render to Figma](/guides/render-to-figma/), and more

@@ -74,6 +74,7 @@ export default defineConfig({
           collapsed: true,
           items: [
             { label: 'Overview', slug: 'schema' },
+            { label: 'Document map', slug: 'schema/document-map' },
             { label: 'Decision Records (ADRs)', slug: 'adr' },
             {
               label: 'Parts',
