@@ -252,7 +252,8 @@ data:
   sources:
     library:
       key: YOUR_FIGMA_FILE_KEY
-      fetch: [file, variables, styles, icons]
+      # Add icons once a glyphs convention is declared in conventions/figma.yaml
+      fetch: [file, variables, styles]
 
 # Icons, images, generated CSS, fonts — https://www.specsplugin.com/settings/folders/
 assets:

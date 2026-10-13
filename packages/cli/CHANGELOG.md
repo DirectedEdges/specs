@@ -155,6 +155,8 @@ A workspace is now a documented, tested library, and screens are first-class in 
 
 - **The documentation links `specs init` and config errors print now reach a live page.** The domain they named stopped answering.
 
+- **A scaffolded workspace fetches on the first try**, because `specs init` no longer asks for icons in the source it writes, which made `specs fetch` refuse to start until a glyphs convention was declared.
+
 
 ## [0.31.0] - 2026-09-23
 
