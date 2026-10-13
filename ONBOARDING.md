@@ -364,7 +364,7 @@ Writes `storybook/` — a `package.json` declaring Storybook, the `.storybook/` 
 
 Read the port out of the scaffolded `storybook/package.json` dev script and record it. On a fresh workspace it is **6006**.
 
-**Ignore the start command it prints.** The scaffold's next-steps block names `npm run storybook`, which this flow never uses — see Step 10.
+Its printed next-steps name the install and then `specs run`, which is Step 10 — so they match this flow.
 
 ### 9b. Install
 

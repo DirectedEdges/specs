@@ -96,8 +96,13 @@ const InitCommand = new Command('init')
       }
       console.log('  Next (needs Node 20.19+ — check with `node --version`):');
       console.log('    cd storybook && npm install   # installs Storybook in your workspace — we never ship it');
-      console.log('    cd .. && specs storybook      # generate what the host shows');
-      console.log(`    (cd storybook && npm run storybook)   # http://localhost:${result.port}`);
+      console.log(`    cd .. && specs run            # builds everything and serves it — http://localhost:${result.port}`);
+      console.log('');
+      console.log('  `specs run` publishes the content pages, emits each platform, and starts');
+      console.log('  Storybook, then watches for changes. Start it that way rather than with');
+      console.log('  `npm run storybook`: the raw binary prompts for telemetry consent and for a');
+      console.log('  fallback port, and backgrounded those prompts exit without starting anything.');
+      console.log('  Use `specs storybook dev` instead if you want Storybook without the full chain.');
       process.exit(ERROR_CODES.SUCCESS);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

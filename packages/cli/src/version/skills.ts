@@ -590,8 +590,7 @@ It writes no config. The last step hands you a block to paste and stops.
 
    **On more than a handful of components, bucket the deltas mechanically rather than by
    reading.** Classify each delta as style / layout / visible-only / child-passthrough.
-   A shell pipeline over the files is enough — \`grep\`, \`awk\`, \`python3 -c\` — and does
-   not need a script file, which some environments will not let you write. A dozen
+   A shell pipeline over the files is enough — \`grep\`, \`awk\`, \`python3 -c\`. A dozen
    components can be read directly; a library cannot, and done by eye it is neither
    repeatable nor finishable.
 
