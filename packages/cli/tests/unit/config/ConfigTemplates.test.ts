@@ -155,7 +155,7 @@ describe('ConfigTemplates', () => {
       expect(Object.keys(parsed)).toContain('spec');
       expect(Object.keys(parsed)).toContain('assets');
       expect(parsed.data.sources).toEqual({
-        library: { key: 'YOUR_FIGMA_FILE_KEY', fetch: ['file', 'variables', 'styles', 'icons'] },
+        library: { key: 'YOUR_FIGMA_FILE_KEY', fetch: ['file', 'variables', 'styles'] },
       });
       expect(parsed.assets.directory).toBe('./assets');
       // curation is a mapping of commented members, so it parses to null rather
