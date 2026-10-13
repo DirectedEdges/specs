@@ -38,6 +38,23 @@ Three rules cover components with variants:
 
 A component *set* carries no layers of its own, so roles go on a component node or below.
 
+## Adopting roles across an existing library
+
+A library that predates roles has none, and nothing observable in Figma supplies them — which makes adoption the one part of this system that is neither derivable nor free. Two shipped skills carry it, installed by [`specs skills install`](/cli/commands/skills/):
+
+1. [`specs analyze roles`](/cli/analyze/roles/) measures what you have: which elements declare a role, which are bare and of what type, and which concepts the library has never reached for.
+2. **`specs-cli.roles.propose`** reads those elements, the live components over the [bridge](/cli/commands/bridge/), and this vocabulary, then writes `analysis/roles.proposed.md` — one table for the whole library, a row per element, each with the evidence behind it.
+3. You mark it up. Every row arrives checked as `[x]`; clearing it to `[ ]` skips that row. There is no third answer, so nothing has to be interpreted later.
+4. **`specs-cli.roles.apply`** adds the approved roles to the Figma file as annotations, one page at a time. The write is additive, so existing notes survive, and an element that already carries a role is left alone.
+5. `specs analyze roles` again, diffed against the first run, shows what landed. Then `specs react` — the sweep proves the annotation arrived, and only the emitted code proves the role did anything.
+
+Four things about adoption that the per-role pages do not say, because they only appear at library scale:
+
+- **One already-annotated component is worth a great deal.** It is the library's own convention, and it settles how every similar component should read. Annotate one field component by hand before proposing the rest.
+- **Check each control against the parts it accepts, before proposing anything.** An element-by-element pass only sees elements that exist, so a part the design never drew is invisible to it. One library turned out to have a label and a description on every field and no error message anywhere — `errormessage` is implemented, and there was simply nothing to annotate. That is a finding about the library, not a proposal.
+- **A component needing two announcement semantics has to be reauthored first.** An element the component owns carries at most one role, so a banner that interrupts as a danger and confirms as a success cannot say both on one element. Separate elements per semantic, then one role each — an authoring change, not an annotation choice.
+- **Annotate the concept an element *is*, not the nearest thing that emits.** A concept with no implementation is inert: the spec carries it and every transform ignores it. A spec recording what an element is stays true as support arrives; one recording a near-miss has to be re-annotated, and nobody remembers which entries were compromises. Take that from the [Inventory](/roles/inventory/) rather than from whether a page exists — `group`, `radio` and `textarea` have full pages and emit nothing.
+
 ## Parts across a composed component
 
 A part is authored in the component that **wires** it, which is not always the component
@@ -205,6 +222,10 @@ Every concept, what it declares, and whether anything emits for it yet, is on th
 [Inventory](/roles/inventory/). The two tables below name the split the inventory
 groups by.
 
+Where two roles both look right for the same element — a two-state control that could be a
+checkbox, a switch or a togglebutton; a piece of text that could be a description or an error
+message — [Choosing a role](/roles/choosing/) gives the question that separates them.
+
 ## Control role vocabulary
 
 | Role | Declares | Page |
@@ -335,6 +356,7 @@ to is not a change, and does not snap the control back.
 
 ## See also
 
+- [Choosing a role](/roles/choosing/) — the question that separates each role from the ones it is confused with
 - [Precedence](/roles/precedence/) — how role, states and action resolve when more than one applies
 - [Actions overview](/actions/) — what activating an element *does*, the other annotation key
 - The [`states` convention](/settings/states/) — state concept classification the roles bridge

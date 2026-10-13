@@ -11,7 +11,7 @@ This section is what each report contains. How to run them — arguments, option
 
 Output lands in `specs/analysis/`, beside the `components/` and `compositions/` directories a spec run writes, or in a custom path via `--analysis`.
 
-Compositions are read by the analyzers that have something to say about them. `dependencies` includes them — which components a screen is built from is the clearest blast-radius data a library has — and so does `styling`, since a composition carries real styling. `props` and `keys` stay component-only: a composition declares no props, so rows for it would be empty by construction and would dilute every per-component figure.
+Compositions are read by the analyzers that have something to say about them. `dependencies` includes them — which components a screen is built from is the clearest blast-radius data a library has — and so does `styling`, since a composition carries real styling. `props`, `keys` and `roles` stay component-only: a composition declares no props and no anatomy of its own, so rows for it would be empty by construction and would dilute every per-component figure.
 
 ## Available Analyzers
 
@@ -21,6 +21,7 @@ Compositions are read by the analyzers that have something to say about them. `d
 | [`styling`](/cli/analyze/styling/) | `analysis/styling.byComponent.json`, `analysis/styling.byToken.json`, `analysis/styling.unused.json` | Token usage indexed by component and by token name, plus tokens no spec references |
 | [`dependencies`](/cli/analyze/dependencies/) | `analysis/dependencies.graph.json`, `analysis/dependencies.byComponent.json` | Component dependency graph — blast radius of a change, and which props consumers configure |
 | [`keys`](/cli/analyze/keys/) | `analysis/keys.yaml` | Figma names a formatted key cannot reconstruct, as a per-component checklist. Requires `figma.naming` |
+| [`roles`](/cli/analyze/roles/) | `analysis/roles.yaml` | Role coverage — which elements declare one, which are bare, which concepts are unused, and declarations that disagree |
 
 ## Output Directory
 

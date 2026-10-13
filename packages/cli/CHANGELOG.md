@@ -89,6 +89,14 @@ A workspace is now a documented, tested library, and screens are first-class in 
 
 - **The props analysis flags a name that means two things.** `typeDiscordance` names which components hold which type for a prop they disagree on, and `enumDiscordance` now also reports a name some components close with an `enum` while others leave open, marked `openAndClosed`.
 
+#### Roles
+
+- **`specs analyze roles` reports which anatomy elements declare a role and which are bare**, with the concepts your library uses, the ones it has never reached for, and the concepts in use that nothing emits for yet. An unrecognized value is reported rather than refused, because a role is an open string and a near-miss is almost always a typo.
+
+- **`specs skills install` ships two skills that carry role adoption across a library.** One proposes a role for every unannotated element as a table you mark up; the other adds the approved ones to your Figma file a page at a time, then regenerates so you can see what landed. Nothing reaches Figma before you have checked the table.
+
+- **The bridge reads a component's structure as well as its spec.** `POST /inspect` describes a live component's anatomy elements keyed the way your specs key them, and `POST /annotate` adds role annotations to one page — appending, so notes and `action:` lines already on a layer survive, and an element that already carries a role is left alone.
+
 #### Generate and render
 
 - **A full `specs generate` run names spec folders it found but did not write**, so a deselected component or a reverted convention leaves nothing for you to discover later. Nothing is deleted, and the note says so.
@@ -118,6 +126,8 @@ A workspace is now a documented, tested library, and screens are first-class in 
 - **A source's `key` accepts a Figma URL pasted from the browser**, not only a bare file key, which is what `--source` has always accepted. A branch URL resolves to the branch.
 
 ### Fixed
+
+- **Figma node ids in a written spec are quoted, so a YAML 1.1 parser reads `42:2` as an id rather than the integer 2522.** Colon-separated digits are base-60 numbers in that version of the format, and a consumer on it received a plausible wrong value with no error. Nothing on the 1.2 spec, this CLI included, was affected.
 
 - **Glyph slugs agree everywhere a digit follows a word.** `specs fetch` named a glyph from its raw Figma name (`brightness-1.svg`) while specs and emitted code carry the camel key (`brightness1`), so the scaffold requested a file fetch never wrote. Existing workspaces rename affected files on their next fetch.
 

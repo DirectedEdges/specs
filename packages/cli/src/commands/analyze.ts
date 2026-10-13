@@ -226,7 +226,9 @@ export async function runAnalyze(
 
 export const Analyze = new Command('analyze')
   .description('Run analysis passes over component specs and write aggregate reports to analysis/. With no analyzer named, every analyzer runs.')
-  .argument('[analyzers...]', 'Analyzer names to run (props, styling, dependencies, keys). Omit to run all of them.')
+  // Derived from the registry rather than restated, so adding an analyzer cannot leave
+  // the help text naming a set that no longer matches what runs.
+  .argument('[analyzers...]', `Analyzer names to run (${availableAnalyzerNames().join(', ')}). Omit to run all of them.`)
   .option('-o, --output <path>', 'Path to the specs directory (input)')
   .option('--analysis <path>', 'Path to write analysis output (default: <specs-dir>/analysis)')
   .option('--config <path>', 'Path to a config/ directory or legacy specs.config.yaml')

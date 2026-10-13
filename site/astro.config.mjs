@@ -173,6 +173,7 @@ export default defineConfig({
                 { label: 'styling', slug: 'cli/analyze/styling' },
                 { label: 'dependencies', slug: 'cli/analyze/dependencies' },
                 { label: 'keys', slug: 'cli/analyze/keys' },
+                { label: 'roles', slug: 'cli/analyze/roles' },
               ],
             },
           ],
@@ -209,6 +210,7 @@ export default defineConfig({
               collapsed: true,
               items: [
                 { label: 'Overview', slug: 'roles' },
+                { label: 'Choosing a role', slug: 'roles/choosing' },
                 { label: 'Inventory', slug: 'roles/inventory' },
                 { label: 'Precedence', slug: 'roles/precedence' },
               ],

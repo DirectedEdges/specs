@@ -2,6 +2,7 @@ import type { Transformer } from '../transforms/transformer.js';
 import { DependenciesAnalyzer } from './Dependencies.js';
 import { KeysAnalyzer } from './Keys.js';
 import { PropsAnalyzer } from './Props.js';
+import { RolesAnalyzer } from './Roles.js';
 import { StylingAnalyzer } from './Styling.js';
 
 const ALL_ANALYZERS: Transformer[] = [
@@ -9,6 +10,7 @@ const ALL_ANALYZERS: Transformer[] = [
   new StylingAnalyzer(),
   new DependenciesAnalyzer(),
   new KeysAnalyzer(),
+  new RolesAnalyzer(),
 ];
 
 const BY_NAME = new Map(ALL_ANALYZERS.map(a => [a.name, a]));
