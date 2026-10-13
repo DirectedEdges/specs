@@ -97,6 +97,10 @@ A workspace is now a documented, tested library, and screens are first-class in 
 
 - **The bridge reads a component's structure as well as its spec.** `POST /inspect` describes a live component's anatomy elements keyed the way your specs key them, and `POST /annotate` adds role annotations to one page — appending, so notes and `action:` lines already on a layer survive, and an element that already carries a role is left alone.
 
+#### Icons
+
+- **`specs skills install` ships a skill that works out how your library marks a component as an icon glyph.** It reads your scan manifest, decides which of a file's populations are icons, derives a `glyphs` convention by name pattern or by child structure, and ends by proving the icon names resolve.
+
 #### States
 
 - **`specs skills install` ships a skill that proposes your `states` block from your own prop data**, sorting every variant prop into a state concept, a visibility toggle or a presentation flag. It hands you a block to paste and never edits your config.

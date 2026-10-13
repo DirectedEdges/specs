@@ -771,10 +771,202 @@ It writes no config. The last step hands you a block to paste and stops.
     That check is what distinguishes this case from the first row of the table.
 `;
 
+const ICONS_SETUP = `---
+name: specs-cli.icons.setup
+description: Work out how a library marks its icon glyph components — by name pattern or by child structure — write the glyphs convention, refetch, and prove the glyph names resolve.
+---
+${HEADER_COMMENT}
+
+# Set up icon glyphs
+
+Establish the
+[\`glyphs\` convention](https://www.specsplugin.com/settings/glyphs/) in
+\`config/conventions/figma.yaml\`: how this library marks a component as an icon glyph,
+so a placed icon resolves to a **name** rather than an anonymous vector.
+
+With no \`glyphs\` block, glyph detection does not run at all. An icon layer is typed as
+an ordinary element, and the spec records its geometry but not which icon it is. With the
+block, the layer is typed \`glyph\` and the icon's name lands in the element's \`content\`.
+
+This skill **authors a convention**, like \`states.setup\` and \`roles.propose\`. The shape
+of the evidence — a name pattern, a child structure — is mechanical and checkable. What is
+not mechanical is **which components in a file are icons at all.** An icon file usually
+also holds illustrations, logos, UI chrome, and parts other components instance. No rule
+separates those from the icon set; that is the judgment, and getting it wrong is how a
+convention claims 400 components that are not icons.
+
+## Order matters, and it costs a refetch
+
+The \`icons\` fetch kind **cannot run before this convention exists** — \`specs fetch\`
+refuses to start without it. So the sequence is:
+
+1. the icons file is already fetched with \`fetch: [file]\`, and scanned
+2. this skill establishes the convention from that payload
+3. \`icons\` is added to the source's fetch list
+4. **that source is refetched**, which is when icons are actually pulled
+
+Say the refetch is coming before you start. On a large icon file it is the slowest step in
+the whole setup, and a user who is not expecting it will think something looped.
+
+## Steps
+
+1. **Confirm you have what you need.** The source must already be fetched and scanned:
+
+   \`\`\`bash
+   specs scan --source <alias>
+   \`\`\`
+
+   \`data/<alias>.manifest.md\` is the candidate list — every component in the file by
+   name. If the manifest does not exist, stop: there is nothing to reason from.
+
+2. **Decide which components are the icon set.** Read the manifest and group the names.
+   This is the judgment, and everything downstream inherits it.
+
+   An icon file commonly holds several populations, and only one of them is glyphs:
+
+   | Population | Tell | Glyph? |
+   |---|---|---|
+   | The icon set | Many components, one shared shape, names that are *the icon's name* | yes |
+   | Illustrations and logos | Few, larger, often multi-colour | no |
+   | UI chrome and device frames | Composed of many parts, often property-bearing | no |
+   | Parts other components instance | Private prefixes, path segments like \`parts /\` | no |
+
+   State the grouping and its counts before proposing anything: how many components the
+   file holds, how many you believe are icons, and what the rest are. A reviewer can
+   check a count; they cannot check a pattern they have not been told the scope of.
+
+3. **Try the name form first.** It is one line, it is self-documenting, and it needs no
+   payload read:
+
+   \`\`\`yaml
+   glyphs:
+     match: 'DS Icon Glyph / {i}'
+   \`\`\`
+
+   \`{i}\` marks where the icon's name appears and becomes a \`(.+)\` capture — the
+   captured text is the glyph name. The pattern must contain it, and it matches the
+   component name whole.
+
+4. **Measure the candidate pattern both ways.** A pattern is only right if it is both
+   complete and clean, and the manifest is enough to check both without fetching anything:
+
+   - **Recall** — of the components you called icons in step 2, how many does it match?
+   - **Precision** — does it match anything you called *not* an icon?
+
+   Report both as counts. A pattern that matches 612 of 639 is not a pass; name the 27 and
+   say what they are. Usually they are a second naming generation, a deprecated set, or
+   proof that step 2's grouping was wrong.
+
+   **Do not widen a pattern to swallow misses.** \`{i}\` is greedy, so a loose pattern
+   silently claims whole populations, and each wrongly-claimed component gets a glyph name
+   that is not an icon name. A tight pattern with named exceptions beats a loose one.
+
+5. **Go structural when no single name pattern works.** Some libraries name glyphs plainly
+   — \`Cross\`, \`Chevron down\` — with nothing in the name marking them as icons. For
+   those, membership comes from what the component *contains*:
+
+   \`\`\`yaml
+   glyphs:
+     structure:
+       children:
+         - type: VECTOR
+           name: 'Vector'
+   \`\`\`
+
+   To derive it, read the actual child nodes of several components you called icons in
+   step 2, from the fetched payload under \`data/<alias>.file/\`. Sample across the set,
+   not one component — the matcher has to hold for all of them.
+
+   Four semantics to get right, because each one is easy to read the other way:
+
+   - **\`children\` is a set of alternatives, not a positional list.**
+     \`children: [{type: VECTOR}]\` means *every child is a VECTOR*, any number of them —
+     not "exactly one child". A matcher never has to be used, but every child must be
+     covered by some matcher.
+   - **Coverage is exhaustive.** A component holding anything the matchers do not cover is
+     not a glyph. This is the protection against over-claiming, and it is why a matcher
+     that lists every node type you saw is worse than one that lists the types a glyph
+     actually has.
+   - **\`name\` on a matcher is literal, with \`*\` as the only wildcard**, matched whole
+     against the whitespace-normalised node name. Add it only where the name is genuinely
+     consistent; a matcher that is right about type and wrong about name silently matches
+     nothing.
+   - **\`fill\` tests leaves only** — the childless nodes the matchers matched — and every
+     one of them must carry a visible solid fill in the accepted list. It is skipped on
+     placed instances, which context recolours, so it constrains the stored component
+     only. Declare it only if the set is genuinely monochrome and you have checked more
+     than one component; it is the member most likely to narrow the match to nothing.
+
+6. **Set \`structure.name\` when the component name is not the icon name.** It defaults to
+   \`'{i}'\`, meaning the whole component name is the glyph name. Declare it when the names
+   carry an affix the icon name should not keep — \`name: '{i}Icon'\` captures
+   \`Close\` from \`CloseIcon\`.
+
+7. **Check the disqualifiers before claiming a match.** Three kinds of component can never
+   be a structural glyph, whatever their children look like:
+
+   - a **component set**
+   - a **variant** inside a component set
+   - any component **declaring component properties** — variants, text props, instance
+     swaps
+
+   A glyph has no properties by definition: a component that can be configured is a
+   configurable component. If the set you identified in step 2 is property-bearing, the
+   structural form cannot claim it and the name form is your only option — say so rather
+   than building a matcher that will match nothing.
+
+8. **Both forms may be declared together.** A component matching *either* is a glyph. That
+   is the honest answer for a library mid-migration between two conventions, or one with a
+   patterned set and a plainly-named legacy set. Prefer one form; use both when the
+   alternative is leaving a population undetected, and say which form covers which set.
+
+9. **Write the block and report.** Into \`config/conventions/figma.yaml\`, with the counts
+   and the reasoning:
+
+   - the grouping from step 2, as counts
+   - the form chosen, and why the other was rejected — for a structural match, the sampled
+     components it was derived from
+   - recall and precision, as numbers
+   - every component you called an icon that the convention does **not** match, named
+   - anything it matches that you did not call an icon, named — this list should be empty,
+     and if it is not, say why you are accepting it
+
+10. **Turn icons on and refetch that source.** The convention does nothing for the payload
+    until the fetch kind is added:
+
+    \`\`\`yaml
+    sources:
+      <alias>:
+        fetch: [file, icons]
+    \`\`\`
+
+    \`\`\`bash
+    specs fetch --source <alias>
+    \`\`\`
+
+11. **Prove the names resolved.** A convention that matches nothing fails exactly like one
+    that was never written — no error, no warning, and specs that look complete:
+
+    \`\`\`bash
+    specs generate
+    \`\`\`
+
+    In a spec that places an icon, the element must be \`type: glyph\` **and** carry a
+    \`content\` naming the icon. Check both. \`type: glyph\` with no \`content\` means the
+    component matched but the name capture produced nothing — a \`{i}\` in the wrong place,
+    or a \`structure.name\` that does not fit.
+
+    If nothing is a glyph at all, the convention matched nothing. Do not widen it blindly:
+    take one component you are certain is an icon, compare it against the convention member
+    by member, and report which member excluded it. For a structural match the usual
+    culprits are \`fill\` and a matcher \`name\`, in that order.
+`;
+
 export const SKILL_ASSETS: SkillAsset[] = [
   { name: 'specs-cli.premerge', markdown: PREMERGE },
   { name: 'specs-cli.release', markdown: RELEASE },
   { name: 'specs-cli.roles.propose', markdown: ROLES_PROPOSE },
   { name: 'specs-cli.roles.apply', markdown: ROLES_APPLY },
   { name: 'specs-cli.states.setup', markdown: STATES_SETUP },
+  { name: 'specs-cli.icons.setup', markdown: ICONS_SETUP },
 ];

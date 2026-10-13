@@ -184,6 +184,7 @@ export default defineConfig({
               collapsed: true,
               badge: experimental,
               items: [
+                { label: 'icons.setup', slug: 'cli/skills/icons-setup' },
                 { label: 'states.setup', slug: 'cli/skills/states-setup' },
               ],
             },

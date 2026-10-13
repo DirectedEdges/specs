@@ -105,6 +105,16 @@ The scaffold is commented throughout — every setting names what it does and li
 
 If `specs init` refuses because it found a `specs.config.yaml`, you skipped P2 — go back and run `specs migrate config` first.
 
+### 2a. Install the skills
+
+```
+specs skills install
+```
+
+Instant, and it commits to nothing — it writes the shipped procedures into `.claude/skills/` for whenever they are needed. Two later steps call on them: Step 7a if the icons file needs a structural convention, and Step 11 for the optional states and roles passes.
+
+Verify the command exits 0. Do not describe the skills to the user here; the steps that use them do that.
+
 ---
 
 ## Step 3. Configure Figma sources
@@ -202,8 +212,8 @@ Write the full `data.sources:` block to `config/settings.yaml` now, replacing th
 | `spec.keys` | `CAMEL` | Matches the JS/TS consumers the React and Web Components trees emit into |
 | `spec.layout` | `LAYOUT` | The tree lives in one `layout` array rather than on every element; concise and easy to walk |
 | `spec.tokens` | `TOKEN` | Resolved semantic references like `color/brand/primary` (Pro; free tier emits raw values) |
-| split flags | scaffolded defaults | A folder per component, split by concern — what every downstream command expects |
-| `spec.invalidCombinations` | scaffolded default | The invalid-combination analysis is included (Pro) |
+
+Those four are the ones `specs init` writes as live values. **Everything else is commented out in the scaffold, and that is correct — an absent key means the built-in default applies.** Do not go looking for the split flags or `spec.invalidCombinations`; they are not there to read, and a commented line is not a mismatch to fix. Read the four, confirm them, move on.
 
 Then tell the user what they have, in one message — not a question:
 
@@ -302,6 +312,27 @@ Verify each manifest file exists at `data/<source>.manifest.md` and has at least
 
 If a source genuinely has no components (e.g., a pure tokens/foundations file), `scan` will return an empty manifest. That's fine — just note it and move on.
 
+### 7a. If there is an icons source, read its manifest for a naming pattern
+
+An icons file is registered with `fetch: [file]` (§3c), so its icons are not pulled yet. The `glyphs` convention is what turns its components into named icons, and the manifest you just wrote is the evidence for it.
+
+Read the icons manifest and look for a shared naming pattern with the icon's own name varying inside it — something a single `glyphs.match` pattern with `{i}` would capture.
+
+| What the manifest shows | Do this |
+|---|---|
+| **An obvious pattern** across effectively all of them | Write it yourself: `glyphs: match: '<pattern with {i}>'` in `config/conventions/figma.yaml`. Show the user the pattern and the count it matches. |
+| **No pattern** — names are plainly the icon (`Cross`, `Chevron down`), or several generations of naming disagree | **Run the `specs-cli.icons.setup` skill.** Membership has to come from the components' child structure, which is a judgment over the payload and not something to guess at here. |
+
+Either way, once a convention exists, add `icons` to that source's fetch list and **refetch just that source**:
+
+```
+specs fetch --source <alias>
+```
+
+Tell the user the refetch is coming and why. On a large icon file it is the slowest single step in setup, and an unexplained second download reads as a loop.
+
+If no convention can be established, say so plainly and continue — the rest of onboarding is unaffected, and icons can be turned on later. Do not block the flow on it, and do not invent a pattern to move past the step.
+
 ---
 
 ## Step 8. **STOP — component selection**
@@ -366,7 +397,8 @@ Verify the command exits 0 and the report files exist. Then tell the user what e
 - **props** — the prop inventory across the library: which props exist, which components share them, where one concept is spelled two ways.
 - **styling** — where design tokens are used and which are used nowhere.
 - **dependencies** — which components are built from which, so a change's blast radius is visible before it is made.
-- **keys** — names that the chosen key format cannot reconstruct, which is the list to fix in Figma.
+- **keys** — names that the chosen key format cannot reconstruct, which is the list to fix in Figma. Expect this one to be empty after onboarding and say so: it measures round-tripping against a declared `naming` convention, and onboarding leaves `naming` undeclared. An empty keys report here means the check did not run, not that the library is clean.
+- **roles** — which anatomy elements declare what each element *is*, and which concepts the library has never used. Expect every element bare at this point; it is the before-snapshot for the roles pass in Step 11.
 
 Analysis is free on every tier. Nothing downstream reads these reports — they are for the user — but Storybook publishes them as pages in Step 14.
 
@@ -383,13 +415,9 @@ Everything so far was mechanical: the pipeline read Figma and wrote down what it
 
 Neither is a gap in the output. The React tree in Step 12 is complete and correct without either; these make it semantic rather than structural, and they can be added at any point afterwards.
 
-### 11a. Install the skills
+### 11a. The skills are already installed
 
-```
-specs skills install
-```
-
-This writes them into `.claude/skills/`. Verify the command exits 0. Installing them commits to nothing — it puts them on disk for whenever the user wants them.
+Step 2a put them in `.claude/skills/`. Nothing to run here. If that step was skipped, run `specs skills install` now.
 
 ### 11b. Say what exists, in one pass, and let them decline
 
