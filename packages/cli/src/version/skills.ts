@@ -193,7 +193,45 @@ only after a human has marked this file up.
    type its control does not accept will not resolve. Then
    [precedence](https://www.specsplugin.com/roles/precedence/).
 
-6. **Write the report, in this order.** The shape matters: a reviewer reads the
+6. **Check each control against the parts it accepts.** Do this before writing any
+   proposal, because it is the only pass that can see what is *absent* — an
+   element-by-element walk only ever looks at elements that exist, so a part the
+   design never drew is invisible to it.
+
+   Each control role's page carries a "Roles" table listing the parts it accepts.
+   Read it as a checklist and ask, for every control you are proposing: does this
+   component have an element for each part, and if not, why not?
+
+   | Control | Parts it accepts |
+   |---|---|
+   | \`textbox\` family | \`label\`, \`description\`, \`errormessage\`, \`value\`, \`placeholder\` |
+   | \`checkbox\`, \`radio\`, \`switch\` | \`label\`, \`description\`, \`errormessage\`, \`indicator\` |
+   | \`group\` | \`label\`, \`description\`, \`errormessage\` |
+   | \`disclosure\` | \`label\`, \`panel\`, \`indicator\` |
+   | \`button\`, \`togglebutton\`, \`link\` | \`label\`, \`description\`, \`indicator\` |
+   | \`spinbutton\` | \`label\`, \`description\`, \`value\`, \`increment\`, \`decrement\` |
+
+   An absence resolves one of two ways, and they want different outcomes:
+
+   - **The element exists and you did not propose for it.** A defect in the
+     proposal. Add the row.
+   - **The design has no such element.** A finding about the library, reported and
+     never proposed — there is nothing to annotate. State which components are
+     affected and what the consequence is.
+
+   The second is the one worth the pass. On a real 69-component library every
+   field had a label and a description and **no component drew an error message at
+   all**, so \`errormessage\` — fully implemented — went unproposed and unmentioned.
+   Ten components could say what a value is for and none could say what was wrong
+   with it. No per-element reading surfaces that; only asking what a control
+   usually comes with does.
+
+   Check the inverse too: a part with no control anywhere in its component is
+   valid — that is a provider declaring what it offers — but a part whose control
+   is a *deferred-vocabulary instance* will emit an id pointing at nothing. Report
+   those rather than proposing them.
+
+7. **Write the report, in this order.** The shape matters: a reviewer reads the
    decisions first and the exceptions after.
 
    **Intro.** Three sentences on what a role is and why it cannot be derived, then
@@ -263,7 +301,7 @@ only after a human has marked this file up.
    near-miss has to be re-annotated, and nobody will remember which rows were
    compromises.
 
-7. **Say where no role belongs.** Most elements take none, and that is a correct
+8. **Say where no role belongs.** Most elements take none, and that is a correct
    outcome rather than a gap. A table of component names grouped by reason:
    deferred concepts, concepts that do not exist, layout-only, blocked on something
    else. Then the elements inside *annotated* components left bare on purpose —
@@ -278,14 +316,14 @@ only after a human has marked this file up.
    - A control's own text is its content, not a \`label\`. Proposing \`label\` on a
      button's or disclosure's text points a \`<label>\` at a button.
 
-8. **Reconcile, then validate.** Every component must appear exactly once across
+9. **Reconcile, then validate.** Every component must appear exactly once across
    the proposal table and the no-role list — compute it rather than trusting the
    prose, because a component addressed in neither is invisible, and that is how
    two whole components get missed. Then check every row: the element key exists in
    that component's anatomy, and the role is in the vocabulary. A row naming an
    element that is not there fails at write time, mid-sweep.
 
-9. **GATE — human review.** Hand over the path and stop. The reviewer clears the
+10. **GATE — human review.** Hand over the path and stop. The reviewer clears the
    \`[x]\` on anything they reject. If they question a proposal, settle it to apply
    or skip in conversation and edit the row — the report never carries a third
    answer, because the applier would have to interpret one.
