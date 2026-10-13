@@ -155,7 +155,24 @@ only after a human has marked this file up.
    specs bridge status
    \`\`\`
 
-   One plugin must be connected, in the file the specs were generated from.
+   One plugin must be connected — **and you must check which file it is connected
+   to.** The status line prints the connected file's key and name:
+
+   \`\`\`
+   Bridge running (pid 36652). 1 plugin connected:
+     043ln8eiOoivUN5FicuGCF (ADS Components) — connected
+   \`\`\`
+
+   That key has to match the \`key\` of a source in \`config/settings.yaml\` under
+   \`data.sources\`. **If it does not match, stop and say so.** Do not read or write
+   anything through the bridge.
+
+   "Connected" on its own is not the gate, and treating it as the gate is how a
+   sweep ends up in the wrong Figma file. A bridge left running from earlier work
+   answers exactly like the right one, every request succeeds, the report says
+   \`applied\`, and the write lands in a file nobody was looking at. Nothing
+   downstream detects it, because the file you meant to annotate is unchanged and
+   still looks like it simply has no roles yet.
    \`settings.spec.roles\` must be \`true\`, or generated specs carry no roles
    and the before-measure is meaningless rather than zero.
 
@@ -357,7 +374,24 @@ edited, and it never reinterprets one.
    specs bridge status
    \`\`\`
 
-   One plugin must be connected, in the file the specs were generated from.
+   One plugin must be connected — **and you must check which file it is connected
+   to.** The status line prints the connected file's key and name:
+
+   \`\`\`
+   Bridge running (pid 36652). 1 plugin connected:
+     043ln8eiOoivUN5FicuGCF (ADS Components) — connected
+   \`\`\`
+
+   That key has to match the \`key\` of a source in \`config/settings.yaml\` under
+   \`data.sources\`. **If it does not match, stop and say so.** Do not read or write
+   anything through the bridge.
+
+   "Connected" on its own is not the gate, and treating it as the gate is how a
+   sweep ends up in the wrong Figma file. A bridge left running from earlier work
+   answers exactly like the right one, every request succeeds, the report says
+   \`applied\`, and the write lands in a file nobody was looking at. Nothing
+   downstream detects it, because the file you meant to annotate is unchanged and
+   still looks like it simply has no roles yet.
 
 2. **Parse the decisions.** \`[x]\` applies the row's role, \`[ ]\` skips it. There
    is no third answer to interpret — if a reviewer wanted a different role, the
@@ -578,8 +612,36 @@ It writes no config. The last step hands you a block to paste and stops.
    where the two disagree, the nested one is what the parent renders.
 
 6. **Match each state to a concept, and read its value from the data.** The vocabulary is
-   fixed — the concept table on the states page is the whole list, and a name outside it
-   cannot be configured.
+   fixed. This is the whole list — a name outside it cannot be configured, and a
+   misremembered name fails the same silent way a wrong value does:
+
+   | Concept | Emits | In the contract? |
+   |---|---|---|
+   | \`hover\` | \`:hover\` | omitted |
+   | \`active\` | \`:active\` | omitted |
+   | \`focus\` | \`:focus-visible\`, or \`:has(:focus-visible)\` on a wrapper root | omitted |
+   | \`focus-visible\` | \`:focus-visible\` | omitted |
+   | \`focus-within\` | \`:focus-within\` | omitted |
+   | \`placeholder-shown\` | \`:placeholder-shown\` | omitted |
+   | \`disabled\` | \`:disabled, [aria-disabled="true"]\` | included |
+   | \`readonly\` | \`[readonly], [aria-readonly="true"]\` | included |
+   | \`required\` | \`[required], [aria-required="true"]\` | included |
+   | \`invalid\` | \`[aria-invalid="true"]\` | included |
+   | \`valid\` | \`[aria-invalid="false"]\` | included |
+   | \`selected\` | \`[aria-selected="true"]\` | included |
+   | \`checked\` | \`:checked, [aria-checked="true"]\` | included |
+   | \`indeterminate\` | \`:indeterminate, [aria-checked="mixed"]\` | included |
+   | \`expanded\` | \`[aria-expanded="true"]\` | included |
+   | \`collapsed\` | \`[aria-expanded="false"]\` | included |
+   | \`pressed\` | \`[aria-pressed="true"]\` | included |
+   | \`busy\` | \`[aria-busy="true"]\` | included |
+   | \`current\` | \`[aria-current="true"]\` | included |
+
+   The \`/settings/states/\` page carries the same table with the reasoning around it, but
+   do not depend on reaching it — this skill has to work with no network.
+
+   Read the **Emits** column when breaking a tie in step 7, and when deciding whether a
+   concept describes your element at all.
 
    **Every row is a library-wide match on prop name plus value.** There is no way to scope
    a row to some components and not others, and this reframes several judgments below.
@@ -685,10 +747,28 @@ It writes no config. The last step hands you a block to paste and stops.
     the attribute and adds no selector, so its styling disappears from the output with no
     error anywhere — the one failure that looks like success from every other angle.
 
-    Three reasons a selector may be missing, all worth reporting rather than retrying:
-    the value is not in the prop's enum, which step 6 covers; the styling sits on an
-    element that cannot enter the state, which is a role question and not a states one; or
-    the prop drives no styling at all, which step 5 should already have caught.
+    Four reasons a selector may be missing. Separate them before reporting, because two
+    are defects and two are the correct outcome:
+
+    | Why | Verdict |
+    |---|---|
+    | The value is not in the prop's enum | **Defect.** Step 6; fix the value. |
+    | The styling sits on an element that cannot enter the state — a container is never \`:disabled\` | **Defect**, but a [role](https://www.specsplugin.com/roles/) one, not a states one. Report it as that. |
+    | The prop drives **conditional rendering** rather than styling — it reveals a layer and changes nothing about how anything looks | **Correct.** Expected, and it is the revealed-layer row step 5 told you to classify. |
+    | The prop drives no output at all | **Correct**, and step 5 should already have said so. |
+
+    The third row is the one to get right, because it is the predictable result of
+    following step 5's first trap. A \`required\` or \`placeholder-shown\` row often sits on
+    a prop that only toggles a layer's visibility: classifying it is still right, and it
+    still earns its place — it reaches the contract and the markup rather than the
+    stylesheet, as \`aria-required\` or a rendering condition. **Confirm that** instead of
+    the selector: look for the attribute in the emitted scaffold.
+
+    For every such row, also confirm **nothing was lost**. A revealed-layer prop that
+    carried no styling has no \`data-*\` selector to give up, so classifying it costs
+    nothing. Check the residual \`data-*\` set in the stylesheet: every attribute left in
+    it should be a prop you declined to classify, and no classified prop should appear.
+    That check is what distinguishes this case from the first row of the table.
 `;
 
 export const SKILL_ASSETS: SkillAsset[] = [

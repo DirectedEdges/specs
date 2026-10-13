@@ -154,11 +154,22 @@ Ask:
 
 > "Do you have a separate tokens/foundations file to pull from? Many teams keep foundations (colors, spacing, type) in a file distinct from components."
 
-Repeat 3a–3b for each additional source. Every source gets the full `fetch` list — we always fetch `file`, `variables`, and `styles`. It's marginally more bandwidth on files that don't need `file`, but it keeps the flow simple and nothing downstream complains.
+Repeat 3a–3b for each additional source. A components or foundations source gets the full `fetch` list — `file`, `variables`, and `styles`. It is marginally more bandwidth on a file that does not need all three, and it keeps the flow simple.
 
-**If there is more than one source, name the one holding the components `library`.** `specs generate` picks the components source by looking for the alias `library` first; with no `library`, it falls back to the first source that fetches `file`, which depends on the order of keys in the file. Naming it `library` is what makes a bare `specs generate` in Step 9 land on the right source every time. Tell the user this as you write the block:
+**An icons source is the exception: give it `fetch: [file]` only.** The `icons` kind needs a `glyphs` convention in `config/conventions/figma.yaml`, which onboarding leaves commented out, and `specs fetch` refuses to start without it — so an icons file cannot fetch icons during onboarding. Handing it the full list instead is worse than it looks: icon files are large, and `variables` and `styles` on a file that holds only glyphs download hundreds of megabytes that nothing downstream reads.
 
-> "I'll name your components file `library` and your foundations file `foundations`. The `library` name isn't cosmetic — it's what lets the rest of the commands run with no arguments."
+Say so rather than quietly dropping what they asked for:
+
+> "Your icons file needs a glyph naming pattern configured before `specs` can pull icons from it, which is a step past onboarding. I'll register the file now and fetch just its structure — we can turn icons on afterwards."
+
+**If there is more than one source, `library` is the best name for the one holding the components** — but it is a recommendation, not a requirement, and **the name the user gave in 3b wins.** `specs generate` looks for the alias `library` first; with no `library` it falls back to the first source that fetches `file`, which depends on key order in the file. So:
+
+- If the user did not name it, or had no preference, use `library` and say why.
+- If the user named it something else, keep their name and **write it first in the `sources:` block**. That makes it the `file` fallback, so a bare `specs generate` still lands on it. Confirm this in Step 9 by checking which source the run reports.
+
+Never rename a source the user named. Tell them what you did:
+
+> "I'll keep your name `<theirs>` for the components file and write it first, so the later commands still run with no arguments. (`library` is the conventional name if you'd rather switch.)"
 
 Typical result (in `config/settings.yaml`):
 
@@ -172,9 +183,12 @@ data:
     foundations:
       key: <key>
       fetch: [file, variables, styles]
+    icons:                        # only if they have a separate icons file
+      key: <key>
+      fetch: [file]               # not `icons` — see above
 ```
 
-Write the full `data.sources:` block to `config/settings.yaml` now, replacing the placeholder `library:` entry `specs init` wrote. Leave the `icons` fetch kind out, as the placeholder does: fetching icons requires a `glyphs` convention in `config/conventions/figma.yaml`, which onboarding leaves commented out, and `specs fetch` refuses to start without it. Show the user what you wrote.
+Write the full `data.sources:` block to `config/settings.yaml` now, replacing the placeholder `library:` entry `specs init` wrote. **The `icons` fetch kind never appears during onboarding**, for the reason given above. Show the user what you wrote.
 
 ---
 
@@ -309,6 +323,10 @@ A first-time manifest from a real library is long, so give the user the naming p
 
 State these as heuristics the user confirms, not as exclusions you apply. Their library may deliberately publish something that looks internal.
 
+**On a large library the operation is inverted, and the document's wording above is not.** Selecting 8 components out of 376 is not "uncheck what you don't want" — it is uncheck everything, then check eight. Say it that way round when the manifest is long, and do the bulk edit yourself rather than asking the user to.
+
+**Then print the exact list you checked, and count it.** Not the headline names you were aiming for — every row. A selection is easy to make and hard to verify afterwards, and the next step bills by component: every extra row is time in Step 9 and again in Steps 12 and 13. If the count surprises you, re-read the manifest before generating rather than after.
+
 Wait for explicit confirmation. If the user says "just generate everything," still wait for their confirmation that they've looked at the list.
 
 ---
@@ -341,7 +359,7 @@ Run:
 specs analyze
 ```
 
-No arguments — with no analyzer named, every analyzer runs: `props`, `styling`, `dependencies`, and `keys`. Reports land in `specs/analysis/`.
+No arguments — with no analyzer named, every analyzer runs: `props`, `styling`, `dependencies`, `keys`, and `roles`. Reports land in `specs/analysis/`.
 
 Verify the command exits 0 and the report files exist. Then tell the user what each one answers, and point at a number from their own reports rather than describing the report in the abstract:
 
@@ -402,11 +420,20 @@ What they are agreeing to:
 
 - **Annotations are written into their Figma file.** The write is additive — existing notes, `action:` lines and prose all survive, and an element that already carries a role is skipped — but it is a real change to their source of truth, made across many components.
 - Two gates are built in. `roles.propose` only writes a report, and `roles.apply` goes one Figma page at a time so they can watch it and stop.
-- It needs the plugin bridge connected, which means the Specs plugin open on that file. Run `specs bridge status` before proposing anything.
+- It needs the plugin bridge connected to **this user's file**. Run `specs bridge status` before proposing anything, and read the file key it prints:
+
+  ```
+  Bridge running (pid 36652). 1 plugin connected:
+    043ln8eiOoivUN5FicuGCF (ADS Components) — connected
+  ```
+
+  **Compare that key against `data.sources` in `config/settings.yaml`.** If it does not match one of them, the bridge is attached to somebody else's file — stop, say which file it found, and ask them to open the plugin on theirs. "Connected" on its own is not the gate: a bridge left running from unrelated work answers exactly like the right one, and every annotation would land in that file instead, silently and unrecoverably.
 - `settings.spec.roles` must be `true` in `config/settings.yaml` for generated specs to carry what was written.
 - `specs fetch` and `specs generate` both have to run again afterwards to pick the annotations up. Say this before they start, not after.
 
-If the bridge is not connected, say what to open and stop there. Do not write roles into the specs by hand as a substitute, and do not continue to `roles.apply` without them having seen the proposal report.
+If the bridge is not connected, or is connected to a file that is not theirs, say what to open and stop there. Do not write roles into the specs by hand as a substitute, and do not continue to `roles.apply` without them having seen the proposal report.
+
+`specs/analysis/roles.yaml` from Step 10 is the read-only way to answer a roles question with the bridge unavailable — it reports which elements carry a role and which concepts the library has never used, without touching Figma.
 
 A user who starts roles and changes their mind mid-sweep has lost nothing: what was applied is valid, and the rest can be applied later or never.
 
