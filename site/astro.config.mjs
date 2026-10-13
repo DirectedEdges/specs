@@ -176,6 +176,17 @@ export default defineConfig({
                 { label: 'roles', slug: 'cli/analyze/roles' },
               ],
             },
+            {
+              // `skills install` is a flat entry above, with the other
+              // commands; this group is one page per skill it installs that
+              // authors something a reviewer has to approve.
+              label: 'Skills',
+              collapsed: true,
+              badge: experimental,
+              items: [
+                { label: 'states.setup', slug: 'cli/skills/states-setup' },
+              ],
+            },
           ],
         },
         {

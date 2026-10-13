@@ -97,6 +97,10 @@ A workspace is now a documented, tested library, and screens are first-class in 
 
 - **The bridge reads a component's structure as well as its spec.** `POST /inspect` describes a live component's anatomy elements keyed the way your specs key them, and `POST /annotate` adds role annotations to one page — appending, so notes and `action:` lines already on a layer survive, and an element that already carries a role is left alone.
 
+#### States
+
+- **`specs skills install` ships a skill that proposes your `states` block from your own prop data**, sorting every variant prop into a state concept, a visibility toggle or a presentation flag. It hands you a block to paste and never edits your config.
+
 #### Generate and render
 
 - **A full `specs generate` run names spec folders it found but did not write**, so a deselected component or a reverted convention leaves nothing for you to discover later. Nothing is deleted, and the note says so.
