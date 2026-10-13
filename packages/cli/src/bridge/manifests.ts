@@ -141,14 +141,49 @@ export function collectComponentNames(node: unknown, acc = new Set<string>()): S
   for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
     if (key === 'instanceOf' && typeof value === 'string') acc.add(value);
     else if (key === 'propConfigurations' && value && typeof value === 'object') {
-      for (const configured of Object.values(value as Record<string, unknown>)) {
-        if (typeof configured === 'string') acc.add(configured);
-      }
-      collectComponentNames(value, acc); // $nested configs carry their own values
+      collectConfiguredNames(value as Record<string, unknown>, acc);
     }
     else collectComponentNames(value, acc);
   }
   return acc;
+}
+
+/**
+ * The component names a `propConfigurations` block offers up, at its own level and inside
+ * every `$nested` entry.
+ *
+ * A nested entry is `{ path, <propKey>: value }` (ADR-052): the path addresses a
+ * descendant instance and the remaining keys are the configurations applied there. So a
+ * configured value names a component at that depth exactly as it does at the top level,
+ * and it has to be collected the same way — a component referenced only from a nested
+ * entry would otherwise be missing from the manifest, and render would place the
+ * descendant without it, silently.
+ *
+ * `path` is skipped. Its segments are `instanceOf` element keys within the spec, not
+ * component names, and offering them up would ask the library for components that were
+ * never meant to be found.
+ */
+function collectConfiguredNames(configs: Record<string, unknown>, acc: Set<string>): void {
+  for (const [propKey, configured] of Object.entries(configs)) {
+    if (propKey === '$nested') {
+      for (const entry of Array.isArray(configured) ? configured : []) {
+        if (!entry || typeof entry !== 'object') continue;
+        for (const [nestedKey, nestedValue] of Object.entries(entry as Record<string, unknown>)) {
+          if (nestedKey === 'path') continue;
+          if (typeof nestedValue === 'string') acc.add(nestedValue);
+          // An entry may re-declare the key rather than carry props directly; it reads the
+          // same way at either depth, so it gets the same dispatch.
+          else if (nestedKey === 'propConfigurations' && nestedValue && typeof nestedValue === 'object') {
+            collectConfiguredNames(nestedValue as Record<string, unknown>, acc);
+          }
+          else collectComponentNames(nestedValue, acc);
+        }
+      }
+      continue;
+    }
+    if (typeof configured === 'string') acc.add(configured);
+    else collectComponentNames(configured, acc);
+  }
 }
 
 /**

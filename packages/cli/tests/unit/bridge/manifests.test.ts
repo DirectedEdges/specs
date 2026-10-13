@@ -191,20 +191,44 @@ describe('collectComponentNames', () => {
     expect([...collectComponentNames(spec)].sort()).toEqual(['iconStar', 'md']);
   });
 
-  it('collects a nested entry string value only where the entry re-declares propConfigurations', () => {
+  it('collects a component named on a $nested entry', () => {
     // A `$nested` entry is `{ path: [...], <propKey>: value }` (ADR-052) — the configured
-    // props sit directly on the entry, not under a second `propConfigurations` key. The
-    // string-collecting branch only fires on a literal `propConfigurations` key, so a
-    // component named by a bare string on a nested entry is **not** collected:
-    const onEntry = { propConfigurations: { $nested: [{ path: ['action1'], endVisual: 'iconStar' }] } };
-    expect([...collectComponentNames(onEntry)]).not.toContain('iconStar');
+    // props sit on the entry itself. A swap set two instances down names a component
+    // exactly as one set at the top level does, and it reaches the manifest the same way.
+    // Missing it placed the descendant without the component, with no error.
+    const spec = { propConfigurations: { $nested: [{ path: ['action1'], endVisual: 'iconStar' }] } };
+    expect([...collectComponentNames(spec)]).toContain('iconStar');
+  });
 
-    // Nested under its own propConfigurations key, it is. Asserting the current behaviour
-    // rather than the intent: the comment at the recursion says `$nested` configs carry
-    // their own values, and for the shape above they are missed. A component referenced
-    // only that way would not reach the manifest, so render could not resolve it.
-    const reDeclared = { propConfigurations: { $nested: [{ path: ['action1'], propConfigurations: { endVisual: 'iconStar' } }] } };
-    expect([...collectComponentNames(reDeclared)]).toContain('iconStar');
+  it('skips the path segments of a $nested entry', () => {
+    // Path segments are `instanceOf` element keys inside the spec, not component names.
+    // Offering them up asks the library for components never meant to be found.
+    const spec = { propConfigurations: { $nested: [{ path: ['action1', 'inner'], endVisual: 'iconStar' }] } };
+    const found = [...collectComponentNames(spec)];
+    expect(found).toEqual(['iconStar']);
+  });
+
+  it('collects from several $nested entries, and from a non-string value inside one', () => {
+    const spec = {
+      propConfigurations: {
+        $nested: [
+          { path: ['a'], icon: 'iconStar' },
+          { path: ['b'], icon: 'iconBell', trailing: { $slotContent: '#/components/x/slotContentExamples/y' } },
+        ],
+      },
+    };
+    const found = [...collectComponentNames(spec)].sort();
+    // The slot reference resolves within the spec, so it is not a name to look up.
+    expect(found).toEqual(['iconBell', 'iconStar']);
+  });
+
+  it('ignores a $nested that is not an array', () => {
+    expect([...collectComponentNames({ propConfigurations: { $nested: { path: ['a'] } } })]).toEqual([]);
+  });
+
+  it('still collects a nested entry that re-declares propConfigurations', () => {
+    const spec = { propConfigurations: { $nested: [{ path: ['a'], propConfigurations: { icon: 'iconStar' } }] } };
+    expect([...collectComponentNames(spec)]).toContain('iconStar');
   });
 
   it('ignores a non-string instanceOf', () => {
