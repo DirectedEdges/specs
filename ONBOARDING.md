@@ -19,6 +19,8 @@ By the end they will have a `config/` directory, a populated `.env`, generated s
 
 You must follow this document **top to bottom**. Do not skip steps. Do not batch multiple steps before checking in. After each numbered step, verify the step succeeded before moving on.
 
+Step 11 is the one exception: it is explicitly optional, and the user declining it is a normal completion rather than a skipped step.
+
 **Ask only what this document tells you to ask.** Everything else has a default that is already correct. A question you invent is friction.
 
 ---
@@ -63,7 +65,7 @@ Only proceed with explicit confirmation.
 
 ### P3. Confirm Node.js is available
 
-Run `node --version` and `npm --version`. Both must print a version, and Node must be **20.19 or newer** — the Storybook host in Step 13 declares that floor and `npm install` will refuse below it. If either command fails or the version is too old:
+Run `node --version` and `npm --version`. Both must print a version, and Node must be **20.19 or newer** — the Storybook host in Step 14 declares that floor and `npm install` will refuse below it. If either command fails or the version is too old:
 
 > "Specs CLI needs Node.js 20.19 or newer. Please install the current LTS build from https://nodejs.org and come back."
 
@@ -348,11 +350,69 @@ Verify the command exits 0 and the report files exist. Then tell the user what e
 - **dependencies** — which components are built from which, so a change's blast radius is visible before it is made.
 - **keys** — names that the chosen key format cannot reconstruct, which is the list to fix in Figma.
 
-Analysis is free on every tier. Nothing downstream reads these reports — they are for the user — but Storybook publishes them as pages in Step 13.
+Analysis is free on every tier. Nothing downstream reads these reports — they are for the user — but Storybook publishes them as pages in Step 14.
 
 ---
 
-## Step 11. Emit the React tree
+## Step 11. Two optional judgment passes — mention, then move on
+
+**This entire step is optional, and skipping it is the expected outcome of a first onboarding.** Default to skipping. Say the two passes exist, say they can be run any time later, and continue to Step 12 unless the user asks for one.
+
+Everything so far was mechanical: the pipeline read Figma and wrote down what it found. Two facts about a library are not in Figma, so nothing upstream can supply them.
+
+- **States** — which variant prop means "disabled", which means "expanded". Without it, every prop emits as a `data-*` attribute, so the stylesheet styles `[data-state="Hover"]` rather than `:hover`.
+- **Roles** — what each element in a component *is*. Without it, a checkbox emits a `<div>`, and nothing carries `aria-expanded`, `aria-checked` or a label association.
+
+Neither is a gap in the output. The React tree in Step 12 is complete and correct without either; these make it semantic rather than structural, and they can be added at any point afterwards.
+
+### 11a. Install the skills
+
+```
+specs skills install
+```
+
+This writes them into `.claude/skills/`. Verify the command exits 0. Installing them commits to nothing — it puts them on disk for whenever the user wants them.
+
+### 11b. Say what exists, in one pass, and let them decline
+
+Tell them both skills are now installed, name what each one buys in a sentence, and say they can run either later. Then **ask once** whether they want to do either now.
+
+**Take the first "no" or "later" as final.** Do not re-offer, do not ask about the second skill after they decline the first, and do not describe either skill in more detail unless they ask. Then go to Step 12.
+
+| If they ask for | Invoke | Scope of what it changes |
+|---|---|---|
+| States | `specs-cli.states.setup` | one block in `config/conventions/specs.yaml` — local, reversible |
+| Roles | `specs-cli.roles.propose`, then `specs-cli.roles.apply` | **their Figma file** — see 11d |
+
+If they want both, do states first. It is confined to their config, so the result shows up in one `specs react` run with nothing upstream touched.
+
+### 11c. States, if they asked for it
+
+The skill reads `specs/analysis/props.yaml` and the specs that Step 10 already produced, proposes a row per state concept with the evidence behind it, and stops at a report. Pasting its block is the only change it leads to, and Step 12 shows the result.
+
+Nothing else in the pipeline re-runs. If the user dislikes the outcome, deleting the block restores exactly what they had.
+
+### 11d. Roles, if they explicitly asked for it
+
+**This one edits the user's Figma file.** Treat it as the serious step it is.
+
+Do not start it on an inferred yes. The user must have asked for roles specifically, after being told that applying them writes into their Figma file. "Yes, do the recommended thing" is not that. If there is any doubt, ask again in those words, and accept no as the answer.
+
+What they are agreeing to:
+
+- **Annotations are written into their Figma file.** The write is additive — existing notes, `action:` lines and prose all survive, and an element that already carries a role is skipped — but it is a real change to their source of truth, made across many components.
+- Two gates are built in. `roles.propose` only writes a report, and `roles.apply` goes one Figma page at a time so they can watch it and stop.
+- It needs the plugin bridge connected, which means the Specs plugin open on that file. Run `specs bridge status` before proposing anything.
+- `settings.spec.roles` must be `true` in `config/settings.yaml` for generated specs to carry what was written.
+- `specs fetch` and `specs generate` both have to run again afterwards to pick the annotations up. Say this before they start, not after.
+
+If the bridge is not connected, say what to open and stop there. Do not write roles into the specs by hand as a substitute, and do not continue to `roles.apply` without them having seen the proposal report.
+
+A user who starts roles and changes their mind mid-sweep has lost nothing: what was applied is valid, and the rest can be applied later or never.
+
+---
+
+## Step 12. Emit the React tree
 
 Run:
 
@@ -371,7 +431,7 @@ Two things to say, both only if they apply:
 
 ---
 
-## Step 12. Emit the Web Components tree
+## Step 13. Emit the Web Components tree
 
 Run:
 
@@ -389,11 +449,11 @@ If the user says they only want one platform, skip the other and note that the c
 
 ---
 
-## Step 13. Storybook
+## Step 14. Storybook
 
 Three stages. Do them in order and verify each before the next.
 
-### 13a. Scaffold the host
+### 14a. Scaffold the host
 
 ```
 specs storybook init
@@ -403,7 +463,7 @@ Writes `storybook/` — a `package.json` declaring Storybook, the `.storybook/` 
 
 Read the port out of the scaffolded `storybook/package.json` dev script and record it. On a fresh workspace it is **6006**.
 
-### 13b. Install it
+### 14b. Install it
 
 The CLI never ships or installs Storybook itself — the install is the user's, in their own workspace:
 
@@ -413,7 +473,7 @@ cd storybook && npm install
 
 This takes a few minutes and prints a lot. Verify it exits 0. If it refuses on the Node version, the floor is 20.19 — back to P3.
 
-### 13c. Run the dev environment
+### 14c. Run the dev environment
 
 From the workspace root, not from `storybook/`:
 
@@ -431,13 +491,13 @@ If the Storybook index returns a 500 after it was working, that is a cached per-
 
 ---
 
-## Step 14. Wrap up
+## Step 15. Wrap up
 
 Give them the URL, first and on its own line:
 
 > **Your design system is running at http://localhost:6006**
 
-(Use the port recorded in 13a if it is not 6006.)
+(Use the port recorded in 14a if it is not 6006.)
 
 Then tell them what to click: the foundations pages built from their variables and styles, a component's stories, and the analysis reports from Step 10.
 
@@ -477,6 +537,7 @@ During this flow, never:
 - Call `npm install ../specs/packages/schema` or any similar path — Specs CLI is installed from the npm registry only.
 - Guess a Figma file key — always derive from a URL the user provides.
 - Proceed past Step 8 without explicit user confirmation.
+- Run `specs-cli.roles.apply`, or any other write to the user's Figma file, without them having asked for roles by name and seen the proposal report. Step 11 is optional; treat a vague yes, a silence, or an unrelated "sounds good" as a no.
 - Write `FIGMA_TOKEN` or `SPECS_LICENSE_KEY` values into any file other than `.env`.
 - Install Specs CLI into an existing `package.json` project's dependencies without asking whether they want that vs. a global install.
 - Start Storybook with anything other than `specs storybook dev`.
