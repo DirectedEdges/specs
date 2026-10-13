@@ -26,6 +26,8 @@ The shape of the evidence is mechanical — a name pattern or a child structure 
 
 An icon file usually holds more than icons: illustrations, logos, device frames, UI chrome, and parts that other components instance. Nothing in the data labels those populations. Pick the boundary wrongly and a convention claims hundreds of components that are not icons, each one acquiring a glyph name that is not an icon name.
 
+That is also the one question the skill brings back to you. It proves what structure a population shares; you say whether a population is an icon set. Everything else it decides and shows its working for.
+
 ## It costs a refetch, and the order is fixed
 
 The `icons` fetch kind cannot run before the convention exists — [`specs fetch`](/cli/commands/fetch/) refuses to start without it. So:
@@ -37,15 +39,19 @@ The `icons` fetch kind cannot run before the convention exists — [`specs fetch
 
 On a large icon file step 4 is the slowest single step in a setup. The skill says so before starting rather than after.
 
-## What it does
+## Names suggest, structure decides, the regenerate proves
 
-1. Reads `data/<alias>.manifest.md` — every component in the file by name.
-2. **Groups the names and says which population is the icon set**, with counts. This is the judgment everything else inherits.
-3. Tries the name form first, because it is one line and self-documenting.
-4. **Measures the candidate pattern for both recall and precision** — how many of the components it called icons the pattern matches, and whether it matches anything it did not. Both as counts, with every miss named.
-5. Falls back to the structural form, deriving a child matcher from several sampled components rather than one.
-6. Checks the disqualifiers: a component set, a variant, or any component declaring component properties can never be a structural glyph.
-7. Writes the block, adds `icons` to the fetch list, refetches, and runs [`specs generate`](/cli/commands/generate/) to confirm the names resolved.
+That sequence is the whole skill, and it exists because the cheap artifact cannot answer the question. `data/<alias>.manifest.md` states a component's name, id, node type and dev status — and **no parentage, no children, no size, no properties.** A `/` in a layer name is a naming convention, not containment.
+
+So the skill takes candidates from names and then goes to the fetched payload, where `type`, `children`, `componentPropertyDefinitions` and `absoluteBoundingBox` are stated outright.
+
+1. Searches the manifest for names containing `icon` — are there many, are they one pattern, is there more than one pattern? **Suggestion only; nothing is settled.**
+2. **Proves each candidate population from the payload**, sampling several components rather than one. Two requirements decide it: a `COMPONENT` whose parent is not a `COMPONENT_SET` and which declares no component properties, and at least one `VECTOR` or a group that would export cleanly as an SVG.
+3. Gathers corroborating evidence that is explicitly **not** conclusive — same size, square, small (16×16, 24×24), shallow structure — and states it, because a reviewer can check it instantly.
+4. **Looks for the disproof.** Samples deliberately for components in the population that lack the uniformity. A handful of outliers is an icon set with outliers worth naming; outliers at half the population means it was never one population.
+5. When no name pattern exists, finds the population by **page locality plus uniform shallow vector structure** — an icon set is almost always authored together on one page or a few — then runs the same proof against it.
+6. **Confirms membership with you, once, after the proof** — never the pattern syntax or the matcher, which are derivable.
+7. Writes the convention, refetches only that source's glyphs, and runs [`specs generate`](/cli/commands/generate/), reporting the population size, the glyphs resolved, and the elements now typed `glyph` with a name — side by side.
 
 ## Four semantics it gets right
 

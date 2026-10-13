@@ -818,32 +818,106 @@ the whole setup, and a user who is not expecting it will think something looped.
 
 ## Steps
 
-1. **Confirm you have what you need.** The source must already be fetched and scanned:
+1. **Know which artifact answers which question.** This is the whole discipline of this
+   skill, and getting it wrong is the one failure that reliably produces a confident
+   wrong answer:
+
+   | Artifact | States | Does **not** state |
+   |---|---|---|
+   | \`data/<alias>.manifest.md\` | component name, node id, node type, dev status | **parentage, children, size, properties** |
+   | \`data/<alias>.file/page-*.json\` | \`type\`, \`children\`, \`componentPropertyDefinitions\`, \`absoluteBoundingBox\` — explicitly | — |
+   | an emitted \`api.yaml\` | the anatomy of a component that was generated | anything about a component that was not |
+
+   **A \`/\` in a layer name is not containment.** \`Icon / <Search>\` tells you nothing
+   about whether that component sits inside a set — Figma names are free text and the
+   slash is a convention. The payload states the parent. Read it.
+
+   So: **names suggest, structure decides, and the regenerate proves.** Never report a
+   structural fact that came from the manifest.
+
+   The source must already be fetched and scanned:
 
    \`\`\`bash
    specs scan --source <alias>
    \`\`\`
 
-   \`data/<alias>.manifest.md\` is the candidate list — every component in the file by
-   name. If the manifest does not exist, stop: there is nothing to reason from.
+   If the manifest does not exist, stop — there is no candidate list to start from.
 
-2. **Decide which components are the icon set.** Read the manifest and group the names.
-   This is the judgment, and everything downstream inherits it.
+2. **Get candidates from the names. Suggestion only.** Search the manifest for components
+   whose names contain \`icon\`, case-insensitively, and look at the shape of what comes
+   back:
 
-   An icon file commonly holds several populations, and only one of them is glyphs:
+   - **Are there many?** An icon set is dozens to hundreds. Five components named
+     "icon-something" are probably parts of other components.
+   - **Are they all named the same way, in a pattern?** A fixed frame with the icon's own
+     name varying inside it.
+   - **Is there more than one such pattern?** Two prefixes with the same internal shape
+     are two candidate populations, not one with exceptions. Keep them separate from here
+     on and prove each one independently.
 
-   | Population | Tell | Glyph? |
+   Record the counts. Nothing about membership is settled yet.
+
+   If nothing with \`icon\` in the name comes back in quantity, go to step 4.
+
+3. **Prove each candidate population structurally, from the payload.** Sample several
+   components from the population — not one — and read their actual nodes in
+   \`data/<alias>.file/page-*.json\`. Two requirements must hold, and they are the test:
+
+   | Must hold | Why | Where it is stated |
    |---|---|---|
-   | The icon set | Many components, one shared shape, names that are *the icon's name* | yes |
-   | Illustrations and logos | Few, larger, often multi-colour | no |
-   | UI chrome and device frames | Composed of many parts, often property-bearing | no |
-   | Parts other components instance | Private prefixes, path segments like \`parts /\` | no |
+   | The component is a \`COMPONENT\` whose parent is **not** a \`COMPONENT_SET\`, and it declares no component properties | A glyph is a static asset; a configurable component is not a glyph | the node's \`type\`, its parent's \`type\`, and \`componentPropertyDefinitions\` |
+   | It contains at least one \`VECTOR\`, or a group of nodes that would export cleanly as an SVG | This is what makes it a glyph rather than a small composed component | the node's \`children\` |
 
-   State the grouping and its counts before proposing anything: how many components the
-   file holds, how many you believe are icons, and what the rest are. A reviewer can
-   check a count; they cannot check a pattern they have not been told the scope of.
+   Then gather corroborating evidence. **None of it is conclusive on its own**, and all of
+   it is worth stating because a reviewer can sanity-check it instantly:
 
-3. **Try the name form first.** It is one line, it is self-documenting, and it needs no
+   - Are they all the same size?
+   - Are they all square?
+   - Are they all small — 16×16, 24×24, that order of magnitude?
+   - Is the structure shallow, rather than a deep tree of frames?
+
+   **Then look for the disproof.** Deliberately sample for components in the population
+   that do *not* share the uniformity — a different size, a deeper structure, properties,
+   a set parent. Report what you find. A population with a handful of outliers is still an
+   icon set with outliers worth naming; a population where the outliers are half of it was
+   never one population, and the name pattern is doing the wrong work.
+
+   When naming, structure and uniformity all align, the name form is justified — go to
+   step 5. When the structure test fails, the population is not glyphs however it is named,
+   and saying so is the correct outcome.
+
+4. **When no name pattern exists, let structure find the population.** Some libraries name
+   glyphs plainly as the icon itself — \`Cross\`, \`Chevron down\` — with nothing in the
+   name marking them as icons at all. There, the population has to be found rather than
+   filtered:
+
+   - **Look for a large list of components concentrated on one page, or a few pages.** An
+     icon set is almost always authored together. Page locality is the strongest signal
+     available when names carry nothing.
+   - **Within that list, look for the uniform shallow vector structure** from step 3 —
+     same size, square, small, one or a few vectors, no properties, not in a set.
+   - **Check whether the names are *just* the icon name.** If so, \`structure.name\`
+     defaults to \`'{i}'\` and the whole component name becomes the glyph name.
+
+   Then run step 3's proof and disproof against that population exactly as if a name had
+   suggested it. The order of discovery changes; the standard of evidence does not.
+
+5. **Confirm the populations with the user — once, after the proof.** Ask about
+   *membership*, never about syntax. Which components are icons is the one thing they know
+   and you cannot derive; the pattern and the structure matcher are derivable and asking
+   about them is friction.
+
+   Show them, per candidate population: the count, two or three example names, the
+   structural facts that held, the uniformity, and any outliers. Then one question:
+
+   > "I found two groups that look like icon sets: 364 components under \`Icon /\` and 38
+   > under \`Icon object /\`. Both are standalone components, each a single vector, all
+   > 24×24. Are both icon sets, or is one of them something else?"
+
+   Their answer decides membership. Do not relitigate it with evidence afterwards — if
+   they say a population is not icons, it is not icons.
+
+6. **Write the name form.** It is one line, it is self-documenting, and it needs no
    payload read:
 
    \`\`\`yaml
@@ -865,7 +939,7 @@ the whole setup, and a user who is not expecting it will think something looped.
    populations do not. A delimiter the set uses consistently does the excluding for free,
    where a bare prefix leaves \`{i}\` to swallow whatever follows it.
 
-4. **Measure the candidate pattern both ways.** A pattern is only right if it is both
+7. **Measure the pattern both ways.** A pattern is only right if it is both
    complete and clean, and the manifest is enough to check both without fetching anything:
 
    - **Recall** — of the components you called icons in step 2, how many does it match?
@@ -879,9 +953,8 @@ the whole setup, and a user who is not expecting it will think something looped.
    silently claims whole populations, and each wrongly-claimed component gets a glyph name
    that is not an icon name. A tight pattern with named exceptions beats a loose one.
 
-5. **Go structural when no single name pattern works.** Some libraries name glyphs plainly
-   — \`Cross\`, \`Chevron down\` — with nothing in the name marking them as icons. For
-   those, membership comes from what the component *contains*:
+8. **Write the structural form**, for the population step 4 found. Membership comes from
+   what the component contains rather than what it is called:
 
    \`\`\`yaml
    glyphs:
@@ -891,9 +964,9 @@ the whole setup, and a user who is not expecting it will think something looped.
            name: 'Vector'
    \`\`\`
 
-   To derive it, read the actual child nodes of several components you called icons in
-   step 2, from the fetched payload under \`data/<alias>.file/\`. Sample across the set,
-   not one component — the matcher has to hold for all of them.
+   Write the matcher from the nodes you already read in step 3 — do not re-derive it from
+   one component, and do not widen it to cover an outlier step 3 told you about. The
+   matcher has to hold for the whole population or the population was wrong.
 
    Four semantics to get right, because each one is easy to read the other way:
 
@@ -915,12 +988,12 @@ the whole setup, and a user who is not expecting it will think something looped.
      only. Declare it only if the set is genuinely monochrome and you have checked more
      than one component; it is the member most likely to narrow the match to nothing.
 
-6. **Set \`structure.name\` when the component name is not the icon name.** It defaults to
+9. **Set \`structure.name\` when the component name is not the icon name.** It defaults to
    \`'{i}'\`, meaning the whole component name is the glyph name. Declare it when the names
    carry an affix the icon name should not keep — \`name: '{i}Icon'\` captures
    \`Close\` from \`CloseIcon\`.
 
-7. **Check the disqualifiers before claiming a match.** Three kinds of component can never
+10. **Re-check the disqualifiers against what you are about to declare.** Three kinds of component can never
    be a structural glyph, whatever their children look like:
 
    - a **component set**
@@ -933,7 +1006,7 @@ the whole setup, and a user who is not expecting it will think something looped.
    structural form cannot claim it and the name form is your only option — say so rather
    than building a matcher that will match nothing.
 
-8. **Two populations, and only one \`match\`.** A file often holds two patterned sets —
+11. **Two populations, and only one \`match\`.** A file often holds two patterned sets —
    \`Icon / <{i}>\` and \`Icon object / <{i}>\`, or a current generation beside a legacy
    one. \`match\` holds one pattern, so they cannot both be named that way.
 
@@ -953,7 +1026,7 @@ the whole setup, and a user who is not expecting it will think something looped.
    If this is the case you are in, say so in the report as a limitation of the convention
    rather than a judgment you made — it is the config shape, not the library.
 
-9. **Write the block and report.** Into \`config/conventions/figma.yaml\`, with the counts
+12. **Write the block and report.** Into \`config/conventions/figma.yaml\`, with the counts
    and the reasoning:
 
    - the grouping from step 2, as counts
@@ -964,7 +1037,7 @@ the whole setup, and a user who is not expecting it will think something looped.
    - anything it matches that you did not call an icon, named — this list should be empty,
      and if it is not, say why you are accepting it
 
-10. **Turn icons on and refetch that source.** The convention does nothing for the payload
+13. **Turn icons on and refetch that source.** The convention does nothing for the payload
     until the fetch kind is added:
 
     \`\`\`yaml
@@ -974,11 +1047,22 @@ the whole setup, and a user who is not expecting it will think something looped.
     \`\`\`
 
     \`\`\`bash
-    specs fetch --source <alias>
+    specs fetch --only <alias>,icons
     \`\`\`
 
-11. **Prove the names resolved.** A convention that matches nothing fails exactly like one
-    that was never written — no error, no warning, and specs that look complete:
+    \`--only\` takes aliases and fetch kinds, so naming both narrows the run to one
+    source's glyphs. **Not \`--source\`** — that flag is for a file that is not in the
+    config and takes a URL or key, not an alias.
+
+    **The count it reports is the first real proof.** It should match the population size
+    you proved in step 3, give or take the outliers you named. A number far below it means
+    the convention is narrower than the population; far above means it is claiming
+    components you never examined. Either way, say the two numbers side by side rather
+    than reporting that the fetch succeeded.
+
+14. **Regenerate, and confirm the names landed — this is what makes the claim true.** A
+    convention that matches nothing fails exactly like one that was never written: no
+    error, no warning, and specs that look complete.
 
     \`\`\`bash
     specs generate
@@ -989,10 +1073,15 @@ the whole setup, and a user who is not expecting it will think something looped.
     component matched but the name capture produced nothing — a \`{i}\` in the wrong place,
     or a \`structure.name\` that does not fit.
 
+    Report the three numbers together: the population you proved, the glyphs the fetch
+    resolved, and the elements now typed \`glyph\` with a name. Nothing before this step
+    establishes that the convention works; everything before it establishes only that it
+    was plausible.
+
     If nothing is a glyph at all, the convention matched nothing. Do not widen it blindly:
-    take one component you are certain is an icon, compare it against the convention member
-    by member, and report which member excluded it. For a structural match the usual
-    culprits are \`fill\` and a matcher \`name\`, in that order.
+    take one component you proved in step 3, compare it against the convention member by
+    member, and report which member excluded it. For a structural match the usual culprits
+    are \`fill\` and a matcher \`name\`, in that order.
 `;
 
 export const SKILL_ASSETS: SkillAsset[] = [
