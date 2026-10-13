@@ -193,36 +193,81 @@ only after a human has marked this file up.
    type its control does not accept will not resolve. Then
    [precedence](https://www.specsplugin.com/roles/precedence/).
 
-6. **Write the report.** Three sections before any proposal table, because each
-   one removes rows that would otherwise be bad proposals:
+6. **Write the report, in this order.** The shape matters: a reviewer reads the
+   decisions first and the exceptions after.
 
-   - **Needs reauthoring first.** An element the component owns carries **at most
-     one** role. A component that needs two announcement semantics across its
-     variants — a banner that is an interruption when it is a danger and a
-     confirmation when it is a success — cannot express that on one element. The
-     fix is separate elements per semantic in Figma, then one role each. That is
-     an authoring change, and it comes before annotation rather than being
-     resolved by picking a winner.
-   - **Gaps.** Where the library needs a concept that is inert (in the vocabulary,
-     nothing emits) or absent (not in the vocabulary at all), say so as a table
-     with the component it bites and what exists instead. Frame each row so it can
-     become an issue without rewriting.
-   - **Start here.** The judgment calls, each with the question it turns on, so
-     review begins where it matters rather than at the top.
+   **Intro.** Three sentences on what a role is and why it cannot be derived, then
+   one sentence carrying every number — components, elements, roles proposed, roles
+   that do not exist, Figma changes needed, components needing none — then the
+   decision rule. No separate summary table; it duplicates the intro. Follow it
+   with an anchor list of the sections.
 
-   Then the per-component tables. Columns: element, Figma layer name, type, which
-   variants carry it, the proposed role, **Support**, confidence, why, Decision.
+   **Proposed roles.** One flat table for the whole library, not per-component
+   tables. Reviewers do group by component, but the flat shape is what makes a
+   library-wide inconsistency visible — eight \`label\` rows side by side is how a
+   missing ninth gets noticed.
 
-   \`Support\` is \`emits\` / \`inert\` / \`new\`. **Always propose the concept the
-   element actually is, even when nothing emits for it**, and name the degradation
-   that works today as the alternative in the prose. A spec recording what an
-   element is stays true as support arrives; one recording a near-miss has to be
-   re-annotated, and nobody will remember which rows were compromises.
+   | Column | Content |
+   |---|---|
+   | \`✓\` | \`[x]\` to apply, \`[ ]\` to skip. Default every row to \`[x]\` |
+   | Component | spec key |
+   | Element | anatomy key |
+   | Role | the concept, linked to its page on specsplugin.com |
+   | Rationale | the evidence, prefixed by a marker where one applies |
 
-7. **Say where no role belongs, and why.** Most elements take none, and that is a
-   correct outcome rather than a gap. Group them: concepts deferred from the
-   vocabulary, concepts that do not exist, layout-only containers, and elements
-   blocked on something else. Two traps worth their own line:
+   Append \`(Not yet supported)\` to a role that emits nothing, and keep its link —
+   a link is to documentation, not a claim that the concept works. **Take support
+   from the Inventory's status, never from whether a page exists**: \`group\`,
+   \`radio\` and \`textarea\` have complete pages and emit nothing. Only
+   **Implemented** emits; **Specified** and a bare dash do not. Reading the link as
+   the signal mislabels six rows on a library of this size, and the error only
+   surfaces when someone runs the transform and finds a \`<div>\` where they
+   expected a \`<fieldset>\`.
+
+   \`[x]\` / \`[ ]\` rather than a checkmark-or-blank, so clearing a row is a
+   positive act. Blank cannot distinguish "rejected" from "never read", and both
+   would stop the sweep.
+
+   No confidence column: on a real library it is one value for ninety per cent of
+   rows, which is a column of noise that also hides the few rows worth arguing
+   about. Put \`⚠️ Lower confidence\` at the front of those rows' Rationale
+   instead.
+
+   Prefix a row with \`✏️ Figma change, see below\` when it depends on an asset
+   change. Propose the role on the element that **will** exist, so the table is the
+   whole picture rather than the applicable part of it.
+
+   Rationale carries **checkable evidence only** — \`an open prop and a panel
+   beside it\`, \`Field.Label, a text sibling of the control\`. Never provenance:
+   a rationale reading "library convention" on eleven rows tells a reviewer nothing
+   they can verify, and it is really a pointer to a sentence below the table. Put
+   that sentence below the table and let each row stand on its own evidence.
+
+   **Figma asset changes**, below the proposal table. An element carries at most
+   one role, so a component needing two semantics across its variants has to say so
+   with two elements — a banner that interrupts as a danger and confirms as a
+   success cannot do both on one. Show it as before and after layout trees, each
+   node \`<layer name> (<type>) ## comment where needed\`, indented. Keep the prose
+   to a few sentences; the trees carry the explanation.
+
+   **Proposed new roles**, below that. Only concepts that are **not in the
+   vocabulary at all** — a concept that exists but emits nothing is real vocabulary
+   and belongs in the proposal table marked \`(Not yet supported)\`. Columns:
+   \`#\`, Role, Apply to, Rationale (one or two sentences), Existing alternatives.
+   Then any gaps that are not new roles as short bullets: a missing resolution
+   rule, a concept with no page, concepts deferred by design.
+
+   **Always propose the concept the element actually is**, even when nothing emits
+   for it, and name the working alternative in the Existing alternatives column. A
+   spec recording what an element is stays true as support arrives; one recording a
+   near-miss has to be re-annotated, and nobody will remember which rows were
+   compromises.
+
+7. **Say where no role belongs.** Most elements take none, and that is a correct
+   outcome rather than a gap. A table of component names grouped by reason:
+   deferred concepts, concepts that do not exist, layout-only, blocked on something
+   else. Then the elements inside *annotated* components left bare on purpose —
+   those are the ones a reviewer will otherwise ask about. Three recurring traps:
 
    - A part cannot resolve to a control in **another** component — parts resolve by
      component. A trigger component and a panel component used together cannot
@@ -230,15 +275,20 @@ only after a human has marked this file up.
    - An \`aria-label\` text layer is not a \`label\`. That part emits a visible
      \`<label>\`; an accessible name with no visible text reaches the output as a
      contract prop.
+   - A control's own text is its content, not a \`label\`. Proposing \`label\` on a
+     button's or disclosure's text points a \`<label>\` at a button.
 
-8. **Validate before handing over.** Every proposed element key must exist in that
-   component's anatomy, and every proposed role must be in the documented
-   vocabulary or be explicitly marked \`new\`. A row naming an element that is not
-   there fails at write time, in the middle of a sweep.
+8. **Reconcile, then validate.** Every component must appear exactly once across
+   the proposal table and the no-role list — compute it rather than trusting the
+   prose, because a component addressed in neither is invisible, and that is how
+   two whole components get missed. Then check every row: the element key exists in
+   that component's anatomy, and the role is in the vocabulary. A row naming an
+   element that is not there fails at write time, mid-sweep.
 
-9. **GATE — human review.** Hand over the path and stop. The designer edits the
-   Decision column: \`accept\`, a different role name, or \`no\`. A blank cell is
-   undecided and must not be applied.
+9. **GATE — human review.** Hand over the path and stop. The reviewer clears the
+   \`[x]\` on anything they reject. If they question a proposal, settle it to apply
+   or skip in conversation and edit the row — the report never carries a third
+   answer, because the applier would have to interpret one.
 `;
 
 const ROLES_APPLY = `---
@@ -265,11 +315,20 @@ edited, and it never reinterprets one.
 
    One plugin must be connected, in the file the specs were generated from.
 
-2. **Parse the decisions.** For each table row: \`accept\` takes the proposed
-   role, any role name overrides it, \`no\` and \`skip\` reject it. **A blank
-   Decision cell stops the run** — report every one and apply nothing. An
-   undecided row is not a rejected row, and treating it as either is a decision
-   this skill does not get to make.
+2. **Parse the decisions.** \`[x]\` applies the row's role, \`[ ]\` skips it. There
+   is no third answer to interpret — if a reviewer wanted a different role, the
+   row says so.
+
+   Two rows are not applied even when checked:
+
+   - **Marked \`✏️ Figma change\`.** The element does not exist yet; the row
+     records the intent for after the asset change. Report it as \`deferred\` and
+     carry on. Treating it as a missing element would halt the sweep on a row that
+     is working exactly as designed.
+   - **Marked \`(Not yet supported)\`.** These *are* applied — the concept is real
+     vocabulary and the annotation is the point. Nothing emits for it, so expect
+     no change in generated output, and say so rather than letting it read as a
+     failed write.
 
 3. **Group by page.** Each component's page comes from its spec's
    \`metadata.source.pageId\`. One \`POST /annotate\` per page, because a page is
@@ -311,8 +370,22 @@ edited, and it never reinterprets one.
 
    Reading annotations back needs no bridge — the REST payload carries annotation
    labels. Diff \`analysis/roles.yaml\` against the copy from before the sweep: the
-   roles that moved are exactly the Decision cells that said so, or something went
-   wrong that no individual page result showed.
+   roles that moved are exactly the rows that said so, or something went wrong that
+   no individual page result showed.
+
+7. **Emit, and read the output.** The point of a role is the code it changes, and
+   the sweep proves only that the annotation landed.
+
+   \`\`\`bash
+   specs react
+   \`\`\`
+
+   Spot-check one component per concept family: a checkbox should hold a real
+   \`<input type="checkbox">\` with \`htmlFor\` and \`aria-describedby\` wiring, a
+   disclosure an \`aria-expanded\` button paired by \`aria-controls\`, a button a
+   real \`<button>\`. This is also the only check that catches a role marked as
+   supported that is not — a \`<div>\` where a \`<fieldset>\` was expected says the
+   concept is Specified rather than Implemented, whatever its page suggests.
 `;
 
 export const SKILL_ASSETS: SkillAsset[] = [
