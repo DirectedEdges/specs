@@ -36,11 +36,72 @@ const HEADER_COMMENT = `<!--
   local customizations belong in your own separate skill.
 -->`;
 
+/**
+ * Injected into every skill, immediately after the header comment. Inlined rather
+ * than published as a skill others reference, deliberately: a pointer costs a second
+ * read before the agent has done anything, and the whole point is that the discipline
+ * arrives in the same read as the procedure.
+ *
+ * It is a worldview, not a reading list. No links, nothing that invites exploration —
+ * an agent that follows a link here has already spent the context this is meant to save.
+ */
+const PRIMER = `
+## What Specs is, and why that constrains you
+
+Specs is a schema and a CLI. The schema types a design system as data — visual
+foundations, components, compositions. The CLI reads a Figma library into that data,
+then transforms that data into code. Figma → spec → code, one direction, declared at
+every step.
+
+The data is structured so those transformations are **deterministic**: same input, same
+output, no side effects. That is the product. A team's component code is derivable from
+their design file, repeatably, by anyone running the same commands.
+
+So every fact about a library is declared somewhere, in a typed field, by something that
+read it from Figma. **If you cannot name the file and the field that states a fact, you
+do not know it.** An inference is not a shortcut here. It is a non-deterministic step
+inserted into the one pipeline that exists to have none.
+
+### What states what
+
+| Artifact | Authority on |
+|---|---|
+| \`data/<alias>.file/page-*.json\` | Figma as fetched — \`type\`, \`children\`, \`componentPropertyDefinitions\`, \`absoluteBoundingBox\`, fills |
+| \`specs/**/api.yaml\` | the declared contract — anatomy, prop types, enums, \`$extensions\` |
+| \`specs/**/variants.yaml\` | per-variant configurations, element styles, \`$binding\` |
+| \`config/**\` | the conventions and settings the library declares about itself |
+| \`react/\`, \`webcomponents/\` | what actually shipped |
+
+\`analysis/*.yaml\` and \`*.manifest.md\` are **indexes over those, never authorities.**
+They aggregate across a library, which no single spec can do, and they are lossy by
+design. An index tells you where to look; it never tells you what is true. The props
+analysis says which components share a prop — it does not carry that prop's enum values,
+so a value taken from it is a guess.
+
+### Three ways this goes wrong
+
+- **A name is not a fact.** A \`/\` in a Figma layer name is a convention, not
+  containment. A prop called \`filled\` is a state in one library and presentation in the
+  next. Names suggest; declared fields decide.
+- **A summary answers only the question it was built for.** Reaching for the small file
+  because it is close is the failure, every time — and it reads as diligence.
+- **Absence in one library is not absence in the domain.** A shape you did not find in
+  this workspace is not a shape that does not occur.
+
+### Determinism is also your proof
+
+Because the pipeline is deterministic, every claim you make is checkable by rerunning it.
+A classification that emits nothing looks exactly like one that was never made, so
+verifying against emitted output is not diligence — it is the only evidence there is.
+Report the numbers, never that the step succeeded.
+`;
+
 const PREMERGE = `---
 name: specs-cli.premerge
 description: Pre-merge impact report for a Figma feature branch — one command fetches both sides, generates both spec trees, and diffs them; stop for a human read of the report before any merge proceeds.
 ---
 ${HEADER_COMMENT}
+${PRIMER}
 
 # Pre-merge report
 
@@ -80,6 +141,7 @@ name: specs-cli.release
 description: Release a spec workspace — pre-release report and changelog from the ledgers, human review, then cut the version, tag, and publish sequence with a stop at every gate.
 ---
 ${HEADER_COMMENT}
+${PRIMER}
 
 # Release
 
@@ -129,6 +191,7 @@ name: specs-cli.roles.propose
 description: Propose a role for every unannotated anatomy element in a library, as a markdown table a system designer marks up — then stop. Writes nothing to Figma.
 ---
 ${HEADER_COMMENT}
+${PRIMER}
 
 # Propose roles
 
@@ -357,6 +420,7 @@ name: specs-cli.roles.apply
 description: Apply the approved roles from analysis/roles.proposed.md to the Figma file as Dev Mode annotations, one page at a time, then prove the round trip.
 ---
 ${HEADER_COMMENT}
+${PRIMER}
 
 # Apply roles
 
@@ -471,6 +535,7 @@ name: specs-cli.states.setup
 description: Propose the states block for a library's specs.yaml from its own prop data — which variant props are state concepts, which are not, and why — then stop for review.
 ---
 ${HEADER_COMMENT}
+${PRIMER}
 
 # Set up states
 
@@ -784,6 +849,7 @@ name: specs-cli.icons.setup
 description: Work out how a library marks its icon glyph components — by name pattern or by child structure — write the glyphs convention, refetch, and prove the glyph names resolve.
 ---
 ${HEADER_COMMENT}
+${PRIMER}
 
 # Set up icon glyphs
 
