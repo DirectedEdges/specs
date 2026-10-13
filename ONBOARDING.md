@@ -115,6 +115,8 @@ Instant, and it commits to nothing — it writes the shipped procedures into `.c
 
 Verify the command exits 0. Do not describe the skills to the user here; the steps that use them do that.
 
+**To use one, read its `SKILL.md` and follow the steps in it.** A skill installed part-way through a session is not registered as something you can invoke by name — the file is the procedure, and reading it is how you run it.
+
 ---
 
 ## Step 3. Configure Figma sources
@@ -215,6 +217,10 @@ Write the full `data.sources:` block to `config/settings.yaml` now, replacing th
 
 Those four are the ones `specs init` writes as live values. **Everything else is commented out in the scaffold, and that is correct — an absent key means the built-in default applies.** Do not go looking for the split flags or `spec.invalidCombinations`; they are not there to read, and a commented line is not a mismatch to fix. Read the four, confirm them, move on.
 
+**One live value is the exception, and it does need the user: `author:`, which `specs init` writes as the literal `<Your Name Here>`.** It is the one thing in the file the scaffold cannot default, and it ends up in config the wrap-up tells them to commit. Ask:
+
+> "Last thing in the config: who should `author` say — your name, or your team's?"
+
 Then tell the user what they have, in one message — not a question:
 
 > "Your settings are ready: YAML specs with camelCase keys, a folder per component, and design tokens as semantic references. Everything else is on a production-ready default. You can change any of it later in `config/settings.yaml` — it's commented throughout, and the [Settings Reference](https://www.specsplugin.com/settings/) covers the rest."
@@ -254,7 +260,11 @@ Wait for explicit confirmation before proceeding.
 
 ### 5b. License key (optional)
 
-Ask:
+**First check whether the `.env` already carries one.** Confirm that a populated `SPECS_LICENSE_KEY=` line exists without printing its value, exactly as you did for `FIGMA_TOKEN` in 5a. A pre-provisioned key is as normal as a pre-provisioned token. If there is one, say so and skip the question entirely:
+
+> "Your `.env` already has a Pro license key, so we'll run with Pro features on."
+
+Asking a user whether they have a key that is already sitting in their `.env` is friction, and taking their "no" at face value means reporting free-tier behaviour for a run that is not free-tier. Only if the line is absent or empty, ask:
 
 > "Do you have a Specs **Pro license key**? It unlocks design token references, variable bindings, invalid-combination analysis, and composition specs. The **free tier** works fine without one — you'll still get full anatomy, props, variants, raw style values, working React and Web Components, and Storybook.
 >
@@ -320,16 +330,23 @@ Read the icons manifest and look for a shared naming pattern with the icon's own
 
 | What the manifest shows | Do this |
 |---|---|
-| **An obvious pattern** across effectively all of them | Write it yourself: `glyphs: match: '<pattern with {i}>'` in `config/conventions/figma.yaml`. Show the user the pattern and the count it matches. |
-| **No pattern** — names are plainly the icon (`Cross`, `Chevron down`), or several generations of naming disagree | **Run the `specs-cli.icons.setup` skill.** Membership has to come from the components' child structure, which is a judgment over the payload and not something to guess at here. |
+| **One obvious pattern** across effectively all of them | Write it yourself: `glyphs: match: '<pattern with {i}>'` in `config/conventions/figma.yaml`. Show the user the pattern and the count it matches, and the names of any it misses. |
+| **Two or more patterns**, each covering a different subset | **Run the skill.** `glyphs.match` holds one pattern, so a second population needs the structural form or stays undetected — and deciding which population is the icon set is the judgment the skill exists for. |
+| **No pattern** — names are plainly the icon (`Cross`, `Chevron down`), or several generations of naming disagree | **Run the skill.** Membership has to come from the components' child structure, which is a judgment over the payload and not something to guess at here. |
 
-Either way, once a convention exists, add `icons` to that source's fetch list and **refetch just that source**:
+**`glyphs.match` is a single string, not a list.** This is worth stating because `subcomponents.match` and `instanceExamples.match` in the same file *are* lists, so the sequence form is the natural guess — and writing one produces an error saying no convention is declared at all, which points nowhere near the real problem.
+
+To run the skill, **read `.claude/skills/specs-cli.icons.setup/SKILL.md` and follow it directly.** A skill installed during this session is not registered as invocable, so reading the file is the way to use it.
+
+Either way, once a convention exists, add `icons` to that source's fetch list and refetch **only that source and only the glyphs**:
 
 ```
-specs fetch --source <alias>
+specs fetch --only <alias>,icons
 ```
 
-Tell the user the refetch is coming and why. On a large icon file it is the slowest single step in setup, and an unexplained second download reads as a loop.
+`--only` takes aliases and fetch kinds; naming both narrows the run to one source's glyphs. **Not `--source`** — that flag is for a file that is *not* in your config, and takes a URL or key rather than an alias.
+
+Tell the user a second fetch is coming and why. It transfers only the glyphs, not the file again, so it is far cheaper than the Step 6 fetch — but an unannounced second download still reads as a loop.
 
 If no convention can be established, say so plainly and continue — the rest of onboarding is unaffected, and icons can be turned on later. Do not block the flow on it, and do not invent a pattern to move past the step.
 
@@ -370,7 +387,9 @@ Run:
 specs generate
 ```
 
-No arguments needed — `generate` reads the default manifest (`data/<alias>.manifest.md`, resolved to the `library` alias as described in 3c) and writes output to `spec.directory` from `config/settings.yaml` (default `./specs`). If the user has multiple sources with components, run it once per source by passing the explicit manifest path: `specs generate data/<otherSource>.manifest.md`.
+No arguments needed — `generate` reads the default manifest (`data/<alias>.manifest.md`, resolved as described in 3c) and writes output to `spec.directory` from `config/settings.yaml` (default `./specs`). If the user has a second source that genuinely holds components they want specced, run it once more with the explicit manifest path: `specs generate data/<otherSource>.manifest.md`.
+
+**Generate only from the components source.** An icons source's manifest lists every glyph in the file as a component — hundreds of rows — and none of them is a component anyone wants a spec for. Icons reach the workspace as assets through Step 7a, not as specs. A foundations source usually holds no components either; if its manifest is short and holds only published components the user asked about, it is fine to generate, but do not run it reflexively just because a manifest exists.
 
 Verify:
 
@@ -425,10 +444,12 @@ Tell them both skills are now installed, name what each one buys in a sentence, 
 
 **Take the first "no" or "later" as final.** Do not re-offer, do not ask about the second skill after they decline the first, and do not describe either skill in more detail unless they ask. Then go to Step 12.
 
-| If they ask for | Invoke | Scope of what it changes |
+| If they ask for | Read and follow | Scope of what it changes |
 |---|---|---|
-| States | `specs-cli.states.setup` | one block in `config/conventions/specs.yaml` — local, reversible |
-| Roles | `specs-cli.roles.propose`, then `specs-cli.roles.apply` | **their Figma file** — see 11d |
+| States | `.claude/skills/specs-cli.states.setup/SKILL.md` | one block in `config/conventions/specs.yaml` — local, reversible |
+| Roles | `specs-cli.roles.propose/SKILL.md`, then `specs-cli.roles.apply/SKILL.md` | **their Figma file** — see 11d |
+
+Read the file and follow its steps, as Step 2a says. Do not try to invoke either by name.
 
 If they want both, do states first. It is confined to their config, so the result shows up in one `specs react` run with nothing upstream touched.
 

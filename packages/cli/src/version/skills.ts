@@ -551,10 +551,17 @@ It writes no config. The last step hands you a block to paste and stops.
    forcing a behaviour flag or a conceptless state into "presentation" to satisfy the
    table files it wrongly.
 
-   Most props are not states, in every library seen so far — by a wide margin, and the
-   margin widens with library size. A report that classifies most of its candidates has
-   gone wrong somewhere. Do not calibrate against a ratio from another library: the
-   proportions differ enough between libraries that a borrowed number is worse than none.
+   Most props are not states across a whole library — by a wide margin, and the margin
+   widens with library size. Do not calibrate against a ratio from another library; the
+   proportions differ enough that a borrowed number is worse than none.
+
+   **The ratio only means anything over a whole library.** Run against a curated subset,
+   it is uninformative and will read as over-proposing: interactive form controls are the
+   most state-dense corner of any library, so a starter set of a handful of them can
+   legitimately classify a third or more of its props. Before reacting to a high ratio,
+   check what you are looking at — a sample chosen for being interactive is not evidence
+   of anything. Say which you ran against, so a reader knows whether the proportion is
+   meaningful.
 
    Count props here, not rows. The block is keyed by concept and one prop can hold
    several, so a library can legitimately yield 9 classified props and 14 rows. A row
@@ -581,10 +588,12 @@ It writes no config. The last step hands you a block to paste and stops.
    and leads straight to the wrong branch of this step — "a genuine state with no style
    delta" — for props that are plainly toggles.
 
-   **Classify the deltas with a script, not by reading.** On a library of any size this
-   step means tens of components with dozens of variant entries each. Parse the files and
-   bucket each delta as style / layout / visible-only / child-passthrough. The bucketing
-   is the step; done by eye it is neither repeatable nor finishable.
+   **On more than a handful of components, bucket the deltas mechanically rather than by
+   reading.** Classify each delta as style / layout / visible-only / child-passthrough.
+   A shell pipeline over the files is enough — \`grep\`, \`awk\`, \`python3 -c\` — and does
+   not need a script file, which some environments will not let you write. A dozen
+   components can be read directly; a library cannot, and done by eye it is neither
+   repeatable nor finishable.
 
    Then three traps. Each one makes a real state look like a non-state, so the judgment is
    only safe with all three in hand.
@@ -847,6 +856,16 @@ the whole setup, and a user who is not expecting it will think something looped.
    captured text is the glyph name. The pattern must contain it, and it matches the
    component name whole.
 
+   **\`glyphs.match\` is one string, not a list.** \`subcomponents.match\` and
+   \`instanceExamples.match\` in the same file are lists, so the sequence form is the
+   natural guess — and it is rejected with an error saying no glyphs convention is
+   declared at all, which points nowhere near the real cause. If you need to cover two
+   name patterns, see step 8.
+
+   Prefer a pattern that is anchored by punctuation the icons carry and the other
+   populations do not. A delimiter the set uses consistently does the excluding for free,
+   where a bare prefix leaves \`{i}\` to swallow whatever follows it.
+
 4. **Measure the candidate pattern both ways.** A pattern is only right if it is both
    complete and clean, and the manifest is enough to check both without fetching anything:
 
@@ -915,10 +934,25 @@ the whole setup, and a user who is not expecting it will think something looped.
    structural form cannot claim it and the name form is your only option — say so rather
    than building a matcher that will match nothing.
 
-8. **Both forms may be declared together.** A component matching *either* is a glyph. That
-   is the honest answer for a library mid-migration between two conventions, or one with a
-   patterned set and a plainly-named legacy set. Prefer one form; use both when the
-   alternative is leaving a population undetected, and say which form covers which set.
+8. **Two populations, and only one \`match\`.** A file often holds two patterned sets —
+   \`Icon / <{i}>\` and \`Icon object / <{i}>\`, or a current generation beside a legacy
+   one. \`match\` holds one pattern, so they cannot both be named that way.
+
+   What is available:
+
+   - **Both forms together.** \`match\` and \`structure\` may both be declared, and a
+     component matching *either* is a glyph. If the second population shares a child
+     structure the first one's non-icons do not, \`structure\` can cover it.
+   - **Pick the larger population and report the rest.** Name every component in the
+     uncovered set, say what it is, and say plainly that it stays undetected. A user who
+     knows 38 icons are missing can decide what to do; a user told "icons are set up" cannot.
+
+   **Do not widen \`match\` to span both.** A pattern loose enough to catch two
+   populations catches whatever sits between them, and \`{i}\` is greedy. Two sets with one
+   covered correctly beats both covered wrongly.
+
+   If this is the case you are in, say so in the report as a limitation of the convention
+   rather than a judgment you made — it is the config shape, not the library.
 
 9. **Write the block and report.** Into \`config/conventions/figma.yaml\`, with the counts
    and the reasoning:
