@@ -450,9 +450,14 @@ to a real CSS pseudo-class or ARIA attribute. With it, \`:hover\` and \`:disable
 the states they describe and \`aria-expanded\` says what a container only hinted at.
 
 This skill **authors its report**, like \`roles.propose\` and unlike the others here.
-Whether a boolean prop is a state, a visibility toggle, or presentation is a judgment:
-\`filled\`, \`segmented\`, \`showChevron\` and \`highlighted\` are all booleans on variant
-props, and only one of them is a state concept. Nothing in the data distinguishes them.
+Whether a boolean prop is a state, a visibility toggle, or presentation is a judgment.
+Four booleans on variant props can be a condition the control is in, a look, an optional
+layer, and a behaviour flag, with nothing in their names, types or frequency to separate
+them — the distinction is what the library *means* by each, which the data does not record.
+
+Classify from this library's own evidence. Where a step gives an example, it is a shape to
+recognise and never the answer for the prop it names: a prop called \`filled\` is a state
+in one library and a presentation flag in the next.
 
 It writes no config. The last step hands you a block to paste and stops.
 
@@ -477,44 +482,78 @@ It writes no config. The last step hands you a block to paste and stops.
 
    | Shape in \`api.yaml\` | Candidate? |
    |---|---|
-   | \`$extensions['com.figma'].type: VARIANT\` | yes — a variant prop |
-   | a boolean or small enum with \`nullable: false\` and no VARIANT marker | **yes** — a Figma boolean or instance-swap property, which still drives a selector |
-   | code-only props, and slots | no |
+   | \`type: boolean\` | **yes, always** |
+   | \`type: string\` with a closed \`enum\` | **yes** |
+   | \`type: string\` with no \`enum\`, or \`type: text\`, \`container\`, \`image\` | no — content and slots |
+   | code-only props | no |
 
-   The second row is the one to get right. A library's clearest state can be a plain
-   Figma boolean rather than a variant — \`selected\`, \`required\` and \`focus\` all
-   appear that way in real libraries. Narrowing to the VARIANT marker alone throws them
-   out.
+   **Do not filter on \`$extensions['com.figma'].type: VARIANT\`, and do not filter on
+   \`nullable\`.** Both read as the obvious discriminator and neither is one. Which
+   booleans carry the VARIANT marker varies within a single library for reasons unrelated
+   to state — a Figma boolean property drives a selector exactly as a variant does. And
+   \`nullable\` is a property of content props, not of booleans: in real libraries every
+   boolean omits the key entirely, so \`nullable: false\` selects the string props you
+   mean to exclude and rejects every boolean you mean to keep.
+
+   Expect this step to leave most of the library in. It removes content and slots; the
+   candidate pool is still large, and step 4 is where the work is.
 
    Read prop names from \`api.yaml\`, never from a \`detectedIn\` string. \`detectedIn\`
    shows the Figma spelling, which the spec normalises — \`Read only\` becomes
    \`readOnly\`, and \`prop:\` must be the normalised name. The verbatim rule in step 6
    applies to **values**, not to prop names.
 
-4. **Sort every candidate into one of three.** This is the judgment, and most of the work:
+4. **Sort every candidate into one of five.** This is the judgment, and most of the work:
 
    | Kind | Tell | Outcome |
    |---|---|---|
-   | **State concept** | Names a condition the control is *in* — disabled, checked, expanded | an entry in the block |
-   | **Visibility toggle** | Turns an optional element on or off: \`showChevron\`, \`cardHeader\`, \`hideCaption\` | no entry; it is structure, not state |
-   | **Presentation** | Selects a look: \`segmented\`, \`iconOnly\`, \`striped\`, \`variant\`, \`size\` | no entry |
+   | **State concept** | Names a condition the control is *in*, and the vocabulary has a concept for it | an entry in the block |
+   | **State with no concept** | A real interaction condition the vocabulary cannot express — the keyboard-highlighted option in a listbox is the recurring one | no entry, and a row in the gaps section |
+   | **Visibility toggle** | Turns an optional element on or off | no entry; it is structure, not state |
+   | **Presentation** | Selects a look — a size, a colour, an alignment, a density | no entry |
+   | **Behaviour flag** | Configures what the component *does* rather than what it looks like or is in: an auto-dismiss, a selection mode, a character limit | no entry; it belongs to the contract and carries no selector |
 
-   On a real 69-component library this split was 7 states, 15 visibility toggles and 5
-   presentation flags out of 31 booleans. Most *props* are not states, so a report that
-   classifies most of them is wrong.
+   The last two rows exist because three kinds do not partition a real library, and
+   forcing a behaviour flag or a conceptless state into "presentation" to satisfy the
+   table files it wrongly.
+
+   Most props are not states, in every library seen so far — by a wide margin, and the
+   margin widens with library size. A report that classifies most of its candidates has
+   gone wrong somewhere. Do not calibrate against a ratio from another library: the
+   proportions differ enough between libraries that a borrowed number is worse than none.
 
    Count props here, not rows. The block is keyed by concept and one prop can hold
    several, so a library can legitimately yield 9 classified props and 14 rows. A row
    count above the prop count is expected, not a sign of over-proposing.
 
-5. **Check what each candidate actually changes**, in \`variants.yaml\`. A prop whose
-   configuration only flips \`visible\` on some element is usually a visibility toggle
-   however much its name sounds like a state — and a genuine state with no style delta is
-   worth proposing but worth saying so about, because classifying it emits no selector.
+5. **Check what each candidate actually changes.** A prop whose configuration only flips
+   \`visible\` on some element is usually a visibility toggle however much its name sounds
+   like a state — and a genuine state with no style delta is worth proposing but worth
+   saying so about, because classifying it emits no selector.
 
-   This is the step that separates a confident guess from a checked one, and it has three
-   traps. Each one makes a real state look like a non-state, so the step is only safe
-   applied with all three in hand.
+   **Two markers settle most of the visibility toggles mechanically**, before any judgment:
+
+   - \`$extensions['com.figma'].visibilityProp\` on an element names the prop that reveals
+     it.
+   - a \`$binding: "#/props/<name>"\` on an element's \`visible\` style, under
+     \`default.elements\` in \`variants.yaml\`.
+
+   Grep for both across the library and you will have identified a large fraction of the
+   non-states with no reasoning at all. Do that first; spend the judgment on what is left.
+
+   **Look in both halves of \`variants.yaml\`.** Style deltas live under \`variants:\`, but
+   a visibility-only effect lives under \`default.elements.<el>.styles.visible\` and has no
+   \`variants:\` entry whatsoever. Reading only \`variants:\` shows nothing for those props
+   and leads straight to the wrong branch of this step — "a genuine state with no style
+   delta" — for props that are plainly toggles.
+
+   **Classify the deltas with a script, not by reading.** On a library of any size this
+   step means tens of components with dozens of variant entries each. Parse the files and
+   bucket each delta as style / layout / visible-only / child-passthrough. The bucketing
+   is the step; done by eye it is neither repeatable nor finishable.
+
+   Then three traps. Each one makes a real state look like a non-state, so the judgment is
+   only safe with all three in hand.
 
    **A revealed layer can be the state.** The visibility test asks what the layer is
    *for*, not whether visibility changed. A layer that exists only to express a condition
@@ -540,23 +579,49 @@ It writes no config. The last step hands you a block to paste and stops.
 
 6. **Match each state to a concept, and read its value from the data.** The vocabulary is
    fixed — the concept table on the states page is the whole list, and a name outside it
-   cannot be configured. Three rules the data will teach you anyway:
+   cannot be configured.
 
-   - **Copy the value verbatim, including case and spaces.** Real libraries write
-     \`Hover\`, \`Read Only\`, \`Menu Open\` and \`hover\`. A value you normalise matches
-     nothing, and nothing warns you.
+   **Every row is a library-wide match on prop name plus value.** There is no way to scope
+   a row to some components and not others, and this reframes several judgments below.
+   Where one prop name means different things on different components — a boolean on some
+   and an enum on others, or a value like \`Selected\` that is selection on a list item
+   and the current tab on a tab — one row has to serve them all, and it will be wrong
+   somewhere. Choose the reading that fits the most components, say which components it
+   misdescribes, and report it as a gap rather than a decision. Check
+   \`typeDiscordance\` in \`props.yaml\` for exactly this: it names the props whose
+   meaning splits across components.
+
+   Four rules the data will teach you anyway:
+
+   - **The value must be one the prop's \`enum\` actually holds.** Copy it from the enum
+     rather than inventing it from the concept name. Case and surrounding whitespace are
+     forgiven — the match is case-insensitive, so \`hover\` finds \`Hover\` — but a value
+     the enum does not contain at all matches nothing, and nothing warns you.
+
+     That silence costs more than it looks. Naming a prop in *any* row excludes it from
+     \`data-*\` emission entirely, so a row whose value resolves to nothing leaves that
+     variant's styling with neither a concept selector nor the attribute it used to have.
+     The styling is simply dropped. A real library carried \`value: active\` against an
+     enum spelling it \`press\` and silently lost every pointer-down rule on its button.
    - **A boolean prop omits \`value\`** — it defaults to \`"true"\`. Quote \`"false"\` to
      map the *absence*, which is needed whenever the concept is the off side of the prop
      or the prop defaults to on. A \`filled\` prop that is true when a field has content
      is \`placeholder-shown\` at \`value: "false"\`. A drawer that defaults
      \`expanded: true\` records its only delta at \`false\`, so \`collapsed\` is the row
      that carries it.
-   - **Declare one concept per selector.** \`focus\` and \`focus-visible\` both emit
-     \`:focus-visible\`, so declaring both spends two rows on one selector — pick
-     whichever name matches how the library talks. \`focus-within\` is a different
-     selector and can be declared alongside either. Where a library has both a
-     \`state: Focus\` enum value and a separate \`focus\` boolean, they are two props for
-     one concept: step 7 applies.
+   - **The focus concepts are three names for two behaviours.** \`focus\` and
+     \`focus-visible\` are the same selector, so declaring both spends two rows on one
+     thing. Choose by what you want emitted, not by what the prop is called:
+
+     | Want | Declare |
+     |---|---|
+     | the ring to follow the component's shape — \`:focus-visible\` on a focusable root, \`:has(:focus-visible)\` on a wrapper | \`focus\` |
+     | \`:focus-within\` verbatim, whatever the root is | \`focus-within\` |
+
+     \`focus\` is the better default, because the narrowing is the behaviour most
+     libraries want and it is decided per component rather than once in your config.
+     Where a library has both a \`state: Focus\` enum value and a separate \`focus\`
+     boolean, those are two props for one concept and step 7 applies.
    - **One prop commonly serves several concepts.** A single \`state\` enum may carry
      hover, active, focus, disabled, readonly, invalid and current at once; a \`selected\`
      boolean may be both \`selected\` and \`pressed\`. Six of seven real libraries reuse at
@@ -568,12 +633,23 @@ It writes no config. The last step hands you a block to paste and stops.
    that the others stay \`data-*\`. A concept takes a single value today, so the spellings
    are a finding about the library rather than something the config can absorb.
 
-   Expect these, and expect several. On one real library ties hit 3 of 14 concepts —
-   \`Pressed\` against \`Active\`, a string \`Checked\` against a boolean \`checked\`, and
-   \`validation: Error\` against \`state: Error\`. Each loser leaves styling that exists
-   emitting as \`data-*\`, so every tie gets its own row in the report rather than a
-   footnote. Prefer the candidate with the wider component coverage, and say what the
-   loser costs.
+   Expect these, and expect several — ties ran to a fifth of the rows in both libraries
+   this procedure has been tested on. They come in two shapes the config treats alike:
+   two different props claiming one concept, and two values of a *single* prop claiming
+   it. Each loser leaves styling that exists with no selector at all, so every tie gets
+   its own row in the report rather than a footnote.
+
+   Break a tie in this order:
+
+   1. **Does the concept's emitted selector actually describe this element?**
+      \`indeterminate\` emits \`:indeterminate, [aria-checked="mixed"]\`, which describes
+      a checkbox and not a progress bar — so a checkbox's prop wins over a progress
+      bar's however the coverage falls. A row that emits a wrong ARIA attribute is worse
+      than one that emits nothing, because nothing downstream will question it.
+   2. **Which candidate covers more components?** Only once both candidates are
+      semantically valid. This decides most ties and decides none of the hard ones.
+
+   Say which rule settled it, and what the loser costs.
 
 8. **Write the report**, in this order:
 
@@ -603,15 +679,16 @@ It writes no config. The last step hands you a block to paste and stops.
     \`\`\`
 
     A configured concept shows up in the emitted stylesheet as its documented selector —
-    \`:disabled\`, \`[aria-expanded="true"]\` — in place of \`[data-*]\`. Check every row
-    you wrote, not a sample: a row whose value is misspelled by one character fails in
-    exactly this way and in no other, which is why a library can carry \`hover\` against
-    data that says \`Hover\` for a long time without anyone noticing.
+    \`:disabled\`, \`[aria-expanded="true"]\` — in place of \`[data-*]\`. Check **every row
+    you wrote**, not a sample, and check that the \`[data-*]\` selectors it replaced are
+    gone rather than merely joined. A row naming a value the enum does not hold removes
+    the attribute and adds no selector, so its styling disappears from the output with no
+    error anywhere — the one failure that looks like success from every other angle.
 
     Three reasons a selector may be missing, all worth reporting rather than retrying:
-    the value does not match the data, which step 6 covers; the styling sits on an element
-    that cannot enter the state, which is a role question and not a states one; or the
-    prop drives no styling at all, which step 5 should already have caught.
+    the value is not in the prop's enum, which step 6 covers; the styling sits on an
+    element that cannot enter the state, which is a role question and not a states one; or
+    the prop drives no styling at all, which step 5 should already have caught.
 `;
 
 export const SKILL_ASSETS: SkillAsset[] = [

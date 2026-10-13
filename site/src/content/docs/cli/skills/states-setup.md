@@ -28,14 +28,14 @@ It never edits your config.
 3. Narrows to variant props, since only a Figma variant prop can drive a state.
 4. Sorts each candidate into a **state concept**, a **visibility toggle** or a **presentation flag**. Most candidates are not states — on one 69-component library the split was 7 states against 20 of the other two.
 5. Checks `variants.yaml` to see what each candidate actually changes. A prop whose configuration only flips an element's visibility is a toggle however much its name sounds like a state.
-6. Matches each state to a concept from the [table](/settings/states/), reading the activating value verbatim from your data.
+6. Matches each state to a concept from the [table](/settings/states/), reading the activating value out of the prop's own `enum`.
 7. Writes a report: the proposed block, a table of what was rejected and why, and any interaction state your library has that no concept covers.
 
 ## Three things it gets right that a naive match does not
 
 These come from reading what real libraries declare, and each one is a way the obvious approach is wrong.
 
-**Values are copied exactly, never normalised.** Real libraries write `Hover`, `hover`, `Read Only` and `Menu Open`. A value that has been tidied matches nothing, and nothing warns you — the selector simply never appears.
+**Values are copied from the prop's `enum`, not invented from the concept name.** Case is forgiven, so `hover` finds `Hover`; a value the enum does not hold at all is not. And naming a prop in any row already excludes it from `data-*`, so an unresolvable value leaves that variant's styling with neither a concept selector nor the attribute it had — dropped outright, with no error. One real library carried `value: active` against an enum spelling it `press`, and silently lost every pointer-down rule on its button.
 
 **One prop commonly serves several concepts.** A single `state` enum may carry hover, active, focus, disabled, readonly, invalid and current at once. A `selected` boolean may be both `selected` and `pressed`. Of seven libraries examined, six reuse at least one prop, so treating prop and concept as one-to-one gets most libraries wrong.
 
@@ -46,7 +46,7 @@ These come from reading what real libraries declare, and each one is a way the o
 Two cases it will not decide for you, because the config cannot express either:
 
 - **Two props competing for one concept.** It picks one, says why, and names what the other falls back to.
-- **One enum spelling a value several ways** — `Read-only`, `Read only`, `Read-Only`. A concept takes a single value, so the rest stay `data-*`. That is a finding about the library rather than something the config absorbs.
+- **One enum spelling a value several ways** — `Read-only` against `Read only`. Case and whitespace differences are forgiven, but a different separator is a different value, and a concept takes only one. The spellings that lose are a finding about the library rather than something the config absorbs.
 
 ## Verifying it landed
 

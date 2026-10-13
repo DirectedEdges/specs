@@ -107,6 +107,10 @@ With `states` config, classified props produce semantic selectors:
 
 Props not listed in `states` continue to emit as `data-*` attribute selectors. Unmatched values on a classified prop (e.g. the `rest` default on a `state` prop) are treated as the base state and skipped — the base block already covers them.
 
+:::caution
+Naming a prop in any entry excludes it from `data-*` emission for **all** its values, not only the ones you classified. So a `value` that is absent from the prop's `enum` costs you the styling twice over: no concept selector is emitted, and the `[data-*]` selector that used to carry it is gone too. Nothing reports this. Values are matched case-insensitively, so `hover` finds `Hover`, but a different spelling — `active` against an enum holding `press` — silently drops every rule for that variant. Copy each value out of the prop's `enum`, and after `specs react` confirm the selector you expected is in the stylesheet.
+:::
+
 For the `focus` and `focus-visible` concepts, the emitted selector is narrowed to the shape of the component's root: a root that can hold focus itself (a button, a link) emits `:focus-visible`, and a wrapper root emits `:has(:focus-visible)` so the styling reaches the control inside — a clicked button never holds its focus ring, while clicking into a text field still shows it. A declared `focus-within` concept always emits `:focus-within` exactly as declared.
 
 ### Contract transform
