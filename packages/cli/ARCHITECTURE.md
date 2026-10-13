@@ -39,7 +39,13 @@ hook blocks it).
 - **There is no MCP server.** The persistent local process is the *bridge*
   (`src/bridge/server.ts`): WebSocket 9001 for plugin connections keyed by
   `fileKey`, HTTP 9002 control (`POST /render`, `POST /generate`,
-  `POST /variables`, `GET /status`). Pid/log files live under `~/.specs`.
+  `POST /variables`, `POST /inspect`, `POST /annotate`, `GET /status`). Pid/log
+  files live under `~/.specs`. Two of those are the role-adoption pair and the
+  only reason the bridge reads structure as well as specs: `/inspect` describes a
+  live component's anatomy elements keyed the way the spec keys them, `/annotate`
+  adds role annotations to one page's components. `/annotate` is the only
+  mutating endpoint besides `/render`, and it appends — it never assigns over an
+  annotation already on a layer.
 - `npm run watch` rebuilds only `dist/specs.js` — **bridge/server changes need
   an explicit `npm run build`** to refresh `dist/bridge-server.js`.
 - Legacy single-file configs (`specs.config.yaml`) are **refused with an
@@ -147,7 +153,7 @@ the work lives in the feature folder.
 | `cache` | Render lookup caches |
 | `applyCustomTokens` | Inject custom tokens into foundations |
 | `react`, `webcomponents` | Emit one platform target whole — component, contract, stylesheet, stories. Both are four lines over `emit/targets.ts`, which also holds the `emitTarget()` the chain calls in-process |
-| `analyze` | Dependency/prop/styling/key analyzers. Naming none runs every analyzer |
+| `analyze` | Dependency/prop/styling/key/role analyzers. Naming none runs every analyzer |
 | `render` | Spec → Figma via bridge |
 | `bridge` | start/stop/status for the daemon |
 | `version` | Spec workspace versioning: diff/history/bump/restore/premerge/report over `src/version/`. Free tier |
@@ -180,10 +186,10 @@ the work lives in the feature folder.
 |---|---|
 | `src/config/ConfigLoader.ts` | **The config seam.** Precedence: CLI flags > file > defaults. Discovery: `./config/` → legacy files (refused) → `~/.specs/config.yaml`. Conventions are a *directory*, one file per platform; `conventions/primitives.yaml` reserved (ADR-075). Relative directories resolve against the parent of `config/`, not cwd |
 | `src/config/PlatformConventions.ts` | `figmaOf()` / `platformOf()` — every conventions consumer goes through these |
-| `src/bridge/` | server, client (`postRender`, `postGenerateFromSelection`), connection pick (`resolveFileKey`), pidfile |
+| `src/bridge/` | server, client (`postRender`, `postGenerateFromSelection`, `postInspect`, `postAnnotate`), connection pick (`resolveFileKey`), pidfile |
 | `src/generate/licenseStatus.ts` | Reads engine-stamped license state; the CLI validates nothing |
 | `src/cache/` | `cache.ts` builds the render lookup caches under `{data.directory}/cache/`; `report.ts` prints a refresh result, shared by `specs cache` and by every command that refreshes as its last step |
-| `src/analyze/` | The four analyzers behind `specs analyze` — `Props`, `Styling`, `Dependencies`, `Keys` — and `index.ts`, the registry that resolves names to them and answers what a run with no names does. Named for the command, like every other feature folder; it was `analyzers/`, named for the plural of its contents |
+| `src/analyze/` | The five analyzers behind `specs analyze` — `Props`, `Styling`, `Dependencies`, `Keys`, `Roles` — and `index.ts`, the registry that resolves names to them and answers what a run with no names does. Named for the command, like every other feature folder; it was `analyzers/`, named for the plural of its contents. `roleVocabulary.ts` sits beside them: the one machine-readable copy of the documented role concepts and their emission status, because the schema types a role as an open string and a coverage report needs to tell a typo from a concept |
 | `src/generate/` | What only `specs generate` uses: `manifestParser.ts` (the v1 manifest), `fileSourceAlias.ts` (which configured source carries the component file), `imageFills.ts` (ADR-063 phase two), `licenseStatus.ts` + `licenseGuidance.ts` (display and the transient-failure wording) |
 | `src/scan/` | What only `specs scan` uses: `discovery.ts` (component and composition discovery over a REST payload, monolithic or sectioned), `glyphPatternMatch.ts`, `manifestMigrationV1ToV2.ts` |
 | `src/utilities/` | The 15 modules more than one feature imports — the layout seam, the payload format (`sectionedFile` + `payloadSplit` + `payloadRead`, one on-disk format in three files), the key derivations, the exit-code contract, the watch loop, the dev-status vocabulary. Entry rule above; it is not a catch-all |
