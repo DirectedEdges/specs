@@ -15,11 +15,11 @@
 
 You are setting up Specs CLI for a user in the current working directory. Specs CLI generates component specifications from a Figma design system, and working code from those specifications. Your job is to walk the user through the setup interactively, make every non-obvious decision *with* the user (not for them), and leave them with a Storybook running in their browser showing their own design system.
 
-By the end they will have a `config/` directory, a populated `.env`, generated specs, analysis reports, React and Web Components trees, and a URL to open.
+By the end they will have a `config/` directory, a populated `.env`, generated specs, analysis reports, React and Web Components trees, their icons resolved by name, their states classified, and a Storybook running in their browser.
 
 You must follow this document **top to bottom**. Do not skip steps. Do not batch multiple steps before checking in. After each numbered step, verify the step succeeded before moving on.
 
-Step 11 is the one exception: it is explicitly optional, and the user declining it is a normal completion rather than a skipped step.
+Step 11 is a stop: the user picks which improvement passes to run from a checklist, once they can see their Storybook working. All three, one, or none are normal outcomes.
 
 **Ask only what this document tells you to ask.** Everything else has a default that is already correct. A question you invent is friction.
 
@@ -65,7 +65,7 @@ Only proceed with explicit confirmation.
 
 ### P3. Confirm Node.js is available
 
-Run `node --version` and `npm --version`. Both must print a version, and Node must be **20.19 or newer** — the Storybook host in Step 14 declares that floor and `npm install` will refuse below it. If either command fails or the version is too old:
+Run `node --version` and `npm --version`. Both must print a version, and Node must be **20.19 or newer** — the Storybook host in Step 9 declares that floor and `npm install` will refuse below it. If either command fails or the version is too old:
 
 > "Specs CLI needs Node.js 20.19 or newer. Please install the current LTS build from https://nodejs.org and come back."
 
@@ -111,7 +111,7 @@ If `specs init` refuses because it found a `specs.config.yaml`, you skipped P2 �
 specs skills install
 ```
 
-Instant, and it commits to nothing — it writes the shipped procedures into `.claude/skills/` for whenever they are needed. Two later steps call on them: Step 7a if the icons file needs a structural convention, and Step 11 for the optional states and roles passes.
+Instant, and it commits to nothing — it writes the shipped procedures into `.claude/skills/` for whenever they are needed. Step 11 is where they get used, if the user asks for them.
 
 Verify the command exits 0. Do not describe the skills to the user here; the steps that use them do that.
 
@@ -271,7 +271,7 @@ Asking a user whether they have a key that is already sitting in their `.env` is
 > - **Yes, I have a key** → paste into `.env` after `SPECS_LICENSE_KEY=`.
 > - **Not yet** → skip; you can add it later. We'll run in free-tier mode."
 
-If they add a key, note that `specs react` and `specs webcomponents` in Steps 11 and 12 **fail the run** rather than falling back to free tier when a key is present but cannot be validated — offline, rate-limited, interrupted. That is deliberate: a silent fallback would write a whole free-tier tree under a valid key and report success.
+If they add a key, note that the React and Web Components steps inside `specs run` (Step 10) **fail the run** rather than falling back to free tier when a key is present but cannot be validated — offline, rate-limited, interrupted. That is deliberate: a silent fallback would write a whole free-tier tree under a valid key and report success.
 
 ---
 
@@ -322,35 +322,6 @@ Verify each manifest file exists at `data/<source>.manifest.md` and has at least
 
 If a source genuinely has no components (e.g., a pure tokens/foundations file), `scan` will return an empty manifest. That's fine — just note it and move on.
 
-### 7a. If there is an icons source, read its manifest for a naming pattern
-
-An icons file is registered with `fetch: [file]` (§3c), so its icons are not pulled yet. The `glyphs` convention is what turns its components into named icons, and the manifest you just wrote is the evidence for it.
-
-Read the icons manifest and look for a shared naming pattern with the icon's own name varying inside it — something a single `glyphs.match` pattern with `{i}` would capture.
-
-| What the manifest shows | Do this |
-|---|---|
-| **One obvious pattern** across effectively all of them | Write it yourself: `glyphs: match: '<pattern with {i}>'` in `config/conventions/figma.yaml`. Show the user the pattern and the count it matches, and the names of any it misses. |
-| **Two or more patterns**, each covering a different subset | **Run the skill.** `glyphs.match` holds one pattern, so a second population needs the structural form or stays undetected — and deciding which population is the icon set is the judgment the skill exists for. |
-| **No pattern** — names are plainly the icon (`Cross`, `Chevron down`), or several generations of naming disagree | **Run the skill.** Membership has to come from the components' child structure, which is a judgment over the payload and not something to guess at here. |
-
-**`glyphs.match` is a single string, not a list.** This is worth stating because `subcomponents.match` and `instanceExamples.match` in the same file *are* lists, so the sequence form is the natural guess — and writing one produces an error saying no convention is declared at all, which points nowhere near the real problem.
-
-To run the skill, **read `.claude/skills/specs-cli.icons.setup/SKILL.md` and follow it directly.** A skill installed during this session is not registered as invocable, so reading the file is the way to use it.
-
-Either way, once a convention exists, add `icons` to that source's fetch list and refetch **only that source and only the glyphs**:
-
-```
-specs fetch --only <alias>,icons
-```
-
-`--only` takes aliases and fetch kinds; naming both narrows the run to one source's glyphs. **Not `--source`** — that flag is for a file that is *not* in your config, and takes a URL or key rather than an alias.
-
-Tell the user a second fetch is coming and why. It transfers only the glyphs, not the file again, so it is far cheaper than the Step 6 fetch — but an unannounced second download still reads as a loop.
-
-If no convention can be established, say so plainly and continue — the rest of onboarding is unaffected, and icons can be turned on later. Do not block the flow on it, and do not invent a pattern to move past the step.
-
----
 
 ## Step 8. **STOP — component selection**
 
@@ -379,87 +350,168 @@ Wait for explicit confirmation. If the user says "just generate everything," sti
 
 ---
 
-## Step 9. Generate specs
+## Step 9. Scaffold the Storybook host
 
-Run:
+Storybook is scaffolded *before* the build, because the one command in Step 10 serves it as part of bringing the workspace up. Two stages.
+
+### 9a. Scaffold
 
 ```
-specs generate
+specs storybook init
 ```
 
-No arguments needed — `generate` reads the default manifest (`data/<alias>.manifest.md`, resolved as described in 3c) and writes output to `spec.directory` from `config/settings.yaml` (default `./specs`). If the user has a second source that genuinely holds components they want specced, run it once more with the explicit manifest path: `specs generate data/<otherSource>.manifest.md`.
+Writes `storybook/` — a `package.json` declaring Storybook, the `.storybook/` config, and a seeded `content/` tree. It prints the install command and next steps rather than running them, and refuses if `.storybook/` already exists.
 
-**Generate only from the components source.** An icons source's manifest lists every glyph in the file as a component — hundreds of rows — and none of them is a component anyone wants a spec for. Icons reach the workspace as assets through Step 7a, not as specs. A foundations source usually holds no components either; if its manifest is short and holds only published components the user asked about, it is fine to generate, but do not run it reflexively just because a manifest exists.
+Read the port out of the scaffolded `storybook/package.json` dev script and record it. On a fresh workspace it is **6006**.
 
-Verify:
+**Ignore the start command it prints.** The scaffold's next-steps block names `npm run storybook`, which this flow never uses — see Step 10.
 
-1. Command exits 0.
-2. Files exist under `specs/components/` and are non-empty.
-3. Peek at the first ~30 lines of one file. Each component has its own folder (e.g. `specs/components/button/`) holding `api` and `variants` files, and the api file opens with the component's `title:` and `anatomy:`.
+### 9b. Install
 
-Tell the user how many components were specced, and show them one spec. This is the first moment the setup has produced something about *their* design system — say so.
+The CLI never ships or installs Storybook itself — the install is the user's, in their own workspace:
+
+```
+cd storybook && npm install
+```
+
+Verify it exits 0. If it refuses on the Node version, the floor is 20.19 — back to P3.
 
 ---
 
-## Step 10. Run the analysis reports
+## Step 10. One command builds everything and serves it
 
-Run:
+Everything from here is one command. From the workspace root:
 
 ```
-specs analyze
+specs run
 ```
 
-No arguments — with no analyzer named, every analyzer runs: `props`, `styling`, `dependencies`, `keys`, and `roles`. Reports land in `specs/analysis/`.
+It brings the whole workspace up to date and then keeps it that way: **scan, generate, analyze, emit React, emit Web Components, publish and serve Storybook** — then watches `specs/`, `data/` and `config/` and redoes only what a change affects.
 
-Verify the command exits 0 and the report files exist. Then tell the user what each one answers, and point at a number from their own reports rather than describing the report in the abstract:
+Run it in the background, or in a second terminal, so you can keep talking to the user. Wait for it to report the paths it is watching, and for Storybook to report it is listening.
+
+**This replaces running `generate`, `analyze`, `react`, `webcomponents` and `storybook dev` by hand.** Do not run those individually. `fetch` is the one pipeline step `run` does not cover, which is why Step 6 is its own command.
+
+### Before you run it: protect the curation
+
+`run` includes a scan, and a scan re-derives the manifest from Figma's dev status by default — which would undo the selection made in Step 8. Set this in `config/settings.yaml` first:
+
+```yaml
+curation:
+  preserveManualSelections: true
+```
+
+`run` prints a note about this when the setting is off. Set it rather than reading the note, or the starter set is silently replaced the first time the chain scans.
+
+### What to verify, and what to show the user
+
+1. The command reports each step completing, and Storybook reports listening.
+2. `specs/components/` holds a folder per selected component, each with `api` and `variants` files. Open one and show the user: it opens with the component's `title:` and `anatomy:`. **This is the first moment the setup has produced something about their own design system — say so.**
+3. `react/src/components/` and `webcomponents/src/components/` hold a folder per spec. Open one `scaffold.tsx` and show it — their Figma component as working React.
+4. Give them the URL, on its own line: **http://localhost:6006** (or the port from 9a).
+
+Then tell them what the analysis reports answer, pointing at a number from their own reports rather than describing each in the abstract:
 
 - **props** — the prop inventory across the library: which props exist, which components share them, where one concept is spelled two ways.
-- **styling** — where design tokens are used and which are used nowhere.
+- **styling** — where design tokens are used, and which are used nowhere.
 - **dependencies** — which components are built from which, so a change's blast radius is visible before it is made.
-- **keys** — names that the chosen key format cannot reconstruct, which is the list to fix in Figma. Expect this one to be empty after onboarding and say so: it measures round-tripping against a declared `naming` convention, and onboarding leaves `naming` undeclared. An empty keys report here means the check did not run, not that the library is clean.
-- **roles** — which anatomy elements declare what each element *is*, and which concepts the library has never used. Expect every element bare at this point; it is the before-snapshot for the roles pass in Step 11.
+- **keys** — names the chosen key format cannot reconstruct. Expect this empty and say so: it measures round-tripping against a declared `naming` convention, which onboarding leaves undeclared. Empty here means the check did not run, not that the library is clean.
+- **roles** — what each anatomy element *is*, and which concepts the library has never used. Expect every element bare; it is the before-snapshot for Step 11.
 
-Analysis is free on every tier. Nothing downstream reads these reports — they are for the user — but Storybook publishes them as pages in Step 14.
+Two things to mention only if they apply:
+
+- On the free tier, compositions are skipped and the run says so once. Components are emitted as normal.
+- If a step failed with a license error and a key is present, the check could not be completed rather than the key being bad. Re-run.
+
+### Leave it running
+
+`run` stays up for the rest of this flow. Step 11's skills each change `config/` or `data/`, and the chain picks those changes up and re-emits on its own — so the user watches Storybook improve as each pass lands, with no further commands from you.
+
+If the Storybook index returns a 500 after it was working, that is a cached per-file parse failure, not a dead server. The chain detects it, names the file, and re-triggers the parse. Fix and re-save the named file; never restart Storybook for this.
 
 ---
+---
 
-## Step 11. Two optional judgment passes — mention, then move on
+## Step 11. **STOP — the improvement checklist**
 
-**This entire step is optional, and skipping it is the expected outcome of a first onboarding.** Default to skipping. Say the two passes exist, say they can be run any time later, and continue to Step 12 unless the user asks for one.
+They now have a working Storybook. This is the point to stop, show it to them, and let them choose what to improve — not before, when none of it would have meant anything yet.
 
-Everything so far was mechanical: the pipeline read Figma and wrote down what it found. Two facts about a library are not in Figma, so nothing upstream can supply them.
+Everything up to here was mechanical: the pipeline read Figma and wrote down what it found. Three facts about a library are **not** in Figma, so nothing upstream can supply them. Each one is a separate pass, each improves the code they are currently looking at, and each is theirs to choose.
 
-- **States** — which variant prop means "disabled", which means "expanded". Without it, every prop emits as a `data-*` attribute, so the stylesheet styles `[data-state="Hover"]` rather than `:hover`.
-- **Roles** — what each element in a component *is*. Without it, a checkbox emits a `<div>`, and nothing carries `aria-expanded`, `aria-checked` or a label association.
+**Present them as a checklist and ask which they want.** One question, three items, in this order:
 
-Neither is a gap in the output. The React tree in Step 12 is complete and correct without either; these make it semantic rather than structural, and they can be added at any point afterwards.
+```
+Your Storybook is running. Three things I can improve from here —
+tell me which you'd like, in any combination:
 
-### 11a. The skills are already installed
+  [ ] Icons — resolve your icon components to named, reusable assets.
+        Changes: your config, plus one more download of just the icons.
 
-Step 2a put them in `.claude/skills/`. Nothing to run here. If that step was skipped, run `specs skills install` now.
+  [ ] States — make your CSS use :disabled and :hover instead of data
+        attributes, and drop browser-driven props from the generated API.
+        Changes: one block in your config. Reversible.
 
-### 11b. Say what exists, in one pass, and let them decline
+  [ ] Roles — make a checkbox emit a real <input type="checkbox"> with
+        the right ARIA, instead of a <div>.
+        Changes: writes annotations into your Figma file.
+```
 
-Tell them both skills are now installed, name what each one buys in a sentence, and say they can run either later. Then **ask once** whether they want to do either now.
+Rules for this gate:
 
-**Take the first "no" or "later" as final.** Do not re-offer, do not ask about the second skill after they decline the first, and do not describe either skill in more detail unless they ask. Then go to Step 12.
+- **Adapt the list to the workspace.** Drop the icons line if there is no icons source. Keep the other two always.
+- **Say what each changes, as above.** Roles is the only one that touches anything outside the workspace, and that has to be visible in the list itself rather than explained afterwards.
+- **Take their answer as given.** All three, one, or none are all normal. "None" is a complete onboarding — say so once, go to Step 12, and do not re-offer.
+- **Run them in the listed order** when they pick more than one. Icons feeds the specs that states reads; roles is last because it is the only one that leaves the workspace.
 
-| If they ask for | Read and follow | Scope of what it changes |
-|---|---|---|
-| States | `.claude/skills/specs-cli.states.setup/SKILL.md` | one block in `config/conventions/specs.yaml` — local, reversible |
-| Roles | `specs-cli.roles.propose/SKILL.md`, then `specs-cli.roles.apply/SKILL.md` | **their Figma file** — see 11d |
+`specs run` is still going from Step 10, and it watches `config/` and `data/`. **Every pass below lands in a live workspace: the chain re-emits on its own and the user watches Storybook change.** Do not re-run the pipeline by hand after any of them.
 
-Read the file and follow its steps, as Step 2a says. Do not try to invoke either by name.
+After each pass, point at what actually changed in the output — a selector in the stylesheet, a tag in a scaffold, an icon name — rather than reporting that the pass completed.
 
-If they want both, do states first. It is confined to their config, so the result shows up in one `specs react` run with nothing upstream touched.
+### 11a. Reading a skill
+
+Step 2a installed them in `.claude/skills/`. **Read the `SKILL.md` and follow its steps** — a skill installed mid-session cannot be invoked by name. If Step 2a was skipped, run `specs skills install` now.
+
+| Pass | Read and follow |
+|---|---|
+| Icons | `.claude/skills/specs-cli.icons.setup/SKILL.md` |
+| States | `.claude/skills/specs-cli.states.setup/SKILL.md` |
+| Roles | `specs-cli.roles.propose/SKILL.md`, then `specs-cli.roles.apply/SKILL.md` |
+
+### 11b. Icons, if they asked for it
+
+An icons file was registered with `fetch: [file]` in Step 3c, so its icons are not pulled yet. The `glyphs` convention is what turns its components into named icons, and the scan manifest from Step 7 is the evidence for it.
+
+Read the icons manifest first and look for a shared naming pattern with the icon's own name varying inside it — something a single `glyphs.match` pattern with `{i}` would capture.
+
+| What the manifest shows | Do this |
+|---|---|
+| **One obvious pattern** across effectively all of them | Write it yourself: `glyphs: match: '<pattern with {i}>'` in `config/conventions/figma.yaml`. Show the user the pattern, the count it matches, and the names of any it misses. |
+| **Two or more patterns**, each covering a different subset | **Follow the skill.** `glyphs.match` holds one pattern, so a second population needs the structural form or stays undetected — and deciding which population is the icon set is the judgment the skill exists for. |
+| **No pattern** — names are plainly the icon (`Cross`, `Chevron down`), or several generations of naming disagree | **Follow the skill.** Membership has to come from the components' child structure, which is a judgment over the payload and not something to guess at here. |
+
+**`glyphs.match` is a single string, not a list.** Worth stating because `subcomponents.match` and `instanceExamples.match` in the same file *are* lists, so the sequence form is the natural guess — and writing one produces an error saying no convention is declared at all, which points nowhere near the real problem.
+
+Once a convention exists, add `icons` to that source's fetch list and refetch **only that source and only the glyphs**:
+
+```
+specs fetch --only <alias>,icons
+```
+
+`--only` takes aliases and fetch kinds; naming both narrows the run to one source's glyphs. **Not `--source`** — that flag is for a file that is *not* in the config, and takes a URL or key rather than an alias.
+
+The chain sees the new data and re-emits. Show the user the named assets that appeared under `assets/icons/`.
+
+If no convention can be established, say so plainly and move to the next item. Do not invent a pattern to get past the step.
 
 ### 11c. States, if they asked for it
 
-The skill reads `specs/analysis/props.yaml` and the specs that Step 10 already produced, proposes a row per state concept with the evidence behind it, and stops at a report. Pasting its block is the only change it leads to, and Step 12 shows the result.
+The skill reads `specs/analysis/props.yaml` and the specs Step 10 produced, proposes a row per state concept with the evidence behind it, and stops at a report. **Show the user the report and let them clear any row they disagree with**, then paste the block into `config/conventions/specs.yaml`.
 
-Nothing else in the pipeline re-runs. If the user dislikes the outcome, deleting the block restores exactly what they had.
+The chain picks the config change up and re-emits. Point at a selector that changed — `:disabled` where `[data-is-disabled]` used to be — rather than saying it worked.
 
-### 11d. Roles, if they explicitly asked for it
+If they dislike the outcome, deleting the block restores exactly what they had.
+
+### 11d. Roles, if they asked for it
 
 **This one edits the user's Figma file.** Treat it as the serious step it is.
 
@@ -488,92 +540,14 @@ A user who starts roles and changes their mind mid-sweep has lost nothing: what 
 
 ---
 
-## Step 12. Emit the React tree
 
-Run:
-
-```
-specs react
-```
-
-No arguments — the target is the command. It writes `react/src/components/<Name>/` for every spec, each with its contract, scaffold, stylesheet and Storybook stories, plus the shared `assets/cssvars/` tree.
-
-Verify the command exits 0 and `react/src/components/` holds a folder per specced component. Open one `scaffold.tsx` and show it to the user — this is their Figma component as working React.
-
-Two things to say, both only if they apply:
-
-- On the free tier, compositions are skipped and the run says so once. Components are emitted as normal.
-- If the run failed with a license error and they entered a key in 5b, the check could not be completed rather than the key being bad. Re-run it.
-
----
-
-## Step 13. Emit the Web Components tree
-
-Run:
-
-```
-specs webcomponents
-```
-
-Same shape: no arguments, a folder per component under `webcomponents/src/components/`, and the same shared `assets/cssvars/` tree. Running both targets is not a conflict — they share those assets by design.
-
-Verify it exits 0 and the tree exists. Then tell the user:
-
-> "You now have the same design system as React and as framework-free custom elements, both generated from the same specs. Neither is a translation of the other."
-
-If the user says they only want one platform, skip the other and note that the command is there when they want it.
-
----
-
-## Step 14. Storybook
-
-Three stages. Do them in order and verify each before the next.
-
-### 14a. Scaffold the host
-
-```
-specs storybook init
-```
-
-Writes `storybook/` — a `package.json` declaring Storybook, the `.storybook/` config, and a seeded `content/` tree. It prints the install command and the next steps rather than running them, and refuses if `.storybook/` already exists.
-
-Read the port out of the scaffolded `storybook/package.json` dev script and record it. On a fresh workspace it is **6006**.
-
-### 14b. Install it
-
-The CLI never ships or installs Storybook itself — the install is the user's, in their own workspace:
-
-```
-cd storybook && npm install
-```
-
-This takes a few minutes and prints a lot. Verify it exits 0. If it refuses on the Node version, the floor is 20.19 — back to P3.
-
-### 14c. Run the dev environment
-
-From the workspace root, not from `storybook/`:
-
-```
-specs storybook dev
-```
-
-This publishes the content pages once, then stays running until Ctrl-C, with three children: a React watcher, a Web Components watcher, and Storybook itself. Saving a spec re-emits the code and the browser updates.
-
-**Always start Storybook with `specs storybook dev`, never with `npm run storybook` or a raw `storybook dev`.** The raw command prompts for telemetry consent and for a fallback port, and when those prompts go unanswered it exits without starting anything while a stale server keeps answering on the port.
-
-Run it in the background, or in a second terminal, so you can keep talking to the user. Wait for the server to report it is listening before moving on.
-
-If the Storybook index returns a 500 after it was working, that is a cached per-file parse failure, not a dead server. `dev` detects it, names the file, and re-triggers the parse. Fix and re-save the named file; never restart Storybook for this.
-
----
-
-## Step 15. Wrap up
+## Step 12. Wrap up
 
 Give them the URL, first and on its own line:
 
 > **Your design system is running at http://localhost:6006**
 
-(Use the port recorded in 14a if it is not 6006.)
+(Use the port recorded in 9a if it is not 6006.)
 
 Then tell them what to click: the foundations pages built from their variables and styles, a component's stories, and the analysis reports from Step 10.
 
@@ -595,7 +569,7 @@ The manifest needs one piece of care: `data/` is often gitignored wholesale, so 
 
 Suggest immediate next steps:
 
-- Re-run `specs fetch && specs generate` anytime the Figma file updates; the watchers in `specs storybook dev` carry it through to the browser.
+- Re-run `specs fetch` whenever the Figma file changes. `specs run` watches `data/` and carries it the rest of the way to the browser on its own — it is the only command they need day to day.
 - See the [Workflows](https://www.specsplugin.com/cli/workflows/) guide for CI/CD automation.
 - Enable Pro features later by adding `SPECS_LICENSE_KEY` to `.env`.
 - When the library evolves, [`specs version`](https://www.specsplugin.com/cli/commands/version/) compares versions, classifies changes, and generates reports and changelogs; [`specs skills`](https://www.specsplugin.com/cli/commands/skills/) installs the AI orchestration skills that sequence those workflows.
@@ -616,7 +590,8 @@ During this flow, never:
 - Run `specs-cli.roles.apply`, or any other write to the user's Figma file, without them having asked for roles by name and seen the proposal report. Step 11 is optional; treat a vague yes, a silence, or an unrelated "sounds good" as a no.
 - Write `FIGMA_TOKEN` or `SPECS_LICENSE_KEY` values into any file other than `.env`.
 - Install Specs CLI into an existing `package.json` project's dependencies without asking whether they want that vs. a global install.
-- Start Storybook with anything other than `specs storybook dev`.
+- Start Storybook with anything other than `specs run` — never `npm run storybook` or a raw `storybook dev`, including the command `specs storybook init` prints. The raw command prompts for telemetry consent and for a fallback port, and when those prompts go unanswered it exits without starting anything while a stale server keeps answering on the port.
+- Run the pipeline steps individually once `specs run` is up. It owns scan, generate, analyze, both emits, and Storybook.
 - Ask the user about a setting this document tells you to apply.
 
 ---
