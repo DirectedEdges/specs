@@ -5,7 +5,7 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.32.0] - Unreleased
+## [0.32.0] - 2026-10-14
 
 A workspace is now a documented, tested library, and screens are first-class in it. Three themes:
 
@@ -156,6 +156,14 @@ A workspace is now a documented, tested library, and screens are first-class in 
 - **The documentation links `specs init` and config errors print now reach a live page.** The domain they named stopped answering.
 
 - **A scaffolded workspace fetches on the first try**, because `specs init` no longer asks for icons in the source it writes, which made `specs fetch` refuse to start until a glyphs convention was declared.
+
+### Dependency updates
+
+- **`@directededges/specs-schema` → `^0.35.0`.** A spec can now say which slot a library's nested layouts fill through, and records the conventions its run used, so a reader holding only a spec can resolve a nested instance's default slot. Specs also carry which components of a library a run selected, and glyph membership can be declared by child structure rather than by layer name.
+
+- **`@directededges/specs-from-figma` → `^0.34.0`.** Content you place in a nested instance's default slot is captured as that instance's children instead of a separate registry entry, so a screen of nested layout components reads as one tree — one real card component drops from 56 slot-content entries to 22. Composition frames can be specced from fetched library data, and the license check now happens once per run rather than once per component, which stops a long catalogue from silently producing free-tier output when the license service throttles.
+
+- **`@directededges/react-from-specs` → `^0.4.0` and `@directededges/webcomponents-from-specs` → `^0.4.0`.** Nested content emits inside the component that holds it rather than beside an empty element, compositions emit as a single story in their own nav group, and every generated file now names the command that rewrites it. A token reference in an emitted inline style carries the spec's captured value as a `var()` fallback.
 
 
 ## [0.31.0] - 2026-09-23
