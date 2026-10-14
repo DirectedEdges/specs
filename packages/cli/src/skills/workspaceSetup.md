@@ -374,26 +374,54 @@ Verify it exits 0. If it refuses on the Node version, the floor is 20.19 — bac
 
 ---
 
-## Step 9. One command builds everything and serves it
+## Step 9. Choose the platforms, then hand over to one command
 
-Everything from here is one command. From the workspace root:
+### 9a. Generate the specs
+
+```
+specs generate
+```
+
+This is the first thing in the flow that is about *their* design system rather than about setup. Verify `specs/components/` holds a folder per selected component, each with `api` and `variants` files, and open one: it starts with the component's `title:` and `anatomy:`. **Show it to the user and say so** — it is the first output worth looking at.
+
+### 9b. Create the platform trees — once, and only here
+
+**`specs run` maintains platform trees; it does not create them.** Each emit step is active only when its tree already exists — `react/src` for React, `webcomponents/src` for Web Components — because the directory's presence is how a workspace says it wants that platform. Neither exists yet, so a `specs run` now would emit no code at all.
+
+This is the one moment the user chooses. Ask:
+
+> "Which do you want generated — React, Web Components, or both? You can add the other later; this just decides what gets built from here on."
+
+Then run the ones they picked, from the workspace root:
+
+```
+specs react
+specs webcomponents
+```
+
+Verify a folder per specced component appears under each tree you ran, and open one `scaffold.tsx` for them — their Figma component as working code. That directory is now the standing answer, and every later `specs run` keeps it current without being asked.
+
+**Order matters here and the mistake is silent.** `specs react` reads `specs/`, so it must come after 9a. And the trees must exist before `run` starts: the chain re-plans each pass, but a pass only fires on a change under `specs/`, `data/` or `config/` — creating `react/` touches none of them, so a tree made after `run` starts sits unemitted until something else happens to change.
+
+### 9c. Hand over to `specs run`
+
+From the workspace root:
 
 ```
 specs run
 ```
 
-It brings the whole workspace up to date and then keeps it that way: **scan, generate, analyze, emit React, emit Web Components, publish and serve Storybook** — then watches `specs/`, `data/` and `config/` and redoes only what a change affects.
+It brings the workspace up to date and keeps it that way — **scan, generate, analyze, emit each platform whose tree exists, publish and serve Storybook** — then watches `specs/`, `data/` and `config/` and redoes only what a change affects.
 
 Run it in the background, or in a second terminal, so you can keep talking to the user. Wait for it to report the paths it is watching, and for Storybook to report it is listening.
 
-**This replaces running `generate`, `analyze`, `react`, `webcomponents` and `storybook dev` by hand.** Do not run those individually. `fetch` is the one pipeline step `run` does not cover, which is why Step 5 is its own command.
+**From here, do not run `generate`, `analyze`, `react`, `webcomponents` or `storybook dev` by hand.** `run` owns them now. Two things it still does not cover: `fetch`, which is why Step 5 is its own command, and the first creation of a platform tree, which is why 9a exists.
 
 ### What to verify, and what to show the user
 
 1. The command reports each step completing, and Storybook reports listening.
-2. `specs/components/` holds a folder per selected component, each with `api` and `variants` files. Open one and show the user: it opens with the component's `title:` and `anatomy:`. **This is the first moment the setup has produced something about their own design system — say so.**
-3. `react/src/components/` and `webcomponents/src/components/` hold a folder per spec. Open one `scaffold.tsx` and show it — their Figma component as working React.
-4. Give them the URL, on its own line: **http://localhost:6006** (or the port from 8a).
+2. **Every platform tree they chose in 9b is in the step list.** A tree missing from it means `run` did not see the directory, and nothing will emit into it for the rest of the session. Check the tree exists and restart `run` rather than carrying on.
+3. Give them the URL, on its own line: **http://localhost:6006** (or the port from 8a).
 
 Then tell them what the analysis reports answer, pointing at a number from their own reports rather than describing each in the abstract:
 

@@ -85,12 +85,16 @@ Two paths to the same workspace. Neither is a lesser version of the other — th
 
 ```sh
 npm install -g @directededges/specs-cli
-specs init     # write config/conventions/<platform>.yaml and config/settings.yaml
+specs init       # write config/conventions/<platform>.yaml and config/settings.yaml
 # add your Figma file key to config/settings.yaml, and FIGMA_TOKEN to .env
-specs fetch    # pull the file, variables, and styles
-specs scan     # write the manifest, then tick the components you want
-specs build    # generate, analyze, emit each platform, publish Storybook — once
+specs fetch      # pull the file, variables, and styles
+specs scan       # write the manifest, then tick the components you want
+specs generate   # specs/ — one folder per component you ticked
+specs react      # react/src/ — and/or `specs webcomponents`
+specs build      # from here on, the whole chain in one command
 ```
+
+`specs react` and `specs webcomponents` are run once each, by hand, because the presence of `react/src` or `webcomponents/src` is how a workspace says which platforms it wants. `build` and `run` emit into the trees that exist and create none, so the first run of each is the choice.
 
 **With an agent**, three steps:
 
