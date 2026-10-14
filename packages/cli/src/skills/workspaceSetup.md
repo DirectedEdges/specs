@@ -15,9 +15,7 @@ description: Set up a Specs workspace from nothing — install, config, Figma so
 
 # Set up a workspace
 
-This runs once per workspace. A command-by-command walkthrough of the same setup,
-for someone not using an agent, is at
-https://www.specsplugin.com/cli/getting-started/.
+This runs once per workspace. A command-by-command walkthrough of the same setup, for someone not using an agent, is at https://www.specsplugin.com/cli/getting-started/.
 
 ## Role
 
@@ -131,14 +129,10 @@ Ask:
 Figma URLs come in two shapes. Handle both:
 
 - **Main file URL** — format:
-  `https://www.figma.com/design/<fileKey>/<filename>?node-id=...`
-  Example: `https://www.figma.com/design/AbC123XyZ/My-Design-System`
-  → use `AbC123XyZ` as the key.
+  `https://www.figma.com/design/<fileKey>/<filename>?node-id=...` Example: `https://www.figma.com/design/AbC123XyZ/My-Design-System` → use `AbC123XyZ` as the key.
 
 - **Branch URL** — format:
-  `https://www.figma.com/design/<mainKey>/branch/<branchKey>/<filename>`
-  Example: `https://www.figma.com/design/AbC123XyZ/branch/Br4nch789/My-Design-System`
-  → use `Br4nch789` as the key (the branch key, **not** the main key).
+  `https://www.figma.com/design/<mainKey>/branch/<branchKey>/<filename>` Example: `https://www.figma.com/design/AbC123XyZ/branch/Br4nch789/My-Design-System` → use `Br4nch789` as the key (the branch key, **not** the main key).
 
 Extract the key yourself from whichever URL the user pastes. Do **not** ask the user to extract it — that's the kind of friction this flow exists to remove.
 

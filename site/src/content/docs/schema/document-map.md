@@ -13,19 +13,14 @@ Every generated spec follows this tree — from a single-element icon to a compl
 components:
 └─ {component name}                        → <a href="/schema/component/">Component</a>
   ├─ <a href="/schema/anatomy/">anatomy</a>:
-  │ └─ {element name}: { type, slot }
-  ├─ <a href="/schema/props/">props</a>:
-  │ └─ {prop name}: { type, default, … }
-  ├─ default:                              → <a href="/schema/variants/">Variant</a>
+  │ └─ {element name}: { type, slot } ├─ <a href="/schema/props/">props</a>:
+  │ └─ {prop name}: { type, default, … } ├─ default:                              → <a href="/schema/variants/">Variant</a>
   │ ├─ <a href="/schema/layout/">layout</a>:
   │ │ └─ - {parent}:
-  │ │   └─ - {child}
-  │ └─ <a href="/schema/elements/">elements</a>:
+  │ │   └─ - {child} │ └─ <a href="/schema/elements/">elements</a>:
   │   └─ {element name}:
   │     ├─ content                         → <a href="/schema/prop-binding/">PropBinding</a>
-  │     ├─ <a href="/schema/children/">children</a>                        → <a href="/schema/children/">Children</a> (nested instance, or slot fill → <a href="/schema/slot-content-ref/">SlotContentRef</a>)
-  │     └─ <a href="/schema/styles/">styles</a>:                      (48 properties)
-  │       ├─ color                         → <a href="/schema/token-reference/">TokenReference</a>, <a href="/schema/gradient-value/">GradientValue</a>
+  │     ├─ <a href="/schema/children/">children</a>                        → <a href="/schema/children/">Children</a> (nested instance, or slot fill → <a href="/schema/slot-content-ref/">SlotContentRef</a>) │     └─ <a href="/schema/styles/">styles</a>:                      (48 properties) │       ├─ color                         → <a href="/schema/token-reference/">TokenReference</a>, <a href="/schema/gradient-value/">GradientValue</a>
   │       ├─ spacing, size                 → <a href="/schema/token-reference/">TokenReference</a>, <a href="/schema/conditional/">Conditional</a>
   │       ├─ layout                        → <a href="/schema/token-reference/">TokenReference</a>, <a href="/schema/conditional/">Conditional</a>
   │       ├─ <a href="/schema/typography/">typography</a>                  → <a href="/schema/token-reference/">TokenReference</a>
@@ -34,20 +29,12 @@ components:
   │       ├─ padding, strokeWeight         → <a href="/schema/sides/">Sides</a>
   │       ├─ visibility                    → <a href="/schema/prop-binding/">PropBinding</a>
   │       └─ …                             <a href="/schema/styles/">see full list</a>
-  ├─ variants:                             → <a href="/schema/variants/">Variant</a>[]
-  │ └─ - <a href="/schema/prop-configurations/">configuration</a>:
+  ├─ variants:                             → <a href="/schema/variants/">Variant</a>[] │ └─ - <a href="/schema/prop-configurations/">configuration</a>:
   │     <a href="/schema/layout/">layout</a>:
-  │     <a href="/schema/elements/">elements</a>:                      (layered styling and binding changes)
-  ├─ invalidPropCombinations:              → <a href="/schema/prop-configurations/">PropConfigurations</a>[]
-  ├─ <a href="/schema/subcomponents/">subcomponents</a>:
-  │ └─ {name}: { …same shape as above }
-  ├─ <a href="/schema/metadata/">metadata</a>:
-  │ ├─ source:                             (required — the Figma node captured)
-  │ ├─ <a href="/schema/conventions/">conventions</a>:                        (run fact — may live in RunMetadata)
-  │ └─ <a href="/schema/settings/">settings</a>:                           (run fact — may live in RunMetadata)
-  ├─ <a href="/schema/instance-examples/">instanceExamples</a>:                   → <a href="/schema/instance-examples/">InstanceExample</a>  <span class="sl-badge pro-badge">Pro</span>
-  │ └─ {name}: { title, propConfigurations }
-  └─ <a href="/schema/slot-content/">slotContentExamples</a>:                → <a href="/schema/slot-content/">SlotContent</a>  <span class="sl-badge pro-badge">Pro</span>
+  │     <a href="/schema/elements/">elements</a>:                      (layered styling and binding changes) ├─ invalidPropCombinations:              → <a href="/schema/prop-configurations/">PropConfigurations</a>[] ├─ <a href="/schema/subcomponents/">subcomponents</a>:
+  │ └─ {name}: { …same shape as above } ├─ <a href="/schema/metadata/">metadata</a>:
+  │ ├─ source:                             (required — the Figma node captured) │ ├─ <a href="/schema/conventions/">conventions</a>:                        (run fact — may live in RunMetadata) │ └─ <a href="/schema/settings/">settings</a>:                           (run fact — may live in RunMetadata) ├─ <a href="/schema/instance-examples/">instanceExamples</a>:                   → <a href="/schema/instance-examples/">InstanceExample</a>  <span class="sl-badge pro-badge">Pro</span>
+  │ └─ {name}: { title, propConfigurations } └─ <a href="/schema/slot-content/">slotContentExamples</a>:                → <a href="/schema/slot-content/">SlotContent</a>  <span class="sl-badge pro-badge">Pro</span>
     └─ {name}: { <a href="/schema/anatomy/">anatomy</a>, <a href="/schema/elements/">elements</a>, <a href="/schema/layout/">layout</a> }
 </pre>
 

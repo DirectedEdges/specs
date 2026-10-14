@@ -15,24 +15,19 @@ description: Release a spec workspace — pre-release report and changelog from 
 
 # Release
 
-Accumulate what changed since the last release, put the report and itemized
-changelog in front of a human, then cut, tag, and publish — stopping at every
-gate.
+Accumulate what changed since the last release, put the report and itemized changelog in front of a human, then cut, tag, and publish — stopping at every gate.
 
-All content is scripted. This skill sequences commands and stops; it never
-drafts or polishes report/changelog content and never invents version numbers.
+All content is scripted. This skill sequences commands and stops; it never drafts or polishes report/changelog content and never invents version numbers.
 
 ## Steps
 
-1. **Pre-release report and changelog** (from ledger diffs since the last
-   release):
+1. **Pre-release report and changelog** (from ledger diffs since the last release):
 
    ```bash
    specs version report
    ```
 
-2. **GATE — human reviews.** Hand over the report and changelog and stop.
-   The reader decides the release proceeds — or does not.
+2. **GATE — human reviews.** Hand over the report and changelog and stop. The reader decides the release proceeds — or does not.
 
 3. **Cut the version.** After an explicit go-ahead:
 
@@ -40,8 +35,7 @@ drafts or polishes report/changelog content and never invents version numbers.
    specs version cut
    ```
 
-   If the human directed an override, pass it with its reason, exactly as
-   given: `--force-major "…"`, `--force-minor "…"`, or `--force-patch "…"`.
+   If the human directed an override, pass it with its reason, exactly as given: `--force-major "…"`, `--force-minor "…"`, or `--force-patch "…"`.
 
 4. **Tag** only when the human asks for it:
 
@@ -49,9 +43,7 @@ drafts or polishes report/changelog content and never invents version numbers.
    specs version tag
    ```
 
-   (defaults to the newest cut version). Tags are never pushed by this skill —
-   pushing is a manual act.
+   (defaults to the newest cut version). Tags are never pushed by this skill — pushing is a manual act.
 
-5. **GATE — publish sequence.** Whatever ships the release (npm publish, docs,
-   announcements) happens outside this skill, after another explicit go-ahead.
+5. **GATE — publish sequence.** Whatever ships the release (npm publish, docs, announcements) happens outside this skill, after another explicit go-ahead.
 

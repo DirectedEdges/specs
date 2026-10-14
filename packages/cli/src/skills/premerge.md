@@ -15,33 +15,21 @@ description: Pre-merge impact report for a Figma feature branch — one command 
 
 # Pre-merge report
 
-Compare the specs a Figma feature branch produces against the specs main
-produces, and put the graded impact report in front of a human before the
-merge.
+Compare the specs a Figma feature branch produces against the specs main produces, and put the graded impact report in front of a human before the merge.
 
-All content is scripted. This skill only sequences commands and stops at the
-gates — it never writes or edits report content, never summarizes the diff in
-its own words, and never decides whether the merge proceeds.
+All content is scripted. This skill only sequences commands and stops at the gates — it never writes or edits report content, never summarizes the diff in its own words, and never decides whether the merge proceeds.
 
 ## Steps
 
-1. **Run the pipeline** from the workspace (it needs `config/` and a
-   `FIGMA_TOKEN` in the workspace `.env`), passing the Figma branch URL:
+1. **Run the pipeline** from the workspace (it needs `config/` and a `FIGMA_TOKEN` in the workspace `.env`), passing the Figma branch URL:
 
    ```bash
    specs version figmapremerge "<figma branch URL>"
    ```
 
-   The command fetches both sides in parallel, generates both spec trees,
-   diffs them, and writes the run under `versions/diffs/<date>-<branch>/` —
-   the report is `report.md` in that folder, and it also prints to stdout.
-   By default only the report and the impacted components' specs are kept;
-   pass `--keep-data` to retain both full spec trees and the fetched
-   payloads.
+   The command fetches both sides in parallel, generates both spec trees, diffs them, and writes the run under `versions/diffs/<date>-<branch>/` — the report is `report.md` in that folder, and it also prints to stdout. By default only the report and the impacted components' specs are kept; pass `--keep-data` to retain both full spec trees and the fetched payloads.
 
-2. **GATE — human reads the report.** Hand over the report path and stop.
-   Do not summarize it, grade it, or soften it. The reader decides whether the
-   merge proceeds.
+2. **GATE — human reads the report.** Hand over the report path and stop. Do not summarize it, grade it, or soften it. The reader decides whether the merge proceeds.
 
 3. Only after an explicit go-ahead does the merge continue, outside this skill.
 
