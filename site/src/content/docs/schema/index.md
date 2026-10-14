@@ -3,50 +3,89 @@ title: "Overview"
 description: "How the parts of the Specs schema relate — components and compositions, the files a spec is written as, variants and styles, slots, content, references, conventions, and the reports derived from them"
 ---
 
-`specs-schema` offers a schema for describing components and composition formally and precisely as TypeScript types and JSON Schema. 
+`specs-schema` offers a schema for describing components and composition formally and precisely as TypeScript types and JSON Schema. This file serves as a primer to understand the landscape and provide links to explore deeper when necessary.
 
-## Components and compositions
+## Types: `component`s and `composition`s
 
-The schema organizes two kinds of spec — **`components`** and **`compositions`** — into a graph.
+The schema organizes two kinds of spec — **`components`** and **`compositions`** — into a graph. [Components](/schema/component/) are reusable, and arranged inside other components as well as inside [compositions](/schema/composition/) that serve as a page type, template, pattern, or other scaffold. Instances of a component can be nested as an element in another component, composed in another component's slot, or arranged in a composition. When a component is only allowed to be nested inside a another specific component, it's a [subcompoennt] that's shipped with the parent.
 
-[Components](/schema/component/) are reusable, and arranged inside other components as well as inside [compositions](/schema/composition/) — a page type, template, pattern, or other scaffold.
+## Files: `api`, `variants` and `examples`
 
-Two kinds of nesting put one spec inside another:
+A spec is written as two or three files: `api`, `variants` and `examples`. Other files, such as `styling` produced by an analysis, are not part of the formal spec.
 
-- An element that is an **instance** names another component in the catalogue. The element is a routing site, not a definition — the component it names has its own spec folder.
-- A **subcomponent** is a component a parent owns and ships with, written inside the parent's own files rather than beside them, and nested to any depth.
+### `api`: "The contract file"
 
-## The files of a spec
+`api` holds the [anatomy](/schema/anatomy/), [props](/schema/props/), and the prop combinations that are invalid
 
-A spec is written as two or three files, one per subject:
+```yaml
+props:
+  <prop name>:
+    type: # boolean, string, slot, ...
+    ...
+anatomy:
+  root:
+    type: container
+  <element name>:
+    type: # text, glyph, container, nested instance, ...
+    instanceOf: # reference to another component
+invalidPropCombinations:
+  ...
+```
 
-| File | Holds |
-|---|---|
-| `api.yaml` | what the component *is* and what it takes — its [anatomy](/schema/anatomy/), its [props](/schema/props/), and the prop combinations that are invalid |
-| `variants.yaml` | how it looks — the default arrangement, and every variant as a change against it |
-| `examples.yaml` | example content — what fills its slots, and example configurations of it |
+### `variants`: "The styling and content file"
 
-**Two files or three.** `examples.yaml` is written only when a component has example content to carry, so a component with no slot content and no instance examples has just the first two. Its absence is not an omission.
+`variants` holds the default and varying [layout] structures, [styles] and [content].
 
-The split is deliberate rather than cosmetic: each file holds one subject and **cannot hold another's**. A `variants.yaml` cannot carry an anatomy, and an `api.yaml` cannot carry the default arrangement. Each file names its own subject in `metadata.concern`, which is how a reader and a validator both know which of the three they have.
+```yaml
+default:
+  layout:
+    - root:
+      - <element name>:
+        - <element name>
+      ... # nested layout array structure, starting at the root
+  elements:
+    <element name>: # every element gets an entry
+      styles:
+        <style property>:
+      content:
+      children:
+      propConfigurations: # only for nested instances
+variants:
+  - configurations:
+      ... # key/value pairs, like disabled:true
+    layout:
+      ... # same schema as default, of a complete different tree
+    elements:
+      ... # same schema as default, for impacted elements only
+```
 
-A `styling.yaml` may sit beside them. It is **not part of the spec** — it is a report of which design tokens this component applies, as what, and to which elements. Read it with the analysis files at the end of this page.
+The default variant is the complete baseline: every element fully described, with styles, content and layout. Every entry in `variants` is a layered *delta* — a [`configuration`](/schema/prop-configurations/) saying which prop values activate it along with the layout, styles and contnet that changes because of it. A component's resolved state is all the [layered variants](/guides/variant-layering/) merged in order onto the default.
 
-## Variants and styles
+#### `layout`
 
-The nesting is **variant → elements → styles per element**, and most of a catalogue's volume is at the bottom of it.
+#### `styles`
 
-**Start at `default`.** The default variant is the complete baseline: every element fully described, with styles, content and layout. Every entry in `variants` is a *delta* — a [`configuration`](/schema/prop-configurations/) saying which prop values activate it, plus only the properties that change. The resolved state is the applicable overrides merged onto the default, in order ([Variant Layering](/guides/variant-layering/)).
+[Styles] are organized per [element] and take different shapes:
 
-Styles are not one shape. They are three at once, which is why a reader expecting uniformity gets lost:
+- **Flat and wide** — dozens like `width`, `layoutSizingHorizontal`, `textColor` and `backgroundColor`.
+- **Deep** — [`typography`](/schema/typography/) gathers the text properties under one node that corresponds to a text style, while [`effects`](/schema/effects/) and [`GradientValue`](/schema/gradient-value/) also have deep, sophisticated shapes.
+- **Side- and corner-shaped** — `padding` and `strokeWeight` as [`Sides`](/schema/sides/); `cornerRadius` is [`Corners`](/schema/corners/) that can be single value or several addressable parts (like `{start:, end:, top:, bottom: }).
 
-- **Flat and wide** — dozens of sibling properties on an element, most of them scalars.
-- **Deep** — [`typography`](/schema/typography/) gathers the text properties under one node; [`effects`](/schema/effects/) and [`GradientValue`](/schema/gradient-value/) have shapes of their own.
-- **Side- and corner-shaped** — `padding` and `strokeWeight` are [`Sides`](/schema/sides/); `cornerRadius` is [`Corners`](/schema/corners/). One property, several addressable parts.
+Style values can be a literal, a [`TokenReference`](/schema/token-reference/), a [`PropBinding`](/schema/prop-binding/), or a [`Conditional`](/schema/conditional/). A composite token can be bound to `typography` and `effects` (Figma's text and effect styles, respectively).
 
-And any style value may be a literal, a [`TokenReference`](/schema/token-reference/), a [`PropBinding`](/schema/prop-binding/), or a [`Conditional`](/schema/conditional/) — **at any level of that hierarchy.** A token can be bound to a whole `typography` node or to one side of a `padding`. There is no depth at which values stop being rich.
+#### `content` as primitives or components
 
-## Compositions, layout trees, and slots
+Content surfaces in components directly through primitives as wel as nested components that wrap primitives in an api.
+
+Content is mostly two things: [text] strings and [glyph] by name, reaching an element through `content` as a literal or a `$binding` to a prop. Image content flows through as both `backgroundImage` properties on elements and source properties on components. References to image files are declared in `examples.yaml`.
+
+All three content types — and the containers that scaffold layout — are frequently offered as components themselves too. An `Icon` component that wraps a glyph element (the simple vector) with props for size and color; a text primitive element or a `Text` component with props for style, size and color.
+
+### `examples`
+
+`examples` holds ready-made instances as well as examples of the component's slot(s) (which are actually compositions themselves)
+
+## Composing Layouts and Slots
 
 Layout is a tree, and there is one per component, per composition, and per instance. [`layout`](/schema/layout/) in a variant is where it lives.
 
@@ -58,14 +97,6 @@ Slots are what make those trees combine. A slot is a prop a component exposes fo
 Both appear in one spec, so both have to be read. Because many slots are default slots, their fills merge into **consolidated layout trees** — a composition's tree is not the concatenation of its components' trees but the result of those fills resolving into place.
 
 **Following a slot crosses all three files.** The slot prop is declared in `api.yaml`, its example content lives in `examples.yaml`, and the binding that places it is in `variants.yaml`. That traversal is the part of the schema most worth understanding before reading a catalogue, because no single file shows it.
-
-## Content
-
-Content is mostly two things. **Text** is strings, reaching an element through `content` as a literal or a `$binding`. **Glyphs** are icon vectors, typed `glyph` in the anatomy when a [`glyphs` convention](/settings/glyphs/) recognises the component, with the resolved icon name as the element's `content`.
-
-**Images** flow through both as `backgroundImage` properties on elements, and are declared in `examples.yaml`.
-
-The wrinkle that catches readers: all of these — and the containers that scaffold layout — **are frequently offered as components themselves.** An icon is a glyph in one spec and a component in another; a text block is content here and a component there. Whether something is content or a component is a property of how the library authored it, not of what kind of thing it is.
 
 ## References
 
