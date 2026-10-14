@@ -89,13 +89,10 @@ specs init       # write config/conventions/<platform>.yaml and config/settings.
 # add your Figma file key to config/settings.yaml, and FIGMA_TOKEN to .env
 specs fetch      # pull the file, variables, and styles
 specs scan       # write the manifest, then tick the components you want
-specs generate   # specs/ — one folder per component you ticked
-specs react      # react/src/
-specs webcomponents
-specs build      # from here on, the whole chain in one command
+specs build      # generate, analyze, emit every platform, publish Storybook — once
 ```
 
-`specs react` and `specs webcomponents` are run once each, by hand, because the presence of `react/src` or `webcomponents/src` is how a workspace declares it wants that platform. `build` and `run` emit into the trees that exist and create none, so the first run of each is what turns the platform on — and deleting a tree turns it off.
+The first `build` emits every platform, because nothing has said otherwise yet. The trees it creates are then the standing answer: delete `webcomponents/` and later runs stop emitting there. Naming steps explicitly — `--only react` — also counts as saying otherwise.
 
 **With an agent**, three steps:
 

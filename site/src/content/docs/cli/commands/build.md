@@ -23,17 +23,25 @@ specs build --dry-run                # print what would run, run nothing
 
 ## The chain
 
-Each step reads what the one before it wrote. A step runs only when the workspace actually has something for it to do — a `react/src` tree, a scaffolded Storybook — so nothing needs declaring in settings.
+Each step reads what the one before it wrote. A step runs only when the workspace actually has something for it to do — specs to read, a scaffolded Storybook — so nothing needs declaring in settings. Platform trees are the one case worth knowing in detail; see below.
 
 | Step | Reads | Writes | Runs when |
 |---|---|---|---|
 | `scan` | `data/<alias>.file/` | `data/<alias>.manifest.md` | A fetched file payload is on disk |
 | `generate` | `data/<alias>.manifest.md` | `specs/` | A manifest exists |
 | `analyze` | `specs/`, `config/`, fetched variables and styles | `specs/analysis/`, `styling.yaml` per spec | `specs/` exists |
-| `react` | `specs/`, `config/` | `react/src/` | `react/src/` exists |
-| `webcomponents` | `specs/`, `config/` | `webcomponents/src/` | `webcomponents/src/` exists |
+| `react` | `specs/`, `config/` | `react/src/` | `react/src/` exists — or no platform tree does |
+| `webcomponents` | `specs/`, `config/` | `webcomponents/src/` | `webcomponents/src/` exists — or no platform tree does |
 | `storybook` | `specs/`, `specs/analysis/`, `config/`, `assets/` | `storybook/content/` | `storybook/.storybook/` exists |
 | `render` | `specs/` | **the connected Figma file** | Only with `--render` |
+
+### Which platforms emit
+
+A platform tree is an opt-out, not a declaration you have to make first. **With specs to emit, no platform tree yet, and no `--only` or `--skip`, every platform emits** — which is what makes a first `build` produce working code without anyone configuring anything.
+
+From then on the directories are the answer. `react/src` present means emit React there; absent, once the other tree exists, means this workspace does not want React. So deleting `webcomponents/` stops it being emitted, and deleting the last tree returns the workspace to emitting both — the same thing it meant before the first run.
+
+Naming steps is itself a preference, so a scoped run never falls back to emitting everything: `--only storybook` means storybook, not storybook plus two trees the workspace never asked for.
 
 ### `analyze`
 

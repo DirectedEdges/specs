@@ -158,6 +158,47 @@ describe('resolvePlan — which steps this workspace has', () => {
   it('says there is nothing to do rather than reporting an empty success', () => {
     expect(() => resolvePlan(workspace())).toThrow(/nothing to do/);
   });
+
+  /**
+   * A platform tree means two things, and the difference decides whether a first
+   * run emits any code at all. Present is "emit here"; absent is either "this
+   * workspace does not want it" or "nothing has run yet". Reading absence as an
+   * opt-out either way left a new workspace doing three of its six steps and
+   * emitting nothing — the state a live onboarding run stopped on, confused.
+   *
+   * So the opt-out counts only once some tree exists. These four cases are the
+   * whole rule.
+   */
+  describe('platform trees as an opt-out', () => {
+    it('emits every platform when no tree exists and nothing was scoped', () => {
+      const ws = workspace({ data: ['ds'], manifest: true, specs: true });
+      expect(resolvePlan(ws).steps.map(s => s.id)).toContain('react');
+      expect(resolvePlan(ws).steps.map(s => s.id)).toContain('webcomponents');
+    });
+
+    it('treats a missing tree as opted out once the other one exists', () => {
+      const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true });
+      const ids = resolvePlan(ws).steps.map(s => s.id);
+      expect(ids).toContain('react');
+      expect(ids).not.toContain('webcomponents');
+    });
+
+    it('does not emit a platform in a workspace with nothing to emit from', () => {
+      // No specs: a platform step here is not an unexpressed preference, it is
+      // nothing to do — which is what keeps a bare directory bare.
+      const ws = workspace({ data: ['ds'], manifest: true });
+      expect(resolvePlan(ws).steps.map(s => s.id)).not.toContain('react');
+    });
+
+    it('lets a scoping flag speak for itself', () => {
+      // Naming steps is a preference, so a scoped run never falls back to "emit
+      // everything" — `--only storybook` means storybook, not storybook plus two
+      // platform trees the workspace never asked for.
+      const ws = workspace({ data: ['ds'], manifest: true, specs: true, storybook: true });
+      expect(resolvePlan(ws, { only: ['storybook'] }).steps.map(s => s.id)).toEqual(['storybook']);
+      expect(resolvePlan(ws, { skip: ['scan'] }).steps.map(s => s.id)).not.toContain('react');
+    });
+  });
 });
 
 describe('entryFor — which step a changed file belongs to', () => {
