@@ -224,6 +224,16 @@ export async function run(workspace: Workspace, options: DriveOptions = {}): Pro
       if (added.length > 0) {
         console.log(`[specs run] ${added.join(' and ')} ${added.length === 1 ? 'is' : 'are'} back — added to the chain`);
       }
+
+      // Storybook decides which platform trees to glob when it boots, and never
+      // again — `main.ts` runs `existsSync` once. So a tree that appears while
+      // the server is up gets emitted by the chain and shown by nobody, which
+      // reads as the emit having silently failed. The chain cannot fix that from
+      // here; say what will.
+      const platformChanged = [...added, ...dropped].some(id => id === 'react' || id === 'webcomponents');
+      if (platformChanged && storybookChild) {
+        console.log('[specs run] Storybook reads which platform trees to show once, at startup — restart `specs run` for this to appear in it');
+      }
     }
 
     // Earliest entry among everything that changed, and the union of what it
