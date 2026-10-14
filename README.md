@@ -90,11 +90,12 @@ specs init       # write config/conventions/<platform>.yaml and config/settings.
 specs fetch      # pull the file, variables, and styles
 specs scan       # write the manifest, then tick the components you want
 specs generate   # specs/ — one folder per component you ticked
-specs react      # react/src/ — and/or `specs webcomponents`
+specs react      # react/src/
+specs webcomponents
 specs build      # from here on, the whole chain in one command
 ```
 
-`specs react` and `specs webcomponents` are run once each, by hand, because the presence of `react/src` or `webcomponents/src` is how a workspace says which platforms it wants. `build` and `run` emit into the trees that exist and create none, so the first run of each is the choice.
+`specs react` and `specs webcomponents` are run once each, by hand, because the presence of `react/src` or `webcomponents/src` is how a workspace declares it wants that platform. `build` and `run` emit into the trees that exist and create none, so the first run of each is what turns the platform on — and deleting a tree turns it off.
 
 **With an agent**, three steps:
 

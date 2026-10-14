@@ -384,22 +384,20 @@ specs generate
 
 This is the first thing in the flow that is about *their* design system rather than about setup. Verify `specs/components/` holds a folder per selected component, each with `api` and `variants` files, and open one: it starts with the component's `title:` and `anatomy:`. **Show it to the user and say so** — it is the first output worth looking at.
 
-### 9b. Create the platform trees — once, and only here
+### 9b. Create both platform trees
 
 **`specs run` maintains platform trees; it does not create them.** Each emit step is active only when its tree already exists — `react/src` for React, `webcomponents/src` for Web Components — because the directory's presence is how a workspace says it wants that platform. Neither exists yet, so a `specs run` now would emit no code at all.
 
-This is the one moment the user chooses. Ask:
-
-> "Which do you want generated — React, Web Components, or both? You can add the other later; this just decides what gets built from here on."
-
-Then run the ones they picked, from the workspace root:
+**Create both.** Do not ask which they want — a tree they do not use costs them nothing, and a tree they discover they need later costs a conversation they should not have to have. From the workspace root:
 
 ```
 specs react
 specs webcomponents
 ```
 
-Verify a folder per specced component appears under each tree you ran, and open one `scaffold.tsx` for them — their Figma component as working code. That directory is now the standing answer, and every later `specs run` keeps it current without being asked.
+Verify a folder per specced component appears under each, and open one `scaffold.tsx` for them — their Figma component as working code. If either command does not create its directory, create it (`mkdir -p react/src`, `mkdir -p webcomponents/src`) and run it again.
+
+Those two directories are now the standing answer, and every later `specs run` keeps both current without being asked. Tell the user they can delete a tree they do not want and `run` will stop emitting into it.
 
 **Order matters here and the mistake is silent.** `specs react` reads `specs/`, so it must come after 9a. And the trees must exist before `run` starts: the chain re-plans each pass, but a pass only fires on a change under `specs/`, `data/` or `config/` — creating `react/` touches none of them, so a tree made after `run` starts sits unemitted until something else happens to change.
 
@@ -420,7 +418,7 @@ Run it in the background, or in a second terminal, so you can keep talking to th
 ### What to verify, and what to show the user
 
 1. The command reports each step completing, and Storybook reports listening.
-2. **Every platform tree they chose in 9b is in the step list.** A tree missing from it means `run` did not see the directory, and nothing will emit into it for the rest of the session. Check the tree exists and restart `run` rather than carrying on.
+2. **Both platform trees are in the step list.** A tree missing from it means `run` did not see the directory, and nothing will emit into it for the rest of the session. Check the tree exists and restart `run` rather than carrying on.
 3. Give them the URL, on its own line: **http://localhost:6006** (or the port from 8a).
 
 Then tell them what the analysis reports answer, pointing at a number from their own reports rather than describing each in the abstract:
