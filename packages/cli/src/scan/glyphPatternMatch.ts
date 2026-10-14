@@ -2,7 +2,7 @@
  * Match a name against a glyph pattern containing {i} placeholder.
  * Returns the extracted portion if matched, or null if no match.
  *
- * Source of truth: specs-from-figma/src/Utilities/Utilities.ts → glyphPatternMatch.
+ * Source of truth: specs-transforms/packages/specs-from-figma/src/Utilities/Utilities.ts → glyphPatternMatch.
  * Duplicated here so scan can partition components without pulling the engine
  * into a code path that doesn't need it. Keep in sync if the engine version changes.
  */
