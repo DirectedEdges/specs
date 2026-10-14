@@ -436,9 +436,31 @@ Two things to mention only if they apply:
 
 ### Leave it running
 
-`run` stays up for the rest of this flow. Step 10's skills each change `config/` or `data/`, and the chain picks those changes up and re-emits on its own — so the user watches Storybook improve as each pass lands, with no further commands from you.
+`run` stays up for the rest of this flow. Step 10's passes each change `config/` or `data/`, and the chain picks those changes up and re-emits on its own — so the user watches Storybook improve as each pass lands, with no further commands from you.
 
 If the Storybook index returns a 500 after it was working, that is a cached per-file parse failure, not a dead server. The chain detects it, names the file, and re-triggers the parse. Fix and re-save the named file; never restart Storybook for this.
+
+### 9d. **STOP — hand them the Storybook and wait**
+
+**Setup is done. Stop here and let them look at it.** This is the first moment the work is theirs rather than yours, and the worst thing to do is keep talking while they want to click.
+
+Give them the URL on its own line, then point at three things worth opening:
+
+- a component's stories — their Figma variants, as working code
+- the foundations pages, built from their own variables and styles
+- the analysis reports, and one number from their own: how many components, how many props, where one prop name means two things
+
+Then end with a short `Next steps` section naming what is still available, and **wait**:
+
+> **Next steps**
+>
+> Three passes can improve what you're looking at: resolving your icons to named
+> assets, classifying your states so the CSS uses `:disabled` instead of data
+> attributes, and adding roles so a checkbox emits a real `<input>`.
+>
+> Reply **continue** when you want to go through them.
+
+Do not start Step 10. Do not describe the three passes beyond that sentence each. Do not ask which they want — Step 10 does that, and asking twice is worse than asking once. If they reply with anything other than a request to continue, answer it and wait again.
 
 ---
 ---
@@ -472,11 +494,26 @@ Rules for this gate:
 - **Adapt the list to the workspace.** Drop the icons line if there is no icons source. Keep the other two always.
 - **Say what each changes, as above.** Roles is the only one that touches anything outside the workspace, and that has to be visible in the list itself rather than explained afterwards.
 - **Take their answer as given.** All three, one, or none are all normal. "None" is a complete onboarding — say so once, go to Step 11, and do not re-offer.
-- **Run them in the listed order** when they pick more than one. Icons feeds the specs that states reads; roles is last because it is the only one that leaves the workspace.
 
-`specs run` is still going from Step 9, and it watches `config/` and `data/`. **Every pass below lands in a live workspace: the chain re-emits on its own and the user watches Storybook change.** Do not re-run the pipeline by hand after any of them.
+### Propose in parallel, apply in sequence
 
-After each pass, point at what actually changed in the output — a selector in the stylesheet, a tag in a scaffold, an icon name — rather than reporting that the pass completed.
+When they pick more than one, **do not run the passes end to end.** Each spends minutes reading the library before it has anything to show, and run serially the user waits through all of it with nothing on screen.
+
+**Propose concurrently.** Every pass splits into a read-only analysis that ends at a report, and a write that follows. The analyses touch nothing and do not conflict, so launch one subagent per chosen pass, in a single message so they run at once, each told to follow its skill *up to and including writing its report to `reports/`* and then stop without applying anything. Three multi-minute analyses become one.
+
+**Apply in sequence, in the listed order**, after the user has reviewed the reports:
+
+| Pass | Writes | Why it cannot overlap |
+|---|---|---|
+| Icons | `config/conventions/figma.yaml`, then refetches that source's glyphs | changes what `generate` produces, which is what states reads |
+| States | `config/conventions/specs.yaml` | config only — the one pass that conflicts with nothing |
+| Roles | the Figma file, then refetch and regenerate | two passes refetching and regenerating at once corrupt each other |
+
+Icons and roles both end in a refetch and a regenerate into the same workspace. **Never have two of those running together**, and never apply anything while a subagent is still proposing.
+
+`specs run` is still going from Step 9, and it watches `config/` and `data/`. **Every applied change lands in a live workspace: the chain re-emits on its own and the user watches Storybook change.** Do not re-run the pipeline by hand after any of them.
+
+After each pass is applied, point at what actually changed in the output — a selector in the stylesheet, a tag in a scaffold, an icon name — rather than reporting that the pass completed.
 
 ### 10a. Reading a skill
 
