@@ -2,7 +2,7 @@
  * Evaluation of the `glyphs` convention's two forms (ADR-103) over raw REST file
  * nodes — the name pattern (`match`) and the structural pattern (`structure`).
  *
- * Source of truth: specs-from-figma/src/Component/Elements/Primitives/GlyphConvention.ts.
+ * Source of truth: specs-transforms/packages/specs-from-figma/src/Component/Elements/Primitives/GlyphConvention.ts.
  * Duplicated here so scan, fetch and the cache builder can detect glyphs without
  * pulling the engine into code paths that don't need it. Keep in sync if the engine
  * version changes.
