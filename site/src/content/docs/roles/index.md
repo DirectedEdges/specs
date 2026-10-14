@@ -43,7 +43,7 @@ A component *set* carries no layers of its own, so roles go on a component node 
 A library that predates roles has none, and nothing observable in Figma supplies them — which makes adoption the one part of this system that is neither derivable nor free. Two shipped skills carry it, installed by [`specs skills install`](/cli/commands/skills/):
 
 1. [`specs analyze roles`](/cli/analyze/roles/) measures what you have: which elements declare a role, which are bare and of what type, and which concepts the library has never reached for.
-2. **`specs-cli.roles.propose`** reads those elements, the live components over the [bridge](/cli/commands/bridge/), and this vocabulary, then writes `analysis/roles.proposed.md` — one table for the whole library, a row per element, each with the evidence behind it.
+2. **`specs-cli.roles.propose`** reads those elements, the live components over the [bridge](/cli/commands/bridge/), and this vocabulary, then writes `reports/<YYYY-MM-DD>.roles.proposal.md` — one table for the whole library, a row per element, each with the evidence behind it.
 3. You mark it up. Every row arrives checked as `[x]`; clearing it to `[ ]` skips that row. There is no third answer, so nothing has to be interpreted later.
 4. **`specs-cli.roles.apply`** adds the approved roles to the Figma file as annotations, one page at a time. The write is additive, so existing notes survive, and an element that already carries a role is left alone.
 5. `specs analyze roles` again, diffed against the first run, shows what landed. Then `specs react` — the sweep proves the annotation arrived, and only the emitted code proves the role did anything.

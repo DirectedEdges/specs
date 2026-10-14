@@ -141,7 +141,7 @@ Resolves outside the spec, to a token in the source library
 | [`naming`](/settings/figma-keys/) | whether a key can be reversed back to its original layer name |
 | [`states`](/settings/states/) | whether a variant prop emits a CSS pseudo-class or a `data-*` attribute |
 
-There is no defaults export for conventions, and that is deliberate: a convention's absence means the library declares no such convention, and nothing can supply that on its behalf.
+`DEFAULT_CONVENTIONS` is an empty object, and that is deliberate. A default can supply a missing *member* of a declared convention, but never a convention block — `glyphs`, `subcomponents`, `images`. Their absence is a statement about the library, and inventing one would fabricate a fact nobody declared.
 
 ## Analysis reports
 

@@ -254,8 +254,13 @@ the whole setup, and a user who is not expecting it will think something looped.
    If this is the case you are in, say so in the report as a limitation of the convention
    rather than a judgment you made — it is the config shape, not the library.
 
-12. **Write the block and report.** Into `config/conventions/figma.yaml`, with the counts
-   and the reasoning:
+12. **Write the block, and write the report.** The `glyphs` block goes into
+   `config/conventions/figma.yaml`. The reasoning behind it goes to
+   `reports/<YYYY-MM-DD>.icons-setup.proposal.md`, creating the directory if it does not
+   exist — not into `analysis/` or `specs/`, which are regenerated. Name that path when
+   you hand it over.
+
+   The report carries the counts and the reasoning:
 
    - the grouping from step 2, as counts
    - the form chosen, and why the other was rejected — for a structural match, the sampled

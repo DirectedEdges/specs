@@ -262,7 +262,12 @@ It writes no config. The last step hands you a block to paste and stops.
 
    Say which rule settled it, and what the loser costs.
 
-8. **Write the report**, in this order:
+8. **Write the report to `reports/<YYYY-MM-DD>.states-setup.proposal.md`**, creating
+   the directory if it does not exist, and name that path when you hand it over. It is a
+   working document — the user marks it up, and the block they paste comes from it — so
+   it does not belong in `analysis/` or `specs/`, which are regenerated.
+
+   In this order:
 
    - **Intro**: one sentence on what the block does, then the numbers — candidates
      considered, proposed, left as `data-*` — then the decision rule.

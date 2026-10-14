@@ -15,7 +15,7 @@ description: Propose a role for every unannotated anatomy element in a library, 
 
 # Propose roles
 
-Produce `analysis/roles.proposed.md`: a per-component table proposing a
+Produce `reports/<YYYY-MM-DD>.roles.proposal.md`: a per-component table proposing a
 [role](https://www.specsplugin.com/roles/) for each unannotated anatomy element,
 with the evidence behind it and a **Decision** column a system designer edits in
 place.

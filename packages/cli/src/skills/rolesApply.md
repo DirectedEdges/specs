@@ -1,6 +1,6 @@
 ---
 name: specs-cli.roles.apply
-description: Apply the approved roles from analysis/roles.proposed.md to the Figma file as Dev Mode annotations, one page at a time, then prove the round trip.
+description: Apply the approved roles from reports/<YYYY-MM-DD>.roles.proposal.md to the Figma file as Dev Mode annotations, one page at a time, then prove the round trip.
 ---
 <!--
   Canonical skill emitted by `specs skills install` — overwritten on every
@@ -15,7 +15,7 @@ description: Apply the approved roles from analysis/roles.proposed.md to the Fig
 
 # Apply roles
 
-Add the approved roles from `analysis/roles.proposed.md` to the live Figma file
+Add the approved roles from `reports/<YYYY-MM-DD>.roles.proposal.md` to the live Figma file
 as Dev Mode annotations, page by page, then regenerate and measure.
 
 This skill decides nothing. Every role it writes came from a Decision cell a human

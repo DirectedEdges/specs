@@ -3,21 +3,23 @@ import path from 'path';
 import fs from 'fs';
 
 /**
- * Skill sources are markdown imported as strings. The CLI build does this with
- * esbuild's `--loader:.md=text`; vite has no equivalent default, so a test importing
- * `src/skills/index.ts` fails parsing the markdown as JS. This mirrors the build's
- * loader so the two agree — a skill is text in both.
+ * Two kinds of source are authored in their own format and imported as strings:
+ * skills as markdown, and the `specs init` scaffold as YAML. The CLI build does this
+ * with esbuild's `--loader:.md=text --loader:.yaml=text`; vite has no equivalent
+ * default, so a test importing either index fails parsing the file as JS. This
+ * mirrors the build's loaders so the two agree — a skill and a scaffold are text in
+ * both.
  */
-const markdownAsText = {
-  name: 'markdown-as-text',
+const textFormats = {
+  name: 'text-formats',
   transform(_code: string, id: string) {
-    if (!id.endsWith('.md')) return null;
+    if (!id.endsWith('.md') && !id.endsWith('.yaml')) return null;
     return { code: `export default ${JSON.stringify(fs.readFileSync(id, 'utf8'))};`, map: null };
   },
 };
 
 export default defineConfig({
-  plugins: [markdownAsText],
+  plugins: [textFormats],
   define: {
     __SPECS_CLI_VERSION__: JSON.stringify('test'),
   },

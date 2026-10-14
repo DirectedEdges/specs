@@ -34,6 +34,7 @@
  */
 
 import PRIMER from './primer.md';
+import WORKSPACE_SETUP from './workspaceSetup.md';
 import PREMERGE from './premerge.md';
 import RELEASE from './release.md';
 import ROLES_PROPOSE from './rolesPropose.md';
@@ -49,10 +50,13 @@ export interface SkillAsset {
 
 /**
  * The primer leads, so a fresh install writes the prerequisite before anything that
- * names it.
+ * names it. `workspace.setup` follows, because it is the one a workspace with nothing
+ * in it needs — it was `ONBOARDING.md` in the repository root, which a customer who
+ * installed from npm never had.
  */
 export const SKILL_ASSETS: SkillAsset[] = [
   { name: 'specs-cli.primer', markdown: PRIMER },
+  { name: 'specs-cli.workspace.setup', markdown: WORKSPACE_SETUP },
   { name: 'specs-cli.premerge', markdown: PREMERGE },
   { name: 'specs-cli.release', markdown: RELEASE },
   { name: 'specs-cli.roles.propose', markdown: ROLES_PROPOSE },

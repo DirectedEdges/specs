@@ -77,15 +77,37 @@ Contributions are welcome. Clone the repo, run `npm install` at the root, and us
 | `/specs.adr.implement` | Apply an ADR's type and schema changes to types, schema, tests, and changelog |
 | `/specs.adr.accept` | Validate the implementation, mark the ADR accepted, and update the index |
 
-## Commands
+## Setting up a workspace
+
+Two paths to the same workspace. Neither is a lesser version of the other — the CLI is a command-line tool first, and the agent path drives those same commands.
+
+**Command by command**, following [Getting Started](https://www.specsplugin.com/cli/getting-started/):
 
 ```sh
 npm install -g @directededges/specs-cli
 specs init     # write config/conventions/<platform>.yaml and config/settings.yaml
-specs build    # scan, generate, analyze, emit, publish — the whole workspace, once
+# add your Figma file key to config/settings.yaml, and FIGMA_TOKEN to .env
+specs fetch    # pull the file, variables, and styles
+specs scan     # write the manifest, then tick the components you want
+specs build    # generate, analyze, emit each platform, publish Storybook — once
 ```
 
-A guided walkthrough lives in [Getting Started](https://www.specsplugin.com/cli/getting-started/), and [`ONBOARDING.md`](https://github.com/DirectedEdges/specs/blob/main/ONBOARDING.md) is the same setup driven by Claude Code.
+**With an agent**, three steps:
+
+```sh
+npm install -g @directededges/specs-cli
+specs skills install    # writes the procedures into .claude/skills/
+```
+
+Then tell Claude Code:
+
+```
+Follow the specs-cli.workspace.setup skill to set up a Specs workspace here.
+```
+
+It handles install, config, token setup, fetch, curation, the first build, and a running Storybook — stopping twice: once for which components to spec, once for which of the icon, state and role passes to run. The only prerequisites are Node 20.19+, a Figma file URL, and a Figma personal access token.
+
+## Commands
 
 Two commands do everything in order. The rest are the steps they run, and each reads what the one before it wrote.
 

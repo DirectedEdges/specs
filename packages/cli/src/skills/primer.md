@@ -54,6 +54,31 @@ Figma-shaped, and no transform is privileged.
 5. **Absence in one library is not absence in the domain.** A shape you did not find in
    this workspace is not a shape that does not occur.
 
+## Reports
+
+A skill that proposes something writes its report to **`reports/`** at the workspace
+root, named:
+
+```
+reports/<YYYY-MM-DD>.<skill>.<purpose>.<format>
+```
+
+`<skill>` drops the `specs-cli.` prefix — `reports/2026-10-14.states-setup.proposal.md`,
+`reports/2026-10-14.icons-setup.proposal.md`, `reports/2026-10-14.roles.proposal.md`.
+Add `-HHMM` after the date when a second run the same day would collide.
+
+Three rules, and the first is the one that gets broken:
+
+1. **Never write a report into `analysis/` or `specs/`.** Both are regenerated, so a
+   report there is destroyed by the next run — and a report a human has marked up is
+   destroyed silently.
+2. **Say where you wrote it**, as the last line of what you tell the user. "Where did
+   that go" is the first question a report provokes, and the answer belongs in the
+   output rather than in documentation.
+3. **A report is a working document, not an output.** `reports/` is gitignored in a
+   scaffolded workspace. Anything meant to be kept belongs in config, in a spec, or in
+   the Figma file.
+
 ## Artifact authority
 
 | Authority on | Artifact | Path from |
