@@ -25,7 +25,7 @@ content).
   script in `astro.config.mjs` and the `!important` overrides in
   `src/custom.css` — both break candidates on a Starlight upgrade.
 - CLI flag tables are maintained by hand against
-  `packages/cli/src/commands/*Command.ts` — no generator links them, making
+  `packages/cli/src/commands/<command>.ts` — no generator links them, making
   them the most likely drift point on the site.
 
 ## Key nodes
@@ -34,7 +34,7 @@ content).
 |---|---|
 | `astro.config.mjs` | Nav (`sidebar` array), port 4323, component overrides, `pro`/`experimental` badge constants, accordion script |
 | `src/content/docs/` | All pages; directory = URL prefix; `index.md(x)` = section root |
-| `src/content/docs/cli/commands/` | One page per CLI command (maps 1:1 to `packages/cli/src/commands/`) |
+| `src/content/docs/cli/commands/` | One page per CLI command, named for the command as `packages/cli/src/commands/` now is — so a page, its command and its source file share a name. Two exceptions worth knowing: the page is kebab-case where a command is camelCase (`apply-custom-tokens` ↔ `applyCustomTokens`), and `analyze` has a command file but no page |
 | `src/content/docs/schema/` | Type pages + deep `styles/`/`typography/`/`effects/` property trees |
 | `src/content/docs/code/` | One page per emitted artifact (`contract`, `scaffold`, `styles`, `stories`, `cssvars`) — what `specs react` / `specs webcomponents` write, linked from both command pages |
 | `src/content/docs/settings/` | One page per config key |

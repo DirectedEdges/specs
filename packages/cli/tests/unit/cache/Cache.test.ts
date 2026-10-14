@@ -6,7 +6,7 @@ import { parse } from 'yaml';
 import {
   refreshCache, validateCache, readCacheFile, cachePath, describeProblems,
   type ComponentsEntry, type StylesEntry, type VariablesEntry, type IconsEntry,
-} from '../../../src/Cache/Cache.js';
+} from '../../../src/cache/cache.js';
 
 const PATTERN = 'Icon / {i}';
 
@@ -61,7 +61,7 @@ describe('Cache', () => {
   afterEach(() => rmSync(dataDir, { recursive: true, force: true }));
 
   const build = (aliases = ['library'], force = false) =>
-    refreshCache({ dataDir, aliases, glyphNamePattern: PATTERN, force });
+    refreshCache({ dataDir, aliases, glyphs: { match: PATTERN }, force });
 
   describe('building', () => {
     it('writes all four caches', () => {
@@ -98,7 +98,7 @@ describe('Cache', () => {
     });
 
     it('writes an empty icons cache when nothing matches, so "none" differs from "never built"', () => {
-      refreshCache({ dataDir, aliases: ['library'], glyphNamePattern: 'Nothing / {i}' });
+      refreshCache({ dataDir, aliases: ['library'], glyphs: { match: 'Nothing / {i}' } });
       const cache = readCacheFile<IconsEntry>(dataDir, 'icons')!;
       expect(cache.entries).toEqual({});
       expect(cache.sources.library).toBeDefined();
@@ -179,7 +179,7 @@ describe('Cache', () => {
 
   describe('validation', () => {
     const validate = (aliases = ['library'], pattern: string | undefined = PATTERN) =>
-      validateCache({ dataDir, aliases, glyphNamePattern: pattern });
+      validateCache({ dataDir, aliases, glyphs: pattern ? { match: pattern } : undefined });
 
     it('passes on a freshly built cache', () => {
       build();
@@ -218,7 +218,7 @@ describe('Cache', () => {
     it('reports a newly declared but unbuilt alias', () => {
       build();
       writeFileSync(join(dataDir, 'brand.file.json'), JSON.stringify({ components: {}, styles: {}, document: {} }));
-      const problems = validateCache({ dataDir, aliases: ['library', 'brand'], glyphNamePattern: PATTERN });
+      const problems = validateCache({ dataDir, aliases: ['library', 'brand'], glyphs: { match: PATTERN } });
       expect(problems.every(p => p.alias === 'brand' && p.reason === 'missing')).toBe(true);
     });
 
@@ -245,18 +245,51 @@ describe('Cache', () => {
       expect(cache.sources.library.mtime).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     });
 
-    it('records the glyph pattern only on the icons cache', () => {
+    it('records the glyphs convention signature only on the icons cache', () => {
       build();
-      expect(readCacheFile<IconsEntry>(dataDir, 'icons')!.sources.library.glyphNamePattern).toBe(PATTERN);
-      expect(readCacheFile<StylesEntry>(dataDir, 'styles')!.sources.library.glyphNamePattern).toBeUndefined();
+      expect(readCacheFile<IconsEntry>(dataDir, 'icons')!.sources.library.glyphConvention).toBe(JSON.stringify({ match: PATTERN }));
+      expect(readCacheFile<StylesEntry>(dataDir, 'styles')!.sources.library.glyphConvention).toBeUndefined();
     });
 
     it('treats an unreadable cache as absent rather than throwing', () => {
       build();
       writeFileSync(cachePath(dataDir, 'components'), ': not : valid : yaml :\n  - [');
       expect(readCacheFile(dataDir, 'components')).toBeNull();
-      const problems = validateCache({ dataDir, aliases: ['library'], glyphNamePattern: PATTERN });
+      const problems = validateCache({ dataDir, aliases: ['library'], glyphs: { match: PATTERN } });
       expect(problems.some(p => p.concern === 'components' && p.reason === 'missing')).toBe(true);
+    });
+  });
+
+  describe('unreadable payloads', () => {
+    it('reports a payload that cannot be parsed as a failure, never a silent skip', () => {
+      writeFileSync(join(dataDir, 'broken.file.json'), '{ this is not json');
+      const report = build(['library', 'broken']);
+
+      expect(report.rebuilt).toContain('broken');
+      expect(report.failures).toHaveLength(1);
+      expect(report.failures[0].alias).toBe('broken');
+      expect(report.failures[0].file).toBe('broken.file.json');
+      expect(report.failures[0].reason).toContain('broken.file.json');
+      expect(report.aliasCounts.broken).toEqual({ components: 0, styles: 0, variables: 0, icons: 0 });
+      // The healthy alias is unaffected — and its contribution is attributable.
+      expect(report.aliasCounts.library.components).toBe(3);
+      expect(report.counts.components).toBe(3);
+    });
+
+    it('reports an unreadable variables payload without losing the file payload entries', () => {
+      writeFileSync(join(dataDir, 'library.variables.json'), 'nope');
+      const report = build(['library']);
+
+      expect(report.failures).toHaveLength(1);
+      expect(report.failures[0].file).toBe('library.variables.json');
+      expect(report.aliasCounts.library.variables).toBe(0);
+      expect(report.aliasCounts.library.components).toBe(3);
+    });
+
+    it('records per-alias contributions when every payload is healthy', () => {
+      const report = build();
+      expect(report.failures).toEqual([]);
+      expect(report.aliasCounts.library).toEqual({ components: 3, styles: 3, variables: 2, icons: 1 });
     });
   });
 });

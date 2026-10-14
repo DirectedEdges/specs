@@ -1,0 +1,125 @@
+{
+  "document": {
+    "id": "0:0",
+    "name": "Cross-page fixture",
+    "type": "DOCUMENT",
+    "children": [
+      {
+        "id": "1:0",
+        "name": "Components",
+        "type": "CANVAS",
+        "children": [
+          {
+            "id": "1:100",
+            "name": "Button",
+            "type": "COMPONENT_SET",
+            "children": [
+              {
+                "id": "1:101",
+                "name": "state=default",
+                "type": "COMPONENT",
+                "children": [
+                  {
+                    "id": "1:110",
+                    "name": "icon/star",
+                    "type": "INSTANCE",
+                    "componentId": "2:200",
+                    "children": [
+                      { "id": "1:111", "name": "vector", "type": "VECTOR" }
+                    ]
+                  },
+                  {
+                    "id": "1:120",
+                    "name": "Remote Thing",
+                    "type": "INSTANCE",
+                    "componentId": "9:900",
+                    "children": [
+                      { "id": "1:121", "name": "label", "type": "TEXT", "characters": "remote" }
+                    ]
+                  },
+                  { "id": "1:130", "name": "label", "type": "TEXT", "characters": "Button" }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "2:0",
+        "name": "Parts",
+        "type": "CANVAS",
+        "children": [
+          {
+            "id": "2:250",
+            "name": "Icon",
+            "type": "COMPONENT_SET",
+            "children": [
+              {
+                "id": "2:200",
+                "name": "glyph=star",
+                "type": "COMPONENT",
+                "componentPropertyDefinitions": { "glyph": { "type": "VARIANT", "defaultValue": "star", "variantOptions": ["star", "moon"] } },
+                "children": [
+                  { "id": "2:201", "name": "vector", "type": "VECTOR" },
+                  {
+                    "id": "2:210",
+                    "name": "badge",
+                    "type": "INSTANCE",
+                    "componentId": "4:400",
+                    "children": [
+                      { "id": "2:211", "name": "dot", "type": "ELLIPSE" }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "3:0",
+        "name": "Decoys",
+        "type": "CANVAS",
+        "children": [
+          {
+            "id": "3:300",
+            "name": "Never referenced — this page must not load. Decoy text: \"componentId\":\"2:200\" inside a string.",
+            "type": "COMPONENT",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "4:0",
+        "name": "Deep",
+        "type": "CANVAS",
+        "children": [
+          {
+            "id": "4:400",
+            "name": "Badge",
+            "type": "COMPONENT",
+            "children": [
+              { "id": "4:401", "name": "dot", "type": "ELLIPSE" }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "components": {
+    "1:101": { "key": "k-button-default", "name": "state=default", "componentSetId": "1:100" },
+    "2:200": { "key": "k-icon-star", "name": "glyph=star", "componentSetId": "2:250" },
+    "4:400": { "key": "k-badge", "name": "Badge" },
+    "9:900": { "key": "k-remote", "name": "Remote Thing", "componentSetId": "9:950" }
+  },
+  "componentSets": {
+    "1:100": { "key": "k-button-set", "name": "Button" },
+    "2:250": { "key": "k-icon-set", "name": "Icon" },
+    "9:950": { "key": "k-remote-set", "name": "Remote Set" }
+  },
+  "styles": {
+    "s1": { "styleType": "FILL", "name": "Color/Primary", "key": "style-fill" }
+  },
+  "name": "Cross-page fixture library",
+  "schemaVersion": 0
+}

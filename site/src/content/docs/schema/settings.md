@@ -10,9 +10,20 @@ Authored in `config/settings.yaml`. Members are grouped by concern, and each con
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `author` | `string` | — | Author recorded in generated spec metadata |
+| [`curation`](/settings/curation/) | `object` | — | Which components of a library a run produces specs for |
 | `data` | `object` | — | Source acquisition and the directory holding fetched, computed, and authored data |
 | `spec` | `object` | — | The generated spec — where it lands, how it is split, what it contains, how values are serialized |
 | `assets` | `object` | — | Shared resources every code output points at: icons, images, generated CSS, fonts |
+
+## `curation`
+
+Which components of a library a run specs at all (ADR-093). A library holds more than a team consumes, so curation records the decision in a manifest a human can edit.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| [`defaultSelection`](/settings/curation/) | `'READY_FOR_DEV' \| 'ALL'` | `'READY_FOR_DEV'` | The signal a first pass derives selection from; `READY_FOR_DEV` falls back to every set and standalone component when the library marks none |
+| [`preserveManualSelections`](/settings/curation/) | `boolean` | `false` | A hand-edited selection outranks a later change to the library's signal |
+| [`includeDependencies`](/settings/curation/) | `boolean` | `true` | The components a selected component is built from are selected too, transitively |
 
 ## `data`
 
@@ -66,6 +77,11 @@ A runtime export from `@directededges/specs-schema`. Provides defaults for every
 
 ```ts
 const DEFAULT_SETTINGS: ResolvedSettings = {
+  curation: {
+    defaultSelection: 'READY_FOR_DEV',
+    preserveManualSelections: false,
+    includeDependencies: true,
+  },
   spec: {
     format: 'JSON',
     keys: 'SAFE',
@@ -82,6 +98,9 @@ const DEFAULT_SETTINGS: ResolvedSettings = {
     invalidCombinations: true,
     emptyVariants: false,
     defaultSlotContent: false,
+    splitComponents: true,
+    splitConcerns: true,
+    useSubfolders: true,
   },
 };
 ```

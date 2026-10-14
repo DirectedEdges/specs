@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { CONCEPT_TABLE, buildStateLookup, buildOmittedProps } from '../../../src/transforms/states.js';
+import {
+  CONCEPT_TABLE,
+  buildStateLookup,
+  buildOmittedProps,
+  conceptsClaimedByNestedRoles,
+  COLLAPSING_ROLES,
+  ROLE_NATIVE_STATES,
+} from '../../../src/transforms/states.js';
 
 describe('CONCEPT_TABLE', () => {
   it('resolves hover to :hover with omit contract', () => {
@@ -158,5 +165,63 @@ describe('buildOmittedProps', () => {
       'focus-within': { prop: 'focused' },
     });
     expect(omitted.has('focused')).toBe(true);
+  });
+});
+
+/**
+ * `ROLE_NATIVE_STATES` and `COLLAPSING_ROLES` are hand-mirrors of facts the closed
+ * transform packages own in `packages/from-specs/src/roleSpecs.ts` (`nativeStates`
+ * and `collapses` on each role spec). The CLI cannot import them, and until now
+ * nothing but a comment held the two sides together.
+ *
+ * These pins exist so a role-spec change surfaces as a named failure here instead
+ * of as silent misbehaviour: a stale `ROLE_NATIVE_STATES` anchors a root state
+ * selector on an attribute the scaffold no longer emits, and a stale
+ * `COLLAPSING_ROLES` orphans declarations written for elements the emitted control
+ * swallowed (specs#689).
+ *
+ * When one of these fails, reconcile it against `roleSpecs.ts` — do not simply
+ * update the expectation to whatever the code now says.
+ */
+describe('mirrors of the closed role specs', () => {
+  it('pins ROLE_NATIVE_STATES to the roles that claim states natively', () => {
+    expect(ROLE_NATIVE_STATES).toEqual({
+      button: ['disabled'],
+      togglebutton: ['pressed', 'disabled'],
+      disclosure: ['expanded', 'disabled'],
+      status: ['busy'],
+      progressbar: ['busy'],
+      link: ['disabled', 'current'],
+      checkbox: ['checked', 'selected', 'indeterminate', 'disabled', 'required', 'invalid'],
+      switch: ['checked', 'selected', 'disabled'],
+      textbox: ['disabled', 'readonly', 'required', 'invalid'],
+    });
+  });
+
+  it('lists only roles that claim something, so an empty entry cannot hide a typo', () => {
+    // Roles whose `nativeStates` is empty on the closed side (panel, alert,
+    // indicator, description, errormessage, label) are deliberately absent here
+    // rather than present-and-empty.
+    for (const [role, concepts] of Object.entries(ROLE_NATIVE_STATES)) {
+      expect(role).toMatch(/^[a-z]+$/);
+      expect(concepts.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('pins COLLAPSING_ROLES to the text-entry family', () => {
+    // `textbox` is the only role carrying `collapses: true` in roleSpecs.ts today.
+    // `password`, `searchbox` and `textarea` are role concepts ADR-067 declares but
+    // the closed side has no spec for yet, so they cannot resolve and these entries
+    // are inert — kept because the stylesheet must fold their declarations the same
+    // way the moment they do.
+    expect([...COLLAPSING_ROLES].sort()).toEqual(['password', 'searchbox', 'textarea', 'textbox']);
+  });
+
+  it('claims a nested role\'s native states, which is what moves them off the root', () => {
+    expect(conceptsClaimedByNestedRoles({ control: 'checkbox' })).toEqual(
+      new Set(['checked', 'selected', 'indeterminate', 'disabled', 'required', 'invalid']),
+    );
+    // An unknown role contributes nothing rather than throwing.
+    expect(conceptsClaimedByNestedRoles({ control: 'nosuchrole' })).toEqual(new Set());
   });
 });

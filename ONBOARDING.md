@@ -13,9 +13,13 @@
 
 ## Role
 
-You are setting up Specs CLI for a user in the current working directory. Specs CLI generates component specifications from a Figma design system. Your job is to walk the user through the setup interactively, make every non-obvious decision *with* the user (not for them), and leave them with a working `config/` directory (a `conventions/` folder plus `settings.yaml`), a populated `.env`, and a generated spec file.
+You are setting up Specs CLI for a user in the current working directory. Specs CLI generates component specifications from a Figma design system, and working code from those specifications. Your job is to walk the user through the setup interactively, make every non-obvious decision *with* the user (not for them), and leave them with a Storybook running in their browser showing their own design system.
+
+By the end they will have a `config/` directory, a populated `.env`, generated specs, analysis reports, React and Web Components trees, and a URL to open.
 
 You must follow this document **top to bottom**. Do not skip steps. Do not batch multiple steps before checking in. After each numbered step, verify the step succeeded before moving on.
+
+**Ask only what this document tells you to ask.** Everything else has a default that is already correct. A question you invent is friction.
 
 ---
 
@@ -37,13 +41,19 @@ Run `ls -la`. If the directory has a `specs.config.yaml` or `specs.config.json`,
 
 > "This directory has a `specs.config.yaml` from an earlier Specs CLI. I can run `specs migrate config` to convert it — it writes `config/conventions/` (per-platform files) and `config/settings.yaml`, and renames the old file to `.migrated`. Or should I stop so you can pick a different directory?"
 
-If they choose migration, continue to Step 1 to install the CLI, then run `specs migrate config` in place of Step 2 and show them the generated files. Resume from Step 6 (secrets) — the migrated files already carry their sources and settings, so confirm rather than re-ask.
+If they choose migration, continue to Step 1 to install the CLI, then run `specs migrate config` in place of Step 2 and show them the generated files. Resume from Step 5 (secrets) — the migrated files already carry their sources and settings, so confirm rather than re-ask.
 
 A leftover `config/conventions.yaml` (flat file) or `config/pipeline.yaml` is also pre-split residue: the conventions file makes the CLI refuse; the pipeline file is ignored with a warning (its transformers became `specs react` / `specs webcomponents`, and `specs analyze` takes its analyzers as arguments). `specs migrate config` cleans both up.
 
-If the directory has any of: `config/`, `.env`, `data/`, `specs/` — assume a previous setup exists:
+If the directory has any of: `config/`, `data/`, `specs/` — assume a previous setup exists:
 
 > "This directory already has `<files>`. Should I (a) overwrite, (b) merge/resume, or (c) stop so you can pick a different directory?"
+
+A `.env` on its own, with no `config/`, is **not** a previous setup. Pre-provisioning the Figma token before anyone runs the CLI is a normal enterprise pattern, so treat the directory as fresh and say what you found instead of asking the overwrite question:
+
+> "You already have a `.env` here, so I'll read the Figma token from it rather than asking you for one. Nothing else is set up yet, so we're starting fresh."
+
+When you reach Step 5, confirm the file carries a populated `FIGMA_TOKEN=` line without printing its value, and skip the token walkthrough.
 
 If the directory has unrelated files (e.g., a `package.json` for another project), confirm:
 
@@ -53,9 +63,9 @@ Only proceed with explicit confirmation.
 
 ### P3. Confirm Node.js is available
 
-Run `node --version` and `npm --version`. Both must print a version. If either fails:
+Run `node --version` and `npm --version`. Both must print a version, and Node must be **20.19 or newer** — the Storybook host in Step 13 declares that floor and `npm install` will refuse below it. If either command fails or the version is too old:
 
-> "Specs CLI needs Node.js 18 or newer. Please install the LTS build from https://nodejs.org and come back."
+> "Specs CLI needs Node.js 20.19 or newer. Please install the current LTS build from https://nodejs.org and come back."
 
 Stop. Do not try to install Node.js yourself.
 
@@ -83,38 +93,21 @@ Run `specs init` (or `npx @directededges/specs-cli init`). Verify a `config/` di
 - `config/conventions/figma.yaml` — **facts about the Figma library** (naming patterns, glyph and subcomponent matching, images). A wrong value here produces *incorrect* output.
 - `config/conventions/specs.yaml` — **conventions about the spec itself** (states classification, accessibility props). Scaffolded fully commented; leave it alone during onboarding.
 - `config/conventions/react.yaml` and `config/conventions/web-components.yaml` — **what each code platform calls the things the spec models**. Scaffolded fully commented; leave them alone during onboarding.
-- `config/settings.yaml` — **choices about the run** (sources, format, file layout). A different value here produces merely *different* output. This is where most of the setup below goes.
+- `config/settings.yaml` — **choices about the run** (sources, format, file layout). A different value here produces merely *different* output.
 
 Tell the user:
 
-> "I've created a `config/` directory: `conventions/` holds facts about your Figma library plus commented-out spec and platform conventions, and `settings.yaml` holds choices about this run — most of our setup goes there. We'll fill in the sections together now."
+> "I've created a `config/` directory: `conventions/` holds facts about your Figma library, and `settings.yaml` holds choices about this run. The scaffold's defaults are production-ready, so the only thing we need to fill in is your Figma file."
+
+The scaffold is commented throughout — every setting names what it does and links to its documentation. Read the files rather than asking the user about a setting, and never recite the scaffold's contents back at them. They can open it themselves at any time.
 
 If `specs init` refuses because it found a `specs.config.yaml`, you skipped P2 — go back and run `specs migrate config` first.
 
-If the user is in VS Code, they can click to open the files while you work. In terminal, they can `cat config/settings.yaml` at any time.
-
 ---
 
-## Step 3. Choose setup depth
+## Step 3. Configure Figma sources
 
-Ask now, before we configure anything that depends on the answer. This decision only affects how many questions you'll ask in Step 5 — nothing else.
-
-> "Pick how deep you want to go.
->
-> 1. **Essentials** (recommended) — the minimum to get working specs. I'll ask about your Figma sources, your PAT (plus optional Pro license), output format (YAML/JSON), key naming style, and how to split output files on disk. That's it — production-ready defaults everywhere else.
-> 2. **Complete** — everything in Essentials, plus three more format knobs: token representation, layout representation, and invalid-variant handling. Choose this if your pipeline has strict schema needs or you want to see every knob.
->
-> Which path?"
-
-Record the choice as `path = essentials` or `path = complete`. Reference it when you reach Step 5.
-
-Either way, the user can interrupt mid-flow and ask about a Complete-only knob — jump to it, apply it, and return to where you were. Paths are starting points, not cages.
-
----
-
-## Step 4. Configure Figma sources
-
-### 4a. Get the Figma file URL
+### 3a. Get the Figma file URL
 
 Ask:
 
@@ -138,7 +131,7 @@ If the URL is a branch URL, warn:
 
 > "This URL points to a Figma branch. Generated specs will reflect the branch contents, including unpublished changes. Proceed?"
 
-### 4b. Name the source
+### 3b. Name the source
 
 Ask (default to `library`, pre-filled if your UI supports it):
 
@@ -153,13 +146,17 @@ Ask (default to `library`, pre-filled if your UI supports it):
 
 Take whatever the user provides and convert to camelCase for the YAML key. Preserve spaces/original casing only in explanatory comments, not as the actual key.
 
-### 4c. Additional sources
+### 3c. Additional sources
 
 Ask:
 
 > "Do you have a separate tokens/foundations file to pull from? Many teams keep foundations (colors, spacing, type) in a file distinct from components."
 
-Repeat 4a–4b for each additional source. Every source gets the full `fetch` list — we always fetch `file`, `variables`, and `styles`. It's marginally more bandwidth on files that don't need `file`, but it keeps the flow simple and nothing downstream complains.
+Repeat 3a–3b for each additional source. Every source gets the full `fetch` list — we always fetch `file`, `variables`, and `styles`. It's marginally more bandwidth on files that don't need `file`, but it keeps the flow simple and nothing downstream complains.
+
+**If there is more than one source, name the one holding the components `library`.** `specs generate` picks the components source by looking for the alias `library` first; with no `library`, it falls back to the first source that fetches `file`, which depends on the order of keys in the file. Naming it `library` is what makes a bare `specs generate` in Step 9 land on the right source every time. Tell the user this as you write the block:
+
+> "I'll name your components file `library` and your foundations file `foundations`. The `library` name isn't cosmetic — it's what lets the rest of the commands run with no arguments."
 
 Typical result (in `config/settings.yaml`):
 
@@ -175,211 +172,32 @@ data:
       fetch: [file, variables, styles]
 ```
 
-Write the full `data.sources:` block to `config/settings.yaml` now, replacing the empty `sources: {}` stub `specs init` wrote. Show the user what you wrote.
+Write the full `data.sources:` block to `config/settings.yaml` now, replacing the placeholder `library:` entry `specs init` wrote. Leave the `icons` fetch kind out, as the placeholder does: fetching icons requires a `glyphs` convention in `config/conventions/figma.yaml`, which onboarding leaves commented out, and `specs fetch` refuses to start without it. Show the user what you wrote.
 
 ---
 
-## Checkpoint — full config reference
+## Step 4. Confirm the output settings
 
-At this point, the `config/` directory should contain everything below. Every knob is either set by the user (**SOURCE**), silently defaulted by `specs init` (**DEFAULT**), asked in Step 5 (**ASKED-5x** — tagged as Essentials or Complete), or intentionally absent because the absence itself disables the feature (**OMITTED**).
+**Do not ask the user about any of these.** `specs init` already scaffolded the values this flow wants. Read `config/settings.yaml`, confirm each one reads as below, and fix only a mismatch:
 
-This is both a checklist (so the walkthrough's coverage can be audited) and an accurate snapshot of the file state before we tune anything.
+| Setting | Value | Why this one |
+|---|---|---|
+| `spec.format` | `YAML` | Readable and diffable in PRs, which is where spec changes get reviewed |
+| `spec.keys` | `CAMEL` | Matches the JS/TS consumers the React and Web Components trees emit into |
+| `spec.layout` | `LAYOUT` | The tree lives in one `layout` array rather than on every element; concise and easy to walk |
+| `spec.tokens` | `TOKEN` | Resolved semantic references like `color/brand/primary` (Pro; free tier emits raw values) |
+| split flags | scaffolded defaults | A folder per component, split by concern — what every downstream command expects |
+| `spec.invalidCombinations` | scaffolded default | The invalid-combination analysis is included (Pro) |
 
-**`config/conventions/figma.yaml`** — facts about the Figma library. The file's name is the platform id (ADR-078), so its contents sit at the root with no wrapping key. The onboarding flow doesn't ask about these: the defaults suit a first setup, and getting them right means knowing how the library is authored, which the user can tune later.
+Then tell the user what they have, in one message — not a question:
 
-```yaml
-# naming: NONE                         # OMITTED — opt-in; the file's naming convention (SENTENCE | TITLE)
-# glyphs:                              # OMITTED — opt-in; absence = glyph detection off
-#   match: 'DS Icon Glyph / {i}'
-# codeOnlyProps:                       # OMITTED — opt-in; absence = code-only prop extraction off
-#   match: 'Code only props'
-subcomponents:                         # DEFAULT — subcomponent detection on with a common pattern
-  match:
-    - '{C} / _ / {S}'
-  # scope: NESTED                      # OMITTED — optional; defaults to NESTED when the block is present
-  # exclude: ['...']                   # OMITTED — optional
-# instanceExamples: { ... }            # OMITTED — opt-in (Pro)
-# images: { ... }                      # OMITTED — opt-in; absence = image detection off
-slotConstraints: false                 # DEFAULT — opt-in advanced feature
-# inferNumberProps: false              # OMITTED — opt-in advanced feature
-```
+> "Your settings are ready: YAML specs with camelCase keys, a folder per component, and design tokens as semantic references. Everything else is on a production-ready default. You can change any of it later in `config/settings.yaml` — it's commented throughout, and the [Settings Reference](https://www.specsplugin.com/settings/) covers the rest."
 
-**`config/conventions/specs.yaml`** — conventions about the spec itself, scaffolded fully commented (**OMITTED** throughout): `states` (classify variant props as semantic states), `accessibility`, and `value`. Nothing in onboarding touches it.
-
-**`config/conventions/react.yaml`** / **`config/conventions/web-components.yaml`** — platform primitive bindings, scaffolded fully commented (**OMITTED** throughout). Nothing in onboarding touches them.
-
-**`config/settings.yaml`** — choices about the run:
-
-```yaml
-author: <Your Name Here>               # SOURCE — replace the placeholder with the user's name
-
-data:
-  directory: ./data                    # DEFAULT
-  sources:                             # SOURCE — set in Step 4
-    <yourSource>:
-      key: <fileKey>
-      fetch: [file, variables, styles]
-
-spec:
-  directory: ./specs                   # DEFAULT
-  format: JSON                         # ASKED-5a (Essentials) → YAML | JSON
-  keys: SAFE                           # ASKED-5b (Essentials) → SAFE | CAMEL | KEBAB | SNAKE | PASCAL | TRAIN
-  layout: LAYOUT                       # ASKED-5e (Complete)   → LAYOUT | PARENT_CHILDREN | BOTH
-  tokens: TOKEN                        # ASKED-5d (Complete)   → TOKEN | TOKEN_NAME | FIGMA_NAME | TOKEN_FIGMA_EXTENSIONS | CUSTOM | FIGMA_SYNTAX_WEB | FIGMA_SYNTAX_IOS | FIGMA_SYNTAX_ANDROID
-  color: HEX                           # DEFAULT
-  variantDepth: 9999                   # DEFAULT — unlimited
-  details: LAYERED                     # DEFAULT — compact diff-from-default output
-  # collapsePrimitiveWrapper: false    # OMITTED — opt-in advanced feature
-  # invalidVariants: false             # ASKED-5f (Complete)
-  # invalidCombinations: true          # ASKED-5f (Complete)
-  # emptyVariants: false               # OMITTED — opt-in edge case
-  # defaultSlotContent: false          # OMITTED — opt-in (Pro)
-  # splitComponents: true              # ASKED-5c (Essentials) — file layout on disk; commented at its true default
-  # splitConcerns: true                # ASKED-5c
-  # useSubfolders: true                # ASKED-5c
-
-# assets:                              # OMITTED — opt-in shared-assets location
-#   directory: ./assets
-```
-
-If the user later wants to enable anything marked **OMITTED**, point them at the [Settings Reference](https://www.specsplugin.com/settings/) — those features are opt-in because either (a) a convention that isn't declared isn't processed — absence *is* the off-switch (`glyphs`, `codeOnlyProps`, `images`, `instanceExamples`, `states`, the platform bindings), or (b) they're advanced tuning knobs rarely needed in a first setup (`slotConstraints`, `inferNumberProps`, `collapsePrimitiveWrapper`, `emptyVariants`).
+If the user asks about a setting, answer from the scaffold's comments and the Settings Reference, apply the change, and carry on where you left off.
 
 ---
 
-## Step 5. Configure output settings
-
-Based on the path chosen in Step 3:
-
-- **Essentials** → ask **5a, 5b, 5c**, then skip to Step 6.
-- **Complete** → ask **5a through 5f**.
-
-For every prompt below: ask, record the answer, write it to `config/settings.yaml`. Do **not** dump all of these at once. If the user says "just use defaults" on any individual question, accept that and move on. If an Essentials user asks about a Complete-only knob mid-flow, jump to it, apply it, and return.
-
-### 5a. `spec.format` — JSON or YAML?
-
-> "Should generated specs be in **YAML** (easier for humans to read and diff in PRs) or **JSON** (smaller, strict, better for programmatic consumption)?"
->
-> Default: **JSON**. Recommend **YAML** if specs will be reviewed in PRs or eyeballed for debugging; stick with **JSON** if they'll only be consumed by code.
-
-### 5b. `spec.keys` — naming style for keys
-
-> "Your Figma component names, element names, and prop names often contain spaces (e.g., component `Text Input`, element `Form Label`, prop `Show Icon`). How should the generated specs name them?
->
-> Given the trio `Text Input` / `Form Label` / `Show Icon`:
->
-> 1. **SAFE** — preserve as-is: `Text Input` / `Form Label` / `Show Icon`. Best for human review or round-tripping back into Figma tools.
-> 2. **CAMEL** — `textInput` / `formLabel` / `showIcon`. Best for JS/TS/JSON consumers.
-> 3. **KEBAB** — `text-input` / `form-label` / `show-icon`. Best for CSS, Tailwind, HTML.
-> 4. **SNAKE** — `text_input` / `form_label` / `show_icon`. Best for Python, Ruby, DB columns.
-> 5. **PASCAL** — `TextInput` / `FormLabel` / `ShowIcon`. Best for C#, type names.
-> 6. **TRAIN** — `Text-Input` / `Form-Label` / `Show-Icon`. Rare; HTTP headers.
->
-> Default: **SAFE**. Recommended for most codegen pipelines: **CAMEL**."
-
-### 5c. `spec` split flags — how files are split on disk
-
-> "How should generated specs be organized on disk? Three switches in the `spec:` section of `config/settings.yaml`:
->
-> - **splitComponents** — one file per component (`button.yaml`, `card.yaml`) instead of one big `library.yaml`. Good for component-level PRs and review ownership.
-> - **splitConcerns** — separate the API (anatomy, props) from variants into distinct files (`api.yaml` + `variants.yaml`). Good for API-first development or backend/frontend team separation.
-> - **useSubfolders** — wrap each component's files in its own subdirectory (`button/button.yaml` instead of flat `button.yaml`). Only relevant when `splitComponents` is true; useful for large libraries.
->
-> Common presets:
->
-> - **Everything downstream** (`react`, `webcomponents`, `analyze`, `render`) → leave all three at their `true` default.
-> - **One file, done** → all three **false**.
-> - **Component-level PRs** → `splitComponents: true`, others false.
-> - **Large library, namespaced** → `splitComponents: true` + `useSubfolders: true`.
-> - **API-first / backend-frontend split** → `splitComponents: true` + `splitConcerns: true`.
->
-> Which preset (or custom combination)?"
-
-`specs init` scaffolds the three flags commented out at their `true` defaults. If the user keeps the defaults, touch nothing; otherwise uncomment and set only the flags whose answer differs:
-
-```yaml
-spec:
-  splitComponents: <true|false>        # default: true
-  splitConcerns: <true|false>          # default: true
-  useSubfolders: <true|false>          # default: true
-```
-
----
-
-**Essentials path stops here.** Skip to Step 6.
-
-**Complete path continues with 5d–5f below.**
-
----
-
-### 5d. `spec.tokens` — how design tokens are referenced
-
-> "When a component uses a design token (e.g., `color.brand.primary`), how should the spec reference it?
->
-> - **TOKEN** (default) — resolved semantic reference like `color/brand/primary`. Best for most pipelines.
-> - **TOKEN_NAME** — just the name (`primary`), no collection prefix.
-> - **FIGMA_NAME** — raw Figma variable path as-is.
-> - **TOKEN_FIGMA_EXTENSIONS** — token with extra Figma-specific metadata.
-> - **FIGMA_SYNTAX_WEB / FIGMA_SYNTAX_IOS / FIGMA_SYNTAX_ANDROID** — the variable's platform code syntax as authored in Figma.
-> - **CUSTOM** — for advanced custom token mappings (requires `specs applyCustomTokens`; skip unless you're explicitly doing this).
->
-> Recommended: **TOKEN**."
-
-### 5e. `spec.layout` — layout representation
-
-> "Every spec has a flat `anatomy` map and a flat `elements` map. This setting controls **where the tree structure lives** — in a separate `layout` array, or attached to each element as `parent`/`children` fields. Here's a simple `Button` with two children (`icon`, `label`) shown three ways:
->
-> **LAYOUT** (default) — tree lives in a separate `layout` array; elements stay flat:
-> ```yaml
-> anatomy:
->   button: { type: container }
->   icon: { type: glyph }
->   label: { type: text }
-> default:
->   layout:
->     - button:
->         - icon
->         - label
->   elements:
->     button: { styles: { ... } }
->     icon: { styles: { ... } }
->     label: { styles: { ... } }
-> ```
->
-> **PARENT_CHILDREN** — no separate `layout` array; each element carries its own `parent` and/or `children`:
-> ```yaml
-> default:
->   elements:
->     button:
->       children: [icon, label]
->       styles: { ... }
->     icon:
->       parent: button
->       styles: { ... }
->     label:
->       parent: button
->       styles: { ... }
-> ```
->
-> **BOTH** — both representations present (`layout` array *and* `parent`/`children` on elements). Larger file but the most flexible for downstream tooling.
->
-> Recommended: **LAYOUT** for codegen (concise tree, easy to walk); **PARENT_CHILDREN** if downstream tooling works element-by-element and doesn't want to parse a tree."
-
-### 5f. `spec.invalidVariants` / `spec.invalidCombinations`
-
-> "Your component set may have 'invalid' combinations — variants that aren't wired up, or prop combos that shouldn't exist. Two switches:
->
-> - `invalidVariants`: include variants that don't cover all prop combos? (default **false** — cleaner output)
-> - `invalidCombinations`: compute and list which prop combinations are invalid? (default **true** — helpful analysis)
->
-> Use defaults unless you know you want otherwise."
-
-Both are commented out in the scaffolded `config/settings.yaml`; uncomment and set them only when the answer differs from the default.
-
-After this section, show the user the full `config/settings.yaml` you wrote and ask them to confirm before moving on.
-
----
-
-## Step 6. Secrets (.env setup)
+## Step 5. Secrets (.env setup)
 
 ### CRITICAL RULES — follow these exactly
 
@@ -389,7 +207,7 @@ After this section, show the user the full `config/settings.yaml` you wrote and 
 4. **Never commit or stage `.env`.** If the user asks you to commit setup files, stage the `config/` directory and `.gitignore` only; skip `.env`.
 5. **Never log, cat, or grep `.env` contents back to the chat.** If you need to verify the file is populated, check the file exists and is non-empty, not its contents.
 
-### 6a. Figma Personal Access Token
+### 5a. Figma Personal Access Token
 
 Walk the user through:
 
@@ -408,46 +226,61 @@ Walk the user through:
 
 Wait for explicit confirmation before proceeding.
 
-### 6b. License key (optional)
+### 5b. License key (optional)
 
 Ask:
 
-> "Do you have a Specs **Pro license key**? It unlocks design token references, variable bindings, and invalid-combination analysis. The **free tier** works fine without one — you'll still get full anatomy, props, variants, and raw style values.
+> "Do you have a Specs **Pro license key**? It unlocks design token references, variable bindings, invalid-combination analysis, and composition specs. The **free tier** works fine without one — you'll still get full anatomy, props, variants, raw style values, working React and Web Components, and Storybook.
 >
 > - **Yes, I have a key** → paste into `.env` after `SPECS_LICENSE_KEY=`.
 > - **Not yet** → skip; you can add it later. We'll run in free-tier mode."
 
+If they add a key, note that `specs react` and `specs webcomponents` in Steps 11 and 12 **fail the run** rather than falling back to free tier when a key is present but cannot be validated — offline, rate-limited, interrupted. That is deliberate: a silent fallback would write a whole free-tier tree under a valid key and report success.
+
 ---
 
-## Step 7. Fetch Figma data
+## Step 6. Fetch Figma data
+
+Set expectations before you start it. A large enterprise library is a large download — a ~950MB components file takes around four minutes, most of it silent while Figma builds the payload before sending a byte. Tell the user:
+
+> "This first fetch can take several minutes on a big library, and most of that time looks like nothing happening while Figma assembles the file. A transient disconnect partway through is normal — I'll re-run the part that failed."
+
+If the download fails mid-transfer, re-run it following the retry hint `fetch` prints: the hint names the source and every data kind still missing, so one `--only` run recovers the source without re-downloading the ones that already succeeded. Repeated failures or a payload too large to read are the case for `--no-geometry`, which drops `fillGeometry`, `strokeGeometry`, `size`, and `relativeTransform` and makes the payload around a third smaller:
+
+```
+specs fetch --no-geometry
+```
+
+It is safe whenever the user doesn't need vector path data. Width and height fall back to `absoluteBoundingBox`, which is accurate for every non-rotated node — so the only specs it degrades are ones with rotated layers. Offer it as the remedy for size, not as the default.
 
 Run `specs fetch`. Verify:
 
 1. Command exits 0.
-2. Files exist in `data.directory` (default `./data/`) matching `<source>.file.json`, `<source>.variables.json`, `<source>.styles.json` for each source (only the fetch kinds they configured).
+2. Artifacts exist in `data.directory` (default `./data/`) for each source (only the fetch kinds they configured): a `<source>.file/` directory (the file payload, split into `root.json` plus one JSON per Figma page) and `<source>.variables.json` / `<source>.styles.json` files.
 3. The files are non-empty.
 
-If `fetch` fails with an auth error, the token is wrong or missing scopes. Ask the user to regenerate it with all the scopes listed in 6a.
+If `fetch` fails with an auth error, the token is wrong or missing scopes. Ask the user to regenerate it with all the scopes listed in 5a.
 
 If `fetch` 404s, the file key is wrong or the token's user doesn't have access to that file.
 
 ---
 
-## Step 8. Scan for components
+## Step 7. Scan for components
 
-If only one source is configured, run:
+With exactly one source configured, run:
 
 ```
 specs scan
 ```
 
-For each additional source, use `--source <alias>`:
+**With more than one source, run `scan` once per source and name each one with `--source <alias>` — including the first.** A bare `specs scan` fails when it has more than one source to choose between; it will not silently pick the first:
 
 ```
-specs scan --source <alias>
+specs scan --source library
+specs scan --source foundations
 ```
 
-No `-o` flag needed. `scan` writes the manifest to `data/<alias>.manifest.md` by default (`data.directory` from `config/settings.yaml`). Let the default do its work — downstream commands and the checkpoint below both assume it.
+No `-o` flag needed. `scan` writes the manifest to `data/<alias>.manifest.md` by default (`data.directory` from `config/settings.yaml`). Let the default do its work — every command downstream assumes it.
 
 Verify each manifest file exists at `data/<source>.manifest.md` and has at least one component listed. Show the user the manifest contents (first ~20 lines is fine).
 
@@ -455,7 +288,7 @@ If a source genuinely has no components (e.g., a pure tokens/foundations file), 
 
 ---
 
-## Step 9. **STOP — component selection**
+## Step 8. **STOP — component selection**
 
 **Do not run `generate` yet.** The user needs to curate which components get specs.
 
@@ -465,11 +298,20 @@ Tell the user:
 >
 > Let me know when you've saved the manifest and I'll run the generator."
 
+A first-time manifest from a real library is long, so give the user the naming patterns to sort it by rather than leaving them to read every line. Read the manifest yourself and point at whichever of these it actually shows:
+
+- **A shared prefix marks the published set.** The component sets a team publishes to its consumers usually share one prefix; everything without it is internal. Offer to select by that prefix.
+- **A leading `.` or `_` marks a private component.** Figma's own convention for a component the library does not publish.
+- **A sigil such as `❖` is decoration, not meaning.** Teams use it to mark component sets in layer names; it says nothing about whether the component should get a spec.
+- **A helper path prefix marks a utility.** Names under a path segment like `Helpers /`, `Internal /`, or `Slots /` are scaffolding for other components rather than components a consumer uses.
+
+State these as heuristics the user confirms, not as exclusions you apply. Their library may deliberately publish something that looks internal.
+
 Wait for explicit confirmation. If the user says "just generate everything," still wait for their confirmation that they've looked at the list.
 
 ---
 
-## Step 10. Generate specs
+## Step 9. Generate specs
 
 Run:
 
@@ -477,30 +319,147 @@ Run:
 specs generate
 ```
 
-No arguments needed — `generate` reads the default manifest (`data/<alias>.manifest.md`, `library` alias preferred) and writes output to `spec.directory` from `config/settings.yaml` (default `./specs`). If the user has multiple sources with components, run it once per source by passing the explicit manifest path: `specs generate data/<otherSource>.manifest.md`.
+No arguments needed — `generate` reads the default manifest (`data/<alias>.manifest.md`, resolved to the `library` alias as described in 3c) and writes output to `spec.directory` from `config/settings.yaml` (default `./specs`). If the user has multiple sources with components, run it once per source by passing the explicit manifest path: `specs generate data/<otherSource>.manifest.md`.
 
 Verify:
 
 1. Command exits 0.
-2. The output files exist in `./specs/` (or the configured `spec.directory`) and are non-empty.
-3. Peek at the first ~30 lines of one file to sanity-check. With the default split layout, each component has its own folder (e.g. `specs/button/`) holding `api` and `variants` files, and the api file opens with the component's `title:` and `anatomy:`. If the user chose the single-file layout in 5c, the one library file starts with `components:` instead.
+2. Files exist under `specs/components/` and are non-empty.
+3. Peek at the first ~30 lines of one file. Each component has its own folder (e.g. `specs/components/button/`) holding `api` and `variants` files, and the api file opens with the component's `title:` and `anatomy:`.
+
+Tell the user how many components were specced, and show them one spec. This is the first moment the setup has produced something about *their* design system — say so.
 
 ---
 
-## Step 11. Wrap up
+## Step 10. Run the analysis reports
+
+Run:
+
+```
+specs analyze
+```
+
+No arguments — with no analyzer named, every analyzer runs: `props`, `styling`, `dependencies`, and `keys`. Reports land in `specs/analysis/`.
+
+Verify the command exits 0 and the report files exist. Then tell the user what each one answers, and point at a number from their own reports rather than describing the report in the abstract:
+
+- **props** — the prop inventory across the library: which props exist, which components share them, where one concept is spelled two ways.
+- **styling** — where design tokens are used and which are used nowhere.
+- **dependencies** — which components are built from which, so a change's blast radius is visible before it is made.
+- **keys** — names that the chosen key format cannot reconstruct, which is the list to fix in Figma.
+
+Analysis is free on every tier. Nothing downstream reads these reports — they are for the user — but Storybook publishes them as pages in Step 13.
+
+---
+
+## Step 11. Emit the React tree
+
+Run:
+
+```
+specs react
+```
+
+No arguments — the target is the command. It writes `react/src/components/<Name>/` for every spec, each with its contract, scaffold, stylesheet and Storybook stories, plus the shared `assets/cssvars/` tree.
+
+Verify the command exits 0 and `react/src/components/` holds a folder per specced component. Open one `scaffold.tsx` and show it to the user — this is their Figma component as working React.
+
+Two things to say, both only if they apply:
+
+- On the free tier, compositions are skipped and the run says so once. Components are emitted as normal.
+- If the run failed with a license error and they entered a key in 5b, the check could not be completed rather than the key being bad. Re-run it.
+
+---
+
+## Step 12. Emit the Web Components tree
+
+Run:
+
+```
+specs webcomponents
+```
+
+Same shape: no arguments, a folder per component under `webcomponents/src/components/`, and the same shared `assets/cssvars/` tree. Running both targets is not a conflict — they share those assets by design.
+
+Verify it exits 0 and the tree exists. Then tell the user:
+
+> "You now have the same design system as React and as framework-free custom elements, both generated from the same specs. Neither is a translation of the other."
+
+If the user says they only want one platform, skip the other and note that the command is there when they want it.
+
+---
+
+## Step 13. Storybook
+
+Three stages. Do them in order and verify each before the next.
+
+### 13a. Scaffold the host
+
+```
+specs storybook init
+```
+
+Writes `storybook/` — a `package.json` declaring Storybook, the `.storybook/` config, and a seeded `content/` tree. It prints the install command and the next steps rather than running them, and refuses if `.storybook/` already exists.
+
+Read the port out of the scaffolded `storybook/package.json` dev script and record it. On a fresh workspace it is **6006**.
+
+### 13b. Install it
+
+The CLI never ships or installs Storybook itself — the install is the user's, in their own workspace:
+
+```
+cd storybook && npm install
+```
+
+This takes a few minutes and prints a lot. Verify it exits 0. If it refuses on the Node version, the floor is 20.19 — back to P3.
+
+### 13c. Run the dev environment
+
+From the workspace root, not from `storybook/`:
+
+```
+specs storybook dev
+```
+
+This publishes the content pages once, then stays running until Ctrl-C, with three children: a React watcher, a Web Components watcher, and Storybook itself. Saving a spec re-emits the code and the browser updates.
+
+**Always start Storybook with `specs storybook dev`, never with `npm run storybook` or a raw `storybook dev`.** The raw command prompts for telemetry consent and for a fallback port, and when those prompts go unanswered it exits without starting anything while a stale server keeps answering on the port.
+
+Run it in the background, or in a second terminal, so you can keep talking to the user. Wait for the server to report it is listening before moving on.
+
+If the Storybook index returns a 500 after it was working, that is a cached per-file parse failure, not a dead server. `dev` detects it, names the file, and re-triggers the parse. Fix and re-save the named file; never restart Storybook for this.
+
+---
+
+## Step 14. Wrap up
+
+Give them the URL, first and on its own line:
+
+> **Your design system is running at http://localhost:6006**
+
+(Use the port recorded in 13a if it is not 6006.)
+
+Then tell them what to click: the foundations pages built from their variables and styles, a component's stories, and the analysis reports from Step 10.
 
 Summarize what exists now:
 
-- `config/` — the `conventions/` folder and `settings.yaml` — project config, **safe to commit**.
-- `.gitignore` — contains `.env`.
-- `.env` — secrets, **never commit**.
-- `data/` — raw Figma payloads. Usually gitignored; ask the user if unsure.
-- `data/<source>.manifest.md` — manifest, **commit** (it's the curated source of truth). Note: `data/` is often gitignored wholesale — if so, make sure the manifest is explicitly un-ignored (e.g., `!data/*.manifest.md`) so this file still gets tracked.
-- `specs/` — generated specs (per-component folders by default, or a single library file), **commit** so PRs show spec diffs when design changes.
+| Path | What it is | Commit it? |
+|---|---|---|
+| `config/` | `conventions/` and `settings.yaml` — project config | **Yes** |
+| `.gitignore` | contains `.env` | **Yes** |
+| `.env` | secrets | **Never** |
+| `data/` | raw Figma payloads | Usually ignored — ask if unsure |
+| `data/<source>.manifest.md` | the curated component selection | **Yes** — see the note below |
+| `specs/` | generated specs and analysis reports | **Yes** — so PRs show spec diffs when design changes |
+| `react/`, `webcomponents/` | generated code | **Yes** — so PRs show code diffs too |
+| `assets/` | icons, generated CSS, fonts | **Yes** |
+| `storybook/` | the host — but not its `node_modules/` | **Yes** |
+
+The manifest needs one piece of care: `data/` is often gitignored wholesale, so un-ignore the manifest explicitly (e.g. `!data/*.manifest.md`) or the curated selection goes untracked.
 
 Suggest immediate next steps:
 
-- Re-run `specs fetch && specs generate` anytime the Figma file updates.
+- Re-run `specs fetch && specs generate` anytime the Figma file updates; the watchers in `specs storybook dev` carry it through to the browser.
 - See the [Workflows](https://www.specsplugin.com/cli/workflows/) guide for CI/CD automation.
 - Enable Pro features later by adding `SPECS_LICENSE_KEY` to `.env`.
 - When the library evolves, [`specs version`](https://www.specsplugin.com/cli/commands/version/) compares versions, classifies changes, and generates reports and changelogs; [`specs skills`](https://www.specsplugin.com/cli/commands/skills/) installs the AI orchestration skills that sequence those workflows.
@@ -517,9 +476,11 @@ During this flow, never:
 - Run `git commit`, `git push`, `git add .`, or stage `.env`.
 - Call `npm install ../specs/packages/schema` or any similar path — Specs CLI is installed from the npm registry only.
 - Guess a Figma file key — always derive from a URL the user provides.
-- Proceed past Step 9 without explicit user confirmation.
+- Proceed past Step 8 without explicit user confirmation.
 - Write `FIGMA_TOKEN` or `SPECS_LICENSE_KEY` values into any file other than `.env`.
 - Install Specs CLI into an existing `package.json` project's dependencies without asking whether they want that vs. a global install.
+- Start Storybook with anything other than `specs storybook dev`.
+- Ask the user about a setting this document tells you to apply.
 
 ---
 

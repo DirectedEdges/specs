@@ -4,14 +4,14 @@ import path from 'path';
 import os from 'os';
 import yaml from 'yaml';
 import { CssTransformer } from '../../../src/transforms/Css.js';
-import { drainNameWarnings } from '../../../src/transforms/css/values.js';
+import { drainNameWarnings } from '../../../src/transforms/css/values/nameWarnings.js';
 
 const transformer = new CssTransformer();
 
 import type { ProcessingStates } from '../../../src/transforms/states.js';
 
 function makeContext(dir: string, componentKey = 'dsButton', tokensFormat = 'TOKEN', processingStates?: ProcessingStates) {
-  return { specDir: dir, outputDir: dir, workspaceDir: dir, componentKey, tokensFormat, outputFormat: 'JSON' as const, processingStates };
+  return { specDir: dir, outputDir: dir, workspaceDir: dir, specsRoot: dir, kind: 'component' as const, componentKey, tokensFormat, outputFormat: 'JSON' as const, processingStates };
 }
 
 async function writeVariants(dir: string, data: Record<string, unknown>) {
@@ -116,6 +116,95 @@ describe('CssTransformer', () => {
       },
     });
     expect(out).toContain('flex-direction: column;');
+  });
+
+  describe('main-axis shrink', () => {
+    // A size the spec states is not a starting point for CSS to negotiate down.
+    const row = (childStyles: Record<string, unknown>) => ({
+      default: {
+        layout: [{ root: ['card'] }],
+        elements: {
+          root: { styles: { layoutMode: 'HORIZONTAL', layoutSizingHorizontal: 'FILL' } },
+          card: { styles: childStyles },
+        },
+      },
+    });
+
+    it('pins a stated width against a horizontal parent', async () => {
+      const out = await run(tmpDir, row({ width: 320 }));
+      expect(out).toContain('flex-shrink: 0;');
+    });
+
+    it('pins a HUG child against a horizontal parent', async () => {
+      const out = await run(tmpDir, row({ layoutSizingHorizontal: 'HUG' }));
+      expect(out).toContain('flex-shrink: 0;');
+    });
+
+    it('leaves a main-axis FILL child alone — `flex: 1 0 0` already says shrink 0', async () => {
+      const out = await run(tmpDir, row({ layoutSizingHorizontal: 'FILL' }));
+      expect(out).toContain('flex: 1 0 0;');
+      expect(out).not.toContain('flex-shrink: 0;');
+    });
+
+    it('pins a child that says nothing about the main axis — unstated is FIXED', async () => {
+      const out = await run(tmpDir, row({ height: 97 }));
+      expect(out).toContain('flex-shrink: 0;');
+    });
+
+    it('says nothing in a variant rule that does not touch main-axis sizing', async () => {
+      const out = await run(tmpDir, {
+        ...row({ width: 320 }),
+        variants: [
+          {
+            configuration: { state: 'hover' },
+            elements: { card: { styles: { backgroundColor: tokenRef('Color/Surface/Primary') } } },
+          },
+        ],
+      });
+      // Once for the default rule, and not again for a rule whose job is a colour.
+      expect(out.match(/flex-shrink: 0;/g)).toHaveLength(1);
+    });
+  });
+
+  describe('sizing a flex child already does untold', () => {
+    // A child of a column parent stretches across and hugs along by default, so
+    // restating either buries the declarations that carry information.
+    const inParent = (parentStyles: Record<string, unknown>, childStyles: Record<string, unknown>) => ({
+      default: {
+        layout: [{ root: ['child'] }],
+        elements: { root: { styles: parentStyles }, child: { styles: childStyles } },
+      },
+    });
+    const COLUMN = { layoutMode: 'VERTICAL' };
+    const ROW = { layoutMode: 'HORIZONTAL' };
+
+    it('says nothing for cross-axis FILL under a stretching parent', async () => {
+      const out = await run(tmpDir, inParent(COLUMN, { layoutSizingHorizontal: 'FILL' }));
+      expect(out).not.toContain('width: 100%;');
+    });
+
+    it('says nothing for main-axis HUG', async () => {
+      const out = await run(tmpDir, inParent(COLUMN, { layoutSizingVertical: 'HUG' }));
+      expect(out).not.toContain('height: fit-content;');
+    });
+
+    it('keeps cross-axis FILL when the parent does not stretch its children', async () => {
+      const out = await run(tmpDir, inParent(
+        { ...COLUMN, crossAxisAlignment: 'CENTER' },
+        { layoutSizingHorizontal: 'FILL' },
+      ));
+      expect(out).toContain('width: 100%;');
+    });
+
+    it('keeps cross-axis HUG — it is what stops the child stretching', async () => {
+      const out = await run(tmpDir, inParent(ROW, { layoutSizingVertical: 'HUG' }));
+      expect(out).toContain('height: fit-content;');
+    });
+
+    it('keeps main-axis FILL, which grows rather than stretches', async () => {
+      const out = await run(tmpDir, inParent(COLUMN, { layoutSizingVertical: 'FILL' }));
+      expect(out).toContain('flex: 1 0 0;');
+    });
   });
 
   it('resolves TOKEN format token references to kebab var(--)', async () => {
@@ -1153,6 +1242,72 @@ describe('unresolved variables (DirectedEdges/specs#428)', () => {
   it('leaves a real token containing the word unresolved alone', async () => {
     const css = await run(tmpDir, withStyles({ cornerRadius: tokenRef('Brand/Unresolved Blue', 'dimension') }));
     expect(css).toContain('var(--brand-unresolved-blue)');
+  });
+});
+
+describe('captured raw value as a var() fallback (DirectedEdges/specs#570)', () => {
+  // `cssvars` emits no definition for a variable whose value aliases one outside
+  // the fetched payload, so the reference resolves to nothing and the property
+  // renders as if it were never declared. The extensions profiles carry what
+  // Figma last read, and `$type` says what unit that number is in — so the
+  // reference degrades to a real value instead of to nothing.
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'css-rawfallback-'));
+    drainNameWarnings();
+  });
+  afterEach(async () => {
+    await fs.remove(tmpDir);
+    drainNameWarnings();
+  });
+
+  const withStyles = (styles: Record<string, unknown>) => ({
+    default: { layout: ['root'], elements: { root: { styles } } },
+    variants: [],
+  });
+
+  const withRaw = (token: string, type: string, rawValue: unknown) => ({
+    $token: token,
+    $type: type,
+    $extensions: { 'com.figma': { id: 'VariableID:1:1', rawValue } },
+  });
+
+  it('a dimension falls back to the captured number as a length', async () => {
+    const css = await run(tmpDir, withStyles({ itemSpacing: withRaw('Spacing/space/100', 'dimension', 8) }));
+    expect(css).toContain('var(--spacing-space-100, 8px)');
+  });
+
+  it('a dimension of zero falls back to a unitless zero', async () => {
+    const css = await run(tmpDir, withStyles({ itemSpacing: withRaw('Spacing/space/0', 'dimension', 0) }));
+    expect(css).toContain('var(--spacing-space-0, 0)');
+  });
+
+  it('a number falls back without a unit', async () => {
+    const css = await run(tmpDir, withStyles({ opacity: withRaw('Effect/opacity/subtle', 'number', 36) }));
+    expect(css).toContain('var(--effect-opacity-subtle, 36)');
+    expect(css).not.toContain('36px');
+  });
+
+  it('a colour falls back to the captured hex', async () => {
+    const css = await run(
+      tmpDir,
+      withStyles({ backgroundColor: withRaw('Color/background/neutral', 'color', { colorSpace: 'srgb', hex: '#161a1d' }) }),
+    );
+    expect(css).toContain('var(--color-background-neutral, #161a1d)');
+  });
+
+  it('a raw value whose shape settles no unit contributes no fallback', async () => {
+    // Carried, never invented: a string where a length belongs says nothing
+    // about how many pixels it is, so the reference stays bare.
+    const css = await run(tmpDir, withStyles({ itemSpacing: withRaw('Spacing/space/100', 'dimension', 'medium') }));
+    expect(css).toContain('var(--spacing-space-100)');
+    expect(css).not.toContain('medium');
+  });
+
+  it('a reference carrying no raw value stays bare', async () => {
+    const css = await run(tmpDir, withStyles({ itemSpacing: tokenRef('Spacing/space/100', 'dimension') }));
+    expect(css).toContain('var(--spacing-space-100)');
   });
 });
 

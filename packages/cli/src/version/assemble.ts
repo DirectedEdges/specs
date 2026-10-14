@@ -7,20 +7,43 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'yaml';
 import type { AssembledComponent, ConcernDoc, LedgerRun } from './types.js';
+import { resolveSpecsLayout, specFolderNames } from '../utilities/specsLayout.js';
 
-/** Spec folder names inside a specs/ directory (skips `_analysis` and dotfiles). */
+/**
+ * The directory a specs root keeps its component spec folders in (ADR-096) —
+ * `components/`, or the root itself for a directory that predates it, which is how
+ * a versioned snapshot cut before the layout change still reads.
+ *
+ * Versioning covers components only. A composition arranges components and declares
+ * no contract of its own, so there is nothing about it a consumer could depend on
+ * and nothing for a semver rule to grade.
+ */
+export function componentsDirOf(specsDir: string): string {
+  return resolveSpecsLayout(specsDir).dirFor('component');
+}
+
+/** Component spec folder names inside a specs/ directory. */
 export function componentNames(specsDir: string): string[] {
-  if (!fs.existsSync(specsDir)) return [];
-  return fs.readdirSync(specsDir)
+  const dir = componentsDirOf(specsDir);
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir)
     .filter(name => !name.startsWith('_') && !name.startsWith('.'))
-    .filter(name => fs.statSync(path.join(specsDir, name)).isDirectory())
-    .filter(name => fs.readdirSync(path.join(specsDir, name)).some(f => /\.ya?ml$/.test(f)))
+    .filter(name => fs.statSync(path.join(dir, name)).isDirectory())
+    .filter(name => fs.readdirSync(path.join(dir, name)).some(f => /\.ya?ml$/.test(f)))
     .sort();
 }
 
-/** Parse every concern file in the component's folder. */
+/**
+ * Parse every concern file in one spec folder.
+ *
+ * `specsDir` is the specs root for a component — the components directory is resolved
+ * from it — or, when the folder is already there, the directory holding it. The
+ * distinction is resolved by looking: a root has no spec folder of this name, the
+ * holding directory does.
+ */
 export function assemble(specsDir: string, name: string): AssembledComponent {
-  const dir = path.join(specsDir, name);
+  const direct = path.join(specsDir, name);
+  const dir = fs.existsSync(direct) ? direct : path.join(componentsDirOf(specsDir), name);
   const concerns: Record<string, ConcernDoc> = {};
   for (const file of fs.readdirSync(dir).sort()) {
     if (!/\.ya?ml$/.test(file)) continue;
@@ -35,6 +58,26 @@ export function assemble(specsDir: string, name: string): AssembledComponent {
 export function assembleAll(specsDir: string): Map<string, AssembledComponent> {
   const map = new Map<string, AssembledComponent>();
   for (const name of componentNames(specsDir)) map.set(name, assemble(specsDir, name));
+  return map;
+}
+
+/**
+ * Composition spec folder names (ADR-096). Empty for a specs directory that predates
+ * the layout, which could not hold one.
+ */
+export function compositionNames(specsDir: string): string[] {
+  const dir = resolveSpecsLayout(specsDir).dirFor('composition');
+  return specFolderNames(dir).filter(name => !name.startsWith('_') && !name.startsWith('.'));
+}
+
+/** Every composition in the specs directory, parsed the same way a component is. */
+export function assembleCompositions(specsDir: string): Map<string, AssembledComponent> {
+  const dir = resolveSpecsLayout(specsDir).dirFor('composition');
+  const map = new Map<string, AssembledComponent>();
+  // Compositions are keyed in their own map, never alongside components: a name
+  // shared between the two kinds is legal by design (ADR-096), so one map would let
+  // them overwrite each other here.
+  for (const name of compositionNames(specsDir)) map.set(name, assemble(dir, name));
   return map;
 }
 

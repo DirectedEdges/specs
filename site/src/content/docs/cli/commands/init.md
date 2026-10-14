@@ -38,19 +38,19 @@ config/
 
 ```yaml
 # Facts about the Figma library — every consumer of that library declares the same values.
-# naming: NONE
+# naming: SENTENCE
 
 # glyphs:
 #   match: 'DS Icon Glyph / {i}'
 
 subcomponents:
-  # scope: NESTED
+  # scope: PAGE
   match:
     - '{C} / _ / {S}'
   # exclude:
   #   - '{C} / Examples / {S}'
 
-slotConstraints: false
+# slotConstraints: true
 ```
 
 `config/conventions/specs.yaml` declares conventions about the spec itself — every member names a prop or enum value the spec declares:
@@ -67,26 +67,49 @@ slotConstraints: false
 `config/settings.yaml` declares run choices, grouped by concern:
 
 ```yaml
-# Choices about this run — sources, spec output, assets.
+# Choices about this run — curation, sources, spec output, assets.
 author: <Your Name Here>
+
+curation:
+  # defaultSelection: ALL
+  # preserveManualSelections: true
+  # includeDependencies: false
 
 data:
   directory: ./data
-  sources: {}
+  sources:
+    library:
+      key: YOUR_FIGMA_FILE_KEY
+      fetch: [file, variables, styles, icons]
+
+assets:
+  directory: ./assets
 
 spec:
   directory: ./specs
-  format: JSON
-  keys: SAFE
+  format: YAML
+  keys: CAMEL
   layout: LAYOUT
   tokens: TOKEN
-  color: HEX
+  color: HEXA
   variantDepth: 9999
   details: LAYERED
-  # splitComponents: true
-  # splitConcerns: true
-  # useSubfolders: true
+  # roles: true
+  # roleValidation: error
+  # collapsePrimitiveWrapper: true
+  # promotePrimitives: true
+  # invalidVariants: true
+  # invalidCombinations: false
+  # emptyVariants: true
+  # defaultSlotContent: true
+  # splitComponents: false
+  # splitConcerns: false
+  # useSubfolders: false
 ```
+
+Every commented line is the opposite of its default, so uncommenting one always changes behaviour. Each carries a link to its reference page in the generated file. The full table is in [Settings](/schema/settings/).
+
+The scaffolded source is a placeholder: replace `YOUR_FIGMA_FILE_KEY` with your file's key before running `specs fetch`.
 
 Each section includes inline comments with references to the full documentation.
 
@@ -144,7 +167,7 @@ specs init --config ./workspaces/prod --force
 
 # Use with --config flag on other commands
 specs fetch --config ./workspaces/dev/config
-specs generate data/library.file.json -c "Button" --config ./workspaces/prod/config
+specs generate data/library.file -c "Button" --config ./workspaces/prod/config
 ```
 
 ### Example 3: Force Overwrite

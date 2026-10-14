@@ -64,7 +64,7 @@ For every component directory containing an `api.yaml`, the analyzer reads `inst
 
 ## Outputs
 
-Two aggregate files are written to `_analysis/` after all components are processed. The extension follows `spec.format` in `config/settings.yaml` — `.json` shown here, `.yaml` when configured.
+Two aggregate files are written to `analysis/` after all components are processed. The extension follows `spec.format` in `config/settings.yaml` — `.json` shown here, `.yaml` when configured.
 
 | File | Answers |
 |------|---------|
@@ -186,7 +186,7 @@ ordered by depth.
 
 Instruct the model to reference component and prop names directly, and to say so where the data cannot answer (runtime code usage, consumers outside this workspace) rather than guess.
 
-The data files are the durable artifact — regenerated deterministically, diffable across runs. The report is a one-time snapshot: save it dated (`_analysis/dependencies.report.YYYY-MM-DD.md`) and re-run against fresh data when the library moves. Agentic coding tools can automate the whole loop — regenerate the analysis, pull the relevant entries, produce the report — as a reusable skill or command in your workspace.
+The data files are the durable artifact — regenerated deterministically, diffable across runs. The report is a one-time snapshot: save it dated (`analysis/dependencies.report.YYYY-MM-DD.md`) and re-run against fresh data when the library moves. Agentic coding tools can automate the whole loop — regenerate the analysis, pull the relevant entries, produce the report — as a reusable skill or command in your workspace.
 
 ## See Also
 

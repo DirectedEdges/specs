@@ -5,6 +5,48 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.35.0] - 2026-10-14
+
+**A library declares the slot its nested layouts fill through.** `SpecsConventions.slots.default.match` names it, `SlotProp.defaultSlot` marks the prop that matched, and `MetadataConventions.specs` records the conventions a run used — so a reader holding only a spec can resolve a nested instance's default slot (ADR-099).
+
+**Conventions and settings grow two open surfaces.** `Conventions.storybook` is a concern-keyed map a new Storybook concern can join without a schema change, and `Settings.curation` states which components of a library a run specs (ADR-093, ADR-098).
+
+**Glyph membership can be declared by structure rather than by name.** `PlatformConventions.glyphs.structure` derives it from child shapes and fill, which makes `glyphs.match` optional (ADR-103).
+
+### Added
+
+- **`Conventions.storybook` carries a workspace's Storybook settings**, typed as `StorybookConventions` — an open concern-keyed map loaded from `conventions/storybook.yaml`, also on `ResolvedConventions`. Adding a concern needs no change to the type or its schema (ADR-098)
+- **`Settings.curation` states which components of a library a run specs**, with `defaultSelection` (`READY_FOR_DEV` or `ALL`), `preserveManualSelections` for whether hand edits outrank a changed Figma status, and `includeDependencies`. Every default matches today's behaviour (ADR-093)
+- **`SpecsConventions.slots.default.match` names the patterns identifying a component's designated default slot**, authored in `conventions/specs.yaml`. It is a spec convention, not a platform one — what it names is a `SlotProp` the spec declares, so every platform reads the same answer (ADR-099)
+- **`MetadataConventions.specs` records the spec conventions a run was performed under**, beside the one platform entry, for the reader that cannot re-derive them: a render resolving a nested instance's default slot does not hold that instance's own component spec (ADR-099)
+- **`SlotProp.defaultSlot` marks a slot prop that matched `specs.slots.default.match`**, set at generation time and read by consumers with no dependency on `Conventions` (ADR-099)
+- **`PrimitiveEntry.match` selects a promotion entry by layer-name prefix**, ahead of style scoring; the longest prefix wins (ADR-100)
+- **`PlatformConventions.glyphs.structure` derives glyph membership from child structure and fill**, typed as `GlyphStructure`, naming the glyph from the main component's name (ADR-103)
+
+### Changed
+
+- **`PlatformConventions.glyphs.match` becomes optional**, and a declared `glyphs` block now requires at least one of `match` or `structure` (ADR-103)
+
+### Migration
+
+- `glyphs.match` → `glyphs.match` or `glyphs.structure`: existing declarations stay valid; code reading `glyphs.match` must handle its absence when only `structure` is declared
+
+### ADRs
+
+#### Accepted
+
+- [ADR-093](../../adr/093-curation-settings.md) — Curation is a settings concern
+- [ADR-094](../../adr/094-subcomponent-pattern-matching-rules.md) — Subcomponent Pattern Matching Rules
+- [ADR-095](../../adr/095-compositions-in-the-scan-manifest.md) — Compositions Are Curated Like Components, From a Smaller Eligible Set
+- [ADR-096](../../adr/096-specs-directory-layout.md) — The `specs/` Directory Names What Kind of Thing Each Folder Is
+- [ADR-097](../../adr/097-composition-emission-and-presentation.md) — A Composition Emits One Story in Its Own Nav Group, and Only Under Pro
+- [ADR-098](../../adr/098-storybook-conventions.md) — Storybook Conventions — `config/conventions/storybook.yaml`
+- [ADR-099](../../adr/099-default-slot-naming-convention.md) — `slots.default.match` — Naming the Default Slot, and Flattened Instance Nesting
+- [ADR-100](../../adr/100-primitive-layer-name-match.md) — `PrimitiveEntry.match` — Promoting a Layer by Its Name, Short-Circuiting Style Scoring
+- [ADR-101](../../adr/101-workspace-stage-graph.md) — The Workspace Stage Graph
+- [ADR-103](../../adr/103-glyph-structure.md) — Structural glyph membership — `glyphs.structure` convention
+
+
 ## [0.34.0] - 2026-09-23
 
 **A component's disallowed prop combinations now live with its API.** `invalidPropCombinations` renames `invalidVariantCombinations` and travels in the api concern document, so the constraint sits beside the props it constrains rather than with variant data. The schema also now states plainly that an element carrying positioning offsets always declares `position: ABSOLUTE`, so a spec's placement reads on its own, without consulting the parent's layout mode.

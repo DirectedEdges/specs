@@ -38,13 +38,13 @@ What to render. Three shapes are accepted:
 - **A directory of component folders** — renders every component beneath it, sequentially, in path order.
 
 ```bash
-specs render specs/deButton.yaml     # one spec file
-specs render specs/deButton/         # one component folder
-specs render specs/                  # every component in the directory
-specs render specs/forms/            # every component in one group
+specs render specs/components/deButton.yaml   # one spec file
+specs render specs/components/deButton/       # one component folder
+specs render specs/                           # every component in the workspace
+specs render specs/components/forms/          # every component in one group
 ```
 
-Batch scanning looks at most two levels deep, so both `specs/deButton/` and `specs/forms/deInput/` are found. It never descends into a component folder.
+Batch scanning looks through at most two levels of your own folders, so both `components/deButton/` and `components/forms/deInput/` are found, from the specs root or from `components/` itself. The `components/` and `compositions/` directories are the layout's rather than yours, so they do not count against that depth. Scanning never descends into a component folder.
 
 Optional — when omitted, `render` uses the configured `spec.directory` as a batch.
 
@@ -67,7 +67,7 @@ Target a specific connected Figma file. Only matters when the bridge has more th
 Scripted runs against a multi-file bridge should always pass `--file`.
 
 ```bash
-specs render specs/deButton.yaml --file abc123XYZ
+specs render specs/components/deButton.yaml --file abc123XYZ
 ```
 
 In a directory batch the file is resolved once, up front, so a sweep never prompts per component.
@@ -77,7 +77,7 @@ In a directory batch the file is resolved once, up front, so a sweep never promp
 Render onto a specific page instead of whatever page the plugin currently has open. Recommended for scripted runs — without it, the target is the user's current page, which can drift mid-run if someone navigates in Figma.
 
 ```bash
-specs render specs/deButton.yaml --page 12:345
+specs render specs/components/deButton.yaml --page 12:345
 ```
 
 ### `--overwrite`
@@ -87,7 +87,7 @@ Delete any existing page component with the same title before rendering. Without
 This is destructive — the existing component is removed, not merged into. When a directory batch would overwrite more than one component and the terminal is interactive, `render` asks for confirmation first; non-interactive runs proceed without asking.
 
 ```bash
-specs render specs/deButton.yaml --overwrite
+specs render specs/components/deButton.yaml --overwrite
 ```
 
 ### `--watch`
@@ -99,7 +99,7 @@ Requires an explicit spec path — it can't be combined with zero-arg config res
 In watch mode a failed render is logged and the watch continues, rather than exiting — the next save may fix it.
 
 ```bash
-specs render specs/deButton/ --watch
+specs render specs/components/deButton/ --watch
 ```
 
 ### `--refresh-cache`
@@ -109,7 +109,7 @@ Rebuild the [cache](/cli/commands/cache/) from your fetched data before renderin
 Use it when a render has just failed on a stale cache and you'd rather not run a separate command.
 
 ```bash
-specs render specs/deButton/ --refresh-cache
+specs render specs/components/deButton/ --refresh-cache
 ```
 
 ### `--timing`
@@ -119,7 +119,7 @@ Print a phase-by-phase timing report after the render: the bridge's lookup work 
 Phases that run concurrently — one row per variant, for instance — can sum to more than the total; the count column is what makes that readable.
 
 ```bash
-specs render specs/deButton/ --timing
+specs render specs/components/deButton/ --timing
 ```
 
 ### `--strict`
@@ -129,7 +129,7 @@ Fail the render when an instance element can't be resolved, instead of rendering
 By default an unresolvable instance is a warning: the component is still created in Figma, minus that content, and `render` reports how many elements were dropped. `--strict` turns that into a failure — useful in CI, where a silently incomplete component is worse than a red build.
 
 ```bash
-specs render specs/deButton.yaml --strict
+specs render specs/components/deButton.yaml --strict
 ```
 
 In a directory batch, `--strict` fails the individual component; the sweep continues and the exit code reflects the total.
@@ -179,7 +179,7 @@ A failure doesn't abort the sweep — the remaining components still render, and
 
 ```bash
 # Render one component
-specs render specs/deButton.yaml
+specs render specs/components/deButton.yaml
 
 # Render every component in the output directory
 specs render specs/
@@ -188,16 +188,16 @@ specs render specs/
 specs render
 
 # Re-render on every save while iterating on a spec
-specs render specs/deButton/ --watch
+specs render specs/components/deButton/ --watch
 
 # Replace an existing component instead of erroring on the title collision
-specs render specs/deButton.yaml --overwrite
+specs render specs/components/deButton.yaml --overwrite
 
 # Rebuild the lookup cache first, then render
-specs render specs/deButton/ --refresh-cache
+specs render specs/components/deButton/ --refresh-cache
 
 # See where a slow render spends its time
-specs render specs/deButton/ --timing
+specs render specs/components/deButton/ --timing
 
 # Scripted run: pin the file and page, fail on incomplete renders
 specs render specs/ --file abc123XYZ --page 12:345 --strict

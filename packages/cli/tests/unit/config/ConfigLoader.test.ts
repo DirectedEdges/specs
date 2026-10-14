@@ -11,7 +11,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs-extra';
 import path from 'path';
-import { ConfigLoader } from '../../../src/Config/ConfigLoader.js';
+import { ConfigLoader } from '../../../src/config/ConfigLoader.js';
 import { DEFAULT_SETTINGS } from '@directededges/specs-schema';
 
 describe('ConfigLoader', () => {
@@ -140,7 +140,7 @@ spec:
       expect(() => configLoader.load()).toThrow(/specs\.config\.yaml is no longer read \(ADR-071\)/);
       expect(() => configLoader.load()).toThrow(/specs migrate config/);
       expect(() => configLoader.load()).toThrow(/config\/conventions\/ and config\/settings\.yaml/);
-      expect(() => configLoader.load()).toThrow(/https:\/\/specs\.directededges\.com\/settings\//);
+      expect(() => configLoader.load()).toThrow(/https:\/\/www\.specsplugin\.com\/settings\//);
     });
 
     it('refuses a discovered specs.config.json', () => {
@@ -286,11 +286,16 @@ spec:
       });
     });
 
-    it('should normalize lowercase spec.tokens to uppercase', () => {
+    it('warns on a case-variant spec.tokens and uses the default — no silent folding', () => {
       writeSplitFile('settings.yaml', 'spec:\n  tokens: figma_syntax_ios');
 
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const config = configLoader.load();
-      expect(config.settings.spec.tokens).toBe('FIGMA_SYNTAX_IOS');
+      // Governed surface: the value is not transformed behind the author's
+      // back. It warns, names the valid values, and falls back.
+      expect(config.settings.spec.tokens).toBe(DEFAULT_SETTINGS.spec.tokens);
+      expect(warn.mock.calls.some(c => String(c[0]).includes('figma_syntax_ios'))).toBe(true);
+      warn.mockRestore();
     });
 
     it('should validate spec.color and use default for invalid values', () => {
@@ -311,11 +316,42 @@ spec:
       });
     });
 
-    it('should normalize lowercase spec.color to uppercase', () => {
+    it('warns on a case-variant spec.color and uses the default — no silent folding', () => {
       writeSplitFile('settings.yaml', 'spec:\n  color: oklch');
 
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const config = configLoader.load();
-      expect(config.settings.spec.color).toBe('OKLCH');
+      expect(config.settings.spec.color).toBe('HEX');
+      expect(warn.mock.calls.some(c => String(c[0]).includes('oklch'))).toBe(true);
+      warn.mockRestore();
+    });
+
+    it('loads conventions/storybook.yaml as a reserved basename, not a platform (ADR-098)', () => {
+      writeSplitFile('conventions/storybook.yaml', 'color:\n  rowGroup: [Palette]\n  groupLeaves: true');
+
+      const config = configLoader.load();
+      expect(config.conventions.storybook).toEqual({ color: { rowGroup: ['Palette'], groupLeaves: true } });
+      expect(config.conventions.platforms?.storybook).toBeUndefined();
+    });
+
+    it('drops a non-mapping storybook concern with a warning naming it', () => {
+      writeSplitFile('conventions/storybook.yaml', 'color: just-a-string\ntypography:\n  sample: ok');
+
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const config = configLoader.load();
+      expect(config.conventions.storybook).toEqual({ typography: { sample: 'ok' } });
+      expect(warn.mock.calls.some(c => String(c[0]).includes('"color"'))).toBe(true);
+      warn.mockRestore();
+    });
+
+    it('warns on an unknown top-level settings key and ignores it', () => {
+      writeSplitFile('settings.yaml', 'storybook:\n  color: {}\nspec:\n  keys: CAMEL');
+
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const config = configLoader.load();
+      expect((config.settings as Record<string, unknown>).storybook).toBeUndefined();
+      expect(warn.mock.calls.some(c => String(c[0]).includes('"storybook"'))).toBe(true);
+      warn.mockRestore();
     });
 
     it('should accept all valid variantDepth values', () => {
@@ -583,6 +619,61 @@ dsIcon:
       // successfully and silently wrong.
       expect(() => configLoader.load()).toThrow(/ADR-073 Decision 5/);
     });
+
+    it('passes match through to the resolved entry (ADR-100)', () => {
+      writeSplitFile('conventions/figma.primitives.yaml', `
+dsSection:
+  elementType: container
+  match:
+    - DS Section
+    - Section
+  map: []
+`);
+
+      expect(configLoader.load().conventions.primitives).toEqual({
+        dsSection: { elementType: 'container', match: ['DS Section', 'Section'], map: [] },
+      });
+    });
+
+    it('omits match entirely when the entry declares none', () => {
+      writeSplitFile('conventions/figma.primitives.yaml', 'dsIcon:\n  elementType: glyph\n  map: []\n');
+
+      const entry = configLoader.load().conventions.primitives!.dsIcon;
+      expect('match' in entry).toBe(false);
+    });
+
+    it.each([
+      ['an empty array', 'match: []'],
+      ['a bare string', 'match: Section'],
+    ])('drops match declared as %s, naming the entry', (_label, declaration) => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      writeSplitFile('conventions/figma.primitives.yaml', `
+dsSection:
+  elementType: container
+  ${declaration}
+  map: []
+`);
+
+      const entry = configLoader.load().conventions.primitives!.dsSection;
+      expect('match' in entry).toBe(false);
+      expect(warn.mock.calls.some(call => String(call[0]).includes('dsSection'))).toBe(true);
+    });
+
+    it('keeps the usable prefixes when only some entries are strings', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      writeSplitFile('conventions/figma.primitives.yaml', `
+dsSection:
+  elementType: container
+  match:
+    - Section
+    - 7
+    - ""
+  map: []
+`);
+
+      expect(configLoader.load().conventions.primitives!.dsSection.match).toEqual(['Section']);
+      expect(warn.mock.calls.some(call => String(call[0]).includes('2 dropped'))).toBe(true);
+    });
   });
 
   describe('conventions/figma.yaml instanceExamples validation (ADR-050)', () => {
@@ -727,6 +818,64 @@ instanceExamples:
 
       const config = configLoader.load();
       expect(config.conventions.platforms!.figma.images).toBeUndefined();
+    });
+  });
+
+  describe('conventions.specs.slots.default validation (ADR-099)', () => {
+    it('reads the default-slot patterns, trimmed', () => {
+      writeSplitFile('conventions/specs.yaml', `
+slots:
+  default:
+    match:
+      - ' children '
+      - items
+`);
+
+      const config = configLoader.load();
+      expect(config.conventions.specs!.slots).toEqual({ default: { match: ['children', 'items'] } });
+    });
+
+    it('is absent by default (presence is the on-switch)', () => {
+      writeSplitFile('conventions/specs.yaml', 'value:\n  prop: progress');
+
+      const config = configLoader.load();
+      expect(config.conventions.specs!.slots).toBeUndefined();
+    });
+
+    it('drops an empty match — a convention that names nothing flattens nothing', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      writeSplitFile('conventions/specs.json', JSON.stringify({ slots: { default: { match: [] } } }));
+
+      const config = configLoader.load();
+      expect(config.conventions.specs?.slots).toBeUndefined();
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('slots.default.match'));
+    });
+
+    it('drops a match that is not an array of strings', () => {
+      writeSplitFile('conventions/specs.json', JSON.stringify({ slots: { default: { match: 'children' } } }));
+
+      const config = configLoader.load();
+      expect(config.conventions.specs?.slots).toBeUndefined();
+    });
+
+    it('drops a non-object slots block', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      writeSplitFile('conventions/specs.json', JSON.stringify({ slots: 'children' }));
+
+      const config = configLoader.load();
+      expect(config.conventions.specs?.slots).toBeUndefined();
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('slots'));
+    });
+
+    // The platform file built from an allowlist would otherwise drop the key in
+    // silence, and the workspace would lose its default-slot convention without a word.
+    it('names the new home when slots is still declared on a platform', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      writeSplitFile('conventions/figma.json', JSON.stringify({ slots: { default: { match: ['children'] } } }));
+
+      const config = configLoader.load();
+      expect(config.conventions.specs?.slots).toBeUndefined();
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('conventions/specs.yaml'));
     });
   });
 

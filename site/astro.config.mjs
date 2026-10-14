@@ -7,6 +7,10 @@ const experimental = { text: 'Experimental', variant: 'default' };
 export default defineConfig({
   site: 'https://www.specsplugin.com',
   server: { port: 4323 },
+  redirects: {
+    // Page renamed when the glyphs convention outgrew the single name pattern (ADR-103)
+    '/settings/glyph-name-pattern/': '/settings/glyphs/',
+  },
   integrations: [
     starlight({
       title: 'Specs',
@@ -139,19 +143,28 @@ export default defineConfig({
           items: [
             { label: 'Overview', slug: 'cli' },
             { label: 'Workflows', slug: 'cli/workflows' },
+            // The whole-workspace commands lead: they are what most people
+            // want, and the rest are the steps they run.
+            { label: 'build', slug: 'cli/commands/build', badge: experimental },
+            { label: 'run', slug: 'cli/commands/run', badge: experimental },
             { label: 'init', slug: 'cli/commands/init' },
             { label: 'fetch', slug: 'cli/commands/fetch' },
             { label: 'scan', slug: 'cli/commands/scan' },
             { label: 'applyCustomTokens', slug: 'cli/commands/apply-custom-tokens' },
             { label: 'generate', slug: 'cli/commands/generate' },
+            { label: 'analyze', slug: 'cli/commands/analyze', badge: experimental },
             { label: 'bridge', slug: 'cli/commands/bridge', badge: experimental },
             { label: 'cache', slug: 'cli/commands/cache', badge: experimental },
             { label: 'render', slug: 'cli/commands/render', badge: experimental },
             { label: 'migrate', slug: 'cli/commands/migrate' },
             { label: 'version', slug: 'cli/commands/version' },
             { label: 'skills', slug: 'cli/commands/skills' },
+            { label: 'storybook', slug: 'cli/commands/storybook', badge: experimental },
+            { label: 'testing visual', slug: 'cli/commands/testing', badge: experimental },
             {
-              label: 'Analyze',
+              // The command itself is a flat entry above, with the other
+              // commands; this group is one page per report it writes.
+              label: 'Analyze reports',
               collapsed: true,
               badge: experimental,
               items: [
@@ -160,6 +173,7 @@ export default defineConfig({
                 { label: 'styling', slug: 'cli/analyze/styling' },
                 { label: 'dependencies', slug: 'cli/analyze/dependencies' },
                 { label: 'keys', slug: 'cli/analyze/keys' },
+                { label: 'roles', slug: 'cli/analyze/roles' },
               ],
             },
           ],
@@ -184,10 +198,19 @@ export default defineConfig({
               ],
             },
             {
+              label: 'Testing',
+              collapsed: true,
+              items: [
+                { label: 'Overview', slug: 'testing', badge: experimental },
+                { label: 'Getting Started', slug: 'testing/getting-started', badge: experimental },
+              ],
+            },
+            {
               label: 'Roles',
               collapsed: true,
               items: [
                 { label: 'Overview', slug: 'roles' },
+                { label: 'Choosing a role', slug: 'roles/choosing' },
                 { label: 'Inventory', slug: 'roles/inventory' },
                 { label: 'Precedence', slug: 'roles/precedence' },
               ],
@@ -201,6 +224,21 @@ export default defineConfig({
               ],
             },
             { label: 'Prop Naming', slug: 'guides/prop-naming' },
+          ],
+        },
+        {
+          label: 'Storybook',
+          collapsed: true,
+          badge: experimental,
+          items: [
+            { label: 'Overview', slug: 'storybook' },
+            { label: 'Getting Started', slug: 'storybook/overview' },
+            { label: 'Foundations', slug: 'storybook/foundations' },
+            { label: 'Components', slug: 'storybook/components' },
+            { label: 'Analysis', slug: 'storybook/analysis' },
+            { label: 'Versioning', slug: 'storybook/versioning' },
+            { label: 'Customization', slug: 'storybook/customization' },
+            { label: 'Technical Details', slug: 'storybook/technical-details' },
           ],
         },
         {
@@ -263,6 +301,7 @@ export default defineConfig({
                 { label: 'collapsePrimitiveWrapper', slug: 'settings/collapse-primitive-wrapper' },
                 { label: 'promotePrimitives', slug: 'settings/promote-primitives' },
                 { label: 'defaultSlotContent', slug: 'settings/default-slot-content', badge: pro },
+                { label: 'curation', slug: 'settings/curation' },
                 { label: 'sources', slug: 'settings/data-sources' },
                 { label: 'Folders', slug: 'settings/folders' },
                 { label: 'Output', slug: 'settings/output' },
@@ -282,11 +321,12 @@ export default defineConfig({
               collapsed: true,
               items: [
                 { label: 'naming', slug: 'settings/figma-keys' },
-                { label: 'glyphs', slug: 'settings/glyph-name-pattern' },
+                { label: 'glyphs', slug: 'settings/glyphs' },
                 { label: 'codeOnlyProps', slug: 'settings/code-only-props-pattern' },
                 { label: 'subcomponents', slug: 'settings/subcomponents' },
                 { label: 'instanceExamples', slug: 'settings/instance-examples', badge: pro },
                 { label: 'images', slug: 'settings/images' },
+                { label: 'slots.default', slug: 'settings/default-slot', badge: pro },
                 { label: 'slotConstraints', slug: 'settings/slot-constraints', badge: pro },
                 { label: 'inferNumberProps', slug: 'settings/infer-number-props' },
                 { label: 'Promotion table', slug: 'settings/figma-primitives' },

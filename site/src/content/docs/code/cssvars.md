@@ -62,7 +62,7 @@ The workspace data directory (`dataDirectory` in config), populated by [`specs f
 | File | For |
 |---|---|
 | `{alias}.variables.json` | variable and collection definitions |
-| `{alias}.file.json` | style *values*, recovered from nodes that use each style — the styles endpoint carries no definitions |
+| `{alias}.file/` (or `.file.json`) | style *values*, recovered from nodes that use each style — the styles endpoint carries no definitions |
 | `{alias}.styles.json` | names for published styles |
 
 It degrades rather than failing. Without variables data — on a plan where the variables endpoint is unavailable — it still emits everything recoverable from the file document. A style no node in the file uses cannot be recovered, and is reported in the run summary.

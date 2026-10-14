@@ -36,9 +36,12 @@ export type { PropConfigurations, PropConfigurationValue, NestedPropConfiguratio
 export type {
   Conventions,
   ResolvedConventions,
+  StorybookConventions,
   MetadataConventions,
   PlatformConventions,
   ResolvedPlatformConventions,
+  GlyphStructure,
+  GlyphStructureNode,
   PrimitiveKind,
   PrimitiveEntry,
   PrimitiveRule,

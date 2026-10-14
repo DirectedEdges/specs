@@ -23,7 +23,7 @@ components:
   │ └─ <a href="/schema/elements/">elements</a>:
   │   └─ {element name}:
   │     ├─ content                         → <a href="/schema/prop-binding/">PropBinding</a>
-  │     ├─ <a href="/schema/children/">children</a>                        → <a href="/schema/children/">Children</a> (slot fills → <a href="/schema/slot-content-ref/">SlotContentRef</a>)
+  │     ├─ <a href="/schema/children/">children</a>                        → <a href="/schema/children/">Children</a> (nested instance, or slot fill → <a href="/schema/slot-content-ref/">SlotContentRef</a>)
   │     └─ <a href="/schema/styles/">styles</a>:                      (48 properties)
   │       ├─ color                         → <a href="/schema/token-reference/">TokenReference</a>, <a href="/schema/gradient-value/">GradientValue</a>
   │       ├─ spacing, size                 → <a href="/schema/token-reference/">TokenReference</a>, <a href="/schema/conditional/">Conditional</a>
@@ -54,6 +54,8 @@ components:
 **Start at `default`.** The default variant is the complete baseline — every element fully described with styles, content, and layout. This is the component at rest.
 
 **Variants are deltas.** Each entry in `variants` carries a [`configuration`](/schema/prop-configurations/) (which prop values activate it) and only the properties that *change*. Consumers resolve the final state by merging applicable overrides onto the default, in order. See [Variants](/schema/variants/) and the [Variant Layering](/guides/variant-layering/) guide.
+
+**A slot is filled one of two ways.** An instance filling a component's designated [default slot](/schema/props/#slotprop) is nested as a plain [child](/schema/children/) — the nesting *is* the fill, and nothing points from one level to the next. Every other slot binds explicitly through a [`SlotContentRef`](/schema/slot-content-ref/) into [`slotContentExamples`](/schema/slot-content/), which is the only shape that can say *which* of several slots a fill belongs to. Both appear in one spec.
 
 **Style values can be rich.** Any style property might be a raw literal, a [`TokenReference`](/schema/token-reference/) pointing to a design token, a [`PropBinding`](/schema/prop-binding/) driven by a prop, or a [`Conditional`](/schema/conditional/) that switches on prop state. Composite values like [`Typography`](/schema/typography/), [`Effects`](/schema/effects/), [`GradientValue`](/schema/gradient-value/), [`Corners`](/schema/corners/), and [`Sides`](/schema/sides/) have their own shapes.
 

@@ -25,7 +25,7 @@ Claude will handle install, config, token setup, fetch, and your first generate 
 
 ## Step 1: Install
 
-Specs CLI requires **[Node.js 18+](https://nodejs.org/)** (LTS recommended). Install it if you haven't already, then install Specs CLI globally:
+Specs CLI requires **[Node.js 20.19+](https://nodejs.org/)** (Node 22 LTS recommended — the Storybook host `specs storybook init` scaffolds will not start on anything older). Install it if you haven't already, then install Specs CLI globally:
 
 ```bash
 npm install -g @directededges/specs-cli
@@ -148,9 +148,9 @@ Once generated, open the specs file to review the results!
 Alternatively, generate a spec for one component directly from fetched data — useful when setting up or iterating:
 
 ```bash
-specs generate data/library.file.json \
+specs generate data/library.file \
   -c "Button" \
-  -o specs/button.yaml
+  -o specs/
 ```
 
 `-c` takes a single component. To generate a small subset without editing the manifest, run the command once per component.
@@ -165,6 +165,19 @@ specs webcomponents    # Lit custom elements into webcomponents/
 ```
 
 No arguments — the target is the command. Both read the default file layout `generate` writes (the split flags at their `true` defaults), and both write the same platform-neutral `assets/cssvars/` tree, so running both is not a conflict. See [`react`](/cli/commands/react/) and [`webcomponents`](/cli/commands/webcomponents/) for what each file carries.
+
+## Once you have done it the long way
+
+Steps 4 to 6 are the same chain every time: scan, generate, emit each platform, publish Storybook. Two experimental commands do all of it in order, working out what your workspace has from what is on disk:
+
+```bash
+specs build    # run the chain once
+specs run      # run it, then watch and redo whatever a change affects
+```
+
+`specs fetch` stays separate on purpose — it is the step that spends an API call, so you decide when. Everything after it follows from what lands in `data/`.
+
+Learning the individual commands first is worth it: they are what the chain runs, and what you reach for when only one of them needs to happen. See [`build`](/cli/commands/build/) and [`run`](/cli/commands/run/).
 
 ##  Operationalize: CI/CD pipeline
 
@@ -184,7 +197,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '22'
 
       - run: npm install -g @directededges/specs-cli
 

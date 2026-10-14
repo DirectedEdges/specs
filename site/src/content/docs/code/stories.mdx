@@ -175,8 +175,29 @@ slotContentExamples:
 | `$slotContent` | The reference followed to build the story's `render` markup |
 | `instanceOf` in slot content | Which component to import and call — every import at the top of the file arrived this way |
 | A nested `$slotContent` | Followed too, which is how a card's content renders a layout that renders a title |
+| An instance with `children` in the layout | Emitted as that component's children — the nesting *is* the fill, so there is no reference to follow |
 
 The first `instanceExamples` entry is also what `meta.render` uses, so the default story is a real card rather than an empty one.
+
+### Where the spec nests instead of referencing
+
+The `content` element above reaches its own content through a nested `$slotContent`, which the stories transform follows one level at a time. A workspace that declares [`slots.default.match`](/settings/default-slot/) gets the same markup from a flatter spec: `content`'s fill is captured as `content`'s children in the same entry, so the transform walks a tree rather than chasing pointers.
+
+```yaml
+# the same fill, from a workspace that names its default slot
+slotContentExamples:
+  cardExamplesBasic__children:
+    elements:
+      content:
+        instanceOf: layout
+        propConfigurations: { direction: VERTICAL, padding: 1x }
+    layout:
+      - image
+      - content:
+          - title
+```
+
+The emitted stories are the same either way — `<Layout direction="VERTICAL" padding="1x"><Title …/></Layout>` — which is the point: the convention changes how the spec reads, not what the code does. A slot that is **not** the default one still arrives as a `$slotContent` reference in `propConfigurations`, and a story can carry both at once.
 
 ### Figma
 

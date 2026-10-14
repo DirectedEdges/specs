@@ -20,9 +20,12 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { writeAtomic } from './writeAtomic.js';
-import type { Transformer, TransformerContext } from '../Types/Transformer.js';
-import { kebabizePath, reportNameWarnings } from './css/values.js';
+import type { Transformer, TransformerContext } from '../transforms/transformer.js';
+import { kebabizePath } from './css/values/tokens.js';
+import { reportNameWarnings } from './css/values/nameWarnings.js';
+import { recordExternalWrite } from './externalWrites.js';
 import { loadFoundations, type FoundationsData } from '../utilities/loadFoundations.js';
+import { SectionedFile } from '../utilities/sectionedFile.js';
 
 type Json = Record<string, any>;
 
@@ -89,12 +92,22 @@ export class CssvarsTransformer implements Transformer {
     const variablePaths = entries.filter(f => f.endsWith('.variables.json')).map(f => path.join(dataDir, f));
     const stylePaths = entries.filter(f => f.endsWith('.styles.json')).map(f => path.join(dataDir, f));
     const filePaths = entries.filter(f => f.endsWith('.file.json')).map(f => path.join(dataDir, f));
-    if (variablePaths.length === 0 && filePaths.length === 0) {
-      console.warn(`  [cssvars] no *.variables.json or *.file.json in ${dataDir} — skipping`);
+    // Page-split payloads (specs#563): assemble every page — style-definition
+    // recovery walks the whole document by design.
+    const splitAliases = entries
+      .filter(f => f.endsWith('.file') && fs.existsSync(path.join(dataDir, f, 'manifest.json')))
+      .map(f => f.replace(/\.file$/, ''));
+    if (variablePaths.length === 0 && filePaths.length === 0 && splitAliases.length === 0) {
+      console.warn(`  [cssvars] no *.variables.json, *.file.json, or *.file/ in ${dataDir} — skipping`);
       return;
     }
 
     const fileJsons: Json[] = await Promise.all(filePaths.map(p => fs.readJSON(p)));
+    for (const alias of splitAliases) {
+      const sectioned = SectionedFile.open(dataDir, alias);
+      if (!sectioned) continue;
+      fileJsons.push(sectioned.assembleDocument(sectioned.pageEntries().map(e => e.id)).json as Json);
+    }
     const foundations = await loadFoundations(variablePaths, stylePaths, fileJsons[0]);
     // Seed style tables from any additional file JSONs (loadFoundations takes one).
     for (const fj of fileJsons.slice(1)) {
@@ -281,6 +294,16 @@ ${modeBlocks.join('\n\n')}
     await fs.ensureDir(cssvarsDir);
     await writeAtomic(path.join(cssvarsDir, 'cssvars.css'), css);
     await writeAtomic(path.join(cssvarsDir, 'modes.json'), JSON.stringify(modesManifest, null, 2) + '\n');
+    recordExternalWrite('cssvars', {
+      path: 'assets/cssvars/cssvars.css',
+      note:
+        'Every emitted stylesheet reads these custom properties. Load it once, globally — ' +
+        'without it components render unstyled.',
+    });
+    recordExternalWrite('cssvars', {
+      path: 'assets/cssvars/modes.json',
+      note: 'The collections and modes the stylesheet defines, for whatever switches between them.',
+    });
 
     const skippedAliases = skipped.length;
     if (skippedAliases) {

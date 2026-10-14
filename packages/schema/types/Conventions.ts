@@ -109,9 +109,12 @@ export interface PrimitiveRule {
  *
  * Promotion runs during capture, over composed example content only (ADR-074). Several
  * entries may share an `elementType`: a design system with a text, a heading and a body
- * component is three entries, and selection between them is by score — how many of an
- * entry's rules resolve against the element. At least one rule must resolve, so
- * `elementType` alone never promotes.
+ * component is three entries, and selection between them is by one of two rules.
+ *
+ * A declared `match` selects by **name** and takes precedence: where it resolves, that
+ * entry is selected immediately, no score is computed, and no rule in `map` need resolve
+ * (ADR-100). Otherwise selection is by **score** — how many of an entry's rules resolve
+ * against the element — and at least one must, so `elementType` alone never promotes.
  *
  * The target need not itself be a primitive. `elementType` describes the layer shape a
  * promotion starts *from*, not the component it lands on: a component with its own
@@ -128,8 +131,33 @@ export interface PrimitiveEntry {
    */
   elementType: PrimitiveKind;
   /**
+   * Layer-name prefixes selecting this entry, within the entries whose `elementType`
+   * matches the element.
+   *
+   * A name matches when the captured layer's name **starts with** one of these strings —
+   * exact and case-sensitive, with no trimming or normalisation, and nothing read out of
+   * the name. A prefix rather than a whole name because composed content holds many layers
+   * of one kind distinguished by suffix: `Section 1`, `Section 2`, `Section 3` are all a
+   * `Section`.
+   *
+   * An array so a library mid-rename can name both of its conventions (`DS Section` and
+   * `Section`). Where several entries match, the **longest** matching prefix wins — so a
+   * `Section Header` entry outranks a `Section` one — and selection never depends on the
+   * authored order of a keyed map. Two entries declaring the same string is a table defect,
+   * resolved to the first in authored order with a warning naming both components.
+   *
+   * Optional; absence means this entry is selected by score (ADR-100).
+   *
+   * @since 0.35.0
+   */
+  match?: string[];
+  /**
    * The rules turning the layer's styles into this component's props, in precedence
    * order. When two rules write the same prop, the first that resolves wins.
+   *
+   * May be empty for an entry selected by `match` whose every prop is a default: the
+   * entry still promotes, and styling no rule mapped reaches output through the
+   * platform's `stylesProp` as it otherwise would.
    */
   map: PrimitiveRule[];
 }
@@ -171,10 +199,26 @@ export interface PlatformConventions {
    * undefined. Optional; defaults to NONE inside a declared platform entry.
    */
   naming?: 'NONE' | 'SENTENCE' | 'TITLE';
-  /** Glyph content assets. Optional; absence means no glyph naming convention and glyphs are not detected. */
+  /**
+   * Glyph content assets. Optional; absence means no glyph convention and glyphs are not
+   * detected. A declared block must carry at least one form — `match`, `structure`, or
+   * both; membership is the union (a component matching either form is a glyph).
+   */
   glyphs?: {
-    /** Naming pattern identifying glyph assets, using the `{i}` icon-name placeholder (e.g. `"DS Icon Glyph / {i}"`). */
-    match: string;
+    /**
+     * Name form — membership and naming in one pattern over the component name, using the
+     * `{i}` icon-name placeholder (e.g. `"DS Icon Glyph / {i}"`). Optional since 0.35.0;
+     * a library may declare `structure` alone (ADR-103).
+     */
+    match?: string;
+    /**
+     * Structural form — membership from the component's child structure, naming from the
+     * component name (ADR-103). For libraries whose glyph components are plainly named
+     * and carry no name pattern.
+     *
+     * @since 0.35.0
+     */
+    structure?: GlyphStructure;
   };
   /** The code-only props container layer. Optional; absence means no such convention and code-only props are not extracted. */
   codeOnlyProps?: {
@@ -258,6 +302,64 @@ export interface PlatformConventions {
 }
 
 /**
+ * The structural form of the `glyphs` convention (ADR-103).
+ *
+ * Declares the child structure a glyph component has in this library, splitting
+ * membership (the structure) from naming (the component name). A component is a glyph
+ * under this form when every one of its children matches some entry in `children` —
+ * set-cover, exhaustive: a component containing anything besides the declared shapes
+ * is not a glyph. When `fill` is declared, every leaf node matched by the structure
+ * must carry a solid fill that is one of the listed values.
+ *
+ * ```yaml
+ * glyphs:
+ *   structure:
+ *     fill: ['#161616']
+ *     children:
+ *       - type: VECTOR
+ *         name: 'Vector'
+ * ```
+ *
+ * @since 0.35.0
+ */
+export interface GlyphStructure {
+  /**
+   * Naming rule applied to the component name, using the `{i}` placeholder
+   * (e.g. `"{i}Icon"`). Optional; defaults to `"{i}"` — the whole component name is
+   * the glyph name.
+   */
+  name?: string;
+  /**
+   * Accepted leaf fills: a raw color (`"#RRGGBB"`) or a token/variable/style name.
+   * Describes how the library **stores** its glyphs, so it is tested only on a
+   * component's own structure — a placed instance is recolored by its context, and
+   * membership read from an instance mirror skips the fill test. Optional; absence
+   * means fills are not tested.
+   */
+  fill?: string[];
+  /** Node matchers covering the component's children. */
+  children: GlyphStructureNode[];
+}
+
+/**
+ * One node matcher within a {@link GlyphStructure}.
+ *
+ * `type` is an open string carrying a Figma node type (e.g. `'VECTOR'`,
+ * `'BOOLEAN_OPERATION'`), not a closed enum — an unknown type never matches, and the
+ * schema does not chase Figma's node-type catalog (Constitution VI rule 3).
+ *
+ * @since 0.35.0
+ */
+export interface GlyphStructureNode {
+  /** Figma node type this entry matches. */
+  type: string;
+  /** Layer name, literal with `*` wildcard. Optional; absence means any name. */
+  name?: string;
+  /** Matchers covering this node's own children, same set-cover semantics. Optional; absence means children are not tested. */
+  children?: GlyphStructureNode[];
+}
+
+/**
  * A prop named by a convention.
  *
  * An object rather than a bare prop name so a convention can grow properties of
@@ -298,6 +400,22 @@ export interface SpecsConventions {
    * contracts.
    */
   states?: Record<string, VariantStateEntry>;
+  /**
+   * Slot-related naming conventions. Optional; absence means no such convention.
+   *
+   * A spec convention rather than a platform one: the thing named is a `SlotProp` the
+   * spec declares, so a reader holding only the spec can apply it, and every platform
+   * reads the same answer — the same reason `states` sits here.
+   *
+   * @since 0.35.0
+   */
+  slots?: {
+    /** The component's designated default slot — the one slot always composed through. Optional; absence means no default-slot convention. */
+    default?: {
+      /** Naming patterns identifying the default slot prop. A library may name it differently across component families (e.g. `children`, `items`); any pattern matches. */
+      match: string[];
+    };
+  };
   /** Props carrying accessibility semantics no element expresses. */
   accessibility?: {
     /**
@@ -344,6 +462,25 @@ export interface ValueConvention {
 }
 
 /**
+ * Conventions for the workspace Storybook, keyed by concern, each holding
+ * per-feature settings. Most concerns are publish concerns — `color`,
+ * `typography`, `icons`, … — naming how a page presents. `host` is the
+ * exception, and names where the Storybook serves rather than what it shows.
+ *
+ * Both levels are deliberately open (ADR-098): the vocabulary is unstable while
+ * concerns gain pages, so this contract fixes only the file, the concern
+ * keying, and the openness. A concern implementation validates its own feature
+ * values, and ignores an unknown concern or feature only with a warning naming
+ * it — never silently. Adding a concern therefore needs no change here, which
+ * is what the openness is for.
+ *
+ * @since 0.35.0
+ */
+export interface StorybookConventions {
+  [concern: string]: { [feature: string]: unknown };
+}
+
+/**
  * Facts about the libraries a spec was generated from and is generated for, keyed by
  * platform.
  *
@@ -382,6 +519,13 @@ export interface Conventions {
    * Loaded from `conventions/specs.yaml`. @since 0.32.0
    */
   specs?: SpecsConventions;
+  /**
+   * Workspace Storybook conventions — how its pages present, and where it serves.
+   * Loaded from `conventions/storybook.yaml` — the third reserved basename,
+   * after `figma.primitives` and `specs`; no platform may take the id.
+   * Optional; absence means none are declared. @since 0.35.0
+   */
+  storybook?: StorybookConventions;
 }
 
 /**
@@ -403,9 +547,12 @@ export interface Conventions {
 export interface ResolvedPlatformConventions {
   /** Naming convention this platform uses. Defaulted to NONE inside a declared entry. */
   naming: 'NONE' | 'SENTENCE' | 'TITLE';
-  /** Glyph content assets. Optional; absence means no glyph convention. */
+  /** Glyph content assets. Optional; absence means no glyph convention. At least one of `match` / `structure` is declared. */
   glyphs?: {
-    match: string;
+    /** Name form — membership and `{i}` naming capture. Optional since 0.35.0 (ADR-103). */
+    match?: string;
+    /** Structural form — membership from child structure, naming from the component name. @since 0.35.0 */
+    structure?: GlyphStructure;
   };
   /** The code-only props container layer. Optional; absence means no such convention. */
   codeOnlyProps?: {
@@ -455,24 +602,44 @@ export interface ResolvedConventions {
   specs?: SpecsConventions;
   /** Component-keyed promotion entries. Optional; absence means nothing is promoted. @since 0.32.0 */
   primitives?: Record<string, PrimitiveEntry>;
+  /** Workspace Storybook conventions — how its pages present, and where it serves. Optional; absence means none are declared. @since 0.35.0 */
+  storybook?: StorybookConventions;
 }
 
 /**
  * The conventions a spec records in its metadata: the **one** platform entry that
- * produced it.
+ * produced it, and the spec conventions it was produced under.
  *
- * Structurally identical to {@link ResolvedConventions}, and constrained to a single
- * key, but absence means something different here. In a workspace's conventions, a
- * missing platform declares no conventions for that platform. In a spec's metadata, a
- * missing platform did not produce this spec — so recording every platform a workspace
- * happens to configure would both leak vocabulary the spec has no bearing on and make a
- * drift check fire on unrelated changes.
+ * Structurally a subset of {@link ResolvedConventions}, with `platforms` constrained to
+ * a single key, but absence means something different here. In a workspace's
+ * conventions, a missing platform declares no conventions for that platform. In a
+ * spec's metadata, a missing platform did not produce this spec — so recording every
+ * platform a workspace happens to configure would both leak vocabulary the spec has no
+ * bearing on and make a drift check fire on unrelated changes.
+ *
+ * `primitives` and `storybook` are deliberately absent: the promotion table is already
+ * spent by the time a spec exists, and Storybook presentation bears on no reader of one.
  *
  * @since 0.32.0
  */
 export interface MetadataConventions {
   /** Exactly one entry: the platform this spec was produced from. */
   platforms: Record<string, ResolvedPlatformConventions>;
+  /**
+   * Conventions about the spec itself, as the producing run resolved them.
+   *
+   * Recorded for the same reason the platform entry is: a consumer reading the spec
+   * back has to recover the facts it was produced under, and a spec convention is
+   * no more re-derivable from the spec's contents than a platform one. `slots.default`
+   * is the field that requires it — a render resolving a nested instance's default
+   * slot needs the patterns, and the instance's own component spec is not in hand.
+   *
+   * Optional, unlike `platforms`: a run that declared no spec conventions records
+   * none, and absence states exactly that.
+   *
+   * @since 0.35.0
+   */
+  specs?: SpecsConventions;
 }
 
 /**

@@ -8,7 +8,7 @@ description: "Configure which Figma files to fetch and process"
 - `file` — the full Figma document (components, frames, nodes). This is typically your component library file. Required for `generate`.
 - `variables` — Figma variable collections and their values. Used for token resolution during `generate`.
 - `styles` — Figma styles (color, text, effect). Used for style resolution during `generate`.
-- `icons` — the glyph assets matched by [`figma.glyphs.match`](/settings/glyph-name-pattern/), extracted as SVG files. Requires that convention to be declared and the `file` payload to be fetched.
+- `icons` — the glyph assets matched by [`figma.glyphs.match`](/settings/glyphs/), extracted as SVG files. Requires that convention to be declared and the `file` payload to be fetched.
 
 Most projects have one source. You'd add a second when your design system spans more than one Figma file:
 
@@ -35,16 +35,33 @@ data:
 
 The alias (e.g. `library`, `foundations`) is a name you assign to each source. It determines the filenames the CLI writes to `data.directory`:
 
-- `${alias}.file.json` (only if `fetch` includes `file`)
+- `${alias}.file/` — the page-split file payload: `root.json` plus one JSON per Figma page (only if `fetch` includes `file`)
 - `${alias}.variables.json` (only if `fetch` includes `variables`)
 - `${alias}.styles.json` (only if `fetch` includes `styles`)
 
 ## `key`
 
-The Figma file key for this source. Found in the file URL: `figma.com/design/<KEY>/...`.
+The Figma file key for this source, or the file's URL pasted straight from the
+browser — the key is read out of it for you, the same way
+[`--source`](/cli/commands/fetch/#fetching-figma-branches) reads one. A branch
+URL resolves to the branch rather than the file it branches from.
+
+The key is the segment after `/design/` in the URL Figma shows while the file is
+open, if you would rather write it out:
+
+```
+https://www.figma.com/design/PnIKd8F7Y7kaFOTcyaYGuF/Design-System?node-id=0-1
+                             └──────── key ────────┘
+```
+
+A source whose key is missing or unusable fails before anything is downloaded,
+naming the source and what it found there.
 
 - **Type**: string
 - **Required**: yes
+
+A branch URL names two files, and the one you want is the second — see
+[Branch Keys](#branch-keys) below.
 
 ## `fetch`
 
@@ -58,14 +75,29 @@ Which artifact kinds to fetch from this file.
 
 ## Branch Keys
 
-The `key` field accepts either a main file key or a **branch file key**. To fetch from a Figma branch, replace the key with the branch's key (found in the branch URL: `figma.com/design/<KEY>/...`).
+A Figma branch is a file with its own key, so `key` accepts a branch key
+wherever it accepts a main file key. The catch is that a branch's URL contains
+**two** keys, and the branch's own key is the second one — after `/branch/`:
+
+```
+https://www.figma.com/design/PnIKd8F7Y7kaFOTcyaYGuF/branch/QkOXz5n9ugqromA9I87yWF/Design-System?node-id=0-1
+                             └──── main file key ───┘        └──── branch key ────┘
+```
+
+Using the leading key resolves to main, fetches the wrong document, and looks
+entirely successful doing it — so take the key after `/branch/`:
 
 ```yaml
 data:
   sources:
     library:
-      key: BRANCH_FILE_KEY   # fetches from the branch, not main
+      key: QkOXz5n9ugqromA9I87yWF   # the branch, not main
       fetch: ['file', 'variables', 'styles']
 ```
+
+A short-lived branch is usually not worth a config entry at all — pass its URL
+to [`specs fetch --source`](/cli/commands/fetch/#fetching-figma-branches)
+instead, which takes the branch key out of the URL itself. Put a branch in
+`data.sources` only when you fetch it repeatedly over a long life.
 
 Branch data includes unpublished changes — variables, styles, and components that haven't been merged or published to main. See [Fetching Figma Branches](/cli/commands/fetch/#fetching-figma-branches) for implications.

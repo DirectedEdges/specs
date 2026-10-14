@@ -6,8 +6,11 @@
 import type {
   Conventions,
   ResolvedConventions,
+  StorybookConventions,
   MetadataConventions,
   PlatformConventions,
+  GlyphStructure,
+  GlyphStructureNode,
   SpecsConventions,
   PrimitiveKind,
   PrimitiveEntry,
@@ -111,6 +114,19 @@ const entryWithoutMap: PrimitiveEntry = { elementType: 'text' };
 // @ts-expect-error — elementType is closed
 const entryBadKind: PrimitiveEntry = { elementType: 'image', map: [] };
 
+// A layout family indistinguishable by styling is selected by name, and a named entry
+// whose every prop is a default carries no rules at all (ADR-100)
+const namedEntry: PrimitiveEntry = {
+  elementType: 'container',
+  match: ['DS Section', 'Section'],
+  map: [{ source: 'layoutMode', values: { VERTICAL: { direction: 'column' } } }],
+};
+
+const namedEntryNoRules: PrimitiveEntry = { elementType: 'container', match: ['Block'], map: [] };
+
+// @ts-expect-error — match is an array of names, never a single string
+const matchAsString: PrimitiveEntry = { elementType: 'container', match: 'Section', map: [] };
+
 // source is a plain string — the honoured set is documented and implemented, not validated
 // here, so renaming a Styles member never churns a conventions file (ADR-075)
 const dottedSource: PrimitiveRule = { source: 'typography.fontStyle', values: { Bold: { weight: 'Bold' } } };
@@ -131,6 +147,23 @@ const width: PlatformConventions = { defaultFillWidth: 375 };
 // @ts-expect-error — a width is a number, not a CSS length string
 const stringWidth: PlatformConventions = { defaultFillWidth: '375px' };
 
+// ─── slots.default.match (ADR-099) ────────────────────────────────────────────
+
+// A library may name its default slot differently across component families
+const defaultSlot: SpecsConventions = { slots: { default: { match: ['children', 'items'] } } };
+
+// slots is optional; absence means no default-slot convention
+const noDefaultSlot: SpecsConventions = {};
+
+// @ts-expect-error — match is required when default is declared
+const defaultSlotNoMatch: SpecsConventions = { slots: { default: {} } };
+
+// @ts-expect-error — match is a string[], not a bare string (unlike codeOnlyProps.match)
+const defaultSlotBareString: SpecsConventions = { slots: { default: { match: 'children' } } };
+
+// @ts-expect-error — the default slot names a prop the spec declares, not a platform fact
+const platformDefaultSlot: PlatformConventions = { slots: { default: { match: ['children'] } } };
+
 // ─── Resolution guarantees members inside a declared block ────────────────────
 
 declare const resolved: ResolvedConventions;
@@ -146,6 +179,9 @@ const constraints: boolean = platform.slotConstraints;
 const numbers: boolean = platform.inferNumberProps;
 const scope: 'NESTED' | 'PAGE' | undefined = platform.subcomponents?.scope;
 const sourceProps: string[] | undefined = platform.images?.sourceProps;
+
+// slots resolves at the root beside platforms — the prop it names is the spec's, not a platform's
+const slotsMatch: string[] | undefined = resolved.specs?.slots?.default?.match;
 
 // stylesProp survives resolution as a platform member — promotion targets are named by the
 // spec, so there is no per-primitive block to fold it into (ADR-076)
@@ -164,8 +200,17 @@ declare const producing: NonNullable<ResolvedConventions['platforms']>[string];
 
 const meta: MetadataConventions = { platforms: { figma: producing } };
 
+// Spec conventions ride along, so a render can read back a fact it cannot re-derive (ADR-099)
+const metaWithSpecs: MetadataConventions = {
+  platforms: { figma: producing },
+  specs: { slots: { default: { match: ['children'] } } },
+};
+
 // @ts-expect-error — platforms is required in metadata; absence is not expressible
 const metaWithoutPlatforms: MetadataConventions = {};
+
+// @ts-expect-error — the promotion table is spent by the time a spec exists
+const metaWithPrimitives: MetadataConventions = { platforms: { figma: producing }, primitives: {} };
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
@@ -227,10 +272,81 @@ const platformStates: PlatformConventions = { states: { disabled: { prop: 'disab
 export {
   none, noPlatforms, emptyPlatform, figmaEncoding, codePlatforms, permissive, figmaVocabulary,
   oldShape, kinds, imageKind, promotion, platformPrimitives, entryWithoutKind, entryWithoutMap,
-  entryBadKind, dottedSource, ruleWithoutSource, imageBoth,
+  entryBadKind, namedEntry, namedEntryNoRules, matchAsString, dottedSource, ruleWithoutSource, imageBoth,
   width, stringWidth, platformMayBeAbsent, naming, constraints, numbers, scope, sourceProps,
-  platformStyles, resolvedEntry, underResolved, meta,
-  metaWithoutPlatforms, defaults, defaultedPlatform, booleanState, enumState, noProp, badContract,
+  defaultSlot, noDefaultSlot, defaultSlotNoMatch, defaultSlotBareString, platformDefaultSlot,
+  slotsMatch, platformStyles, resolvedEntry, underResolved, meta, metaWithSpecs,
+  metaWithoutPlatforms, metaWithPrimitives,
+  defaults, defaultedPlatform, booleanState, enumState, noProp, badContract,
   specStates, specAccessibility, specValue, specValueOnly, specAll, specNone, specBareString,
   specValueNoProp, platformStates,
 };
+
+
+// ─── Storybook presentation conventions (ADR-098) ────────────────────────────
+
+// Both levels open: any concern key, any feature key, any value shape.
+const storybook: StorybookConventions = {
+  color: { rowGroup: ['Palette'], groupLeaves: false },
+  someFutureConcern: { anything: { nested: [1, 2, 3] } },
+};
+
+// Optional member on both Conventions and ResolvedConventions; absence is fine.
+const withStorybook: Conventions = { storybook };
+const resolvedWithStorybook: ResolvedConventions = { storybook };
+const withoutStorybook: Conventions = {};
+
+// Feature values arrive as `unknown` — a concern implementation must narrow
+// before use; direct use as a specific type must not compile.
+const narrowing = storybook.color.rowGroup;
+// @ts-expect-error unknown is not string[] until the concern validates it
+const asArray: string[] = storybook.color.rowGroup;
+
+// ─── Structural glyph membership (ADR-103) ───────────────────────────────────
+
+// The name form alone — today's declaration, unchanged
+const glyphNameForm: PlatformConventions = {
+  glyphs: { match: 'DS Icon Glyph / {i}' },
+};
+
+// The structural form alone — a plainly named library (Carbon, Primer)
+const glyphStructureForm: PlatformConventions = {
+  glyphs: {
+    structure: {
+      children: [{ type: 'VECTOR', name: 'Vector' }],
+    },
+  },
+};
+
+// Both forms coexist; membership is the union
+const glyphBothForms: PlatformConventions = {
+  glyphs: {
+    match: 'DS Icon Glyph / {i}',
+    structure: { children: [{ type: 'VECTOR' }] },
+  },
+};
+
+// Naming rule over the component name, fill discriminant, and nested matchers
+const glyphFull: GlyphStructure = {
+  name: '{i}Icon',
+  fill: ['#161616', 'DS Color/Icon/Default'],
+  children: [
+    { type: 'BOOLEAN_OPERATION', children: [{ type: 'VECTOR', name: 'Glyph - *' }] },
+  ],
+};
+
+// A node matcher needs only its type; name and children stay optional
+const glyphBareNode: GlyphStructureNode = { type: 'VECTOR' };
+
+// @ts-expect-error — a structure declares its shape; children is required
+const glyphNoChildren: GlyphStructure = { name: '{i}' };
+
+// @ts-expect-error — type is required on a node matcher
+const glyphNodeNoType: GlyphStructureNode = { name: 'Vector' };
+
+// @ts-expect-error — fill is a list, even for a single value
+const glyphScalarFill: GlyphStructure = { fill: '#161616', children: [{ type: 'VECTOR' }] };
+
+// The resolved shape mirrors the declared one, both forms optional
+const resolvedGlyphStructure: GlyphStructure | undefined = platform.glyphs?.structure;
+const resolvedGlyphMatch: string | undefined = platform.glyphs?.match;
