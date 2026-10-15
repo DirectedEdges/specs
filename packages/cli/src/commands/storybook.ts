@@ -102,7 +102,10 @@ const InitCommand = new Command('init')
       console.log('  Storybook, then watches for changes. Start it that way rather than with');
       console.log('  `npm run storybook`: the raw binary prompts for telemetry consent and for a');
       console.log('  fallback port, and backgrounded those prompts exit without starting anything.');
-      console.log('  (`specs storybook dev` serves it without the rest of the chain, if that is what you want.)');
+      // The alternative used to be offered here, which contradicted the setup flow
+      // that bans it by name — two instructions in one terminal scroll, which teaches
+      // distrust of both. `specs storybook dev` still exists and is documented; it is
+      // just not what this output recommends.
       process.exit(ERROR_CODES.SUCCESS);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

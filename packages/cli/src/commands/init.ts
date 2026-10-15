@@ -58,11 +58,18 @@ async function initCommand(options: { force?: boolean; config?: string }): Promi
       fs.writeFileSync(filePath, template, 'utf-8');
       console.log(`✓ Created ${filePath}`);
     }
+    // The chain, not the commands it replaced. This used to end at `specs generate`
+    // and never mention `specs run` or Storybook, so someone working from the terminal
+    // was taught a different workflow from the one the docs and the setup skill teach —
+    // and stopped three steps short of anything they could look at.
     console.log('📚 Next steps:');
-    console.log('   1. Edit the config file to add your Figma file keys');
+    console.log('   1. Edit config/settings.yaml to add your Figma file key');
     console.log('   2. Run: specs fetch');
-    console.log('   3. Run: specs scan');
-    console.log('   4. Run: specs generate');
+    console.log('   3. Run: specs scan — then tick the components you want in the manifest');
+    console.log('   4. Run: specs run — generates specs, emits every platform, and serves Storybook');
+    console.log('');
+    console.log('   `specs run` watches and redoes only what a change affects, so leave it running.');
+    console.log('   For a single pass that exits instead, use: specs build');
     console.log('');
     console.log('📖 Documentation: https://www.specsplugin.com/settings/');
   } catch (error) {
