@@ -445,11 +445,12 @@ async function writeGeneratedOutput(
   }
 
   if (writeResult.warnings.length > 0) {
+    // Overwriting is what a deterministic generator does on every run after the
+    // first, so warning about it warns about the normal case. It was printed on
+    // every regenerate, which taught readers to skim `generate` warnings — and the
+    // other ones matter. One live session nearly missed a real duplicate-anatomy-key
+    // warning because it sat next to this.
     const isOverwriteWarning = (warning: string) => warning.includes('Overwriting existing file');
-    const overwriteCount = writeResult.warnings.filter(isOverwriteWarning).length;
-    if (overwriteCount > 0) {
-      console.log('Warning: Overwrote existing file(s)');
-    }
     writeResult.warnings.filter(warning => !isOverwriteWarning(warning)).forEach(warning => console.log(warning));
   }
 

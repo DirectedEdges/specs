@@ -19,6 +19,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 104 | Roles on a Collapsed Root — `childRole` Says Which Layer Was Annotated | A collapsed element records which of its two Figma layers carried a role: `role` the component node, `childRole` the collapsed child, both means both |
 | 103 | Structural Glyph Membership — `glyphs.structure` Convention | `glyphs` gains a structural membership form — child shapes + stored fill, named from the component name; a glyph cannot have properties |
 | 101 | The Workspace Stage Graph | `specs build` runs the chain once; `specs run` watches and re-runs from what changed. One process, so one license check per run, not four |
 | 100 | `PrimitiveEntry.match` — Promoting a Layer by Its Name, Short-Circuiting Style Scoring | Adds `PrimitiveEntry.match` — layer-name prefixes selecting a promotion entry ahead of style scoring; longest prefix wins |

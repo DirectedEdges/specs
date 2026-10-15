@@ -94,6 +94,26 @@ elements:
 
 As with a leaf, `$extensions.com.figma.name` carries the surviving layer's Figma name so the source layer remains traceable.
 
+## Roles on a collapsed root
+
+A collapse turns two Figma layers into one anatomy element, and either layer may carry a `role:` annotation. The element records which one did, because render has to put each annotation back on the layer it came from:
+
+- `role` — the **component node** was annotated.
+- `$extensions.com.figma.childRole` — the **collapsed child** was annotated.
+
+Four cases, and the pair distinguishes all four:
+
+| `role` | `childRole` | Annotated in Figma | Render writes back to |
+|---|---|---|---|
+| present | absent | the component node | the component node |
+| absent | present | the collapsed child | the recreated child |
+| present | present | both layers | both layers |
+| absent | absent | neither | neither |
+
+`childRole` is recorded whenever the child was annotated, **even when both layers name the same concept**. Omitting it in that case would make "both were annotated" indistinguishable from "only the root was", and render would drop the child's annotation.
+
+The child's role is deliberately **not** merged into `role`, for the same reason: merging makes the child-only case look like the two-role case. The cost is that **a role annotated on a collapsing component's child emits no code** — only `role` reaches React and Web Components. To make a role affect generated output on a component that collapses, annotate the component node, or set `collapsePrimitiveWrapper: false` for that library.
+
 ## Options
 
 - **Type**: boolean

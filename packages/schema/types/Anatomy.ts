@@ -45,6 +45,23 @@ export interface FigmaAnatomyElementExtension {
    * @since 0.30.0 — renamed from `originalName`
    */
   name?: string;
+  /**
+   * A role annotated on the layer that primitive-wrapper collapse folded into this
+   * element, rather than on the element itself.
+   *
+   * Collapse leaves one anatomy element where Figma has two layers, so a role has to
+   * say which layer carried it. `role` means the root did, this means the collapsed
+   * child did, and both present means both did. Render reads the pair to put each
+   * annotation back on the layer it came from; without the distinction a round trip
+   * silently moves it to the other layer.
+   *
+   * It is deliberately not merged into `role`. Merging would make the two-role case
+   * indistinguishable from the child-only case, which is exactly the pair render has
+   * to tell apart. The cost is that a role annotated on a collapsing component's child
+   * reaches no emitted code — to affect code, annotate the component node.
+   * @since 0.36.0
+   */
+  childRole?: RoleConceptName | RoleConceptName[];
 }
 
 /**
