@@ -142,7 +142,7 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Install Specs CLI
+      - name: Install Spectacular CLI
         run: npm install -g @directededges/specs-cli
 
       - name: Fetch Figma data
@@ -166,7 +166,7 @@ jobs:
 
 **Secrets Required:**
 - `FIGMA_TOKEN` - Figma Personal Access Token
-- `SPECS_LICENSE_KEY` - Specs license key (optional, for Pro features)
+- `SPECS_LICENSE_KEY` - Spectacular license key (optional, for Pro features)
 
 To bring the emitted platform trees and Storybook up to date in the same run, replace the generate step with [`specs build`](/cli/commands/build/) *(experimental)*. It runs generate and everything downstream of it, and exits non-zero at the first step that fails:
 

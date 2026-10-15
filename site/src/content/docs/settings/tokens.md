@@ -81,7 +81,7 @@ The full shape adds raw Figma provenance under `$extensions`. For variables the 
 
 ### CUSTOM
 
-`CUSTOM` substitutes your own token shapes for Specs' built-in ones. Before generating, run [`applyCustomTokens`](/cli/commands/apply-custom-tokens/) to inject a `$custom` object onto each variable and style in your fetched data; when `CUSTOM` is active, that object becomes the property value verbatim. References that never received a `$custom` object fall back to the `TOKEN_FIGMA_EXTENSIONS` shape.
+`CUSTOM` substitutes your own token shapes for Spectacular's built-in ones. Before generating, run [`applyCustomTokens`](/cli/commands/apply-custom-tokens/) to inject a `$custom` object onto each variable and style in your fetched data; when `CUSTOM` is active, that object becomes the property value verbatim. References that never received a `$custom` object fall back to the `TOKEN_FIGMA_EXTENSIONS` shape.
 
 ```json
 {
