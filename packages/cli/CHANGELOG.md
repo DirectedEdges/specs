@@ -7,9 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.33.0] - Unreleased
 
-### Added
+### Fixed
+
+- **Editing a convention now regenerates your specs, not just the reports and the code built from them.** `scan` and `generate` did not watch `config/`, so a convention change re-ran the analysis and both platform trees against specs written under the old convention — a pass that looked clean and emitted from stale input. Declaring a glyphs convention needed a manual `specs generate` to take effect; it no longer does. A convention edit re-derives the manifest from Figma's dev status, the same as new data arriving, so `settings.curation.preserveManualSelections` applies to it too.
+
+- **`specs run` and `specs build` name the steps your workspace has nothing for, and why**, so a chain with three of its six steps reads as a workspace that has not got there yet rather than as a broken run: `not in this workspace: storybook (no Storybook host scaffolded)`.
+
+- **`analyze keys` records in `keys.yaml` whether it measured anything.** Without a `naming` convention there is nothing to measure names against, so every name passes and zero divergence means "not checked" — indistinguishable in the file from a library that round-trips perfectly. `measured` and `namingConvention` now say which, where a reader opening the committed file will see them.
+
+- **`specs generate` no longer warns that it overwrote files.** Overwriting is what it does on every run after the first, and warning about the expected case taught readers to skim the warnings that matter.
 
 ### Changed
+
+- **`specs init` and `specs storybook init` print the chain the docs teach**, ending at `specs run` rather than at `specs generate`, and no longer offering a way of starting Storybook that the setup flow forbids.
+
+- **The role-adoption skills say which page answers which question**, so a first sweep reads the two that carry the judgment and fetches precedence only when a role, a states classification and an action land on the same element. The apply step now names `conceptsInertInUse` as the way to tell a role that could not emit from one that failed to land, and the proposal step's parts checklist covers the slider, progressbar and live-region families.
 
 ### Removed
 
