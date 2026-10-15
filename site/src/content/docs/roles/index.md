@@ -29,6 +29,17 @@ role:button
 Anything the pipeline does not recognize is ignored, so an annotation may hold ordinary
 prose alongside its signals, and existing annotations in a file pick up no new meaning.
 
+**A spec carries the signals it recognizes, and nothing else from the annotation.** Prose,
+review notes, and any other `key:value` line are read and discarded — they stay in the
+Figma file and never reach the spec. So `specs generate` is lossy by design with respect
+to annotations, and the reverse direction can only write back what the spec holds: an
+element's `role` and `actions`. A render reproduces those two and no more.
+
+That is also why the spec cannot tell you about an annotation that failed to land. There
+is no record of what the file said, only of what the spec took from it, so comparing the
+two needs a live read of the Figma file — which [`specs analyze roles`](/cli/analyze/roles/)
+does not do, by design.
+
 Three rules cover components with variants:
 
 - Annotate the **default variant**. Where a layer does not exist there, annotate a variant
@@ -38,12 +49,18 @@ Three rules cover components with variants:
 
 A component *set* carries no layers of its own, so roles go on a component node or below.
 
+### Annotating a component whose root collapses
+
+With [`collapsePrimitiveWrapper`](/settings/collapse-primitive-wrapper/) enabled, a root that wraps a single child is stripped and the child becomes the spec root — two Figma layers, one anatomy element. The spec records which layer each role came from, so the round trip puts it back where it was: `role` for the component node, `$extensions.com.figma.childRole` for the collapsed child.
+
+Only `role` reaches generated code. **Annotate the component node** on a component that collapses; a role on the child is preserved and traceable but emits nothing. The settings page has the full table.
+
 ## Adopting roles across an existing library
 
 A library that predates roles has none, and nothing observable in Figma supplies them — which makes adoption the one part of this system that is neither derivable nor free. Two shipped skills carry it, installed by [`specs skills install`](/cli/commands/skills/):
 
 1. [`specs analyze roles`](/cli/analyze/roles/) measures what you have: which elements declare a role, which are bare and of what type, and which concepts the library has never reached for.
-2. **`specs-cli.roles.propose`** reads those elements, the live components over the [bridge](/cli/commands/bridge/), and this vocabulary, then writes `analysis/roles.proposed.md` — one table for the whole library, a row per element, each with the evidence behind it.
+2. **`specs-cli.roles.propose`** reads those elements, the live components over the [bridge](/cli/commands/bridge/), and this vocabulary, then writes `reports/<YYYY-MM-DD>.roles.proposal.md` — one table for the whole library, a row per element, each with the evidence behind it.
 3. You mark it up. Every row arrives checked as `[x]`; clearing it to `[ ]` skips that row. There is no third answer, so nothing has to be interpreted later.
 4. **`specs-cli.roles.apply`** adds the approved roles to the Figma file as annotations, one page at a time. The write is additive, so existing notes survive, and an element that already carries a role is left alone.
 5. `specs analyze roles` again, diffed against the first run, shows what landed. Then `specs react` — the sweep proves the annotation arrived, and only the emitted code proves the role did anything.

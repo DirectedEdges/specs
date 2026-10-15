@@ -17,9 +17,9 @@ The CLI installs some dependencies and the private transform packages for you (b
 | Surface | What it is | Where it lives |
 |---|---|---|
 | [**Specs 2**](https://www.figma.com/community/plugin/1549454283615386215/specs-2) | Figma plugin — specs on canvas, spec data on the document | Figma Community |
-| [**`@directededges/specs-cli`**](https://www.npmjs.com/package/@directededges/specs-cli) | 18 commands running the ecosystem plus source for analysis, versions, css, storybook, testing | [`packages/cli/`](packages/cli/) |
-| [**`@directededges/specs-schema`**](https://www.npmjs.com/package/@directededges/specs-schema) | The contract — TypeScript types and JSON Schema | [`packages/schema/`](packages/schema/) |
-| [**Documentation site**](https://www.specsplugin.com) | ~150 pages | Source in [`site/`](site/) |
+| [**`@directededges/specs-cli`**](https://www.npmjs.com/package/@directededges/specs-cli) | 18 commands running the ecosystem plus source for analysis, versions, css, storybook, testing | [`packages/cli/`](https://github.com/DirectedEdges/specs/tree/main/packages/cli/) |
+| [**`@directededges/specs-schema`**](https://www.npmjs.com/package/@directededges/specs-schema) | The contract — TypeScript types and JSON Schema | [`packages/schema/`](https://github.com/DirectedEdges/specs/tree/main/packages/schema/) |
+| [**Documentation site**](https://www.specsplugin.com) | ~150 pages | Source in [`site/`](https://github.com/DirectedEdges/specs/tree/main/site/) |
 | [**`@directededges/specs-from-figma`**](https://www.npmjs.com/package/@directededges/specs-from-figma) | Transform Figma → spec, with Plugin API and REST runtimes | Private, published to npm |
 | [**`@directededges/react-from-specs`**](https://www.npmjs.com/package/@directededges/react-from-specs) | Transform spec → React | Private, published to npm |
 | [**`@directededges/webcomponents-from-specs`**](https://www.npmjs.com/package/@directededges/webcomponents-from-specs) | Transform spec → Web Components (Lit) | Private, published to npm |
@@ -61,13 +61,13 @@ npm install @directededges/specs-schema
 | [Conventions](https://www.specsplugin.com/schema/conventions/) | `Conventions`, `PlatformConventions`, `SpecsConventions`, `ValueConvention` | |
 | [Settings](https://www.specsplugin.com/schema/settings/) | `Settings`, `ResolvedSettings`, `ColorFormat`, `SourceEntry` | |
 
-Exports are type-only but for two runtime constants, `DEFAULT_CONVENTIONS` and `DEFAULT_SETTINGS`. [JSON Schema](packages/schema/schema/) ships five addressable subpaths — `component`, `concern`, `metadata`, `conventions`, `settings` — alongside the [TypeScript types](packages/schema/types/). Every type has a page under [Schema](https://www.specsplugin.com/schema/), and [`CONSTITUTION.md`](packages/schema/CONSTITUTION.md) governs what may change and how.
+Exports are type-only but for two runtime constants, `DEFAULT_CONVENTIONS` and `DEFAULT_SETTINGS`. [JSON Schema](https://github.com/DirectedEdges/specs/tree/main/packages/schema/schema/) ships five addressable subpaths — `component`, `concern`, `metadata`, `conventions`, `settings` — alongside the [TypeScript types](https://github.com/DirectedEdges/specs/tree/main/packages/schema/types/). Every type has a page under [Schema](https://www.specsplugin.com/schema/), and [`CONSTITUTION.md`](https://github.com/DirectedEdges/specs/blob/main/packages/schema/CONSTITUTION.md) governs what may change and how.
 
 *Further reading: [Component contracts and schemas](https://nathanacurtis.substack.com/p/component-contracts-and-schemas).*
 
 ### Decision records
 
-Schema changes are proposed and tracked through Architecture Decision Records in [`adr/`](adr/). Each one records the context, the options considered, and the decision; accepted ADRs publish to the docs site automatically.
+Schema changes are proposed and tracked through Architecture Decision Records in [`adr/`](https://github.com/DirectedEdges/specs/tree/main/adr/). Each one records the context, the options considered, and the decision; accepted ADRs publish to the docs site automatically.
 
 Contributions are welcome. Clone the repo, run `npm install` at the root, and use `npm run build` and `npm test` to validate changes. All packages use Vitest with globals enabled. This repo ships Claude Code skills for the full ADR lifecycle:
 
@@ -77,15 +77,39 @@ Contributions are welcome. Clone the repo, run `npm install` at the root, and us
 | `/specs.adr.implement` | Apply an ADR's type and schema changes to types, schema, tests, and changelog |
 | `/specs.adr.accept` | Validate the implementation, mark the ADR accepted, and update the index |
 
-## Commands
+## Setting up a workspace
+
+Two paths to the same workspace. Neither is a lesser version of the other — the CLI is a command-line tool first, and the agent path drives those same commands.
+
+**Command by command**, following [Getting Started](https://www.specsplugin.com/cli/getting-started/):
 
 ```sh
 npm install -g @directededges/specs-cli
-specs init     # write config/conventions/<platform>.yaml and config/settings.yaml
-specs build    # scan, generate, analyze, emit, publish — the whole workspace, once
+specs init       # write config/conventions/<platform>.yaml and config/settings.yaml
+# add your Figma file key to config/settings.yaml, and FIGMA_TOKEN to .env
+specs fetch      # pull the file, variables, and styles
+specs scan       # write the manifest, then tick the components you want
+specs build      # generate, analyze, emit every platform, publish Storybook — once
 ```
 
-A guided walkthrough lives in [Getting Started](https://www.specsplugin.com/cli/getting-started/), and [`ONBOARDING.md`](ONBOARDING.md) is the same setup driven by Claude Code.
+The first `build` emits every platform, because nothing has said otherwise yet. The trees it creates are then the standing answer: delete `webcomponents/` and later runs stop emitting there. Naming steps explicitly — `--only react` — also counts as saying otherwise.
+
+**With an agent**, three steps:
+
+```sh
+npm install -g @directededges/specs-cli
+specs skills install    # writes the procedures into .claude/skills/
+```
+
+Then tell Claude Code:
+
+```
+Follow the specs-cli.workspace.setup skill to set up a Specs workspace here.
+```
+
+It handles install, config, token setup, fetch, curation, the first build, and a running Storybook — stopping twice: once for which components to spec, once for which of the icon, state and role passes to run. The only prerequisites are Node 20.19+, a Figma file URL, and a Figma personal access token.
+
+## Commands
 
 Two commands do everything in order. The rest are the steps they run, and each reads what the one before it wrote.
 
@@ -205,7 +229,7 @@ Six output sections are drawn on canvas: [Anatomy](https://www.specsplugin.com/p
 - [Roles](https://www.specsplugin.com/roles/) — role concepts, inventory, and precedence
 - [Releases](https://www.specsplugin.com/overview/releases/) — merged schema and CLI changelogs
 
-The site's Decision Records section is generated from [`adr/`](adr/) at build time, so an accepted ADR publishes itself.
+The site's Decision Records section is generated from [`adr/`](https://github.com/DirectedEdges/specs/tree/main/adr/) at build time, so an accepted ADR publishes itself.
 
 ## Further reading
 
@@ -229,7 +253,7 @@ Pro is $10/month. [Purchase a license](https://buy.polar.sh/polar_cl_xnq7zeKLXun
 
 ## Issues
 
-Check the [existing issues](../../issues) before opening a new one. For a bug, include:
+Check the [existing issues](https://github.com/DirectedEdges/specs/issues) before opening a new one. For a bug, include:
 
 - Figma version and operating system
 - Steps to reproduce
@@ -244,8 +268,8 @@ Questions are welcome in the [Slack community](https://join.slack.com/t/directed
 
 | Package | License |
 |---|---|
-| [`packages/schema/`](packages/schema/) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
-| [`packages/cli/`](packages/cli/) | [MIT](packages/cli/LICENSE) |
+| [`packages/schema/`](https://github.com/DirectedEdges/specs/tree/main/packages/schema/) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
+| [`packages/cli/`](https://github.com/DirectedEdges/specs/tree/main/packages/cli/) | [MIT](https://github.com/DirectedEdges/specs/blob/main/packages/cli/LICENSE) |
 
 When extending or reusing the schema, credit **Nathan Curtis**, link to this repository and to the license, and indicate any modifications you made.
 

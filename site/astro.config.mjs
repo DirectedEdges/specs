@@ -74,6 +74,7 @@ export default defineConfig({
           collapsed: true,
           items: [
             { label: 'Overview', slug: 'schema' },
+            { label: 'Document map', slug: 'schema/document-map' },
             { label: 'Decision Records (ADRs)', slug: 'adr' },
             {
               label: 'Parts',
@@ -174,6 +175,18 @@ export default defineConfig({
                 { label: 'dependencies', slug: 'cli/analyze/dependencies' },
                 { label: 'keys', slug: 'cli/analyze/keys' },
                 { label: 'roles', slug: 'cli/analyze/roles' },
+              ],
+            },
+            {
+              // `skills install` is a flat entry above, with the other
+              // commands; this group is one page per skill it installs that
+              // authors something a reviewer has to approve.
+              label: 'Skills',
+              collapsed: true,
+              badge: experimental,
+              items: [
+                { label: 'icons.setup', slug: 'cli/skills/icons-setup' },
+                { label: 'states.setup', slug: 'cli/skills/states-setup' },
               ],
             },
           ],

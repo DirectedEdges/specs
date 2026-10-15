@@ -7,6 +7,8 @@ import { KeysAnalyzer } from '../../../src/analyze/Keys.js';
 
 type KeysYaml = {
   summary: {
+    namingConvention: string | null;
+    measured: boolean;
     totalComponents: number;
     componentsWithDivergence: number;
     totalNames: number;
@@ -204,6 +206,25 @@ describe('KeysAnalyzer', () => {
       if (!await fs.pathExists(file)) return null;
       return yaml.parse(await fs.readFile(file, 'utf-8')) as KeysYaml;
     }
+
+    it('records in the file which convention it measured against', async () => {
+      const result = await runReduced(reduced, { run: 'SENTENCE' });
+      expect(result!.summary.measured).toBe(true);
+      expect(result!.summary.namingConvention).toBe('SENTENCE');
+    });
+
+    it('records in the file that nothing was measured, not only on stdout', async () => {
+      // With no convention every name passes vacuously, so `divergentNames: 0` across
+      // hundreds of names reads as a library that round-trips perfectly. The warning
+      // that says otherwise goes to stdout and is gone by the time anyone opens the
+      // committed artifact. A live workspace reported 0 of 490 this way.
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const result = await runReduced(reduced, { run: 'NONE' });
+      warn.mockRestore();
+      expect(result!.summary.divergentNames).toBe(0);
+      expect(result!.summary.measured).toBe(false);
+      expect(result!.summary.namingConvention).toBe(null);
+    });
 
     it('reads the convention from the run document beside a reduced spec', async () => {
       const result = await runReduced(reduced, { run: 'SENTENCE' });

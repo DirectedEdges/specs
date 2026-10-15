@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`FigmaAnatomyElementExtension.childRole` records a role annotated on the layer wrapper collapse folded into an element**, so `role` keeps meaning the element itself was annotated and a round trip returns each annotation to its own layer. Only `role` reaches emitted code (ADR-104)
+
 ### Changed
 
 ### Removed
