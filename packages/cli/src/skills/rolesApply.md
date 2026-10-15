@@ -81,7 +81,7 @@ This skill decides nothing. Every role it writes came from a Decision cell a hum
    - `lines` is an **array of strings**, one per signal line, joined into a single annotation entry. A role alone is one element: `["role:button"]`. The role is the bare concept, unquoted.
    - `title` fills the messages that come back, including the `unresolved` detail. Send it.
 
-   **A wrong field name reports as `unresolved`, which this procedure treats as fatal.** The handler resolves `key` first and says "the component changed since the proposal was reviewed" when it finds nothing — so a malformed body reads as a stale review rather than a typo. Before halting on `unresolved`, confirm the body matches the shape above.
+   **A malformed body is refused by field name, before anything is resolved.** The error names the position and the field — `components[1].elements[0].lines is required and must be a non-empty array of strings` — so fix the request and send it again. It is not an `unresolved`, and it is not a reason to redo the review.
 
 4. **Apply, one page at a time.** Print the page's component list before writing, then the result table after. Elements are named by anatomy key; the plugin resolves each against the live component at write time, so nothing depends on a node id recorded earlier.
 
