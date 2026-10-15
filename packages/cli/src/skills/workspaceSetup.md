@@ -299,7 +299,7 @@ With exactly one source configured, run:
 specs scan
 ```
 
-**With more than one source, run `scan` once per source and name each one with `--source <alias>` — including the first.** A bare `specs scan` fails when it has more than one source to choose between; it will not silently pick the first:
+**With more than one source, run `scan` once per source and name each one with `--source <alias>` — including the first.** (`scan --source` takes an alias; the same flag on `fetch` does not, which is why other skills warn about it.) A bare `specs scan` fails when it has more than one source to choose between; it will not silently pick the first:
 
 ```
 specs scan --source library
@@ -457,7 +457,7 @@ tell me which you'd like, in any combination:
   [ ] Icons — resolve your icon components to named, reusable assets.
         Changes: your config, plus one more download of just the icons.
 
-  [ ] States — make your CSS use :disabled and :hover instead of data
+  [ ] States — make your CSS use real state selectors instead of data
         attributes, and drop browser-driven props from the generated API.
         Changes: one block in your config. Reversible.
 
@@ -508,7 +508,9 @@ Follow `specs-cli.icons.setup`. It decides which components are the icon set, wr
 
 Two facts it needs that only this flow knows: the icons source was registered with `fetch: [file]` in Step 3c, so its icons are not pulled yet, and the scan manifest from Step 6 is on disk.
 
-When it finishes, show the user the named assets under `assets/icons/`. The chain picks the new data up and re-emits on its own.
+When it finishes, show the user the named assets under `assets/icons/`.
+
+**Run `specs generate` after it, even under a live `specs run`.** The chain watches the file, manifest, variables and styles payloads, but not the glyphs payload the refetch writes — so glyph elements stay untyped until a generate reads them. Everything downstream of generate then re-emits on its own.
 
 If no convention can be established, say so plainly and move to the next item. Do not invent a pattern to get past the step.
 
@@ -573,7 +575,7 @@ Summarize what exists now:
 | `react/`, `webcomponents/` | generated code | **Yes** — so PRs show code diffs too |
 | `assets/` | icons, generated CSS, fonts | **Yes** |
 | `storybook/` | the host — but not its `node_modules/` | **Yes** |
-| `reports/` | proposals the setup skills wrote for review | **No** — working documents, already ignored |
+| `reports/` | proposals the setup skills wrote for review | **No** — working documents, ignored by the `.gitignore` written in Step 4 |
 
 The `.gitignore` written in Step 4 already handles this: `data/` is ignored, `!data/*.manifest.md` is not, and `reports/` is ignored because the setup skills write working documents there rather than outputs.
 

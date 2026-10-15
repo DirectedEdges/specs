@@ -102,7 +102,7 @@ const InitCommand = new Command('init')
       console.log('  Storybook, then watches for changes. Start it that way rather than with');
       console.log('  `npm run storybook`: the raw binary prompts for telemetry consent and for a');
       console.log('  fallback port, and backgrounded those prompts exit without starting anything.');
-      console.log('  Use `specs storybook dev` instead if you want Storybook without the full chain.');
+      console.log('  (`specs storybook dev` serves it without the rest of the chain, if that is what you want.)');
       process.exit(ERROR_CODES.SUCCESS);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

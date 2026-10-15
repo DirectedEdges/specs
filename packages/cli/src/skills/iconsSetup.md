@@ -184,17 +184,25 @@ Say the refetch is coming before you start. On a large icon file it is the slowe
     specs fetch --only <alias>,icons
     ```
 
-    `--only` takes aliases and fetch kinds, so naming both narrows the run to one source's glyphs. **Not `--source`** — that flag is for a file that is not in the config and takes a URL or key, not an alias.
+    `--only` takes aliases and fetch kinds, so naming both narrows the run to one source's glyphs. **Not `fetch --source`** — on `fetch` that flag names a file that is *not* in the config and takes a URL or key. (`scan --source` is different: there it does take an alias.)
 
     **The count it reports is the first real proof.** It should match the population size you proved in step 3, give or take the outliers you named. A number far below it means the convention is narrower than the population; far above means it is claiming components you never examined. Either way, say the two numbers side by side rather than reporting that the fetch succeeded.
 
 14. **Regenerate, and confirm the names landed — this is what makes the claim true.** A convention that matches nothing fails exactly like one that was never written: no error, no warning, and specs that look complete.
 
+    **Run this even under a live `specs run`.** The chain does not watch the glyphs payload the refetch just wrote — only the file, manifest, variables and styles — so nothing re-reads it until a generate does.
+
     ```bash
     specs generate
     ```
 
-    In a spec that places an icon, the element must be `type: glyph` **and** carry a `content` naming the icon. Check both. `type: glyph` with no `content` means the component matched but the name capture produced nothing — a `{i}` in the wrong place, or a `structure.name` that does not fit.
+    In a spec that places an icon, the element must be `type: glyph` **and** resolve to a `content` naming the icon. **The two live in different files.** `api.yaml` carries `type: glyph` in the anatomy and no `content` at all; `content` is per-variant, in `variants.yaml` under `default.elements.<element>.content` — because one element can resolve to different icons across variants, as a checkbox indicator does for checked and indeterminate.
+
+    Measure `content` in `variants.yaml`. Counting it in `api.yaml` returns zero on a working convention and reads as total failure: a real run measured 0 of 23 resolved that way, against a true 22 of 23.
+
+    A glyph with no `content` anywhere can also be correct. An element whose icon the caller supplies — an icon button's `children` — is a glyph slot with nothing to resolve, so exclude those from the count rather than reporting them as misses.
+
+    `type: glyph` with a `content` that is empty rather than absent means the component matched but the name capture produced nothing — a `{i}` in the wrong place, or a `structure.name` that does not fit.
 
     Report the three numbers together: the population you proved, the glyphs the fetch resolved, and the elements now typed `glyph` with a name. Nothing before this step establishes that the convention works; everything before it establishes only that it was plausible.
 

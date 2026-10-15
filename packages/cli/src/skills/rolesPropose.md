@@ -36,7 +36,16 @@ Nothing is written to Figma. The sweep is `specs-cli.roles.apply`, and it runs o
      043ln8eiOoivUN5FicuGCF (ADS Components) — connected
    ```
 
-   That key has to match the `key` of a source in `config/settings.yaml` under `data.sources`. **If it does not match, stop and say so.** Do not read or write anything through the bridge.
+   **A key match is a fast path, not the gate.** When that key equals a `key` under `data.sources` in `config/settings.yaml`, you are in the right file and can continue.
+
+   A mismatch does **not** mean the wrong file. An unsaved Figma document reports an id like `unsaved-1uzd9salubn (DE Library)`, which can never equal a published file key, so key-equality alone would block a correctly-opened file outright.
+
+   **When the key does not match, prove identity by reading instead.** Pick one component whose spec you have, and `/inspect` it with its `pageId` and `nodeId` from `specs/latest.metadata.yaml`:
+
+   - The returned name matches the spec's `title`, and the anatomy keys match the spec's anatomy → **this is the right file.** Continue.
+   - The ids do not resolve, or the component that comes back is something else → **this is the wrong file.** Stop and say which file the bridge reported.
+
+   That is a stronger proof than a key string in both directions: it is one read-only call, it fails closed, and it confirms the file actually contains the components you are about to annotate rather than that someone typed the same key into a config.
 
    "Connected" on its own is not the gate, and treating it as the gate is how a sweep ends up in the wrong Figma file. A bridge left running from earlier work answers exactly like the right one, every request succeeds, the report says `applied`, and the write lands in a file nobody was looking at. Nothing downstream detects it, because the file you meant to annotate is unchanged and still looks like it simply has no roles yet. `settings.spec.roles` must be `true`, or generated specs carry no roles and the before-measure is meaningless rather than zero.
 

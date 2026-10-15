@@ -34,7 +34,16 @@ This skill decides nothing. Every role it writes came from a Decision cell a hum
      043ln8eiOoivUN5FicuGCF (ADS Components) — connected
    ```
 
-   That key has to match the `key` of a source in `config/settings.yaml` under `data.sources`. **If it does not match, stop and say so.** Do not read or write anything through the bridge.
+   **A key match is a fast path, not the gate.** When that key equals a `key` under `data.sources` in `config/settings.yaml`, you are in the right file and can continue.
+
+   A mismatch does **not** mean the wrong file. An unsaved Figma document reports an id like `unsaved-1uzd9salubn (DE Library)`, which can never equal a published file key, so key-equality alone would block a correctly-opened file outright.
+
+   **When the key does not match, prove identity by reading before you write anything.** Pick one component from the proposal and `/inspect` it with its `pageId` and `nodeId`:
+
+   - The returned name matches the spec's `title`, and the anatomy keys match the spec's anatomy → **this is the right file.** Continue.
+   - The ids do not resolve, or something else comes back → **this is the wrong file.** Stop and say which file the bridge reported. Write nothing.
+
+   That is a stronger proof than a key string in both directions: it is one read-only call, it fails closed, and it confirms the file actually contains the components you are about to annotate rather than that someone typed the same key into a config.
 
    "Connected" on its own is not the gate, and treating it as the gate is how a sweep ends up in the wrong Figma file. A bridge left running from earlier work answers exactly like the right one, every request succeeds, the report says `applied`, and the write lands in a file nobody was looking at. Nothing downstream detects it, because the file you meant to annotate is unchanged and still looks like it simply has no roles yet.
 
@@ -46,6 +55,33 @@ This skill decides nothing. Every role it writes came from a Decision cell a hum
    - **Marked `(Not yet supported)`.** These *are* applied — the concept is real vocabulary and the annotation is the point. Nothing emits for it, so expect no change in generated output, and say so rather than letting it read as a failed write.
 
 3. **Group by page.** Each component's page comes from its spec's `metadata.source.pageId`. One `POST /annotate` per page, because a page is the unit a reviewer can watch and stop at.
+
+   The body, literally — do not infer it:
+
+   ```json
+   {
+     "pageId": "42:2",
+     "components": [
+       {
+         "nodeId": "43:2",
+         "title": "Checkbox",
+         "elements": [
+           { "key": "control", "lines": ["role:checkbox"] },
+           { "key": "fieldLabel", "lines": ["role:label"] }
+         ]
+       }
+     ],
+     "conventions": {},
+     "settings": {}
+   }
+   ```
+
+   - `conventions` and `settings` come from `specs/latest.metadata.yaml`, the same pair `/inspect` takes. Omitting them fails the whole request.
+   - `key` is the anatomy key, never a node id or a layer name.
+   - `lines` is an **array of strings**, one per signal line, joined into a single annotation entry. A role alone is one element: `["role:button"]`. The role is the bare concept, unquoted.
+   - `title` fills the messages that come back, including the `unresolved` detail. Send it.
+
+   **A wrong field name reports as `unresolved`, which this procedure treats as fatal.** The handler resolves `key` first and says "the component changed since the proposal was reviewed" when it finds nothing — so a malformed body reads as a stale review rather than a typo. Before halting on `unresolved`, confirm the body matches the shape above.
 
 4. **Apply, one page at a time.** Print the page's component list before writing, then the result table after. Elements are named by anatomy key; the plugin resolves each against the live component at write time, so nothing depends on a node id recorded earlier.
 
