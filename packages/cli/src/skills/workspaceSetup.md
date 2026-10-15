@@ -214,7 +214,10 @@ Write the full `data.sources:` block to `config/settings.yaml` now, replacing th
    # Fetched Figma payloads: large, regenerable with `specs fetch`.
    # The manifest is the exception — it records which components you curated,
    # which is a decision, not an artifact.
-   data/
+   #
+   # `data/*`, not `data/` — git never descends into an excluded directory, so
+   # the negation below would never apply and the manifest would be ignored too.
+   data/*
    !data/*.manifest.md
 
    # Working documents from the setup skills. Proposals, not outputs.

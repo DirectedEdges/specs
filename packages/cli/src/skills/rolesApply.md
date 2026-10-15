@@ -97,7 +97,7 @@ This skill decides nothing. Every role it writes came from a Decision cell a hum
 6. **Prove the round trip.**
 
    ```bash
-   specs fetch --only file
+   specs fetch --only <alias>,file
    ```
    ```bash
    specs generate
@@ -105,6 +105,12 @@ This skill decides nothing. Every role it writes came from a Decision cell a hum
    ```bash
    specs analyze roles
    ```
+
+   Name the alias. `--only` takes `<alias>,<kind>` pairs elsewhere, and a bare kind is unambiguous only while there is one source.
+
+   **Figma's REST payload lags the editor, and the lag is indistinguishable from a failed sweep.** A fetch run straight after the writes can return the file as it was — a live run saw `elementsAnnotated` unchanged at 4 while `/inspect` showed every annotation present, and a second fetch about 90 seconds later returned all 68.
+
+   So an unchanged count is **not** evidence of failure. You know the expected delta before you start: it is the number of rows that reported `applied`. If the count has not moved, wait and refetch, up to about three minutes, before concluding anything. Only a count that stays wrong after that is a finding.
 
    Reading annotations back needs no bridge — the REST payload carries annotation labels. Diff `analysis/roles.yaml` against the copy from before the sweep: the roles that moved are exactly the rows that said so, or something went wrong that no individual page result showed.
 
