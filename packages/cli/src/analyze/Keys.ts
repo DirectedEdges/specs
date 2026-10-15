@@ -77,6 +77,17 @@ interface NameFrequencyEntry {
 
 interface KeysAggregate {
   summary: {
+    /**
+     * The convention the names were measured against, or `null` when none is declared.
+     *
+     * With no convention every name passes vacuously, so `divergentNames: 0` across
+     * hundreds of names means "not measured" rather than "clean" — and the two are
+     * indistinguishable in the file. The warning that says so goes to stdout, which is
+     * gone by the time anyone reads this; the file is what gets committed.
+     */
+    namingConvention: string | null;
+    /** Whether a convention was declared, so the zeroes below mean something. */
+    measured: boolean;
     totalComponents: number;
     componentsWithDivergence: number;
     totalNames: number;
@@ -233,6 +244,10 @@ export class KeysAnalyzer implements Transformer {
 
     return {
       summary: {
+        // The same truthiness `record()` gates on, so the field cannot claim a
+        // measurement the per-name check skipped.
+        namingConvention: this._convention || null,
+        measured: Boolean(this._convention),
         totalComponents: this._components.size,
         componentsWithDivergence: Object.keys(byComponent).length,
         totalNames: this._totalNames,
