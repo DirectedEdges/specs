@@ -26,11 +26,14 @@ The point of the chain is that a change enters at one step and everything after 
 | `data/<alias>.file/` — you ran `specs fetch` | `scan` | scan → generate → analyze → react, webcomponents → storybook |
 | `data/<alias>.manifest.md` — you ticked a checkbox | `generate` | generate → analyze → react, webcomponents → storybook |
 | `data/<alias>.variables.json`, `<alias>.styles.json` | `analyze` | analyze → react, webcomponents → storybook |
+| `assets/icons/` — you ran `specs fetch --only <alias>,icons` | `react`, `webcomponents` | react, webcomponents → storybook |
 | `specs/components/Alert/api.yaml` | `analyze` | analyze → react, webcomponents → storybook, **for Alert only** |
 | `config/` — a convention or setting | `analyze` | analyze → react, webcomponents → storybook, for everything |
 | `storybook/content-overrides/` | `storybook` | storybook publish |
 
 A spec change is narrowed to the component it is inside. A `config/` change is not: one file there decides the shape of every component's output. Deleting a spec folder is not narrowed either — a pass limited to one component never prunes, and the stale emitted directory is exactly what needs removing.
+
+Glyph SVGs enter at the platform steps rather than at `analyze`, because no analysis reads one and no spec changes when they arrive. Declaring a `glyphs` convention and fetching icons therefore re-emits both trees without a rescan. Only the icons directories are watched, never `assets/` itself — the platform steps write `assets/cssvars/`, so watching the parent would make each pass start the next one.
 
 `analyze` is where a spec edit now lands, because it is the first step that reads `specs/`. The narrowing still happens there — the pass knows it was Alert, and passes that to the platform steps — but `analyze` itself ignores it and reads the whole catalogue, because its reports are catalogue-wide. Fetched variables and styles enter here too: refreshing them changes what the unused-token report should say with no spec having changed at all.
 

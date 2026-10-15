@@ -36,6 +36,10 @@ function workspace(parts: {
   /** Sources also fetch variables and styles — the token universe analyze reads. */
   foundations?: boolean;
   preserveManualSelections?: boolean;
+  /** Glyph SVG directories under assets/, as `fetch --only <alias>,icons` writes them. */
+  icons?: string[];
+  /** A target's own asset write, which must not become one of its inputs. */
+  cssvars?: boolean;
 } = {}): Workspace {
   const dataDir = path.join(root, 'data');
   const specsDir = path.join(root, 'specs');
@@ -51,6 +55,8 @@ function workspace(parts: {
   if (parts.webcomponents) fs.ensureDirSync(path.join(root, 'webcomponents', 'src'));
   if (parts.storybook) fs.ensureDirSync(path.join(root, 'storybook', '.storybook'));
   if (parts.config) fs.ensureDirSync(configDir);
+  for (const dir of parts.icons ?? []) fs.ensureDirSync(path.join(root, 'assets', dir));
+  if (parts.cssvars) fs.ensureDirSync(path.join(root, 'assets', 'cssvars'));
 
   return {
     root,
@@ -328,6 +334,31 @@ describe('watchPaths', () => {
     expect(new Set(paths).size).toBe(paths.length);
     expect(paths).toContain(ws.specsDir);
     expect(paths).toContain(path.join(root, 'config'));
+  });
+
+  it('watches the glyph SVGs a target emits icon components from', () => {
+    // An icons fetch changes what the targets should emit with no spec having
+    // changed. Without this the SVGs land and nothing re-emits, so Storybook
+    // keeps showing the icons it had before.
+    const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, config: true, icons: ['icons'] });
+    expect(watchPaths(resolvePlan(ws), ws)).toContain(path.join(root, 'assets', 'icons'));
+  });
+
+  it('watches an ad-hoc source\'s own icons directory too', () => {
+    const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, config: true, icons: ['icons', 'icons-scratch'] });
+    const paths = watchPaths(resolvePlan(ws), ws);
+    expect(paths).toContain(path.join(root, 'assets', 'icons'));
+    expect(paths).toContain(path.join(root, 'assets', 'icons-scratch'));
+  });
+
+  it('never watches assets/ itself — the targets write cssvars into it', () => {
+    // Watching the parent would make each emit start the next one, because
+    // `assets/cssvars/` is a target's own output.
+    const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, config: true, icons: ['icons'], cssvars: true });
+    const paths = watchPaths(resolvePlan(ws), ws);
+    expect(paths).not.toContain(path.join(root, 'assets', 'cssvars'));
+    const target = resolvePlan(ws).steps.find(s => s.id === 'react')!;
+    expect(target.inputs(ws).map(i => i.path)).not.toContain(ws.assetsDir);
   });
 
   it('never watches the workspace root', () => {

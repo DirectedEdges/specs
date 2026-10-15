@@ -71,6 +71,31 @@ function configInput(ws: Workspace): StepInput[] {
   return dir && fs.existsSync(dir) ? [{ path: dir, scope: () => null }] : [];
 }
 
+/**
+ * The glyph SVGs `specs fetch --only <alias>,icons` writes, which the targets read to
+ * emit icon components.
+ *
+ * A fetch that adds or changes an icon changes what the targets should emit, with no
+ * spec having changed — so without this a newly declared `glyphs` convention lands the
+ * SVGs and nothing re-emits. The symptom is a Storybook showing the icons it had before.
+ *
+ * Matched by directory name rather than built from `ws.sources`, because an ad-hoc
+ * source writes to `icons-<alias>` and the library to `icons`.
+ *
+ * Scoped to the icons directories, never `assets/` itself: the targets write
+ * `assets/cssvars/`, so watching the parent would make each pass start the next one.
+ */
+function glyphAssetInputs(ws: Workspace): StepInput[] {
+  if (!fs.existsSync(ws.assetsDir)) return [];
+  return fs
+    .readdirSync(ws.assetsDir)
+    .filter(entry => entry === 'icons' || entry.startsWith('icons-'))
+    .map(entry => path.join(ws.assetsDir, entry))
+    .filter(dir => fs.statSync(dir).isDirectory())
+    // A glyph is referenced by any component, so a change here is never one component's.
+    .map(dir => ({ path: dir, scope: () => null }));
+}
+
 const scan: Step = {
   id: 'scan',
   label: 'scan',
@@ -183,6 +208,7 @@ function targetStep(id: 'react' | 'webcomponents', tree: string): Step {
     inputs: ws => [
       { path: ws.specsDir, scope: changed => specScope(ws.specsDir, changed) },
       ...configInput(ws),
+      ...glyphAssetInputs(ws),
     ],
     outputs: ws => [path.join(ws.root, tree, 'src')],
     async run(context) {
