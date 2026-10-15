@@ -5,6 +5,15 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.36.0] - Unreleased
+
+### Added
+
+### Changed
+
+### Removed
+
+
 ## [0.35.0] - 2026-10-14
 
 **A library declares the slot its nested layouts fill through.** `SpecsConventions.slots.default.match` names it, `SlotProp.defaultSlot` marks the prop that matched, and `MetadataConventions.specs` records the conventions a run used — so a reader holding only a spec can resolve a nested instance's default slot (ADR-099).
