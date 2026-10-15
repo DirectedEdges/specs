@@ -165,6 +165,33 @@ describe('resolvePlan — which steps this workspace has', () => {
     expect(() => resolvePlan(workspace())).toThrow(/nothing to do/);
   });
 
+  it('names the steps this workspace has nothing for, and why', () => {
+    // An inactive step used to be dropped before anything could report it, so a
+    // fresh workspace ran three of six steps and said nothing about the other
+    // three. That reads as a broken run rather than as a workspace that has not
+    // got there yet.
+    const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true });
+    const reasons = Object.fromEntries(resolvePlan(ws).inactive.map(e => [e.step.id, e.reason]));
+    expect(reasons).toEqual({
+      webcomponents: 'no webcomponents/ tree',
+      storybook: 'no Storybook host scaffolded',
+    });
+  });
+
+  it('gives a reason that names the condition, not the remedy', () => {
+    const ws = workspace({ data: ['ds'] });
+    const reasons = Object.fromEntries(resolvePlan(ws).inactive.map(e => [e.step.id, e.reason]));
+    expect(reasons.analyze).toBe('no specs/ yet — generate writes them');
+    expect(reasons.generate).toBe('no manifest yet — scan writes it');
+    expect(reasons.storybook).toBe('no Storybook host scaffolded');
+  });
+
+  it('reports no inactive step once the workspace has every one', () => {
+    const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, webcomponents: true, storybook: true });
+    // `render` is opt-in rather than inactive, so it is excluded, not missing.
+    expect(resolvePlan(ws).inactive).toEqual([]);
+  });
+
   /**
    * A platform tree means two things, and the difference decides whether a first
    * run emits any code at all. Present is "emit here"; absent is either "this

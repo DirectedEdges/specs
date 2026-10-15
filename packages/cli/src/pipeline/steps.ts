@@ -100,6 +100,7 @@ const scan: Step = {
   id: 'scan',
   label: 'scan',
   active: ws => filePayloads(ws).length > 0,
+  inactiveBecause: () => 'no fetched Figma payload in data/',
   // `config/` is an input because the `glyphs` convention decides what this step
   // excludes. Declaring a convention has to re-scan, or the manifest keeps counting
   // glyphs as components.
@@ -132,6 +133,9 @@ const generate: Step = {
   id: 'generate',
   label: 'generate',
   active: ws => filePayloads(ws).some(p => fs.existsSync(p.manifest)),
+  inactiveBecause: ws => filePayloads(ws).length === 0
+    ? 'no fetched Figma payload in data/'
+    : 'no manifest yet — scan writes it',
   // `config/` decides the shape of everything this step writes — keys, naming, slots,
   // glyphs. Without it here, a convention change re-ran `analyze` and both platform
   // trees while the specs they read stayed as they were, so the pass printed a clean
@@ -173,6 +177,7 @@ const analyze: Step = {
   id: 'analyze',
   label: 'analyze',
   active: ws => ws.hasSpecs,
+  inactiveBecause: () => 'no specs/ yet — generate writes them',
   inputs: ws => [
     // Scoped the same way the targets are, even though this step ignores the
     // scope. `analyze` is now the earliest step a spec change enters, and the
@@ -219,6 +224,7 @@ function targetStep(id: 'react' | 'webcomponents', tree: string): Step {
     id,
     label: id,
     active: ws => (id === 'react' ? ws.hasReact : ws.hasWebComponents),
+    inactiveBecause: () => `no ${tree}/ tree`,
     inputs: ws => [
       { path: ws.specsDir, scope: changed => specScope(ws.specsDir, changed) },
       ...configInput(ws),
@@ -244,6 +250,7 @@ const storybook: Step = {
   id: 'storybook',
   label: 'storybook publish',
   active: ws => ws.scaffolded,
+  inactiveBecause: () => 'no Storybook host scaffolded',
   inputs: ws => {
     // `content-overrides/` is an input, not just somewhere a person keeps
     // files. Publish decides whether to write a generated page by whether an
@@ -284,6 +291,7 @@ const render: Step = {
   id: 'render',
   label: 'render',
   active: ws => ws.hasSpecs,
+  inactiveBecause: () => 'no specs/ to render',
   inputs: ws => [{ path: ws.specsDir, scope: changed => specScope(ws.specsDir, changed) }],
   // Writes to Figma, not to disk. Nothing local to suppress.
   outputs: () => [],

@@ -25,6 +25,24 @@ import { entryFor, fromEntry, resolvePlan, watchPaths, writtenBy, type PlanOptio
  */
 const DEBOUNCE_MS = 800;
 
+/**
+ * Name the steps this workspace has nothing for, and why.
+ *
+ * Without this an inactive step is simply absent, and a chain missing half its
+ * steps reads as a broken run rather than as a workspace that has not got there
+ * yet. A fresh workspace ran three of six steps and said nothing about the
+ * other three; the only way to learn the truth was `--dry-run`.
+ *
+ * `render` is left out: it is opt-in, so its absence is already the default and
+ * saying so every run would be noise.
+ */
+function reportInactive(plan: { inactive: Array<{ step: { id: string }; reason: string }> }, who: string): void {
+  const worth = plan.inactive.filter(entry => entry.step.id !== 'render');
+  if (worth.length === 0) return;
+  const named = worth.map(entry => `${entry.step.id} (${entry.reason})`).join(', ');
+  console.log(`[${who}] not in this workspace: ${named}`);
+}
+
 export interface DriveOptions extends PlanOptions {
   configPath?: string;
   verbose?: boolean;
@@ -92,6 +110,7 @@ export async function build(workspace: Workspace, options: DriveOptions = {}): P
 
   console.log(`[specs build] ${describe(plan.steps)}`);
   if (components.length > 0) console.log(`[specs build] limited to: ${components.join(', ')}`);
+  reportInactive(plan, 'specs build');
   if (plan.excluded.length > 0) {
     console.log(`[specs build] not running: ${plan.excluded.map(s => s.id).join(', ')}`);
   }
@@ -134,6 +153,7 @@ export async function run(workspace: Workspace, options: DriveOptions = {}): Pro
   };
 
   console.log(`[specs run] ${describe(plan.steps)}`);
+  reportInactive(plan, 'specs run');
   if (plan.excluded.length > 0) {
     console.log(`[specs run] not running: ${plan.excluded.map(s => s.id).join(', ')}`);
   }

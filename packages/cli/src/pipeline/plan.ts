@@ -19,6 +19,14 @@ export interface Plan {
   steps: Step[];
   /** Steps a workspace has but this run was told to leave out, for reporting. */
   excluded: Step[];
+  /**
+   * Steps this workspace has nothing for, each with why.
+   *
+   * Reported because an absent step is indistinguishable from a broken run.
+   * These were dropped before anything could name them, so a fresh workspace
+   * ran three of six steps and said nothing about the other three.
+   */
+  inactive: Array<{ step: Step; reason: string }>;
 }
 
 function assertKnown(names: string[], flag: string): void {
@@ -75,10 +83,14 @@ export function resolvePlan(workspace: Workspace, options: PlanOptions = {}): Pl
 
   const steps: Step[] = [];
   const excluded: Step[] = [];
+  const inactive: Array<{ step: Step; reason: string }> = [];
 
   for (const step of STEPS) {
     const active = step.active(workspace) || (noPlatformChosen && PLATFORM_STEPS.has(step.id));
-    if (!active) continue;
+    if (!active) {
+      inactive.push({ step, reason: step.inactiveBecause(workspace) });
+      continue;
+    }
 
     // `--only` names exactly what runs, opt-in steps included: naming `render`
     // is as explicit as `--render`.
@@ -97,7 +109,7 @@ export function resolvePlan(workspace: Workspace, options: PlanOptions = {}): Pl
     );
   }
 
-  return { steps, excluded };
+  return { steps, excluded, inactive };
 }
 
 export interface Entry {
