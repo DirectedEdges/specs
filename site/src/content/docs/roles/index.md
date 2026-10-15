@@ -29,6 +29,17 @@ role:button
 Anything the pipeline does not recognize is ignored, so an annotation may hold ordinary
 prose alongside its signals, and existing annotations in a file pick up no new meaning.
 
+**A spec carries the signals it recognizes, and nothing else from the annotation.** Prose,
+review notes, and any other `key:value` line are read and discarded — they stay in the
+Figma file and never reach the spec. So `specs generate` is lossy by design with respect
+to annotations, and the reverse direction can only write back what the spec holds: an
+element's `role` and `actions`. A render reproduces those two and no more.
+
+That is also why the spec cannot tell you about an annotation that failed to land. There
+is no record of what the file said, only of what the spec took from it, so comparing the
+two needs a live read of the Figma file — which [`specs analyze roles`](/cli/analyze/roles/)
+does not do, by design.
+
 Three rules cover components with variants:
 
 - Annotate the **default variant**. Where a layer does not exist there, annotate a variant

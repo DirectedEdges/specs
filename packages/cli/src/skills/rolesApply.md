@@ -88,7 +88,7 @@ This skill decides nothing. Every role it writes came from a Decision cell a hum
    Each element reports one of:
 
    - `applied` — the annotation was appended. Nothing already on the layer was read for content, rewritten, or reordered
-   - `conflict` — the element already carries a role, on this variant or another. Left alone. **Report and continue**: that layer is already authored
+   - `conflict` — the element already carries a role, on this variant or another. Left alone. **Report and continue.** It means *something already wrote this*, not that a human authored it: the check re-inspects the live component at write time, so it also fires on an earlier or interrupted run of this same sweep. **Resuming a partial sweep is expected to report `conflict` for every row already applied** — a wall of them is the sweep working, not the designer having got there first
    - `unresolved` — nothing in the live component keys to that name. **Halt.** The component changed since the proposal was reviewed, so every later page is suspect and the review needs redoing rather than overriding
    - `unsupported` — the element resolved to a node type that cannot hold an annotation. Report and continue
 
