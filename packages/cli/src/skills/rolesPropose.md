@@ -65,7 +65,9 @@ Nothing is written to Figma. The sweep is `specs-cli.roles.apply`, and it runs o
 
    Variant coverage matters for the same reason: a spec's `detectedIn` names a single variant that witnesses the element, not the set it appears in.
 
-5. **Read the vocabulary, in this order.** [Choosing a role](https://www.specsplugin.com/roles/choosing/) first — it is the differentials, which is where most of the judgment comes from. Then the per-role pages for the mechanics of each candidate, which also state **which parts each control accepts and on which element types**; a part proposed onto a type its control does not accept will not resolve. Then [precedence](https://www.specsplugin.com/roles/precedence/).
+5. **Read the vocabulary, in this order.** [Choosing a role](https://www.specsplugin.com/roles/choosing/) first — it is the differentials, which is where most of the judgment comes from. Then the per-role pages for the mechanics of each candidate, which also state **which parts each control accepts and on which element types**; a part proposed onto a type its control does not accept will not resolve.
+
+   Two pages, not three. [Precedence](https://www.specsplugin.com/roles/precedence/) answers one question — how a role, a states classification and an action resolve when they land on the same element — and on a first sweep over a library that carries no roles yet, nothing competes. Fetch it when you hit that collision or when auditing a library that is already annotated. A 64-row first sweep used nothing from it.
 
 6. **Check each control against the parts it accepts.** Do this before writing any proposal, because it is the only pass that can see what is *absent* — an element-by-element walk only ever looks at elements that exist, so a part the design never drew is invisible to it.
 
@@ -79,6 +81,11 @@ Nothing is written to Figma. The sweep is `specs-cli.roles.apply`, and it runs o
    | `disclosure` | `label`, `panel`, `indicator` |
    | `button`, `togglebutton`, `link` | `label`, `description`, `indicator` |
    | `spinbutton` | `label`, `description`, `value`, `increment`, `decrement` |
+   | `slider` | `label`, `description`, `value`, `indicator` |
+   | `progressbar`, `meter` | `label`, `value`, `indicator` |
+   | `status`, `alert` | `label`, `description`, `indicator` |
+
+   The last three rows are the announcement and measurement families, and they were missing from this table while every other family had one — four rows on a live sweep rested on inference where the rest had a checklist. **A control not listed here accepts the value-bearing part set**: `label`, `description`, `value`, `indicator`. Take that as the default rather than proposing nothing, and say in the report that the row came from the default.
 
    An absence resolves one of two ways, and they want different outcomes:
 

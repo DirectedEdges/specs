@@ -120,5 +120,7 @@ This skill decides nothing. Every role it writes came from a Decision cell a hum
    specs react
    ```
 
-   Spot-check one component per concept family: a checkbox should hold a real `<input type="checkbox">` with `htmlFor` and `aria-describedby` wiring, a disclosure an `aria-expanded` button paired by `aria-controls`, a button a real `<button>`. This is also the only check that catches a role marked as supported that is not — a `<div>` where a `<fieldset>` was expected says the concept is Specified rather than Implemented, whatever its page suggests.
+   **Read `summary.conceptsInertInUse` in `analysis/roles.yaml` first.** It lists every concept you applied that emits nothing, with why — `{group: specified, radio: specified, slider: none}`. Those components cannot have changed, so a `<div>` on one of them is the correct outcome and not a finding. Without this the two indistinguishable cases are "the role did nothing because the concept is inert" and "the role did nothing because it failed to land", and you are left inferring which from the markup.
+
+   Then spot-check one component per concept family **among the rest**: a checkbox should hold a real `<input type="checkbox">` with `htmlFor` and `aria-describedby` wiring, a disclosure an `aria-expanded` button paired by `aria-controls`, a button a real `<button>`. A `<div>` on a concept that is *not* in `conceptsInertInUse` is a real failure, and this is the only check that catches it.
 
