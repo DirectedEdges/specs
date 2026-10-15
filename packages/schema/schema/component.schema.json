@@ -241,6 +241,13 @@
                 "name": {
                   "type": "string",
                   "description": "The element's name in Figma. Recorded on any of three triggers: primitive-wrapper collapse promoted this element to root (ADR-058), always and independent of format.figmaKeys; the name fell outside the safe key grammar so format.keys could not represent it losslessly (ADR-066); or the name was already written in the destination format and passed through unformatted, making reversal identity rather than re-derivation (ADR-066). The latter two apply only when format.figmaKeys is not NONE — under NONE, format divergence is not evaluated and this field is absent however the key was derived."
+                },
+                "childRole": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+                  ],
+                  "description": "A role annotated on the layer that primitive-wrapper collapse folded into this element, rather than on the element itself. Collapse leaves one anatomy element where Figma has two layers, so role means the root carried it, childRole means the collapsed child did, and both present means both did. Deliberately not merged into role: merging would make the two-role case indistinguishable from the child-only case, which is the pair render has to tell apart. A role annotated on a collapsing component's child reaches no emitted code."
                 }
               },
               "additionalProperties": false

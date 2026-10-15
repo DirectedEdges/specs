@@ -2,8 +2,8 @@
 
 **Branch**: `104-collapsed-root-roles`
 **Created**: 2026-10-15
-**Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Status**: ACCEPTED
+**Summary**: A `childRole` extension joins `name` on a collapsed element, naming which of its two Figma layers carried a role.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none — extends ADR-058 and ADR-083)*
 
@@ -234,7 +234,7 @@ root:
 
 ## Semver Decision
 
-**Target version**: `0.35.0` — the version of `packages/schema` on the active `release/next` branch this ADR merges into.
+**Target version**: `0.36.0` — the version of `packages/schema` on the active `release/next` branch this ADR merges into.
 
 **Change class**: `MINOR` — for CHANGELOG placement, not a version bump.
 

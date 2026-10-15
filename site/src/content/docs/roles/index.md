@@ -38,6 +38,12 @@ Three rules cover components with variants:
 
 A component *set* carries no layers of its own, so roles go on a component node or below.
 
+### Annotating a component whose root collapses
+
+With [`collapsePrimitiveWrapper`](/settings/collapse-primitive-wrapper/) enabled, a root that wraps a single child is stripped and the child becomes the spec root — two Figma layers, one anatomy element. The spec records which layer each role came from, so the round trip puts it back where it was: `role` for the component node, `$extensions.com.figma.childRole` for the collapsed child.
+
+Only `role` reaches generated code. **Annotate the component node** on a component that collapses; a role on the child is preserved and traceable but emits nothing. The settings page has the full table.
+
 ## Adopting roles across an existing library
 
 A library that predates roles has none, and nothing observable in Figma supplies them — which makes adoption the one part of this system that is neither derivable nor free. Two shipped skills carry it, installed by [`specs skills install`](/cli/commands/skills/):
