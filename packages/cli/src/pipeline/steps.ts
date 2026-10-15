@@ -100,7 +100,13 @@ const scan: Step = {
   id: 'scan',
   label: 'scan',
   active: ws => filePayloads(ws).length > 0,
-  inputs: ws => filePayloads(ws).map(p => ({ path: p.input, scope: () => null })),
+  // `config/` is an input because the `glyphs` convention decides what this step
+  // excludes. Declaring a convention has to re-scan, or the manifest keeps counting
+  // glyphs as components.
+  inputs: ws => [
+    ...filePayloads(ws).map(p => ({ path: p.input, scope: () => null as string[] | null })),
+    ...configInput(ws),
+  ],
   // The manifest is this step's output, so writing it must not start it again.
   // It is also `generate`'s input, which is what makes ticking a checkbox
   // regenerate what it selected.
@@ -126,7 +132,15 @@ const generate: Step = {
   id: 'generate',
   label: 'generate',
   active: ws => filePayloads(ws).some(p => fs.existsSync(p.manifest)),
-  inputs: ws => filePayloads(ws).map(p => ({ path: p.manifest, scope: () => null })),
+  // `config/` decides the shape of everything this step writes — keys, naming, slots,
+  // glyphs. Without it here, a convention change re-ran `analyze` and both platform
+  // trees while the specs they read stayed as they were, so the pass printed a clean
+  // run over stale input. That is how a newly declared `glyphs` convention left glyph
+  // names out of the specs until someone ran `specs generate` by hand.
+  inputs: ws => [
+    ...filePayloads(ws).map(p => ({ path: p.manifest, scope: () => null as string[] | null })),
+    ...configInput(ws),
+  ],
   outputs: ws => [ws.specsDir],
   async run(context) {
     const { runGenerate } = await import('../commands/generate.js');

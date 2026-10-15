@@ -261,8 +261,37 @@ describe('entryFor — which step a changed file belongs to', () => {
     const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, config: true });
     const plan = resolvePlan(ws);
     const entry = entryFor(plan, ws, path.join(root, 'config', 'conventions', 'figma.yaml'));
-    expect(entry?.step.id).toBe('analyze');
     expect(entry?.components).toEqual([]);
+  });
+
+  it('starts a config change at scan, so the specs are rewritten under the new convention', () => {
+    // It used to start at `analyze`, which meant a convention change re-ran the
+    // analysis and both platform trees while the specs they read stayed as they
+    // were — a clean-looking pass over stale input. A newly declared `glyphs`
+    // convention left glyph names out of the specs until someone ran `specs
+    // generate` by hand.
+    const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, config: true });
+    const plan = resolvePlan(ws);
+    const entry = entryFor(plan, ws, path.join(root, 'config', 'conventions', 'figma.yaml'));
+    expect(entry?.step.id).toBe('scan');
+  });
+
+  it('starts a config change at generate when scan is skipped', () => {
+    const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, config: true });
+    const plan = resolvePlan(ws, { skip: ['scan'] });
+    const entry = entryFor(plan, ws, path.join(root, 'config', 'settings.yaml'));
+    expect(entry?.step.id).toBe('generate');
+  });
+
+  it('declares config on every step that reads a convention', () => {
+    // `analyze` and the targets had it; `scan` and `generate` — the two steps that
+    // turn conventions into specs — did not, which is the whole defect.
+    const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, webcomponents: true, storybook: true, config: true });
+    const configDir = path.join(root, 'config');
+    const withConfig = resolvePlan(ws).steps
+      .filter(step => step.inputs(ws).some(input => input.path === configDir))
+      .map(step => step.id);
+    expect(withConfig).toEqual(['scan', 'generate', 'analyze', 'react', 'webcomponents', 'storybook']);
   });
 
   it('ignores emitted code — nothing in the chain reads it', () => {
