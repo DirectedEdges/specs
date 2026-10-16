@@ -11,7 +11,8 @@ layoutMode:
       opens: [itemSpacing, padding, mainAxisAlignment, crossAxisAlignment, wrap]
 width:
   guidelines:
-    - should: "give a composition or other page-scale root a concrete width (`width: 1200`) — `FILL` at a rendered root has no parent to fill and collapses"
+    - should: "give a composition or other page-scale root a concrete width — `FILL` at a rendered root has no parent to fill and collapses"
+      note: "the number is the system's page width, not a default — read it from the system's own compositions or ask; nothing here supplies one"
 position:
   useWhen:
     AUTO: the child participates in the container's flow (default)

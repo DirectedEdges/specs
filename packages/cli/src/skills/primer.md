@@ -127,6 +127,7 @@ Invoke the highest-level skill that covers the task; each one loads its own prer
 |---|---|
 | Set up a new workspace | `specs-cli.workspace.setup` |
 | Author a new component spec | `specs-cli.component.author` |
+| Author a composition spec | `specs-cli.authoring.primer` + its `references/slots-layout.md` §Compositions, with `component.author`'s validate loop — a dedicated `composition.author` skill is pending |
 | Author anything by hand — read this first | `specs-cli.authoring.primer` (rules and references ride it) |
 | Synthesize or revise per-system guidelines | `specs-cli.guidelines.propose` |
 | Propose / apply behavior roles | `specs-cli.roles.propose`, `specs-cli.roles.apply` |

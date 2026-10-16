@@ -13,7 +13,8 @@ type:
     rectangle|ellipse|line|polygon|star: literal vector geometry only
   guidelines:
     - must: "in compositions, instanceExamples, and slot content, author a primitive the library's promotion map covers as that component instance, configured by its mapped props (`config/conventions/<platform>.primitives.yaml`)"
-      never: "author a styled primitive in composed content where a promoted component exists (a `text` card title where `egdsHeading` is mapped)"
+      never: "author a styled primitive in composed content where a promoted component exists (a `text` card title where a heading component is mapped)"
+      note: "no promotion map in the workspace → primitives govern composed content too; this rule is inert, not implied"
       adr: [74, 75]
     - should: "inside a smaller atomic component, favor primitive `text` and `container` elements for its own anatomy — the promotion map governs composed content, not a component's internals (a badge's label is `text`, not `egdsText`)"
     - must: "model a styled block as a `container` (`notch: container; 12x12; rotation 45; position ABSOLUTE; bottom -6; parent clipsContent: false`)"
@@ -22,6 +23,8 @@ instanceOf:
   guidelines:
     - must: "reference a subcomponent as `{$ref: \"#/subcomponents/<key>\"}` — the pointer is internal, always within the same document"
       adr: [30, 94]
+    - must: "spell `instanceOf` as the target's generated component key — grep existing `instanceOf` values or the target's own anatomy references; the folder name is the lowercased form, never the authority (`radioGroupItem`, folder `radiogroupitem`)"
+    - should: "decompose a fixed-anatomy wrapper into its parts when the content needs more repetition than the wrapper's anatomy holds (a three-link trail from `breadcrumbLink` ×2 + `breadcrumbSeparator` ×2 + `breadcrumbCurrent`, not one `breadcrumb` whose api is `props: {}`)"
 role:
   guidelines:
     - must: "give an element at most one `role` — the control or part it *is*; what it *does* goes in `actions`"
