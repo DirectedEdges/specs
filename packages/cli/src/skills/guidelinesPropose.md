@@ -58,10 +58,11 @@ Brief. A status line (`**Status: proposed** · author · date · sources`), one 
 | `foundations/color` | `analysis/styling.byToken.yaml`, `data/cache/variables.yaml`, `config/conventions/<platform>.primitives.yaml` |
 | `foundations/typography` | `styling.byToken.yaml` textStyles, `data/cache/styles.yaml`, the primitives map |
 | `foundations/spacing` | `styling.byToken.yaml` Spacing/Sizing variables, `styling.byComponent.yaml` |
+| `foundations/effects` | `styling.byToken.yaml` effectStyles, `data/cache/styles.yaml` |
 | `components/props` | `analysis/props.yaml` |
 | `components/anatomy` | `analysis/roles.yaml`, `analysis/dependencies.byComponent.yaml`, the primitives map |
 
-A topic not in the table follows the same pattern: name the reports that evidence it, read only those.
+A topic not in the table follows the same pattern: name the reports that evidence it, read only those. Two naming reservations: `guidelines/components/<spec folder key>/` is reserved for **per-component** guidelines — a directory named exactly a component's key — while generic topics (`props`, `anatomy`) share the `components/` area; and `layout` alone names the AST in this toolkit, so flow-and-positioning styling is the topic `foundations/layout-styling`, never `foundations/layout`.
 
 ## Procedure
 

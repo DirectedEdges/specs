@@ -52,7 +52,7 @@ import TEMPLATE_EXAMPLES from './templates/examples.yaml';
 import TEMPLATE_SUPPLEMENTAL from './templates/supplementalRequirements.md';
 import RULES_ANATOMY from './rules/anatomy.yaml';
 import RULES_STYLES from './rules/styles.yaml';
-import RULES_LAYOUT from './rules/layout.yaml';
+import RULES_LAYOUT from './rules/layoutStyling.yaml';
 import RULES_PROPS from './rules/props.yaml';
 import RULES_SLOTS from './rules/slots.yaml';
 
@@ -85,7 +85,7 @@ export const SKILL_ASSETS: SkillAsset[] = [
     files: [
       { path: 'rules/anatomy.yaml', content: RULES_ANATOMY },
       { path: 'rules/styles.yaml', content: RULES_STYLES },
-      { path: 'rules/layout.yaml', content: RULES_LAYOUT },
+      { path: 'rules/layoutStyling.yaml', content: RULES_LAYOUT },
       { path: 'rules/props.yaml', content: RULES_PROPS },
       { path: 'rules/slots.yaml', content: RULES_SLOTS },
     ],
