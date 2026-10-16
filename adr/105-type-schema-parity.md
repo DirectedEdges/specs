@@ -18,6 +18,8 @@ The first full-catalogue run of `specs validate` (project 039) surfaced two plac
 
 The corrections are already implemented and test-verified on `feat/writing-specs`; this ADR records the decision and the principle so the next overlapping union does not repeat it.
 
+One ADR, not two, deliberately: both defects are the same concept — the JSON Schema compilation of a prop union losing the types' discrimination semantics. Missing `required` arrays and a wrong union operator are the two ways that one parity can break; they live in the same file, were found by the same validation run, and resolve under the single principle stated in the Notes.
+
 ---
 
 ## Decision Drivers

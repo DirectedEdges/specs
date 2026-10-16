@@ -4,6 +4,8 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 107 | Schema File Identity and Packaging | (reserved, draft on `feat/writing-specs`) |
+| 106 | Spec Provenance Beyond Figma Capture | (reserved, draft on `feat/writing-specs`) |
 | 105 | Type–Schema Parity for Overlapping Prop Unions | (reserved, draft on `feat/writing-specs`) |
 | 102 | A Default Slot That Accepts a String — Figma TEXT Properties as Composable Children | (reserved, draft on `102-default-text-slots`) |
 | 093 | Composed Dependency Selection Is a Setting | |
