@@ -42,6 +42,8 @@ Positioning is two decisions, made on different elements:
 | One child pinned over/outside the flow (a notch, a badge dot, a close affordance) | Container stays auto-layout; that child gets `position: ABSOLUTE` plus offsets |
 | Freeform canvas placement | Container: `layoutMode: NONE`; every child positioned explicitly |
 
+A decorative shape is usually a primitive anatomy element, not a vector: a tooltip notch is `type: rectangle` with `width`/`height`, `rotation: 45`, `position: ABSOLUTE`, and offsets hanging it past the container's edge (negative offset, container `clipsContent: false`). Placement variants then swap which offset edge is set — null the old edge, set the new one.
+
 Sizing per element: `layoutSizingHorizontal` / `layoutSizingVertical` take the auto-layout sizing vocabulary (`FILL`, `HUG`, `FIXED`); `width`/`height`/min/max constrain the FIXED case. Prefer `HUG`/`FILL` over fixed dimensions wherever the content should drive size — fixed dimensions are the most common authored-layout defect.
 
 ## Slots: one relationship across three files

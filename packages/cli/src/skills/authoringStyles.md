@@ -28,7 +28,7 @@ Properties group by the shape of their value. A property not in this table does 
 | Deep: effects | `effects` | `$token` (a named effect style) or an effects array (`EffectsStyleValue`) — shadows, blurs |
 | Deep: image | `backgroundImage` | `ImageValue` or `$token` (`ImageStyleValue`) |
 | Booleans | `clipsContent`, `wrap`, `locked`, `itemReverseZIndex` | boolean, `$token`, or null (`BooleanStyleValue`) |
-| Bindable boolean | `visible` | boolean, `$token`, `$binding`, or `Conditional` (`BooleanBindableStyleValue`) — the one style a prop may drive directly |
+| Bindable boolean | `visible` | boolean, `$token`, `$binding`, or `Conditional` (`BooleanBindableStyleValue`) — the one style a prop may drive directly. Bind it on nested elements only: a `$binding` on the **root** element's `visible` currently emits broken React (known transform defect), and root show/hide is interaction state that belongs to the behavior layer anyway |
 | Spacing | `itemSpacing` | number when uniform, `{horizontal, vertical}` when the gaps differ, or `$token` (`ItemSpacingStyleValue`) |
 | Strings | `layoutSizingHorizontal`, `layoutSizingVertical`, `primaryAxisSizingMode`, `textAlignVertical`, `strokeAlign` | string or `$token` (`StringStyleValue` / `MixedStringStyleValue`) |
 | Other | `strokeDashPattern`, `aspectRatio` | per their definitions; neither accepts `$token` |
