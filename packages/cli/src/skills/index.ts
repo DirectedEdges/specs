@@ -45,6 +45,7 @@ import AUTHOR_PRIMER from './authoringPrimer.md';
 import AUTHOR_STYLES from './authoringStyles.md';
 import AUTHOR_SLOTS_LAYOUT from './authoringSlotsLayout.md';
 import AUTHOR_COMPONENT from './authorComponent.md';
+import GUIDELINES_PROPOSE from './guidelinesPropose.md';
 import TEMPLATE_API from './templates/api.yaml';
 import TEMPLATE_VARIANTS from './templates/variants.yaml';
 import TEMPLATE_EXAMPLES from './templates/examples.yaml';
@@ -90,6 +91,7 @@ export const SKILL_ASSETS: SkillAsset[] = [
     ],
   },
   { name: 'specs-cli.author.styles', markdown: AUTHOR_STYLES },
+  { name: 'specs-cli.guidelines.propose', markdown: GUIDELINES_PROPOSE },
   { name: 'specs-cli.author.slots-layout', markdown: AUTHOR_SLOTS_LAYOUT },
   {
     name: 'specs-cli.author.component',
