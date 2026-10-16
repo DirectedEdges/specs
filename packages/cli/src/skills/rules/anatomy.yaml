@@ -12,9 +12,10 @@ type:
     vector: literal vector artwork, none of the above
     rectangle|ellipse|line|polygon|star: literal vector geometry only
   guidelines:
-    - must: "author a primitive the library's promotion map covers as that component instance, configured by its mapped props (`config/conventions/<platform>.primitives.yaml`)"
-      never: "author a styled primitive where a promoted component exists (a `text` element with a typography token where `egdsHeading` is mapped)"
+    - must: "in compositions, instanceExamples, and slot content, author a primitive the library's promotion map covers as that component instance, configured by its mapped props (`config/conventions/<platform>.primitives.yaml`)"
+      never: "author a styled primitive in composed content where a promoted component exists (a `text` card title where `egdsHeading` is mapped)"
       adr: [74, 75]
+    - should: "inside a smaller atomic component, favor primitive `text` and `container` elements for its own anatomy — the promotion map governs composed content, not a component's internals (a badge's label is `text`, not `egdsText`)"
     - must: "model a styled block as a `container` (`notch: container; 12x12; rotation 45; position ABSOLUTE; bottom -6; parent clipsContent: false`)"
       never: "use a shape primitive for anything carrying style — background, radius, padding, offsets (`rectangle` as a notch)"
 elements:
