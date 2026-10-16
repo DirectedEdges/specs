@@ -9,9 +9,8 @@ layoutMode:
     HORIZONTAL|VERTICAL:
       opens: [itemSpacing, padding, mainAxisAlignment, crossAxisAlignment, wrap]
 width:
-  rules:
-    page-scale-roots-declare-width:
-      rule: a composition or other page-scale root declares a concrete width; FILL at a rendered root has no parent to fill and collapses to nothing
+  page-scale-roots:
+    should: "give a composition or other page-scale root a concrete width (`width: 1200`) — `FILL` at a rendered root has no parent to fill and collapses"
 position:
   selection:
     AUTO: the child participates in the container's flow (default)
@@ -23,9 +22,9 @@ position:
       adr: 41
     AUTO:
       opens: [layoutSizingHorizontal, layoutSizingVertical]
-  rules:
-    absolute-child-recipe:
-      rule: an ABSOLUTE child pins with offsets; hanging past the edge needs a negative offset and parent clipsContent false
-      adr: 41
-    variants-swap-offset-edges:
-      rule: a placement variant nulls the old offset edge and sets the new one — never stacks both
+  absolute-children:
+    should: "pin an `ABSOLUTE` child with offsets; hanging past the edge takes a negative offset and parent `clipsContent: false` (`bottom: -6`)"
+    adr: 41
+  offset-edges-in-variants:
+    must: "swap offset edges in a placement variant — null the old edge, set the new one (`bottom: null` + `top: -6`)"
+    never: "stack both edges of an axis"

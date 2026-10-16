@@ -1,6 +1,6 @@
 # Judgment rules for api.yaml anatomy.* — keys mirror the schema node they govern.
-# selection: ordered, evaluate top to bottom, first match wins.
-# rules: one entry per rule; rule and example are single lines.
+# selection: ordered, evaluate top to bottom, first match wins. Modalities: must/never
+# hard, should/avoid strong convention, could/warn judgment. adr: the decision's number.
 type:
   selection:
     instance: a component already expresses it
@@ -10,19 +10,17 @@ type:
     container: carries any block styling or layout role
     vector: literal vector artwork, none of the above
     rectangle|ellipse|line|polygon|star: literal vector geometry only
-  rules:
-    library-primitives-first:
-      rule: before authoring a text, glyph, or container primitive, check config/conventions/<platform>.primitives.yaml — a mapped primitive is authored as that component instance configured by its mapped props, never as a styled primitive
-      example: "card title: instance egdsHeading {text, textStyle: Headline S, color: On surface} — not a text element carrying a typography token"
-      adr: [74, 75]
-    styled-blocks-are-containers:
-      rule: a styled block (background, radius, padding, offsets) is a container, never a shape primitive
-      example: "notch: type container; 12x12; rotation 45; position ABSOLUTE; bottom -6; parent clipsContent: false"
+  library-primitives:
+    must: "author a primitive the library's promotion map covers as that component instance, configured by its mapped props (`config/conventions/<platform>.primitives.yaml`)"
+    never: "author a styled primitive where a promoted component exists (a `text` element with a typography token where `egdsHeading` is mapped)"
+    adr: [74, 75]
+  styled-blocks:
+    must: "model a styled block as a `container` (`notch: container; 12x12; rotation 45; position ABSOLUTE; bottom -6; parent clipsContent: false`)"
+    never: "use a shape primitive for anything carrying style — background, radius, padding, offsets (`rectangle` as a notch)"
 elements:
-  rules:
-    no-primitive-wrappers:
-      rule: never author a plain container wrapping a single text or glyph — the primitive is the element; generation collapses such wrappers, authoring never creates them
-      adr: 58
-    no-slot-only-wrappers:
-      rule: never author a container whose only child is a slot — the slot is the content area; both are containers, so the wrapper adds nothing
-      adr: 83
+  primitive-wrappers:
+    never: "author a plain container wrapping a single text or glyph — the primitive is the element (generation collapses such wrappers)"
+    adr: 58
+  slot-only-wrappers:
+    never: "author a container whose only child is a slot — the slot is the content area"
+    adr: 83

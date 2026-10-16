@@ -2,28 +2,25 @@
 # Facts about the styles schema (which properties exist, where $token is legal) live in
 # specs-cli.author.styles; this file carries judgment only.
 reports:
-  rules:
-    consult-styling-reports-before-literals:
-      rule: before styling an element, read analysis/styling.byComponent.yaml for how siblings style the property; a raw literal is a last resort after the primitives promotion map and the token set both come up empty
+  consult-before-literals:
+    should: "read `analysis/styling.byComponent.yaml` for how siblings style a property before authoring it — a raw literal is a last resort after the promotion map and the token set both come up empty"
 tokens:
-  rules:
-    copy-paths-verbatim:
-      rule: token paths are copied exactly from analysis/styling.byToken.yaml — the library's own format, never reformatted
-    prefer-token-over-literal:
-      rule: where the library has a token for a property, a literal is a consistency defect
-    never-fabricate:
-      rule: no suitable token → use a literal and note the gap in the round report; never invent a token name
+  paths:
+    must: "copy token paths exactly as the library spells them, from `analysis/styling.byToken.yaml` (`Color/On surface`, not a reformatted variant)"
+  preference:
+    should: "use a token wherever the library has one for the property — a literal there is a consistency defect"
+  fabrication:
+    never: "invent a token name (`Constants/Spacing/0x half` when no such variable exists)"
+    should: "use a literal and note the gap when no suitable token exists"
 visible:
-  rules:
-    bind-on-nested-elements-only:
-      rule: a $binding on visible belongs on nested elements; root show/hide is interaction state owned by the behavior layer
-      why: a root visible binding also emits broken React today (specs#766)
+  binding-site:
+    must: "bind `visible` on nested elements only — root show/hide is interaction state owned by the behavior layer"
+    never: "put a `$binding` on the root element's `visible` (also emits broken React today — specs#766)"
 layoutSizingHorizontal|layoutSizingVertical:
   when:
     FIXED:
       opens: [width|height, minWidth|minHeight, maxWidth|maxHeight]
     FILL:
       requires: parent layoutMode HORIZONTAL|VERTICAL
-  rules:
-    hug-fill-over-fixed:
-      rule: prefer HUG/FILL so content drives size; FIXED plus width/height only when the design truly fixes the dimension
+  sizing-mode:
+    should: "prefer `HUG`/`FILL` so content drives size; `FIXED` plus `width`/`height` only when the design truly fixes the dimension"

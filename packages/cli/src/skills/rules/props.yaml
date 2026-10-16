@@ -1,12 +1,11 @@
 # Judgment rules for api.yaml props.* — consistency with the catalogue is graded.
 naming:
-  rules:
-    reuse-catalogue-vocabulary:
-      rule: reuse an existing prop name and value set when the concept matches (analysis/props.yaml); never coin a synonym
-    match-value-casing:
-      rule: enum value casing follows the catalogue's existing values (e.g. Capitalized words, sizes XS/S/M/L/XL)
+  vocabulary:
+    should: "reuse an existing prop name and value set when the concept matches (`analysis/props.yaml`)"
+    never: "coin a synonym for a prop the system already has (`text` where the catalogue says `label`)"
+  value-casing:
+    should: "follow the catalogue's enum value casing (Capitalized words; sizes `XS`/`S`/`M`/`L`/`XL`)"
 configuration:
-  rules:
-    null-unsets-absent-inherits:
-      rule: in a configuration, an absent prop key inherits; a null value overrides with unset — they are different statements
-      adr: 80
+  null-vs-absent:
+    warn: "an absent prop key inherits; a `null` value overrides with unset — different statements, not interchangeable"
+    adr: 80
