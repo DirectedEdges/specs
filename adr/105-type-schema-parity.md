@@ -2,7 +2,7 @@
 
 **Branch**: `105-type-schema-parity`
 **Created**: 2026-10-16
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Summary**: *(written at implementation — see `/specs.adr.implement`)*
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
