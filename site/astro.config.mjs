@@ -277,6 +277,7 @@ export default defineConfig({
             { label: 'Consolidating Props', slug: 'guides/consolidating-props' },
             { label: 'Data Layout', slug: 'guides/data-layout' },
             { label: 'Default Slot Content', slug: 'guides/default-slot-content', badge: pro },
+            { label: 'Element Types', slug: 'guides/element-types' },
             { label: 'Icon Glyphs', slug: 'guides/glyph-name-pattern' },
             { label: 'Images', slug: 'guides/images' },
             { label: 'Instance Examples', slug: 'guides/instance-examples', badge: pro },

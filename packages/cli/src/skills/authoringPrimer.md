@@ -71,3 +71,5 @@ In `variants.yaml`, `default.elements` describes **every** anatomy element: `sty
 | Style properties, token placement, Figma style relationships | `specs-cli.author.styles` |
 | Layout trees, auto vs absolute positioning, slots across the three files | `specs-cli.author.slots-layout` |
 | The new-component procedure and templates | `specs-cli.author.component` |
+
+**Modeling rules live on the docs site, not in skills.** The guides at [specsplugin.com/guides](https://specsplugin.com/guides/element-types/) are the durable home for rules about expressing things correctly in data — element-type selection, positioning, slot constraints, key formatting. Skills carry procedure and link to guides; when you learn a new modeling rule, it belongs in a guide page, never appended to a skill file (refresh overwrites them).
