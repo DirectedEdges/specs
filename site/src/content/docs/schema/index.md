@@ -1,6 +1,6 @@
 ---
 title: "Overview"
-description: "Overview of the Specs component schema"
+description: "Overview of the Spectacular component schema"
 ---
 
 The `@directededges/specs-schema` package defines the TypeScript types and JSON Schema for a **component spec** — a structured, platform-agnostic description of a design-system component.

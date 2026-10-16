@@ -1,7 +1,8 @@
 # Site Architecture
 
-Docs site for Specs — Astro 4 + Starlight, published at specsplugin.com, dev
-server at **localhost:4323**. Everything user-facing about how Specs is
+Docs site for Spectacular — Astro 4 + Starlight, published at
+spectacular.systems, dev server at **localhost:4323**. Everything user-facing
+about how Spectacular is
 *intended* to work is documented here; the source remains authoritative for
 what the code *does*. Hand-authored except two generated areas (§ Generated
 content).

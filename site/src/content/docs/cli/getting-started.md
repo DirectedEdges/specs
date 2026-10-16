@@ -1,13 +1,13 @@
 ---
 title: "Getting Started"
 ---
-Specs CLI generates component specifications from your Figma design system. This guide walks you through setup and your first spec generation.
+Spectacular CLI generates component specifications from your Figma design system. This guide walks you through setup and your first spec generation.
 
 :::tip[Using Claude Code?]
 Skip the manual walkthrough. Paste this into Claude Code:
 
 ```
-Onboard me to Specs CLI following the ONBOARDING.md instructions in this repo.
+Onboard me to Spectacular CLI following the ONBOARDING.md instructions in this repo.
 ```
 
 Claude will handle install, config, token setup, fetch, and your first generate — asking only the decisions that actually need you. See [`ONBOARDING.md`](https://github.com/DirectedEdges/specs/blob/main/ONBOARDING.md) in the repo root.
@@ -25,7 +25,7 @@ Claude will handle install, config, token setup, fetch, and your first generate 
 
 ## Step 1: Install
 
-Specs CLI requires **[Node.js 20.19+](https://nodejs.org/)** (Node 22 LTS recommended — the Storybook host `specs storybook init` scaffolds will not start on anything older). Install it if you haven't already, then install Specs CLI globally:
+Spectacular CLI requires **[Node.js 20.19+](https://nodejs.org/)** (Node 22 LTS recommended — the Storybook host `specs storybook init` scaffolds will not start on anything older). Install it if you haven't already, then install Spectacular CLI globally:
 
 ```bash
 npm install -g @directededges/specs-cli
@@ -82,7 +82,7 @@ FIGMA_TOKEN=your_figma_token_here
 
 To create a token, go to [Figma Settings → Tokens](https://www.figma.com/settings/tokens), click **Create a new token**, and select these scopes: `file_metadata:read`, `file_content:read`, `library_assets:read`, `library_content:read`, and `file_variables:read`.
 
-A **license key** is optional — Specs CLI works at a free tier without one. To unlock Pro features, add `SPECS_LICENSE_KEY` to your `.env` file. See [Licensing](/overview/licensing/) for details.
+A **license key** is optional — Spectacular CLI works at a free tier without one. To unlock Pro features, add `SPECS_LICENSE_KEY` to your `.env` file. See [Licensing](/overview/licensing/) for details.
 
 ### Other configuration (optional)
 
