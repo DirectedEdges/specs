@@ -49,6 +49,10 @@ import TEMPLATE_API from './templates/api.yaml';
 import TEMPLATE_VARIANTS from './templates/variants.yaml';
 import TEMPLATE_EXAMPLES from './templates/examples.yaml';
 import TEMPLATE_SUPPLEMENTAL from './templates/supplementalRequirements.md';
+import RULES_ANATOMY from './rules/anatomy.yaml';
+import RULES_STYLES from './rules/styles.yaml';
+import RULES_LAYOUT from './rules/layout.yaml';
+import RULES_PROPS from './rules/props.yaml';
 
 export interface SkillAsset {
   /** Skill directory name under .claude/skills/. */
@@ -73,7 +77,16 @@ export const SKILL_ASSETS: SkillAsset[] = [
   { name: 'specs-cli.roles.apply', markdown: ROLES_APPLY },
   { name: 'specs-cli.states.setup', markdown: STATES_SETUP },
   { name: 'specs-cli.icons.setup', markdown: ICONS_SETUP },
-  { name: 'specs-cli.author.primer', markdown: AUTHOR_PRIMER },
+  {
+    name: 'specs-cli.author.primer',
+    markdown: AUTHOR_PRIMER,
+    files: [
+      { path: 'rules/anatomy.yaml', content: RULES_ANATOMY },
+      { path: 'rules/styles.yaml', content: RULES_STYLES },
+      { path: 'rules/layout.yaml', content: RULES_LAYOUT },
+      { path: 'rules/props.yaml', content: RULES_PROPS },
+    ],
+  },
   { name: 'specs-cli.author.styles', markdown: AUTHOR_STYLES },
   { name: 'specs-cli.author.slots-layout', markdown: AUTHOR_SLOTS_LAYOUT },
   {

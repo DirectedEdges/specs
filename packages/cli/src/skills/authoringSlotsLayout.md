@@ -42,7 +42,7 @@ Positioning is two decisions, made on different elements:
 | One child pinned over/outside the flow (a notch, a badge dot, a close affordance) | Container stays auto-layout; that child gets `position: ABSOLUTE` plus offsets |
 | Freeform canvas placement | Container: `layoutMode: NONE`; every child positioned explicitly |
 
-Element-type selection — including the rule that a styled decorative block (a notch, a badge dot) is a `container`, never a shape primitive — is documented in the [Element Types guide](https://specsplugin.com/guides/element-types/), with the worked notch example. Placement variants then swap which offset edge is set — null the old edge, set the new one.
+Element-type selection — including the rule that a styled decorative block (a notch, a badge dot) is a `container`, never a shape primitive — lives in `rules/anatomy.yaml` beside the primer skill, with the worked notch example; positioning judgments are in `rules/layout.yaml`. Placement variants swap which offset edge is set — null the old edge, set the new one.
 
 Sizing per element: `layoutSizingHorizontal` / `layoutSizingVertical` take the auto-layout sizing vocabulary (`FILL`, `HUG`, `FIXED`); `width`/`height`/min/max constrain the FIXED case. Prefer `HUG`/`FILL` over fixed dimensions wherever the content should drive size — fixed dimensions are the most common authored-layout defect.
 

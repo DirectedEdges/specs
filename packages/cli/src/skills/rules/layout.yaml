@@ -1,0 +1,14 @@
+# Judgment rules for layout trees and positioning — keys are the style properties that govern flow.
+layoutMode:
+  selection:
+    HORIZONTAL|VERTICAL: children flow along an axis — itemSpacing, padding, alignments do the work
+    NONE: freeform — every child positioned explicitly
+position:
+  selection:
+    AUTO: the child participates in the container's flow (default)
+    ABSOLUTE: the child pins over or outside the flow (notch, badge dot, overlay)
+  rules:
+    absolute-child-recipe:
+      rule: an ABSOLUTE child pins with offsets (top/start/end/bottom/centerHorizontalOffset/centerVerticalOffset); hanging past the edge needs a negative offset and parent clipsContent false
+    variants-swap-offset-edges:
+      rule: a placement variant nulls the old offset edge and sets the new one — never stacks both

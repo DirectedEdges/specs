@@ -1,0 +1,20 @@
+# Judgment rules for variants.yaml elements.*.styles — keys are style properties or families.
+# Facts about the styles schema (which properties exist, where $token is legal) live in
+# specs-cli.author.styles; this file carries judgment only.
+tokens:
+  rules:
+    copy-paths-verbatim:
+      rule: token paths are copied exactly from analysis/styling.byToken.yaml — the library's own format, never reformatted
+    prefer-token-over-literal:
+      rule: where the library has a token for a property, a literal is a consistency defect
+    never-fabricate:
+      rule: no suitable token → use a literal and note the gap in the round report; never invent a token name
+visible:
+  rules:
+    bind-on-nested-elements-only:
+      rule: a $binding on visible belongs on nested elements; root show/hide is interaction state owned by the behavior layer
+      why: a root visible binding also emits broken React today (specs#766)
+layoutSizingHorizontal|layoutSizingVertical:
+  rules:
+    hug-fill-over-fixed:
+      rule: prefer HUG/FILL so content drives size; FIXED plus width/height only when the design truly fixes the dimension

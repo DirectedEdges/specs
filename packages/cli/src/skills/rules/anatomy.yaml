@@ -1,0 +1,16 @@
+# Judgment rules for api.yaml anatomy.* — keys mirror the schema node they govern.
+# selection: ordered, evaluate top to bottom, first match wins.
+# rules: one entry per rule; rule and example are single lines.
+type:
+  selection:
+    instance: a component already expresses it
+    text: a text run
+    glyph: a named icon
+    slot: a region consumers fill
+    container: carries any block styling or layout role
+    vector: literal vector artwork, none of the above
+    rectangle|ellipse|line|polygon|star: literal vector geometry only
+  rules:
+    styled-blocks-are-containers:
+      rule: a styled block (background, radius, padding, offsets) is a container, never a shape primitive
+      example: "notch: type container; 12x12; rotation 45; position ABSOLUTE; bottom -6; parent clipsContent: false"
