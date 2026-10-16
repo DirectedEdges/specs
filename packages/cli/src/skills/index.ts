@@ -41,11 +41,21 @@ import ROLES_PROPOSE from './rolesPropose.md';
 import ROLES_APPLY from './rolesApply.md';
 import STATES_SETUP from './statesSetup.md';
 import ICONS_SETUP from './iconsSetup.md';
+import AUTHOR_PRIMER from './authoringPrimer.md';
+import AUTHOR_STYLES from './authoringStyles.md';
+import AUTHOR_SLOTS_LAYOUT from './authoringSlotsLayout.md';
+import AUTHOR_COMPONENT from './authorComponent.md';
+import TEMPLATE_API from './templates/api.yaml';
+import TEMPLATE_VARIANTS from './templates/variants.yaml';
+import TEMPLATE_EXAMPLES from './templates/examples.yaml';
+import TEMPLATE_SUPPLEMENTAL from './templates/supplementalRequirements.md';
 
 export interface SkillAsset {
   /** Skill directory name under .claude/skills/. */
   name: string;
   markdown: string;
+  /** Supporting files emitted beside SKILL.md, path relative to the skill directory. */
+  files?: Array<{ path: string; content: string }>;
 }
 
 /**
@@ -63,4 +73,17 @@ export const SKILL_ASSETS: SkillAsset[] = [
   { name: 'specs-cli.roles.apply', markdown: ROLES_APPLY },
   { name: 'specs-cli.states.setup', markdown: STATES_SETUP },
   { name: 'specs-cli.icons.setup', markdown: ICONS_SETUP },
+  { name: 'specs-cli.author.primer', markdown: AUTHOR_PRIMER },
+  { name: 'specs-cli.author.styles', markdown: AUTHOR_STYLES },
+  { name: 'specs-cli.author.slots-layout', markdown: AUTHOR_SLOTS_LAYOUT },
+  {
+    name: 'specs-cli.author.component',
+    markdown: AUTHOR_COMPONENT,
+    files: [
+      { path: 'templates/api.yaml', content: TEMPLATE_API },
+      { path: 'templates/variants.yaml', content: TEMPLATE_VARIANTS },
+      { path: 'templates/examples.yaml', content: TEMPLATE_EXAMPLES },
+      { path: 'templates/supplementalRequirements.md', content: TEMPLATE_SUPPLEMENTAL },
+    ],
+  },
 ];

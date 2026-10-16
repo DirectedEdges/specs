@@ -1,0 +1,32 @@
+# examples.yaml — documented usages (schema: concern.schema.json#/definitions/SpecExamplesDocument)
+# Optional file. instanceExamples configure the whole component; slotContentExamples
+# are named fills other specs (or this one) point at via $slotContent.
+metadata:
+  concern: examples
+instanceExamples:
+  # A pre-configured usage. Scalars for scalar props; $slotContent for slot props;
+  # $binding is NOT allowed here (documented configuration, not a live binding).
+  default:
+    title: <Example title>
+    propConfigurations:
+      text: <Sample text>
+      appearance: <value>
+# slotContentExamples:
+#   # A self-contained triplet: its own anatomy + elements + layout.
+#   <key>__children__default:
+#     anatomy:
+#       wrapper:
+#         type: container
+#       content:
+#         type: instance
+#         instanceOf: <componentFolderKey>
+#     elements:
+#       wrapper:
+#         styles:
+#           layoutMode: VERTICAL
+#       content:
+#         propConfigurations:
+#           <propOfNestedComponent>: <value>
+#     layout:
+#       - wrapper:
+#           - content
