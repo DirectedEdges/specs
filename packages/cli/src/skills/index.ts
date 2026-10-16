@@ -41,15 +41,16 @@ import ROLES_PROPOSE from './rolesPropose.md';
 import ROLES_APPLY from './rolesApply.md';
 import STATES_SETUP from './statesSetup.md';
 import ICONS_SETUP from './iconsSetup.md';
-import AUTHOR_PRIMER from './authoringPrimer.md';
-import AUTHOR_STYLES from './authoringStyles.md';
-import AUTHOR_SLOTS_LAYOUT from './authoringSlotsLayout.md';
+import AUTHOR_PRIMER from './authorPrimer.md';
+import AUTHOR_STYLES from './authorStyles.md';
+import AUTHOR_SLOTS_LAYOUT from './authorSlotsLayout.md';
 import AUTHOR_COMPONENT from './authorComponent.md';
 import GUIDELINES_PROPOSE from './guidelinesPropose.md';
 import TEMPLATE_API from './templates/api.yaml';
 import TEMPLATE_VARIANTS from './templates/variants.yaml';
 import TEMPLATE_EXAMPLES from './templates/examples.yaml';
 import TEMPLATE_SUPPLEMENTAL from './templates/supplementalRequirements.md';
+import TEMPLATE_GUIDELINES_RULES from './templates/guidelinesRules.yaml';
 import RULES_ANATOMY from './rules/anatomy.yaml';
 import RULES_STYLES from './rules/styles.yaml';
 import RULES_LAYOUT from './rules/layoutStyling.yaml';
@@ -91,7 +92,11 @@ export const SKILL_ASSETS: SkillAsset[] = [
     ],
   },
   { name: 'specs-cli.author.styles', markdown: AUTHOR_STYLES },
-  { name: 'specs-cli.guidelines.propose', markdown: GUIDELINES_PROPOSE },
+  {
+    name: 'specs-cli.guidelines.propose',
+    markdown: GUIDELINES_PROPOSE,
+    files: [{ path: 'templates/rules.yaml', content: TEMPLATE_GUIDELINES_RULES }],
+  },
   { name: 'specs-cli.author.slots-layout', markdown: AUTHOR_SLOTS_LAYOUT },
   {
     name: 'specs-cli.author.component',

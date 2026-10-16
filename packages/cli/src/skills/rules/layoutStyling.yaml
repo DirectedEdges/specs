@@ -1,18 +1,19 @@
-# Judgment rules for layout trees and positioning — keys are the style properties that govern flow.
-# selection: ordered, first match wins. when: property interdependencies — setting the key's
-# value opens (makes meaningful) or requires the listed properties. adr: the decision's number.
+# Judgment rules for flow and positioning styling — keys are the style properties that
+# govern flow. (`layout` alone names the AST in specs; this file is layout *styling*.)
+# useWhen: ordered, first match wins. when: property interdependencies — setting the
+# key's value opens (makes meaningful) or requires the listed properties.
 layoutMode:
-  selection:
+  useWhen:
     HORIZONTAL|VERTICAL: children flow along an axis — itemSpacing, padding, alignments do the work
     NONE: freeform — every child positioned explicitly
   when:
     HORIZONTAL|VERTICAL:
       opens: [itemSpacing, padding, mainAxisAlignment, crossAxisAlignment, wrap]
 width:
-  page-scale-roots:
-    should: "give a composition or other page-scale root a concrete width (`width: 1200`) — `FILL` at a rendered root has no parent to fill and collapses"
+  guidelines:
+    - should: "give a composition or other page-scale root a concrete width (`width: 1200`) — `FILL` at a rendered root has no parent to fill and collapses"
 position:
-  selection:
+  useWhen:
     AUTO: the child participates in the container's flow (default)
     ABSOLUTE: the child pins over or outside the flow (notch, badge dot, overlay)
   when:
@@ -22,9 +23,8 @@ position:
       adr: 41
     AUTO:
       opens: [layoutSizingHorizontal, layoutSizingVertical]
-  absolute-children:
-    should: "pin an `ABSOLUTE` child with offsets; hanging past the edge takes a negative offset and parent `clipsContent: false` (`bottom: -6`)"
-    adr: 41
-  offset-edges-in-variants:
-    must: "swap offset edges in a placement variant — null the old edge, set the new one (`bottom: null` + `top: -6`)"
-    never: "stack both edges of an axis"
+  guidelines:
+    - should: "pin an `ABSOLUTE` child with offsets; hanging past the edge takes a negative offset and parent `clipsContent: false` (`bottom: -6`)"
+      adr: 41
+    - must: "swap offset edges in a placement variant — null the old edge, set the new one (`bottom: null` + `top: -6`)"
+      never: "stack both edges of an axis"

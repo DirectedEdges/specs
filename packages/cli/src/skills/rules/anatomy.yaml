@@ -1,8 +1,9 @@
 # Judgment rules for api.yaml anatomy.* — keys mirror the schema node they govern.
-# selection: ordered, evaluate top to bottom, first match wins. Modalities: must/never
-# hard, should/avoid strong convention, could/warn judgment. adr: the decision's number.
+# useWhen: ordered, evaluate top to bottom, first match wins. guidelines: modality-keyed
+# items — must/never hard, should/avoid strong convention, could/warn judgment.
+# adr: the decision an item projects.
 type:
-  selection:
+  useWhen:
     instance: a component already expresses it
     text: a text run
     glyph: a named icon
@@ -10,17 +11,15 @@ type:
     container: carries any block styling or layout role
     vector: literal vector artwork, none of the above
     rectangle|ellipse|line|polygon|star: literal vector geometry only
-  library-primitives:
-    must: "author a primitive the library's promotion map covers as that component instance, configured by its mapped props (`config/conventions/<platform>.primitives.yaml`)"
-    never: "author a styled primitive where a promoted component exists (a `text` element with a typography token where `egdsHeading` is mapped)"
-    adr: [74, 75]
-  styled-blocks:
-    must: "model a styled block as a `container` (`notch: container; 12x12; rotation 45; position ABSOLUTE; bottom -6; parent clipsContent: false`)"
-    never: "use a shape primitive for anything carrying style — background, radius, padding, offsets (`rectangle` as a notch)"
+  guidelines:
+    - must: "author a primitive the library's promotion map covers as that component instance, configured by its mapped props (`config/conventions/<platform>.primitives.yaml`)"
+      never: "author a styled primitive where a promoted component exists (a `text` element with a typography token where `egdsHeading` is mapped)"
+      adr: [74, 75]
+    - must: "model a styled block as a `container` (`notch: container; 12x12; rotation 45; position ABSOLUTE; bottom -6; parent clipsContent: false`)"
+      never: "use a shape primitive for anything carrying style — background, radius, padding, offsets (`rectangle` as a notch)"
 elements:
-  primitive-wrappers:
-    never: "author a plain container wrapping a single text or glyph — the primitive is the element (generation collapses such wrappers)"
-    adr: 58
-  slot-only-wrappers:
-    never: "author a container whose only child is a slot — the slot is the content area"
-    adr: 83
+  guidelines:
+    - never: "author a plain container wrapping a single text or glyph — the primitive is the element (generation collapses such wrappers)"
+      adr: 58
+    - never: "author a container whose only child is a slot — the slot is the content area"
+      adr: 83

@@ -16,19 +16,10 @@ Per-system rules are the second rules layer. The shipped `rules/*.yaml` beside t
 
 ## rules.yaml format
 
-Every file opens with a structured `meta` header:
+Copy `templates/rules.yaml` beside this skill. Every file opens with a structured `meta` header (topic, status, author, updated, sources), then up to three node kinds:
 
-```yaml
-meta:
-  topic: <area>/<topic>
-  status: proposed        # the ratifier removes this line (or sets ratified)
-  author: <current user>
-  updated: <date>
-  sources:
-    - analysis/<report>.yaml
-```
-
-Below `meta`, top-level keys are concept groups. Inside a group, `selection` is a reserved key (an ordered mapping, first match wins); every other key is a rule id whose value is a map of **modality → statement**:
+- **`useWhen`** — positive usage mappings: the thing, and when to use it, grouped by referent kind (`tokens` as `{$token, $description}` entries, `name`/`type` as `{$prop, $description}` entries, or another kind the topic calls for). `dontUseWhen` is the same shape for explicit negative cases.
+- **`guidelines`** — a list of modality-keyed items:
 
 | Modality | Weight |
 |---|---|
@@ -36,12 +27,11 @@ Below `meta`, top-level keys are concept groups. Inside a group, `selection` is 
 | `should` / `avoid` | strong convention — deviation needs a stated reason |
 | `could` / `warn` | option or caution — judgment applies |
 
-A rule id may pair a positive with its counter-balancing negative — the do/don't form with calibrated weights:
+An item may pair a positive with its counter-balancing negative — the do/don't form with calibrated weights:
 
 ```yaml
-naming:
-  state-props:
-    never: "prefix `is`, `has`, `show`, `can`, or another verb before a state name (`isSelected`)"
+guidelines:
+  - never: "prefix `is`, `has`, `show`, `can`, or another verb before a state name (`isSelected`)"
     should: "name boolean states bare (`selected`, `disabled`)"
 ```
 
