@@ -8,6 +8,11 @@ fills:
       adr: 99
     - must: "author a named fill as a self-contained anatomy+elements+layout triplet in `slotContentExamples`, referenced by `$slotContent`"
       adr: [46, 47, 49]
+constraints:
+  guidelines:
+    - should: "constrain a slot with `minChildren`/`maxChildren` (non-negative integers) and list permitted component type names in `anyOf`"
+      never: "use the retired `minItems`/`maxItems`"
+      adr: [28, 56]
 pointers:
   guidelines:
     - must: "point every `$slotContent` at `#/components/<spec folder key>/slotContentExamples/<name>` (optionally `/subcomponents/<sub>/` in the middle) — the `components` segment names the whole spec-key space, compositions' own fills included"

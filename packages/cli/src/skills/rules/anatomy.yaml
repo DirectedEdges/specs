@@ -18,6 +18,16 @@ type:
     - should: "inside a smaller atomic component, favor primitive `text` and `container` elements for its own anatomy — the promotion map governs composed content, not a component's internals (a badge's label is `text`, not `egdsText`)"
     - must: "model a styled block as a `container` (`notch: container; 12x12; rotation 45; position ABSOLUTE; bottom -6; parent clipsContent: false`)"
       never: "use a shape primitive for anything carrying style — background, radius, padding, offsets (`rectangle` as a notch)"
+instanceOf:
+  guidelines:
+    - must: "reference a subcomponent as `{$ref: \"#/subcomponents/<key>\"}` — the pointer is internal, always within the same document"
+      adr: [30, 94]
+role:
+  guidelines:
+    - must: "give an element at most one `role` — the control or part it *is*; what it *does* goes in `actions`"
+      adr: [67, 87]
+    - should: "name part roles bare and scoped by position (`placeholder`, never `inputPlaceholder`)"
+      adr: 104
 elements:
   guidelines:
     - never: "author a plain container wrapping a single text or glyph — the primitive is the element (generation collapses such wrappers)"
