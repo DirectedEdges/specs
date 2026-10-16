@@ -21,7 +21,7 @@ An authored spec is identical in shape to a generated one: the schema is the sin
 | component | `specs/components/<key>/` | A reusable contract: anatomy, props, variants, examples |
 | composition | `specs/compositions/<key>/` | An arrangement of components: page type, template, pattern |
 
-`<key>` is the camelCase folder key (`tooltip`, `pageHeader`). Keys *inside* a spec follow the workspace's `spec.keys` setting.
+`<key>` is the camelCase folder key (`tooltip`, `pageHeader`) — compositions included, with no kind prefix (`destinationPicker`, never `compositionDestinationPicker`). Keys *inside* a spec follow the workspace's `spec.keys` setting.
 
 ## The three files
 
