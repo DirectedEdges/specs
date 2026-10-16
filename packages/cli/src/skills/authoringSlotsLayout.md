@@ -65,12 +65,10 @@ A fill arrives one of two ways:
 
 | Pointer | Resolves to |
 |---|---|
-| `#/components/<key>/slotContentExamples/<name>` | a named fill in that component's examples file |
+| `#/components/<key>/slotContentExamples/<name>` | a named fill in that spec's examples file |
 | `#/components/<key>/subcomponents/<sub>/slotContentExamples/<name>` | a named fill owned by a subcomponent slice |
-| `#/compositions/<key>` | a composition's top-level triplet |
-| `#/compositions/<key>/slotContent/<name>` | a named fill bundled with a composition |
 
-`<key>` is the spec folder key. `specs validate` resolves every pointer; a dangling one is an error.
+`<key>` is the spec folder key, and the `components` segment names the whole spec-key space — a composition addresses other specs' fills *and its own* through the same form (`#/components/<compositionKey>/slotContentExamples/<name>`). These two forms are the only ones the emitters resolve; the schema also documents `#/compositions/…` pointers, but nothing resolves them today — do not author them. `specs validate` resolves every pointer; a dangling one is an error.
 
 ### Filling another component's slot
 

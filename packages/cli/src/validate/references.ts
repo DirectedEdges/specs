@@ -139,9 +139,13 @@ export function checkReferences(
       const m = SLOT_RE.exec(ref);
       if (m) {
         const [, target, sub, exampleName] = m;
-        const resolved = target === name ? name : resolveComponentName(target);
+        // The `components` pointer segment names the flat spec-key space —
+        // a composition addresses its own fills the same way (observed in
+        // generated data; the emitters' resolver accepts only this form).
+        const resolved = target === name ? name
+          : resolveComponentName(target) ?? (index.compositions.has(target) ? target : undefined);
         if (!resolved) {
-          findings.push({ file, path: `${path}/$slotContent`, message: `component "${target}" is not in this workspace` });
+          findings.push({ file, path: `${path}/$slotContent`, message: `spec "${target}" is not in this workspace` });
         } else {
           const targetSpec = resolved === name ? spec : index.spec(resolved);
           if (!slotExamplesOf(targetSpec, sub).has(exampleName)) {

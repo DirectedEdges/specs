@@ -92,16 +92,19 @@ export function runValidate(options: ValidateOptions): ValidateResult {
 
   // The workspace index reads other specs lazily and caches them — a catalogue
   // run touches each folder once whether it is validated, referenced, or both.
+  // Components and compositions share one spec-key space here, matching the
+  // `#/components/<key>` pointer namespace, which addresses both kinds.
   const parsedCache = new Map<string, ParsedSpec>();
-  const componentDir = layout.dirFor('component');
   const index: WorkspaceIndex = {
     components: new Set(specsByKind.get('component')),
     compositions: new Set(specsByKind.get('composition')),
     spec(name: string): ParsedSpec | undefined {
-      if (!this.components.has(name)) return undefined;
+      const kind = this.components.has(name) ? 'component'
+        : this.compositions.has(name) ? 'composition' : undefined;
+      if (!kind) return undefined;
       let cached = parsedCache.get(name);
       if (!cached) {
-        cached = readSpec(path.join(componentDir, name)).parsed;
+        cached = readSpec(path.join(layout.dirFor(kind), name)).parsed;
         parsedCache.set(name, cached);
       }
       return cached;

@@ -10,3 +10,8 @@ fills:
     named-fills-are-triplets:
       rule: a named fill is a self-contained anatomy+elements+layout triplet in slotContentExamples, referenced by $slotContent
       adr: [46, 47, 49]
+pointers:
+  rules:
+    components-segment-names-the-spec-key-space:
+      rule: every $slotContent pointer uses "#/components/<spec folder key>/slotContentExamples/<name>" (optionally /subcomponents/<sub>/ in the middle) — the components segment addresses compositions too, including a composition's own fills
+      why: the emitters' resolver accepts only these two forms; "#/compositions/..." pointers are schema-documented but resolve nowhere today
