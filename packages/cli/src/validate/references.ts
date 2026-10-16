@@ -1,0 +1,272 @@
+// The reference-integrity layer of `specs validate` — the errors JSON Schema
+// cannot express because they cross nodes, files, or spec folders:
+//
+//   $binding   → a prop declared in the owning scope's props
+//   $slotContent → a slotContentExamples entry, here or in another spec
+//   instanceOf → a component folder in the workspace, or an in-file subcomponent
+//   layout     → element names declared in the anatomy the tree belongs to
+//   elements   → keys declared in that same anatomy
+//   configuration → declared props, with legal values for boolean and enum props
+//
+// A spec has one main scope and one per subcomponent (ADR-091 slices): a
+// `#/props/<name>` pointer inside `subcomponents.<n>` resolves against that
+// subcomponent's own props, never the component's.
+
+import { specFolderKey } from '../utilities/specFolderKey.js';
+
+export interface RefFinding {
+  /** Concern the fact was read from: 'api' | 'variants' | 'examples'. */
+  file: string;
+  /** JSON-pointer-ish path to the offending node. */
+  path: string;
+  message: string;
+}
+
+/** The three parsed concern documents of one spec, any of which may be absent. */
+export interface ParsedSpec {
+  api?: Record<string, unknown>;
+  variants?: Record<string, unknown>;
+  examples?: Record<string, unknown>;
+}
+
+/** What the checks need to know about the rest of the workspace. */
+export interface WorkspaceIndex {
+  /** Component spec folder names. */
+  components: ReadonlySet<string>;
+  /** Composition spec folder names. */
+  compositions: ReadonlySet<string>;
+  /** Parsed concern documents of another component, if its folder exists. */
+  spec(name: string): ParsedSpec | undefined;
+}
+
+const BINDING_RE = /^#\/props\/(.+)$/;
+const SLOT_RE = /^#\/components\/([^/]+)(?:\/subcomponents\/([^/]+))?\/slotContentExamples\/([^/]+)$/;
+const SLOT_COMPOSITION_RE = /^#\/compositions\/([^/]+)(\/|$)/;
+const SUBCOMPONENT_RE = /^#\/subcomponents\/(.+)$/;
+
+type Obj = Record<string, unknown>;
+
+function isObj(v: unknown): v is Obj {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+function objAt(doc: unknown, ...keys: string[]): Obj {
+  let node: unknown = doc;
+  for (const key of keys) node = isObj(node) ? node[key] : undefined;
+  return isObj(node) ? node : {};
+}
+
+/** Element names in a layout tree: leaf strings and parent-node keys alike. */
+function layoutNames(node: unknown, into: Set<string>): void {
+  if (typeof node === 'string') { into.add(node); return; }
+  if (Array.isArray(node)) { for (const child of node) layoutNames(child, into); return; }
+  if (isObj(node)) {
+    for (const [name, children] of Object.entries(node)) {
+      into.add(name);
+      layoutNames(children, into);
+    }
+  }
+}
+
+/** The props and anatomy a pointer inside one document slice resolves against. */
+interface Scope {
+  props: Obj;
+  anatomy: ReadonlySet<string>;
+}
+
+/**
+ * The slotContentExamples names a spec declares, main and per subcomponent.
+ * `undefined` sub means the main set.
+ */
+function slotExamplesOf(spec: ParsedSpec | undefined, sub?: string): Set<string> {
+  const base = sub
+    ? objAt(spec?.examples, 'subcomponents', sub, 'slotContentExamples')
+    : objAt(spec?.examples, 'slotContentExamples');
+  return new Set(Object.keys(base));
+}
+
+/** Check every reference in one spec. `name` is the spec's own folder key. */
+export function checkReferences(
+  name: string,
+  spec: ParsedSpec,
+  index: WorkspaceIndex,
+): RefFinding[] {
+  const findings: RefFinding[] = [];
+
+  const resolveComponentName = (value: string): string | undefined => {
+    if (index.components.has(value)) return value;
+    const key = specFolderKey(value);
+    return key && index.components.has(key) ? key : undefined;
+  };
+
+  const subcomponentNames = new Set<string>();
+  for (const doc of [spec.api, spec.variants, spec.examples]) {
+    for (const k of Object.keys(objAt(doc, 'subcomponents'))) subcomponentNames.add(k);
+  }
+
+  const mainScope: Scope = {
+    props: objAt(spec.api, 'props'),
+    anatomy: new Set(Object.keys(objAt(spec.api, 'anatomy'))),
+  };
+  const subScope = (sub: string): Scope => ({
+    props: objAt(spec.api, 'subcomponents', sub, 'props'),
+    anatomy: new Set(Object.keys(objAt(spec.api, 'subcomponents', sub, 'anatomy'))),
+  });
+
+  /** The scope a path belongs to: `/subcomponents/<n>/…` is that slice's. */
+  const scopeAt = (path: string): Scope => {
+    const m = /^\/subcomponents\/([^/]+)/.exec(path);
+    return m ? subScope(m[1]) : mainScope;
+  };
+
+  // ---- pointer checks, over every node of every concern document ------------
+
+  const visit = (file: string, node: Obj, path: string): void => {
+    if (typeof node.$binding === 'string') {
+      const m = BINDING_RE.exec(node.$binding);
+      if (!m) {
+        findings.push({ file, path: `${path}/$binding`, message: `"${node.$binding}" is not a #/props/<name> pointer` });
+      } else if (!(m[1] in scopeAt(path).props)) {
+        const where = path.startsWith('/subcomponents/') ? 'this subcomponent\'s props' : 'api props';
+        findings.push({ file, path: `${path}/$binding`, message: `prop "${m[1]}" is not declared in ${where}` });
+      }
+    }
+
+    if (typeof node.$slotContent === 'string') {
+      const ref = node.$slotContent;
+      const m = SLOT_RE.exec(ref);
+      if (m) {
+        const [, target, sub, exampleName] = m;
+        const resolved = target === name ? name : resolveComponentName(target);
+        if (!resolved) {
+          findings.push({ file, path: `${path}/$slotContent`, message: `component "${target}" is not in this workspace` });
+        } else {
+          const targetSpec = resolved === name ? spec : index.spec(resolved);
+          if (!slotExamplesOf(targetSpec, sub).has(exampleName)) {
+            const owner = sub ? `"${resolved}" subcomponent "${sub}"` : `"${resolved}"`;
+            findings.push({ file, path: `${path}/$slotContent`, message: `${owner} declares no slotContentExamples "${exampleName}"` });
+          }
+        }
+      } else if (SLOT_COMPOSITION_RE.test(ref)) {
+        const comp = SLOT_COMPOSITION_RE.exec(ref)![1];
+        if (!index.compositions.has(comp)) {
+          findings.push({ file, path: `${path}/$slotContent`, message: `composition "${comp}" is not in this workspace` });
+        }
+      } else {
+        findings.push({ file, path: `${path}/$slotContent`, message: `"${ref}" is not a recognized slot content pointer` });
+      }
+    }
+
+    const inst = node.instanceOf;
+    if (typeof inst === 'string') {
+      if (!resolveComponentName(inst)) {
+        findings.push({ file, path: `${path}/instanceOf`, message: `component "${inst}" is not in this workspace` });
+      }
+    } else if (isObj(inst) && typeof inst.$ref === 'string') {
+      const m = SUBCOMPONENT_RE.exec(inst.$ref);
+      if (!m) {
+        findings.push({ file, path: `${path}/instanceOf/$ref`, message: `"${inst.$ref}" is not a #/subcomponents/<name> pointer` });
+      } else if (!subcomponentNames.has(m[1])) {
+        findings.push({ file, path: `${path}/instanceOf/$ref`, message: `subcomponent "${m[1]}" is not declared in this spec` });
+      }
+    }
+  };
+
+  const walk = (file: string, node: unknown, path: string): void => {
+    if (Array.isArray(node)) {
+      node.forEach((child, i) => walk(file, child, `${path}/${i}`));
+      return;
+    }
+    if (!isObj(node)) return;
+    visit(file, node, path);
+    for (const [key, value] of Object.entries(node)) walk(file, value, `${path}/${key}`);
+  };
+
+  for (const [file, doc] of [['api', spec.api], ['variants', spec.variants], ['examples', spec.examples]] as const) {
+    if (doc) walk(file, doc, '');
+  }
+
+  // ---- anatomy- and prop-scoped checks on variant blocks --------------------
+
+  const checkVariantBlock = (block: Obj, path: string, scope: Scope): void => {
+    if (block.layout !== undefined) {
+      const names = new Set<string>();
+      layoutNames(block.layout, names);
+      for (const n of [...names].sort()) {
+        if (!scope.anatomy.has(n)) {
+          findings.push({ file: 'variants', path: `${path}/layout`, message: `layout element "${n}" is not declared in anatomy` });
+        }
+      }
+    }
+    if (isObj(block.elements)) {
+      for (const el of Object.keys(block.elements)) {
+        if (!scope.anatomy.has(el)) {
+          findings.push({ file: 'variants', path: `${path}/elements/${el}`, message: `element "${el}" is not declared in anatomy` });
+        }
+      }
+    }
+    if (isObj(block.configuration)) {
+      for (const [prop, value] of Object.entries(block.configuration)) {
+        if (prop === '$nested') continue;
+        const decl = scope.props[prop];
+        if (!isObj(decl)) {
+          findings.push({ file: 'variants', path: `${path}/configuration/${prop}`, message: `prop "${prop}" is not declared in props` });
+          continue;
+        }
+        if (value === null || isObj(value)) continue; // unset, binding, or slot fill
+        if (decl.type === 'boolean' && typeof value !== 'boolean') {
+          findings.push({ file: 'variants', path: `${path}/configuration/${prop}`, message: `prop "${prop}" is boolean; got ${JSON.stringify(value)}` });
+        }
+        if (Array.isArray(decl.enum) && !(decl.enum as unknown[]).includes(value)) {
+          findings.push({ file: 'variants', path: `${path}/configuration/${prop}`, message: `"${String(value)}" is not an allowed value of "${prop}": ${(decl.enum as unknown[]).join(', ')}` });
+        }
+      }
+    }
+  };
+
+  const checkVariantsDoc = (doc: unknown, pathPrefix: string, scope: Scope): void => {
+    if (!isObj(doc)) return;
+    if (isObj(doc.default)) checkVariantBlock(doc.default, `${pathPrefix}/default`, scope);
+    if (Array.isArray(doc.variants)) {
+      (doc.variants as unknown[]).forEach((v, i) => {
+        if (isObj(v)) checkVariantBlock(v, `${pathPrefix}/variants/${i}`, scope);
+      });
+    }
+  };
+
+  checkVariantsDoc(spec.variants, '', mainScope);
+  for (const sub of Object.keys(objAt(spec.variants, 'subcomponents'))) {
+    checkVariantsDoc(objAt(spec.variants, 'subcomponents', sub), `/subcomponents/${sub}`, subScope(sub));
+  }
+
+  // ---- slot content triplets carry their own anatomy ------------------------
+
+  const checkTriplets = (holder: Obj, pathPrefix: string): void => {
+    for (const [exampleName, triplet] of Object.entries(holder)) {
+      if (!isObj(triplet)) continue;
+      const scope = new Set(Object.keys(objAt(triplet, 'anatomy')));
+      const names = new Set<string>();
+      layoutNames(triplet.layout, names);
+      for (const n of [...names].sort()) {
+        if (!scope.has(n)) {
+          findings.push({ file: 'examples', path: `${pathPrefix}/${exampleName}/layout`, message: `layout element "${n}" is not declared in this slot content's anatomy` });
+        }
+      }
+      for (const el of Object.keys(objAt(triplet, 'elements'))) {
+        if (!scope.has(el)) {
+          findings.push({ file: 'examples', path: `${pathPrefix}/${exampleName}/elements/${el}`, message: `element "${el}" is not declared in this slot content's anatomy` });
+        }
+      }
+    }
+  };
+
+  checkTriplets(objAt(spec.examples, 'slotContentExamples'), '/slotContentExamples');
+  for (const sub of Object.keys(objAt(spec.examples, 'subcomponents'))) {
+    checkTriplets(
+      objAt(spec.examples, 'subcomponents', sub, 'slotContentExamples'),
+      `/subcomponents/${sub}/slotContentExamples`,
+    );
+  }
+
+  return findings;
+}

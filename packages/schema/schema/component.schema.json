@@ -468,6 +468,11 @@
           "$ref": "#/definitions/PropExtensions"
         }
       },
+      "required": [
+        "type",
+        "default",
+        "enum"
+      ],
       "additionalProperties": false
     },
     "SlotProp": {
@@ -515,6 +520,9 @@
           "$ref": "#/definitions/PropExtensions"
         }
       },
+      "required": [
+        "type"
+      ],
       "additionalProperties": false
     },
     "Variants": {
