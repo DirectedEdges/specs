@@ -149,6 +149,33 @@ describe('specs validate', () => {
     expect(authored.findings.filter(f => f.level === 'warning').length).toBeGreaterThan(0);
   });
 
+  it('checks $token names against the caches, skipping classes with no cache', () => {
+    const dataDir = path.join(specsDir, 'data');
+    fs.mkdirSync(path.join(dataDir, 'cache'), { recursive: true });
+    fs.writeFileSync(
+      path.join(dataDir, 'cache', 'variables.yaml'),
+      yaml.stringify({ entries: { 'Color/Primary': { file: 'lib' } } }),
+    );
+
+    const spec = validSpec();
+    const variants = spec.variants as { default: { elements: Record<string, { styles?: unknown; content?: unknown }> } };
+    variants.default.elements.root = {
+      styles: {
+        backgroundColor: { $token: 'Color/Primary', $type: 'color' },
+        textColor: { $token: 'Color/Invented', $type: 'color' },
+        typography: { $token: 'Typography/Unknowable', $type: 'typography' },
+      },
+    };
+    writeSpec('components', 'badge', spec);
+
+    const result = runValidate({ specsPath: specsDir, dataDir });
+    const errors = errorsOf(result.findings);
+    expect(errors.some(f => f.message.includes('"Color/Invented" is not in the library'))).toBe(true);
+    expect(errors.some(f => f.message.includes('Color/Primary'))).toBe(false);
+    expect(errors.some(f => f.message.includes('Typography/Unknowable'))).toBe(false);
+    expect(result.notes.some(n => n.includes('styles cache'))).toBe(true);
+  });
+
   it('narrows to requested components and names the missing', () => {
     writeSpec('components', 'badge', validSpec());
     const result = runValidate({ specsPath: specsDir, components: ['badge', 'ghost'] });

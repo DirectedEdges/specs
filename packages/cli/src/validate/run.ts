@@ -8,6 +8,7 @@ import * as path from 'path';
 import * as yaml from 'yaml';
 import { concernValidators, describeAjvError, isMissingSourceError, type ConcernName } from './schemas.js';
 import { checkReferences, type ParsedSpec, type WorkspaceIndex } from './references.js';
+import { loadTokenIndex, type TokenIndex } from './tokens.js';
 import { resolveSpecsLayout, SPEC_KINDS, type SpecKind } from '../utilities/specsLayout.js';
 
 export interface ValidateOptions {
@@ -17,6 +18,8 @@ export interface ValidateOptions {
   components?: string[];
   /** Downgrade the missing `metadata.source` an authored spec cannot state. */
   authored?: boolean;
+  /** Data directory holding the render caches, for the token-existence check. */
+  dataDir?: string;
 }
 
 export interface Finding {
@@ -36,6 +39,8 @@ export interface ValidateResult {
   counts: Record<SpecKind, number>;
   /** Requested names that matched no spec folder. */
   missing: string[];
+  /** What this run could not check, stated once. */
+  notes: string[];
 }
 
 const CONCERNS: readonly ConcernName[] = ['api', 'variants', 'examples'];
@@ -66,6 +71,16 @@ function readSpec(dir: string): { parsed: ParsedSpec; files: Partial<Record<Conc
 export function runValidate(options: ValidateOptions): ValidateResult {
   const layout = resolveSpecsLayout(options.specsPath);
   const validators = concernValidators();
+
+  const notes: string[] = [];
+  let tokens: TokenIndex | undefined;
+  if (options.dataDir) {
+    tokens = loadTokenIndex(options.dataDir);
+    if (!tokens.variables) notes.push('variables cache is empty or missing — variable $token references were not checked (run `specs cache`)');
+    if (!tokens.styles) notes.push('styles cache is empty or missing — typography/effect $token references were not checked (run `specs cache`)');
+  } else {
+    notes.push('no data directory configured — $token references were not checked');
+  }
 
   const specsByKind = new Map<SpecKind, string[]>(
     SPEC_KINDS.map(kind => [kind, layout.folderNames(kind, 'yaml')]),
@@ -132,7 +147,7 @@ export function runValidate(options: ValidateOptions): ValidateResult {
       }
 
       // Layer 2 — references, with the concern name mapped back to its file name.
-      for (const ref of checkReferences(name, parsed, index)) {
+      for (const ref of checkReferences(name, parsed, index, tokens)) {
         findings.push({
           kind, spec: name,
           file: files[ref.file as ConcernName] ?? `${ref.file}.yaml`,
@@ -149,5 +164,5 @@ export function runValidate(options: ValidateOptions): ValidateResult {
     || a.file.localeCompare(b.file) || a.path.localeCompare(b.path)
     || a.message.localeCompare(b.message));
 
-  return { findings, counts, missing };
+  return { findings, counts, missing, notes };
 }

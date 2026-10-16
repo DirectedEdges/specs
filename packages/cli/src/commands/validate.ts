@@ -62,10 +62,14 @@ export const Validate = new Command('validate')
         specsPath,
         components: components.length > 0 ? components : undefined,
         authored: options.authored,
+        dataDir: config.settings.data?.directory,
       });
 
       for (const name of result.missing) {
         console.warn(`Warning: component "${name}" not found in ${specsPath} — skipping`);
+      }
+      if (options.format === 'text') {
+        for (const note of result.notes) console.warn(`Note: ${note}`);
       }
 
       if (options.format === 'json') {

@@ -50,9 +50,10 @@ These carry layout structure, take only their enum (or null), and reject `$token
 
 ## Tokens
 
-A token reference is `{$token: "<path>", $type: "<type>"}` — DTCG dot-separated path, e.g. `$token: Color.Text.Primary` with `$type: color`. Rules:
+A token reference is `{$token: "<path>", $type: "<type>"}`. Rules:
 
-- **The token must exist in the source library.** Pick tokens from `analysis/styling.byToken.yaml` — it lists every token the catalogue uses and where. A token you invented will not resolve on any platform.
+- **Copy the path exactly as the catalogue spells it.** Token path format is the library's, not yours — read names verbatim from `analysis/styling.byToken.yaml` (e.g. a library may use `Color/Primary`, slash-separated, where another uses dots). Common `$type` values: `color`, `dimension`, `typography`, `effect`.
+- **The token must exist in the source library.** `specs validate` checks every `$token` against the render caches and errors on one the library does not have; a class it cannot check is stated in a note. A token you invented will not resolve on any platform.
 - **Prefer a token wherever one exists.** A literal where the system has a token is a consistency defect, not a shortcut. Check how sibling components style the same property (`analysis/styling.byComponent.yaml`).
 - **Composite tokens bind whole nodes.** `typography: {$token, $type: typography}` corresponds to a Figma *text style*; `effects: {$token, $type: effect}` to a Figma *effect style*. Use the composite when the library has a named style; go inline only when it does not.
 

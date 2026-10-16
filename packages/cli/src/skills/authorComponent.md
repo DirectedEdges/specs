@@ -38,7 +38,7 @@ If `analysis/` is missing or stale, run `specs analyze` first. Decide and write 
 
 ## 3. Scaffold
 
-Create `specs/components/<key>/` (camelCase folder key) and copy the three yaml templates in. Fill `metadata.concern` and `title`; leave `metadata.source` out — this spec is authored, not captured.
+Create `specs/components/<key>/` (camelCase folder key). Copy each template in **at the step that authors it**, not all three upfront — an unauthored template still carries placeholders, and validating the folder would report them as errors that look like yours. Fill `metadata.concern` and `title`; leave `metadata.source` out — this spec is authored, not captured.
 
 ## 4. Author api.yaml, then validate
 
@@ -60,12 +60,12 @@ At least one `instanceExamples` entry showing a realistic configuration. `slotCo
 
 ## 7. Compile and observe
 
-The dev posture is live — `specs run` re-emits the platform trees on save and `specs render --watch` re-renders onto the canvas. Save, then check:
+The dev posture is live — `specs run` re-emits the platform trees on save and `specs render specs/components/<key> --watch` re-renders onto the canvas (render takes a spec *path*, not a key). Save, then check:
 
 1. The emitted component in Storybook — renders, variants switch.
 2. The rendered component on the Figma canvas — structure matches the authored anatomy.
 
-If the posture is not running, start it; do not fall back to one-shot `specs react` / `specs render` invocations per iteration.
+If the posture is not running, start it; do not fall back to one-shot `specs react` / `specs render` invocations per iteration. If render reports a stale or unusable cache, run `specs cache` once and retry.
 
 ## 8. Supplemental platform files
 
