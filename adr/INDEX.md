@@ -4,6 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 105 | Type–Schema Parity for Overlapping Prop Unions | (reserved, draft on `feat/writing-specs`) |
 | 102 | A Default Slot That Accepts a String — Figma TEXT Properties as Composable Children | (reserved, draft on `102-default-text-slots`) |
 | 093 | Composed Dependency Selection Is a Setting | |
 | 092 | `invalidPropCombinations` — Renamed and Relocated to the Api Concern | |
