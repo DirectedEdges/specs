@@ -18,8 +18,11 @@
       "default": "./dist/index.js"
     },
     "./schema/component": "./schema/component.schema.json",
+    "./schema/components": "./schema/components.schema.json",
     "./schema/concern": "./schema/concern.schema.json",
     "./schema/metadata": "./schema/metadata.schema.json",
+    "./schema/styles": "./schema/styles.schema.json",
+    "./schema/root": "./schema/root.schema.json",
     "./schema/conventions": "./schema/conventions.schema.json",
     "./schema/settings": "./schema/settings.schema.json"
   },
