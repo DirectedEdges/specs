@@ -4,6 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 108 | The `$slotContent` Pointer Namespace | (reserved, draft on `feat/writing-specs`) |
 | 107 | Schema File Identity and Packaging | (reserved, draft on `feat/writing-specs`) |
 | 106 | Spec Provenance Beyond Figma Capture | (reserved, draft on `feat/writing-specs`) |
 | 105 | Type–Schema Parity for Overlapping Prop Unions | (reserved, draft on `feat/writing-specs`) |
