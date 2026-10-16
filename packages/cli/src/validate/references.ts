@@ -13,7 +13,7 @@
 // subcomponent's own props, never the component's.
 
 import { specFolderKey } from '../utilities/specFolderKey.js';
-import { cacheClassFor, type TokenIndex } from './tokens.js';
+import { tokenKnown, type TokenIndex } from './tokens.js';
 
 export interface RefFinding {
   /** Concern the fact was read from: 'api' | 'variants' | 'examples'. */
@@ -161,10 +161,8 @@ export function checkReferences(
 
     // $token → the library's variables or styles, when a cache can answer
     if (typeof node.$token === 'string' && typeof node.$type === 'string' && tokens) {
-      const set = tokens[cacheClassFor(node.$type)];
-      if (set && !set.has(node.$token)) {
-        const kind = cacheClassFor(node.$type) === 'styles' ? 'style' : 'variable';
-        findings.push({ file, path: `${path}/$token`, message: `${kind} "${node.$token}" is not in the library (see analysis/styling.byToken.yaml for what exists)` });
+      if (tokenKnown(tokens, node.$token, node.$type) === false) {
+        findings.push({ file, path: `${path}/$token`, message: `token "${node.$token}" is not in the library (see analysis/styling.byToken.yaml for what exists)` });
       }
     }
 

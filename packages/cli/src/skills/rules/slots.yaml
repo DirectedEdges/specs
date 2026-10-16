@@ -1,0 +1,12 @@
+# Judgment rules for slot declaration, binding, and fills — across api, variants, and examples.
+fills:
+  selection:
+    plain-child-nesting: the target slot is the component's designated defaultSlot — nest the filling instance as an ordinary child
+    slotContentRef: any other slot — bind explicitly with $slotContent; only this form names which slot
+  rules:
+    default-slot-nesting:
+      rule: a defaultSlot fill nests as a plain child; nothing points between levels
+      adr: 99
+    named-fills-are-triplets:
+      rule: a named fill is a self-contained anatomy+elements+layout triplet in slotContentExamples, referenced by $slotContent
+      adr: [46, 47, 49]

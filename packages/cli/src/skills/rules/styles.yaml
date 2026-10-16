@@ -15,6 +15,11 @@ visible:
       rule: a $binding on visible belongs on nested elements; root show/hide is interaction state owned by the behavior layer
       why: a root visible binding also emits broken React today (specs#766)
 layoutSizingHorizontal|layoutSizingVertical:
+  when:
+    FIXED:
+      opens: [width|height, minWidth|minHeight, maxWidth|maxHeight]
+    FILL:
+      requires: parent layoutMode HORIZONTAL|VERTICAL
   rules:
     hug-fill-over-fixed:
       rule: prefer HUG/FILL so content drives size; FIXED plus width/height only when the design truly fixes the dimension

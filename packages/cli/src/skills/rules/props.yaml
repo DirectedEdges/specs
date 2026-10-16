@@ -5,3 +5,8 @@ naming:
       rule: reuse an existing prop name and value set when the concept matches (analysis/props.yaml); never coin a synonym
     match-value-casing:
       rule: enum value casing follows the catalogue's existing values (e.g. Capitalized words, sizes XS/S/M/L/XL)
+configuration:
+  rules:
+    null-unsets-absent-inherits:
+      rule: in a configuration, an absent prop key inherits; a null value overrides with unset — they are different statements
+      adr: 80

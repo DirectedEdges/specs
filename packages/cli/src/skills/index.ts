@@ -53,6 +53,7 @@ import RULES_ANATOMY from './rules/anatomy.yaml';
 import RULES_STYLES from './rules/styles.yaml';
 import RULES_LAYOUT from './rules/layout.yaml';
 import RULES_PROPS from './rules/props.yaml';
+import RULES_SLOTS from './rules/slots.yaml';
 
 export interface SkillAsset {
   /** Skill directory name under .claude/skills/. */
@@ -85,6 +86,7 @@ export const SKILL_ASSETS: SkillAsset[] = [
       { path: 'rules/styles.yaml', content: RULES_STYLES },
       { path: 'rules/layout.yaml', content: RULES_LAYOUT },
       { path: 'rules/props.yaml', content: RULES_PROPS },
+      { path: 'rules/slots.yaml', content: RULES_SLOTS },
     ],
   },
   { name: 'specs-cli.author.styles', markdown: AUTHOR_STYLES },

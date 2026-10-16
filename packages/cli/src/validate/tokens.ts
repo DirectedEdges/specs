@@ -37,7 +37,22 @@ export function loadTokenIndex(dataDir: string): TokenIndex {
   };
 }
 
-/** Which cache a token's `$type` resolves against. */
-export function cacheClassFor(type: string): 'styles' | 'variables' {
-  return type === 'typography' || type === 'effect' ? 'styles' : 'variables';
+/** `$type` values whose tokens are named styles rather than variables. */
+const STYLE_TYPES = new Set(['typography', 'effect', 'effects', 'gradient']);
+
+/**
+ * Whether a token name is known to the library. The `$type` picks the primary
+ * cache (named styles for typography/effects/gradient, variables otherwise);
+ * when that cache has no entries the answer is `undefined` — unknowable, not
+ * wrong. A name missing from its primary cache is still accepted if the other
+ * cache carries it, since the two vocabularies overlap (a color may be a
+ * variable or a color style).
+ */
+export function tokenKnown(index: TokenIndex, name: string, type: string): boolean | undefined {
+  const styleType = STYLE_TYPES.has(type);
+  const primary = styleType ? index.styles : index.variables;
+  if (!primary) return undefined;
+  if (primary.has(name)) return true;
+  const other = styleType ? index.variables : index.styles;
+  return other?.has(name) ?? false;
 }

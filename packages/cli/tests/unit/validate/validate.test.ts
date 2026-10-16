@@ -170,7 +170,7 @@ describe('specs validate', () => {
 
     const result = runValidate({ specsPath: specsDir, dataDir });
     const errors = errorsOf(result.findings);
-    expect(errors.some(f => f.message.includes('"Color/Invented" is not in the library'))).toBe(true);
+    expect(errors.some(f => f.message.includes('token "Color/Invented" is not in the library'))).toBe(true);
     expect(errors.some(f => f.message.includes('Color/Primary'))).toBe(false);
     expect(errors.some(f => f.message.includes('Typography/Unknowable'))).toBe(false);
     expect(result.notes.some(n => n.includes('styles cache'))).toBe(true);

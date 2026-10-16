@@ -14,3 +14,11 @@ type:
     styled-blocks-are-containers:
       rule: a styled block (background, radius, padding, offsets) is a container, never a shape primitive
       example: "notch: type container; 12x12; rotation 45; position ABSOLUTE; bottom -6; parent clipsContent: false"
+elements:
+  rules:
+    no-primitive-wrappers:
+      rule: never author a plain container wrapping a single text or glyph — the primitive is the element; generation collapses such wrappers, authoring never creates them
+      adr: 58
+    no-slot-only-wrappers:
+      rule: never author a container whose only child is a slot — the slot is the content area; both are containers, so the wrapper adds nothing
+      adr: 83
