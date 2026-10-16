@@ -1,6 +1,6 @@
 ---
-name: specs-cli.author.primer
-description: The structural contract for authoring specs by hand — the two kinds, the three files, the five references, the authoring order, and the validate loop. Prerequisite for every specs-cli.author.* skill.
+name: specs-cli.authoring.primer
+description: The structural contract for authoring specs by hand — the two kinds, the three files, the five references, the authoring order, and the validate loop. Prerequisite for every authoring skill (component.author, composition.author, guidelines.propose).
 ---
 <!--
   Canonical skill emitted by `specs skills install` — overwritten on every
@@ -68,9 +68,9 @@ In `variants.yaml`, `default.elements` describes **every** anatomy element: `sty
 
 | Topic | Skill |
 |---|---|
-| Style properties, token placement, Figma style relationships | `specs-cli.author.styles` |
-| Layout trees, auto vs absolute positioning, slots across the three files | `specs-cli.author.slots-layout` |
-| The new-component procedure and templates | `specs-cli.author.component` |
+| Style properties, token placement, Figma style relationships | `references/styles.md` beside this skill |
+| Layout trees, auto vs absolute positioning, slots across the three files | `references/slots-layout.md` beside this skill |
+| The new-component procedure and templates | `specs-cli.component.author` |
 
 **Rules come in two layers, split by provenance.** The shipped `rules/*.yaml` beside this skill argue from the contract — the schema and its ADRs, identical everywhere. The workspace's `guidelines/<area>/<topic>/rules.yaml` (e.g. `guidelines/foundations/color/`, `guidelines/components/props/`) argue from this library's own catalog: a structured `meta` header (topic, status, author, updated, sources), then `useWhen` usage mappings (`{$token, $description}` / `{$prop, $description}` entries) and a `guidelines` list of modality-keyed items — `must`/`never` hard, `should`/`avoid` strong convention, `could`/`warn` judgment — with a `report.md` of synthesis notes beside each, proposed until the system owner ratifies. A `must`/`should` may pair with its counter-balancing `avoid`/`never` in one rule. `specs-cli.guidelines.propose` synthesizes or revises a topic from the analysis reports, reporting revisions as add/change/remove diffs. When styling or configuring, resolve in this order: the primitives promotion map for composed content (`config/conventions/<platform>.primitives.yaml` — compositions, instanceExamples, slot content; atomic components' own anatomy stays primitive) → workspace guidelines → `analysis/styling.byComponent.yaml` precedent → a literal plus a noted gap.
 

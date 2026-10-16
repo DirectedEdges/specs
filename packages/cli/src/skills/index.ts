@@ -41,10 +41,10 @@ import ROLES_PROPOSE from './rolesPropose.md';
 import ROLES_APPLY from './rolesApply.md';
 import STATES_SETUP from './statesSetup.md';
 import ICONS_SETUP from './iconsSetup.md';
-import AUTHOR_PRIMER from './authorPrimer.md';
-import AUTHOR_STYLES from './authorStyles.md';
-import AUTHOR_SLOTS_LAYOUT from './authorSlotsLayout.md';
-import AUTHOR_COMPONENT from './authorComponent.md';
+import AUTHORING_PRIMER from './authoringPrimer.md';
+import REF_STYLES from './references/styles.md';
+import REF_SLOTS_LAYOUT from './references/slots-layout.md';
+import COMPONENT_AUTHOR from './componentAuthor.md';
 import GUIDELINES_PROPOSE from './guidelinesPropose.md';
 import TEMPLATE_API from './templates/api.yaml';
 import TEMPLATE_VARIANTS from './templates/variants.yaml';
@@ -81,26 +81,26 @@ export const SKILL_ASSETS: SkillAsset[] = [
   { name: 'specs-cli.states.setup', markdown: STATES_SETUP },
   { name: 'specs-cli.icons.setup', markdown: ICONS_SETUP },
   {
-    name: 'specs-cli.author.primer',
-    markdown: AUTHOR_PRIMER,
+    name: 'specs-cli.authoring.primer',
+    markdown: AUTHORING_PRIMER,
     files: [
       { path: 'rules/anatomy.yaml', content: RULES_ANATOMY },
       { path: 'rules/styles.yaml', content: RULES_STYLES },
       { path: 'rules/layoutStyling.yaml', content: RULES_LAYOUT },
       { path: 'rules/props.yaml', content: RULES_PROPS },
       { path: 'rules/slots.yaml', content: RULES_SLOTS },
+      { path: 'references/styles.md', content: REF_STYLES },
+      { path: 'references/slots-layout.md', content: REF_SLOTS_LAYOUT },
     ],
   },
-  { name: 'specs-cli.author.styles', markdown: AUTHOR_STYLES },
   {
     name: 'specs-cli.guidelines.propose',
     markdown: GUIDELINES_PROPOSE,
     files: [{ path: 'templates/rules.yaml', content: TEMPLATE_GUIDELINES_RULES }],
   },
-  { name: 'specs-cli.author.slots-layout', markdown: AUTHOR_SLOTS_LAYOUT },
   {
-    name: 'specs-cli.author.component',
-    markdown: AUTHOR_COMPONENT,
+    name: 'specs-cli.component.author',
+    markdown: COMPONENT_AUTHOR,
     files: [
       { path: 'templates/api.yaml', content: TEMPLATE_API },
       { path: 'templates/variants.yaml', content: TEMPLATE_VARIANTS },

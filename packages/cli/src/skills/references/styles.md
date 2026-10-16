@@ -1,16 +1,11 @@
----
-name: specs-cli.author.styles
-description: The styles map for authoring specs — every style property by shape, exactly which accept a $token, how composite tokens relate to Figma text and effect styles, and where $binding and Conditional are legal. Load when authoring variants.yaml.
----
 <!--
-  Canonical skill emitted by `specs skills install` — overwritten on every
-  refresh; do not edit in place. Local customizations belong in your own
-  separate skill.
+  Reference shipped beside specs-cli.authoring.primer — not an invokable skill.
+  Canonical; `specs skills install` overwrites it on every refresh.
 -->
 
-# Authoring styles
+# Reference: authoring styles
 
-**Prerequisite:** `specs-cli.author.primer`.
+Load when authoring `variants.yaml`. Assumes `specs-cli.authoring.primer` is read.
 
 Styles live per element, in `variants.yaml`: fully on every element under `default.elements.<el>.styles`, and as deltas under `variants[].elements.<el>.styles`. The schema source of truth is `styles.schema.json#/definitions/Styles`; every property below names its definition there.
 

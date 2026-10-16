@@ -1,5 +1,5 @@
 ---
-name: specs-cli.author.component
+name: specs-cli.component.author
 description: Author a new component spec from a request — requirements split, correlation against the catalogue, scaffold from templates, one-file-at-a-time validation, live compile into Storybook and Figma, then supplemental platform files for what the spec cannot carry.
 ---
 <!--
@@ -10,7 +10,7 @@ description: Author a new component spec from a request — requirements split, 
 
 # Author a new component
 
-**Prerequisites:** `specs-cli.primer`, then `specs-cli.author.primer`. Load `specs-cli.author.styles` before authoring `variants.yaml`, and `specs-cli.author.slots-layout` before authoring any layout tree or slot.
+**Prerequisites:** `specs-cli.primer`, then `specs-cli.authoring.primer`. Load its `references/styles.md` before authoring `variants.yaml`, and its `references/slots-layout.md` before authoring any layout tree or slot.
 
 Templates ship beside this skill in `templates/` — `api.yaml`, `variants.yaml`, `examples.yaml`, `supplementalRequirements.md`. Copy them; never author a file from a blank page or from another spec's structure.
 
@@ -52,7 +52,7 @@ Zero errors before touching the next file. Fix the file the error names, re-run,
 
 ## 5. Author variants.yaml, then validate
 
-Load `specs-cli.author.styles` first. The `default` block fully describes every anatomy element — layout tree, styles, content, bindings. Then one `variants[]` delta per prop configuration that changes anything. Validate again; zero errors.
+Load the primer's `references/styles.md` first. The `default` block fully describes every anatomy element — layout tree, styles, content, bindings. Then one `variants[]` delta per prop configuration that changes anything. Validate again; zero errors.
 
 ## 6. Author examples.yaml (when needed), then validate
 

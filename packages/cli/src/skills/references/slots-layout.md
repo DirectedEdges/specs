@@ -1,16 +1,11 @@
----
-name: specs-cli.author.slots-layout
-description: The two hardest authoring shapes — layout trees with auto vs absolute positioning, and slot content constructed across api, variants, and examples. Load when authoring layout, slots, or any composition.
----
 <!--
-  Canonical skill emitted by `specs skills install` — overwritten on every
-  refresh; do not edit in place. Local customizations belong in your own
-  separate skill.
+  Reference shipped beside specs-cli.authoring.primer — not an invokable skill.
+  Canonical; `specs skills install` overwrites it on every refresh.
 -->
 
-# Authoring layout and slots
+# Reference: layout trees and slots
 
-**Prerequisite:** `specs-cli.author.primer`. Style property details: `specs-cli.author.styles`.
+Load when authoring layout, slots, or any composition. Assumes `specs-cli.authoring.primer` is read; style property details are in `references/styles.md` beside this file.
 
 ## Layout trees
 

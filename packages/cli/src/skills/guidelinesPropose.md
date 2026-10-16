@@ -10,7 +10,7 @@ description: Synthesize or revise a per-system guidelines topic from the analysi
 
 # Propose a guidelines topic
 
-**Prerequisites:** `specs-cli.primer`, `specs-cli.author.primer`. Run `specs analyze` first if `analysis/` is missing or stale.
+**Prerequisites:** `specs-cli.primer`, `specs-cli.authoring.primer`. Run `specs analyze` first if `analysis/` is missing or stale.
 
 Per-system rules are the second rules layer. The shipped `rules/*.yaml` beside the author primer argue from the **contract** — the schema and its ADRs, identical in every workspace. Guidelines argue from the **catalog** — this library's own tokens, styles, and usage — so they live in the workspace, under `guidelines/<area>/<topic>/`: `rules.yaml` for agents, `report.md` as brief synthesis notes for the human ratifier.
 
