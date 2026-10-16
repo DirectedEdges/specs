@@ -1,6 +1,10 @@
 # Judgment rules for variants.yaml elements.*.styles — keys are style properties or families.
 # Facts about the styles schema (which properties exist, where $token is legal) live in
 # specs-cli.author.styles; this file carries judgment only.
+reports:
+  rules:
+    consult-styling-reports-before-literals:
+      rule: before styling an element, read analysis/styling.byComponent.yaml for how siblings style the property; a raw literal is a last resort after the primitives promotion map and the token set both come up empty
 tokens:
   rules:
     copy-paths-verbatim:

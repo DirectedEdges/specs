@@ -8,6 +8,10 @@ layoutMode:
   when:
     HORIZONTAL|VERTICAL:
       opens: [itemSpacing, padding, mainAxisAlignment, crossAxisAlignment, wrap]
+width:
+  rules:
+    page-scale-roots-declare-width:
+      rule: a composition or other page-scale root declares a concrete width; FILL at a rendered root has no parent to fill and collapses to nothing
 position:
   selection:
     AUTO: the child participates in the container's flow (default)

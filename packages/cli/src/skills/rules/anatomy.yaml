@@ -11,6 +11,10 @@ type:
     vector: literal vector artwork, none of the above
     rectangle|ellipse|line|polygon|star: literal vector geometry only
   rules:
+    library-primitives-first:
+      rule: before authoring a text, glyph, or container primitive, check config/conventions/<platform>.primitives.yaml — a mapped primitive is authored as that component instance configured by its mapped props, never as a styled primitive
+      example: "card title: instance egdsHeading {text, textStyle: Headline S, color: On surface} — not a text element carrying a typography token"
+      adr: [74, 75]
     styled-blocks-are-containers:
       rule: a styled block (background, radius, padding, offsets) is a container, never a shape primitive
       example: "notch: type container; 12x12; rotation 45; position ABSOLUTE; bottom -6; parent clipsContent: false"
