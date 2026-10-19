@@ -4,7 +4,7 @@ title: "bridge"
 
 <script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
 
-Starts, stops, and checks the local CLI bridge — the background process that relays requests between the CLI and a connected Specs 2 Figma plugin. [`render`](/cli/commands/render/) sends specs into the live file through it, and [`generate --from-bridge`](/cli/commands/generate/#bridge-mode) reads specs back out of the current selection.
+Starts, stops, and checks the local CLI bridge — the background process that relays requests between the CLI and a connected Spectacular Figma plugin. [`render`](/cli/commands/render/) sends specs into the live file through it, and [`generate --from-bridge`](/cli/commands/generate/#bridge-mode) reads specs back out of the current selection.
 
 ## Usage
 

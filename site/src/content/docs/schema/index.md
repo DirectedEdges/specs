@@ -1,6 +1,6 @@
 ---
 title: "Overview"
-description: "How the parts of the Specs schema relate — components and compositions, the files a spec is written as, variants and styles, slots, content, references, conventions, and the reports derived from them"
+description: "How the parts of the Spectacular schema relate — components and compositions, the files a spec is written as, variants and styles, slots, content, references, conventions, and the reports derived from them"
 ---
 
 `specs-schema` offers a schema for describing components and composition formally and precisely as TypeScript types and JSON Schema. This file serves as a primer to understand the landscape and provide links to explore deeper when necessary.
