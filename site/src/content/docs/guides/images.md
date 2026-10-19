@@ -3,7 +3,7 @@ title: "Images"
 description: "Capture image fills and image-source props — as a designated image component or a container background fill"
 ---
 
-Design systems use images two ways, and Specs captures both. Sometimes an image is a **layer fill** — a card with a photographic background, a hero banner painted directly on a container. Other times it flows through a dedicated **image component** — a `dsImage` or `dsAvatar` with a `source`-like prop that renders whatever image is passed in. Which one you get is a declared convention, not a guess.
+Design systems use images two ways, and Spectacular captures both. Sometimes an image is a **layer fill** — a card with a photographic background, a hero banner painted directly on a container. Other times it flows through a dedicated **image component** — a `dsImage` or `dsAvatar` with a `source`-like prop that renders whatever image is passed in. Which one you get is a declared convention, not a guess.
 
 ## The Problem
 

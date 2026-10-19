@@ -14,7 +14,7 @@ curation:
   includeDependencies: true
 ```
 
-Every default matches what Specs does today, so you can ignore this whole page until one of these is a problem.
+Every default matches what Spectacular does today, so you can ignore this whole page until one of these is a problem.
 
 ## `defaultSelection` — what gets picked to begin with
 
@@ -44,7 +44,7 @@ The per-run flag `--keep-checks` does the same as `true` for a single scan.
 
 Components are built from other components. A web header places a brand logo. A payment form places the card-network marks.
 
-You marked the header Ready for dev. Nobody marked the brand logo — it's an asset the design team maintains, not something an engineer picks up on its own. So if Specs generated only what you marked, you'd get a header spec that refers to a logo with no spec of its own.
+You marked the header Ready for dev. Nobody marked the brand logo — it's an asset the design team maintains, not something an engineer picks up on its own. So if Spectacular generated only what you marked, you'd get a header spec that refers to a logo with no spec of its own.
 
 | Value | Result |
 |---|---|
@@ -68,7 +68,7 @@ specs/
 
 ### Parts are different
 
-This doesn't apply to pieces you've already told Specs are pieces. If your naming says `Card / _ / Header` belongs to Card — see [subcomponents](/settings/subcomponents/) — that header is written *inside* Card's spec rather than beside it. It was never going to get its own folder.
+This doesn't apply to pieces you've already told Spectacular are pieces. If your naming says `Card / _ / Header` belongs to Card — see [subcomponents](/settings/subcomponents/) — that header is written *inside* Card's spec rather than beside it. It was never going to get its own folder.
 
 This setting is about one component reaching for a *separate* component that lives on its own.
 
