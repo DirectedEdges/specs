@@ -205,7 +205,7 @@ not predict reach: `password` is an HTML-derived name for a concept every platfo
 | WAI-ARIA role tokens | `button`, `link`, `checkbox`, `radio`, `switch`, `textbox`, `searchbox`, `spinbutton`, `slider`, `group`, `alert`, `status`, `progressbar` |
 | ARIA *attribute* or APG *pattern* names | `togglebutton`, `disclosure`, `errormessage`, `description` |
 | HTML element names | `textarea`, `password`, `label` |
-| Specs-native, no external counterpart | `value`, `placeholder`, `indicator`, `panel`, `increment`, `decrement` |
+| Spectacular-native, no external counterpart | `value`, `placeholder`, `indicator`, `panel`, `increment`, `decrement` |
 
 Origin has exactly one consequence, and it belongs to the **web** transform alone: only the
 first row contains legal ARIA role values. Emitting `role="disclosure"` or `role="password"`
