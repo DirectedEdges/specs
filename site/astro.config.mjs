@@ -5,7 +5,7 @@ const pro = { text: 'Pro', variant: 'tip' };
 const experimental = { text: 'Experimental', variant: 'default' };
 
 export default defineConfig({
-  site: 'https://www.specsplugin.com',
+  site: 'https://spectacular.systems',
   server: { port: 4323 },
   redirects: {
     // Page renamed when the glyphs convention outgrew the single name pattern (ADR-103)
@@ -13,8 +13,16 @@ export default defineConfig({
   },
   integrations: [
     starlight({
-      title: 'Specs',
+      title: 'Spectacular',
       description: 'Generate structured, machine-readable UI component specifications from Figma.',
+      // Outlined paths, no webfont. Two files because Starlight renders the logo
+      // as an <img>, which cannot inherit the page's text color: `light` carries
+      // Starlight's light-theme ink, `dark` carries white.
+      logo: {
+        light: './src/assets/spectacular-light.svg',
+        dark: './src/assets/spectacular-dark.svg',
+        replacesTitle: true,
+      },
       social: {
         github: 'https://github.com/DirectedEdges/specs',
       },
@@ -321,7 +329,7 @@ export default defineConfig({
               ],
             },
             {
-              label: 'Specs Conventions',
+              label: 'Spectacular Conventions',
               collapsed: true,
               items: [
                 { label: 'states', slug: 'settings/states' },
@@ -350,7 +358,7 @@ export default defineConfig({
           ],
         },
         { label: 'Releases', slug: 'overview/releases' },
-        { label: 'About Specs', slug: 'overview/aboutspecs' },
+        { label: 'About Spectacular', slug: 'overview/aboutspecs' },
         { label: 'License (Legal)', slug: 'overview/license' },
         { label: 'Terms of Service', slug: 'overview/terms-of-service' },
       ],
