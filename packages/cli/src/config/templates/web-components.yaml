@@ -2,7 +2,7 @@
 #
 # Absence means this platform declares no conventions, and generators emit their
 # host elements as before. Uncomment to bind a primitive to one of your components.
-# See: https://www.specsplugin.com/schema/conventions/
+# See: https://spectacular.systems/schema/conventions/
 
 # Prop that receives styling no concept maps to.
 # A custom element has no sx prop; the style attribute is the channel a caller has.
