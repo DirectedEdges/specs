@@ -41,11 +41,29 @@ import ROLES_PROPOSE from './rolesPropose.md';
 import ROLES_APPLY from './rolesApply.md';
 import STATES_SETUP from './statesSetup.md';
 import ICONS_SETUP from './iconsSetup.md';
+import AUTHORING_PRIMER from './authoringPrimer.md';
+import REF_STYLES from './references/styles.md';
+import REF_SLOTS_LAYOUT from './references/slots-layout.md';
+import COMPONENT_AUTHOR from './componentAuthor.md';
+import GUIDELINES_PROPOSE from './guidelinesPropose.md';
+import TEMPLATE_API from './templates/api.yaml';
+import TEMPLATE_VARIANTS from './templates/variants.yaml';
+import TEMPLATE_EXAMPLES from './templates/examples.yaml';
+import TEMPLATE_SUPPLEMENTAL from './templates/supplementalRequirements.md';
+import TEMPLATE_GUIDELINES_RULES from './templates/guidelinesRules.yaml';
+import RULES_ANATOMY from './rules/anatomy.yaml';
+import RULES_STYLES from './rules/styles.yaml';
+import RULES_LAYOUT from './rules/layoutStyling.yaml';
+import RULES_PROPS from './rules/props.yaml';
+import RULES_SLOTS from './rules/slots.yaml';
+import RULES_VARIANTS from './rules/variants.yaml';
 
 export interface SkillAsset {
   /** Skill directory name under .claude/skills/. */
   name: string;
   markdown: string;
+  /** Supporting files emitted beside SKILL.md, path relative to the skill directory. */
+  files?: Array<{ path: string; content: string }>;
 }
 
 /**
@@ -63,4 +81,33 @@ export const SKILL_ASSETS: SkillAsset[] = [
   { name: 'specs-cli.roles.apply', markdown: ROLES_APPLY },
   { name: 'specs-cli.states.setup', markdown: STATES_SETUP },
   { name: 'specs-cli.icons.setup', markdown: ICONS_SETUP },
+  {
+    name: 'specs-cli.authoring.primer',
+    markdown: AUTHORING_PRIMER,
+    files: [
+      { path: 'rules/anatomy.yaml', content: RULES_ANATOMY },
+      { path: 'rules/styles.yaml', content: RULES_STYLES },
+      { path: 'rules/layoutStyling.yaml', content: RULES_LAYOUT },
+      { path: 'rules/props.yaml', content: RULES_PROPS },
+      { path: 'rules/slots.yaml', content: RULES_SLOTS },
+      { path: 'rules/variants.yaml', content: RULES_VARIANTS },
+      { path: 'references/styles.md', content: REF_STYLES },
+      { path: 'references/slots-layout.md', content: REF_SLOTS_LAYOUT },
+    ],
+  },
+  {
+    name: 'specs-cli.guidelines.propose',
+    markdown: GUIDELINES_PROPOSE,
+    files: [{ path: 'templates/rules.yaml', content: TEMPLATE_GUIDELINES_RULES }],
+  },
+  {
+    name: 'specs-cli.component.author',
+    markdown: COMPONENT_AUTHOR,
+    files: [
+      { path: 'templates/api.yaml', content: TEMPLATE_API },
+      { path: 'templates/variants.yaml', content: TEMPLATE_VARIANTS },
+      { path: 'templates/examples.yaml', content: TEMPLATE_EXAMPLES },
+      { path: 'templates/supplementalRequirements.md', content: TEMPLATE_SUPPLEMENTAL },
+    ],
+  },
 ];

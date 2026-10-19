@@ -1,0 +1,25 @@
+# Judgment rules for api.yaml props.* — consistency with the catalogue is graded.
+naming:
+  guidelines:
+    - should: "reuse an existing prop name and value set when the concept matches (`analysis/props.yaml`)"
+      never: "coin a synonym for a prop the system already has (`text` where the catalogue says `label`)"
+    - should: "follow the catalogue's enum value casing (Capitalized words; sizes `XS`/`S`/`M`/`L`/`XL`)"
+nullable:
+  guidelines:
+    - should: "omit `nullable` on open-valued props — absence already means nullable for string, number, slot, and image props"
+      must: "write `nullable: true` explicitly on an enum prop that accepts null — absence there means not nullable"
+      adr: 65
+enum:
+  guidelines:
+    - must: "write `nullable: false` on a number prop carrying an `enum`, keep the enum in authored variant-axis order with the default first, and never sort it"
+      adr: 72
+    - should: "keep the whole prop a string enum when any one option is non-numeric"
+      adr: 72
+default:
+  guidelines:
+    - should: "put demo content in `examples` and reserve `default` for a genuine contractual fallback (a Figma-authored `Label` value is an example, not a default)"
+      adr: [14, 88]
+invalidPropCombinations:
+  guidelines:
+    - must: "declare illegal prop combinations as `invalidPropCombinations` in api.yaml — api vocabulary (prop names and values), never in variants"
+      adr: 92

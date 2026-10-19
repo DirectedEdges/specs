@@ -4,6 +4,9 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 108 | The `$slotContent` Pointer Namespace | (reserved, draft on `feat/writing-specs`) |
+| 107 | Schema File Identity and Packaging | (reserved, draft on `feat/writing-specs`) |
+| 106 | Spec Provenance Beyond Figma Capture | (reserved, draft on `feat/writing-specs`) |
 | 104 | Roles on a Collapsed Root — `childRole` Says Which Layer Was Annotated | (reserved, draft on `feat/states-setup-skill`) |
 | 102 | A Default Slot That Accepts a String — Figma TEXT Properties as Composable Children | (reserved, draft on `102-default-text-slots`) |
 | 093 | Composed Dependency Selection Is a Setting | |
@@ -19,6 +22,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 105 | Type–Schema Parity for Overlapping Prop Unions | `EnumProp`/`SlotProp` gain the types' `required` sets; `PropConfigurationValue` becomes `anyOf` — overlap-by-extension never compiles to `oneOf` |
 | 104 | Roles on a Collapsed Root — `childRole` Says Which Layer Was Annotated | A collapsed element records which of its two Figma layers carried a role: `role` the component node, `childRole` the collapsed child, both means both |
 | 103 | Structural Glyph Membership — `glyphs.structure` Convention | `glyphs` gains a structural membership form — child shapes + stored fill, named from the component name; a glyph cannot have properties |
 | 101 | The Workspace Stage Graph | `specs build` runs the chain once; `specs run` watches and re-runs from what changed. One process, so one license check per run, not four |

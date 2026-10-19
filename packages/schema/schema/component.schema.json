@@ -1,7 +1,7 @@
 {
   "version": "0.14.0",
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Specs Plugin Output Schema",
+  "title": "Specs Component Schema",
   "description": "JSON Schema for data that's output by the Specs Figma plugin produced by Directed Edges",
   "$comment": "Copyright (c) 2025 Directed Edges. Licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Attribution required.",
   "definitions": {
@@ -468,6 +468,11 @@
           "$ref": "#/definitions/PropExtensions"
         }
       },
+      "required": [
+        "type",
+        "default",
+        "enum"
+      ],
       "additionalProperties": false
     },
     "SlotProp": {
@@ -515,6 +520,9 @@
           "$ref": "#/definitions/PropExtensions"
         }
       },
+      "required": [
+        "type"
+      ],
       "additionalProperties": false
     },
     "Variants": {
@@ -579,8 +587,8 @@
       ]
     },
     "PropConfigurationValue": {
-      "description": "The value of a single prop configuration entry (ADR-049): a scalar, a PropBinding for pass-through to a parent prop, a SlotContentRef under a slot-prop key for a named slot-content fill, or an ImageBinding under an image-prop key forwarding an image into a nested image instance (ADR-063), or null when the prop is unset in this configuration — a value, not an absence: an absent key inherits, a null key overrides an inherited value with no value (ADR-080).",
-      "oneOf": [
+      "description": "The value of a single prop configuration entry (ADR-049): a scalar, a PropBinding for pass-through to a parent prop, a SlotContentRef under a slot-prop key for a named slot-content fill, or an ImageBinding under an image-prop key forwarding an image into a nested image instance (ADR-063), or null when the prop is unset in this configuration — a value, not an absence: an absent key inherits, a null key overrides an inherited value with no value (ADR-080). anyOf, not oneOf: ImageBinding extends PropBinding, so a bare $binding legally matches both branches.",
+      "anyOf": [
         {
           "type": "string"
         },

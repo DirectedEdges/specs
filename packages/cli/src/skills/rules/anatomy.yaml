@@ -1,0 +1,39 @@
+# Judgment rules for api.yaml anatomy.* — keys mirror the schema node they govern.
+# useWhen: ordered, evaluate top to bottom, first match wins. guidelines: modality-keyed
+# items — must/never hard, should/avoid strong convention, could/warn judgment.
+# adr: the decision an item projects.
+type:
+  useWhen:
+    instance: a component already expresses it
+    text: a text run
+    glyph: a named icon
+    slot: a region consumers fill
+    container: carries any block styling or layout role
+    vector: literal vector artwork, none of the above
+    rectangle|ellipse|line|polygon|star: literal vector geometry only
+  guidelines:
+    - must: "in compositions, instanceExamples, and slot content, author a primitive the library's promotion map covers as that component instance, configured by its mapped props (`config/conventions/<platform>.primitives.yaml`)"
+      never: "author a styled primitive in composed content where a promoted component exists (a `text` card title where a heading component is mapped)"
+      note: "no promotion map in the workspace → primitives govern composed content too; this rule is inert, not implied"
+      adr: [74, 75]
+    - should: "inside a smaller atomic component, favor primitive `text` and `container` elements for its own anatomy — the promotion map governs composed content, not a component's internals (a badge's label is `text`, not `egdsText`)"
+    - must: "model a styled block as a `container` (`notch: container; 12x12; rotation 45; position ABSOLUTE; bottom -6; parent clipsContent: false`)"
+      never: "use a shape primitive for anything carrying style — background, radius, padding, offsets (`rectangle` as a notch)"
+instanceOf:
+  guidelines:
+    - must: "reference a subcomponent as `{$ref: \"#/subcomponents/<key>\"}` — the pointer is internal, always within the same document"
+      adr: [30, 94]
+    - must: "spell `instanceOf` as the target's generated component key — grep existing `instanceOf` values or the target's own anatomy references; the folder name is the lowercased form, never the authority (`radioGroupItem`, folder `radiogroupitem`)"
+    - should: "decompose a fixed-anatomy wrapper into its parts when the content needs more repetition than the wrapper's anatomy holds (a three-link trail from `breadcrumbLink` ×2 + `breadcrumbSeparator` ×2 + `breadcrumbCurrent`, not one `breadcrumb` whose api is `props: {}`)"
+role:
+  guidelines:
+    - must: "give an element at most one `role` — the control or part it *is*; what it *does* goes in `actions`"
+      adr: [67, 87]
+    - should: "name part roles bare and scoped by position (`placeholder`, never `inputPlaceholder`)"
+      adr: 104
+elements:
+  guidelines:
+    - never: "author a plain container wrapping a single text or glyph — the primitive is the element (generation collapses such wrappers)"
+      adr: 58
+    - never: "author a container whose only child is a slot — the slot is the content area"
+      adr: 83

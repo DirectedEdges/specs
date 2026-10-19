@@ -1,0 +1,19 @@
+# Judgment rules for slot declaration, binding, and fills — across api, variants, and examples.
+fills:
+  useWhen:
+    plain-child-nesting: the target slot is the component's designated defaultSlot — nest the filling instance as an ordinary child
+    slotContentRef: any other slot — bind explicitly with $slotContent; only this form names which slot
+  guidelines:
+    - should: "nest a `defaultSlot` fill as a plain child — nothing points between levels"
+      adr: 99
+    - must: "author a named fill as a self-contained anatomy+elements+layout triplet in `slotContentExamples`, referenced by `$slotContent`"
+      adr: [46, 47, 49]
+constraints:
+  guidelines:
+    - should: "constrain a slot with `minChildren`/`maxChildren` (non-negative integers) and list permitted component type names in `anyOf`"
+      never: "use the retired `minItems`/`maxItems`"
+      adr: [28, 56]
+pointers:
+  guidelines:
+    - must: "point every `$slotContent` at `#/components/<spec folder key>/slotContentExamples/<name>` (optionally `/subcomponents/<sub>/` in the middle) — the `components` segment names the whole spec-key space, compositions' own fills included"
+      never: "author `#/compositions/...` pointers — schema-documented, but nothing resolves them today"

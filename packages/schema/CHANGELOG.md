@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The JSON Schema now accepts exactly what the types declare for prop unions** — `EnumProp` requires `type`/`default`/`enum` and `SlotProp` requires `type` (restoring the discrimination `AnyProp`'s `oneOf` depends on, which wrongly failed every plain string prop), and `PropConfigurationValue` is `anyOf` because `ImageBinding` extends `PropBinding`, so a bare `$binding` pass-through legally matches both (ADR-105)
+
 ### Removed
 
 

@@ -1,0 +1,31 @@
+# Judgment rules for flow and positioning styling — keys are the style properties that
+# govern flow. (`layout` alone names the AST in specs; this file is layout *styling*.)
+# useWhen: ordered, first match wins. when: property interdependencies — setting the
+# key's value opens (makes meaningful) or requires the listed properties.
+layoutMode:
+  useWhen:
+    HORIZONTAL|VERTICAL: children flow along an axis — itemSpacing, padding, alignments do the work
+    NONE: freeform — every child positioned explicitly
+  when:
+    HORIZONTAL|VERTICAL:
+      opens: [itemSpacing, padding, mainAxisAlignment, crossAxisAlignment, wrap]
+width:
+  guidelines:
+    - should: "give a composition or other page-scale root a concrete width — `FILL` at a rendered root has no parent to fill and collapses"
+      note: "the number is the system's page width, not a default — read it from the system's own compositions or ask; nothing here supplies one"
+position:
+  useWhen:
+    AUTO: the child participates in the container's flow (default)
+    ABSOLUTE: the child pins over or outside the flow (notch, badge dot, overlay)
+  when:
+    ABSOLUTE:
+      opens: [top, start, end, bottom, centerHorizontalOffset, centerVerticalOffset, width, height]
+      note: offsets anchor edges — "locked to the upper right" = top + end; px number or "%" string
+      adr: 41
+    AUTO:
+      opens: [layoutSizingHorizontal, layoutSizingVertical]
+  guidelines:
+    - should: "pin an `ABSOLUTE` child with offsets; hanging past the edge takes a negative offset and parent `clipsContent: false` (`bottom: -6`)"
+      adr: 41
+    - must: "swap offset edges in a placement variant — null the old edge, set the new one (`bottom: null` + `top: -6`)"
+      never: "stack both edges of an axis"
