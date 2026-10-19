@@ -140,7 +140,7 @@ spec:
       expect(() => configLoader.load()).toThrow(/specs\.config\.yaml is no longer read \(ADR-071\)/);
       expect(() => configLoader.load()).toThrow(/specs migrate config/);
       expect(() => configLoader.load()).toThrow(/config\/conventions\/ and config\/settings\.yaml/);
-      expect(() => configLoader.load()).toThrow(/https:\/\/www\.specsplugin\.com\/settings\//);
+      expect(() => configLoader.load()).toThrow(/https:\/\/spectacular\.systems\/settings\//);
     });
 
     it('refuses a discovered specs.config.json', () => {

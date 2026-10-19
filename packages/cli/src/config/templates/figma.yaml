@@ -6,16 +6,16 @@
 # at the entry body with no wrapping key.
 # Every commented line is the opposite of the default: uncomment it to change
 # behaviour. A commented block is off until uncommented.
-# Reference: https://www.specsplugin.com/schema/conventions/
+# Reference: https://spectacular.systems/schema/conventions/
 
 # Layer and property naming the library follows, and the target a spec reverses
 # into: NONE, SENTENCE, or TITLE (default: NONE, no convention declared)
-# https://www.specsplugin.com/settings/figma-keys/
+# https://spectacular.systems/settings/figma-keys/
 # naming: SENTENCE
 
 # Icon glyph components, by name pattern ({i} is the glyph name) and/or by
 # child structure for libraries whose glyphs are plainly named (ADR-103)
-# https://www.specsplugin.com/settings/glyphs/
+# https://spectacular.systems/settings/glyphs/
 # glyphs:
 #   match: 'DS Icon Glyph / {i}'
 #   structure:
@@ -25,12 +25,12 @@
 #       - type: VECTOR
 #         name: 'Vector'
 
-# Layer holding code-only props — https://www.specsplugin.com/settings/code-only-props-pattern/
+# Layer holding code-only props — https://spectacular.systems/settings/code-only-props-pattern/
 # codeOnlyProps:
 #   match: 'Code only props'
 
 # Subcomponents; the block's presence is the on-switch
-# https://www.specsplugin.com/guides/subcomponent-scoping/
+# https://spectacular.systems/guides/subcomponent-scoping/
 subcomponents:
   # Also search the Figma page, not component anatomy alone (default: NESTED)
   # scope: PAGE
@@ -44,7 +44,7 @@ subcomponents:
   #   - '{C} / Examples / {S}'
 
 # Instance examples (Pro); the block's presence is the on-switch
-# https://www.specsplugin.com/guides/instance-examples/
+# https://spectacular.systems/guides/instance-examples/
 # instanceExamples:
 #   # PAGE (default) or FILE, which searches every page
 #   scope: PAGE
@@ -56,7 +56,7 @@ subcomponents:
 #     - Examples
 
 # How the library expresses images; each member is an independent trigger
-# https://www.specsplugin.com/guides/images/
+# https://spectacular.systems/guides/images/
 # images:
 #   # Container fills emit as backgroundImage
 #   backgroundImage: true
@@ -67,9 +67,9 @@ subcomponents:
 #     - imageSource
 
 # Slot constraints authored as code-only props (requires codeOnlyProps)
-# https://www.specsplugin.com/settings/slot-constraints/
+# https://spectacular.systems/settings/slot-constraints/
 # slotConstraints: true
 
 # TEXT props whose values parse as numbers emit as NumberProp
-# https://www.specsplugin.com/settings/infer-number-props/
+# https://spectacular.systems/settings/infer-number-props/
 # inferNumberProps: true

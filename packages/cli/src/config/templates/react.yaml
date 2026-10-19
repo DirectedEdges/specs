@@ -2,7 +2,7 @@
 #
 # Absence means this platform declares no conventions, and generators emit their
 # host elements as before. Uncomment to bind a primitive to one of your components.
-# See: https://www.specsplugin.com/schema/conventions/
+# See: https://spectacular.systems/schema/conventions/
 
 # Prop that receives styling no concept maps to.
 # A React component usually takes an object prop such as sx or style.

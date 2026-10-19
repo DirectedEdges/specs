@@ -110,7 +110,7 @@ Bridge started (pid 12345).
   WebSocket : ws://localhost:9001  (plugin)
   HTTP      : http://localhost:9002/render  (control)
   Logs      : /Users/you/.specs/bridge.log
-Enable the CLI Bridge in the Specs 2 plugin to connect.
+Enable the CLI Bridge in the Figma plugin to connect.
 ```
 
 It runs in the background until you stop it, so this is once per session, not once per render. `specs render` never starts it for you — if it isn't running, the command fails immediately rather than hanging:

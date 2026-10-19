@@ -15,7 +15,7 @@ description: Work out how a library marks its icon glyph components — by name 
 
 # Set up icon glyphs
 
-Establish the [`glyphs` convention](https://www.specsplugin.com/settings/glyphs/) in `config/conventions/figma.yaml`: how this library marks a component as an icon glyph, so a placed icon resolves to a **name** rather than an anonymous vector.
+Establish the [`glyphs` convention](https://spectacular.systems/settings/glyphs/) in `config/conventions/figma.yaml`: how this library marks a component as an icon glyph, so a placed icon resolves to a **name** rather than an anonymous vector.
 
 With no `glyphs` block, glyph detection does not run at all. An icon layer is typed as an ordinary element, and the spec records its geometry but not which icon it is. With the block, the layer is typed `glyph` and the icon's name lands in the element's `content`.
 

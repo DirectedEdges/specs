@@ -62,8 +62,8 @@ describe('ConfigTemplates', () => {
       for (const block of ['instanceExamples:', 'images:', 'sourceProps:']) {
         expect(template).toContain(block);
       }
-      expect(template).toContain('www.specsplugin.com/guides/images/');
-      expect(template).toContain('www.specsplugin.com/guides/instance-examples/');
+      expect(template).toContain('spectacular.systems/guides/images/');
+      expect(template).toContain('spectacular.systems/guides/instance-examples/');
       // states describes the spec's own props, so it lives in specs.yaml (ADR-073 Decision 4)
       expect(template).not.toContain('states:');
     });
@@ -112,7 +112,7 @@ describe('ConfigTemplates', () => {
       for (const block of ['# states:', '# accessibility:', '# value:', 'indeterminate:']) {
         expect(template).toContain(block);
       }
-      expect(template).toContain('www.specsplugin.com/settings/states/');
+      expect(template).toContain('spectacular.systems/settings/states/');
     });
 
     it('is inert until uncommented', () => {
@@ -125,19 +125,19 @@ describe('ConfigTemplates', () => {
     it('should include data.directory with default value', () => {
       const template = generateSettingsTemplate();
       expect(template).toContain('directory: ./data');
-      expect(template).toContain('www.specsplugin.com/settings/data-sources/');
+      expect(template).toContain('spectacular.systems/settings/data-sources/');
     });
 
     it('should include spec.directory with default value', () => {
       const template = generateSettingsTemplate();
       expect(template).toContain('directory: ./specs');
-      expect(template).toContain('www.specsplugin.com/settings/folders/');
+      expect(template).toContain('spectacular.systems/settings/folders/');
     });
 
     it('should include inline documentation comments', () => {
       const template = generateSettingsTemplate();
       expect(template).toContain('#');
-      expect(template).toContain('www.specsplugin.com/settings/');
+      expect(template).toContain('spectacular.systems/settings/');
     });
 
     it('should include Figma sources section', () => {
