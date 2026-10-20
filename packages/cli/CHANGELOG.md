@@ -5,13 +5,14 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.34.0] - Unreleased
+## [0.34.0] - 2026-10-20
 
-### Added
+**The CLI's documentation and repository links follow the repo's rename to DirectedEdges/spectacular.** No command behaves differently — this release repoints the README that npm renders and the package's repository link at the renamed home, and picks up the companion releases of the schema and the Figma transform. Every old `DirectedEdges/specs` link keeps resolving through GitHub's rename redirect.
 
 ### Changed
 
-### Removed
+- **The README npm renders and the package's repository link point at `DirectedEdges/spectacular`**, the renamed home of the CLI and schema. Old links keep resolving via GitHub's redirect
+- **Specs generated from the REST runtime name their schema's renamed home**, by way of the updated `@directededges/specs-from-figma` and `@directededges/specs-schema` releases this version depends on
 
 
 ## [0.33.0] - 2026-10-20
