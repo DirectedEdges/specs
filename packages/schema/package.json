@@ -6,7 +6,7 @@
   "author": "Nathan Curtis <nathan@directededges.com>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/DirectedEdges/specs.git",
+    "url": "https://github.com/DirectedEdges/spectacular.git",
     "directory": "packages/schema"
   },
   "type": "module",

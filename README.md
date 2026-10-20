@@ -17,9 +17,9 @@ The CLI installs some dependencies and the private transform packages for you (b
 | Surface | What it is | Where it lives |
 |---|---|---|
 | [**Spectacular**](https://www.figma.com/community/plugin/1549454283615386215/specs-2) | Figma plugin — specs on canvas, spec data on the document | Figma Community |
-| [**`@directededges/specs-cli`**](https://www.npmjs.com/package/@directededges/specs-cli) | 18 commands running the ecosystem plus source for analysis, versions, css, storybook, testing | [`packages/cli/`](https://github.com/DirectedEdges/specs/tree/main/packages/cli/) |
-| [**`@directededges/specs-schema`**](https://www.npmjs.com/package/@directededges/specs-schema) | The contract — TypeScript types and JSON Schema | [`packages/schema/`](https://github.com/DirectedEdges/specs/tree/main/packages/schema/) |
-| [**Documentation site**](https://spectacular.systems) | ~150 pages | Source in [`site/`](https://github.com/DirectedEdges/specs/tree/main/site/) |
+| [**`@directededges/specs-cli`**](https://www.npmjs.com/package/@directededges/specs-cli) | 18 commands running the ecosystem plus source for analysis, versions, css, storybook, testing | [`packages/cli/`](https://github.com/DirectedEdges/spectacular/tree/main/packages/cli/) |
+| [**`@directededges/specs-schema`**](https://www.npmjs.com/package/@directededges/specs-schema) | The contract — TypeScript types and JSON Schema | [`packages/schema/`](https://github.com/DirectedEdges/spectacular/tree/main/packages/schema/) |
+| [**Documentation site**](https://spectacular.systems) | ~150 pages | Source in [`site/`](https://github.com/DirectedEdges/spectacular/tree/main/site/) |
 | [**`@directededges/specs-from-figma`**](https://www.npmjs.com/package/@directededges/specs-from-figma) | Transform Figma → spec, with Plugin API and REST runtimes | Private, published to npm |
 | [**`@directededges/react-from-specs`**](https://www.npmjs.com/package/@directededges/react-from-specs) | Transform spec → React | Private, published to npm |
 | [**`@directededges/webcomponents-from-specs`**](https://www.npmjs.com/package/@directededges/webcomponents-from-specs) | Transform spec → Web Components (Lit) | Private, published to npm |
@@ -61,13 +61,13 @@ npm install @directededges/specs-schema
 | [Conventions](https://spectacular.systems/schema/conventions/) | `Conventions`, `PlatformConventions`, `SpecsConventions`, `ValueConvention` | |
 | [Settings](https://spectacular.systems/schema/settings/) | `Settings`, `ResolvedSettings`, `ColorFormat`, `SourceEntry` | |
 
-Exports are type-only but for two runtime constants, `DEFAULT_CONVENTIONS` and `DEFAULT_SETTINGS`. [JSON Schema](https://github.com/DirectedEdges/specs/tree/main/packages/schema/schema/) ships five addressable subpaths — `component`, `concern`, `metadata`, `conventions`, `settings` — alongside the [TypeScript types](https://github.com/DirectedEdges/specs/tree/main/packages/schema/types/). Every type has a page under [Schema](https://spectacular.systems/schema/), and [`CONSTITUTION.md`](https://github.com/DirectedEdges/specs/blob/main/packages/schema/CONSTITUTION.md) governs what may change and how.
+Exports are type-only but for two runtime constants, `DEFAULT_CONVENTIONS` and `DEFAULT_SETTINGS`. [JSON Schema](https://github.com/DirectedEdges/spectacular/tree/main/packages/schema/schema/) ships five addressable subpaths — `component`, `concern`, `metadata`, `conventions`, `settings` — alongside the [TypeScript types](https://github.com/DirectedEdges/spectacular/tree/main/packages/schema/types/). Every type has a page under [Schema](https://spectacular.systems/schema/), and [`CONSTITUTION.md`](https://github.com/DirectedEdges/spectacular/blob/main/packages/schema/CONSTITUTION.md) governs what may change and how.
 
 *Further reading: [Component contracts and schemas](https://nathanacurtis.substack.com/p/component-contracts-and-schemas).*
 
 ### Decision records
 
-Schema changes are proposed and tracked through Architecture Decision Records in [`adr/`](https://github.com/DirectedEdges/specs/tree/main/adr/). Each one records the context, the options considered, and the decision; accepted ADRs publish to the docs site automatically.
+Schema changes are proposed and tracked through Architecture Decision Records in [`adr/`](https://github.com/DirectedEdges/spectacular/tree/main/adr/). Each one records the context, the options considered, and the decision; accepted ADRs publish to the docs site automatically.
 
 Contributions are welcome. Clone the repo, run `npm install` at the root, and use `npm run build` and `npm test` to validate changes. All packages use Vitest with globals enabled. This repo ships Claude Code skills for the full ADR lifecycle:
 
@@ -229,7 +229,7 @@ Six output sections are drawn on canvas: [Anatomy](https://spectacular.systems/p
 - [Roles](https://spectacular.systems/roles/) — role concepts, inventory, and precedence
 - [Releases](https://spectacular.systems/overview/releases/) — merged schema and CLI changelogs
 
-The site's Decision Records section is generated from [`adr/`](https://github.com/DirectedEdges/specs/tree/main/adr/) at build time, so an accepted ADR publishes itself.
+The site's Decision Records section is generated from [`adr/`](https://github.com/DirectedEdges/spectacular/tree/main/adr/) at build time, so an accepted ADR publishes itself.
 
 ## Further reading
 
@@ -253,7 +253,7 @@ Pro is $10/month. [Purchase a license](https://buy.polar.sh/polar_cl_xnq7zeKLXun
 
 ## Issues
 
-Check the [existing issues](https://github.com/DirectedEdges/specs/issues) before opening a new one. For a bug, include:
+Check the [existing issues](https://github.com/DirectedEdges/spectacular/issues) before opening a new one. For a bug, include:
 
 - Figma version and operating system
 - Steps to reproduce
@@ -268,12 +268,12 @@ Questions are welcome in the [Slack community](https://join.slack.com/t/directed
 
 | Package | License |
 |---|---|
-| [`packages/schema/`](https://github.com/DirectedEdges/specs/tree/main/packages/schema/) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
-| [`packages/cli/`](https://github.com/DirectedEdges/specs/tree/main/packages/cli/) | [MIT](https://github.com/DirectedEdges/specs/blob/main/packages/cli/LICENSE) |
+| [`packages/schema/`](https://github.com/DirectedEdges/spectacular/tree/main/packages/schema/) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
+| [`packages/cli/`](https://github.com/DirectedEdges/spectacular/tree/main/packages/cli/) | [MIT](https://github.com/DirectedEdges/spectacular/blob/main/packages/cli/LICENSE) |
 
 When extending or reusing the schema, credit **Nathan Curtis**, link to this repository and to the license, and indicate any modifications you made.
 
-> "This project uses the [Spectacular UI Component Schema](https://github.com/DirectedEdges/specs) by Nathan Curtis of Directed Edges, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)."
+> "This project uses the [Spectacular UI Component Schema](https://github.com/DirectedEdges/spectacular) by Nathan Curtis of Directed Edges, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)."
 
 ---
 
