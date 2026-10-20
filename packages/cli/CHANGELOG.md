@@ -5,7 +5,21 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.33.0] - Unreleased
+## [0.33.0] - 2026-10-20
+
+**Specs is now Spectacular, and the documentation lives at spectacular.systems.** Figma shipped a feature of its own called Specs, so the product takes a new name — but nothing you type changes. The command is still `specs`, and every package keeps its name on npm.
+
+**Editing a convention regenerates your specs, not just what was built from them.** A convention change used to re-run the analysis and both platform trees against specs written under the old convention, producing a pass that looked clean and emitted from stale input. Declaring a glyphs convention no longer needs a manual `specs generate` to take effect. Alongside that, a chain now names the steps your workspace has nothing for and why, so three skipped steps of six read as a workspace that has not got there yet rather than a broken run.
+
+### Changed
+
+- **The product is Spectacular; the command is still `specs`.** Printed output and scaffolded config comments say Spectacular, and every documentation link now points at `spectacular.systems`. The old `specsplugin.com` links redirect, so nothing you have saved breaks. Package names are unchanged — `@directededges/specs-cli`, `@directededges/specs-schema` and the rest keep their names permanently, because npm has no rename
+
+- **The bridge names the Figma plugin by role rather than by brand.** "Enable the CLI Bridge in the Figma plugin to connect" reads the same whether the plugin is listed as Specs 2 or Spectacular, so the guidance stays correct while the Figma Community listing catches up
+
+- **`specs init` and `specs storybook init` print the chain the docs teach**, ending at `specs run` rather than at `specs generate`, and no longer offering a way of starting Storybook that the setup flow forbids.
+
+- **The role-adoption skills say which page answers which question**, so a first sweep reads the two that carry the judgment and fetches precedence only when a role, a states classification and an action land on the same element. The apply step now names `conceptsInertInUse` as the way to tell a role that could not emit from one that failed to land, and the proposal step's parts checklist covers the slider, progressbar and live-region families.
 
 ### Fixed
 
@@ -17,13 +31,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`specs generate` no longer warns that it overwrote files.** Overwriting is what it does on every run after the first, and warning about the expected case taught readers to skim the warnings that matter.
 
-### Changed
-
-- **`specs init` and `specs storybook init` print the chain the docs teach**, ending at `specs run` rather than at `specs generate`, and no longer offering a way of starting Storybook that the setup flow forbids.
-
-- **The role-adoption skills say which page answers which question**, so a first sweep reads the two that carry the judgment and fetches precedence only when a role, a states classification and an action land on the same element. The apply step now names `conceptsInertInUse` as the way to tell a role that could not emit from one that failed to land, and the proposal step's parts checklist covers the slider, progressbar and live-region families.
-
-### Removed
 
 
 ## [0.32.0] - 2026-10-14
