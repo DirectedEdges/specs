@@ -5,6 +5,15 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.37.0] - 2026-10-20
+
+**The schema's home is now the DirectedEdges/spectacular repository.** The repo that was DirectedEdges/specs was renamed alongside the plugin's rebrand to Spectacular. Nothing in the types or the JSON Schema changes — this release updates the package's repository link so npm points at the right home, and every old link keeps resolving through GitHub's rename redirect.
+
+### Changed
+
+- **The package's repository link points at `DirectedEdges/spectacular`**, the renamed home of the schema. Old `DirectedEdges/specs` links keep resolving via GitHub's redirect
+
+
 ## [0.36.0] - 2026-10-20
 
 **An annotation survives a collapsed layer knowing which layer it came from.** When a wrapper is folded into the element it wraps, a role annotated on the wrapper used to be indistinguishable from one annotated on the element itself — so writing the spec back to Figma could put it on the wrong layer. A spec now records the two separately, and a round trip returns each annotation to the layer that carried it. Generated code is unaffected: it still reads only the element's own role.

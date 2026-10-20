@@ -5,6 +5,20 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.34.0] - 2026-10-20
+
+**The CLI's documentation and repository links follow the repo's rename to DirectedEdges/spectacular.** No command behaves differently — this release repoints the README that npm renders and the package's repository link at the renamed home, and picks up the companion releases of the schema and the Figma transform. Every old `DirectedEdges/specs` link keeps resolving through GitHub's rename redirect.
+
+### Changed
+
+- **The README npm renders and the package's repository link point at `DirectedEdges/spectacular`**, the renamed home of the CLI and schema. Old links keep resolving via GitHub's redirect
+
+### Dependency updates
+
+- **Specs now name their schema's renamed home.** Via `@directededges/specs-from-figma` 0.36.0, every spec the CLI generates points its `$schema` URL at `DirectedEdges/spectacular`; specs you already generated keep validating through GitHub's redirect
+- **`@directededges/specs-schema` 0.37.0** carries the same rename in its package metadata — no change to the types or the JSON Schema
+
+
 ## [0.33.0] - 2026-10-20
 
 **Specs is now Spectacular, and the documentation lives at spectacular.systems.** Figma shipped a feature of its own called Specs, so the product takes a new name — but nothing you type changes. The command is still `specs`, and every package keeps its name on npm.

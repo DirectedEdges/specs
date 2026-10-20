@@ -24,7 +24,7 @@ export default defineConfig({
         replacesTitle: true,
       },
       social: {
-        github: 'https://github.com/DirectedEdges/specs',
+        github: 'https://github.com/DirectedEdges/spectacular',
       },
       components: {
         SocialIcons: './src/components/SocialIcons.astro',
