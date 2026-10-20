@@ -12,7 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **The README npm renders and the package's repository link point at `DirectedEdges/spectacular`**, the renamed home of the CLI and schema. Old links keep resolving via GitHub's redirect
-- **Specs generated from the REST runtime name their schema's renamed home**, by way of the updated `@directededges/specs-from-figma` and `@directededges/specs-schema` releases this version depends on
+
+### Dependency updates
+
+- **Specs now name their schema's renamed home.** Via `@directededges/specs-from-figma` 0.36.0, every spec the CLI generates points its `$schema` URL at `DirectedEdges/spectacular`; specs you already generated keep validating through GitHub's redirect
+- **`@directededges/specs-schema` 0.37.0** carries the same rename in its package metadata — no change to the types or the JSON Schema
 
 
 ## [0.33.0] - 2026-10-20
