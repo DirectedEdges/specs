@@ -5,6 +5,34 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.33.0] - 2026-10-20
+
+**Specs is now Spectacular, and the documentation lives at spectacular.systems.** Figma shipped a feature of its own called Specs, so the product takes a new name — but nothing you type changes. The command is still `specs`, and every package keeps its name on npm.
+
+**Editing a convention regenerates your specs, not just what was built from them.** A convention change used to re-run the analysis and both platform trees against specs written under the old convention, producing a pass that looked clean and emitted from stale input. Declaring a glyphs convention no longer needs a manual `specs generate` to take effect. Alongside that, a chain now names the steps your workspace has nothing for and why, so three skipped steps of six read as a workspace that has not got there yet rather than a broken run.
+
+### Changed
+
+- **The product is Spectacular; the command is still `specs`.** Printed output and scaffolded config comments say Spectacular, and every documentation link now points at `spectacular.systems`. The old `specsplugin.com` links redirect, so nothing you have saved breaks. Package names are unchanged — `@directededges/specs-cli`, `@directededges/specs-schema` and the rest keep their names permanently, because npm has no rename
+
+- **The bridge names the Figma plugin by role rather than by brand.** "Enable the CLI Bridge in the Figma plugin to connect" reads the same whether the plugin is listed as Specs 2 or Spectacular, so the guidance stays correct while the Figma Community listing catches up
+
+- **`specs init` and `specs storybook init` print the chain the docs teach**, ending at `specs run` rather than at `specs generate`, and no longer offering a way of starting Storybook that the setup flow forbids.
+
+- **The role-adoption skills say which page answers which question**, so a first sweep reads the two that carry the judgment and fetches precedence only when a role, a states classification and an action land on the same element. The apply step now names `conceptsInertInUse` as the way to tell a role that could not emit from one that failed to land, and the proposal step's parts checklist covers the slider, progressbar and live-region families.
+
+### Fixed
+
+- **Editing a convention now regenerates your specs, not just the reports and the code built from them.** `scan` and `generate` did not watch `config/`, so a convention change re-ran the analysis and both platform trees against specs written under the old convention — a pass that looked clean and emitted from stale input. Declaring a glyphs convention needed a manual `specs generate` to take effect; it no longer does. A convention edit re-derives the manifest from Figma's dev status, the same as new data arriving, so `settings.curation.preserveManualSelections` applies to it too.
+
+- **`specs run` and `specs build` name the steps your workspace has nothing for, and why**, so a chain with three of its six steps reads as a workspace that has not got there yet rather than as a broken run: `not in this workspace: storybook (no Storybook host scaffolded)`.
+
+- **`analyze keys` records in `keys.yaml` whether it measured anything.** Without a `naming` convention there is nothing to measure names against, so every name passes and zero divergence means "not checked" — indistinguishable in the file from a library that round-trips perfectly. `measured` and `namingConvention` now say which, where a reader opening the committed file will see them.
+
+- **`specs generate` no longer warns that it overwrote files.** Overwriting is what it does on every run after the first, and warning about the expected case taught readers to skim the warnings that matter.
+
+
+
 ## [0.32.0] - 2026-10-14
 
 A workspace is now a documented, tested library, and screens are first-class in it. Three themes:
@@ -96,6 +124,14 @@ A workspace is now a documented, tested library, and screens are first-class in 
 - **`specs skills install` ships two skills that carry role adoption across a library.** One proposes a role for every unannotated element as a table you mark up; the other adds the approved ones to your Figma file a page at a time, then regenerates so you can see what landed. Nothing reaches Figma before you have checked the table.
 
 - **The bridge reads a component's structure as well as its spec.** `POST /inspect` describes a live component's anatomy elements keyed the way your specs key them, and `POST /annotate` adds role annotations to one page — appending, so notes and `action:` lines already on a layer survive, and an element that already carries a role is left alone.
+
+#### Icons
+
+- **`specs skills install` ships a skill that works out how your library marks a component as an icon glyph.** It reads your scan manifest, decides which of a file's populations are icons, derives a `glyphs` convention by name pattern or by child structure, and ends by proving the icon names resolve.
+
+#### States
+
+- **`specs skills install` ships a skill that proposes your `states` block from your own prop data**, sorting every variant prop into a state concept, a visibility toggle or a presentation flag. It hands you a block to paste and never edits your config.
 
 #### Generate and render
 

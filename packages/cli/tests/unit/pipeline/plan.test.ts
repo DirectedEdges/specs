@@ -36,6 +36,10 @@ function workspace(parts: {
   /** Sources also fetch variables and styles — the token universe analyze reads. */
   foundations?: boolean;
   preserveManualSelections?: boolean;
+  /** Glyph SVG directories under assets/, as `fetch --only <alias>,icons` writes them. */
+  icons?: string[];
+  /** A target's own asset write, which must not become one of its inputs. */
+  cssvars?: boolean;
 } = {}): Workspace {
   const dataDir = path.join(root, 'data');
   const specsDir = path.join(root, 'specs');
@@ -51,6 +55,8 @@ function workspace(parts: {
   if (parts.webcomponents) fs.ensureDirSync(path.join(root, 'webcomponents', 'src'));
   if (parts.storybook) fs.ensureDirSync(path.join(root, 'storybook', '.storybook'));
   if (parts.config) fs.ensureDirSync(configDir);
+  for (const dir of parts.icons ?? []) fs.ensureDirSync(path.join(root, 'assets', dir));
+  if (parts.cssvars) fs.ensureDirSync(path.join(root, 'assets', 'cssvars'));
 
   return {
     root,
@@ -158,6 +164,74 @@ describe('resolvePlan — which steps this workspace has', () => {
   it('says there is nothing to do rather than reporting an empty success', () => {
     expect(() => resolvePlan(workspace())).toThrow(/nothing to do/);
   });
+
+  it('names the steps this workspace has nothing for, and why', () => {
+    // An inactive step used to be dropped before anything could report it, so a
+    // fresh workspace ran three of six steps and said nothing about the other
+    // three. That reads as a broken run rather than as a workspace that has not
+    // got there yet.
+    const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true });
+    const reasons = Object.fromEntries(resolvePlan(ws).inactive.map(e => [e.step.id, e.reason]));
+    expect(reasons).toEqual({
+      webcomponents: 'no webcomponents/ tree',
+      storybook: 'no Storybook host scaffolded',
+    });
+  });
+
+  it('gives a reason that names the condition, not the remedy', () => {
+    const ws = workspace({ data: ['ds'] });
+    const reasons = Object.fromEntries(resolvePlan(ws).inactive.map(e => [e.step.id, e.reason]));
+    expect(reasons.analyze).toBe('no specs/ yet — generate writes them');
+    expect(reasons.generate).toBe('no manifest yet — scan writes it');
+    expect(reasons.storybook).toBe('no Storybook host scaffolded');
+  });
+
+  it('reports no inactive step once the workspace has every one', () => {
+    const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, webcomponents: true, storybook: true });
+    // `render` is opt-in rather than inactive, so it is excluded, not missing.
+    expect(resolvePlan(ws).inactive).toEqual([]);
+  });
+
+  /**
+   * A platform tree means two things, and the difference decides whether a first
+   * run emits any code at all. Present is "emit here"; absent is either "this
+   * workspace does not want it" or "nothing has run yet". Reading absence as an
+   * opt-out either way left a new workspace doing three of its six steps and
+   * emitting nothing — the state a live onboarding run stopped on, confused.
+   *
+   * So the opt-out counts only once some tree exists. These four cases are the
+   * whole rule.
+   */
+  describe('platform trees as an opt-out', () => {
+    it('emits every platform when no tree exists and nothing was scoped', () => {
+      const ws = workspace({ data: ['ds'], manifest: true, specs: true });
+      expect(resolvePlan(ws).steps.map(s => s.id)).toContain('react');
+      expect(resolvePlan(ws).steps.map(s => s.id)).toContain('webcomponents');
+    });
+
+    it('treats a missing tree as opted out once the other one exists', () => {
+      const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true });
+      const ids = resolvePlan(ws).steps.map(s => s.id);
+      expect(ids).toContain('react');
+      expect(ids).not.toContain('webcomponents');
+    });
+
+    it('does not emit a platform in a workspace with nothing to emit from', () => {
+      // No specs: a platform step here is not an unexpressed preference, it is
+      // nothing to do — which is what keeps a bare directory bare.
+      const ws = workspace({ data: ['ds'], manifest: true });
+      expect(resolvePlan(ws).steps.map(s => s.id)).not.toContain('react');
+    });
+
+    it('lets a scoping flag speak for itself', () => {
+      // Naming steps is a preference, so a scoped run never falls back to "emit
+      // everything" — `--only storybook` means storybook, not storybook plus two
+      // platform trees the workspace never asked for.
+      const ws = workspace({ data: ['ds'], manifest: true, specs: true, storybook: true });
+      expect(resolvePlan(ws, { only: ['storybook'] }).steps.map(s => s.id)).toEqual(['storybook']);
+      expect(resolvePlan(ws, { skip: ['scan'] }).steps.map(s => s.id)).not.toContain('react');
+    });
+  });
 });
 
 describe('entryFor — which step a changed file belongs to', () => {
@@ -214,8 +288,37 @@ describe('entryFor — which step a changed file belongs to', () => {
     const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, config: true });
     const plan = resolvePlan(ws);
     const entry = entryFor(plan, ws, path.join(root, 'config', 'conventions', 'figma.yaml'));
-    expect(entry?.step.id).toBe('analyze');
     expect(entry?.components).toEqual([]);
+  });
+
+  it('starts a config change at scan, so the specs are rewritten under the new convention', () => {
+    // It used to start at `analyze`, which meant a convention change re-ran the
+    // analysis and both platform trees while the specs they read stayed as they
+    // were — a clean-looking pass over stale input. A newly declared `glyphs`
+    // convention left glyph names out of the specs until someone ran `specs
+    // generate` by hand.
+    const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, config: true });
+    const plan = resolvePlan(ws);
+    const entry = entryFor(plan, ws, path.join(root, 'config', 'conventions', 'figma.yaml'));
+    expect(entry?.step.id).toBe('scan');
+  });
+
+  it('starts a config change at generate when scan is skipped', () => {
+    const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, config: true });
+    const plan = resolvePlan(ws, { skip: ['scan'] });
+    const entry = entryFor(plan, ws, path.join(root, 'config', 'settings.yaml'));
+    expect(entry?.step.id).toBe('generate');
+  });
+
+  it('declares config on every step that reads a convention', () => {
+    // `analyze` and the targets had it; `scan` and `generate` — the two steps that
+    // turn conventions into specs — did not, which is the whole defect.
+    const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, webcomponents: true, storybook: true, config: true });
+    const configDir = path.join(root, 'config');
+    const withConfig = resolvePlan(ws).steps
+      .filter(step => step.inputs(ws).some(input => input.path === configDir))
+      .map(step => step.id);
+    expect(withConfig).toEqual(['scan', 'generate', 'analyze', 'react', 'webcomponents', 'storybook']);
   });
 
   it('ignores emitted code — nothing in the chain reads it', () => {
@@ -287,6 +390,31 @@ describe('watchPaths', () => {
     expect(new Set(paths).size).toBe(paths.length);
     expect(paths).toContain(ws.specsDir);
     expect(paths).toContain(path.join(root, 'config'));
+  });
+
+  it('watches the glyph SVGs a target emits icon components from', () => {
+    // An icons fetch changes what the targets should emit with no spec having
+    // changed. Without this the SVGs land and nothing re-emits, so Storybook
+    // keeps showing the icons it had before.
+    const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, config: true, icons: ['icons'] });
+    expect(watchPaths(resolvePlan(ws), ws)).toContain(path.join(root, 'assets', 'icons'));
+  });
+
+  it('watches an ad-hoc source\'s own icons directory too', () => {
+    const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, config: true, icons: ['icons', 'icons-scratch'] });
+    const paths = watchPaths(resolvePlan(ws), ws);
+    expect(paths).toContain(path.join(root, 'assets', 'icons'));
+    expect(paths).toContain(path.join(root, 'assets', 'icons-scratch'));
+  });
+
+  it('never watches assets/ itself — the targets write cssvars into it', () => {
+    // Watching the parent would make each emit start the next one, because
+    // `assets/cssvars/` is a target's own output.
+    const ws = workspace({ data: ['ds'], manifest: true, specs: true, react: true, config: true, icons: ['icons'], cssvars: true });
+    const paths = watchPaths(resolvePlan(ws), ws);
+    expect(paths).not.toContain(path.join(root, 'assets', 'cssvars'));
+    const target = resolvePlan(ws).steps.find(s => s.id === 'react')!;
+    expect(target.inputs(ws).map(i => i.path)).not.toContain(ws.assetsDir);
   });
 
   it('never watches the workspace root', () => {

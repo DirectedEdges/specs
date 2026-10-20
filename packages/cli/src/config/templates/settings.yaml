@@ -1,0 +1,98 @@
+# Choices about this run — curation, sources, spec output, assets.
+# A different team reading the same library could set any of these differently
+# and still be correct. Every commented line is the opposite of the default:
+# uncomment it to change behaviour.
+# Reference: https://spectacular.systems/schema/settings/
+
+author: <Your Name Here>
+
+# Which components get a spec — https://spectacular.systems/settings/curation/
+curation:
+  # Spec every component, not only those marked Ready for dev
+  defaultSelection: READY_FOR_DEV
+
+  # Hand-edited selections survive a changed Figma signal
+  preserveManualSelections: true
+
+  # Do not follow what selected components are built from
+  includeDependencies: true
+
+# What to fetch, and where it lands — https://spectacular.systems/settings/data-sources/
+data:
+  directory: ./data
+  sources:
+    library:
+      key: YOUR_FIGMA_FILE_KEY
+      # Add icons once a glyphs convention is declared in conventions/figma.yaml
+      fetch: [file, variables, styles]
+
+# Icons, images, generated CSS, fonts — https://spectacular.systems/settings/folders/
+assets:
+  directory: ./assets
+
+spec:
+  # Overridable with -o — https://spectacular.systems/settings/folders/
+  directory: ./specs
+
+  # JSON or YAML — https://spectacular.systems/settings/output-format/
+  format: YAML
+
+  # SAFE, CAMEL, SNAKE, KEBAB, PASCAL, TRAIN — https://spectacular.systems/settings/keys/
+  keys: CAMEL
+
+  # LAYOUT, PARENT_CHILDREN, BOTH — https://spectacular.systems/settings/layout/
+  layout: LAYOUT
+
+  # TOKEN, TOKEN_NAME, TOKEN_FIGMA_EXTENSIONS, FIGMA_NAME, CUSTOM,
+  # FIGMA_SYNTAX_WEB, FIGMA_SYNTAX_IOS, FIGMA_SYNTAX_ANDROID
+  # Pro — https://spectacular.systems/settings/tokens/
+  tokens: TOKEN
+
+  # HEX, HEXA, RGB, RGBA, HSLA, HSB, OKLCH, OKLAB, OBJECT
+  # https://spectacular.systems/settings/color/
+  color: HEXA
+
+  # 1, 2, 3, or 9999 — https://spectacular.systems/settings/variant-depth/
+  variantDepth: 9999
+
+  # FULL or LAYERED — https://spectacular.systems/settings/details/
+  details: LAYERED
+
+  # Strip a root container that only wraps one child
+  # https://spectacular.systems/settings/collapse-primitive-wrapper/
+  collapsePrimitiveWrapper: true
+
+  # Promote primitive layers in composed examples to component instances
+  # https://spectacular.systems/settings/promote-primitives/
+  promotePrimitives: true
+
+  # Include variants marked invalid — https://spectacular.systems/settings/invalid-variants/
+  invalidVariants: false
+
+  # Omit the invalid-combinations list (Pro)
+  # https://spectacular.systems/settings/invalid-combinations/
+  invalidCombinations: true
+
+  # Include layered variants with no elements — https://spectacular.systems/settings/empty-variants/
+  emptyVariants: false
+
+  # Emit default slot content as examples (Pro)
+  # https://spectacular.systems/settings/default-slot-content/
+  defaultSlotContent: true
+
+  # File layout — https://spectacular.systems/settings/output/
+  # One library file instead of a file per component
+  splitComponents: true
+
+  # One file per component instead of a file per concern
+  splitConcerns: true
+
+  # Component files side by side instead of each in its own subfolder
+  useSubfolders: true
+
+  # Read Dev Mode annotations into anatomy roles — https://spectacular.systems/roles/
+  roles: true
+
+  # Fail rather than warn on an unmet role obligation (needs roles: true)
+  roleValidation: error
+

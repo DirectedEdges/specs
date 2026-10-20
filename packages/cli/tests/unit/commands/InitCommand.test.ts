@@ -55,7 +55,7 @@ describe('InitCommand', () => {
         expect(template).toContain('#');
       }
       const settings = generateConfigTemplates()['config/settings.yaml'];
-      expect(settings).toContain('www.specsplugin.com/settings/');
+      expect(settings).toContain('spectacular.systems/settings/');
     });
 
     it('states the commenting contract', () => {
@@ -167,8 +167,8 @@ describe('InitCommand', () => {
     it('should have all required documentation URLs', () => {
       const settings = generateConfigTemplates()['config/settings.yaml'];
       const requiredUrls = [
-        'www.specsplugin.com/settings/',
-        'www.specsplugin.com/',
+        'spectacular.systems/settings/',
+        'spectacular.systems/',
       ];
 
       requiredUrls.forEach(url => {

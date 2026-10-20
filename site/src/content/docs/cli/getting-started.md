@@ -4,13 +4,20 @@ title: "Getting Started"
 Spectacular CLI generates component specifications from your Figma design system. This guide walks you through setup and your first spec generation.
 
 :::tip[Using Claude Code?]
-Skip the manual walkthrough. Paste this into Claude Code:
+Skip the manual walkthrough. Install the CLI and its skills:
+
+```bash
+npm install -g @directededges/specs-cli
+specs skills install
+```
+
+Then paste this into Claude Code:
 
 ```
-Onboard me to Spectacular CLI following the ONBOARDING.md instructions in this repo.
+Follow the specs-cli.workspace.setup skill to set up a Spectacular workspace here.
 ```
 
-Claude will handle install, config, token setup, fetch, and your first generate — asking only the decisions that actually need you. See [`ONBOARDING.md`](https://github.com/DirectedEdges/specs/blob/main/ONBOARDING.md) in the repo root.
+It handles install, config, token setup, fetch, curation, the first build, and a running Storybook — asking only the decisions that actually need you. See [`skills install`](/cli/commands/skills/) for what else it writes.
 :::
 
 **Quick nav:**
