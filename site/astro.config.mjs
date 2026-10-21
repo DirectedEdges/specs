@@ -329,7 +329,7 @@ export default defineConfig({
               ],
             },
             {
-              label: 'Spectacular Conventions',
+              label: 'Specs',
               collapsed: true,
               items: [
                 { label: 'states', slug: 'settings/states' },
