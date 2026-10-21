@@ -12,6 +12,10 @@ Whether the element is locked from editing in Figma.
 | `boolean` | `true` |
 | [`TokenReference`](/schema/token-reference/) | `$token: ...`<br>`$type: boolean` |
 
+#### Default
+
+`false`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

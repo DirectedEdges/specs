@@ -15,7 +15,7 @@ description: Propose the states block for a library's specs.yaml from its own pr
 
 # Set up states
 
-Propose the `states:` block for `config/conventions/specs.yaml`: which of this library's variant props carry [state concepts](https://www.specsplugin.com/settings/states/), which value of each activates the concept, and which props are deliberately left as `data-*`.
+Propose the `states:` block for `config/conventions/specs.yaml`: which of this library's variant props carry [state concepts](https://spectacular.systems/settings/states/), which value of each activates the concept, and which props are deliberately left as `data-*`.
 
 Without the block, every variant prop emits as a `data-*` selector and nothing bridges to a real CSS pseudo-class or ARIA attribute. With it, `:hover` and `:disabled` reach the states they describe and `aria-expanded` says what a container only hinted at.
 
@@ -177,7 +177,7 @@ It writes no config. The last step hands you a block to paste and stops.
     | Why | Verdict |
     |---|---|
     | The value is not in the prop's enum | **Defect.** Step 6; fix the value. |
-    | The styling sits on an element that cannot enter the state — a container is never `:disabled` | **Defect**, but a [role](https://www.specsplugin.com/roles/) one, not a states one. Report it as that. |
+    | The styling sits on an element that cannot enter the state — a container is never `:disabled` | **Defect**, but a [role](https://spectacular.systems/roles/) one, not a states one. Report it as that. |
     | The prop drives **conditional rendering** rather than styling — it reveals a layer and changes nothing about how anything looks | **Correct.** Expected, and it is the revealed-layer row step 5 told you to classify. |
     | The prop drives no output at all | **Correct**, and step 5 should already have said so. |
 

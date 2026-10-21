@@ -11,6 +11,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import readline from 'readline';
 import { generateConfigTemplates } from '../config/ConfigTemplates.js';
+import { DOCS_BASE_URL } from '../constants/docs.js';
 
 export const Init = new Command('init')
   .description('Initialize config/conventions/<platform>.yaml and config/settings.yaml with production defaults')
@@ -71,7 +72,7 @@ async function initCommand(options: { force?: boolean; config?: string }): Promi
     console.log('   `specs run` watches and redoes only what a change affects, so leave it running.');
     console.log('   For a single pass that exits instead, use: specs build');
     console.log('');
-    console.log('📖 Documentation: https://www.specsplugin.com/settings/');
+    console.log(`📖 Documentation: ${DOCS_BASE_URL}/settings/`);
   } catch (error) {
     if (error instanceof Error) {
       console.error(`Error creating config file: ${error.message}`);

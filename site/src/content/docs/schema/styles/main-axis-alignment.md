@@ -14,6 +14,10 @@ Alignment along the main axis (depends on `layoutMode`).
 
 Not token-bindable — structural property, not a design value.
 
+#### Default
+
+`"START"`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

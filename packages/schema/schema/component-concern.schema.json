@@ -1,20 +1,20 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Specs Concern Document Schema",
+  "title": "Specs Component Concern Document Schema",
   "description": "One concern of a component, as written by a run with splitConcerns. Each concern has its own shape, requiring what it carries and permitting nothing else. Component-level definitions are referenced from component.schema.json rather than restated. (ADR-091)",
   "oneOf": [
     {
-      "$ref": "#/definitions/SpecApiDocument"
+      "$ref": "#/definitions/ComponentApiDocument"
     },
     {
-      "$ref": "#/definitions/SpecVariantsDocument"
+      "$ref": "#/definitions/ComponentVariantsDocument"
     },
     {
-      "$ref": "#/definitions/SpecExamplesDocument"
+      "$ref": "#/definitions/ComponentExamplesDocument"
     }
   ],
   "definitions": {
-    "SpecApiDocument": {
+    "ComponentApiDocument": {
       "type": "object",
       "description": "The api concern of a component: what it is and what it takes — title, anatomy and props. Written as api.yaml by a run with splitConcerns. (ADR-091)",
       "required": [
@@ -71,12 +71,12 @@
           "type": "object",
           "description": "This document's slice of each subcomponent, keyed by subcomponent name.",
           "additionalProperties": {
-            "$ref": "#/definitions/SpecApiSubcomponent"
+            "$ref": "#/definitions/ComponentApiSubcomponent"
           }
         }
       }
     },
-    "SpecVariantsDocument": {
+    "ComponentVariantsDocument": {
       "type": "object",
       "description": "The variants concern of a component: the default appearance and every variant override. Written as variants.yaml by a run with splitConcerns. (ADR-091)",
       "required": [
@@ -116,12 +116,12 @@
           "type": "object",
           "description": "This document's slice of each subcomponent, keyed by subcomponent name.",
           "additionalProperties": {
-            "$ref": "#/definitions/SpecVariantsSubcomponent"
+            "$ref": "#/definitions/ComponentVariantsSubcomponent"
           }
         }
       }
     },
-    "SpecExamplesDocument": {
+    "ComponentExamplesDocument": {
       "type": "object",
       "description": "The examples concern of a component: documented usages, the content they compose, and the image registry those reference. Written as examples.yaml when a component has any. (ADR-091)",
       "required": [
@@ -169,12 +169,12 @@
           "type": "object",
           "description": "This document's slice of each subcomponent, keyed by subcomponent name.",
           "additionalProperties": {
-            "$ref": "#/definitions/SpecExamplesSubcomponent"
+            "$ref": "#/definitions/ComponentExamplesSubcomponent"
           }
         }
       }
     },
-    "SpecApiSubcomponent": {
+    "ComponentApiSubcomponent": {
       "type": "object",
       "description": "A subcomponent's api slice: what it is and what it takes. (ADR-091)",
       "required": [
@@ -215,13 +215,13 @@
         "subcomponents": {
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/definitions/SpecApiSubcomponent"
+            "$ref": "#/definitions/ComponentApiSubcomponent"
           },
           "description": "Nested subcomponents, sliced by the same concern."
         }
       }
     },
-    "SpecVariantsSubcomponent": {
+    "ComponentVariantsSubcomponent": {
       "type": "object",
       "description": "A subcomponent's variants slice: how it looks by default and how each variant changes it. (ADR-091)",
       "required": [
@@ -245,13 +245,13 @@
         "subcomponents": {
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/definitions/SpecVariantsSubcomponent"
+            "$ref": "#/definitions/ComponentVariantsSubcomponent"
           },
           "description": "Nested subcomponents, sliced by the same concern."
         }
       }
     },
-    "SpecExamplesSubcomponent": {
+    "ComponentExamplesSubcomponent": {
       "type": "object",
       "description": "A subcomponent's examples slice: documented usages and the content they compose. (ADR-091)",
       "required": [],
@@ -282,7 +282,7 @@
         "subcomponents": {
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/definitions/SpecExamplesSubcomponent"
+            "$ref": "#/definitions/ComponentExamplesSubcomponent"
           },
           "description": "Nested subcomponents, sliced by the same concern."
         }

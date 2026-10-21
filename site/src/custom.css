@@ -572,3 +572,13 @@ html[data-has-hero] .hero .tagline {
 		gap: 0.1rem;
 	}
 }
+
+/* ── Table cell code spans ── */
+
+/* Starlight sets `overflow-wrap: anywhere` on all `code`, which force-breaks
+   identifiers mid-word in narrow table columns. Tables already scroll
+   horizontally (`overflow: auto` from Starlight), so cell code can wrap only
+   at normal word boundaries and let the column widen or scroll instead. */
+.sl-markdown-content :is(th, td) code {
+	overflow-wrap: normal;
+}

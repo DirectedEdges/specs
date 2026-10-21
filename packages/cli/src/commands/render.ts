@@ -2,7 +2,7 @@
  * Render Command
  *
  * Sends a spec to the local CLI bridge, which relays it to a connected
- * Specs 2 Figma plugin to create or update the matching component live in
+ * Spectacular Figma plugin to create or update the matching component live in
  * Figma. See `specs bridge` to start/stop the bridge.
  */
 

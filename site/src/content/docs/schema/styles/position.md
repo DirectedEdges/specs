@@ -16,6 +16,10 @@ Not token-bindable — structural property, not a design value.
 
 `ABSOLUTE` elements use [`top`](/schema/styles/top/) / [`bottom`](/schema/styles/bottom/) / [`start`](/schema/styles/start/) / [`end`](/schema/styles/end/) / [`centerHorizontalOffset`](/schema/styles/center-horizontal-offset/) / [`centerVerticalOffset`](/schema/styles/center-vertical-offset/) to place themselves relative to the parent.
 
+#### Default
+
+`"AUTO"`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Bridge server — persistent WebSocket server for the Specs 2 CLI bridge.
+// Bridge server — persistent WebSocket server for the Spectacular CLI bridge.
 // Stays running until Ctrl+C (or SIGTERM from `specs bridge stop`). Accepts
 // multiple renderComponent/generateFromSelection commands per session, and
 // multiple simultaneously connected Figma files (each with its own plugin
@@ -115,10 +115,10 @@ const workspaceOverrides: WorkspaceOverrides = {
 
 const resolveDirs = (fromPath: string) => resolveWorkspaceDirs(fromPath, workspaceOverrides);
 
-console.log(`\nSpecs 2 — CLI bridge`);
+console.log(`\nSpectacular — CLI bridge`);
 console.log(`  WebSocket : ws://localhost:${WS_PORT}  (plugin)`);
 console.log(`  HTTP      : http://localhost:${HTTP_PORT}/render  (control)`);
-console.log(`  Enable the CLI Bridge in the Specs 2 plugin to connect.`);
+console.log(`  Enable the CLI Bridge in the Figma plugin to connect.`);
 console.log(`  Ctrl+C to stop.\n`);
 
 // ── WebSocket server (plugin connections) ─────────────────────────────────────

@@ -14,6 +14,10 @@ Horizontal offset from center. Present when the horizontal constraint is `CENTER
 
 Not token-bindable — structural property computed from Figma layout constraints, not a design value.
 
+#### Default
+
+`null`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

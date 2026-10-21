@@ -14,6 +14,10 @@ Space distribution between wrapped lines. Only meaningful when `wrap` is `true`.
 
 Not token-bindable — structural property, not a design value.
 
+#### Default
+
+`null`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

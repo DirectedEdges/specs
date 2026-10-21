@@ -127,7 +127,7 @@ The statable principle, recorded for future schema authoring: **a TypeScript uni
 
 ## Semver Decision
 
-**Target version**: `0.36.0` — the version of `release/next`, the branch this ADR merges into.
+**Target version**: `0.39.0` — the version of `release/next`, the branch this ADR merges into.
 
 **Change class**: `PATCH` — corrections that make the schema accept what the types always declared; no vocabulary or contract change.
 

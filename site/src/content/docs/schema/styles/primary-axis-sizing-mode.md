@@ -12,6 +12,10 @@ Main-axis sizing mode.
 | `string` | `"FIXED"`, `"AUTO"` |
 | [`TokenReference`](/schema/token-reference/) | `$token: ...`<br>`$type: string` |
 
+#### Default
+
+`"AUTO"`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

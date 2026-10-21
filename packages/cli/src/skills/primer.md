@@ -117,7 +117,7 @@ https://raw.githubusercontent.com/DirectedEdges/specs/main/site/src/content/docs
 | How does versioning classify a change? | `versioning/index.md` |
 | A schema concept in prose rather than types | `schema/<concept>.md` |
 
-Two limits worth knowing. These are `main`, so they describe the newest documentation rather than the CLI you are running — if a page names something the installed CLI does not have, trust the CLI. And each fetch is independent, so look up what you need rather than browsing; `https://www.specsplugin.com/<topic>/` is the same content rendered, for a human you are pointing at it.
+Two limits worth knowing. These are `main`, so they describe the newest documentation rather than the CLI you are running — if a page names something the installed CLI does not have, trust the CLI. And each fetch is independent, so look up what you need rather than browsing; `https://spectacular.systems/<topic>/` is the same content rendered, for a human you are pointing at it.
 
 ## Which skill
 

@@ -11,6 +11,10 @@ Leading trim mode. Part of [`Typography`](/schema/typography/).
 |---|---|
 | `string` | `"NONE"`, `"CAP_HEIGHT"` |
 
+#### Default
+
+`"NONE"`
+
 #### Source
 
 [`packages/schema/types/Styles.ts`](https://github.com/DirectedEdges/specs/blob/main/packages/schema/types/Styles.ts) (`Typography` interface)

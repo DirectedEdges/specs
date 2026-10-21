@@ -11,6 +11,10 @@ Spacing between list items in pixels. Part of [`Typography`](/schema/typography/
 |---|---|
 | `number` | `4` |
 
+#### Default
+
+`0`
+
 #### Source
 
 [`packages/schema/types/Styles.ts`](https://github.com/DirectedEdges/specs/blob/main/packages/schema/types/Styles.ts) (`Typography` interface)

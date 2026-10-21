@@ -5,17 +5,57 @@ All notable changes to the Specs schema will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.36.0] - Unreleased
-
-### Added
-
-- **`FigmaAnatomyElementExtension.childRole` records a role annotated on the layer wrapper collapse folded into an element**, so `role` keeps meaning the element itself was annotated and a round trip returns each annotation to its own layer. Only `role` reaches emitted code (ADR-104)
+## [0.39.0] - Unreleased
 
 ### Changed
 
 - **The JSON Schema now accepts exactly what the types declare for prop unions** — `EnumProp` requires `type`/`default`/`enum` and `SlotProp` requires `type` (restoring the discrimination `AnyProp`'s `oneOf` depends on, which wrongly failed every plain string prop), and `PropConfigurationValue` is `anyOf` because `ImageBinding` extends `PropBinding`, so a bare `$binding` pass-through legally matches both (ADR-105)
 
-### Removed
+
+## [0.38.0] - 2026-10-21
+
+### Breaking
+
+- `SpecApiDocument`, `SpecVariantsDocument`, `SpecExamplesDocument`, `SpecConcernDocument` renamed to `ComponentApiDocument`, `ComponentVariantsDocument`, `ComponentExamplesDocument`, `ComponentConcernDocument` (ADR-110)
+- `SpecApiSubcomponent`, `SpecVariantsSubcomponent`, `SpecExamplesSubcomponent` renamed to `ComponentApiSubcomponent`, `ComponentVariantsSubcomponent`, `ComponentExamplesSubcomponent` (ADR-110)
+- `schema/concern.schema.json` renamed to `schema/component-concern.schema.json`; the `./schema/concern` package export becomes `./schema/component-concern` (ADR-110)
+
+### Added
+
+- `CompositionApiDocument`, `CompositionVariantsDocument`, `CompositionExamplesDocument` — type a composition's `splitConcerns` files, each exact to what it carries (ADR-109)
+- `CompositionConcernDocument` unions the three composition concern documents, reachable from `root.schema.json` (ADR-109)
+- `Composition.images` and `CompositionExamplesDocument.images` register image data referenced by a composition's elements, matching `Component.images` (ADR-109 amendment)
+
+### Migration
+
+- `SpecApiDocument` → `ComponentApiDocument`, `SpecVariantsDocument` → `ComponentVariantsDocument`, `SpecExamplesDocument` → `ComponentExamplesDocument`, `SpecConcernDocument` → `ComponentConcernDocument`: update imports to the new names — no shape change.
+- `SpecApiSubcomponent` → `ComponentApiSubcomponent`, `SpecVariantsSubcomponent` → `ComponentVariantsSubcomponent`, `SpecExamplesSubcomponent` → `ComponentExamplesSubcomponent`: update imports to the new names — no shape change.
+- `./schema/concern` → `./schema/component-concern`: update any package export subpath resolution or direct reference to `schema/concern.schema.json`.
+
+### ADRs
+
+#### Accepted
+
+- [ADR-109](../../adr/109-composition-concern-documents.md) — Composition Concern Documents
+- [ADR-110](../../adr/110-component-concern-document-naming.md) — Rename `Spec*Document` to `Component*Document`
+
+
+## [0.37.0] - 2026-10-20
+
+**The schema's home is now the DirectedEdges/spectacular repository.** The repo that was DirectedEdges/specs was renamed alongside the plugin's rebrand to Spectacular. Nothing in the types or the JSON Schema changes — this release updates the package's repository link so npm points at the right home, and every old link keeps resolving through GitHub's rename redirect.
+
+### Changed
+
+- **The package's repository link points at `DirectedEdges/spectacular`**, the renamed home of the schema. Old `DirectedEdges/specs` links keep resolving via GitHub's redirect
+
+
+## [0.36.0] - 2026-10-20
+
+**An annotation survives a collapsed layer knowing which layer it came from.** When a wrapper is folded into the element it wraps, a role annotated on the wrapper used to be indistinguishable from one annotated on the element itself — so writing the spec back to Figma could put it on the wrong layer. A spec now records the two separately, and a round trip returns each annotation to the layer that carried it. Generated code is unaffected: it still reads only the element's own role.
+
+### Added
+
+- **`FigmaAnatomyElementExtension.childRole` records a role annotated on the layer wrapper collapse folded into an element**, so `role` keeps meaning the element itself was annotated and a round trip returns each annotation to its own layer. Only `role` reaches emitted code (ADR-104)
 
 
 ## [0.35.0] - 2026-10-14

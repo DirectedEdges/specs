@@ -11,6 +11,10 @@ Text decoration. Part of [`Typography`](/schema/typography/).
 |---|---|
 | `string` | `"UNDERLINE"`, `"STRIKETHROUGH"`, `"NONE"` |
 
+#### Default
+
+`"NONE"`
+
 #### Source
 
 [`packages/schema/types/Styles.ts`](https://github.com/DirectedEdges/specs/blob/main/packages/schema/types/Styles.ts) (`Typography` interface)

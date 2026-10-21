@@ -15,7 +15,7 @@ description: Propose a role for every unannotated anatomy element in a library, 
 
 # Propose roles
 
-Produce `reports/<YYYY-MM-DD>.roles.proposal.md`: a per-component table proposing a [role](https://www.specsplugin.com/roles/) for each unannotated anatomy element, with the evidence behind it and a **Decision** column a system designer edits in place.
+Produce `reports/<YYYY-MM-DD>.roles.proposal.md`: a per-component table proposing a [role](https://spectacular.systems/roles/) for each unannotated anatomy element, with the evidence behind it and a **Decision** column a system designer edits in place.
 
 This skill **authors its report**, unlike the others here. Which role an element takes is a judgment — the discriminator between `checkbox`, `switch` and `togglebutton` is what the control does when operated, which no prop records. A rule that read `checked` + `indeterminate` and emitted `checkbox` would be right about `checkbox` and wrong about `toggle`, `switch` and `togglegroup`. Everything below exists to keep that judgment reviewable.
 
@@ -65,9 +65,9 @@ Nothing is written to Figma. The sweep is `specs-cli.roles.apply`, and it runs o
 
    Variant coverage matters for the same reason: a spec's `detectedIn` names a single variant that witnesses the element, not the set it appears in.
 
-5. **Read the vocabulary, in this order.** [Choosing a role](https://www.specsplugin.com/roles/choosing/) first — it is the differentials, which is where most of the judgment comes from. Then the per-role pages for the mechanics of each candidate, which also state **which parts each control accepts and on which element types**; a part proposed onto a type its control does not accept will not resolve.
+5. **Read the vocabulary, in this order.** [Choosing a role](https://spectacular.systems/roles/choosing/) first — it is the differentials, which is where most of the judgment comes from. Then the per-role pages for the mechanics of each candidate, which also state **which parts each control accepts and on which element types**; a part proposed onto a type its control does not accept will not resolve.
 
-   Two pages, not three. [Precedence](https://www.specsplugin.com/roles/precedence/) answers one question — how a role, a states classification and an action resolve when they land on the same element — and on a first sweep over a library that carries no roles yet, nothing competes. Fetch it when you hit that collision or when auditing a library that is already annotated. A 64-row first sweep used nothing from it.
+   Two pages, not three. [Precedence](https://spectacular.systems/roles/precedence/) answers one question — how a role, a states classification and an action resolve when they land on the same element — and on a first sweep over a library that carries no roles yet, nothing competes. Fetch it when you hit that collision or when auditing a library that is already annotated. A 64-row first sweep used nothing from it.
 
 6. **Check each control against the parts it accepts.** Do this before writing any proposal, because it is the only pass that can see what is *absent* — an element-by-element walk only ever looks at elements that exist, so a part the design never drew is invisible to it.
 
@@ -107,7 +107,7 @@ Nothing is written to Figma. The sweep is `specs-cli.roles.apply`, and it runs o
    | `✓` | `[x]` to apply, `[ ]` to skip. Default every row to `[x]` |
    | Component | spec key |
    | Element | anatomy key |
-   | Role | the concept, linked to its page on specsplugin.com |
+   | Role | the concept, linked to its page on spectacular.systems |
    | Rationale | the evidence, prefixed by a marker where one applies |
 
    Append `(Not yet supported)` to a role that emits nothing, and keep its link — a link is to documentation, not a claim that the concept works. **Take support from the Inventory's status, never from whether a page exists**: `group`, `radio` and `textarea` have complete pages and emit nothing. Only **Implemented** emits; **Specified** and a bare dash do not. Reading the link as the signal mislabels six rows on a library of this size, and the error only surfaces when someone runs the transform and finds a `<div>` where they expected a `<fieldset>`.

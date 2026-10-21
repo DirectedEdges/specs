@@ -4,9 +4,9 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 108 | The `$slotContent` Pointer Namespace | (reserved, draft on `feat/writing-specs`) |
-| 107 | Schema File Identity and Packaging | (reserved, draft on `feat/writing-specs`) |
-| 106 | Spec Provenance Beyond Figma Capture | (reserved, draft on `feat/writing-specs`) |
+| 108 | The `$slotContent` Pointer Namespace | (reserved, draft in PR #767) |
+| 107 | Schema File Identity and Packaging | (reserved, draft in PR #767) |
+| 106 | Spec Provenance Beyond Figma Capture | (reserved, draft in PR #767) |
 | 104 | Roles on a Collapsed Root — `childRole` Says Which Layer Was Annotated | (reserved, draft on `feat/states-setup-skill`) |
 | 102 | A Default Slot That Accepts a String — Figma TEXT Properties as Composable Children | (reserved, draft on `102-default-text-slots`) |
 | 093 | Composed Dependency Selection Is a Setting | |
@@ -22,6 +22,8 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 110 | Rename `Spec*Document` to `Component*Document` | `Spec*Document` renamed to `Component*Document`, matching `CompositionApiDocument`'s naming now that a second spec kind exists |
+| 109 | Composition Concern Documents | Compositions get their own exact `splitConcerns` documents — never a loosened form of a component's, since a composition has no props to vary by |
 | 105 | Type–Schema Parity for Overlapping Prop Unions | `EnumProp`/`SlotProp` gain the types' `required` sets; `PropConfigurationValue` becomes `anyOf` — overlap-by-extension never compiles to `oneOf` |
 | 104 | Roles on a Collapsed Root — `childRole` Says Which Layer Was Annotated | A collapsed element records which of its two Figma layers carried a role: `role` the component node, `childRole` the collapsed child, both means both |
 | 103 | Structural Glyph Membership — `glyphs.structure` Convention | `glyphs` gains a structural membership form — child shapes + stored fill, named from the component name; a glyph cannot have properties |

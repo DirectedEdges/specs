@@ -4,10 +4,10 @@
  * to assert that the type shape is correct.
  */
 import type {
-  SpecConcernDocument,
-  SpecApiDocument,
-  SpecVariantsDocument,
-  SpecExamplesDocument,
+  ComponentConcernDocument,
+  ComponentApiDocument,
+  ComponentVariantsDocument,
+  ComponentExamplesDocument,
   Metadata,
 } from '../types/index.js';
 
@@ -17,7 +17,7 @@ const source: Metadata['source'] = {
   nodeType: 'COMPONENT',
 };
 
-const api: SpecApiDocument = {
+const api: ComponentApiDocument = {
   metadata: { source, concern: 'api' },
   title: 'DE Favorite button',
   anatomy: { root: { type: 'container' } },
@@ -28,19 +28,19 @@ const api: SpecApiDocument = {
   },
 };
 
-const variants: SpecVariantsDocument = {
+const variants: ComponentVariantsDocument = {
   metadata: { source, concern: 'variants' },
   default: { elements: {} },
   variants: [],
 };
 
-const examples: SpecExamplesDocument = {
+const examples: ComponentExamplesDocument = {
   metadata: { source, concern: 'examples' },
 };
 
 // Each concern's keys belong to its own document — this is the leak the
 // shapes exist to close.
-const variantsWithAnatomy: SpecVariantsDocument = {
+const variantsWithAnatomy: ComponentVariantsDocument = {
   metadata: { source, concern: 'variants' },
   default: { elements: {} },
   variants: [],
@@ -48,7 +48,7 @@ const variantsWithAnatomy: SpecVariantsDocument = {
   anatomy: { root: { type: 'container' } },
 };
 
-const variantsWithInvalidCombinations: SpecVariantsDocument = {
+const variantsWithInvalidCombinations: ComponentVariantsDocument = {
   metadata: { source, concern: 'variants' },
   default: { elements: {} },
   variants: [],
@@ -56,7 +56,7 @@ const variantsWithInvalidCombinations: SpecVariantsDocument = {
   invalidPropCombinations: [{ disabled: true }],
 };
 
-const apiWithDefault: SpecApiDocument = {
+const apiWithDefault: ComponentApiDocument = {
   metadata: { source, concern: 'api' },
   title: 'DE Favorite button',
   anatomy: { root: { type: 'container' } },
@@ -65,7 +65,7 @@ const apiWithDefault: SpecApiDocument = {
   default: { elements: {} },
 };
 
-const mismatched: SpecVariantsDocument = {
+const mismatched: ComponentVariantsDocument = {
   // @ts-expect-error — the concern must match the document
   metadata: { source, concern: 'api' },
   default: { elements: {} },
@@ -76,7 +76,7 @@ const mismatched: SpecVariantsDocument = {
 // discriminates only on a literal property of the union member itself, and the
 // concern sits one level down under `metadata`. The schema discriminates on
 // `concern`; a TypeScript consumer reaches the same place through the keys.
-function slice(doc: SpecConcernDocument): string {
+function slice(doc: ComponentConcernDocument): string {
   if ('title' in doc) return doc.title;
   if ('variants' in doc) return String(doc.variants.length);
   return 'examples';

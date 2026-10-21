@@ -15,7 +15,7 @@ description: Set up a Specs workspace from nothing — install, config, Figma so
 
 # Set up a workspace
 
-This runs once per workspace. A command-by-command walkthrough of the same setup, for someone not using an agent, is at https://www.specsplugin.com/cli/getting-started/.
+This runs once per workspace. A command-by-command walkthrough of the same setup, for someone not using an agent, is at https://spectacular.systems/cli/getting-started/.
 
 ## Role
 
@@ -586,9 +586,9 @@ Suggest immediate next steps:
 
 - Set `author:` in `config/settings.yaml` — `specs init` scaffolds it as `<Your Name Here>`, and it is the only value in the file that needs them. It is in the config they are about to commit.
 - Re-run `specs fetch` whenever the Figma file changes. `specs run` watches `data/` and carries it the rest of the way to the browser on its own — it is the only command they need day to day.
-- See the [Workflows](https://www.specsplugin.com/cli/workflows/) guide for CI/CD automation.
+- See the [Workflows](https://spectacular.systems/cli/workflows/) guide for CI/CD automation.
 - Enable Pro features later by adding `SPECS_LICENSE_KEY` to `.env`.
-- When the library evolves, [`specs version`](https://www.specsplugin.com/cli/commands/version/) compares versions, classifies changes, and generates reports and changelogs; [`specs skills`](https://www.specsplugin.com/cli/commands/skills/) installs the AI orchestration skills that sequence those workflows.
+- When the library evolves, [`specs version`](https://spectacular.systems/cli/commands/version/) compares versions, classifies changes, and generates reports and changelogs; [`specs skills`](https://spectacular.systems/cli/commands/skills/) installs the AI orchestration skills that sequence those workflows.
 
 Do **not** offer to `git init`, `git add`, or `git commit` unless the user asks.
 
@@ -625,6 +625,6 @@ Regardless of UI, for the `.env` step, prefer the "create stub file, user pastes
 
 ## See also
 
-- [Getting Started](https://www.specsplugin.com/cli/getting-started/) — the manual walkthrough
-- [Settings Reference](https://www.specsplugin.com/settings/) — full convention and setting docs
-- [CLI Overview](https://www.specsplugin.com/cli/) — per-command flags and behavior
+- [Getting Started](https://spectacular.systems/cli/getting-started/) — the manual walkthrough
+- [Settings Reference](https://spectacular.systems/settings/) — full convention and setting docs
+- [CLI Overview](https://spectacular.systems/cli/) — per-command flags and behavior

@@ -13,6 +13,10 @@ Line height. Part of [`Typography`](/schema/typography/).
 | `string` | `"150%"`, `"auto"` |
 | [`TokenReference`](/schema/token-reference/) | `$token: DS.Font.LineHeight.400`<br>`$type: dimension` |
 
+#### Default
+
+`"AUTO"`
+
 #### Source
 
 [`packages/schema/types/Styles.ts`](https://github.com/DirectedEdges/specs/blob/main/packages/schema/types/Styles.ts) (`Typography` interface)

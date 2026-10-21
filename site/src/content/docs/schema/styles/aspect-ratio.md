@@ -14,6 +14,10 @@ Locked aspect ratio. Present only when the node has a locked ratio.
 
 `TokenReference` is intentionally excluded — aspect ratio is a structural lock of literal numbers in the Figma API, not a token-driven value.
 
+#### Default
+
+`null`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

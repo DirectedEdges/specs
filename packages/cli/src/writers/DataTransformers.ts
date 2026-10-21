@@ -1,3 +1,5 @@
+import type { SpecKind } from '../utilities/specsLayout.js';
+
 /**
  * API concern data extracted from component
  * Contains: title, anatomy, props, invalidPropCombinations, subcomponents
@@ -67,6 +69,87 @@ export interface SubcomponentExamplesData {
   images?: Record<string, unknown>;
   subcomponents?: Record<string, SubcomponentExamplesData>;
   metadata: any;
+}
+
+/**
+ * API concern data extracted from a composition (ADR-109).
+ * Contains: title, description, anatomy — no props, no invalidPropCombinations,
+ * no subcomponents. A composition has none of those.
+ */
+export interface CompositionApiData {
+  title?: string;
+  description?: string;
+  anatomy: any;
+  metadata: any;
+}
+
+/**
+ * Variants concern data extracted from a composition (ADR-109).
+ * Contains: elements, layout — flat and unvarying, not a default/variants
+ * layering. A composition has no props to vary by.
+ */
+export interface CompositionVariantsData {
+  elements: any;
+  layout: any;
+  metadata: any;
+}
+
+/**
+ * Examples concern data extracted from a composition (ADR-109).
+ * Contains: slotContent — the composition's own field name, not
+ * slotContentExamples — and images. No instanceExamples.
+ */
+export interface CompositionExamplesData {
+  slotContent?: Record<string, any>;
+  images?: Record<string, unknown>;
+  metadata: any;
+}
+
+/**
+ * Split composition data into API, Variants, and Examples concerns (ADR-109).
+ * Unlike a component, a composition has no props, no default/variants
+ * layering, and no subcomponents — so there is nothing to default a missing
+ * `props` field to, and nothing recursive to walk.
+ * @param data Plain composition data object
+ * @returns Object with api, variants, and examples separated, metadata in each
+ */
+export function splitCompositionByConcern(data: Record<string, any>): {
+  api: CompositionApiData;
+  variants: CompositionVariantsData;
+  examples: CompositionExamplesData;
+} {
+  // title/description spread in first, even though optional, to match the
+  // engine's own field order — title leads every document, component or
+  // composition, rather than landing after metadata when present.
+  const api: CompositionApiData = {
+    ...(data.title !== undefined ? { title: data.title } : {}),
+    ...(data.description !== undefined ? { description: data.description } : {}),
+    anatomy: data.anatomy,
+    metadata: data.metadata,
+  };
+
+  const variants: CompositionVariantsData = {
+    elements: data.elements,
+    layout: data.layout,
+    metadata: data.metadata,
+  };
+
+  const examples: CompositionExamplesData = { metadata: data.metadata };
+  if (data.slotContent) examples.slotContent = data.slotContent;
+  if (data.images) examples.images = data.images;
+
+  return { api, variants, examples };
+}
+
+/**
+ * True when a composition's examples concern carries any actual data, so
+ * callers can skip emitting an empty examples file.
+ */
+export function hasCompositionExampleData(examples: CompositionExamplesData): boolean {
+  return Boolean(
+    (examples.slotContent && Object.keys(examples.slotContent).length > 0) ||
+    (examples.images && Object.keys(examples.images).length > 0)
+  );
 }
 
 /**
