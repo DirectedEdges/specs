@@ -13,6 +13,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **The package's repository link points at `DirectedEdges/spectacular`**, the renamed home of the schema. Old `DirectedEdges/specs` links keep resolving via GitHub's redirect
 
+### Added
+
+- `CompositionApiDocument`, `CompositionVariantsDocument`, `CompositionExamplesDocument` — type a composition's `splitConcerns` files, each exact to what it carries (ADR-109)
+- `CompositionConcernDocument` unions the three composition concern documents, reachable from `root.schema.json` (ADR-109)
+
+### Breaking
+
+- `SpecApiDocument`, `SpecVariantsDocument`, `SpecExamplesDocument`, `SpecConcernDocument` renamed to `ComponentApiDocument`, `ComponentVariantsDocument`, `ComponentExamplesDocument`, `ComponentConcernDocument` (ADR-110)
+- `SpecApiSubcomponent`, `SpecVariantsSubcomponent`, `SpecExamplesSubcomponent` renamed to `ComponentApiSubcomponent`, `ComponentVariantsSubcomponent`, `ComponentExamplesSubcomponent` (ADR-110)
+- `schema/concern.schema.json` renamed to `schema/component-concern.schema.json`; the `./schema/concern` package export becomes `./schema/component-concern` (ADR-110)
+
+### Migration
+
+- `SpecApiDocument` → `ComponentApiDocument`, `SpecVariantsDocument` → `ComponentVariantsDocument`, `SpecExamplesDocument` → `ComponentExamplesDocument`, `SpecConcernDocument` → `ComponentConcernDocument`: update imports to the new names — no shape change.
+- `SpecApiSubcomponent` → `ComponentApiSubcomponent`, `SpecVariantsSubcomponent` → `ComponentVariantsSubcomponent`, `SpecExamplesSubcomponent` → `ComponentExamplesSubcomponent`: update imports to the new names — no shape change.
+- `./schema/concern` → `./schema/component-concern`: update any package export subpath resolution or direct reference to `schema/concern.schema.json`.
+
+### ADRs
+
+#### New drafts
+
+- [ADR-109](../../adr/109-composition-concern-documents.md) — Composition Concern Documents
+- [ADR-110](../../adr/110-component-concern-document-naming.md) — Rename `Spec*Document` to `Component*Document`
+
 
 ## [0.36.0] - 2026-10-20
 

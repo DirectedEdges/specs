@@ -23,7 +23,7 @@ import { SubcomponentSource } from "./Subcomponent.js";
  */
 
 /** A subcomponent's `api` slice, as it appears inside an api document. */
-export type SpecApiSubcomponent = {
+export type ComponentApiSubcomponent = {
   title: string;
   anatomy: Anatomy;
   props: Props;
@@ -31,26 +31,26 @@ export type SpecApiSubcomponent = {
   invalidPropCombinations?: PropConfigurations[];
   /** Figma source identity for this subcomponent's node. */
   source?: SubcomponentSource;
-  subcomponents?: Record<string, SpecApiSubcomponent>;
+  subcomponents?: Record<string, ComponentApiSubcomponent>;
 };
 
 /** A subcomponent's `variants` slice, as it appears inside a variants document. */
-export type SpecVariantsSubcomponent = {
+export type ComponentVariantsSubcomponent = {
   default: Variant;
   variants: Variants;
   /** Figma source identity for this subcomponent's node. */
   source?: SubcomponentSource;
-  subcomponents?: Record<string, SpecVariantsSubcomponent>;
+  subcomponents?: Record<string, ComponentVariantsSubcomponent>;
 };
 
 /** A subcomponent's `examples` slice, as it appears inside an examples document. */
-export type SpecExamplesSubcomponent = {
+export type ComponentExamplesSubcomponent = {
   slotContentExamples?: Record<string, SlotContent>;
   instanceExamples?: InstanceExamples;
   images?: Images;
   /** Figma source identity for this subcomponent's node. */
   source?: SubcomponentSource;
-  subcomponents?: Record<string, SpecExamplesSubcomponent>;
+  subcomponents?: Record<string, ComponentExamplesSubcomponent>;
 };
 
 /**
@@ -59,7 +59,7 @@ export type SpecExamplesSubcomponent = {
  * Written as `api.yaml`. Carries no `default` block and no variants — those are
  * the variants document's.
  */
-export type SpecApiDocument = {
+export type ComponentApiDocument = {
   /** Must state `concern: 'api'`. */
   metadata: Metadata & { concern: 'api' };
   title: string;
@@ -67,7 +67,7 @@ export type SpecApiDocument = {
   props: Props;
   /** Prop-value combinations that produce an invalid component state (ADR-092). */
   invalidPropCombinations?: PropConfigurations[];
-  subcomponents?: Record<string, SpecApiSubcomponent>;
+  subcomponents?: Record<string, ComponentApiSubcomponent>;
 };
 
 /**
@@ -76,12 +76,12 @@ export type SpecApiDocument = {
  * Written as `variants.yaml`. Carries no title and no anatomy — those are the
  * api document's.
  */
-export type SpecVariantsDocument = {
+export type ComponentVariantsDocument = {
   /** Must state `concern: 'variants'`. */
   metadata: Metadata & { concern: 'variants' };
   default: Variant;
   variants: Variants;
-  subcomponents?: Record<string, SpecVariantsSubcomponent>;
+  subcomponents?: Record<string, ComponentVariantsSubcomponent>;
 };
 
 /**
@@ -92,13 +92,13 @@ export type SpecVariantsDocument = {
  * field is optional because a component may carry one kind of example and not
  * another; the file exists at all only when at least one is present.
  */
-export type SpecExamplesDocument = {
+export type ComponentExamplesDocument = {
   /** Must state `concern: 'examples'`. */
   metadata: Metadata & { concern: 'examples' };
   slotContentExamples?: Record<string, SlotContent>;
   instanceExamples?: InstanceExamples;
   images?: Images;
-  subcomponents?: Record<string, SpecExamplesSubcomponent>;
+  subcomponents?: Record<string, ComponentExamplesSubcomponent>;
 };
 
 /**
@@ -107,7 +107,7 @@ export type SpecExamplesDocument = {
  * Narrowing on `concern` gives the exact slice — the same fact the validator
  * discriminates on.
  */
-export type SpecConcernDocument =
-  | SpecApiDocument
-  | SpecVariantsDocument
-  | SpecExamplesDocument;
+export type ComponentConcernDocument =
+  | ComponentApiDocument
+  | ComponentVariantsDocument
+  | ComponentExamplesDocument;

@@ -3,7 +3,7 @@
 **Branch**: `109-composition-concern-documents` *(drafted on `docs/schema-property-defaults`)*
 **Created**: 2026-10-21
 **Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Summary**: `CompositionApiDocument`, `CompositionVariantsDocument`, and `CompositionExamplesDocument` type a composition's `splitConcerns` files, exact to each concern alongside the existing component documents.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none; extends ADR-091 to a second spec kind)*
 
