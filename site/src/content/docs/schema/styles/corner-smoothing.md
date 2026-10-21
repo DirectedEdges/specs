@@ -14,6 +14,10 @@ Corner smoothing amount (Figma's "squircle" effect), 0–1.
 
 Follows the same rectangle-only restriction as [`cornerRadius`](/schema/styles/corner-radius/).
 
+#### Default
+
+`0`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

@@ -12,6 +12,10 @@ Opacity, 0–1.
 | `number` | `0.5` |
 | [`TokenReference`](/schema/token-reference/) | `$token: ...`<br>`$type: number` |
 
+#### Default
+
+`1`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

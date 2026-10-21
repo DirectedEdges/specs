@@ -12,6 +12,10 @@ Whether the container clips content that overflows its box.
 | `boolean` | `true` |
 | [`TokenReference`](/schema/token-reference/) | `$token: ...`<br>`$type: boolean` |
 
+#### Default
+
+`false`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

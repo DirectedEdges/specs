@@ -5,6 +5,18 @@ All notable changes to `@directededges/specs-cli` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.35.0] - 2026-10-21
+
+### Fixed
+
+- **A composition's split-concern files now carry only what a composition has.** `api.yaml` drops the meaningless `props` key, `variants.yaml` holds `elements`/`layout` instead of `default`/`variants`, and `examples.yaml` uses `slotContent` (ADR-109)
+
+### Dependency updates
+
+- **A composition's generated output is correct end to end now.** Via `@directededges/specs-from-figma` 0.37.0, the engine itself emits a composition's flat shape — no `props`, no `default` — matching this release's file-writer fix, so neither layer reintroduces the old component-shaped output
+- **Composition contract types got names and fields to match.** Via `@directededges/specs-schema` 0.38.0: new `CompositionApiDocument`/`CompositionVariantsDocument`/`CompositionExamplesDocument` types; the component-side equivalents renamed from `Spec*Document` to `Component*Document`
+
+
 ## [0.34.0] - 2026-10-20
 
 **The CLI's documentation and repository links follow the repo's rename to DirectedEdges/spectacular.** No command behaves differently — this release repoints the README that npm renders and the package's repository link at the renamed home, and picks up the companion releases of the schema and the Figma transform. Every old `DirectedEdges/specs` link keeps resolving through GitHub's rename redirect.

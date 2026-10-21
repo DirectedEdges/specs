@@ -12,6 +12,10 @@ First-line indent in pixels. Part of [`Typography`](/schema/typography/).
 | `number` | `16` |
 | [`TokenReference`](/schema/token-reference/) | `$token: DS.Space.400`<br>`$type: dimension` |
 
+#### Default
+
+`0`
+
 #### Source
 
 [`packages/schema/types/Styles.ts`](https://github.com/DirectedEdges/specs/blob/main/packages/schema/types/Styles.ts) (`Typography` interface)

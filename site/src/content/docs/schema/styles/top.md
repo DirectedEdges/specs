@@ -15,6 +15,10 @@ Offset from the block-start (top) edge. Present when the vertical constraint is 
 
 Not token-bindable — structural property computed from Figma layout constraints, not a design value.
 
+#### Default
+
+`null`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

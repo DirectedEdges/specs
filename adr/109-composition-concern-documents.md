@@ -2,8 +2,8 @@
 
 **Branch**: `109-composition-concern-documents` *(drafted on `docs/schema-property-defaults`)*
 **Created**: 2026-10-21
-**Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Status**: ACCEPTED
+**Summary**: `CompositionApiDocument`, `CompositionVariantsDocument`, and `CompositionExamplesDocument` type a composition's `splitConcerns` files, exact to each concern alongside the existing component documents.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none; extends ADR-091 to a second spec kind)*
 
@@ -107,6 +107,7 @@ CompositionVariantsDocument:
 CompositionExamplesDocument:
   metadata: Metadata & { concern: 'examples' }   # required
   slotContent: Record<string, SlotContent>       # optional
+  images: Images                                 # optional — amendment, 2026-10-21
 
 CompositionConcernDocument: CompositionApiDocument | CompositionVariantsDocument | CompositionExamplesDocument
 ```
@@ -151,15 +152,15 @@ anatomy:
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | A composition's split-concern output now has a type/schema to target | Shape the `api`/`variants`/`examples` payload it writes for a composition to match the new documents instead of reusing the component split |
-| `specs-cli` | Composition output under `--split-concerns` can be validated against the new schema | Validate composition concern files against `composition-concern.schema.json`; stop writing a `props` key into a composition's `api.yaml` |
+| `specs-cli` | The split-concern file writer (`FileManifest`/`splitComponentByConcern`) is the sole producer of `api.yaml`/`variants.yaml`/`examples.yaml` and currently writes a composition's `api.yaml` through the same path as a component's, stubbing a meaningless `props: {}` | Shape the `api`/`variants`/`examples` payload per kind to match `ComponentApiDocument`/`CompositionApiDocument` etc.; stop writing `props` into a composition's `api.yaml` |
+| `specs-from-figma` | None — the resolved `Component`/`Composition` object it produces is not split into concern files; that happens entirely in `specs-cli` | None |
 | `specs-plugin-2` | None directly — the plugin does not write split-concern files | None |
 
 ---
 
 ## Semver Decision
 
-**Target version**: `0.37.0` — `@directededges/specs-schema` on `release/next`.
+**Target version**: `0.38.0` — `@directededges/specs-schema` on `release/next`.
 
 **Change class**: `MINOR` — all changes are new, additive types and a new schema file referenced from `root.schema.json`'s `oneOf`. No existing type, field, or schema definition is changed or removed. Per constitution III/Additional Constraints: "MINOR for additive types or new optional fields."
 
@@ -172,3 +173,11 @@ anatomy:
 - `SpecConcernDocument` (component) and `CompositionConcernDocument` (composition) remain two separate unions. A consumer narrows on kind (already known before the file is read) rather than attempting to discriminate `title`-bearing documents of either kind by shape alone.
 - `root.schema.json` validates composition concern documents for the first time; it still does not validate a *whole*, unsplit composition document — that gap is pre-existing and out of scope for this ADR.
 - The component documents stay named `Spec*Document` for now. See ADR-110 for the `Component*Document` rename this ADR's naming makes visible.
+
+---
+
+## Amendment (2026-10-21)
+
+Generating a real composition fixture end-to-end surfaced a gap this ADR missed: `Composition` (and so `CompositionExamplesDocument`) had no `images` field, but a real composition can carry a `backgroundImage` fill same as any component element — and the data was observably present in `specs-from-figma`'s current (pre-fix) output. Omitting it would have silently dropped real data the moment the engine fix in `specs-transforms` lands.
+
+Adds `images?: Images` to `types/Composition.ts` and `CompositionExamplesDocument`, mirroring `Component.images`/`ComponentExamplesDocument` — same shape, same de-duplication. Schema definitions updated to match (`component.schema.json`'s `Composition`, `composition-concern.schema.json`'s `CompositionExamplesDocument`). Additive, `MINOR`, no change to any other field.

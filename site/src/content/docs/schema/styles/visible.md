@@ -16,6 +16,10 @@ Whether the element is visible.
 
 `Conditional` covers the common case of deriving visibility from a nullable prop (e.g. hide when a text or glyph prop is unset). See [ADR 018 — Conditional Visible Binding](https://github.com/DirectedEdges/specs/blob/main/adr/018-conditional-visible-binding.md).
 
+#### Default
+
+`true`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

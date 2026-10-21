@@ -14,6 +14,10 @@ Dash geometry for a dashed stroke. Presence signals a dashed stroke; null or abs
 
 Not token-bindable — structural property, not a design value.
 
+#### Default
+
+`null`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

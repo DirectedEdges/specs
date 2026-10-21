@@ -12,6 +12,10 @@ Stroke alignment relative to the element's bounds.
 | `string` | `"INSIDE"`, `"OUTSIDE"`, `"CENTER"` |
 | [`TokenReference`](/schema/token-reference/) | `$token: ...`<br>`$type: string` |
 
+#### Default
+
+`"INSIDE"`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

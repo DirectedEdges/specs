@@ -14,6 +14,10 @@ Auto-layout direction.
 
 Not token-bindable — structural property, not a design value.
 
+#### Default
+
+`"NONE"`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

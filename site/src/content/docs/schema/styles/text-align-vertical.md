@@ -12,6 +12,10 @@ Vertical text alignment within the node's bounds.
 | `string` | `"TOP"`, `"CENTER"`, `"BOTTOM"` |
 | [`TokenReference`](/schema/token-reference/) | `$token: ...`<br>`$type: string` |
 
+#### Default
+
+`"TOP"`
+
 #### Supported on
 
 | Element | Figma Layer(s) |
