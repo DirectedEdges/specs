@@ -13,8 +13,8 @@ the site at `site/ARCHITECTURE.md`.
 |---|---|
 | `packages/schema/` | `@directededges/specs-schema` — the contract (detail below) |
 | `packages/cli/` | `@directededges/specs-cli` — see its own ARCHITECTURE.md |
-| `adr/` | 100 numbered decision records + `INDEX.md`; the only front door for schema changes |
-| `rfc/` | Broader-than-ADR proposals (one so far) |
+| `adr/` | Numbered decision records + `INDEX.md`; the only front door for schema changes |
+| `rfc/` | Broader-than-ADR proposals |
 | `site/` | Astro docs site, port 4323 — own package, **not** a workspace member |
 | `scripts/validate-schema.sh` | JSON-parse gate over `schema/*.schema.json` (metaschema pass only if `check-jsonschema` is installed — full validation is optional in practice) |
 | `vitest.config.ts` | Single root config for all package tests — run from repo root |
@@ -59,7 +59,7 @@ There is no `Config.ts` anymore — older links to "Config" mean these three.
 | `packages/schema/schema/styles.schema.json` | Pairs with `types/Styles.ts` |
 | `packages/schema/CONSTITUTION.md` | Governance: semver policy, 6-gate check |
 | `packages/schema/CHANGELOG.md` | Mandatory per publish; bullets cite ADRs |
-| `packages/schema/tests/` | 17 type-level `*.test-d.ts` + 2 runtime tests |
+| `packages/schema/tests/` | Type-level `*.test-d.ts` files + runtime tests |
 
 Enums have no separate file: closed sets are string-literal unions inside the
 owning type file, mirrored as `enum` arrays in the matching `*.schema.json`.
@@ -152,8 +152,8 @@ tracks nothing and is never deleted from.
 - `root.schema.json` / `components.schema.json` carry a non-standard
   `"version": "0.12.0"` while the package is at 0.31.0 — unmaintained key.
 - Constitution cites `reference/styles.yaml`, which doesn't exist; says "no
-  test framework required" (17 test-d.ts + 2 runtime tests exist); consumer
-  list omits the three newer packages.
+  test framework required" (tests exist); consumer list omits the newer
+  packages.
 - No CI runs tests or schema validation (workflows: auto-label, deploy-docs,
   release-cli only). Schema release is manual by design.
 - `tests/tmp/` at repo root holds committed CLI test scratch dirs.
