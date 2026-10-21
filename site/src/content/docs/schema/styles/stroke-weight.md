@@ -14,6 +14,10 @@ Stroke weight. Scalar when uniform; [`Sides`](/schema/sides/) object when per-si
 | [`Sides`](/schema/sides/) | `top: 2`<br>`end: 1`<br>`bottom: 2`<br>`start: 1` |
 | `null` | `null` |
 
+#### Default
+
+`0`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

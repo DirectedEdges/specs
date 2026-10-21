@@ -14,6 +14,10 @@ Padding. Scalar when uniform; [`Sides`](/schema/sides/) object when per-side val
 | [`Sides`](/schema/sides/) | `top: 8`<br>`end: 16`<br>`bottom: 8`<br>`start: 16` |
 | `null` | `null` |
 
+#### Default
+
+`0`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

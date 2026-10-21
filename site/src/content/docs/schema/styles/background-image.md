@@ -13,6 +13,10 @@ Image fill. Fallback representation used when no image component is configured.
 | [`TokenReference`](/schema/token-reference/) | `$token: DS.Image.Hero`<br>`$type: image` |
 | `null` | `null` (no image fill) |
 
+#### Default
+
+`null`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

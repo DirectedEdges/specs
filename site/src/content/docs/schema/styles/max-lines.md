@@ -13,6 +13,10 @@ Maximum number of lines before `textOverflow: "ELLIPSIS"` applies.
 | [`TokenReference`](/schema/token-reference/) | `$token: ...`<br>`$type: number` |
 | `null` | `null` (no limit) |
 
+#### Default
+
+`null`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

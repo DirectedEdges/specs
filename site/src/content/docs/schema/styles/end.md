@@ -14,6 +14,10 @@ Offset from the inline-end edge (right in LTR, left in RTL). Present when the ho
 
 Not token-bindable — structural property computed from Figma layout constraints, not a design value.
 
+#### Default
+
+`null`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

@@ -430,7 +430,7 @@ async function writeGeneratedOutput(
     const group = byKind.get(kind);
     if (!group || group.length === 0) continue;
     const result = await writer.write(
-      new FileManifest(group, outputConfig, layout.dirFor(kind), outputFileName, timestamp)
+      new FileManifest(group, outputConfig, layout.dirFor(kind), outputFileName, timestamp, kind)
     );
     writeResult.filesWritten.push(...result.filesWritten);
     writeResult.warnings.push(...result.warnings);

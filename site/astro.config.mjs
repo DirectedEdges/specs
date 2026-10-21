@@ -10,6 +10,8 @@ export default defineConfig({
   redirects: {
     // Page renamed when the glyphs convention outgrew the single name pattern (ADR-103)
     '/settings/glyph-name-pattern/': '/settings/glyphs/',
+    // Retired — content merged into the schema overview
+    '/schema/document-map/': '/schema/',
   },
   integrations: [
     starlight({
@@ -82,7 +84,6 @@ export default defineConfig({
           collapsed: true,
           items: [
             { label: 'Overview', slug: 'schema' },
-            { label: 'Document map', slug: 'schema/document-map' },
             { label: 'Decision Records (ADRs)', slug: 'adr' },
             {
               label: 'Parts',
@@ -113,6 +114,18 @@ export default defineConfig({
                 { label: 'Token Reference', slug: 'schema/token-reference', badge: pro },
                 { label: 'Typography', slug: 'schema/typography' },
                 { label: 'Variants', slug: 'schema/variants' },
+              ],
+            },
+            {
+              label: 'Documents',
+              collapsed: true,
+              items: [
+                { label: 'Component API', slug: 'schema/documents/component-api' },
+                { label: 'Component Variants', slug: 'schema/documents/component-variants' },
+                { label: 'Component Examples', slug: 'schema/documents/component-examples' },
+                { label: 'Composition API', slug: 'schema/documents/composition-api' },
+                { label: 'Composition Variants', slug: 'schema/documents/composition-variants' },
+                { label: 'Composition Examples', slug: 'schema/documents/composition-examples' },
               ],
             },
           ],
@@ -147,36 +160,30 @@ export default defineConfig({
           ],
         },
         {
-          label: 'Command line',
+          label: 'Commands',
           collapsed: true,
           items: [
             { label: 'Overview', slug: 'cli' },
             { label: 'Workflows', slug: 'cli/workflows' },
-            // The whole-workspace commands lead: they are what most people
-            // want, and the rest are the steps they run.
-            { label: 'build', slug: 'cli/commands/build', badge: experimental },
-            { label: 'run', slug: 'cli/commands/run', badge: experimental },
             { label: 'init', slug: 'cli/commands/init' },
             { label: 'fetch', slug: 'cli/commands/fetch' },
             { label: 'scan', slug: 'cli/commands/scan' },
             { label: 'applyCustomTokens', slug: 'cli/commands/apply-custom-tokens' },
             { label: 'generate', slug: 'cli/commands/generate' },
-            { label: 'analyze', slug: 'cli/commands/analyze', badge: experimental },
-            { label: 'bridge', slug: 'cli/commands/bridge', badge: experimental },
-            { label: 'cache', slug: 'cli/commands/cache', badge: experimental },
-            { label: 'render', slug: 'cli/commands/render', badge: experimental },
+            { label: 'build', slug: 'cli/commands/build' },
+            { label: 'run', slug: 'cli/commands/run' },
+            { label: 'cache', slug: 'cli/commands/cache' },
+            { label: 'bridge', slug: 'cli/commands/bridge' },
+            { label: 'render', slug: 'cli/commands/render' },
             { label: 'migrate', slug: 'cli/commands/migrate' },
-            { label: 'version', slug: 'cli/commands/version' },
-            { label: 'skills', slug: 'cli/commands/skills' },
-            { label: 'storybook', slug: 'cli/commands/storybook', badge: experimental },
-            { label: 'testing visual', slug: 'cli/commands/testing', badge: experimental },
             {
-              // The command itself is a flat entry above, with the other
-              // commands; this group is one page per report it writes.
+              // `analyze` is the command entry; the rest of this group is
+              // one page per report it writes.
               label: 'Analyze reports',
               collapsed: true,
               badge: experimental,
               items: [
+                { label: 'analyze', slug: 'cli/commands/analyze' },
                 { label: 'Overview', slug: 'cli/analyze' },
                 { label: 'props', slug: 'cli/analyze/props' },
                 { label: 'styling', slug: 'cli/analyze/styling' },
@@ -186,13 +193,11 @@ export default defineConfig({
               ],
             },
             {
-              // `skills install` is a flat entry above, with the other
-              // commands; this group is one page per skill it installs that
-              // authors something a reviewer has to approve.
               label: 'Skills',
               collapsed: true,
               badge: experimental,
               items: [
+                { label: 'skills', slug: 'cli/commands/skills' },
                 { label: 'icons.setup', slug: 'cli/skills/icons-setup' },
                 { label: 'states.setup', slug: 'cli/skills/states-setup' },
               ],
@@ -224,6 +229,7 @@ export default defineConfig({
               items: [
                 { label: 'Overview', slug: 'testing', badge: experimental },
                 { label: 'Getting Started', slug: 'testing/getting-started', badge: experimental },
+                { label: 'testing visual', slug: 'cli/commands/testing', badge: experimental },
               ],
             },
             {
@@ -260,6 +266,7 @@ export default defineConfig({
             { label: 'Versioning', slug: 'storybook/versioning' },
             { label: 'Customization', slug: 'storybook/customization' },
             { label: 'Technical Details', slug: 'storybook/technical-details' },
+            { label: 'Commands', slug: 'cli/commands/storybook' },
           ],
         },
         {

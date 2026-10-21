@@ -11,6 +11,10 @@ Whether hanging punctuation is enabled. Part of [`Typography`](/schema/typograph
 |---|---|
 | `boolean` | `true` |
 
+#### Default
+
+`false`
+
 #### Source
 
 [`packages/schema/types/Styles.ts`](https://github.com/DirectedEdges/specs/blob/main/packages/schema/types/Styles.ts) (`Typography` interface)

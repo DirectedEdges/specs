@@ -11,6 +11,10 @@ Whether auto-layout wrapping is enabled (default: `false`).
 |---|---|
 | `boolean` | `true` |
 
+#### Default
+
+`false`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

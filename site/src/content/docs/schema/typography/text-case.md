@@ -11,6 +11,10 @@ Text transform. Part of [`Typography`](/schema/typography/).
 |---|---|
 | `string` | `"UPPER"`, `"LOWER"`, `"TITLE"`, `"ORIGINAL"` |
 
+#### Default
+
+`"ORIGINAL"`
+
 #### Source
 
 [`packages/schema/types/Styles.ts`](https://github.com/DirectedEdges/specs/blob/main/packages/schema/types/Styles.ts) (`Typography` interface)

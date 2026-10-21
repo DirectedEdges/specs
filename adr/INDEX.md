@@ -4,8 +4,6 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
-| 110 | Rename `Spec*Document` to `Component*Document` | (reserved, draft on `docs/schema-property-defaults`) |
-| 109 | Composition Concern Documents | (reserved, draft on `docs/schema-property-defaults`) |
 | 108 | The `$slotContent` Pointer Namespace | (reserved, draft in PR #767) |
 | 107 | Schema File Identity and Packaging | (reserved, draft in PR #767) |
 | 106 | Spec Provenance Beyond Figma Capture | (reserved, draft in PR #767) |
@@ -25,6 +23,8 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 110 | Rename `Spec*Document` to `Component*Document` | `Spec*Document` renamed to `Component*Document`, matching `CompositionApiDocument`'s naming now that a second spec kind exists |
+| 109 | Composition Concern Documents | Compositions get their own exact `splitConcerns` documents — never a loosened form of a component's, since a composition has no props to vary by |
 | 104 | Roles on a Collapsed Root — `childRole` Says Which Layer Was Annotated | A collapsed element records which of its two Figma layers carried a role: `role` the component node, `childRole` the collapsed child, both means both |
 | 103 | Structural Glyph Membership — `glyphs.structure` Convention | `glyphs` gains a structural membership form — child shapes + stored fill, named from the component name; a glyph cannot have properties |
 | 101 | The Workspace Stage Graph | `specs build` runs the chain once; `specs run` watches and re-runs from what changed. One process, so one license check per run, not four |

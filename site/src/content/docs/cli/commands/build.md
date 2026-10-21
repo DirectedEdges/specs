@@ -2,8 +2,6 @@
 title: "build"
 ---
 
-<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
-
 Brings every derived part of a workspace up to date, in order, then exits.
 
 A workspace is a chain: data produces a manifest, the manifest produces specs, specs produce the analysis reports and each platform's code, and all of that is what Storybook shows. Running those commands by hand means remembering the order and never skipping one — and nothing tells you when you did. `build` performs the whole chain, says what it ran, and fails with a non-zero exit code when a step fails, which is what makes it usable in CI.

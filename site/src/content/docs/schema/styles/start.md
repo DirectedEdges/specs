@@ -15,6 +15,10 @@ Offset from the inline-start edge (left in LTR, right in RTL). Present when the 
 
 Not token-bindable — structural property computed from Figma layout constraints, not a design value.
 
+#### Default
+
+`null`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

@@ -3,8 +3,6 @@ title: "analyze"
 description: "Run analysis passes over component specs and write aggregate reports to analysis/."
 ---
 
-<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
-
 Reads your component specs and writes aggregate reports — a prop inventory, a token-usage index, a dependency graph, a list of names a formatted key cannot reconstruct. What each report contains is covered in the [Analyze](/cli/analyze/) section; this page is the command reference.
 
 ## Usage

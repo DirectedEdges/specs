@@ -7,11 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.38.0] - Unreleased
 
+### Breaking
+
+- `SpecApiDocument`, `SpecVariantsDocument`, `SpecExamplesDocument`, `SpecConcernDocument` renamed to `ComponentApiDocument`, `ComponentVariantsDocument`, `ComponentExamplesDocument`, `ComponentConcernDocument` (ADR-110)
+- `SpecApiSubcomponent`, `SpecVariantsSubcomponent`, `SpecExamplesSubcomponent` renamed to `ComponentApiSubcomponent`, `ComponentVariantsSubcomponent`, `ComponentExamplesSubcomponent` (ADR-110)
+- `schema/concern.schema.json` renamed to `schema/component-concern.schema.json`; the `./schema/concern` package export becomes `./schema/component-concern` (ADR-110)
+
 ### Added
 
-### Changed
+- `CompositionApiDocument`, `CompositionVariantsDocument`, `CompositionExamplesDocument` — type a composition's `splitConcerns` files, each exact to what it carries (ADR-109)
+- `CompositionConcernDocument` unions the three composition concern documents, reachable from `root.schema.json` (ADR-109)
+- `Composition.images` and `CompositionExamplesDocument.images` register image data referenced by a composition's elements, matching `Component.images` (ADR-109 amendment)
 
-### Removed
+### Migration
+
+- `SpecApiDocument` → `ComponentApiDocument`, `SpecVariantsDocument` → `ComponentVariantsDocument`, `SpecExamplesDocument` → `ComponentExamplesDocument`, `SpecConcernDocument` → `ComponentConcernDocument`: update imports to the new names — no shape change.
+- `SpecApiSubcomponent` → `ComponentApiSubcomponent`, `SpecVariantsSubcomponent` → `ComponentVariantsSubcomponent`, `SpecExamplesSubcomponent` → `ComponentExamplesSubcomponent`: update imports to the new names — no shape change.
+- `./schema/concern` → `./schema/component-concern`: update any package export subpath resolution or direct reference to `schema/concern.schema.json`.
+
+### ADRs
+
+#### Accepted
+
+- [ADR-109](../../adr/109-composition-concern-documents.md) — Composition Concern Documents
+- [ADR-110](../../adr/110-component-concern-document-naming.md) — Rename `Spec*Document` to `Component*Document`
 
 
 ## [0.37.0] - 2026-10-20

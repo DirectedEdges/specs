@@ -12,6 +12,10 @@ Height.
 | `number` | `48` |
 | [`TokenReference`](/schema/token-reference/) | `$token: DS.Size.400`<br>`$type: dimension` |
 
+#### Default
+
+`0`
+
 #### Supported on
 
 | Element | Figma Layer(s) |
