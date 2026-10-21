@@ -7,31 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.38.0] - Unreleased
 
-### Added
-
-### Changed
-
-### Removed
-
-
-## [0.37.0] - 2026-10-20
-
-**The schema's home is now the DirectedEdges/spectacular repository.** The repo that was DirectedEdges/specs was renamed alongside the plugin's rebrand to Spectacular. Nothing in the types or the JSON Schema changes — this release updates the package's repository link so npm points at the right home, and every old link keeps resolving through GitHub's rename redirect.
-
-### Changed
-
-- **The package's repository link points at `DirectedEdges/spectacular`**, the renamed home of the schema. Old `DirectedEdges/specs` links keep resolving via GitHub's redirect
-
-### Added
-
-- `CompositionApiDocument`, `CompositionVariantsDocument`, `CompositionExamplesDocument` — type a composition's `splitConcerns` files, each exact to what it carries (ADR-109)
-- `CompositionConcernDocument` unions the three composition concern documents, reachable from `root.schema.json` (ADR-109)
-
 ### Breaking
 
 - `SpecApiDocument`, `SpecVariantsDocument`, `SpecExamplesDocument`, `SpecConcernDocument` renamed to `ComponentApiDocument`, `ComponentVariantsDocument`, `ComponentExamplesDocument`, `ComponentConcernDocument` (ADR-110)
 - `SpecApiSubcomponent`, `SpecVariantsSubcomponent`, `SpecExamplesSubcomponent` renamed to `ComponentApiSubcomponent`, `ComponentVariantsSubcomponent`, `ComponentExamplesSubcomponent` (ADR-110)
 - `schema/concern.schema.json` renamed to `schema/component-concern.schema.json`; the `./schema/concern` package export becomes `./schema/component-concern` (ADR-110)
+
+### Added
+
+- `CompositionApiDocument`, `CompositionVariantsDocument`, `CompositionExamplesDocument` — type a composition's `splitConcerns` files, each exact to what it carries (ADR-109)
+- `CompositionConcernDocument` unions the three composition concern documents, reachable from `root.schema.json` (ADR-109)
 
 ### Migration
 
@@ -45,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - [ADR-109](../../adr/109-composition-concern-documents.md) — Composition Concern Documents
 - [ADR-110](../../adr/110-component-concern-document-naming.md) — Rename `Spec*Document` to `Component*Document`
+
+
+## [0.37.0] - 2026-10-20
+
+**The schema's home is now the DirectedEdges/spectacular repository.** The repo that was DirectedEdges/specs was renamed alongside the plugin's rebrand to Spectacular. Nothing in the types or the JSON Schema changes — this release updates the package's repository link so npm points at the right home, and every old link keeps resolving through GitHub's rename redirect.
+
+### Changed
+
+- **The package's repository link points at `DirectedEdges/spectacular`**, the renamed home of the schema. Old `DirectedEdges/specs` links keep resolving via GitHub's redirect
 
 
 ## [0.36.0] - 2026-10-20

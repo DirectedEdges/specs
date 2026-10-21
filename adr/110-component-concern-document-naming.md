@@ -124,7 +124,7 @@ This rename touches only names — type names, a type-name's definition key in J
 
 ## Semver Decision
 
-**Target version**: `0.37.0` — `@directededges/specs-schema` on `release/next`.
+**Target version**: `0.38.0` — `@directededges/specs-schema` on `release/next`.
 
 **Change class**: `MAJOR` — renaming an exported type, a schema definition key, a schema file, and a package export subpath are each breaking changes per constitution III ("Removing or renaming an exported type... is a breaking change" and "Schema exports... are equally contractual — adding, removing, or restructuring a schema file is a breaking change"). Pre-1.0, this is a `0.x` bump, not a `1.x`+ one.
 

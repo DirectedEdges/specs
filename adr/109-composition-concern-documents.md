@@ -159,7 +159,7 @@ anatomy:
 
 ## Semver Decision
 
-**Target version**: `0.37.0` — `@directededges/specs-schema` on `release/next`.
+**Target version**: `0.38.0` — `@directededges/specs-schema` on `release/next`.
 
 **Change class**: `MINOR` — all changes are new, additive types and a new schema file referenced from `root.schema.json`'s `oneOf`. No existing type, field, or schema definition is changed or removed. Per constitution III/Additional Constraints: "MINOR for additive types or new optional fields."
 
