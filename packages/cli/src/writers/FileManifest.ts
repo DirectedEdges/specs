@@ -1,8 +1,15 @@
 import fs from 'fs-extra';
 import path from 'path';
 import type { OutputConfig, OutputFormat } from '../writers/outputConfig.js';
-import { sortComponentsByName, splitComponentByConcern, hasExampleData } from './DataTransformers.js';
+import {
+  sortComponentsByName,
+  splitComponentByConcern,
+  hasExampleData,
+  splitCompositionByConcern,
+  hasCompositionExampleData,
+} from './DataTransformers.js';
 import { specFolderKey } from '../utilities/specFolderKey.js';
+import type { SpecKind } from '../utilities/specsLayout.js';
 
 /**
  * Metadata for a file manifest entry
@@ -68,23 +75,27 @@ export class FileManifest {
    * @param baseDir Base output directory
    * @param outputFileName Optional filename for single-file mode
    * @param sourceTimestamp The source payload's lastModified, when known
+   * @param kind Which spec kind this manifest is for — a caller groups by kind
+   *   before constructing a FileManifest (ADR-096), so one instance is always
+   *   homogeneous. Defaults to 'component' for existing callers.
    */
   constructor(
     components: Array<{ name: string; spec?: Record<string, unknown> }>,
     config: OutputConfig,
     baseDir: string,
     outputFileName?: string,
-    sourceTimestamp?: Date
+    sourceTimestamp?: Date,
+    kind: SpecKind = 'component'
   ) {
     this.baseDir = baseDir;
     this.outputFileName = outputFileName;
     this.format = config.defaultFormat;
     this.ext = this.format === 'json' ? '.json' : '.yaml';
     this.timestamp = sourceTimestamp ?? new Date();
-    
+
     // Sort components for deterministic output
     const sortedComponents = sortComponentsByName(components);
-    
+
     // Determine output mode and build appropriate manifest
     const { splitComponents, splitConcerns, useSubfolders } = config;
 
@@ -96,11 +107,11 @@ export class FileManifest {
       this.buildPerComponentManifest(sortedComponents, useSubfolders);
     } else if (!splitComponents && splitConcerns) {
       // Mode 4: Per-concern
-      this.buildPerConcernManifest(sortedComponents);
+      this.buildPerConcernManifest(sortedComponents, kind);
     } else {
       // Mode 5: Combined (per-component + per-concern) — the default. Component
       // folders are structural here, so useSubfolders does not apply.
-      this.buildCombinedManifest(sortedComponents);
+      this.buildCombinedManifest(sortedComponents, kind);
     }
   }
   
@@ -158,7 +169,7 @@ export class FileManifest {
    * Output: api.yaml, variants.yaml, and examples.yaml (the last only when at
    * least one component has slotContentExamples/instanceExamples).
    */
-  private buildPerConcernManifest(components: Array<{ name: string; spec?: Record<string, unknown> }>): void {
+  private buildPerConcernManifest(components: Array<{ name: string; spec?: Record<string, unknown> }>, kind: SpecKind = 'component'): void {
     const apiComponents: Record<string, any> = {};
     const variantsComponents: Record<string, any> = {};
     const examplesComponents: Record<string, any> = {};
@@ -166,9 +177,17 @@ export class FileManifest {
     for (const item of components) {
       if (!item.spec) continue;
 
-      const { api, variants, examples } = splitComponentByConcern(item.spec as Record<string, any>);
       const key = this.toCamelCase(item.name);
 
+      if (kind === 'composition') {
+        const { api, variants, examples } = splitCompositionByConcern(item.spec as Record<string, any>);
+        apiComponents[key] = api;
+        variantsComponents[key] = variants;
+        if (hasCompositionExampleData(examples)) examplesComponents[key] = examples;
+        continue;
+      }
+
+      const { api, variants, examples } = splitComponentByConcern(item.spec as Record<string, any>);
       apiComponents[key] = api;
       variantsComponents[key] = variants;
       // Only components with actual examples appear in examples.yaml
@@ -229,13 +248,18 @@ export class FileManifest {
    * Build manifest for combined mode
    * Output: Button/api.yaml, Button/variants.yaml, etc.
    */
-  private buildCombinedManifest(components: Array<{ name: string; spec?: Record<string, unknown> }>): void {
+  private buildCombinedManifest(components: Array<{ name: string; spec?: Record<string, unknown> }>, kind: SpecKind = 'component'): void {
     const timestamp = this.timestamp;
 
     for (const item of components) {
       if (!item.spec) continue;
 
-      const { api, variants, examples } = splitComponentByConcern(item.spec as Record<string, any>);
+      const { api, variants, examples } = kind === 'composition'
+        ? splitCompositionByConcern(item.spec as Record<string, any>)
+        : splitComponentByConcern(item.spec as Record<string, any>);
+      const hasExamples = kind === 'composition'
+        ? hasCompositionExampleData(examples as ReturnType<typeof splitCompositionByConcern>['examples'])
+        : hasExampleData(examples as ReturnType<typeof splitComponentByConcern>['examples']);
       const camelName = this.toCamelCase(item.name);
 
       // Create component directory path
@@ -275,8 +299,8 @@ export class FileManifest {
         }
       });
 
-      // Add examples file entry only for components that have examples
-      if (hasExampleData(examples)) {
+      // Add examples file entry only for components/compositions that have examples
+      if (hasExamples) {
         this.entries.push({
           path: path.join(componentDir, `examples${this.ext}`),
           content: {

@@ -323,4 +323,90 @@ describe('FileManifest', () => {
       expect(buttonApi.content).not.toHaveProperty('variants');
     });
   });
+
+  describe('combined mode — composition kind (ADR-109)', () => {
+    const mockCompositions = [
+      {
+        name: 'Search Results',
+        spec: {
+          title: 'Search Results',
+          description: 'Search results with filter sidebar',
+          anatomy: { root: { type: 'container' } },
+          elements: { root: {} },
+          layout: ['root'],
+          metadata: { plugin: { version: 6 } }
+        }
+      }
+    ];
+
+    it('writes api.yaml with no props key, unlike a component', () => {
+      const config: OutputConfig = {
+        splitComponents: true,
+        splitConcerns: true,
+        useSubfolders: false,
+        defaultFormat: 'yaml'
+      };
+
+      const manifest = new FileManifest(mockCompositions, config, '/tmp/output', undefined, undefined, 'composition');
+      const api = manifest.entries.find(e => e.path.includes('api'))!;
+
+      expect(api.content).toHaveProperty('title', 'Search Results');
+      expect(api.content).toHaveProperty('description');
+      expect(api.content).toHaveProperty('anatomy');
+      expect(api.content).not.toHaveProperty('props');
+      expect(api.content).not.toHaveProperty('invalidPropCombinations');
+      expect(api.content).not.toHaveProperty('subcomponents');
+    });
+
+    it('writes variants.yaml with elements/layout, not default/variants', () => {
+      const config: OutputConfig = {
+        splitComponents: true,
+        splitConcerns: true,
+        useSubfolders: false,
+        defaultFormat: 'yaml'
+      };
+
+      const manifest = new FileManifest(mockCompositions, config, '/tmp/output', undefined, undefined, 'composition');
+      const variants = manifest.entries.find(e => e.path.includes('variants'))!;
+
+      expect(variants.content).toHaveProperty('elements');
+      expect(variants.content).toHaveProperty('layout');
+      expect(variants.content).not.toHaveProperty('default');
+      expect(variants.content).not.toHaveProperty('variants');
+    });
+
+    it('omits examples.yaml when the composition has no slotContent', () => {
+      const config: OutputConfig = {
+        splitComponents: true,
+        splitConcerns: true,
+        useSubfolders: false,
+        defaultFormat: 'yaml'
+      };
+
+      const manifest = new FileManifest(mockCompositions, config, '/tmp/output', undefined, undefined, 'composition');
+      expect(manifest.entries.find(e => e.path.includes('examples'))).toBeUndefined();
+    });
+
+    it('writes examples.yaml under slotContent, not slotContentExamples, when present', () => {
+      const withSlotContent = [{
+        name: 'Search Results',
+        spec: {
+          ...mockCompositions[0].spec,
+          slotContent: { cardHeader: { anatomy: {}, elements: {}, layout: [] } }
+        }
+      }];
+      const config: OutputConfig = {
+        splitComponents: true,
+        splitConcerns: true,
+        useSubfolders: false,
+        defaultFormat: 'yaml'
+      };
+
+      const manifest = new FileManifest(withSlotContent, config, '/tmp/output', undefined, undefined, 'composition');
+      const examples = manifest.entries.find(e => e.path.includes('examples'))!;
+
+      expect(examples.content).toHaveProperty('slotContent');
+      expect(examples.content).not.toHaveProperty('slotContentExamples');
+    });
+  });
 });

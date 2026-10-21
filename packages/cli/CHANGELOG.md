@@ -7,11 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.35.0] - Unreleased
 
-### Added
+### Fixed
 
-### Changed
-
-### Removed
+- **A composition's split-concern files now carry only what a composition has.** `api.yaml` drops the meaningless `props` key, `variants.yaml` holds `elements`/`layout` instead of `default`/`variants`, and `examples.yaml` uses `slotContent` (ADR-109)
 
 
 ## [0.34.0] - 2026-10-20

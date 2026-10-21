@@ -151,8 +151,8 @@ anatomy:
 
 | Consumer | Impact | Action required |
 |----------|--------|-----------------|
-| `specs-from-figma` | A composition's split-concern output now has a type/schema to target | Shape the `api`/`variants`/`examples` payload it writes for a composition to match the new documents instead of reusing the component split |
-| `specs-cli` | Composition output under `--split-concerns` can be validated against the new schema | Validate composition concern files against `composition-concern.schema.json`; stop writing a `props` key into a composition's `api.yaml` |
+| `specs-cli` | The split-concern file writer (`FileManifest`/`splitComponentByConcern`) is the sole producer of `api.yaml`/`variants.yaml`/`examples.yaml` and currently writes a composition's `api.yaml` through the same path as a component's, stubbing a meaningless `props: {}` | Shape the `api`/`variants`/`examples` payload per kind to match `ComponentApiDocument`/`CompositionApiDocument` etc.; stop writing `props` into a composition's `api.yaml` |
+| `specs-from-figma` | None — the resolved `Component`/`Composition` object it produces is not split into concern files; that happens entirely in `specs-cli` | None |
 | `specs-plugin-2` | None directly — the plugin does not write split-concern files | None |
 
 ---
