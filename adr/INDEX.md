@@ -4,6 +4,10 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 108 | The `$slotContent` Pointer Namespace | (reserved, draft in PR #767) |
+| 107 | Schema File Identity and Packaging | (reserved, draft in PR #767) |
+| 106 | Spec Provenance Beyond Figma Capture | (reserved, draft in PR #767) |
+| 105 | Type–Schema Parity for Overlapping Prop Unions | (reserved, draft in PR #767) |
 | 104 | Roles on a Collapsed Root — `childRole` Says Which Layer Was Annotated | (reserved, draft on `feat/states-setup-skill`) |
 | 102 | A Default Slot That Accepts a String — Figma TEXT Properties as Composable Children | (reserved, draft on `102-default-text-slots`) |
 | 093 | Composed Dependency Selection Is a Setting | |
