@@ -107,6 +107,7 @@ CompositionVariantsDocument:
 CompositionExamplesDocument:
   metadata: Metadata & { concern: 'examples' }   # required
   slotContent: Record<string, SlotContent>       # optional
+  images: Images                                 # optional — amendment, 2026-10-21
 
 CompositionConcernDocument: CompositionApiDocument | CompositionVariantsDocument | CompositionExamplesDocument
 ```
@@ -172,3 +173,11 @@ anatomy:
 - `SpecConcernDocument` (component) and `CompositionConcernDocument` (composition) remain two separate unions. A consumer narrows on kind (already known before the file is read) rather than attempting to discriminate `title`-bearing documents of either kind by shape alone.
 - `root.schema.json` validates composition concern documents for the first time; it still does not validate a *whole*, unsplit composition document — that gap is pre-existing and out of scope for this ADR.
 - The component documents stay named `Spec*Document` for now. See ADR-110 for the `Component*Document` rename this ADR's naming makes visible.
+
+---
+
+## Amendment (2026-10-21)
+
+Generating a real composition fixture end-to-end surfaced a gap this ADR missed: `Composition` (and so `CompositionExamplesDocument`) had no `images` field, but a real composition can carry a `backgroundImage` fill same as any component element — and the data was observably present in `specs-from-figma`'s current (pre-fix) output. Omitting it would have silently dropped real data the moment the engine fix in `specs-transforms` lands.
+
+Adds `images?: Images` to `types/Composition.ts` and `CompositionExamplesDocument`, mirroring `Component.images`/`ComponentExamplesDocument` — same shape, same de-duplication. Schema definitions updated to match (`component.schema.json`'s `Composition`, `composition-concern.schema.json`'s `CompositionExamplesDocument`). Additive, `MINOR`, no change to any other field.

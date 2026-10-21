@@ -98,7 +98,7 @@
     },
     "CompositionExamplesDocument": {
       "type": "object",
-      "description": "The examples concern of a composition: the content it composes. Written as examples.yaml when a composition has any named slot fills bundled alongside its primary content. (ADR-109)",
+      "description": "The examples concern of a composition: the content it composes and the image registry those elements reference. Written as examples.yaml when a composition has any named slot fills or images. (ADR-109)",
       "required": [
         "metadata"
       ],
@@ -131,6 +131,10 @@
             }
           },
           "additionalProperties": false
+        },
+        "images": {
+          "$ref": "component.schema.json#/definitions/Images",
+          "description": "Registry of image data referenced by this composition's elements. Same shape and de-duplication as a component's (ADR-109 amendment)."
         }
       }
     }

@@ -97,10 +97,11 @@ export interface CompositionVariantsData {
 /**
  * Examples concern data extracted from a composition (ADR-109).
  * Contains: slotContent — the composition's own field name, not
- * slotContentExamples. No instanceExamples, no images.
+ * slotContentExamples — and images. No instanceExamples.
  */
 export interface CompositionExamplesData {
   slotContent?: Record<string, any>;
+  images?: Record<string, unknown>;
   metadata: any;
 }
 
@@ -132,6 +133,7 @@ export function splitCompositionByConcern(data: Record<string, any>): {
 
   const examples: CompositionExamplesData = { metadata: data.metadata };
   if (data.slotContent) examples.slotContent = data.slotContent;
+  if (data.images) examples.images = data.images;
 
   return { api, variants, examples };
 }
@@ -141,7 +143,10 @@ export function splitCompositionByConcern(data: Record<string, any>): {
  * callers can skip emitting an empty examples file.
  */
 export function hasCompositionExampleData(examples: CompositionExamplesData): boolean {
-  return Boolean(examples.slotContent && Object.keys(examples.slotContent).length > 0);
+  return Boolean(
+    (examples.slotContent && Object.keys(examples.slotContent).length > 0) ||
+    (examples.images && Object.keys(examples.images).length > 0)
+  );
 }
 
 /**

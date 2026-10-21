@@ -90,6 +90,18 @@ describe('splitCompositionByConcern (ADR-109)', () => {
     const { examples: empty } = splitCompositionByConcern({ anatomy: {}, elements: {}, layout: [], slotContent: {}, metadata: {} });
     expect(hasCompositionExampleData(empty)).toBe(false);
   });
+
+  it('routes images to examples, and counts alone as example data (ADR-109 amendment)', () => {
+    const { api, variants, examples } = splitCompositionByConcern({
+      anatomy: {}, elements: {}, layout: [],
+      images: { compositionHero__image: { src: '_images/abc123.png' } },
+      metadata: {},
+    });
+    expect(examples.images).toEqual({ compositionHero__image: { src: '_images/abc123.png' } });
+    expect(api).not.toHaveProperty('images');
+    expect(variants).not.toHaveProperty('images');
+    expect(hasCompositionExampleData(examples)).toBe(true);
+  });
 });
 
 describe('extractApiFromSubcomponents', () => {

@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `CompositionApiDocument`, `CompositionVariantsDocument`, `CompositionExamplesDocument` — type a composition's `splitConcerns` files, each exact to what it carries (ADR-109)
 - `CompositionConcernDocument` unions the three composition concern documents, reachable from `root.schema.json` (ADR-109)
+- `Composition.images` and `CompositionExamplesDocument.images` register image data referenced by a composition's elements, matching `Component.images` (ADR-109 amendment)
 
 ### Migration
 
@@ -26,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ADRs
 
-#### New drafts
+#### Accepted
 
 - [ADR-109](../../adr/109-composition-concern-documents.md) — Composition Concern Documents
 - [ADR-110](../../adr/110-component-concern-document-naming.md) — Rename `Spec*Document` to `Component*Document`

@@ -2,6 +2,7 @@ import { Anatomy } from "./Anatomy.js";
 import { Elements } from "./Element.js";
 import { Layout } from "./Layout.js";
 import { SlotContent } from "./SlotContent.js";
+import { Images } from "./Image.js";
 import { Metadata } from "./Metadata.js";
 
 /**
@@ -49,16 +50,19 @@ export type CompositionVariantsDocument = {
 };
 
 /**
- * The `examples` concern of a composition: the content it composes.
+ * The `examples` concern of a composition: the content it composes and the
+ * image registry those elements reference.
  *
  * Written as `examples.yaml`, and only for a composition that has any named
- * slot fills bundled alongside its primary content.
+ * slot fills or images.
  */
 export type CompositionExamplesDocument = {
   /** Must state `concern: 'examples'`. */
   metadata: Metadata & { concern: 'examples' };
   /** Named slot fills bundled alongside this composition's primary content. */
   slotContent?: Record<string, SlotContent>;
+  /** Registry of image data referenced by this composition's elements. */
+  images?: Images;
 };
 
 /**

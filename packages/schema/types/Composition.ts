@@ -2,6 +2,7 @@ import { Anatomy } from "./Anatomy.js";
 import { Elements } from "./Element.js";
 import { Layout } from "./Layout.js";
 import { SlotContent } from "./SlotContent.js";
+import { Images } from "./Image.js";
 
 /**
  * A named, authored unit of composed content (ADR-042, ADR-046).
@@ -33,6 +34,13 @@ export interface Composition {
    * reference entries in other compositions via `SlotContentRef`.
    */
   slotContent?: Record<string, SlotContent>;
+
+  /**
+   * Registry of image data referenced by `backgroundImage` fills
+   * (`ImageValue.$image`) on this composition's elements. Same shape and
+   * de-duplication as `Component.images`. @since 0.38.0 (ADR-109 amendment)
+   */
+  images?: Images;
 }
 
 /**

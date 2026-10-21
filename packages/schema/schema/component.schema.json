@@ -711,6 +711,10 @@
             }
           },
           "additionalProperties": false
+        },
+        "images": {
+          "$ref": "#/definitions/Images",
+          "description": "Registry of image data referenced by backgroundImage fills on this composition's elements. Same shape and de-duplication as Component.images (ADR-109 amendment)."
         }
       },
       "additionalProperties": false
