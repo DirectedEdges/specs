@@ -2,8 +2,6 @@
 title: "run"
 ---
 
-<script>document.querySelector('#_top').insertAdjacentHTML('beforeend',' <span class="sl-badge experimental-badge">Experimental</span>')</script>
-
 Brings the workspace up to date, then keeps it that way. Watches your data, specs and config, and redoes only the part a change affects. Runs until Ctrl-C.
 
 It is [`specs build`](/cli/commands/build/) — the same chain, the same steps, in the same order — with a watcher on the front.
