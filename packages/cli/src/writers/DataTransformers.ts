@@ -118,12 +118,15 @@ export function splitCompositionByConcern(data: Record<string, any>): {
   variants: CompositionVariantsData;
   examples: CompositionExamplesData;
 } {
+  // title/description spread in first, even though optional, to match the
+  // engine's own field order — title leads every document, component or
+  // composition, rather than landing after metadata when present.
   const api: CompositionApiData = {
+    ...(data.title !== undefined ? { title: data.title } : {}),
+    ...(data.description !== undefined ? { description: data.description } : {}),
     anatomy: data.anatomy,
     metadata: data.metadata,
   };
-  if (data.title !== undefined) api.title = data.title;
-  if (data.description !== undefined) api.description = data.description;
 
   const variants: CompositionVariantsData = {
     elements: data.elements,
