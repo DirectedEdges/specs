@@ -27,7 +27,7 @@ This ADR gives composition concern documents their own exact types and schema, c
 - **Exactness, not permissiveness** (precedent: ADR-091): a concern document requires what it carries and permits nothing else. Loosening an existing type with optional fields to also fit a second kind would weaken that guarantee for the kind it was written for.
 - **Minimal, stable, intentional public API** (Constitution III): new types must represent a genuine, shared concept — not paper over an implementation detail of one downstream package.
 - **No runtime logic** (Constitution II): this package states shapes only; nothing here prescribes how a composition's concern data is produced or split.
-- **Additive, no breaking change**: `SpecApiDocument`, `SpecVariantsDocument`, `SpecExamplesDocument`, and `Concern` are unchanged. This ADR only adds new types and a new schema file.
+- **Additive, no breaking change**: `SpecApiDocument`, `SpecVariantsDocument`, `SpecExamplesDocument`, and `Concern` are unchanged. This ADR only adds new types and a new schema file. *(A naming-symmetry question this ADR surfaced — whether `Spec*Document` should become `Component*Document` now that a second kind exists — is handled separately in ADR-110, so it doesn't force this ADR's change class to `MAJOR`.)*
 
 ---
 
@@ -171,3 +171,4 @@ anatomy:
 - `specs-from-figma` and `specs-cli` can stop producing a composition `api.yaml` with a meaningless stub `props: {}` — there is now a correct shape to target instead.
 - `SpecConcernDocument` (component) and `CompositionConcernDocument` (composition) remain two separate unions. A consumer narrows on kind (already known before the file is read) rather than attempting to discriminate `title`-bearing documents of either kind by shape alone.
 - `root.schema.json` validates composition concern documents for the first time; it still does not validate a *whole*, unsplit composition document — that gap is pre-existing and out of scope for this ADR.
+- The component documents stay named `Spec*Document` for now. See ADR-110 for the `Component*Document` rename this ADR's naming makes visible.
