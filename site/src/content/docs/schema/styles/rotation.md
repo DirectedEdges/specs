@@ -12,6 +12,10 @@ Rotation in degrees.
 | `number` | `45` |
 | [`TokenReference`](/schema/token-reference/) | `$token: ...`<br>`$type: number` |
 
+#### Default
+
+`0`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

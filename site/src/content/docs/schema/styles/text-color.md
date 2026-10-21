@@ -15,6 +15,10 @@ Text fill color, read from Figma's `fills` ([ADR 009](https://github.com/Directe
 | [`GradientValue`](/schema/gradient-value/) | `type: LINEAR`<br>`angle: 180`<br>`stops: [...]` | — |
 | `null` | `null` | — |
 
+#### Default
+
+`null`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

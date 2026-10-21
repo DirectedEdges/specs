@@ -14,6 +14,10 @@ Item spacing. Scalar when uniform; [`ItemSpacing`](#itemspacing) object when hor
 | `ItemSpacing` | `horizontal: 16`<br>`vertical: 8` |
 | `null` | `null` |
 
+#### Default
+
+`0`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

@@ -14,6 +14,10 @@ Horizontal text alignment using logical inline-axis directions. `START` resolves
 
 Not token-bindable — structural property, not a design value.
 
+#### Default
+
+`"START"`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

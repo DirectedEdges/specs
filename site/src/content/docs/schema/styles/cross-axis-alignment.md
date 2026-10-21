@@ -14,6 +14,10 @@ Alignment along the cross axis (perpendicular to `layoutMode`).
 
 Not token-bindable — structural property, not a design value.
 
+#### Default
+
+`"START"`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

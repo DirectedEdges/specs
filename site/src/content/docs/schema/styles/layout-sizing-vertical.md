@@ -12,6 +12,10 @@ Vertical sizing mode.
 | `string` | `"FIXED"`, `"HUG"`, `"FILL"` |
 | [`TokenReference`](/schema/token-reference/) | `$token: ...`<br>`$type: string` |
 
+#### Default
+
+`"FIXED"`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

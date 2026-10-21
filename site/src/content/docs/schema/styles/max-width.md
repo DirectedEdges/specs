@@ -12,6 +12,10 @@ Maximum width constraint.
 | `number` | `480` |
 | [`TokenReference`](/schema/token-reference/) | `$token: DS.Size.400`<br>`$type: dimension` |
 
+#### Default
+
+`null`
+
 #### Supported on
 
 | Element | Figma Layer(s) |

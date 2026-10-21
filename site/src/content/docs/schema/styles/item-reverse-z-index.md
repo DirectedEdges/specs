@@ -12,6 +12,10 @@ Whether children stack in reverse z-index order.
 | `boolean` | `true` |
 | [`TokenReference`](/schema/token-reference/) | `$token: ...`<br>`$type: boolean` |
 
+#### Default
+
+`false`
+
 #### Supported on
 
 | Element | Figma Layer(s) |
