@@ -2,7 +2,7 @@
 
 **Branch**: `110-component-concern-document-naming` *(drafted on `docs/schema-property-defaults`)*
 **Created**: 2026-10-21
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Summary**: `ComponentApiDocument`, `ComponentVariantsDocument`, and `ComponentExamplesDocument` name a component's `splitConcerns` files, matching `CompositionApiDocument`'s naming across both spec kinds.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none; renames types added by ADR-091, extended by ADR-109)*
