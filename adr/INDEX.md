@@ -4,6 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 110 | Rename `Spec*Document` to `Component*Document` | (reserved, draft on `docs/schema-property-defaults`) |
 | 109 | Composition Concern Documents | (reserved, draft on `docs/schema-property-defaults`) |
 | 108 | The `$slotContent` Pointer Namespace | (reserved, draft in PR #767) |
 | 107 | Schema File Identity and Packaging | (reserved, draft in PR #767) |
