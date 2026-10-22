@@ -11,13 +11,29 @@
 
 ## Context
 
+### Figma props
+
 Figma's component property model is flat. A property is a boolean, a text string, a number, an instance swap, or a variant option — one name, one value. There is no property whose value is a structured object, and the Specs schema mirrors that limit today: the `AnyProp` union in `types/Props.ts` admits six shapes (`BooleanProp`, `StringProp`, `EnumProp`, `NumberProp`, `SlotProp`, `ImageProp`), each carrying a single value.
 
-Design intent has outgrown that flatness. The clearest case is responsive behavior: a designer thinks of one concept — a component's margin, varied across size contexts — not two unrelated settings. But a flat property model forces the concept apart. Teams encode it as prop explosions (`marginCompact`, `marginExpanded`), as multiplied variants, or as per-breakpoint component forks, and nothing in the file records that these are members of one idea. The grouping survives only as naming discipline, and every consumer of the design — a developer, a documentation pipeline, a code generator — must reassemble it by guessing at names. The same pressure shows up anywhere a single design decision has several coordinated parts: density modes, per-side spacing, device-class typography.
+### Object props
 
-Code left this problem behind long ago. A React prop takes an object literal; a SwiftUI view takes a struct; a Compose component takes a data class. When a designer hands off a "responsive margin," the engineer's API is already one `margin` with named members — it is the design tooling side of the handoff that arrives flattened, and the engineer who re-groups it.
+Technical solutions have long permitted unflattened props, and design intent has outgrown that flatness. One case is responsive behavior: a designer thinks of one concept — a component's margin, varied across size contexts — not two unrelated settings. A flat property model forces the concept apart. 
 
-The spec sits between the two and should carry the designed intent, not the authoring tool's encoding of it:
+### Figma workarounds
+
+A team could encode it as flattened props (`marginCompact`, `marginExpanded`), multiplied variants, or as per-breakpoint component forks, and nothing in the file records that these are members of one idea. The grouping survives as naming convention and design consumer — a developer, a documentation pipeline, a code generator, an agent — using an extension built by that convention. The same pressure shows up anywhere a single design decision has several coordinated parts: density modes, per-side spacing, device-class typography.
+
+### Downstream pipeline and source(s)-of-truth
+
+Code left this problem behind long ago:
+
+- React props take an object literal
+- SwiftUI views take a struct
+- Compose components take a data class. 
+
+When a designer hands off a "responsive margin," the engineer's API is already one `margin` with named members — it is the design tooling side of the handoff that arrives flattened, and extractions, specs, engineers and agents re-group it.
+
+Specs serve as a source of truth for multi-platform development and should carry designed intent, not the authoring tool's encoding of it:
 
 ```yaml
 # The concept as designed and as coded — not expressible in the schema today
@@ -34,7 +50,13 @@ margin:
       default: none
 ```
 
-Because Figma cannot author this natively, the proposal pairs the schema shape with an authoring convention teams can adopt in Figma as it exists today: dot-separated property names (`margin.compact`, `margin.expanded`) that an opt-in declaration folds into one object prop. The convention is deliberately a thin encoding of the target shape — if Figma's property model later gains structured values natively, specs authored this way are already in the destination format, and the fold becomes translation that is no longer needed rather than a migration.
+## Figma convention
+
+Because Figma cannot author this natively, the proposal pairs the schema shape with an authoring [Figma convention](https://spectacular.systems/settings/) teams can opt into using a setting like [infer number props](https://spectacular.systems/settings/infer-number-props/): dot-separated property names (`margin.compact`, `margin.expanded`) fold into one object prop. 
+
+If Figma's property model later gains structured values natively, specs authored this way are already in the destination format, and the fold becomes translation that is no longer needed rather than a migration.
+
+## Potential impacts to Spectacular Schema
 
 An object prop's value must also travel everywhere a prop value travels today:
 
