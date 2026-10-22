@@ -1,6 +1,7 @@
 ---
 title: "wrap"
 description: "Whether auto-layout wrapping is enabled"
+tableOfContents: false
 ---
 
 Whether auto-layout wrapping is enabled (default: `false`).

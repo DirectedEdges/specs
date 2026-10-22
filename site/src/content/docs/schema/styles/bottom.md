@@ -1,6 +1,7 @@
 ---
 title: "bottom"
 description: "Offset from the block-end edge of a positioned child"
+tableOfContents: false
 ---
 
 Offset from the block-end (bottom) edge. Present when the vertical constraint is `MAX` or `STRETCH`.

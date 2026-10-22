@@ -1,6 +1,7 @@
 ---
 title: "opacity"
 description: "Element opacity"
+tableOfContents: false
 ---
 
 Opacity, 0–1.

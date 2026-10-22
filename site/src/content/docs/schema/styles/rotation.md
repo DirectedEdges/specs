@@ -1,6 +1,7 @@
 ---
 title: "rotation"
 description: "Rotation angle of an element"
+tableOfContents: false
 ---
 
 Rotation in degrees.

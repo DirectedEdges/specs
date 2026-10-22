@@ -1,6 +1,7 @@
 ---
 title: "textColor"
 description: "Text fill color for TEXT elements"
+tableOfContents: false
 ---
 
 Text fill color, read from Figma's `fills` ([ADR 009](https://github.com/DirectedEdges/specs/blob/main/adr/009-color-values.md) explains why the name diverges).

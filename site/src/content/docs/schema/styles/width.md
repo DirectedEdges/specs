@@ -1,6 +1,7 @@
 ---
 title: "width"
 description: "Fixed or resolved width of an element"
+tableOfContents: false
 ---
 
 Width.

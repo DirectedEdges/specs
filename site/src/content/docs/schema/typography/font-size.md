@@ -1,6 +1,7 @@
 ---
 title: "fontSize"
 description: "Font size for a text node"
+tableOfContents: false
 ---
 
 Font size in pixels. Part of [`Typography`](/schema/typography/).

@@ -1,6 +1,7 @@
 ---
 title: "cornerSmoothing"
 description: "Squircle-style corner smoothing amount"
+tableOfContents: false
 ---
 
 Corner smoothing amount (Figma's "squircle" effect), 0–1.

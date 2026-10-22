@@ -1,6 +1,7 @@
 ---
 title: "primaryAxisSizingMode"
 description: "Main-axis sizing mode for an auto-layout container"
+tableOfContents: false
 ---
 
 Main-axis sizing mode.

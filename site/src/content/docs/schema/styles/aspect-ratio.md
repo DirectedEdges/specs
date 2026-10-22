@@ -1,6 +1,7 @@
 ---
 title: "aspectRatio"
 description: "Locked width-to-height ratio for an element"
+tableOfContents: false
 ---
 
 Locked aspect ratio. Present only when the node has a locked ratio.

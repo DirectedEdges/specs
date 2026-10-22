@@ -1,6 +1,7 @@
 ---
 title: "lineHeight"
 description: "Line height for a text node"
+tableOfContents: false
 ---
 
 Line height. Part of [`Typography`](/schema/typography/).

@@ -1,6 +1,7 @@
 ---
 title: "clipsContent"
 description: "Whether a container clips overflowing content"
+tableOfContents: false
 ---
 
 Whether the container clips content that overflows its box.
