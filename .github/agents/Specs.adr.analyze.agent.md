@@ -19,7 +19,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Purpose
 
-An ADR's Downstream Impact table is deliberately shallow: Constitution III forbids an ADR from describing any consumer's internals, so the table names consumers and observable surface only. This command is where the depth goes — it reads each consumer package's actual source against the ADR's new surface and writes **one adoption analysis document** per ADR into the workspace: `specs-local-workspace/projects/042-adr-adoption/NNN-<adr-name>.md`.
+An ADR's Downstream Impact table is deliberately shallow: Constitution III forbids an ADR from describing any consumer's internals, so the table names consumers and observable surface only. This command is where the depth goes — it reads each consumer package's actual source against the ADR's new surface and writes **one adoption analysis document** per ADR into the workspace: `specs-local-workspace/adr/NNN/plan.md`.
 
 **The analysis is never published to GitHub** — no issue, no PR body, no repo file. It cites file paths and internals of packages that are published obfuscated to protect IP; the workspace is the only home that keeps that detail private while staying at hand for adoption work.
 
@@ -27,7 +27,7 @@ An ADR's Downstream Impact table is deliberately shallow: Constitution III forbi
 
 - **Read-only outside the workspace.** Inspect `specs-transforms` packages and `spectacular-plugin` freely; never edit, build, branch, or commit in them.
 - **No fixes.** This command assesses; adoption work happens later, per package, in dependency order.
-- The only writes are the analysis document in `specs-local-workspace/projects/042-adr-adoption/` and the one-line pointer in the ADR (step 6).
+- The only writes are the analysis document at `specs-local-workspace/adr/NNN/plan.md` and the one-line pointer in the ADR (step 7).
 
 ## Outline
 
@@ -47,7 +47,9 @@ An ADR's Downstream Impact table is deliberately shallow: Constitution III forbi
    - **None** — genuinely unaffected; say why in one line
    For each non-None package, enumerate concrete work items in terms of that package's *observable behavior* (what it must read, emit, render, or surface — including UI affordances such as plugin settings controls), plus the verification method (which test suite, round-trip, or parity check proves it).
 
-5. **Write the adoption analysis** to `specs-local-workspace/projects/042-adr-adoption/NNN-<adr-name>.md` (the format is the one ratified on `111-object-props.md` in that folder — match it):
+5. **Clarify requirements** — the assessment will surface questions the ADR does not answer: presentation behavior, interaction between the new surface and existing output, precedence and defaults. These are requirements decisions, not analysis findings. Collect them, then resolve each with `AskUserQuestion`, naming 2–4 concrete options with their consequences — never bury an open requirement in the document as a hedge or a "TBD". Example shape: *does each enum member of an object prop get its own output section, sweeping that member with every other prop — sibling members included — at its default?* Record each answer in the analysis under the owning package as a **Requirement** line the work items then honor.
+
+6. **Write the adoption analysis** to `specs-local-workspace/adr/NNN/plan.md` (the format is the one ratified on `adr/111/plan.md` — match it):
    - Title: `ADR-NNN adoption: <topic>`, with an "Analyzed <date> against <branch>" line
    - A framing paragraph linking the ADR, then the impact-class legend table
    - A summary table: `Package | Impact | Work items | Verification`
@@ -55,14 +57,14 @@ An ADR's Downstream Impact table is deliberately shallow: Constitution III forbi
    - An adoption-order section mapping work to the dependency tiers, naming anything that jumps the queue (a gate that blocks end-to-end verification goes first)
    - A cross-cutting risks section for patterns that only emerge from reading all packages together (recurring bug shapes, failures that surface in generated code, signature symptoms)
 
-6. **Pointer in the ADR**: Append one line to the ADR's Downstream Impact section: `` Per-package adoption analysis: `specs-local-workspace/projects/042-adr-adoption/NNN-<adr-name>.md` (maintained outside this repo). `` The path only — never any analysis content (Constitution III, and the IP rule above).
+7. **Pointer in the ADR**: Append one line to the ADR's Downstream Impact section: `` Per-package adoption analysis: `specs-local-workspace/adr/NNN/plan.md` (maintained outside this repo). `` The path only — never any analysis content (Constitution III, and the IP rule above).
 
-7. **Report**: A table — `Package | Impact class | Work items | Verification` — followed by the analysis file path. State that `/specs.adr.accept` is the next step and that acceptance does not require adoption to be complete.
+8. **Report**: A table — `Package | Impact class | Work items | Verification` — followed by the analysis file path. State that `/specs.adr.accept` is the next step and that acceptance does not require adoption to be complete.
 
 ## Key rules
 
 - The ADR stays internals-free (Constitution III); the workspace analysis is where internals live. One document per ADR, not per package.
-- **Never copy analysis content into GitHub** — not into the ADR, an issue, a PR body, or a repo file. The cited packages are published obfuscated; their internals stay in the workspace. The ADR's pointer line (step 6) is the one sanctioned mention: the path, nothing more.
+- **Never copy analysis content into GitHub** — not into the ADR, an issue, a PR body, or a repo file. The cited packages are published obfuscated; their internals stay in the workspace. The ADR's pointer line (step 7) is the one sanctioned mention: the path, nothing more.
 - Classify honestly: a package that compiles but drops new data on the floor is **Silent pass-through**, not None — that class is the reason this command exists.
 - If fanning out read-only subagents to cover packages in parallel, state the cost expectation before launching and report actuals.
 - Use absolute paths for all file operations.
