@@ -1,6 +1,7 @@
 ---
 title: "minWidth"
 description: "Minimum width constraint for an element"
+tableOfContents: false
 ---
 
 Minimum width constraint.

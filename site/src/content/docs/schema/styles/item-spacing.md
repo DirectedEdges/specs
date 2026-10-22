@@ -1,6 +1,7 @@
 ---
 title: "itemSpacing"
 description: "Gap between items in an auto-layout container"
+tableOfContents: false
 ---
 
 Item spacing. Scalar when uniform; [`ItemSpacing`](#itemspacing) object when horizontal and vertical gaps differ.

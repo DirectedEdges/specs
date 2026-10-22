@@ -1,6 +1,7 @@
 ---
 title: "locked"
 description: "Whether an element is locked from editing in Figma"
+tableOfContents: false
 ---
 
 Whether the element is locked from editing in Figma.

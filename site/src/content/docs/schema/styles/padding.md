@@ -1,6 +1,7 @@
 ---
 title: "padding"
 description: "Inner spacing between a container's edge and its children"
+tableOfContents: false
 ---
 
 Padding. Scalar when uniform; [`Sides`](/schema/sides/) object when per-side values differ.

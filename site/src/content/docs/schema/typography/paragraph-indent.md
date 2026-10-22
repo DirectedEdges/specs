@@ -1,6 +1,7 @@
 ---
 title: "paragraphIndent"
 description: "First-line paragraph indent for a text node"
+tableOfContents: false
 ---
 
 First-line indent in pixels. Part of [`Typography`](/schema/typography/).

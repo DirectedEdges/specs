@@ -1,6 +1,7 @@
 ---
 title: "textOverflow"
 description: "How overflowing text is handled"
+tableOfContents: false
 ---
 
 How overflowing text is handled — cut off or trailing ellipsis.

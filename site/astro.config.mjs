@@ -342,6 +342,7 @@ export default defineConfig({
                 { label: 'states', slug: 'settings/states' },
                 { label: 'accessibility', slug: 'settings/accessibility' },
                 { label: 'value', slug: 'settings/value' },
+                { label: 'slots.default', slug: 'settings/default-slot', badge: pro },
               ],
             },
             {
@@ -354,7 +355,6 @@ export default defineConfig({
                 { label: 'subcomponents', slug: 'settings/subcomponents' },
                 { label: 'instanceExamples', slug: 'settings/instance-examples', badge: pro },
                 { label: 'images', slug: 'settings/images' },
-                { label: 'slots.default', slug: 'settings/default-slot', badge: pro },
                 { label: 'slotConstraints', slug: 'settings/slot-constraints', badge: pro },
                 { label: 'inferNumberProps', slug: 'settings/infer-number-props' },
                 { label: 'Promotion table', slug: 'settings/figma-primitives' },

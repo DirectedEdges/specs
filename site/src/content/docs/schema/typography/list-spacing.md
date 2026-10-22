@@ -1,6 +1,7 @@
 ---
 title: "listSpacing"
 description: "Spacing between list items for a text node"
+tableOfContents: false
 ---
 
 Spacing between list items in pixels. Part of [`Typography`](/schema/typography/).

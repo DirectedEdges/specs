@@ -1,6 +1,7 @@
 ---
 title: "strokeDashPattern"
 description: "Dash geometry for a dashed stroke"
+tableOfContents: false
 ---
 
 Dash geometry for a dashed stroke. Presence signals a dashed stroke; null or absent signals solid.

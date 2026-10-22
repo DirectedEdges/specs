@@ -1,6 +1,7 @@
 ---
 title: "start"
 description: "Offset from the inline-start edge of a positioned child"
+tableOfContents: false
 ---
 
 Offset from the inline-start edge (left in LTR, right in RTL). Present when the horizontal constraint is `MIN`, `STRETCH`, or `SCALE`.

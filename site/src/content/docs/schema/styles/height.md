@@ -1,6 +1,7 @@
 ---
 title: "height"
 description: "Fixed or resolved height of an element"
+tableOfContents: false
 ---
 
 Height.

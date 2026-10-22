@@ -1,6 +1,7 @@
 ---
 title: "strokeWeight"
 description: "Stroke thickness for a container, vector, or line element"
+tableOfContents: false
 ---
 
 Stroke weight. Scalar when uniform; [`Sides`](/schema/sides/) object when per-side values differ.
