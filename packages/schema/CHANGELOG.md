@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `ObjectProp` — a prop whose value is an object of named scalar members (ADR-111)
+- `PropConfigurationValue` — accepts a member-keyed `ObjectPropValue` under an object-prop key (ADR-111)
+- `InstanceExample.propConfigurations` — accepts `ObjectPropValue` for object props (ADR-111)
+- `platforms.<platform>.objectProps` — opt-in folding of separator-named flat props into object props (ADR-111)
+
 ### Changed
 
 ### Removed

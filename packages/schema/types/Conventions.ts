@@ -275,6 +275,17 @@ export interface PlatformConventions {
   /** This platform authors numeric props as Figma `TEXT` props whose default and examples parse as valid numbers, to be emitted as NumberProp rather than StringProp. Optional; defaults to false. */
   inferNumberProps?: boolean;
   /**
+   * Encoding. This platform authors object-prop members as separator-delimited flat
+   * property names (e.g. `margin.compact`, `margin.expanded`), to be folded into one
+   * `ObjectProp` (ADR-111). Optional; absence means no folding — a property name
+   * containing the separator stays a flat prop.
+   * @since 0.39.0
+   */
+  objectProps?: {
+    /** The member-name separator in flat property names. Optional; defaults to `"."`. */
+    separator?: string;
+  };
+  /**
    * Prop that receives styling no promotion mapped, for every promoted component on this
    * platform (e.g. `sx`, `style`, `modifier`). A **name only** — what is placed in it is
    * the generator's decision (Constitution II).
@@ -582,6 +593,10 @@ export interface ResolvedPlatformConventions {
   slotConstraints: boolean;
   /** Numeric props are authored as Figma `TEXT` props. */
   inferNumberProps: boolean;
+  /** Object-prop members are authored as separator-delimited flat property names. Optional; absence means no folding. `separator` is defaulted inside a declared block. @since 0.39.0 */
+  objectProps?: {
+    separator: string;
+  };
   /** Prop that receives styling no promotion mapped. Optional; absence means unmapped styling is dropped. */
   stylesProp?: string;
   /** Width of the container a fill-width root is placed in. Optional; no default — absence means the tool falls back to its own value. */
