@@ -276,15 +276,15 @@ ObjectProp:
 
 ## Downstream Impact
 
-| Consumer | Impact | Action required |
-|----------|--------|-----------------|
-| `specs-from-figma` | New fold behavior when `objectProps` is declared | Fold separator-named Figma properties into `ObjectProp` definitions and member-keyed configuration values; record source names in `$extensions` |
-| `figma-from-specs` | Object values must reach a flat surface | Unfold `ObjectProp` members and member-keyed configuration values to separator-named Figma properties using the recorded source names |
-| `react-from-specs` | New prop shape in emitted contracts | Emit object-typed props (member-typed object literals) in generated interfaces, stories, and configured instances |
-| `webcomponents-from-specs` | Same as React emitter | Same, in the Lit idiom |
-| `from-specs` (shared core) | New `AnyProp` member flows through shared prop handling | Recompile; extend any exhaustive handling of `AnyProp` |
-| `specs-cli` | Validation and emit pass through the new shapes | Recompile against the published types/schema |
-| `spectacular-plugin` | Same contract via the plugin runtime, plus a settings surface | Recompile; folding applies identically to plugin-sourced data. The plugin's Settings UI needs a checkbox enabling the convention that reveals a textbox for authoring the separator, defaulting to `.` |
+| Consumer | Impact | Highlights |
+|----------|--------|------------|
+| `specs-from-figma` | New fold behavior when `objectProps` is declared | Folds separator-named Figma properties into one `ObjectProp` with member-keyed configuration values; records each member's flat source name in `$extensions` |
+| `figma-from-specs` | Object values must reach a flat surface | Unfolds members back to separator-named Figma properties via the recorded source names; member-keyed configurations set per-member values |
+| `react-from-specs` | New prop shape in emitted contracts | Object props in generated interfaces, object-literal values in composed instances, per-member story controls |
+| `webcomponents-from-specs` | New prop shape in emitted contracts | Binds object props as JS properties rather than string attributes; per-member story controls |
+| `from-specs` (shared core) | New prop shape in shared contract typing and story planning | One shared fix typing and planning the object shape covers both emitters |
+| `specs-cli` | Resolves and forwards the new convention — the feature's on-switch | `objectProps` in a workspace's conventions reaches the engine and the bridge; analyzers, visual testing, and version grading read members |
+| `spectacular-plugin` | Same contract via the plugin runtime, plus a settings surface | Settings checkbox enabling the convention, revealing a separator textbox defaulting to `.`; each enum member gets its own Props output section |
 
 Specs containing no `ObjectProp` are byte-identical before and after — the change is inert until a library opts in.
 
