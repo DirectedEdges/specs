@@ -38,7 +38,8 @@ An object prop's value must also travel everywhere a prop value travels today:
 
 - `Props` in the API concern — the prop definition itself.
 - `PropConfigurations` in the variance concern — a variant setting `margin` must carry a member-keyed value.
-- Nested instance configurations (`NestedPropConfiguration`) and `InstanceExample.propConfigurations` — both reuse `PropConfigurationValue`, so one widening covers instance settings in the variance file, slot fills, and the examples file uniformly.
+- Nested instance configurations (`NestedPropConfiguration`) reuse `PropConfigurationValue`, so one widening covers variant configurations, instance settings in the variance file, and slot fills.
+- `InstanceExample.propConfigurations` carries its own narrower union (no `PropBinding`), so the examples file takes the same member-keyed value as a parallel widening of that union.
 
 ---
 
@@ -158,7 +159,7 @@ $nested:
       compact: small
 ```
 
-Because `Variant.configuration`, `NestedPropConfiguration`, `Element.propConfigurations`, and `InstanceExample.propConfigurations` all share `PropConfigurationValue`, this single widening carries object values into the variance file, nested instance settings, slot fills, and the examples file with no further type changes. Partial objects follow the existing layering rule: an absent member key inherits; a `null` member value unsets (ADR-080 semantics, per member).
+Because `Variant.configuration`, `NestedPropConfiguration`, and `Element.propConfigurations` all share `PropConfigurationValue`, one widening carries object values into the variance file, nested instance settings, and slot fills; `InstanceExample.propConfigurations` keeps its own narrower union (no `PropBinding`) and takes the same `ObjectPropValue` arm as a parallel widening. Partial objects follow the existing layering rule: an absent member key inherits; a `null` member value unsets (ADR-080 semantics, per member).
 
 **Pros**:
 - One change point; every configuration surface stays consistent by construction (driver: one value vocabulary).
@@ -184,7 +185,8 @@ Because `Variant.configuration`, `NestedPropConfiguration`, `Element.propConfigu
 | File | Change | Bump |
 |------|--------|------|
 | `Props.ts` | Add `ObjectProp` interface (`type: 'object'`, required `members`); add scalar-member union (named, e.g. `ObjectPropMember` = `BooleanProp \| StringProp \| EnumProp \| NumberProp`); add `ObjectProp` to `AnyProp` | MINOR |
-| `PropConfigurations.ts` | Widen `PropConfigurationValue` with a member-keyed object arm (member name → `string \| number \| boolean \| null`) | MINOR |
+| `PropConfigurations.ts` | Widen `PropConfigurationValue` with a member-keyed object arm (named `ObjectPropValue`: member name → `string \| number \| boolean \| null`) | MINOR |
+| `InstanceExample.ts` | Widen `propConfigurations` values with the same `ObjectPropValue` arm (its union is narrower than `PropConfigurationValue` — no `PropBinding`) | MINOR |
 | `Conventions.ts` | Add optional `objectProps` field (with optional `separator`, default `"."`) to the Figma platform conventions and its required-form counterpart | MINOR |
 | `index.ts` | Export the new named types | MINOR |
 
