@@ -125,7 +125,7 @@ At least one of the two forms is declared; a component matching either is a glyp
 |----------|------|---------|-------------|
 | `separator` | `string` | `'.'` | The member-name separator in flat property names |
 
-The library authors [object-prop](/schema/props/#objectprop) members as separator-delimited flat property names — `margin.compact` and `margin.expanded` fold into one `margin` object prop (since 0.39.0, ADR-111). Absent means no folding: a property name containing the separator stays a flat prop. Each folded member records its flat source name in `$extensions['com.figma'].name`, so writing back to Figma reverses the fold without re-deriving names.
+The library authors [object-prop](/schema/props/#objectprop) members as separator-delimited flat property names — `margin.compact` and `margin.expanded` fold into one `margin` object prop (since 0.39.0, ADR-111; declared via the [objectProps setting](/settings/object-props/)). Absent means no folding: a property name containing the separator stays a flat prop. Each folded member records its flat source name in `$extensions['com.figma'].name`, so writing back to Figma reverses the fold without re-deriving names.
 
 ### `stylesProp`
 

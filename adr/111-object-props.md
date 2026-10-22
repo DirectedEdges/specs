@@ -284,7 +284,7 @@ ObjectProp:
 | `webcomponents-from-specs` | Same as React emitter | Same, in the Lit idiom |
 | `from-specs` (shared core) | New `AnyProp` member flows through shared prop handling | Recompile; extend any exhaustive handling of `AnyProp` |
 | `specs-cli` | Validation and emit pass through the new shapes | Recompile against the published types/schema |
-| `specs-plugin-2` | Same contract via the plugin runtime | Recompile; folding applies identically to plugin-sourced data |
+| `spectacular-plugin` | Same contract via the plugin runtime, plus a settings surface | Recompile; folding applies identically to plugin-sourced data. The plugin's Settings UI needs a checkbox enabling the convention that reveals a textbox for authoring the separator, defaulting to `.` |
 
 Specs containing no `ObjectProp` are byte-identical before and after — the change is inert until a library opts in.
 
