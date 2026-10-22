@@ -11,12 +11,16 @@
 
 ## Context
 
-The `AnyProp` union in `types/Props.ts` admits six prop shapes — `BooleanProp`, `StringProp`, `EnumProp`, `NumberProp`, `SlotProp`, `ImageProp` — all of which carry a single scalar or slot value. There is no way to declare a prop whose value is an object with well-defined members.
+Figma's component property model is flat. A property is a boolean, a text string, a number, an instance swap, or a variant option — one name, one value. There is no property whose value is a structured object, and the Specs schema mirrors that limit today: the `AnyProp` union in `types/Props.ts` admits six shapes (`BooleanProp`, `StringProp`, `EnumProp`, `NumberProp`, `SlotProp`, `ImageProp`), each carrying a single value.
 
-The motivating case is a responsive prop: a `margin` prop whose value differs by breakpoint, with members `compact` and `expanded`, each drawing from the same enumerated set (`none`, `small`, `large`):
+Design intent has outgrown that flatness. The clearest case is responsive behavior: a designer thinks of one concept — a component's margin, varied across size contexts — not two unrelated settings. But a flat property model forces the concept apart. Teams encode it as prop explosions (`marginCompact`, `marginExpanded`), as multiplied variants, or as per-breakpoint component forks, and nothing in the file records that these are members of one idea. The grouping survives only as naming discipline, and every consumer of the design — a developer, a documentation pipeline, a code generator — must reassemble it by guessing at names. The same pressure shows up anywhere a single design decision has several coordinated parts: density modes, per-side spacing, device-class typography.
+
+Code left this problem behind long ago. A React prop takes an object literal; a SwiftUI view takes a struct; a Compose component takes a data class. When a designer hands off a "responsive margin," the engineer's API is already one `margin` with named members — it is the design tooling side of the handoff that arrives flattened, and the engineer who re-groups it.
+
+The spec sits between the two and should carry the designed intent, not the authoring tool's encoding of it:
 
 ```yaml
-# Desired API shape — not expressible today
+# The concept as designed and as coded — not expressible in the schema today
 margin:
   type: object
   members:
@@ -30,9 +34,7 @@ margin:
       default: none
 ```
 
-Today a library must author this as two unrelated flat props (`marginCompact`, `marginExpanded`), losing the fact that they are members of one concept. Code platforms express this concept directly — React props accept object literals, SwiftUI accepts structs — so the flat encoding forces every code consumer to reassemble the grouping by naming heuristic.
-
-Figma cannot author an object property natively. Component properties are flat, so an authoring convention is required: dot-separated property names (`margin.compact`, `margin.expanded`) that an opt-in convention folds into one object prop.
+Because Figma cannot author this natively, the proposal pairs the schema shape with an authoring convention teams can adopt in Figma as it exists today: dot-separated property names (`margin.compact`, `margin.expanded`) that an opt-in declaration folds into one object prop. The convention is deliberately a thin encoding of the target shape — if Figma's property model later gains structured values natively, specs authored this way are already in the destination format, and the fold becomes translation that is no longer needed rather than a migration.
 
 An object prop's value must also travel everywhere a prop value travels today:
 
