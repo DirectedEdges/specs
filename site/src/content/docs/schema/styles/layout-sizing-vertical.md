@@ -1,6 +1,7 @@
 ---
 title: "layoutSizingVertical"
 description: "Vertical sizing mode within an auto-layout parent"
+tableOfContents: false
 ---
 
 Vertical sizing mode.

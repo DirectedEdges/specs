@@ -1,6 +1,7 @@
 ---
 title: "fontFamily"
 description: "Font family for a text node"
+tableOfContents: false
 ---
 
 Font family name. Part of [`Typography`](/schema/typography/).

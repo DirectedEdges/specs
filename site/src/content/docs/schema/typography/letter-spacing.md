@@ -1,6 +1,7 @@
 ---
 title: "letterSpacing"
 description: "Letter spacing for a text node"
+tableOfContents: false
 ---
 
 Letter spacing in pixels. Part of [`Typography`](/schema/typography/).

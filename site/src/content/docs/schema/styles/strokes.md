@@ -1,6 +1,7 @@
 ---
 title: "strokes"
 description: "Stroke color for a container, vector, or line element"
+tableOfContents: false
 ---
 
 Stroke color.

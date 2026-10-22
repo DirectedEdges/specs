@@ -1,6 +1,7 @@
 ---
 title: "centerVerticalOffset"
 description: "Vertical offset from center for a positioned child"
+tableOfContents: false
 ---
 
 Vertical offset from center. Present when the vertical constraint is `CENTER`.

@@ -1,6 +1,7 @@
 ---
 title: "maxWidth"
 description: "Maximum width constraint for an element"
+tableOfContents: false
 ---
 
 Maximum width constraint.

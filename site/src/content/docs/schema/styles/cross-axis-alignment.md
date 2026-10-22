@@ -1,6 +1,7 @@
 ---
 title: "crossAxisAlignment"
 description: "Cross-axis alignment for an auto-layout container"
+tableOfContents: false
 ---
 
 Alignment along the cross axis (perpendicular to `layoutMode`).

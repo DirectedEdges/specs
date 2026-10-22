@@ -1,6 +1,7 @@
 ---
 title: "maxLines"
 description: "Line limit before text truncates with ellipsis"
+tableOfContents: false
 ---
 
 Maximum number of lines before `textOverflow: "ELLIPSIS"` applies.

@@ -1,6 +1,7 @@
 ---
 title: "leadingTrim"
 description: "Leading trim mode for a text node"
+tableOfContents: false
 ---
 
 Leading trim mode. Part of [`Typography`](/schema/typography/).

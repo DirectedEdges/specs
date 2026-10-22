@@ -1,6 +1,7 @@
 ---
 title: "layoutMode"
 description: "Auto-layout direction for a container"
+tableOfContents: false
 ---
 
 Auto-layout direction.

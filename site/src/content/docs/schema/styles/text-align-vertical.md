@@ -1,6 +1,7 @@
 ---
 title: "textAlignVertical"
 description: "Vertical text alignment within a text node's bounds"
+tableOfContents: false
 ---
 
 Vertical text alignment within the node's bounds.

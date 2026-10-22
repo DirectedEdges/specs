@@ -1,6 +1,7 @@
 ---
 title: "visible"
 description: "Whether an element is rendered"
+tableOfContents: false
 ---
 
 Whether the element is visible.

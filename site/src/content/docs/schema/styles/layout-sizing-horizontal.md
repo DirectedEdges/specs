@@ -1,6 +1,7 @@
 ---
 title: "layoutSizingHorizontal"
 description: "Horizontal sizing mode within an auto-layout parent"
+tableOfContents: false
 ---
 
 Horizontal sizing mode.

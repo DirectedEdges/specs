@@ -1,6 +1,7 @@
 ---
 title: "minHeight"
 description: "Minimum height constraint for an element"
+tableOfContents: false
 ---
 
 Minimum height constraint.

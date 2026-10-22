@@ -1,6 +1,7 @@
 ---
 title: "fontStyle"
 description: "Font style (weight/italic) for a text node"
+tableOfContents: false
 ---
 
 Font style name as defined in the font (e.g. weight and italic). Part of [`Typography`](/schema/typography/).

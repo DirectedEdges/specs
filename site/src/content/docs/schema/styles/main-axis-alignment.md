@@ -1,6 +1,7 @@
 ---
 title: "mainAxisAlignment"
 description: "Main-axis alignment for an auto-layout container"
+tableOfContents: false
 ---
 
 Alignment along the main axis (depends on `layoutMode`).

@@ -1,6 +1,7 @@
 ---
 title: "maxHeight"
 description: "Maximum height constraint for an element"
+tableOfContents: false
 ---
 
 Maximum height constraint.

@@ -1,6 +1,7 @@
 ---
 title: "cornerRadius"
 description: "Corner radius for a container element"
+tableOfContents: false
 ---
 
 Corner radius. Scalar when uniform; [`Corners`](/schema/corners/) object when per-corner values differ.

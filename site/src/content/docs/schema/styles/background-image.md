@@ -1,6 +1,7 @@
 ---
 title: "backgroundImage"
 description: "Image fill painted on a container or vector layer"
+tableOfContents: false
 ---
 
 Image fill. Fallback representation used when no image component is configured.

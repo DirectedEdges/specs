@@ -1,6 +1,7 @@
 ---
 title: "hangingList"
 description: "Whether hanging list markers are enabled for a text node"
+tableOfContents: false
 ---
 
 Whether hanging list markers are enabled. Part of [`Typography`](/schema/typography/).

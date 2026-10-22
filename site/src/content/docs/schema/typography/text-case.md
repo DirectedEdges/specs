@@ -1,6 +1,7 @@
 ---
 title: "textCase"
 description: "Text transform for a text node"
+tableOfContents: false
 ---
 
 Text transform. Part of [`Typography`](/schema/typography/).
