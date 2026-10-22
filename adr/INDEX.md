@@ -4,6 +4,7 @@
 
 | # | Title | Highlights |
 |---|-------|------------|
+| 111 | Object-Typed Props | |
 | 108 | The `$slotContent` Pointer Namespace | (reserved, draft in PR #767) |
 | 107 | Schema File Identity and Packaging | (reserved, draft in PR #767) |
 | 106 | Spec Provenance Beyond Figma Capture | (reserved, draft in PR #767) |
