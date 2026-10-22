@@ -1,4 +1,5 @@
 import { SlotContentRef } from "./SlotContentRef.js";
+import { ObjectPropValue } from "./PropConfigurations.js";
 
 /**
  * A pre-configured usage of a whole component (ADR-048).
@@ -18,10 +19,11 @@ export type InstanceExample = {
   /**
    * Prop values for this example. Scalar types for scalar props;
    * `SlotContentRef` (into `Component.slotContentExamples`) for slot props;
+   * `ObjectPropValue` for object props (ADR-111);
    * `null` when the prop is unset in this example (ADR-080).
    * `PropBinding` is not permitted here.
    */
-  propConfigurations?: Record<string, string | number | boolean | null | SlotContentRef>;
+  propConfigurations?: Record<string, string | number | boolean | null | SlotContentRef | ObjectPropValue>;
 };
 
 /**

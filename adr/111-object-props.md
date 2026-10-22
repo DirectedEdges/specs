@@ -3,7 +3,7 @@
 **Branch**: `111-object-props`
 **Created**: 2026-10-22
 **Status**: DRAFT
-**Summary**: *(written at implementation — see `/specs.adr.implement`)*
+**Summary**: An `ObjectProp` with named scalar `members` joins the prop union, folded from separator-named Figma properties via `objectProps`.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none)*
 

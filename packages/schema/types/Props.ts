@@ -8,7 +8,7 @@ export type Props = Record<string, AnyProp>;
 /**
  * Union of all supported property types
  */
-export type AnyProp = BooleanProp | StringProp | EnumProp | SlotProp | NumberProp | ImageProp;
+export type AnyProp = BooleanProp | StringProp | EnumProp | SlotProp | NumberProp | ImageProp | ObjectProp;
 
 /**
  * Provenance metadata for props extracted from a Figma code-only container layer.
@@ -136,6 +136,44 @@ export interface NumberProp {
   /** Sample numeric values demonstrating typical content for this prop */
   examples?: number[];
   /** DTCG §5.2.3 platform-specific extensions. @since 0.30.0 */
+  $extensions?: PropExtensions;
+}
+
+/**
+ * A member of an {@link ObjectProp} — a scalar prop definition (ADR-111).
+ *
+ * Members are one level deep by design: no `SlotProp`, `ImageProp`, or nested
+ * `ObjectProp`. Member typing, `default`, `enum`, `nullable`, and `examples`
+ * semantics are those of the member's own prop shape.
+ * @since 0.39.0
+ */
+export type ObjectPropMember = BooleanProp | StringProp | EnumProp | NumberProp;
+
+/**
+ * Object property definition (ADR-111) — a prop whose value is an object of named,
+ * individually typed scalar members (e.g. a responsive `margin` with `compact` and
+ * `expanded` members drawing from one enumerated set).
+ *
+ * Member names are opaque to the schema: breakpoint vocabularies are the library's
+ * choice, and the contract attaches no semantics to them. Member names must not begin
+ * with `$` (schema-enforced) and must not contain the platform's declared
+ * `objectProps.separator` (a generator invariant).
+ *
+ * No top-level `default` or `nullable`: defaults live per member, and an object prop's
+ * value always exists as the composition of its members' states.
+ *
+ * On platforms that cannot author an object natively (Figma), members fold from
+ * separator-delimited flat property names under the opt-in
+ * `platforms.<platform>.objectProps` convention; each member's
+ * `$extensions['com.figma'].name` records the flat source name so unfolding is
+ * reversal, not re-derivation.
+ * @since 0.39.0
+ */
+export interface ObjectProp {
+  type: 'object';
+  /** Named members, each an existing scalar prop definition. At least one member. */
+  members: Record<string, ObjectPropMember>;
+  /** DTCG §5.2.3 platform-specific extensions. @since 0.39.0 */
   $extensions?: PropExtensions;
 }
 
