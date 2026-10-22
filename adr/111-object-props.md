@@ -288,6 +288,8 @@ ObjectProp:
 
 Specs containing no `ObjectProp` are byte-identical before and after — the change is inert until a library opts in.
 
+Per-package adoption analysis: `specs-local-workspace/projects/042-adr-adoption/111-object-props.md` (maintained outside this repo).
+
 ---
 
 ## Semver Decision
