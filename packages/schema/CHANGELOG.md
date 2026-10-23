@@ -26,6 +26,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Settings.spec.format`, `Settings.spec.keys`, `Settings.spec.color`, `Settings.curation.preserveManualSelections`, `Settings.spec.collapsePrimitiveWrapper`: a workspace that sets the member explicitly is unaffected. One that left it unset now resolves to the new value — set it explicitly to keep the former output.
 - `Settings.spec.keys` carries the largest cost: a spec regenerated with `CAMEL` renames every anatomy key, prop key and reference to one, and every name derived from a key. Treat it as a migration, or set `keys: SAFE`.
 
+### ADRs
+
+#### New drafts
+
+- [ADR-112](../../adr/112-scaffolded-defaults.md) — Settings defaults adopt their scaffolded values
+
 
 ## [0.38.0] - 2026-10-21
 
