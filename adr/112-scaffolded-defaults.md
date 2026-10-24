@@ -2,7 +2,7 @@
 
 **Branch**: `112-scaffolded-defaults`
 **Created**: 2026-10-22
-**Status**: DRAFT
+**Status**: ACCEPTED
 **Summary**: `spec.format`, `spec.keys`, `spec.color`, `curation.preserveManualSelections` and `spec.collapsePrimitiveWrapper` default to the values every scaffolded workspace writes.
 **Deciders**: Nathan Curtis (author)
 **Supersedes**: *(none; changes default values introduced by ADR-071, ADR-093)*

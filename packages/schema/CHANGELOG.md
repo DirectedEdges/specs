@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ADRs
 
-#### New drafts
+#### Accepted
 
 - [ADR-112](../../adr/112-scaffolded-defaults.md) — Settings defaults adopt their scaffolded values
 
