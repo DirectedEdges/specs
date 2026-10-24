@@ -7,11 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.36.0] - Unreleased
 
-### Added
+### Breaking
+
+- **A workspace that leaves a setting unset now resolves it to a new value** for `spec.format`, `spec.keys`, `spec.color`, `curation.preserveManualSelections` and `spec.collapsePrimitiveWrapper`. Every workspace `specs init` scaffolded already writes four of the five, so only a hand-written `settings.yaml` that omitted them sees a change (ADR-112)
 
 ### Changed
 
-### Removed
+- **`specs init` writes every setting with a comment saying what that setting decides**, rather than a comment describing the value you would get by changing it. Three settings are scaffolded on while the schema defaults them off, and the file says which three and why
+
+### Fixed
+
+- **An invalid `spec.collapsePrimitiveWrapper` now warns and falls back to the default** instead of silently turning the setting off
 
 
 ## [0.35.0] - 2026-10-21
